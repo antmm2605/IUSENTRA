@@ -25,6 +25,32 @@ const pianoVuoto: PianoGiornoPayload = {
 
 const pianoCache = new Map<string, { etag: string; piano: PianoGiornoPayload }>()
 
+export type StatoAggiornamentoPiano = 'queued' | 'running' | 'done' | 'failed'
+
+export type AggiornamentoPianoResponse = {
+  ok: boolean
+  accettato?: boolean
+  gia_in_coda?: boolean
+  avvio_immediato_richiesto?: boolean
+  job_id?: string
+  run_id?: string
+  stato?: StatoAggiornamentoPiano
+  stato_scheduler?: string
+  messaggio?: string
+  detail?: string
+}
+
+export type StatoAggiornamentoPianoResponse = {
+  ok: boolean
+  job_id?: string
+  stato?: StatoAggiornamentoPiano
+  /** Compatibilità con eventuali risposte precedenti del servizio automatico. */
+  status?: StatoAggiornamentoPiano
+  messaggio?: string
+  detail?: string
+  report?: Record<string, unknown>
+}
+
 export async function fetchPianoGiorno(
   signal?: AbortSignal,
   opts: { user?: string; date?: string } = {},
@@ -86,14 +112,7 @@ export function fetchBacklog(
 }
 
 export function richiediAggiornamento(targetDate: string) {
-  return apiPostJson<{
-    ok: boolean
-    accettato?: boolean
-    gia_in_coda?: boolean
-    avvio_immediato_richiesto?: boolean
-    messaggio?: string
-    detail?: string
-  }>(
+  return apiPostJson<AggiornamentoPianoResponse>(
     '/api/v1/ui/daily-plan/refresh',
     {
       mode: 'incremental',
@@ -101,6 +120,14 @@ export function richiediAggiornamento(targetDate: string) {
       idempotency_key: `ui-${crypto.randomUUID()}`,
     },
     { ok: false },
+  )
+}
+
+export function fetchStatoAggiornamento(jobId: string, signal?: AbortSignal) {
+  return apiJson<StatoAggiornamentoPianoResponse>(
+    `/api/v1/ui/daily-plan/jobs/${encodeURIComponent(jobId)}`,
+    { ok: false, job_id: jobId },
+    { signal },
   )
 }
 

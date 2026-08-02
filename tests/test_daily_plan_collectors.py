@@ -147,6 +147,17 @@ def test_agenda_collector_conflitti():
     assert conflitti[0].priority_hint == "P1"
 
 
+def test_agenda_collector_assegna_evento_utc_al_giorno_italiano_corretto():
+    evento = _appuntamento("utc-mezzanotte", 0)
+    # 22:30 UTC del 10 luglio equivale alle 00:30 italiane dell'11 luglio.
+    evento.data_ora = "2026-07-10T22:30:00Z"
+
+    result = AgendaCollector().collect(_ctx(agenda_store=_AgendaStore([evento])))
+
+    assert [entry["id"] for entry in result.fixed_agenda] == ["utc-mezzanotte"]
+    assert [signal.source_id for signal in result.signals] == ["utc-mezzanotte"]
+
+
 def test_agenda_collector_usa_la_data_selezionata():
     planning_day = TODAY + timedelta(days=2)
     ctx = _ctx(

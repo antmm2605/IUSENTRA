@@ -167,6 +167,16 @@ def test_read_plan_non_esegue_collettori(world):
     assert len(world.provider_calls) == chiamate_prima, "read_plan non deve raccogliere"
 
 
+def test_missing_snapshot_users_rileva_e_chiude_il_buco(world):
+    service = world.service()
+
+    assert service.missing_snapshot_user_ids() == {"", "u1", "u2"}
+
+    service.rebuild_full()
+
+    assert service.missing_snapshot_user_ids() == set()
+
+
 def test_rigenerazione_idempotente_stessa_plan_version(world):
     """Caso obbligatorio 16: idempotenza di rigenerazione."""
     world.scadenze = [_scadenza("s1", 0), _scadenza("s2", 5)]

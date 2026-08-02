@@ -163,6 +163,22 @@ class DailyPlanService:
             lex_summary_version=str(snapshot.get("lex_summary_version") or ""),
         )
 
+    def missing_snapshot_user_ids(self, *, target_date: str = "") -> set[str]:
+        """Restituisce gli utenti attivi senza snapshot per il giorno richiesto.
+
+        Il controllo legge solo il repository materializzato: non avvia
+        collettori né analisi. Uno snapshot vuoto o con avvisi è valido e non
+        deve produrre tentativi infiniti.
+        """
+        target = _planning_day(target_date, self.clock.today()).isoformat()
+        resolver = self.resolver_factory()
+        expected = {""} | {
+            str(user.get("id") or "")
+            for user in getattr(resolver, "users", [])
+            if str(user.get("id") or "")
+        }
+        return expected - self.repository.snapshot_user_ids(target)
+
     # ------------------------------------------------------------ ricostruzioni
 
     def rebuild_full(self, *, target_date: str = "", actor: str = "scheduler") -> dict[str, Any]:

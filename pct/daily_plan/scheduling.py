@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from pct.formatting import parse_datetime_rome
+
 from .clock import ROME_TZ
 from .models import DailyWorkItem
 
@@ -207,12 +209,9 @@ def fixed_block_from_agenda(entry: dict[str, Any]) -> FixedBlock | None:
     raw = str(entry.get("data_ora") or entry.get("data_inizio") or "").strip()
     if not raw:
         return None
-    try:
-        start = datetime.fromisoformat(raw[:16])
-    except Exception:
+    start = parse_datetime_rome(raw)
+    if start is None:
         return None
-    if start.tzinfo is None:
-        start = start.replace(tzinfo=ROME_TZ)
     tipo = str(entry.get("tipo") or "").upper()
     kind = "udienza" if "UDIENZA" in tipo else "appuntamento"
     minutes = int(entry.get("durata_minuti") or 0) or 60

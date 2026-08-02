@@ -1,32 +1,28 @@
-import { AlertTriangle, CalendarClock, FolderOpen, ShieldAlert } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarClock,
+  Clock3,
+  FileCheck2,
+  FolderOpen,
+  ShieldAlert,
+  Timer,
+  UserRound,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { AttivitaPiano } from './types'
+import { formatTimeIt } from '@/formatting'
+import {
+  dailyPlanActionKindLabel,
+  dailyPlanPriorityLabel,
+  dailyPlanStatusLabel,
+  type AttivitaPiano,
+} from './types'
 
 const prioritaVariant: Record<string, 'destructive' | 'default' | 'secondary' | 'outline'> = {
   P0: 'destructive',
   P1: 'default',
   P2: 'secondary',
   P3: 'outline',
-}
-
-const prioritaLabel: Record<string, string> = {
-  P0: 'Immediata',
-  P1: 'Entro il giorno',
-  P2: 'Questa settimana',
-  P3: 'Organizzativa',
-}
-
-const statoLabel: Record<string, string> = {
-  proposed: 'Proposta',
-  needs_review: 'Da confermare',
-  accepted: 'Accettata',
-  in_progress: 'In corso',
-  completed: 'Completata',
-  delegated: 'Delegata',
-  snoozed: 'Rinviata',
-  rejected: 'Rifiutata',
-  obsolete: 'Superata',
 }
 
 type Props = {
@@ -36,16 +32,32 @@ type Props = {
   onAzione?: (item: AttivitaPiano, action: string) => void
 }
 
+function programmazioneLabel(item: AttivitaPiano): string {
+  const ora = formatTimeIt(item.fascia_proposta, '')
+  const durata = item.minuti_stimati ? `${item.minuti_stimati} min` : ''
+  if (ora && durata) return `${ora} · ${durata}`
+  if (ora) return ora
+  return durata
+}
+
 export function ItemCard({ item, onOpenDetail, busy, onAzione }: Props) {
   const chiusa = item.stato === 'completed' || item.stato === 'rejected'
+  const programmazione = programmazioneLabel(item)
+  const fonteLabel = item.evidenze === 1 ? 'fonte' : 'fonti'
+
   return (
     <div
-      className={`rounded-md border px-3 py-2 transition hover:bg-muted/60 ${chiusa ? 'opacity-60' : ''}`}
+      className={`rounded-md border px-3 py-2.5 transition-colors hover:bg-muted/60 ${chiusa ? 'opacity-60' : ''}`}
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={prioritaVariant[item.priorita] || 'outline'}>
-          {item.priorita} · {prioritaLabel[item.priorita] || item.priorita}
+          {item.priorita} · {dailyPlanPriorityLabel[item.priorita] || item.priorita}
         </Badge>
+        {item.tipo_azione ? (
+          <Badge variant="outline">
+            {dailyPlanActionKindLabel[item.tipo_azione] || 'Attività operativa'}
+          </Badge>
+        ) : null}
         {item.perentorio ? (
           <Badge variant="destructive" className="gap-1">
             <ShieldAlert size={12} aria-hidden="true" /> Perentorio
@@ -57,37 +69,60 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione }: Props) {
           </Badge>
         ) : null}
         {item.da_rivedere ? <Badge variant="outline">Da confermare</Badge> : null}
-        <Badge variant="outline">{statoLabel[item.stato] || item.stato}</Badge>
+        <Badge variant="outline">{dailyPlanStatusLabel[item.stato] || item.stato}</Badge>
         {item.scadenza_label ? (
           <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-            <CalendarClock size={13} aria-hidden="true" /> {item.scadenza_label}
+            <CalendarClock size={13} aria-hidden="true" /> Termine {item.scadenza_label}
           </span>
         ) : null}
       </div>
+
       <button
         type="button"
-        className="mt-1 block w-full text-left"
+        className="mt-1.5 block w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={() => onOpenDetail(item)}
+        aria-label={`Apri il dettaglio di ${item.titolo}`}
       >
         <strong className="text-sm">{item.titolo}</strong>
         {item.motivo ? (
-          <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.motivo}</p>
+          <p className="mt-0.5 line-clamp-3 text-sm leading-5 text-muted-foreground">{item.motivo}</p>
         ) : null}
       </button>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+
+      <div className="mt-2 grid gap-x-4 gap-y-1.5 border-t pt-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-3">
         {item.fascicolo ? (
-          <span className="flex items-center gap-1">
-            <FolderOpen size={13} aria-hidden="true" /> {item.fascicolo}
+          <span className="flex min-w-0 items-center gap-1">
+            <FolderOpen size={13} aria-hidden="true" />
+            <span className="font-medium text-foreground">Fascicolo</span>
+            <span className="truncate">{item.fascicolo}</span>
           </span>
         ) : null}
-        {item.cliente ? <span>{item.cliente}</span> : null}
-        {item.assegnato_label ? <span>Assegnata a {item.assegnato_label}</span> : null}
-        {item.fascia_proposta ? (
-          <span>Fascia proposta {item.fascia_proposta.slice(11, 16)}</span>
+        {item.cliente ? (
+          <span className="min-w-0 truncate">
+            <span className="font-medium text-foreground">Cliente</span> {item.cliente}
+          </span>
         ) : null}
-        <span>Affidabilità {Math.round(item.affidabilita * 100)}%</span>
-        <span>{item.evidenze} {item.evidenze === 1 ? 'fonte' : 'fonti'}</span>
-        <span className="ml-auto flex gap-1.5">
+        {item.assegnato_label ? (
+          <span className="flex min-w-0 items-center gap-1">
+            <UserRound size={13} aria-hidden="true" />
+            <span className="font-medium text-foreground">Assegnata a</span>
+            <span className="truncate">{item.assegnato_label}</span>
+          </span>
+        ) : null}
+        {programmazione ? (
+          <span className="flex items-center gap-1">
+            {item.fascia_proposta ? <Clock3 size={13} aria-hidden="true" /> : <Timer size={13} aria-hidden="true" />}
+            <span className="font-medium text-foreground">Pianificazione</span> {programmazione}
+          </span>
+        ) : null}
+        <span className="flex items-center gap-1">
+          <FileCheck2 size={13} aria-hidden="true" />
+          <span className="font-medium text-foreground">Fonti</span> {item.evidenze} {fonteLabel}
+        </span>
+        <span>
+          <span className="font-medium text-foreground">Attendibilità</span> {Math.round(item.affidabilita * 100)}%
+        </span>
+        <span className="flex flex-wrap gap-1.5 sm:col-span-2 sm:justify-self-end xl:col-span-1">
           {item.apri ? (
             <Button asChild size="sm" variant="outline">
               <a href={item.apri}>Apri</a>

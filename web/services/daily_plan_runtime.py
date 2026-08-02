@@ -346,37 +346,67 @@ def run_daily_plan_for_all_tenants(
     mode: str = "incremental",
     actor: str = "IUSENTRA scheduler",
     include_dirty: bool = True,
+    ensure_today_snapshots: bool = False,
+    scheduled_daily: bool = False,
 ) -> dict[str, Any]:
     """Esegue il piano del giorno per tutti gli studi attivi.
 
-    ``mode="full"``: riconciliazione completa (giornaliera, 07:30 Europe/Rome).
+    ``mode="full"``: riconciliazione completa (giornaliera, 05:30 Europe/Rome).
     ``mode="incremental"``: smaltisce sempre i job accodati; le dirty
     entities vengono considerate solo quando ``include_dirty`` e' attivo.
     Se un tenant non ha nulla da rielaborare viene saltato (no-op economico).
+    ``scheduled_daily`` riserva la passata delle 05:30 alla data corrente:
+    una richiesta manuale per una data futura non puo' mai sostituire il
+    piano che lo studio deve trovare pronto al mattino.
     Nessuna scrittura applicativa automatica: il piano è una proiezione.
     """
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
 
     tenants: list[dict[str, Any]] = []
-    totals = {"tenants": 0, "skipped": 0, "errors": 0, "items_written": 0}
+    totals = {
+        "tenants": 0,
+        "skipped": 0,
+        "errors": 0,
+        "items_written": 0,
+        "stale_jobs_recovered": 0,
+    }
 
     def _run_for_current(tenant_label: str) -> dict[str, Any] | None:
         service = service_from_paths(_current_paths(), tenant_label=tenant_label)
         repo = service.repository
-        job = repo.claim_next_job("full_rebuild")
-        effective_mode = mode
-        if job is not None:
-            effective_mode = "full"
-        elif mode != "full":
-            job = repo.claim_next_job("incremental_refresh")
-            if job is None and (not include_dirty or repo.pending_dirty_count() == 0):
-                return None  # niente da fare: no-op economico
+        recover_stale_jobs = getattr(repo, "recover_stale_running_jobs", None)
+        recovered_stale_jobs = int(recover_stale_jobs() or 0) if callable(recover_stale_jobs) else 0
+        job = None
+        effective_mode = "full" if scheduled_daily else mode
+        recovery_missing: set[str] = set()
+        if not scheduled_daily and ensure_today_snapshots:
+            # Prima la data corrente: una coda di richieste future non deve
+            # mai ritardare indefinitamente il piano operativo di oggi.
+            recovery_missing = service.missing_snapshot_user_ids()
+            if recovery_missing:
+                effective_mode = "full"
+
+        if not scheduled_daily and not recovery_missing:
+            job = repo.claim_next_job("full_rebuild")
+            if job is not None:
+                effective_mode = "full"
+            elif mode != "full":
+                job = repo.claim_next_job("incremental_refresh")
+                if job is None and (not include_dirty or repo.pending_dirty_count() == 0):
+                    return None  # niente da fare: no-op economico
         target_date = str(((job or {}).get("payload") or {}).get("target_date") or "")
         try:
             if effective_mode == "full":
                 report = service.rebuild_full(target_date=target_date, actor=actor)
             else:
                 report = service.refresh_incremental(target_date=target_date, actor=actor)
+            if recovery_missing:
+                report["automatic_recovery"] = True
+                report["missing_snapshot_users"] = len(recovery_missing)
+            if scheduled_daily:
+                report["automatic_daily_generation"] = True
+            if recovered_stale_jobs:
+                report["stale_jobs_recovered"] = recovered_stale_jobs
             if job is not None:
                 repo.finish_job(job["id"], status="done", report=report)
             return report
@@ -406,6 +436,7 @@ def run_daily_plan_for_all_tenants(
             else:
                 totals["tenants"] += 1
                 totals["items_written"] += int(report.get("items_written") or 0)
+                totals["stale_jobs_recovered"] += int(report.get("stale_jobs_recovered") or 0)
                 tenants.append({"tenant": slug, **{k: report[k] for k in (
                     "mode", "items_written", "users_planned", "signals_upserted",
                 ) if k in report}})
@@ -426,6 +457,7 @@ def run_daily_plan_for_all_tenants(
         elif report is not None:
             totals["tenants"] += 1
             totals["items_written"] += int(report.get("items_written") or 0)
+            totals["stale_jobs_recovered"] += int(report.get("stale_jobs_recovered") or 0)
             tenants.append({"tenant": "default", "mode": report.get("mode"),
                             "items_written": report.get("items_written")})
 

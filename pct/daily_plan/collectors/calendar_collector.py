@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from pct.formatting import parse_datetime_rome
+
 from ..models import OperationalSignal, SignalEvidence, SourceCoverage
 from .base import CollectorContext, CollectorResult, unavailable_result
 
@@ -21,24 +23,8 @@ _CANCELLED_APPOINTMENT_STATES = {"annullato", "cancellato"}
 
 
 def _to_date(value: Any) -> date | None:
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    raw = " ".join(str(value or "").split()).strip()
-    if not raw:
-        return None
-    for sample, fmt in (
-        (raw[:19], "%Y-%m-%dT%H:%M:%S"),
-        (raw[:16], "%Y-%m-%dT%H:%M"),
-        (raw[:10], "%Y-%m-%d"),
-        (raw[:10], "%d/%m/%Y"),
-    ):
-        try:
-            return datetime.strptime(sample, fmt).date()
-        except Exception:
-            continue
-    return None
+    parsed = parse_datetime_rome(value)
+    return parsed.date() if parsed is not None else None
 
 
 def _enum_val(obj: Any) -> str:
@@ -186,7 +172,9 @@ class AgendaCollector:
                 }
                 fixed_agenda.append(entry)
                 try:
-                    start_dt = datetime.fromisoformat(raw_start[:16])
+                    start_dt = parse_datetime_rome(raw_start)
+                    if start_dt is None:
+                        raise ValueError("data agenda non leggibile")
                     day_slots.append(
                         (start_dt, start_dt + timedelta(minutes=durata), app_id)
                     )

@@ -13,6 +13,7 @@ import json
 import sqlite3
 import uuid
 from collections.abc import Iterable
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -67,6 +68,12 @@ _SQLITE_REQUIRED_SCHEMA_OBJECTS = frozenset(
         "idx_dp_action_item",
     }
 )
+
+# Il budget dichiarato per una richiesta manuale e' breve, ma la
+# riconciliazione completa di uno studio puo' richiedere piu' tempo. Il
+# margine evita di interrompere un'elaborazione lecita e, al riavvio, evita
+# che un job rimasto ``running`` blocchi per sempre la coda dello studio.
+STALE_RUNNING_JOB_SECONDS = 45 * 60
 
 
 def derive_daily_plan_db_path(anchor: str) -> str:
@@ -174,8 +181,27 @@ class DailyPlanRepository:
                 ).fetchone()
                 if existing:
                     updated += 1
+                    # L'identificativo tecnico dei collector può essere
+                    # deterministico (es. stessa sorgente importata due volte
+                    # con chiavi di deduplica diverse). Conserviamo quindi
+                    # sempre l'ID già materializzato per la medesima chiave.
+                    signal_id = str(existing["id"] or "")
                 else:
                     inserted += 1
+                    # ``id`` è PK globale anche quando la deduplica è
+                    # tenant-aware. Un ID proposto da una sorgente non deve
+                    # mai impedire il piano del giorno: se è già occupato da
+                    # un altro segnale, assegniamo un ID interno nuovo e
+                    # lasciamo invariata la chiave di deduplica operativa.
+                    signal_id = str(sig.id or new_id("sig"))
+                    while conn.execute(
+                        "SELECT 1 FROM operational_signals WHERE id = ?", (signal_id,)
+                    ).fetchone():
+                        signal_id = new_id("sig")
+                # I successivi passaggi costruiscono le attività usando gli
+                # oggetti raccolti: mantenerli allineati evita riferimenti a
+                # un ID tecnico che è stato sostituito per collisione.
+                sig.id = signal_id
                 conn.execute(
                     """
                     INSERT INTO operational_signals (
@@ -212,7 +238,7 @@ class DailyPlanRepository:
                         updated_at = excluded.updated_at
                     """,
                     (
-                        sig.id or new_id("sig"),
+                        signal_id,
                         self.tenant_id,
                         sig.source_type,
                         sig.source_id,
@@ -687,6 +713,16 @@ class DailyPlanRepository:
                 data[target] = json.loads(default)
         return data
 
+    def snapshot_user_ids(self, target_date: str) -> set[str]:
+        """Utenti con snapshot per la data del tenant corrente."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT user_id FROM daily_plan_snapshots "
+                "WHERE tenant_id = ? AND target_date = ?",
+                (self.tenant_id, target_date),
+            ).fetchall()
+        return {str(row["user_id"] or "") for row in rows}
+
     def save_lex_summary(
         self, *, target_date: str, user_id: str, plan_version: str, summary: str
     ) -> bool:
@@ -754,6 +790,72 @@ class DailyPlanRepository:
 
     # -------------------------------------------------------------- jobs
 
+    def recover_stale_running_jobs(
+        self, *, max_age_seconds: int = STALE_RUNNING_JOB_SECONDS
+    ) -> int:
+        """Chiude in modo terminale i job rimasti ``running`` dopo un crash.
+
+        Non esiste una lease persistente nelle versioni precedenti dello
+        schema. Perciò un job senza ``started_at`` valido o oltre la soglia
+        viene marcato fallito e liberato dalla relativa idempotency key: una
+        nuova richiesta puo' essere accodata e il recupero automatico della
+        giornata non resta ostaggio di una riga zombie.
+        """
+        try:
+            age_seconds = max(60, int(max_age_seconds or STALE_RUNNING_JOB_SECONDS))
+        except (TypeError, ValueError):
+            age_seconds = STALE_RUNNING_JOB_SECONDS
+        now = self.clock.now()
+        cutoff = now - timedelta(seconds=age_seconds)
+        stale_ids: list[tuple[str, str]] = []
+
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, started_at FROM daily_plan_jobs "
+                "WHERE tenant_id = ? AND status = 'running'",
+                (self.tenant_id,),
+            ).fetchall()
+            for row in rows:
+                raw_started = str(row["started_at"] or "").strip()
+                stale = not raw_started
+                if raw_started:
+                    try:
+                        parsed = datetime.fromisoformat(
+                            raw_started[:-1] + "+00:00"
+                            if raw_started.endswith("Z")
+                            else raw_started
+                        )
+                        if parsed.tzinfo is None:
+                            parsed = parsed.replace(tzinfo=now.tzinfo)
+                        stale = parsed <= cutoff
+                    except (TypeError, ValueError):
+                        stale = True
+                if stale:
+                    stale_ids.append((str(row["id"] or ""), raw_started))
+
+            recovered = 0
+            report = json.dumps(
+                {
+                    "ok": False,
+                    "code": "stale_running_recovered",
+                },
+                ensure_ascii=False,
+            )
+            finished_at = self._now_iso()
+            for job_id, started_at in stale_ids:
+                if not job_id:
+                    continue
+                updated = conn.execute(
+                    "UPDATE daily_plan_jobs "
+                    "SET status = 'failed', finished_at = ?, report_json = ?, idempotency_key = '' "
+                    "WHERE tenant_id = ? AND id = ? AND status = 'running' AND started_at = ?",
+                    (finished_at, report, self.tenant_id, job_id, started_at),
+                )
+                if int(updated.rowcount or 0) > 0:
+                    recovered += 1
+            conn.commit()
+        return recovered
+
     def enqueue_job(
         self,
         job_type: str,
@@ -763,6 +865,7 @@ class DailyPlanRepository:
         payload: dict[str, Any] | None = None,
         budget: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        self.recover_stale_running_jobs()
         now = self._now_iso()
         with self._connect() as conn:
             if idempotency_key:
@@ -816,6 +919,7 @@ class DailyPlanRepository:
         return {"job_id": job_id, "status": "queued", "replayed": False}
 
     def claim_next_job(self, job_type: str = "") -> dict[str, Any] | None:
+        self.recover_stale_running_jobs()
         now = self._now_iso()
         with self._connect() as conn:
             query = (
@@ -829,12 +933,14 @@ class DailyPlanRepository:
             row = conn.execute(query, tuple(params)).fetchone()
             if not row:
                 return None
-            conn.execute(
+            claimed = conn.execute(
                 "UPDATE daily_plan_jobs SET status = 'running', started_at = ? "
                 "WHERE tenant_id = ? AND id = ? AND status = 'queued'",
                 (now, self.tenant_id, row["id"]),
             )
             conn.commit()
+            if int(claimed.rowcount or 0) <= 0:
+                return None
             data = dict(row)
             data["status"] = "running"
             data["payload"] = json.loads(data.pop("payload_json", "{}") or "{}")
@@ -848,7 +954,7 @@ class DailyPlanRepository:
         with self._connect() as conn:
             conn.execute(
                 "UPDATE daily_plan_jobs SET status = ?, finished_at = ?, report_json = ? "
-                "WHERE tenant_id = ? AND id = ?",
+                "WHERE tenant_id = ? AND id = ? AND status IN ('queued', 'running')",
                 (
                     status,
                     now,
@@ -858,6 +964,34 @@ class DailyPlanRepository:
                 ),
             )
             conn.commit()
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        """Restituisce lo stato di un job della coda del tenant corrente.
+
+        La lettura e' intenzionalmente piccola e tenant-scoped: serve alla UI
+        soltanto per distinguere in coda, in lavorazione, concluso o fallito,
+        senza interrogare collettori o dati di dominio.
+        """
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM daily_plan_jobs WHERE tenant_id = ? AND id = ?",
+                (self.tenant_id, job_id),
+            ).fetchone()
+        if not row:
+            return None
+        data = dict(row)
+        for column, key in (
+            ("payload_json", "payload"),
+            ("budget_json", "budget"),
+            ("report_json", "report"),
+        ):
+            try:
+                raw = data.pop(column, "{}") or "{}"
+                decoded = raw if isinstance(raw, dict) else json.loads(raw)
+            except Exception:
+                decoded = {}
+            data[key] = decoded if isinstance(decoded, dict) else {}
+        return data
 
     # -------------------------------------------------------------- dirty
 

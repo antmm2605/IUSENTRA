@@ -4,8 +4,12 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  FileCheck2,
+  FolderOpen,
+  ListChecks,
   Mail,
   RefreshCw,
+  Timer,
   UserRound,
   XCircle,
 } from 'lucide-react'
@@ -19,17 +23,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { formatDateIt, formatDateTimeIt, formatTimeIt } from '@/formatting'
 import { fetchDettaglioAttivita } from './api'
-import type { AttivitaDettaglio, AttivitaPiano } from './types'
-
-const fonteLabel: Record<string, string> = {
-  pec: 'Presidio PEC',
-  scadenziario: 'Scadenziario',
-  agenda: 'Agenda',
-  case_presidio: 'Presidio fascicolo',
-  economic: 'Presidio economico',
-  deposit: 'Depositi telematici',
-}
+import {
+  dailyPlanActionKindLabel,
+  dailyPlanPriorityLabel,
+  dailyPlanSourceLabel,
+  dailyPlanStatusLabel,
+  type AttivitaDettaglio,
+  type AttivitaPiano,
+} from './types'
 
 type Props = {
   item: AttivitaPiano | null
@@ -38,6 +41,21 @@ type Props = {
   onAzione: (item: AttivitaPiano, action: string, params?: Record<string, unknown>) => void
   busy: boolean
   esitoMessaggio: string
+}
+
+function programmazioneLabel(item: AttivitaPiano): string {
+  const ora = formatTimeIt(item.fascia_proposta, '')
+  const durata = item.minuti_stimati ? `${item.minuti_stimati} min` : ''
+  if (ora && durata) return `${ora} · ${durata}`
+  if (ora) return ora
+  return durata
+}
+
+function evidenzaDataLabel(value: string): string {
+  if (!value) return ''
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? formatDateIt(value, '')
+    : formatDateTimeIt(value, '')
 }
 
 export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione, busy, esitoMessaggio }: Props) {
@@ -66,37 +84,109 @@ export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione
   }, [item, tentativoDettaglio])
 
   if (!item) return null
-  const chiusa = item.stato === 'completed' || item.stato === 'rejected'
-  const azioni = new Set(item.azioni)
+  const itemOperativo = dettaglio || item
+  const chiusa = itemOperativo.stato === 'completed' || itemOperativo.stato === 'rejected'
+  const azioni = new Set(itemOperativo.azioni)
+  const programmazione = programmazioneLabel(itemOperativo)
+  const statoAggiornato = dettaglio ? evidenzaDataLabel(dettaglio.stato_aggiornato_il) : ''
 
   return (
     <Sheet open={Boolean(item)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <SheetContent side="right" className="flex w-full flex-col gap-3 overflow-y-auto sm:max-w-lg">
+      <SheetContent side="right" className="flex w-full flex-col gap-3 overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle className="pr-6 text-left">{item.titolo}</SheetTitle>
+          <SheetTitle className="pr-6 text-left">{itemOperativo.titolo}</SheetTitle>
           <SheetDescription className="text-left">
-            {item.fascicolo ? `Fascicolo ${item.fascicolo}` : 'Senza fascicolo collegato'}
-            {item.cliente ? ` · ${item.cliente}` : ''}
+            {itemOperativo.fascicolo ? `Fascicolo ${itemOperativo.fascicolo}` : 'Senza fascicolo collegato'}
+            {itemOperativo.cliente ? ` · ${itemOperativo.cliente}` : ''}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-wrap gap-1.5">
-          <Badge variant={item.priorita === 'P0' ? 'destructive' : 'secondary'}>{item.priorita}</Badge>
-          {item.perentorio ? <Badge variant="destructive">Termine perentorio</Badge> : null}
-          {item.bloccante ? <Badge variant="destructive">Bloccante</Badge> : null}
-          {item.da_rivedere ? <Badge variant="outline">Richiede la tua conferma</Badge> : null}
-          <Badge variant="outline">Affidabilità {Math.round(item.affidabilita * 100)}%</Badge>
+          <Badge variant={itemOperativo.priorita === 'P0' ? 'destructive' : 'secondary'}>
+            {itemOperativo.priorita} · {dailyPlanPriorityLabel[itemOperativo.priorita]}
+          </Badge>
+          {itemOperativo.tipo_azione ? (
+            <Badge variant="outline">
+              {dailyPlanActionKindLabel[itemOperativo.tipo_azione] || 'Attività operativa'}
+            </Badge>
+          ) : null}
+          <Badge variant="outline">{dailyPlanStatusLabel[itemOperativo.stato] || itemOperativo.stato}</Badge>
+          {itemOperativo.perentorio ? <Badge variant="destructive">Termine perentorio</Badge> : null}
+          {itemOperativo.bloccante ? <Badge variant="destructive">Bloccante</Badge> : null}
+          {itemOperativo.da_rivedere ? <Badge variant="outline">Richiede la tua conferma</Badge> : null}
         </div>
 
         <section className="grid gap-1 text-sm">
           <h3 className="font-semibold">Perché è in piano</h3>
-          <p className="text-muted-foreground">{dettaglio?.spiegazione_priorita || item.motivo}</p>
-          {item.scadenza_label ? (
-            <p className="flex items-center gap-1 text-muted-foreground">
-              <Clock3 size={14} aria-hidden="true" /> Entro il {item.scadenza_label}
+          <p className="leading-6 text-muted-foreground">
+            {dettaglio?.spiegazione_priorita || itemOperativo.motivo || 'Motivazione non disponibile.'}
+          </p>
+          {dettaglio?.spiegazione_priorita && itemOperativo.motivo && itemOperativo.motivo !== dettaglio.spiegazione_priorita ? (
+            <p className="text-muted-foreground">
+              <span className="font-medium text-foreground">Presidio richiesto: </span>{itemOperativo.motivo}
             </p>
           ) : null}
         </section>
+
+        <Separator />
+
+        <section className="grid gap-2 text-sm">
+          <h3 className="font-semibold">Contesto e pianificazione</h3>
+          <dl className="grid gap-x-6 gap-y-3 border-y py-3 sm:grid-cols-2">
+            <div className="grid gap-0.5">
+              <dt className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                <ListChecks size={13} aria-hidden="true" /> Intervento
+              </dt>
+              <dd>{dailyPlanActionKindLabel[itemOperativo.tipo_azione] || 'Attività operativa'}</dd>
+            </div>
+            <div className="grid gap-0.5">
+              <dt className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                <Clock3 size={13} aria-hidden="true" /> Termine
+              </dt>
+              <dd>{itemOperativo.scadenza_label || 'Nessun termine espresso'}</dd>
+            </div>
+            {programmazione ? (
+              <div className="grid gap-0.5">
+                <dt className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                  <Timer size={13} aria-hidden="true" /> Fascia proposta
+                </dt>
+                <dd>{programmazione}</dd>
+              </div>
+            ) : null}
+            {itemOperativo.fascicolo ? (
+              <div className="grid gap-0.5">
+                <dt className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                  <FolderOpen size={13} aria-hidden="true" /> Fascicolo
+                </dt>
+                <dd>{itemOperativo.fascicolo}</dd>
+              </div>
+            ) : null}
+            {itemOperativo.cliente ? (
+              <div className="grid gap-0.5">
+                <dt className="text-xs font-medium text-muted-foreground">Cliente</dt>
+                <dd>{itemOperativo.cliente}</dd>
+              </div>
+            ) : null}
+            {itemOperativo.assegnato_label ? (
+              <div className="grid gap-0.5">
+                <dt className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                  <UserRound size={13} aria-hidden="true" /> Assegnata a
+                </dt>
+                <dd>{itemOperativo.assegnato_label}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </section>
+
+        {dettaglio?.nota_stato || statoAggiornato ? (
+          <section className="grid gap-1 text-sm">
+            <h3 className="font-semibold">Stato dell’attività</h3>
+            {dettaglio?.nota_stato ? <p className="text-muted-foreground">{dettaglio.nota_stato}</p> : null}
+            {statoAggiornato ? (
+              <p className="text-xs text-muted-foreground">Aggiornato il {statoAggiornato}</p>
+            ) : null}
+          </section>
+        ) : null}
 
         <Separator />
 
@@ -104,16 +194,30 @@ export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione
           <h3 className="font-semibold">Fonti che lo provano</h3>
           {dettaglio ? (
             dettaglio.evidenze_dettaglio.length ? (
-              <ul className="grid gap-1.5">
-                {dettaglio.evidenze_dettaglio.map((ev, idx) => (
-                  <li key={`${ev.source_type}-${ev.source_id}-${idx}`} className="rounded-md border px-2.5 py-1.5">
-                    <span className="font-medium">{fonteLabel[ev.source_type] || ev.source_type}</span>
-                    {ev.label ? <span className="text-muted-foreground"> — {ev.label}</span> : null}
-                    {ev.href ? (
-                      <a className="ml-2 underline" href={ev.href}>Apri</a>
-                    ) : null}
-                  </li>
-                ))}
+              <ul className="grid divide-y rounded-md border px-3">
+                {dettaglio.evidenze_dettaglio.map((ev, idx) => {
+                  const dataEvidenza = evidenzaDataLabel(ev.timestamp)
+                  return (
+                    <li key={`${ev.source_type}-${ev.source_id}-${idx}`} className="grid gap-1 py-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <span className="flex items-center gap-1 font-medium">
+                          <FileCheck2 size={14} aria-hidden="true" />
+                          {dailyPlanSourceLabel[ev.source_type] || 'Fonte'}
+                        </span>
+                        {ev.href ? (
+                          <a className="text-sm font-medium text-primary underline underline-offset-2" href={ev.href}>
+                            Apri fonte
+                          </a>
+                        ) : null}
+                      </div>
+                      {ev.label ? <p className="text-muted-foreground">{ev.label}</p> : null}
+                      <p className="text-xs text-muted-foreground">
+                        {dataEvidenza ? `Rilevata il ${dataEvidenza}` : 'Data non disponibile'}
+                        {ev.confidence ? ` · Attendibilità ${Math.round(ev.confidence * 100)}%` : ''}
+                      </p>
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               <p className="text-muted-foreground">Nessuna evidenza registrata.</p>
@@ -139,7 +243,7 @@ export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione
         </section>
 
         {esitoMessaggio ? (
-          <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <p role="status" className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
             {esitoMessaggio}
           </p>
         ) : null}
@@ -148,7 +252,7 @@ export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione
           <>
             <Separator />
             <section className="grid gap-2">
-              <h3 className="text-sm font-semibold">Azioni</h3>
+              <h3 className="text-sm font-semibold">Azioni disponibili</h3>
               <div className="flex flex-wrap gap-1.5">
                 {azioni.has('accept') ? (
                   <Button size="sm" disabled={busy} onClick={() => onAzione(item, 'accept')}>

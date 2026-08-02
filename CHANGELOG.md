@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.265.18 - 2026-08-02
+
+- **Lex Oggi autonomo**: il piano completo viene generato alle 05:30 Europe/Rome per ogni studio e avvocato attivo; se il servizio automatico parte tardi o manca uno snapshot, il recupero autonomo lo ricostruisce senza bloccare la pagina né richiedere un click.
+- **Stato reale aggiornamento**: `Aggiorna` resta opzionale e mostra ora coda, elaborazione, completamento, errore o timeout tramite il job tenant-aware, senza più confermare un piano non ancora prodotto dal servizio automatico.
+- **Supporto all'avvocato**: card e dettaglio del piano espongono termine, intervento, fascicolo, cliente, assegnazione, fascia/durata, priorità spiegata, stato e fonti verificabili con data/ora italiana.
+- **Affidabilità scheduler**: migrata la pianificazione di sistema dalle 07:30 alle 05:30 preservando modifiche manuali; ripulito il falso audit `running` che poteva arrivare dopo un esito terminale.
+- **Auto-recupero verificabile**: la data corrente prevale sempre sulle richieste future, il recovery parte solo dopo la finestra di misfire e rispetta la console Pianificazioni; i job bloccati dopo un crash vengono liberati senza riutilizzare uno stato zombie.
+- **Segnali senza collisioni**: un identificativo tecnico duplicato non interrompe più la generazione del piano; la chiave operativa resta invariata e viene assegnato un ID interno sicuro quando necessario.
+- **Orari italiani corretti**: snapshot, card e agenda convertono ora i timestamp UTC/offset in `Europe/Rome`, anche quando oltrepassano la mezzanotte; gli impegni fissi Agenda usano lo stesso istante anche nel calcolo delle fasce proposte, senza sovrapposizioni dovute al fuso.
+
 ## 2.265.17 - 2026-08-01
 
 - Performance Nightly: rientrate nel budget le due metriche fuori soglia dal 29/07 (`startup_ms` 3279 su 3200, `health_ms` 857 su 800). Le soglie non sono state toccate.
@@ -18,7 +28,6 @@
 - Favicon: `/favicon.ico` e il `<link rel="icon">` della shell React servono l'icona applicativa da 3 kB invece del logo a piena risoluzione.
 - Rete: aggiunto `preconnect` verso `cdn.jsdelivr.net` nella shell React e in `base.html`, dove Bootstrap e Bootstrap Icons sono già richiesti in blocco al rendering.
 - Guardrail: aggiunti test anti-regressione su memoizzazione radice studio, isolamento tra studi nella stessa richiesta, prefissi omonimi nel confronto percorsi, cache manifest Vite e immutabilità delle liste asset restituite.
-
 ## 2.265.15 - 2026-07-30
 
 - Notifiche legali React: l'attestazione di conformità può essere modificata e salvata per la notifica corrente, con anteprima aggiornata.

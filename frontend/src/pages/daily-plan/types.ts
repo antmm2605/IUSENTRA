@@ -34,6 +34,55 @@ export type AttivitaPiano = {
   azioni: string[]
 }
 
+export const dailyPlanPriorityLabel: Record<AttivitaPiano['priorita'], string> = {
+  P0: 'Immediata',
+  P1: 'Entro il giorno',
+  P2: 'Questa settimana',
+  P3: 'Organizzativa',
+}
+
+export const dailyPlanStatusLabel: Record<string, string> = {
+  proposed: 'Proposta',
+  needs_review: 'Da confermare',
+  accepted: 'Accettata',
+  scheduled: 'Pianificata',
+  in_progress: 'In corso',
+  completed: 'Completata',
+  delegated: 'Delegata',
+  snoozed: 'Rinviata',
+  rejected: 'Rifiutata',
+  obsolete: 'Superata',
+}
+
+export const dailyPlanActionKindLabel: Record<string, string> = {
+  deadline_fulfill: 'Gestione termine',
+  pec_deadline: 'Termine PEC',
+  pec_review: 'Presidio PEC',
+  hearing_attend: 'Udienza',
+  hearing_prepare: 'Preparazione udienza',
+  hearing_link_missing: 'Collegamento udienza',
+  calendar_conflict: 'Conflitto agenda',
+  document_review: 'Verifica documento',
+  relata_completion: 'Completamento relata',
+  deposit_outcome_check: 'Verifica esito deposito',
+  economic_entry: 'Presidio economico',
+  invoice_draft_needed: 'Bozza parcella',
+  quote_followup: 'Follow-up preventivo',
+  payment_review: 'Verifica pagamento',
+  duplicate_reconciliation: 'Riconciliazione duplicati',
+}
+
+export const dailyPlanSourceLabel: Record<string, string> = {
+  pec: 'PEC',
+  scadenziario: 'Scadenze',
+  agenda: 'Agenda',
+  case_presidio: 'Fascicoli',
+  economic: 'Economia',
+  deposit: 'Depositi telematici',
+  notification: 'Notifiche legali',
+  health: 'Verifica fonti',
+}
+
 export type EvidenzaAttivita = {
   source_type: string
   source_id: string

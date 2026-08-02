@@ -6319,3 +6319,14 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Test notifiche, tenant, lettore e sorgenti | OK | `60/60` superati. |
 | Typecheck e build React | OK | `tsc --noEmit` e build Vite superati; il primo tentativo ha incontrato un lock transitorio su `index.html`, il secondo è riuscito integralmente. |
 | Installazione PC reale | OK tecnico | `/ping?light=1` espone `1.6.101`; `/support/status` risponde; nessun processo `curl` o prompt PIN pendente. |
+
+## Piano del giorno automatico e dettagliato - 02/08/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Suite Python del Piano del giorno, scheduler, registro, feature flag e packaging | OK | Tutti i test mirati eseguiti sono passati: generazione completa alle 05:30, recupero dopo le 06:00, rispetto di disabilitazioni e personalizzazioni dello studio, precedenza della data odierna, recupero dei job `running` non più attivi, idempotenza, data italiana `Europe/Rome` e blocchi Agenda UTC convertiti correttamente prima del calcolo degli slot. |
+| Ruff, integrità UTF-8 e controllo whitespace | OK | `ruff check` sui file modificati, `tests/test_utf8_integrity.py` (`4/4`) e `git diff --check` superati. |
+| Frontend React | OK | Typecheck, contratti React e build Vite completati. La pagina espone stato reale della coda, errore comprensibile se la pianificazione è disattivata e informazioni operative dettagliate: termine, intervento, fascicolo, cliente, assegnatario, fascia proposta, durata, fonti e attendibilità. |
+| Docker locale reale `127.0.0.1:8080` | OK tecnico | App e pianificatore ricostruiti alla versione `2.265.18`, entrambi healthy. `/api/pronto` restituisce `200`, stato `pronto` e fuso `Europe/Rome`; al riavvio il recupero automatico ha materializzato senza click `4` snapshot e `817` attività per la data odierna nel tenant locale controllato. |
+| Browser reale locale e produzione | Da completare con accesso autorizzato | Dopo la ricostruzione Docker la scheda locale ha mantenuto soltanto la shell React, mentre l'API di aggiornamento ha correttamente rifiutato la sessione scaduta con `401 authentication_required`. Non sono state aggirate credenziali, cookie o sessioni; serve un nuovo accesso per la prova visiva del piano con dati di studio. |
+| Produzione: recupero del 02/08/2026 | OK operativo odierno | Il flag di generazione pianificata era disattivato e non risultava uno snapshot corrente. Il recupero governato ha materializzato `2` snapshot / `437` attività per lo studio interessato e `2` snapshot / `109` attività per l'altro studio; app e pianificatore sono healthy e `https://app.iusentra.it/api/pronto` risponde `200`. L'automazione permanente resta aperta fino al deploy sicuro del codice. |

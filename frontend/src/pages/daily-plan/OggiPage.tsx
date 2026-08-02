@@ -21,6 +21,7 @@ import {
   IusSectionHeader,
 } from '@/components/iusentra'
 import { isFeatureFlagEnabledSync } from '@/lib/featureFlags'
+import { formatTimeIt } from '@/formatting'
 import { ItemCard } from './ItemCard'
 import { ItemDetailPanel } from './ItemDetailPanel'
 import {
@@ -33,6 +34,7 @@ import {
   eseguiAzione,
   fetchBacklog,
   fetchPianoGiorno,
+  fetchStatoAggiornamento,
   richiediAggiornamento,
 } from './api'
 import type { AttivitaPiano, PianoGiornoPayload } from './types'
@@ -47,9 +49,8 @@ export function OggiPage() {
   const [busyId, setBusyId] = useState('')
   const [esitoAzione, setEsitoAzione] = useState('')
   const [aggiornamentoRichiesto, setAggiornamentoRichiesto] = useState(false)
+  const [aggiornamentoJobId, setAggiornamentoJobId] = useState('')
   const [aggiornamentoMessaggio, setAggiornamentoMessaggio] = useState('')
-  const [versioneInAttesa, setVersioneInAttesa] = useState('')
-  const [generatoInAttesa, setGeneratoInAttesa] = useState('')
   const [backlog, setBacklog] = useState<AttivitaPiano[]>([])
   const [backlogCursor, setBacklogCursor] = useState('')
   const [backlogTotale, setBacklogTotale] = useState(0)
@@ -93,6 +94,7 @@ export function OggiPage() {
     setErrore('')
     setAggiornamentoMessaggio('')
     setAggiornamentoRichiesto(false)
+    setAggiornamentoJobId('')
     setLoading(true)
   }, [dataSelezionata])
 
@@ -102,37 +104,66 @@ export function OggiPage() {
     return () => controller.abort()
   }, [carica])
   useEffect(() => {
-    if (!aggiornamentoRichiesto) return
+    if (!aggiornamentoRichiesto || !aggiornamentoJobId) return
     let annullato = false
     let tentativi = 0
+    const controller = new AbortController()
     let timer = window.setTimeout(async function poll() {
-      const aggiornato = await carica()
-      if (annullato) return
-      if (
-        aggiornato?.stato === 'pronto' &&
-        (!versioneInAttesa ||
-          aggiornato.versione_piano !== versioneInAttesa ||
-          aggiornato.generato_il !== generatoInAttesa)
-      ) {
-        setAggiornamentoMessaggio('Piano aggiornato con le attività disponibili.')
-        setAggiornamentoRichiesto(false)
-        return
+      try {
+        const esito = await fetchStatoAggiornamento(aggiornamentoJobId, controller.signal)
+        if (annullato) return
+        const stato = esito.stato || esito.status
+
+        if (esito.ok && stato === 'done') {
+          const aggiornato = await carica(controller.signal)
+          if (annullato) return
+          if (aggiornato?.ok && aggiornato.stato === 'pronto') {
+            setAggiornamentoMessaggio('Piano aggiornato con le attività disponibili.')
+            setAggiornamentoRichiesto(false)
+            setAggiornamentoJobId('')
+            return
+          }
+          setAggiornamentoMessaggio('Elaborazione completata. Aggiorno la visualizzazione del piano...')
+        } else if (esito.ok && stato === 'failed') {
+          setErrore(esito.detail || esito.messaggio || 'L’elaborazione del piano non è riuscita.')
+          setAggiornamentoMessaggio(
+            'Aggiornamento non completato. Il controllo automatico del piano verificherà nuovamente la copertura.',
+          )
+          setAggiornamentoRichiesto(false)
+          setAggiornamentoJobId('')
+          return
+        } else if (esito.ok && stato === 'running') {
+          setAggiornamentoMessaggio(
+            esito.messaggio || 'Piano in elaborazione. Puoi continuare a lavorare mentre il servizio automatico lo prepara.',
+          )
+        } else if (esito.ok && stato === 'queued') {
+          setAggiornamentoMessaggio(
+            esito.messaggio || 'Aggiornamento in coda. Il piano resta consultabile durante la preparazione.',
+          )
+        } else {
+          setAggiornamentoMessaggio('Verifico lo stato dell’aggiornamento del piano...')
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
       }
+
       tentativi += 1
-      if (tentativi >= 12) {
+      if (tentativi >= 18) {
         setAggiornamentoMessaggio(
-          'Richiesta acquisita. Non ci sono ancora variazioni visibili: puoi continuare a lavorare.',
+          'Non ho ancora ricevuto l’esito dell’elaborazione. Puoi continuare a lavorare: il piano resta consultabile e il controllo automatico prosegue.',
         )
         setAggiornamentoRichiesto(false)
+        setAggiornamentoJobId('')
         return
       }
       timer = window.setTimeout(poll, 5000)
-    }, 3000)
+    }, 800)
     return () => {
       annullato = true
+      controller.abort()
       window.clearTimeout(timer)
     }
-  }, [aggiornamentoRichiesto, carica, generatoInAttesa, versioneInAttesa])
+  }, [aggiornamentoJobId, aggiornamentoRichiesto, carica])
   const apriBacklog = useCallback(() => {
     setBacklogAperto(true)
     fetchBacklog({ date: dataSelezionata, limit: 25 }).then((data) => {
@@ -167,22 +198,23 @@ export function OggiPage() {
   }
 
   async function aggiorna() {
-    setVersioneInAttesa(piano?.versione_piano || '')
-    setGeneratoInAttesa(piano?.generato_il || '')
+    setErrore('')
     setAggiornamentoMessaggio('Invio la richiesta di aggiornamento...')
     setAggiornamentoRichiesto(true)
     const esito = await richiediAggiornamento(dataSelezionata)
-    if (!esito.ok) {
+    if (!esito.ok || !esito.job_id) {
       setAggiornamentoMessaggio('')
       setErrore(esito.detail || 'Aggiornamento non avviato. Riprova tra poco.')
       setAggiornamentoRichiesto(false)
       return
     }
+    setAggiornamentoJobId(esito.job_id)
     setAggiornamentoMessaggio(
-      esito.messaggio ||
-        (esito.gia_in_coda
-          ? 'Aggiornamento già in coda: la pagina si riallinea automaticamente.'
-          : 'Richiesta acquisita: la pagina si riallinea automaticamente.'),
+      esito.stato === 'running'
+        ? 'Piano in elaborazione. Ne mostrerò l’esito reale non appena disponibile.'
+        : esito.stato === 'queued'
+          ? 'Aggiornamento in coda. Ne mostrerò l’esito reale non appena disponibile.'
+          : esito.messaggio || 'Verifico lo stato dell’aggiornamento richiesto.',
     )
   }
 
@@ -204,13 +236,14 @@ export function OggiPage() {
   }
 
   const nonGenerato = piano.stato === 'non_generato'
+  const oraGenerazione = formatTimeIt(piano.generato_il, '')
 
   return (
     <IusPageShell
       title="Piano del giorno"
       description={
         piano.data_label
-          ? `Piano operativo del ${piano.data_label}${piano.generato_il_label ? ` · aggiornato alle ${piano.generato_il_label.slice(11)}` : ''}`
+          ? `Piano operativo del ${piano.data_label}${oraGenerazione ? ` · aggiornato alle ${oraGenerazione}` : ''}`
           : 'Il tuo piano operativo della giornata.'
       }
       icon={Sunrise}
@@ -270,8 +303,14 @@ export function OggiPage() {
       {nonGenerato ? (
         <IusEmptyState
           title="Piano non ancora generato"
-          message="Usa Aggiorna per richiederlo: l'elaborazione avviene in coda e la pagina resta immediata."
+          message="Il piano della giornata corrente viene preparato automaticamente alle 05:30, ora italiana, e si recupera da solo se la prima elaborazione non è disponibile. Per una data futura puoi richiedere un aggiornamento aggiuntivo senza bloccare la pagina."
           icon={Sunrise}
+          action={
+            <Button type="button" variant="outline" onClick={aggiorna} disabled={aggiornamentoRichiesto}>
+              <RefreshCw aria-hidden="true" className={aggiornamentoRichiesto ? 'animate-spin' : ''} />
+              Richiedi aggiornamento
+            </Button>
+          }
         />
       ) : (
         <>
@@ -294,11 +333,12 @@ export function OggiPage() {
                     <Badge variant={evento.tipo.includes('UDIENZA') ? 'destructive' : 'secondary'}>
                       {evento.tipo.includes('UDIENZA') ? 'Udienza' : 'Appuntamento'}
                     </Badge>
-                    <strong>{evento.data_ora.slice(11, 16)}</strong>
+                    <strong>{formatTimeIt(evento.data_ora, 'Orario non indicato')}</strong>
                     <span>{evento.titolo}</span>
                     <span className="text-muted-foreground">
                       {evento.durata_minuti} min{evento.luogo ? ` · ${evento.luogo}` : ''}
                       {evento.avvocato ? ` · ${evento.avvocato}` : ''}
+                      {evento.procedimento ? ` · Proc. ${evento.procedimento}` : ''}
                     </span>
                   </div>
                 ))}

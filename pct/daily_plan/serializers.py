@@ -7,8 +7,9 @@ La sintesi per l'avvocato esiste SEMPRE anche senza modello linguistico.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
+
+from pct.formatting import format_date_it, format_datetime_it
 
 from .models import DailyPlan, DailyWorkItem
 
@@ -28,13 +29,9 @@ def _format_date_it(value: str) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
-    try:
-        parsed = datetime.fromisoformat(raw[:19])
-    except Exception:
-        return raw
     if len(raw) > 10:
-        return parsed.strftime("%d/%m/%Y %H:%M")
-    return parsed.strftime("%d/%m/%Y")
+        return format_datetime_it(raw) or raw
+    return format_date_it(raw) or raw
 
 
 def item_summary_payload(item: DailyWorkItem) -> dict[str, Any]:
@@ -143,7 +140,7 @@ def plan_missing_payload(target_date: str, user_id: str) -> dict[str, Any]:
         "sezioni": {"da_fare_ora": [], "pec": [], "fascicoli": [], "economico": [], "da_assegnare": []},
         "agenda_oggi": [],
         "avvisi": [
-            "Il piano della data selezionata non è ancora stato generato: usa Aggiorna."
+            "Il piano della data selezionata non è ancora disponibile: la giornata corrente viene preparata automaticamente alle 05:30 e recuperata dal servizio automatico se manca lo snapshot."
         ],
         "sintesi": "Il piano operativo della data selezionata non è ancora disponibile.",
         "sintesi_da_lex": False,

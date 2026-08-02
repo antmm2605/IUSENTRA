@@ -152,6 +152,21 @@ def test_fixed_block_from_agenda_udienza():
     assert fixed_block_from_agenda({"data_ora": ""}) is None
 
 
+def test_fixed_block_from_agenda_converte_utc_e_cambio_data_in_ora_italiana():
+    """Uno slot libero non può sovrapporsi a un evento Agenda in UTC."""
+    blocco = fixed_block_from_agenda(
+        {
+            "data_ora": "2026-08-01T22:30:00Z",
+            "durata_minuti": 60,
+            "tipo": "APPUNTAMENTO",
+        }
+    )
+
+    assert blocco is not None
+    assert blocco.start.tzinfo == ROME_TZ
+    assert blocco.start.isoformat(timespec="minutes") == "2026-08-02T00:30+02:00"
+
+
 def test_nessuna_scrittura_su_agenda():
     # la pianificazione tocca solo scheduled_start/estimated_minutes/in_backlog
     item = _item("a", priority="P2", minutes=30)

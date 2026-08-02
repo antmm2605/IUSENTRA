@@ -17,7 +17,9 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from threading import Lock
 
+from pct.daily_plan.clock import ROME_TZ
 from pct.legal_update_autofetch import (
     LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS,
     LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
@@ -28,6 +30,10 @@ from pct.legal_update_autofetch import (
 from pct.runtime_env import is_managed_cloud_runtime
 
 logger = logging.getLogger("pct.scheduler")
+
+_DAILY_PLAN_AUTOMATIC_HOUR = "5"
+_DAILY_PLAN_AUTOMATIC_MINUTE = "30"
+_DAILY_PLAN_RECOVERY_START = (6, 0)
 
 
 def _flag_enabled(value: object) -> bool:
@@ -69,6 +75,50 @@ def _as_int(value: object, default: int = 0) -> int:
 
 def _runtime_path(app, key: str, env_key: str, default: str) -> str:
     return str(app.config.get(key) or os.getenv(env_key) or default)
+
+
+def _scheduler_rome_now(app) -> datetime:
+    """Ora del worker; il valore fissato serve solo ai test isolati."""
+    fixed = app.config.get("PCT_SCHEDULER_NOW_FOR_TESTS")
+    if isinstance(fixed, datetime):
+        if fixed.tzinfo is None:
+            return fixed.replace(tzinfo=ROME_TZ)
+        return fixed.astimezone(ROME_TZ)
+    return datetime.now(ROME_TZ)
+
+
+def daily_plan_startup_recovery_allowed(
+    now: datetime, registry_job: dict[str, object] | None
+) -> bool:
+    """Decide il recupero post-avvio senza sovrapporsi al cron delle 05:30.
+
+    Dalle 05:30 alle 05:59 APScheduler puo' ancora eseguire il cron mancato
+    grazie al relativo ``misfire_grace_time``. Il recovery separato parte
+    quindi solo dalle 06:00 e rispetta un'eventuale scelta umana fatta nella
+    console Pianificazioni.
+    """
+    current = now.replace(tzinfo=ROME_TZ) if now.tzinfo is None else now.astimezone(ROME_TZ)
+    if (current.hour, current.minute) < _DAILY_PLAN_RECOVERY_START:
+        return False
+    if registry_job is None:
+        # Se il registro non e' leggibile, il cron nativo resta il presidio
+        # primario; il recupero mantiene la garanzia di non lasciare vuota la
+        # giornata quando il worker e' ripartito tardi.
+        return True
+
+    enabled = registry_job.get("enabled", True)
+    if str(enabled).strip().lower() in {"0", "false", "off", "no", ""}:
+        return False
+    if str(registry_job.get("updated_by") or "system") == "system":
+        return True
+
+    # Una persona puo' mantenere il job attivo ma spostarlo o convertirlo in
+    # manuale: in quel caso il suo orario prevale anche sul self-heal.
+    return (
+        str(registry_job.get("trigger_kind") or "cron") == "cron"
+        and str(registry_job.get("hour") or "") == _DAILY_PLAN_AUTOMATIC_HOUR
+        and str(registry_job.get("minute") or "") == _DAILY_PLAN_AUTOMATIC_MINUTE
+    )
 
 
 def _run_scheduler_command(label: str, command: list[str], *, timeout_seconds: int) -> dict[str, object]:
@@ -141,6 +191,11 @@ def start_scheduler(app):
         return
 
     scheduler = BackgroundScheduler(timezone="Europe/Rome")
+    # Il cron mattutino, il recupero post-avvio e il primo giro incrementale
+    # condividono il mutex: anche in caso di misfire o restart non possono
+    # materializzare due volte lo stesso piano nello stesso processo.
+    daily_plan_full_lock = Lock()
+    registry_repo = None
 
     # ---- Backup giornaliero ----
     ora_backup = app.config.get("BACKUP_ORA", os.getenv("PCT_BACKUP_ORA", "02:00"))
@@ -1311,12 +1366,67 @@ def start_scheduler(app):
         except Exception:
             return False
 
+    def _daily_plan_regular_recovery_due(now: datetime | None = None) -> bool:
+        current = now or _scheduler_rome_now(app)
+        return (current.hour, current.minute) >= _DAILY_PLAN_RECOVERY_START
+
+    def _daily_plan_registry_enabled() -> bool:
+        try:
+            job = registry_repo.get_job("studio_daily_operational_plan") if registry_repo else None
+        except Exception:
+            job = None
+        if job is None:
+            return True
+        return str(job.get("enabled", True)).strip().lower() not in {
+            "0", "false", "off", "no", ""
+        }
+
+    def _daily_plan_registry_recovery_enabled() -> bool:
+        try:
+            job = registry_repo.get_job("studio_daily_operational_plan") if registry_repo else None
+        except Exception:
+            job = None
+        return daily_plan_startup_recovery_allowed(_scheduler_rome_now(app), job)
+
+    def _daily_plan_startup_recovery():
+        with app.app_context():
+            if not (
+                _daily_plan_enabled()
+                and _daily_plan_scheduled_runs_enabled()
+                and _daily_plan_registry_recovery_enabled()
+            ):
+                return {
+                    "ok": True,
+                    "job": "daily_plan_startup_recovery",
+                    "skipped": "automatic_generation_not_enabled",
+                }
+            if not daily_plan_full_lock.acquire(blocking=False):
+                return {
+                    "ok": True,
+                    "job": "daily_plan_startup_recovery",
+                    "skipped": "daily_plan_generation_in_progress",
+                }
+            try:
+                from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
+
+                return run_daily_plan_for_all_tenants(
+                    app,
+                    mode="incremental",
+                    include_dirty=True,
+                    ensure_today_snapshots=True,
+                )
+            except Exception as exc:
+                logger.error("[scheduler] Recupero automatico piano del giorno fallito: %s", exc)
+                return {"ok": False, "job": "daily_plan_startup_recovery", "error": str(exc)}
+            finally:
+                daily_plan_full_lock.release()
+
     @scheduler.scheduled_job(
-        CronTrigger(hour=7, minute=30, timezone="Europe/Rome"),
+        CronTrigger(hour=5, minute=30, timezone="Europe/Rome"),
         id="studio_daily_operational_plan",
         max_instances=1,
         coalesce=True,
-        misfire_grace_time=300,
+        misfire_grace_time=1800,
     )
     def _studio_daily_operational_plan():
         """Piano del giorno (Lex Oggi): riconciliazione completa mattutina.
@@ -1325,12 +1435,26 @@ def start_scheduler(app):
         applicativa automatica: produce solo la proiezione materializzata.
         """
         with app.app_context():
-            if not (_daily_plan_enabled() and _daily_plan_scheduled_runs_enabled()):
+            if not (
+                _daily_plan_enabled()
+                and _daily_plan_scheduled_runs_enabled()
+                and _daily_plan_registry_enabled()
+            ):
                 return {"ok": True, "job": "studio_daily_operational_plan", "skipped": "feature_flag_disattivo"}
+            if not daily_plan_full_lock.acquire(blocking=False):
+                return {
+                    "ok": True,
+                    "job": "studio_daily_operational_plan",
+                    "skipped": "daily_plan_generation_in_progress",
+                }
             try:
                 from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
 
-                report = run_daily_plan_for_all_tenants(app, mode="full")
+                report = run_daily_plan_for_all_tenants(
+                    app,
+                    mode="full",
+                    scheduled_daily=True,
+                )
                 totals = report.get("totals") or {}
                 logger.info(
                     "[scheduler] Piano del giorno completo: %d studi elaborati, %d attività, %d errori",
@@ -1342,6 +1466,8 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Piano del giorno completo fallito: %s", e)
                 return {"ok": False, "job": "studio_daily_operational_plan", "error": str(e)}
+            finally:
+                daily_plan_full_lock.release()
 
     @scheduler.scheduled_job(
         CronTrigger(minute="7-59/15"),
@@ -1358,11 +1484,28 @@ def start_scheduler(app):
             try:
                 from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
 
-                report = run_daily_plan_for_all_tenants(
-                    app,
-                    mode="incremental",
-                    include_dirty=_daily_plan_scheduled_runs_enabled(),
+                scheduled_runs_enabled = _daily_plan_scheduled_runs_enabled()
+                ensure_today_snapshots = (
+                    scheduled_runs_enabled
+                    and _daily_plan_regular_recovery_due()
+                    and _daily_plan_registry_recovery_enabled()
                 )
+                if ensure_today_snapshots and not daily_plan_full_lock.acquire(blocking=False):
+                    return {
+                        "ok": True,
+                        "job": "daily_plan_incremental_refresh",
+                        "skipped": "daily_plan_generation_in_progress",
+                    }
+                try:
+                    report = run_daily_plan_for_all_tenants(
+                        app,
+                        mode="incremental",
+                        include_dirty=scheduled_runs_enabled,
+                        ensure_today_snapshots=ensure_today_snapshots,
+                    )
+                finally:
+                    if ensure_today_snapshots:
+                        daily_plan_full_lock.release()
                 totals = report.get("totals") or {}
                 if int(totals.get("tenants") or 0) or int(totals.get("errors") or 0):
                     logger.info(
@@ -2081,5 +2224,25 @@ def start_scheduler(app):
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler
+    if (
+        _daily_plan_regular_recovery_due()
+        and _daily_plan_enabled()
+        and _daily_plan_scheduled_runs_enabled()
+        and _daily_plan_registry_recovery_enabled()
+    ):
+        try:
+            scheduler.add_job(
+                _daily_plan_startup_recovery,
+                trigger="date",
+                run_date=_scheduler_rome_now(app),
+                id="daily_plan_startup_recovery",
+                replace_existing=True,
+                max_instances=1,
+            )
+        except Exception as exc:
+            logger.warning(
+                "[scheduler] Recupero automatico piano del giorno non pianificato: %s",
+                exc,
+            )
     logger.info(f"[scheduler] Avviato - backup alle {ora_backup}, WA reminder alle {wa_ora}.")
     return scheduler

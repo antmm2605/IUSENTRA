@@ -123,6 +123,7 @@ def test_get_daily_plan_non_generato(tmp_path):
     payload = risposta.get_json()
     assert payload["stato"] == "non_generato"
     assert payload["avvisi"]
+    assert "05:30" in payload["avvisi"][0]
 
 
 def test_get_item_detail_lazy(tmp_path):
@@ -170,6 +171,18 @@ def test_refresh_accoda_202_idempotente_senza_perdere_un_job_distinto(tmp_path):
         assert primo.status_code == 202
         assert primo.get_json()["accettato"] is True
         assert primo.get_json()["avvio_immediato_richiesto"] is True
+        assert primo.get_json()["run_id"]
+        assert primo.get_json()["stato_scheduler"] in {"requested", "running"}
+
+        stato_in_coda = client.get(
+            f"/api/v1/ui/daily-plan/jobs/{primo.get_json()['job_id']}",
+            headers=HEADERS,
+        )
+        assert stato_in_coda.status_code == 200
+        assert stato_in_coda.get_json()["stato"] == "queued"
+        assert stato_in_coda.get_json()["data"] == primo.get_json()["data"]
+        assert "coda" in stato_in_coda.get_json()["messaggio"].lower()
+        assert stato_in_coda.headers["Cache-Control"] == "no-store"
 
         with app.app_context():
             runs = scheduler_registry_repository(app.config).list_requested_runs()
@@ -192,6 +205,13 @@ def test_refresh_accoda_202_idempotente_senza_perdere_un_job_distinto(tmp_path):
         with app.app_context():
             repo = repository_from_paths(app.config, tenant_label="default", clock=CLOCK)
             repo.finish_job(primo.get_json()["job_id"], status="done")
+        concluso = client.get(
+            f"/api/v1/ui/daily-plan/jobs/{primo.get_json()['job_id']}",
+            headers=HEADERS,
+        )
+        assert concluso.status_code == 200
+        assert concluso.get_json()["stato"] == "done"
+        assert "pronto" in concluso.get_json()["messaggio"].lower()
         distinto = client.post(
             "/api/v1/ui/daily-plan/refresh",
             json={"mode": "incremental"},
@@ -203,6 +223,59 @@ def test_refresh_accoda_202_idempotente_senza_perdere_un_job_distinto(tmp_path):
         with app.app_context():
             distinct_runs = scheduler_registry_repository(app.config).list_requested_runs()
         assert len(distinct_runs) == 2
+
+
+def test_refresh_status_non_espone_report_tecnico(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        repo = repository_from_paths(app.config, tenant_label="default", clock=CLOCK)
+        job = repo.enqueue_job(
+            "incremental_refresh",
+            payload={"target_date": DATE},
+        )
+        repo.finish_job(job["job_id"], status="failed", report={"error": "/opt/segreto"})
+    with app.test_client() as client:
+        risposta = client.get(
+            f"/api/v1/ui/daily-plan/jobs/{job['job_id']}", headers=HEADERS
+        )
+        assente = client.get("/api/v1/ui/daily-plan/jobs/dpj-altrui", headers=HEADERS)
+
+    assert risposta.status_code == 200
+    assert risposta.get_json()["stato"] == "failed"
+    assert "/opt" not in str(risposta.get_json()["report"])
+    assert assente.status_code == 404
+
+
+def test_refresh_chiude_subito_se_pianificazione_incrementale_disattivata(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        registry = scheduler_registry_repository(app.config)
+        registry.upsert_default_jobs(app.config)
+        with registry.connect() as conn:
+            conn.execute(
+                "UPDATE scheduled_jobs SET enabled = 0, updated_by = 'avvocato' "
+                "WHERE job_id = 'daily_plan_incremental_refresh'"
+            )
+            conn.commit()
+
+    with app.test_client() as client:
+        richiesta = client.post(
+            "/api/v1/ui/daily-plan/refresh",
+            json={"mode": "incremental"},
+            headers={**HEADERS, "Idempotency-Key": "scheduler-disabled"},
+        )
+        payload = richiesta.get_json()
+        stato = client.get(
+            f"/api/v1/ui/daily-plan/jobs/{payload['job_id']}", headers=HEADERS
+        )
+
+    assert richiesta.status_code == 202
+    assert payload["stato"] == "failed"
+    assert payload["avvio_immediato_richiesto"] is False
+    assert "disattivata" in payload["messaggio"].lower()
+    assert stato.status_code == 200
+    assert stato.get_json()["stato"] == "failed"
+    assert "disattivata" in stato.get_json()["messaggio"].lower()
 
 
 def test_refresh_trasporta_la_data_scelta_e_rifiuta_date_passate(tmp_path):

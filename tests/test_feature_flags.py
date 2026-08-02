@@ -35,12 +35,24 @@ def test_feature_flags_default_rollout_scope(tmp_path: Path):
     assert is_feature_enabled("routes.appV2.notifications.mobilePush", app.config) is True
     assert is_feature_enabled("routes.appV2.telematico.center", app.config) is False
     assert is_feature_enabled("lex.legalSkills.enabled", app.config) is True
+    assert is_feature_enabled("lex.dailyPlan.scheduledRuns", app.config) is True
     assert is_feature_enabled("routes.appV2.legalSkills.catalog", app.config) is True
     assert is_feature_enabled("routes.appV2.legalSkills.profile", app.config) is True
     assert is_feature_enabled("routes.appV2.legalSkills.run", app.config) is True
     assert is_feature_enabled("routes.appV2.legalSkills.reviewQueue", app.config) is True
     assert is_feature_enabled("lex.legalSkills.trustLayer", app.config) is False
     assert is_feature_enabled("lex.legalSkills.scheduledAgents", app.config) is False
+
+
+def test_daily_plan_scheduled_runs_default_on_but_override_governed(tmp_path: Path):
+    app = _app(tmp_path)
+    disabled = _app(
+        tmp_path / "daily-plan-disabled",
+        flags={"lex.dailyPlan.scheduledRuns": False},
+    )
+
+    assert is_feature_enabled("lex.dailyPlan.scheduledRuns", app.config) is True
+    assert is_feature_enabled("lex.dailyPlan.scheduledRuns", disabled.config) is False
 
 
 def test_feature_flag_bulk_config_and_toggle_audit(tmp_path: Path):

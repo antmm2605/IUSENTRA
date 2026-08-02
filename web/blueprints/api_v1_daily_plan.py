@@ -27,7 +27,9 @@ from web.services.react_daily_plan_bridge import (
     daily_plan_coverage_payload,
     daily_plan_error_payload,
     daily_plan_item_detail_payload,
+    daily_plan_refresh_status_payload,
     enqueue_daily_plan_refresh,
+    mark_daily_plan_refresh_scheduler_disabled,
 )
 from web.services.tenant_api_auth import api_key_valid_for_request
 
@@ -198,6 +200,24 @@ def daily_plan_coverage():
         return jsonify(body), status
 
 
+@api_v1_daily_plan.get("/daily-plan/jobs/<job_id>")
+@_richiedi_auth
+def daily_plan_refresh_status(job_id: str):
+    """Stato della coda per la UI: nessun collettore sul percorso GET."""
+    blocked = _flag_gate()
+    if blocked is not None:
+        return blocked
+    if not _can_all(*READ_PERMISSIONS):
+        return _forbidden()
+    try:
+        response = jsonify(daily_plan_refresh_status_payload(str(job_id or "").strip()))
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except Exception as exc:
+        body, status = daily_plan_error_payload(exc)
+        return jsonify(body), status
+
+
 @api_v1_daily_plan.get("/daily-plan/items/<item_id>")
 @_richiedi_auth
 def daily_plan_item_detail(item_id: str):
@@ -282,6 +302,8 @@ def daily_plan_refresh():
         payload, status = daily_plan_error_payload(exc)
         return jsonify(payload), status
     outcome["avvio_immediato_richiesto"] = False
+    outcome["run_id"] = ""
+    outcome["stato_scheduler"] = "non_richiesto"
     try:
         from web.services.scheduler_admin_surface import request_scheduler_run
 
@@ -290,19 +312,32 @@ def daily_plan_refresh():
             username=_actor_label(),
             dedupe_open=bool(outcome.get("gia_in_coda")),
         )
+        outcome["run_id"] = str(dispatch.get("run_id") or "")
+        outcome["stato_scheduler"] = str(dispatch.get("status") or "requested")
         outcome["avvio_immediato_richiesto"] = dispatch.get("status") in {
             "requested",
             "running",
         }
+        if (
+            outcome["stato_scheduler"] == "completed"
+            and "disattivata" in str(dispatch.get("message") or "").lower()
+        ):
+            mark_daily_plan_refresh_scheduler_disabled(str(outcome.get("job_id") or ""))
+            outcome["stato"] = "failed"
+            outcome["messaggio"] = (
+                "Aggiornamento non avviato: la pianificazione del Piano del giorno "
+                "è disattivata nelle impostazioni dello studio."
+            )
     except Exception as exc:
         current_app.logger.exception(
             "Richiesta immediata piano del giorno non inoltrata: %s", exc
         )
-    outcome["messaggio"] = (
-        "Aggiornamento richiesto: il piano si riallinea automaticamente."
-        if outcome["avvio_immediato_richiesto"]
-        else "Aggiornamento accodato: il piano si riallinea al prossimo controllo."
-    )
+    if not outcome.get("messaggio"):
+        outcome["messaggio"] = (
+            "Aggiornamento richiesto all'elaborazione automatica: la pagina mostrerà l'esito effettivo."
+            if outcome["avvio_immediato_richiesto"]
+            else "Aggiornamento accodato: lo stato resterà visibile fino al completamento."
+        )
     _audit("daily_plan.refresh_richiesto", outcome.get("job_id", ""), f"modalita={mode}")
     return jsonify(outcome), 202
 

@@ -222,6 +222,53 @@ def test_scheduler_registry_chiude_evento_scheduler_senza_running_residui(tmp_pa
     assert repo.latest_runs_by_job()["pec_audit_pipeline_workers"]["status"] == "completed"
 
 
+def test_scheduler_registry_ignora_running_arrivato_dopo_esito_terminale(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    scheduled_at = "2026-07-03 09:10:00+02:00"
+
+    repo.record_scheduler_event(
+        "pec_audit_pipeline_workers",
+        status="completed",
+        scheduled_at=scheduled_at,
+        result={"ok": True},
+    )
+    repo.record_scheduler_event(
+        "pec_audit_pipeline_workers",
+        status="running",
+        scheduled_at=scheduled_at,
+    )
+
+    runs = [
+        run for run in repo.list_recent_runs(limit=5)
+        if run["job_id"] == "pec_audit_pipeline_workers"
+    ]
+    assert len(runs) == 1
+    assert runs[0]["status"] == "completed"
+
+
+def test_scheduler_registry_migra_0530_solo_se_orario_di_sistema(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    with repo.connect() as conn:
+        conn.execute(
+            "UPDATE scheduled_jobs SET hour='7', minute='30', updated_by='system' "
+            "WHERE job_id='studio_daily_operational_plan'"
+        )
+    repo.upsert_default_jobs({})
+    assert repo.get_job("studio_daily_operational_plan")["hour"] == "5"
+
+    with repo.connect() as conn:
+        conn.execute(
+            "UPDATE scheduled_jobs SET hour='8', minute='15', updated_by='avvocato' "
+            "WHERE job_id='studio_daily_operational_plan'"
+        )
+    repo.upsert_default_jobs({})
+    job = repo.get_job("studio_daily_operational_plan")
+    assert job["hour"] == "8"
+    assert job["minute"] == "15"
+
+
 def test_agente_fonte_in_osservazione_propone_alternativa_ufficiale(tmp_path: Path):
     class App:
         config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}

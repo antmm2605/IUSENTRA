@@ -5,7 +5,7 @@ file, preservazione degli stati umani alla rigenerazione, obsolescenza,
 watermark, job queue idempotente, dirty entities, action log idempotente.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -92,6 +92,23 @@ def test_upsert_signals_idempotente_per_dedupe_key(repo):
     assert len(segnali) == 2
     aggiornato = next(s for s in segnali if s.dedupe_key == "k1")
     assert aggiornato.title == "Aggiornata"
+
+
+def test_upsert_signals_risolve_collisione_id_tecnico(repo):
+    primo = _signal("prima", id="sig_sorgente_condivisa")
+    secondo = _signal("seconda", id="sig_sorgente_condivisa")
+
+    assert repo.upsert_signals([primo, secondo]) == {"inserted": 2, "updated": 0}
+    assert primo.id == "sig_sorgente_condivisa"
+    assert secondo.id.startswith("sig_")
+    assert secondo.id != primo.id
+
+    # Un nuovo passaggio della stessa chiave conserva l'ID già materializzato,
+    # anche se il collector propone un identificativo differente.
+    aggiornamento = _signal("seconda", id="sig_nuovo")
+    assert repo.upsert_signals([aggiornamento]) == {"inserted": 0, "updated": 1}
+    assert aggiornamento.id == secondo.id
+    assert {signal.id for signal in repo.list_active_signals()} == {primo.id, secondo.id}
 
 
 def test_isolamento_cross_tenant_stesso_file(tmp_path):
@@ -233,7 +250,34 @@ def test_job_queue_idempotente(repo):
     assert claimed["status"] == "running"
 
     repo.finish_job(primo["job_id"], status="done", report={"items": 3})
+    concluso = repo.get_job(primo["job_id"])
+    assert concluso is not None
+    assert concluso["status"] == "done"
+    assert concluso["report"] == {"items": 3}
+    assert concluso["payload"] == {}
     assert repo.claim_next_job("incremental_refresh") is None
+
+
+def test_snapshot_user_ids_restano_isolati_per_tenant(tmp_path):
+    db = str(tmp_path / "daily_plan.db")
+    repo_a = DailyPlanRepository(db, tenant_id="studio-a", clock=CLOCK)
+    repo_b = DailyPlanRepository(db, tenant_id="studio-b", clock=CLOCK)
+    payload = dict(
+        target_date=DATE,
+        plan_version="v1",
+        generation_mode="full",
+        freshness={},
+        coverage={},
+        summary={},
+        fixed_agenda=[],
+        warnings=[],
+    )
+    repo_a.save_snapshot(user_id="u1", **payload)
+    repo_a.save_snapshot(user_id="", **payload)
+    repo_b.save_snapshot(user_id="u2", **payload)
+
+    assert repo_a.snapshot_user_ids(DATE) == {"", "u1"}
+    assert repo_b.snapshot_user_ids(DATE) == {"u2"}
 
 
 def test_job_queue_distingue_le_date_del_piano(repo):
@@ -264,6 +308,31 @@ def test_job_queue_distingue_le_date_del_piano(repo):
         "2026-07-11",
         "2026-07-13",
     }
+
+
+def test_job_running_stale_viene_liberato_e_richiesto_di_nuovo(repo):
+    primo = repo.enqueue_job("incremental_refresh", idempotency_key="stale-refresh")
+    claimed = repo.claim_next_job("incremental_refresh")
+    assert claimed is not None and claimed["id"] == primo["job_id"]
+
+    stale_started_at = (CLOCK.now() - timedelta(hours=1)).isoformat(timespec="seconds")
+    with repo._connect() as conn:
+        conn.execute(
+            "UPDATE daily_plan_jobs SET started_at = ? WHERE tenant_id = ? AND id = ?",
+            (stale_started_at, repo.tenant_id, primo["job_id"]),
+        )
+        conn.commit()
+
+    nuovo = repo.enqueue_job("incremental_refresh", idempotency_key="stale-refresh")
+
+    assert nuovo["replayed"] is False
+    assert nuovo["job_id"] != primo["job_id"]
+    interrotto = repo.get_job(primo["job_id"])
+    assert interrotto is not None
+    assert interrotto["status"] == "failed"
+    assert interrotto["report"]["code"] == "stale_running_recovered"
+    prossimo = repo.claim_next_job("incremental_refresh")
+    assert prossimo is not None and prossimo["id"] == nuovo["job_id"]
 
 
 def test_dirty_entities_marcatura_e_consumo(repo):

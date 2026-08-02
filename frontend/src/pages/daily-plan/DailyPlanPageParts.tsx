@@ -2,14 +2,13 @@ import type { LucideIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { IusSectionHeader } from '@/components/iusentra'
 import { ItemCard } from './ItemCard'
-import type { AttivitaPiano, PianoGiornoPayload } from './types'
+import { dailyPlanSourceLabel, type AttivitaPiano, type PianoGiornoPayload } from './types'
 
-const fonteLabel: Record<string, string> = {
-  pec: 'PEC',
-  scadenziario: 'Scadenze',
-  agenda: 'Agenda',
-  case_presidio: 'Fascicoli',
-  economic: 'Economia',
+const coverageStatusLabel: Record<string, string> = {
+  complete: 'aggiornata',
+  stale: 'da aggiornare',
+  unavailable: 'non disponibile',
+  never: 'non ancora rilevata',
 }
 
 export function CoverageChips({ piano }: { piano: PianoGiornoPayload }) {
@@ -23,16 +22,16 @@ export function CoverageChips({ piano }: { piano: PianoGiornoPayload }) {
             fonte.status === 'complete'
               ? 'secondary'
               : fonte.status === 'stale'
-                ? 'outline'
-                : 'destructive'
+              ? 'outline'
+              : 'destructive'
           }
+          title={fonte.note || undefined}
+          aria-label={`${dailyPlanSourceLabel[fonte.source_type] || 'Fonte'}: ${
+            coverageStatusLabel[fonte.status] || fonte.status
+          }${fonte.note ? `. ${fonte.note}` : ''}`}
         >
-          {fonteLabel[fonte.source_type] || fonte.source_type}:{' '}
-          {fonte.status === 'complete'
-            ? 'aggiornata'
-            : fonte.status === 'stale'
-              ? 'da aggiornare'
-              : 'non disponibile'}
+          {dailyPlanSourceLabel[fonte.source_type] || 'Fonte'}:{' '}
+          {coverageStatusLabel[fonte.status] || fonte.status}
         </Badge>
       ))}
     </div>
@@ -58,7 +57,14 @@ export function ActivitySection({
 }) {
   return (
     <section className="grid gap-2">
-      <IusSectionHeader title={title} icon={icon} sequence={false} />
+      <IusSectionHeader
+        title={title}
+        icon={icon}
+        sequence={false}
+        actions={
+          items.length ? <Badge variant="outline">{items.length} attività</Badge> : undefined
+        }
+      />
       {items.length ? (
         <div className="grid gap-2">
           {items.map((item) => (

@@ -50,6 +50,10 @@ class DailyPlanNotFound(KeyError):
     pass
 
 
+class DailyPlanRefreshJobNotFound(KeyError):
+    pass
+
+
 class DailyPlanForbidden(PermissionError):
     pass
 
@@ -126,6 +130,74 @@ def enqueue_daily_plan_refresh(
         "stato": outcome["status"],
         "data": target_date,
         "gia_in_coda": bool(outcome.get("replayed")),
+    }
+
+
+def mark_daily_plan_refresh_scheduler_disabled(job_id: str) -> None:
+    """Chiude subito una richiesta non eseguibile per scelta dello studio."""
+    repo = repository_for_current_request()
+    job = repo.get_job(job_id)
+    if job is None or str(job.get("status") or "") not in {"queued", "running"}:
+        return
+    repo.finish_job(
+        job_id,
+        status="failed",
+        report={"ok": False, "code": "scheduler_disabled"},
+    )
+
+
+def daily_plan_refresh_status_payload(job_id: str) -> dict[str, Any]:
+    """Stato leggero e tenant-aware della richiesta di aggiornamento.
+
+    Non espone errori tecnici, path o contenuti delle fonti: alla pagina serve
+    solo un esito onesto dell'elaborazione automatica e un riepilogo numerico.
+    """
+    repo = repository_for_current_request()
+    job = repo.get_job(job_id)
+    if job is None:
+        raise DailyPlanRefreshJobNotFound(job_id)
+
+    status = str(job.get("status") or "queued").strip().lower()
+    report = dict(job.get("report") or {})
+    target_date = str((job.get("payload") or {}).get("target_date") or "")
+    messages = {
+        "queued": (
+            "Aggiornamento in coda: il piano resta consultabile e l'elaborazione automatica prosegue senza bloccare la pagina."
+        ),
+        "running": "Aggiornamento in elaborazione automatica.",
+        "done": "Aggiornamento completato: il piano è pronto.",
+        "failed": (
+            "L'elaborazione non è riuscita. Il presidio automatico recupererà gli snapshot mancanti alla prima finestra utile."
+        ),
+    }
+    if status == "failed" and report.get("code") == "scheduler_disabled":
+        messages["failed"] = (
+            "L'aggiornamento non può essere elaborato perché la pianificazione del Piano del giorno è disattivata nelle impostazioni dello studio."
+        )
+    return {
+        "ok": True,
+        "job_id": str(job.get("id") or job_id),
+        "stato": status,
+        "tipo": str(job.get("job_type") or ""),
+        "data": target_date,
+        "creato_il": str(job.get("created_at") or ""),
+        "iniziato_il": str(job.get("started_at") or ""),
+        "concluso_il": str(job.get("finished_at") or ""),
+        "messaggio": messages.get(status, "Stato dell'aggiornamento in verifica."),
+        "report": {
+            key: report[key]
+            for key in (
+                "ok",
+                "mode",
+                "target_date",
+                "items_written",
+                "users_planned",
+                "signals_upserted",
+                "automatic_recovery",
+                "missing_snapshot_users",
+            )
+            if key in report
+        },
     }
 
 
@@ -295,6 +367,12 @@ def create_daily_plan_domain_proposal(
 def daily_plan_error_payload(error: Exception) -> tuple[dict[str, Any], int]:
     if isinstance(error, DailyPlanForbidden):
         return {"ok": False, "code": "forbidden", "detail": "Operazione non autorizzata."}, 403
+    if isinstance(error, DailyPlanRefreshJobNotFound):
+        return {
+            "ok": False,
+            "code": "refresh_job_not_found",
+            "detail": "Aggiornamento non trovato per questo studio.",
+        }, 404
     if isinstance(error, (DailyPlanNotFound, KeyError)):
         return {"ok": False, "code": "not_found", "detail": "Attività non trovata."}, 404
     if isinstance(error, InvalidStatusTransition):
@@ -324,6 +402,8 @@ __all__ = [
     "daily_plan_coverage_payload",
     "daily_plan_error_payload",
     "daily_plan_item_detail_payload",
+    "daily_plan_refresh_status_payload",
     "enqueue_daily_plan_refresh",
     "ITEM_STATUS_TRANSITIONS",
+    "mark_daily_plan_refresh_scheduler_disabled",
 ]

@@ -499,7 +499,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "Lex AI",
             "Costruisce ogni mattina il piano operativo per avvocato da PEC, presidi, agenda, scadenze ed economia. Solo proiezione: nessuna scrittura applicativa automatica. Si attiva con i flag lex.dailyPlan.enabled e lex.dailyPlan.scheduledRuns.",
             "cron",
-            "7",
+            "5",
             "30",
             built_in=True,
             criteria=(
@@ -661,7 +661,14 @@ class SchedulerRegistryRepository:
     # scelta esplicita dello studio. Il flip tocca SOLO righe mai modificate da
     # un umano (updated_by='system'): qualunque intervento dalla console
     # (attiva/disattiva) vince per sempre sul default.
-    _DEFAULT_ON_PROMOTIONS: tuple[str, ...] = ("lex_autonomous_learning_nightly",)
+    _DEFAULT_ON_PROMOTIONS: tuple[str, ...] = (
+        "lex_autonomous_learning_nightly",
+        "studio_daily_operational_plan",
+    )
+
+    _SYSTEM_CRON_MIGRATIONS: tuple[tuple[str, str, str, str, str], ...] = (
+        ("studio_daily_operational_plan", "7", "30", "5", "30"),
+    )
 
     def upsert_default_jobs(self, config: dict[str, Any] | None = None) -> None:
         now = _iso()
@@ -711,6 +718,50 @@ class SchedulerRegistryRepository:
                     """,
                     (now, job_id),
                 )
+            for job_id, old_hour, old_minute, new_hour, new_minute in self._SYSTEM_CRON_MIGRATIONS:
+                conn.execute(
+                    """
+                    UPDATE scheduled_jobs
+                    SET hour=?, minute=?, interval_minutes=0, day_of_week='',
+                        updated_at=?, last_applied_signature=''
+                    WHERE job_id=?
+                      AND built_in=1
+                      AND updated_by='system'
+                      AND trigger_kind='cron'
+                      AND hour=?
+                      AND minute=?
+                    """,
+                    (
+                        new_hour,
+                        new_minute,
+                        now,
+                        job_id,
+                        old_hour,
+                        old_minute,
+                    ),
+                )
+            # APScheduler può notificare EXECUTED prima di SUBMITTED in caso
+            # di job molto rapidi: una vecchia notifica ``running`` arrivata
+            # dopo l'esito terminale non rappresenta un lavoro aperto. Pulizia
+            # idempotente degli audit già scritti con quell'ordine inverso.
+            conn.execute(
+                """
+                DELETE FROM scheduled_job_runs
+                WHERE id IN (
+                    SELECT stale.id
+                    FROM scheduled_job_runs AS stale
+                    JOIN scheduled_job_runs AS terminal
+                      ON terminal.job_id = stale.job_id
+                     AND terminal.origin = 'scheduler'
+                     AND terminal.scheduled_at = stale.scheduled_at
+                     AND terminal.status IN ('completed', 'failed', 'missed', 'cancelled')
+                     AND terminal.id < stale.id
+                    WHERE stale.origin = 'scheduler'
+                      AND stale.status = 'running'
+                      AND stale.scheduled_at <> ''
+                )
+                """
+            )
             for template in legal_source_scheduler_templates(config):
                 source_code = str((template.args or {}).get("source_code") or "").strip()
                 job_id = _legal_source_job_id(source_code)
@@ -1389,6 +1440,22 @@ class SchedulerRegistryRepository:
         template_key = str((job or {}).get("template_key") or job_id)
         now = _iso()
         with self.connect() as conn:
+            if status == "running" and scheduled_at:
+                terminal_row = conn.execute(
+                    """
+                    SELECT run_id
+                    FROM scheduled_job_runs
+                    WHERE job_id=?
+                      AND origin='scheduler'
+                      AND scheduled_at=?
+                      AND status IN ('completed', 'failed', 'missed', 'cancelled')
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (job_id, scheduled_at),
+                ).fetchone()
+                if terminal_row is not None:
+                    return
             if status != "running":
                 running_row = conn.execute(
                     """

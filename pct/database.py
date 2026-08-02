@@ -905,6 +905,13 @@ class GestioneDatabase:
     ) -> str:
         if chiave == "pagamenti_config":
             return "default" if payload else ""
+        if chiave == "notifiche" and isinstance(payload, dict):
+            timestamp = payload.get("ts") or payload.get("timestamp")
+            identity = "|".join(
+                str(value or "").strip()
+                for value in (timestamp, payload.get("tipo"), payload.get("cliente"), payload.get("numero"), payload.get("utente"))
+            ).strip("|")
+            return identity or record_key
         if chiave not in cls.MODULI_SQLITE_STRUTTURATI:
             return record_key
         if isinstance(payload, dict):
@@ -941,7 +948,12 @@ class GestioneDatabase:
             identity = cls._source_record_identity(chiave, record_key, payload)
             if not identity:
                 continue
-            stored_payload = cls._json_record_payload(payload) if chiave not in cls.MODULI_SQLITE_STRUTTURATI else payload
+            if chiave == "notifiche" and isinstance(payload, dict):
+                stored_payload = {key: value for key, value in payload.items() if key != "esito"}
+                if payload.get("esito") not in (None, ""):
+                    stored_payload["esito"] = payload.get("esito")
+            else:
+                stored_payload = cls._json_record_payload(payload) if chiave not in cls.MODULI_SQLITE_STRUTTURATI else payload
             payloads[identity] = cls._canonical_payload(stored_payload)
         return payloads
 
@@ -1072,6 +1084,34 @@ class GestioneDatabase:
         conn: sqlite3.Connection,
         chiave: str,
     ) -> Dict[str, Any]:
+        if chiave == "notifiche":
+            if not cls._sqlite_has_table(conn, "notifiche_log"):
+                return {"count": 0, "ids": set(), "payloads": {}}
+            rows = conn.execute(
+                """
+                SELECT timestamp, tipo, cliente, numero, utente, esito_json, payload_json
+                FROM notifiche_log
+                """
+            ).fetchall()
+            ids: set[str] = set()
+            payloads: Dict[str, str] = {}
+            for row in rows:
+                identity = "|".join(str(row[index] or "").strip() for index in range(5)).strip("|")
+                if not identity:
+                    continue
+                ids.add(identity)
+                try:
+                    payload = json.loads(row[6] or "{}")
+                except (TypeError, json.JSONDecodeError):
+                    payload = {}
+                try:
+                    esito = json.loads(row[5] or "{}")
+                except (TypeError, json.JSONDecodeError):
+                    esito = {}
+                if esito not in ({}, None, ""):
+                    payload["esito"] = esito
+                payloads[identity] = cls._migration_compare_payload(chiave, payload)
+            return {"count": len(rows), "ids": ids, "payloads": payloads}
         table_info = cls.MODULI_SQLITE_TABELLE.get(chiave)
         if not table_info:
             return {"count": 0, "ids": set(), "payloads": {}}

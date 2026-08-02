@@ -1,3 +1,4 @@
+import json
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -221,6 +222,40 @@ def test_workspace_intelligente_panoramica_non_lancia_ricerca_giurisprudenziale_
     assert overview["fascicoli_hot"]
     assert len(calls) <= 1
     assert all(not str(call.get("q") or "").strip() for call in calls)
+
+
+def test_workspace_intelligente_save_snapshot_persiste_solo_payload_sicuro(tmp_path: Path):
+    _fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
+    appuntamento = next(iter(agenda._appuntamenti.values()))
+    appuntamento.remote_hearing_detected = True
+    appuntamento.remote_hearing_platform = "Teams"
+    appuntamento.remote_hearing_passcode = "PIN-RISERVATO-123"
+    appuntamento.remote_hearing_url = "https://riunione.example.test/segreto"
+    appuntamento.remote_hearing_access_info = "Accesso riservato studio"
+
+    service = WorkspaceIntelligenteService(
+        agenda=agenda,
+        scadenziario=scadenziario,
+        fascicoli=fascicoli,
+        calendar_sync=sync,
+        giurisprudenza=giurisprudenza,
+    )
+    target = tmp_path / "workspace_snapshot.json"
+
+    snapshot = service.save_snapshot(str(target))
+    raw = target.read_text(encoding="utf-8")
+    stored = json.loads(raw)
+
+    assert snapshot["overview"]["upcoming_appointments"]
+    first = stored["overview"]["upcoming_appointments"][0]
+    assert isinstance(first, dict)
+    assert first["remote_hearing_detected"] is True
+    assert first["remote_hearing_platform"] == "Teams"
+    assert "remote_hearing_passcode" not in first
+    assert "remote_hearing_url" not in first
+    assert "PIN-RISERVATO-123" not in raw
+    assert "riunione.example.test" not in raw
+    assert isinstance(stored["overview"]["fascicoli_hot"][0]["appuntamenti"][0], dict)
 
 
 def test_workspace_intelligente_propone_sentenza_per_fascicolo(tmp_path: Path):

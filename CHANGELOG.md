@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.265.24 - 2026-08-02
+
+- **CodeQL workspace snapshot**: `WorkspaceIntelligenteService.save_snapshot()` persiste ora una vista sanificata e primitiva di agenda/scadenze/fascicoli, senza oggetti dominio completi né campi riservati di udienza remota.
+- **Guardrail sicurezza**: aggiunto test reale di salvataggio snapshot che esclude passcode, URL e informazioni di accesso riservate dal JSON workspace.
+- **SQLite notifiche**: la validazione di migrazione confronta `notifiche_log` tramite identità stabile timestamp/tipo/cliente/numero/utente, non tramite l'id autoincrementale SQLite.
+
 ## 2.265.23 - 2026-08-02
 
 - **CodeQL Google Calendar**: l'import degli eventi Google non legge più `extendedProperties.private`; i marker tecnici esportati verso Google restano transitori e la classificazione IUSENTRA continua da binding, ruolo calendario e titoli professionali.

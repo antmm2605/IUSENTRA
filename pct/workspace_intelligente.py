@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from zoneinfo import ZoneInfo
 
 from pct import cache as _cache
-from pct.agenda import Agenda, StatoAppuntamento
+from pct.agenda import Agenda, Appuntamento, StatoAppuntamento
 from pct.calendar_sync import GestioneCalendarSync
 from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
 from pct.fascicolo_document_presidio import duplicate_practice_groups
@@ -111,6 +111,77 @@ def _truncate(text: str, limit: int = 180) -> str:
     if len(raw) <= limit:
         return raw
     return raw[: limit - 1].rstrip() + "…"
+
+
+def _enum_value(value: Any) -> Any:
+    return getattr(value, "value", value)
+
+
+def _snapshot_appuntamento(item: Appuntamento) -> Dict[str, Any]:
+    return {
+        "id": item.id,
+        "titolo": _truncate(item.titolo, 180),
+        "tipo": _enum_value(item.tipo),
+        "stato": _enum_value(item.stato),
+        "data_ora": item.data_ora,
+        "fine": item.fine_dt.isoformat(timespec="seconds"),
+        "durata_minuti": item.durata_minuti,
+        "luogo": _truncate(item.luogo, 140),
+        "cliente": _truncate(item.cliente, 140),
+        "procedimento": _truncate(item.procedimento, 120),
+        "tribunale": _truncate(item.tribunale, 120),
+        "hearing_mode": _truncate(item.hearing_mode, 80),
+        "remote_hearing_detected": bool(item.remote_hearing_detected),
+        "remote_hearing_mode": _truncate(item.remote_hearing_mode, 80),
+        "remote_hearing_verified": bool(item.remote_hearing_verified),
+        "remote_hearing_platform": _truncate(item.remote_hearing_platform, 80),
+    }
+
+
+def _snapshot_scadenza(item: Scadenza) -> Dict[str, Any]:
+    return {
+        "id": item.id,
+        "id_fascicolo": item.id_fascicolo,
+        "titolo": _truncate(item.titolo, 180),
+        "tipo": _enum_value(item.tipo),
+        "priorita": _enum_value(item.priorita),
+        "stato": _enum_value(item.stato),
+        "data_scadenza": item.data_scadenza,
+        "legal_due_at": item.legal_due_at,
+        "operational_due_at": item.operational_due_at,
+        "giorni_alla_scadenza": item.giorni_alla_scadenza,
+        "perentorio": bool(item.perentorio),
+        "deadline_profile_code": item.deadline_profile_code,
+        "judicial_office_name": _truncate(item.judicial_office_name, 140),
+        "judicial_office_type": _truncate(item.judicial_office_type, 80),
+        "judicial_office_city": _truncate(item.judicial_office_city, 80),
+        "office_mode_on_legal_due_date": item.office_mode_on_legal_due_date,
+        "source_event_type": item.source_event_type,
+        "source_event_type_label": item.source_event_type_label,
+    }
+
+
+def _snapshot_safe_value(value: Any) -> Any:
+    if isinstance(value, Appuntamento):
+        return _snapshot_appuntamento(value)
+    if isinstance(value, Scadenza):
+        return _snapshot_scadenza(value)
+    if isinstance(value, dict):
+        return {str(key): _snapshot_safe_value(child) for key, child in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_snapshot_safe_value(child) for child in value]
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if hasattr(value, "value"):
+        return value.value
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if hasattr(value, "id") and hasattr(value, "titolo"):
+        return {
+            "id": str(getattr(value, "id", "") or ""),
+            "titolo": _truncate(str(getattr(value, "titolo", "") or ""), 180),
+        }
+    return _truncate(str(value), 240)
 
 
 def _provider_label(provider: str) -> str:
@@ -972,9 +1043,10 @@ class WorkspaceIntelligenteService:
         }
 
     def save_snapshot(self, path: str, overview: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        safe_overview = _snapshot_safe_value(overview or self.panoramica())
         payload = {
             "generated_at": _local_now().replace(microsecond=0).isoformat(),
-            "overview": overview or self.panoramica(),
+            "overview": safe_overview,
         }
         if self._snapshot_repository is not None:
             self._snapshot_repository.save_snapshot(payload)

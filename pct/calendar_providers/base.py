@@ -87,6 +87,7 @@ def event_content_hash(event: dict[str, Any]) -> str:
 
 def normalise_provider_event(event: dict[str, Any]) -> dict[str, Any]:
     payload = dict(event or {})
+    payload.pop("raw", None)
     payload.setdefault("id", str(payload.get("external_event_id") or payload.get("uid") or "").strip())
     payload.setdefault("uid", str(payload.get("id") or "").strip())
     payload.setdefault("title", str(payload.get("summary") or payload.get("title") or "Evento calendario").strip())

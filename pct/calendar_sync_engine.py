@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -280,6 +280,28 @@ class CalendarSyncEngine:
         payload["content_hash"] = local_event_hash(local_type, item)
         return payload
 
+    def _snapshot_remote(self, event: dict[str, Any]) -> dict[str, Any]:
+        normalised = normalise_provider_event(event)
+        snapshot_keys = (
+            "id",
+            "uid",
+            "title",
+            "description",
+            "location",
+            "start",
+            "end",
+            "all_day",
+            "status",
+            "deleted",
+            "etag",
+            "change_key",
+            "sequence",
+            "updated_at",
+        )
+        snapshot = {key: normalised.get(key) for key in snapshot_keys if normalised.get(key) not in (None, "")}
+        snapshot["content_hash"] = self._remote_hash(normalised)
+        return snapshot
+
     def _remote_hash(self, event: dict[str, Any]) -> str:
         return event_content_hash(normalise_provider_event(event))
 
@@ -451,7 +473,7 @@ class CalendarSyncEngine:
                 provider=str(account.get("provider") or ""),
                 conflict_type="scadenza_perentoria_cancellata",
                 local_snapshot=self._snapshot_local(local_type, local),
-                remote_snapshot=event,
+                remote_snapshot=self._snapshot_remote(event),
                 proposed_resolution="mantieni_iusentra",
             )
             binding["deleted_remote_at"] = now_iso()
@@ -530,14 +552,14 @@ class CalendarSyncEngine:
                 if local_type == "scadenza" and isinstance(local, Scadenza) and local.perentorio:
                     new_date = str(event.get("start") or "")[:10]
                     if new_date and local.data_scadenza and new_date != local.data_scadenza:
-                        conflict = self.conflicts.create_conflict(
+                        self.conflicts.create_conflict(
                             tenant_id=self.tenant_id,
                             local_type=local_type,
                             local_id=local_id,
                             provider=str(account.get("provider") or ""),
                             conflict_type="scadenza_perentoria_spostata",
                             local_snapshot=self._snapshot_local(local_type, local),
-                            remote_snapshot=event,
+                            remote_snapshot=self._snapshot_remote(event),
                             proposed_resolution="mantieni_iusentra",
                         )
                         conflicts += 1
@@ -550,7 +572,7 @@ class CalendarSyncEngine:
                         provider=str(account.get("provider") or ""),
                         conflict_type="modifica_concorrente",
                         local_snapshot=self._snapshot_local(local_type, local),
-                        remote_snapshot=event,
+                        remote_snapshot=self._snapshot_remote(event),
                         proposed_resolution="revisione_manuale",
                     )
                     conflicts += 1

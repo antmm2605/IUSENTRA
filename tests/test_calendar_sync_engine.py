@@ -120,6 +120,29 @@ def test_bidirectional_local_remote_changes_open_conflict(tmp_path):
     assert engine.agenda.get(appointment.id).titolo == "Titolo locale"
 
 
+def test_remote_conflict_snapshot_non_persiste_categorie_provider(tmp_path):
+    engine = _engine(tmp_path)
+    account, calendar = _connect_demo(engine)
+    appointment = _sample_appointment(engine)
+    pushed = engine.push_local_event("agenda", appointment.id, account["id"], calendar["id"])
+
+    engine.agenda.modifica(appointment.id, titolo="Titolo locale")
+    engine.providers["demo"].update_remote_event(
+        pushed["binding"]["external_event_id"],
+        {
+            "title": "Titolo esterno",
+            "categories": ["IUSENTRA-SCADENZA", "IUSENTRA-PERENTORIA"],
+        },
+    )
+    report = engine.pull_remote_changes(account["id"], calendar["id"])
+
+    assert report["conflicts"] == 1
+    remote_snapshot = engine.conflicts.list_conflicts(engine.tenant_id)[0]["remote_snapshot"]
+    assert remote_snapshot["title"] == "Titolo esterno"
+    assert "categories" not in remote_snapshot
+    assert "raw" not in remote_snapshot
+
+
 def test_peremptory_deadline_remote_delete_opens_conflict_without_deleting(tmp_path):
     engine = _engine(tmp_path)
     account, calendar = _connect_demo(engine)
@@ -208,6 +231,27 @@ def test_google_payload_for_deadline_without_time_uses_date_not_datetime(tmp_pat
     assert "dateTime" not in payload["start"]
     assert "dateTime" not in payload["end"]
     assert "IUSENTRA-SCADENZA" in payload["extendedProperties"]["private"]["iusentra_categories"]
+
+
+def test_google_map_event_espone_categorie_senza_raw_provider():
+    item = {
+        "id": "google-1",
+        "iCalUID": "google-1@example.test",
+        "summary": "Termine",
+        "start": {"date": "2026-06-10"},
+        "end": {"date": "2026-06-11"},
+        "extendedProperties": {
+            "private": {
+                "iusentra_categories": "IUSENTRA-SCADENZA,IUSENTRA-PERENTORIA",
+            },
+        },
+    }
+
+    mapped = GoogleCalendarProvider()._map_event(item)
+
+    assert mapped["categories"] == ["IUSENTRA-SCADENZA", "IUSENTRA-PERENTORIA"]
+    assert "raw" not in mapped
+    assert "extendedProperties" not in mapped
 
 
 def test_privacy_export_levels_hide_sensitive_content():

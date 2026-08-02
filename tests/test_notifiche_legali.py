@@ -33,6 +33,7 @@ from pct.notifiche_legali import (
     normalise_public_register,
     public_register_capability,
     get_notification_template,
+    is_plausible_pec_address,
     notification_directive_matrix,
     office_notification_evidence_from_pec,
     preview_legal_relata,
@@ -464,6 +465,13 @@ def test_anpr_non_puo_essere_registrato_come_prova_pec_di_notifica():
             "soggetto": "Mario Rossi",
             "consulted_at": datetime.now(ZoneInfo("Europe/Rome")).isoformat(),
         }, confirmed_by="Avvocato di prova")
+
+
+def test_indirizzo_pec_plausibile_validazione_lineare_senza_redos():
+    assert is_plausible_pec_address("Controparte+atti@example.pec.it")
+    assert not is_plausible_pec_address("utente@gmail.com")
+    assert not is_plausible_pec_address("%" * 5000)
+    assert not is_plausible_pec_address("utente@-example.pec.it")
 
 
 def test_payload_react_espone_modalita_e_azione_di_verifica_per_ogni_fonte():

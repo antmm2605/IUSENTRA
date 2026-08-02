@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.265.20 - 2026-08-02
+
+- **CodeQL notifiche/calendario**: la validazione PEC non usa piu' una regex sensibile a backtracking su input utente e i conflitti calendario salvano solo snapshot remoti normalizzati, senza `raw` provider o metadati `extendedProperties.private`.
+- **Guardrail sicurezza**: aggiunti test mirati per input PEC patologici, mapping Google Calendar e snapshot conflitti senza metadati provider persistiti.
+
 ## 2.265.19 - 2026-08-02
 
 - **Backup disattivati in modo fail-closed**: registro, job automatici, API React, percorsi manuali, CLI e script Hetzner non materializzano archivi; lo stesso presidio rimuove il cron IUSENTRA durante il deploy.

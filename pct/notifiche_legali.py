@@ -165,14 +165,33 @@ ORDINARY_EMAIL_DOMAINS = frozenset(
         "yahoo.it",
     }
 )
+_PEC_LOCAL_ALLOWED = frozenset("abcdefghijklmnopqrstuvwxyz0123456789._%+'-")
+_PEC_DOMAIN_LABEL_ALLOWED = frozenset("abcdefghijklmnopqrstuvwxyz0123456789-")
 
 
 def is_plausible_pec_address(value: Any) -> bool:
     """Accetta solo indirizzi utilizzabili come PEC nella UI operativa."""
     address = " ".join(str(value or "").split()).strip().lower()
-    if not re.fullmatch(r"[a-z0-9._%+\-']+@[a-z0-9.\-]+\.[a-z]{2,}", address, flags=re.IGNORECASE):
+    if not 3 <= len(address) <= 254 or address.count("@") != 1:
         return False
-    return address.rsplit("@", 1)[1] not in ORDINARY_EMAIL_DOMAINS
+    local, domain = address.split("@", 1)
+    if not local or len(local) > 64 or local.startswith(".") or local.endswith(".") or ".." in local:
+        return False
+    if any(char not in _PEC_LOCAL_ALLOWED for char in local):
+        return False
+    if len(domain) > 253 or "." not in domain:
+        return False
+    labels = domain.split(".")
+    for label in labels:
+        if not label or len(label) > 63:
+            return False
+        if label.startswith("-") or label.endswith("-"):
+            return False
+        if any(char not in _PEC_DOMAIN_LABEL_ALLOWED for char in label):
+            return False
+    if len(labels[-1]) < 2 or not labels[-1].isalpha():
+        return False
+    return domain not in ORDINARY_EMAIL_DOMAINS
 
 LEGAL_RECIPIENT_ROLES = {
     "controparte",
@@ -5443,7 +5462,6 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
 
     context = context or _build_context(payload, template=select_relata_template(payload))
     documents = context["documenti"]
-    send_phase = _notification_is_send_phase(payload)
     office_acquisition = _office_document_acquisition_state(payload, context)
     office_pec_eml = _office_pec_eml_state(payload)
     directive = resolve_legal_notification_directive(payload, context)

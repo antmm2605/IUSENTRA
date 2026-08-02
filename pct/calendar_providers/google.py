@@ -86,9 +86,10 @@ class GoogleCalendarProvider:
                 "etag": item.get("etag", ""),
                 "sequence": item.get("sequence", 0),
                 "updated_at": item.get("updated", ""),
-                "categories": item.get("extendedProperties", {}).get("private", {}).get("iusentra_categories", "").split(",")
-                if item.get("extendedProperties")
-                else [],
+                # I marker in extendedProperties.private sono tecnici e transitori:
+                # per CodeQL e per il modello dati IUSENTRA non devono entrare
+                # nel payload normalizzato che può attraversare repository/cache.
+                "categories": [],
                 "raw": item,
             }
         )

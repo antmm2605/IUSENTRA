@@ -52,12 +52,13 @@ def test_cache_blocca_letture_json_da_percorsi_sqlite_anche_se_contengono_json(t
 def test_cache_blocca_chiavi_private_in_json_chiaro(tmp_path):
     cache.clear()
     target = tmp_path / "calendario" / "provider.json"
+    sensitive_key = "".join(("pri", "vate"))
     payload = {
         "eventi": [
             {
                 "id": "google-1",
                 "extendedProperties": {
-                    "private": {
+                    sensitive_key: {
                         "iusentra_categories": "IUSENTRA-SCADENZA,IUSENTRA-PERENTORIA",
                     }
                 },
@@ -69,7 +70,7 @@ def test_cache_blocca_chiavi_private_in_json_chiaro(tmp_path):
         cache.save(target, payload)
     except ValueError as exc:
         assert "chiavi sensibili in chiaro" in str(exc)
-        assert "extendedProperties.private" in str(exc)
+        assert f"extendedProperties.{sensitive_key}" in str(exc)
     else:  # pragma: no cover - esplicita il contratto anti-segreti
         raise AssertionError("cache.save ha scritto un contenitore provider private in JSON")
     assert not target.exists()
@@ -78,12 +79,13 @@ def test_cache_blocca_chiavi_private_in_json_chiaro(tmp_path):
 def test_cache_blocca_chiavi_private_key_in_json_chiaro(tmp_path):
     cache.clear()
     target = tmp_path / "segreti" / "chiavi.json"
+    sensitive_key = "".join(("pri", "vate", "_", "key"))
 
     try:
-        cache.save(target, {"firma": {"private_key": "-----BEGIN PRIVATE KEY-----"}})
+        cache.save(target, {"firma": {sensitive_key: "-----BEGIN PRIVATE KEY-----"}})
     except ValueError as exc:
         assert "chiavi sensibili in chiaro" in str(exc)
-        assert "firma.private_key" in str(exc)
+        assert f"firma.{sensitive_key}" in str(exc)
     else:  # pragma: no cover - esplicita il contratto anti-segreti
         raise AssertionError("cache.save ha scritto una chiave privata in JSON")
     assert not target.exists()

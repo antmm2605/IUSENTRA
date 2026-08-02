@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.265.23 - 2026-08-02
+
+- **CodeQL Google Calendar**: l'import degli eventi Google non legge più `extendedProperties.private`; i marker tecnici esportati verso Google restano transitori e la classificazione IUSENTRA continua da binding, ruolo calendario e titoli professionali.
+
 ## 2.265.22 - 2026-08-02
 
 - **CodeQL cache JSON**: `cache.save()` ora rifiuta ricorsivamente contenitori `private` e chiavi private in archivi JSON in chiaro; il payload Google Calendar `extendedProperties.private` resta transitorio e non può essere materializzato su disco.

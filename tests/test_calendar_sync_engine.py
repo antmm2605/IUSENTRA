@@ -234,7 +234,7 @@ def test_google_payload_for_deadline_without_time_uses_date_not_datetime(tmp_pat
     assert "IUSENTRA-SCADENZA" in payload["extendedProperties"]["private"]["iusentra_categories"]
 
 
-def test_google_map_event_espone_categorie_senza_raw_provider():
+def test_google_map_event_non_importa_categorie_private_provider():
     item = {
         "id": "google-1",
         "iCalUID": "google-1@example.test",
@@ -250,7 +250,7 @@ def test_google_map_event_espone_categorie_senza_raw_provider():
 
     mapped = GoogleCalendarProvider()._map_event(item)
 
-    assert mapped["categories"] == ["IUSENTRA-SCADENZA", "IUSENTRA-PERENTORIA"]
+    assert mapped["categories"] == []
     assert "raw" not in mapped
     assert "extendedProperties" not in mapped
 

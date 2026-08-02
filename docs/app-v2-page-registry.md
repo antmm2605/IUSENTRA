@@ -511,7 +511,7 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | lex.workflowAgents.writeActions | IUSENTRA_FF_LEX_WORKFLOWAGENTS_WRITEACTIONS | Scritture agentiche approvabili dopo revisione umana. | off |
 | lex.workflowAgents.scheduledRuns | IUSENTRA_FF_LEX_WORKFLOWAGENTS_SCHEDULEDRUNS | Esecuzioni programmate degli agenti Lex. | off |
 | lex.dailyPlan.enabled | IUSENTRA_FF_LEX_DAILYPLAN_ENABLED | Piano del giorno (Lex Oggi): lettura snapshot e azioni sugli item. | on |
-| lex.dailyPlan.scheduledRuns | IUSENTRA_FF_LEX_DAILYPLAN_SCHEDULEDRUNS | Generazione automatica del piano del giorno dallo scheduler. | off |
+| lex.dailyPlan.scheduledRuns | IUSENTRA_FF_LEX_DAILYPLAN_SCHEDULEDRUNS | Generazione automatica del piano del giorno dallo scheduler. | on |
 | lex.dailyPlan.writeProposals | IUSENTRA_FF_LEX_DAILYPLAN_WRITEPROPOSALS | Proposte applicative approvabili dalla pagina Oggi. | off |
 | routes.appV2.legalSkills.catalog | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_CATALOG | Catalogo Legal Skills nella shell App V2. | on |
 | routes.appV2.legalSkills.profile | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROFILE | Profilo Legal Skills nella shell App V2. | on |

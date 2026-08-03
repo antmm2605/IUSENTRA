@@ -55,6 +55,7 @@
     "frontend/src/components/SitoStudioRedazioneAiPage.css",
     "frontend/src/components/SoggettiPage.css",
     "frontend/src/components/StatistichePage.css",
+    "frontend/src/components/StrumentiLegaliPage.css",
     "frontend/src/components/StudioModulePage.css",
     "frontend/src/components/StudioPage.css",
     "frontend/src/components/SyncedTopScrollbar.css",

@@ -880,6 +880,31 @@
       {% endif %}
     {% endcall %}
 
+    {% set risultato_lav = results.get('crediti_lavoro') %}
+    {% call tool_section('crediti_lavoro', 'Crediti di lavoro: rivalutazione e interessi', 'bi-briefcase-fill', 'Art. 429 co. 3 c.p.c.: maggior danno automatico, con divieto di cumulo nel pubblico impiego.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('crediti_lavoro', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Credito di lavoro maturato</label><input type="number" step="0.01" min="0" name="lav_importo" class="form-control" value="{{ form_state.lav_importo }}"></div>
+        <div class="col-md-4"><label class="form-label">Maturazione del diritto</label><input type="date" name="lav_data_maturazione" class="form-control" value="{{ form_state.lav_data_maturazione }}"></div>
+        <div class="col-md-4"><label class="form-label">Liquidazione o pagamento</label><input type="date" name="lav_data_liquidazione" class="form-control" value="{{ form_state.lav_data_liquidazione }}"></div>
+        <div class="col-md-4"><label class="form-label">Regime del rapporto</label><select name="lav_regime" class="form-select"><option value="privato" {{ 'selected' if form_state.lav_regime != 'pubblico' }}>Lavoro privato</option><option value="pubblico" {{ 'selected' if form_state.lav_regime == 'pubblico' }}>Pubblico impiego</option></select></div>
+        <div class="col-md-3"><label class="form-label">Indice ISTAT</label><select name="lav_tipo_indice" class="form-select"><option value="foi" {{ 'selected' if form_state.lav_tipo_indice != 'nic' }}>FOI</option><option value="nic" {{ 'selected' if form_state.lav_tipo_indice == 'nic' }}>NIC</option></select></div>
+        <div class="col-md-5"><label class="form-label">Base degli interessi</label><select name="lav_base_interessi" class="form-select">{% for value, label in [('rivalutato_progressivo','Capitale progressivamente rivalutato (Cass. SS.UU. 1712/1995)'),('semisomma','Semisomma'),('originario','Capitale originario')] %}<option value="{{ value }}" {{ 'selected' if form_state.lav_base_interessi == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola rivalutazione e interessi</button></div>
+      </form>
+      {% if risultato_lav %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Capitale rivalutato', risultato_lav.capitale_rivalutato|euro, 'da ' ~ risultato_lav.importo_originale|euro) }}
+        {{ metric_box('Rivalutazione riconosciuta', risultato_lav.rivalutazione_riconosciuta|euro, 'calcolata ' ~ risultato_lav.rivalutazione_calcolata|euro) }}
+        {{ metric_box('Interessi riconosciuti', risultato_lav.interessi_riconosciuti|euro, 'calcolati ' ~ risultato_lav.interessi_calcolati|euro) }}
+        {{ metric_box('Totale dovuto', risultato_lav.totale|euro, risultato_lav.regime_label) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Periodo</th><th class="text-end">Giorni</th><th class="text-end">Tasso</th><th class="text-end">Base</th><th class="text-end">Interessi</th></tr></thead><tbody>{% for row in risultato_lav.segments %}<tr><td class="fw-semibold">{{ row['from']|data_it }} – {{ row['to']|data_it }}</td><td class="text-end">{{ row.days }}</td><td class="text-end">{{ row.rate }}%</td><td class="text-end">{{ row.base|euro }}</td><td class="text-end">{{ row.interest|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_lav.notes, risultato_lav.warnings) }}
+      {{ render_sources(risultato_lav.sources) }}
+      {% endif %}
+    {% endcall %}
+
     {% set risultato_dp = results.get('danno_parentale') %}
     {% call tool_section('danno_parentale', 'Danno da perdita parentale', 'bi-people', 'Tabella a punti Milano 2024 con i cinque parametri della Cassazione.') %}
       <form method="post" class="row g-3 tool-form-grid">

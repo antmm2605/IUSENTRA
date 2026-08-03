@@ -33,6 +33,7 @@ TOOL_METHODS = {
     "imposta_registro": "calcola_imposta_registro",
     "interessi_acconti": "calcola_interessi_acconti",
     "maggior_danno": "calcola_maggior_danno",
+    "crediti_lavoro": "calcola_crediti_lavoro",
     "danno_parentale": "calcola_danno_parentale",
     "usufrutto": "calcola_usufrutto",
     "quote_riserva": "calcola_quote_riserva",

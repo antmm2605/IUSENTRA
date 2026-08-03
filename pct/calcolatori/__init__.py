@@ -11,11 +11,14 @@ Ogni modulo copre una materia con base normativa dichiarata nel docstring:
   art. 5 L. 898/1970).
 - ``pena_riti_alternativi``: attenuanti, continuazione e riti alternativi
   (artt. 62-bis, 65, 81, 132, 163 c.p.; artt. 442 e 444 c.p.p.).
+- ``crediti_lavoro``: rivalutazione e interessi sui crediti di lavoro
+  (art. 429, comma 3, c.p.c.; art. 22, comma 36, L. 724/1994).
 
 L'orchestrazione applicativa resta in ``pct.strumenti_legali``.
 """
 from pct.calcolatori import (  # noqa: F401
     assegno_mantenimento,
+    crediti_lavoro,
     danno_parentale,
     interessi_acconti,
     maggior_danno,
@@ -26,6 +29,7 @@ from pct.calcolatori import (  # noqa: F401
 
 __all__ = [
     "assegno_mantenimento",
+    "crediti_lavoro",
     "danno_parentale",
     "interessi_acconti",
     "maggior_danno",

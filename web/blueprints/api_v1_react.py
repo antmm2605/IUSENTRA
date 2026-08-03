@@ -8084,7 +8084,10 @@ def strumenti_legali_react():
     """Catalogo e schema dei moduli della suite Strumenti Forensi."""
 
     from pct.strumenti_legali import GestioneStrumentiLegali
-    from web.services.react_strumenti_legali_bridge import build_react_strumenti_legali_payload
+    from web.services.react_strumenti_legali_bridge import (
+        build_react_strumenti_legali_payload,
+        sorgenti_opzioni,
+    )
 
     try:
         gestore = GestioneStrumentiLegali(
@@ -8096,6 +8099,7 @@ def strumenti_legali_react():
             catalogo=gestore.catalogo_moduli(),
             form_state=gestore.build_form_state({}),
             tool_richiesto=request.args.get("tool", ""),
+            opzioni=sorgenti_opzioni(gestore),
         )
         response = jsonify(payload)
         response.headers["Cache-Control"] = "no-store, max-age=0"

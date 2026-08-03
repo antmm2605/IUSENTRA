@@ -69,18 +69,69 @@ export async function eseguiCalcolo(
   )
 }
 
+/** Chiavi che il pannello rende in forma dedicata, non come riga di sintesi. */
+const CHIAVI_NON_SINTETICHE = new Set(['notes', 'warnings', 'sources'])
+
 /** Estrae le righe leggibili di un risultato, senza conoscere lo strumento. */
 export function righeRisultato(result: Record<string, unknown> | undefined): { label: string; value: string }[] {
   if (!result) return []
-  const salta = new Set(['notes', 'warnings', 'sources', 'passaggi', 'benefici', 'rows', 'criteri'])
   const righe: { label: string; value: string }[] = []
   for (const [chiave, valore] of Object.entries(result)) {
-    if (salta.has(chiave)) continue
+    if (CHIAVI_NON_SINTETICHE.has(chiave)) continue
     if (valore === null || valore === undefined || valore === '') continue
     if (typeof valore === 'object') continue
     righe.push({ label: etichettaChiave(chiave), value: String(valore) })
   }
   return righe
+}
+
+export type TabellaRisultato = {
+  chiave: string
+  titolo: string
+  colonne: string[]
+  righe: Record<string, string>[]
+}
+
+/**
+ * Ricava le tabelle di dettaglio da qualunque risultato: ogni calcolatore
+ * restituisce elenchi diversi (segmenti di tasso, passaggi di pena, rate del
+ * piano, parametri tabellari) e le colonne vengono dedotte dalle chiavi, così
+ * la pagina non deve conoscere i singoli strumenti.
+ */
+export function tabelleRisultato(result: Record<string, unknown> | undefined): TabellaRisultato[] {
+  if (!result) return []
+  const tabelle: TabellaRisultato[] = []
+  for (const [chiave, valore] of Object.entries(result)) {
+    if (CHIAVI_NON_SINTETICHE.has(chiave)) continue
+    if (!Array.isArray(valore) || !valore.length) continue
+    const voci = valore.filter(
+      (voce): voce is Record<string, unknown> =>
+        typeof voce === 'object' && voce !== null && !Array.isArray(voce),
+    )
+    if (voci.length !== valore.length) continue
+    const colonne: string[] = []
+    for (const voce of voci) {
+      for (const campo of Object.keys(voce)) {
+        if (typeof voce[campo] === 'object' && voce[campo] !== null) continue
+        if (!colonne.includes(campo)) colonne.push(campo)
+      }
+    }
+    if (!colonne.length) continue
+    tabelle.push({
+      chiave,
+      titolo: etichettaChiave(chiave),
+      colonne,
+      righe: voci.map((voce) => {
+        const riga: Record<string, string> = {}
+        for (const campo of colonne) {
+          const cella = voce[campo]
+          riga[campo] = cella === null || cella === undefined || typeof cella === 'object' ? '' : String(cella)
+        }
+        return riga
+      }),
+    })
+  }
+  return tabelle
 }
 
 export function etichettaChiave(chiave: string): string {

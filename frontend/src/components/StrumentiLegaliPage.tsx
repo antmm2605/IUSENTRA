@@ -3,13 +3,16 @@ import {
   caricaStrumentiLegali,
   eseguiCalcolo,
   elencoTestuale,
+  etichettaChiave,
   fontiRisultato,
   righeRisultato,
+  tabelleRisultato,
   type CampoStrumento,
   type EsitoCalcolo,
   type StrumentiLegaliPayload,
   type StrumentoForense,
 } from '../strumentiLegaliData'
+import './StrumentiLegaliPage.css'
 
 function toolDallUrl(): string {
   if (typeof window === 'undefined') return ''
@@ -82,7 +85,7 @@ function Risultato({ esito }: { esito: EsitoCalcolo }) {
   const note = elencoTestuale(esito.result, 'notes')
   const avvisi = elencoTestuale(esito.result, 'warnings')
   const fonti = fontiRisultato(esito.result)
-  const passaggi = Array.isArray(esito.result?.passaggi) ? (esito.result?.passaggi as Record<string, unknown>[]) : []
+  const tabelle = tabelleRisultato(esito.result)
 
   return (
     <section className="iu-tool-result" aria-live="polite">
@@ -96,30 +99,29 @@ function Risultato({ esito }: { esito: EsitoCalcolo }) {
         ))}
       </dl>
 
-      {passaggi.length ? (
-        <div className="iu-table-wrap">
+      {tabelle.map((tabella) => (
+        <div className="iu-table-wrap" key={tabella.chiave}>
+          <h4 className="iu-tool-result__subtitle">{tabella.titolo}</h4>
           <table className="iu-table">
             <thead>
               <tr>
-                <th>Passaggio</th>
-                <th>Operazione</th>
-                <th>Risultato</th>
-                <th>Riferimento</th>
+                {tabella.colonne.map((colonna) => (
+                  <th key={colonna}>{etichettaChiave(colonna)}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {passaggi.map((passo, indice) => (
-                <tr key={`${String(passo.fase)}-${indice}`}>
-                  <td>{String(passo.fase ?? '')}</td>
-                  <td>{String(passo.operazione ?? '')}</td>
-                  <td>{String(passo.pena ?? '')}</td>
-                  <td>{String(passo.riferimento ?? '')}</td>
+              {tabella.righe.map((riga, indice) => (
+                <tr key={`${tabella.chiave}-${indice}`}>
+                  {tabella.colonne.map((colonna) => (
+                    <td key={colonna}>{riga[colonna]}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : null}
+      ))}
 
       {avvisi.map((avviso) => (
         <div className="iu-alert iu-alert--warning" key={avviso}>

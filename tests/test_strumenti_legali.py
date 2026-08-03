@@ -857,7 +857,7 @@ def test_api_react_calcola_rifiuta_strumenti_senza_schema_e_input_invalidi(tmp_p
     client = _client_react(tmp_path)
 
     senza_schema = client.post(
-        "/api/v1/ui/strumenti-legali/calcola", json={"tool": "contributo_unificato", "dati": {}}
+        "/api/v1/ui/strumenti-legali/calcola", json={"tool": "uffici_competenti", "dati": {}}
     ).get_json()
     assert senza_schema["ok"] is False
 
@@ -884,3 +884,163 @@ def test_rotta_strumenti_legali_punta_al_componente_react(tmp_path):
 
     rotte = dict(_ROUTE_COMPONENTS)
     assert rotte["/strumenti-legali"] == "src/components/StrumentiLegaliPage.tsx"
+
+
+# ── Crediti di lavoro — art. 429, comma 3, c.p.c. ─────────────────────────
+
+
+def _payload_lavoro(**extra):
+    dati = {
+        "lav_importo": "10000",
+        "lav_data_maturazione": "2023-01-15",
+        "lav_data_liquidazione": "2025-03-20",
+        "lav_regime": "privato",
+        "lav_tipo_indice": "foi",
+        "lav_base_interessi": "rivalutato_progressivo",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_crediti_lavoro_privato_cumula_rivalutazione_e_interessi(tmp_path):
+    """Art. 429, comma 3, c.p.c.: nel lavoro privato le due voci si sommano."""
+
+    result = _gestore(tmp_path).calcola_crediti_lavoro(_payload_lavoro())
+
+    assert result["cumulo_ammesso"] is True
+    assert result["rivalutazione_calcolata"] > 0
+    assert result["interessi_calcolati"] > 0
+    assert result["rivalutazione_riconosciuta"] == result["rivalutazione_calcolata"]
+    assert result["interessi_riconosciuti"] == result["interessi_calcolati"]
+    atteso = round(
+        result["importo_originale"] + result["rivalutazione_calcolata"] + result["interessi_calcolati"], 2
+    )
+    assert result["totale"] == atteso
+    assert result["segments"]
+
+
+def test_crediti_lavoro_pubblico_impiego_vieta_il_cumulo(tmp_path):
+    """Art. 22, comma 36, L. 724/1994: si riconosce solo la voce maggiore."""
+
+    gestore = _gestore(tmp_path)
+    privato = gestore.calcola_crediti_lavoro(_payload_lavoro())
+    pubblico = gestore.calcola_crediti_lavoro(_payload_lavoro(lav_regime="pubblico"))
+
+    assert pubblico["cumulo_ammesso"] is False
+    maggiore = max(pubblico["rivalutazione_calcolata"], pubblico["interessi_calcolati"])
+    assert pubblico["totale"] == round(pubblico["importo_originale"] + maggiore, 2)
+    assert pubblico["totale"] < privato["totale"]
+    assert pubblico["voce_prevalente"] in {"rivalutazione", "interessi"}
+    # La voce non prevalente non viene riconosciuta, ma resta visibile come calcolata.
+    riconosciute = (pubblico["rivalutazione_riconosciuta"], pubblico["interessi_riconosciuti"])
+    assert 0.0 in riconosciute
+    assert any("724/1994" in nota for nota in pubblico["notes"])
+
+
+def test_crediti_lavoro_rifiuta_periodi_e_importi_incoerenti(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError, match="importo"):
+        gestore.calcola_crediti_lavoro(_payload_lavoro(lav_importo="0"))
+
+    with pytest.raises(ValueError, match="maturazione"):
+        gestore.calcola_crediti_lavoro(_payload_lavoro(lav_data_maturazione=""))
+
+    with pytest.raises(ValueError, match="successiva"):
+        gestore.calcola_crediti_lavoro(
+            _payload_lavoro(lav_data_maturazione="2025-03-20", lav_data_liquidazione="2023-01-15")
+        )
+
+
+def test_crediti_lavoro_dichiara_le_fonti_e_la_decorrenza(tmp_path):
+    result = _gestore(tmp_path).calcola_crediti_lavoro(_payload_lavoro())
+
+    urls = " ".join(fonte["title"] for fonte in result["sources"])
+    assert "429" in urls
+    assert any("maturazione del diritto" in nota for nota in result["notes"])
+    assert result["data_maturazione"] == "15/01/2023"
+
+
+def test_crediti_lavoro_e_esposto_nella_suite(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    assert "crediti_lavoro" in catalogo
+    assert TOOL_METHODS["crediti_lavoro"] == "calcola_crediti_lavoro"
+
+
+# ── Copertura React della suite ───────────────────────────────────────────
+
+
+def test_ogni_schema_ha_un_metodo_di_calcolo_in_produzione(tmp_path):
+    """Uno schema senza metodo esporrebbe un modulo che non calcola nulla."""
+
+    from pct.calcolatori.schema import SCHEMI_CALCOLATORI
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    gestore = _gestore(tmp_path)
+    for tool_id in SCHEMI_CALCOLATORI:
+        assert tool_id in TOOL_METHODS, f"{tool_id} dichiarato senza metodo di calcolo"
+        assert hasattr(gestore, TOOL_METHODS[tool_id])
+
+
+def test_bridge_risolve_le_opzioni_dinamiche_dal_dominio(tmp_path):
+    """Materie, gradi e categorie restano una fonte sola: il gestore."""
+
+    from web.services.react_strumenti_legali_bridge import (
+        build_react_strumenti_legali_payload,
+        sorgenti_opzioni,
+    )
+
+    gestore = _gestore(tmp_path)
+    payload = build_react_strumenti_legali_payload(
+        catalogo=gestore.catalogo_moduli(),
+        form_state=gestore.build_form_state({}),
+        opzioni=sorgenti_opzioni(gestore),
+    )
+
+    onorari = next(voce for voce in payload["strumenti"] if voce["id"] == "onorari_forensi")
+    materia = next(campo for campo in onorari["campi"] if campo["name"] == "onorari_materia")
+    assert materia["options"], "le materie del D.M. 55/2014 devono arrivare dal gestore"
+    assert len(materia["options"]) == len(gestore.opzioni_onorari_forensi()["materie"])
+
+    # Il marcatore interno non deve mai raggiungere il client.
+    for voce in payload["strumenti"]:
+        for campo in voce["campi"]:
+            assert "options_from" not in campo
+            if campo["type"] == "select":
+                assert campo["options"], f"{voce['id']}.{campo['name']} senza opzioni"
+
+
+def test_bridge_senza_cataloghi_non_espone_moduli_a_meta(tmp_path):
+    """Se le opzioni dinamiche non sono risolvibili resta la vista classica."""
+
+    from web.services.react_strumenti_legali_bridge import build_react_strumenti_legali_payload
+
+    gestore = _gestore(tmp_path)
+    payload = build_react_strumenti_legali_payload(
+        catalogo=gestore.catalogo_moduli(),
+        form_state=gestore.build_form_state({}),
+        opzioni={},
+    )
+
+    onorari = next(voce for voce in payload["strumenti"] if voce["id"] == "onorari_forensi")
+    assert onorari["reso_in_react"] is False
+    assert onorari["campi"] == []
+    assert onorari["href_vista_classica"].endswith("&_legacy=1")
+
+    # Gli strumenti a opzioni statiche restano invece disponibili in React.
+    interessi = next(voce for voce in payload["strumenti"] if voce["id"] == "interessi")
+    assert interessi["reso_in_react"] is True
+
+
+def test_tutti_i_calcolatori_della_suite_sono_migrati_in_react(tmp_path):
+    """Solo la ricerca uffici resta fuori: non è un calcolatore ma un motore di ricerca."""
+
+    from pct.calcolatori.schema import SCHEMI_CALCOLATORI
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    fuori_schema = catalogo - set(SCHEMI_CALCOLATORI)
+    assert fuori_schema == {"uffici_competenti"}

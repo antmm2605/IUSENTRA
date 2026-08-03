@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
+    crediti_lavoro as calc_crediti_lavoro,
     danno_parentale as calc_danno_parentale,
     interessi_acconti as calc_interessi_acconti,
     maggior_danno as calc_maggior_danno,
@@ -165,6 +166,7 @@ class GestioneStrumentiLegali:
             {"id": "piano_ammortamento", "title": "Piano di Ammortamento", "subtitle": "Metodo francese o italiano, rata, interessi e sviluppo rateale completo.", "icon": "bi-table", "categoria": "Finanza"},
             {"id": "interessi_acconti", "title": "Interessi con acconti", "subtitle": "Imputazione degli acconti prima a interessi e poi a capitale ex art. 1194 c.c.", "icon": "bi-cash-coin", "categoria": "Credito"},
             {"id": "maggior_danno", "title": "Maggior danno da svalutazione", "subtitle": "Art. 1224 co. 2 c.c.: capitale rivalutato ISTAT più interessi legali del periodo.", "icon": "bi-graph-down-arrow", "categoria": "Credito"},
+            {"id": "crediti_lavoro", "title": "Crediti di lavoro: rivalutazione e interessi", "subtitle": "Art. 429 co. 3 c.p.c. con divieto di cumulo per il pubblico impiego (art. 22 co. 36 L. 724/1994).", "icon": "bi-briefcase-fill", "categoria": "Lavoro"},
             {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.", "icon": "bi-people", "categoria": "Danni"},
             {"id": "usufrutto", "title": "Usufrutto e nuda proprietà", "subtitle": "Valore fiscale con le fasce d'età del D.P.R. 131/1986 e il tasso legale corrente.", "icon": "bi-house-heart", "categoria": "Patrimonio"},
             {"id": "quote_riserva", "title": "Quote di riserva legittimari", "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.", "icon": "bi-shield-check", "categoria": "Patrimonio"},
@@ -406,6 +408,13 @@ class GestioneStrumentiLegali:
             "md_mese_base": "",
             "md_anno_fine": "",
             "md_mese_fine": "",
+            # Crediti di lavoro (art. 429, comma 3, c.p.c.)
+            "lav_importo": prefill.get("valore_causa", ""),
+            "lav_data_maturazione": "",
+            "lav_data_liquidazione": today,
+            "lav_regime": "privato",
+            "lav_tipo_indice": "foi",
+            "lav_base_interessi": "rivalutato_progressivo",
             # Danno parentale
             "dp_categoria": "nucleo_primario",
             "dp_eta_vittima": "",
@@ -1007,6 +1016,9 @@ class GestioneStrumentiLegali:
 
     def calcola_maggior_danno(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_maggior_danno.calcola(payload, self.norme)
+
+    def calcola_crediti_lavoro(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_crediti_lavoro.calcola(payload, self.norme)
 
     def calcola_danno_parentale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_danno_parentale.calcola(payload)

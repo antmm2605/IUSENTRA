@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.268.0 - 2026-08-03
+
+- **Suite Strumenti Forensi completata in React: da 8 a 29 strumenti compilabili.** Sono stati dichiarati i 21 schemi mancanti, quindi tutti i calcolatori della suite si compilano nella pagina React. Resta fuori solo `uffici_competenti`, che non è un calcolatore ma un motore di ricerca e ha già una propria superficie React.
+- Gli schemi non sono stati riscritti a mano: sono stati estratti dai moduli della vista classica, che è la fonte reale dei campi, e ogni voce è vincolata da un test a esistere nel form state del dominio. Non esiste quindi un secondo elenco di campi da tenere allineato.
+- **Opzioni dinamiche risolte a runtime, non congelate.** Materie, gradi e complessità del D.M. 55/2014 e le categorie del contributo unificato sono cataloghi che cambiano con la normativa: lo schema dichiara solo `options_from` e il bridge le legge dal gestore. Se un catalogo non è risolvibile lo strumento non viene esposto a metà, ma resta sulla vista classica.
+- **Nuovo calcolatore: crediti di lavoro — rivalutazione e interessi (art. 429, comma 3, c.p.c.).** Il maggior danno da svalutazione è riconosciuto in via automatica, senza l'onere di prova richiesto dall'art. 1224, comma 2, c.c., con decorrenza dal giorno della maturazione del diritto. Nel pubblico impiego rivalutazione e interessi non sono cumulabili (art. 22, comma 36, L. 724/1994, che richiama l'art. 16, comma 6, L. 412/1991; Corte cost. 2 novembre 2000, n. 459): il calcolatore riconosce la sola voce maggiore e mostra comunque entrambe le grandezze calcolate.
+- Il calcolatore non introduce dati nuovi: usa gli indici ISTAT e i saggi legali già versionati nel progetto e si ferma con errore se il periodo non è coperto, anziché stimare.
+- La tabella di dettaglio del pannello React è ora derivata dal risultato invece che cablata sui passaggi della pena: ogni calcolatore che restituisce elenchi (segmenti di tasso, rate del piano, parametri tabellari) li vede resi senza che la pagina conosca lo strumento.
+- Aggiunto il foglio di stile della pagina, che finora usava classi prive di definizione.
+- Guardrail: nove test nuovi coprono il cumulo nel lavoro privato, il divieto di cumulo nel pubblico impiego, il rifiuto di periodi e importi incoerenti, le fonti obbligatorie nell'esito, la presenza nella suite, la corrispondenza fra ogni schema e un metodo di calcolo realmente esistente, la risoluzione delle opzioni dinamiche dal dominio, il fallback alla vista classica quando un catalogo manca e la copertura completa del catalogo.
+
 ## 2.267.0 - 2026-08-03
 
 - **Suite Strumenti Forensi ricostruita in React, con architettura schema-driven.** `/strumenti-legali` non serve più la pagina delle card ma un componente dedicato che elenca i 29 strumenti, li filtra per testo e categoria e ne compila il modulo.

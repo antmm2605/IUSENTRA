@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.265.30 - 2026-08-03
+
+- **Caricamento pagina: la shell React usa rivalidazione condizionata invece di `no-store`.** Il corpo è deterministico per (rotta, utente, studio, versione), quindi viene emesso un ETag calcolato sui byte effettivi: se il browser rimanda lo stesso ETag riceve un 304 e riusa il documento che ha già. Misurato: **297.361 byte (circa 83 kB gzip) risparmiati ad ogni navigazione ripetuta sulla stessa rotta**, di cui il 93% è l'entry React inline.
+- Il 304 è corretto per costruzione: l'ETag è l'hash di ciò che avremmo inviato, quindi combacia solo se il client possiede già esattamente quel corpo. Verificato che un ETag diverso e una rotta diversa riportano sempre il corpo completo.
+- La freschezza non è allentata: `no-cache` obbliga il browser a rivalidare prima di ogni uso, quindi non può mai mostrare una pagina senza aver interrogato il server; `private` la tiene fuori da proxy e cache condivise; `Vary: Cookie` lega la voce di cache alla sessione. Verificato che due utenti diversi ottengono ETag diversi.
+- **Mitigazione della contropartita.** Il documento può ora essere scritto nella cache del browser: il logout emette `Clear-Site-Data: "cache"` così su postazione condivisa la pagina con nome utente, studio e permessi non resta recuperabile dopo la disconnessione. Si pulisce solo la cache, non `storage` né `cookies`, per non cancellare preferenze locali estranee alla sessione.
+- Caddy: la regola su `/app-v2*` forzava `no-store` e avrebbe annullato i 304 al bordo; ora dichiara la stessa direttiva dell'applicazione.
+- Guardrail: tre test verificano il 304 sulla navigazione ripetuta, che nessuna direttiva consenta di mostrare la pagina senza rivalidare (niente `public`, niente `max-age` diverso da zero, `Vary: Cookie` presente) e che il logout ripulisca la cache. Verificati falliscono tornando a `no-store`.
+
 ## 2.265.29 - 2026-08-03
 
 - **Caricamento pagina: eliminato il doppio scaricamento dei chunk di rotta React.** Gli asset generati da Vite hanno il contenuto nell'hash del nome, ma la shell aggiungeva comunque `?v=<versione>` a `modulepreload` e CSS React. L'entry importa `/static/react/assets/X.js` senza query, quindi il preload puntava a un URL diverso: non veniva mai riusato e ogni chunk finiva scaricato due volte al primo caricamento della rotta. Misurato: `/fascicoli` 960 kB (195 kB gzip), `/agenda` 320 kB (89 kB gzip), `/clienti` 298 kB (82 kB gzip).

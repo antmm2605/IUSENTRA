@@ -4,6 +4,22 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-08-03: shell React con rivalidazione condizionata, 2.265.30. Su richiesta esplicita dell'utente dopo aver esposto la contropartita di privacy.
+
+  | Caso | Prima | Dopo |
+  |---|---|---|
+  | Prima visita di una rotta | 297.361 byte | 297.361 byte |
+  | Navigazione ripetuta sulla stessa rotta | 297.361 byte | **304, 0 byte** |
+  | ETag non corrispondente | corpo completo | corpo completo |
+  | Rotta diversa con ETag vecchio | corpo completo | corpo completo |
+  | Utente diverso | — | ETag diverso, nessun riuso |
+
+  Il corpo della shell è deterministico per (rotta, utente, studio, versione): verificato byte-stabile su `/fascicoli`, `/agenda` e `/clienti` su richieste ripetute. L'ETag è calcolato sui byte effettivi della risposta, quindi il 304 è corretto per costruzione. Direttive: `private, no-cache, must-revalidate, max-age=0` più `Vary: Cookie`. `no-cache` non significa "non memorizzare" ma "rivalida prima di ogni uso": la freschezza resta identica a `no-store`, cambia solo che il corpo non viene ritrasmesso quando è già identico.
+
+  Contropartita e mitigazione: il documento può ora finire nella cache del browser. Il logout emette `Clear-Site-Data: "cache"`, così su postazione condivisa la pagina con nome utente, studio e permessi non resta recuperabile dopo la disconnessione. La regola Caddy su `/app-v2*` forzava `no-store` al bordo e avrebbe annullato i 304: ora dichiara la stessa direttiva dell'applicazione.
+
+  Nota: il 304 non riduce il tempo server (la pagina viene comunque costruita per calcolare l'ETag, 6-8 ms) e non elimina l'analisi JS lato browser, perché l'entry è inline nel documento. Il guadagno è sul trasferimento, quindi è tanto più visibile quanto più lenta è la rete.
+
 - 2026-08-03: doppio scaricamento dei chunk di rotta React eliminato, 2.265.29. Composizione misurata di un caricamento pagina prima dell'intervento:
 
   | Voce | Byte | gzip | Quando si paga |

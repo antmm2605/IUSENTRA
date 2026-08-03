@@ -776,7 +776,15 @@ def register_auth_runtime(
             )
         session.clear()
         flash("Disconnessione effettuata.", "info")
-        return redirect(url_for("login"))
+        response = redirect(url_for("login"))
+        # La shell React è servita con rivalidazione condizionata invece che con
+        # `no-store`, quindi il browser può averne una copia in cache. Al logout
+        # va rimossa: senza questo, su una postazione condivisa la pagina con
+        # nome utente, studio e permessi resterebbe recuperabile dalla cache
+        # dopo la disconnessione. Si pulisce solo la cache: `storage` e `cookies`
+        # cancellerebbero anche preferenze locali non collegate alla sessione.
+        response.headers["Clear-Site-Data"] = '"cache"'
+        return response
 
     @app.route("/login/2fa", methods=["GET", "POST"])
     def login_2fa():

@@ -39,8 +39,13 @@
 	@static path /static/*
 	header @static Cache-Control "public, max-age=604800"
 
+	# La shell React usa rivalidazione condizionata con ETag: `no-cache` obbliga
+	# comunque il browser a rivalidare prima di ogni uso, quindi non mostra mai
+	# una pagina senza aver chiesto al server, mentre `private` la tiene fuori da
+	# proxy e cache condivise. Con `no-store` il bordo annullerebbe i 304 che
+	# l'applicazione emette, riscaricando l'intero documento ad ogni navigazione.
 	@react_shell path /app-v2*
-	header @react_shell Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+	header @react_shell Cache-Control "private, no-cache, must-revalidate, max-age=0"
 
 	@support_rooms path /support/join/* /support/operatore/*
 	header @support_rooms Permissions-Policy "camera=(self), microphone=(self), display-capture=(self), local-network-access=(self), local-network=(self), loopback-network=(self), geolocation=(), payment=()"

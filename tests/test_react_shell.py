@@ -9619,3 +9619,64 @@ def test_css_react_hashed_non_hanno_query_di_versione(tmp_path: Path):
     assert not [href for href in hashed if "?" in href]
     # `app.css` non è versionato nel nome: lì il `?v=` serve e deve restare.
     assert re.search(r'/static/css/app\.css\?v=', html)
+
+
+def test_shell_react_risponde_304_quando_il_browser_ha_gia_il_documento(tmp_path: Path):
+    """Navigazione ripetuta sulla stessa rotta: 304 invece dell'intero documento."""
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        prima = client.get("/fascicoli")
+        etag = prima.headers.get("ETag")
+        assert prima.status_code == 200
+        assert etag
+
+        ripetuta = client.get("/fascicoli", headers={"If-None-Match": etag})
+        assert ripetuta.status_code == 304
+        assert ripetuta.get_data() == b""
+
+        # Un ETag non corrispondente deve sempre riportare il corpo completo.
+        diverso = client.get("/fascicoli", headers={"If-None-Match": '"non-corrispondente"'})
+        assert diverso.status_code == 200
+        assert len(diverso.get_data()) == len(prima.get_data())
+
+        # L'ETag di una rotta non deve valere per un'altra.
+        altra = client.get("/agenda", headers={"If-None-Match": etag})
+        assert altra.status_code == 200
+        assert altra.get_data()
+
+
+def test_shell_react_non_puo_essere_mostrata_senza_rivalidare(tmp_path: Path):
+    """La cache è ammessa solo con rivalidazione: mai contenuto servito al buio."""
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/fascicoli")
+
+    cache_control = response.headers.get("Cache-Control", "")
+    assert "no-cache" in cache_control, cache_control
+    assert "private" in cache_control, cache_control
+    assert "max-age=0" in cache_control, cache_control
+    # Nessuna finestra di riuso senza contattare il server.
+    assert not re.search(r"max-age=(?!0\b)\d+", cache_control), cache_control
+    assert "public" not in cache_control, cache_control
+    # La voce di cache deve dipendere dalla sessione, mai riusata per altri.
+    assert "Cookie" in response.headers.get("Vary", "")
+
+
+def test_logout_ripulisce_la_cache_del_browser(tmp_path: Path):
+    """Su postazione condivisa il documento con dati utente non deve sopravvivere al logout."""
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        client.get("/fascicoli")
+        uscita = client.post("/logout")
+
+    assert uscita.status_code in {301, 302}
+    assert uscita.headers.get("Clear-Site-Data") == '"cache"'

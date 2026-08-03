@@ -420,9 +420,31 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
         react_bootstrap_texts=[str(item) for item in (bootstrap_texts or []) if str(item or "").strip()],
         react_body_class=_react_body_class_for_path(request.path),
     ))
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    # Rivalidazione condizionata invece di `no-store`.
+    #
+    # Il corpo della shell è deterministico per (rotta, utente, studio, versione)
+    # e non contiene dati che cambiano fra una richiesta e l'altra: è quindi
+    # confrontabile con un ETag calcolato sui byte effettivi della risposta. Se
+    # il browser rimanda lo stesso ETag riceve un 304 e riusa il corpo che ha
+    # già, risparmiando l'intero documento — 83 kB gzip, di cui il 93% è l'entry
+    # React inline — ad ogni navigazione ripetuta.
+    #
+    # Le direttive scelte non allentano la freschezza: `no-cache` obbliga il
+    # browser a rivalidare *prima di ogni uso*, quindi non può mai mostrare una
+    # pagina senza aver chiesto al server; `private` vieta la memorizzazione a
+    # proxy e cache condivise; `Vary: Cookie` lega la voce di cache alla
+    # sessione, così una risposta non può essere riusata per un utente diverso.
+    # Il 304 è corretto per costruzione: l'ETag è l'hash dei byte che avremmo
+    # inviato, quindi combacia solo se il client ha già esattamente quel corpo.
+    #
+    # Contropartita accettata e mitigata: il documento può ora essere scritto
+    # nella cache del browser dell'utente. Il logout emette `Clear-Site-Data`
+    # per rimuoverlo (vedi `web/services/auth_runtime.py`).
+    response.headers["Cache-Control"] = "private, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
-    return response
+    response.headers["Vary"] = "Cookie"
+    response.add_etag()
+    return response.make_conditional(request)
 
 
 def _react_runtime_flags() -> dict[str, bool]:

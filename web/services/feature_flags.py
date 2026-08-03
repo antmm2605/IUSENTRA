@@ -43,8 +43,6 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "lex.workflowAgents.scheduledRuns",
         "lex.dailyPlan.writeProposals",
         "lex.procedureCompletion.voiceRead.enabled",
-        "features.sentenzaEconomicControl",
-        LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG,
         LEGAL_NOTIFICATION_PRESIDIA_PRIMARY_FLAG,
         "lex.economicContextTools",
     }
@@ -134,6 +132,15 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "routes.appV2.clientPortal.notifications",
         "routes.appV2.clientPortal.videoCalls",
         "routes.appV2.clientPortal.signatures",
+        # Presidio notifiche legali e controllo economico delle sentenze: la
+        # catena PEC -> fascicolo -> agenda -> credito dell'avvocato -> proforma
+        # e' verificata su provvedimenti reali, ma restava invisibile allo
+        # studio perche' le due superfici che la mostrano erano default-off.
+        # Resta default-off `legalNotificationPresidia.primary`, che non serve
+        # a vedere il registro: sostituisce l'esperienza della pagina Notifiche
+        # Legali, ed e' una scelta separata.
+        LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG,
+        "features.sentenzaEconomicControl",
     }
 )
 
@@ -239,8 +246,8 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("routes.appV2.clientPortal.webPush", "Notifiche Web Push del Portale Cliente."),
     _flag("routes.appV2.clientPortal.videoCalls", "Link videocall governati nel Portale Cliente."),
     _flag("routes.appV2.clientPortal.signatures", "Firma semplice con evidenza nel Portale Cliente."),
-    _flag("features.sentenzaEconomicControl", "Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-off."),
-    _flag(LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG, "Presidio avanzato notifiche legali: API e superficie React dedicate. Default-off."),
+    _flag("features.sentenzaEconomicControl", "Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-on."),
+    _flag(LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG, "Presidio avanzato notifiche legali: API e superficie React dedicate. Default-on; la modalita' di rollout resta per studio."),
     _flag(LEGAL_NOTIFICATION_PRESIDIA_PRIMARY_FLAG, "Presidio notifiche legali come esperienza primaria della pagina Notifiche Legali. Default-off."),
     _flag("lex.economicContextTools", "Strumenti Lex read-only sul contesto economico da sentenza (governati, fail-closed). Default-off."),
     FeatureFlagDefinition(

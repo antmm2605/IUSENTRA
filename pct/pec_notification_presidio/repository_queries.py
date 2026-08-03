@@ -150,8 +150,14 @@ class NotificationPresidioQueryMixin:
                 "correlation_thresholds": {"auto": 0.95, "review": 0.80},
                 "backfill_status": "not_started",
                 "backfill_cursor": {},
-                "rollout_enabled": False,
-                "rollout_mode": "off",
+                # Studio senza configurazione esplicita: il registro dei presidi
+                # e' visibile in sola lettura. Restava spento, e siccome vale
+                # come un AND con il flag globale lo studio non vedeva mai i
+                # presidi che la pipeline PEC stava gia' scrivendo. Modalita'
+                # `shadow`: il registro si legge, ma l'esperienza primaria della
+                # pagina Notifiche Legali non cambia senza una scelta esplicita.
+                "rollout_enabled": True,
+                "rollout_mode": "shadow",
                 "version": 0,
             }
         result = self._row(row)

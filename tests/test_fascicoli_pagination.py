@@ -1275,3 +1275,76 @@ def test_fascicolo_dettaglio_collega_agenda_importata_da_source_external_id(tmp_
     assert main["fascicolo"]["sourceExternalId"] == "quickorganizer:101"
     assert [item["title"] for item in scadenze["appointments"]] == ["Udienza importata Studio Telematico"]
     assert scadenze["appointments"][0]["type"] == "UDIENZA"
+
+
+def test_bump_versione_analisi_rilegge_una_volta_sola(tmp_path, monkeypatch):
+    """Cambiare le regole di lettura deve costare una rilettura, non infinite.
+
+    Il marcatore documentale impedisce di rileggere cio' che e' gia' stato
+    letto. Ma quando cambiano le regole economiche i fascicoli gia' analizzati
+    resterebbero con la lettura vecchia: per questo il marcatore porta anche la
+    versione dell'analisi. Alzarla vale come «rileggi una volta», poi il
+    presidio torna a saltare il fascicolo.
+    """
+
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Fascicolo gia' letto con le regole vecchie",
+            TipoFascicolo.CIVILE,
+            numero_rg="1600",
+            anno_rg=2026,
+        )
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "Sentenza.txt",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            b"Sentenza: condanna alla rifusione delle spese, che liquida in euro 500,00.",
+        )
+        corrente = fascicoli.get(fascicolo.id)
+        marker = react_fascicoli_bridge._build_presidio_documentale_marker(
+            corrente,
+            actor="Ciclo con regole vecchie",
+            automatic_sources={},
+        )
+        marker["analysisVersion"] = "regole-precedenti"
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {"status": "non_previsto", "previsto": False},
+                "_presidio_documentale": marker,
+            },
+        )
+
+    letti: list[str] = []
+
+    def finta_lettura(fascicolo_letto, _payments, **_kwargs):
+        letti.append(fascicolo_letto.id)
+        return {}
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", finta_lettura)
+
+    with app.app_context():
+        react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="IUSENTRA scheduler",
+            limit=10,
+        )
+    # La versione non coincide: il fascicolo va riletto con le regole nuove.
+    assert letti == [fascicolo.id]
+
+    with app.app_context():
+        react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="IUSENTRA scheduler",
+            limit=10,
+        )
+        salvato = get_fascicoli().get(fascicolo.id)
+    # Secondo giro: niente da rileggere, il marcatore porta la versione corrente.
+    assert letti == [fascicolo.id]
+    assert salvato.pagamenti["_presidio_documentale"]["analysisVersion"] == (
+        react_fascicoli_bridge.ECONOMIC_DOCUMENT_ANALYSIS_VERSION
+    )

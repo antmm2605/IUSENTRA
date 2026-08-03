@@ -528,8 +528,8 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.clientPortal.webPush | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_WEBPUSH | Notifiche Web Push del Portale Cliente. | off |
 | routes.appV2.clientPortal.videoCalls | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_VIDEOCALLS | Link videocall governati nel Portale Cliente. | on |
 | routes.appV2.clientPortal.signatures | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_SIGNATURES | Firma semplice con evidenza nel Portale Cliente. | on |
-| features.sentenzaEconomicControl | IUSENTRA_FF_FEATURES_SENTENZAECONOMICCONTROL | Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-off. | off |
-| features.legalNotificationPresidia.enabled | IUSENTRA_FF_FEATURES_LEGALNOTIFICATIONPRESIDIA_ENABLED | Presidio avanzato notifiche legali: API e superficie React dedicate. Default-off. | off |
+| features.sentenzaEconomicControl | IUSENTRA_FF_FEATURES_SENTENZAECONOMICCONTROL | Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-on. | on |
+| features.legalNotificationPresidia.enabled | IUSENTRA_FF_FEATURES_LEGALNOTIFICATIONPRESIDIA_ENABLED | Presidio avanzato notifiche legali: API e superficie React dedicate. Default-on; la modalita' di rollout resta per studio. | on |
 | features.legalNotificationPresidia.primary | IUSENTRA_FF_FEATURES_LEGALNOTIFICATIONPRESIDIA_PRIMARY | Presidio notifiche legali come esperienza primaria della pagina Notifiche Legali. Default-off. | off |
 | lex.economicContextTools | IUSENTRA_FF_LEX_ECONOMICCONTEXTTOOLS | Strumenti Lex read-only sul contesto economico da sentenza (governati, fail-closed). Default-off. | off |
 | routes.appV2.docsPanel | IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL | Alias compatibilita fase 1 per routes.appV2.documents.list. | off |

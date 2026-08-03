@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.275.0 - 2026-08-03
+
+- **Accesi i due interruttori che tenevano invisibile il presidio notifiche legali.** La pipeline PEC scriveva i presidi nel registro, Agenda e centro notifiche li leggevano, ma la pagina «Presidi notifiche» era irraggiungibile: `features.legalNotificationPresidia.enabled` era default-off e valeva in AND con il rollout dello studio, a sua volta `off` per gli studi senza configurazione esplicita. Due interruttori spenti, quindi nessun modo di vedere il registro. Ora il flag globale è acceso e uno studio senza configurazione parte in modalità `shadow`: il registro si consulta, l'esperienza della pagina Notifiche Legali resta quella di prima.
+- **Acceso il controllo economico delle sentenze** (`features.sentenzaEconomicControl`). Governava sia il pannello dell'audit economico sia il trigger dalla PEC: da spento, tutta la catena verificata ieri — credito dell'avvocato antistatario, contributo unificato, riconciliazione col fascicolo — restava codice mai eseguito in produzione.
+- Resta default-off `features.legalNotificationPresidia.primary`, che non serve a vedere il registro: sostituisce l'esperienza primaria della pagina Notifiche Legali ed è una scelta separata, da fare consapevolmente.
+- **Alzata la versione della lettura economica dei documenti** (`ECONOMIC_DOCUMENT_ANALYSIS_VERSION`). Il presidio fascicoli salta i fascicoli il cui marcatore ha la versione corrente e l'impronta dei documenti invariata: e' il meccanismo che impedisce di rileggere all'infinito cio' che e' gia' stato letto, ed e' gia' coperto da test. Proprio per questo i fascicoli gia' analizzati sarebbero rimasti per sempre con la lettura sbagliata del capo spese: alzare la versione vale come «rileggi una volta sola», poi il presidio torna a saltarli. Guardrail nuovo: un test verifica che dopo il bump la rilettura avvenga una volta e che al giro successivo non si legga piu' nulla.
+- Nota operativa: i presidi nascono quando una PEC viene lavorata. Le PEC già in archivio non vengono rilette (le protegge il dedup sull'hash), quindi per farle comparire serve una passata di riclassificazione: `python scripts/repair_pec_deadlines.py --tenant <slug-studio>`, che rilegge l'archivio con le regole correnti senza rifare OCR.
+
 ## 2.274.0 - 2026-08-03
 
 - **La catena economica della sentenza arriva fino alla parcella.** Quando il giudice decide e liquida le spese, la comunicazione di cancelleria arriva via PEC con la sentenza allegata: il software la legge, riconosce il fascicolo, apre il credito dell'avvocato e predispone la proforma. La catena si spezzava in cinque punti diversi, tutti in silenzio.

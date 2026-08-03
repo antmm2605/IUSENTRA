@@ -63,7 +63,16 @@ MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "
 ROME_TZ = ZoneInfo("Europe/Rome")
 NOTIFICATION_HISTORICAL_CUTOFF = HISTORICAL_CUTOFF.astimezone(ROME_TZ).replace(tzinfo=None)
 NOTIFICATION_STRICT_TRACKING_FROM = STRICT_TRACKING_FROM.astimezone(ROME_TZ).replace(tzinfo=None)
-ECONOMIC_DOCUMENT_ANALYSIS_VERSION = "2026-07-27-cu-server-indexed-v6"
+# Versione della lettura economica dei documenti. Il presidio salta i fascicoli
+# il cui marcatore ha questa versione e l'impronta dei documenti invariata: e' il
+# meccanismo che impedisce di rileggere all'infinito cio' che e' gia' stato
+# letto. Va alzata SOLO quando cambiano le regole di lettura, perche' alzarla
+# significa una — e una sola — rilettura di tutto l'arretrato con le regole
+# nuove. Qui cambia per le correzioni sul capo spese ("liquida in euro X"), sul
+# numero di ruolo col marcatore in coda e sulla sentenza a verbale ex art.
+# 127-ter c.p.c.: senza il bump i fascicoli gia' analizzati resterebbero con la
+# lettura sbagliata per sempre.
+ECONOMIC_DOCUMENT_ANALYSIS_VERSION = "2026-08-03-capo-spese-sentenza-a-verbale-v7"
 ECONOMIC_DOCUMENT_UNRESOLVED_CU_REASON = (
     "Presidio documentale eseguito: nei documenti del fascicolo e nei documenti indicizzati in archivio centrale "
     "non risulta una ricevuta, un'autocertificazione di esenzione o un invito al pagamento "

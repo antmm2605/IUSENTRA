@@ -14,6 +14,37 @@ cd "$(dirname "$0")/.."
 FAST=0
 [ "${1:-}" = "--fast" ] && FAST=1
 
+# ---------------------------------------------------------------------------
+# Interprete: la CI gira su Python 3.12 (.github/workflows/ci.yml). Se qui il
+# `python3` di sistema e' piu' vecchio, il gate diventa cieco proprio dove
+# serve: una sintassi valida in 3.12 (es. i backslash negli f-string, PEP 701)
+# non compila, i moduli che passano da `web.app` non si importano e sei gate
+# falliscono per l'ambiente invece che per il codice — indistinguibili da un
+# guasto vero. Si usa il venv del progetto se c'e', altrimenti il primo
+# interprete >= 3.12 disponibile.
+# ---------------------------------------------------------------------------
+PY_BIN="${IUSENTRA_PYTHON:-}"
+if [ -z "$PY_BIN" ] && [ -x .venv/bin/python ]; then
+  PY_BIN=".venv/bin/python"
+fi
+if [ -z "$PY_BIN" ]; then
+  for candidato in python3 python3.13 python3.12 /usr/bin/python3.12 /usr/bin/python3.13; do
+    command -v "$candidato" >/dev/null 2>&1 || [ -x "$candidato" ] || continue
+    if "$candidato" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null; then
+      PY_BIN="$candidato"
+      break
+    fi
+  done
+fi
+if [ -z "$PY_BIN" ]; then
+  printf '\033[31mNessun Python >= 3.12 trovato: il gate non replicherebbe la CI.\033[0m\n'
+  printf 'Crea il venv del progetto: uv venv --python 3.12 .venv && VIRTUAL_ENV=.venv uv pip install -r requirements.txt -r requirements-dev.txt\n'
+  exit 2
+fi
+python3() { "$PY_BIN" "$@"; }
+export -f python3 2>/dev/null || true
+printf 'Interprete gate: %s (%s)\n' "$PY_BIN" "$("$PY_BIN" -V 2>&1)"
+
 PASS=0
 FAIL=0
 FAILED_STEPS=()

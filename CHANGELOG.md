@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.276.0 - 2026-08-03
+
+- **Nuovo strumento di verifica sul server: `scripts/verifica_catena_pec.py`.** Interroga i dati reali dello studio e, per ognuna delle ultime PEC, dice cosa ha effettivamente prodotto lungo la catena — classificazione, fascicolo collegato, presidio, scadenziario, agenda, centro notifiche (le stesse voci della top bar) e stato del canale Web Push. Sola lettura: non scrive, non invia, non modifica nulla. `docker compose exec app python scripts/verifica_catena_pec.py --limite 20`.
+- Lo strumento distingue i tre casi che a occhio si confondono: l'anello non ha prodotto nulla, l'anello non doveva produrre nulla (una sentenza a verbale non porta un'udienza in agenda, e segnalarlo come guasto sarebbe un falso allarme), oppure manca il presupposto — nessun fascicolo compatibile, nessun destinatario abilitato a leggere i fascicoli, nessuna iscrizione Web Push concessa dal browser. Il motivo e' sempre esplicito.
+- Provato end-to-end sulla PEC reale (comunicazione di cancelleria, Tribunale di Vicenza, sezione lavoro) acquisita dalla pipeline vera: classificazione `sentenza_a_verbale`, fascicolo collegato in automatico, due presidi, la scadenza nello scadenziario e le due voci nel centro notifiche.
+- **Il gate locale ora replica davvero la CI.** Girava con il Python di sistema: se piu' vecchio del 3.12 usato dalla CI, sei gate su ventisei fallivano per l'ambiente invece che per il codice — indistinguibili da un guasto vero, e quindi rumore che nasconde i problemi veri. Ora lo script sceglie il venv del progetto o il primo interprete >= 3.12, dichiara quale sta usando e si ferma con istruzioni se non ne trova nessuno.
+- Il primo effetto e' immediato: con il gate finalmente cieco su nulla e' emerso che `frontend/package.json` era fermo alla versione 2.268.0 mentre l'applicazione era alla 2.275.0. Allineato.
+
 ## 2.275.0 - 2026-08-03
 
 - **Accesi i due interruttori che tenevano invisibile il presidio notifiche legali.** La pipeline PEC scriveva i presidi nel registro, Agenda e centro notifiche li leggevano, ma la pagina «Presidi notifiche» era irraggiungibile: `features.legalNotificationPresidia.enabled` era default-off e valeva in AND con il rollout dello studio, a sua volta `off` per gli studi senza configurazione esplicita. Due interruttori spenti, quindi nessun modo di vedere il registro. Ora il flag globale è acceso e uno studio senza configurazione parte in modalità `shadow`: il registro si consulta, l'esperienza della pagina Notifiche Legali resta quella di prima.

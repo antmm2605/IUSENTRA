@@ -1059,6 +1059,77 @@
       {{ render_sources(risultato_pena.sources) }}
       {% endif %}
     {% endcall %}
+
+    {% set risultato_pat = results.get('patrocinio_spese_stato') %}
+    {% call tool_section('patrocinio_spese_stato', 'Patrocinio a spese dello Stato', 'bi-people-fill', 'Limiti di reddito ex art. 76 D.P.R. 115/2002, con cumulo dei conviventi ed elevazione penale (art. 92).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('patrocinio_spese_stato', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Tipo di processo</label><select name="pat_processo" class="form-select"><option value="civile" {{ 'selected' if form_state.pat_processo != 'penale' }}>Civile, amministrativo, contabile o tributario</option><option value="penale" {{ 'selected' if form_state.pat_processo == 'penale' }}>Penale</option></select></div>
+        <div class="col-md-4"><label class="form-label">Reddito imponibile del richiedente</label><input type="number" step="0.01" min="0" name="pat_reddito_richiedente" class="form-control" value="{{ form_state.pat_reddito_richiedente }}"></div>
+        <div class="col-md-3"><label class="form-label">Data di riferimento</label><input type="date" name="pat_data_riferimento" class="form-control" value="{{ form_state.pat_data_riferimento }}"></div>
+        <div class="col-md-4"><label class="form-label">Redditi dei familiari conviventi</label><input type="number" step="0.01" min="0" name="pat_redditi_conviventi" class="form-control" value="{{ form_state.pat_redditi_conviventi }}"></div>
+        <div class="col-md-3"><label class="form-label">Familiari conviventi</label><input type="number" min="0" name="pat_familiari_conviventi" class="form-control" value="{{ form_state.pat_familiari_conviventi }}"></div>
+        <div class="col-md-5"><label class="form-label">Solo reddito personale (art. 76, comma 4)</label><select name="pat_solo_reddito_personale" class="form-select"><option value="0" {{ 'selected' if form_state.pat_solo_reddito_personale != '1' }}>No</option><option value="1" {{ 'selected' if form_state.pat_solo_reddito_personale == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-people-fill me-2"></i>Verifica ammissibilit&agrave;</button></div>
+      </form>
+      {% if risultato_pat %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Esito', risultato_pat.esito, risultato_pat.processo_label) }}
+        {{ metric_box('Reddito rilevante', risultato_pat.reddito_rilevante|euro) }}
+        {{ metric_box('Limite applicabile', risultato_pat.limite_applicabile|euro, risultato_pat.decreto_soglia) }}
+        {{ metric_box('Margine', risultato_pat.margine|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Voce</th><th class="text-end">Importo</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_pat.dettaglio %}<tr><td class="fw-semibold">{{ row.voce }}</td><td class="text-end">{{ row.importo|euro }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_pat.notes, risultato_pat.warnings) }}
+      {{ render_sources(risultato_pat.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_comp = results.get('competenza_valore') %}
+    {% call tool_section('competenza_valore', 'Competenza per valore', 'bi-signpost-split', 'Giudice di pace o tribunale secondo l\'art. 7 c.p.c., con le soglie elevate dalla riforma Cartabia.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('competenza_valore', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Tipo di causa</label><select name="comp_materia" class="form-select"><option value="beni_mobili" {{ 'selected' if form_state.comp_materia != 'danno_circolazione' }}>Cause relative a beni mobili</option><option value="danno_circolazione" {{ 'selected' if form_state.comp_materia == 'danno_circolazione' }}>Danno da circolazione di veicoli e natanti</option></select></div>
+        <div class="col-md-4"><label class="form-label">Valore della causa</label><input type="number" step="0.01" min="0" name="comp_valore" class="form-control" value="{{ form_state.comp_valore }}"></div>
+        <div class="col-md-3"><label class="form-label">Instaurazione del procedimento</label><input type="date" name="comp_data_introduzione" class="form-control" value="{{ form_state.comp_data_introduzione }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-signpost-split me-2"></i>Individua il giudice</button></div>
+      </form>
+      {% if risultato_comp %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Giudice competente', risultato_comp.giudice_competente, risultato_comp.riferimento) }}
+        {{ metric_box('Valore', risultato_comp.valore|euro) }}
+        {{ metric_box('Soglia applicata', risultato_comp.soglia_applicata|euro, risultato_comp.regime_label) }}
+        {{ metric_box('Margine', risultato_comp.margine|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Materia</th><th>Riferimento</th><th class="text-end">Dal 28/02/2023</th><th class="text-end">Soglia precedente</th></tr></thead><tbody>{% for row in risultato_comp.soglie %}<tr><td class="fw-semibold">{{ row.materia }}</td><td class="small text-muted">{{ row.riferimento }}</td><td class="text-end">{{ row.soglia_dal_28_02_2023|euro }}</td><td class="text-end">{{ row.soglia_precedente|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_comp.notes, risultato_comp.warnings) }}
+      {{ render_sources(risultato_comp.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_term = results.get('termini_processuali') %}
+    {% call tool_section('termini_processuali', 'Termini processuali e sospensione feriale', 'bi-calendar-check', 'Computo ex art. 155 c.p.c. con sospensione dal 1 al 31 agosto (L. 742/1969).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('termini_processuali', fascicolo_sel) }}
+        <div class="col-md-6"><label class="form-label">Modello di termine</label><select name="term_modello" class="form-select">{% for opzione in opzioni_termini %}<option value="{{ opzione.value }}" {{ 'selected' if form_state.term_modello == opzione.value }}>{{ opzione.label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Data dell'evento</label><input type="date" name="term_data_evento" class="form-control" value="{{ form_state.term_data_evento }}"></div>
+        <div class="col-md-3"><label class="form-label">Materia urgente</label><select name="term_urgente" class="form-select"><option value="0" {{ 'selected' if form_state.term_urgente != '1' }}>No</option><option value="1" {{ 'selected' if form_state.term_urgente == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Durata personalizzata</label><input type="number" min="0" name="term_valore_personalizzato" class="form-control" value="{{ form_state.term_valore_personalizzato }}"></div>
+        <div class="col-md-5"><label class="form-label">Riferimento di pratica</label><input type="text" name="term_riferimento" class="form-control" value="{{ form_state.term_riferimento }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calendar-check me-2"></i>Calcola scadenza</button></div>
+      </form>
+      {% if risultato_term %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Scadenza', risultato_term.scadenza, risultato_term.modello_label) }}
+        {{ metric_box('Senza proroghe', risultato_term.scadenza_senza_proroghe, risultato_term.riferimento_normativo) }}
+        {{ metric_box('Durata', risultato_term.durata ~ ' ' ~ risultato_term.unita, risultato_term.direzione) }}
+        {{ metric_box('Affidabilit&agrave;', risultato_term.affidabilita) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Passaggio</th><th>Data</th></tr></thead><tbody>{% for row in risultato_term.passaggi %}<tr><td class="fw-semibold">{{ row.passaggio }}</td><td>{{ row.data }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_term.notes, risultato_term.warnings) }}
+      {{ render_sources(risultato_term.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

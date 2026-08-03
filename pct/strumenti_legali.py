@@ -11,12 +11,15 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
+    competenza_valore as calc_competenza_valore,
     crediti_lavoro as calc_crediti_lavoro,
     danno_parentale as calc_danno_parentale,
     interessi_acconti as calc_interessi_acconti,
     maggior_danno as calc_maggior_danno,
+    patrocinio_spese_stato as calc_patrocinio_spese_stato,
     pena_riti_alternativi as calc_pena_riti_alternativi,
     quote_riserva as calc_quote_riserva,
+    termini_scadenza as calc_termini_scadenza,
     usufrutto as calc_usufrutto,
 )
 from pct.normative_tables import (
@@ -173,6 +176,9 @@ class GestioneStrumentiLegali:
             {"id": "indennita_mediazione", "title": "Indennita di mediazione", "subtitle": "Spese di avvio, primo incontro e indennita per scaglione con riduzione obbligatoria e maggiorazioni (D.M. 150/2023).", "icon": "bi-people-fill", "categoria": "ADR"},
             {"id": "pena_riti_alternativi", "title": "Pena, attenuanti e riti alternativi", "subtitle": "Continuazione, abbreviato e patteggiamento con soglie di sospensione condizionale e pene sostitutive.", "icon": "bi-calculator", "categoria": "Penale"},
             {"id": "assegno_mantenimento", "title": "Assegno di mantenimento", "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.", "icon": "bi-house-down", "categoria": "Famiglia"},
+            {"id": "patrocinio_spese_stato", "title": "Patrocinio a spese dello Stato", "subtitle": "Limiti di reddito ex art. 76 D.P.R. 115/2002, con cumulo dei conviventi ed elevazione penale (art. 92).", "icon": "bi-people-fill", "categoria": "Processo"},
+            {"id": "competenza_valore", "title": "Competenza per valore", "subtitle": "Giudice di pace o tribunale secondo l'art. 7 c.p.c., con le soglie elevate dalla riforma Cartabia.", "icon": "bi-signpost-split", "categoria": "Competenza"},
+            {"id": "termini_processuali", "title": "Termini processuali e sospensione feriale", "subtitle": "Scadenza dei termini con computo ex art. 155 c.p.c. e sospensione dal 1 al 31 agosto (L. 742/1969).", "icon": "bi-calendar-check", "categoria": "Processo"},
         ]
 
     def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -441,6 +447,23 @@ class GestioneStrumentiLegali:
             "man_collocamento_paritetico": "0",
             "man_casa_assegnata": "0",
             "man_durata_matrimonio": "",
+            # Patrocinio a spese dello Stato
+            "pat_processo": "civile",
+            "pat_reddito_richiedente": "",
+            "pat_redditi_conviventi": "",
+            "pat_familiari_conviventi": "0",
+            "pat_solo_reddito_personale": "0",
+            "pat_data_riferimento": today,
+            # Competenza per valore
+            "comp_materia": "beni_mobili",
+            "comp_valore": prefill.get("valore_causa", ""),
+            "comp_data_introduzione": today,
+            # Termini processuali
+            "term_modello": "CIV_APPELLO_BREVE",
+            "term_data_evento": today,
+            "term_urgente": "0",
+            "term_valore_personalizzato": "",
+            "term_riferimento": prefill.get("rg", ""),
         }
         if posted:
             for key in defaults:
@@ -1031,6 +1054,20 @@ class GestioneStrumentiLegali:
 
     def stima_assegno_mantenimento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_assegno_mantenimento.calcola(payload)
+
+    def verifica_patrocinio_spese_stato(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_patrocinio_spese_stato.calcola(payload, self.norme)
+
+    def calcola_competenza_valore(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_competenza_valore.calcola(payload)
+
+    def calcola_termini_processuali(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_termini_scadenza.calcola(payload)
+
+    def opzioni_termini_processuali(self) -> List[Dict[str, str]]:
+        """Modelli di termine gia' versionati nel motore ``pct.termini_processuali``."""
+
+        return calc_termini_scadenza.modelli()
 
     def calcola_indennita_mediazione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         """Indennita' dell'organismo di mediazione (D.M. 24 ottobre 2023, n. 150).

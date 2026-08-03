@@ -152,6 +152,71 @@ function Risultato({ esito }: { esito: EsitoCalcolo }) {
   )
 }
 
+/**
+ * Modulo dello strumento aperto, reso in linea sotto la voce selezionata.
+ *
+ * Sta in un componente proprio perché la pagina lo monta dentro l'elenco: la
+ * voce cliccata resta il punto di riferimento visivo e il modulo non finisce
+ * in fondo alla pagina, dove l'utente doveva cercarlo.
+ */
+function PannelloStrumento({
+  strumento,
+  valori,
+  esito,
+  inCorso,
+  onCampo,
+  onCalcola,
+}: {
+  strumento: StrumentoForense
+  valori: Record<string, string>
+  esito: EsitoCalcolo | null
+  inCorso: boolean
+  onCampo: (name: string, value: string) => void
+  onCalcola: () => void
+}) {
+  if (!strumento.reso_in_react) {
+    return (
+      <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>
+        <div className="iu-alert iu-alert--info">
+          <p>
+            <strong>{strumento.title}</strong> non è ancora compilabile in questa pagina.
+          </p>
+          <p>
+            <a className="iu-button" href={strumento.href_vista_classica}>
+              Apri nella vista classica
+            </a>
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>
+      <form
+        className="iu-strumenti__form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onCalcola()
+        }}
+      >
+        {strumento.campi.map((campo) => (
+          <CampoModulo key={campo.name} campo={campo} valore={valori[campo.name] ?? ''} onChange={onCampo} />
+        ))}
+        <div className="iu-strumenti__azioni">
+          <button className="iu-button iu-button--primary" type="submit" disabled={inCorso}>
+            {inCorso ? 'Calcolo in corso...' : strumento.azione || 'Calcola'}
+          </button>
+          <a className="iu-button iu-button--ghost" href={strumento.href_vista_classica}>
+            Vista classica
+          </a>
+        </div>
+      </form>
+      {esito ? <Risultato esito={esito} /> : null}
+    </section>
+  )
+}
+
 export default function StrumentiLegaliPage() {
   const [payload, setPayload] = useState<StrumentiLegaliPayload | null>(null)
   const [attivo, setAttivo] = useState<string>(toolDallUrl())
@@ -199,7 +264,9 @@ export default function StrumentiLegaliPage() {
   }, [])
 
   const selezionaStrumento = useCallback((voce: StrumentoForense) => {
-    setAttivo(voce.id)
+    // Un secondo clic sulla voce già aperta la richiude: l'elenco torna
+    // scorrevole senza dover cercare un pulsante di chiusura.
+    setAttivo((corrente) => (corrente === voce.id ? '' : voce.id))
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       url.searchParams.set('tool', voce.id)
@@ -253,70 +320,36 @@ export default function StrumentiLegaliPage() {
         />
       </header>
 
-      <div className="iu-strumenti__layout">
-        <nav className="iu-strumenti__elenco" aria-label="Elenco strumenti">
-          {visibili.map((voce) => (
-            <button
-              type="button"
-              key={voce.id}
-              className={voce.id === attivo ? 'iu-strumento-card iu-strumento-card--attiva' : 'iu-strumento-card'}
-              onClick={() => selezionaStrumento(voce)}
-              aria-current={voce.id === attivo}
-            >
-              <span className="iu-strumento-card__categoria">{voce.categoria}</span>
-              <span className="iu-strumento-card__titolo">{voce.title}</span>
-              <span className="iu-strumento-card__sottotitolo">{voce.subtitle}</span>
-            </button>
-          ))}
-          {!visibili.length ? <p>Nessuno strumento corrisponde alla ricerca.</p> : null}
-        </nav>
-
-        <section className="iu-strumenti__pannello">
-          {!strumento ? (
-            <p>Seleziona uno strumento dall'elenco.</p>
-          ) : !strumento.reso_in_react ? (
-            <div className="iu-alert iu-alert--info">
-              <p>
-                <strong>{strumento.title}</strong> non è ancora compilabile in questa pagina.
-              </p>
-              <p>
-                <a className="iu-button" href={strumento.href_vista_classica}>
-                  Apri nella vista classica
-                </a>
-              </p>
-            </div>
-          ) : (
-            <>
-              <h2>{strumento.title}</h2>
-              <p className="iu-strumenti__sottotitolo">{strumento.subtitle}</p>
-              <form
-                className="iu-strumenti__form"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void calcola()
-                }}
+      <div className="iu-strumenti__elenco">
+        {visibili.map((voce) => {
+          const aperto = voce.id === attivo
+          return (
+            <div className={aperto ? 'iu-strumento iu-strumento--aperto' : 'iu-strumento'} key={voce.id}>
+              <button
+                type="button"
+                className={aperto ? 'iu-strumento-card iu-strumento-card--attiva' : 'iu-strumento-card'}
+                onClick={() => selezionaStrumento(voce)}
+                aria-expanded={aperto}
+                aria-controls={`pannello-${voce.id}`}
               >
-                {strumento.campi.map((campo) => (
-                  <CampoModulo
-                    key={campo.name}
-                    campo={campo}
-                    valore={valori[campo.name] ?? ''}
-                    onChange={cambiaCampo}
-                  />
-                ))}
-                <div className="iu-strumenti__azioni">
-                  <button className="iu-button iu-button--primary" type="submit" disabled={inCorso}>
-                    {inCorso ? 'Calcolo in corso...' : strumento.azione || 'Calcola'}
-                  </button>
-                  <a className="iu-button iu-button--ghost" href={strumento.href_vista_classica}>
-                    Vista classica
-                  </a>
-                </div>
-              </form>
-              {esito ? <Risultato esito={esito} /> : null}
-            </>
-          )}
-        </section>
+                <span className="iu-strumento-card__categoria">{voce.categoria}</span>
+                <span className="iu-strumento-card__titolo">{voce.title}</span>
+                <span className="iu-strumento-card__sottotitolo">{voce.subtitle}</span>
+              </button>
+              {aperto && strumento ? (
+                <PannelloStrumento
+                  strumento={strumento}
+                  valori={valori}
+                  esito={esito}
+                  inCorso={inCorso}
+                  onCampo={cambiaCampo}
+                  onCalcola={() => void calcola()}
+                />
+              ) : null}
+            </div>
+          )
+        })}
+        {!visibili.length ? <p>Nessuno strumento corrisponde alla ricerca.</p> : null}
       </div>
     </main>
   )

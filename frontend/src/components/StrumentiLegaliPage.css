@@ -19,19 +19,21 @@
   margin: 0;
 }
 
-.iu-strumenti__layout {
-  align-items: start;
-  display: grid;
-  gap: var(--iu-od-space-4);
-  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
-}
-
+/* Elenco a fisarmonica: il modulo si apre sotto la voce cliccata, non in fondo
+   alla pagina, così il punto di lettura resta quello del clic. */
 .iu-strumenti__elenco {
   display: grid;
   gap: var(--iu-od-space-2);
-  max-height: 70vh;
-  overflow-y: auto;
-  padding-right: var(--iu-od-space-1);
+}
+
+.iu-strumento {
+  display: grid;
+  gap: 0;
+}
+
+.iu-strumento--aperto {
+  border-radius: var(--iu-od-radius-3);
+  box-shadow: var(--iu-od-shadow-2);
 }
 
 .iu-strumento-card {
@@ -75,11 +77,16 @@
   line-height: 1.35;
 }
 
+.iu-strumento--aperto .iu-strumento-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .iu-strumenti__pannello {
   background: var(--iu-od-surface);
-  border: 1px solid var(--iu-od-border);
-  border-radius: var(--iu-od-radius-3);
-  box-shadow: var(--iu-od-shadow-1);
+  border: 1px solid var(--iu-od-focus);
+  border-radius: 0 0 var(--iu-od-radius-3) var(--iu-od-radius-3);
+  border-top: 0;
   min-width: 0;
   padding: var(--iu-od-space-4);
 }
@@ -256,11 +263,11 @@
 }
 
 @media (max-width: 960px) {
-  .iu-strumenti__layout {
-    grid-template-columns: minmax(0, 1fr);
+  .iu-strumenti__pannello {
+    padding: var(--iu-od-space-3);
   }
 
-  .iu-strumenti__elenco {
-    max-height: none;
+  .iu-strumenti__form {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

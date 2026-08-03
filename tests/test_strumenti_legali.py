@@ -971,6 +971,298 @@ def test_crediti_lavoro_e_esposto_nella_suite(tmp_path):
     assert TOOL_METHODS["crediti_lavoro"] == "calcola_crediti_lavoro"
 
 
+# ── Patrocinio a spese dello Stato (artt. 76, 77 e 92 D.P.R. 115/2002) ────
+
+
+def _payload_patrocinio(**extra):
+    dati = {
+        "pat_processo": "civile",
+        "pat_reddito_richiedente": "10000",
+        "pat_redditi_conviventi": "0",
+        "pat_familiari_conviventi": "0",
+        "pat_solo_reddito_personale": "0",
+        "pat_data_riferimento": "2026-01-15",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_patrocinio_usa_la_soglia_del_decreto_vigente_alla_data(tmp_path):
+    """Art. 77 D.P.R. 115/2002: la soglia cambia con i decreti di adeguamento."""
+
+    gestore = _gestore(tmp_path)
+
+    recente = gestore.verifica_patrocinio_spese_stato(_payload_patrocinio())
+    anteriore = gestore.verifica_patrocinio_spese_stato(
+        _payload_patrocinio(pat_data_riferimento="2024-03-01")
+    )
+
+    assert recente["limite_base"] == 13659.64
+    assert "22 aprile 2025" in recente["decreto_soglia"]
+    assert anteriore["limite_base"] == 12838.01
+    assert "10 maggio 2023" in anteriore["decreto_soglia"]
+
+
+def test_patrocinio_cumula_i_redditi_dei_conviventi(tmp_path):
+    """Art. 76, comma 2: il reddito è la somma di quelli del nucleo convivente."""
+
+    result = _gestore(tmp_path).verifica_patrocinio_spese_stato(
+        _payload_patrocinio(pat_redditi_conviventi="6000", pat_familiari_conviventi="2")
+    )
+
+    assert result["reddito_rilevante"] == 16000.0
+    assert result["ammissibile"] is False
+    assert result["incremento_familiari"] == 0.0
+
+
+def test_patrocinio_penale_eleva_il_limite_per_ogni_convivente(tmp_path):
+    """Art. 92: +1.032,91 euro per ognuno dei familiari conviventi."""
+
+    gestore = _gestore(tmp_path)
+    civile = gestore.verifica_patrocinio_spese_stato(
+        _payload_patrocinio(pat_redditi_conviventi="6000", pat_familiari_conviventi="2")
+    )
+    penale = gestore.verifica_patrocinio_spese_stato(
+        _payload_patrocinio(
+            pat_processo="penale", pat_redditi_conviventi="6000", pat_familiari_conviventi="2"
+        )
+    )
+
+    assert penale["incremento_unitario"] == 1032.91
+    assert penale["incremento_familiari"] == 2065.82
+    assert penale["limite_applicabile"] == round(civile["limite_applicabile"] + 2065.82, 2)
+
+
+def test_patrocinio_solo_reddito_personale_esclude_cumulo_ed_elevazione(tmp_path):
+    """Art. 76, comma 4: senza cumulo non opera nemmeno l'elevazione dell'art. 92."""
+
+    result = _gestore(tmp_path).verifica_patrocinio_spese_stato(
+        _payload_patrocinio(
+            pat_processo="penale",
+            pat_redditi_conviventi="6000",
+            pat_familiari_conviventi="2",
+            pat_solo_reddito_personale="1",
+        )
+    )
+
+    assert result["reddito_rilevante"] == 10000.0
+    assert result["incremento_familiari"] == 0.0
+    assert any("art. 92" in avviso for avviso in result["warnings"])
+
+
+def test_patrocinio_si_ferma_sulle_date_non_coperte_e_sugli_input_incoerenti(tmp_path):
+    """Fail-closed: nessuna soglia inventata fuori dai decreti caricati."""
+
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError):
+        gestore.verifica_patrocinio_spese_stato(_payload_patrocinio(pat_data_riferimento="2019-01-01"))
+    with pytest.raises(ValueError):
+        gestore.verifica_patrocinio_spese_stato(_payload_patrocinio(pat_data_riferimento=""))
+    with pytest.raises(ValueError):
+        gestore.verifica_patrocinio_spese_stato(_payload_patrocinio(pat_processo="inesistente"))
+    with pytest.raises(ValueError):
+        # Redditi di conviventi dichiarati senza conviventi.
+        gestore.verifica_patrocinio_spese_stato(_payload_patrocinio(pat_redditi_conviventi="5000"))
+
+
+def test_patrocinio_dichiara_fonti_e_perimetro(tmp_path):
+    """Principio delle fonti certe: soglia tracciata e perimetro esplicito."""
+
+    result = _gestore(tmp_path).verifica_patrocinio_spese_stato(_payload_patrocinio())
+
+    assert result["sources"]
+    assert all(voce["url"] for voce in result["sources"])
+    assert any("Gazzetta Ufficiale" in nota or "GU" in nota for nota in result["notes"])
+    assert any("artt. 76 e 92" in avviso for avviso in result["warnings"])
+
+
+def test_patrocinio_e_esposto_nella_suite(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    assert "patrocinio_spese_stato" in catalogo
+    assert TOOL_METHODS["patrocinio_spese_stato"] == "verifica_patrocinio_spese_stato"
+
+
+# ── Competenza per valore (art. 7 c.p.c.) ─────────────────────────────────
+
+
+def _payload_competenza(**extra):
+    dati = {
+        "comp_materia": "beni_mobili",
+        "comp_valore": "8000",
+        "comp_data_introduzione": "2026-01-15",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_competenza_applica_le_soglie_elevate_dalla_riforma(tmp_path):
+    """Art. 3, comma 1, D.Lgs. 149/2022: beni mobili fino a 10.000 euro."""
+
+    result = _gestore(tmp_path).calcola_competenza_valore(_payload_competenza())
+
+    assert result["soglia_applicata"] == 10000.0
+    assert result["giudice_competente"] == "Giudice di pace"
+    assert result["regime"] == "cartabia"
+
+
+def test_competenza_procedimenti_anteriori_conservano_le_vecchie_soglie(tmp_path):
+    """Art. 35, comma 1, D.Lgs. 149/2022 come sostituito dalla L. 197/2022."""
+
+    gestore = _gestore(tmp_path)
+    anteriore = gestore.calcola_competenza_valore(
+        _payload_competenza(comp_data_introduzione="2023-02-28")
+    )
+    successivo = gestore.calcola_competenza_valore(
+        _payload_competenza(comp_data_introduzione="2023-03-01")
+    )
+
+    assert anteriore["soglia_applicata"] == 5000.0
+    assert anteriore["giudice_competente"] == "Tribunale"
+    assert successivo["soglia_applicata"] == 10000.0
+    assert successivo["giudice_competente"] == "Giudice di pace"
+
+
+def test_competenza_danno_da_circolazione_ha_una_soglia_propria(tmp_path):
+    """Art. 7, secondo comma, c.p.c.: 25.000 euro dopo la riforma."""
+
+    gestore = _gestore(tmp_path)
+    entro = gestore.calcola_competenza_valore(
+        _payload_competenza(comp_materia="danno_circolazione", comp_valore="24000")
+    )
+    oltre = gestore.calcola_competenza_valore(
+        _payload_competenza(comp_materia="danno_circolazione", comp_valore="26000")
+    )
+
+    assert entro["soglia_applicata"] == 25000.0
+    assert entro["giudice_competente"] == "Giudice di pace"
+    assert oltre["giudice_competente"] == "Tribunale"
+
+
+def test_competenza_rifiuta_valori_e_date_mancanti(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError):
+        gestore.calcola_competenza_valore(_payload_competenza(comp_valore="0"))
+    with pytest.raises(ValueError):
+        gestore.calcola_competenza_valore(_payload_competenza(comp_data_introduzione=""))
+    with pytest.raises(ValueError):
+        gestore.calcola_competenza_valore(_payload_competenza(comp_materia="inesistente"))
+
+
+def test_competenza_dichiara_fonti_e_perimetro(tmp_path):
+    result = _gestore(tmp_path).calcola_competenza_valore(_payload_competenza())
+
+    urls = " ".join(voce["url"] for voce in result["sources"])
+    assert "normattiva.it" in urls
+    assert "22G00158" in urls
+    assert "22G00211" in urls
+    assert any("competenza per valore" in avviso for avviso in result["warnings"])
+
+
+def test_competenza_e_esposta_nella_suite(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    assert "competenza_valore" in catalogo
+    assert TOOL_METHODS["competenza_valore"] == "calcola_competenza_valore"
+
+
+# ── Termini processuali (art. 155 c.p.c.; L. 742/1969) ────────────────────
+
+
+def _payload_termini(**extra):
+    dati = {
+        "term_modello": "CIV_APPELLO_BREVE",
+        "term_data_evento": "2026-03-10",
+        "term_urgente": "0",
+        "term_valore_personalizzato": "",
+        "term_riferimento": "RG 100/2026",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_termini_riusa_il_motore_versionato_del_progetto(tmp_path):
+    """Nessuna regola di computo riscritta: l'esito coincide con il motore."""
+
+    from datetime import date
+
+    from pct.termini_processuali import DEFAULT_TEMPLATES, ItalianDeadlineCalculator
+
+    template = next(voce for voce in DEFAULT_TEMPLATES if voce.code == "CIV_APPELLO_BREVE")
+    atteso = ItalianDeadlineCalculator().calculate_template(date(2026, 3, 10), template)
+
+    result = _gestore(tmp_path).calcola_termini_processuali(_payload_termini())
+
+    giorno, mese, anno = result["scadenza"].split("/")
+    assert f"{anno}-{mese}-{giorno}" == atteso["deadline"]
+    assert result["riferimento_normativo"] == "Art. 325 c.p.c."
+
+
+def test_termini_applica_la_sospensione_feriale_di_agosto(tmp_path):
+    """L. 742/1969: i giorni dal 1 al 31 agosto non si computano."""
+
+    gestore = _gestore(tmp_path)
+    ordinario = gestore.calcola_termini_processuali(_payload_termini(term_data_evento="2026-07-20"))
+    urgente = gestore.calcola_termini_processuali(
+        _payload_termini(term_data_evento="2026-07-20", term_urgente="1")
+    )
+
+    assert ordinario["sospensione_feriale"] is True
+    assert urgente["sospensione_feriale"] is False
+    # Con la sospensione la scadenza cade oltre agosto, senza no.
+    assert ordinario["scadenza"] > urgente["scadenza"]
+    assert any("urgente" in avviso.lower() for avviso in urgente["warnings"])
+
+
+def test_termini_accetta_una_durata_personalizzata(tmp_path):
+    result = _gestore(tmp_path).calcola_termini_processuali(
+        _payload_termini(term_modello="CUSTOM_PROCESSUALE", term_valore_personalizzato="45")
+    )
+
+    assert result["durata"] == 45
+    assert any("personalizzata" in nota for nota in result["notes"])
+
+
+def test_termini_rifiuta_modelli_e_date_non_validi(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError):
+        gestore.calcola_termini_processuali(_payload_termini(term_modello="INESISTENTE"))
+    with pytest.raises(ValueError):
+        gestore.calcola_termini_processuali(_payload_termini(term_data_evento=""))
+
+
+def test_termini_dichiara_fonti_passaggi_e_versione_delle_regole(tmp_path):
+    result = _gestore(tmp_path).calcola_termini_processuali(_payload_termini())
+
+    assert result["passaggi"]
+    assert result["versione_regole"]
+    urls = " ".join(voce["url"] for voce in result["sources"])
+    assert "742" in urls or "155" in urls
+
+
+def test_termini_e_esposto_nella_suite_con_i_modelli_del_motore(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    gestore = _gestore(tmp_path)
+    catalogo = {voce["id"] for voce in gestore.catalogo_moduli()}
+    modelli = gestore.opzioni_termini_processuali()
+
+    assert "termini_processuali" in catalogo
+    assert TOOL_METHODS["termini_processuali"] == "calcola_termini_processuali"
+    assert {voce["value"] for voce in modelli} >= {"CIV_APPELLO_BREVE", "CIV_APPELLO_LUNGO"}
+
+
 # ── Copertura React della suite ───────────────────────────────────────────
 
 

@@ -282,6 +282,84 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
             "https://www.gazzettaufficiale.it/",
         ],
     ),
+    "dpr_115_2002_patrocinio": FonteOperativa(
+        code="dpr_115_2002_patrocinio",
+        title="D.P.R. 115/2002 - art. 76 condizioni per l'ammissione al patrocinio",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?"
+            "art.versione=1&art.idGruppo=27&art.flagTipoArticolo=0&art.codiceRedazionale=002G0139"
+            "&art.idArticolo=76&art.idSottoArticolo=1&art.idSottoArticolo1=10"
+            "&art.dataPubblicazioneGazzetta=2002-06-15&art.progressivo=0"
+        ),
+        note=(
+            "Testo dell'art. 76: limite di reddito imponibile IRPEF dell'ultima dichiarazione, "
+            "cumulo dei redditi dei conviventi, rilevanza dei redditi esenti o a imposta sostitutiva, "
+            "valutazione del solo reddito personale per i diritti della personalita' e in caso di "
+            "conflitto di interessi con i conviventi."
+        ),
+        monitor_urls=["https://www.normattiva.it/eli/id/2002/06/15/002G0139/CONSOLIDATED"],
+    ),
+    "dpr_115_2002_art_92": FonteOperativa(
+        code="dpr_115_2002_art_92",
+        title="D.P.R. 115/2002 - art. 92 elevazione dei limiti nel processo penale",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?"
+            "art.versione=1&art.idGruppo=33&art.flagTipoArticolo=0&art.codiceRedazionale=002G0139"
+            "&art.idArticolo=92&art.idSottoArticolo=1&art.idSottoArticolo1=10"
+            "&art.dataPubblicazioneGazzetta=2002-06-15&art.progressivo=0"
+        ),
+        note=(
+            "Nel processo penale i limiti dell'art. 76, comma 1, sono elevati di euro 1.032,91 "
+            "per ognuno dei familiari conviventi."
+        ),
+        monitor_urls=["https://www.normattiva.it/eli/id/2002/06/15/002G0139/CONSOLIDATED"],
+    ),
+    "dm_patrocinio_2025": FonteOperativa(
+        code="dm_patrocinio_2025",
+        title="D.M. 22 aprile 2025 - adeguamento dei limiti di reddito per il patrocinio",
+        url="https://www.gazzettaufficiale.it/eli/id/2025/07/11/25A03904/sg",
+        note=(
+            "Decreto interdirigenziale Giustizia-MEF ex art. 77 D.P.R. 115/2002 (GU Serie Generale "
+            "n. 159 dell'11 luglio 2025): l'importo dell'art. 76, comma 1, e' aggiornato a euro "
+            "13.659,64 per la variazione ISTAT del biennio 1 luglio 2022 - 30 giugno 2024 (+6,4%). "
+            "L'adeguamento e' biennale: la prossima revisione va attesa e verificata in Gazzetta."
+        ),
+        monitor_urls=["https://www.gazzettaufficiale.it/"],
+    ),
+    "cpc_competenza_valore": FonteOperativa(
+        code="cpc_competenza_valore",
+        title="Art. 7 c.p.c. - competenza del giudice di pace per valore",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443",
+        note=(
+            "Primo comma: cause relative a beni mobili. Secondo comma: risarcimento del danno "
+            "prodotto dalla circolazione di veicoli e natanti. Le soglie sono state elevate "
+            "dall'art. 3, comma 1, D.Lgs. 149/2022."
+        ),
+        monitor_urls=["https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443"],
+    ),
+    "dlgs_149_2022_competenza": FonteOperativa(
+        code="dlgs_149_2022_competenza",
+        title="D.Lgs. 149/2022 - art. 3, comma 1: nuove soglie dell'art. 7 c.p.c.",
+        url="https://www.gazzettaufficiale.it/eli/id/2022/10/17/22G00158/sg",
+        note=(
+            "Al primo comma dell'art. 7 c.p.c. la parola «cinquemila» e' sostituita da «diecimila»; "
+            "al secondo comma «ventimila» e' sostituita da «venticinquemila» "
+            "(GU n. 243 del 17 ottobre 2022, S.O. n. 38)."
+        ),
+        monitor_urls=["https://www.gazzettaufficiale.it/eli/id/2022/10/17/22G00158/sg"],
+    ),
+    "l_197_2022_disciplina_transitoria": FonteOperativa(
+        code="l_197_2022_disciplina_transitoria",
+        title="L. 197/2022 - art. 1, comma 380: disciplina transitoria della riforma Cartabia",
+        url="https://www.gazzettaufficiale.it/eli/id/2022/12/29/22G00211/sg",
+        note=(
+            "Sostituisce l'art. 35 D.Lgs. 149/2022: le disposizioni del decreto, salvo diversa "
+            "previsione, hanno effetto dal 28 febbraio 2023 e si applicano ai procedimenti "
+            "instaurati successivamente a tale data; ai procedimenti pendenti a quella data si "
+            "applicano le disposizioni anteriormente vigenti (GU n. 303 del 29 dicembre 2022, S.O. n. 43)."
+        ),
+        monitor_urls=["https://www.gazzettaufficiale.it/eli/id/2022/12/29/22G00211/sg"],
+    ),
     "cu_viterbo": FonteOperativa(
         code="cu_viterbo",
         title="Portali uffici giudiziari - tabella contributo unificato civile",
@@ -1595,6 +1673,52 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             },
             "published_at": "2026-01-01",
             "effective_from": "2026-01-01",
+        },
+        "patrocinio_limiti_reddito": {
+            "id": "patrocinio_limiti_reddito",
+            "title": "Patrocinio a spese dello Stato - limiti di reddito",
+            "category": "patrocinio",
+            "description": (
+                "Importo dell'art. 76, comma 1, D.P.R. 115/2002 come aggiornato dai decreti "
+                "interdirigenziali biennali previsti dall'art. 77 dello stesso testo unico."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["dpr_115_2002_patrocinio", "dpr_115_2002_art_92", "dm_patrocinio_2025"],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale"],
+            # Una riga per decreto di adeguamento: il calcolatore sceglie quella
+            # vigente alla data di riferimento e si ferma se la data precede la
+            # copertura, invece di applicare una soglia non piu' (o non ancora) vigente.
+            "rows": [
+                {
+                    "effective_from": "2023-06-06",
+                    "amount": 12838.01,
+                    "decreto": "D.M. 10 maggio 2023",
+                    "gazzetta": "GU Serie Generale n. 130 del 6 giugno 2023",
+                    "note": (
+                        "Variazione ISTAT del biennio 1 luglio 2020 - 30 giugno 2022, "
+                        "richiamata nelle premesse del D.M. 22 aprile 2025."
+                    ),
+                },
+                {
+                    "effective_from": "2025-07-11",
+                    "amount": 13659.64,
+                    "decreto": "D.M. 22 aprile 2025",
+                    "gazzetta": "GU Serie Generale n. 159 dell'11 luglio 2025",
+                    "note": "Variazione ISTAT del biennio 1 luglio 2022 - 30 giugno 2024, pari al 6,4%.",
+                },
+            ],
+            "defaults": {
+                # Art. 92 D.P.R. 115/2002: importo fissato dal testo unico, non toccato
+                # dai decreti di adeguamento biennale dell'art. 77.
+                "incremento_familiare_penale": 1032.91,
+                "aggiornamento": "biennale",
+                "note": (
+                    "Adeguamento biennale ex art. 77 D.P.R. 115/2002 con decreto del Ministero "
+                    "della giustizia di concerto con il MEF, pubblicato in Gazzetta Ufficiale."
+                ),
+            },
+            "published_at": "2025-07-11",
+            "effective_from": "2023-06-06",
         },
     }
     reference_definition = canonical_reference_catalog_definition()

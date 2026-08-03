@@ -32,6 +32,7 @@ def sorgenti_opzioni(gestore: Any) -> Dict[str, List[Dict[str, str]]]:
         "onorari_fasi": list(onorari.get("fasi", [])),
         "contributo_unificato_categorie": list(gestore.opzioni_contributo_unificato()),
         "contributo_unificato_valore": list(gestore.opzioni_valore_contributo_unificato()),
+        "termini_processuali_modelli": list(gestore.opzioni_termini_processuali()),
     }
 
 

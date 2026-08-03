@@ -40,6 +40,9 @@ TOOL_METHODS = {
     "assegno_mantenimento": "stima_assegno_mantenimento",
     "pena_riti_alternativi": "calcola_pena_riti_alternativi",
     "indennita_mediazione": "calcola_indennita_mediazione",
+    "patrocinio_spese_stato": "verifica_patrocinio_spese_stato",
+    "competenza_valore": "calcola_competenza_valore",
+    "termini_processuali": "calcola_termini_processuali",
 }
 
 
@@ -143,6 +146,7 @@ def index():
         opzioni_cu=gestore.opzioni_contributo_unificato(),
         opzioni_cu_valore=gestore.opzioni_valore_contributo_unificato(),
         opzioni_pena=gestore.opzioni_pena_riti_alternativi(),
+        opzioni_termini=gestore.opzioni_termini_processuali(),
         onorari_options=onorari_options,
         selected_onorari_fasi=selected_onorari_fasi,
     )
@@ -352,6 +356,24 @@ def api_quote_riserva():
 @_richiedi_login
 def api_assegno_mantenimento():
     return _json_result("stima_assegno_mantenimento")
+
+
+@strumenti_legali.route("/api/patrocinio-spese-stato", methods=["POST"])
+@_richiedi_login
+def api_patrocinio_spese_stato():
+    return _json_result("verifica_patrocinio_spese_stato")
+
+
+@strumenti_legali.route("/api/competenza-valore", methods=["POST"])
+@_richiedi_login
+def api_competenza_valore():
+    return _json_result("calcola_competenza_valore")
+
+
+@strumenti_legali.route("/api/termini-processuali", methods=["POST"])
+@_richiedi_login
+def api_termini_processuali():
+    return _json_result("calcola_termini_processuali")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

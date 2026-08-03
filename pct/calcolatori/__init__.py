@@ -13,27 +13,39 @@ Ogni modulo copre una materia con base normativa dichiarata nel docstring:
   (artt. 62-bis, 65, 81, 132, 163 c.p.; artt. 442 e 444 c.p.p.).
 - ``crediti_lavoro``: rivalutazione e interessi sui crediti di lavoro
   (art. 429, comma 3, c.p.c.; art. 22, comma 36, L. 724/1994).
+- ``patrocinio_spese_stato``: limiti di reddito per l'ammissione al patrocinio
+  (artt. 76, 77 e 92 D.P.R. 115/2002).
+- ``competenza_valore``: competenza per valore del giudice di pace
+  (art. 7 c.p.c.; art. 3, comma 1, D.Lgs. 149/2022).
+- ``termini_scadenza``: scadenza dei termini processuali con sospensione feriale
+  (art. 155 c.p.c.; L. 742/1969), sul motore di ``pct.termini_processuali``.
 
 L'orchestrazione applicativa resta in ``pct.strumenti_legali``.
 """
 from pct.calcolatori import (  # noqa: F401
     assegno_mantenimento,
+    competenza_valore,
     crediti_lavoro,
     danno_parentale,
     interessi_acconti,
     maggior_danno,
+    patrocinio_spese_stato,
     pena_riti_alternativi,
     quote_riserva,
+    termini_scadenza,
     usufrutto,
 )
 
 __all__ = [
     "assegno_mantenimento",
+    "competenza_valore",
     "crediti_lavoro",
     "danno_parentale",
     "interessi_acconti",
     "maggior_danno",
+    "patrocinio_spese_stato",
     "pena_riti_alternativi",
     "quote_riserva",
+    "termini_scadenza",
     "usufrutto",
 ]

@@ -449,6 +449,70 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _numero("lic_mensilita_preavviso", "Mensilità di preavviso", passo="0.5"),
         ],
     },
+    "patrocinio_spese_stato": {
+        "azione": "Verifica ammissibilità",
+        "campi": [
+            _scelta(
+                "pat_processo",
+                "Tipo di processo",
+                [
+                    ("civile", "Civile, amministrativo, contabile o tributario"),
+                    ("penale", "Penale"),
+                ],
+                aiuto="Nel penale i limiti sono elevati per ogni familiare convivente (art. 92 D.P.R. 115/2002).",
+            ),
+            _numero("pat_reddito_richiedente", "Reddito imponibile del richiedente"),
+            _numero(
+                "pat_redditi_conviventi",
+                "Redditi dei familiari conviventi",
+                aiuto="Somma dei redditi degli altri componenti del nucleo convivente (art. 76, comma 2).",
+            ),
+            _intero("pat_familiari_conviventi", "Familiari conviventi", aiuto="Numero di conviventi oltre al richiedente."),
+            _si_no(
+                "pat_solo_reddito_personale",
+                "Solo reddito personale",
+                aiuto="Diritti della personalità o conflitto di interessi con i conviventi (art. 76, comma 4).",
+            ),
+            _data("pat_data_riferimento", "Data di riferimento", aiuto="La soglia cambia con i decreti di adeguamento biennale."),
+        ],
+    },
+    "competenza_valore": {
+        "azione": "Individua il giudice",
+        "campi": [
+            _scelta(
+                "comp_materia",
+                "Tipo di causa",
+                [
+                    ("beni_mobili", "Cause relative a beni mobili"),
+                    ("danno_circolazione", "Danno da circolazione di veicoli e natanti"),
+                ],
+            ),
+            _numero("comp_valore", "Valore della causa", aiuto="Determinato secondo gli artt. 10 e seguenti c.p.c."),
+            _data(
+                "comp_data_introduzione",
+                "Instaurazione del procedimento",
+                aiuto="Le soglie elevate valgono per i procedimenti instaurati dopo il 28 febbraio 2023.",
+            ),
+        ],
+    },
+    "termini_processuali": {
+        "azione": "Calcola scadenza",
+        "campi": [
+            _dinamico("term_modello", "Modello di termine", "termini_processuali_modelli"),
+            _data("term_data_evento", "Data dell'evento", aiuto="Notifica, deposito o udienza a seconda del modello."),
+            _si_no(
+                "term_urgente",
+                "Materia urgente",
+                aiuto="Esclude la sospensione feriale dal 1 al 31 agosto (L. 742/1969).",
+            ),
+            _intero(
+                "term_valore_personalizzato",
+                "Durata personalizzata",
+                aiuto="Lascia vuoto o 0 per usare la durata del modello.",
+            ),
+            _testo("term_riferimento", "Riferimento di pratica", aiuto="R.G. o riferimento interno, riportato nell'esito."),
+        ],
+    },
     "piano_ammortamento": {
         "azione": "Crea piano",
         "campi": [

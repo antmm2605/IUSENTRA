@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
@@ -713,6 +714,97 @@ def _advanced_notification_repository_for_paths(
     return NotificationPresidioRepository(db_path, tenant_id=resolved_tenant)
 
 
+UNLINKED_PEC_ITEM_PREFIX = "pec-da-assegnare"
+UNLINKED_PEC_MAX_ITEMS = 50
+
+
+def _unlinked_pec_items(paths: Mapping[str, Any], *, limit: int = UNLINKED_PEC_MAX_ITEMS) -> list[dict[str, Any]]:
+    """PEC lavorate che non hanno trovato un fascicolo: devono restare visibili.
+
+    Senza fascicolo collegato il presidio non crea alcuna voce operativa: la PEC
+    risulta ricevuta e lavorata, ma per lo studio non esiste. Succede quando il
+    procedimento non è ancora a ruolo nel gestionale o quando il numero di ruolo
+    non coincide. Qui la PEC viene esposta come lavoro da assegnare, con i dati
+    già estratti dalla pipeline — numero di ruolo, ufficio, oggetto — e con la
+    fonte da cui provengono, così l'assegnazione è un gesto solo.
+    """
+
+    db_path = _pec_audit_db_path_for_paths(paths)
+    if db_path is None or not Path(db_path).exists():
+        return []
+    righe: list[Any] = []
+    try:
+        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5) as conn:
+            conn.row_factory = sqlite3.Row
+            righe = conn.execute(
+                """
+                SELECT m.id, m.metadata_json, m.received_at, l.seeds_json, l.status AS link_status
+                FROM pec_messages m
+                JOIN (
+                    SELECT message_id, MAX(created_at) AS ultimo
+                    FROM pec_fascicolo_links
+                    GROUP BY message_id
+                ) ultimo_link ON ultimo_link.message_id = m.id
+                JOIN pec_fascicolo_links l
+                  ON l.message_id = m.id AND l.created_at = ultimo_link.ultimo
+                WHERE TRIM(COALESCE(m.linked_fascicolo_id, '')) = ''
+                ORDER BY m.received_at DESC
+                LIMIT ?
+                """,
+                (max(1, int(limit or UNLINKED_PEC_MAX_ITEMS)),),
+            ).fetchall()
+    except sqlite3.Error as exc:
+        # Un errore qui significa che le PEC non collegate restano invisibili:
+        # va detto, non ingoiato.
+        if has_app_context():
+            current_app.logger.warning("PEC non collegate non leggibili da %s: %s", db_path, exc)
+        return []
+
+    voci: list[dict[str, Any]] = []
+    for riga in righe:
+        dati = dict(riga)
+        seeds = _notification_json(dati.get("seeds_json"), {})
+        seeds = seeds if isinstance(seeds, dict) else {}
+        rg = next((_notification_text(value) for value in list(seeds.get("rg") or []) if value), "")
+        ufficio = _notification_text(seeds.get("office"))
+        intestazioni = _notification_json(dati.get("metadata_json"), {})
+        intestazioni = intestazioni.get("headers") if isinstance(intestazioni, dict) else {}
+        oggetto = _notification_text(
+            (intestazioni or {}).get("subject") if isinstance(intestazioni, dict) else "",
+            "PEC senza oggetto",
+        )
+        dettagli = [pezzo for pezzo in (f"RG: {rg}" if rg else "", f"Ufficio: {ufficio}" if ufficio else "") if pezzo]
+        motivo = {
+            "nessun_candidato": "nessun fascicolo compatibile",
+            "rg_non_sufficiente": "numero di ruolo compatibile ma non sufficiente da solo",
+            "proposte": "sono presenti fascicoli candidati da confermare",
+        }.get(_notification_text(dati.get("link_status")), "collegamento automatico non riuscito")
+        messaggio = " — ".join(
+            pezzo
+            for pezzo in (
+                oggetto,
+                ", ".join(dettagli),
+                f"Assegnare al fascicolo: {motivo}.",
+                "Fonte: presidio PEC, dati estratti dal messaggio e dagli allegati ministeriali.",
+            )
+            if pezzo
+        )
+        voci.append(
+            {
+                "id": f"{UNLINKED_PEC_ITEM_PREFIX}:{_notification_text(dati.get('id'))}",
+                "fascicoloId": "",
+                "type": LEGAL_NOTIFICATION_SOURCE_TYPE,
+                "priority": "important",
+                "title": "PEC da assegnare a un fascicolo",
+                "message": messaggio,
+                "href": "/email?canale=pec",
+                "actionLabel": "Apri la PEC",
+                "createdAt": _notification_text(dati.get("received_at")),
+            }
+        )
+    return voci
+
+
 def _advanced_notification_items(
     paths: Mapping[str, Any],
     *,
@@ -1090,6 +1182,10 @@ def materialize_notification_relata_presidio_for_paths(
         legacy_items,
         advanced_items,
     )
+    # Le PEC lavorate ma senza fascicolo non hanno un presidio a cui agganciarsi:
+    # senza questa riga resterebbero invisibili allo studio pur essendo in archivio.
+    unlinked_items = _unlinked_pec_items(paths)
+    items = list(items) + unlinked_items
     recipients = notification_recipients_for_paths(paths, database=database_config)
     config = _runtime_config()
     service = NotificationService(
@@ -1127,6 +1223,7 @@ def materialize_notification_relata_presidio_for_paths(
         "legacy_items": len(legacy_items),
         "legacy_coalesced": legacy_coalesced,
         "advanced_items": len(advanced_items),
+        "unlinked_pec": len(unlinked_items),
         "to_notify": sum(1 for item in items if item["id"].split(":")[-1] in LEGAL_NOTIFICATION_TO_NOTIFY_STATUSES),
         "recipients": synced_recipients,
         "errors": errors,

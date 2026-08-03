@@ -6438,3 +6438,83 @@ def test_gli_indirizzi_di_trasporto_non_sono_parti_processuali(tmp_path):
     parti = " ".join(link["seeds"]["parties"]).lower()
     for rumore in ("posta-certificata@", "giustiziacert.it", "legalmail.it", "per conto di:"):
         assert rumore not in parti
+
+
+def test_la_pec_senza_fascicolo_resta_visibile_allo_studio(tmp_path):
+    """Senza fascicolo il presidio non crea nulla: la PEC deve emergere lo stesso."""
+
+    from web.services.notifications_runtime import _unlinked_pec_items
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="test",
+        fascicoli_db_path=str(tmp_path / "fascicoli.json"),
+        fascicoli_docs_path=str(tmp_path / "docs"),
+        scadenziario_db_path=str(tmp_path / "scadenze.json"),
+        agenda_db_path=str(tmp_path / "agenda.json"),
+    )
+    repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+    repo.run_pending_jobs(limit=40)
+
+    voci = _unlinked_pec_items({"PEC_AUDIT_DB": str(tmp_path / "pec_audit.sqlite")})
+
+    assert len(voci) == 1
+    voce = voci[0]
+    assert voce["title"] == "PEC da assegnare a un fascicolo"
+    assert "523/2026" in voce["message"]
+    # Ogni riga mostrata dichiara da dove viene il dato.
+    assert "Fonte:" in voce["message"]
+    assert voce["priority"] == "important"
+
+
+def test_la_pec_collegata_non_compare_fra_quelle_da_assegnare(tmp_path):
+    from web.services.notifications_runtime import _unlinked_pec_items
+
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+    report = repo.run_pending_jobs(limit=40)
+    link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
+    assert link["fascicolo_id"] == fascicolo.id
+
+    assert _unlinked_pec_items({"PEC_AUDIT_DB": str(tmp_path / "pec_audit.sqlite")}) == []
+
+
+def test_la_voce_da_assegnare_non_viene_scartata_dal_filtro_legacy(tmp_path):
+    """Il filtro che ripulisce le vecchie voci PEC non deve mangiarsi questa."""
+
+    from pct.pec_operational_cleanup import is_legacy_pec_notification_item
+    from web.services.notifications_runtime import _unlinked_pec_items
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="test",
+        fascicoli_db_path=str(tmp_path / "fascicoli.json"),
+        fascicoli_docs_path=str(tmp_path / "docs"),
+        scadenziario_db_path=str(tmp_path / "scadenze.json"),
+        agenda_db_path=str(tmp_path / "agenda.json"),
+    )
+    repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+    repo.run_pending_jobs(limit=40)
+
+    voci = _unlinked_pec_items({"PEC_AUDIT_DB": str(tmp_path / "pec_audit.sqlite")})
+
+    assert voci
+    assert not any(is_legacy_pec_notification_item(voce) for voce in voci)

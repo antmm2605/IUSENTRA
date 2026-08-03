@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.273.0 - 2026-08-03
+
+- **Le PEC che non trovano un fascicolo non spariscono più.** Senza fascicolo collegato il presidio non crea alcuna voce operativa: la PEC risultava ricevuta, letta e lavorata, ma per lo studio non esisteva. Succede quando il procedimento non è ancora a ruolo nel gestionale o quando il numero di ruolo non coincide — cioè proprio quando serve l'attenzione dell'avvocato. Ora compare la voce «PEC da assegnare a un fascicolo» in centro notifiche, top bar e Web Push, con oggetto, numero di ruolo, ufficio, il motivo per cui il collegamento non è riuscito e la fonte del dato.
+- Il motivo è esplicito e distingue i tre casi che il presidio già sa riconoscere: nessun fascicolo compatibile, numero di ruolo compatibile ma non sufficiente da solo, oppure fascicoli candidati da confermare.
+- Il conteggio delle PEC da assegnare entra nel report del presidio relata (`unlinked_pec`), quindi è leggibile dalla console Pianificazioni.
+- Un errore di lettura dell'archivio PEC ora viene registrato nel log invece di essere ingoiato: se le PEC non collegate diventano illeggibili, lo si deve sapere.
+- Guardrail: tre test nuovi su comparsa della voce con numero di ruolo e fonte dichiarata, assenza della voce quando la PEC è collegata, e sopravvivenza al filtro che ripulisce le vecchie voci PEC.
+
 ## 2.272.0 - 2026-08-03
 
 - **Trovata e corretta la causa per cui il presidio PEC non riportava nulla in agenda, scadenziario, notifiche e relata.** Il job `validate`, che materializza i presidi, gira **prima** del job `link`, che collega la PEC al fascicolo: al passaggio di `validate` il fascicolo non è ancora collegato e la voce viene scartata con «fascicolo non collegato, presidio non creato». Nessun giro successivo la recuperava, perché la coda dei job resta vuota. Risultato: la PEC veniva ricevuta, letta, classificata, sottoposta a OCR e collegata correttamente — e non produceva nulla per l'avvocato. Ora, dopo un collegamento riuscito, il presidio viene rimaterializzato in modo idempotente.

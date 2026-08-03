@@ -9546,3 +9546,76 @@ def test_asset_route_react_non_condividono_liste_mutabili(tmp_path: Path):
         secondo = shell._vite_entry("/fascicoli")
 
     assert secondo["preload_js"] == attesi
+
+
+def _url_react_effettivamente_richiesti(html: str, assets_dir: Path) -> set[str]:
+    """URL che il browser richiede davvero: import dinamici dell'entry e import statici dei chunk."""
+
+    visti = set(re.findall(r'import\("(/static/react/assets/[^"]+)"', html))
+    frontiera = list(visti)
+    while frontiera:
+        corrente = frontiera.pop()
+        file_chunk = assets_dir / corrente.split("/")[-1]
+        if not file_chunk.exists():
+            continue
+        codice = file_chunk.read_text(encoding="utf-8", errors="replace")
+        riferimenti = set(re.findall(r'from"\./([^"]+)"', codice))
+        riferimenti |= set(re.findall(r'import\("\./([^"]+)"', codice))
+        for rel in riferimenti:
+            nuovo = "/static/react/assets/" + rel
+            if nuovo not in visti:
+                visti.add(nuovo)
+                frontiera.append(nuovo)
+    return visti
+
+
+def test_modulepreload_react_combacia_con_gli_url_realmente_richiesti(tmp_path: Path):
+    """Il `modulepreload` deve puntare esattamente all'URL che il browser scaricherà.
+
+    Gli asset Vite hanno il contenuto nell'hash del nome, quindi non vogliono
+    `?v=`: aggiungerlo faceva puntare il preload a un URL diverso da quello degli
+    import, così il preload non veniva mai riusato e ogni chunk di rotta finiva
+    scaricato due volte al primo caricamento (195 kB gzip solo su `/fascicoli`).
+    """
+
+    import pytest
+
+    app = _app(tmp_path)
+    assets_dir = Path(app.static_folder) / "react" / "assets"
+    if not (Path(app.static_folder) / "react" / ".vite" / "manifest.json").exists():
+        pytest.skip("Build React non presente: manifest Vite non disponibile.")
+
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        for route in ("/fascicoli", "/agenda", "/clienti"):
+            html = client.get(route).get_data(as_text=True)
+            preload = set(re.findall(r'rel="modulepreload" href="([^"]+)"', html))
+            assert preload, f"nessun modulepreload su {route}"
+            assert not [href for href in preload if "?" in href], (
+                f"modulepreload con query su {route}: l'hash nel nome file basta a invalidare"
+            )
+            richiesti = _url_react_effettivamente_richiesti(html, assets_dir)
+            sprecati = sorted(preload - richiesti)
+            assert not sprecati, f"preload non riusati su {route}: {sprecati}"
+
+
+def test_css_react_hashed_non_hanno_query_di_versione(tmp_path: Path):
+    """Il CSS generato da Vite non va invalidato per release: cambia nome quando cambia."""
+
+    import pytest
+
+    app = _app(tmp_path)
+    if not (Path(app.static_folder) / "react" / ".vite" / "manifest.json").exists():
+        pytest.skip("Build React non presente: manifest Vite non disponibile.")
+
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        html = client.get("/fascicoli").get_data(as_text=True)
+
+    hashed = re.findall(r'<link rel="stylesheet" href="(/static/react/[^"]+)"', html)
+    assert hashed, "nessun CSS React nella shell"
+    assert not [href for href in hashed if "?" in href]
+    # `app.css` non è versionato nel nome: lì il `?v=` serve e deve restare.
+    assert re.search(r'/static/css/app\.css\?v=', html)

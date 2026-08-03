@@ -4,6 +4,21 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-08-03: doppio scaricamento dei chunk di rotta React eliminato, 2.265.29. Composizione misurata di un caricamento pagina prima dell'intervento:
+
+  | Voce | Byte | gzip | Quando si paga |
+  |---|---|---|---|
+  | HTML shell | 297.512 | 83.127 | ogni navigazione (`no-store`) |
+  | di cui entry React inline | 277.850 | 78.387 | ogni navigazione (93% dell'HTML) |
+  | JS locali `/static/js` (12 file) | 279.675 | 66.663 | primo caricamento dopo ogni release |
+  | CSS totale | 732.525 | 121.788 | primo caricamento, poi cache 7g |
+
+  Difetto trovato: il `modulepreload` puntava a `/static/react/assets/X.js?v=<versione>` mentre l'entry importa `/static/react/assets/X.js` senza query. URL diversi, quindi il preload non veniva mai riusato e il chunk di rotta con tutti i suoi import veniva scaricato due volte al primo caricamento: `/fascicoli` 960 kB (195 kB gzip), `/agenda` 320 kB (89 kB gzip), `/clienti` 298 kB (82 kB gzip). Rimosso `?v=` da `modulepreload` e CSS React, che hanno già il contenuto nell'hash del nome; mantenuto su `app.css`, sugli script `/static/js` e sull'entry, dove serve rispettivamente perché non versionati nel nome e perché `main.tsx` usa `searchParams.has('v')` come segnale di bootstrap. `support/operator_room.html` era già nella forma corretta.
+
+  Verifica automatica: due test risolvono gli import dinamici dell'entry e quelli statici dei chunk e pretendono che ogni `modulepreload` combaci con un URL realmente richiesto; falliscono se si reintroduce `?v=`.
+
+  Leve maggiori esaminate e non applicate in questa tranche, ognuna con un rischio specifico da sciogliere prima: entry React inline da 278 kB in ogni documento `no-store` (il meccanismo inline è un presidio anti-pagina-bianca e il commit che l'ha introdotto è uno squash senza motivazione leggibile); stack Lex/TTS da 268 kB su ogni pagina (l'assistente ha ascolto persistente fra pagine, differirlo alla cieca lo romperebbe); HTML da `no-store` a `no-cache` con ETag, che i dati confermano possibile perché il corpo è byte-stabile su tutte le route, ma consentirebbe la scrittura su disco di una pagina con identità utente, permessi e tenant; self-hosting dei due CSS Bootstrap da CDN, che tocca 65 riferimenti nei template. Nessuna è verificabile qui senza browser reale.
+
 - 2026-08-03: ribaselinatura del budget `startup_ms` 2.265.28, su richiesta esplicita dell'utente e con procedura AGENTS.md per il cambio di un valore numerico di qualità.
 
   | Voce | Precedente | Nuovo |

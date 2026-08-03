@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.265.29 - 2026-08-03
+
+- **Caricamento pagina: eliminato il doppio scaricamento dei chunk di rotta React.** Gli asset generati da Vite hanno il contenuto nell'hash del nome, ma la shell aggiungeva comunque `?v=<versione>` a `modulepreload` e CSS React. L'entry importa `/static/react/assets/X.js` senza query, quindi il preload puntava a un URL diverso: non veniva mai riusato e ogni chunk finiva scaricato due volte al primo caricamento della rotta. Misurato: `/fascicoli` 960 kB (195 kB gzip), `/agenda` 320 kB (89 kB gzip), `/clienti` 298 kB (82 kB gzip).
+- Effetto secondario, altrettanto rilevante: ora il `modulepreload` funziona davvero, quindi il chunk di pagina parte in parallelo con l'analisi dell'HTML invece che solo dopo l'esecuzione dell'entry.
+- CSS React: rimosso `?v=` anche dai fogli di stile con hash nel nome, che venivano riscaricati ad ogni release pur essendo identici. Il `?v=` resta dove serve: `app.css` e gli script in `/static/js/` non sono versionati nel nome, e l'entry lo usa come segnale di bootstrap (`searchParams.has('v')` in `main.tsx`).
+- Guardrail: due test verificano che ogni `modulepreload` combaci con un URL realmente richiesto dal browser (risolvendo import dinamici dell'entry e import statici dei chunk) e che i CSS con hash non abbiano query di versione. Verificati falliscono reintroducendo `?v=`.
+
 ## 2.265.28 - 2026-08-03
 
 **Cambio di un valore numerico di qualità — procedura AGENTS.md.**

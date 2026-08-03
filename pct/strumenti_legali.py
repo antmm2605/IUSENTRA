@@ -14,6 +14,7 @@ from pct.calcolatori import (
     danno_parentale as calc_danno_parentale,
     interessi_acconti as calc_interessi_acconti,
     maggior_danno as calc_maggior_danno,
+    pena_riti_alternativi as calc_pena_riti_alternativi,
     quote_riserva as calc_quote_riserva,
     usufrutto as calc_usufrutto,
 )
@@ -167,6 +168,7 @@ class GestioneStrumentiLegali:
             {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.", "icon": "bi-people", "categoria": "Danni"},
             {"id": "usufrutto", "title": "Usufrutto e nuda proprietà", "subtitle": "Valore fiscale con le fasce d'età del D.P.R. 131/1986 e il tasso legale corrente.", "icon": "bi-house-heart", "categoria": "Patrimonio"},
             {"id": "quote_riserva", "title": "Quote di riserva legittimari", "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.", "icon": "bi-shield-check", "categoria": "Patrimonio"},
+            {"id": "pena_riti_alternativi", "title": "Pena, attenuanti e riti alternativi", "subtitle": "Continuazione, abbreviato e patteggiamento con soglie di sospensione condizionale e pene sostitutive.", "icon": "bi-calculator", "categoria": "Penale"},
             {"id": "assegno_mantenimento", "title": "Assegno di mantenimento", "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.", "icon": "bi-house-down", "categoria": "Famiglia"},
         ]
 
@@ -239,6 +241,18 @@ class GestioneStrumentiLegali:
     def build_form_state(self, prefill: Mapping[str, str], posted: Optional[Mapping[str, Any]] = None) -> Dict[str, str]:
         today = _today().isoformat()
         defaults = {
+            "pena_anni": "",
+            "pena_mesi": "",
+            "pena_giorni": "",
+            "pena_tipo_reato": "delitto",
+            "pena_rito": "ordinario",
+            "pena_frazione_patteggiamento": "un_terzo",
+            "pena_attenuanti_generiche": "0",
+            "pena_reati_satellite": "0",
+            "pena_aumento_per_reato_giorni": "",
+            "pena_recidiva_reiterata": "0",
+            "pena_mancata_impugnazione": "0",
+            "pena_eta_imputato": "",
             "cu_categoria": "civile_ordinario",
             "cu_grado": "primo_grado",
             "cu_valore_tipo": "determinato" if prefill.get("valore_causa") else "indeterminabile",
@@ -999,6 +1013,12 @@ class GestioneStrumentiLegali:
 
     def stima_assegno_mantenimento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_assegno_mantenimento.calcola(payload)
+
+    def calcola_pena_riti_alternativi(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_pena_riti_alternativi.calcola(payload)
+
+    def opzioni_pena_riti_alternativi(self) -> Dict[str, Any]:
+        return calc_pena_riti_alternativi.opzioni()
 
     # ── Nuovi strumenti intelligenti ─────────────────────────────────────────
 

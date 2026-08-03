@@ -974,6 +974,37 @@
       {{ render_sources(risultato_man.sources) }}
       {% endif %}
     {% endcall %}
+
+    {% set risultato_pena = results.get('pena_riti_alternativi') %}
+    {% call tool_section('pena_riti_alternativi', 'Pena, attenuanti e riti alternativi', 'bi-calculator', 'Continuazione, abbreviato e patteggiamento con soglie di sospensione condizionale e pene sostitutive.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('pena_riti_alternativi', fascicolo_sel) }}
+        <div class="col-md-2"><label class="form-label">Pena base &mdash; anni</label><input type="number" min="0" name="pena_anni" class="form-control" value="{{ form_state.pena_anni }}"></div>
+        <div class="col-md-2"><label class="form-label">Mesi</label><input type="number" min="0" max="11" name="pena_mesi" class="form-control" value="{{ form_state.pena_mesi }}"></div>
+        <div class="col-md-2"><label class="form-label">Giorni</label><input type="number" min="0" max="29" name="pena_giorni" class="form-control" value="{{ form_state.pena_giorni }}"></div>
+        <div class="col-md-3"><label class="form-label">Tipo di reato</label><select name="pena_tipo_reato" class="form-select">{% for opt in opzioni_pena.tipi_reato %}<option value="{{ opt.value }}" {{ 'selected' if form_state.pena_tipo_reato == opt.value }}>{{ opt.label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Et&agrave; imputato</label><input type="number" min="0" max="120" name="pena_eta_imputato" class="form-control" value="{{ form_state.pena_eta_imputato }}"></div>
+        <div class="col-md-4"><label class="form-label">Rito</label><select name="pena_rito" class="form-select">{% for opt in opzioni_pena.riti %}<option value="{{ opt.value }}" {{ 'selected' if form_state.pena_rito == opt.value }}>{{ opt.label }}</option>{% endfor %}</select></div>
+        <div class="col-md-4"><label class="form-label">Diminuzione concordata (patteggiamento)</label><select name="pena_frazione_patteggiamento" class="form-select">{% for opt in opzioni_pena.frazioni_patteggiamento %}<option value="{{ opt.value }}" {{ 'selected' if form_state.pena_frazione_patteggiamento == opt.value }}>{{ opt.label }}</option>{% endfor %}</select></div>
+        <div class="col-md-4"><label class="form-label">Attenuanti generiche (art. 62-bis c.p.)</label><select name="pena_attenuanti_generiche" class="form-select"><option value="0" {{ 'selected' if form_state.pena_attenuanti_generiche != '1' }}>No</option><option value="1" {{ 'selected' if form_state.pena_attenuanti_generiche == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Reati satellite</label><input type="number" min="0" name="pena_reati_satellite" class="form-control" value="{{ form_state.pena_reati_satellite }}"></div>
+        <div class="col-md-3"><label class="form-label">Aumento per reato (giorni)</label><input type="number" min="0" name="pena_aumento_per_reato_giorni" class="form-control" value="{{ form_state.pena_aumento_per_reato_giorni }}"></div>
+        <div class="col-md-3"><label class="form-label">Recidiva reiterata</label><select name="pena_recidiva_reiterata" class="form-select"><option value="0" {{ 'selected' if form_state.pena_recidiva_reiterata != '1' }}>No</option><option value="1" {{ 'selected' if form_state.pena_recidiva_reiterata == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Mancata impugnazione</label><select name="pena_mancata_impugnazione" class="form-select"><option value="0" {{ 'selected' if form_state.pena_mancata_impugnazione != '1' }}>No</option><option value="1" {{ 'selected' if form_state.pena_mancata_impugnazione == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola pena</button></div>
+      </form>
+      {% if risultato_pena %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Pena base', risultato_pena.pena_base_testo) }}
+        {{ metric_box('Pena finale', risultato_pena.pena_finale_testo, risultato_pena.rito_label) }}
+        {{ metric_box('Diminuzione complessiva', risultato_pena.riduzione_complessiva_giorni ~ ' giorni') }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Passaggio</th><th>Operazione</th><th>Pena risultante</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_pena.passaggi %}<tr><td class="fw-semibold">{{ row.fase }}</td><td>{{ row.operazione }}</td><td>{{ row.pena }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Istituto</th><th>Limite di legge</th><th>Pena entro il limite</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_pena.benefici %}<tr><td class="fw-semibold">{{ row.istituto }}</td><td>{{ row.limite }}</td><td>{% if row.entro_limite %}<span class="badge text-bg-success">S&igrave;</span>{% else %}<span class="badge text-bg-secondary">No</span>{% endif %}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_pena.notes, risultato_pena.warnings) }}
+      {{ render_sources(risultato_pena.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

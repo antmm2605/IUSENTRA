@@ -616,3 +616,124 @@ def test_strumenti_legali_index_renderizza_nuovi_moduli(tmp_path):
     assert "Prescrizione civile" in body
     assert "Danno biologico" in body
     assert "Imposta di registro" in body
+
+
+# ── Pena, attenuanti e riti alternativi ────────────────────────────────────
+
+
+def test_pena_abbreviato_delitto_riduce_di_un_terzo(tmp_path):
+    """Art. 442, comma 2, c.p.p.: per i delitti la diminuzione è di un terzo."""
+
+    esito = _gestore(tmp_path).calcola_pena_riti_alternativi(
+        {"pena_anni": "3", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato"}
+    )
+
+    assert esito["pena_base_giorni"] == 3 * 365
+    assert esito["pena_finale_giorni"] == 3 * 365 - (3 * 365) // 3
+    assert esito["pena_finale_testo"] == "2 anni"
+    assert any("442" in passo["riferimento"] for passo in esito["passaggi"])
+
+
+def test_pena_abbreviato_contravvenzione_riduce_della_meta(tmp_path):
+    """Art. 442, comma 2, c.p.p.: per le contravvenzioni la diminuzione è della metà."""
+
+    esito = _gestore(tmp_path).calcola_pena_riti_alternativi(
+        {"pena_mesi": "10", "pena_tipo_reato": "contravvenzione", "pena_rito": "abbreviato"}
+    )
+
+    assert esito["pena_finale_giorni"] == 150  # 300 giorni ridotti della metà
+    assert "met" in " ".join(passo["operazione"] for passo in esito["passaggi"])
+
+
+def test_pena_mancata_impugnazione_applica_un_sesto_ulteriore(tmp_path):
+    """Art. 442, comma 2-bis, c.p.p. introdotto dal D.Lgs. 150/2022."""
+
+    payload = {"pena_anni": "3", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato"}
+    senza = _gestore(tmp_path).calcola_pena_riti_alternativi(payload)
+    con = _gestore(tmp_path).calcola_pena_riti_alternativi({**payload, "pena_mancata_impugnazione": "1"})
+
+    atteso = senza["pena_finale_giorni"] - senza["pena_finale_giorni"] // 6
+    assert con["pena_finale_giorni"] == atteso
+    assert any("2-bis" in passo["riferimento"] for passo in con["passaggi"])
+
+
+def test_pena_continuazione_non_supera_il_triplo(tmp_path):
+    """Art. 81, comma 2, c.p.: la pena non è aumentabile oltre il triplo."""
+
+    esito = _gestore(tmp_path).calcola_pena_riti_alternativi(
+        {
+            "pena_anni": "1",
+            "pena_reati_satellite": "20",
+            "pena_aumento_per_reato_giorni": "200",
+        }
+    )
+
+    assert esito["pena_finale_giorni"] == 3 * 365
+    assert any("triplo" in avviso for avviso in esito["warnings"])
+
+
+def test_pena_continuazione_recidiva_reiterata_ha_aumento_minimo(tmp_path):
+    """Art. 81, comma 4, c.p.: aumento non inferiore a un terzo per i recidivi reiterati."""
+
+    esito = _gestore(tmp_path).calcola_pena_riti_alternativi(
+        {
+            "pena_anni": "3",
+            "pena_reati_satellite": "1",
+            "pena_aumento_per_reato_giorni": "5",
+            "pena_recidiva_reiterata": "1",
+        }
+    )
+
+    base = 3 * 365
+    assert esito["pena_finale_giorni"] == base + base // 3
+    assert any("un terzo" in avviso for avviso in esito["warnings"])
+
+
+def test_pena_sospensione_condizionale_segue_l_eta(tmp_path):
+    """Art. 163 c.p.: il limite sale a 2 anni e 6 mesi tra i 18 e i 21 anni."""
+
+    gestore = _gestore(tmp_path)
+    payload = {"pena_anni": "2", "pena_mesi": "3"}
+
+    adulto = gestore.calcola_pena_riti_alternativi(payload)
+    giovane = gestore.calcola_pena_riti_alternativi({**payload, "pena_eta_imputato": "19"})
+
+    def _sospensione(esito):
+        return next(voce for voce in esito["benefici"] if voce["istituto"].startswith("Sospensione"))
+
+    assert _sospensione(adulto)["entro_limite"] is False
+    assert _sospensione(giovane)["entro_limite"] is True
+    assert "163" in _sospensione(giovane)["riferimento"]
+
+
+def test_pena_richiede_una_pena_base_e_valori_coerenti(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+    with pytest.raises(ValueError):
+        gestore.calcola_pena_riti_alternativi({})
+    with pytest.raises(ValueError):
+        gestore.calcola_pena_riti_alternativi({"pena_anni": "1", "pena_mesi": "14"})
+    with pytest.raises(ValueError):
+        gestore.calcola_pena_riti_alternativi({"pena_anni": "1", "pena_rito": "inesistente"})
+    with pytest.raises(ValueError):
+        # Continuazione senza aumento indicato: non si inventa la misura.
+        gestore.calcola_pena_riti_alternativi({"pena_anni": "1", "pena_reati_satellite": "2"})
+
+
+def test_pena_dichiara_sempre_le_fonti_normative(tmp_path):
+    """Principio delle fonti certe: ogni esito porta con sé i riferimenti."""
+
+    esito = _gestore(tmp_path).calcola_pena_riti_alternativi({"pena_anni": "2"})
+
+    assert esito["sources"]
+    assert all(voce.get("url", "").startswith("https://www.normattiva.it") for voce in esito["sources"])
+    assert all(passo.get("riferimento") for passo in esito["passaggi"])
+
+
+def test_pena_e_esposta_nel_catalogo_della_suite(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    assert "pena_riti_alternativi" in catalogo
+    assert TOOL_METHODS["pena_riti_alternativi"] == "calcola_pena_riti_alternativi"

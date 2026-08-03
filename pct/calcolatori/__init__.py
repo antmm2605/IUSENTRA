@@ -9,6 +9,8 @@ Ogni modulo copre una materia con base normativa dichiarata nel docstring:
 - ``quote_riserva``: quote di riserva dei legittimari (artt. 536-556 c.c.).
 - ``assegno_mantenimento``: stima orientativa dell'assegno (art. 337-ter c.c.,
   art. 5 L. 898/1970).
+- ``pena_riti_alternativi``: attenuanti, continuazione e riti alternativi
+  (artt. 62-bis, 65, 81, 132, 163 c.p.; artt. 442 e 444 c.p.p.).
 
 L'orchestrazione applicativa resta in ``pct.strumenti_legali``.
 """
@@ -17,6 +19,7 @@ from pct.calcolatori import (  # noqa: F401
     danno_parentale,
     interessi_acconti,
     maggior_danno,
+    pena_riti_alternativi,
     quote_riserva,
     usufrutto,
 )
@@ -26,6 +29,7 @@ __all__ = [
     "danno_parentale",
     "interessi_acconti",
     "maggior_danno",
+    "pena_riti_alternativi",
     "quote_riserva",
     "usufrutto",
 ]

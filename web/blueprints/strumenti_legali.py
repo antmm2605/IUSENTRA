@@ -37,6 +37,7 @@ TOOL_METHODS = {
     "usufrutto": "calcola_usufrutto",
     "quote_riserva": "calcola_quote_riserva",
     "assegno_mantenimento": "stima_assegno_mantenimento",
+    "pena_riti_alternativi": "calcola_pena_riti_alternativi",
 }
 
 
@@ -139,6 +140,7 @@ def index():
         moduli=gestore.catalogo_moduli(),
         opzioni_cu=gestore.opzioni_contributo_unificato(),
         opzioni_cu_valore=gestore.opzioni_valore_contributo_unificato(),
+        opzioni_pena=gestore.opzioni_pena_riti_alternativi(),
         onorari_options=onorari_options,
         selected_onorari_fasi=selected_onorari_fasi,
     )
@@ -228,6 +230,12 @@ def api_tfr():
 @_richiedi_login
 def api_onorari_forensi():
     return _json_result("calcola_onorari_forensi")
+
+
+@strumenti_legali.route("/api/pena-riti-alternativi", methods=["POST"])
+@_richiedi_login
+def api_pena_riti_alternativi():
+    return _json_result("calcola_pena_riti_alternativi")
 
 
 @strumenti_legali.route("/api/custodia-cautelare", methods=["POST"])

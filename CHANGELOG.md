@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.266.0 - 2026-08-03
+
+- **Nuovo calcolatore forense: pena, attenuanti e riti alternativi.** Copre l'area penale della suite, finora limitata a custodia cautelare e prescrizione. Calcola l'effetto di attenuanti generiche, continuazione e rito sulla pena base, mostrando ad ogni passaggio la norma applicata, e valuta le soglie di sospensione condizionale e delle pene sostitutive sulla pena finale.
+- Base normativa dichiarata nel modulo: art. 132, comma 2, c.p. per il computo (anno di 365 giorni, mese di 30); artt. 62-bis e 65, n. 3, c.p. per le attenuanti; art. 81, commi 2 e 4, c.p. per la continuazione, con limite del triplo e minimo di un terzo per i recidivi reiterati; art. 442, commi 2 e 2-bis, c.p.p. per l'abbreviato, con diminuzione di un terzo per i delitti, della metà per le contravvenzioni e ulteriore sesto per mancata impugnazione; art. 444, comma 1, c.p.p. per il patteggiamento; art. 163 c.p. e artt. 53-56-bis L. 689/1981 come riformati dal D.Lgs. 150/2022 per i benefici.
+- Lo strumento è deliberatamente basato su frazioni e soglie fissate dalla legge, non su tabelle soggette ad aggiornamento periodico: nessun valore da mantenere allineato a decreti successivi.
+- Le diminuzioni frazionarie sono arrotondate per difetto, in favore dell'imputato. Lo strumento non decide se attenuanti, continuazione o rito siano applicabili: calcola l'effetto delle frazioni indicate e dichiara la norma di ogni passaggio.
+- Esposto nella suite `/strumenti-legali` (vista classica) e come endpoint JSON `POST /strumenti-legali/api/pena-riti-alternativi`.
+- Guardrail: nove test coprono riduzione per delitto e contravvenzione, sesto per mancata impugnazione, limite del triplo, minimo per recidiva reiterata, soglie di sospensione condizionale per età, rifiuto degli input incoerenti e presenza obbligatoria delle fonti normative in ogni esito.
+
 ## 2.265.30 - 2026-08-03
 
 - **Caricamento pagina: la shell React usa rivalidazione condizionata invece di `no-store`.** Il corpo è deterministico per (rotta, utente, studio, versione), quindi viene emesso un ETag calcolato sui byte effettivi: se il browser rimanda lo stesso ETag riceve un 304 e riusa il documento che ha già. Misurato: **297.361 byte (circa 83 kB gzip) risparmiati ad ogni navigazione ripetuta sulla stessa rotta**, di cui il 93% è l'entry React inline.

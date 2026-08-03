@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.271.2 - 2026-08-03
+
+- **Il corpo della PEC non classifica più gli allegati.** Le regole tecniche del classificatore leggevano anche il testo del messaggio, non solo nome e MIME dell'allegato: il corpo di una comunicazione di cancelleria cita quasi sempre `daticert.xml` e `postacert.eml`, quindi **ogni** allegato di quella PEC finiva etichettato `daticert` — compreso il provvedimento da acquisire. Un allegato `daticert` viene poi escluso dall'OCR (`classification NOT IN ('daticert','eml')`) e trattato come file tecnico, quindi il documento da scaricare dal portale spariva dal presidio. Verificato su una comunicazione reale del Tribunale di Vicenza: prima tutti e cinque gli allegati erano `daticert`, ora il provvedimento è classificato come documento, l'indice busta e la comunicazione come file tecnici, `daticert.xml` come daticert e `smime.p7s` come firma.
+- Le regole di contenuto (procura, atto, istruttorio) continuano a leggere il corpo del messaggio, ma vengono valutate **dopo** quelle su nome e MIME: in un solo passaggio una regola di contenuto più in alto vinceva sul nome tecnico più in basso.
+- Aggiunta la classificazione `firma` per le firme staccate e i certificati (`.p7s`, `.cer`, `.crl`), che prima cadevano nella classificazione residuale. Il `.p7m` resta escluso perché è l'atto firmato, non la sola busta di firma.
+- Guardrail: due test nuovi, uno che riproduce il corpo di una PEC del PCT e verifica che il provvedimento non venga più etichettato `daticert`, uno che verifica che le regole di contenuto restino attive quando il nome dell'allegato non dice nulla.
+
 ## 2.271.1 - 2026-08-03
 
 - **Il gate «CI Required Gates» non muore più su un errore di rete.** La run 30841471702 è fallita dopo 19 minuti non per un test rosso ma per un errore di trasporto HTTP/2 (`stream error: stream ID 1; CANCEL; received from peer`) su una singola lettura dei check: quella stringa non era fra i marcatori di errore transitorio, quindi non veniva nemmeno ritentata e abbatteva l'intero gate a check quasi tutti verdi. Gli errori di trasporto sono ora riconosciuti come transitori.

@@ -6213,3 +6213,55 @@ def test_sync_agenda_pec_non_elimina_appuntamento_omonimo_non_correlato(tmp_path
 
     assert removed == 0
     assert agenda.get(unrelated.id) is not None
+
+
+def test_il_corpo_della_pec_non_deve_classificare_gli_allegati():
+    """Regressione: in una PEC del PCT ogni allegato finiva classificato daticert.
+
+    Il corpo di una comunicazione di cancelleria cita quasi sempre daticert.xml
+    e postacert.eml. Le regole tecniche leggevano anche quel testo, quindi il
+    provvedimento allegato veniva etichettato "daticert" e da lì escluso
+    dall'OCR e dai documenti da acquisire (`classification NOT IN
+    ('daticert','eml')`): il presidio non segnalava più il documento da
+    scaricare dal portale.
+    """
+
+    from pct.pec_pipeline import AttachmentPayload, classify_attachment
+
+    corpo_pec_pct = (
+        "Messaggio di posta certificata. Il giorno 03/08/2026 alle ore 15:20:35 "
+        "il messaggio è stato consegnato. Allegati: daticert.xml, postacert.eml, "
+        "IndiceBusta.xml, Comunicazione.xml. Documento allegato alla comunicazione."
+    )
+
+    provvedimento = AttachmentPayload(
+        index=0, filename="23343018s.pdf.zip", content_type="application/zip", data=b"x" * 4096
+    )
+    indice = AttachmentPayload(
+        index=1, filename="IndiceBusta.xml", content_type="text/xml", data=b"<indice/>" * 80
+    )
+    daticert = AttachmentPayload(
+        index=2, filename="daticert.xml", content_type="application/xml", data=b"<postacert/>" * 80
+    )
+    firma = AttachmentPayload(
+        index=3, filename="smime.p7s", content_type="application/pkcs7-signature", data=b"\x30" * 4096
+    )
+
+    assert classify_attachment(provvedimento, corpo_pec_pct)[0] not in {"daticert", "eml"}
+    assert classify_attachment(indice, corpo_pec_pct)[0] == "tecnico"
+    assert classify_attachment(daticert, corpo_pec_pct)[0] == "daticert"
+    assert classify_attachment(firma, corpo_pec_pct)[0] == "firma"
+
+
+def test_le_regole_di_contenuto_restano_attive_sul_corpo():
+    """Il nome non basta sempre: procura e atto si riconoscono anche dal testo."""
+
+    from pct.pec_pipeline import AttachmentPayload, classify_attachment
+
+    allegato = AttachmentPayload(
+        index=0, filename="all-01.pdf", content_type="application/pdf", data=b"%PDF-1.7" + b"x" * 4096
+    )
+
+    assert classify_attachment(allegato, "Si trasmette la procura alle liti del cliente.")[0] == "procura"
+    assert classify_attachment(allegato, "In allegato il ricorso depositato in cancelleria.")[0] == "atto"
+    assert classify_attachment(allegato, "Testo privo di segnali utili.")[0] == "da confermare"

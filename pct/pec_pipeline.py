@@ -3369,18 +3369,36 @@ def classify_attachment(item: AttachmentPayload, message_context: str = "") -> t
         return "atto", 0.86, "nome riconducibile ad atto processuale"
     if any(needle in name_context for needle in ("ricevuta", "accettazione", "consegna", "esito", "rdac", "rac")):
         return "ricevute", 0.88, "nome riconducibile a ricevuta PEC/PCT"
-    rules: list[tuple[str, float, tuple[str, ...], str]] = [
-        ("daticert", 0.96, ("daticert.xml", "postacert.eml", "postacert.xml"), "nome tecnico PEC riconosciuto"),
-        ("eml", 0.95, (".eml", "message/rfc822"), "messaggio EML allegato o annidato"),
-        ("procura", 0.91, ("procura", "mandato alle liti"), "nome o testo riconducibile a procura"),
-        ("ricevute", 0.88, ("ricevuta", "accettazione", "consegna", "esito", "rdac", "rac"), "ricevuta PEC/PCT riconosciuta"),
-        ("atto", 0.84, ("atto", "ricorso", "citazione", "memoria", "comparsa", "istanza", "decreto"), "atto processuale riconosciuto"),
-        ("istruttorio", 0.78, ("documento", "doc.", "allegato", "prova", "verbale", "relazione", "ctu"), "allegato istruttorio probabile"),
-        ("tecnico", 0.76, (".xml", ".xsd", "segnatura", "busta", "indicebusta"), "file tecnico del deposito"),
+    # Le regole tecniche guardano SOLO nome e MIME dell'allegato; quelle di
+    # contenuto possono guardare anche il corpo del messaggio. Finché tutte
+    # leggevano il contesto completo, una PEC del PCT — il cui corpo cita
+    # daticert.xml e postacert.eml — faceva classificare "daticert" ogni suo
+    # allegato, compreso il provvedimento da acquisire: e il provvedimento
+    # etichettato daticert viene poi escluso dall'OCR e trattato come file
+    # tecnico, quindi sparisce dai documenti da scaricare.
+    rules: list[tuple[str, float, tuple[str, ...], str, bool]] = [
+        ("daticert", 0.96, ("daticert.xml", "postacert.eml", "postacert.xml"), "nome tecnico PEC riconosciuto", True),
+        ("eml", 0.95, (".eml", "message/rfc822"), "messaggio EML allegato o annidato", True),
+        ("procura", 0.91, ("procura", "mandato alle liti"), "nome o testo riconducibile a procura", False),
+        ("ricevute", 0.88, ("ricevuta", "accettazione", "consegna", "esito", "rdac", "rac"), "ricevuta PEC/PCT riconosciuta", True),
+        ("atto", 0.84, ("atto", "ricorso", "citazione", "memoria", "comparsa", "istanza", "decreto"), "atto processuale riconosciuto", False),
+        ("istruttorio", 0.78, ("documento", "doc.", "allegato", "prova", "verbale", "relazione", "ctu"), "allegato istruttorio probabile", False),
+        ("tecnico", 0.76, (".xml", ".xsd", "segnatura", "busta", "indicebusta"), "file tecnico del deposito", True),
+        # La firma staccata non e' un documento: .p7m resta escluso perche' e'
+        # l'atto firmato, non la sola busta di firma.
+        ("firma", 0.94, (".p7s", "pkcs7-signature", ".cer", ".crl"), "firma staccata o certificato", True),
     ]
-    for label, score, needles, reason in rules:
-        if any(needle in context for needle in needles):
-            return label, score, reason
+    # Due passaggi: prima tutte le regole su nome e MIME, poi quelle di
+    # contenuto. In un solo passaggio una regola di contenuto piu' in alto
+    # (es. "istruttorio") vincerebbe sul nome tecnico piu' in basso, perche' il
+    # corpo di una PEC del PCT contiene quasi sempre quelle parole.
+    for solo_nome_atteso in (True, False):
+        for label, score, needles, reason, solo_nome in rules:
+            if solo_nome is not solo_nome_atteso:
+                continue
+            ambito = name_context if solo_nome else context
+            if any(needle in ambito for needle in needles):
+                return label, score, reason
     if (mime.startswith("application/pdf") or name.endswith((".pdf", ".pdf.p7m"))) and any(
         needle in context for needle in ("giudice di pace", "notificazione", "d.l. 179/2012")
     ):

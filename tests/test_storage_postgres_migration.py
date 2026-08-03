@@ -372,7 +372,14 @@ def _seed_core_json(paths: dict[str, str]) -> None:
     _write_json(Path(paths["PRIVACY_DB"]), [])
     _write_json(Path(paths["NOTIFICHE_LOG"]), [])
     _write_json(Path(paths["CALENDAR_SYNC_DB"]), {"profiles": [{"id": "cal-1", "provider": "google"}]})
-    _write_json(Path(paths["CONDIVISIONI_DB"]), {"link": {"lnk-1": {"id": "lnk-1"}}})
+    # `GestioneCondivisioni._salva()` scrive sempre le tre sezioni `cartelle`,
+    # `fascicoli` e `link`: un seed che ne omette due simula una perdita di dati
+    # che in esercizio non può accadere e fa scattare — correttamente — il blocco
+    # anti-perdita della migrazione verso SQLite.
+    _write_json(
+        Path(paths["CONDIVISIONI_DB"]),
+        {"cartelle": {}, "fascicoli": {}, "link": {"lnk-1": {"id": "lnk-1"}}},
+    )
     _write_json(Path(paths["NOTE_FALDONE_DB"]), {"nf-1": {"id": "nf-1", "titolo": "Nota"}})
     _write_json(Path(paths["EMAIL_CASELLA_DB"]), {"account": {"indirizzo": "studio@example.it"}})
     _write_json(Path(paths["EMAIL_ORDINARIA_DB"]), [{"id": "mail-1", "oggetto": "Messaggio"}])
@@ -793,3 +800,26 @@ def test_copy_legal_updates_to_postgres_migra_news_normativa_e_review(tmp_path: 
     assert len(postgres_repo.list_review_queue(limit=20)) == sqlite_review_total
     assert postgres_headline["published_news"] == sqlite_headline["published_news"]
     assert postgres_headline["published_normative"] == sqlite_headline["published_normative"]
+
+
+def test_seed_condivisioni_rispetta_il_contratto_di_persistenza(tmp_path):
+    """Il seed E2E deve avere le stesse sezioni che `GestioneCondivisioni` scrive davvero.
+
+    `_salva()` emette sempre `cartelle`, `fascicoli` e `link`. Un seed che ne
+    omette qualcuna simula una perdita di sezioni che in esercizio non può
+    accadere e fa scattare il blocco anti-perdita della migrazione verso SQLite,
+    rendendo rosso l'E2E nightly per un difetto della fixture e non del prodotto.
+    """
+
+    from pct.condivisione import GestioneCondivisioni
+
+    reale = tmp_path / "reale" / "condivisioni.json"
+    GestioneCondivisioni(db_path=str(reale))._salva()
+    sezioni_reali = set(json.loads(reale.read_text(encoding="utf-8")))
+
+    paths = _tenant_paths(tmp_path / "seed")
+    _seed_core_json(paths)
+    sezioni_seed = set(json.loads(Path(paths["CONDIVISIONI_DB"]).read_text(encoding="utf-8")))
+
+    assert sezioni_reali == {"cartelle", "fascicoli", "link"}
+    assert sezioni_seed == sezioni_reali

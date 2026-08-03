@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.265.26 - 2026-08-03
+
+- E2E Nightly: verde lo shard 4/4, rosso ogni notte almeno dal 27/07. Il blocco anti-perdita della migrazione verso SQLite non è stato toccato: il difetto era nella fixture.
+- Fixture E2E: il seed di `condivisioni` scriveva la sola sezione `link`, mentre `GestioneCondivisioni._salva()` emette sempre `cartelle`, `fascicoli` e `link`. Con due sezioni in meno rispetto a quelle già migrate in `studio.db` dal bootstrap del tenant, il precheck rilevava correttamente una perdita di record e bloccava la migrazione. Il seed ora rispetta il contratto di persistenza reale, mantenendo il link di prova.
+- Guardrail: nuovo test che confronta le sezioni scritte dal seed con quelle realmente prodotte da `GestioneCondivisioni._salva()`, così una futura divergenza fallisce subito e non di notte nell'E2E.
+
 ## 2.265.25 - 2026-08-02
 
 - **CodeQL workspace snapshot**: `WorkspaceIntelligenteService.save_snapshot()` persiste ora solo aggregati, stati e contatori operativi; i dettagli degli appuntamenti restano nei repository reali e non vengono duplicati nel JSON snapshot.

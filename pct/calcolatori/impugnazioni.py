@@ -16,12 +16,11 @@ Le durate non sono cablate qui: sono lette dai modelli già versionati in
 ``pct.termini_processuali`` (``DEFAULT_TEMPLATES``), che restano l'unica fonte
 dei termini nel progetto, e il computo passa dal motore dello stesso modulo.
 
-Nota sul termine lungo: il modello del motore lo calcola senza sospensione
-feriale. Qui la sospensione è applicata per impostazione predefinita, perché
-l'art. 1 L. 742/1969 sospende i termini processuali senza distinguere fra
-termine breve e termine lungo e l'art. 3 non lo eccettua; l'utente può
-disattivarla con l'apposita opzione. La divergenza è deliberata ed esplicita,
-non un effetto collaterale.
+Nota sul termine lungo: la sospensione feriale gli si applica, perché l'art. 1
+L. 742/1969 sospende i termini processuali senza distinguere fra termine breve e
+termine lungo e l'art. 3 non lo eccettua. Il modello del motore nasceva con la
+sospensione disattivata ed è stato corretto: qui resta l'opzione per escluderla
+nelle controversie sottratte dall'art. 3.
 """
 from __future__ import annotations
 

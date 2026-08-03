@@ -287,3 +287,69 @@ def test_api_scadenziario_blocca_fascicolo_di_altro_tenant(tmp_path: Path):
         if item.get("matter") == fascicolo_b.id and item.get("source") == "agenda"
     ]
     assert len(eventi_b) == 1
+
+
+def test_termine_lungo_sospeso_nel_periodo_feriale():
+    """Art. 1 L. 742/1969: la sospensione vale anche per il termine lungo.
+
+    Il modello nasceva con la sospensione disattivata: sei mesi dal 10 marzo
+    scadevano il 10 settembre, senza i 31 giorni di agosto.
+    """
+
+    from pct.termini_processuali import DEFAULT_TEMPLATES
+
+    template = next(voce for voce in DEFAULT_TEMPLATES if voce.code == "CIV_APPELLO_LUNGO")
+    assert template.suspend_august is True
+    assert template.version >= 2
+
+    result = ItalianDeadlineCalculator().calculate_template(date(2026, 3, 10), template)
+
+    assert "ferial_suspension_1_31_august" in result["rulesApplied"]
+    assert result["deadline"] > "2026-09-10"
+
+
+def test_modelli_salvati_si_aggiornano_solo_se_la_regola_e_cambiata(tmp_path):
+    """L'upgrade tocca i modelli con version superiore, non le personalizzazioni."""
+
+    import json
+
+    percorso = tmp_path / "termini.json"
+    percorso.write_text(
+        json.dumps(
+            {
+                "templates": [
+                    # Modello con la vecchia regola: va corretto.
+                    {
+                        "code": "CIV_APPELLO_LUNGO",
+                        "name": "Appello civile - termine lungo",
+                        "base_value": 6,
+                        "period_type": "months",
+                        "suspend_august": False,
+                        "reference_law": "Art. 327 c.p.c.",
+                        "version": 1,
+                    },
+                    # Personalizzazione dello studio su un modello non corretto:
+                    # deve restare intatta.
+                    {
+                        "code": "CIV_APPELLO_BREVE",
+                        "name": "Appello - prassi di studio",
+                        "base_value": 25,
+                        "version": 1,
+                    },
+                ],
+                "audit_logs": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    repo = DeadlinePracticeRepository(percorso)
+
+    lungo = repo.get_template("CIV_APPELLO_LUNGO")
+    breve = repo.get_template("CIV_APPELLO_BREVE")
+
+    assert lungo.suspend_august is True
+    assert lungo.version >= 2
+    assert breve.name == "Appello - prassi di studio"
+    assert breve.base_value == 25

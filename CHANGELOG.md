@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.270.1 - 2026-08-03
+
+- **Corretto il termine lungo di impugnazione: ora è soggetto alla sospensione feriale.** Il modello `CIV_APPELLO_LUNGO` del motore dei termini calcolava i sei mesi dell'art. 327 c.p.c. senza i giorni dal 1° al 31 agosto, anticipando la scadenza di 31 giorni quando agosto cade nel periodo. L'art. 1 L. 742/1969 sospende i termini processuali senza distinguere fra termine breve e termine lungo e l'art. 3 non lo eccettua fra le materie sottratte: il modello è stato corretto e portato alla versione 2.
+- **Le installazioni esistenti ricevono la correzione.** L'auto-upgrade dei modelli aggiungeva solo quelli mancanti, per non sovrascrivere le personalizzazioni dello studio; ora sostituisce anche un modello salvato quando quello di default ha una `version` superiore, cioè quando la regola di legge incorporata è stata corretta. Le personalizzazioni sui modelli non corretti restano intatte. Vale sia per il backend JSON sia per quello SQLite.
+- Il calcolatore delle impugnazioni non diverge più dal motore: la sospensione resta disattivabile per le controversie sottratte dall'art. 3 L. 742/1969.
+- Guardrail: due test nuovi sulla sospensione applicata al termine lungo e sull'upgrade selettivo dei modelli salvati, che deve correggere il termine lungo e lasciare intatta una personalizzazione dello studio su un altro modello.
+
 ## 2.270.0 - 2026-08-03
 
 - **Nuovo calcolatore: ravvedimento operoso.** Calcola sanzione ridotta e interessi legali sul tardivo versamento, distinguendo i due regimi sanzionatori: la data di scadenza del versamento — momento in cui la violazione si consuma — sceglie fra il regime anteriore e quello introdotto dal D.Lgs. 87/2024, che l'art. 5 dello stesso decreto applica alle violazioni commesse dal 1° settembre 2024. Sanzione base ex art. 13 D.Lgs. 471/1997 (30%, 15%, 1% al giorno prima; 25%, 12,5%, 0,83% al giorno dopo) e riduzioni ex art. 13 D.Lgs. 472/1997, incluse le lettere legate a processo verbale e schema di atto e il nuovo un quarto della lettera b-quinquies). Gli interessi usano i saggi legali già versionati, segmento per segmento, con la formula imposta × tasso × giorni / 36500.

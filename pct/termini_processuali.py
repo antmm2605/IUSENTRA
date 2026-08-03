@@ -191,14 +191,20 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         metadata={"source_event": "notifica_sentenza"},
     ),
     DeadlineTemplate(
+        # Il termine lungo e' soggetto alla sospensione feriale: l'art. 1 L.
+        # 742/1969 sospende i termini processuali dal 1 al 31 agosto senza
+        # distinguere fra termine breve e termine lungo, e l'art. 3 non lo
+        # eccettua fra le materie sottratte. Il modello nasceva con la
+        # sospensione disattivata: corretto con la versione 2.
         code="CIV_APPELLO_LUNGO",
         name="Appello civile - termine lungo",
         base_value=6,
         period_type="months",
-        suspend_august=False,
+        suspend_august=True,
         extend_saturday=True,
         reference_law="Art. 327 c.p.c.",
         metadata={"source_event": "deposito_sentenza"},
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_CASSAZIONE_BREVE",
@@ -436,6 +442,30 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         metadata={"manual": True},
     ),
 )
+
+
+_DEFAULT_TEMPLATES_BY_CODE = {template.code: template for template in DEFAULT_TEMPLATES}
+
+
+def _template_corretto(stored: Mapping[str, Any]) -> dict[str, Any]:
+    """Sostituisce un modello salvato quando la regola di legge è cambiata.
+
+    L'auto-upgrade ordinario aggiunge solo i modelli mancanti e non tocca quelli
+    già presenti, per non sovrascrivere le personalizzazioni dello studio. Fa
+    eccezione il caso in cui il modello di default abbia una ``version``
+    superiore a quella salvata: è il segnale che la regola incorporata nel
+    modello è stata corretta e un termine calcolato con quella vecchia sarebbe
+    sbagliato. In quel caso prevale il default, e la correzione è tracciata nel
+    changelog della release.
+    """
+
+    codice = str(stored.get("code", ""))
+    default = _DEFAULT_TEMPLATES_BY_CODE.get(codice)
+    if default is None:
+        return dict(stored)
+    if default.version > _safe_int(stored.get("version"), 1):
+        return default.to_dict()
+    return dict(stored)
 
 
 class ItalianDeadlineCalculator:
@@ -706,6 +736,9 @@ class DeadlinePracticeRepository:
             for template in DEFAULT_TEMPLATES:
                 if template.code not in existing_codes:
                     payload["templates"].append(template.to_dict())
+            payload["templates"] = [
+                _template_corretto(item) for item in payload["templates"]
+            ]
         payload.setdefault("audit_logs", [])
         payload.setdefault("notification_logs", [])
         payload.setdefault("calendar_versions", [{"version": CALENDAR_VERSION, "source": "builtin", "imported_at": _utc_now()}])
@@ -715,9 +748,15 @@ class DeadlinePracticeRepository:
     def _init_sqlite(self) -> None:
         with sqlite3.connect(self.path) as conn:
             conn.executescript(SQLITE_SCHEMA)
-            existing = {row[0] for row in conn.execute("SELECT code FROM deadline_templates").fetchall()}
+            stored = {
+                str(row[0]): _safe_int(row[1], 1)
+                for row in conn.execute("SELECT code, version FROM deadline_templates").fetchall()
+            }
             for template in DEFAULT_TEMPLATES:
-                if template.code not in existing:
+                if template.code not in stored:
+                    self._insert_template_sqlite(conn, template)
+                elif template.version > stored[template.code]:
+                    conn.execute("DELETE FROM deadline_templates WHERE code = ?", (template.code,))
                     self._insert_template_sqlite(conn, template)
             conn.commit()
 

@@ -183,6 +183,16 @@ def _is_transient_gh_error(message: str) -> bool:
         "i/o timeout",
         "tls handshake",
         "empty response",
+        # Errori di trasporto HTTP/2: la connessione viene chiusa dal peer a
+        # meta' richiesta. Non erano riconosciuti come transitori e una singola
+        # occorrenza durante l'attesa faceva fallire l'intero gate a check quasi
+        # tutti verdi (run 30841471702, "stream error: stream ID 1; CANCEL").
+        "stream error",
+        "received from peer",
+        "http2",
+        "unexpected eof",
+        "connection closed",
+        "broken pipe",
     )
     return any(marker in lowered for marker in transient_markers)
 
@@ -444,9 +454,26 @@ def run_gate(args: argparse.Namespace) -> int:
     check_rows: list[GateRow] = []
     status_rows: list[GateRow] = []
 
+    fetch_errors = 0
     while True:
-        check_rows = evaluate_required_checks(config, fetch_check_runs(repo, sha), event)
-        status_rows = evaluate_statuses(config, fetch_statuses(repo, sha))
+        try:
+            check_rows = evaluate_required_checks(config, fetch_check_runs(repo, sha), event)
+            status_rows = evaluate_statuses(config, fetch_statuses(repo, sha))
+        except RuntimeError as exc:
+            # Il gate attende fino a 90 minuti: un blip dell'API GitHub a meta'
+            # attesa non deve buttare via tutto il giro. Si continua a
+            # interrogare fino alla scadenza e si fallisce solo se il tempo
+            # finisce senza una lettura riuscita.
+            fetch_errors += 1
+            if not args.wait or time.monotonic() >= deadline:
+                raise
+            print(
+                f"::warning::Lettura dei check non riuscita ({fetch_errors}): {exc}. "
+                f"Riprovo tra {args.poll_seconds}s.",
+                flush=True,
+            )
+            time.sleep(args.poll_seconds)
+            continue
         hard_failure = any(row.state == "failed" for row in check_rows)
         external_failure = any(row.state == "failed" for row in status_rows)
         pending_or_missing = any(row.state in {"pending", "missing"} for row in check_rows)

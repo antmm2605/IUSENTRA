@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.271.1 - 2026-08-03
+
+- **Il gate «CI Required Gates» non muore più su un errore di rete.** La run 30841471702 è fallita dopo 19 minuti non per un test rosso ma per un errore di trasporto HTTP/2 (`stream error: stream ID 1; CANCEL; received from peer`) su una singola lettura dei check: quella stringa non era fra i marcatori di errore transitorio, quindi non veniva nemmeno ritentata e abbatteva l'intero gate a check quasi tutti verdi. Gli errori di trasporto sono ora riconosciuti come transitori.
+- **L'attesa dei check è diventata resistente.** Il gate attende fino a 90 minuti: una lettura non riuscita a metà attesa non butta più via il giro, si continua a interrogare fino alla scadenza e si fallisce solo se il tempo finisce senza mai una lettura riuscita.
+- Guardrail: due test nuovi, uno sulla classificazione dell'errore di trasporto (che non deve però trasformare un 404 o un 401 in transitorio) e uno che verifica che il gate ritenti la lettura invece di abortire.
+
 ## 2.271.0 - 2026-08-03
 
 - **I presidi non possono più tacere fingendo di aver lavorato.** Presidio PEC, relata, fascicoli, agenda/scadenziario e sincronizzazione caselle leggono tutti la stessa lista di studi: finché quella lista si svuotava in silenzio — registro studi illeggibile, nessuno studio attivo — i job completavano con esito «ok» avendo fatto zero, e il guasto restava invisibile in console Pianificazioni. Ora l'assenza di target è un esito fallito con il motivo scritto, quindi una riga rossa tracciabile. Vale anche per il presidio fascicoli, che in multi-tenant senza studi attivi non ripiega più sul contesto «default», e per il presidio relata, che dichiara l'archivio fascicoli non raggiungibile invece di riportare zero fascicoli scansionati.

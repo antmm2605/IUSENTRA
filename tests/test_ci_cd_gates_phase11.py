@@ -248,3 +248,62 @@ def test_every_push_required_check_has_a_producing_job() -> None:
         "Check richiesti su push senza job che li produce (resterebbero 'missing' e "
         f"bloccherebbero il deploy): {orphans}"
     )
+
+
+def test_errore_di_trasporto_http2_e_considerato_transitorio() -> None:
+    """Run 30841471702: il gate moriva su "stream error ... CANCEL" a check quasi verdi."""
+
+    module = _load_required_gates_module()
+
+    assert module._is_transient_gh_error(
+        "stream error: stream ID 1; CANCEL; received from peer"
+    )
+    assert module._is_transient_gh_error("unexpected EOF")
+    assert module._is_transient_gh_error("connection closed by peer")
+    # Un errore reale non deve diventare transitorio.
+    assert not module._is_transient_gh_error("Not Found (HTTP 404)")
+    assert not module._is_transient_gh_error("Bad credentials (HTTP 401)")
+
+
+def test_il_gate_continua_ad_attendere_dopo_una_lettura_fallita(monkeypatch) -> None:
+    """Un blip dell'API a meta' attesa non deve buttare via il giro di 90 minuti."""
+
+    import argparse
+
+    module = _load_required_gates_module()
+    tentativi = {"n": 0}
+
+    def _fetch_check_runs(repo: str, sha: str):
+        tentativi["n"] += 1
+        if tentativi["n"] == 1:
+            raise RuntimeError("gh api failed: stream error: stream ID 1; CANCEL")
+        return [{"name": "Lint + syntax", "status": "completed", "conclusion": "success"}]
+
+    monkeypatch.setattr(module, "fetch_check_runs", _fetch_check_runs)
+    monkeypatch.setattr(module, "fetch_statuses", lambda repo, sha: [])
+    monkeypatch.setattr(module, "evaluate_required_checks", lambda config, runs, event: [])
+    monkeypatch.setattr(module, "evaluate_statuses", lambda config, statuses: [])
+    monkeypatch.setattr(module, "_load_json", lambda path: {})
+    monkeypatch.setattr(module, "resolve_repo", lambda value: "owner/repo")
+    monkeypatch.setattr(module, "resolve_sha", lambda value: "abc123")
+    monkeypatch.setattr(module.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(module, "render_markdown", lambda *a, **k: "")
+    monkeypatch.setattr(module, "write_reports", lambda *a, **k: None)
+
+    args = argparse.Namespace(
+        config="config.json",
+        repo="owner/repo",
+        sha="abc123",
+        event="push",
+        wait=True,
+        timeout_seconds=60,
+        poll_seconds=0,
+        report_md="",
+        report_json="",
+        check_branch_protection=False,
+    )
+
+    esito = module.run_gate(args)
+
+    assert tentativi["n"] >= 2, "il gate deve riprovare la lettura invece di abortire"
+    assert esito == 0

@@ -86,26 +86,37 @@ def _inline_style_totals(root_relative_path: str) -> tuple[int, int, int]:
 
 
 def _tracked_files() -> list[str]:
+    """File governati: tracciati piu' quelli nuovi non ancora committati.
+
+    In CI ogni file e' gia' tracciato, quindi la differenza non si vede. In
+    locale un modulo appena creato non e' ancora nell'indice: guardando solo
+    `git ls-files` il gate lo ignorava e lasciava passare un push che la CI
+    poi bocciava. I file ignorati da `.gitignore` restano fuori.
+    """
+
     git_dir = REPO_ROOT / ".git"
     if not git_dir.exists():
         return []
     import subprocess
 
-    result = subprocess.run(
-        ["git", "ls-files"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
     tracked: list[str] = []
-    for line in result.stdout.splitlines():
-        normalized = line.strip()
-        if not normalized:
-            continue
-        if not (REPO_ROOT / normalized).exists():
-            continue
-        tracked.append(normalized)
+    visti: set[str] = set()
+    for argomenti in (["git", "ls-files"], ["git", "ls-files", "--others", "--exclude-standard"]):
+        result = subprocess.run(
+            argomenti,
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for line in result.stdout.splitlines():
+            normalized = line.strip()
+            if not normalized or normalized in visti:
+                continue
+            if not (REPO_ROOT / normalized).exists():
+                continue
+            visti.add(normalized)
+            tracked.append(normalized)
     return tracked
 
 

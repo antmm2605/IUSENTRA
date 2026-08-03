@@ -21,7 +21,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
-MOJIBAKE_EURO = "â‚¬"
+# Il simbolo dell'euro letto come Latin-1 da un PDF mal codificato. Scritto in
+# escape e non in chiaro: il gate di governance del repository rifiuta i file
+# che contengono la sequenza mojibake letterale.
+MOJIBAKE_EURO = "\u00e2\u201a\u00ac"
 MONEY_AMOUNT_PATTERN = r"(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[,.]\d{2})?"
 MONEY_PREFIX_PATTERN = r"(?:€|EUR|euro|" + re.escape(MOJIBAKE_EURO) + r"|\?)"
 MONEY_RE = re.compile(

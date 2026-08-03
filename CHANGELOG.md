@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.265.28 - 2026-08-03
+
+**Cambio di un valore numerico di qualità — procedura AGENTS.md.**
+
+- **Budget `startup_ms` del Performance Nightly: valore precedente 3200 ms, valore nuovo 4000 ms.** Approvazione esplicita dell'utente richiesta e ottenuta prima della modifica.
+- **Causa tecnica.** La soglia non era raggiungibile in modo stabile sui runner condivisi GitHub. Tre notti consecutive su codice sostanzialmente equivalente hanno misurato 3279, 3314 e 4502 ms, mentre in locale gli stessi commit danno 1485 e 1577 ms: la differenza fra le notti è varianza del runner, non regressione di codice. La composizione dell'avvio, misurata senza profiler, è per il 62% import dei blueprint più compilazione delle 1270 route in werkzeug e per il 30% seeding dei moduli dati al primo boot: non è comprimibile sotto la soglia precedente con ottimizzazioni mirate.
+- **Presidio sostitutivo, richiesto da AGENTS.md quando una soglia si alza.** Il budget non guarda più un singolo campione ma la **mediana di 3 avvii a freddo eseguiti in processi separati** (`--repeat`, default 3). Un picco isolato del runner non decide più l'esito, mentre una regressione reale sposta la mediana e continua a far fallire il gate. Il risultato netto è un presidio più forte del precedente: con campione singolo e soglia 3200 il job era rosso in modo indistinguibile fra rumore e regressione, ed è infatti rimasto rosso e ignorato dal 29/07.
+- **Impatto.** Nessuna altra soglia toccata: `login_ms`, `health_ms`, `runtime_metrics_ms` restano a 800 ms e i budget Lex a 1500 ms. Con la nuova soglia una regressione oltre il +38% rispetto al valore tipico atteso in CI continua a fallire.
+- **Guardrail.** Tre test presidiano la modifica: il valore della soglia, la presenza della mediana su processi separati (così non si può rimuovere il presidio lasciando la soglia alta) e la pulizia dei dati temporanei.
+- Benchmark: ogni campione creava un albero dati completo in `/tmp` senza mai rimuoverlo; con tre campioni per esecuzione il residuo falsava le misure successive. Ora ogni campione pulisce il proprio albero.
+- Benchmark: gli import applicativi sono stati spostati dentro la funzione di misura, così in modalità `--repeat` il processo padre non carica né trattiene in memoria l'intera app mentre girano i campioni.
+
 ## 2.265.27 - 2026-08-03
 
 - Avvio applicazione: `react_preventivo_wizard_bridge` costruiva `GestioneStrumentiLegali()` a livello di modulo, quindi caricava le tabelle normative (2,4 MB) all'import e il costo veniva pagato ad ogni avvio di worker anche senza aprire mai il wizard preventivi. La costruzione è ora differita alla prima chiamata, con singleton stabile: mediana locale di `startup_ms` da 1577 ms a 1375 ms su 5-6 esecuzioni.

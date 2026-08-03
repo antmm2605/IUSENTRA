@@ -4,6 +4,20 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-08-03: ribaselinatura del budget `startup_ms` 2.265.28, su richiesta esplicita dell'utente e con procedura AGENTS.md per il cambio di un valore numerico di qualità.
+
+  | Voce | Precedente | Nuovo |
+  |---|---|---|
+  | Budget `startup_ms` | 3200 ms | 4000 ms |
+  | Statistica usata | campione singolo | mediana di 3 avvii a freddo in processi separati |
+  | Altri budget | invariati | invariati |
+
+  Evidenza raccolta prima della decisione: tre notti consecutive su codice sostanzialmente equivalente hanno misurato in CI 3279, 3314 e 4502 ms; in locale gli stessi commit misurano 1485 e 1577 ms. La varianza fra notti (37%) supera il margine che la soglia lasciava, quindi il gate non distingueva rumore da regressione ed era rosso e ignorato dal 29/07. Composizione reale dell'avvio, misurata senza profiler: 62% import blueprint più compilazione delle 1270 route in werkzeug, 30% seeding moduli dati al primo boot, 8% resto.
+
+  Il presidio non è stato indebolito ma spostato: la mediana su processi separati mantiene la semantica di avvio a freddo e rende il gate insensibile al singolo picco, mentre una regressione reale sposta la mediana. Tre test bloccano la rimozione silenziosa del presidio (soglia, mediana su sottoprocessi, pulizia temporanei).
+
+  Verifica locale con soglia nuova: `startup_ms` mediana 1769-1795 ms su 4000. `health_ms` misura 865-992 ms su questo container contro 523-540 ms sui runner CI: il container locale è più lento sul percorso I/O, quindi il riferimento per quella metrica resta la CI. Prima esecuzione notturna con la nuova configurazione ancora da registrare.
+
 - 2026-08-01: rientro nel budget Performance Nightly 2.265.17. Il job `Benchmark runtime leggero` era rosso dal 29/07 (ultimo verde il 28/07 su `ede30425`) con `startup_ms` 3279 su budget 3200 e `health_ms` 857 su budget 800. Le soglie di `tools/performance_smoke.py` non sono state modificate.
 
   Cause rimosse, misurate sul payload reale:

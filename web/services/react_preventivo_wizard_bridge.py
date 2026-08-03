@@ -10,6 +10,7 @@ from __future__ import annotations
 from pct.formatting import format_euro_it
 import json
 from datetime import date, datetime, timedelta, timezone
+from threading import Lock
 from typing import Any, Callable
 
 from flask import url_for
@@ -92,7 +93,25 @@ def _parse_num(value: Any, default: float = 0.0) -> float:
         return default
 
 
-_STRUMENTI_LEGALI = GestioneStrumentiLegali()
+_STRUMENTI_LEGALI: GestioneStrumentiLegali | None = None
+_STRUMENTI_LEGALI_LOCK = Lock()
+
+
+def _strumenti_legali() -> GestioneStrumentiLegali:
+    """Costruisce il calcolatore del contributo unificato alla prima richiesta.
+
+    `GestioneStrumentiLegali()` carica le tabelle normative (2,4 MB) e a livello
+    di modulo il costo veniva pagato all'import, quindi ad ogni avvio di worker
+    anche quando il wizard preventivi non viene mai aperto. Le due sole funzioni
+    che lo usano restano identiche: cambia solo il momento della costruzione.
+    """
+
+    global _STRUMENTI_LEGALI
+    if _STRUMENTI_LEGALI is None:
+        with _STRUMENTI_LEGALI_LOCK:
+            if _STRUMENTI_LEGALI is None:
+                _STRUMENTI_LEGALI = GestioneStrumentiLegali()
+    return _STRUMENTI_LEGALI
 
 
 def _cu_grade_from_label(grade_label: str) -> str:
@@ -107,7 +126,7 @@ def _cu_grade_from_label(grade_label: str) -> str:
 def _cu_amount_for_practice(practice_id: str, *, value: float, grade_label: str) -> float | None:
     grade = _cu_grade_from_label(grade_label)
     if practice_id in {"atto_citazione", "opposizione_di", "comparsa_risposta", "risarcimento_danni"}:
-        result = _STRUMENTI_LEGALI.calcola_contributo_unificato(
+        result = _strumenti_legali().calcola_contributo_unificato(
             {
                 "cu_categoria": "civile_ordinario",
                 "cu_grado": grade,
@@ -117,7 +136,7 @@ def _cu_amount_for_practice(practice_id: str, *, value: float, grade_label: str)
         )
         return round(float(result.get("base") or 0.0), 2)
     if practice_id == "decreto_ingiuntivo":
-        result = _STRUMENTI_LEGALI.calcola_contributo_unificato(
+        result = _strumenti_legali().calcola_contributo_unificato(
             {
                 "cu_categoria": "decreto_ingiuntivo",
                 "cu_grado": "primo_grado",

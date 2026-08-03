@@ -771,3 +771,34 @@ def test_wizard_genera_salva_anticipazioni_totali_della_bozza(tmp_path):
         preventivo = gestore.tutti_preventivi()[0]
 
     assert round(preventivo.anticipazioni_art15, 2) == 193.50
+
+
+def test_import_bridge_wizard_non_carica_le_tabelle_normative():
+    """L'import del bridge non deve costruire il calcolatore del contributo unificato.
+
+    `GestioneStrumentiLegali()` carica le tabelle normative (oltre 2 MB): a
+    livello di modulo il costo veniva pagato ad ogni avvio di worker anche senza
+    aprire mai il wizard preventivi. La verifica gira in un processo separato
+    perché nella sessione pytest il modulo è già importato da altri test.
+    """
+
+    import subprocess
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[1]
+    programma = (
+        "import web.services.react_preventivo_wizard_bridge as b;"
+        "assert b._STRUMENTI_LEGALI is None, 'costruito all import';"
+        "assert b._strumenti_legali() is b._strumenti_legali(), 'singleton non stabile';"
+        "print('ok')"
+    )
+    esito = subprocess.run(
+        [sys.executable, "-c", programma],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert esito.returncode == 0, esito.stdout + esito.stderr
+    assert "ok" in esito.stdout

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.265.27 - 2026-08-03
+
+- Avvio applicazione: `react_preventivo_wizard_bridge` costruiva `GestioneStrumentiLegali()` a livello di modulo, quindi caricava le tabelle normative (2,4 MB) all'import e il costo veniva pagato ad ogni avvio di worker anche senza aprire mai il wizard preventivi. La costruzione è ora differita alla prima chiamata, con singleton stabile: mediana locale di `startup_ms` da 1577 ms a 1375 ms su 5-6 esecuzioni.
+- Guardrail: nuovo test che verifica in un processo separato che l'import del bridge non costruisca il calcolatore e che il singleton resti stabile.
+- Nota su `startup_ms` in CI: la metrica resta strutturalmente vicina al budget. L'avvio è per il 62% import dei blueprint più compilazione delle 1270 route in werkzeug, per il 30% seeding dei moduli dati al primo boot. Le tre notti su codice equivalente hanno dato 3279, 3314 e 4502 ms contro un budget di 3200, cioè una varianza del runner superiore al margine disponibile.
+
 ## 2.265.26 - 2026-08-03
 
 - E2E Nightly: verde lo shard 4/4, rosso ogni notte almeno dal 27/07. Il blocco anti-perdita della migrazione verso SQLite non è stato toccato: il difetto era nella fixture.

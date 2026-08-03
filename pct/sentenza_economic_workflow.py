@@ -1,7 +1,7 @@
 """Workflow economico della sentenza: trigger PEC automatico e generazione parcella.
 
 Due passi, entrambi prudenti:
-- il trigger da PEC decide *se* far partire l'audit (solo `deposito_sentenza`), mai
+- il trigger da PEC decide *se* far partire l'audit (eventi di sentenza), mai
   scrive nulla di definitivo — l'audit resta in anteprima (`to_review`);
 - la generazione parcella avviene SOLO su un credito gia' **confermato** dall'avvocato
   (regola #4: mai parcella definitiva senza conferma).
@@ -18,11 +18,21 @@ from pct.fatturazione import VoceParcella
 
 _CREDIT_EVENTS = {"apri_credito_cliente", "apri_credito_avvocato_antistatario"}
 
+# Eventi con cui il classificatore PEC riconosce l'arrivo di una sentenza. Sono i
+# tre gia' usati come equivalenti altrove nel progetto (query dei provvedimenti in
+# `pct.pec_pipeline`, proposta termini in `pct.pec_legal_deadline_proposer`).
+# Il trigger economico accettava solo `deposito_sentenza`: una sentenza a verbale
+# ex art. 127-ter c.p.c. — che e' il caso tipico in cui il giudice decide e liquida
+# le spese — non faceva partire l'audit, quindi la parte economica non nasceva.
+SENTENZA_EVENT_TYPES = frozenset(
+    {"deposito_sentenza", "sentenza_a_verbale", "sentenza_a_verbale_429"}
+)
+
 
 def should_trigger_economic_audit(classification: dict[str, Any]) -> bool:
-    """True solo se la PEC e' un deposito di sentenza (art. 133 c.p.c. lato cancelleria)."""
+    """True se la PEC comunica una sentenza (art. 133 c.p.c. lato cancelleria)."""
 
-    return str((classification or {}).get("event_type") or "") == "deposito_sentenza"
+    return str((classification or {}).get("event_type") or "") in SENTENZA_EVENT_TYPES
 
 
 def genera_parcella_da_credito(

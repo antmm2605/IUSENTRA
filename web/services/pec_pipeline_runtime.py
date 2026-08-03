@@ -429,7 +429,16 @@ def _sentenza_ocr_text(detail: Mapping[str, Any]) -> tuple[str, str]:
             continue
         content_type = str(att.get("content_type") or "").lower()
         filename = str(att.get("filename") or "").lower()
-        if not (content_type.startswith("application/pdf") or filename.endswith(".pdf")):
+        # Il PCT consegna il provvedimento dentro uno ZIP (`nome.pdf.zip`) o
+        # firmato (`nome.pdf.p7m`): richiedere l'estensione `.pdf` secca faceva
+        # scartare proprio la sentenza, e l'audit economico restava senza testo.
+        # Il testo dentro lo ZIP e' gia' stato estratto dal job OCR.
+        e_pdf = (
+            content_type.startswith("application/pdf")
+            or filename.endswith((".pdf", ".pdf.p7m", ".pdf.zip"))
+            or (".pdf" in filename and filename.endswith(".zip"))
+        )
+        if not e_pdf:
             continue
         text = str(att.get("ocr_text") or "")
         if len(text) > len(best_text):

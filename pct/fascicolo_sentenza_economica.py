@@ -11,7 +11,24 @@ from zoneinfo import ZoneInfo
 
 from pct.fascicoli import AvanzamentoPratica, StatoFascicolo
 from pct.fatturazione import StatoParcella, VoceParcella
+from pct.spese_liquidate_lettura import (
+    MONEY_AMOUNT_PATTERN,
+    MONEY_PREFIX_PATTERN,
+    MONEY_RE,
+    compatta_testo,
+    estrai_spese_liquidate,
+    estratto_testo,
+    parse_importo,
+)
 
+# Alias locali: la lettura degli importi vive nel modulo condiviso, qui restano
+# i nomi gia' usati dalle regex e dalle automazioni di questo modulo.
+_MONEY_AMOUNT_PATTERN = MONEY_AMOUNT_PATTERN
+_MONEY_PREFIX_PATTERN = MONEY_PREFIX_PATTERN
+_MONEY_RE = MONEY_RE
+_compact = compatta_testo
+_parse_money = parse_importo
+_snippet = estratto_testo
 
 ORIGIN = "lex_ai_sentenza_tribunale"
 AUTOMATION_KEY = "_sentenza_tribunale_lex_ai"
@@ -40,45 +57,32 @@ _SENTENZA_DATE_RE = re.compile(
     r"\bpubbl(?:icata|icato|\.?)\s*(?:il)?\s*(?P<date>\d{1,2}/\d{1,2}/\d{4})",
     re.IGNORECASE | re.DOTALL,
 )
+# La sentenza a verbale ex art. 127-ter c.p.c. non ha l'intestazione
+# "Sentenza n. X pubbl. il ...": porta solo il luogo e la data in calce, spesso
+# in forma numerica ("Vicenza, 2/8/2026"). Senza questa forma il documento non
+# veniva riconosciuto e l'automazione economica del fascicolo non partiva.
 _SENTENZA_TEXTUAL_DATE_RE = re.compile(
     r"(?:\bSentenza\s+resa\b.{0,180}?|(?:^|[.;]\s*)[A-ZÀ-Ü][A-Za-zÀ-ÿ' -]{1,40},\s*)"
-    r"(?P<date>" + _ITALIAN_DATE_TEXT_PATTERN + r")",
+    r"(?P<date>" + _ITALIAN_DATE_TEXT_PATTERN + r"|\d{1,2}/\d{1,2}/\d{4})",
     re.IGNORECASE | re.DOTALL,
 )
 _RG_RE = re.compile(
     r"\b(?:n\.?\s*)?R\.?\s*G\.?\s*(?:n\.?\s*)?(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})",
     re.IGNORECASE,
 )
-_MONEY_AMOUNT_PATTERN = r"(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[,.]\d{2})?"
-_MOJIBAKE_EURO = "\u00e2\u201a\u00ac"
-_MONEY_PREFIX_PATTERN = r"(?:\u20ac|EUR|euro|" + re.escape(_MOJIBAKE_EURO) + r"|\?)"
-_MONEY_RE = re.compile(
-    _MONEY_PREFIX_PATTERN + r"\s*(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
+# Forma con il marcatore DOPO il numero, tipica delle sentenze di merito:
+# "n. 523 /2026 R.G. lav.", "iscritta al n. 523/2026 RG Lav.". Senza questa forma
+# l'RG non veniva letto e la sentenza risultava non riconciliata col fascicolo.
+_RG_SUFFISSO_RE = re.compile(
+    r"\bn\.?\s*(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})\s*(?:R\.?\s*G\.?|Ruolo\s+Generale)",
     re.IGNORECASE,
 )
-_LIQUIDAZIONE_RE = re.compile(
-    r"\bliquid(?:a|ando|ata|ato|ate|ati)\b.{0,160}?"
-    r"(?:(?:complessiv[aoei]\s+)?(?:somma|importo)\s+(?:di\s+)?|(?:in\s+)?complessiv[aoei]\s+)"
-    + _MONEY_PREFIX_PATTERN
-    + r"\s*"
-    r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
-    re.IGNORECASE | re.DOTALL,
-)
-_LIQUIDAZIONE_WORD_RE = re.compile(r"\bliquid(?:a|ando|ata|ato|ate|ati)\b", re.IGNORECASE)
-_LIQUIDAZIONE_CONTEXT_RE = re.compile(
-    r"\b(?:spese\s+di\s+lite|rifusione\s+delle\s+spese|compensi\s+professionali|onorari|"
-    r"p\.?\s*q\.?\s*m\.?|definitivamente\s+pronunciando)\b",
-    re.IGNORECASE,
-)
-_COMPENSI_AFTER_AMOUNT_RE = re.compile(
-    r"^[\s,;:.]*(?:per|a\s+titolo\s+di)\s+(?:compensi(?:\s+professionali)?|onorari)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-_NON_COMPENSI_AFTER_AMOUNT_RE = re.compile(
-    r"^[\s,;:.]*(?:per|a\s+titolo\s+di)\s+"
-    r"(?:spese(?!\s+generali)|esbors[oi]|spese\s+vive|contribut[oi]\s+unificat[oi]|c\.?\s*u\.?)\b",
-    re.IGNORECASE | re.DOTALL,
-)
+
+
+def _cerca_rg(text: str) -> re.Match[str] | None:
+    """Numero di ruolo con marcatore prima o dopo il numero."""
+
+    return _RG_RE.search(text) or _RG_SUFFISSO_RE.search(text)
 _CU_PATTERNS = (
     re.compile(r"\bc\.?\s*u\.?\b", re.IGNORECASE),
     re.compile(r"\bcontribut[oi]\s+unificat[oi]\b", re.IGNORECASE),
@@ -108,6 +112,10 @@ _CARTA_DOCENTE_BENEFICIO_RE = re.compile(
     + _MONEY_AMOUNT_PATTERN
     + r")",
     re.IGNORECASE | re.DOTALL,
+)
+_CONDANNA_CONTEXT_RE = re.compile(
+    r"\b(?:condanna|condannare|accredit(?:o|are)|costituire|assegna|riconosce)\b",
+    re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_HINT_RE = re.compile(
     r"\b(?:contributo\s+unificat[oi]|pagopa|pago\s*pa|ricevuta\s+pagamento|avviso\s+pagamento)\b",
@@ -421,7 +429,7 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
     header_window = compact[max(0, date_match.start() - 220) : min(len(compact), date_match.end() + 320)] if date_match else ""
     has_official_header_signal = bool(
         date_match
-        and _RG_RE.search(compact[date_match.end() : min(len(compact), date_match.end() + 260)])
+        and _cerca_rg(compact[date_match.end() : min(len(compact), date_match.end() + 260)])
         and _OFFICIAL_HEADER_SIGNAL_RE.search(header_window)
     )
     has_structural_sentence_signal = bool(_STRUCTURAL_SENTENCE_SIGNAL_RE.search(compact))
@@ -487,19 +495,19 @@ def _extract_rg_near_sentence(compact_text: str, sentence_match: re.Match[str]) 
 
     after_start = sentence_match.end()
     after_end = min(len(compact_text), after_start + 260)
-    header_match = _RG_RE.search(compact_text[after_start:after_end])
+    header_match = _cerca_rg(compact_text[after_start:after_end])
     if header_match:
         return header_match
 
     start = max(0, sentence_match.start() - 120)
-    before_match = _RG_RE.search(compact_text[start:sentence_match.start()])
+    before_match = _cerca_rg(compact_text[start:sentence_match.start()])
     if before_match:
         return before_match
 
-    early_match = _RG_RE.search(compact_text[: min(len(compact_text), sentence_match.end() + 900)])
+    early_match = _cerca_rg(compact_text[: min(len(compact_text), sentence_match.end() + 900)])
     if early_match:
         return early_match
-    return _RG_RE.search(compact_text)
+    return _cerca_rg(compact_text)
 
 
 def apply_sentenza_tribunale_automation(
@@ -745,10 +753,6 @@ def apply_sentenza_tribunale_automation(
     )
 
 
-def _compact(value: str) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
-
-
 def _document_label_detection_text(value: Any) -> str:
     raw = _text(value)
     if not raw:
@@ -828,7 +832,7 @@ def _rg_candidates_from_fascicolo(fascicolo: Any) -> list[tuple[str, str]]:
         getattr(fascicolo, "numero", ""),
         getattr(fascicolo, "source_external_id", ""),
     ):
-        match = _RG_RE.search(str(value or ""))
+        match = _cerca_rg(str(value or ""))
         if match:
             candidates.append((_normalize_rg_number(match.group("num")), re.sub(r"\D+", "", match.group("year"))))
         elif "/" in str(value or ""):
@@ -977,67 +981,30 @@ def _parse_italian_date(value: str) -> str:
         return ""
 
 
-def _parse_money(value: str) -> float | None:
-    raw = _text(value).replace(" ", "")
-    if not raw:
-        return None
-    if "," in raw:
-        raw = raw.replace(".", "").replace(",", ".")
-    elif re.fullmatch(r"\d{1,3}(?:\.\d{3})+", raw):
-        raw = raw.replace(".", "")
-    try:
-        return round(float(raw), 2)
-    except ValueError:
-        return None
-
-
-def _snippet(text: str, start: int, end: int, *, window: int = 90) -> str:
-    left = max(0, start - window)
-    right = min(len(text), end + window)
-    return _compact(text[left:right])[:360]
-
-
 def _extract_liquidazione(text: str) -> tuple[float | None, str]:
-    compensation_candidates: list[tuple[int, re.Match[str]]] = []
-    for money in _MONEY_RE.finditer(text):
-        amount = _parse_money(money.group("amount"))
-        if amount is None:
-            continue
-        after = text[money.end() : min(len(text), money.end() + 120)]
-        if not _COMPENSI_AFTER_AMOUNT_RE.match(after):
-            continue
-        context = text[max(0, money.start() - 260) : min(len(text), money.end() + 180)]
-        if not (_LIQUIDAZIONE_WORD_RE.search(context) or _LIQUIDAZIONE_CONTEXT_RE.search(context)):
-            continue
-        before = text[max(0, money.start() - 260) : money.start()]
-        liquidazione_words = list(_LIQUIDAZIONE_WORD_RE.finditer(before))
-        distance = money.start() - liquidazione_words[-1].start() if liquidazione_words else 9999
-        compensation_candidates.append((distance, money))
-    if compensation_candidates:
-        _, match = min(compensation_candidates, key=lambda item: (item[0], item[1].start()))
-        return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=180)
+    """Capo spese letto dal modulo condiviso (art. 91 c.p.c.)."""
 
-    total_candidates: list[tuple[int, re.Match[str]]] = []
-    for match in _LIQUIDAZIONE_RE.finditer(text):
-        amount = _parse_money(match.group("amount"))
-        if amount is None:
-            continue
-        amount_end = match.end("amount")
-        after = text[amount_end : min(len(text), amount_end + 90)]
-        if _NON_COMPENSI_AFTER_AMOUNT_RE.match(after):
-            continue
-        total_candidates.append((match.start(), match))
-    if not total_candidates:
-        return None, ""
-    _, match = min(total_candidates, key=lambda item: item[0])
-    return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=90)
+    return estrai_spese_liquidate(text)
 
 
 def _extract_beneficio_cliente(text: str) -> tuple[float | None, str, str]:
-    match = _CARTA_DOCENTE_BENEFICIO_RE.search(text)
-    if not match:
+    """Beneficio riconosciuto al cliente, letto dal dispositivo e non dalle citazioni.
+
+    Una sentenza sulla Carta docente cita l'art. 1 co. 121 l. 107/2015 con
+    l'importo di legge molto prima di condannare il Ministero: prendere la prima
+    occorrenza significava attribuire al cliente l'importo normativo invece di
+    quello effettivamente riconosciuto.
+    """
+
+    prima: re.Match[str] | None = None
+    for match in _CARTA_DOCENTE_BENEFICIO_RE.finditer(text):
+        if prima is None:
+            prima = match
+        if _CONDANNA_CONTEXT_RE.search(text[max(0, match.start() - 200) : match.start()]):
+            return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=80), "carta_docente"
+    if prima is None:
         return None, "", ""
-    return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=80), "carta_docente"
+    return _parse_money(prima.group("amount")), _snippet(text, prima.start(), prima.end(), window=80), "carta_docente"
 
 
 def _classify_contributo_recovery(title: str) -> str:

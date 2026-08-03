@@ -26,7 +26,7 @@ from typing import Any
 from legal_ocr.ner_legal import extract_numero_ruolo, extract_uffici
 from legal_regex.rules import validate_regex_pack
 from pct.email_client import _normalizza_testo_email_match, _tokenizza_email_match
-
+from pct.spese_liquidate_lettura import estrai_spese_liquidate
 
 DEFAULT_RULESET_PATH = Path(__file__).with_name("data") / "economic_legal_rules_v2026_07.json"
 _RULESET_CACHE: dict[str, dict[str, Any]] = {}
@@ -362,8 +362,13 @@ def extract_economics(testo: str, *, ruleset: dict[str, Any] | None = None) -> S
         pagatore = "incerto"
 
     importi = _importi_rilevati(testo)
+    # L'importo del credito e' quello agganciato al capo spese, non il piu' alto
+    # del testo: in una sentenza il valore piu' grande e' quasi sempre il bene
+    # riconosciuto al cliente, non il compenso liquidato al difensore.
+    liquidato, capo_spese = estrai_spese_liquidate(testo)
     spese = SpeseLiquidate(
         presente=bool(condanna or compensate or distrazione or gratuito),
+        testo_capo_spese=capo_spese,
         condanna_spese=condanna,
         spese_compensate=compensate,
         compensazione_parziale=compensate_parziale,
@@ -373,7 +378,7 @@ def extract_economics(testo: str, *, ruleset: dict[str, Any] | None = None) -> S
         beneficiario_credito=beneficiario,
         pagatore=pagatore,
         importi_rilevati=importi,
-        totale_stimato=max(importi) if importi else None,
+        totale_stimato=liquidato,
         human_review_required=True,  # gli importi sono sempre "stimati e da confermare" (regola #4)
     )
 

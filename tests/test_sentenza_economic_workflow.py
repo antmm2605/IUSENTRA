@@ -37,6 +37,13 @@ def test_should_trigger_solo_su_deposito_sentenza():
     assert should_trigger_economic_audit({}) is False
 
 
+def test_should_trigger_anche_sulla_sentenza_a_verbale():
+    """Il caso tipico in cui il giudice decide e liquida le spese (art. 127-ter c.p.c.)."""
+
+    assert should_trigger_economic_audit({"event_type": "sentenza_a_verbale"}) is True
+    assert should_trigger_economic_audit({"event_type": "sentenza_a_verbale_429"}) is True
+
+
 def test_parcella_non_generata_se_non_confermato():
     evento = {"id": "E1", "event_type": "apri_credito_avvocato_antistatario", "amount": 4200.0, "status": "to_review", "beneficiary_type": "avvocato"}
     res = genera_parcella_da_credito(evento=evento, fascicolo=_fasc(), fatturazione=_FakeFatturazione())

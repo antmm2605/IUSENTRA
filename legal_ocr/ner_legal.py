@@ -114,7 +114,8 @@ def extract_numero_ruolo(text: str) -> list[dict[str, str]]:
     source = str(text or "")
     for match in _RG_NUM_ANNO_RE.finditer(source):
         prefix = source[max(0, match.start() - 90) : match.start()]
-        if not _has_rg_context(prefix):
+        suffix = source[match.end() : match.end() + 14]
+        if not (_has_rg_context(prefix) or _has_rg_context_suffisso(suffix)):
             continue
         num = match.group("num")
         anno = _norm_anno(match.group("anno"))
@@ -134,6 +135,17 @@ def _has_rg_context(prefix: str) -> bool:
     if any(marker in compact for marker in ("nrg", "rgn", "rgac", "rgnr", "reggen", "ruologenerale")):
         return True
     return normalized.rstrip().endswith(("rg", "r.g", "r g"))
+
+
+# Le sentenze italiane intestano quasi sempre col marcatore DOPO il numero
+# ("n. 523/2026 R.G. lav.", "iscritta al n. 523/2026 RG Lav."): senza questo
+# controllo il numero di ruolo non veniva rilevato e la sentenza non si
+# riconciliava col fascicolo.
+_RG_SUFFISSO_RE = re.compile(r"^[\s.,;:)\]-]{0,4}(?:r\.?\s*g\.?|ruolo\s+generale|reg\.?\s*gen)", re.IGNORECASE)
+
+
+def _has_rg_context_suffisso(suffix: str) -> bool:
+    return bool(_RG_SUFFISSO_RE.match(_collapse_spaces(suffix)))
 
 
 def _norm_sede(sede: str) -> str:

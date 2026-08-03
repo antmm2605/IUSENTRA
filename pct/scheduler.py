@@ -197,7 +197,16 @@ def start_scheduler(app):
         logger.warning("APScheduler non disponibile - task automatici disabilitati.")
         return
 
-    scheduler = BackgroundScheduler(timezone="Europe/Rome")
+    # misfire_grace_time di APScheduler vale 1 secondo per default: su un worker
+    # occupato (OCR della pipeline PEC, aggiornamenti legali) il giro successivo
+    # dei presidi veniva semplicemente saltato e registrato come "missed",
+    # lasciando lo studio senza PEC lavorate senza che nulla sembrasse rotto.
+    # Cinque minuti di tolleranza fanno recuperare il giro; max_instances=1 e
+    # coalesce evitano che i giri arretrati si accumulino e saturino la CPU.
+    scheduler = BackgroundScheduler(
+        timezone="Europe/Rome",
+        job_defaults={"misfire_grace_time": 300, "coalesce": True, "max_instances": 1},
+    )
     # Il cron mattutino, il recupero post-avvio e il primo giro incrementale
     # condividono il mutex: anche in caso di misfire o restart non possono
     # materializzare due volte lo stesso piano nello stesso processo.
@@ -777,6 +786,40 @@ def start_scheduler(app):
             "local_ai_models_dir": app.config.get("LOCAL_AI_MODELS_DIR", "./intelligence/models"),
         }
 
+    def _mailbox_sync_plan() -> tuple[list[tuple[str, dict]], str]:
+        """Target dei presidi e motivo dell'eventuale assenza.
+
+        I presidi PEC, relata, fascicoli, agenda e notifiche lavorano tutti su
+        questa lista. Finche' era una sola generator muta, ogni suo fallimento
+        (registro studi illeggibile, nessuno studio attivo) faceva girare i job
+        a vuoto con esito «ok»: il guasto restava invisibile in console
+        Pianificazioni. Qui il motivo viene restituito al chiamante, che lo
+        trasforma in un esito fallito e quindi in una riga rossa tracciabile.
+        """
+
+        try:
+            targets = list(_mailbox_sync_targets())
+        except Exception as exc:  # pragma: no cover - difesa, la generator gia' cattura
+            return [], f"target dei presidi non calcolabili: {exc}"
+        if targets:
+            return targets, ""
+        if app.config.get("MULTI_TENANT"):
+            return [], (
+                "nessuno studio attivo o registro studi non leggibile: i presidi non hanno "
+                "alcun archivio su cui lavorare"
+            )
+        return [], "nessun percorso dati disponibile per i presidi"
+
+    def _presidio_senza_target(job_id: str, reason: str) -> dict:
+        logger.error("[scheduler] %s non eseguito: %s", job_id, reason)
+        return {
+            "ok": False,
+            "job": job_id,
+            "error": reason,
+            "targets": 0,
+            "source_of_truth": "registro studi e percorsi dati del worker scheduler",
+        }
+
     def _mailbox_sync_targets():
         if app.config.get("MULTI_TENANT"):
             try:
@@ -976,7 +1019,13 @@ def start_scheduler(app):
                 logger.error("[scheduler] Calendar retry fallito: %s", e)
                 return {"ok": False, "job": "calendar_sync_engine_retry", "error": str(e)}
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="mailbox_sync_runtime")
+    @scheduler.scheduled_job(
+        CronTrigger(minute="*/15"),
+        id="mailbox_sync_runtime",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=600,
+    )
     def _mailbox_sync_runtime():
         with app.app_context():
             try:
@@ -990,6 +1039,9 @@ def start_scheduler(app):
                     ),
                     100,
                 )
+                targets, no_target_reason = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("mailbox_sync_runtime", no_target_reason)
                 processed_targets = 0
                 tenant_reports: list[dict[str, object]] = []
                 totals = {
@@ -1002,7 +1054,7 @@ def start_scheduler(app):
                     "warnings": 0,
                     "errors": 0,
                 }
-                for label, paths in _mailbox_sync_targets():
+                for label, paths in targets:
                     report = sync_mailboxes_for_paths(
                         paths,
                         tenant_label=label,
@@ -1067,7 +1119,13 @@ def start_scheduler(app):
                 logger.error("[scheduler] Mailbox sync fallita: %s", e)
                 return {"ok": False, "job": "mailbox_sync_runtime", "error": str(e)}
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/5"), id="pec_audit_pipeline_workers")
+    @scheduler.scheduled_job(
+        CronTrigger(minute="*/5"),
+        id="pec_audit_pipeline_workers",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=240,
+    )
     def _pec_audit_pipeline_workers():
         with app.app_context():
             try:
@@ -1088,6 +1146,9 @@ def start_scheduler(app):
                     document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "10") or 10)
                 except (TypeError, ValueError):
                     document_presidio_limit = 10
+                targets, no_target_reason = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("pec_audit_pipeline_workers", no_target_reason)
                 processed_targets = 0
                 processed_jobs = 0
                 tenant_reports: list[dict[str, object]] = []
@@ -1108,7 +1169,7 @@ def start_scheduler(app):
                     "errors": 0,
                 }
                 scan_modes: set[str] = set()
-                for label, paths in _mailbox_sync_targets():
+                for label, paths in targets:
                     # Prima l'acquisizione automatica delle PEC archiviate non ancora
                     # presidiate (a budget, 0 = disattivata), poi i worker che lavorano
                     # classificazione, scadenze automatiche e collegamento fascicoli.
@@ -1236,11 +1297,14 @@ def start_scheduler(app):
                     materialize_agenda_scadenziario_notifications_for_paths,
                 )
 
+                targets, no_target_reason = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("agenda_scadenziario_notifications", no_target_reason)
                 tenant_reports: list[dict[str, object]] = []
                 errors = 0
                 recipients = 0
                 items = 0
-                for label, paths in _mailbox_sync_targets():
+                for label, paths in targets:
                     report = materialize_agenda_scadenziario_notifications_for_paths(
                         paths,
                         tenant_label=label,
@@ -1282,13 +1346,16 @@ def start_scheduler(app):
                     materialize_notification_relata_presidio_for_paths,
                 )
 
+                targets, no_target_reason = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("legal_notification_relata_presidio", no_target_reason)
                 tenant_reports: list[dict[str, object]] = []
                 errors = 0
                 recipients = 0
                 items = 0
                 to_notify = 0
                 scanned = 0
-                for label, paths in _mailbox_sync_targets():
+                for label, paths in targets:
                     report = materialize_notification_relata_presidio_for_paths(
                         paths,
                         tenant_label=label,

@@ -318,8 +318,13 @@ def build_scheduler_admin_surface() -> dict[str, Any]:
         }
         for tpl in DELEGATED_AGENT_TEMPLATES
     ]
+    from pct.scheduler_health import presidio_heartbeat
+
     return {
         "totals": repo.totals(),
+        # Battito dei presidi: dice in console quali stanno lavorando davvero e
+        # da quale riga di registro proviene ciascuna riga mostrata.
+        "presidio_heartbeat": presidio_heartbeat(repo),
         "jobs": jobs,
         "families": [
             {"name": family, "jobs": sorted(items, key=lambda row: str(row.get("name") or ""))}

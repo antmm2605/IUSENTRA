@@ -131,6 +131,18 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
             tenants.append(tenant_report)
             for key in totals:
                 totals[key] += int(report.get(key) or 0)
+    elif app.config.get("MULTI_TENANT"):
+        # Studio multi-tenant senza studi attivi: non si ripiega sul contesto
+        # "default", che leggerebbe percorsi non appartenenti ad alcuno studio.
+        # Il presidio dichiara il guasto invece di riportare un lavoro non fatto.
+        return {
+            "ok": False,
+            "job": "fascicoli_document_economic_presidio",
+            "error": "nessuno studio attivo: il presidio non ha fascicoli su cui lavorare",
+            "source_of_truth": "registro studi del worker scheduler",
+            "tenants": [],
+            "totals": totals,
+        }
     else:
         with app.test_request_context("/__scheduler/fascicoli-presidi/default"):
             g.multi_tenant_enabled = False
@@ -144,12 +156,15 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
         for key in totals:
             totals[key] += int(report.get(key) or 0)
 
+    errori = sum(1 for voce in tenants if _text(voce.get("error")))
     return {
-        "ok": True,
+        "ok": errori == 0 and bool(tenants),
         "job": "fascicoli_document_economic_presidio",
+        "error": "" if tenants else "nessun contesto studio disponibile per il presidio",
         "source_of_truth": "sqlite/postgresql tenant-aware",
         "scan_mode": "incrementale_su_impronta_documentale",
         "tenants": tenants,
+        "errors": errori,
         "totals": totals,
     }
 

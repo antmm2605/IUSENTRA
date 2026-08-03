@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Mapping
+from zoneinfo import ZoneInfo
 
 from flask import current_app, g, has_app_context
 
 from pct.formatting import format_date_it
+
+ROME_TZ = ZoneInfo("Europe/Rome")
 from pct.incremental_jobs import cursor_tuple, is_after_cursor
 from pct.notifications.web_push import safe_remote_hearing_url
 from pct.pec_pipeline import PecAuditRepository, _remote_hearing_deadline_extra
@@ -508,13 +513,70 @@ def trigger_economic_audits_for_paths(
     return report
 
 
+_SORT_KEY_MIN = "0000-00-00T00:00:00"
+_LOCAL_DATE_FORMATS = (
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M",
+    "%Y-%m-%d %H:%M",
+    "%Y-%m-%d",
+    "%d/%m/%Y %H:%M:%S",
+    "%d/%m/%Y %H:%M",
+    "%d/%m/%Y",
+)
+
+
+def _normalizza_data_locale(value: Any) -> str:
+    """Riporta una data di posta a una chiave ordinabile e non avvelenabile.
+
+    Il cursore dell'acquisizione automatica ordina l'archivio con questa chiave.
+    Finché era la stringa grezza del messaggio, bastava una PEC con data in
+    formato diverso o nel futuro per portarla in testa: il cursore si salvava su
+    quel valore e da lì in poi ogni PEC nuova risultava "più vecchia", quindi il
+    presidio smetteva di acquisire senza segnalare nulla. Qui la data viene
+    normalizzata a ISO e le date non interpretabili o palesemente future
+    finiscono in fondo, dove non possono bloccare il cursore.
+    """
+
+    raw = str(value or "").strip()
+    if not raw:
+        return _SORT_KEY_MIN
+    candidate = raw.replace("Z", "+00:00")
+    parsed: datetime | None = None
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        parsed = None
+    if parsed is None:
+        testo = raw.split("+")[0].strip()
+        for fmt in _LOCAL_DATE_FORMATS:
+            try:
+                parsed = datetime.strptime(testo, fmt)
+                break
+            except ValueError:
+                continue
+    if parsed is None:
+        try:
+            parsed = parsedate_to_datetime(raw)
+        except (TypeError, ValueError):
+            parsed = None
+    if parsed is None:
+        return _SORT_KEY_MIN
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(ROME_TZ).replace(tzinfo=None)
+    # Una data nel futuro non è una data: non deve poter diventare il cursore.
+    limite = datetime.now(ROME_TZ).replace(tzinfo=None) + timedelta(days=1)
+    if parsed > limite:
+        return _SORT_KEY_MIN
+    return parsed.strftime("%Y-%m-%dT%H:%M:%S")
+
+
 def local_email_sort_key(email_obj: Any) -> str:
-    return str(
-        getattr(email_obj, "timestamp", "")
-        or getattr(email_obj, "data", "")
-        or getattr(email_obj, "ricevuta_il", "")
-        or ""
-    )
+    for attributo in ("timestamp", "data", "ricevuta_il"):
+        chiave = _normalizza_data_locale(getattr(email_obj, attributo, ""))
+        if chiave != _SORT_KEY_MIN:
+            return chiave
+    return _SORT_KEY_MIN
 
 
 def _local_email_cursor(email_obj: Any) -> dict[str, str]:
@@ -526,6 +588,23 @@ def _local_email_cursor(email_obj: Any) -> dict[str, str]:
 
 def _full_scan_enabled(value: object) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si"}
+
+
+def _as_int_safe(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _archive_fingerprint(path: Path) -> str:
+    """Impronta economica dell'archivio: dice se c'e' qualcosa di nuovo da leggere."""
+
+    try:
+        stat = path.stat()
+    except OSError:
+        return ""
+    return f"{int(stat.st_mtime_ns)}:{int(stat.st_size)}"
 
 
 def email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
@@ -635,9 +714,34 @@ def acquire_local_pec_for_paths(
         "cursor_saved": False,
     }
     email_db = _path_from_mapping(paths, "EMAIL_CASELLA_DB", "./email/casella.json")
-    if not Path(email_db).exists():
+    archivio = Path(email_db)
+    if not archivio.exists():
         return {**report, "skipped": True, "reason": "archivio email assente"}
     repo = repository_from_paths(paths, tenant_label=tenant_label)
+    cursor = repo.latest_local_acquire_cursor(origin="auto")
+    full_scan = _full_scan_enabled(
+        os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN")
+        or (current_app.config.get("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN") if has_app_context() else "")
+    )
+    impronta = _archive_fingerprint(archivio)
+    # Il presidio gira ogni 5 minuti, la casella viene riscritta ogni 15: senza
+    # questo controllo l'archivio verrebbe riletto e riordinato per intero due
+    # volte su tre a vuoto, che e' il costo CPU piu' alto del giro. Si salta solo
+    # a lavoro chiuso: se il backlog non e' completo o il batch precedente si e'
+    # esaurito, il cursore non porta l'impronta e il giro viene eseguito.
+    if (
+        not full_scan
+        and impronta
+        and cursor.get("archive_fingerprint") == impronta
+        and cursor.get("backlog_complete")
+    ):
+        return {
+            **report,
+            "scan_mode": "incremental",
+            "skipped": True,
+            "reason": "archivio invariato dall'ultimo giro",
+            "archive_fingerprint": impronta,
+        }
     gestore = GestioneEmailRicevute(db_path=email_db)
     all_emails = sorted(
         gestore._carica().values(),  # noqa: SLF001 - presidio tenant-aware sulla casella locale
@@ -648,11 +752,6 @@ def acquire_local_pec_for_paths(
     if not all_emails:
         return report
     effective_scan_limit = max(1, int(scan_limit or 250))
-    cursor = repo.latest_local_acquire_cursor(origin="auto")
-    full_scan = _full_scan_enabled(
-        os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN")
-        or (current_app.config.get("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN") if has_app_context() else "")
-    )
     newest_cursor = _local_email_cursor(all_emails[0])
     selected_emails: list[Any] = []
     backlog_window: list[Any] = []
@@ -694,6 +793,22 @@ def acquire_local_pec_for_paths(
                             break
             selected_emails.extend(backlog_window)
             report["scan_mode"] = "incremental_backlog"
+        if not selected_emails:
+            # Sblocco automatico: se l'archivio e' cresciuto rispetto al giro in
+            # cui il cursore e' stato salvato ma l'incrementale non seleziona
+            # nulla, il cursore e' fermo su un valore che nessuna PEC nuova
+            # supera. Invece di restare muti si rilegge la finestra piu' recente
+            # e lo si segnala: la deduplica per Message-ID e mime_sha256 evita
+            # comunque di ripresentare all'avvocato PEC gia' presidiate.
+            archivio_precedente = _as_int_safe(cursor.get("archive_seen"))
+            if archivio_precedente and report["archive_seen"] > archivio_precedente:
+                selected_emails = all_emails[:effective_scan_limit]
+                report["scan_mode"] = "incremental_recovery"
+                report["cursor_recovered"] = True
+                report["cursor_recovery_reason"] = (
+                    f"cursore fermo: archivio passato da {archivio_precedente} a "
+                    f"{report['archive_seen']} messaggi senza selezioni"
+                )
     report["scanned"] = len(selected_emails)
     if cursor:
         report["cursor_sort_key"] = str(cursor.get("sort_key") or "")
@@ -725,6 +840,15 @@ def acquire_local_pec_for_paths(
                 next_cursor["backlog_complete"] = len(boundary_items) < effective_scan_limit
         else:
             next_cursor["backlog_complete"] = bool(cursor.get("backlog_complete")) or backlog_attempted
+        if report["scan_mode"] == "incremental_recovery":
+            # Dopo uno sblocco il backlog va riaperto: la finestra riletta non
+            # copre necessariamente tutto l'arretrato rimasto indietro.
+            next_cursor["backlog_complete"] = False
+        next_cursor["archive_seen"] = int(report.get("archive_seen") or 0)
+        if impronta and next_cursor.get("backlog_complete"):
+            next_cursor["archive_fingerprint"] = impronta
+        else:
+            next_cursor.pop("archive_fingerprint", None)
         next_cursor["generation"] = "pec_local_acquire_v2"
         try:
             repo.record_local_acquire_cursor(

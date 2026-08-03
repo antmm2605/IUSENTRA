@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.266.1 - 2026-08-03
+
+- **Nuovo calcolatore: indennità di mediazione (D.M. 24 ottobre 2023, n. 150).** Espone nella suite Strumenti Forensi il motore già versionato in `pct/mediazione_dm150.py`: scaglioni, spese di avvio, spese del primo incontro, ulteriori spese, riduzione per la mediazione obbligatoria o demandata e maggiorazioni per accordo. Nessun valore normativo nuovo introdotto: le tabelle ministeriali erano già nel repository.
+- Esposto come sezione della vista classica e come endpoint JSON `POST /strumenti-legali/api/indennita-mediazione`.
+- Guardrail: quattro test verificano la coincidenza con il motore versionato, la riduzione per il regime obbligatorio, il valore indeterminabile, il rifiuto di regime ed esito non riconosciuti e la presenza nel catalogo della suite.
+
 ## 2.266.0 - 2026-08-03
 
 - **Nuovo calcolatore forense: pena, attenuanti e riti alternativi.** Copre l'area penale della suite, finora limitata a custodia cautelare e prescrizione. Calcola l'effetto di attenuanti generiche, continuazione e rito sulla pena base, mostrando ad ogni passaggio la norma applicata, e valuta le soglie di sospensione condizionale e delle pene sostitutive sulla pena finale.

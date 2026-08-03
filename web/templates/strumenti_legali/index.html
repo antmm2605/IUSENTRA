@@ -975,6 +975,35 @@
       {% endif %}
     {% endcall %}
 
+    {% set risultato_med = results.get('indennita_mediazione') %}
+    {% call tool_section('indennita_mediazione', 'Indennit&agrave; di mediazione', 'bi-people-fill', 'Spese di avvio, primo incontro e indennit&agrave; per scaglione con riduzione obbligatoria e maggiorazioni (D.M. 150/2023).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('indennita_mediazione', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Valore della lite</label><input type="number" step="0.01" min="0" name="med_valore" class="form-control" value="{{ form_state.med_valore }}"></div>
+        <div class="col-md-4"><label class="form-label">Tipo di valore</label><select name="med_valore_tipo" class="form-select"><option value="determinato" {{ 'selected' if form_state.med_valore_tipo != 'indeterminabile' }}>Determinato</option><option value="indeterminabile" {{ 'selected' if form_state.med_valore_tipo == 'indeterminabile' }}>Indeterminabile</option></select></div>
+        <div class="col-md-4"><label class="form-label">Regime</label><select name="med_regime" class="form-select"><option value="volontaria" {{ 'selected' if form_state.med_regime != 'obbligatoria_demandata' }}>Volontaria</option><option value="obbligatoria_demandata" {{ 'selected' if form_state.med_regime == 'obbligatoria_demandata' }}>Obbligatoria o demandata</option></select></div>
+        <div class="col-md-8"><label class="form-label">Esito</label><select name="med_esito" class="form-select"><option value="primo_incontro_senza_accordo" {{ 'selected' if form_state.med_esito == 'primo_incontro_senza_accordo' }}>Primo incontro senza accordo</option><option value="primo_incontro_con_accordo" {{ 'selected' if form_state.med_esito == 'primo_incontro_con_accordo' }}>Primo incontro con accordo</option><option value="incontri_successivi_senza_accordo" {{ 'selected' if form_state.med_esito == 'incontri_successivi_senza_accordo' }}>Incontri successivi senza accordo</option><option value="incontri_successivi_con_accordo" {{ 'selected' if form_state.med_esito == 'incontri_successivi_con_accordo' }}>Incontri successivi con accordo</option></select></div>
+        <div class="col-md-4"><label class="form-label">Maggiorazione art. 31, comma 3</label><select name="med_art31" class="form-select"><option value="0" {{ 'selected' if form_state.med_art31 != '1' }}>No</option><option value="1" {{ 'selected' if form_state.med_art31 == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-people-fill me-2"></i>Calcola indennit&agrave;</button></div>
+      </form>
+      {% if risultato_med %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Scaglione', risultato_med.scaglione.label if risultato_med.scaglione is mapping else risultato_med.scaglione) }}
+        {{ metric_box('Totale organismo', risultato_med.totale_organismo|euro, risultato_med.regime_label) }}
+        {{ metric_box('Esito considerato', risultato_med.esito_label) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Voce</th><th class="text-end">Importo</th></tr></thead><tbody>
+        <tr><td>Spese di avvio</td><td class="text-end">{{ risultato_med.spese_avvio|euro }}</td></tr>
+        <tr><td>Spese di mediazione primo incontro</td><td class="text-end">{{ risultato_med.spese_mediazione_primo_incontro|euro }}</td></tr>
+        <tr><td>Ulteriori spese di mediazione</td><td class="text-end">{{ risultato_med.ulteriori_spese_mediazione|euro }}</td></tr>
+        <tr class="fw-semibold"><td>Totale dovuto all'organismo</td><td class="text-end">{{ risultato_med.totale_organismo|euro }}</td></tr>
+      </tbody></table></div>
+      <p class="small text-muted mb-0">{{ risultato_med.descrizione_operativa }}</p>
+      {{ render_messages(risultato_med.notes, risultato_med.warnings) }}
+      {{ render_sources(risultato_med.sources) }}
+      {% endif %}
+    {% endcall %}
+
     {% set risultato_pena = results.get('pena_riti_alternativi') %}
     {% call tool_section('pena_riti_alternativi', 'Pena, attenuanti e riti alternativi', 'bi-calculator', 'Continuazione, abbreviato e patteggiamento con soglie di sospensione condizionale e pene sostitutive.') %}
       <form method="post" class="row g-3 tool-form-grid">

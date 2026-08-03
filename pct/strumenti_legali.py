@@ -168,6 +168,7 @@ class GestioneStrumentiLegali:
             {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.", "icon": "bi-people", "categoria": "Danni"},
             {"id": "usufrutto", "title": "Usufrutto e nuda proprietà", "subtitle": "Valore fiscale con le fasce d'età del D.P.R. 131/1986 e il tasso legale corrente.", "icon": "bi-house-heart", "categoria": "Patrimonio"},
             {"id": "quote_riserva", "title": "Quote di riserva legittimari", "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.", "icon": "bi-shield-check", "categoria": "Patrimonio"},
+            {"id": "indennita_mediazione", "title": "Indennita di mediazione", "subtitle": "Spese di avvio, primo incontro e indennita per scaglione con riduzione obbligatoria e maggiorazioni (D.M. 150/2023).", "icon": "bi-people-fill", "categoria": "ADR"},
             {"id": "pena_riti_alternativi", "title": "Pena, attenuanti e riti alternativi", "subtitle": "Continuazione, abbreviato e patteggiamento con soglie di sospensione condizionale e pene sostitutive.", "icon": "bi-calculator", "categoria": "Penale"},
             {"id": "assegno_mantenimento", "title": "Assegno di mantenimento", "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.", "icon": "bi-house-down", "categoria": "Famiglia"},
         ]
@@ -241,6 +242,11 @@ class GestioneStrumentiLegali:
     def build_form_state(self, prefill: Mapping[str, str], posted: Optional[Mapping[str, Any]] = None) -> Dict[str, str]:
         today = _today().isoformat()
         defaults = {
+            "med_valore": prefill.get("valore_causa", ""),
+            "med_valore_tipo": "determinato",
+            "med_regime": "volontaria",
+            "med_esito": "primo_incontro_senza_accordo",
+            "med_art31": "0",
             "pena_anni": "",
             "pena_mesi": "",
             "pena_giorni": "",
@@ -1013,6 +1019,59 @@ class GestioneStrumentiLegali:
 
     def stima_assegno_mantenimento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_assegno_mantenimento.calcola(payload)
+
+    def calcola_indennita_mediazione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Indennita' dell'organismo di mediazione (D.M. 24 ottobre 2023, n. 150).
+
+        Riusa il motore gia' versionato in ``pct.mediazione_dm150``: scaglioni,
+        riduzione per la mediazione obbligatoria/demandata e maggiorazioni per
+        accordo sono dati ministeriali gia' presenti nel repository, quindi qui
+        non viene introdotto alcun valore nuovo.
+        """
+        from pct.mediazione_dm150 import (
+            ESITO_PRIMO_INCONTRO_CON_ACCORDO,
+            ESITO_PRIMO_INCONTRO_SENZA_ACCORDO,
+            ESITO_SUCCESSIVI_CON_ACCORDO,
+            ESITO_SUCCESSIVI_SENZA_ACCORDO,
+            REGIME_OBBLIGATORIA,
+            REGIME_VOLONTARIA,
+            calcola_costi_mediazione_dm150,
+        )
+
+        esiti = {
+            ESITO_PRIMO_INCONTRO_SENZA_ACCORDO,
+            ESITO_PRIMO_INCONTRO_CON_ACCORDO,
+            ESITO_SUCCESSIVI_SENZA_ACCORDO,
+            ESITO_SUCCESSIVI_CON_ACCORDO,
+        }
+        indeterminabile = str(payload.get("med_valore_tipo", "")).strip().lower() == "indeterminabile"
+        valore = _safe_float(payload.get("med_valore"))
+        if not indeterminabile and valore <= 0:
+            raise ValueError("Indica il valore della lite oppure seleziona il valore indeterminabile.")
+        regime = str(payload.get("med_regime", "") or REGIME_VOLONTARIA).strip().lower()
+        if regime not in {REGIME_VOLONTARIA, REGIME_OBBLIGATORIA}:
+            raise ValueError("Regime di mediazione non riconosciuto.")
+        esito = str(payload.get("med_esito", "") or ESITO_PRIMO_INCONTRO_SENZA_ACCORDO).strip().lower()
+        if esito not in esiti:
+            raise ValueError("Esito della mediazione non riconosciuto.")
+
+        risultato = calcola_costi_mediazione_dm150(
+            valore,
+            regime=regime,
+            esito=esito,
+            art31_comma3_maggiorazione_20=str(payload.get("med_art31", "")).strip() in {"1", "true", "on", "si"},
+            indeterminabile=indeterminabile,
+        ).to_dict()
+        risultato["sources"] = [
+            {"title": risultato.get("riferimento_normativo", ""), "url": risultato.get("riferimento_url", "")},
+        ]
+        risultato.setdefault("notes", [])
+        risultato.setdefault("warnings", [])
+        risultato["notes"].append(
+            "Importi dovuti all'organismo di mediazione: non comprendono il compenso del difensore, "
+            "regolato dal D.M. 55/2014."
+        )
+        return risultato
 
     def calcola_pena_riti_alternativi(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_pena_riti_alternativi.calcola(payload)

@@ -38,6 +38,7 @@ TOOL_METHODS = {
     "quote_riserva": "calcola_quote_riserva",
     "assegno_mantenimento": "stima_assegno_mantenimento",
     "pena_riti_alternativi": "calcola_pena_riti_alternativi",
+    "indennita_mediazione": "calcola_indennita_mediazione",
 }
 
 
@@ -230,6 +231,12 @@ def api_tfr():
 @_richiedi_login
 def api_onorari_forensi():
     return _json_result("calcola_onorari_forensi")
+
+
+@strumenti_legali.route("/api/indennita-mediazione", methods=["POST"])
+@_richiedi_login
+def api_indennita_mediazione():
+    return _json_result("calcola_indennita_mediazione")
 
 
 @strumenti_legali.route("/api/pena-riti-alternativi", methods=["POST"])

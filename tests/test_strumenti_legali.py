@@ -737,3 +737,55 @@ def test_pena_e_esposta_nel_catalogo_della_suite(tmp_path):
     catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
     assert "pena_riti_alternativi" in catalogo
     assert TOOL_METHODS["pena_riti_alternativi"] == "calcola_pena_riti_alternativi"
+
+
+# ── Indennità di mediazione (D.M. 150/2023) ────────────────────────────────
+
+
+def test_mediazione_riusa_le_tabelle_ministeriali_versionate(tmp_path):
+    """Il calcolo passa dal motore già versionato: nessun valore nuovo introdotto."""
+
+    from pct.mediazione_dm150 import calcola_costi_mediazione_dm150
+
+    esito = _gestore(tmp_path).calcola_indennita_mediazione({"med_valore": "50000"})
+    atteso = calcola_costi_mediazione_dm150(50000.0).to_dict()
+
+    assert esito["totale_organismo"] == atteso["totale_organismo"]
+    assert esito["scaglione"] == atteso["scaglione"]
+    assert esito["sources"][0]["url"].startswith("https://www.gazzettaufficiale.it")
+
+
+def test_mediazione_obbligatoria_riduce_le_spese(tmp_path):
+    """Art. 28 D.M. 150/2023: riduzione per la mediazione obbligatoria o demandata."""
+
+    gestore = _gestore(tmp_path)
+    volontaria = gestore.calcola_indennita_mediazione({"med_valore": "50000", "med_regime": "volontaria"})
+    obbligatoria = gestore.calcola_indennita_mediazione(
+        {"med_valore": "50000", "med_regime": "obbligatoria_demandata"}
+    )
+
+    assert obbligatoria["spese_avvio"] < volontaria["spese_avvio"]
+    assert obbligatoria["riduzione_obbligatoria_applicata"] is True
+
+
+def test_mediazione_valore_indeterminabile_e_input_incoerenti(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+    indeterminabile = gestore.calcola_indennita_mediazione({"med_valore_tipo": "indeterminabile"})
+    assert indeterminabile["totale_organismo"] > 0
+
+    with pytest.raises(ValueError):
+        gestore.calcola_indennita_mediazione({})
+    with pytest.raises(ValueError):
+        gestore.calcola_indennita_mediazione({"med_valore": "1000", "med_regime": "inesistente"})
+    with pytest.raises(ValueError):
+        gestore.calcola_indennita_mediazione({"med_valore": "1000", "med_esito": "inesistente"})
+
+
+def test_mediazione_e_esposta_nella_suite(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    assert "indennita_mediazione" in catalogo
+    assert TOOL_METHODS["indennita_mediazione"] == "calcola_indennita_mediazione"

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.267.0 - 2026-08-03
+
+- **Suite Strumenti Forensi ricostruita in React, con architettura schema-driven.** `/strumenti-legali` non serve più la pagina delle card ma un componente dedicato che elenca i 29 strumenti, li filtra per testo e categoria e ne compila il modulo.
+- I deep link tornano a funzionare: `?tool=<id>` seleziona lo strumento e la selezione aggiorna l'URL senza ricaricare. Era il difetto segnalato in precedenza, per cui `?tool=` veniva intercettato dalla gate React e riportava alla pagina delle card.
+- Il contratto di input di ogni calcolatore è dichiarato una volta sola in `pct/calcolatori/schema.py`, accanto ai calcolatori: nome, etichetta italiana, tipo di controllo e opzioni. La shell React lo consuma e non duplica né i campi né la logica.
+- Il calcolo non è riscritto: passa dai metodi di `GestioneStrumentiLegali` già usati dalla vista classica, tramite `POST /api/v1/ui/strumenti-legali/calcola`, che accetta solo strumenti con schema dichiarato.
+- **Migrazione incrementale senza perdita di funzioni**: 8 strumenti sono già compilabili in React, i restanti 21 restano elencati con il collegamento alla vista classica, così nessuno sparisce dalla suite durante il passaggio.
+- Guardrail: sei test coprono catalogo e schema esposti, raggiungibilità degli strumenti non ancora migrati, riuso dei metodi di produzione nel calcolo, rifiuto di strumenti senza schema e di input invalidi, coerenza tra campi dichiarati e default del dominio, e mappatura della rotta al componente React.
+
 ## 2.266.1 - 2026-08-03
 
 - **Nuovo calcolatore: indennità di mediazione (D.M. 24 ottobre 2023, n. 150).** Espone nella suite Strumenti Forensi il motore già versionato in `pct/mediazione_dm150.py`: scaglioni, spese di avvio, spese del primo incontro, ulteriori spese, riduzione per la mediazione obbligatoria o demandata e maggiorazioni per accordo. Nessun valore normativo nuovo introdotto: le tabelle ministeriali erano già nel repository.

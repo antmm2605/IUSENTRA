@@ -8078,6 +8078,73 @@ def _dashboard_error_payload() -> dict[str, Any]:
     }
 
 
+@api_v1_react.get("/strumenti-legali")
+@_richiedi_auth
+def strumenti_legali_react():
+    """Catalogo e schema dei moduli della suite Strumenti Forensi."""
+
+    from pct.strumenti_legali import GestioneStrumentiLegali
+    from web.services.react_strumenti_legali_bridge import build_react_strumenti_legali_payload
+
+    try:
+        gestore = GestioneStrumentiLegali(
+            normative_db_path=current_app.config.get(
+                "NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"
+            )
+        )
+        payload = build_react_strumenti_legali_payload(
+            catalogo=gestore.catalogo_moduli(),
+            form_state=gestore.build_form_state({}),
+            tool_richiesto=request.args.get("tool", ""),
+        )
+        response = jsonify(payload)
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
+    except Exception as exc:
+        current_app.logger.exception("Errore strumenti legali React bridge: %s", exc)
+        return jsonify(
+            {
+                "strumenti": [],
+                "categorie": [],
+                "tool_attivo": "",
+                "totale": 0,
+                "totale_in_react": 0,
+                "endpoint_calcolo": "/api/v1/ui/strumenti-legali/calcola",
+                "warning": "Catalogo strumenti non disponibile. Resta utilizzabile la vista classica.",
+            }
+        ), 200
+
+
+@api_v1_react.post("/strumenti-legali/calcola")
+@_richiedi_auth
+def strumenti_legali_calcola_react():
+    """Esegue un calcolo della suite riusando i metodi già in produzione."""
+
+    from pct.calcolatori.schema import schema_calcolatore
+    from pct.strumenti_legali import GestioneStrumentiLegali
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    payload = request.get_json(silent=True) or {}
+    tool = str(payload.get("tool") or "").strip()
+    if not schema_calcolatore(tool) or tool not in TOOL_METHODS:
+        return jsonify({"ok": False, "errore": "Strumento non disponibile in questa vista."}), 200
+
+    dati = payload.get("dati") if isinstance(payload.get("dati"), dict) else {}
+    try:
+        gestore = GestioneStrumentiLegali(
+            normative_db_path=current_app.config.get(
+                "NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"
+            )
+        )
+        risultato = getattr(gestore, TOOL_METHODS[tool])(dati)
+        return jsonify({"ok": True, "tool": tool, "result": risultato})
+    except ValueError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore calcolo strumenti legali %s: %s", tool, exc)
+        return jsonify({"ok": False, "errore": "Calcolo non riuscito. Riprova o usa la vista classica."}), 200
+
+
 @api_v1_react.get("/dashboard")
 @_richiedi_auth
 def dashboard():

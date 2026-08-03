@@ -789,3 +789,98 @@ def test_mediazione_e_esposta_nella_suite(tmp_path):
     catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
     assert "indennita_mediazione" in catalogo
     assert TOOL_METHODS["indennita_mediazione"] == "calcola_indennita_mediazione"
+
+
+# ── Suite React schema-driven ──────────────────────────────────────────────
+
+
+def _client_react(tmp_path):
+    from tests.test_web_bootstrap import _cfg_web as _cfg_bootstrap, _seed_tenant_admin, _write_studio_config
+    from web.app import create_app
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_bootstrap(tmp_path))
+    studio, admin = _seed_tenant_admin(app)
+    client = app.test_client()
+    client.get("/login")
+    client.post(
+        "/login",
+        data={"username": admin.username, "password": "PasswordSicura!123", "studio_slug": studio.slug},
+    )
+    return client
+
+
+def test_api_react_espone_catalogo_e_schema_dei_moduli(tmp_path):
+    client = _client_react(tmp_path)
+    payload = client.get("/api/v1/ui/strumenti-legali?tool=pena_riti_alternativi").get_json()
+
+    assert payload["totale"] >= 29
+    assert payload["totale_in_react"] >= 1
+    assert payload["tool_attivo"] == "pena_riti_alternativi"
+
+    pena = next(voce for voce in payload["strumenti"] if voce["id"] == "pena_riti_alternativi")
+    assert pena["reso_in_react"] is True
+    nomi = {campo["name"] for campo in pena["campi"]}
+    assert {"pena_anni", "pena_rito", "pena_tipo_reato"}.issubset(nomi)
+    assert all(campo["type"] in {"number", "select", "date", "text"} for campo in pena["campi"])
+
+
+def test_api_react_lascia_raggiungibili_gli_strumenti_non_migrati(tmp_path):
+    """La migrazione è incrementale: nessuno strumento sparisce dalla suite."""
+
+    client = _client_react(tmp_path)
+    payload = client.get("/api/v1/ui/strumenti-legali").get_json()
+
+    non_migrati = [voce for voce in payload["strumenti"] if not voce["reso_in_react"]]
+    assert non_migrati
+    for voce in non_migrati:
+        assert voce["href_vista_classica"].endswith("&_legacy=1")
+        assert voce["title"]
+
+
+def test_api_react_calcola_riusa_i_metodi_di_produzione(tmp_path):
+    client = _client_react(tmp_path)
+    esito = client.post(
+        "/api/v1/ui/strumenti-legali/calcola",
+        json={
+            "tool": "pena_riti_alternativi",
+            "dati": {"pena_anni": "3", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato"},
+        },
+    ).get_json()
+
+    assert esito["ok"] is True
+    assert esito["result"]["pena_finale_testo"] == "2 anni"
+    assert esito["result"]["sources"]
+
+
+def test_api_react_calcola_rifiuta_strumenti_senza_schema_e_input_invalidi(tmp_path):
+    client = _client_react(tmp_path)
+
+    senza_schema = client.post(
+        "/api/v1/ui/strumenti-legali/calcola", json={"tool": "contributo_unificato", "dati": {}}
+    ).get_json()
+    assert senza_schema["ok"] is False
+
+    input_invalido = client.post(
+        "/api/v1/ui/strumenti-legali/calcola", json={"tool": "pena_riti_alternativi", "dati": {}}
+    ).get_json()
+    assert input_invalido["ok"] is False
+    assert "pena base" in input_invalido["errore"].lower()
+
+
+def test_schema_dichiara_solo_campi_letti_dai_calcolatori(tmp_path):
+    """Ogni campo dichiarato deve avere un default nel form state del dominio."""
+
+    from pct.calcolatori.schema import SCHEMI_CALCOLATORI
+
+    stato = _gestore(tmp_path).build_form_state({})
+    for tool_id, schema in SCHEMI_CALCOLATORI.items():
+        for campo in schema["campi"]:
+            assert campo["name"] in stato, f"{tool_id}: campo {campo['name']} senza default"
+
+
+def test_rotta_strumenti_legali_punta_al_componente_react(tmp_path):
+    from web.blueprints.react_shell import _ROUTE_COMPONENTS
+
+    rotte = dict(_ROUTE_COMPONENTS)
+    assert rotte["/strumenti-legali"] == "src/components/StrumentiLegaliPage.tsx"

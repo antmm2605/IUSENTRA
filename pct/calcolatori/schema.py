@@ -513,6 +513,74 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _testo("term_riferimento", "Riferimento di pratica", aiuto="R.G. o riferimento interno, riportato nell'esito."),
         ],
     },
+    "impugnazioni": {
+        "azione": "Calcola i termini",
+        "campi": [
+            _scelta(
+                "imp_mezzo",
+                "Mezzo di impugnazione",
+                [("appello", "Appello"), ("cassazione", "Ricorso per cassazione")],
+            ),
+            _data("imp_data_pubblicazione", "Pubblicazione della sentenza", aiuto="Deposito: dies a quo del termine lungo (art. 327 c.p.c.)."),
+            _data("imp_data_notificazione", "Notificazione della sentenza", aiuto="Lascia vuoto se la sentenza non è stata notificata."),
+            _scelta(
+                "imp_sospensione_feriale",
+                "Sospensione feriale",
+                [("applica", "Si applica"), ("esclusa", "Esclusa (art. 3 L. 742/1969)")],
+                aiuto="Esclusa nelle controversie degli artt. 429 e 459 c.p.c.",
+            ),
+            _testo("imp_riferimento", "Riferimento di pratica"),
+        ],
+    },
+    "ravvedimento_operoso": {
+        "azione": "Calcola il ravvedimento",
+        "campi": [
+            _scelta(
+                "rav_tipo_violazione",
+                "Tipo di violazione",
+                [
+                    ("omesso_versamento", "Omesso o tardivo versamento"),
+                    ("altra_violazione", "Altra violazione (sanzione minima nota)"),
+                ],
+            ),
+            _numero("rav_imposta", "Imposta o tributo dovuto"),
+            _numero("rav_sanzione_minima", "Sanzione minima edittale", aiuto="Solo per le violazioni diverse dall'omesso versamento."),
+            _data("rav_data_scadenza", "Scadenza originaria", aiuto="Determina anche il regime sanzionatorio applicabile."),
+            _data("rav_data_versamento", "Data di regolarizzazione"),
+            _scelta(
+                "rav_evento",
+                "Evento del procedimento",
+                [
+                    ("nessuno", "Nessuno: vale il criterio temporale"),
+                    ("dopo_pvc", "Dopo processo verbale di constatazione"),
+                    ("dopo_schema_atto", "Dopo comunicazione dello schema di atto"),
+                    ("dopo_schema_atto_su_pvc", "Dopo schema di atto su violazione constatata"),
+                ],
+                aiuto="Le ultime due ipotesi valgono per le violazioni dal 1 settembre 2024.",
+            ),
+        ],
+    },
+    "compenso_a_tempo": {
+        "azione": "Calcola compenso",
+        "campi": [
+            _numero("cat_tariffa_oraria", "Tariffa oraria", aiuto="Parametro indicativo art. 22-bis D.M. 55/2014: 200-500 euro/ora."),
+            _numero("cat_ore", "Ore", passo="0.25"),
+            _intero("cat_minuti", "Minuti aggiuntivi", massimo=59),
+            _scelta(
+                "cat_criterio",
+                "Criterio di arrotondamento",
+                [
+                    ("ora_frazione_oltre_30", "Ora intera oltre 30 minuti"),
+                    ("effettivo_minuti", "Tempo effettivo al minuto"),
+                    ("scatti_15", "Scatti di 15 minuti"),
+                    ("scatti_30", "Scatti di 30 minuti"),
+                ],
+            ),
+            _numero("cat_massimale_ore", "Massimale ore pattuito", passo="0.25"),
+            _numero("cat_soglia_ore", "Soglia di preapprovazione", passo="0.25"),
+            _numero("cat_spese_generali_percent", "Spese generali %", passo="0.5"),
+        ],
+    },
     "piano_ammortamento": {
         "azione": "Crea piano",
         "campi": [

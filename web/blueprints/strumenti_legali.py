@@ -43,6 +43,9 @@ TOOL_METHODS = {
     "patrocinio_spese_stato": "verifica_patrocinio_spese_stato",
     "competenza_valore": "calcola_competenza_valore",
     "termini_processuali": "calcola_termini_processuali",
+    "impugnazioni": "calcola_impugnazioni",
+    "ravvedimento_operoso": "calcola_ravvedimento_operoso",
+    "compenso_a_tempo": "calcola_compenso_a_tempo",
 }
 
 
@@ -374,6 +377,24 @@ def api_competenza_valore():
 @_richiedi_login
 def api_termini_processuali():
     return _json_result("calcola_termini_processuali")
+
+
+@strumenti_legali.route("/api/impugnazioni", methods=["POST"])
+@_richiedi_login
+def api_impugnazioni():
+    return _json_result("calcola_impugnazioni")
+
+
+@strumenti_legali.route("/api/ravvedimento-operoso", methods=["POST"])
+@_richiedi_login
+def api_ravvedimento_operoso():
+    return _json_result("calcola_ravvedimento_operoso")
+
+
+@strumenti_legali.route("/api/compenso-a-tempo", methods=["POST"])
+@_richiedi_login
+def api_compenso_a_tempo():
+    return _json_result("calcola_compenso_a_tempo")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

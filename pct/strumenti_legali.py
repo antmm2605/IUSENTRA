@@ -12,13 +12,16 @@ from typing import Any, Dict, List, Mapping, Optional
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
     competenza_valore as calc_competenza_valore,
+    compenso_a_tempo_calc as calc_compenso_a_tempo,
     crediti_lavoro as calc_crediti_lavoro,
     danno_parentale as calc_danno_parentale,
+    impugnazioni as calc_impugnazioni,
     interessi_acconti as calc_interessi_acconti,
     maggior_danno as calc_maggior_danno,
     patrocinio_spese_stato as calc_patrocinio_spese_stato,
     pena_riti_alternativi as calc_pena_riti_alternativi,
     quote_riserva as calc_quote_riserva,
+    ravvedimento_operoso as calc_ravvedimento,
     termini_scadenza as calc_termini_scadenza,
     usufrutto as calc_usufrutto,
 )
@@ -179,6 +182,9 @@ class GestioneStrumentiLegali:
             {"id": "patrocinio_spese_stato", "title": "Patrocinio a spese dello Stato", "subtitle": "Limiti di reddito ex art. 76 D.P.R. 115/2002, con cumulo dei conviventi ed elevazione penale (art. 92).", "icon": "bi-people-fill", "categoria": "Processo"},
             {"id": "competenza_valore", "title": "Competenza per valore", "subtitle": "Giudice di pace o tribunale secondo l'art. 7 c.p.c., con le soglie elevate dalla riforma Cartabia.", "icon": "bi-signpost-split", "categoria": "Competenza"},
             {"id": "termini_processuali", "title": "Termini processuali e sospensione feriale", "subtitle": "Scadenza dei termini con computo ex art. 155 c.p.c. e sospensione dal 1 al 31 agosto (L. 742/1969).", "icon": "bi-calendar-check", "categoria": "Processo"},
+            {"id": "impugnazioni", "title": "Termini di impugnazione", "subtitle": "Termine breve (art. 325 c.p.c.) e termine lungo (art. 327 c.p.c.) a confronto, con sospensione feriale.", "icon": "bi-arrow-up-right-square", "categoria": "Processo"},
+            {"id": "ravvedimento_operoso", "title": "Ravvedimento operoso", "subtitle": "Sanzione ridotta e interessi legali, con i due regimi prima e dal 1 settembre 2024 (D.Lgs. 87/2024).", "icon": "bi-cash-coin", "categoria": "Fiscale"},
+            {"id": "compenso_a_tempo", "title": "Compenso a tempo", "subtitle": "Tariffa oraria e ore fatturabili secondo l'art. 22-bis D.M. 55/2014, con spese generali.", "icon": "bi-stopwatch", "categoria": "Professione"},
         ]
 
     def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -464,6 +470,27 @@ class GestioneStrumentiLegali:
             "term_urgente": "0",
             "term_valore_personalizzato": "",
             "term_riferimento": prefill.get("rg", ""),
+            # Termini di impugnazione
+            "imp_mezzo": "appello",
+            "imp_data_pubblicazione": today,
+            "imp_data_notificazione": "",
+            "imp_sospensione_feriale": "applica",
+            "imp_riferimento": prefill.get("rg", ""),
+            # Ravvedimento operoso
+            "rav_tipo_violazione": "omesso_versamento",
+            "rav_imposta": "",
+            "rav_sanzione_minima": "",
+            "rav_data_scadenza": "",
+            "rav_data_versamento": today,
+            "rav_evento": "nessuno",
+            # Compenso a tempo
+            "cat_tariffa_oraria": "",
+            "cat_ore": "",
+            "cat_minuti": "0",
+            "cat_criterio": "ora_frazione_oltre_30",
+            "cat_massimale_ore": "",
+            "cat_soglia_ore": "",
+            "cat_spese_generali_percent": "15",
         }
         if posted:
             for key in defaults:
@@ -1063,6 +1090,15 @@ class GestioneStrumentiLegali:
 
     def calcola_termini_processuali(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_termini_scadenza.calcola(payload)
+
+    def calcola_impugnazioni(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_impugnazioni.calcola(payload)
+
+    def calcola_ravvedimento_operoso(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_ravvedimento.calcola(payload, self.norme)
+
+    def calcola_compenso_a_tempo(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_compenso_a_tempo.calcola(payload)
 
     def opzioni_termini_processuali(self) -> List[Dict[str, str]]:
         """Modelli di termine gia' versionati nel motore ``pct.termini_processuali``."""

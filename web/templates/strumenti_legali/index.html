@@ -1130,6 +1130,81 @@
       {{ render_sources(risultato_term.sources) }}
       {% endif %}
     {% endcall %}
+
+    {% set risultato_imp = results.get('impugnazioni') %}
+    {% call tool_section('impugnazioni', 'Termini di impugnazione', 'bi-arrow-up-right-square', 'Termine breve (art. 325 c.p.c.) e termine lungo (art. 327 c.p.c.) a confronto.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('impugnazioni', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Mezzo di impugnazione</label><select name="imp_mezzo" class="form-select"><option value="appello" {{ 'selected' if form_state.imp_mezzo != 'cassazione' }}>Appello</option><option value="cassazione" {{ 'selected' if form_state.imp_mezzo == 'cassazione' }}>Ricorso per cassazione</option></select></div>
+        <div class="col-md-4"><label class="form-label">Pubblicazione della sentenza</label><input type="date" name="imp_data_pubblicazione" class="form-control" value="{{ form_state.imp_data_pubblicazione }}"></div>
+        <div class="col-md-4"><label class="form-label">Notificazione della sentenza</label><input type="date" name="imp_data_notificazione" class="form-control" value="{{ form_state.imp_data_notificazione }}"></div>
+        <div class="col-md-5"><label class="form-label">Sospensione feriale</label><select name="imp_sospensione_feriale" class="form-select"><option value="applica" {{ 'selected' if form_state.imp_sospensione_feriale != 'esclusa' }}>Si applica</option><option value="esclusa" {{ 'selected' if form_state.imp_sospensione_feriale == 'esclusa' }}>Esclusa (art. 3 L. 742/1969)</option></select></div>
+        <div class="col-md-4"><label class="form-label">Riferimento di pratica</label><input type="text" name="imp_riferimento" class="form-control" value="{{ form_state.imp_riferimento }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-arrow-up-right-square me-2"></i>Calcola i termini</button></div>
+      </form>
+      {% if risultato_imp %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Scadenza effettiva', risultato_imp.scadenza_effettiva, 'prevale il termine ' ~ risultato_imp.termine_prevalente) }}
+        {{ metric_box('Termine breve', risultato_imp.termine_breve or 'non applicabile') }}
+        {{ metric_box('Termine lungo', risultato_imp.termine_lungo) }}
+        {{ metric_box('Mezzo', risultato_imp.mezzo_label) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Termine</th><th>Decorrenza</th><th>Durata</th><th>Scadenza</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_imp.termini %}<tr><td class="fw-semibold">{{ row.termine }}</td><td>{{ row.decorrenza }}</td><td>{{ row.durata }}</td><td>{{ row.scadenza }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_imp.notes, risultato_imp.warnings) }}
+      {{ render_sources(risultato_imp.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_rav = results.get('ravvedimento_operoso') %}
+    {% call tool_section('ravvedimento_operoso', 'Ravvedimento operoso', 'bi-cash-coin', 'Sanzione ridotta e interessi legali, con i due regimi prima e dal 1 settembre 2024.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('ravvedimento_operoso', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Tipo di violazione</label><select name="rav_tipo_violazione" class="form-select"><option value="omesso_versamento" {{ 'selected' if form_state.rav_tipo_violazione != 'altra_violazione' }}>Omesso o tardivo versamento</option><option value="altra_violazione" {{ 'selected' if form_state.rav_tipo_violazione == 'altra_violazione' }}>Altra violazione (sanzione minima nota)</option></select></div>
+        <div class="col-md-4"><label class="form-label">Imposta o tributo dovuto</label><input type="number" step="0.01" min="0" name="rav_imposta" class="form-control" value="{{ form_state.rav_imposta }}"></div>
+        <div class="col-md-3"><label class="form-label">Sanzione minima edittale</label><input type="number" step="0.01" min="0" name="rav_sanzione_minima" class="form-control" value="{{ form_state.rav_sanzione_minima }}"></div>
+        <div class="col-md-3"><label class="form-label">Scadenza originaria</label><input type="date" name="rav_data_scadenza" class="form-control" value="{{ form_state.rav_data_scadenza }}"></div>
+        <div class="col-md-3"><label class="form-label">Data di regolarizzazione</label><input type="date" name="rav_data_versamento" class="form-control" value="{{ form_state.rav_data_versamento }}"></div>
+        <div class="col-md-6"><label class="form-label">Evento del procedimento</label><select name="rav_evento" class="form-select">{% for value, label in [('nessuno','Nessuno: vale il criterio temporale'),('dopo_pvc','Dopo processo verbale di constatazione'),('dopo_schema_atto','Dopo comunicazione dello schema di atto'),('dopo_schema_atto_su_pvc','Dopo schema di atto su violazione constatata')] %}<option value="{{ value }}" {{ 'selected' if form_state.rav_evento == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-cash-coin me-2"></i>Calcola il ravvedimento</button></div>
+      </form>
+      {% if risultato_rav %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Totale da versare', risultato_rav.totale_da_versare|euro, risultato_rav.regime_label) }}
+        {{ metric_box('Sanzione ridotta', risultato_rav.sanzione_ridotta|euro, '1/' ~ risultato_rav.riduzione_denominatore ~ ' del minimo') }}
+        {{ metric_box('Interessi legali', risultato_rav.interessi|euro) }}
+        {{ metric_box('Giorni di ritardo', risultato_rav.giorni_ritardo) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Voce</th><th class="text-end">Importo</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_rav.dettaglio %}<tr><td class="fw-semibold">{{ row.voce }}</td><td class="text-end">{{ row.importo|euro }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Periodo</th><th class="text-end">Giorni</th><th class="text-end">Tasso</th><th class="text-end">Interessi</th></tr></thead><tbody>{% for row in risultato_rav.segmenti_interessi %}<tr><td class="fw-semibold">{{ row.dal }} – {{ row.al }}</td><td class="text-end">{{ row.giorni }}</td><td class="text-end">{{ row.tasso }}%</td><td class="text-end">{{ row.interessi|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_rav.notes, risultato_rav.warnings) }}
+      {{ render_sources(risultato_rav.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_cat = results.get('compenso_a_tempo') %}
+    {% call tool_section('compenso_a_tempo', 'Compenso a tempo', 'bi-stopwatch', 'Tariffa oraria e ore fatturabili secondo l\'art. 22-bis D.M. 55/2014.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('compenso_a_tempo', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Tariffa oraria</label><input type="number" step="0.01" min="0" name="cat_tariffa_oraria" class="form-control" value="{{ form_state.cat_tariffa_oraria }}"></div>
+        <div class="col-md-3"><label class="form-label">Ore</label><input type="number" step="0.25" min="0" name="cat_ore" class="form-control" value="{{ form_state.cat_ore }}"></div>
+        <div class="col-md-3"><label class="form-label">Minuti aggiuntivi</label><input type="number" min="0" max="59" name="cat_minuti" class="form-control" value="{{ form_state.cat_minuti }}"></div>
+        <div class="col-md-3"><label class="form-label">Spese generali %</label><input type="number" step="0.5" min="0" name="cat_spese_generali_percent" class="form-control" value="{{ form_state.cat_spese_generali_percent }}"></div>
+        <div class="col-md-6"><label class="form-label">Criterio di arrotondamento</label><select name="cat_criterio" class="form-select">{% for value, label in [('ora_frazione_oltre_30','Ora intera oltre 30 minuti'),('effettivo_minuti','Tempo effettivo al minuto'),('scatti_15','Scatti di 15 minuti'),('scatti_30','Scatti di 30 minuti')] %}<option value="{{ value }}" {{ 'selected' if form_state.cat_criterio == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Massimale ore</label><input type="number" step="0.25" min="0" name="cat_massimale_ore" class="form-control" value="{{ form_state.cat_massimale_ore }}"></div>
+        <div class="col-md-3"><label class="form-label">Soglia preapprovazione</label><input type="number" step="0.25" min="0" name="cat_soglia_ore" class="form-control" value="{{ form_state.cat_soglia_ore }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-stopwatch me-2"></i>Calcola compenso</button></div>
+      </form>
+      {% if risultato_cat %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Compenso base', risultato_cat.compenso_base|euro, risultato_cat.ore_fatturabili ~ ' ore fatturabili') }}
+        {{ metric_box('Spese generali', risultato_cat.spese_generali|euro, risultato_cat.spese_generali_percent ~ '%') }}
+        {{ metric_box('Imponibile', risultato_cat.imponibile|euro) }}
+        {{ metric_box('Criterio', risultato_cat.criterio_label) }}
+      </div>
+      {{ render_messages(risultato_cat.notes, risultato_cat.warnings) }}
+      {{ render_sources(risultato_cat.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

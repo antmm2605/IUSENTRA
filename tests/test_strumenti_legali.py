@@ -1263,6 +1263,248 @@ def test_termini_e_esposto_nella_suite_con_i_modelli_del_motore(tmp_path):
     assert {voce["value"] for voce in modelli} >= {"CIV_APPELLO_BREVE", "CIV_APPELLO_LUNGO"}
 
 
+# ── Termini di impugnazione (artt. 325 e 327 c.p.c.) ──────────────────────
+
+
+def _payload_impugnazioni(**extra):
+    dati = {
+        "imp_mezzo": "appello",
+        "imp_data_pubblicazione": "2026-03-10",
+        "imp_data_notificazione": "",
+        "imp_sospensione_feriale": "applica",
+        "imp_riferimento": "RG 100/2026",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_impugnazioni_senza_notifica_calcola_solo_il_termine_lungo(tmp_path):
+    result = _gestore(tmp_path).calcola_impugnazioni(_payload_impugnazioni())
+
+    assert result["termine_breve"] == ""
+    assert result["termine_lungo"]
+    assert result["termine_prevalente"] == "lungo"
+    assert any("Nessuna notificazione" in nota for nota in result["notes"])
+
+
+def test_impugnazioni_la_notifica_fa_prevalere_il_termine_breve(tmp_path):
+    result = _gestore(tmp_path).calcola_impugnazioni(
+        _payload_impugnazioni(imp_data_notificazione="2026-03-20")
+    )
+
+    assert result["termine_breve"]
+    assert result["termine_prevalente"] == "breve"
+    assert result["scadenza_effettiva"] == result["termine_breve"]
+
+
+def test_impugnazioni_cassazione_usa_il_termine_di_sessanta_giorni(tmp_path):
+    gestore = _gestore(tmp_path)
+    appello = gestore.calcola_impugnazioni(_payload_impugnazioni(imp_data_notificazione="2026-03-20"))
+    cassazione = gestore.calcola_impugnazioni(
+        _payload_impugnazioni(imp_mezzo="cassazione", imp_data_notificazione="2026-03-20")
+    )
+
+    riga_appello = next(voce for voce in appello["termini"] if voce["termine"] == "Termine breve")
+    riga_cassazione = next(voce for voce in cassazione["termini"] if voce["termine"] == "Termine breve")
+    assert riga_appello["durata"].startswith("30")
+    assert riga_cassazione["durata"].startswith("60")
+
+
+def test_impugnazioni_la_sospensione_feriale_sposta_la_scadenza(tmp_path):
+    """Art. 1 L. 742/1969, con l'esclusione dell'art. 3 come opzione."""
+
+    gestore = _gestore(tmp_path)
+    con = gestore.calcola_impugnazioni(_payload_impugnazioni(imp_data_notificazione="2026-07-20"))
+    senza = gestore.calcola_impugnazioni(
+        _payload_impugnazioni(imp_data_notificazione="2026-07-20", imp_sospensione_feriale="esclusa")
+    )
+
+    assert con["sospensione_feriale"] is True
+    assert senza["sospensione_feriale"] is False
+    assert con["termine_breve"] != senza["termine_breve"]
+
+
+def test_impugnazioni_rifiuta_date_incoerenti(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError):
+        gestore.calcola_impugnazioni(_payload_impugnazioni(imp_data_pubblicazione=""))
+    with pytest.raises(ValueError):
+        gestore.calcola_impugnazioni(_payload_impugnazioni(imp_data_notificazione="2026-01-01"))
+    with pytest.raises(ValueError):
+        gestore.calcola_impugnazioni(_payload_impugnazioni(imp_mezzo="opposizione"))
+
+
+# ── Ravvedimento operoso (art. 13 D.Lgs. 472/1997 e 471/1997) ─────────────
+
+
+def _payload_ravvedimento(**extra):
+    dati = {
+        "rav_tipo_violazione": "omesso_versamento",
+        "rav_imposta": "1000",
+        "rav_data_scadenza": "2026-01-16",
+        "rav_data_versamento": "2026-02-10",
+        "rav_evento": "nessuno",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_ravvedimento_applica_il_regime_della_data_di_violazione(tmp_path):
+    """Art. 5 D.Lgs. 87/2024: spartiacque al 1 settembre 2024."""
+
+    gestore = _gestore(tmp_path)
+    nuovo = gestore.calcola_ravvedimento_operoso(_payload_ravvedimento())
+    vecchio = gestore.calcola_ravvedimento_operoso(
+        _payload_ravvedimento(rav_data_scadenza="2024-01-16", rav_data_versamento="2024-02-10")
+    )
+
+    assert nuovo["regime"] == "dal_2024"
+    assert vecchio["regime"] == "ante_2024"
+    # 25 giorni di ritardo: sanzione base 12,5% dal 2024, 15% prima.
+    assert nuovo["sanzione_percent"] == 12.5
+    assert vecchio["sanzione_percent"] == 15.0
+
+
+def test_ravvedimento_riduzione_di_un_decimo_entro_trenta_giorni(tmp_path):
+    """Art. 13, comma 1, lett. a), D.Lgs. 472/1997."""
+
+    result = _gestore(tmp_path).calcola_ravvedimento_operoso(_payload_ravvedimento())
+
+    assert result["riduzione_denominatore"] == 10
+    assert result["riduzione_lettera"] == "a"
+    # 1000 euro, 12,5% ridotto a 1/10 = 12,50 euro.
+    assert result["sanzione_ridotta"] == 12.5
+    assert result["totale_da_versare"] > 1000
+
+
+def test_ravvedimento_sanzione_giornaliera_entro_quindici_giorni(tmp_path):
+    """Art. 13 D.Lgs. 471/1997: 0,83% per giorno dal 1 settembre 2024."""
+
+    result = _gestore(tmp_path).calcola_ravvedimento_operoso(
+        _payload_ravvedimento(rav_data_versamento="2026-01-18")
+    )
+
+    assert result["giorni_ritardo"] == 2
+    assert result["sanzione_percent"] == 1.66
+    assert result["sanzione_ridotta"] == 1.66
+
+
+def test_ravvedimento_scaglioni_temporali_e_eventi(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    entro_anno = gestore.calcola_ravvedimento_operoso(
+        _payload_ravvedimento(rav_data_versamento="2026-06-30")
+    )
+    oltre_anno = gestore.calcola_ravvedimento_operoso(
+        _payload_ravvedimento(rav_data_versamento="2027-06-30")
+    )
+    dopo_pvc = gestore.calcola_ravvedimento_operoso(_payload_ravvedimento(rav_evento="dopo_pvc"))
+
+    assert entro_anno["riduzione_denominatore"] == 8
+    assert oltre_anno["riduzione_denominatore"] == 7
+    assert dopo_pvc["riduzione_denominatore"] == 5
+
+    with pytest.raises(ValueError):
+        # Lo schema di atto esiste solo nel regime dal 1 settembre 2024.
+        gestore.calcola_ravvedimento_operoso(
+            _payload_ravvedimento(
+                rav_data_scadenza="2024-01-16",
+                rav_data_versamento="2024-03-10",
+                rav_evento="dopo_schema_atto",
+            )
+        )
+
+
+def test_ravvedimento_rifiuta_input_incoerenti_e_dichiara_le_fonti(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError):
+        gestore.calcola_ravvedimento_operoso(_payload_ravvedimento(rav_imposta="0"))
+    with pytest.raises(ValueError):
+        gestore.calcola_ravvedimento_operoso(_payload_ravvedimento(rav_data_versamento="2025-12-01"))
+    with pytest.raises(ValueError):
+        gestore.calcola_ravvedimento_operoso(
+            _payload_ravvedimento(rav_tipo_violazione="altra_violazione", rav_sanzione_minima="")
+        )
+
+    result = gestore.calcola_ravvedimento_operoso(_payload_ravvedimento())
+    urls = " ".join(voce["url"] for voce in result["sources"])
+    assert "agenziaentrate.gov.it" in urls
+    assert "24G00103" in urls
+    assert result["segmenti_interessi"]
+
+
+# ── Compenso a tempo (art. 22-bis D.M. 55/2014) ───────────────────────────
+
+
+def _payload_compenso_tempo(**extra):
+    dati = {
+        "cat_tariffa_oraria": "250",
+        "cat_ore": "3",
+        "cat_minuti": "40",
+        "cat_criterio": "ora_frazione_oltre_30",
+        "cat_massimale_ore": "",
+        "cat_soglia_ore": "",
+        "cat_spese_generali_percent": "15",
+    }
+    dati.update(extra)
+    return dati
+
+
+def test_compenso_a_tempo_riusa_il_motore_del_preventivatore(tmp_path):
+    from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
+
+    atteso = calcola_compenso_a_tempo_art22bis(250.0, 3.0, 40, "ora_frazione_oltre_30")
+    result = _gestore(tmp_path).calcola_compenso_a_tempo(_payload_compenso_tempo())
+
+    assert result["ore_fatturabili"] == atteso["ore_fatturabili"]
+    assert result["compenso_base"] == atteso["compenso_base"]
+    assert result["spese_generali"] == round(result["compenso_base"] * 0.15, 2)
+
+
+def test_compenso_a_tempo_avvisa_fuori_dal_parametro_e_sui_massimali(tmp_path):
+    gestore = _gestore(tmp_path)
+
+    fuori_range = gestore.calcola_compenso_a_tempo(_payload_compenso_tempo(cat_tariffa_oraria="90"))
+    oltre_massimale = gestore.calcola_compenso_a_tempo(_payload_compenso_tempo(cat_massimale_ore="2"))
+
+    assert any("22-bis" in avviso for avviso in fuori_range["warnings"])
+    assert any("massimale" in avviso for avviso in oltre_massimale["warnings"])
+
+
+def test_compenso_a_tempo_rifiuta_input_non_validi(tmp_path):
+    import pytest
+
+    gestore = _gestore(tmp_path)
+
+    with pytest.raises(ValueError):
+        gestore.calcola_compenso_a_tempo(_payload_compenso_tempo(cat_tariffa_oraria="0"))
+    with pytest.raises(ValueError):
+        gestore.calcola_compenso_a_tempo(_payload_compenso_tempo(cat_ore="0", cat_minuti="0"))
+    with pytest.raises(ValueError):
+        gestore.calcola_compenso_a_tempo(_payload_compenso_tempo(cat_criterio="a_occhio"))
+
+
+def test_nuovi_strumenti_sono_esposti_nella_suite(tmp_path):
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    for tool_id, metodo in (
+        ("impugnazioni", "calcola_impugnazioni"),
+        ("ravvedimento_operoso", "calcola_ravvedimento_operoso"),
+        ("compenso_a_tempo", "calcola_compenso_a_tempo"),
+    ):
+        assert tool_id in catalogo
+        assert TOOL_METHODS[tool_id] == metodo
+
+
 # ── Copertura React della suite ───────────────────────────────────────────
 
 

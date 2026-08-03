@@ -6265,3 +6265,176 @@ def test_le_regole_di_contenuto_restano_attive_sul_corpo():
     assert classify_attachment(allegato, "Si trasmette la procura alle liti del cliente.")[0] == "procura"
     assert classify_attachment(allegato, "In allegato il ricorso depositato in cancelleria.")[0] == "atto"
     assert classify_attachment(allegato, "Testo privo di segnali utili.")[0] == "da confermare"
+
+
+def _comunicazione_pct_mime(numero_ruolo: str = "523/2026/LAV") -> bytes:
+    """PEC di comunicazione di cancelleria con il numero di ruolo certificato."""
+
+    messaggio = EmailMessage()
+    messaggio["Subject"] = f"POSTA CERTIFICATA: COMUNICAZIONE {numero_ruolo}"
+    messaggio["From"] = "posta-certificata@legalmail.it"
+    messaggio["To"] = "studio@pec.it"
+    messaggio["Message-ID"] = "<comunicazione-test@giustizia.it>"
+    messaggio["Date"] = "Mon, 03 Aug 2026 15:20:35 +0200"
+    messaggio.set_content(
+        "Messaggio di posta certificata. Allegati: daticert.xml, postacert.eml. "
+        "La cancelleria comunica il deposito della sentenza resa ai sensi dell'art. 127-ter c.p.c. "
+        "nel procedimento iscritto al n. 523/2026 R.G. LAV del Tribunale di Vicenza. "
+        "Si invita il difensore a provvedere alla notificazione della sentenza alla controparte."
+    )
+    comunicazione = (
+        "<?xml version='1.0' encoding='UTF-8'?>"
+        "<Comunicazione>"
+        f"<NumeroRuolo>{numero_ruolo}</NumeroRuolo>"
+        "<Oggetto>SENTENZA A VERBALE (art. 127 ter cpc)</Oggetto>"
+        "<Ufficio>Tribunale di Vicenza</Ufficio>"
+        "</Comunicazione>"
+    ).encode("utf-8")
+    messaggio.add_attachment(
+        comunicazione, maintype="text", subtype="xml", filename="Comunicazione.xml"
+    )
+    messaggio.add_attachment(
+        b"<postacert><mittente>tribunale.vicenza@civile.ptel.giustiziacert.it</mittente></postacert>",
+        maintype="application",
+        subtype="xml",
+        filename="daticert.xml",
+    )
+    return messaggio.as_bytes()
+
+
+def test_rg_equivalenti_ignora_registro_e_formattazione():
+    from pct.pec_pipeline import _rg_equivalenti
+
+    assert _rg_equivalenti("523/2026/LAV", "523/2026")
+    assert _rg_equivalenti("0523/2026", "523/2026")
+    assert _rg_equivalenti("523/26", "523/2026")
+    assert not _rg_equivalenti("524/2026", "523/2026")
+    assert not _rg_equivalenti("", "523/2026")
+
+
+def _repo_con_fascicolo(tmp_path: Path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    gestione = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"), documents_dir=str(tmp_path / "docs")
+    )
+    fascicolo = gestione.nuovo(
+        titolo="Barilaro / Ministero",
+        tipo=TipoFascicolo.LAVORO,
+        nome_cliente="Barilaro Francesco",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="523",
+        anno_rg="2026",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="test",
+        fascicoli_db_path=str(tmp_path / "fascicoli.json"),
+        fascicoli_docs_path=str(tmp_path / "docs"),
+        scadenziario_db_path=str(tmp_path / "scadenze.json"),
+        agenda_db_path=str(tmp_path / "agenda.json"),
+    )
+    return repo, fascicolo
+
+
+def test_il_numero_di_ruolo_certificato_collega_il_fascicolo(tmp_path):
+    """Il NumeroRuolo di Comunicazione.xml è certificato dall'ufficio: è una prova."""
+
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+
+    report = repo.run_pending_jobs(limit=40)
+    link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
+
+    assert link["status"] == "automatico"
+    assert link["fascicolo_id"] == fascicolo.id
+    reasons = link["candidates"][0]["reasons"]
+    assert "RG certificato dall'XML ministeriale" in reasons
+
+
+def test_il_presidio_viene_rimaterializzato_dopo_il_collegamento(tmp_path):
+    """Regressione: il presidio nasceva prima del link e restava a mani vuote.
+
+    Il job `validate` materializza i presidi, ma gira PRIMA di `link`: al suo
+    passaggio il fascicolo non era ancora collegato e la voce veniva scartata
+    con "fascicolo non collegato, presidio non creato". Nessun giro successivo
+    la recuperava — la coda dei job resta vuota — quindi in agenda,
+    scadenziario, notifiche e relata non arrivava nulla pur avendo la PEC
+    lavorata correttamente.
+    """
+
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    ingest = repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+    message_id = str(ingest["id"])
+
+    chiamate: list[str] = []
+    originale = repo.materialize_legal_notification_candidates
+
+    def _traccia(*args, **kwargs):
+        chiamate.append(str(kwargs.get("message_id") or ""))
+        return originale(*args, **kwargs)
+
+    repo.materialize_legal_notification_candidates = _traccia  # type: ignore[method-assign]
+    report = repo.run_pending_jobs(limit=40)
+    link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
+
+    assert link["fascicolo_id"] == fascicolo.id
+    # Una volta in validate (fascicolo ancora assente) e una dopo il link.
+    assert chiamate.count(message_id) >= 2, "il presidio deve essere rifatto dopo il collegamento"
+    assert "notification_presidia" in link
+
+
+def test_il_presidio_non_viene_rifatto_se_il_fascicolo_non_si_collega(tmp_path):
+    """Senza collegamento non si ripete lavoro inutile: l'esito resta vuoto."""
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="test",
+        fascicoli_db_path=str(tmp_path / "fascicoli.json"),
+        fascicoli_docs_path=str(tmp_path / "docs"),
+        scadenziario_db_path=str(tmp_path / "scadenze.json"),
+        agenda_db_path=str(tmp_path / "agenda.json"),
+    )
+    repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+
+    report = repo.run_pending_jobs(limit=40)
+    link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
+
+    assert link["fascicolo_id"] == ""
+    assert link["notification_presidia"] == {}
+
+
+def test_gli_indirizzi_di_trasporto_non_sono_parti_processuali(tmp_path):
+    repo, _ = _repo_con_fascicolo(tmp_path)
+    repo.ingest_mime(
+        _comunicazione_pct_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:1",
+        actor="pytest",
+    )
+
+    report = repo.run_pending_jobs(limit=40)
+    link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
+
+    parti = " ".join(link["seeds"]["parties"]).lower()
+    for rumore in ("posta-certificata@", "giustiziacert.it", "legalmail.it", "per conto di:"):
+        assert rumore not in parti

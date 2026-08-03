@@ -1496,6 +1496,11 @@ def build_pec_procedural_profile(
         "sezione": _profile_value(readable, ("Sezione", "Sez/Coll.")),
         "tipo_procedimento": _profile_value(readable, "Tipo procedimento", limit=240),
         "numero_rg": _profile_value(readable, ("Numero di Ruolo generale", "Numero Ruolo")) or (rg_values[0] if rg_values else ""),
+        # Numero di ruolo letto dai tag ministeriali di Comunicazione.xml /
+        # EsitoAtto.xml: e' un dato certificato dall'ufficio, non un'inferenza
+        # sul testo, e come tale vale come prova nel collegamento al fascicolo.
+        "numero_ruolo_certificato": xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")),
+        "numero_ruolo_fonte": "xml_ministeriale" if xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")) else "testo",
         "giudice": _profile_value(readable, "Giudice"),
         "cliente": _profile_value(
             readable,
@@ -6246,6 +6251,29 @@ def _document_presidio_activity_description(proposal: dict[str, Any], report_pay
     )
 
 
+def _rg_equivalenti(primo: str, secondo: str) -> bool:
+    """Confronta due numeri di ruolo ignorando registro e formattazione.
+
+    Il numero certificato dagli XML ministeriali arriva spesso con il suffisso
+    del registro (``523/2026/LAV``) mentre il fascicolo conserva numero e anno
+    separati (``523`` + ``2026``). Un confronto testuale li considererebbe
+    diversi proprio nel caso in cui la corrispondenza e' certa.
+    """
+
+    def _parti(valore: str) -> tuple[str, str]:
+        token = re.findall(r"\d+", str(valore or ""))
+        if len(token) < 2:
+            return ("", "")
+        numero, anno = token[0], token[1]
+        if len(anno) == 2:
+            anno = f"20{anno}"
+        return (numero.lstrip("0") or "0", anno)
+
+    primo_parti = _parti(primo)
+    secondo_parti = _parti(secondo)
+    return bool(primo_parti[0]) and primo_parti == secondo_parti
+
+
 class PecAuditRepository:
     """Repository SQLite per PEC audit-grade e coda worker automatizzata."""
 
@@ -8406,12 +8434,25 @@ class PecAuditRepository:
             value_text = clean_text(value, 80)
             if value_text and value_text not in rg:
                 rg.append(value_text)
+        rg_certificato = clean_text(profile.get("numero_ruolo_certificato"), 80)
+        if rg_certificato and rg_certificato not in rg:
+            rg.insert(0, rg_certificato)
         sender_field = (fields.get("mittente") or {}).get("value") or {}
         parties = [
             clean_text(sender_field.get("name") if isinstance(sender_field, dict) else ""),
             clean_text(sender_field.get("email") if isinstance(sender_field, dict) else ""),
         ]
         parties.extend(_profile_party_values(profile))
+        # Gli indirizzi di trasporto della PEC non sono parti processuali: se
+        # restano nei seed sporcano il punteggio e le motivazioni.
+        parties = [
+            party
+            for party in parties
+            if not any(
+                marker in party.lower()
+                for marker in ("posta-certificata@", "postacert", "giustiziacert.it", "per conto di:", "legalmail.it")
+            )
+        ]
         text = " ".join([str(headers.get("subject") or ""), str(body.get("text") or ""), str(body.get("html_text") or "")])
         office_match = re.search(r"\b(?:tribunale|corte|giudice di pace)\s+di\s+([A-Za-zÀ-ÿ' ]{3,40})", text, re.I)
         office = clean_text(profile.get("ufficio") or (office_match.group(0) if office_match else ""))
@@ -8429,7 +8470,12 @@ class PecAuditRepository:
                 fasc_rg = f"{numero_rg}/{anno_rg}"
             elif numero_rg:
                 fasc_rg = numero_rg
-            if fasc_rg and any(candidate == fasc_rg or candidate in fasc_rg or fasc_rg in candidate for candidate in rg):
+            if fasc_rg and rg_certificato and _rg_equivalenti(rg_certificato, fasc_rg):
+                # Corrispondenza con il numero di ruolo certificato dall'ufficio:
+                # e' una prova, non un indizio, e da sola basta a collegare.
+                score += 0.82
+                reasons.append("RG certificato dall'XML ministeriale")
+            elif fasc_rg and any(candidate == fasc_rg or candidate in fasc_rg or fasc_rg in candidate for candidate in rg):
                 score += 0.58
                 reasons.append("RG coincidente")
             party_text = " ".join(
@@ -8623,6 +8669,8 @@ class PecAuditRepository:
             best = candidates[0] if candidates else {}
             score = float(best.get("score") or 0.0)
             reasons = {str(item or "") for item in list(best.get("reasons") or [])}
+            # Il solo RG dedotto dal testo resta insufficiente; il solo RG
+            # certificato dall'ufficio no: e' l'identificativo del procedimento.
             rg_only = bool(best) and reasons == {"RG coincidente"}
             fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
             status = "automatico" if fascicolo_id else "rg_non_sufficiente" if rg_only else "proposte" if candidates else "nessun_candidato"
@@ -8642,6 +8690,22 @@ class PecAuditRepository:
             self.append_audit(conn, action="pec.fascicolo.reconciled", resource_type="pec_message", resource_id=message_id, payload={"status": status, "score": score, "candidates": candidates}, actor=actor)
         auto_deadline: dict[str, Any] = {}
         deposit_upsert: dict[str, Any] = {}
+        presidia_dopo_collegamento: dict[str, Any] = {}
+        if fascicolo_id:
+            # Il presidio viene materializzato dal job "validate", che gira PRIMA
+            # di questo: al suo passaggio il fascicolo non era ancora collegato e
+            # la voce veniva scartata con "fascicolo non collegato, presidio non
+            # creato". Nessun giro successivo la recuperava, perche' la coda dei
+            # job resta vuota: la PEC risultava lavorata e non arrivava nulla in
+            # agenda, scadenziario, notifiche e relata. Ora che il fascicolo c'e'
+            # il presidio si rimaterializza qui, in modo idempotente.
+            try:
+                presidia_dopo_collegamento = self.materialize_legal_notification_candidates(
+                    message_id=message_id,
+                    actor=actor,
+                )
+            except Exception as exc:  # pragma: no cover - il collegamento resta valido
+                presidia_dopo_collegamento = {"ok": False, "errors": [str(exc)[:180]]}
         try:
             detail = self.get_message_detail(message_id)
             report = detail.get("validation_report") or {}
@@ -8668,6 +8732,7 @@ class PecAuditRepository:
             "seeds": seeds,
             "deposit_upsert": deposit_upsert,
             "auto_deadline": auto_deadline,
+            "notification_presidia": presidia_dopo_collegamento,
         }
 
     def recover_stale_jobs(self, *, older_than_seconds: int = 21600, actor: str = "pec-worker") -> dict[str, int]:

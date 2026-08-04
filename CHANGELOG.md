@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.276.1 - 2026-08-04
+
+- **Chiuse sette vulnerabilita' delle dipendenze frontend**, fra cui le tre ad alta gravita' segnalate da Dependabot: `brace-expansion` (5.0.8 -> 5.0.9), `fast-uri` (3.1.4 -> 3.1.5) e `ip-address` (10.2.0 -> 10.3.1). Nello stesso giro anche le quattro moderate rimaste indietro: `postcss` (8.5.18 -> 8.5.23), `hono` (4.12.27 -> 4.12.34) e le due segnalazioni residue su `ip-address`. `pnpm audit` passa da 3 alte + 4 moderate a zero.
+- `brace-expansion`, `fast-uri`, `postcss` e `hono` erano gia' fissati negli override del workspace, ma a versioni nel frattempo diventate vulnerabili: fissare una versione non basta, va anche rialzata. `ip-address` non era fissato affatto e arrivava vulnerabile dalla catena `shadcn > @modelcontextprotocol/sdk`: ora e' governato come gli altri.
+- Per ciascun pacchetto e' stata scelta la **versione corretta minima**, non l'ultima pubblicata: il salto piu' piccolo che chiude la falla e' anche quello con meno probabilita' di rompere la build. `fast-uri` resta quindi sulla 3.x invece di passare alla 4.x.
+- Verificato: typecheck TypeScript verde, build Vite verde, e il bundle ricostruito e' identico byte per byte a quello committato — gli aggiornamenti non cambiano l'applicazione.
+
 ## 2.276.0 - 2026-08-03
 
 - **Nuovo strumento di verifica sul server: `scripts/verifica_catena_pec.py`.** Interroga i dati reali dello studio e, per ognuna delle ultime PEC, dice cosa ha effettivamente prodotto lungo la catena — classificazione, fascicolo collegato, presidio, scadenziario, agenda, centro notifiche (le stesse voci della top bar) e stato del canale Web Push. Sola lettura: non scrive, non invia, non modifica nulla. `docker compose exec app python scripts/verifica_catena_pec.py --limite 20`.

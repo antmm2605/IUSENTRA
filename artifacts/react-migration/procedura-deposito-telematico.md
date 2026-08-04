@@ -1,5 +1,34 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-08-04 - Presidio PEC udienza: link da acquisire dal PDF
+
+Perimetro: presidio PEC, udienza audiovisiva, Agenda, Scadenziario, topbar e Web Push. Il caso pilota locale RG `393/2026/VG` non contiene un URL già utilizzabile nel PDF allegato: il provvedimento ordina di depositare nel fascicolo telematico, entro il `05/11/2026`, una nota con indirizzo e-mail per ricevere il link e numero di telefono mobile per eventuali difficoltà di collegamento.
+
+Regola applicata:
+
+- se un PDF o un PDF dentro ZIP contiene link URI cliccabili, la pipeline li acquisisce anche quando l'OCR è vuoto;
+- se il PDF non espone un URL ma contiene istruzioni per ottenere il link udienza, l'istruzione viene salvata in `remote_hearing_access_info` e riportata in Agenda, Scadenziario e notifiche operative;
+- il payload notifiche viene costruito dopo il consolidamento dello Scadenziario, con l'id tenant tecnico corretto e deduplica stabile sulla scadenza, per evitare che la topbar legga una copia sotto slug o una versione senza istruzione PDF;
+- topbar, Agenda e Scadenziario non mostrano piu' `Piattaforma: altra` quando l'unico dato utile e' l'istruzione del provvedimento per acquisire il link;
+- `remote_hearing_pdf_required` resta vero finché non arriva un URL verificato, quindi il software non mostra un collegamento fittizio;
+- il Web Push per link mancante resta sintetico e non include dati pratica, recapiti o URL non verificati.
+
+Aggiornamenti UI collegati:
+
+- nella pagina Agenda i KPI riepilogativi, inclusa la card `OGGI`, sono sotto i pannelli operativi di preparazione udienza e automazioni, non sopra;
+- nella tabella Scadenziario la colonna `Azioni` non e' piu' presente: `Apri dettaglio`, `Modifica`, `Completa` ed `Elimina` sono dentro la cella `Tipo`, sotto il badge della tipologia.
+
+Prova reale locale eseguita il 04/08/2026 su `127.0.0.1:8080`, browser integrato Codex, Docker ricostruito `--no-cache`, container `iusentra-app` e `iusentra-scheduler` healthy, `/api/pronto` `ok=true`, versione `2.276.4`:
+
+- Scadenziario dettaglio `69678740-33fb-40ee-b6b2-0df7321c8a0d`: visibili `Fissazione udienza`, `Link udienza nel PDF allegato da acquisire`, istruzione `depositare o comunicare una nota nel fascicolo telematico entro il 05/11/2026...`, fonte `PEC originale - 2141414s.pdf.zip`, nessun testo `Piattaforma: altra`;
+- tabella Scadenziario: intestazione `Azioni` assente; i quattro comandi riga sono dentro `td.iu-scad-type-cell`, sotto il badge `Udienza`, con layout a griglia 2x2 e senza overflow orizzontale;
+- Agenda settimana `23/11/2026`: evento `Fissazione udienza · RG 393/2026` presente alle `15:00`; il dettaglio operativo mostra l'istruzione del PDF per acquisire il link e non mostra piattaforme generiche;
+- Agenda settimana `15/09/2026`: il planner precede i pannelli operativi, i pannelli precedono i KPI e la card `OGGI` resta sotto, non sopra;
+- topbar `Notifiche operative`: presente `Udienza audiovisiva registrata` per il `23/11/2026` con l'istruzione del PDF; nessuna `Piattaforma: altra` visibile;
+- Web Push: il payload persistito contiene `remoteHearingAccessInfo`, `remoteHearingPdfRequired=true`, `remoteHearingUrl=""`, `remoteHearingPlatform=""`. Nel tenant locale le subscription push risultano revocate/disabilitate, quindi non e' stata prodotta una consegna reale in questa sessione.
+
+Stato guardrail: aggiunti test mirati su estrazione PDF, materializzazione Agenda/Scadenziario, topbar e Web Push sicuro.
+
 ## Aggiornamento 2026-07-29 - Notifiche L. 53: attestazione per tipo documento e impronta hash
 
 Richiesta utente: nella relata e nell'attestazione di conformità la selezione mista `SentenzaDefinitiva_33581101.pdf` + `VerbaleUdienza_33393309.pdf` non deve produrre due righe `Sentenza`; ogni documento deve mantenere il proprio tipo, la propria data, l'ufficio/sezione, il riferimento R.G. e la formula completa di conformità. L'impronta hash deve indicare la provenienza del dato.

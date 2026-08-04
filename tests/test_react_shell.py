@@ -933,7 +933,16 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert ".iu-ag-highlight{" in css
     assert ".iu-source-document-reader__state" in css
     assert ".iu-ag-source-modal__box--fullscreen" in css
-    assert agenda_page.index('className={`iu-ag-planner') < agenda_page.index('className="iu-ag-kpis"')
+    assert agenda_page.index('className={`iu-ag-planner') < agenda_page.index('className="iu-ag-lower-grid"')
+    assert agenda_page.index('className="iu-ag-lower-grid"') < agenda_page.index('className="iu-ag-kpis"')
+    assert ".iu-agenda-page>.iu-ag-lower-grid{order:3}" in css
+    assert ".iu-agenda-page>.iu-ag-kpis{order:4}" in css
+    assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-lower-grid[data-iusentra-sequence-slot]" in css
+    assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-kpis[data-iusentra-sequence-slot]" in css
+    assert "order:70!important" in css
+    assert "order:80!important" in css
+    assert "iu-ag-event__remote-note" in agenda_page
+    assert ".iu-ag-event__remote-note" in css
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
     assert "messageReminderHref" in agenda_page
     assert "linkedDeadlineHref" in agenda_page
@@ -4681,6 +4690,48 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "audit-grade", "payload", "runtime", "backend", "frontend", "legacy", "json_api"):
         assert token.lower() not in visible.lower()
     assert not any(item["id"] == f"scadenza-{linked_deadline.id}" for item in payload["events"])
+
+
+def test_react_agenda_bridge_espone_istruzioni_pdf_senza_piattaforma_generica(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    hearing_day = date(2026, 11, 23)
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per ricevere "
+        "il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Fissazione udienza - 23/11/2026 - RG 393/2026",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(hearing_day, datetime.min.time()).replace(hour=15).isoformat(timespec="minutes"),
+        durata_minuti=60,
+        luogo="Udienza mista: in presenza e da remoto",
+        procedimento="RG 393/2026",
+        tribunale="Tribunale di Palmi",
+        note=(
+            "Link udienza audiovisiva: da acquisire dal PDF allegato.\n"
+            f"Istruzioni accesso udienza: {access_info}"
+        ),
+        remote_hearing_detected=True,
+        remote_hearing_mode="mista",
+        remote_hearing_platform="altra",
+        remote_hearing_access_info=access_info,
+        remote_hearing_pdf_required=True,
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": hearing_day.isoformat(), "to": hearing_day.isoformat(), "selected_id": appointment.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    event = next(item for item in payload["events"] if item["id"] == appointment.id)
+
+    assert response.status_code == 200
+    assert event["remoteHearingPdfRequired"] is True
+    assert event["remoteHearingAccessInfo"] == access_info
+    assert event["remoteHearingPlatform"] == ""
 
 
 def test_react_agenda_bridge_esclude_azioni_annullate_dal_planner_operativo(tmp_path: Path):

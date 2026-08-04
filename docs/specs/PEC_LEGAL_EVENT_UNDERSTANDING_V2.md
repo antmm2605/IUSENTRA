@@ -1,6 +1,6 @@
 # PEC Legal Event Understanding V2
 
-Aggiornato: 17/07/2026.
+Aggiornato: 04/08/2026.
 
 ## Obiettivo
 
@@ -241,3 +241,51 @@ python -m pytest -q tests/test_cache_security.py tests/test_notification_relata_
 ```
 
 e sul server: `PRAGMA quick_check=ok`, header `SQLite format 3`, conteggi core coerenti e WAL non gonfiato da scritture massive.
+
+## Guardrail registry tenant presidi PEC - 04/08/2026
+
+Diagnosi locale sul tenant Montagnese: `pec_audit.sqlite`, Agenda, Scadenziario e `notifications.db` erano popolati sotto `data/tenants/tenant-8bf98719c459`, ma lo scheduler riportava `Mailbox sync multi-tenant: nessuno studio attivo`. Il punto di rottura era prima della pipeline PEC: mancava il registry `tenants.json`, quindi i job non trovavano alcun target e non propagavano eventi verso Agenda, Scadenziario, topbar e Web Push.
+
+Regola permanente:
+
+- il registry può essere recuperato automaticamente solo da directory tenant che hanno insieme `config/storage.json` e `studio.db`;
+- il recupero conserva slug e storage key tenant-aware e non deve leggere `/data/email`, `/data/agenda` o `/data/scadenziario` come archivi operativi multi-studio;
+- i job cron che devono solo leggere percorsi tenant usano `percorsi_dati(..., reconcile_aliases=False)`: la riconciliazione storage è manutenzione esplicita, non lavoro da fare durante PEC, Agenda, Scadenziario, topbar o Web Push;
+- un audit PEC senza studi attivi è sempre errore bloccante, mai `ok=true` con lista vuota.
+
+Verifiche mirate eseguite il 04/08/2026:
+
+```powershell
+python -m pytest tests\test_pec_operational_chain.py -q
+python -m pytest tests\test_scheduler.py::test_presidi_multi_tenant_non_riconciliano_storage_nel_cron tests\test_scheduler.py::test_pec_audit_pipeline_job_restituisce_report_operativo -q
+python -m pytest tests\test_presidio_health.py::test_presidio_senza_target_riporta_un_guasto tests\test_scheduler.py::test_pec_audit_pipeline_job_restituisce_report_operativo -q
+python -m pytest tests\test_pec_auto_acquire.py::test_worker_pec_rispetta_budget_documentale_scheduler -q
+python .\scripts\audit_pec_operational_chain.py --registry .\data\tenants.json --tenant studio-montagnese
+```
+
+## Link udienza da acquisire nel PDF - 04/08/2026
+
+Caso pilota locale: RG `393/2026/VG`, Tribunale di Palmi, udienza del `23/11/2026 15:00` con collegamenti audiovisivi. Il PDF allegato non contiene un URL Teams/Zoom già utilizzabile: dispone invece che il tutore depositi nel fascicolo telematico, entro il `05/11/2026`, una nota con indirizzo e-mail per ricevere il link e numero di telefono mobile per eventuali difficoltà di collegamento.
+
+Regola permanente:
+
+- se il PDF o il PDF dentro ZIP contiene un link URI verificabile, il link viene acquisito anche quando l'OCR non restituisce testo;
+- se il PDF non contiene un URL ma contiene istruzioni per ottenere il link udienza, la pipeline deve acquisire quell'adempimento in `remote_hearing_access_info`;
+- l'esito del worker deve restituire il payload remoto gia' persistito nello Scadenziario, cosi' topbar e Web Push non possono ricevere una versione intermedia impoverita o la sola piattaforma generica;
+- il centro notifiche risolve l'id tecnico tenant da `tenants.json`, `config/storage.json` o registry adiacente e deduplica sullo stesso id stabile della scadenza, non sul singolo messaggio PEC;
+- le piattaforme generiche come `altra`, `da verificare` o `sconosciuta` non devono essere mostrate quando esiste un'istruzione PDF concreta per acquisire il link;
+- `remote_hearing_pdf_required` resta vero finché non arriva un URL verificato, ma Agenda, Scadenziario, topbar e centro notifiche devono riportare l'istruzione estratta, non solo una formula generica `da acquisire`;
+- il Web Push per link mancante può essere inviato solo con testo sintetico sicuro, senza dati pratica, recapiti, passcode o URL non verificati.
+
+Test mirati:
+
+```powershell
+python -m pytest tests\test_pec_audit_pipeline.py::test_extract_text_with_coverage_reads_clickable_pdf_link_when_ocr_is_empty tests\test_pec_audit_pipeline.py::test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario_and_agenda tests\test_push_notifications.py::test_web_push_sync_avvisa_link_udienza_da_acquisire_senza_dati_sensibili -q
+```
+
+Prova reale locale del 04/08/2026 su Docker `127.0.0.1:8080`, versione `2.276.4`:
+
+- Scadenziario dettaglio `69678740-33fb-40ee-b6b2-0df7321c8a0d`: visibili label `Link udienza nel PDF allegato da acquisire`, istruzioni entro il `05/11/2026` e fonte `PEC originale - 2141414s.pdf.zip`;
+- Agenda settimana `23/11/2026`: il dettaglio operativo dell'evento `Fissazione udienza · RG 393/2026` mostra la stessa istruzione;
+- topbar `Notifiche operative`: notifica `Udienza audiovisiva registrata` con istruzione PDF e senza `Piattaforma: altra`;
+- payload Web Push persistito con `remoteHearingAccessInfo`, `remoteHearingPdfRequired=true`, `remoteHearingUrl=""`, `remoteHearingPlatform=""`. Nel tenant locale le subscription risultano disabilitate/revocate, quindi non e' stata effettuata una consegna push reale.

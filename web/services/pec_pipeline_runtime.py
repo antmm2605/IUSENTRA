@@ -14,6 +14,15 @@ from flask import current_app, g, has_app_context
 from pct.formatting import format_date_it
 
 ROME_TZ = ZoneInfo("Europe/Rome")
+GENERIC_REMOTE_HEARING_PLATFORMS = {
+    "altra",
+    "da verificare",
+    "incerta",
+    "sconosciuta",
+}
+GENERIC_REMOTE_HEARING_ACCESS_INFO = {
+    f"piattaforma: {platform}" for platform in GENERIC_REMOTE_HEARING_PLATFORMS
+}
 from pct.incremental_jobs import cursor_tuple, is_after_cursor
 from pct.notifications.web_push import safe_remote_hearing_url
 from pct.pec_pipeline import PecAuditRepository, _remote_hearing_deadline_extra
@@ -174,12 +183,44 @@ def build_digest_for_paths(paths: Mapping[str, Any], *, tenant_label: str, diges
     return repo.build_daily_digest(digest_date=digest_date, actor="scheduler")
 
 
-def _tenant_notification_id(tenant_label: str) -> str:
+def _tenant_notification_id(tenant_label: str, paths: Mapping[str, Any] | None = None) -> str:
     """Stesso identificativo usato dal web (`current_tenant_id`): id studio, poi slug."""
 
     slug = str(tenant_label or "").strip().lower()
     if not slug or slug == "default":
         return "default"
+    data_paths = paths or {}
+    manifest = str(data_paths.get("STORAGE_CONFIG") or "").strip()
+    if manifest:
+        try:
+            import json
+
+            manifest_path = Path(manifest)
+            storage = json.loads(manifest_path.read_text(encoding="utf-8"))
+            tenant_id = str(storage.get("tenant_id") or storage.get("id") or "").strip()
+            if tenant_id:
+                return tenant_id
+            tenant_root = manifest_path.parent.parent
+            registry_path = tenant_root.parent.parent / "tenants.json"
+            if registry_path.exists():
+                registry = json.loads(registry_path.read_text(encoding="utf-8"))
+                entry = registry.get(slug) if isinstance(registry, dict) else None
+                if not isinstance(entry, dict):
+                    entry = next(
+                        (
+                            value
+                            for value in registry.values()
+                            if isinstance(value, dict)
+                            and str(value.get("storage_key") or "").strip() == tenant_root.name
+                        ),
+                        None,
+                    )
+                if isinstance(entry, dict):
+                    tenant_id = str(entry.get("id") or entry.get("tenant_id") or "").strip()
+                    if tenant_id:
+                        return tenant_id
+        except Exception:
+            pass
     try:
         from pct.tenant import GestioneTenant
 
@@ -249,6 +290,12 @@ def build_pec_deadline_notification(
         require_verified=True,
     )
     remote_verified = bool(remote_url)
+    remote_access_info = str(remote.get("remote_hearing_access_info") or "").strip()
+    remote_platform = str(remote.get("remote_hearing_platform") or "").strip()
+    if remote_access_info.casefold() in GENERIC_REMOTE_HEARING_ACCESS_INFO:
+        remote_access_info = ""
+    if remote_platform.casefold() in GENERIC_REMOTE_HEARING_PLATFORMS:
+        remote_platform = ""
     origin = "Presidio documentale Lex" if source_id.startswith("docpresidio:") else (
         "Presidio PEC automatico" if automatic else "Presidio PEC"
     )
@@ -268,7 +315,11 @@ def build_pec_deadline_notification(
                 else "Collegamento audiovisivo disponibile e da controllare sulla fonte."
             )
         else:
-            remote_status = "Collegamento audiovisivo da acquisire dal documento dell'udienza."
+            remote_status = (
+                remote_access_info
+                if remote_access_info
+                else "Collegamento audiovisivo da acquisire dal documento dell'udienza."
+            )
         body = (
             f"{origin}: udienza collegata ad Agenda e Scadenziario"
             f"{f' per il {due_date_label}' if due_date_label else ''}. {remote_status}"
@@ -301,9 +352,9 @@ def build_pec_deadline_notification(
             "remoteHearingSource": str(remote.get("remote_hearing_source") or "").strip(),
             "remoteHearingVerified": remote_verified,
             "remoteHearingTime": str(remote.get("remote_hearing_time") or "").strip(),
-            "remoteHearingPlatform": str(remote.get("remote_hearing_platform") or "").strip(),
+            "remoteHearingPlatform": remote_platform,
             "remoteHearingMeetingId": str(remote.get("remote_hearing_meeting_id") or "").strip(),
-            "remoteHearingAccessInfo": str(remote.get("remote_hearing_access_info") or "").strip(),
+            "remoteHearingAccessInfo": remote_access_info,
             "remoteHearingPdfRequired": bool(remote.get("remote_hearing_pdf_required")),
         },
     }
@@ -313,7 +364,10 @@ def should_send_pec_deadline_web_push(notification: Mapping[str, Any]) -> bool:
     payload = notification.get("payload_json") if isinstance(notification.get("payload_json"), Mapping) else {}
     if not bool(payload.get("remoteHearingDetected")):
         return True
-    return bool(payload.get("remoteHearingUrl") and payload.get("remoteHearingVerified"))
+    return bool(
+        (payload.get("remoteHearingUrl") and payload.get("remoteHearingVerified"))
+        or payload.get("remoteHearingPdfRequired")
+    )
 
 
 def notify_auto_deadlines_for_paths(
@@ -329,8 +383,8 @@ def notify_auto_deadlines_for_paths(
     entrambi i percorsi. Destinatari: utenti attivi con lettura scadenziario.
     """
 
-    report = {"created": 0, "duplicates": 0, "errors": 0, "recipients": 0}
-    deadlines: list[tuple[str, dict[str, Any]]] = []
+    report = {"created": 0, "duplicates": 0, "errors": 0, "recipients": 0, "expired_legacy_duplicates": 0}
+    deadlines: list[tuple[str, dict[str, Any], set[str]]] = []
     for job in jobs:
         job_type = str(job.get("job_type") or "")
         if job_type not in {"link", "document_presidio"}:
@@ -346,12 +400,18 @@ def notify_auto_deadlines_for_paths(
             if not deadline_result.get("ok") or not str(deadline_result.get("deadline_id") or "").strip():
                 continue
             source_id = str(
-                deadline_result.get("scheduled_message_id")
+                deadline_result.get("deadline_id")
+                or deadline_result.get("scheduled_message_id")
                 or job.get("message_id")
-                or deadline_result.get("deadline_id")
                 or ""
             )
-            deadlines.append((source_id, deadline_result))
+            legacy_source_ids = {
+                str(deadline_result.get("scheduled_message_id") or "").strip(),
+                str(job.get("message_id") or "").strip(),
+            }
+            legacy_source_ids.discard("")
+            legacy_source_ids.discard(source_id)
+            deadlines.append((source_id, deadline_result, legacy_source_ids))
     if not deadlines:
         return report
 
@@ -372,8 +432,8 @@ def notify_auto_deadlines_for_paths(
         ),
         web_push_config=load_web_push_config(config),
     )
-    tenant_id = str(paths.get("_TENANT_NOTIFICATION_ID") or _tenant_notification_id(tenant_label))
-    for message_id, deadline in deadlines:
+    tenant_id = str(paths.get("_TENANT_NOTIFICATION_ID") or _tenant_notification_id(tenant_label, paths))
+    for message_id, deadline, legacy_source_ids in deadlines:
         source_id = message_id or str(deadline.get("deadline_id") or "")
         notification = build_pec_deadline_notification(
             deadline,
@@ -398,6 +458,13 @@ def notify_auto_deadlines_for_paths(
                     redispatch_on_remote_hearing_enrichment=True,
                 )
                 report["created" if created else "duplicates"] += 1
+                if legacy_source_ids:
+                    report["expired_legacy_duplicates"] += service.repository.expire_notifications_by_source_ids(
+                        tenant_id,
+                        user_id,
+                        source_type="pec_deadline",
+                        source_ids=legacy_source_ids,
+                    )
             except Exception:
                 report["errors"] += 1
     return report
@@ -890,33 +957,78 @@ def acquire_local_pec_for_paths(
         str(getattr(item, "id", "") or "") for item in relevant
     )
     candidates: list[Any] = []
+    skipped_presided_items: list[tuple[Any, str, str]] = []
     batch_exhausted = False
     for item in relevant:
         email_id = str(getattr(item, "id", "") or "")
         header = str(getattr(item, "message_id", "") or "").strip()
         if (header and header in known_headers) or (email_id and email_id in presided_ids):
             report["skipped_presided"] += 1
+            skipped_presided_items.append(
+                (
+                    item,
+                    known_headers.get(header, ""),
+                    "message_id_header" if header and header in known_headers else "email_id",
+                )
+            )
             continue
         candidates.append(item)
         if len(candidates) >= max(1, int(batch_size or 10)):
             batch_exhausted = True
             break
-    if not candidates:
-        save_cursor_if_safe(batch_exhausted=False)
-        return report
     run_id = ""
-    try:
-        run = repo.start_local_acquire_run(
-            total_emails=len(candidates), batch_size=len(candidates), actor="scheduler"
-        )
-        run_id = str(run.get("id") or "")
-    except Exception:
-        run_id = ""
-    if not run_id:
+    tracked_items = len(candidates) + len(skipped_presided_items)
+    if tracked_items:
+        try:
+            run = repo.start_local_acquire_run(
+                total_emails=tracked_items,
+                batch_size=max(1, tracked_items),
+                actor="scheduler",
+            )
+            run_id = str(run.get("id") or "")
+        except Exception:
+            run_id = ""
+    if tracked_items and not run_id:
         # Senza run tracciabile non si ingerisce nulla: con le foreign key attive
         # gli esiti per email non sarebbero registrabili e le stesse PEC
         # verrebbero rilette dal disco a ogni giro del presidio.
         return {**report, "skipped": True, "reason": "registro presidio non disponibile"}
+    for item, message_id, reason in skipped_presided_items:
+        _record_auto_acquire_item(
+            repo,
+            run_id,
+            email_id=str(getattr(item, "id", "") or ""),
+            message_id=message_id,
+            subject=str(getattr(item, "oggetto", "") or "")[:240],
+            status="already_presided",
+            detail={"origin": "auto", "reason": reason},
+        )
+    if not candidates:
+        if run_id:
+            try:
+                repo.update_local_acquire_run(
+                    run_id,
+                    cursor_index=tracked_items,
+                    total_emails=tracked_items,
+                    batch_size=max(1, tracked_items),
+                    deltas={},
+                    status="completed",
+                    payload={
+                        "origin": "auto",
+                        "tenant_label": tenant_label,
+                        "scan_mode": report["scan_mode"],
+                        "archive_seen": report["archive_seen"],
+                        "scanned": report["scanned"],
+                        "skipped_presided": int(report["skipped_presided"]),
+                        "cursor": dict(cursor or newest_cursor),
+                        "batch_exhausted": batch_exhausted,
+                    },
+                    actor="scheduler",
+                )
+            except Exception:
+                pass
+        save_cursor_if_safe(batch_exhausted=False)
+        return report
     for item in candidates:
         email_id = str(getattr(item, "id", "") or "")
         subject = str(getattr(item, "oggetto", "") or "")[:240]
@@ -960,9 +1072,9 @@ def acquire_local_pec_for_paths(
         try:
             repo.update_local_acquire_run(
                 run_id,
-                cursor_index=len(candidates),
-                total_emails=len(candidates),
-                batch_size=len(candidates),
+                cursor_index=tracked_items,
+                total_emails=tracked_items,
+                batch_size=max(1, tracked_items),
                 deltas={
                     "acquired": int(report["ingested"]) + int(report["duplicates"]),
                     "duplicates": int(report["duplicates"]),
@@ -976,6 +1088,7 @@ def acquire_local_pec_for_paths(
                     "scan_mode": report["scan_mode"],
                     "archive_seen": report["archive_seen"],
                     "scanned": report["scanned"],
+                    "skipped_presided": int(report["skipped_presided"]),
                     "cursor": dict(cursor or newest_cursor),
                     "batch_exhausted": batch_exhausted,
                 },

@@ -691,7 +691,7 @@ def start_scheduler(app):
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
                         continue
-                    paths = tm.percorsi_dati(studio.slug)
+                    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
                     found = True
                     yield studio.slug, paths["AGENDA_DB"], paths["CALENDAR_SYNC_DB"]
                 if found:
@@ -710,7 +710,7 @@ def start_scheduler(app):
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
                         continue
-                    paths = tm.percorsi_dati(studio.slug)
+                    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
                     found = True
                     yield {
                         "label": studio.slug,
@@ -741,7 +741,7 @@ def start_scheduler(app):
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
                         continue
-                    paths = tm.percorsi_dati(studio.slug)
+                    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
                     found = True
                     yield {
                         "label": studio.slug,
@@ -830,7 +830,7 @@ def start_scheduler(app):
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
                         continue
-                    paths = dict(tm.percorsi_dati(studio.slug))
+                    paths = dict(tm.percorsi_dati(studio.slug, reconcile_aliases=False))
                     paths["_TENANT_DATABASE_CONFIG"] = studio.database
                     paths["_TENANT_PRESIDIO_ID"] = str(
                         getattr(studio, "slug", "")

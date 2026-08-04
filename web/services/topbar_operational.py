@@ -49,6 +49,19 @@ ROME_TZ = ZoneInfo("Europe/Rome")
 SEARCH_MIN_LENGTH = 2
 SEARCH_MAX_LENGTH = 120
 TEXT_MAX = 500
+GENERIC_REMOTE_HEARING_PLATFORMS = {
+    "altra",
+    "da verificare",
+    "incerta",
+    "sconosciuta",
+}
+GENERIC_REMOTE_HEARING_ACCESS_INFO = {
+    f"piattaforma: {platform}" for platform in GENERIC_REMOTE_HEARING_PLATFORMS
+}
+GENERIC_REMOTE_HEARING_MESSAGE_RE = re.compile(
+    r"\s+Piattaforma:\s*(?:altra|da verificare|incerta|sconosciuta)\b\.?",
+    re.IGNORECASE,
+)
 
 TYPE_MAP = {
     "fascicolo": "case",
@@ -757,8 +770,13 @@ def _persistent_notification_items(user: Any) -> list[dict[str, Any]]:
 
 
 def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:
-    payload = record.payload_json if isinstance(record.payload_json, dict) else {}
-    message = _clean_text(record.body)
+    payload = dict(record.payload_json) if isinstance(record.payload_json, dict) else {}
+    platform = _clean_text(payload.get("remoteHearingPlatform"), limit=80)
+    if platform.casefold() in GENERIC_REMOTE_HEARING_PLATFORMS:
+        payload["remoteHearingPlatform"] = ""
+    if _clean_text(payload.get("remoteHearingAccessInfo"), limit=500).casefold() in GENERIC_REMOTE_HEARING_ACCESS_INFO:
+        payload["remoteHearingAccessInfo"] = ""
+    message = _clean_text(GENERIC_REMOTE_HEARING_MESSAGE_RE.sub("", record.body))
     remote_hearing_url = safe_remote_hearing_url(payload, require_verified=True)
     return {
         "id": record.id,
@@ -1180,6 +1198,12 @@ def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
     }
     verified_url = safe_remote_hearing_url(candidate_payload, require_verified=True)
     pdf_required = bool(getattr(item, "remote_hearing_pdf_required", False))
+    platform = _clean_text(getattr(item, "remote_hearing_platform", ""), limit=80)
+    access_info = _clean_text(getattr(item, "remote_hearing_access_info", ""), limit=500)
+    if access_info.casefold() in GENERIC_REMOTE_HEARING_ACCESS_INFO:
+        access_info = ""
+    if platform.casefold() in GENERIC_REMOTE_HEARING_PLATFORMS:
+        platform = ""
     if not any((detected, mode, verified_url, source, pdf_required)):
         return {}
     return {
@@ -1193,10 +1217,7 @@ def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
             or getattr(item, "hearing_time", ""),
             limit=120,
         ),
-        "remoteHearingPlatform": _clean_text(
-            getattr(item, "remote_hearing_platform", ""),
-            limit=80,
-        ),
+        "remoteHearingPlatform": platform,
         "remoteHearingMeetingId": _clean_text(
             getattr(item, "remote_hearing_meeting_id", ""),
             limit=160,
@@ -1205,10 +1226,7 @@ def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
             getattr(item, "remote_hearing_passcode", ""),
             limit=160,
         ),
-        "remoteHearingAccessInfo": _clean_text(
-            getattr(item, "remote_hearing_access_info", ""),
-            limit=500,
-        ),
+        "remoteHearingAccessInfo": access_info,
         "remoteHearingPdfRequired": pdf_required,
     }
 
@@ -1218,5 +1236,8 @@ def _remote_hearing_notification_label(payload: dict[str, Any]) -> str:
     if payload.get("remoteHearingUrl"):
         return f"Collegamento audiovisivo verificato{f' su {platform}' if platform else ''}"
     if payload.get("remoteHearingPdfRequired"):
+        access_info = _clean_text(payload.get("remoteHearingAccessInfo"), limit=500)
+        if access_info:
+            return access_info
         return "Istruzioni audiovisive da verificare nel documento"
     return "Udienza audiovisiva da verificare"

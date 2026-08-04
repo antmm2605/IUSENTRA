@@ -882,6 +882,10 @@ body.react-shell-page #root{
   display:grid;
   gap:16px;
 }
+.iu-agenda-page>.iu-ag-hero{order:1}
+.iu-agenda-page>.iu-ag-planner{order:2}
+.iu-agenda-page>.iu-ag-lower-grid{order:3}
+.iu-agenda-page>.iu-ag-kpis{order:4}
 .iu-ag-planner{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;width:100%;min-width:0}
 .iu-ag-hero{
   min-height:86px;
@@ -1031,6 +1035,8 @@ body.react-shell-page #root{
 .iu-ag-event.is-cluster{cursor:default;border-color:rgba(37,99,235,.3);background:linear-gradient(135deg,#fff,rgba(239,246,255,.96))}
 .iu-ag-event.is-cluster .iu-ag-event__reference{-webkit-line-clamp:2;white-space:normal;line-height:1.2}
 .iu-ag-event__place{display:none!important;align-items:center;gap:4px;color:var(--iu-slate-600)!important}
+.iu-ag-event__remote-note{display:flex!important;align-items:center;gap:4px;color:#b45309!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.iu-ag-event__remote-note svg{flex:0 0 auto}
 .iu-ag-event em{padding:2px 5px;border-radius:999px;background:var(--iu-slate-100);color:var(--iu-slate-500);font-size:9px;font-style:normal;font-weight:900;line-height:1;white-space:nowrap}
 .iu-ag-event__tooltip{position:absolute;left:0;top:calc(100% + 2px);z-index:120;width:min(380px,calc(100vw - 36px));display:none;gap:6px;padding:12px;border:1px solid rgba(15,23,42,.16);border-radius:10px;background:#fff;color:#172033;box-shadow:0 22px 48px rgba(15,23,42,.24);font-size:11px;line-height:1.4;text-decoration:none;pointer-events:auto;white-space:normal}
 .iu-ag-event.is-late .iu-ag-event__tooltip{top:auto;bottom:calc(100% + 2px)}
@@ -1358,6 +1364,16 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
 
 .iusentra-preset-active .iu-ag-week--week .iu-ag-day{
   min-width:var(--iu-ag-day-min-width,118px);
+}
+
+.iusentra-route-preset--active .iu-agenda-page.iusentra-route-sequence>.iu-ag-planner[data-iusentra-sequence-slot]{
+  order:60!important;
+}
+.iusentra-route-preset--active .iu-agenda-page.iusentra-route-sequence>.iu-ag-lower-grid[data-iusentra-sequence-slot]{
+  order:70!important;
+}
+.iusentra-route-preset--active .iu-agenda-page.iusentra-route-sequence>.iu-ag-kpis[data-iusentra-sequence-slot]{
+  order:80!important;
 }
 
 @media(min-width:1181px) and (max-width:1480px){

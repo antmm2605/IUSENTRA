@@ -136,6 +136,62 @@ def test_mailbox_sync_runtime_job_usa_limite_automatico(monkeypatch, tmp_path):
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
 
+def test_presidi_multi_tenant_non_riconciliano_storage_nel_cron(monkeypatch, tmp_path):
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+    from pct.tenant import GestioneTenant
+    import web.services.mailbox_sync_runtime as mailbox_runtime
+
+    registry = tmp_path / "tenants.json"
+    manager = GestioneTenant(str(registry))
+    manager.crea("Studio Test", "studio-test", piano="ENTERPRISE")
+    calls: list[dict[str, object]] = []
+
+    def forbidden_reconcile(self, slug):
+        raise AssertionError(f"reconcile_storage_aliases non deve girare nel cron: {slug}")
+
+    def fake_sync_mailboxes_for_paths(
+        paths,
+        *,
+        tenant_label: str,
+        cooldown_seconds: float,
+        limite: int,
+        incremental_only: bool,
+    ):
+        calls.append({"tenant_label": tenant_label, "paths": paths})
+        return {
+            "ok": True,
+            "pec": {"ok": True, "skipped": True, "reason": "test", "result": {}},
+            "ordinary": {"ok": True, "skipped": True, "reason": "test", "result": {}},
+        }
+
+    monkeypatch.setattr(GestioneTenant, "reconcile_storage_aliases", forbidden_reconcile)
+    monkeypatch.setattr(mailbox_runtime, "sync_mailboxes_for_paths", fake_sync_mailboxes_for_paths)
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+        MULTI_TENANT=True,
+        TENANTS_REGISTRY=str(registry),
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        result = scheduler.get_job("mailbox_sync_runtime").func()
+
+        assert result["ok"] is True
+        assert result["targets"] == 1
+        assert calls[0]["tenant_label"] == "studio-test"
+        assert str(calls[0]["paths"]["STUDIO_DB"]).endswith("studio-test/studio.db")
+    finally:
+        scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
 def test_scheduler_polling_pec_cappa_finestre_automatiche(monkeypatch, tmp_path):
     monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
     calls: dict[str, int] = {}

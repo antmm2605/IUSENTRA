@@ -159,6 +159,26 @@ def test_acquisizione_rispetta_il_budget_per_giro(tmp_path: Path) -> None:
     assert second["skipped_presided"] == 2
 
 
+def test_acquisizione_full_scan_marca_le_pec_gia_presidiate(tmp_path: Path, monkeypatch) -> None:
+    paths = _paths(tmp_path)
+    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    _archivia_pec(
+        gestore,
+        email_id="MAIL-GIA-PRESIDIATA",
+        message_id="<gia-presidiata@example.test>",
+        subject="POSTA CERTIFICATA: comunicazione già presidiata",
+    )
+
+    first = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
+    monkeypatch.setenv("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN", "1")
+    second = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
+
+    index = repository_from_paths(paths, tenant_label="default").local_acquire_presidio_index()
+    assert first["ingested"] == 1
+    assert second["skipped_presided"] == 1
+    assert index["by_email_id"]["MAIL-GIA-PRESIDIATA"]["status"] == "already_presided"
+
+
 def test_acquisizione_incrementale_legge_solo_nuovi_arrivi_dopo_cursor(tmp_path: Path) -> None:
     paths = _paths(tmp_path)
     gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
@@ -316,6 +336,157 @@ def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) 
     assert "Agenda e Scadenziario" in rows[0].body
 
 
+def test_notifica_scadenza_automatica_deduplica_sul_presidio_stabile(tmp_path: Path) -> None:
+    from flask import Flask
+
+    from pct.auth import GestioneUtenti
+    from pct.notifications import NotificationRepository, NotificationService
+    from web.services.pec_pipeline_runtime import notify_auto_deadlines_for_paths
+
+    paths = _paths(tmp_path)
+    paths["AUTH_DB"] = str(tmp_path / "auth" / "utenti.json")
+    paths["AUDIT_DB"] = str(tmp_path / "auth" / "audit.json")
+    paths["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
+    GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "auth" / "bootstrap_admin.json"),
+    )
+    user_id = first_user_id(paths)
+    repo = NotificationRepository(paths["NOTIFICATIONS_DB"])
+    NotificationService(repo).create_notification(
+        tenant_id="default",
+        user_id=user_id,
+        type="pec_deadline",
+        priority="important",
+        title="Udienza audiovisiva registrata",
+        body="Presidio PEC automatico: Collegamento audiovisivo da acquisire dal documento dell'udienza.",
+        href="/agenda/OLD",
+        source_type="pec_deadline",
+        source_id="pec-msg-generico",
+        dedupe_key="PEC_AUDIT:pec-msg-generico:deadline",
+        payload_json={
+            "deadlineId": "SCAD-STABILE",
+            "remoteHearingAccessInfo": "Piattaforma: altra",
+            "remoteHearingDetected": True,
+            "remoteHearingPdfRequired": True,
+        },
+    )
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per ricevere il link."
+    )
+    jobs = [
+        {
+            "job_type": "link",
+            "message_id": message_id,
+            "result": {
+                "auto_deadline": {
+                    "ok": True,
+                    "deadline_id": "SCAD-STABILE",
+                    "due_date": "2026-11-23",
+                    "agenda": {"agenda_id": "AG-STABILE", "agenda_href": "/agenda/AG-STABILE"},
+                    "remote_hearing": {
+                        "remote_hearing_detected": True,
+                        "remote_hearing_access_info": access_info,
+                        "remote_hearing_pdf_required": True,
+                    },
+                }
+            },
+        }
+        for message_id in ("pec-msg-generico", "pec-msg-arricchito")
+    ]
+
+    app = Flask(__name__)
+    app.secret_key = "test-secret"
+    with app.app_context():
+        report = notify_auto_deadlines_for_paths(paths, tenant_label="default", jobs=jobs)
+
+    rows = repo.list_notifications(tenant_id="default", user_id=user_id, limit=10)
+    pec_rows = [row for row in rows if row.source_type == "pec_deadline"]
+    assert report["created"] == 1
+    assert report["duplicates"] == 1
+    assert report["expired_legacy_duplicates"] >= 1
+    assert len(pec_rows) == 1
+    assert pec_rows[0].dedupe_key == "PEC_AUDIT:SCAD-STABILE:deadline"
+    assert pec_rows[0].source_id == "SCAD-STABILE"
+    assert pec_rows[0].payload_json["remoteHearingAccessInfo"] == access_info
+    assert "Istruzioni per acquisire il link udienza" in pec_rows[0].body
+
+
+def test_notifica_scadenza_automatica_usa_tenant_id_da_storage_manifest(tmp_path: Path) -> None:
+    from flask import Flask
+    import json
+
+    from pct.auth import GestioneUtenti
+    from pct.notifications import NotificationRepository
+    from web.services.pec_pipeline_runtime import notify_auto_deadlines_for_paths
+
+    paths = _paths(tmp_path)
+    paths["AUTH_DB"] = str(tmp_path / "auth" / "utenti.json")
+    paths["AUDIT_DB"] = str(tmp_path / "auth" / "audit.json")
+    paths["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
+    storage_config = tmp_path / "data" / "tenants" / "tenant-8bf98719c459" / "config" / "storage.json"
+    storage_config.parent.mkdir(parents=True, exist_ok=True)
+    storage_config.write_text(
+        json.dumps({"slug": "studio-montagnese"}),
+        encoding="utf-8",
+    )
+    (tmp_path / "data" / "tenants.json").write_text(
+        json.dumps(
+            {
+                "studio-montagnese": {
+                    "id": "tenant-local-studio-montagnese",
+                    "slug": "studio-montagnese",
+                    "storage_key": "tenant-8bf98719c459",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    paths["STORAGE_CONFIG"] = str(storage_config)
+    GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "auth" / "bootstrap_admin.json"),
+    )
+    user_id = first_user_id(paths)
+    jobs = [
+        {
+            "job_type": "link",
+            "message_id": "pec-msg-storage-tenant",
+            "result": {
+                "auto_deadline": {
+                    "ok": True,
+                    "deadline_id": "SCAD-STORAGE",
+                    "due_date": "2026-11-23",
+                    "agenda": {"agenda_id": "AG-STORAGE", "agenda_href": "/agenda/AG-STORAGE"},
+                    "remote_hearing": {
+                        "remote_hearing_detected": True,
+                        "remote_hearing_pdf_required": True,
+                    },
+                }
+            },
+        }
+    ]
+
+    app = Flask(__name__)
+    app.secret_key = "test-secret"
+    with app.app_context():
+        report = notify_auto_deadlines_for_paths(paths, tenant_label="studio-montagnese", jobs=jobs)
+
+    repo = NotificationRepository(paths["NOTIFICATIONS_DB"])
+    tenant_rows = repo.list_notifications("tenant-local-studio-montagnese", user_id, limit=10)
+    slug_rows = repo.list_notifications("studio-montagnese", user_id, limit=10)
+
+    assert report["created"] == 1
+    assert tenant_rows
+    assert tenant_rows[0].source_id == "SCAD-STORAGE"
+    assert slug_rows == []
+
+
 def test_presidio_automatico_invia_una_sola_push_quando_il_link_diventa_verificato(
     tmp_path: Path,
     monkeypatch,
@@ -391,9 +562,11 @@ def test_presidio_automatico_invia_una_sola_push_quando_il_link_diventa_verifica
 
     assert first["created"] >= 1
     assert second["duplicates"] >= 1
-    assert len(calls) == 1
-    assert calls[0]["remoteHearingUrl"] == link
-    assert calls[0]["remoteHearingVerified"] is True
+    assert len(calls) == 2
+    assert calls[0]["remoteHearingPdfRequired"] is True
+    assert calls[0]["remoteHearingUrl"] == ""
+    assert calls[1]["remoteHearingUrl"] == link
+    assert calls[1]["remoteHearingVerified"] is True
 
 
 def test_presidio_automatico_notifica_ogni_udienza_della_stessa_pec(tmp_path: Path) -> None:

@@ -443,14 +443,17 @@ def run_audit(*, registry: Path, tenant: str = "") -> dict[str, Any]:
     manager = GestioneTenant(str(registry))
     studios = [studio for studio in manager.lista() if _matches(studio.slug, tenant)]
     payload: dict[str, Any] = {"ok": True, "registry": str(registry), "studios": {}}
+    if not studios:
+        payload["ok"] = False
+        payload["errors"] = [
+            f"Studio non trovato: {tenant}" if tenant else "Nessuno studio attivo nel registry: audit PEC non eseguito."
+        ]
+        return payload
     for studio in studios:
         paths = manager.percorsi_dati(studio.slug, reconcile_aliases=False)
         studio_report = audit_studio(paths)
         payload["studios"][studio.slug] = studio_report
         payload["ok"] = bool(payload["ok"] and studio_report.get("ok"))
-    if tenant and not studios:
-        payload["ok"] = False
-        payload["errors"] = [f"Studio non trovato: {tenant}"]
     return payload
 
 

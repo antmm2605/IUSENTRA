@@ -2141,9 +2141,61 @@ def _extract_remote_hearing_times(text: str) -> list[str]:
     return values[:5]
 
 
+def _remote_hearing_link_acquisition_instructions(text: str) -> list[str]:
+    compact = clean_text(text, 12000)
+    lower = compact.casefold()
+    if "link" not in lower:
+        return []
+    if not any(token in lower for token in ("e-mail", "email", "telefono", "cellulare")):
+        return []
+    if not re.search(
+        r"\b(?:deposit\w+|comunic\w+|invi\w+|trasmett\w+)[^.]{0,420}\b(?:e-?mail|email|telefono|cellulare)[^.]{0,360}\blink",
+        compact,
+        flags=re.I,
+    ) and not re.search(
+        r"\b(?:ricevere|ottenere|acquisire)[^.]{0,140}\blink[^.]{0,320}\b(?:e-?mail|email|telefono|cellulare)",
+        compact,
+        flags=re.I,
+    ):
+        return []
+
+    date_label = ""
+    date_pattern = (
+        r"\bentro\s+(?:il\s+)?("
+        r"\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4}"
+        r"|\d{1,2}[./-]\d{1,2}[./-]\d{2,4}"
+        r")"
+    )
+    date_match = re.search(date_pattern, compact, flags=re.I)
+    if date_match:
+        parsed = parse_italian_date(date_match.group(1))
+        date_label = _date_label_it(parsed) if parsed else clean_text(date_match.group(1), 40)
+
+    required: list[str] = []
+    if re.search(r"\be-?mail\b|posta\s+elettronica|indirizzo\s+email", lower, flags=re.I):
+        required.append("indirizzo e-mail per ricevere il link")
+    if re.search(r"\btelefono\b|cellulare|numero\s+mobile", lower, flags=re.I):
+        required.append("numero di telefono mobile per eventuali difficoltà di collegamento")
+
+    details = " e ".join(required) if required else "recapiti richiesti dal provvedimento"
+    due = f" entro il {date_label}" if date_label else ""
+    return [
+        clean_text(
+            "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+            f"nel fascicolo telematico{due} con {details}.",
+            240,
+        )
+    ]
+
+
 def _extract_remote_hearing_access_lines(text: str) -> list[str]:
     values: list[str] = []
     seen: set[str] = set()
+    for instruction in _remote_hearing_link_acquisition_instructions(text):
+        normalised = instruction.lower()
+        if normalised not in seen:
+            seen.add(normalised)
+            values.append(instruction)
     for raw_line in re.split(r"[\r\n]+", text or ""):
         line = clean_text(raw_line, 240)
         if not line:
@@ -2334,6 +2386,11 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
         )
     )
     pdf_required = bool((remote_detected or (body_says_link_in_attachment and "udienza" in lower_all)) and pdf_attachments and not link_sources)
+    link_acquisition_required = bool(
+        access_lines
+        and any("istruzioni per acquisire il link udienza:" in line.casefold() for line in access_lines)
+        and not link_sources
+    )
     mode = ""
     if "audiovisiv" in lower_all:
         mode = "audiovisiva"
@@ -2347,7 +2404,11 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
     if remote_detected or pdf_required or link_sources:
         checklist.extend(
             [
-                "Leggere il PDF dell'udienza e verificare link, ora, stanza virtuale, ID riunione e codice di accesso.",
+                (
+                    "Presidiare l'acquisizione del link secondo le istruzioni estratte dal PDF dell'udienza."
+                    if link_acquisition_required
+                    else "Leggere il PDF dell'udienza e verificare link, ora, stanza virtuale, ID riunione e codice di accesso."
+                ),
                 "Inserire in agenda l'udienza con link di collegamento, orario in ora italiana e promemoria operativo.",
                 "Avvisare avvocato e cliente sulle modalità di collegamento e conservare il PDF come prova organizzativa.",
             ]
@@ -2360,8 +2421,11 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
             ]
         )
     if pdf_required:
-        warnings.append("Il messaggio richiama un'udienza remota o un collegamento, ma il link non è ancora stato estratto: leggere/OCR il PDF allegato.")
-        checklist.insert(0, "Aprire o acquisire con OCR il PDF allegato perché può contenere il link di collegamento all'udienza.")
+        if link_acquisition_required:
+            warnings.append("Il PDF non espone un collegamento audiovisivo già utilizzabile: presidiare l'acquisizione del link secondo le istruzioni estratte.")
+        else:
+            warnings.append("Il messaggio richiama un'udienza remota o un collegamento, ma il link non è ancora stato estratto: leggere/OCR il PDF allegato.")
+            checklist.insert(0, "Aprire o acquisire con OCR il PDF allegato perché può contenere il link di collegamento all'udienza.")
     if link_sources:
         checklist.append("Verificare il link estratto prima di comunicarlo o usarlo per l'accesso all'udienza.")
     unified_mode = _unified_hearing_mode(lower_all, remote_detected=bool(remote_detected or link_sources))
@@ -2387,6 +2451,7 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
         "pdf_sources": pdf_with_text,
         "pdf_pending": pdf_without_text,
         "pdf_required": pdf_required,
+        "link_acquisition_required": link_acquisition_required,
         "warnings": warnings,
         "checklist": list(dict.fromkeys(checklist)),
         "questions": list(dict.fromkeys(questions)),
@@ -2438,9 +2503,9 @@ def _remote_hearing_deadline_extra(report: dict[str, Any], proposal: dict[str, A
     first = links[0] if links else {}
     times = [clean_text(item, 80) for item in list(remote.get("times") or []) if clean_text(item, 80)]
     access_info = [
-        clean_text(item, 220)
+        clean_text(item, 600)
         for item in list(remote.get("access_info") or [])
-        if clean_text(item, 220)
+        if clean_text(item, 600)
     ]
     unified_mode = clean_text(remote.get("mode_unified") or "", 40)
     mode = clean_text(remote.get("mode") or ("da remoto" if remote.get("detected") else ""), 80)
@@ -2509,6 +2574,33 @@ def _merge_legal_hearing_understanding(
         if isinstance(merged_report.get("remote_hearing"), dict)
         else {}
     )
+    existing_access_info = [
+        clean_text(value, 260)
+        for value in list(remote.get("access_info") or [])
+        if clean_text(value, 260)
+    ]
+    understanding_access_info = [
+        value
+        for value in (
+            f"Piattaforma: {clean_text(hearing.get('platform') or '', 120)}"
+            if hearing.get("platform")
+            else "",
+            f"ID riunione: {clean_text(hearing.get('meeting_id') or '', 160)}"
+            if hearing.get("meeting_id")
+            else "",
+            f"Codice di accesso: {clean_text(hearing.get('passcode') or '', 160)}"
+            if hearing.get("passcode")
+            else "",
+        )
+        if value
+    ]
+    if any("istruzioni per acquisire il link udienza:" in line.casefold() for line in existing_access_info):
+        understanding_access_info = [
+            line
+            for line in understanding_access_info
+            if line.casefold().strip() not in {"piattaforma: altra", "piattaforma: da verificare"}
+        ]
+    access_info = list(dict.fromkeys([*existing_access_info, *understanding_access_info]))
     remote.update(
         {
             key: value
@@ -2528,21 +2620,7 @@ def _merge_legal_hearing_understanding(
                 "evidence": evidence,
                 "hearing_sources": [source] if source else [],
                 "times": [clean_text(hearing.get("time") or "", 40)] if hearing.get("time") else [],
-                "access_info": [
-                    value
-                    for value in (
-                        f"Piattaforma: {clean_text(hearing.get('platform') or '', 120)}"
-                        if hearing.get("platform")
-                        else "",
-                        f"ID riunione: {clean_text(hearing.get('meeting_id') or '', 160)}"
-                        if hearing.get("meeting_id")
-                        else "",
-                        f"Codice di accesso: {clean_text(hearing.get('passcode') or '', 160)}"
-                        if hearing.get("passcode")
-                        else "",
-                    )
-                    if value
-                ],
+                "access_info": access_info,
                 "links": [
                     {
                         "url": link,
@@ -2631,6 +2709,8 @@ def _merge_legal_hearing_understanding(
                 "times": [clean_text(candidate.get("time") or "", 40)]
                 if candidate.get("time")
                 else [],
+                "access_info": access_info,
+                "link_acquisition_required": remote.get("link_acquisition_required"),
                 "links": [
                     {
                         "url": candidate_link,
@@ -2673,8 +2753,100 @@ def _merge_legal_hearing_understanding(
     return merged_report
 
 
-def _remote_hearing_note_lines(report: dict[str, Any], proposal: dict[str, Any] | None = None) -> list[str]:
-    extra = _remote_hearing_deadline_extra(report, proposal)
+_GENERIC_REMOTE_HEARING_PLATFORMS = {"altra", "da verificare", "incerta", "sconosciuta"}
+
+
+def _remote_hearing_access_info_rank(value: Any) -> tuple[int, int]:
+    text = clean_text(value or "", 1600)
+    if not text:
+        return (0, 0)
+    lower = text.casefold().strip()
+    if "istruzioni per acquisire il link udienza" in lower:
+        return (5, len(text))
+    if "ricevere il link" in lower and (
+        "deposit" in lower
+        or "nota" in lower
+        or "e-mail" in lower
+        or "email" in lower
+        or "telefono" in lower
+    ):
+        return (4, len(text))
+    if "link udienza" in lower and "da acquisire" in lower:
+        return (3, len(text))
+    if lower.startswith("piattaforma:"):
+        generic_platforms = tuple(f"piattaforma: {platform}" for platform in _GENERIC_REMOTE_HEARING_PLATFORMS)
+        if lower in generic_platforms or (len(text) <= 80 and any(label in lower for label in ("altra", "verificare", "incerta", "sconosciuta"))):
+            return (0, len(text))
+        return (1, len(text))
+    return (2, len(text))
+
+
+def _remote_hearing_access_info_is_better(incoming: Any, current: Any) -> bool:
+    incoming_rank = _remote_hearing_access_info_rank(incoming)
+    if incoming_rank[0] <= 0:
+        return False
+    return incoming_rank > _remote_hearing_access_info_rank(current)
+
+
+def _remote_hearing_access_info_is_actionable(value: Any) -> bool:
+    return _remote_hearing_access_info_rank(value)[0] > 0
+
+
+_REMOTE_HEARING_PERSISTED_KEYS = (
+    "hearing_mode",
+    "hearing_mode_source",
+    "hearing_time",
+    "remote_hearing_detected",
+    "remote_hearing_mode",
+    "remote_hearing_url",
+    "remote_hearing_source",
+    "remote_hearing_verified",
+    "remote_hearing_integrity",
+    "remote_hearing_time",
+    "remote_hearing_platform",
+    "remote_hearing_meeting_id",
+    "remote_hearing_passcode",
+    "remote_hearing_access_info",
+    "remote_hearing_evidence_json",
+    "remote_hearing_pdf_required",
+)
+_REMOTE_HEARING_BOOL_KEYS = {
+    "remote_hearing_detected",
+    "remote_hearing_verified",
+    "remote_hearing_pdf_required",
+}
+_REMOTE_HEARING_LIMITS = {
+    "remote_hearing_url": 1200,
+    "remote_hearing_source": 500,
+    "remote_hearing_access_info": 1600,
+    "remote_hearing_evidence_json": 4000,
+}
+
+
+def _remote_hearing_extra_from_persisted_item(
+    item: Any,
+    fallback: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = dict(fallback or {})
+    for key in _REMOTE_HEARING_PERSISTED_KEYS:
+        value = getattr(item, key, None)
+        if key in _REMOTE_HEARING_BOOL_KEYS:
+            payload[key] = bool(value)
+            continue
+        limit = _REMOTE_HEARING_LIMITS.get(key, 240)
+        payload[key] = clean_text(value or "", limit)
+    if not payload.get("remote_hearing_evidence_json"):
+        payload["remote_hearing_evidence_json"] = "[]"
+    return payload
+
+
+def _remote_hearing_note_lines(
+    report: dict[str, Any],
+    proposal: dict[str, Any] | None = None,
+    *,
+    extra: dict[str, Any] | None = None,
+) -> list[str]:
+    extra = dict(extra) if isinstance(extra, dict) else _remote_hearing_deadline_extra(report, proposal)
     hearing_mode = clean_text(extra.get("hearing_mode") or "", 40)
     if not extra.get("remote_hearing_detected") and not hearing_mode:
         return []
@@ -2707,7 +2879,7 @@ def _remote_hearing_note_lines(report: dict[str, Any], proposal: dict[str, Any] 
         )
     elif extra.get("remote_hearing_pdf_required"):
         lines.append("Link udienza audiovisiva: da acquisire dal PDF allegato.")
-    if extra.get("remote_hearing_access_info"):
+    if extra.get("remote_hearing_access_info") and _remote_hearing_access_info_is_actionable(extra["remote_hearing_access_info"]):
         lines.append(f"Istruzioni accesso udienza: {clean_text(extra['remote_hearing_access_info'], 400)}")
     return lines
 
@@ -2794,6 +2966,7 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
     current_mode_source = str(getattr(existing, "hearing_mode_source", "") or "").strip()
     current_hearing_time = str(getattr(existing, "hearing_time", "") or "").strip()
     current_note = str(getattr(existing, "note", "") or "")
+    current_access_info = clean_text(getattr(existing, "remote_hearing_access_info", "") or "", 1600)
 
     # L'assenza di evidenza nel candidato corrente non deve cancellare una
     # modalita' gia' consolidata da un altro passaggio dello stesso documento.
@@ -2903,6 +3076,38 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
         )[0]
     )
     incoming_url_verified = bool(extra.get("remote_hearing_verified"))
+    incoming_access_info = clean_text(extra.get("remote_hearing_access_info") or "", 1600)
+    stale_generic_access_note = bool(
+        current_access_info
+        and _remote_hearing_access_info_is_actionable(current_access_info)
+        and re.search(
+            r"Istruzioni accesso udienza:\s*Piattaforma:\s*(?:altra|da verificare|incerta|sconosciuta)\b",
+            current_note,
+            flags=re.I,
+        )
+    )
+    if incoming_access_info and not _remote_hearing_access_info_is_actionable(incoming_access_info):
+        incoming_access_info = ""
+        extra["remote_hearing_access_info"] = (
+            current_access_info
+            if _remote_hearing_access_info_is_actionable(current_access_info)
+            else ""
+        )
+        note_lines[:] = [line for line in note_lines if not line.startswith("Istruzioni accesso udienza:")]
+        if extra["remote_hearing_access_info"]:
+            note_lines.append(
+                f"Istruzioni accesso udienza: {clean_text(extra['remote_hearing_access_info'], 400)}"
+            )
+    elif incoming_access_info and current_access_info and not _remote_hearing_access_info_is_better(
+        incoming_access_info,
+        current_access_info,
+    ):
+        extra["remote_hearing_access_info"] = current_access_info
+        _replace_note_line(
+            ("Istruzioni accesso udienza:",),
+            f"Istruzioni accesso udienza: {clean_text(current_access_info, 400)}",
+        )
+        incoming_access_info = ""
     adopt_incoming_link = bool(
         incoming_url_valid
         and (
@@ -2953,6 +3158,42 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
                 "remote_hearing_integrity": "",
             }
         )
+    elif not current_url_valid:
+        incoming_platform = clean_text(extra.get("remote_hearing_platform") or "", 120)
+        if (
+            _remote_hearing_access_info_is_actionable(extra.get("remote_hearing_access_info"))
+            and incoming_platform.casefold() in _GENERIC_REMOTE_HEARING_PLATFORMS
+        ):
+            incoming_platform = ""
+        incoming_remote_values = {
+            "remote_hearing_detected": bool(extra.get("remote_hearing_detected")),
+            "remote_hearing_mode": clean_text(extra.get("remote_hearing_mode") or "", 80),
+            "remote_hearing_time": clean_text(extra.get("remote_hearing_time") or "", 80),
+            "remote_hearing_platform": incoming_platform,
+            "remote_hearing_meeting_id": clean_text(extra.get("remote_hearing_meeting_id") or "", 160),
+            "remote_hearing_passcode": clean_text(extra.get("remote_hearing_passcode") or "", 160),
+            "remote_hearing_evidence_json": extra.get("remote_hearing_evidence_json") or "[]",
+            "remote_hearing_pdf_required": bool(extra.get("remote_hearing_pdf_required")),
+        }
+        for key, value in incoming_remote_values.items():
+            current_value = getattr(existing, key, False if isinstance(value, bool) else "")
+            if isinstance(value, bool):
+                if value and not bool(current_value):
+                    updates[key] = value
+                continue
+            if value in ("", "[]"):
+                continue
+            if not str(current_value or "").strip() or str(current_value) != str(value):
+                updates[key] = value
+        if (
+            not incoming_platform
+            and _remote_hearing_access_info_is_actionable(extra.get("remote_hearing_access_info"))
+            and str(getattr(existing, "remote_hearing_platform", "") or "").strip().casefold()
+            in _GENERIC_REMOTE_HEARING_PLATFORMS
+        ):
+            updates["remote_hearing_platform"] = ""
+    if incoming_access_info and _remote_hearing_access_info_is_better(incoming_access_info, current_access_info):
+        updates["remote_hearing_access_info"] = incoming_access_info
     for key, value in extra.items():
         if key in remote_link_keys:
             continue
@@ -2982,7 +3223,17 @@ def _remote_hearing_updates_for_existing(existing: Any, extra: dict[str, Any], n
             cleaned_lines.append(line)
         current_note = "\n".join(cleaned_lines).strip()
         updates["note"] = current_note
-    if extra.get("remote_hearing_url"):
+    rebuild_no_link_note = bool(
+        not extra.get("remote_hearing_url")
+        and (
+            (
+                incoming_access_info
+                and _remote_hearing_access_info_is_better(incoming_access_info, current_access_info)
+            )
+            or stale_generic_access_note
+        )
+    )
+    if extra.get("remote_hearing_url") or rebuild_no_link_note:
         cleaned_note = _strip_remote_note_lines(current_note)
         rebuilt_note = "\n".join(part for part in (cleaned_note, *note_lines) if part).strip()
         if rebuilt_note != current_note.strip():
@@ -3416,7 +3667,7 @@ def classify_attachment(item: AttachmentPayload, message_context: str = "") -> t
 
 
 _ZIP_ATTACHMENT_TYPES = {"application/zip", "application/x-zip-compressed"}
-PEC_ATTACHMENT_EXTRACTION_VERSION = "2026-07-15-zip-pdf-links-v1"
+PEC_ATTACHMENT_EXTRACTION_VERSION = "2026-08-04-pdf-links-and-acquisition-v2"
 
 
 def _is_zip_attachment(filename: str, content_type: str = "") -> bool:
@@ -3535,7 +3786,7 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
                 text = estrai_testo(item.data, name)
             except Exception:
                 text = ""
-        if lower.endswith(".pdf") and text:
+        if lower.endswith(".pdf"):
             text = _append_pdf_uri_links(text, item.data)
     elif is_zip:
         allow_binary_fallback = False
@@ -11943,8 +12194,60 @@ class PecAuditRepository:
             agenda = self._agenda_manager()
             event_uid = f"PEC_AUDIT:{message_id}:deadline"
             source_url = f"/api/pec/messages/{source_message_id or message_id}"
-            remote_lines = _remote_hearing_note_lines(report, proposal)
             remote_extra = _remote_hearing_deadline_extra(report, proposal)
+            if deadline_id and self.scadenziario_db_path:
+                try:
+                    linked_deadline = self._scadenziario_manager().get(deadline_id)
+                except Exception:
+                    linked_deadline = None
+                if linked_deadline is not None:
+                    deadline_url = clean_text(getattr(linked_deadline, "remote_hearing_url", "") or "", 1000)
+                    deadline_url_verified = bool(getattr(linked_deadline, "remote_hearing_verified", False))
+                    incoming_url = clean_text(remote_extra.get("remote_hearing_url") or "", 1000)
+                    incoming_url_verified = bool(remote_extra.get("remote_hearing_verified"))
+                    if deadline_url and deadline_url_verified and (not incoming_url or not incoming_url_verified):
+                        remote_extra.update(
+                            {
+                                "remote_hearing_detected": True,
+                                "remote_hearing_mode": clean_text(getattr(linked_deadline, "remote_hearing_mode", "") or "", 80),
+                                "remote_hearing_url": deadline_url,
+                                "remote_hearing_source": clean_text(getattr(linked_deadline, "remote_hearing_source", "") or "", 240),
+                                "remote_hearing_verified": True,
+                                "remote_hearing_integrity": clean_text(getattr(linked_deadline, "remote_hearing_integrity", "") or "", 80),
+                                "remote_hearing_time": clean_text(getattr(linked_deadline, "remote_hearing_time", "") or "", 80),
+                                "remote_hearing_platform": clean_text(getattr(linked_deadline, "remote_hearing_platform", "") or "", 120),
+                                "remote_hearing_meeting_id": clean_text(getattr(linked_deadline, "remote_hearing_meeting_id", "") or "", 160),
+                                "remote_hearing_passcode": clean_text(getattr(linked_deadline, "remote_hearing_passcode", "") or "", 160),
+                                "remote_hearing_access_info": clean_text(getattr(linked_deadline, "remote_hearing_access_info", "") or "", 1600),
+                                "remote_hearing_evidence_json": getattr(linked_deadline, "remote_hearing_evidence_json", "") or "[]",
+                                "remote_hearing_pdf_required": False,
+                            }
+                        )
+                    deadline_access_info = clean_text(getattr(linked_deadline, "remote_hearing_access_info", "") or "", 1600)
+                    incoming_access_info = clean_text(remote_extra.get("remote_hearing_access_info") or "", 1600)
+                    if deadline_access_info and _remote_hearing_access_info_is_better(deadline_access_info, incoming_access_info):
+                        remote_extra["remote_hearing_access_info"] = deadline_access_info
+                        remote_extra["remote_hearing_pdf_required"] = bool(
+                            getattr(linked_deadline, "remote_hearing_pdf_required", remote_extra.get("remote_hearing_pdf_required"))
+                        )
+                        if getattr(linked_deadline, "remote_hearing_detected", False):
+                            remote_extra["remote_hearing_detected"] = True
+                        for key in ("hearing_mode", "hearing_mode_source", "hearing_time"):
+                            linked_value = clean_text(getattr(linked_deadline, key, "") or "", 240)
+                            if linked_value:
+                                remote_extra[key] = linked_value
+                        for key in (
+                            "remote_hearing_mode",
+                            "remote_hearing_time",
+                            "remote_hearing_platform",
+                            "remote_hearing_meeting_id",
+                            "remote_hearing_passcode",
+                            "remote_hearing_evidence_json",
+                        ):
+                            linked_value = getattr(linked_deadline, key, "") or ""
+                            if linked_value not in ("", "[]", None):
+                                remote_extra[key] = linked_value
+            remote_lines = _remote_hearing_note_lines(report, proposal, extra=remote_extra)
             profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
             remote_hearing_payload = report.get("remote_hearing") if isinstance(report.get("remote_hearing"), dict) else {}
             operational_message = _procedural_operational_message(profile, remote_hearing_payload)
@@ -12061,6 +12364,37 @@ class PecAuditRepository:
                         for key in tuple(agenda_updates):
                             if key.startswith("remote_hearing_"):
                                 agenda_updates.pop(key, None)
+                    current_access_info = clean_text(
+                        getattr(appuntamento, "remote_hearing_access_info", "") or "",
+                        1600,
+                    )
+                    incoming_access_info = clean_text(
+                        agenda_updates.get("remote_hearing_access_info") or "",
+                        1600,
+                    )
+                    if incoming_access_info:
+                        if not _remote_hearing_access_info_is_actionable(incoming_access_info) or (
+                            current_access_info
+                            and not _remote_hearing_access_info_is_better(incoming_access_info, current_access_info)
+                        ):
+                            agenda_updates.pop("remote_hearing_access_info", None)
+                    effective_access_info = clean_text(
+                        agenda_updates.get("remote_hearing_access_info") or current_access_info,
+                        1600,
+                    )
+                    if _remote_hearing_access_info_is_actionable(effective_access_info):
+                        incoming_platform = clean_text(
+                            agenda_updates.get("remote_hearing_platform") or "",
+                            120,
+                        )
+                        current_platform = clean_text(
+                            getattr(appuntamento, "remote_hearing_platform", "") or "",
+                            120,
+                        )
+                        if incoming_platform.casefold() in _GENERIC_REMOTE_HEARING_PLATFORMS:
+                            agenda_updates.pop("remote_hearing_platform", None)
+                        if current_platform.casefold() in _GENERIC_REMOTE_HEARING_PLATFORMS:
+                            agenda_updates["remote_hearing_platform"] = ""
                     if agenda_id and agenda_updates:
                         try:
                             appuntamento = agenda.modifica(agenda_id, **agenda_updates)
@@ -13343,7 +13677,7 @@ class PecAuditRepository:
                 """
                 SELECT * FROM pec_local_acquire_items
                 WHERE tenant_id=?
-                ORDER BY updated_at DESC
+                ORDER BY updated_at DESC, rowid DESC
                 LIMIT ?
                 """,
                 (self.tenant_id, max(1, int(limit or 10000))),
@@ -13680,7 +14014,7 @@ class PecAuditRepository:
                     "calendar_sync": calendar_sync,
                     "already_exists": True,
                     "proposal": proposal,
-                    "remote_hearing": remote_extra,
+                    "remote_hearing": _remote_hearing_extra_from_persisted_item(existing, remote_extra),
                     "reconciliation": reconciliation,
                     "scheduled_message_id": message_id,
                     "source_message_id": _source_message_id or message_id,
@@ -13770,7 +14104,7 @@ class PecAuditRepository:
             "agenda": agenda,
             "calendar_sync": calendar_sync,
             "proposal": proposal,
-            "remote_hearing": remote_extra,
+            "remote_hearing": _remote_hearing_extra_from_persisted_item(scadenza, remote_extra),
             "reconciliation": reconciliation,
             "scheduled_message_id": message_id,
             "source_message_id": _source_message_id or message_id,

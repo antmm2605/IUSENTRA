@@ -54,6 +54,12 @@ GENERIC_PEC_SOURCE_LABELS = {
     "href pec",
     "pec",
 }
+GENERIC_REMOTE_HEARING_PLATFORMS = {
+    "altra",
+    "da verificare",
+    "incerta",
+    "sconosciuta",
+}
 DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS = {
     "atto_di_parte_non_genera_adempimento_automatico": "atto di parte: non genera un adempimento automatico",
     "periodo_descrittivo_o_contrattuale_non_e_termino_processuale": "periodo descrittivo o contrattuale, non termine processuale",
@@ -111,6 +117,14 @@ def _safe_items(loader: Callable[[], Iterable[Any]]) -> list[Any]:
 def _clean_text(value: Any, *, limit: int = 360) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     return text[:limit]
+
+
+def _remote_hearing_platform_for_ui(item: Any) -> str:
+    platform = _clean_text(getattr(item, "remote_hearing_platform", "") or "", limit=120)
+    access_info = _clean_text(getattr(item, "remote_hearing_access_info", "") or "", limit=1600)
+    if access_info and platform.casefold() in GENERIC_REMOTE_HEARING_PLATFORMS:
+        return ""
+    return platform
 
 
 def _is_generic_pec_source_label(value: Any) -> bool:
@@ -988,7 +1002,7 @@ def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) ->
         "remoteHearingMode": str(getattr(item, "remote_hearing_mode", "") or ""),
         "remoteHearingSource": str(getattr(item, "remote_hearing_source", "") or ""),
         "remoteHearingVerified": bool(getattr(item, "remote_hearing_verified", False)),
-        "remoteHearingPlatform": str(getattr(item, "remote_hearing_platform", "") or ""),
+        "remoteHearingPlatform": _remote_hearing_platform_for_ui(item),
         "remoteHearingMeetingId": str(getattr(item, "remote_hearing_meeting_id", "") or ""),
         "remoteHearingPasscode": str(getattr(item, "remote_hearing_passcode", "") or ""),
         "remoteHearingAccessInfo": str(getattr(item, "remote_hearing_access_info", "") or ""),
@@ -1172,7 +1186,7 @@ def _deadline_event(
         "remoteHearingDetected": bool(getattr(item, "remote_hearing_detected", False)),
         "remoteHearingSource": str(getattr(item, "remote_hearing_source", "") or ""),
         "remoteHearingVerified": bool(getattr(item, "remote_hearing_verified", False)),
-        "remoteHearingPlatform": str(getattr(item, "remote_hearing_platform", "") or ""),
+        "remoteHearingPlatform": _remote_hearing_platform_for_ui(item),
         "remoteHearingMeetingId": str(getattr(item, "remote_hearing_meeting_id", "") or ""),
         "remoteHearingPasscode": str(getattr(item, "remote_hearing_passcode", "") or ""),
         "remoteHearingAccessInfo": str(getattr(item, "remote_hearing_access_info", "") or ""),

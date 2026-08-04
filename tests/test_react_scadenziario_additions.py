@@ -238,6 +238,10 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Apri link udienza audiovisiva" in page_source
     assert "Allegato udienza:" in page_source
     assert "Link verificato sull’allegato" in page_source
+    assert "<th>Azioni</th>" not in page_source
+    assert 'className="iu-scad-type-cell"' in page_source
+    assert page_source.index('<Badge tone="neutral">{item.typeLabel}</Badge>') < page_source.index("<DeadlineActions item={item} onComplete={onComplete} onDelete={onDelete}/>")
+    assert ".iu-scad-type-cell .iu-scad-actions" in css
     assert "SourceEvidenceLink" in page_source
     assert "Apri fonte" in page_source
     assert "SourceDocumentModal" in page_source
@@ -1006,6 +1010,44 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["sourceLabel"] == "PEC originale - 13744017s.pdf.zip"
     assert row["sourceKind"] == "pec"
     assert row["sourceVerified"] is True
+
+
+def test_react_scadenziario_bridge_espone_istruzioni_pdf_senza_piattaforma_generica(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per ricevere "
+        "il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Fissazione udienza - 23/11/2026 - RG 393/2026",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=111)).isoformat(),
+            descrizione="Udienza con strumenti audiovisivi e link da acquisire dal PDF.",
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            note=(
+                "PEC_AUDIT:msg-pdf\n"
+                "Link udienza audiovisiva: da acquisire dal PDF allegato.\n"
+                f"Istruzioni accesso udienza: {access_info}"
+            ),
+            remote_hearing_detected=True,
+            remote_hearing_mode="mista",
+            remote_hearing_platform="altra",
+            remote_hearing_access_info=access_info,
+            remote_hearing_pdf_required=True,
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=pec", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["remoteHearingPdfRequired"] is True
+    assert row["remoteHearingAccessInfo"] == access_info
+    assert row["remoteHearingPlatform"] == ""
 
 
 def test_react_scadenziario_bridge_espone_modalita_udienza_in_presenza(tmp_path: Path):

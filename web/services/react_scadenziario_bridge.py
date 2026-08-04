@@ -918,6 +918,7 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
     mode = str(getattr(scadenza, "remote_hearing_mode", "") or "").strip()
     time_value = str(getattr(scadenza, "remote_hearing_time", "") or "").strip()
     access_info = str(getattr(scadenza, "remote_hearing_access_info", "") or "").strip()
+    platform = str(getattr(scadenza, "remote_hearing_platform", "") or "").strip()
     pdf_required = bool(getattr(scadenza, "remote_hearing_pdf_required", False))
     detected = bool(getattr(scadenza, "remote_hearing_detected", False))
     if not url:
@@ -956,6 +957,8 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
         verified = True
     if url and not verified:
         url = ""
+    if platform.casefold() in {"altra", "da verificare", "incerta", "sconosciuta"} and access_info:
+        platform = ""
     hearing_mode_label = {
         "presenza": "In presenza",
         "remoto": "Da remoto",
@@ -978,10 +981,7 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
         "remoteHearingVerified": verified,
         "remoteHearingIntegrity": str(getattr(scadenza, "remote_hearing_integrity", "") or ""),
         "remoteHearingTime": _short_text(time_value, 80),
-        "remoteHearingPlatform": _short_text(
-            getattr(scadenza, "remote_hearing_platform", ""),
-            120,
-        ),
+        "remoteHearingPlatform": _short_text(platform, 120),
         "remoteHearingMeetingId": _short_text(
             getattr(scadenza, "remote_hearing_meeting_id", ""),
             160,
@@ -990,7 +990,7 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
             getattr(scadenza, "remote_hearing_passcode", ""),
             160,
         ),
-        "remoteHearingAccessInfo": _short_text(access_info, 220),
+        "remoteHearingAccessInfo": _short_text(access_info, 600),
         "remoteHearingPdfRequired": pdf_required and not bool(url),
     }
 

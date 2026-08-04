@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from inspect import signature
+from pathlib import Path
 from types import SimpleNamespace
 
 from pct.pec_control_tower import PecControlTowerRepository
 from pct.pec_pipeline import PecAuditRepository
+from pct.tenant import GestioneTenant
 from scripts.audit_pec_operational_chain import _email_relevant_for_pec, _report_has_127_false_remote
+from scripts.audit_pec_operational_chain import run_audit as run_pec_operational_audit
 from scripts.presidia_pec_local_archive import _email_relevant_for_pec as archive_email_relevant_for_pec
 from scripts.presidia_pec_local_archive import presidia_studio
 from web.services.pec_source_links import (
@@ -56,6 +60,58 @@ def test_remote_127_audit_ignores_written_hearing_and_detects_decisory_misclassi
 
 def test_full_control_tower_backfill_is_opt_in_for_ordinary_pec_presidio() -> None:
     assert signature(presidia_studio).parameters["control_tower_backfill"].default is False
+
+
+def test_tenant_registry_mancante_viene_recuperato_da_storage_sqlite(tmp_path: Path) -> None:
+    tenant_root = tmp_path / "tenants" / "tenant-8bf98719c459"
+    (tenant_root / "config").mkdir(parents=True)
+    sqlite3.connect(tenant_root / "studio.db").close()
+    (tenant_root / "config" / "storage.json").write_text(
+        json.dumps(
+            {
+                "slug": "studio-montagnese",
+                "selected_mode": "SQLITE",
+                "connessione_ok": True,
+                "core_runtime_enabled": True,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (tenant_root / "config" / "studio.json").write_text(
+        json.dumps(
+            {
+                "studio": {
+                    "nome": "Studio Legale Montagnese",
+                    "avvocato": "Avv. Giuseppe Montagnese",
+                    "email": "studio@example.test",
+                },
+                "pec": {"indirizzo": "studio@pec.example.test"},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    manager = GestioneTenant(str(tmp_path / "tenants.json"))
+    studi = manager.lista()
+
+    assert (tmp_path / "tenants.json").exists()
+    assert [studio.slug for studio in studi] == ["studio-montagnese"]
+    assert studi[0].id == "tenant-local-studio-montagnese"
+    assert studi[0].storage_key == "tenant-8bf98719c459"
+    assert studi[0].db_mode == "SQLITE"
+    assert "pec" in studi[0].moduli_attivi
+    studio_db = manager.percorsi_dati("studio-montagnese", reconcile_aliases=False)["STUDIO_DB"].replace("\\", "/")
+    assert studio_db.endswith("tenant-8bf98719c459/studio.db")
+
+
+def test_audit_catena_pec_non_torna_verde_senza_studi(tmp_path: Path) -> None:
+    result = run_pec_operational_audit(registry=tmp_path / "tenants.json")
+
+    assert result["ok"] is False
+    assert result["studios"] == {}
+    assert "Nessuno studio attivo" in result["errors"][0]
 
 
 def _insert_control_tower_source(

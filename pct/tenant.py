@@ -678,14 +678,97 @@ class GestioneTenant:
         if self._cache is not None:
             return self._cache
         if not self.registry_path.exists():
+            recovered = self._recover_registry_from_storage_dirs()
+            if recovered:
+                self._salva(recovered)
+                self._cache = recovered
+                return self._cache
             self._cache = {}
             return self._cache
         try:
             raw = json.loads(self.registry_path.read_text(encoding="utf-8"))
             self._cache = {slug: StudioLegale.from_dict(v) for slug, v in raw.items()}
         except Exception:
+            recovered = self._recover_registry_from_storage_dirs()
+            if recovered:
+                self._salva(recovered)
+                self._cache = recovered
+                return self._cache
             self._cache = {}
         return self._cache
+
+    @staticmethod
+    def _read_json_file(path: Path) -> dict[str, Any]:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    def _recover_registry_from_storage_dirs(self) -> Dict[str, StudioLegale]:
+        """Ricostruisce un registry minimale da tenant già presenti su disco.
+
+        Il worker scheduler usa il registry per trovare i target dei presidi.
+        Se `tenants.json` manca ma esistono directory tenant con `storage.json`
+        e `studio.db`, non bisogna ripiegare sul root `/data`: quello è il modo
+        in cui PEC, Agenda, Scadenziario e notifiche sembrano funzionare ma
+        lavorano su archivi vuoti. Il recupero resta stretto e tenant-aware.
+        """
+
+        tenants_dir = self.registry_path.parent / "tenants"
+        if not tenants_dir.exists() or not tenants_dir.is_dir():
+            return {}
+        recovered: Dict[str, StudioLegale] = {}
+        for tenant_root in sorted(path for path in tenants_dir.iterdir() if path.is_dir()):
+            storage_path = tenant_root / "config" / "storage.json"
+            studio_db_path = tenant_root / "studio.db"
+            if not storage_path.exists() or not studio_db_path.exists():
+                continue
+            storage = self._read_json_file(storage_path)
+            slug = self._normalizza_slug(str(storage.get("slug") or tenant_root.name))
+            if not slug:
+                continue
+            studio_config = self._read_json_file(tenant_root / "config" / "studio.json")
+            studio = studio_config.get("studio") if isinstance(studio_config.get("studio"), dict) else {}
+            pec = studio_config.get("pec") if isinstance(studio_config.get("pec"), dict) else {}
+            nome = str(studio.get("nome") or slug).strip()
+            mode = normalize_db_mode(storage.get("selected_mode") or storage.get("runtime_kind") or DbMode.SQLITE)
+            recovered[slug] = StudioLegale(
+                id=str(storage.get("tenant_id") or storage.get("id") or f"tenant-local-{slug}").strip(),
+                storage_key=tenant_root.name,
+                slug=slug,
+                nome=nome,
+                piva=str(studio.get("piva") or "").strip(),
+                cf=str(studio.get("cf") or studio.get("codice_fiscale_avvocato") or "").strip(),
+                indirizzo=" ".join(
+                    part
+                    for part in (
+                        str(studio.get("indirizzo") or "").strip(),
+                        str(studio.get("cap") or "").strip(),
+                        str(studio.get("city") or "").strip(),
+                        str(studio.get("province") or "").strip(),
+                    )
+                    if part
+                ),
+                telefono=str(studio.get("telefono") or "").strip(),
+                email=str(studio.get("email") or "").strip(),
+                pec=str(pec.get("indirizzo") or "").strip(),
+                avvocato_ref=str(studio.get("avvocato") or "").strip(),
+                piano=PianoTenant.ENTERPRISE,
+                stato=StatoTenant.ATTIVO,
+                data_attivazione=datetime.now().isoformat(),
+                moduli_override=list(MODULI_DISPONIBILI.keys()),
+                db_config=DatabaseConfig(
+                    mode=mode,
+                    connessione_ok=bool(storage.get("connessione_ok", True)),
+                    core_runtime_enabled=bool(storage.get("core_runtime_enabled", mode == DbMode.SQLITE)),
+                    ultimo_test=str(storage.get("ultimo_test") or ""),
+                    errore_connessione=str(storage.get("errore_connessione") or ""),
+                    last_migration_report=str(storage.get("last_migration_report") or ""),
+                    last_migration_at=str(storage.get("last_migration_at") or ""),
+                ).to_dict(),
+            )
+        return recovered
 
     def _salva(self, studi: Dict[str, StudioLegale]) -> None:
         self._cache = studi

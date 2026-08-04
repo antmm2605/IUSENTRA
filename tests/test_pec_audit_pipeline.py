@@ -37,6 +37,7 @@ from pct.pec_pipeline import (
     _document_presidio_warning_source,
     _remote_hearing_deadline_extra,
     _remote_hearing_for_procedural_candidate,
+    _merge_legal_hearing_understanding,
     _remote_hearing_note_lines,
     _remote_hearing_updates_for_existing,
     build_remote_hearing_profile,
@@ -289,6 +290,37 @@ def _zip_pdf_with_clickable_room_link(link: str) -> bytes:
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as archive:
         archive.writestr("20200029s.pdf", pdf_buffer.getvalue())
+    return zip_buffer.getvalue()
+
+
+def _pdf_with_clickable_room_link(link: str) -> bytes:
+    from reportlab.pdfgen import canvas
+
+    pdf_buffer = BytesIO()
+    pdf = canvas.Canvas(pdf_buffer)
+    pdf.drawString(72, 760, "Udienza con strumenti audiovisivi ore 11:00")
+    pdf.drawString(72, 740, "Collegamento alla stanza virtuale")
+    pdf.linkURL(link, (72, 734, 410, 752), relative=0)
+    pdf.save()
+    return pdf_buffer.getvalue()
+
+
+def _zip_pdf_with_link_acquisition_instruction() -> bytes:
+    from reportlab.pdfgen import canvas
+
+    pdf_buffer = BytesIO()
+    pdf = canvas.Canvas(pdf_buffer)
+    pdf.drawString(72, 760, "TRIBUNALE DI PALMI - Ufficio del Giudice tutelare")
+    pdf.drawString(72, 740, "fissa per il giuramento l'udienza del 23 Novembre 2026, ore 15:00;")
+    pdf.drawString(72, 720, "dispone che tale udienza si svolga mediante collegamenti audiovisivi a distanza;")
+    pdf.drawString(72, 700, "che il tutore legale depositi nel fascicolo telematico, entro il 5 Novembre 2026,")
+    pdf.drawString(72, 680, "una nota contenente:")
+    pdf.drawString(72, 660, "- un indirizzo e-mail presso cui intenda ricevere il link per partecipare all'udienza;")
+    pdf.drawString(72, 640, "- un numero di telefono mobile al quale possa essere chiamato ove insorgessero difficolta di collegamento;")
+    pdf.save()
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as archive:
+        archive.writestr("2141414s.pdf", pdf_buffer.getvalue())
     return zip_buffer.getvalue()
 
 
@@ -1358,6 +1390,23 @@ def test_extract_text_with_coverage_reads_clickable_pdf_link_inside_zip():
     assert exact_link in text
 
 
+def test_extract_text_with_coverage_reads_clickable_pdf_link_when_ocr_is_empty(monkeypatch):
+    exact_link = "https://teams.microsoft.com/l/meetup-join/palmi-393?context=%7B%22Tid%22%3A%22abc%22%7D"
+    monkeypatch.setattr("pct.ocr.estrai_testo", lambda *_args, **_kwargs: "")
+
+    text, coverage = extract_text_with_coverage(
+        AttachmentPayload(
+            index=1,
+            filename="decreto-udienza.pdf",
+            content_type="application/pdf",
+            data=_pdf_with_clickable_room_link(exact_link),
+        )
+    )
+
+    assert coverage > 0
+    assert f"Link PDF cliccabile: {exact_link}" in text
+
+
 def test_extract_text_with_coverage_skips_pcten_mislabeled_pdf():
     text, coverage = extract_text_with_coverage(
         AttachmentPayload(
@@ -1653,6 +1702,149 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
+
+
+def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario_and_agenda(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    msg = EmailMessage()
+    msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 393/2026/VG"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Mon, 6 Jul 2026 09:02:48 +0200"
+    msg["Message-ID"] = "<udienza-link-da-acquisire@example.test>"
+    msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Istruzioni nel PDF allegato.")
+    msg.add_attachment(
+        """
+        <Comunicazione>
+          <NumeroRuolo>393/2026/VG</NumeroRuolo>
+          <Oggetto>NOMINA TUTORE DEFINITIVO FISSAZIONE UDIENZA DI GIURAMENTO</Oggetto>
+          <Contenuto><![CDATA[
+          Descrizione: NOMINATO TUTORE DEFINITIVO E FISSATA UDIENZA IL 23/11/2026 15:00 con strumenti audiovisivi
+          ]]></Contenuto>
+        </Comunicazione>
+        """.encode("utf-8"),
+        maintype="application",
+        subtype="xml",
+        filename="Comunicazione.xml",
+    )
+    msg.add_attachment(
+        _zip_pdf_with_link_acquisition_instruction(),
+        maintype="application",
+        subtype="zip",
+        filename="2141414s.pdf.zip",
+    )
+
+    ingest = repo.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="uid-link-da-acquisire")
+    repo.run_pending_jobs(limit=30, actor="pytest")
+    detail = repo.get_message_detail(ingest["id"])
+    remote = detail["validation_report"]["procedural_profile"]["remote_hearing"]
+    scheduled = repo.schedule_deadline(ingest["id"], actor="pytest")
+
+    assert remote["link_acquisition_required"] is True
+    assert remote["pdf_required"] is True
+    assert remote.get("links", []) == []
+    assert "05/11/2026" in remote["access_info"][0]
+    assert "indirizzo e-mail" in remote["access_info"][0]
+    assert "numero di telefono mobile" in remote["access_info"][0]
+    assert scheduled["ok"] is True
+    assert "Istruzioni per acquisire il link udienza" in scheduled["remote_hearing"]["remote_hearing_access_info"]
+    assert scheduled["remote_hearing"]["remote_hearing_platform"] == ""
+    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].remote_hearing_url == ""
+    assert scadenze[0].remote_hearing_pdf_required is True
+    assert "Istruzioni per acquisire il link udienza" in scadenze[0].remote_hearing_access_info
+    assert "Istruzioni accesso udienza: Istruzioni per acquisire il link udienza" in scadenze[0].note
+    agenda_items = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_items) == 1
+    assert agenda_items[0].remote_hearing_pdf_required is True
+    assert "Istruzioni per acquisire il link udienza" in agenda_items[0].remote_hearing_access_info
+    assert agenda_items[0].remote_hearing_platform == ""
+
+    generic_report = {
+        "event_type": "fissazione_udienza",
+        "procedural_profile": {
+            "numero_rg": "393/2026",
+            "ufficio": "Tribunale di Palmi",
+        },
+        "remote_hearing": {
+            "detected": True,
+            "mode": "audiovisiva",
+            "mode_unified": "remoto",
+            "platform": "altra",
+            "times": ["23/11/2026 ore 15:00"],
+            "pdf_required": True,
+            "pdf_sources": ["4548015s.pdf.zip"],
+            "access_info": ["Piattaforma: altra"],
+            "links": [],
+        },
+    }
+    generic_agenda = repo._sync_pec_deadline_to_agenda(
+        message_id="pec_generica_stessa_udienza",
+        title=scadenze[0].titolo,
+        target_date=scadenze[0].data_scadenza,
+        proposal=scheduled["proposal"],
+        report=generic_report,
+        deadline_id=scadenze[0].id,
+        actor="pytest",
+    )
+
+    assert generic_agenda["ok"] is True
+    agenda_items = Agenda(str(agenda_db)).tutti()
+    generic_item = next(item for item in agenda_items if item.id == generic_agenda["agenda_id"])
+    assert generic_item.remote_hearing_pdf_required is True
+    assert "Istruzioni per acquisire il link udienza" in generic_item.remote_hearing_access_info
+    assert "Piattaforma: altra" not in generic_item.remote_hearing_access_info
+    assert generic_item.remote_hearing_platform == ""
+
+
+def test_remote_hearing_merge_preserva_istruzione_pdf_su_piattaforma_generica():
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per ricevere "
+        "il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+
+    merged = _merge_legal_hearing_understanding(
+        {
+            "remote_hearing": {
+                "detected": True,
+                "mode": "audiovisiva",
+                "pdf_required": True,
+                "access_info": [access_info],
+            },
+            "deadline_proposal": {
+                "auto_create": True,
+                "due_date": "2026-11-23",
+                "deadline_kind": "udienza",
+            },
+        },
+        {
+            "hearings": [
+                {
+                    "date": "2026-11-23",
+                    "time": "15:00",
+                    "mode": "mista",
+                    "platform": "altra",
+                }
+            ]
+        },
+    )
+
+    assert merged["remote_hearing"]["access_info"] == [access_info]
+    assert merged["deadline_proposal"]["remote_hearing"]["access_info"] == [access_info]
+    assert merged["hearing_proposals"][0]["remote_hearing"]["access_info"] == [access_info]
 
 
 def test_stessa_pec_materializza_tutte_le_udienze_in_scadenziario_e_agenda(tmp_path):
@@ -2038,6 +2230,130 @@ def test_remote_hearing_existing_deadline_note_replaces_pdf_pending_marker():
     assert exact_link in updates["note"]
     assert "da acquisire" not in updates["note"].lower()
     assert updates["note"].count("Link udienza audiovisiva:") == 1
+
+
+def test_remote_hearing_existing_deadline_acquisisce_istruzioni_link_senza_url():
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per "
+        "ricevere il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+    existing = SimpleNamespace(
+        note=(
+            "PEC_AUDIT:pec_8b3a89aa0c4773af14b01fac\n"
+            "Modalità udienza: Da remoto\n"
+            "Link udienza audiovisiva: da acquisire dal PDF allegato.\n"
+            "Istruzioni accesso udienza: Piattaforma: altra\n"
+            "Fonte: pipeline PEC audit-grade."
+        ),
+        tipo="ADEMPIMENTO",
+        hearing_mode="remoto",
+        hearing_mode_source="Decreto fissazione udienza.pdf",
+        hearing_time="15:00",
+        remote_hearing_detected=True,
+        remote_hearing_mode="audiovisiva",
+        remote_hearing_url="",
+        remote_hearing_source="",
+        remote_hearing_verified=False,
+        remote_hearing_integrity="",
+        remote_hearing_time="23/11/2026 ore 15:00",
+        remote_hearing_platform="altra",
+        remote_hearing_meeting_id="",
+        remote_hearing_passcode="",
+        remote_hearing_access_info="Piattaforma: altra",
+        remote_hearing_evidence_json="[]",
+        remote_hearing_pdf_required=False,
+    )
+    extra = {
+        "hearing_mode": "remoto",
+        "hearing_mode_source": "Decreto fissazione udienza.pdf",
+        "hearing_time": "15:00",
+        "remote_hearing_detected": True,
+        "remote_hearing_mode": "audiovisiva",
+        "remote_hearing_url": "",
+        "remote_hearing_source": "",
+        "remote_hearing_verified": False,
+        "remote_hearing_integrity": "",
+        "remote_hearing_time": "23/11/2026 ore 15:00",
+        "remote_hearing_platform": "altra",
+        "remote_hearing_meeting_id": "",
+        "remote_hearing_passcode": "",
+        "remote_hearing_access_info": access_info,
+        "remote_hearing_evidence_json": '[{"source":"2141414s.pdf.zip"}]',
+        "remote_hearing_pdf_required": True,
+    }
+    note_lines = [
+        "Modalità udienza: Da remoto",
+        "Fonte modalità udienza: Decreto fissazione udienza.pdf",
+        "Udienza da remoto: audiovisiva",
+        "Orario collegamento: 15:00",
+        "Link udienza audiovisiva: da acquisire dal PDF allegato.",
+        f"Istruzioni accesso udienza: {access_info}",
+    ]
+
+    updates = _remote_hearing_updates_for_existing(existing, extra, note_lines)
+
+    assert updates.get("remote_hearing_access_info", access_info) == access_info
+    assert updates["remote_hearing_pdf_required"] is True
+    assert "Istruzioni per acquisire il link udienza" in updates["note"]
+    assert "Piattaforma: altra" not in updates["note"]
+
+
+def test_remote_hearing_existing_deadline_pulisce_piattaforma_generica_gia_arricchita():
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per "
+        "ricevere il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+    existing = SimpleNamespace(
+        note=(
+            "PEC_AUDIT:pec_8b3a89aa0c4773af14b01fac\n"
+            "Modalità udienza: Mista: in presenza e da remoto\n"
+            "Link udienza audiovisiva: da acquisire dal PDF allegato.\n"
+            f"Istruzioni accesso udienza: {access_info}\n"
+            "Istruzioni accesso udienza: Piattaforma: altra"
+        ),
+        tipo="UDIENZA",
+        hearing_mode="mista",
+        hearing_mode_source="Corpo PEC",
+        hearing_time="15:00",
+        remote_hearing_detected=True,
+        remote_hearing_mode="mista",
+        remote_hearing_url="",
+        remote_hearing_source="",
+        remote_hearing_verified=False,
+        remote_hearing_integrity="",
+        remote_hearing_time="15:00",
+        remote_hearing_platform="altra",
+        remote_hearing_meeting_id="",
+        remote_hearing_passcode="",
+        remote_hearing_access_info=access_info,
+        remote_hearing_evidence_json="[]",
+        remote_hearing_pdf_required=True,
+    )
+    extra = {
+        "hearing_mode": "mista",
+        "remote_hearing_detected": True,
+        "remote_hearing_mode": "mista",
+        "remote_hearing_time": "15:00",
+        "remote_hearing_platform": "altra",
+        "remote_hearing_access_info": "Piattaforma: altra",
+        "remote_hearing_pdf_required": True,
+    }
+    note_lines = [
+        "Modalità udienza: Mista: in presenza e da remoto",
+        "Udienza da remoto: mista",
+        "Orario collegamento: 15:00",
+        "Link udienza audiovisiva: da acquisire dal PDF allegato.",
+        "Istruzioni accesso udienza: Piattaforma: altra",
+    ]
+
+    updates = _remote_hearing_updates_for_existing(existing, extra, note_lines)
+
+    assert updates["remote_hearing_platform"] == ""
+    assert updates.get("remote_hearing_access_info", access_info) == access_info
+    assert "Istruzioni per acquisire il link udienza" in updates["note"]
+    assert "Piattaforma: altra" not in updates["note"]
 
 
 def test_udienza_in_presenza_persistita_senza_campi_remoti_fittizi():

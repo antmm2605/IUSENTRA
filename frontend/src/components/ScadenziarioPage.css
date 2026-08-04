@@ -596,6 +596,9 @@
 }
 .iu-scad-muted{color:var(--iu-slate-400)!important}
 .iu-scad-fascicolo{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-scad-type-cell{
+  min-width:88px;
+}
 .iu-scad-days{
   display:inline-flex;
   align-items:center;
@@ -614,6 +617,12 @@
   display:flex;
   align-items:center;
   gap:5px;
+}
+.iu-scad-type-cell .iu-scad-actions{
+  display:grid;
+  grid-template-columns:repeat(2,32px);
+  justify-content:start;
+  margin-top:8px;
 }
 .iu-scad-actions button,.iu-scad-actions a{
   width:32px;

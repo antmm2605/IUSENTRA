@@ -269,6 +269,9 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
       ) : item.remoteHearingPdfRequired ? (
         <span className="iu-scad-remote-pending"><FileSearch size={13}/> Link udienza nel PDF allegato da acquisire</span>
       ) : null}
+      {!item.remoteHearingUrl && item.remoteHearingAccessInfo ? (
+        <span className="iu-scad-remote-access">{item.remoteHearingAccessInfo}</span>
+      ) : null}
       {item.remoteHearingSource ? (
         <span className="iu-scad-remote-source"><FileSearch size={13}/> Allegato udienza: {item.remoteHearingSource}</span>
       ) : null}
@@ -336,7 +339,6 @@ function DeadlineTable({
             <th>Priorità</th>
             <th>Fascicolo</th>
             <th>Giorni</th>
-            <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
@@ -362,7 +364,10 @@ function DeadlineTable({
                 <SourceEvidenceLink item={item} onOpen={onOpenSource}/>
                 <DeadlineFlags item={item}/>
               </td>
-              <td><Badge tone="neutral">{item.typeLabel}</Badge></td>
+              <td className="iu-scad-type-cell">
+                <Badge tone="neutral">{item.typeLabel}</Badge>
+                <DeadlineActions item={item} onComplete={onComplete} onDelete={onDelete}/>
+              </td>
               <td>{item.operative ? <span className="iu-scad-operative"><TimerReset size={14}/>{item.operationalDueLabel}</span> : <span className="iu-scad-muted">—</span>}</td>
               <td><Badge tone={item.tone}>{item.priorityLabel}</Badge></td>
               <td>
@@ -370,7 +375,6 @@ function DeadlineTable({
                 <small>{item.clientLabel && item.clientLabel !== '-' ? item.clientLabel : 'Cliente da collegare'}</small>
               </td>
               <td><b className={`iu-scad-days ${item.overdue ? 'is-negative' : item.dueToday ? 'is-zero' : ''}`}>{item.daysLabel}</b></td>
-              <td><DeadlineActions item={item} onComplete={onComplete} onDelete={onDelete}/></td>
             </tr>
           ))}
         </tbody>

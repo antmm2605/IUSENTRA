@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.276.4 - 2026-08-04
+
+- **Acquisite le istruzioni link udienza dai PDF allegati PEC.** Quando il provvedimento non contiene un URL pronto ma dispone di depositare/comunicare e-mail e telefono per ricevere il link, la pipeline estrae l'adempimento dal PDF e lo porta in `remote_hearing_access_info`, Agenda, Scadenziario, topbar e centro notifiche.
+- **Rafforzata l'estrazione dei link cliccabili PDF.** I link URI delle annotazioni PDF vengono acquisiti anche se l'OCR non restituisce testo visibile; la versione di estrazione allegati PEC passa a `2026-08-04-pdf-links-and-acquisition-v2` per far ripassare i record gia' processati.
+- **Chiuso il tratto finale verso topbar e notifiche.** La notifica usa il payload remoto effettivamente persistito nello Scadenziario, risolve l'id tenant da registry/storage per le nuove materializzazioni e sanifica in lettura anche eventuali record storici gia' presenti nello stesso DB. Le vecchie formule generiche come `Piattaforma: altra` vengono rimosse quando esiste l'istruzione PDF concreta.
+- **Web Push sicuro anche per link da acquisire.** Le notifiche operative possono inviare un avviso sintetico per udienza audiovisiva senza URL verificato, senza esporre dati pratica, e-mail, telefono o collegamenti non validati nel payload push.
+- **Agenda: riepiloghi spostati sotto la preparazione udienza.** Le card KPI, compresa `OGGI`, non restano piu' sopra i pannelli operativi della settimana.
+- **Scadenziario: azioni riga sotto `Tipo`.** La tabella non ha piu' la colonna `Azioni`: `Apri dettaglio`, `Modifica`, `Completa` ed `Elimina` sono dentro la cella `Tipo`, sotto il badge della tipologia, con guardrail React per impedire che tornino a destra.
+- **Prova reale locale completata.** Docker locale `127.0.0.1:8080`, container `iusentra-app` e `iusentra-scheduler` healthy, `/api/pronto` `ok=true`, versione `2.276.4`: Scadenziario mostra il link udienza da acquisire dal PDF e le azioni sotto `Tipo`; Agenda mostra i KPI sotto i pannelli operativi; topbar espone l'istruzione del PDF senza `Piattaforma: altra`. Nel tenant locale le subscription Web Push risultano revocate/disabilitate, quindi e' stato verificato il payload pronto per push e non una consegna reale.
+
+## 2.276.3 - 2026-08-04
+
+- **Rimesso in sicurezza il bootstrap tenant dei presidi PEC.** Se `tenants.json` manca o non è leggibile, il registry viene ricostruito solo da directory tenant già valide con `config/storage.json` e `studio.db`, senza ricadere sui JSON root vuoti. Questo evita che scheduler, Agenda, Scadenziario, topbar e Web Push lavorino su `/data` invece che sul tenant reale.
+- **L'audit della catena PEC non può più tornare verde senza studi.** Quando non trova target attivi risponde `ok=false` con errore esplicito: il caso che prima appariva sano (`ok=true`, `studios={}`) ora blocca subito la diagnosi.
+- **Tolto dal cron il lavoro di riconciliazione storage.** I presidi multi-tenant ora risolvono i percorsi con `reconcile_aliases=False`: nel worker Docker la riconciliazione poteva restare appesa prima ancora del riepilogo `Presidio PEC`, facendo saltare il giro successivo e degradando PEC, Agenda, Scadenziario e notifiche.
+- Guardrail mirati aggiunti su recupero registry da storage SQLite, audit senza studi, presidio health senza target, job scheduler PEC e worker di acquisizione.
+
 ## 2.276.2 - 2026-08-04
 
 - **Corretto un falso allarme nello strumento di verifica della catena PEC.** Leggeva il centro notifiche usando lo slug dello studio, mentre il runtime lo scrive — e la UI lo legge — con l'id dello studio. Su uno studio perfettamente sano lo strumento dichiarava «nessuna notifica»: esattamente il falso allarme che quel controllo esiste per evitare. Ora usa la stessa regola dello scheduler (`_TENANT_NOTIFICATION_ID`) e della top bar (`current_tenant_id`).

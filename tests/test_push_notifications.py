@@ -396,6 +396,146 @@ def test_web_push_risponde_solo_agli_arricchimenti_del_collegamento_audiovisivo(
     assert rows[0].payload_json["remoteHearingVerified"] is True
 
 
+def test_web_push_sync_avvisa_link_udienza_da_acquisire_senza_dati_sensibili(tmp_path, monkeypatch):
+    repo = _repo(tmp_path)
+    service = NotificationService(repo)
+    calls: list[dict[str, object]] = []
+    from web.services.pec_pipeline_runtime import build_pec_deadline_notification, should_send_pec_deadline_web_push
+
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per ricevere "
+        "il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+
+    def fake_dispatch(record):
+        calls.append(safe_web_push_payload(record))
+        return PushDispatchSummary(configured=True, sent=1)
+
+    monkeypatch.setattr(service, "dispatch_web_push", fake_dispatch)
+    records = service.sync_operational_items(
+        tenant_id="tenant-a",
+        user_id="user-a",
+        items=[
+            {
+                "id": "PEC_AUDIT:msg-link-da-acquisire:deadline",
+                "type": "hearing",
+                "priority": "urgent",
+                "title": "Udienza audiovisiva registrata",
+                "message": f"Presidio PEC automatico: {access_info}",
+                "href": "/agenda/agenda-link-da-acquisire",
+                "sourceType": "pec_deadline",
+                "remoteHearingDetected": True,
+                "remoteHearingPdfRequired": True,
+                "remoteHearingAccessInfo": access_info,
+            }
+        ],
+    )
+
+    assert len(records) == 1
+    assert len(calls) == 1
+    assert calls[0]["title"] == "IUSENTRA · Udienza"
+    assert calls[0]["body"] == "Udienza audiovisiva: controlla il collegamento in IUSENTRA."
+    assert "remoteHearingUrl" not in calls[0]
+    assert "indirizzo e-mail" not in json.dumps(calls[0], ensure_ascii=False)
+    assert records[0].payload_json["remoteHearingPdfRequired"] is True
+    assert records[0].payload_json["remoteHearingAccessInfo"] == access_info
+    topbar_item = _record_to_topbar_item(records[0])
+    assert "Istruzioni per acquisire il link udienza" in topbar_item["body"]
+    assert topbar_item["secondaryLabel"] is None
+    scheduler_notification = build_pec_deadline_notification(
+        {
+            "deadline_id": "SCAD-LINK",
+            "agenda": {"agenda_id": "AGENDA-LINK"},
+            "due_date": "2026-11-23",
+            "remote_hearing": {
+                "remote_hearing_detected": True,
+                "remote_hearing_access_info": access_info,
+                "remote_hearing_platform": "altra",
+                "remote_hearing_pdf_required": True,
+            },
+        },
+        source_id="msg-link-da-acquisire",
+        automatic=True,
+    )
+    assert access_info in scheduler_notification["body"]
+    assert scheduler_notification["payload_json"]["remoteHearingPlatform"] == ""
+    assert should_send_pec_deadline_web_push(scheduler_notification) is True
+
+
+def test_topbar_operativa_riporta_istruzioni_pdf_senza_piattaforma_generica(tmp_path):
+    now = datetime(2026, 11, 22, 10, 0, tzinfo=ZoneInfo("Europe/Rome"))
+    access_info = (
+        "Istruzioni per acquisire il link udienza: depositare o comunicare una nota "
+        "nel fascicolo telematico entro il 05/11/2026 con indirizzo e-mail per ricevere "
+        "il link e numero di telefono mobile per eventuali difficoltà di collegamento."
+    )
+    deadline = SimpleNamespace(
+        id="deadline-link-da-acquisire",
+        id_appuntamento="",
+        titolo="Fissazione udienza - 23/11/2026 - RG 393/2026",
+        data_scadenza="2026-11-23",
+        legal_due_at="",
+        stato="APERTO",
+        priorita="ALTA",
+        perentorio=False,
+        note="PEC_AUDIT:msg-link-da-acquisire\nLink udienza audiovisiva: da acquisire dal PDF allegato.",
+        remote_hearing_detected=True,
+        remote_hearing_mode="mista",
+        remote_hearing_url="",
+        remote_hearing_source="2141414s.pdf.zip",
+        remote_hearing_verified=False,
+        remote_hearing_time="15:00",
+        remote_hearing_platform="altra",
+        remote_hearing_meeting_id="",
+        remote_hearing_passcode="",
+        remote_hearing_access_info=access_info,
+        remote_hearing_pdf_required=True,
+    )
+
+    class _AgendaStore:
+        def tutti(self):
+            return []
+
+    class _DeadlineStore:
+        def tutte(self, *args, **kwargs):
+            return [deadline]
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.app_context():
+        items = agenda_scadenziario_notification_items(
+            _AgendaStore(),
+            _DeadlineStore(),
+            now=now,
+        )
+
+    assert len(items) == 1
+    assert items[0]["remoteHearingAccessInfo"] == access_info
+    assert items[0]["remoteHearingPlatform"] == ""
+    assert access_info in items[0]["message"]
+    assert "Piattaforma: altra" not in items[0]["message"]
+
+
+def test_topbar_ripulisce_piattaforma_generica_da_record_persistito():
+    record = _notification(
+        type="pec_deadline",
+        title="Udienza PEC registrata",
+        body="Presidio PEC automatico: udienza collegata ad Agenda e Scadenziario per il 08/10/2026. Piattaforma: altra",
+        payload_json={
+            "remoteHearingDetected": True,
+            "remoteHearingMode": "audiovisiva",
+            "remoteHearingPlatform": "altra",
+        },
+    )
+
+    item = _record_to_topbar_item(record)
+
+    assert item["message"] == "Presidio PEC automatico: udienza collegata ad Agenda e Scadenziario per il 08/10/2026."
+    assert item["body"] == item["message"]
+    assert item["secondaryHref"] is None
+    assert "Piattaforma: altra" not in item["message"]
+
+
 def test_notifiche_agenda_scadenziario_conservano_link_audiovisivo_fino_al_web_push(tmp_path):
     remote_url = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_agenda"
     hearing = SimpleNamespace(

@@ -262,6 +262,7 @@ function EventCard({
   const detailLines = agendaDetailLines(event)
   const whenLabel = `${new Date(event.start).toLocaleDateString('it-IT')} ${event.timeLabel}${event.durationLabel ? ` · ${event.durationLabel}` : ''}`
   const remoteUrl = event.remoteHearingVerified ? event.remoteHearingUrl : ''
+  const remoteInstruction = !remoteUrl && event.remoteHearingAccessInfo ? event.remoteHearingAccessInfo : ''
   const clusterWhen = clusterWhenLabel(clusteredEvents)
   const tooltipLines = [
     event.client ? `Cliente/parte: ${event.client}` : '',
@@ -274,7 +275,7 @@ function EventCard({
     event.remoteHearingAccessInfo ? `Istruzioni: ${event.remoteHearingAccessInfo}` : '',
     event.completed ? 'Stato: completata' : '',
     ...detailLines.filter((line) => !/^Cliente\/parte:|^Fascicolo\/RG:|^Luogo:|^Link udienza audiovisiva:/i.test(line)),
-  ].filter(Boolean).slice(0, remoteUrl ? 9 : 6)
+  ].filter(Boolean).slice(0, remoteUrl ? 9 : remoteInstruction ? 7 : 6)
   const accessibleLabel = isCluster
     ? `${clusteredEvents.length} eventi ${clusterWhen}: ${clusteredEvents.map((item) => `${item.timeLabel}, ${agendaLegalLabel(item)} ${agendaSubjectLine(item)}`).join('. ')}`
     : `${label}: ${title}. ${tooltipLines.join('. ')}${remoteUrl ? '. Collegamento audiovisivo disponibile' : ''}`
@@ -336,6 +337,7 @@ function EventCard({
           </span>
           {!isCluster && !isCompact && contextLine ? <small className="iu-ag-event__context">{contextLine}</small> : null}
           {!isCluster && !isCompact && placeLine ? <small className="iu-ag-event__place"><MapPin size={10}/>{placeLine}</small> : null}
+          {!isCluster && !isCompact && remoteInstruction ? <small className="iu-ag-event__remote-note"><FileSearch size={10}/>{remoteInstruction}</small> : null}
         </span>
       </a>
       <div className="iu-ag-event__tooltip" role="tooltip">
@@ -880,13 +882,6 @@ export function AgendaPage() {
         <AgendaInspector events={filteredEvents} nextEvent={agenda.summary.nextEvent} unsynced={agenda.summary.unsynced} onOpenDetail={openAgendaDetail}/>
       </section>
 
-      <section className="iu-ag-kpis">
-        <Kpi icon={<Clock3 size={19}/>} label="Oggi" value={agenda.summary.today} note="impegni in giornata"/>
-        <Kpi icon={<CalendarCheck size={19}/>} label="Settimana" value={agenda.summary.week} note="eventi nel periodo"/>
-        <Kpi icon={<Landmark size={19}/>} label="Udienze" value={agenda.summary.hearings} note="da presidiare"/>
-        <Kpi icon={<ListChecks size={19}/>} label="Scadenze" value={agenda.summary.deadlines} note="termini e depositi"/>
-        <Kpi icon={<Bell size={19}/>} label="Alert" value={agenda.summary.critical} note="priorità alta o critica"/>
-      </section>
       </section>
 
       <section className="iu-ag-lower-grid">
@@ -920,6 +915,14 @@ export function AgendaPage() {
             <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))}>Brief Lex sul fascicolo</button>
           </div>
         </Panel>
+      </section>
+
+      <section className="iu-ag-kpis">
+        <Kpi icon={<Clock3 size={19}/>} label="Oggi" value={agenda.summary.today} note="impegni in giornata"/>
+        <Kpi icon={<CalendarCheck size={19}/>} label="Settimana" value={agenda.summary.week} note="eventi nel periodo"/>
+        <Kpi icon={<Landmark size={19}/>} label="Udienze" value={agenda.summary.hearings} note="da presidiare"/>
+        <Kpi icon={<ListChecks size={19}/>} label="Scadenze" value={agenda.summary.deadlines} note="termini e depositi"/>
+        <Kpi icon={<Bell size={19}/>} label="Alert" value={agenda.summary.critical} note="priorità alta o critica"/>
       </section>
 
       <FloatingLex />

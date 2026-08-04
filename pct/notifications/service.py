@@ -279,7 +279,7 @@ class NotificationService:
                     "operationalSync": True,
                     **remote_payload,
                 },
-                send_push=remote_level in {0, 3},
+                send_push=remote_level in {0, 1, 3},
                 redispatch_on_remote_hearing_enrichment=True,
             )
         self.repository.expire_notifications_not_in_dedupe_keys(

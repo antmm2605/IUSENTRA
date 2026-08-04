@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.276.2 - 2026-08-04
+
+- **Corretto un falso allarme nello strumento di verifica della catena PEC.** Leggeva il centro notifiche usando lo slug dello studio, mentre il runtime lo scrive — e la UI lo legge — con l'id dello studio. Su uno studio perfettamente sano lo strumento dichiarava «nessuna notifica»: esattamente il falso allarme che quel controllo esiste per evitare. Ora usa la stessa regola dello scheduler (`_TENANT_NOTIFICATION_ID`) e della top bar (`current_tenant_id`).
+- **Lo strumento ora mostra per primo il battito dei presidi pianificati.** Se lo scheduler e' fermo, ogni riga rossa sulle singole PEC e' una conseguenza e non una causa, e cercare il guasto nelle PEC fa perdere tempo. La sezione dice per ciascun presidio quando ha girato l'ultima volta, oppure che non ha mai girato su quel worker.
+- Verificata la catena su una riproduzione fedele del percorso di produzione — PEC depositata nell'archivio locale come fa la sincronizzazione IMAP, poi acquisizione, worker e job delle notifiche con gli stessi identificativi tenant dello scheduler: classificazione `sentenza_a_verbale`, fascicolo collegato in automatico, due presidi, la scadenza nello scadenziario e tre voci nel centro notifiche.
+
 ## 2.276.1 - 2026-08-04
 
 - **Chiuse sette vulnerabilita' delle dipendenze frontend**, fra cui le tre ad alta gravita' segnalate da Dependabot: `brace-expansion` (5.0.8 -> 5.0.9), `fast-uri` (3.1.4 -> 3.1.5) e `ip-address` (10.2.0 -> 10.3.1). Nello stesso giro anche le quattro moderate rimaste indietro: `postcss` (8.5.18 -> 8.5.23), `hono` (4.12.27 -> 4.12.34) e le due segnalazioni residue su `ip-address`. `pnpm audit` passa da 3 alte + 4 moderate a zero.

@@ -237,7 +237,31 @@ def _stato_web_push(percorsi: dict[str, Any], tenant: str) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def esamina_studio(percorsi: dict[str, Any], tenant: str, *, limite: int) -> dict[str, Any]:
+def _battito_presidi() -> dict[str, Any]:
+    """I job che alimentano la catena hanno davvero girato?
+
+    E' il controllo che deve venire per primo: se lo scheduler e' fermo, ogni
+    riga rossa qui sotto e' una conseguenza e non una causa, e cercare il
+    guasto nelle singole PEC fa perdere tempo.
+    """
+
+    try:
+        from pct.scheduler_health import presidio_heartbeat_for_config
+
+        return presidio_heartbeat_for_config()
+    except Exception as exc:
+        return {"ok": False, "error": f"battito non leggibile: {exc}", "presidi": []}
+
+
+def esamina_studio(
+    percorsi: dict[str, Any], tenant: str, *, limite: int, tenant_notifiche: str = ""
+) -> dict[str, Any]:
+    """`tenant` identifica presidi e archivio PEC (slug); `tenant_notifiche` il
+    centro notifiche, che il runtime scrive con l'id dello studio e non con lo
+    slug. Confonderli fa dire allo strumento «nessuna notifica» su uno studio
+    in cui le notifiche ci sono: il falso allarme che questo controllo esiste
+    proprio per evitare."""
+
     email_db = Path(percorsi["EMAIL_CASELLA_DB"])
     pec_db = email_db.parent / "pec_audit.sqlite"
     if not pec_db.exists():
@@ -270,7 +294,7 @@ def esamina_studio(percorsi: dict[str, Any], tenant: str, *, limite: int) -> dic
         presidi = _presidi_del_messaggio(percorsi, tenant, message_id)
         scadenze = _scadenze_del_messaggio(percorsi, message_id)
         appuntamenti = _appuntamenti_del_messaggio(percorsi, message_id)
-        notifiche = _notifiche_del_messaggio(percorsi, tenant, message_id, presidi)
+        notifiche = _notifiche_del_messaggio(percorsi, tenant_notifiche or tenant, message_id, presidi)
 
         esito.append(
             {
@@ -290,7 +314,7 @@ def esamina_studio(percorsi: dict[str, Any], tenant: str, *, limite: int) -> dic
                 "notifiche": notifiche,
             }
         )
-    return {"ok": True, "motivo": "", "pec": esito, "web_push": _stato_web_push(percorsi, tenant)}
+    return {"ok": True, "motivo": "", "pec": esito, "web_push": _stato_web_push(percorsi, tenant_notifiche or tenant)}
 
 
 # --------------------------------------------------------------------------- #
@@ -309,6 +333,15 @@ def _riga_anello(colorato: bool, etichetta: str, quante: int, dettaglio: str, at
 
 
 def stampa(report: dict[str, Any], *, colorato: bool) -> None:
+    battito = report.get("presidi_scheduler") or {}
+    print(_colora(colorato, GIALLO, "### Presidi pianificati"))
+    if battito.get("error"):
+        print(f"    {_colora(colorato, ROSSO, 'BLOCCO')} {battito['error']}")
+    else:
+        for voce in battito.get("presidi") or []:
+            problema = _testo(voce.get("problem"))
+            segno = _colora(colorato, ROSSO, "FERMO") if problema else _colora(colorato, VERDE, "OK   ")
+            print(f"    {segno} {_testo(voce.get('job')):<38} {problema or _testo(voce.get('last_run'), 'ultimo giro regolare')}")
     for slug, studio in report["studi"].items():
         print()
         print(_colora(colorato, GIALLO, f"### Studio {slug}"))
@@ -350,11 +383,23 @@ def stampa(report: dict[str, Any], *, colorato: bool) -> None:
 def esegui(*, registry: Path, tenant: str, limite: int) -> dict[str, Any]:
     manager = GestioneTenant(str(registry))
     studi = [s for s in manager.lista() if not tenant or s.slug.lower() == tenant.lower()]
-    report: dict[str, Any] = {"registry": str(registry), "limite": limite, "studi": {}}
+    report: dict[str, Any] = {
+        "registry": str(registry),
+        "limite": limite,
+        "presidi_scheduler": _battito_presidi(),
+        "studi": {},
+    }
     for studio in studi:
         percorsi = manager.percorsi_dati(studio.slug, reconcile_aliases=False)
         try:
-            report["studi"][studio.slug] = esamina_studio(percorsi, studio.slug, limite=limite)
+            report["studi"][studio.slug] = esamina_studio(
+                percorsi,
+                studio.slug,
+                limite=limite,
+                # Stessa regola dello scheduler (`_TENANT_NOTIFICATION_ID`) e
+                # della lettura in UI (`current_tenant_id`): prima l'id.
+                tenant_notifiche=_testo(getattr(studio, "id", "")) or studio.slug,
+            )
         except Exception as exc:
             report["studi"][studio.slug] = {"ok": False, "motivo": f"esame non riuscito: {exc}", "pec": []}
     if tenant and not studi:

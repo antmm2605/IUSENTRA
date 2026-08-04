@@ -1388,6 +1388,10 @@ function localPecProgressPercent(progress: LocalPecProgressState): number {
   return Math.max(8, Math.round(((Math.max(activeIndex, 0) + 0.5) / LOCAL_PEC_PROGRESS_STEPS.length) * 100))
 }
 
+function localPecProgressFillClass(value: number): string {
+  return `iu-legal-local-pec-progress__fill is-progress-${value}`
+}
+
 function localPecStepStatus(stepId: LocalPecProgressStepId, progress: LocalPecProgressState): LocalPecProgressStatus {
   if (progress.failed === stepId) return 'error'
   if (progress.done.includes(stepId)) return 'done'
@@ -4217,6 +4221,7 @@ export function NotificheLegaliPage() {
   const canPrepareNotificationSend = !notificationControlBusy && !localPecPasswordRequest
   const sendNotificationTitle = 'Invia PEC reale dal PC locale con flusso Studio Telematico: unico messaggio e destinatari nel campo To.'
   const localPecProgressValue = localPecProgressPercent(localPecProgress)
+  const localPecProgressFillClassName = localPecProgressFillClass(localPecProgressValue)
   const localPecProgressClassName = [
     'iu-legal-local-pec-progress',
     localPecProgress.failed ? 'is-error' : '',
@@ -5227,7 +5232,7 @@ export function NotificheLegaliPage() {
                     aria-valuemax={100}
                     aria-valuenow={localPecProgressValue}
                   >
-                    <span style={{ width: `${localPecProgressValue}%` }} />
+                    <span className={localPecProgressFillClassName} />
                   </div>
                   <ol className="iu-legal-local-pec-progress__steps">
                     {LOCAL_PEC_PROGRESS_STEPS.map((step) => {

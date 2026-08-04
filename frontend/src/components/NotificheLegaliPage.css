@@ -1245,13 +1245,28 @@
   background: rgba(15, 118, 110, .14);
 }
 
-.iu-legal-local-pec-progress__bar span {
+.iu-legal-local-pec-progress__fill {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #0f766e, #2563eb);
   transition: width .24s ease;
+  width: 0;
 }
+
+.iu-legal-local-pec-progress__fill.is-progress-0 { width: 0; }
+.iu-legal-local-pec-progress__fill.is-progress-8 { width: 8%; }
+.iu-legal-local-pec-progress__fill.is-progress-17 { width: 17%; }
+.iu-legal-local-pec-progress__fill.is-progress-25 { width: 25%; }
+.iu-legal-local-pec-progress__fill.is-progress-33 { width: 33%; }
+.iu-legal-local-pec-progress__fill.is-progress-42 { width: 42%; }
+.iu-legal-local-pec-progress__fill.is-progress-50 { width: 50%; }
+.iu-legal-local-pec-progress__fill.is-progress-58 { width: 58%; }
+.iu-legal-local-pec-progress__fill.is-progress-67 { width: 67%; }
+.iu-legal-local-pec-progress__fill.is-progress-75 { width: 75%; }
+.iu-legal-local-pec-progress__fill.is-progress-83 { width: 83%; }
+.iu-legal-local-pec-progress__fill.is-progress-92 { width: 92%; }
+.iu-legal-local-pec-progress__fill.is-progress-100 { width: 100%; }
 
 .iu-legal-local-pec-progress__steps {
   display: grid;

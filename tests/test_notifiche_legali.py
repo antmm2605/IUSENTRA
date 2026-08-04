@@ -47,7 +47,7 @@ from pct.notifiche_legali import (
     _pec_verification_matches,
 )
 from pct.clienti import TipoCliente
-from pct.fascicoli import TipoFascicolo
+from pct.fascicoli import TipoDocumento, TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.helpers import get_clienti, get_fascicoli, get_soggetti
@@ -1312,7 +1312,7 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     signature = result.output_plan["signaturePlan"]
     assert delivery["ready"] is True
     assert delivery["legalSubject"] == LEGAL_NOTIFICATION_SUBJECT
-    assert delivery["studioTelematicoSubject"].startswith("Notificazione ai sensi della legge n. 53 - 1994")
+    assert delivery["studioTelematicoSubject"].startswith("Notificazione ai sensi della legge n. 53/1994")
     assert "[Notifica_ID:" in delivery["studioTelematicoSubject"]
     assert "expectedReceiptSubjects" not in delivery
     assert "receiptCorrelation" not in delivery
@@ -1324,7 +1324,9 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     assert delivery["signaturePlan"]["requiredBeforeSend"][0]["id"] == "relata_notifica"
     assert delivery["sendPhase"] == "preparazione"
     assert not any(item["id"] == "allegati_pec" for item in delivery["sendChecks"])
-    assert "postSendDocumentArchive" not in delivery
+    assert delivery["postSendDocumentArchive"]
+    assert delivery["postSendDocumentArchive"][0]["archiveFilename"].endswith("(originale notificato).pdf")
+    assert any(item["archiveFilename"] == "relata_notifica.pdf.p7m" for item in delivery["postSendDocumentArchive"])
     assert delivery["presidioPecAutomation"]["archiveTargets"] == ["fascicolo", "presidi_notifiche"]
     assert delivery["presidioPecAutomation"]["enabled"] is False
     assert delivery["localSendOnly"] is True
@@ -1348,7 +1350,7 @@ def test_relata_non_qualifica_pa_come_difensore_di_parte_rappresentata():
     assert "difensore di BANCA BETA S.P.A." not in result.relata_text
 
 
-def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
+def test_piano_invio_studio_telematico_prepara_unico_to_e_allegati_reali():
     payload = _legal_payload()
     payload.update({
         "destinatari": [
@@ -1374,17 +1376,30 @@ def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
     plan = build_notification_send_plan(payload)
 
     assert plan["ready"] is True
-    assert plan["separatePecRequired"] is True
-    assert plan["messagesCount"] == 2
+    assert plan["separatePecRequired"] is False
+    assert plan["singleMessageToAllRecipients"] is True
+    assert plan["messagesCount"] == 1
     assert plan["localSendOnly"] is True
     assert {item["pec"] for item in plan["recipients"]} == {"controparte@example.pec.it", "laura.bianchi@example.pec.it"}
-    assert any(item["filename"] == "relata_notifica.pdf.p7m" for item in plan["attachments"])
-    assert any(item["filename"] == "ordinanza.pdf" for item in plan["attachments"])
-    assert all("[Notifica_ID:" in item["subject"] for item in plan["messages"])
-    assert all(item["localSendOnly"] is True for item in plan["messages"])
+    assert [item["filename"] for item in plan["attachments"]] == ["ordinanza.pdf", "relata_notifica.pdf.p7m"]
+    assert [item["studioTelematicoArchiveRole"] for item in plan["attachments"]] == ["originale_notificato", "relata_notifica"]
+    assert len(plan["messages"]) == 1
+    message = plan["messages"][0]
+    assert "[Notifica_ID:" in message["subject"]
+    assert message["localSendOnly"] is True
+    assert message["cc"] == []
+    assert message["bcc"] == []
+    assert "controparte@example.pec.it" in message["to"]
+    assert "laura.bianchi@example.pec.it" in message["to"]
+    assert "codice fiscale:" in message["to"]
+    assert "pubblico elenco:" in message["to"]
+    assert plan["studioTelematicoTo"] == message["to"]
     assert "postSendEvidenceRequired" not in plan
     assert "expectedReceiptSubjects" not in plan
-    assert "postSendDocumentArchive" not in plan
+    assert [item["archiveFilename"] for item in plan["postSendDocumentArchive"]] == [
+        "ordinanza (originale notificato).pdf",
+        "relata_notifica.pdf.p7m",
+    ]
     assert plan["presidioPecAutomation"]["phase"] == "post_invio_reale"
 
 
@@ -1625,9 +1640,11 @@ def test_log_audit_e_piano_invio_conservano_tutti_i_destinatari(
     assert {item["pec"] for item in audit["recipients"]} == expected_pecs
 
     delivery = result.output_plan["deliveryPlan"]
-    assert delivery["messagesCount"] == 2
-    assert delivery["separatePecRequired"] is True
+    assert delivery["messagesCount"] == 1
+    assert delivery["separatePecRequired"] is False
+    assert delivery["singleMessageToAllRecipients"] is True
     assert {item["pec"] for item in delivery["recipients"]} == expected_pecs
+    assert all(pec in delivery["studioTelematicoTo"] for pec in expected_pecs)
     assert all(item["recipientIdentityKey"] for item in delivery["recipients"])
     assert all(item["verificationEvidenceSha256"] for item in delivery["recipients"])
 
@@ -2509,6 +2526,8 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["azioni"]["unep"] == "/api/v1/ui/notifiche-legali/unep"
     assert payload["azioni"]["nonPec"] == "/api/v1/ui/notifiche-legali/non-pec"
     assert payload["azioni"]["attestazioneConformita"] == "/api/v1/ui/notifiche-legali/attestazione-conformita"
+    assert payload["azioni"]["invioPecLocale"] == "/api/v1/ui/notifiche-legali/invio-pec-locale"
+    assert payload["azioni"]["confermaInvioPecLocale"] == "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma"
     assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
@@ -2540,7 +2559,10 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     send_output_json = json.dumps(send_result["outputPlan"], ensure_ascii=False)
     assert "expectedReceiptSubjects" not in send_delivery
     assert "postSendEvidenceRequired" not in send_delivery
-    assert "postSendDocumentArchive" not in send_delivery
+    assert send_delivery["messagesCount"] == 1
+    assert send_delivery["singleMessageToAllRecipients"] is True
+    assert send_delivery["separatePecRequired"] is False
+    assert send_delivery["postSendDocumentArchive"]
     assert "In attesa della RAC effettiva" not in send_output_json
     assert "In attesa della RdAC effettiva" not in send_output_json
     assert unverified_send_response.status_code == 200
@@ -2558,6 +2580,131 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert non_pec_blocked_response.status_code == 400
     assert non_pec_blocked_payload["ok"] is False
     assert any("NOTIFICA_ID_REQUIRED" in item for item in non_pec_blocked_payload["blockers"])
+
+
+def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e_presidio(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    atto_bytes = b"%PDF-1.4\n%IUSENTRA atto da notificare\n"
+    relata_bytes = b"IUSENTRA RELATA FIRMATA CADES DI TEST"
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Pratica notifica locale Studio Telematico",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Notifica",
+        )
+        atto = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "ricorso.pdf",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            atto_bytes,
+            note="Atto notificato",
+        )
+        relata = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "Relata di notifica.pdf.p7m",
+            TipoDocumento.NOTIFICA,
+            relata_bytes,
+            note="Relata firmata digitalmente",
+            firmato=True,
+        )
+
+    payload = _legal_payload()
+    payload.update({
+        "fascicolo_id": fascicolo.id,
+        "practiceId": fascicolo.id,
+        "pratica_codice": str(getattr(fascicolo, "numero", "")),
+        "operazione": "invio_pec_l53",
+        "conferma_invio_pec": True,
+        "invio_finale": True,
+        "data_ora_invio_pec": "2026-05-12T14:26:00+02:00",
+        "nome_file": "ricorso.pdf",
+        "descrizione_documento": "Ricorso notificato",
+        "origine_documento": "nativo_digitale",
+        "hash_sha256": atto.hash_sha256,
+        "documenti": [
+            {
+                "nome_file": "ricorso.pdf",
+                "descrizione": "Ricorso notificato",
+                "origine": "nativo_digitale",
+                "hash_sha256": atto.hash_sha256,
+                "document_id": atto.id,
+                "documentId": atto.id,
+            }
+        ],
+        "relata_firmata": True,
+        "relata_firmata_file": "Relata di notifica.pdf.p7m",
+        "relata_firmata_sha256": relata.hash_sha256,
+        "relata_firmata_document_id": relata.id,
+    })
+
+    prepare_response = client.post(
+        "/api/v1/ui/notifiche-legali/invio-pec-locale",
+        json=payload,
+        headers=headers,
+    )
+    assert prepare_response.status_code == 200
+    prepared = prepare_response.get_json()
+    assert prepared["ok"] is True
+    assert prepared["requiresLocalPec"] is True
+    assert prepared["notificationId"]
+    messages = prepared["localPecMessages"]
+    assert len(messages) == 1
+    message = messages[0]
+    local_payload = message["payload"]
+    assert message["endpoint"] == "http://127.0.0.1:27272/pec/send"
+    assert local_payload["cc"] == []
+    assert local_payload["bcc"] == []
+    assert "password" not in local_payload
+    assert local_payload["to"] == prepared["outputPlan"]["deliveryPlan"]["studioTelematicoTo"]
+    assert "controparte@example.pec.it" in local_payload["to"]
+    assert "codice fiscale:" in local_payload["to"]
+    assert "pubblico elenco:" in local_payload["to"]
+    assert local_payload["subject"].startswith("Notificazione ai sensi della legge n. 53/1994")
+    assert "[Notifica_ID:" in local_payload["subject"]
+    assert "Riferimento da citare nella risposta:" in local_payload["body"]
+    assert "Pratica:" in local_payload["body"]
+    attachments = local_payload["attachments"]
+    assert [item["filename"] for item in attachments] == ["ricorso.pdf", "Relata di notifica.pdf.p7m"]
+    assert [item["studioTelematicoArchiveRole"] for item in attachments] == ["originale_notificato", "relata_notifica"]
+    assert base64.b64decode(attachments[0]["content_base64"]) == atto_bytes
+    assert base64.b64decode(attachments[1]["content_base64"]) == relata_bytes
+
+    missing_message_id_response = client.post(
+        "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma",
+        json={
+            "payload": payload,
+            "notificationId": prepared["notificationId"],
+            "results": [{"localMessageId": message["id"], "sentAt": "2026-05-12T14:26:11+02:00"}],
+        },
+        headers=headers,
+    )
+    assert missing_message_id_response.status_code == 400
+    assert "Message-ID mancante" in missing_message_id_response.get_json()["message"]
+
+    confirm_response = client.post(
+        "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma",
+        json={
+            "payload": payload,
+            "notificationId": prepared["notificationId"],
+            "results": [{
+                "localMessageId": message["id"],
+                "messageId": "<iusentra-test-message@pec.local>",
+                "sentAt": "2026-05-12T14:26:11+02:00",
+            }],
+        },
+        headers=headers,
+    )
+    assert confirm_response.status_code == 200
+    confirmed = confirm_response.get_json()
+    assert confirmed["ok"] is True
+    assert confirmed["status"] == "SENT_WAITING_RAC"
+    assert confirmed["presidioId"]
+    assert "1 destinatario" in confirmed["message"]
+    assert confirmed["sent"][0]["messageId"] == "<iusentra-test-message@pec.local>"
+    assert confirmed["outputPlan"]["deliveryPlan"]["confirmedMessageIds"] == ["<iusentra-test-message@pec.local>"]
 
 
 def test_api_consultazione_pubblico_elenco_salva_la_prova_nel_fascicolo(tmp_path: Path):

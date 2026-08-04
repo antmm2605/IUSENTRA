@@ -1170,11 +1170,285 @@
   font-weight: 750;
 }
 
+.iu-legal-local-pec-progress,
+.iu-legal-local-pec-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 13px;
+  border: 1px solid rgba(15, 118, 110, .22);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(240, 253, 250, .95), rgba(248, 251, 255, .9));
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+}
+
+.iu-legal-local-pec-progress.is-error,
+.iu-legal-local-pec-panel .is-error {
+  color: var(--iu-danger-700, #991b1b);
+}
+
+.iu-legal-local-pec-progress.is-error {
+  border-color: rgba(220, 38, 38, .3);
+  background: rgba(254, 242, 242, .88);
+}
+
+.iu-legal-local-pec-progress.is-complete {
+  border-color: rgba(22, 163, 74, .3);
+  background: rgba(240, 253, 244, .9);
+}
+
+.iu-legal-local-pec-progress__head,
+.iu-legal-local-pec-panel__head,
+.iu-legal-local-pec-panel__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.iu-legal-local-pec-progress__head > div,
+.iu-legal-local-pec-panel__head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.iu-legal-local-pec-progress__head strong,
+.iu-legal-local-pec-panel__head strong {
+  color: var(--iu-slate-950, #101827);
+  font-size: .9rem;
+}
+
+.iu-legal-local-pec-progress__head span,
+.iu-legal-local-pec-panel__head span,
+.iu-legal-local-pec-panel small {
+  color: var(--iu-slate-600, #526173);
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+.iu-legal-local-pec-progress__head em {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f766e;
+  font-size: .78rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.iu-legal-local-pec-progress__bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, .14);
+}
+
+.iu-legal-local-pec-progress__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e, #2563eb);
+  transition: width .24s ease;
+}
+
+.iu-legal-local-pec-progress__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iu-legal-local-pec-progress__steps li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  min-height: 54px;
+  padding: 8px;
+  border: 1px solid rgba(31, 93, 153, .16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .78);
+  color: var(--iu-slate-500, #64748b);
+}
+
+.iu-legal-local-pec-progress__steps li.is-active {
+  border-color: rgba(37, 99, 235, .34);
+  color: var(--iu-blue-700, #173a67);
+  background: rgba(235, 244, 255, .82);
+}
+
+.iu-legal-local-pec-progress__steps li.is-done {
+  border-color: rgba(22, 163, 74, .26);
+  color: var(--iu-success-700, #166534);
+  background: rgba(240, 253, 244, .82);
+}
+
+.iu-legal-local-pec-progress__steps li.is-error {
+  border-color: rgba(220, 38, 38, .3);
+  color: var(--iu-danger-700, #991b1b);
+  background: rgba(254, 242, 242, .85);
+}
+
+.iu-legal-local-pec-progress__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.iu-legal-local-pec-progress__marker svg {
+  color: #fff;
+}
+
+.iu-legal-local-pec-progress__steps strong,
+.iu-legal-local-pec-progress__steps small {
+  display: block;
+}
+
+.iu-legal-local-pec-progress__steps strong {
+  color: currentColor;
+  font-size: .78rem;
+}
+
+.iu-legal-local-pec-progress__steps small {
+  margin-top: 2px;
+  color: var(--iu-slate-600, #526173);
+  font-size: .7rem;
+  line-height: 1.25;
+}
+
+.iu-legal-local-pec-panel {
+  border-color: rgba(37, 99, 235, .28);
+  background: rgba(248, 251, 255, .96);
+}
+
+.iu-legal-local-pec-panel__head {
+  justify-content: flex-start;
+}
+
+.iu-legal-local-pec-panel__head > svg {
+  color: var(--iu-blue-700, #173a67);
+}
+
+.iu-legal-local-pec-panel dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.iu-legal-local-pec-panel dl > div {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(31, 93, 153, .14);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.iu-legal-local-pec-panel dt {
+  margin: 0 0 3px;
+  color: var(--iu-slate-500, #64748b);
+  font-size: .7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.iu-legal-local-pec-panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--iu-slate-800, #1f2937);
+  font-size: .78rem;
+  font-weight: 750;
+}
+
+.iu-legal-local-pec-panel label {
+  display: grid;
+  gap: 5px;
+}
+
+.iu-legal-local-pec-panel label span {
+  color: var(--iu-slate-800, #1f2937);
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.iu-legal-local-pec-panel input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(31, 93, 153, .24);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--iu-slate-900, #0f172a);
+  font: inherit;
+}
+
+.iu-legal-local-pec-panel input:focus-visible {
+  border-color: var(--iu-blue-600, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .13);
+  outline: none;
+}
+
+.iu-legal-local-pec-panel input[aria-invalid="true"] {
+  border-color: var(--iu-danger-600, #dc2626);
+}
+
+.iu-legal-local-pec-panel__actions {
+  justify-content: flex-end;
+}
+
+.iu-legal-local-pec-panel__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(31, 93, 153, .25);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--iu-blue-700, #173a67);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.iu-legal-local-pec-panel__actions button.is-primary {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+@media (max-width: 860px) {
+  .iu-legal-local-pec-progress__steps,
+  .iu-legal-local-pec-panel dl {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-legal-local-pec-progress__head,
+  .iu-legal-local-pec-panel__actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .iu-legal-local-pec-panel__actions button {
+    width: 100%;
+  }
+}
+
 @keyframes iu-legal-spin {
   to { transform: rotate(360deg); }
 }
 
-.iu-legal-pec-verification .is-spinning {
+.iu-legal-pec-verification .is-spinning,
+.iu-legal-local-pec-progress .is-spinning {
   animation: iu-legal-spin .85s linear infinite;
 }
 

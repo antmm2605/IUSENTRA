@@ -1024,7 +1024,7 @@ Lavoro aggiunto ancora da eseguire:
 
 1. completare la matrice Studio Telematico → modello DOCX/fascicoli → catalogo IUSENTRA;
 2. correggere l'aggiornamento reattivo dell'anteprima, includendo protezione dalle risposte asincrone fuori ordine;
-3. mostrare e convalidare in modo professionale tutti i destinatari selezionati, con modifica del singolo destinatario e conteggio delle PEC distinte previste;
+3. mostrare e convalidare in modo professionale tutti i destinatari selezionati, con modifica del singolo destinatario e conteggio degli indirizzi PEC inseriti nell'unico messaggio previsto da Studio Telematico;
 4. assicurare che la relata e il piano di invio riportino coerentemente tutti i destinatari secondo la variante applicabile;
 5. aggiungere test automatici per cambio modello/caso e due o più destinatari;
 6. provare materialmente nel browser reale produzione e locale ogni variante rappresentativa, inclusi hover, focus, anteprima, PDF e blocco prima dell'invio.
@@ -1065,7 +1065,7 @@ Eseguito prima della compattazione:
 
 - pacchetto sorgente consolidato applicato sul server Hetzner senza modificare volumi o dati tenant;
 - produzione ricostruita sulla versione `2.258.0`, con un solo container applicativo `iusentra-app` e servizi healthy;
-- prova reale in produzione sul caso Romeo Maria, RG `1428/2026`: due destinatari distinti e due PEC distinte risultano visibili; cambio modello e cambio caso aggiornano le clausole; il controllo della relata mostra i requisiti obbligatori mancanti e mantiene disabilitato l'invio reale;
+- prova reale in produzione sul caso Romeo Maria, RG `1428/2026`: due destinatari distinti risultano visibili; il confronto decompilato del 04/08/2026 ha poi corretto la regola operativa in un unico messaggio PEC con tutti i destinatari nel campo `To`; cambio modello e cambio caso aggiornano le clausole; il controllo della relata mostra i requisiti obbligatori mancanti e mantiene disabilitato l'invio reale;
 - corretto il rischio di risposta asincrona fuori ordine e la persistenza impropria della bozza manuale dopo cambio modello/caso; guardrail automatici mirati superati;
 - conservati backup del precedente overlay sorgente e del database del tenant prima delle operazioni di compattazione.
 

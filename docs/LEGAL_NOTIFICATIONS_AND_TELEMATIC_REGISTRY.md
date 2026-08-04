@@ -382,3 +382,24 @@ PST area web e altri portali:
 3. Non usare `portal_upload` come fallback automatico.
 4. Aggiungere test per id sconosciuto, mismatch portale/registro/motore, documenti obbligatori e regole PDF/A/firma/pagamento.
 5. Aggiornare questo documento e i test mirati prima del deploy.
+## Aggiornamento 04/08/2026 - Invio notifiche PEC L. 53 conforme al decompilato Studio Telematico
+
+Contratto operativo attivo per IUSENTRA, separato dal deposito telematico:
+
+- l'invio della notifica PEC L. 53 parte dal PC locale dell'avvocato tramite Local Signer; il server prepara e valida, ma non invia via SMTP;
+- il generatore segue `FormSentMailBee.CreateRelataNotifica`: atto principale e allegati vengono aggiunti prima, la relata firmata viene aggiunta per ultima;
+- il campo `To` è unico e contiene tutti i destinatari nel formato Studio Telematico con PEC, `codice fiscale:` e `pubblico elenco:`;
+- `Cc` e `Bcc` sono sempre vuoti;
+- oggetto ordinario: `Notificazione ai sensi della legge n. 53/1994 e succ. mod.` con riferimento `[Notifica_ID:...]`;
+- il corpo PEC mantiene il blocco `Riferimento da citare nella risposta` e `Pratica`;
+- IUSENTRA registra l'invio solo dopo un `Message-ID` restituito dal Local Signer;
+- dopo conferma reale, il presidio notifiche archivia gli allegati non relata come `(originale notificato)`, conserva la relata come tale e pubblica il presidio verso Agenda, Scadenziario, top bar e Web Push quando attivo.
+
+Guardrail eseguiti il 04/08/2026:
+
+- `python -m pytest tests/test_notifiche_legali.py` (`126 passed`);
+- `python -m pytest tests/test_regia_ui_react.py -k "ui_notifiche_relata_firma_solo_con_prova_tecnica"`;
+- `python -m py_compile web/blueprints/api_v1_react.py pct/notifiche_legali.py`;
+- `pnpm --filter @iusentra/studio typecheck`.
+
+La prova reale UI su `127.0.0.1:8080` e l'invio SMTP effettivo richiedono Local Signer attivo e password PEC inserita sul PC locale dall'avvocato; senza questo passaggio non si dichiara completato l'invio reale.

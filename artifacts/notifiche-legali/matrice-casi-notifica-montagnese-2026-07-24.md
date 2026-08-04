@@ -131,8 +131,8 @@ Prova reale locale su Docker `127.0.0.1:8080`, versione `2.265.14`, tenant `stud
   - `Verbale di udienza, estratto dal fascicolo informatico del Tribunale di Palmi Sez. CIVILE in data 16/12/2025`;
   - conclusione sul procedimento `R.G. n. 1025/2026`;
 - togliendo il verbale, il documento sparisce sia dalla relata sia dall'attestazione; riselezionandolo rientra in entrambi;
-- `Controlla relata` restituisce controllo superato; `Invia PEC` resta abilitato come preparazione locale con titolo `Prepara invio PEC dal PC locale; il riepilogo resta nella notifica corrente.`;
-- prova reale successiva sul browser integrato, stessa pagina `127.0.0.1:8080/notifiche-legali?id_fascicolo=DD242366&fase=notifica`: dopo `Controlla relata` e `Invia PEC` compare `Piano PEC preparato dal PC locale per la notifica corrente.` e il riepilogo `PIANO PEC LOCALE PRONTO` con due PEC distinte da preparare;
+- stato superato dal confronto decompilato del 04/08/2026: `Invia PEC` non deve più essere solo preparazione locale e non deve generare PEC distinte per destinatario;
+- il contratto attivo è quello Studio Telematico: un solo messaggio PEC, campo `To` composto con tutti i destinatari, `codice fiscale:` e `pubblico elenco:`, `Cc`/`Bcc` vuoti, allegati reali dal fascicolo e relata firmata per ultima;
 - non compaiono `Invio PEC bloccato`, incompatibilità modello/origine, prova PEC non coincidente, relata firmata non acquisita, approvazione finale mancante, ricevute post-invio o testi di deposito.
 - La firma della relata è governata dal comando `Firma relata` e non viene presentata come blocco inventato della preparazione; quando il file firmato viene acquisito, lo stato passa a `superato`.
 - L'orario di notifica PEC viene impostato automaticamente al click su `Invia PEC` dal PC locale e non blocca la preparazione; RAC, RdAC e mancata consegna restano controlli successivi all'invio reale della PEC.
@@ -141,3 +141,22 @@ Prova reale locale su Docker `127.0.0.1:8080`, versione `2.265.14`, tenant `stud
 - Le righe modello senza data del provvedimento non lasciano più residui come `in data ,`; il tipo documento resta calcolato per singolo allegato (`Sentenza`, `Verbale di udienza`, ecc.).
 
 Nessuna PEC reale è stata inviata durante la prova e non è stato usato alcun PIN di firma.
+## Rettifica operativa 04/08/2026 - Invio PEC identico a Studio Telematico
+
+Il controllo sul decompilato `D:\QuickOrganizer\QuickOrganizer.exe`, classe `FormSentMailBee`, sostituisce il precedente assunto delle PEC distinte. Il flusso corretto, da mantenere in IUSENTRA, è:
+
+- generatore relata: aggiunge atto principale e allegati, poi aggiunge la `Relata di notifica.pdf` firmata come ultimo allegato;
+- destinatari: costruisce un unico campo `To` concatenato con PEC, `codice fiscale:` e `pubblico elenco:` per tutti i destinatari;
+- `Cc` e `Bcc`: sempre vuoti per notifiche/depositi;
+- oggetto ordinario: `Notificazione ai sensi della legge n. 53/1994 e succ. mod.` con riferimento `[Notifica_ID:...]`;
+- corpo PEC: mantiene il blocco `Riferimento da citare nella risposta` e `Pratica`;
+- dopo `Message-ID` reale: archivia gli allegati non relata come `(originale notificato)` e la relata come relata, poi apre il presidio notifiche distinto dal deposito.
+
+Test script eseguiti il 04/08/2026:
+
+- `python -m pytest tests/test_notifiche_legali.py`;
+- `python -m pytest tests/test_regia_ui_react.py -k "ui_notifiche_relata_firma_solo_con_prova_tecnica"`;
+- `python -m py_compile web/blueprints/api_v1_react.py pct/notifiche_legali.py`;
+- `pnpm --filter @iusentra/studio typecheck`.
+
+Stato prova reale: da eseguire ancora su browser reale `127.0.0.1:8080` dopo rebuild Docker locale e, per l'invio SMTP effettivo, con Local Signer attivo e password PEC inserita dall'avvocato sul PC locale.

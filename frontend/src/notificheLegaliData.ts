@@ -230,6 +230,10 @@ export type LegalWorkflowResult = {
   logJson: Record<string, unknown>
   outputPlan: Record<string, unknown>
   message?: string
+  notificationId?: string
+  requiresLocalPec?: boolean
+  localPecMessages?: Record<string, unknown>[]
+  presidioId?: string
 }
 
 export async function confirmLegalPublicRegister(
@@ -356,6 +360,8 @@ export type NotificheLegaliData = {
     relataFirmata: string
     bozzaRelata: string
     bozzaAttestazione: string
+    invioPecLocale: string
+    confermaInvioPecLocale: string
     comunicazioneCliente: string
     provaDeposito: string
     verificaPecConsultata: string
@@ -479,6 +485,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     relataFirmata: '/api/v1/ui/notifiche-legali/relata-firmata',
     bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
     bozzaAttestazione: '/api/v1/ui/notifiche-legali/bozze-attestazione',
+    invioPecLocale: '/api/v1/ui/notifiche-legali/invio-pec-locale',
+    confermaInvioPecLocale: '/api/v1/ui/notifiche-legali/invio-pec-locale/conferma',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
     verificaPecConsultata: '/api/v1/ui/notifiche-legali/verifica-pec-consultata',
@@ -837,6 +845,12 @@ function resultFromPayload(payload: unknown): LegalWorkflowResult {
     logJson: isRecord(payload.logJson) ? payload.logJson : {},
     outputPlan: isRecord(payload.outputPlan) ? payload.outputPlan : {},
     message: text(payload.message),
+    notificationId: text(payload.notificationId),
+    requiresLocalPec: bool(payload.requiresLocalPec),
+    localPecMessages: Array.isArray(payload.localPecMessages)
+      ? payload.localPecMessages.map((item) => isRecord(item) ? item : {}).filter((item) => Object.keys(item).length)
+      : [],
+    presidioId: text(payload.presidioId),
   }
 }
 
@@ -938,6 +952,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       relataFirmata: text(azioni.relataFirmata, emptyNotificheLegaliData.azioni.relataFirmata),
       bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
       bozzaAttestazione: text(azioni.bozzaAttestazione, emptyNotificheLegaliData.azioni.bozzaAttestazione),
+      invioPecLocale: text(azioni.invioPecLocale, emptyNotificheLegaliData.azioni.invioPecLocale),
+      confermaInvioPecLocale: text(azioni.confermaInvioPecLocale, emptyNotificheLegaliData.azioni.confermaInvioPecLocale),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
       verificaPecConsultata: text(azioni.verificaPecConsultata, emptyNotificheLegaliData.azioni.verificaPecConsultata),

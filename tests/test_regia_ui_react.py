@@ -568,8 +568,20 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "setNotifica" not in toggle_notification
     assert "solo quelli spuntati entrano nella relata" in source
     assert "disabled={!canPrepareNotificationSend}" in source
-    assert "const canPrepareNotificationSend = !notificationControlBusy" in source
-    assert "Prepara invio PEC dal PC locale; il riepilogo resta nella notifica corrente." in source
+    assert "const canPrepareNotificationSend = !notificationControlBusy && !localPecPasswordRequest" in source
+    assert "Invia PEC reale dal PC locale con flusso Studio Telematico" in source
+    assert "localPecEndpointForStudioTelematico" in source
+    assert "relataLocalSignerEndpoint('/pec/send')" in source
+    assert "data.azioni.invioPecLocale" in source
+    assert "data.azioni.confermaInvioPecLocale" in source
+    assert "Piano PEC non coerente con Studio Telematico" in source
+    assert "Message-ID" in source
+    assert "Avanzamento invio PEC" in source
+    assert "LOCAL_PEC_PROGRESS_STEPS" in source
+    assert "iu-legal-local-pec-progress__bar" in source
+    assert "Conferma invio PEC dal PC locale" in source
+    assert ".iu-legal-local-pec-progress" in css
+    assert ".iu-legal-local-pec-panel" in css
     assert "Invio PEC bloccato" not in source
     assert 'accept=".pdf,.pdfa,.p7m,.eml,.msg"' in source
     assert "Tutti notificabili" not in source

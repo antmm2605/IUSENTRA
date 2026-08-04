@@ -35,7 +35,7 @@ from pct.studio_address import compose_studio_address
 
 
 LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
-STUDIO_TELEMATICO_NOTIFICATION_SUBJECT = "Notificazione ai sensi della legge n. 53 - 1994 e succ. mod."
+STUDIO_TELEMATICO_NOTIFICATION_SUBJECT = "Notificazione ai sensi della legge n. 53/1994 e succ. mod."
 _BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 LEGAL_NOTIFICATION_OPERATION = "notifica_pec_l53"
 LEGAL_NOTIFICATION_SEND_OPERATION = "invio_pec_l53"
@@ -3035,6 +3035,23 @@ def _studio_telematico_outbound_subject(
     return " ".join(part for part in parts if part)
 
 
+def _studio_telematico_to_address(recipient: dict[str, Any]) -> str:
+    pec = text(recipient.get("pec"))
+    if not pec:
+        return ""
+    fiscal_id = text(recipient.get("fiscalId"))
+    public_register = text(recipient.get("sourceLabel") or recipient.get("source"))
+    return f"{pec} (codice fiscale: {fiscal_id} pubblico elenco: {public_register})"
+
+
+def _studio_telematico_to_header(recipients: list[dict[str, Any]]) -> str:
+    return ", ".join(
+        item
+        for item in (_studio_telematico_to_address(recipient) for recipient in recipients)
+        if item
+    )
+
+
 def _append_originale_notificato(filename: Any) -> str:
     value = text(filename)
     if not value or "originale notificato" in value.casefold():
@@ -3248,16 +3265,7 @@ def build_notification_send_plan(
         )
     )
     documents = context["documenti"]
-    pec_attachments = [
-        {
-            "id": "relata_firmata",
-            "label": "Relata firmata digitalmente",
-            "filename": text(payload.get("relata_firmata_file") or payload.get("relata_firmata_nome"), signed_relata),
-            "required": True,
-            "phase": "pec_notifica",
-            "source": "L. 53/1994, art. 3-bis",
-        }
-    ]
+    pec_attachments = []
     for document in documents:
         pec_attachments.append(
             {
@@ -3268,6 +3276,7 @@ def build_notification_send_plan(
                 "required": True,
                 "phase": "pec_notifica",
                 "source": "D.M. 44/2011, art. 18",
+                "studioTelematicoArchiveRole": "originale_notificato",
             }
         )
     if any(document["necessita_attestazione"] for document in documents):
@@ -3284,6 +3293,7 @@ def build_notification_send_plan(
                 "required": True,
                 "phase": "pec_notifica",
                 "source": "art. 196-undecies disp. att. c.p.c.; L. 53/1994, art. 3-bis",
+                "studioTelematicoArchiveRole": "originale_notificato",
             }
         )
     if any(item.get("id") == "procura" and item.get("required") for item in attachment_manifest):
@@ -3295,8 +3305,20 @@ def build_notification_send_plan(
                 "required": True,
                 "phase": "pec_notifica",
                 "source": "D.M. 44/2011, art. 18",
+                "studioTelematicoArchiveRole": "originale_notificato",
             }
         )
+    pec_attachments.append(
+        {
+            "id": "relata_firmata",
+            "label": "Relata firmata digitalmente",
+            "filename": text(payload.get("relata_firmata_file") or payload.get("relata_firmata_nome"), signed_relata),
+            "required": True,
+            "phase": "pec_notifica",
+            "source": "L. 53/1994, art. 3-bis",
+            "studioTelematicoArchiveRole": "relata_notifica",
+        }
+    )
 
     notification_seed = {
         "practice": context["pratica"]["codice"],
@@ -3318,14 +3340,18 @@ def build_notification_send_plan(
         timing_plan.get("plannedAt")
         or _first(payload, "notifica.data_ora_invio_pec", "data_ora_invio_pec", fallback="")
     )
+    studio_telematico_to = _studio_telematico_to_header(recipients)
     messages = [
         {
-            "messageId": f"{notification_id}-pec-{recipient['index']}",
+            "messageId": f"{notification_id}-pec-1",
             "notificationId": notification_id,
-            "recipientId": recipient["recipientId"],
-            "recipientIdentityKey": recipient["recipientIdentityKey"],
-            "to": recipient["pec"],
-            "recipient": recipient,
+            "recipientIds": [recipient["recipientId"] for recipient in recipients],
+            "recipientIdentityKeys": [recipient["recipientIdentityKey"] for recipient in recipients],
+            "to": studio_telematico_to,
+            "cc": [],
+            "bcc": [],
+            "recipients": recipients,
+            "recipient": recipients[0] if recipients else {},
             "subject": outbound_subject,
             "legalSubject": LEGAL_NOTIFICATION_SUBJECT,
             "body": body,
@@ -3333,8 +3359,7 @@ def build_notification_send_plan(
             "preparedAt": sent_at,
             "localSendOnly": True,
         }
-        for recipient in recipients
-    ]
+    ] if recipients else []
 
     checks = [
         _check_row(
@@ -3345,11 +3370,11 @@ def build_notification_send_plan(
             detail="Ogni destinatario della notifica deve avere PEC tratta da pubblico elenco.",
         ),
         _check_row(
-            id="pec_distinte",
-            label="PEC distinte per destinatario",
-            source="Prassi operativa prudente L. 53/1994",
-            passed=True,
-            detail="Il sistema prepara un messaggio separato per ciascun destinatario, evitando commistioni tra destinatari.",
+            id="studio_telematico_to",
+            label="Campo To Studio Telematico",
+            source="Studio Telematico decompilato, FormSentMailBee.cs:15779 e 19727",
+            passed=bool(studio_telematico_to),
+            detail="Il messaggio di notifica usa il campo To composto con PEC, codice fiscale e pubblico elenco dei destinatari, come nel decompilato.",
         ),
     ]
     if send_phase:
@@ -3385,10 +3410,18 @@ def build_notification_send_plan(
         "localSendOnly": True,
         "quickOrganizerReference": _quickorganizer_practice_reference(payload, context),
         "recipients": recipients,
+        "studioTelematicoTo": studio_telematico_to,
         "messages": messages,
-        "messagesCount": len(recipients),
-        "separatePecRequired": True,
+        "messagesCount": len(messages),
+        "separatePecRequired": False,
+        "singleMessageToAllRecipients": True,
         "attachments": pec_attachments,
+        "postSendDocumentArchive": _post_send_document_archive(
+            pec_attachments,
+            notification_id=notification_id,
+            recipients=recipients,
+            sent_at=sent_at,
+        ),
         "attachmentManifest": attachment_manifest,
         "signaturePlan": signature_plan,
         "timingPlan": timing_plan,

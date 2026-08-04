@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 319.
-- Endpoint P0/P1 contrattualizzati: 279.
+- Endpoint React API contrattualizzati: 321.
+- Endpoint P0/P1 contrattualizzati: 281.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 304.
+- Endpoint con provider verification auth-error: 306.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -200,6 +200,8 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Notifiche legali | `/api/v1/ui/notifiche-legali/bozze-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/comunicazione-cliente` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/destinatari-manuali` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/invio-pec-locale` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/invio-pec-locale/conferma` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/modelli-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/non-pec` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/notifica` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

@@ -66,6 +66,9 @@ import './NotificheLegaliPage.css'
 type TabKey = 'notifica' | 'deposito' | 'unep' | 'nonpec' | 'cliente'
 
 type NotificaDocumentPayload = {
+  document_id?: string
+  documentId?: string
+  id_documento?: string
   nome_file: string
   descrizione: string
   origine: string
@@ -849,6 +852,37 @@ type SavedAttestationRecord = {
   downloadUrl: string
 }
 
+type LocalPecMessage = {
+  id?: string
+  messageId?: string
+  notificationId?: string
+  endpoint?: string
+  recipient?: Record<string, unknown>
+  recipients?: Record<string, unknown>[]
+  payload?: Record<string, unknown>
+}
+
+type LocalPecPasswordRequest = {
+  message: LocalPecMessage
+  resolve: (password: string) => void
+  reject: (error: Error) => void
+}
+
+type LocalPecProgressStepId = 'preparazione' | 'signer' | 'password' | 'trasmissione' | 'conferma' | 'presidio'
+type LocalPecProgressStatus = 'pending' | 'active' | 'done' | 'error'
+type LocalPecProgressStep = {
+  id: LocalPecProgressStepId
+  label: string
+  detail: string
+}
+type LocalPecProgressState = {
+  visible: boolean
+  current: LocalPecProgressStepId | null
+  done: LocalPecProgressStepId[]
+  failed: LocalPecProgressStepId | null
+  message: string
+}
+
 type PecVerificationEvidence = {
   key: string
   source: string
@@ -1274,6 +1308,124 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
+function localPecText(value: unknown, fallback = ''): string {
+  const text = String(value ?? '').trim()
+  return text || fallback
+}
+
+function localPecRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {}
+}
+
+function localPecMessages(value: unknown): LocalPecMessage[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => localPecRecord(item) as LocalPecMessage)
+    .filter((item) => localPecText(item.id || item.messageId) && isRecord(item.payload))
+}
+
+const LOCAL_PEC_PROGRESS_STEPS: LocalPecProgressStep[] = [
+  { id: 'preparazione', label: 'Piano PEC', detail: 'destinatari, allegati reali e relata firmata' },
+  { id: 'signer', label: 'Local Signer', detail: 'servizio locale sul PC dell’avvocato' },
+  { id: 'password', label: 'Password PEC', detail: 'inserita solo sul dispositivo locale' },
+  { id: 'trasmissione', label: 'Invio SMTP', detail: 'unico messaggio con To Studio Telematico' },
+  { id: 'conferma', label: 'Message-ID', detail: 'conferma tecnica dell’invio reale' },
+  { id: 'presidio', label: 'Presidio', detail: 'Agenda, Scadenziario, top bar e Web Push' },
+]
+
+function emptyLocalPecProgressState(): LocalPecProgressState {
+  return {
+    visible: false,
+    current: null,
+    done: [],
+    failed: null,
+    message: '',
+  }
+}
+
+function localPecProgressIndex(stepId: LocalPecProgressStepId | null): number {
+  if (!stepId) return -1
+  return LOCAL_PEC_PROGRESS_STEPS.findIndex((step) => step.id === stepId)
+}
+
+function localPecProgressStateForStep(stepId: LocalPecProgressStepId, message: string): LocalPecProgressState {
+  const index = localPecProgressIndex(stepId)
+  return {
+    visible: true,
+    current: stepId,
+    done: LOCAL_PEC_PROGRESS_STEPS.slice(0, Math.max(index, 0)).map((step) => step.id),
+    failed: null,
+    message,
+  }
+}
+
+function localPecProgressCompleted(message: string): LocalPecProgressState {
+  return {
+    visible: true,
+    current: null,
+    done: LOCAL_PEC_PROGRESS_STEPS.map((step) => step.id),
+    failed: null,
+    message,
+  }
+}
+
+function localPecProgressFailed(current: LocalPecProgressState, message: string): LocalPecProgressState {
+  const failed = current.current || current.failed || 'preparazione'
+  return {
+    ...current,
+    visible: true,
+    current: null,
+    failed,
+    message,
+  }
+}
+
+function localPecProgressPercent(progress: LocalPecProgressState): number {
+  if (!progress.visible) return 0
+  if (progress.failed) return Math.max(8, Math.round((progress.done.length / LOCAL_PEC_PROGRESS_STEPS.length) * 100))
+  if (!progress.current) return progress.done.length === LOCAL_PEC_PROGRESS_STEPS.length ? 100 : 0
+  const activeIndex = localPecProgressIndex(progress.current)
+  return Math.max(8, Math.round(((Math.max(activeIndex, 0) + 0.5) / LOCAL_PEC_PROGRESS_STEPS.length) * 100))
+}
+
+function localPecStepStatus(stepId: LocalPecProgressStepId, progress: LocalPecProgressState): LocalPecProgressStatus {
+  if (progress.failed === stepId) return 'error'
+  if (progress.done.includes(stepId)) return 'done'
+  if (progress.current === stepId) return 'active'
+  return 'pending'
+}
+
+function localPecEndpointForStudioTelematico(value: unknown): string {
+  const raw = localPecText(value, relataLocalSignerEndpoint('/pec/send'))
+  try {
+    const parsed = new URL(raw)
+    if ((parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') && parsed.port === '27272' && parsed.pathname === '/pec/send') {
+      return parsed.toString()
+    }
+  } catch {
+    return relataLocalSignerEndpoint('/pec/send')
+  }
+  return relataLocalSignerEndpoint('/pec/send')
+}
+
+async function ensureRelataLocalPecServiceReady(): Promise<void> {
+  let status = await fetchRelataLocalSignerStatus(3500)
+  if (status?.ok !== false && status !== null) return
+  requestRelataLocalSignerStart()
+  await waitForRelataSigner(900)
+  status = await fetchRelataLocalSignerStatus(4500)
+  if (status?.ok !== false && status !== null) return
+  throw new Error('Local Signer non raggiungibile: avvialo sul PC e ripeti l’invio PEC.')
+}
+
+async function parseLocalPecResponse(response: Response): Promise<Record<string, unknown>> {
+  const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+  if (!response.ok || payload.ok === false) {
+    throw new Error(localPecText(payload.messaggio || payload.message || payload.errore || payload.error, `Local Signer non ha confermato l’invio PEC (HTTP ${response.status}).`))
+  }
+  return payload
+}
+
 function planFiles(outputPlan: Record<string, unknown>): string[] {
   const files = outputPlan.files
   return Array.isArray(files) ? files.map((item) => String(item || '').trim()).filter(Boolean) : []
@@ -1628,6 +1780,10 @@ export function NotificheLegaliPage() {
   const [result, setResult] = useState<LegalWorkflowResult>(emptyResult)
   const [working, setWorking] = useState(false)
   const resultPanelRef = useRef<HTMLDivElement | null>(null)
+  const scrollResultIntoView = () => window.setTimeout(
+    () => resultPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    0,
+  )
   const [lastControlLabel, setLastControlLabel] = useState('')
   const [lastControlPayloadKey, setLastControlPayloadKey] = useState('')
   const [attestationPreviewOpen, setAttestationPreviewOpen] = useState(false)
@@ -1637,6 +1793,11 @@ export function NotificheLegaliPage() {
   const [signatureStatus, setSignatureStatus] = useState<RelataSignerStatus | null>(null)
   const [signedRelata, setSignedRelata] = useState<SignedRelataRecord | null>(null)
   const signaturePinRef = useRef<HTMLInputElement | null>(null)
+  const [localPecPasswordRequest, setLocalPecPasswordRequest] = useState<LocalPecPasswordRequest | null>(null)
+  const [localPecPassword, setLocalPecPassword] = useState('')
+  const [localPecPasswordError, setLocalPecPasswordError] = useState('')
+  const localPecPasswordRef = useRef<HTMLInputElement | null>(null)
+  const [localPecProgress, setLocalPecProgress] = useState<LocalPecProgressState>(emptyLocalPecProgressState)
   const [senderPecVerification, setSenderPecVerification] = useState<PecVerificationEvidence | null>(null)
   const senderPecVerificationRef = useRef<PecVerificationEvidence | null>(null)
   const [recipientPecVerifications, setRecipientPecVerifications] = useState<Record<string, PecVerificationEvidence>>({})
@@ -2592,6 +2753,9 @@ export function NotificheLegaliPage() {
 
   const documentSuggestionPayload = (documento: LegalDocumentSuggestion): NotificaDocumentPayload => {
     return {
+      document_id: documento.id,
+      documentId: documento.id,
+      id_documento: documento.id,
       nome_file: documentPrimaryName(documento),
       descrizione: documento.descrizione || documento.label,
       origine: documento.origine || 'nativo_digitale',
@@ -3213,6 +3377,12 @@ export function NotificheLegaliPage() {
       payload.attestazione_conformita_sha256 = savedAttestationFile.sha256
       payload.attestazione_conformita_document_id = savedAttestationFile.documentId
     }
+    if (signedRelata?.fileName) {
+      payload.relata_firmata_file = signedRelata.fileName
+      payload.relata_firmata_sha256 = signedRelata.sha256
+      payload.relata_firmata_document_id = signedRelata.documentId
+      payload.relata_firmata = true
+    }
     return payload
   }
 
@@ -3566,49 +3736,173 @@ export function NotificheLegaliPage() {
     setWorking(false)
   }
 
+  const updateLocalPecProgress = (step: LocalPecProgressStepId, message: string) => {
+    setLocalPecProgress(localPecProgressStateForStep(step, message))
+  }
+
+  const completeLocalPecProgress = (message: string) => {
+    setLocalPecProgress(localPecProgressCompleted(message))
+  }
+
+  const failLocalPecProgress = (message: string) => {
+    setLocalPecProgress((current) => localPecProgressFailed(current, message))
+  }
+
+  const requestNotificationPecPassword = (message: LocalPecMessage): Promise<string> => {
+    setLocalPecPassword('')
+    setLocalPecPasswordError('')
+    return new Promise((resolve, reject) => {
+      setLocalPecPasswordRequest({ message, resolve, reject })
+      window.setTimeout(() => localPecPasswordRef.current?.focus(), 60)
+    })
+  }
+
+  const confirmNotificationPecPassword = () => {
+    if (!localPecPasswordRequest) return
+    const password = localPecPassword.trim()
+    if (!password) {
+      setLocalPecPasswordError('Inserisci la password PEC per completare l’invio dal PC locale.')
+      localPecPasswordRef.current?.focus()
+      return
+    }
+    localPecPasswordRequest.resolve(password)
+    setLocalPecPasswordRequest(null)
+    setLocalPecPassword('')
+    setLocalPecPasswordError('')
+  }
+
+  const cancelNotificationPecPassword = () => {
+    if (!localPecPasswordRequest) return
+    localPecPasswordRequest.reject(new Error('Invio PEC annullato prima della trasmissione locale.'))
+    setLocalPecPasswordRequest(null)
+    setLocalPecPassword('')
+    setLocalPecPasswordError('')
+  }
+
+  const sendNotificationLocalPecMessage = async (message: LocalPecMessage, password: string) => {
+    const localPayload = localPecRecord(message.payload)
+    if (!Object.keys(localPayload).length) {
+      throw new Error('Payload PEC locale non disponibile.')
+    }
+    const endpoint = localPecEndpointForStudioTelematico(message.endpoint)
+    const requestOptions: LocalNetworkRequestInit = {
+      method: 'POST',
+      mode: 'cors',
+      targetAddressSpace: 'loopback',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...localPayload, password }),
+    }
+    const response = await fetch(endpoint, requestOptions)
+    const localResult = await parseLocalPecResponse(response)
+    const messageId = localPecText(localResult.message_id || localResult.messageId || localResult.id)
+    if (!messageId) {
+      throw new Error('Local Signer ha risposto senza Message-ID: IUSENTRA non registra la notifica come inviata.')
+    }
+    return {
+      localMessageId: localPecText(message.id || message.messageId),
+      messageId,
+      sentAt: localDateTime(),
+      to: localPecText(localPayload.to),
+      subject: localPecText(localPayload.subject),
+      recipients: Array.isArray(message.recipients) ? message.recipients : [],
+    }
+  }
+
   const sendNotification = async () => {
     const invioPec = localDateTime()
     setWorking(true)
-    setResult({ ...emptyResult, message: 'Preparazione invio PEC in corso...' })
-    await ensureAutomaticPecVerification()
-    let attestationAttachment = savedAttestationFile
-    if (notificationNeedsAttestazione) {
-      const savedFile = await saveAttestationPdfToFascicolo('', { silent: true })
-      if (!savedFile) {
-        setResult({
-          ...emptyResult,
-          blockers: ['Attestazione di conformità non salvata nel fascicolo: la PEC non viene preparata senza l’allegato richiesto.'],
-        })
-        setWorking(false)
+    setResult({ ...emptyResult, message: 'Controllo piano PEC Studio Telematico in corso...' })
+    updateLocalPecProgress('preparazione', 'Controllo destinatari, allegati reali, relata firmata e piano PEC.')
+    try {
+      await ensureAutomaticPecVerification()
+      let attestationAttachment = savedAttestationFile
+      if (notificationNeedsAttestazione) {
+        const savedFile = await saveAttestationPdfToFascicolo('', { silent: true })
+        if (!savedFile) {
+          failLocalPecProgress('Attestazione di conformità non salvata nel fascicolo.')
+          setResult({
+            ...emptyResult,
+            blockers: ['Attestazione di conformità non salvata nel fascicolo: la PEC non viene inviata senza l’allegato richiesto.'],
+          })
+          return
+        }
+        attestationAttachment = savedFile
+        setAttestationFileMessage('Attestazione di conformità salvata nel fascicolo e pronta come allegato PEC.')
+      }
+      setNotifica((current) => ({
+        ...current,
+        data_ora_invio_pec: invioPec,
+      }))
+      const payload = {
+        ...buildNotificaPayload(true),
+        ...(attestationAttachment?.fileName
+          ? {
+              attestazione_conformita_file: attestationAttachment.fileName,
+              attestazione_conformita_sha256: attestationAttachment.sha256,
+              attestazione_conformita_document_id: attestationAttachment.documentId,
+            }
+          : {}),
+        ...(signedRelata?.fileName
+          ? {
+              relata_firmata_file: signedRelata.fileName,
+              relata_firmata_sha256: signedRelata.sha256,
+              relata_firmata_document_id: signedRelata.documentId,
+              relata_firmata: true,
+            }
+          : {}),
+        operazione: 'invio_pec_l53',
+        conferma_invio_pec: true,
+        invio_finale: true,
+        data_ora_invio_pec: invioPec,
+      }
+      const prepared = await postLegalWorkflow(data.azioni.invioPecLocale, payload)
+      if (!prepared.ok) {
+        failLocalPecProgress(prepared.blockers[0] || prepared.message || 'Piano PEC non validato.')
+        setResult(prepared)
         return
       }
-      attestationAttachment = savedFile
-      setAttestationFileMessage('Attestazione di conformità salvata nel fascicolo e pronta come allegato PEC.')
+      const messages = localPecMessages(prepared.localPecMessages)
+      if (messages.length !== 1) {
+        throw new Error('Piano PEC non coerente con Studio Telematico: deve esserci un unico messaggio con tutti i destinatari nel campo To.')
+      }
+      updateLocalPecProgress('signer', 'Piano pronto: verifico Local Signer sul PC locale.')
+      await ensureRelataLocalPecServiceReady()
+      updateLocalPecProgress('password', 'Local Signer pronto: inserisci la password PEC, resta solo su questo PC.')
+      const password = await requestNotificationPecPassword(messages[0])
+      updateLocalPecProgress('trasmissione', 'Password acquisita localmente: trasmetto la PEC con un unico To Studio Telematico.')
+      setResult({
+        ...prepared,
+        message: 'Invio PEC dal PC locale in corso: unico messaggio Studio Telematico con destinatari nel campo To.',
+      })
+      const sent = [await sendNotificationLocalPecMessage(messages[0], password)]
+      updateLocalPecProgress('conferma', `Message-ID ricevuto: ${sent[0].messageId}. Registro conferma e presidio.`)
+      const confirmation = await postLegalWorkflow(data.azioni.confermaInvioPecLocale, {
+        payload,
+        notificationId: prepared.notificationId,
+        results: sent,
+      })
+      if (confirmation.ok) {
+        completeLocalPecProgress('Invio PEC registrato: presidio notifiche pubblicato per Agenda, Scadenziario, top bar e Web Push.')
+      } else {
+        failLocalPecProgress('La PEC è partita dal PC locale, ma la conferma/presidio non è stata completata.')
+      }
+      setResult(confirmation.ok ? confirmation : {
+        ...confirmation,
+        blockers: confirmation.blockers.length ? confirmation.blockers : ['Conferma invio PEC locale non registrata.'],
+      })
+      setLastControlLabel(confirmation.message || `PEC inviata. Message-ID: ${sent[0].messageId}`)
+      scrollResultIntoView()
+    } catch (error) {
+      failLocalPecProgress(error instanceof Error ? error.message : 'Invio PEC non completato.')
+      setResult({
+        ...emptyResult,
+        blockers: [error instanceof Error ? error.message : 'Invio PEC non completato.'],
+      })
+    } finally {
+      setWorking(false)
+      setLocalPecPassword('')
+      setLocalPecPasswordError('')
     }
-    setNotifica((current) => ({
-      ...current,
-      data_ora_invio_pec: invioPec,
-    }))
-    const payload = {
-      ...buildNotificaPayload(true),
-      ...(attestationAttachment?.fileName
-        ? {
-            attestazione_conformita_file: attestationAttachment.fileName,
-            attestazione_conformita_sha256: attestationAttachment.sha256,
-            attestazione_conformita_document_id: attestationAttachment.documentId,
-          }
-        : {}),
-      operazione: 'invio_pec_l53',
-      conferma_invio_pec: true,
-      invio_finale: true,
-      data_ora_invio_pec: invioPec,
-    }
-    const response = await postLegalWorkflow(data.azioni.notifica, payload).catch(() => ({ ...emptyResult, blockers: ['Preparazione invio PEC non completata. Riprova tra poco.'] }))
-    setResult(response.ok ? {
-      ...response,
-      message: response.message || 'Piano PEC preparato dal PC locale per la notifica corrente.',
-    } : response)
-    setWorking(false)
   }
 
   const verifyNotificationPec = async () => {
@@ -3920,8 +4214,14 @@ export function NotificheLegaliPage() {
       : working
         ? 'Controllo...'
         : 'Controlla relata'
-  const canPrepareNotificationSend = !notificationControlBusy
-  const sendNotificationTitle = 'Prepara invio PEC dal PC locale; il riepilogo resta nella notifica corrente.'
+  const canPrepareNotificationSend = !notificationControlBusy && !localPecPasswordRequest
+  const sendNotificationTitle = 'Invia PEC reale dal PC locale con flusso Studio Telematico: unico messaggio e destinatari nel campo To.'
+  const localPecProgressValue = localPecProgressPercent(localPecProgress)
+  const localPecProgressClassName = [
+    'iu-legal-local-pec-progress',
+    localPecProgress.failed ? 'is-error' : '',
+    !localPecProgress.failed && localPecProgressValue === 100 ? 'is-complete' : '',
+  ].filter(Boolean).join(' ')
   const currentPecSubjects = currentPecVerificationSubjects()
   const selectedRecipientRegister = data.registriPec.find(
     (item) => item.value === normalizePecSource(notifica.fonte_pec_destinatario),
@@ -3979,7 +4279,7 @@ export function NotificheLegaliPage() {
           { icon: <ShieldCheck size={15} />, text: 'PEC mittente e destinatario da pubblico elenco.' },
           { icon: <FileDown size={15} />, text: "Documento d'ufficio rilasciato acquisito dal Portale Servizi prima della relata." },
           { icon: <FileSignature size={15} />, text: 'Relata separata e firmata digitalmente.' },
-          { icon: <Inbox size={15} />, text: 'La schermata prepara soltanto relata, attestazione e PEC locale.' },
+          { icon: <Inbox size={15} />, text: 'Il server prepara il messaggio; l’invio SMTP reale parte dal PC locale tramite Local Signer.' },
           { icon: <UserRound size={15} />, text: 'Il cliente resta nel percorso informativo.' },
         ]
   const attestationDocuments = currentNotificationDocuments.filter((documento) => originNeedsAttestazione(documento.origine))
@@ -4400,8 +4700,8 @@ export function NotificheLegaliPage() {
                         </div>
                         <b>
                           {distinctNotificationRecipientPecCount === 1
-                            ? '1 PEC distinta'
-                            : `${distinctNotificationRecipientPecCount} PEC distinte`}
+                            ? '1 indirizzo PEC'
+                            : `${distinctNotificationRecipientPecCount} indirizzi PEC`}
                         </b>
                       </header>
                       {notificationRecipientsForDisplay.map((item, index) => {
@@ -4910,9 +5210,105 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
               </div>
+              {localPecProgress.visible ? (
+                <div className={localPecProgressClassName} role="status" aria-live="polite">
+                  <div className="iu-legal-local-pec-progress__head">
+                    <div>
+                      <strong>Avanzamento invio PEC</strong>
+                      <span>{localPecProgress.message || 'Flusso PEC pronto.'}</span>
+                    </div>
+                    <em>{localPecProgressValue}%</em>
+                  </div>
+                  <div
+                    className="iu-legal-local-pec-progress__bar"
+                    role="progressbar"
+                    aria-label="Avanzamento invio PEC"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={localPecProgressValue}
+                  >
+                    <span style={{ width: `${localPecProgressValue}%` }} />
+                  </div>
+                  <ol className="iu-legal-local-pec-progress__steps">
+                    {LOCAL_PEC_PROGRESS_STEPS.map((step) => {
+                      const status = localPecStepStatus(step.id, localPecProgress)
+                      return (
+                        <li className={`is-${status}`} key={step.id}>
+                          <span className="iu-legal-local-pec-progress__marker" aria-hidden="true">
+                            {status === 'done' ? <CheckCircle2 size={14} /> : status === 'error' ? <AlertTriangle size={14} /> : <RefreshCw size={14} className={status === 'active' ? 'is-spinning' : ''} />}
+                          </span>
+                          <div>
+                            <strong>{step.label}</strong>
+                            <small>{step.detail}</small>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                </div>
+              ) : null}
+              {localPecPasswordRequest ? (() => {
+                const pecPayload = localPecRecord(localPecPasswordRequest.message.payload)
+                const attachments = Array.isArray(pecPayload.attachments) ? pecPayload.attachments : []
+                const recipients = Array.isArray(localPecPasswordRequest.message.recipients) ? localPecPasswordRequest.message.recipients : []
+                return (
+                  <div className="iu-legal-local-pec-panel" role="alertdialog" aria-labelledby="iu-local-pec-title" aria-describedby="iu-local-pec-detail">
+                    <div className="iu-legal-local-pec-panel__head">
+                      <LockKeyhole size={17} />
+                      <div>
+                        <strong id="iu-local-pec-title">Conferma invio PEC dal PC locale</strong>
+                        <span id="iu-local-pec-detail">Studio Telematico invia un unico messaggio: tutti i destinatari restano nel campo To e Cc/Bcc sono vuoti.</span>
+                      </div>
+                    </div>
+                    <dl>
+                      <div>
+                        <dt>Destinatari To</dt>
+                        <dd>{localPecText(pecPayload.to, 'Non disponibile')}</dd>
+                      </div>
+                      <div>
+                        <dt>Oggetto</dt>
+                        <dd>{localPecText(pecPayload.subject, 'Non disponibile')}</dd>
+                      </div>
+                      <div>
+                        <dt>Allegati</dt>
+                        <dd>{attachments.length} allegati, relata firmata inclusa per ultima</dd>
+                      </div>
+                      <div>
+                        <dt>Destinatari logici</dt>
+                        <dd>{recipients.length || 1}</dd>
+                      </div>
+                    </dl>
+                    <label>
+                      <span>Password PEC</span>
+                      <input
+                        ref={localPecPasswordRef}
+                        type="password"
+                        autoComplete="current-password"
+                        value={localPecPassword}
+                        onChange={(event) => {
+                          setLocalPecPassword(event.currentTarget.value)
+                          if (localPecPasswordError) setLocalPecPasswordError('')
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') confirmNotificationPecPassword()
+                          if (event.key === 'Escape') cancelNotificationPecPassword()
+                        }}
+                        aria-invalid={Boolean(localPecPasswordError)}
+                        aria-describedby={localPecPasswordError ? 'iu-local-pec-password-error' : 'iu-local-pec-password-hint'}
+                      />
+                    </label>
+                    <small id="iu-local-pec-password-hint"><LockKeyhole size={13} /> La password viene inviata solo a Local Signer su questo PC e non passa dal server IUSENTRA.</small>
+                    {localPecPasswordError ? <small id="iu-local-pec-password-error" className="is-error">{localPecPasswordError}</small> : null}
+                    <div className="iu-legal-local-pec-panel__actions">
+                      <button type="button" onClick={cancelNotificationPecPassword}>Annulla</button>
+                      <button type="button" className="is-primary" onClick={confirmNotificationPecPassword}><Send size={15} /> Invia ora</button>
+                    </div>
+                  </div>
+                )
+              })() : null}
               <div className="iu-legal-submit-row">
                 <button className="iu-legal-submit" type="button" disabled={notificationControlBusy} onClick={() => run('notifica')}><ShieldCheck size={16} /> {notificationControlLabel}</button>
-                <button className="iu-legal-submit iu-legal-submit--send" type="button" disabled={!canPrepareNotificationSend} title={sendNotificationTitle} onClick={sendNotification}><Send size={16} /> {working ? 'Preparazione...' : 'Invia PEC'}</button>
+                <button className="iu-legal-submit iu-legal-submit--send" type="button" disabled={!canPrepareNotificationSend} title={sendNotificationTitle} onClick={sendNotification}><Send size={16} /> {working ? 'Invio...' : 'Invia PEC'}</button>
                 <span className="iu-legal-control-status">{lastControlLabel || sendNotificationTitle || 'Il controllo aggiorna anteprima, blocchi, attestazione e piano firma.'}</span>
               </div>
             </Panel>

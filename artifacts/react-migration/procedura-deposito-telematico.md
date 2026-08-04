@@ -5837,3 +5837,32 @@ Prove reali eseguite dopo deploy e rebuild locale:
 - browser integrato autenticato su `http://127.0.0.1:8080/fascicoli?vista=operativa`: card `Scadenze urgenti 3` con nota `3 scadute, 0 entro 7 giorni`, riquadro `Scadenze scadute`, vecchia etichetta `Scadenze 7g` assente;
 - responsive locale verificato su desktop `1280x720`, tablet `900x900` e mobile `390x844`: dati reali caricati, nessun overflow orizzontale, scroll fino ai blocchi finali `Cabina fascicoli` e `Integrazioni pronte`;
 - hover/focus sulla card `#scadenze-urgenti`: link unico, focus tastiera mantenuto, nessun overflow e nessun ritorno alla vecchia etichetta.
+## Aggiornamento 04/08/2026 - Notifica PEC L. 53: flusso distinto dal deposito e allineato a Studio Telematico
+
+Questo aggiornamento riguarda l'invio delle notifiche PEC L. 53, non il deposito telematico. Il deposito resta un flusso separato.
+
+Contratto derivato dal decompilato `D:\QuickOrganizer\QuickOrganizer.exe`, `FormSentMailBee`:
+
+- `CreateRelataNotifica` genera la relata e prepara gli allegati aggiungendo prima atto principale/allegati e poi la relata firmata come ultimo allegato;
+- il campo `To` è unico e contiene tutti i destinatari, con commento `codice fiscale:` e `pubblico elenco:`;
+- `Cc` e `Bcc` sono vuoti;
+- oggetto ordinario: `Notificazione ai sensi della legge n. 53/1994 e succ. mod.` con `[Notifica_ID:...]`;
+- il corpo contiene il riferimento da citare nella risposta e la pratica;
+- IUSENTRA non registra la notifica come inviata senza `Message-ID` reale restituito dal Local Signer;
+- il presidio post-invio è distinto dal deposito: allegati non relata come `(originale notificato)`, relata come relata, pubblicazione verso Agenda, Scadenziario, top bar e Web Push quando attivo.
+
+Implementazione 04/08/2026:
+
+- nuove rotte React/API dedicate: `/api/v1/ui/notifiche-legali/invio-pec-locale` e `/api/v1/ui/notifiche-legali/invio-pec-locale/conferma`;
+- frontend React: `Invia PEC` avvia l'invio reale via Local Signer locale, chiede la password PEC solo sul PC e mostra barra di avanzamento per piano PEC, Local Signer, password, invio SMTP, Message-ID e presidio;
+- backend: gli allegati vengono letti dai documenti reali del fascicolo; documenti manuali non salvati nel fascicolo non vengono inviati come allegati reali;
+- conferma: se manca il `Message-ID`, il backend risponde errore e non crea presidio.
+
+Guardrail script eseguiti:
+
+- `python -m pytest tests/test_notifiche_legali.py` (`126 passed`);
+- `python -m pytest tests/test_regia_ui_react.py -k "ui_notifiche_relata_firma_solo_con_prova_tecnica"`;
+- `python -m py_compile web/blueprints/api_v1_react.py pct/notifiche_legali.py`;
+- `pnpm --filter @iusentra/studio typecheck`.
+
+Stato prova reale: la verifica materiale completa su browser reale `127.0.0.1:8080` e l'invio SMTP effettivo restano da eseguire dopo rebuild Docker locale, con Local Signer attivo e password PEC inserita dall'avvocato sul PC locale.

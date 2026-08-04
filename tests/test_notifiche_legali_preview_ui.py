@@ -72,7 +72,7 @@ def test_relata_ui_names_applied_model_case_and_all_recipient_pecs() -> None:
     assert "Caso applicato: {previewAppliedCaseLabel}" in source
     assert "notificationRecipientsForDisplay.length" in source
     assert "distinctNotificationRecipientPecCount" in source
-    assert "PEC distinte" in source
+    assert "indirizzi PEC" in source
     assert "L'elenco completo entra nella relata e nel controllo prima dell'invio." in source
 
 

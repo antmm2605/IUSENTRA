@@ -1608,6 +1608,8 @@ def build_react_notifiche_legali_payload(
             "relataFirmata": "/api/v1/ui/notifiche-legali/relata-firmata",
             "bozzaRelata": "/api/v1/ui/notifiche-legali/bozze-relata",
             "bozzaAttestazione": "/api/v1/ui/notifiche-legali/bozze-attestazione",
+            "invioPecLocale": "/api/v1/ui/notifiche-legali/invio-pec-locale",
+            "confermaInvioPecLocale": "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
             "verificaPecConsultata": "/api/v1/ui/notifiche-legali/verifica-pec-consultata",

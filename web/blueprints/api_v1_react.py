@@ -8,6 +8,8 @@ truth frontend.
 from __future__ import annotations
 
 
+import base64
+import mimetypes
 from pct.formatting import format_euro_it
 import hashlib
 import io
@@ -45,6 +47,7 @@ from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
     LEGAL_RECIPIENT_ROLES,
+    LEGAL_NOTIFICATION_SEND_OPERATION,
     PUBLIC_PEC_REGISTERS,
     build_public_register_confirmation_evidence,
     build_attestazione_conformita_payload,
@@ -159,6 +162,7 @@ from web.services.react_notifiche_legali_bridge import (
     build_react_notifiche_legali_practice_documents_payload,
     sanitize_react_notifiche_legali_payload,
 )
+from web.services.local_pec_runtime import LOCAL_SIGNER_BASE_URL
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 from web.services.react_privacy_bridge import build_react_privacy_registro_payload
 from web.services.react_scadenziario_bridge import (
@@ -3147,6 +3151,28 @@ _NOTIFICHE_DRAFT_BODY_MAX = 30000
 _NOTIFICHE_CLIENT_BODY_MAX = 20000
 _NOTIFICHE_SIGNED_RELATA_MAX_BYTES = 20 * 1024 * 1024
 _NOTIFICHE_MANUAL_RECIPIENT_TAG = "notifiche-legali-manuale"
+_NOTIFICHE_LOCAL_PEC_MAX_TOTAL_BYTES = 100 * 1024 * 1024
+_NOTIFICHE_LOCAL_PEC_ENDPOINT = f"{LOCAL_SIGNER_BASE_URL}/pec/send"
+
+
+class _NotificheLocalPecError(ValueError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        blockers: Iterable[Any] | None = None,
+        status: int = 400,
+        payload: Mapping[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.blockers = [
+            _notifiche_text(item)
+            for item in (blockers or [message])
+            if _notifiche_text(item)
+        ] or [message]
+        self.status = status
+        self.payload = dict(payload or {})
 
 
 def _json_payload_or_error() -> tuple[dict[str, Any] | None, Any | None]:
@@ -3561,6 +3587,716 @@ def _stamp_notifica_pec_times(payload: dict[str, Any]) -> dict[str, Any]:
     if operation == "invio_pec_l53":
         stamped["data_ora_invio_pec"] = now
     return stamped
+
+
+def _notifiche_error_response(error: _NotificheLocalPecError):
+    payload = {
+        "ok": False,
+        "message": error.message,
+        "blockers": error.blockers,
+        "warnings": [],
+        **error.payload,
+    }
+    return jsonify(payload), error.status
+
+
+def _notifiche_payload_draft_guard(payload: Mapping[str, Any]) -> None:
+    override_text = str(payload.get("relata_override_text") or "").strip()
+    if len(override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        raise _NotificheLocalPecError(
+            "La bozza relata modificata è troppo lunga.",
+            blockers=["La bozza relata modificata è troppo lunga."],
+        )
+    attestation_override_text = str(
+        payload.get("attestazione_override_text") or payload.get("attestation_override_text") or ""
+    ).strip()
+    if len(attestation_override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        raise _NotificheLocalPecError(
+            "L'attestazione di conformità modificata è troppo lunga.",
+            blockers=["L'attestazione di conformità modificata è troppo lunga."],
+        )
+
+
+def _notifiche_rome_now_iso() -> str:
+    return datetime.now(ZoneInfo("Europe/Rome")).replace(microsecond=0).isoformat()
+
+
+def _notifiche_safe_filename(value: Any, fallback: str = "allegato.bin") -> str:
+    filename = Path(str(value or fallback or "allegato.bin")).name.strip()
+    return filename or fallback
+
+
+def _notifiche_fascicolo_id(payload: Mapping[str, Any]) -> str:
+    return _notifiche_text(
+        payload.get("fascicolo_id")
+        or payload.get("practice_id")
+        or payload.get("practiceId")
+        or payload.get("id_fascicolo")
+    )
+
+
+def _notifiche_document_id(raw: Mapping[str, Any]) -> str:
+    return _notifiche_text(
+        raw.get("document_id")
+        or raw.get("documentId")
+        or raw.get("id_documento")
+        or raw.get("fascicolo_document_id")
+    )
+
+
+def _notifiche_payload_documents(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    raw_items = payload.get("documenti") or payload.get("documents") or []
+    if not isinstance(raw_items, list):
+        return []
+    return [item for item in raw_items if isinstance(item, Mapping)]
+
+
+def _notifiche_find_fascicolo_document(fascicolo: Any, document_id: str) -> Any | None:
+    clean_id = _notifiche_text(document_id)
+    if not clean_id:
+        return None
+    for doc in getattr(fascicolo, "documenti", []) or []:
+        if _notifiche_text(getattr(doc, "id", "")) == clean_id:
+            return doc
+    return None
+
+
+def _notifiche_document_display_name(doc: Any, fallback: str = "allegato.bin") -> str:
+    return _notifiche_safe_filename(
+        getattr(doc, "nome_originale", "")
+        or getattr(doc, "nome", "")
+        or getattr(doc, "nome_portale", "")
+        or fallback,
+        fallback,
+    )
+
+
+def _notifiche_fascicolo_label(fascicolo: Any, payload: Mapping[str, Any]) -> str:
+    if fascicolo is None:
+        return _notifiche_text(payload.get("quickorganizer_pratica") or payload.get("pratica_codice") or "")
+    return _notifiche_text(
+        getattr(fascicolo, "numero_pratica", "")
+        or getattr(fascicolo, "numero", "")
+        or getattr(fascicolo, "titolo", "")
+        or getattr(fascicolo, "title", "")
+        or getattr(fascicolo, "id", "")
+    )
+
+
+def _notifiche_read_fascicolo_attachment(
+    *,
+    gestore: Any,
+    fascicolo: Any,
+    fascicolo_id: str,
+    document_id: str,
+    attachment_id: str,
+    label: str,
+    role: str,
+    expected_sha256: str = "",
+    include_content: bool = True,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    doc = _notifiche_find_fascicolo_document(fascicolo, document_id)
+    if doc is None:
+        raise _NotificheLocalPecError(
+            f"Documento non appartenente al fascicolo: {document_id}.",
+            blockers=[f"Documento non appartenente al fascicolo: {document_id}."],
+        )
+    try:
+        content = _pat_read_document_bytes(gestore, fascicolo_id, document_id)
+    except FileNotFoundError as exc:
+        raise _NotificheLocalPecError(
+            f"File documento non trovato nel fascicolo: {document_id}.",
+            blockers=[f"File documento non trovato nel fascicolo: {document_id}."],
+        ) from exc
+    filename = _notifiche_document_display_name(doc, fallback=label or "allegato.bin")
+    actual_sha256 = hashlib.sha256(content).hexdigest()
+    expected = _notifiche_text(expected_sha256).lower()
+    if expected and re.fullmatch(r"[0-9a-f]{64}", expected) and expected != actual_sha256:
+        raise _NotificheLocalPecError(
+            f"Impronta diversa per {filename}: la PEC non viene inviata con un allegato non coincidente.",
+            blockers=[f"Impronta diversa per {filename}: la PEC non viene inviata con un allegato non coincidente."],
+        )
+    mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    attachment = {
+        "id": attachment_id,
+        "label": label,
+        "filename": filename,
+        "mime_type": mime_type,
+        "size_bytes": len(content),
+        "sha256": actual_sha256,
+        "documentId": document_id,
+        "role": role,
+        "studioTelematicoArchiveRole": "relata_notifica" if role == "relata" else "originale_notificato",
+        "studioTelematicoDisplayName": (
+            filename
+            if role == "relata"
+            else f"{Path(filename).stem} (originale notificato){Path(filename).suffix}"
+        ),
+    }
+    if include_content:
+        attachment["content_base64"] = base64.b64encode(content).decode("ascii")
+    evidence = {
+        "document_role": role,
+        "fascicolo_document_id": document_id,
+        "content_sha256": actual_sha256,
+        "outer_sha256": actual_sha256,
+        "original_filename": filename,
+        "document_version": "1",
+        "authoritative": True,
+        "studio_telematico_archive_role": "relata_notifica" if role == "relata" else "originale_notificato",
+        "studio_telematico_display_name": (
+            filename
+            if role == "relata"
+            else f"{Path(filename).stem} (originale notificato){Path(filename).suffix}"
+        ),
+    }
+    return attachment, evidence
+
+
+def _notifiche_relata_document_id(payload: Mapping[str, Any]) -> str:
+    direct = _notifiche_text(
+        payload.get("relata_firmata_document_id")
+        or payload.get("relataFirmataDocumentId")
+        or payload.get("signedRelataDocumentId")
+    )
+    if direct:
+        return direct
+    raw = payload.get("relata_firmata")
+    return _notifiche_text(raw.get("documentId") or raw.get("document_id") or raw.get("id")) if isinstance(raw, Mapping) else ""
+
+
+def _notifiche_attestation_document_id(payload: Mapping[str, Any]) -> str:
+    direct = _notifiche_text(
+        payload.get("attestazione_conformita_document_id")
+        or payload.get("attestationDocumentId")
+        or payload.get("attestazioneDocumentId")
+    )
+    if direct:
+        return direct
+    raw = payload.get("attestazione_conformita")
+    return _notifiche_text(raw.get("documentId") or raw.get("document_id") or raw.get("id")) if isinstance(raw, Mapping) else ""
+
+
+def _notifiche_procura_document_id(payload: Mapping[str, Any]) -> str:
+    return _notifiche_text(payload.get("procura_document_id") or payload.get("procuraDocumentId"))
+
+
+def _notifiche_delivery_requires_attachment(delivery_plan: Mapping[str, Any], attachment_id: str) -> bool:
+    raw = delivery_plan.get("attachments") or []
+    if not isinstance(raw, list):
+        return False
+    return any(
+        isinstance(item, Mapping)
+        and _notifiche_text(item.get("id")) == attachment_id
+        and bool(item.get("required", True))
+        for item in raw
+    )
+
+
+def _notifiche_pec_settings() -> dict[str, Any]:
+    try:
+        manager = _studio_config_manager()
+        config = getattr(manager, "config", manager)
+        pec_cfg = getattr(config, "pec", None)
+    except Exception as exc:
+        raise _NotificheLocalPecError(
+            "Configurazione PEC dello studio non disponibile.",
+            blockers=["Configurazione PEC dello studio non disponibile."],
+        ) from exc
+    indirizzo = _notifiche_text(getattr(pec_cfg, "indirizzo", "") if pec_cfg is not None else "")
+    smtp_host = _notifiche_text(getattr(pec_cfg, "smtp_host", "") if pec_cfg is not None else "")
+    if not indirizzo or not smtp_host:
+        raise _NotificheLocalPecError(
+            "Configura la PEC dello studio prima dell'invio reale.",
+            blockers=["Configura indirizzo PEC e server SMTP in Impostazioni > PEC prima dell'invio reale."],
+            payload={"settingsHref": "/impostazioni?tab=pec"},
+        )
+    username = _notifiche_text(
+        getattr(pec_cfg, "username", "")
+        or getattr(pec_cfg, "smtp_username", "")
+        or getattr(pec_cfg, "pec_username", "")
+        or indirizzo
+    )
+    try:
+        smtp_port = int(getattr(pec_cfg, "smtp_port", 465) or 465)
+    except (TypeError, ValueError):
+        smtp_port = 465
+    raw_use_ssl = getattr(pec_cfg, "use_ssl", None)
+    use_ssl = bool(raw_use_ssl) if raw_use_ssl is not None else smtp_port == 465
+    raw_use_tls = getattr(pec_cfg, "use_tls", None)
+    use_tls = bool(raw_use_tls) if raw_use_tls is not None else not use_ssl
+    return {
+        "indirizzo": indirizzo,
+        "username": username,
+        "from": indirizzo,
+        "smtp_host": smtp_host,
+        "smtp_port": smtp_port,
+        "use_ssl": use_ssl,
+        "use_tls": use_tls,
+    }
+
+
+def _notifiche_delivery_reference(delivery_plan: Mapping[str, Any]) -> str:
+    reference = _notifiche_text(delivery_plan.get("quickOrganizerReference"))
+    notification_id = _notifiche_text(delivery_plan.get("notificationId"))
+    if notification_id and f"[Notifica_ID:{notification_id}]" not in reference:
+        reference = f"{reference} [Notifica_ID:{notification_id}]".strip()
+    return reference
+
+
+def _notifiche_delivery_body(
+    *,
+    result_payload: Mapping[str, Any],
+    delivery_plan: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    fascicolo_label: str,
+) -> str:
+    body = str(
+        delivery_plan.get("body")
+        or result_payload.get("body")
+        or payload.get("corpo_pec")
+        or payload.get("body")
+        or ""
+    ).strip()
+    if not body:
+        body = "Si trasmettono in allegato gli atti notificati ai sensi della L. 53/1994."
+    reference = _notifiche_delivery_reference(delivery_plan)
+    if reference and "Riferimento da citare nella risposta:" not in body:
+        body = "\n".join([
+            body,
+            "",
+            "--------------------------",
+            f"Riferimento da citare nella risposta: {reference}",
+            f"Pratica: {fascicolo_label or _notifiche_text(payload.get('pratica_codice')) or 'non indicata'}",
+        ]).strip()
+    return body
+
+
+def _notifiche_result_messages(delivery_plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    raw = delivery_plan.get("messages") or []
+    if isinstance(raw, list):
+        messages = [item for item in raw if isinstance(item, Mapping)]
+        if messages:
+            return messages
+    recipients = delivery_plan.get("recipients") or []
+    if not isinstance(recipients, list):
+        return []
+    subject = _notifiche_text(delivery_plan.get("subject") or delivery_plan.get("studioTelematicoSubject"))
+    notification_id = _notifiche_text(delivery_plan.get("notificationId"))
+    clean_recipients = [item for item in recipients if isinstance(item, Mapping)]
+    return [{
+        "messageId": f"{notification_id}-pec-1",
+        "notificationId": notification_id,
+        "recipientIds": [_notifiche_text(recipient.get("recipientId")) for recipient in clean_recipients],
+        "recipientIdentityKeys": [_notifiche_text(recipient.get("recipientIdentityKey")) for recipient in clean_recipients],
+        "to": _notifiche_text(delivery_plan.get("studioTelematicoTo")),
+        "recipients": clean_recipients,
+        "recipient": clean_recipients[0] if clean_recipients else {},
+        "subject": subject,
+    }]
+
+
+def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, include_content: bool = True) -> dict[str, Any]:
+    _notifiche_payload_draft_guard(raw_payload)
+    payload = {
+        **dict(raw_payload),
+        "operazione": LEGAL_NOTIFICATION_SEND_OPERATION,
+        "conferma_invio_pec": True,
+        "invio_finale": True,
+    }
+    payload = _stamp_notifica_pec_times(payload)
+    payload = _augment_custom_relata_payload(payload)
+    result = validate_legal_notification(payload, require_signed_relata=True)
+    result_payload = sanitize_react_notifiche_legali_payload(result.to_dict())
+    output_plan = dict(result_payload.get("outputPlan") or {})
+    delivery_plan = dict(output_plan.get("deliveryPlan") or {})
+    if not result.ok:
+        raise _NotificheLocalPecError(
+            "Completa i dati indicati prima dell'invio PEC reale.",
+            blockers=result_payload.get("blockers") or result.blockers,
+            payload=result_payload,
+        )
+    fascicolo_id = _notifiche_fascicolo_id(payload)
+    if not fascicolo_id:
+        raise _NotificheLocalPecError(
+            "Seleziona il fascicolo prima dell'invio PEC reale.",
+            blockers=["Seleziona il fascicolo prima dell'invio PEC reale."],
+        )
+    gestore = get_fascicoli()
+    fascicolo = gestore.get(fascicolo_id)
+    if fascicolo is None:
+        raise _NotificheLocalPecError(
+            "Fascicolo non trovato: la PEC non viene inviata senza allegati reali.",
+            blockers=["Fascicolo non trovato: la PEC non viene inviata senza allegati reali."],
+        )
+
+    attachments: list[dict[str, Any]] = []
+    document_evidence: list[dict[str, Any]] = []
+    for index, raw in enumerate(_notifiche_payload_documents(payload), start=1):
+        document_id = _notifiche_document_id(raw)
+        if not document_id:
+            label = _notifiche_safe_filename(raw.get("nome_file") or raw.get("file_originale"), f"documento_{index}.pdf")
+            raise _NotificheLocalPecError(
+                f"Documento {label} selezionato ma non salvato nel fascicolo.",
+                blockers=[f"Documento {label} selezionato ma non salvato nel fascicolo: salvalo o collegalo prima dell'invio reale."],
+            )
+        attachment, evidence = _notifiche_read_fascicolo_attachment(
+            gestore=gestore,
+            fascicolo=fascicolo,
+            fascicolo_id=fascicolo_id,
+            document_id=document_id,
+            attachment_id=f"documento_{index}",
+            label=_notifiche_text(raw.get("descrizione")) or "Documento da notificare",
+            role="notified_act",
+            expected_sha256=_notifiche_text(raw.get("hash_sha256") or raw.get("hashSha256")),
+            include_content=include_content,
+        )
+        attachments.append(attachment)
+        document_evidence.append(evidence)
+
+    if not attachments:
+        raise _NotificheLocalPecError(
+            "Seleziona almeno un documento reale del fascicolo da notificare.",
+            blockers=["Seleziona almeno un documento reale del fascicolo da notificare."],
+        )
+
+    if _notifiche_delivery_requires_attachment(delivery_plan, "attestazione_conformita"):
+        attestation_id = _notifiche_attestation_document_id(payload)
+        if not attestation_id:
+            raise _NotificheLocalPecError(
+                "Attestazione di conformità richiesta ma non salvata nel fascicolo.",
+                blockers=["Attestazione di conformità richiesta ma non salvata nel fascicolo."],
+            )
+        attachment, evidence = _notifiche_read_fascicolo_attachment(
+            gestore=gestore,
+            fascicolo=fascicolo,
+            fascicolo_id=fascicolo_id,
+            document_id=attestation_id,
+            attachment_id="attestazione_conformita",
+            label="Attestazione di conformità",
+            role="attestation",
+            expected_sha256=_notifiche_text(payload.get("attestazione_conformita_sha256") or payload.get("attestazione_sha256")),
+            include_content=include_content,
+        )
+        attachments.append(attachment)
+        document_evidence.append(evidence)
+
+    if _notifiche_delivery_requires_attachment(delivery_plan, "procura"):
+        procura_id = _notifiche_procura_document_id(payload)
+        if not procura_id:
+            raise _NotificheLocalPecError(
+                "Procura richiesta ma non salvata nel fascicolo.",
+                blockers=["Procura richiesta ma non salvata nel fascicolo."],
+            )
+        attachment, evidence = _notifiche_read_fascicolo_attachment(
+            gestore=gestore,
+            fascicolo=fascicolo,
+            fascicolo_id=fascicolo_id,
+            document_id=procura_id,
+            attachment_id="procura",
+            label="Procura alle liti",
+            role="notified_act",
+            expected_sha256=_notifiche_text(payload.get("procura_sha256")),
+            include_content=include_content,
+        )
+        attachments.append(attachment)
+        document_evidence.append(evidence)
+
+    relata_id = _notifiche_relata_document_id(payload)
+    if not relata_id:
+        raise _NotificheLocalPecError(
+            "Relata firmata mancante: firma la relata prima dell'invio PEC reale.",
+            blockers=["Relata firmata mancante: firma la relata prima dell'invio PEC reale."],
+        )
+    attachment, evidence = _notifiche_read_fascicolo_attachment(
+        gestore=gestore,
+        fascicolo=fascicolo,
+        fascicolo_id=fascicolo_id,
+        document_id=relata_id,
+        attachment_id="relata_firmata",
+        label="Relata firmata digitalmente",
+        role="relata",
+        expected_sha256=_notifiche_text(payload.get("relata_firmata_sha256") or payload.get("relata_sha256")),
+        include_content=include_content,
+    )
+    attachments.append(attachment)
+    document_evidence.append(evidence)
+
+    total_size = sum(int(item.get("size_bytes") or 0) for item in attachments)
+    if total_size > _NOTIFICHE_LOCAL_PEC_MAX_TOTAL_BYTES:
+        raise _NotificheLocalPecError(
+            "Gli allegati della notifica superano il limite operativo locale di 100 MB.",
+            blockers=["Gli allegati della notifica superano il limite operativo locale di 100 MB."],
+            status=413,
+        )
+
+    pec_settings = _notifiche_pec_settings()
+    fascicolo_label = _notifiche_fascicolo_label(fascicolo, payload)
+    body = _notifiche_delivery_body(
+        result_payload=result_payload,
+        delivery_plan=delivery_plan,
+        payload=payload,
+        fascicolo_label=fascicolo_label,
+    )
+    public_attachments = [{key: value for key, value in item.items() if key != "content_base64"} for item in attachments]
+    delivery_plan.update({
+        "body": body,
+        "attachments": public_attachments,
+        "localSendOnly": True,
+        "localPecReady": True,
+        "presidioPecAutomation": {
+            "enabled": True,
+            "phase": "post_message_id_locale",
+            "correlationField": "Notifica_ID",
+            "archiveTargets": ["fascicolo", "presidi_notifiche", "agenda", "scadenziario", "topbar", "web_push"],
+            "localSendOnly": True,
+        },
+    })
+    output_plan["deliveryPlan"] = delivery_plan
+    result_payload["outputPlan"] = output_plan
+
+    local_messages: list[dict[str, Any]] = []
+    for index, message in enumerate(_notifiche_result_messages(delivery_plan), start=1):
+        recipient = message.get("recipient") if isinstance(message.get("recipient"), Mapping) else {}
+        message_recipients = [
+            item
+            for item in (message.get("recipients") if isinstance(message.get("recipients"), list) else [])
+            if isinstance(item, Mapping)
+        ]
+        to_address = _notifiche_text(message.get("to") or delivery_plan.get("studioTelematicoTo") or (recipient or {}).get("pec"))
+        if not to_address:
+            raise _NotificheLocalPecError(
+                "Destinatario PEC mancante nel piano di invio.",
+                blockers=["Destinatario PEC mancante nel piano di invio."],
+            )
+        local_id = _notifiche_text(message.get("messageId")) or f"{delivery_plan.get('notificationId')}-pec-{index}"
+        local_messages.append({
+            "id": local_id,
+            "messageId": local_id,
+            "notificationId": _notifiche_text(delivery_plan.get("notificationId")),
+            "endpoint": _NOTIFICHE_LOCAL_PEC_ENDPOINT,
+            "requiresPassword": True,
+            "requires_password": True,
+            "channel": "local_signer",
+            "recipient": recipient,
+            "recipients": message_recipients,
+            "payload": {
+                **pec_settings,
+                "to": to_address,
+                "cc": [],
+                "bcc": [],
+                "subject": _notifiche_text(message.get("subject") or delivery_plan.get("subject") or delivery_plan.get("studioTelematicoSubject")),
+                "body": body,
+                "attachments": attachments,
+            },
+        })
+
+    if not local_messages:
+        raise _NotificheLocalPecError(
+            "Nessun destinatario PEC nel piano di invio.",
+            blockers=["Nessun destinatario PEC nel piano di invio."],
+        )
+    result_payload.update({
+        "ok": True,
+        "message": "Invio PEC reale pronto sul PC locale: unico messaggio Studio Telematico con tutti i destinatari nel campo To.",
+        "requiresLocalPec": True,
+        "localPecMessages": local_messages,
+        "notificationId": _notifiche_text(delivery_plan.get("notificationId")),
+    })
+    return {
+        "payload": payload,
+        "resultPayload": result_payload,
+        "deliveryPlan": delivery_plan,
+        "localMessages": local_messages,
+        "attachments": public_attachments,
+        "documents": document_evidence,
+        "fascicoloId": fascicolo_id,
+        "fascicoloLabel": fascicolo_label,
+    }
+
+
+def _notifiche_public_recipient(recipient: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "recipient_identity_key": _notifiche_text(recipient.get("recipientIdentityKey") or recipient.get("recipient_identity_key")),
+        "name": _notifiche_text(recipient.get("name") or recipient.get("nome")),
+        "fiscal_id": _notifiche_text(
+            recipient.get("fiscalId")
+            or recipient.get("fiscal_id")
+            or recipient.get("codice_fiscale_piva")
+            or recipient.get("codiceFiscalePiva")
+        ),
+        "role": _notifiche_text(recipient.get("role") or recipient.get("ruolo") or recipient.get("tipo")),
+        "pec_address": _notifiche_pec(recipient.get("pec") or recipient.get("pec_address")),
+        "public_register": _notifiche_text(recipient.get("sourceLabel") or recipient.get("source") or recipient.get("fonte_pec") or recipient.get("public_register")),
+        "public_register_verified_at": _notifiche_text(recipient.get("verifiedAt") or recipient.get("verified_at")),
+        "required": True,
+    }
+
+
+def _notifiche_confirmation_message_id(row: Mapping[str, Any]) -> str:
+    return _notifiche_text(
+        row.get("message_id")
+        or row.get("messageId")
+        or row.get("pecMessageId")
+        or row.get("sentMessageId")
+    )
+
+
+def _notifiche_confirmation_local_id(row: Mapping[str, Any]) -> str:
+    return _notifiche_text(row.get("localMessageId") or row.get("local_message_id") or row.get("localId") or row.get("messageLocalId"))
+
+
+def _notifiche_result_rows(value: Any) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _notifiche_tenant_ids_for_presidio() -> tuple[str, str]:
+    paths = getattr(g, "data_paths", {}) or {}
+    tenant = g.get("tenant")
+    tenant_object_id = _notifiche_text(getattr(tenant, "id", "") if tenant is not None else "")
+    notification_id = _notifiche_text(paths.get("_TENANT_NOTIFICATION_ID") or tenant_object_id or _tenant_runtime_label() or "default")
+    presidio_id = _notifiche_text(paths.get("_TENANT_PRESIDIO_ID") or notification_id or tenant_object_id or "default")
+    return notification_id or "default", presidio_id or "default"
+
+
+def _notifiche_runtime_paths_for_presidio() -> dict[str, Any]:
+    paths: dict[str, Any] = {
+        key: value
+        for key, value in current_app.config.items()
+        if isinstance(value, (str, int, float, bool))
+    }
+    paths.update(getattr(g, "data_paths", {}) or {})
+    paths.setdefault("PEC_AUDIT_DB", str(_pec_audit_db_path_for_request()))
+    if not _notifiche_text(paths.get("NOTIFICATIONS_DB")):
+        email_db = Path(str(paths.get("EMAIL_CASELLA_DB") or _tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json")))
+        paths["NOTIFICATIONS_DB"] = str(email_db.parent.parent / "notifications" / "notifications.db")
+    return paths
+
+
+def _notifiche_create_presidio_from_confirmation(
+    context: Mapping[str, Any],
+    sent_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    from pct.pec_notification_presidio import (
+        NotificationPresidioRepository,
+        NotificationPresidioService,
+        NotificationReceiptEnvelope,
+        PecNotificationReconciler,
+        ReceiptKind,
+    )
+    from web.services.notifications_runtime import materialize_selected_advanced_notification_presidia_for_paths
+
+    paths = _notifiche_runtime_paths_for_presidio()
+    tenant_notification_id, tenant_presidio_id = _notifiche_tenant_ids_for_presidio()
+    db_path = Path(str(paths.get("PEC_AUDIT_DB") or _pec_audit_db_path_for_request()))
+    repo = NotificationPresidioRepository(db_path, tenant_id=tenant_presidio_id)
+    try:
+        delivery_plan = context["deliveryPlan"]
+        recipients = [
+            _notifiche_public_recipient(item)
+            for item in (delivery_plan.get("recipients") or [])
+            if isinstance(item, Mapping)
+        ]
+        if not recipients:
+            raise _NotificheLocalPecError(
+                "Destinatari non disponibili per il presidio notifiche.",
+                blockers=["Destinatari non disponibili per il presidio notifiche."],
+            )
+        first_message_id = sent_rows[0]["messageId"]
+        now_iso = _notifiche_rome_now_iso()
+        documents = [
+            {
+                **dict(item),
+                "source_message_id": first_message_id,
+            }
+            for item in (context.get("documents") or [])
+            if isinstance(item, Mapping)
+        ]
+        candidate = NotificationPresidioService(repo).create_candidate({
+            "fascicolo_id": context.get("fascicoloId"),
+            "source_message_id": first_message_id,
+            "source_effective_at": sent_rows[0].get("sentAt") or now_iso,
+            "event_or_order_at": sent_rows[0].get("sentAt") or now_iso,
+            "source_order_or_event_id": _notifiche_text(delivery_plan.get("notificationId")),
+            "trigger_type": "EXPLICIT_NOTIFICATION_ORDER",
+            "notification_case": "notifica_l53",
+            "rulepack_version": "studio-telematico-l53-local-send-v1",
+            "priority": "P1",
+            "confidence": 1.0,
+            "detection_reason": "Invio PEC L. 53 confermato dal Local Signer con Message-ID reale.",
+            "notification_instance_document_key": _notifiche_text(delivery_plan.get("notificationId")),
+            "live_pec_operational_event": True,
+            "channel": "pec",
+            "actor": _actor_label(),
+            "documents": documents,
+            "recipients": recipients,
+            "evidence_summary": {
+                "source": "local_signer_pec_send",
+                "notification_id": _notifiche_text(delivery_plan.get("notificationId")),
+                "message_ids": [item["messageId"] for item in sent_rows],
+            },
+        })
+        presidio_id = _notifiche_text(candidate.get("id"))
+        reconciler = PecNotificationReconciler(repo)
+        reconciliations = []
+        recipient_by_pec = {
+            _notifiche_pec(item.get("pec_address")): item
+            for item in recipients
+            if _notifiche_pec(item.get("pec_address"))
+        }
+        for row in sent_rows:
+            row_recipients = [
+                _notifiche_public_recipient(item)
+                for item in (row.get("recipients") or [])
+                if isinstance(item, Mapping)
+            ] or [
+                item
+                for pec, item in recipient_by_pec.items()
+                if pec and pec in _notifiche_text(row.get("to")).casefold()
+            ] or recipients
+            for recipient in row_recipients:
+                reconciliations.append(reconciler.process(
+                    NotificationReceiptEnvelope(
+                        kind=ReceiptKind.SENT,
+                        message_id=row["messageId"],
+                        presidio_id=presidio_id,
+                        recipient_address=_notifiche_pec(recipient.get("pec_address")),
+                        recipient_name=_notifiche_text(recipient.get("name")),
+                        recipient_fiscal_id=_notifiche_text(recipient.get("fiscal_id")),
+                        occurred_at=_notifiche_text(row.get("sentAt")) or now_iso,
+                        metadata={
+                            "notification_id": _notifiche_text(delivery_plan.get("notificationId")),
+                            "local_message_id": _notifiche_text(row.get("localMessageId")),
+                            "subject": _notifiche_text(row.get("subject") or delivery_plan.get("subject")),
+                            "studio_telematico_to": _notifiche_text(row.get("to")),
+                        },
+                    ),
+                    actor=_actor_label(),
+                ))
+        publication = materialize_selected_advanced_notification_presidia_for_paths(
+            paths,
+            tenant_label=_tenant_runtime_label(),
+            tenant_id=tenant_notification_id,
+            presidio_tenant_id=tenant_presidio_id,
+            presidio_ids=[presidio_id],
+            database=paths.get("_TENANT_DATABASE_CONFIG"),
+        )
+        clear_dashboard_payload_cache()
+        return {
+            "presidioId": presidio_id,
+            "created": bool(candidate.get("created")),
+            "status": _notifiche_text(reconciliations[-1].get("status") if reconciliations else candidate.get("status")),
+            "reconciliations": reconciliations,
+            "publication": publication,
+            "tenantNotificationId": tenant_notification_id,
+            "tenantPresidioId": tenant_presidio_id,
+        }
+    finally:
+        close = getattr(repo, "close", None)
+        if callable(close):
+            close()
 
 
 @api_v1_react.get("/notifiche-legali")
@@ -4298,6 +5034,156 @@ def notifiche_legali_preview():
             else "Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato."
         ),
     )
+
+
+@api_v1_react.post("/notifiche-legali/invio-pec-locale")
+@_richiedi_auth
+def notifiche_legali_invio_pec_locale():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    try:
+        context = _notifiche_prepare_local_pec_context(payload, include_content=True)
+    except _NotificheLocalPecError as exc:
+        return _notifiche_error_response(exc)
+    result_payload = dict(context["resultPayload"])
+    _audit_event(
+        "notifiche_legali.invio_pec_locale.preparato",
+        "notifica_legale",
+        _notifiche_text(result_payload.get("notificationId")),
+        "Piano PEC L. 53 preparato per invio dal PC locale.",
+    )
+    return jsonify(result_payload), 200
+
+
+@api_v1_react.post("/notifiche-legali/invio-pec-locale/conferma")
+@_richiedi_auth
+def notifiche_legali_invio_pec_locale_conferma():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    source_payload = payload.get("payload") if isinstance(payload.get("payload"), Mapping) else payload
+    if not isinstance(source_payload, Mapping):
+        return jsonify({
+            "ok": False,
+            "message": "Payload notifica mancante per la conferma dell'invio PEC.",
+            "blockers": ["Payload notifica mancante per la conferma dell'invio PEC."],
+            "warnings": [],
+        }), 400
+    try:
+        context = _notifiche_prepare_local_pec_context(source_payload, include_content=False)
+    except _NotificheLocalPecError as exc:
+        return _notifiche_error_response(exc)
+
+    delivery_plan = context["deliveryPlan"]
+    expected_notification_id = _notifiche_text(delivery_plan.get("notificationId"))
+    received_notification_id = _notifiche_text(payload.get("notificationId") or payload.get("notification_id"))
+    if received_notification_id and received_notification_id != expected_notification_id:
+        return jsonify({
+            "ok": False,
+            "message": "Notifica_ID non coerente con il piano PEC preparato.",
+            "blockers": ["Notifica_ID non coerente con il piano PEC preparato."],
+            "warnings": [],
+        }), 400
+
+    raw_results = _notifiche_result_rows(payload.get("results") or payload.get("sent") or payload.get("esiti"))
+    if not raw_results:
+        return jsonify({
+            "ok": False,
+            "message": "Nessun esito Local Signer ricevuto: la PEC non viene registrata come inviata.",
+            "blockers": ["Nessun esito Local Signer ricevuto: la PEC non viene registrata come inviata."],
+            "warnings": [],
+        }), 400
+
+    results_by_local_id = {
+        _notifiche_confirmation_local_id(row): row
+        for row in raw_results
+        if _notifiche_confirmation_local_id(row)
+    }
+    sent_rows: list[dict[str, Any]] = []
+    seen_message_ids: set[str] = set()
+    for index, local_message in enumerate(context["localMessages"]):
+        local_id = _notifiche_text(local_message.get("id") or local_message.get("messageId"))
+        row = results_by_local_id.get(local_id)
+        if row is None and index < len(raw_results):
+            row = raw_results[index]
+        if row is None:
+            return jsonify({
+                "ok": False,
+                "message": "Manca la conferma Local Signer per un destinatario PEC.",
+                "blockers": [f"Manca la conferma Local Signer per il messaggio {local_id}."],
+                "warnings": [],
+            }), 400
+        message_id = _notifiche_confirmation_message_id(row)
+        if not message_id:
+            return jsonify({
+                "ok": False,
+                "message": "Message-ID mancante: la PEC non viene registrata come inviata.",
+                "blockers": ["Message-ID mancante: la PEC non viene registrata come inviata."],
+                "warnings": [],
+            }), 400
+        if message_id in seen_message_ids:
+            return jsonify({
+                "ok": False,
+                "message": "Message-ID duplicato nella conferma Local Signer.",
+                "blockers": ["Message-ID duplicato nella conferma Local Signer."],
+                "warnings": [],
+            }), 400
+        seen_message_ids.add(message_id)
+        local_payload = local_message.get("payload") if isinstance(local_message.get("payload"), Mapping) else {}
+        sent_rows.append({
+            "localMessageId": local_id,
+            "messageId": message_id,
+            "to": _notifiche_pec(local_payload.get("to")),
+            "subject": _notifiche_text(local_payload.get("subject")),
+            "sentAt": _notifiche_text(row.get("sentAt") or row.get("sent_at") or row.get("timestamp")) or _notifiche_rome_now_iso(),
+        })
+
+    try:
+        registration = _notifiche_create_presidio_from_confirmation(context, sent_rows)
+    except _NotificheLocalPecError as exc:
+        return _notifiche_error_response(exc)
+    publication = registration.get("publication") if isinstance(registration.get("publication"), Mapping) else {}
+    warnings: list[str] = []
+    if publication and publication.get("ok") is False:
+        warnings.append(
+            "PEC inviata e presidio registrato, ma la pubblicazione su Agenda, Scadenziario, top bar o Web Push non è stata completata."
+        )
+    delivery_recipients = delivery_plan.get("recipients") if isinstance(delivery_plan.get("recipients"), list) else []
+    recipient_count = len(delivery_recipients) or len(sent_rows)
+    _audit_event(
+        "notifiche_legali.invio_pec_locale.confermato",
+        "notifica_legale",
+        expected_notification_id,
+        f"PEC L. 53 confermata dal PC locale con {len(sent_rows)} Message-ID per {recipient_count} destinatari.",
+    )
+    _sync_event("update", "notifiche_legali", expected_notification_id)
+    return jsonify({
+        "ok": True,
+        "message": (
+            f"PEC inviata dal PC locale a {recipient_count} "
+            f"{'destinatario' if recipient_count == 1 else 'destinatari'}. "
+            "Presidio notifiche aggiornato e pubblicato su Agenda, Scadenziario, top bar e Web Push quando attivo."
+        ),
+        "blockers": [],
+        "warnings": warnings,
+        "notificationId": expected_notification_id,
+        "presidioId": registration.get("presidioId"),
+        "status": registration.get("status"),
+        "sent": sent_rows,
+        "publication": publication,
+        "outputPlan": {
+            "deliveryPlan": {
+                **dict(delivery_plan),
+                "confirmedMessageIds": [item["messageId"] for item in sent_rows],
+                "presidioId": registration.get("presidioId"),
+                "presidioStatus": registration.get("status"),
+            },
+            "presidio": registration,
+        },
+    }), 200
 
 
 @api_v1_react.post("/notifiche-legali/comunicazione-cliente")

@@ -238,10 +238,10 @@ Indirizzo/sede e data/ora della consultazione dell'elenco sono mantenuti come id
 - il token sicuro `{{ destinatari_righe }}` rende l'elenco completo; un modello personalizzato plurimo senza il token viene bloccato;
 - ruolo, registro, campi del caso, compatibilità e prova PEC sono controllati per ogni destinatario;
 - la bozza manuale non può eliminare un destinatario o i suoi dati obbligatori;
-- log, audit e piano di invio sono plurali e ogni PEC pianificata possiede identità e `messageId` distinti;
+- log, audit e piano di invio sono plurali per destinatari e allegati; il confronto decompilato del 04/08/2026 corregge la regola operativa: l'invio Studio Telematico produce un unico messaggio PEC con tutti i destinatari nel campo `To`;
 - il caso processuale aggiunge le proprie clausole anche con modello base esplicito;
 - React lega l'anteprima al payload completo, annulla risposte obsolete, ricalcola dopo 250 ms, mostra modello/caso applicati e invalida bozza/firma dopo variazioni;
-- la UI mostra tutti i destinatari e il numero di PEC distinte.
+- la UI mostra tutti i destinatari e il numero di indirizzi PEC, senza trasformarli in invii separati.
 
 ### Guardrail eseguiti
 

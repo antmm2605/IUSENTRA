@@ -46,7 +46,7 @@
     {
       "ok": true,
       "name": "Invio PEC controllato",
-      "detail": "L'oggetto L. 53/1994 è bloccato e viene preparata una PEC distinta per destinatario."
+      "detail": "L'oggetto L. 53/1994 è bloccato e viene preparato un unico messaggio PEC con destinatari nel campo To."
     },
     {
       "ok": true,

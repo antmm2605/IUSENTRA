@@ -106,6 +106,9 @@ def test_result_panel_marks_blocked_delivery_plan_as_visible_simulation() -> Non
     assert "function blockedSimulation(outputPlan: Record<string, unknown>)" in source
     assert "result.ok ? 'Passaggi effettuati' : 'Passaggi previsti'" in source
     assert "result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'" in source
+    assert "invio unico nel campo To dell'unico messaggio Studio Telematico" in source
+    assert "IUSENTRA li inserirà nel campo To dell'unico messaggio PEC, come Studio Telematico." in source
+    assert "PEC distinta" not in source
     assert "Orario PEC e perfezionamento" not in source
     assert "Piano PEC preparato: la trasmissione resta sul PC locale dell'avvocato." in source
 

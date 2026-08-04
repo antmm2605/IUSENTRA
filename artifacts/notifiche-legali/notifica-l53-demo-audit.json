@@ -83,7 +83,7 @@
     "nextActions": [
       "Rivedi la bozza con l'avvocato responsabile.",
       "Esporta la relata in PDF/PDF-A e firmala digitalmente.",
-      "Invia una PEC distinta per destinatario con ricevuta completa.",
+      "Invia un unico messaggio PEC con tutti i destinatari nel campo To, acquisendo RAC e RdAC.",
       "Conserva messaggio inviato, RAC e RdAC in originale digitale."
     ],
     "templateId": "relata_pec_con_attestazione_fascicolo",

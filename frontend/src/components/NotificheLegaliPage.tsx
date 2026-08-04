@@ -1699,7 +1699,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           <span>{result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'}</span>
           <div className="iu-legal-delivery-summary">
             <strong>{auditText(deliveryPlan(result.outputPlan)?.subject) || 'notificazione ai sensi della legge n. 53 del 1994'}</strong>
-            <small>{deliveryRecipients(deliveryPlan(result.outputPlan)).length} PEC distinta/e da preparare</small>
+            <small>Destinatari PEC: {deliveryRecipients(deliveryPlan(result.outputPlan)).length}; invio unico nel campo To dell'unico messaggio Studio Telematico</small>
             {blockedSimulation(result.outputPlan) ? (
               <small className="iu-legal-delivery-summary__blocked">
                 Piano PEC preparato: la trasmissione resta sul PC locale dell'avvocato.
@@ -4537,7 +4537,7 @@ export function NotificheLegaliPage() {
                     hint="Cerca e scegli una pratica per compilare assistito, procedimento, destinatari e documenti già presenti."
                     onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
                   />
-                  <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? 'Puoi aggiungere più destinatari: IUSENTRA preparerà una PEC distinta per ciascuno.' : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
+                  <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? "Puoi aggiungere più destinatari: IUSENTRA li inserirà nel campo To dell'unico messaggio PEC, come Studio Telematico." : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
                     <select
                       value=""
                       onChange={(event) => {

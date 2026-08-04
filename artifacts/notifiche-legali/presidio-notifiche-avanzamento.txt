@@ -1015,7 +1015,7 @@ L'utente ha chiesto di non assumere come conforme il solo modello attualmente mo
 Prime evidenze già accertate:
 
 - il DOCX reale contiene una relata ex art. 3-bis L. 53/1994 con due destinatari distinti, due PEC e due fonti pubbliche (`ReGIndE` e `IPA`), oltre a più documenti e attestazioni differenziate per origine;
-- IUSENTRA conserva già `selectedRecipientIds`, include tutti i destinatari nel payload e genera un piano con una PEC distinta per ciascun destinatario, RAC e RdAC richieste per ciascuno;
+- IUSENTRA conserva già `selectedRecipientIds`, include tutti i destinatari nel payload e, dal confronto decompilato del 04/08/2026, deve generare un unico messaggio PEC con tutti i destinatari nel campo `To`; RAC e RdAC restano presidiate per ciascun destinatario;
 - tuttavia la parte compilata della relata e i campi di dettaglio mostrano soprattutto il destinatario principale: il comportamento va reso esplicito e coerente con il modello reale, senza far credere che il secondo destinatario sia ignorato;
 - il cambio di modello o di caso deve rigenerare immediatamente e deterministicamente l'anteprima compilata, invalidare eventuale firma precedente e non lasciare a video un testo relativo alla selezione precedente;
 - nessun invio reale verrà eseguito durante il collaudo: si verificheranno modello, PDF, firma/preparazione locale e piano dei messaggi fino al blocco precedente alla trasmissione.

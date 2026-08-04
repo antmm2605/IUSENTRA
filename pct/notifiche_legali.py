@@ -5238,8 +5238,8 @@ def validate_legal_notification(
         next_actions=(
             "Rivedi la bozza con l'avvocato responsabile.",
             "Esporta la relata in PDF/PDF-A e firmala digitalmente.",
-            "Prepara una PEC distinta per destinatario dal PC locale dell'avvocato.",
-            "Apri la PEC locale con destinatario, oggetto e allegati preparati.",
+            "Prepara un unico messaggio PEC dal PC locale dell'avvocato, con tutti i destinatari nel campo To.",
+            "Apri la PEC locale con destinatari, oggetto e allegati preparati secondo Studio Telematico.",
         ),
         template_id=text(template.get("id")),
         template_label=text(template.get("label")),

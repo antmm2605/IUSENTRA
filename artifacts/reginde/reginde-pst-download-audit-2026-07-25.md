@@ -145,7 +145,7 @@ Esito osservato nella pagina React `/notifiche-legali`:
 - il campo `Cerca indirizzo o soggetto` resta visibile anche quando il fascicolo non propone destinatari;
 - digitando `Marta Barsotti` la UI mostra `MARTA BARSOTTI`, PEC `barsotti.marta@ordineavvocatiasti.eu` e badge `ReGIndE`;
 - il messaggio operativo indica la cache locale in corso con `250 soggetti già indicizzati`;
-- con click reale sulla card il destinatario viene aggiunto al riepilogo: `1 destinatario selezionato`, `1 PEC distinta`, `Fonte PEC: reginde`;
+- con click reale sulla card il destinatario viene aggiunto al riepilogo: `1 destinatario selezionato`, `1 indirizzo PEC`, `Fonte PEC: reginde`; dal confronto decompilato del 04/08/2026 l'invio operativo resta unico con destinatari nel campo `To`;
 - endpoint autenticato `GET /api/v1/ui/notifiche-legali/reginde?q=Marta%20Barsotti&limit=5` verificato con login locale: HTTP `200`, `ok=true`, primo risultato `MARTA BARSOTTI`, fonte `reginde`;
 - controllo focus sul campo ricerca, hover sulla card e scroll completo fino al fondo pagina: presenti `Controlla relata`, `Invia PEC`, fonti operative e nessun invio PEC eseguito;
 - controllo responsive temporaneo su desktop `1280x900`, tablet `820x900` e mobile `390x820`: campo visibile, destinatario ancora selezionato e nessun overflow orizzontale di pagina.
@@ -196,7 +196,7 @@ Esito osservato nella pagina React `/notifiche-legali`:
 - digitando `Avvocatura Milano` nel campo `Cerca indirizzo o soggetto` viene interrogata la cache SQL locale PP.AA. tramite API autenticata;
 - la UI mostra il risultato `AVVOCATURA DELLO STATO DI MILANO`, PEC `ads.mi@mailcert.avvocaturastato.it`, badge `Registro PP.AA.`;
 - il messaggio operativo non usa più la parola tecnica `cache` nella UI dell'avvocato e risulta: `Nessun soggetto trovato in ReGIndE locale. Registro PP.AA. locale in corso: 1 enti già indicizzati.`;
-- con click reale sul risultato il destinatario entra nel riepilogo con `1 destinatario selezionato`, `1 PEC distinta`, `Pubblica amministrazione` e `Fonte PEC: registro_ppaa`;
+- con click reale sul risultato il destinatario entra nel riepilogo con `1 destinatario selezionato`, `1 indirizzo PEC`, `Pubblica amministrazione` e `Fonte PEC: registro_ppaa`; dal confronto decompilato del 04/08/2026 l'invio operativo resta unico con destinatari nel campo `To`;
 - il pulsante risponde a click, stato selected e focus da click, consentendo deselezione e riselezione senza perdere PEC o fonte;
 - scroll completo fino al fondo pagina: restano presenti `Invia PEC`, `Fonti operative`, `Presidi` e `Relata`; nessun invio PEC è stato eseguito;
 - responsive verificato con viewport `390x844` e `768x1024`: risultato PP.AA. cliccabile, fonte visibile, nessun overflow orizzontale.

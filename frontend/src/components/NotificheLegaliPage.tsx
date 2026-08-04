@@ -4513,7 +4513,7 @@ export function NotificheLegaliPage() {
 
       <section className="iu-legal-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento dati studio...' : tab === 'notifica' ? 'Relata e attestazione pronte' : 'Percorsi separati pronti'}</span>
-        <small><LockKeyhole size={14} /> Nessun invio automatico: la trasmissione PEC resta sul PC dell'avvocato.</small>
+        <small><LockKeyhole size={14} /> Invio reale su conferma: la trasmissione PEC parte dal PC dell'avvocato.</small>
       </section>
 
       <section className="iu-legal-layout">

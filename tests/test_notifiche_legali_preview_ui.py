@@ -108,7 +108,9 @@ def test_result_panel_marks_blocked_delivery_plan_as_visible_simulation() -> Non
     assert "result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'" in source
     assert "invio unico nel campo To dell'unico messaggio Studio Telematico" in source
     assert "IUSENTRA li inserirà nel campo To dell'unico messaggio PEC, come Studio Telematico." in source
+    assert "Invio reale su conferma: la trasmissione PEC parte dal PC dell'avvocato." in source
     assert "PEC distinta" not in source
+    assert "Nessun invio automatico: la trasmissione PEC resta sul PC dell'avvocato." not in source
     assert "Orario PEC e perfezionamento" not in source
     assert "Piano PEC preparato: la trasmissione resta sul PC locale dell'avvocato." in source
 

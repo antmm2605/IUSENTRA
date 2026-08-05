@@ -154,6 +154,11 @@ if [ "$FAST" -eq 0 ]; then
   step "Pytest contratti openapi"  python3 -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short
+  # Replica dello step CI "RBAC tenant App V2 security gates" (ci.yml, job
+  # "Lint + syntax"): senza questi il gate locale era cieco sui contratti
+  # feature flag/routing App V2 (lezione del 05/08/2026: CI rossa su
+  # test_app_v2_feature_flags mai eseguito localmente).
+  step "Pytest RBAC/flag App V2"   python3 -m pytest -q tests/test_auth.py tests/test_tenant_isolation_runtime.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short
   step "Pytest area requirements"  python3 -m pytest -q tests/test_app_v2_area_requirements_phase8.py tests/test_ui_coverage_phase9.py --tb=short
   # Packaging/dist + Local Signer: validano cio' che build_dist.py produce e i
   # file distribuiti ai client. Sono lo shard CI "Local Signer e PKCS#11" che

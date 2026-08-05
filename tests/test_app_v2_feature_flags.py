@@ -81,6 +81,7 @@ def test_frontend_app_routes_all_have_feature_flags():
 
 def test_frontend_blocks_flag_off_routes_before_page_fetch():
     app_text = _frontend("frontend/src/App.tsx")
+    hook_text = _frontend("frontend/src/hooks/useDashboardData.ts")
     flags_text = _frontend("frontend/src/lib/featureFlags.ts")
 
     assert "appV2FeatureFlagForPath(routeKey)" in app_text
@@ -88,8 +89,11 @@ def test_frontend_blocks_flag_off_routes_before_page_fetch():
     assert "appV2FlagDenied" in app_text
     assert "effectiveStandalonePage" in app_text
     assert "FeatureUnavailablePage" in app_text
-    assert "getDashboard()" in app_text
-    assert "if(effectiveStandalonePage)" in app_text
+    # Il fetch della Panoramica vive nell'hook governato: le route standalone
+    # o con flag negato lo disattivano prima di qualsiasi chiamata.
+    assert "useDashboardData(!effectiveStandalonePage)" in app_text
+    assert "getDashboard(" in hook_text
+    assert "if (!enabled)" in hook_text
     assert "appV2RouteFlagRules" in flags_text
     assert "'routes.appV2.documents.list'" in flags_text
     assert "'routes.appV2.settings.sdi'" in flags_text

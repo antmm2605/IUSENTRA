@@ -5943,3 +5943,13 @@ Guardrail eseguiti prima del rebuild/deploy:
 - `python -m pytest tests\test_react_scadenziario_additions.py::test_react_scadenziario_page_collegata_nav_api_e_lex tests\test_fascicoli_pagination.py::test_fascicoli_scadenze_urgenti_distingue_scadute_da_entro_7_giorni tests\test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api -q`;
 - `python -m pytest tests\test_fascicoli_pagination.py::test_fascicoli_frontend_contratto_query_params_e_lazy_tab -q`;
 - `pnpm --filter @iusentra/studio build`.
+
+## Aggiornamento 05/08/2026 - Fascicoli: controparte censita e soggetto riutilizzabile
+
+Perimetro: form React `Modifica fascicolo`, sezione `Parti`, senza alterare deposito, PEC o Local Signer.
+
+- Se la controparte è già censita, l'avvocato la seleziona dal campo `Soggetto controparte già censito`. Il backend usa `id_soggetto_controparte`, legge il soggetto dal repository `Soggetti e Parti`, valorizza nome/identificativo nel fascicolo e registra il legame nella tabella parti del fascicolo con ruolo `CONTROPARTE`.
+- Lo stesso soggetto rimane nella rubrica soggetti e può essere selezionato in altri fascicoli senza reinserire anagrafica, PEC, email o identificativo.
+- Se la controparte non è censita, l'avvocato usa `Crea una nuova scheda soggetto della controparte`: al salvataggio il backend crea o riusa il soggetto per identificativo, poi lo collega al fascicolo come `CONTROPARTE`.
+- La UI React ora separa i due percorsi: quando un soggetto censito è selezionato, il pannello di nuova scheda viene chiuso e resta visibile il comando `Aggiungi controparte al fascicolo`, con nota anti-duplicato.
+- Guardrail aggiunto in `tests/test_react_shell.py` per bloccare il ritorno della vecchia etichetta ambigua e verificare che la selezione di soggetto censito chiuda la creazione nuova scheda.

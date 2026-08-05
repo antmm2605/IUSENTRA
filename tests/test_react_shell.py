@@ -8954,9 +8954,11 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "Aggiungi altra controparte" in fascicoli_page
     assert "linkedSubjects" in fascicoli_data
     assert "Parti già collegate al fascicolo" in fascicoli_page
-    assert "Aggiungi controparte selezionata" in fascicoli_page
+    assert "Aggiungi controparte al fascicolo" in fascicoli_page
+    assert "setCreateSubject(false)" in fascicoli_page
+    assert "Già in anagrafica: salvi il fascicolo o usi il pulsante per collegarla qui come controparte" in fascicoli_page
     assert "submitFormJson(`/fascicoli/${encodeURIComponent(fascicoloId)}/parti/aggiungi`, body)" in fascicoli_page
-    assert "Salva anche la scheda soggetto della controparte" in fascicoli_page
+    assert "Crea una nuova scheda soggetto della controparte" in fascicoli_page
     assert "resta riutilizzabile negli altri fascicoli" in fascicoli_page
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page

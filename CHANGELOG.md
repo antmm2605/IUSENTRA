@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.276.9 - 2026-08-05
+
+- **Fascicoli React: controparte già censita senza ambiguità.** Quando l'avvocato seleziona una controparte presente in Soggetti e Parti, il pannello di creazione della nuova scheda si chiude, il comando diventa `Aggiungi controparte al fascicolo` e la UI chiarisce che il soggetto viene collegato come controparte senza creare duplicati.
+- Il percorso nuovo soggetto resta separato: `Crea una nuova scheda soggetto della controparte` compare solo quando non è selezionato un soggetto censito e continua a salvare la scheda riutilizzabile negli altri fascicoli.
+
 ## 2.276.8 - 2026-08-05
 
 - **Fascicoli React: niente form vuoto per fascicoli mancanti.** La pagina `/fascicoli/<id>/modifica` ora rispetta il `notFound` dell'API form e mostra l'empty state `Fascicolo non trovato` con ritorno ai fascicoli, invece di renderizzare campi editabili quando l'id non esiste nel tenant.

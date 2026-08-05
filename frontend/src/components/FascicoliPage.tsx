@@ -3087,6 +3087,7 @@ function CounterpartyFields({
     setLinkMessage('')
     const subject = data.subjects.find((item) => item.id === value)
     if (subject) {
+      setCreateSubject(false)
       setCounterpartyName(subject.label)
       setCounterpartyCode(subject.taxCode || subject.vat)
     }
@@ -3138,12 +3139,13 @@ function CounterpartyFields({
               {selected.href ? <a href={selected.href}>Apri soggetto</a> : null}
               {fascicoloId ? (
                 <button type="button" onClick={linkSelectedSubject} disabled={linkingSubject || selectedAlreadyLinked}>
-                  <Plus size={13}/>{selectedAlreadyLinked ? 'Già collegata' : linkingSubject ? 'Collego...' : 'Aggiungi controparte selezionata'}
+                  <Plus size={13}/>{selectedAlreadyLinked ? 'Già collegata' : linkingSubject ? 'Collego...' : 'Aggiungi controparte al fascicolo'}
                 </button>
               ) : null}
             </div>
+            <em>Già in anagrafica: salvi il fascicolo o usi il pulsante per collegarla qui come controparte, senza creare duplicati.</em>
           </div>
-        ) : <small className="iu-fas-field-help">Se il soggetto esiste già, selezionalo: nome e identificativo vengono riportati nel fascicolo.</small>}
+        ) : <small className="iu-fas-field-help">Se il soggetto esiste già, selezionalo: nome e identificativo vengono riportati nel fascicolo e resta riutilizzabile negli altri fascicoli.</small>}
         {linkMessage ? <small className="iu-fas-field-help" role="status">{linkMessage}</small> : null}
       </div>
       {data.linkedSubjects.length ? (
@@ -3169,12 +3171,16 @@ function CounterpartyFields({
         <input name="cf_controparte" value={counterpartyCode} onChange={(event) => setCounterpartyCode(event.currentTarget.value)} required={required} placeholder="Dato necessario per la scheda soggetto"/>
       </Field>
       <Field label={NUOVO_FASCICOLO_LABELS.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
-      <label className="iu-fas-check-field iu-fas-check-field--wide">
-        <input type="checkbox" name="crea_soggetto_controparte" value="1" checked={createSubject} onChange={(event) => setCreateSubject(event.currentTarget.checked)}/>
-        <span>Salva anche la scheda soggetto della controparte</span>
-        <small>Al salvataggio del fascicolo viene creata in Soggetti e Parti, collegata qui come controparte e resta riutilizzabile negli altri fascicoli.</small>
-      </label>
-      {createSubject ? (
+      {!selected ? (
+        <label className="iu-fas-check-field iu-fas-check-field--wide">
+          <input type="checkbox" name="crea_soggetto_controparte" value="1" checked={createSubject} onChange={(event) => setCreateSubject(event.currentTarget.checked)}/>
+          <span>Crea una nuova scheda soggetto della controparte</span>
+          <small>Al salvataggio del fascicolo viene creata in Soggetti e Parti, collegata qui come controparte e resta riutilizzabile negli altri fascicoli.</small>
+        </label>
+      ) : (
+        <small className="iu-fas-field-help iu-fas-field--wide">Per aggiungere una controparte diversa non ancora censita, svuota la selezione e attiva la creazione della nuova scheda.</small>
+      )}
+      {createSubject && !selected ? (
         <div className="iu-fas-inline-subject iu-fas-field--wide">
           <Field label="Tipo soggetto" name="nuovo_soggetto_tipo" required>
             <select name="nuovo_soggetto_tipo" value={subjectType} onChange={(event) => setSubjectType(event.currentTarget.value)} required>

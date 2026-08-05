@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.276.13 - 2026-08-05
+
+- **Notifiche legali: allegati senza blocco su impronta stale.** La preparazione della PEC locale usa i documenti reali salvati nel fascicolo e non blocca più l'invio per differenze tra l'impronta del payload e il file scelto dall'avvocato; l'impronta resta calcolata sul contenuto effettivo allegato alla PEC.
+- **Notifiche legali separate dal deposito.** La nota operativa e i guardrail restano nel perimetro `artifacts/notifiche-legali`, senza aggiornare la procedura del deposito telematico.
+
 ## 2.276.12 - 2026-08-05
 
 - **Frontend: allineato PostCSS al lock workspace.** Assorbito il commit Dependabot `987faf1`, aggiornando `frontend/package.json` da `postcss 8.5.18` a `8.5.23` in dipendenze e override, coerentemente con `pnpm-lock.yaml` e `pnpm-workspace.yaml`.

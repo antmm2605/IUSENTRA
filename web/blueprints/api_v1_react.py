@@ -3704,7 +3704,6 @@ def _notifiche_read_fascicolo_attachment(
     attachment_id: str,
     label: str,
     role: str,
-    expected_sha256: str = "",
     include_content: bool = True,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     doc = _notifiche_find_fascicolo_document(fascicolo, document_id)
@@ -3722,12 +3721,6 @@ def _notifiche_read_fascicolo_attachment(
         ) from exc
     filename = _notifiche_document_display_name(doc, fallback=label or "allegato.bin")
     actual_sha256 = hashlib.sha256(content).hexdigest()
-    expected = _notifiche_text(expected_sha256).lower()
-    if expected and re.fullmatch(r"[0-9a-f]{64}", expected) and expected != actual_sha256:
-        raise _NotificheLocalPecError(
-            f"Impronta diversa per {filename}: la PEC non viene inviata con un allegato non coincidente.",
-            blockers=[f"Impronta diversa per {filename}: la PEC non viene inviata con un allegato non coincidente."],
-        )
     mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     attachment = {
         "id": attachment_id,
@@ -3960,7 +3953,6 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
             attachment_id=f"documento_{index}",
             label=_notifiche_text(raw.get("descrizione")) or "Documento da notificare",
             role="notified_act",
-            expected_sha256=_notifiche_text(raw.get("hash_sha256") or raw.get("hashSha256")),
             include_content=include_content,
         )
         attachments.append(attachment)
@@ -3987,7 +3979,6 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
             attachment_id="attestazione_conformita",
             label="Attestazione di conformità",
             role="attestation",
-            expected_sha256=_notifiche_text(payload.get("attestazione_conformita_sha256") or payload.get("attestazione_sha256")),
             include_content=include_content,
         )
         attachments.append(attachment)
@@ -4008,7 +3999,6 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
             attachment_id="procura",
             label="Procura alle liti",
             role="notified_act",
-            expected_sha256=_notifiche_text(payload.get("procura_sha256")),
             include_content=include_content,
         )
         attachments.append(attachment)
@@ -4028,7 +4018,6 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
         attachment_id="relata_firmata",
         label="Relata firmata digitalmente",
         role="relata",
-        expected_sha256=_notifiche_text(payload.get("relata_firmata_sha256") or payload.get("relata_sha256")),
         include_content=include_content,
     )
     attachments.append(attachment)

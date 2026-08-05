@@ -2612,6 +2612,7 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
         )
 
     payload = _legal_payload()
+    stale_payload_hash = "0" * 64
     payload.update({
         "fascicolo_id": fascicolo.id,
         "practiceId": fascicolo.id,
@@ -2623,20 +2624,20 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
         "nome_file": "ricorso.pdf",
         "descrizione_documento": "Ricorso notificato",
         "origine_documento": "nativo_digitale",
-        "hash_sha256": atto.hash_sha256,
+        "hash_sha256": stale_payload_hash,
         "documenti": [
             {
                 "nome_file": "ricorso.pdf",
                 "descrizione": "Ricorso notificato",
                 "origine": "nativo_digitale",
-                "hash_sha256": atto.hash_sha256,
+                "hash_sha256": stale_payload_hash,
                 "document_id": atto.id,
                 "documentId": atto.id,
             }
         ],
         "relata_firmata": True,
         "relata_firmata_file": "Relata di notifica.pdf.p7m",
-        "relata_firmata_sha256": relata.hash_sha256,
+        "relata_firmata_sha256": stale_payload_hash,
         "relata_firmata_document_id": relata.id,
     })
 
@@ -2648,6 +2649,7 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
     assert prepare_response.status_code == 200
     prepared = prepare_response.get_json()
     assert prepared["ok"] is True
+    assert not any("Impronta diversa" in str(item) for item in prepared.get("blockers", []))
     assert prepared["requiresLocalPec"] is True
     assert prepared["notificationId"]
     messages = prepared["localPecMessages"]
@@ -2671,6 +2673,8 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
     assert [item["studioTelematicoArchiveRole"] for item in attachments] == ["originale_notificato", "relata_notifica"]
     assert base64.b64decode(attachments[0]["content_base64"]) == atto_bytes
     assert base64.b64decode(attachments[1]["content_base64"]) == relata_bytes
+    assert attachments[0]["sha256"] == atto.hash_sha256
+    assert attachments[1]["sha256"] == relata.hash_sha256
 
     missing_message_id_response = client.post(
         "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma",

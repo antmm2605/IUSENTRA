@@ -3137,7 +3137,7 @@ export function NotificheLegaliPage() {
   const handleNotificationFiles = async (files: FileList | null) => {
     const selected = Array.from(files || [])
     if (!selected.length) return
-    setNotificationFilesMessage('Calcolo impronte degli allegati...')
+    setNotificationFilesMessage('Preparazione allegati della notifica...')
     const calculated: ManualNotificationDocument[] = []
     for (const file of selected) {
       let sha256 = ''
@@ -3163,8 +3163,7 @@ export function NotificheLegaliPage() {
       })
     }
     setManualNotificationDocuments((current) => [...current, ...calculated])
-    const withoutHash = calculated.filter((item) => !item.hash_sha256)
-    setNotificationFilesMessage(withoutHash.length ? 'Allegati aggiunti; per alcuni file incolla l’impronta del file se richiesta dal controllo.' : 'Allegati aggiunti e impronte calcolate.')
+    setNotificationFilesMessage('Allegati aggiunti alla notifica.')
   }
 
   const toggleNotificationDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
@@ -5083,7 +5082,7 @@ export function NotificheLegaliPage() {
                 {notifica.origine_documento === 'comunicazione_cancelleria' ? (
                   <Field label="Data comunicazione cancelleria"><input type="date" value={notifica.data_comunicazione_cancelleria} onChange={(event) => changeNotifica('data_comunicazione_cancelleria', event.currentTarget.value)} /></Field>
                 ) : null}
-                <Field label="Impronta allegato" hint="Facoltativa per la notifica; viene compilata automaticamente quando scegli file dal browser.">
+                <Field label="Impronta allegato" hint="Facoltativa per la notifica; non blocca l'invio PEC.">
                   <input value={notifica.hash_sha256} maxLength={64} onChange={(event) => changeNotifica('hash_sha256', normalizeSha256Input(event.currentTarget.value))} placeholder="64 caratteri esadecimali" />
                 </Field>
                 <div className="iu-legal-template-actions iu-legal-field--wide">

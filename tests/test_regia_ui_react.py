@@ -521,6 +521,7 @@ def test_ui_deposito_controlla_i_dati_prima_di_qualsiasi_scrittura_e_abilita_inv
 def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     signature_block = source[source.index("const signRelata = async () => {"):source.index("const applyDepositFile")]
 
     assert "signatureHref" not in source
@@ -586,6 +587,11 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert 'accept=".pdf,.pdfa,.p7m,.eml,.msg"' in source
     assert "Tutti notificabili" not in source
     assert "Scegli i documenti del fascicolo: solo quelli spuntati entrano nella relata." in source
+    assert "Calcolo impronte degli allegati" not in source
+    assert "Allegati aggiunti alla notifica." in source
+    assert "non blocca l'invio PEC" in source
+    assert "Impronta diversa per" not in api_source
+    assert "allegato non coincidente" not in api_source
     assert "<em>Fascicolo</em>" in source
     assert "<em>Presidio</em>" in source
     assert "<em>Manuale</em>" in source

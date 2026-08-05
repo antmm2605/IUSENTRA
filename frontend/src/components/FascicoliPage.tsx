@@ -3056,7 +3056,17 @@ function ClientChoiceField({ data }:{data:FascicoloFormData}) {
   )
 }
 
-function CounterpartyFields({ data, required }:{data:FascicoloFormData; required:boolean}) {
+function CounterpartyFields({
+  data,
+  required,
+  fascicoloId,
+  onSubjectLinked,
+}: {
+  data: FascicoloFormData
+  required: boolean
+  fascicoloId?: string
+  onSubjectLinked?: () => void
+}) {
   const initialName = getValue(data, 'counterparty')
   const initialCode = getValue(data, 'counterpartyTaxCode') || getValue(data, 'cf_controparte')
   const [selectedId, setSelectedId] = useState('')
@@ -3064,17 +3074,43 @@ function CounterpartyFields({ data, required }:{data:FascicoloFormData; required
   const [counterpartyCode, setCounterpartyCode] = useState(initialCode)
   const [createSubject, setCreateSubject] = useState(false)
   const [subjectType, setSubjectType] = useState('PERSONA_GIURIDICA')
+  const [linkingSubject, setLinkingSubject] = useState(false)
+  const [linkMessage, setLinkMessage] = useState('')
   useEffect(() => {
     setCounterpartyName(initialName)
     setCounterpartyCode(initialCode)
   }, [initialName, initialCode])
   const selected = data.subjects.find((subject) => subject.id === selectedId)
+  const selectedAlreadyLinked = Boolean(selected && data.linkedSubjects.some((subject) => subject.id === selected.id))
   const handleSubjectChange = (value: string) => {
     setSelectedId(value)
+    setLinkMessage('')
     const subject = data.subjects.find((item) => item.id === value)
     if (subject) {
       setCounterpartyName(subject.label)
       setCounterpartyCode(subject.taxCode || subject.vat)
+    }
+  }
+  const linkSelectedSubject = async () => {
+    if (!fascicoloId || !selected) {
+      setLinkMessage('Seleziona prima una controparte già censita.')
+      return
+    }
+    setLinkingSubject(true)
+    setLinkMessage('Collegamento in corso...')
+    try {
+      const body = new FormData()
+      body.set('id_soggetto', selected.id)
+      body.set('ruolo', 'CONTROPARTE')
+      body.set('note', 'Aggiunta dalla modifica del fascicolo.')
+      body.set('next_url', `/fascicoli/${fascicoloId}/modifica`)
+      const result = await submitFormJson(`/fascicoli/${encodeURIComponent(fascicoloId)}/parti/aggiungi`, body)
+      setLinkMessage(result.message || 'Controparte collegata al fascicolo.')
+      onSubjectLinked?.()
+    } catch (error) {
+      setLinkMessage(error instanceof Error ? error.message : 'Non ho potuto collegare la controparte.')
+    } finally {
+      setLinkingSubject(false)
     }
   }
   return (
@@ -3098,10 +3134,34 @@ function CounterpartyFields({ data, required }:{data:FascicoloFormData; required
               <strong>{selected.label}</strong>
               <span>{compactMeta([selected.taxCode || selected.vat, selected.qualification, selected.pec || selected.email])}</span>
             </div>
-            {selected.href ? <a href={selected.href}>Apri soggetto</a> : null}
+            <div className="iu-fas-choice-card__actions">
+              {selected.href ? <a href={selected.href}>Apri soggetto</a> : null}
+              {fascicoloId ? (
+                <button type="button" onClick={linkSelectedSubject} disabled={linkingSubject || selectedAlreadyLinked}>
+                  <Plus size={13}/>{selectedAlreadyLinked ? 'Già collegata' : linkingSubject ? 'Collego...' : 'Aggiungi controparte selezionata'}
+                </button>
+              ) : null}
+            </div>
           </div>
         ) : <small className="iu-fas-field-help">Se il soggetto esiste già, selezionalo: nome e identificativo vengono riportati nel fascicolo.</small>}
+        {linkMessage ? <small className="iu-fas-field-help" role="status">{linkMessage}</small> : null}
       </div>
+      {data.linkedSubjects.length ? (
+        <div className="iu-fas-linked-parties iu-fas-field--wide" aria-label="Parti già collegate al fascicolo">
+          <strong>Parti già collegate al fascicolo</strong>
+          <div>
+            {data.linkedSubjects.map((subject) => (
+              <a href={subject.href || '/soggetti'} key={`${subject.id}-${subject.role}`}>
+                <span>{subject.role || 'Soggetto'}</span>
+                <b>{subject.name}</b>
+                <small>{compactMeta([subject.taxCode, subject.pec || subject.email])}</small>
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <small className="iu-fas-field-help iu-fas-field--wide">Nessuna parte processuale collegata: seleziona un soggetto già censito o crea una nuova scheda, poi salva/collega.</small>
+      )}
       <Field label="Controparte" name="controparte" required={required}>
         <input name="controparte" value={counterpartyName} onChange={(event) => setCounterpartyName(event.currentTarget.value)} required={required} placeholder="Nome o ragione sociale della controparte"/>
       </Field>
@@ -3111,8 +3171,8 @@ function CounterpartyFields({ data, required }:{data:FascicoloFormData; required
       <Field label={NUOVO_FASCICOLO_LABELS.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
       <label className="iu-fas-check-field iu-fas-check-field--wide">
         <input type="checkbox" name="crea_soggetto_controparte" value="1" checked={createSubject} onChange={(event) => setCreateSubject(event.currentTarget.checked)}/>
-        <span>Crea anche la scheda soggetto della controparte</span>
-        <small>Utile quando la controparte non è ancora in anagrafica. Nome e identificativo restano obbligatori.</small>
+        <span>Salva anche la scheda soggetto della controparte</span>
+        <small>Al salvataggio del fascicolo viene creata in Soggetti e Parti, collegata qui come controparte e resta riutilizzabile negli altri fascicoli.</small>
       </label>
       {createSubject ? (
         <div className="iu-fas-inline-subject iu-fas-field--wide">
@@ -3483,8 +3543,24 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
   const [data, setData] = useState<FascicoloFormData>(emptyFascicoloForm)
   const [loading, setLoading] = useState(true)
   const [fascicoloVeloce, setFascicoloVeloce] = useState(false)
-  useEffect(() => { let active = true; getFascicoloForm(mode === 'edit' ? id : undefined, window.location.search).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id, mode])
+  const [refreshKey, setRefreshKey] = useState(0)
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    getFascicoloForm(mode === 'edit' ? id : undefined, window.location.search)
+      .then((payload) => { if (active) setData(payload) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [id, mode, refreshKey])
   const labels = NUOVO_FASCICOLO_LABELS
+  const subjectContextParams = new URLSearchParams()
+  subjectContextParams.set('tab', 'soggetto')
+  subjectContextParams.set('ruolo', 'CONTROPARTE')
+  if (id) {
+    subjectContextParams.set('id_fascicolo', id)
+    subjectContextParams.set('next_url', `/fascicoli/${id}/modifica`)
+  }
+  const contextualSubjectHref = `/soggetti/nuovo?${subjectContextParams.toString()}`
   return (
     <main className="iu-content iu-fascicoli-page iu-fascicolo-form-page">
       <section className="iu-fas-hero">
@@ -3519,8 +3595,23 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
           <CollapsibleFormPanel title="Parti" subtitle="Cliente, controparte e attore principale" icon={<UsersRound size={17}/>}>
             <div className="iu-fas-form-grid">
               <ClientChoiceField data={data}/>
-              <CounterpartyFields data={data} required={fascicoloVeloce}/>
-              <a className="iu-fas-inline-link" href="/soggetti/nuovo" target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a>
+              <CounterpartyFields
+                data={data}
+                required={fascicoloVeloce}
+                fascicoloId={mode === 'edit' ? id : undefined}
+                onSubjectLinked={() => setRefreshKey((value) => value + 1)}
+              />
+              {mode === 'edit' && id ? (
+                <div className="iu-fas-party-context iu-fas-field--wide">
+                  <div>
+                    <strong>Altre controparti e parti</strong>
+                    <span>Crea un nuovo soggetto processuale e rientra qui: verrà collegato al fascicolo come controparte.</span>
+                  </div>
+                  <a className="iu-fas-inline-link" href={contextualSubjectHref}><Plus size={14}/> Aggiungi altra controparte</a>
+                </div>
+              ) : (
+                <a className="iu-fas-inline-link" href={contextualSubjectHref} target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a>
+              )}
             </div>
           </CollapsibleFormPanel>
           <CollapsibleFormPanel title={labels.sections.identificazioneGiudiziale} subtitle="Autorità, numero di ruolo e riferimenti dell'ufficio" icon={<Landmark size={17}/>}>

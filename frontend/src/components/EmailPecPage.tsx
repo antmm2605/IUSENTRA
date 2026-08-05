@@ -526,9 +526,11 @@ function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSumm
       </header>
       {facts.length ? (
         <div className="iu-pec-profile-facts">
-          {facts.map(([label, value]) => (
-            <span key={`${label}-${value}`}><b>{label}</b>{value}</span>
-          ))}
+          {facts.map(([label, value]) => {
+            const cleanValue = String(value || '')
+            const wide = label === 'Evento' || cleanValue.length > 72 || cleanValue.includes('\n')
+            return <span className={wide ? 'is-wide' : undefined} key={`${label}-${value}`}><b>{label}</b>{value}</span>
+          })}
         </div>
       ) : null}
       {remoteDetected ? (
@@ -722,7 +724,7 @@ function PecAuditSidebarPanel({
             </div>
           </div>
           <PecDepositLifecycle audit={audit} />
-          <PecProceduralProfile audit={audit} compact />
+          <PecProceduralProfile audit={audit} />
           <div className="iu-pec-sidebar-confidence" aria-label="Confidence campi PEC">
             <ConfidenceChip label="Mittente" field={fieldConfidence(audit, 'mittente')} />
             <ConfidenceChip label="Invio" field={fieldConfidence(audit, 'data_invio')} />
@@ -1250,15 +1252,9 @@ function EmailPreview({
 function PecInspector({
   data,
   rows,
-  selectedItem,
-  selectedAudit,
-  onAction,
 }: {
   data: EmailPecPageData
   rows: EmailPecRow[]
-  selectedItem?: EmailPecRow
-  selectedAudit?: PecAuditSummary
-  onAction: (url: string, label: string) => void
 }) {
   const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus && !item.pecPresidiata).slice(0, 4)
   const pctAlerts = rows.filter((item) => !item.pecPresidiata && item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
@@ -1292,7 +1288,6 @@ function PecInspector({
           </div>
         ) : <p className="iu-empty">Nessuna anomalia nella vista corrente.</p>}
       </Panel>
-      <PecAuditSidebarPanel audit={selectedAudit} item={selectedItem} onAction={onAction} />
       <Panel title="Esiti da presidiare" icon={<AlertTriangle size={17} />} count={pctAlerts.length}>
         {pctAlerts.length ? (
           <div className="iu-mail-alerts">
@@ -1935,8 +1930,13 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
           </div>
           <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} />
         </div>
+        {mode === 'pec' && selectedAudit ? (
+          <section className="iu-mail-selected-pec-panel" aria-label="Profilo PEC selezionata">
+            <PecAuditSidebarPanel audit={selectedAudit} item={selected} onAction={runAction} />
+          </section>
+        ) : null}
         {mode === 'pec'
-          ? <PecInspector data={data} rows={visible} selectedItem={selected} selectedAudit={selectedAudit} onAction={runAction} />
+          ? <PecInspector data={data} rows={visible} />
           : <OrdinaryInspector data={data} rows={visible} />}
       </section>
 

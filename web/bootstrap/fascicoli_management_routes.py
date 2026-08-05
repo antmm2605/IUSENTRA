@@ -8,11 +8,14 @@ import sqlite3
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 
+from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
+from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
 
@@ -89,6 +92,93 @@ def register_fascicoli_management_routes(
             or app.config.get("PCT_STUDIO_AVVOCATO")
             or ""
         ).strip()
+
+    def _form_bool(form: Any, name: str) -> bool:
+        return str(form.get(name, "") or "").strip().lower() in {"1", "true", "on", "si", "sì", "yes"}
+
+    def _split_nome_persona(nome_completo: str) -> tuple[str, str]:
+        parti = [parte for parte in str(nome_completo or "").strip().split() if parte]
+        if not parti:
+            return "", ""
+        if len(parti) == 1:
+            return parti[0], ""
+        return parti[0], " ".join(parti[1:])
+
+    def _tipo_soggetto_da_form(valore: str) -> TipoSoggetto:
+        try:
+            return TipoSoggetto(str(valore or "").strip() or "PERSONA_GIURIDICA")
+        except ValueError:
+            return TipoSoggetto.PERSONA_GIURIDICA
+
+    def _soggetto_esistente_per_identificativo(gestore_soggetti: Any, identificativo: str):
+        valore = str(identificativo or "").strip().casefold()
+        if not valore:
+            return None
+        for soggetto in gestore_soggetti.cerca(q=identificativo):
+            if str(getattr(soggetto, "identificativo", "") or "").strip().casefold() == valore:
+                return soggetto
+        return None
+
+    def _controparte_coincide_con_cliente(nome: str, identificativo: str) -> bool:
+        probe = SimpleNamespace(
+            id_cliente="",
+            nome="",
+            cognome="",
+            ragione_sociale=str(nome or "").strip(),
+            codice_fiscale=str(identificativo or "").strip(),
+            partita_iva=str(identificativo or "").strip(),
+        )
+        return soggetto_coincide_con_cliente(probe, get_clienti().tutti())
+
+    def _crea_o_riusa_controparte(gestore_soggetti: Any, form: Any, *, nome_base: str, identificativo_base: str):
+        id_soggetto = str(form.get("id_soggetto_controparte", "") or "").strip()
+        if id_soggetto:
+            soggetto = gestore_soggetti.get(id_soggetto)
+            if not soggetto:
+                raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
+            if soggetto_coincide_con_cliente(soggetto, get_clienti().tutti()):
+                return None
+            return soggetto
+
+        nome_completo = str(form.get("nuovo_soggetto_nome_completo", "") or "").strip() or nome_base
+        identificativo = str(form.get("nuovo_soggetto_identificativo", "") or "").strip() or identificativo_base
+        if not nome_completo or not identificativo:
+            return None
+
+        esistente = _soggetto_esistente_per_identificativo(gestore_soggetti, identificativo)
+        if esistente:
+            if soggetto_coincide_con_cliente(esistente, get_clienti().tutti()):
+                return None
+            return esistente
+
+        tipo = _tipo_soggetto_da_form(form.get("nuovo_soggetto_tipo", "PERSONA_GIURIDICA"))
+        recapiti = Recapiti(
+            telefono=str(form.get("nuovo_soggetto_telefono", "") or "").strip(),
+            email=str(form.get("nuovo_soggetto_email", "") or "").strip(),
+            pec=str(form.get("nuovo_soggetto_pec", "") or "").strip(),
+        )
+        common = {
+            "recapiti": recapiti,
+            "note": "Creato durante la modifica del fascicolo.",
+            "tag": ["controparte"],
+        }
+        if tipo == TipoSoggetto.PERSONA_FISICA:
+            nome, cognome = _split_nome_persona(nome_completo)
+            return gestore_soggetti.crea(
+                tipo=tipo,
+                nome=nome,
+                cognome=cognome,
+                codice_fiscale=identificativo,
+                **common,
+            )
+        partita_iva = identificativo if identificativo.isdigit() and len(identificativo) == 11 else ""
+        return gestore_soggetti.crea(
+            tipo=tipo,
+            ragione_sociale=nome_completo,
+            codice_fiscale="" if partita_iva else identificativo,
+            partita_iva=partita_iva,
+            **common,
+        )
 
     @app.route("/fascicoli/<id_fasc>/copertina")
     def copertina_fascicolo(id_fasc: str):
@@ -178,13 +268,29 @@ def register_fascicoli_management_routes(
                     or _avvocato_titolare_studio()
                     or str(getattr(fascicolo, "avvocato_referente", "") or "").strip()
                 )
+                gestore_soggetti = get_soggetti()
+                id_soggetto_controparte = form.get("id_soggetto_controparte", "").strip()
+                controparte = form.get("controparte", "").strip()
+                cf_controparte = form.get("cf_controparte", "").strip()
+                if id_soggetto_controparte:
+                    soggetto_scelto = gestore_soggetti.get(id_soggetto_controparte)
+                    if not soggetto_scelto:
+                        raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
+                    controparte = controparte or soggetto_scelto.nome_completo
+                    cf_controparte = cf_controparte or soggetto_scelto.identificativo
+                if _form_bool(form, "crea_soggetto_controparte"):
+                    if not (form.get("nuovo_soggetto_nome_completo", "").strip() or controparte):
+                        raise ValueError("Per salvare la scheda soggetto della controparte serve il nome completo o la ragione sociale.")
+                    if not (form.get("nuovo_soggetto_identificativo", "").strip() or cf_controparte):
+                        raise ValueError("Per salvare la scheda soggetto della controparte serve codice fiscale o partita IVA.")
                 gf.aggiorna(
                     id_fasc,
                     titolo=form.get("titolo", fascicolo.titolo),
                     tipo=TipoFascicolo(form.get("tipo", fascicolo.tipo.value)),
                     id_cliente=id_cliente,
                     nome_cliente=nome_cliente,
-                    controparte=form.get("controparte", ""),
+                    controparte=controparte,
+                    cf_controparte=cf_controparte,
                     tribunale=form.get("tribunale", ""),
                     numero_rg=form.get("numero_rg", ""),
                     anno_rg=int(form.get("anno_rg") or 0),
@@ -217,10 +323,34 @@ def register_fascicoli_management_routes(
                     compenso_pattuito=float(form.get("compenso_pattuito") or 0),
                     note=form.get("note", ""),
                 )
+                soggetto_controparte = None
+                if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte"):
+                    if not _controparte_coincide_con_cliente(controparte, cf_controparte):
+                        soggetto_controparte = _crea_o_riusa_controparte(
+                            gestore_soggetti,
+                            form,
+                            nome_base=controparte,
+                            identificativo_base=cf_controparte,
+                        )
+                linked_subject_message = ""
+                if soggetto_controparte:
+                    gestore_soggetti.aggiungi_parte(
+                        id_fasc,
+                        soggetto_controparte.id,
+                        RuoloSoggetto.CONTROPARTE,
+                        note="Aggiunta durante la modifica del fascicolo.",
+                    )
+                    audit(
+                        "soggetti.aggiungi_parte",
+                        "fascicolo",
+                        id_fasc,
+                        dettagli=f"{soggetto_controparte.nome_completo} -> {RuoloSoggetto.CONTROPARTE.label}",
+                    )
+                    linked_subject_message = " Controparte salvata in Soggetti e Parti e collegata al fascicolo."
                 sync_pubblica("modifica", "fascicoli", id_fasc)
                 _clear_react_fascicoli_list_cache()
                 redirect_to = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
-                result = _form_result("Fascicolo aggiornato.", status=200, redirect_to=redirect_to, category="success")
+                result = _form_result(f"Fascicolo aggiornato.{linked_subject_message}", status=200, redirect_to=redirect_to, category="success")
                 if result is not None:
                     return result
                 return redirect(redirect_to)

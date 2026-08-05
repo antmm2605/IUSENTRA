@@ -28,6 +28,13 @@ def _text(value: Any, fallback: str = "") -> str:
     return " ".join(str(value or fallback).split())
 
 
+def _safe_internal_path(value: Any) -> str:
+    raw = _text(value)
+    if raw.startswith("/") and not raw.startswith("//"):
+        return raw
+    return ""
+
+
 def _short(value: Any, limit: int = 120) -> str:
     text = _text(value)
     return text if len(text) <= limit else text[: limit - 1].rstrip() + "..."
@@ -689,6 +696,17 @@ def _soggetto_form_values(soggetto: Any) -> dict[str, str]:
     }
 
 
+def _subject_role_from_query(query: Mapping[str, Any]) -> str:
+    raw = _text(query.get("ruolo") or query.get("qualifica") or query.get("ruolo_soggetto"))
+    normalized = raw.replace("-", "_").replace(" ", "_").upper()
+    if not normalized:
+        return ""
+    try:
+        return RuoloSoggetto(normalized).value
+    except ValueError:
+        return ""
+
+
 def build_react_clienti_nuovo_payload(
     *,
     get_clienti: Callable[[], Any],
@@ -698,6 +716,14 @@ def build_react_clienti_nuovo_payload(
     clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
     soggetti = _safe("soggetti", lambda: get_soggetti().tutti(), [])
     query = query or {}
+    id_fascicolo = _text(query.get("id_fascicolo") or query.get("fascicolo") or query.get("case_id"))
+    ruolo_soggetto = _subject_role_from_query(query) or ("CONTROPARTE" if id_fascicolo else "")
+    next_url = _safe_internal_path(query.get("next_url") or query.get("next"))
+    if id_fascicolo and not next_url:
+        next_url = f"/fascicoli/{id_fascicolo}/modifica"
+    tab = _text(query.get("tab") or query.get("tipo"))
+    if id_fascicolo and not tab:
+        tab = "soggetto"
     payload = {
         "source": "repository_reali",
         "generated_at": _iso_now(),
@@ -739,10 +765,13 @@ def build_react_clienti_nuovo_payload(
             "documentReader": "/api/v1/ui/clienti/nuovo/documento/leggi",
         },
         "query": {
-            "tab": _text(query.get("tab") or query.get("tipo")),
-            "nextUrl": _text(query.get("next_url") or query.get("next")),
+            "tab": tab,
+            "nextUrl": next_url,
             "idCliente": _text(query.get("id_cliente")),
+            "idFascicolo": id_fascicolo,
+            "ruoloSoggetto": ruolo_soggetto,
         },
+        "initialSubject": {"qualifica": ruolo_soggetto} if ruolo_soggetto else {},
         "insights": [
             "Prima del salvataggio controlla CF/P.IVA per prevenire duplicati.",
             "Per il conferimento incarico servono dati fiscali, recapiti e indirizzo.",

@@ -2856,6 +2856,11 @@ def _soggetti_register_result(item: Mapping[str, Any]) -> dict[str, Any]:
 @_richiedi_auth
 def soggetti_registri_pubblici_cache():
     query = str(request.args.get("q") or request.args.get("query") or "").strip()
+    selected_registry = str(request.args.get("registro") or request.args.get("registry") or "tutti").strip().lower().replace("-", "_")
+    if selected_registry in {"ppaa", "pa", "registro_pa", "registro_paa", "registro_pubbliche_amministrazioni", "ipa"}:
+        selected_registry = "registro_ppaa"
+    if selected_registry not in {"reginde", "registro_ppaa"}:
+        selected_registry = "tutti"
     try:
         limit = int(request.args.get("limit") or 12)
     except (TypeError, ValueError):
@@ -2863,9 +2868,11 @@ def soggetti_registri_pubblici_cache():
     safe_limit = max(1, min(limit, 20))
     reginde = search_reginde_cache(_soggetti_public_register_db("reginde"), query, limit=safe_limit)
     ppaa = search_registro_ppaa_cache(_soggetti_public_register_db("registro_ppaa"), query, limit=safe_limit)
+    payloads_by_registry = {"reginde": reginde, "registro_ppaa": ppaa}
+    selected_payloads = [payloads_by_registry[selected_registry]] if selected_registry != "tutti" else [reginde, ppaa]
     results: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for payload in (reginde, ppaa):
+    for payload in selected_payloads:
         for item in payload.get("results") or []:
             row = _soggetti_register_result(item)
             key = "|".join([row["registry"], row["taxCode"], row["pec"], row["label"]]).casefold()
@@ -2877,16 +2884,21 @@ def soggetti_registri_pubblici_cache():
                 break
         if len(results) >= safe_limit:
             break
+    scope_label = {
+        "reginde": "ReGIndE",
+        "registro_ppaa": "Registro PP.AA.",
+    }.get(selected_registry, "ReGIndE e Registro PP.AA.")
     message = ""
     if len(query) < 3:
-        message = "Digita almeno 3 caratteri per cercare in ReGIndE e Registro PP.AA."
+        message = f"Digita almeno 3 caratteri per cercare in {scope_label}."
     elif not results:
-        message = "Nessun soggetto trovato nelle cache locali ReGIndE e Registro PP.AA."
+        message = f"Nessun soggetto trovato nella cache locale {scope_label}."
     return jsonify({
         "ok": True,
         "source": "registri_pubblici_cache_locale",
-        "available": bool(reginde.get("available") or ppaa.get("available")),
-        "complete": bool(reginde.get("complete") and ppaa.get("complete")),
+        "available": any(bool(payload.get("available")) for payload in selected_payloads),
+        "complete": all(bool(payload.get("complete")) for payload in selected_payloads),
+        "selectedRegistry": selected_registry,
         "message": message,
         "registries": [
             {

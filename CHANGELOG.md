@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.276.6 - 2026-08-05
+
+- **Email PEC: profilo PEC selezionata fuori dal rail.** Il pannello con ricevuta, qualità, firma e profilo processuale non è più una colonna stretta accanto a Cabina/Controlli/Esiti: ora sta da solo sotto la visualizzazione email, con fatti processuali larghi e testo Evento non compresso.
+- **Fascicoli: controparti censite riutilizzabili.** Nel form di modifica fascicolo il soggetto già censito si collega con `Aggiungi controparte selezionata`; se è già collegato il comando diventa `Già collegata`, mentre `Nuovo soggetto` crea o riusa la scheda e la collega al fascicolo come `CONTROPARTE`.
+- **Soggetti: ReGIndE e Registro PP.AA. separati.** Il form `Nuovo soggetto` ha un selettore ReGIndE / Registro PP.AA.; la ricerca invia il registro scelto alla API e i risultati vengono filtrati sulla cache corretta.
+- Guardrail mirati su layout Email PEC, contesto fascicolo nel form soggetto e filtri dei registri pubblici.
+
 ## 2.276.5 - 2026-08-05
 
 - **Fascicoli: titolo del banner scadenze coerente con le righe visibili.** Il riepilogo globale resta `Scadenze urgenti` con dettaglio `scadute` / `entro 7 giorni`, ma il riquadro sotto le card ora calcola titolo e lista sulle scadenze effettivamente mostrate. Se le prime righe sono tutte scadute, il titolo diventa `Scadenze scadute`; scadenze future oltre 7 giorni non vengono esposte nel banner.

@@ -35,6 +35,7 @@ export type PublicRegistrySubjectLookup = {
   available: boolean
   complete: boolean
   message: string
+  selectedRegistry: string
   registries: Array<{ id: string; label: string; available: boolean; complete: boolean; records: number; updatedAt: string }>
   results: PublicRegistrySubjectResult[]
 }
@@ -84,6 +85,8 @@ export type ClientiNuovoData = {
     nextUrl: string
     idCliente: string
     idSoggetto: string
+    idFascicolo: string
+    ruoloSoggetto: string
   }
   initialClient: Record<string, string | boolean>
   initialSubject: Record<string, string>
@@ -215,7 +218,7 @@ export const emptyClientiNuovoData: ClientiNuovoData = {
     operationalSubjectForm: '/soggetti/nuovo',
     documentReader: '/api/v1/ui/clienti/nuovo/documento/leggi',
   },
-  query: { tab: '', nextUrl: '', idCliente: '', idSoggetto: '' },
+  query: { tab: '', nextUrl: '', idCliente: '', idSoggetto: '', idFascicolo: '', ruoloSoggetto: '' },
   initialClient: {},
   initialSubject: {},
   insights: [
@@ -316,6 +319,8 @@ function mergePayload(payload: unknown): ClientiNuovoData {
         nextUrl: text(payload.query.nextUrl ?? payload.query.next_url),
         idCliente: text(payload.query.idCliente ?? payload.query.id_cliente),
         idSoggetto: text(payload.query.idSoggetto ?? payload.query.id_soggetto),
+        idFascicolo: text(payload.query.idFascicolo ?? payload.query.id_fascicolo),
+        ruoloSoggetto: text(payload.query.ruoloSoggetto ?? payload.query.ruolo_soggetto),
       }
       : emptyClientiNuovoData.query,
     initialClient: isRecord(payload.initialClient ?? payload.initial_client)
@@ -366,8 +371,9 @@ function publicRegistryResultFrom(value: unknown, index: number): PublicRegistry
   }
 }
 
-export async function searchPublicSubjectRegisters(query: string, limit = 12): Promise<PublicRegistrySubjectLookup> {
+export async function searchPublicSubjectRegisters(query: string, limit = 12, registry = ''): Promise<PublicRegistrySubjectLookup> {
   const params = new URLSearchParams({ q: query, limit: String(limit) })
+  if (registry) params.set('registro', registry)
   const response = await fetch(`/api/v1/ui/soggetti/registri-pubblici?${params.toString()}`, {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
@@ -382,6 +388,7 @@ export async function searchPublicSubjectRegisters(query: string, limit = 12): P
     available: payload.available === true,
     complete: payload.complete === true,
     message: text(payload.message),
+    selectedRegistry: text(payload.selectedRegistry ?? payload.selected_registry),
     registries: Array.isArray(payload.registries)
       ? payload.registries.filter(isRecord).map((item) => ({
         id: text(item.id),

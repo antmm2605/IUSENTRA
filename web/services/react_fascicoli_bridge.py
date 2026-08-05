@@ -6283,6 +6283,12 @@ def build_react_fascicolo_form_payload(
     action = f"/fascicoli/{id_fasc}/modifica" if id_fasc else "/fascicoli/nuovo"
     detail = f"/fascicoli/{id_fasc}" if id_fasc else "/fascicoli"
     guardrails = _new_fascicolo_guardrails(query, fascicolo)
+    linked_subjects: list[dict[str, str]] = []
+    if fascicolo and callable(get_soggetti):
+        parti_fascicolo = _safe("soggetti_form_parti", lambda: get_soggetti().parti_fascicolo(_text(id_fasc)), [])
+        clienti_form = _safe("clienti_form_parti", lambda: get_clienti().tutti(stato=None), [])
+        cliente_form = _safe("cliente_form_parti", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None)
+        linked_subjects = _parties(parti_fascicolo, cliente=cliente_form, clienti=clienti_form)
     workflow = None
     if query.get("source_preventivo") or query.get("source_conferimento"):
         workflow = {
@@ -6309,6 +6315,7 @@ def build_react_fascicolo_form_payload(
         "query": query,
         "clients": _client_options(get_clienti),
         "subjects": _subject_options(get_soggetti, get_clienti),
+        "linkedSubjects": linked_subjects,
         "judicialOffices": _judicial_office_options(),
         "types": _select_options(TipoFascicolo),
         "states": _select_options(StatoFascicolo),

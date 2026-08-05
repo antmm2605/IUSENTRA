@@ -1356,7 +1356,12 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "mobileReaderOpen" in email_page
     assert "Lettura email" in email_page
     assert "iu-mail-reader-pane" in email_page
+    assert "iu-mail-selected-pec-panel" in email_page
+    assert "PecAuditSidebarPanel audit={selectedAudit}" in email_page
     assert ".iu-mail-reader-pane.is-open" in email_css
+    assert ".iu-mail-selected-pec-panel" in email_css
+    assert ".iu-pec-profile-facts span.is-wide" in email_css
+    assert "grid-template-columns:repeat(auto-fit,minmax(240px,1fr))" in email_css
     assert "align-items:start" in email_css
     assert "height:var(--iu-mail-pane-height)" in email_css
     preset_source = Path("frontend/src/components/iusentra/IusentraPreset.tsx").read_text(encoding="utf-8")
@@ -8898,6 +8903,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     soggetti_page = Path("frontend/src/components/SoggettiPage.tsx").read_text(encoding="utf-8")
     soggetti_data = Path("frontend/src/soggettiData.ts").read_text(encoding="utf-8")
     soggetti_css = Path("frontend/src/components/SoggettiPage.css").read_text(encoding="utf-8")
+    fascicoli_data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     fascicoli_page = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     clienti_routes = Path("web/bootstrap/clienti_routes.py").read_text(encoding="utf-8")
@@ -8916,6 +8922,9 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "/api/v1/ui/clienti/${encodeURIComponent(decodeURIComponent(editMatch[1]))}/modifica" in new_data
     assert "/api/v1/ui/soggetti/${encodeURIComponent(decodeURIComponent(subjectEditMatch[1]))}/modifica" in new_data
     assert "edit_subject" in new_data
+    assert "idFascicolo" in new_data
+    assert "ruoloSoggetto" in new_data
+    assert "params.set('registro', registry)" in new_data
     assert "/api/v1/ui/soggetti" in soggetti_data
     assert "matterIds.includes(matterFilter)" in soggetti_page
     assert "matterIds:" in soggetti_data
@@ -8924,6 +8933,14 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "RecordOverlayButton" in fascicoli_page
     assert "Visualizza cliente nel fascicolo" in fascicoli_page
     assert "Visualizza soggetti e parti nel fascicolo" in fascicoli_page
+    assert "subjectContextParams.set('id_fascicolo', id)" in fascicoli_page
+    assert "Aggiungi altra controparte" in fascicoli_page
+    assert "linkedSubjects" in fascicoli_data
+    assert "Parti già collegate al fascicolo" in fascicoli_page
+    assert "Aggiungi controparte selezionata" in fascicoli_page
+    assert "submitFormJson(`/fascicoli/${encodeURIComponent(fascicoloId)}/parti/aggiungi`, body)" in fascicoli_page
+    assert "Salva anche la scheda soggetto della controparte" in fascicoli_page
+    assert "resta riutilizzabile negli altri fascicoli" in fascicoli_page
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page
@@ -8947,6 +8964,13 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert 'name="crea_preventivo_iniziale"' in new_page
     assert 'name="qualifica"' in new_page
     assert "Tipo soggetto processuale" in new_page
+    assert "PublicRegistryKind" in new_page
+    assert "publicRegistryChoices" in new_page
+    assert "Cerca in {selectedRegistry.label}" in new_page
+    assert "searchPublicSubjectRegisters(query, 12, registryKind)" in new_page
+    assert 'name="id_fascicolo" value={data.query.idFascicolo}' in new_page
+    assert "Parte collegata al fascicolo" in new_page
+    assert "subjectCancelHref" in new_page
     assert "FloatingLex" in new_page
     assert "context={tab === 'cliente' ? 'nuovo-cliente' : 'nuovo-soggetto'}" in new_page
     assert "SoggettiPage" in soggetti_page
@@ -8957,11 +8981,13 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
     assert '@api_v1_react.get("/soggetti/<id_soggetto>/modifica")' in api_source
     assert '@api_v1_react.get("/soggetti")' in api_source
+    assert 'selected_registry = str(request.args.get("registro")' in api_source
     assert '"1" in form.getlist("crea_preventivo_iniziale")' in clienti_routes
     assert "provincia_nascita: str = \"\"" in soggetti_model
     assert ".iu-clienti-new-page" in new_css
     assert ".iu-cln-process-grid" in new_css
     assert ".iu-cln-doc-reader" in new_css
+    assert ".iu-cln-registry__switch" in new_css
     assert ".iu-soggetti-page" in soggetti_css
     assert ".iu-sogg-table" in soggetti_css
     assert "@media(max-width:760px)" in new_css
@@ -9283,6 +9309,127 @@ def test_soggetti_post_blocca_identita_cliente_esistente(tmp_path: Path):
     assert GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"]).tutti() == []
 
 
+def test_soggetti_nuovo_da_fascicolo_collega_controparte(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo = _fascicoli_repository(app).nuovo(
+        "Bianchi c/ Alfa",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Bianchi Mario",
+    )
+    next_url = f"/fascicoli/{fascicolo.id}/modifica"
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/soggetti/nuovo",
+            data={
+                "tipo": "PERSONA_GIURIDICA",
+                "ragione_sociale": "ALFA S.P.A.",
+                "codice_fiscale": "12345678901",
+                "partita_iva": "12345678901",
+                "qualifica": "CONTROPARTE",
+                "id_fascicolo": fascicolo.id,
+                "next_url": next_url,
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["redirect"] == next_url
+    assert "collegato come Controparte" in payload["message"]
+    with app.app_context():
+        parties = app.extensions["core_runtime"]["get_soggetti"]().parti_fascicolo(fascicolo.id)
+    assert len(parties) == 1
+    parte, soggetto = parties[0]
+    assert parte.ruolo == RuoloSoggetto.CONTROPARTE
+    assert soggetto.ragione_sociale == "ALFA S.P.A."
+
+
+def test_fascicolo_parti_aggiungi_json_collega_soggetto_censito(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo = _fascicoli_repository(app).nuovo(
+        "Bianchi c/ Agenzia Entrate",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Bianchi Mario",
+    )
+    with app.app_context():
+        soggetti = app.extensions["core_runtime"]["get_soggetti"]()
+        soggetto = soggetti.crea(
+            TipoSoggetto.ENTE,
+            ragione_sociale="Agenzia delle Entrate - Riscossione",
+            partita_iva="13756881002",
+        )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/parti/aggiungi",
+            data={
+                "id_soggetto": soggetto.id,
+                "ruolo": RuoloSoggetto.CONTROPARTE.value,
+                "next_url": f"/fascicoli/{fascicolo.id}/modifica",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+        form_payload = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/modifica").get_json()
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["redirect"] == f"/fascicoli/{fascicolo.id}/modifica"
+    with app.app_context():
+        parties = app.extensions["core_runtime"]["get_soggetti"]().parti_fascicolo(fascicolo.id)
+    assert any(parte.ruolo == RuoloSoggetto.CONTROPARTE and item.id == soggetto.id for parte, item in parties)
+    assert any(item["name"] == "Agenzia delle Entrate - Riscossione" for item in form_payload["linkedSubjects"])
+
+
+def test_modifica_fascicolo_crea_controparte_inline_e_la_collega(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo = _fascicoli_repository(app).nuovo(
+        "Bianchi c/ Beta",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Bianchi Mario",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/modifica",
+            data={
+                "titolo": "Bianchi c/ Beta",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "controparte": "Beta Recuperi Srl",
+                "cf_controparte": "11122233344",
+                "crea_soggetto_controparte": "1",
+                "nuovo_soggetto_tipo": TipoSoggetto.PERSONA_GIURIDICA.value,
+                "nuovo_soggetto_nome_completo": "Beta Recuperi Srl",
+                "nuovo_soggetto_identificativo": "11122233344",
+                "nuovo_soggetto_pec": "beta@pec.test",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert "Controparte salvata in Soggetti e Parti" in payload["message"]
+    with app.app_context():
+        saved = _fascicoli_repository(app).get(fascicolo.id)
+        parties = app.extensions["core_runtime"]["get_soggetti"]().parti_fascicolo(fascicolo.id)
+    assert saved.controparte == "Beta Recuperi Srl"
+    assert saved.cf_controparte == "11122233344"
+    assert len(parties) == 1
+    parte, soggetto = parties[0]
+    assert parte.ruolo == RuoloSoggetto.CONTROPARTE
+    assert soggetto.ragione_sociale == "Beta Recuperi Srl"
+    assert soggetto.partita_iva == "11122233344"
+
+
 def test_soggetti_registri_pubblici_riusa_cache_reginde_e_ppaa(tmp_path: Path):
     def create_cache(path: Path, *, source: str) -> None:
         import sqlite3
@@ -9351,10 +9498,13 @@ def test_soggetti_registri_pubblici_riusa_cache_reginde_e_ppaa(tmp_path: Path):
     with app.test_client() as client:
         _login(client)
         response = client.get("/api/v1/ui/soggetti/registri-pubblici?q=Avvocatura%20Milano")
+        reginde_response = client.get("/api/v1/ui/soggetti/registri-pubblici?q=Avvocatura%20Milano&registro=reginde")
+        ppaa_response = client.get("/api/v1/ui/soggetti/registri-pubblici?q=Avvocatura%20Milano&registro=registro_ppaa")
 
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["ok"] is True
+    assert payload["selectedRegistry"] == "tutti"
     assert payload["available"] is True
     registries = {item["id"]: item for item in payload["registries"]}
     assert registries["reginde"]["records"] == 1
@@ -9364,6 +9514,14 @@ def test_soggetti_registri_pubblici_riusa_cache_reginde_e_ppaa(tmp_path: Path):
     assert ppaa["subjectPatch"]["tipo"] == "PUBBLICA_AMMINISTRAZIONE"
     assert ppaa["subjectPatch"]["qualifica"] == "CONTROPARTE"
     assert ppaa["subjectPatch"]["pec"] == "ads.mi@mailcert.avvocaturastato.it"
+    assert reginde_response.status_code == 200
+    reginde_payload = reginde_response.get_json()
+    assert reginde_payload["selectedRegistry"] == "reginde"
+    assert {item["registry"] for item in reginde_payload["results"]} == {"reginde"}
+    assert ppaa_response.status_code == 200
+    ppaa_payload = ppaa_response.get_json()
+    assert ppaa_payload["selectedRegistry"] == "registro_ppaa"
+    assert {item["registry"] for item in ppaa_payload["results"]} == {"registro_ppaa"}
 
 
 def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):

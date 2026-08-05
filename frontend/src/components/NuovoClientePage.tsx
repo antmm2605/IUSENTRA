@@ -39,6 +39,7 @@ import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './NuovoClientePage.css'
 
 type Tab = 'cliente' | 'soggetto'
+type PublicRegistryKind = 'reginde' | 'registro_ppaa'
 type ClientType = 'PERSONA_FISICA' | 'PERSONA_GIURIDICA'
 type ClientFormState = Record<string, string | boolean>
 type SubjectFormState = Record<string, string>
@@ -52,6 +53,10 @@ type ComuneOption = {
 }
 
 const subjectLegalTypes = new Set(['PERSONA_GIURIDICA', 'PUBBLICA_AMMINISTRAZIONE', 'ENTE', 'CONDOMINIO', 'ASSOCIAZIONE'])
+const publicRegistryChoices: Array<{ id: PublicRegistryKind; label: string; note: string; placeholder: string }> = [
+  { id: 'reginde', label: 'ReGIndE', note: 'Difensori e domiciliatari', placeholder: 'Nome, C.F. o PEC del professionista' },
+  { id: 'registro_ppaa', label: 'Registro PP.AA.', note: 'Pubbliche amministrazioni locali', placeholder: 'Ente, C.F., P. IVA o PEC' },
+]
 
 const initialClient: ClientFormState = {
   tipo: 'PERSONA_FISICA',
@@ -1280,11 +1285,16 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const [registryLoading, setRegistryLoading] = useState(false)
   const [registryMessage, setRegistryMessage] = useState('')
   const [registryError, setRegistryError] = useState('')
+  const [registryKind, setRegistryKind] = useState<PublicRegistryKind>('reginde')
   const valuesRef = useRef(values)
   const touchedFieldsRef = useRef(touchedFields)
   const documentFileInputRef = useRef<HTMLInputElement | null>(null)
   const action = data.actions.operationalSubjectForm
   const isLegal = subjectLegalTypes.has(values.tipo)
+  const selectedRegistry = publicRegistryChoices.find((item) => item.id === registryKind) || publicRegistryChoices[0]
+  const subjectCancelHref = data.mode === 'edit_subject' && data.query.idSoggetto
+    ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}`
+    : data.query.nextUrl || (data.query.idFascicolo ? `/fascicoli/${encodeURIComponent(data.query.idFascicolo)}/modifica` : '/soggetti')
 
   useEffect(() => {
     valuesRef.current = values
@@ -1295,7 +1305,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   }, [touchedFields])
 
   useEffect(() => {
-    if (data.mode === 'edit_subject') {
+    if (data.mode === 'edit_subject' || Object.keys(data.initialSubject).length) {
       setValues({ ...initialSubject, ...data.initialSubject })
       setTouchedFields(new Set())
       return
@@ -1528,14 +1538,14 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     setRegistryMessage('')
     if (query.length < 3) {
       setRegistryResults([])
-      setRegistryMessage('Digita almeno 3 caratteri.')
+      setRegistryMessage(`Digita almeno 3 caratteri per cercare in ${selectedRegistry.label}.`)
       return
     }
     setRegistryLoading(true)
     try {
-      const payload = await searchPublicSubjectRegisters(query)
+      const payload = await searchPublicSubjectRegisters(query, 12, registryKind)
       setRegistryResults(payload.results)
-      setRegistryMessage(payload.message || `${payload.results.length} risultati dai registri pubblici.`)
+      setRegistryMessage(payload.message || `${payload.results.length} risultati in ${selectedRegistry.label}.`)
     } catch (error) {
       setRegistryResults([])
       setRegistryError(error instanceof Error ? error.message : 'Ricerca nei registri pubblici non riuscita.')
@@ -1572,7 +1582,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     try {
       const result = await submitFormJson(action, new FormData(event.currentTarget))
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Soggetto salvato.' })
-      redirectAfterSuccess(result, data.mode === 'edit_subject' && data.query.idSoggetto ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}` : '/soggetti')
+      redirectAfterSuccess(result, subjectCancelHref)
     } catch (error) {
       setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
     }
@@ -1580,10 +1590,33 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
   return (
     <form className="iu-cln-form" onSubmit={handleSubmit}>
-      <Card title="Registri pubblici" icon={<ShieldCheck size={18}/>} note="ReGIndE e Registro PP.AA. locali">
+      <input type="hidden" name="id_fascicolo" value={data.query.idFascicolo}/>
+      <input type="hidden" name="next_url" value={data.query.nextUrl}/>
+      <input type="hidden" name="ruolo_collegamento" value={values.qualifica || data.query.ruoloSoggetto}/>
+      <Card title="Registri pubblici" icon={<ShieldCheck size={18}/>} note={selectedRegistry.label}>
         <div className="iu-cln-registry">
+          <div className="iu-cln-registry__switch" role="tablist" aria-label="Registro pubblico da consultare">
+            {publicRegistryChoices.map((choice) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={registryKind === choice.id}
+                className={registryKind === choice.id ? 'is-active' : ''}
+                onClick={() => {
+                  setRegistryKind(choice.id)
+                  setRegistryResults([])
+                  setRegistryError('')
+                  setRegistryMessage(`Ricerca impostata su ${choice.label}.`)
+                }}
+                key={choice.id}
+              >
+                <strong>{choice.label}</strong>
+                <span>{choice.note}</span>
+              </button>
+            ))}
+          </div>
           <label className="iu-cln-registry__search">
-            <span>Cerca nel registro</span>
+            <span>Cerca in {selectedRegistry.label}</span>
             <div>
               <Search size={16}/>
               <input
@@ -1595,7 +1628,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
                     searchRegistries()
                   }
                 }}
-                placeholder="Nome, C.F., P.IVA o PEC"
+                placeholder={selectedRegistry.placeholder}
               />
               <button type="button" onClick={searchRegistries} disabled={registryLoading}>
                 {registryLoading ? <Loader2 className="iu-spin" size={15}/> : <Search size={15}/>}
@@ -1697,7 +1730,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
       <SubmitFeedback state={submitState}/>
       <div className="iu-cln-actions">
         <button className="iu-cln-submit" type="submit" disabled={submitState.saving}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit_subject' ? 'Salva modifiche' : 'Salva soggetto'}</button>
-        <a className="iu-cln-secondary" href={data.mode === 'edit_subject' && data.query.idSoggetto ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}` : '/soggetti'}>Annulla</a>
+        <a className="iu-cln-secondary" href={subjectCancelHref}>Annulla</a>
       </div>
     </form>
   )
@@ -1759,6 +1792,7 @@ export function NuovoClientePage() {
       ? 'Nuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo.'
       : 'Nuovo soggetto o parte processuale distinto dai clienti, con ruolo, fonte pubblica e dati anagrafici completi.'
   }, [data.mode, tab])
+  const subjectFlowRole = data.options.subjectRoles.find((item) => item.value === data.query.ruoloSoggetto)?.label || 'controparte'
 
   return (
     <main className="iu-content iu-clienti-new-page">
@@ -1787,6 +1821,12 @@ export function NuovoClientePage() {
         <section className="iu-cln-flow-alert">
           <UserCheck size={18}/>
           <div><strong>Cliente precompilato dal contesto</strong><span>Il collegamento resta modificabile prima del salvataggio.</span></div>
+        </section>
+      ) : null}
+      {data.query.idFascicolo && tab === 'soggetto' ? (
+        <section className="iu-cln-flow-alert">
+          <UsersRound size={18}/>
+          <div><strong>Parte collegata al fascicolo</strong><span>Salvando il soggetto lo riporti al fascicolo come {subjectFlowRole}.</span></div>
         </section>
       ) : null}
 

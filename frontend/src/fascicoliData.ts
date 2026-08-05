@@ -1023,6 +1023,7 @@ export type FascicoloFormData = {
   query: Record<string, string>
   clients: FascicoloFormClient[]
   subjects: FascicoloFormSubject[]
+  linkedSubjects: FascicoloParty[]
   judicialOffices: JudicialOfficeOption[]
   types: SelectOption[]
   states: SelectOption[]
@@ -1375,7 +1376,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
 
 export const emptyFascicoloForm: FascicoloFormData = {
   source: 'vuoto', generatedAt: '', mode: 'new', action: '/fascicoli/nuovo', backHref: '/fascicoli', detailHref: '/fascicoli',
-  query: {}, clients: [], subjects: [], judicialOffices: [], types: [], states: [],
+  query: {}, clients: [], subjects: [], linkedSubjects: [], judicialOffices: [], types: [], states: [],
 }
 
 export const emptyFascicoliExport: FascicoliExportData = {
@@ -2633,6 +2634,19 @@ function normalizeFormPayload(payload: unknown): FascicoloFormData {
         href: text(row.href),
       }
     }).filter((row) => row.id),
+    linkedSubjects: asArray(payload.linkedSubjects ?? payload.linked_subjects).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return {
+        id: text(row.id, `linked-subject-${index}`),
+        name: text(row.name ?? row.nome, 'Soggetto'),
+        role: text(row.role ?? row.ruolo),
+        taxCode: text(row.taxCode ?? row.codice_fiscale),
+        email: text(row.email),
+        pec: text(row.pec),
+        phone: text(row.phone ?? row.telefono),
+        href: text(row.href, '/soggetti'),
+      }
+    }),
     judicialOffices: asArray(payload.judicialOffices ?? payload.judicial_offices ?? payload.offices).map((entry) => {
       const row = isRecord(entry) ? entry : {}
       return {

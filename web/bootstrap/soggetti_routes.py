@@ -49,6 +49,22 @@ def _reject_soggetto_cliente_if_needed(clienti: list[object]):
     return None
 
 
+def _safe_internal_next_url(value: object) -> str:
+    raw = str(value or "").strip()
+    if raw.startswith("/") and not raw.startswith("//"):
+        return raw
+    return ""
+
+
+def _ruolo_soggetto_from_form(form) -> RuoloSoggetto:
+    raw = str(form.get("ruolo_collegamento") or form.get("ruolo") or form.get("qualifica") or "ALTRO").strip()
+    normalized = raw.replace("-", "_").replace(" ", "_").upper()
+    try:
+        return RuoloSoggetto(normalized)
+    except ValueError:
+        return RuoloSoggetto.ALTRO
+
+
 def register_soggetti_routes(
     app: Flask,
     *,
@@ -126,11 +142,31 @@ def register_soggetti_routes(
                 tag=tag,
             )
             audit("soggetti.crea", "soggetto", soggetto.id, dettagli=soggetto.nome_completo)
-            flash(f"Soggetto '{soggetto.nome_completo}' creato.", "success")
+            message = f"Soggetto '{soggetto.nome_completo}' creato."
             target = url_for("dettaglio_soggetto", id_soggetto=soggetto.id)
+            id_fascicolo = str(request.form.get("id_fascicolo", "") or "").strip()
+            if id_fascicolo:
+                fascicolo = get_fascicoli().get(id_fascicolo)
+                if fascicolo:
+                    ruolo_collegamento = _ruolo_soggetto_from_form(request.form)
+                    soggetti.aggiungi_parte(
+                        id_fascicolo,
+                        soggetto.id,
+                        ruolo_collegamento,
+                        note=request.form.get("note_collegamento", "") or "Creato dal form soggetto collegato al fascicolo.",
+                    )
+                    audit(
+                        "soggetti.aggiungi_parte",
+                        "fascicolo",
+                        id_fascicolo,
+                        dettagli=f"{soggetto.nome_completo} -> {ruolo_collegamento.label}",
+                    )
+                    message = f"Soggetto '{soggetto.nome_completo}' creato e collegato come {ruolo_collegamento.label}."
+                    target = _safe_internal_next_url(request.form.get("next_url")) or url_for("dettaglio_fascicolo", id_fasc=id_fascicolo)
+            flash(message, "success")
             if _richiede_json():
-                return jsonify({"ok": True, "id": soggetto.id, "message": f"Soggetto '{soggetto.nome_completo}' creato.", "redirect": target})
-            return redirect(url_for("dettaglio_soggetto", id_soggetto=soggetto.id))
+                return jsonify({"ok": True, "id": soggetto.id, "message": message, "redirect": target})
+            return redirect(target)
 
         prefill = {
             key: request.args.get(key, "")
@@ -286,18 +322,30 @@ def register_soggetti_routes(
         id_soggetto = request.form.get("id_soggetto", "")
         ruolo_val = request.form.get("ruolo", "ALTRO")
         note = request.form.get("note", "")
+        next_url = _safe_internal_next_url(
+            request.form.get("next_url")
+            or request.form.get("next")
+            or request.args.get("next_url")
+            or request.args.get("next")
+        )
+        redirect_to = next_url or url_for("dettaglio_fascicolo", id_fasc=id_fasc)
         try:
             ruolo = RuoloSoggetto(ruolo_val)
         except ValueError:
             ruolo = RuoloSoggetto.ALTRO
         soggetto = get_soggetti().get(id_soggetto)
         if not soggetto:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Soggetto non trovato."}), 404
             flash("Soggetto non trovato.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            return redirect(redirect_to)
         get_soggetti().aggiungi_parte(id_fasc, id_soggetto, ruolo, note)
         audit("soggetti.aggiungi_parte", "fascicolo", id_fasc, dettagli=f"{soggetto.nome_completo} -> {ruolo.label}")
-        flash(f"'{soggetto.nome_completo}' aggiunto come {ruolo.label}.", "success")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        message = f"'{soggetto.nome_completo}' aggiunto come {ruolo.label}."
+        if _richiede_json():
+            return jsonify({"ok": True, "message": message, "redirect": redirect_to, "id": id_soggetto})
+        flash(message, "success")
+        return redirect(redirect_to)
 
     @app.route("/fascicoli/<id_fasc>/parti/<id_parte>/rimuovi", methods=["POST"])
     def rimuovi_parte_fascicolo(id_fasc, id_parte):

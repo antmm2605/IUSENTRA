@@ -443,7 +443,8 @@
 }
 .iu-mail-list-card,
 .iu-mail-preview-card,
-.iu-mail-inspector .iu-panel{
+.iu-mail-inspector .iu-panel,
+.iu-mail-selected-pec-panel .iu-panel{
   border:1px solid var(--iu-border);
   border-radius:18px;
   background:var(--iu-bg-card);
@@ -833,6 +834,19 @@
   grid-column:1 / -1;
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:12px;
+}
+.iu-mail-selected-pec-panel{
+  grid-column:1 / -1;
+  display:grid;
+  min-width:0;
+}
+.iu-mail-selected-pec-panel .iu-panel{
+  min-width:0;
+}
+.iu-mail-selected-pec-panel .iu-pec-sidebar-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
   gap:12px;
 }
 .iu-mail-briefing{
@@ -1862,7 +1876,7 @@
 }
 .iu-pec-profile-facts{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
   gap:6px;
 }
 .iu-pec-profile-facts span{
@@ -1878,6 +1892,9 @@
   font-weight:800;
   line-height:1.25;
   overflow-wrap:anywhere;
+}
+.iu-pec-profile-facts span.is-wide{
+  grid-column:1 / -1;
 }
 .iu-pec-profile-facts b{
   color:#0f766e;
@@ -2011,6 +2028,10 @@
 .iu-mail-preview-card>.iu-pec-audit-panel .iu-pec-audit-grid,
 .iu-mail-preview-card>.iu-pec-audit-panel>footer{
   display:none;
+}
+.iu-mail-preview-card>.iu-pec-audit-panel .iu-pec-profile-facts,
+.iu-mail-selected-pec-panel .iu-pec-profile-facts{
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
 }
 
 @media(max-width:1540px){

@@ -1,5 +1,32 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-08-05 - Email PEC, profilo processuale e collegamento soggetti al fascicolo
+
+Perimetro: pagina React Email PEC, profilo processuale generato dal controllo PEC, form React di modifica fascicolo e form React `Nuovo soggetto`.
+
+Correzioni applicate:
+
+- il pannello `PEC selezionata`, con ricevuta, qualità, firma e `Profilo processuale`, non viene più renderizzato nel rail a colonne dell'inspector PEC; ora è una sezione autonoma sotto la visualizzazione email, prima dei pannelli di cabina e presidio;
+- i fatti del profilo processuale usano colonne responsive più larghe e il campo `Evento` va a larghezza piena quando il testo è lungo, evitando la card verticale stretta vista nel controllo reale;
+- nel form di modifica fascicolo il soggetto controparte già censito può essere collegato subito con `Aggiungi controparte selezionata`; se è già presente tra le parti, il comando diventa `Già collegata` e non duplica il rapporto;
+- se la controparte non è ancora censita, l'azione `Nuovo soggetto` porta a `/soggetti/nuovo` con `id_fascicolo`, ruolo `CONTROPARTE` e `next_url` interno;
+- il POST di `/soggetti/nuovo`, quando riceve `id_fascicolo`, crea il soggetto e lo collega subito alle parti del fascicolo tramite `GestioneSoggetti.aggiungi_parte`, con audit `soggetti.aggiungi_parte`;
+- il POST di modifica fascicolo, quando l'avvocato spunta `Salva anche la scheda soggetto della controparte`, crea o riusa il soggetto in `Soggetti e Parti`, aggiorna il codice fiscale/P. IVA della controparte nel fascicolo e collega il soggetto come `CONTROPARTE`, così resta disponibile anche per altri fascicoli;
+- nel form `Nuovo soggetto` la ricerca nei registri pubblici separa ReGIndE e Registro PP.AA.; la API `/api/v1/ui/soggetti/registri-pubblici` filtra su `registro=reginde` o `registro=registro_ppaa`, mantenendo la ricerca combinata solo quando il parametro manca.
+
+Struttura dati: il fascicolo conserva i propri campi operativi, incluso `cf_controparte`; la scheda riutilizzabile vive nel repository soggetti (`Soggetti e Parti`) con identificativo, tipo soggetto, recapiti email/PEC/telefono e ruolo processuale; la relazione fascicolo-soggetto viene salvata in `parti_fascicolo` tramite `GestioneSoggetti.aggiungi_parte`, con ruolo `CONTROPARTE` e audit dedicato.
+
+Stato verifiche automatiche: aggiunti guardrail statici su layout Email PEC, pannello PEC selezionata, link contestuale fascicolo/soggetto, filtro registri e riuso soggetto censito; aggiunti test POST per creazione soggetto da fascicolo, collegamento JSON di soggetto già censito e creazione/riuso della controparte dal POST di modifica fascicolo.
+
+Prova reale locale eseguita il 05/08/2026 su `127.0.0.1:8080`, browser integrato Codex, Docker ricostruito `--no-cache`, container `iusentra-app` tornato healthy, `/api/pronto` `ok=true`, versione `2.276.6`:
+
+- `Soggetti e Parti > Nuovo soggetto`: click reale sui tab `Registro PP.AA.` e `ReGIndE`; la label passa rispettivamente a `Cerca in Registro PP.AA.` con placeholder `Ente, C.F., P. IVA o PEC` e a `Cerca in ReGIndE` con placeholder `Nome, C.F. o PEC del professionista`;
+- `Fascicoli > modifica 31541BDA`: selezionata la controparte censita `Angenzia delle Entrate- Riscossione`; il comando `Aggiungi controparte selezionata` è visibile accanto ad `Apri soggetto`, è stato cliccato e la sezione si è aggiornata con `Parti già collegate al fascicolo` e ruolo `Controparte`;
+- selezionando di nuovo la stessa controparte già censita, il comando diventa `Già collegata`, è disabilitato e impedisce duplicati;
+- il testo del checkbox inline mostra che la scheda soggetto viene creata in `Soggetti e Parti`, collegata come controparte e resta riutilizzabile negli altri fascicoli;
+- responsive fascicolo desktop `1366x768`, tablet `900x760` e mobile `390x844`: nessun overflow orizzontale sulla sezione `Parti`, lista collegati e help text leggibili;
+- `Email PEC` locale: mailbox vuota con `0 messaggi`; lista e lettore vuoto sono allineati sullo stesso asse verticale a desktop, senza overflow su desktop/tablet/mobile. Il pannello `PEC selezionata` richiede dati PEC selezionabili e verrà provato in produzione con messaggi reali.
+
 ## Aggiornamento 2026-08-04 - Presidio PEC udienza: link da acquisire dal PDF
 
 Perimetro: presidio PEC, udienza audiovisiva, Agenda, Scadenziario, topbar e Web Push. Il caso pilota locale RG `393/2026/VG` non contiene un URL già utilizzabile nel PDF allegato: il provvedimento ordina di depositare nel fascicolo telematico, entro il `05/11/2026`, una nota con indirizzo e-mail per ricevere il link e numero di telefono mobile per eventuali difficoltà di collegamento.

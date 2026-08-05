@@ -29,7 +29,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "0.468.0",
-    "postcss": "8.5.18",
+    "postcss": "8.5.23",
     "radix-ui": "1.4.3",
     "react": "19.2.5",
     "react-dom": "19.2.5",
@@ -58,7 +58,7 @@
     "esbuild": "0.28.1",
     "vite": "6.4.3",
     "js-yaml": "4.3.0",
-    "postcss": "8.5.18",
+    "postcss": "8.5.23",
     "@babel/core": "7.29.7"
   }
 }

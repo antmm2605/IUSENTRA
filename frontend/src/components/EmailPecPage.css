@@ -2051,6 +2051,14 @@
   .iu-mail-reader-pane.is-open{
     position:fixed;
     inset:64px 14px 18px;
+    /* La regola base porta align-self:start per la griglia desktop: su un box
+       fixed l'allineamento self vale dentro l'inset e con "start" il pannello
+       si dimensiona sul contenuto (anche migliaia di px) invece di riempire
+       il viewport -> overflow:hidden taglia il resto e la lettura non scorre
+       su mobile. Con auto/stretch il pannello riempie l'inset e la card
+       interna torna scrollabile. */
+    align-self:auto;
+    justify-self:auto;
     z-index:1090;
     display:grid;
     grid-template-rows:auto minmax(0,1fr);

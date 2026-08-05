@@ -3561,6 +3561,15 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
     subjectContextParams.set('next_url', `/fascicoli/${id}/modifica`)
   }
   const contextualSubjectHref = `/soggetti/nuovo?${subjectContextParams.toString()}`
+  if (!loading && data.notFound) {
+    return (
+      <main className="iu-content iu-fascicoli-page">
+        <EmptyState icon={<FolderOpen size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>
+          {data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per modificarlo.'}
+        </EmptyState>
+      </main>
+    )
+  }
   return (
     <main className="iu-content iu-fascicoli-page iu-fascicolo-form-page">
       <section className="iu-fas-hero">

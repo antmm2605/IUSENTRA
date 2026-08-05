@@ -991,6 +991,23 @@ def test_react_fascicolo_non_mostra_un_falso_not_found_durante_il_caricamento():
     assert source.index(loading_guard) < source.index(not_found_guard)
 
 
+def test_react_form_fascicolo_mancante_non_renderizza_form_vuoto():
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
+
+    form_start = page_source.index("function FascicoloFormPage")
+    form_source = page_source[form_start: page_source.index("function KvGrid", form_start)]
+
+    assert "if (!loading && data.notFound)" in form_source
+    assert "Fascicolo non trovato" in form_source
+    assert "Il fascicolo non è disponibile o non hai i permessi per modificarlo." in form_source
+    assert form_source.index("if (!loading && data.notFound)") < form_source.index("<JsonPostForm")
+    assert "notFound?: boolean" in data_source
+    assert "requestError?: string" in data_source
+    assert "payload.message" in data_source
+    assert "serverMessage || 'Fascicolo non disponibile nella fonte dati corrente.'" in data_source
+
+
 def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     appointment_page = Path("frontend/src/components/NuovoAppuntamentoPage.tsx").read_text(encoding="utf-8")

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.276.8 - 2026-08-05
+
+- **Fascicoli React: niente form vuoto per fascicoli mancanti.** La pagina `/fascicoli/<id>/modifica` ora rispetta il `notFound` dell'API form e mostra l'empty state `Fascicolo non trovato` con ritorno ai fascicoli, invece di renderizzare campi editabili quando l'id non esiste nel tenant.
+- Il normalizzatore del form conserva il messaggio JSON del server sui 401/403/404, così l'errore resta leggibile e non viene sostituito da dati di fallback.
+
 ## 2.276.7 - 2026-08-05
 
 - **Fascicoli: errore JSON governato sul collegamento parti.** Se il form React prova a collegare una controparte a un fascicolo non presente nel tenant corrente, la POST `/fascicoli/<id>/parti/aggiungi` risponde JSON `Fascicolo non trovato.` invece di restituire una pagina HTML 404 dentro la card.

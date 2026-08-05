@@ -1017,6 +1017,8 @@ export type FascicoloFormData = {
   source: string
   generatedAt: string
   mode: 'new' | 'edit'
+  notFound?: boolean
+  requestError?: string
   action: string
   backHref: string
   detailHref: string
@@ -1376,6 +1378,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
 
 export const emptyFascicoloForm: FascicoloFormData = {
   source: 'vuoto', generatedAt: '', mode: 'new', action: '/fascicoli/nuovo', backHref: '/fascicoli', detailHref: '/fascicoli',
+  notFound: false, requestError: '',
   query: {}, clients: [], subjects: [], linkedSubjects: [], judicialOffices: [], types: [], states: [],
 }
 
@@ -2603,6 +2606,8 @@ function normalizeFormPayload(payload: unknown): FascicoloFormData {
     : undefined
   return {
     source: text(payload.source, 'repository_reali'), generatedAt: text(payload.generatedAt ?? payload.generated_at), mode: text(payload.mode, 'new') === 'edit' ? 'edit' : 'new',
+    notFound: bool(payload.notFound ?? payload.not_found),
+    requestError: text(payload.requestError ?? payload.request_error ?? payload.errore ?? payload.error ?? payload.message),
     action: text(payload.action, '/fascicoli/nuovo'), backHref: text(payload.backHref ?? payload.back_href, '/fascicoli'), detailHref: text(payload.detailHref ?? payload.detail_href, '/fascicoli'),
     query: isRecord(payload.query) ? Object.fromEntries(Object.entries(payload.query).map(([key, value]) => [key, text(value)])) : {},
     clients: asArray(payload.clients).map((entry) => {
@@ -2712,13 +2717,15 @@ async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fa
       const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       if (response.ok) return normalizer(await response.json())
       if (response.status === 401 || response.status === 403 || response.status === 404) {
+        const errorPayload = await response.json().catch(() => ({}))
+        const serverMessage = isRecord(errorPayload) ? text(errorPayload.message ?? errorPayload.messaggio ?? errorPayload.errore ?? errorPayload.error) : ''
         const fallbackPayload = {
           notFound: true,
           errore: response.status === 401
             ? 'Autenticazione richiesta per caricare i dati del fascicolo.'
             : response.status === 403
               ? 'Permessi insufficienti per aprire il fascicolo.'
-              : 'Fascicolo non disponibile nella fonte dati corrente.',
+              : serverMessage || 'Fascicolo non disponibile nella fonte dati corrente.',
         }
         return normalizer(fallbackPayload)
       }

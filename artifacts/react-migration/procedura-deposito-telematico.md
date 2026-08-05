@@ -5953,3 +5953,4 @@ Perimetro: form React `Modifica fascicolo`, sezione `Parti`, senza alterare depo
 - Se la controparte non è censita, l'avvocato usa `Crea una nuova scheda soggetto della controparte`: al salvataggio il backend crea o riusa il soggetto per identificativo, poi lo collega al fascicolo come `CONTROPARTE`.
 - La UI React ora separa i due percorsi: quando un soggetto censito è selezionato, il pannello di nuova scheda viene chiuso e resta visibile il comando `Aggiungi controparte al fascicolo`, con nota anti-duplicato.
 - Guardrail aggiunto in `tests/test_react_shell.py` per bloccare il ritorno della vecchia etichetta ambigua e verificare che la selezione di soggetto censito chiuda la creazione nuova scheda.
+- Correzione 05/08/2026 versione 2.276.10: la card del soggetto censito usa due colonne stabili e porta le azioni sotto il testo, così ragioni sociali, identificativi e PEC lunghi restano leggibili nel form fascicolo.

@@ -8922,6 +8922,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     soggetti_css = Path("frontend/src/components/SoggettiPage.css").read_text(encoding="utf-8")
     fascicoli_data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     fascicoli_page = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    fascicoli_css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     clienti_routes = Path("web/bootstrap/clienti_routes.py").read_text(encoding="utf-8")
     soggetti_model = Path("pct/soggetti.py").read_text(encoding="utf-8")
@@ -8960,6 +8961,9 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "submitFormJson(`/fascicoli/${encodeURIComponent(fascicoloId)}/parti/aggiungi`, body)" in fascicoli_page
     assert "Crea una nuova scheda soggetto della controparte" in fascicoli_page
     assert "resta riutilizzabile negli altri fascicoli" in fascicoli_page
+    assert ".iu-fas-choice-card{min-height:42px;display:grid;grid-template-columns:30px minmax(0,1fr)" in fascicoli_css
+    assert ".iu-fas-choice-card__actions{grid-column:2;display:flex;align-items:center;justify-content:flex-start" in fascicoli_css
+    assert ".iu-fas-choice-card strong{display:block;font-size:12px;font-weight:950;line-height:1.25;overflow-wrap:anywhere}" in fascicoli_css
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page

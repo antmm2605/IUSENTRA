@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.276.10 - 2026-08-05
+
+- **Fascicoli React: card controparte censita leggibile.** Il riepilogo del soggetto selezionato non comprime più nome, identificativo e PEC in una colonna stretta: le azioni scendono sotto al testo, con wrapping controllato e guardrail CSS dedicato.
+
 ## 2.276.9 - 2026-08-05
 
 - **Fascicoli React: controparte già censita senza ambiguità.** Quando l'avvocato seleziona una controparte presente in Soggetti e Parti, il pannello di creazione della nuova scheda si chiude, il comando diventa `Aggiungi controparte al fascicolo` e la UI chiarisce che il soggetto viene collegato come controparte senza creare duplicati.

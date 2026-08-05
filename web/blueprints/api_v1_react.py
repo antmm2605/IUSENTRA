@@ -8094,8 +8094,12 @@ def fascicolo_react_nuovo():
 @api_v1_react.get("/fascicoli/<id_fasc>/modifica")
 @_richiedi_auth
 def fascicolo_react_modifica(id_fasc: str):
+    get_fascicoli_loader = _fascicoli_loader()
+    fascicoli = get_fascicoli_loader()
+    if not fascicoli.get(id_fasc):
+        return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
     return jsonify(build_react_fascicolo_form_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=get_fascicoli_loader,
         get_clienti=get_clienti,
         get_soggetti=get_soggetti,
         get_preventivi=get_preventivi_readonly,

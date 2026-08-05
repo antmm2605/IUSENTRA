@@ -9387,6 +9387,45 @@ def test_fascicolo_parti_aggiungi_json_collega_soggetto_censito(tmp_path: Path):
     assert any(item["name"] == "Agenzia delle Entrate - Riscossione" for item in form_payload["linkedSubjects"])
 
 
+def test_fascicolo_parti_aggiungi_json_fascicolo_mancante_resta_json(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.app_context():
+        soggetto = app.extensions["core_runtime"]["get_soggetti"]().crea(
+            TipoSoggetto.ENTE,
+            ragione_sociale="Agenzia delle Entrate - Riscossione",
+            partita_iva="13756881002",
+        )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/fascicolo-mancante/parti/aggiungi",
+            data={"id_soggetto": soggetto.id, "ruolo": RuoloSoggetto.CONTROPARTE.value},
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    assert response.status_code == 404
+    assert response.content_type.startswith("application/json")
+    assert response.get_json() == {"ok": False, "message": "Fascicolo non trovato."}
+
+
+def test_fascicolo_react_modifica_fascicolo_mancante_resta_json_404(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            "/api/v1/ui/fascicoli/fascicolo-mancante/modifica",
+            headers={"Accept": "application/json"},
+        )
+
+    assert response.status_code == 404
+    assert response.content_type.startswith("application/json")
+    assert response.get_json() == {"ok": False, "message": "Fascicolo non trovato."}
+
+
 def test_modifica_fascicolo_crea_controparte_inline_e_la_collega(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)

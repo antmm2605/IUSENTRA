@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.276.7 - 2026-08-05
+
+- **Fascicoli: errore JSON governato sul collegamento parti.** Se il form React prova a collegare una controparte a un fascicolo non presente nel tenant corrente, la POST `/fascicoli/<id>/parti/aggiungi` risponde JSON `Fascicolo non trovato.` invece di restituire una pagina HTML 404 dentro la card.
+- **Fascicoli React: modifica di fascicolo inesistente non apre più un form vuoto.** L'API `/api/v1/ui/fascicoli/<id>/modifica` risponde 404 JSON quando l'id non esiste nel repository del tenant, evitando salvataggi apparenti su pratiche non presenti.
+- Guardrail mirati aggiunti per impedire il ritorno di HTML 404 nei flussi JSON del form fascicolo.
+
 ## 2.276.6 - 2026-08-05
 
 - **Email PEC: profilo PEC selezionata fuori dal rail.** Il pannello con ricevuta, qualità, firma e profilo processuale non è più una colonna stretta accanto a Cabina/Controlli/Esiti: ora sta da solo sotto la visualizzazione email, con fatti processuali larghi e testo Evento non compresso.

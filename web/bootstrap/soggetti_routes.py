@@ -318,6 +318,8 @@ def register_soggetti_routes(
     def aggiungi_parte_fascicolo(id_fasc):
         fascicolo = get_fascicoli().get(id_fasc)
         if not fascicolo:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
             abort(404)
         id_soggetto = request.form.get("id_soggetto", "")
         ruolo_val = request.form.get("ruolo", "ALTRO")

@@ -27,7 +27,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
-from urllib.parse import parse_qsl, quote_plus, unquote, unquote_plus, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, quote, quote_plus, unquote, unquote_plus, urlencode, urljoin, urlparse, urlunparse
 from zoneinfo import ZoneInfo
 
 import certifi
@@ -137,6 +137,7 @@ from web.services.react_dashboard_health import (
     traccia_sorgenti_panoramica,
 )
 from web.services.react_dashboard_time import adesso_rome, oggi_rome
+from web.services.react_regia_worklist import build_regia_worklist
 from web.services.reginde_cache_search import (
     default_reginde_cache_db_path,
     default_registro_ppaa_cache_db_path,
@@ -1910,13 +1911,15 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
         unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
         title = getattr(email, "mittente_nome", "") or getattr(email, "mittente", "") or "Mittente non indicato"
         subtitle = getattr(email, "oggetto", "") or getattr(email, "anteprima", "") or "Email senza oggetto"
+        email_id = str(getattr(email, "id", "") or "")
         row = _row(
-            getattr(email, "id", ""),
+            email_id,
             title,
             subtitle,
             time=_format_time(getattr(email, "timestamp", "")),
             unread=unread,
-            href="/email/",
+            # Deep link al messaggio: la card deve aprire l'evento, non la lista.
+            href=f"/email/messaggio/{quote(email_id)}" if email_id else "/email/",
         )
         if len(pec_rows) < limit:
             pec_rows.append(row)
@@ -1926,14 +1929,15 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
         subtitle = getattr(email, "oggetto", "") or getattr(email, "anteprima", "") or "Email senza oggetto"
         if len(mail_rows) >= limit:
             break
+        email_id = str(getattr(email, "id", "") or "")
         mail_rows.append(
             _row(
-                getattr(email, "id", ""),
+                email_id,
                 title,
                 subtitle,
                 time=_format_time(getattr(email, "timestamp", "") or getattr(email, "data", "")),
                 unread=unread,
-                href="/email-ordinaria/",
+                href=f"/email-ordinaria/messaggio/{quote(email_id)}" if email_id else "/email-ordinaria/",
             )
         )
     return pec_rows, mail_rows, pec_unread
@@ -1970,16 +1974,17 @@ def _client_message_rows(limit: int = 5) -> tuple[list[dict[str, Any]], int]:
         title = getattr(message, "nome_destinatario", "") or getattr(message, "telefono_destinatario", "") or canale
         subtitle = getattr(message, "oggetto", "") or getattr(message, "corpo", "") or "Messaggio senza testo"
         if len(rows) < limit:
+            message_id = str(getattr(message, "id", "") or "")
             rows.append(
                 _row(
-                    getattr(message, "id", ""),
+                    message_id,
                     title,
                     subtitle,
                     time=_format_time(getattr(message, "creato_il", "")),
                     avatar=_initials(title),
                     badge=badge,
                     tone=tone,
-                    href="/messaggi",
+                    href=f"/messaggi/{quote(message_id)}" if message_id else "/messaggi",
                 )
             )
     return rows, recent_count
@@ -2004,15 +2009,16 @@ def _agenda_rows(limit: int = 6) -> list[dict[str, Any]]:
             if str(part or "").strip()
         )
         badge = "OGGI" if parsed.date() == today else ("DOMANI" if parsed.date() == today + timedelta(days=1) else _format_date(parsed))
+        item_id = str(getattr(item, "id", "") or "")
         rows.append(
             _row(
-                getattr(item, "id", ""),
+                item_id,
                 getattr(item, "titolo", "") or "Appuntamento",
                 subtitle,
                 time=parsed.strftime("%H:%M"),
                 badge=badge.upper(),
                 tone="warning" if parsed.date() <= today + timedelta(days=1) else "primary",
-                href="/agenda",
+                href=f"/agenda/{quote(item_id)}" if item_id else "/agenda",
             )
         )
         if len(rows) >= limit:
@@ -2035,14 +2041,15 @@ def _today_operations(overview: dict[str, Any], limit: int = 6) -> list[dict[str
         )
     if len(rows) < limit:
         for scadenza in list(overview.get("urgent_deadlines") or []):
+            deadline_id = str(getattr(scadenza, "id", "") or "")
             rows.append(
                 _row(
-                    getattr(scadenza, "id", ""),
+                    deadline_id,
                     getattr(scadenza, "titolo", "") or "Scadenza urgente",
                     f"Scade {_format_date(getattr(scadenza, 'data_scadenza', ''))}",
                     badge="Apri",
                     tone="danger",
-                    href="/scadenziario",
+                    href=f"/scadenziario/{quote(deadline_id)}" if deadline_id else "/scadenziario",
                 )
             )
             if len(rows) >= limit:
@@ -2130,14 +2137,16 @@ def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
             badge = "ALTA"
             tone = "orange"
         if len(rows) < limit:
+            preventivo_id = str(getattr(preventivo, "id", "") or "")
             rows.append(
                 _row(
-                    getattr(preventivo, "id", ""),
+                    preventivo_id,
                     cliente_nome or "Cliente non collegato",
                     f"Pratica: {getattr(preventivo, 'oggetto', '') or getattr(preventivo, 'numero', '')}",
                     badge=badge,
                     tone=tone,
-                    href="/preventivi",
+                    # Apre direttamente il preventivo da cui generare il conferimento.
+                    href=f"/preventivi?preventivo={quote(preventivo_id)}" if preventivo_id else "/preventivi",
                 )
             )
     return rows, count
@@ -8907,6 +8916,22 @@ def _collect_dashboard_payload() -> dict[str, Any]:
     urgent_actions = len(operations)
     expiring_quotes = _expiring_quotes_count()
     deadline_distribution = _deadline_distribution()
+    worklist = _safe(
+        "scadenziario",
+        lambda: build_regia_worklist(
+            oggi=oggi_rome(),
+            scadenze=get_scadenziario().tutte(solo_aperte=True),
+            parse_date=_parse_date,
+            enum_value=_enum_value,
+            short_text=_short_text,
+            priorita_urgenti={PrioritaTermine.CRITICA.value, PrioritaTermine.ALTA.value},
+            agenda_rows=agenda_rows,
+            pec_rows=pec_rows,
+            engagement_rows=engagement_rows,
+            operations=operations,
+        ),
+        [],
+    )
     economic = _economic_rows()
     lex = _lex_suggestions(
         urgent_actions=urgent_actions,
@@ -8950,6 +8975,7 @@ def _collect_dashboard_payload() -> dict[str, Any]:
         "client_messages": message_rows,
         "agenda": agenda_rows,
         "today_operations": operations,
+        "worklist": worklist,
         "incomplete_registry": completion,
         "missing_engagements": engagement_rows,
         "high_priority_matters": matter_rows,
@@ -8998,6 +9024,7 @@ def _dashboard_error_payload() -> dict[str, Any]:
         "client_messages": [],
         "agenda": [],
         "today_operations": [],
+        "worklist": [],
         "incomplete_registry": {"percent": 100, "totalMissing": 0, "items": []},
         "missing_engagements": [],
         "high_priority_matters": [],

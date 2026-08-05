@@ -21,6 +21,8 @@ export type DashboardData = {
   messages: Row[]
   agenda: Row[]
   operations: Row[]
+  /** Coda «Da lavorare adesso»: processi aperti ordinati per urgenza, ogni voce apre il suo evento. */
+  worklist: Row[]
   completion: { percent:number; totalMissing:number; items:Array<{label:string; count:number}> }
   engagements: Row[]
   matters: Row[]
@@ -50,6 +52,7 @@ export const emptyDashboard: DashboardData = {
   messages: [],
   agenda: [],
   operations: [],
+  worklist: [],
   completion: {percent:100,totalMissing:0,items:[{label:'Clienti',count:0},{label:'Soggetti',count:0}]},
   engagements: [],
   matters: [],
@@ -227,6 +230,7 @@ export async function getDashboard(options: { refresh?: boolean } = {}): Promise
       messages: asRows(payload.client_messages ?? payload.messages),
       agenda: asRows(payload.agenda),
       operations: asRows(payload.today_operations ?? payload.operations),
+      worklist: asRows(payload.worklist),
       completion: asCompletion(payload.incomplete_registry),
       engagements: asRows(payload.missing_engagements),
       matters: asRows(payload.high_priority_matters),

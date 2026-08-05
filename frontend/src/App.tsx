@@ -1152,6 +1152,33 @@ function Operations({ data }:{data:DashboardData}) {
   return <Panel title="Azioni urgenti di oggi" subtitle="Cosa lavorare per primo, dagli archivi operativi dello studio." icon={<AlertTriangle size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione urgente da lavorare adesso.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel>
 }
 
+/**
+ * Coda «Da lavorare adesso»: la risposta della Regia alla domanda
+ * dell'avvocato. Voci numerate in ordine di urgenza reale (scadute, di oggi,
+ * critiche, udienze, PEC, conferimenti, azioni) e ognuna apre il suo evento.
+ */
+function Worklist({ data }:{data:DashboardData}) {
+  return (
+    <Panel title="Da lavorare adesso" subtitle="Tutti i processi aperti in ordine di urgenza: un clic apre l'evento." icon={<ListChecks size={17}/>} count={data.worklist.length}>
+      {data.worklist.length?(
+        <ol className="iu-worklist">
+          {data.worklist.map((row,index)=>(
+            <li key={row.id}>
+              <a className="iu-worklist-row" href={row.href||'/workspace-intelligente'}>
+                <i className={`iu-worklist-rank tone-${row.tone||'neutral'}`}>{index+1}</i>
+                <div><strong>{row.title}</strong><span>{row.subtitle}</span></div>
+                {row.time?<time>{row.time}</time>:null}
+                {row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}
+              </a>
+            </li>
+          ))}
+        </ol>
+      ):<Empty>Nessun processo urgente in coda: la giornata è sotto controllo.</Empty>}
+      <a className="iu-link" href="/scadenziario">Apri Scadenze e Termini -&gt;</a>
+    </Panel>
+  )
+}
+
 /** Ora dell'ultimo allineamento nel fuso dell'utente (Europe/Rome). */
 function updateHour(generatedAt:string): string {
   if (!generatedAt) return ''
@@ -1213,24 +1240,26 @@ function Sources({ data }:{data:DashboardData}) {
 }
 
 function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boolean}) {
-  const priorityMetrics = data.metrics.filter((metric)=>['urgent','pec','messages'].includes(metric.id))
   const agendaRows = data.agenda.slice(0,5)
   const matterRows = data.matters.slice(0,5)
+  const pecRows = data.pec.slice(0,5)
   return (
     <main className="iu-content iu-regia-page">
       <div className="iu-page-heading">
         <div>
           <h1>Regia Operativa</h1>
-          <p>Azioni, comunicazioni e priorità da lavorare fuori dalla Panoramica.</p>
+          <p>La regia vede tutto lo studio: ogni riga apre direttamente l'evento da lavorare.</p>
         </div>
         <a className={`iu-sync ${loading?'':'ok'}`} href="/workspace-intelligente">{loading?'Sincronizzazione dati...':'Apri versione completa'}</a>
       </div>
-      <section className="iu-metrics">{priorityMetrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
+      <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
       <section className="iu-grid">
-        <div className="span4"><Operations data={data}/></div>
-        <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorità.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
-        <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
+        <div className="span6"><Worklist data={data}/></div>
+        <div className="span6"><Panel title="Agenda da presidiare" subtitle="Udienze e appuntamenti dei prossimi giorni: un clic apre l'impegno." icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="PEC da presidiare" subtitle="Ultime PEC ricevute: un clic apre il messaggio." icon={<Mail size={17}/>} count={pecRows.length}><List rows={pecRows} href="/email/"/><a className="iu-link" href="/email/">Apri casella PEC -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Comunicazioni clienti" subtitle="Messaggi recenti: un clic apre la conversazione." icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Fascicoli prioritari" subtitle="Pratiche con termini critici: un clic apre il fascicolo." icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorità.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span6"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
         <div className="span6"><Lex data={data}/></div>
       </section>
     </main>

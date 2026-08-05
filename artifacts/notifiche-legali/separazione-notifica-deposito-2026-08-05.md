@@ -40,6 +40,7 @@ Modifica applicata:
 - Il validatore della prova successiva alla notifica è stato spostato in `pct.prova_deposito_notifica`, fuori dal motore `pct.notifiche_legali`.
 - Il contratto dati della pagina Notifiche usa `provvedimento.data_rilascio`, `provvedimentoDataRilascio`, `dataRilascio`, `rilascioId` e `idRilascioEsterno`; non usa più campi `deposito` per relata o attestazione.
 - `Invia PEC` resta nel perimetro notifica: firma la relata corrente, allega la relata firmata, aggiunge l'attestazione quando richiesta e poi chiede la password PEC per l'invio locale.
+- Il pulsante `Invia PEC` non mostra più la descrizione tecnica lunga del flusso locale; all'avvocato resta visibile solo l'azione operativa.
 
 Test eseguiti:
 

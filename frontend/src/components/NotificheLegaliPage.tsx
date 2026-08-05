@@ -1286,7 +1286,7 @@ const LOCAL_PEC_PROGRESS_STEPS: LocalPecProgressStep[] = [
   { id: 'firma', label: 'Firma relata', detail: 'PIN usato solo sul PC locale' },
   { id: 'allegati', label: 'Allegati PEC', detail: 'relata firmata allegata automaticamente' },
   { id: 'password', label: 'Password PEC', detail: 'inserita solo sul dispositivo locale' },
-  { id: 'trasmissione', label: 'Invio SMTP', detail: 'unico messaggio con To Studio Telematico' },
+  { id: 'trasmissione', label: 'Invio PEC', detail: 'messaggio pronto dal PC locale' },
   { id: 'conferma', label: 'Message-ID', detail: 'conferma tecnica dell’invio reale' },
   { id: 'presidio', label: 'Presidio', detail: 'Agenda, Scadenziario, top bar e Web Push' },
 ]
@@ -1661,7 +1661,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           <span>{result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'}</span>
           <div className="iu-legal-delivery-summary">
             <strong>{auditText(deliveryPlan(result.outputPlan)?.subject) || 'notificazione ai sensi della legge n. 53 del 1994'}</strong>
-            <small>Destinatari PEC: {deliveryRecipients(deliveryPlan(result.outputPlan)).length}; invio unico nel campo To dell'unico messaggio Studio Telematico</small>
+            <small>Destinatari PEC: {deliveryRecipients(deliveryPlan(result.outputPlan)).length}</small>
             {blockedSimulation(result.outputPlan) ? (
               <small className="iu-legal-delivery-summary__blocked">
                 Piano PEC preparato: la trasmissione resta sul PC locale dell'avvocato.
@@ -3674,15 +3674,15 @@ export function NotificheLegaliPage() {
       }
       const messages = localPecMessages(prepared.localPecMessages)
       if (messages.length !== 1) {
-        throw new Error('Piano PEC non coerente con Studio Telematico: deve esserci un unico messaggio con tutti i destinatari nel campo To.')
+        throw new Error('Piano PEC non coerente: verifica i destinatari prima dell\'invio.')
       }
       updateLocalPecProgress('password', 'Relata firmata e allegata: inserisci la password PEC, resta solo su questo PC.')
       await ensureRelataLocalPecServiceReady()
       const password = await requestNotificationPecPassword(messages[0])
-      updateLocalPecProgress('trasmissione', 'Password acquisita localmente: trasmetto la PEC con un unico To Studio Telematico.')
+      updateLocalPecProgress('trasmissione', 'Password acquisita localmente: trasmetto la PEC.')
       setResult({
         ...prepared,
-        message: 'Invio PEC dal PC locale in corso: unico messaggio Studio Telematico con destinatari nel campo To.',
+        message: 'Invio PEC dal PC locale in corso.',
       })
       const sent = [await sendNotificationLocalPecMessage(messages[0], password)]
       updateLocalPecProgress('conferma', `Message-ID ricevuto: ${sent[0].messageId}. Registro conferma e presidio.`)
@@ -3968,7 +3968,6 @@ export function NotificheLegaliPage() {
         ? 'Controllo...'
         : 'Controlla relata'
   const canPrepareNotificationSend = !notificationControlBusy && !localPecPasswordRequest
-  const sendNotificationTitle = 'Invia PEC reale dal PC locale con flusso Studio Telematico: unico messaggio e destinatari nel campo To.'
   const localPecProgressValue = localPecProgressPercent(localPecProgress)
   const localPecProgressFillClassName = localPecProgressFillClass(localPecProgressValue)
   const localPecProgressClassName = [
@@ -4282,7 +4281,7 @@ export function NotificheLegaliPage() {
                     hint="Cerca e scegli una pratica per compilare assistito, procedimento, destinatari e documenti già presenti."
                     onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
                   />
-                  <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? "Puoi aggiungere più destinatari: IUSENTRA li inserirà nel campo To dell'unico messaggio PEC, come Studio Telematico." : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
+                  <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? "Puoi aggiungere più destinatari alla notifica corrente." : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
                     <select
                       value=""
                       onChange={(event) => {
@@ -5002,7 +5001,7 @@ export function NotificheLegaliPage() {
                       <LockKeyhole size={17} />
                       <div>
                         <strong id="iu-local-pec-title">Conferma invio PEC dal PC locale</strong>
-                        <span id="iu-local-pec-detail">Studio Telematico invia un unico messaggio: tutti i destinatari restano nel campo To e Cc/Bcc sono vuoti.</span>
+                        <span id="iu-local-pec-detail">La PEC viene preparata dal PC locale con i destinatari selezionati.</span>
                       </div>
                     </div>
                     <dl>
@@ -5053,8 +5052,8 @@ export function NotificheLegaliPage() {
               })() : null}
               <div className="iu-legal-submit-row">
                 <button className="iu-legal-submit" type="button" disabled={notificationControlBusy} onClick={() => run('notifica')}><ShieldCheck size={16} /> {notificationControlLabel}</button>
-                <button className="iu-legal-submit iu-legal-submit--send" type="button" disabled={!canPrepareNotificationSend} title={sendNotificationTitle} onClick={sendNotification}><Send size={16} /> {working ? 'Invio...' : 'Invia PEC'}</button>
-                <span className="iu-legal-control-status">{lastControlLabel || sendNotificationTitle || 'Il controllo aggiorna anteprima, blocchi, attestazione e piano firma.'}</span>
+                <button className="iu-legal-submit iu-legal-submit--send" type="button" disabled={!canPrepareNotificationSend} onClick={sendNotification}><Send size={16} /> {working ? 'Invio...' : 'Invia PEC'}</button>
+                {lastControlLabel ? <span className="iu-legal-control-status">{lastControlLabel}</span> : null}
               </div>
             </Panel>
           ) : null}

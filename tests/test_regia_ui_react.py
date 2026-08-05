@@ -522,7 +522,7 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
-    signature_block = source[source.index("const signCurrentRelataWithLocalSigner = async ("):source.index("const sendNotificationTitle")]
+    signature_block = source[source.index("const signCurrentRelataWithLocalSigner = async ("):source.index("const localPecProgressValue")]
 
     assert "signatureHref" not in source
     assert "Apri firma digitale" not in source
@@ -570,12 +570,14 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "solo quelli spuntati entrano nella relata" in source
     assert "disabled={!canPrepareNotificationSend}" in source
     assert "const canPrepareNotificationSend = !notificationControlBusy && !localPecPasswordRequest" in source
-    assert "Invia PEC reale dal PC locale con flusso Studio Telematico" in source
+    assert ("flusso Studio Telematico: unico " + "messaggio") not in source
+    assert ("destinatari nel campo " + "To") not in source
     assert "localPecEndpointForStudioTelematico" in source
     assert "relataLocalSignerEndpoint('/pec/send')" in source
     assert "data.azioni.invioPecLocale" in source
     assert "data.azioni.confermaInvioPecLocale" in source
-    assert "Piano PEC non coerente con Studio Telematico" in source
+    assert "Piano PEC non coerente: verifica i destinatari prima dell\\'invio." in source
+    assert "Piano PEC non coerente con Studio Telematico" not in source
     assert "Message-ID" in source
     assert "Avanzamento invio PEC" in source
     assert "LOCAL_PEC_PROGRESS_STEPS" in source

@@ -640,7 +640,7 @@
         "procedimento.numero_rg",
         "procedimento.anno_rg",
         "provvedimento.tipo",
-        "provvedimento.data_deposito"
+        "provvedimento.data_rilascio"
       ],
       "fields": [
         {
@@ -676,7 +676,7 @@
           "label": "Tipo provvedimento"
         },
         {
-          "name": "provvedimento_data_deposito",
+          "name": "provvedimento_data_rilascio",
           "label": "Data sentenza / pubblicazione"
         },
         {
@@ -689,7 +689,7 @@
         }
       ],
       "purpose_lines": [
-        "La notificazione riguarda {{ provvedimento.tipo }} emessa da {{ procedimento.ufficio }} Sez. {{ procedimento.sezione }} in data {{ provvedimento.data_deposito }}, relativa al procedimento R.G. n. {{ procedimento.numero_rg }}/{{ procedimento.anno_rg }}.",
+        "La notificazione riguarda {{ provvedimento.tipo }} emessa da {{ procedimento.ufficio }} Sez. {{ procedimento.sezione }} in data {{ provvedimento.data_rilascio }}, relativa al procedimento R.G. n. {{ procedimento.numero_rg }}/{{ procedimento.anno_rg }}.",
         "L'attestazione di conformità viene compilata dai dati del fascicolo informatico e riportata nella relazione quando la copia informatica è destinata alla notifica."
       ],
       "category": "relata_l53",
@@ -734,7 +734,7 @@
         "provvedimento.tipo",
         "provvedimento.numero",
         "provvedimento.anno",
-        "provvedimento.data_deposito"
+        "provvedimento.data_rilascio"
       ],
       "fields": [
         {
@@ -750,12 +750,12 @@
           "label": "Anno provvedimento"
         },
         {
-          "name": "provvedimento_data_deposito",
-          "label": "Data deposito / pubblicazione"
+          "name": "provvedimento_data_rilascio",
+          "label": "Data pubblicazione / rilascio"
         }
       ],
       "purpose_lines": [
-        "La notificazione e' eseguita ai fini della decorrenza dei termini di legge relativi a {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, depositato o pubblicato in data {{ provvedimento.data_deposito }}."
+        "La notificazione e' eseguita ai fini della decorrenza dei termini di legge relativi a {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, pubblicato o rilasciato in data {{ provvedimento.data_rilascio }}."
       ],
       "category": "relata_l53",
       "conditional_blocks": [
@@ -1188,7 +1188,7 @@
         "provvedimento.numero",
         "provvedimento.anno",
         "provvedimento.ufficio_origine",
-        "provvedimento.data_deposito"
+        "provvedimento.data_rilascio"
       ],
       "fields": [
         {
@@ -1208,12 +1208,12 @@
           "label": "Ufficio di origine"
         },
         {
-          "name": "provvedimento_data_deposito",
-          "label": "Data deposito / pubblicazione"
+          "name": "provvedimento_data_rilascio",
+          "label": "Data pubblicazione / rilascio"
         }
       ],
       "purpose_lines": [
-        "La notificazione ha ad oggetto atto di impugnazione o appello avverso {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}, depositato o pubblicato in data {{ provvedimento.data_deposito }}."
+        "La notificazione ha ad oggetto atto di impugnazione o appello avverso {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}, pubblicato o rilasciato in data {{ provvedimento.data_rilascio }}."
       ],
       "category": "relata_l53",
       "conditional_blocks": [
@@ -2052,7 +2052,7 @@
         "NOTA MANCATA CONSEGNA",
         "",
         "La notifica non risulta perfezionata nei confronti del destinatario indicato.",
-        "Verificare causa, ricevute, pubblico elenco e percorso di deposito o rinnovo applicabile prima di procedere."
+        "Verificare causa, ricevute, pubblico elenco e rinnovo applicabile prima di procedere."
       ],
       "category": "controllo_prova",
       "required_fields": [],
@@ -2068,52 +2068,6 @@
       ],
       "human_review_required": true,
       "expected_output": "documento_controllo_pre_invio",
-      "compatibility": {
-        "recipient_roles": [
-          "controparte",
-          "difensore",
-          "pa",
-          "impresa",
-          "professionista",
-          "terzo"
-        ],
-        "document_origins": [
-          "nativo_digitale",
-          "firmato_digitalmente",
-          "originale_informatico",
-          "duplicato_informatico",
-          "copia_fascicolo_informatico",
-          "comunicazione_cancelleria",
-          "scansione_analogico"
-        ],
-        "supports_l53_notification": true,
-        "client_communication_only": false
-      }
-    },
-    {
-      "id": "workflow_deposito_area_web_pst",
-      "code": "34",
-      "kind": "workflow",
-      "label": "Deposito area web PST",
-      "description": "Percorso separato per notifiche non andate a buon fine per causa imputabile al destinatario.",
-      "content_lines": [
-        "PERCORSO AREA WEB PST",
-        "",
-        "Usare solo quando la notifica non e' andata a buon fine per causa imputabile al destinatario e ricorrono i presupposti del percorso ministeriale dedicato.",
-        "Il caso non va chiuso come consegna ordinaria: conservare ricevute, esito e prova del deposito nell'area dedicata."
-      ],
-      "category": "workflow_pst",
-      "required_fields": [],
-      "conditional_blocks": [
-        "attestazione_conformita"
-      ],
-      "validation_rules": [
-        "lawyer_assessment_required",
-        "evidence_pack_required",
-        "manual_final_upload"
-      ],
-      "human_review_required": true,
-      "expected_output": "workflow_area_web_pst_con_evidence_pack",
       "compatibility": {
         "recipient_roles": [
           "controparte",

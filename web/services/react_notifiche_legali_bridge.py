@@ -41,7 +41,7 @@ from pct.studio_address import normalize_studio_location
 _LEGACY_IMPORT_CONTENT_LABEL_CACHE: dict[str, str] = {}
 _UI_TECHNICAL_LABEL_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\b(?:QuickOrganizer|Studio\s+Telematico)\b", re.IGNORECASE), "gestionale precedente"),
-    (re.compile(r"\bDatiAtto(?:\.xml)?\b", re.IGNORECASE), "riepilogo del deposito"),
+    (re.compile(r"\bDatiAtto(?:\.xml)?\b", re.IGNORECASE), "riepilogo della notifica"),
     (re.compile(r"\bTAVOLA\b", re.IGNORECASE), "prospetto dati"),
 )
 
@@ -1154,7 +1154,7 @@ def _document_from_fascicolo(
         "criterioTipoDocumento": notification_suggestion["criterioTipoDocumento"],
         "testoDocumentoDisponibile": bool(content_text),
         "provvedimentoData": provision_date,
-        "provvedimentoDataDeposito": _text(getattr(documento, "data_deposito_portale", "")) or provision_date,
+        "provvedimentoDataRilascio": _text(getattr(documento, "data_deposito_portale", "")) or provision_date,
     }
 
 
@@ -1510,7 +1510,6 @@ def build_react_notifiche_legali_payload(
         "contracts": {
             "separateLegalNotification": True,
             "clientCommunicationWithoutRelata": True,
-            "depositProofWithOriginalReceipts": True,
             "parametricTemplateEngine": True,
             "officeDocumentPortalAcquisition": True,
             "officeDocumentPecEvidence": True,
@@ -1611,7 +1610,6 @@ def build_react_notifiche_legali_payload(
             "invioPecLocale": "/api/v1/ui/notifiche-legali/invio-pec-locale",
             "confermaInvioPecLocale": "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
-            "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
             "verificaPecConsultata": "/api/v1/ui/notifiche-legali/verifica-pec-consultata",
             "salvaDestinatarioManuale": "/api/v1/ui/notifiche-legali/destinatari-manuali",
             "regindeSearch": "/api/v1/ui/notifiche-legali/reginde",
@@ -1623,7 +1621,6 @@ def build_react_notifiche_legali_payload(
             "clientCompose": "/email-ordinaria/scrivi?tipo=comunicazione_cliente",
             "firmaDigitale": "/guida/firma-digitale",
             "fascicoli": "/fascicoli",
-            "depositoChecklist": "/deposito/checklist",
         },
         "fontiOperative": [
             "Portale Servizi Telematici: notificazioni via PEC degli avvocati, L. 53/1994.",

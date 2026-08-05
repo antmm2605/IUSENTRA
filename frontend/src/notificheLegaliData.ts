@@ -92,7 +92,7 @@ export type LegalDocumentSuggestion = {
   criterioTipoDocumento: string
   testoDocumentoDisponibile: boolean
   provvedimentoData: string
-  provvedimentoDataDeposito: string
+  provvedimentoDataRilascio: string
 }
 
 export type LegalOfficeRelease = {
@@ -102,12 +102,12 @@ export type LegalOfficeRelease = {
   ufficio: string
   numeroRg: string
   annoRg: string
-  depositoId: string
-  idDepositoEsterno: string
+  rilascioId: string
+  idRilascioEsterno: string
   documentoId: string
   nome: string
   tipo: string
-  dataDeposito: string
+  dataRilascio: string
   mittente: string
   fontePortale: string
   servizioPortale: string
@@ -291,7 +291,6 @@ export type NotificheLegaliData = {
   contracts: {
     separateLegalNotification: boolean
     clientCommunicationWithoutRelata: boolean
-    depositProofWithOriginalReceipts: boolean
     parametricTemplateEngine: boolean
     officeDocumentPortalAcquisition: boolean
     officeDocumentPecEvidence: boolean
@@ -337,7 +336,6 @@ export type NotificheLegaliData = {
   }
   automazioneGuidata: {
     notifica: LegalAutomationStep[]
-    deposito: LegalAutomationStep[]
     allegati: LegalAutomationStep[]
     unep: LegalAutomationStep[]
     nonPec: LegalAutomationStep[]
@@ -363,7 +361,6 @@ export type NotificheLegaliData = {
     invioPecLocale: string
     confermaInvioPecLocale: string
     comunicazioneCliente: string
-    provaDeposito: string
     verificaPecConsultata: string
     salvaDestinatarioManuale: string
     regindeSearch: string
@@ -375,7 +372,6 @@ export type NotificheLegaliData = {
     clientCompose: string
     firmaDigitale: string
     fascicoli: string
-    depositoChecklist: string
   }
   fontiOperative: string[]
 }
@@ -403,7 +399,6 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   contracts: {
     separateLegalNotification: true,
     clientCommunicationWithoutRelata: true,
-    depositProofWithOriginalReceipts: true,
     parametricTemplateEngine: true,
     officeDocumentPortalAcquisition: true,
     officeDocumentPecEvidence: true,
@@ -462,7 +457,6 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   },
   automazioneGuidata: {
     notifica: [],
-    deposito: [],
     allegati: [],
     unep: [],
     nonPec: [],
@@ -488,7 +482,6 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     invioPecLocale: '/api/v1/ui/notifiche-legali/invio-pec-locale',
     confermaInvioPecLocale: '/api/v1/ui/notifiche-legali/invio-pec-locale/conferma',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
-    provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
     verificaPecConsultata: '/api/v1/ui/notifiche-legali/verifica-pec-consultata',
     salvaDestinatarioManuale: '/api/v1/ui/notifiche-legali/destinatari-manuali',
     regindeSearch: '/api/v1/ui/notifiche-legali/reginde',
@@ -500,7 +493,6 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     clientCompose: '/email-ordinaria/scrivi?tipo=comunicazione_cliente',
     firmaDigitale: '/guida/firma-digitale',
     fascicoli: '/fascicoli',
-    depositoChecklist: '/deposito/checklist',
   },
   fontiOperative: [],
 }
@@ -659,7 +651,7 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       criterioTipoDocumento: text(row.criterioTipoDocumento),
       testoDocumentoDisponibile: bool(row.testoDocumentoDisponibile),
       provvedimentoData: text(row.provvedimentoData),
-      provvedimentoDataDeposito: text(row.provvedimentoDataDeposito),
+      provvedimentoDataRilascio: text(row.provvedimentoDataRilascio),
     }
   }).filter((item) => item.id && item.label)
 }
@@ -675,12 +667,12 @@ function officeReleases(value: unknown): LegalOfficeRelease[] {
       ufficio: text(row.ufficio),
       numeroRg: text(row.numeroRg),
       annoRg: text(row.annoRg),
-      depositoId: text(row.depositoId),
-      idDepositoEsterno: text(row.idDepositoEsterno),
+      rilascioId: text(row.rilascioId),
+      idRilascioEsterno: text(row.idRilascioEsterno),
       documentoId: text(row.documentoId),
       nome: text(row.nome),
       tipo: text(row.tipo),
-      dataDeposito: text(row.dataDeposito),
+      dataRilascio: text(row.dataRilascio),
       mittente: text(row.mittente),
       fontePortale: text(row.fontePortale),
       servizioPortale: text(row.servizioPortale),
@@ -883,7 +875,6 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     contracts: {
       separateLegalNotification: bool(contracts.separateLegalNotification),
       clientCommunicationWithoutRelata: bool(contracts.clientCommunicationWithoutRelata),
-      depositProofWithOriginalReceipts: bool(contracts.depositProofWithOriginalReceipts),
       parametricTemplateEngine: bool(contracts.parametricTemplateEngine),
       officeDocumentPortalAcquisition: bool(contracts.officeDocumentPortalAcquisition),
       officeDocumentPecEvidence: bool(contracts.officeDocumentPecEvidence),
@@ -929,7 +920,6 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     },
     automazioneGuidata: {
       notifica: automationSteps(automazioneGuidata.notifica),
-      deposito: automationSteps(automazioneGuidata.deposito),
       allegati: automationSteps(automazioneGuidata.allegati),
       unep: automationSteps(automazioneGuidata.unep),
       nonPec: automationSteps(automazioneGuidata.nonPec),
@@ -955,7 +945,6 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       invioPecLocale: text(azioni.invioPecLocale, emptyNotificheLegaliData.azioni.invioPecLocale),
       confermaInvioPecLocale: text(azioni.confermaInvioPecLocale, emptyNotificheLegaliData.azioni.confermaInvioPecLocale),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
-      provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
       verificaPecConsultata: text(azioni.verificaPecConsultata, emptyNotificheLegaliData.azioni.verificaPecConsultata),
       salvaDestinatarioManuale: text(azioni.salvaDestinatarioManuale, emptyNotificheLegaliData.azioni.salvaDestinatarioManuale),
       regindeSearch: text(azioni.regindeSearch, emptyNotificheLegaliData.azioni.regindeSearch),
@@ -967,7 +956,6 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       clientCompose: text(azioni.clientCompose, emptyNotificheLegaliData.azioni.clientCompose),
       firmaDigitale: text(azioni.firmaDigitale, emptyNotificheLegaliData.azioni.firmaDigitale),
       fascicoli: text(azioni.fascicoli, emptyNotificheLegaliData.azioni.fascicoli),
-      depositoChecklist: text(azioni.depositoChecklist, emptyNotificheLegaliData.azioni.depositoChecklist),
     },
     fontiOperative: Array.isArray(payload.fontiOperative) ? payload.fontiOperative.map((item) => text(item)).filter(Boolean) : [],
   }

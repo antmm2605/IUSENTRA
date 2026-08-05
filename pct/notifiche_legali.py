@@ -1,10 +1,8 @@
 """Motore parametrico per notifiche PEC L. 53/1994 e comunicazioni cliente.
 
-Il modulo separa tre percorsi che non devono essere confusi:
-
-- notifica legale alla controparte, con relata separata e prova PEC;
-- deposito della prova della notifica nel fascicolo;
-- comunicazione informativa al cliente, senza relata.
+Il modulo gestisce solo la notifica legale, i canali di notifica alternativi e
+le comunicazioni informative. La fase successiva all'invio vive nei moduli
+dedicati.
 """
 
 from __future__ import annotations
@@ -376,7 +374,7 @@ NOTIFICATION_CASE_DIRECTIVES: dict[str, dict[str, Any]] = {
             "procedimento.numero_rg",
             "procedimento.anno_rg",
             "provvedimento.tipo",
-            "provvedimento.data_deposito",
+            "provvedimento.data_rilascio",
         ),
         "proceeding_required": True,
         "note": "Per la notifica finalizzata alla decorrenza dei termini di impugnazione.",
@@ -556,7 +554,7 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
     {
         "id": "pst_xsd_unep_2024",
         "label": "PST, XSD UNEP 06/11/2024 e messa in esercizio 18/11/2024",
-        "rule": "Canale telematico autonomo per depositi presso gli Uffici NEP, distinto dal deposito PCT civile e dalla notifica PEC L. 53.",
+        "rule": "Canale telematico autonomo presso gli Uffici NEP, distinto dal PCT civile e dalla notifica PEC L. 53.",
     },
     {
         "id": "cpc_137_149",
@@ -586,7 +584,7 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
     {
         "id": "dgsia_2024_art26",
         "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
-        "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute e inserimento dei riferimenti nel deposito.",
+        "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute e riferimenti da conservare.",
     },
     {
         "id": "dgsia_2024_art27",
@@ -596,7 +594,7 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
     {
         "id": "specifiche_19bis_storico",
         "label": "Specifiche tecniche PCT 2014, art. 19-bis (storico)",
-        "rule": "Riferimento storico sostituito dalle specifiche DGSIA 2024 per atti notificati, ricevute e deposito prova.",
+        "rule": "Riferimento storico sostituito dalle specifiche DGSIA 2024 per atti notificati, ricevute e prova della notifica.",
     },
     {
         "id": "disp_att_cpp_56bis",
@@ -824,39 +822,6 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
     },
 )
 
-LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
-    {
-        "id": "pacchetto_prova_deposito",
-        "title": "Pacchetto prova e deposito",
-        "body": "Dopo l'invio si conservano PEC inviata, RAC e RdAC complete in originale digitale e si prepara l'indicizzazione per il deposito.",
-        "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
-    },
-    {
-        "id": "atti",
-        "title": "Raccolta atti notificati",
-        "body": "La prova può includere più atti o allegati notificati, con nome e impronta del file.",
-        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
-    },
-    {
-        "id": "ricevute",
-        "title": "Ricevute originali",
-        "body": "Per ogni destinatario servono RAC e RdAC completa in formato originale digitale .eml o .msg.",
-        "source": "L. 53/1994, art. 3-bis, comma 3; D.M. 44/2011, art. 18, comma 6",
-    },
-    {
-        "id": "dati_atto",
-        "title": "Indicizzazione ricevute",
-        "body": "I riferimenti delle ricevute sono preparati per il riepilogo del deposito.",
-        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
-    },
-    {
-        "id": "audit",
-        "title": "Audit e controllo finale",
-        "body": "Il pacchetto prova registra file, impronte e controlli prima del deposito.",
-        "source": "L. 53/1994, art. 9",
-    },
-)
-
 LEGAL_NOTIFICATION_ATTACHMENT_RULES: tuple[dict[str, str], ...] = (
     {
         "id": "atto_o_provvedimento",
@@ -957,7 +922,7 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Provvedimento", "label": "Numero provvedimento", "token": "{{ provvedimento.numero }}"},
     {"group": "Provvedimento", "label": "Anno provvedimento", "token": "{{ provvedimento.anno }}"},
     {"group": "Provvedimento", "label": "Data provvedimento", "token": "{{ provvedimento.data }}"},
-    {"group": "Provvedimento", "label": "Data deposito / pubblicazione", "token": "{{ provvedimento.data_deposito }}"},
+    {"group": "Provvedimento", "label": "Data pubblicazione / rilascio", "token": "{{ provvedimento.data_rilascio }}"},
 )
 
 _OPERATIONAL_TEMPLATE_FIELDS = {
@@ -1808,9 +1773,9 @@ def released_office_documents_from_portal(fascicolo: Any) -> list[dict[str, Any]
             acquired = bool((ref_keys & local_refs) or (name_key and name_key in local_names) or all_linked)
             if acquired:
                 continue
-            external_deposit_id = text(getattr(deposit, "id_deposito_esterno", "")) or text(item.get("id_deposito"))
+            external_release_id = text(getattr(deposit, "id_deposito_esterno", "")) or text(item.get("id_deposito"))
             document_id = text(item.get("id_documento") or item.get("id_cat") or item.get("id_repeatto") or item.get("msg_id") or item.get("nome"))
-            unique_key = (external_deposit_id, document_id, text(item.get("nome")))
+            unique_key = (external_release_id, document_id, text(item.get("nome")))
             if unique_key in seen:
                 continue
             seen.add(unique_key)
@@ -1823,19 +1788,19 @@ def released_office_documents_from_portal(fascicolo: Any) -> list[dict[str, Any]
                 "ufficio": text(getattr(fascicolo, "tribunale", "")),
                 "numeroRg": text(getattr(fascicolo, "numero_rg", "")),
                 "annoRg": text(getattr(fascicolo, "anno_rg", "")),
-                "depositoId": text(getattr(deposit, "id", "")),
-                "idDepositoEsterno": external_deposit_id,
+                "rilascioId": text(getattr(deposit, "id", "")),
+                "idRilascioEsterno": external_release_id,
                 "documentoId": document_id,
                 "nome": text(item.get("nome")),
                 "tipo": text(item.get("tipo") or item.get("tipo_atto") or getattr(deposit, "tipo_atto", "")),
-                "dataDeposito": text(item.get("data_deposito") or getattr(deposit, "timestamp", ""))[:10],
+                "dataRilascio": text(item.get("data_deposito") or getattr(deposit, "timestamp", ""))[:10],
                 "mittente": text(item.get("mittente") or getattr(deposit, "pec_destinatario", "")),
                 "fontePortale": source,
                 "servizioPortale": service,
                 "riferimentoPortale": next(iter(ref_keys), document_id),
                 "notificaRichiesta": _portal_item_notification_hint(item, deposit),
             })
-    releases.sort(key=lambda item: (item.get("dataDeposito") or "", item.get("nome") or ""), reverse=True)
+    releases.sort(key=lambda item: (item.get("dataRilascio") or "", item.get("nome") or ""), reverse=True)
     return releases
 
 
@@ -2189,7 +2154,7 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                     "documentoLocaleId": document_id,
                     "nome": name,
                     "tipo": "Documento comunicato dall'ufficio",
-                    "dataDeposito": email_date,
+                    "dataRilascio": email_date,
                     "mittente": sender,
                     "fontePortale": "PEC cancelleria",
                     "servizioPortale": service,
@@ -2210,7 +2175,7 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                 }
             evidence.append(item)
             seen[unique] = item
-    evidence.sort(key=lambda item: (item.get("dataDeposito") or "", item.get("nome") or ""), reverse=True)
+    evidence.sort(key=lambda item: (item.get("dataRilascio") or "", item.get("nome") or ""), reverse=True)
     return evidence
 
 
@@ -2835,7 +2800,6 @@ def _notification_is_send_phase(payload: dict[str, Any]) -> bool:
         or boolish(payload.get("conferma_invio_pec"))
     )
 
-
 def build_notification_attachment_manifest(
     payload: dict[str, Any],
     *,
@@ -3050,8 +3014,6 @@ def _studio_telematico_to_header(recipients: list[dict[str, Any]]) -> str:
         for item in (_studio_telematico_to_address(recipient) for recipient in recipients)
         if item
     )
-
-
 def _append_originale_notificato(filename: Any) -> str:
     value = text(filename)
     if not value or "originale notificato" in value.casefold():
@@ -3744,10 +3706,10 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "anno": text(_first(payload, "provvedimento.anno", "provvedimento_anno")),
             "ufficio_origine": text(_first(payload, "provvedimento.ufficio_origine", "provvedimento_ufficio_origine")),
             "data": _format_italian_date(_first(payload, "provvedimento.data", "provvedimento_data", fallback=provision_date_hint)),
-            "data_deposito": _format_italian_date(_first(
+            "data_rilascio": _format_italian_date(_first(
                 payload,
-                "provvedimento.data_deposito",
-                "provvedimento_data_deposito",
+                "provvedimento.data_rilascio",
+                "provvedimento_data_rilascio",
                 fallback=provision_deposit_date_hint or provision_date_hint,
             )),
         },
@@ -4045,7 +4007,7 @@ def _sentence_attestation_text(document: dict[str, Any], context: dict[str, Any]
     office = text(provision.get("ufficio_origine") or proceeding.get("ufficio"))
     section = text(proceeding.get("sezione"))
     date_label = text(
-        provision.get("data_deposito")
+        provision.get("data_rilascio")
         or provision.get("data")
         or document.get("data_documento")
         or document.get("data_comunicazione_cancelleria")
@@ -4150,7 +4112,7 @@ def _attestation_document_title_detail(
         office = text(context["provvedimento"].get("ufficio_origine") or proceeding.get("ufficio"))
         section = text(proceeding.get("sezione"))
         date_label = _format_italian_date(
-            context["provvedimento"].get("data_deposito")
+            context["provvedimento"].get("data_rilascio")
             or context["provvedimento"].get("data")
             or document_date
         )
@@ -4278,13 +4240,13 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
         missing.append("documenti")
     if sentence_documents:
         sentence_date = text(
-            context["provvedimento"].get("data_deposito")
+            context["provvedimento"].get("data_rilascio")
             or context["provvedimento"].get("data")
             or sentence_documents[0].get("data_documento")
             or sentence_documents[0].get("data_comunicazione_cancelleria")
         )
         if not sentence_date:
-            missing.append("provvedimento.data_deposito")
+            missing.append("provvedimento.data_rilascio")
     document_rows = _attestation_document_rows(documents, context)
     doc_lines: list[str] = []
     if not documents:
@@ -5081,7 +5043,7 @@ def validate_legal_notification(
     if operation not in {LEGAL_NOTIFICATION_OPERATION, LEGAL_NOTIFICATION_SEND_OPERATION}:
         blockers.append(block("OPERATION_REQUIRED", "Usa il percorso guidato di controllo o invio PEC L. 53/1994."))
     if not subject_input or subject_input.lower() != LEGAL_NOTIFICATION_SUBJECT:
-        warnings.append(block("L53_SUBJECT_REQUIRED", "L'oggetto PEC deve essere esattamente: notificazione ai sensi della legge n. 53 del 1994."))
+        blockers.append(block("L53_SUBJECT_REQUIRED", "L'oggetto PEC deve essere esattamente: notificazione ai sensi della legge n. 53 del 1994."))
     if not role:
         warnings.append("Seleziona il ruolo del destinatario della notifica.")
     if role in CLIENT_RECIPIENT_ROLES:
@@ -5420,7 +5382,6 @@ def legal_notification_automation_payload() -> dict[str, list[dict[str, str]]]:
 
     return {
         "notifica": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
-        "deposito": [dict(item) for item in LEGAL_NOTIFICATION_DEPOSIT_STEPS],
         "allegati": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
         "unep": [
             {
@@ -5432,7 +5393,7 @@ def legal_notification_automation_payload() -> dict[str, list[dict[str, str]]]:
             {
                 "id": "unep_richiesta",
                 "title": "Controlla richiesta e destinatario",
-                "body": "Atto, richiesta/relata, destinatario, indirizzo o PEC e spese devono essere completi prima del deposito sul canale UNEP.",
+                "body": "Atto, richiesta/relata, destinatario, indirizzo o PEC e spese devono essere completi prima dell'invio sul canale UNEP.",
                 "source": "Artt. 137-149 c.p.c.; canale UNEP.",
             },
             {
@@ -6072,12 +6033,12 @@ def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWo
         warnings=warnings,
         subject="Workflow area web PST" if attributable else "Valutazione canale alternativo",
         body=(
-            "Prepara deposito area web PST con atto, relata, RAC e avviso di mancata consegna."
+            "Prepara il passaggio in area web PST con atto, relata, RAC e avviso di mancata consegna."
             if attributable and ok
             else "Non dichiarare perfezionata la notifica; valuta nuovo invio o canale alternativo."
         ),
-        template_id="workflow_deposito_area_web_pst" if attributable else "nota_mancata_consegna",
-        template_label="Workflow deposito area web PST" if attributable else "Nota mancata consegna",
+        template_id="workflow_area_web_pst" if attributable else "nota_mancata_consegna",
+        template_label="Workflow area web PST" if attributable else "Nota mancata consegna",
         template_version=template_catalog_version(),
         next_actions=(
             "Verifica la causa con l'avvocato responsabile.",
@@ -6277,7 +6238,7 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
         evidence_items.append({"kind": "pagamento", "label": "Ricevuta pagamento", **pagamento, "required": payment_due})
 
     body = (
-        f"Richiesta UNEP {request_config['label']} - {UNEP_NOTIFICATION_TYPES.get(tipo, tipo)} pronta per revisione e deposito sul canale dedicato."
+        f"Richiesta UNEP {request_config['label']} - {UNEP_NOTIFICATION_TYPES.get(tipo, tipo)} pronta sul canale dedicato."
         if not blockers
         else "Completa i dati UNEP prima di registrare la richiesta come pronta."
     )
@@ -6291,7 +6252,7 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
         template_label="Controllo richiesta UNEP",
         template_version=template_catalog_version(),
         next_actions=(
-            "Deposita sul canale UNEP dedicato, non nel deposito PCT civile.",
+            "Invia sul canale UNEP dedicato, senza usare il PCT civile.",
             "Conserva ricevute portale, pagamento e ritorno dell'ufficio nel fascicolo.",
             "Aggiorna lo stato solo dopo prova documentale del ritorno UNEP.",
         ),
@@ -6461,197 +6422,4 @@ def validate_non_pec_notification_tracking(payload: dict[str, Any]) -> LegalWork
             "notifica_id": text(payload.get("notifica_id")),
             "fascicolo_id": text(payload.get("fascicolo_id") or payload.get("practice_id")),
         },
-    )
-
-
-def build_deposit_normative_checks(payload: dict[str, Any], evidence_pack: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Return checks for depositing proof of a PEC notification."""
-
-    evidence_pack = evidence_pack or build_notification_evidence_pack(payload)
-    recipients = payload.get("destinatari")
-    if not isinstance(recipients, list):
-        recipients = [{
-            "nome": payload.get("destinatario_nome"),
-            "rac_file": payload.get("rac_file"),
-            "rdac_file": payload.get("rdac_file"),
-        }]
-    receipt_files = [
-        text(row.get(field))
-        for row in recipients
-        if isinstance(row, dict)
-        for field in ("rac_file", "rdac_file")
-    ]
-    originals_ok = bool(receipt_files) and all(Path(filename).suffix.lower() in {".eml", ".msg"} for filename in receipt_files)
-    return [
-        _check_row(
-            id="atti_notificati",
-            label="Atti notificati",
-            source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
-            passed=bool(payload.get("atti_notificati") or text(payload.get("atto_notificato"))),
-            detail="L'atto notificato viene inserito nella busta con gli allegati necessari.",
-        ),
-        _check_row(
-            id="relata_firmata",
-            label="Relata firmata",
-            source="L. 53/1994, art. 3-bis, comma 5",
-            passed=bool(text(payload.get("relata_firmata"))),
-            detail="La relata firmata digitalmente va conservata nel pacchetto prova.",
-        ),
-        _check_row(
-            id="pec_inviata",
-            label="PEC inviata",
-            source="L. 53/1994, art. 3-bis, comma 3",
-            passed=bool(text(payload.get("pec_inviata") or payload.get("pec_inviata_file"))),
-            detail="Il messaggio inviato resta allegato in originale digitale.",
-        ),
-        _check_row(
-            id="rac_rdac",
-            label="RAC e RdAC originali",
-            source="L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
-            passed=originals_ok and boolish(payload.get("ricevuta_completa")),
-            detail="RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
-        ),
-        _check_row(
-            id="hash",
-            label="Impronte dei file",
-            source="Audit interno IUSENTRA",
-            passed=not evidence_pack.get("missing") and not evidence_pack.get("invalid_hashes"),
-            detail="Ogni file richiesto dal pacchetto prova deve avere impronta valida.",
-        ),
-        _check_row(
-            id="dati_atto",
-            label="Riferimenti ricevute",
-            source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
-            passed=bool(text(payload.get("dati_atto_ricevute"))),
-            detail="I dati identificativi delle ricevute vanno indicizzati nel deposito.",
-        ),
-    ]
-
-
-def build_deposit_audit_trail(payload: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
-    recipients = payload.get("destinatari")
-    if not isinstance(recipients, list):
-        recipients = [{
-            "nome": payload.get("destinatario_nome"),
-            "rac_file": payload.get("rac_file"),
-            "rdac_file": payload.get("rdac_file"),
-        }]
-    return {
-        "phase": "deposito_prova",
-        "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        "documentsCount": len([item for item in evidence_pack.get("items", []) if str(item.get("kind", "")).startswith("atto") or str(item.get("kind", "")).startswith("allegato")]),
-        "recipients": [
-            {
-                "name": text(row.get("nome")),
-                "racFile": text(row.get("rac_file")),
-                "rdacFile": text(row.get("rdac_file")),
-            }
-            for row in recipients
-            if isinstance(row, dict)
-        ],
-        "checks": build_deposit_normative_checks(payload, evidence_pack),
-        "evidencePack": evidence_pack,
-    }
-
-
-def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflowResult:
-    """Validate the evidence pack before deposit of notification proof."""
-
-    blockers: list[str] = []
-    warnings: list[str] = []
-    notified_documents = payload.get("atti_notificati")
-    has_notified_documents = isinstance(notified_documents, list) and bool(notified_documents)
-    if not has_notified_documents and not text(payload.get("atto_notificato")):
-        blockers.append("Inserisci l'atto notificato da depositare come prova.")
-    if not text(payload.get("relata_firmata")):
-        blockers.append("Allega la relata firmata digitalmente.")
-    if not text(payload.get("pec_inviata") or payload.get("pec_inviata_file")):
-        blockers.append("Allega il messaggio PEC inviato in originale digitale.")
-    if not boolish(payload.get("ricevuta_completa")) and text(payload.get("rdac_tipo")).lower() != "completa":
-        blockers.append(block("RICEVUTA_COMPLETA_REQUIRED", "La prova deposito richiede RdAC completa."))
-
-    recipients = payload.get("destinatari")
-    if not isinstance(recipients, list):
-        recipients = [{
-            "nome": payload.get("destinatario_nome"),
-            "codice_fiscale_piva": payload.get("destinatario_cf") or payload.get("codice_fiscale_piva"),
-            "pec": payload.get("destinatario_pec"),
-            "fonte_pec": payload.get("fonte_pec_destinatario"),
-            "rac_file": payload.get("rac_file"),
-            "rdac_file": payload.get("rdac_file"),
-            "rac_sha256": payload.get("rac_sha256"),
-            "rdac_sha256": payload.get("rdac_sha256"),
-        }]
-    if not recipients:
-        blockers.append("Indica almeno un destinatario della notifica.")
-
-    for index, recipient in enumerate(recipients, start=1):
-        if not isinstance(recipient, dict):
-            blockers.append(f"Destinatario {index}: dati ricevute non leggibili.")
-            continue
-        label = text(recipient.get("nome"), f"destinatario {index}")
-        recipient_tax_code = text(
-            recipient.get("codice_fiscale_piva")
-            or recipient.get("codice_fiscale")
-            or recipient.get("destinatario_cf")
-            or recipient.get("recipient_tax_code")
-        )
-        recipient_pec = text(
-            recipient.get("pec")
-            or recipient.get("destinatario_pec")
-            or recipient.get("recipient_address")
-            or recipient.get("indirizzo_pec")
-        )
-        recipient_source = normalise_public_register(
-            recipient.get("fonte_pec")
-            or recipient.get("fonte_pec_destinatario")
-            or recipient.get("recipient_address_source")
-            or recipient.get("pubblico_elenco")
-        )
-        if not recipient_tax_code:
-            blockers.append(block("DESTINATARIO_CF_REQUIRED", f"{label}: indica codice fiscale o partita IVA del destinatario collegato a RAC e RdAC."))
-        if not recipient_pec:
-            blockers.append(block("DESTINATARIO_PEC_REQUIRED", f"{label}: indica l'indirizzo PEC destinatario collegato a RAC e RdAC."))
-        if recipient_source not in PUBLIC_PEC_REGISTERS:
-            blockers.append(block("DESTINATARIO_FONTE_PEC_REQUIRED", f"{label}: indica il pubblico elenco da cui è stata estratta la PEC."))
-        for field, human in (("rac_file", "ricevuta di accettazione"), ("rdac_file", "ricevuta di avvenuta consegna completa")):
-            filename = text(recipient.get(field))
-            if not filename:
-                blockers.append(f"{label}: manca la {human}.")
-                continue
-            if Path(filename).suffix.lower() not in {".eml", ".msg"}:
-                blockers.append(f"{label}: conserva la {human} in originale digitale .eml o .msg.")
-
-    evidence_pack = build_notification_evidence_pack(payload)
-    blockers.extend(block("EVIDENCE_PACK_REQUIRED", item) for item in evidence_pack["missing"])
-    blockers.extend(block("HASH_SHA256_INVALID", item) for item in evidence_pack.get("invalid_hashes", []))
-
-    if not text(payload.get("dati_atto_ricevute")):
-        blockers.append(block("DATI_ATTO_RICEVUTE_REQUIRED", "Indica i riferimenti delle ricevute per il deposito."))
-
-    body = (
-        "Prova notifica pronta per il controllo: atto notificato, relata firmata, "
-        "messaggio PEC inviato, RAC e RdAC originali per ciascun destinatario."
-    )
-    return LegalWorkflowResult(
-        ok=not blockers,
-        blockers=blockers,
-        warnings=warnings,
-        subject="Deposito prova notifica",
-        body=body,
-        template_id="distinta_prova_notifica",
-        template_label="Distinta prova notifica",
-        template_version=template_catalog_version(),
-        next_actions=(
-            "Inserisci atto notificato e ricevute nella busta telematica.",
-            "Controlla che RAC e RdAC restino in originale digitale.",
-            "Verifica i riferimenti delle ricevute nel riepilogo del deposito.",
-        ),
-        output_plan={
-            "evidencePack": evidence_pack,
-            "workflowSteps": [dict(item) for item in LEGAL_NOTIFICATION_DEPOSIT_STEPS],
-            "normativeChecks": build_deposit_normative_checks(payload, evidence_pack),
-            "auditTrail": build_deposit_audit_trail(payload, evidence_pack),
-        },
-        log_json={"evento": "controllo_prova_notifica", "evidencePack": evidence_pack, "audit": build_deposit_audit_trail(payload, evidence_pack)},
     )

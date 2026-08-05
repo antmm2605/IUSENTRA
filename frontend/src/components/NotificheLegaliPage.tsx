@@ -63,7 +63,7 @@ import {
 import { formatDateIt, formatDateTimeIt } from '../formatting'
 import './NotificheLegaliPage.css'
 
-type TabKey = 'notifica' | 'deposito' | 'unep' | 'nonpec' | 'cliente'
+type TabKey = 'notifica' | 'unep' | 'nonpec' | 'cliente'
 
 type NotificaDocumentPayload = {
   document_id?: string
@@ -89,7 +89,7 @@ type NotificaDocumentPayload = {
   modelloRelataSuggerito?: string
   provvedimentoTipo?: string
   provvedimentoData?: string
-  provvedimentoDataDeposito?: string
+  provvedimentoDataRilascio?: string
   criterioTipoDocumento?: string
   testoDocumentoDisponibile?: boolean
 }
@@ -106,17 +106,6 @@ type FinalRelataRow = {
   removableKind?: 'fascicolo' | 'manuale'
   muted?: boolean
 }
-
-type EvidenceDocumentPayload = {
-  nome_file: string
-  descrizione: string
-  origine: string
-  hash_sha256: string
-  riferimento_portale: string
-  file_originale: string
-}
-
-type DepositEvidenceKind = 'atto' | 'relata' | 'pec' | 'rac' | 'rdac'
 
 const emptyResult: LegalWorkflowResult = {
   ok: false,
@@ -203,7 +192,7 @@ const MODEL_FIELDS_COVERED_BY_GUIDED_NOTIFICATION = new Set([
   'provvedimento.numero',
   'provvedimento.anno',
   'provvedimento.data',
-  'provvedimento.data.deposito',
+  'provvedimento.data.rilascio',
   'notifica.luogo',
   'notifica.data',
   'notifica.ora',
@@ -240,7 +229,7 @@ function userFacingNotice(value: string) {
     .replace(/\b(?:QuickOrganizer|Studio\s+Telematico)\b/gi, 'gestionale precedente')
     .replace(/\bhash SHA-256\b/gi, 'impronta del file')
     .replace(/\bSHA-256\b/g, 'impronta del file')
-    .replace(/\bDatiAtto\.xml\b/g, 'riepilogo del deposito')
+    .replace(/\bDatiAtto\.xml\b/g, 'riepilogo della notifica')
     .replace(/\bTAVOLA\b/g, 'prospetto dati')
     .replace(/\bRAC\b/g, 'ricevuta di accettazione')
     .replace(/\bRdAC\b/g, 'ricevuta di consegna')
@@ -461,8 +450,8 @@ function documentProvisionDateSuggestion(documento: LegalDocumentSuggestion): st
   return documento.provvedimentoData || documento.dataDocumento || documento.dataRilascioPortale
 }
 
-function documentProvisionDepositDateSuggestion(documento: LegalDocumentSuggestion): string {
-  return documento.provvedimentoDataDeposito || documento.dataRilascioPortale || documentProvisionDateSuggestion(documento)
+function documentProvisionReleaseDateSuggestion(documento: LegalDocumentSuggestion): string {
+  return documento.provvedimentoDataRilascio || documento.dataRilascioPortale || documentProvisionDateSuggestion(documento)
 }
 
 function formatAttestationDateLabel(value: string): string {
@@ -868,7 +857,7 @@ type LocalPecPasswordRequest = {
   reject: (error: Error) => void
 }
 
-type LocalPecProgressStepId = 'preparazione' | 'signer' | 'password' | 'trasmissione' | 'conferma' | 'presidio'
+type LocalPecProgressStepId = 'firma' | 'allegati' | 'password' | 'trasmissione' | 'conferma' | 'presidio'
 type LocalPecProgressStatus = 'pending' | 'active' | 'done' | 'error'
 type LocalPecProgressStep = {
   id: LocalPecProgressStepId
@@ -1060,11 +1049,20 @@ function pecEvidencePayload(evidence: PecVerificationEvidence | null | undefined
 function notificationControlPayloadKey(payload: Record<string, unknown>): string {
   const controlled = { ...payload }
   delete controlled.relata_firmata
+  delete controlled.relata_firmata_file
+  delete controlled.relata_firmata_sha256
+  delete controlled.relata_firmata_document_id
+  delete controlled.relataFirmataDocumentId
+  delete controlled.signedRelataDocumentId
   delete controlled.approvazione_avvocato
   delete controlled.data_ora_invio_pec
   delete controlled.invio_finale
   delete controlled.conferma_invio_pec
   return JSON.stringify(controlled)
+}
+
+function isManualNotificationRecipient(recipient: LegalRecipientSuggestion): boolean {
+  return recipient.ruoloPratica.trim().toLocaleLowerCase('it-IT') === 'inserito manualmente'
 }
 
 function relataLocalSignerBaseUrl(): string {
@@ -1197,7 +1195,7 @@ async function fileContainsCadesSignedData(file: File): Promise<boolean> {
   return /-----BEGIN (?:PKCS7|CMS)-----/.test(header)
 }
 
-function DepositFileField({
+function EvidenceFileField({
   label,
   fileName,
   shaValue,
@@ -1264,46 +1262,6 @@ function DepositFileField({
   )
 }
 
-function classifyDepositFile(fileName: string): DepositEvidenceKind {
-  const lower = fileName.toLowerCase()
-  if (lower.includes('rac') || lower.includes('accettazione')) return 'rac'
-  if ((lower.includes('rdac') || lower.includes('consegna') || lower.includes('avvenuta')) && !lower.includes('mancata')) return 'rdac'
-  if (lower.includes('relata')) return 'relata'
-  if (lower.includes('pec') || lower.includes('postacert') || lower.includes('inviata') || lower.endsWith('.eml') || lower.endsWith('.msg')) return 'pec'
-  return 'atto'
-}
-
-function depositReference(values: {
-  destinatario_nome: string
-  destinatario_cf: string
-  destinatario_pec: string
-  pec_inviata: string
-  rac_file: string
-  rdac_file: string
-}) {
-  const rows = [
-    values.destinatario_nome ? `Destinatario: ${values.destinatario_nome}` : '',
-    values.destinatario_cf ? `C.F./P. IVA: ${values.destinatario_cf}` : '',
-    values.destinatario_pec ? `PEC destinatario: ${values.destinatario_pec}` : '',
-    values.pec_inviata ? `PEC inviata: ${values.pec_inviata}` : '',
-    values.rac_file ? `Ricevuta di accettazione: ${values.rac_file}` : '',
-    values.rdac_file ? `Ricevuta di consegna completa: ${values.rdac_file}` : '',
-  ].filter(Boolean)
-  return rows.join('; ')
-}
-
-function EvidenceSummaryRow({ label, fileName, shaValue }: { label: string; fileName: string; shaValue: string }) {
-  const ready = Boolean(fileName && SHA256_HEX_PATTERN.test(shaValue))
-  return (
-    <span className={ready ? 'is-ready' : ''}>
-      {ready ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
-      <strong>{label}</strong>
-      <em>{fileName || 'Da associare'}</em>
-      <small>{shaValue ? `Impronta ${shaValue.slice(0, 12)}...` : 'Impronta non calcolata'}</small>
-    </span>
-  )
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
@@ -1325,8 +1283,8 @@ function localPecMessages(value: unknown): LocalPecMessage[] {
 }
 
 const LOCAL_PEC_PROGRESS_STEPS: LocalPecProgressStep[] = [
-  { id: 'preparazione', label: 'Piano PEC', detail: 'destinatari, allegati reali e relata firmata' },
-  { id: 'signer', label: 'Local Signer', detail: 'servizio locale sul PC dell’avvocato' },
+  { id: 'firma', label: 'Firma relata', detail: 'PIN usato solo sul PC locale' },
+  { id: 'allegati', label: 'Allegati PEC', detail: 'relata firmata allegata automaticamente' },
   { id: 'password', label: 'Password PEC', detail: 'inserita solo sul dispositivo locale' },
   { id: 'trasmissione', label: 'Invio SMTP', detail: 'unico messaggio con To Studio Telematico' },
   { id: 'conferma', label: 'Message-ID', detail: 'conferma tecnica dell’invio reale' },
@@ -1370,7 +1328,7 @@ function localPecProgressCompleted(message: string): LocalPecProgressState {
 }
 
 function localPecProgressFailed(current: LocalPecProgressState, message: string): LocalPecProgressState {
-  const failed = current.current || current.failed || 'preparazione'
+  const failed = current.current || current.failed || 'firma'
   return {
     ...current,
     visible: true,
@@ -1620,7 +1578,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
       ) : null}
       {evidenceItems(result.outputPlan).length ? (
         <div className="iu-legal-output">
-          <span>Pacchetto prova</span>
+          <span>Allegati notifica</span>
           <div className="iu-legal-evidence-grid">
             {evidenceItems(result.outputPlan).map((item) => (
               <strong key={`${item.label}-${item.filename}`}>
@@ -1849,7 +1807,7 @@ export function NotificheLegaliPage() {
     note_integrative_relata: '',
     provvedimento_tipo: '',
     provvedimento_data: '',
-    provvedimento_data_deposito: '',
+    provvedimento_data_rilascio: '',
     procedimento_pendente: false,
     ufficio_giudiziario: '',
     sezione: '',
@@ -1888,7 +1846,6 @@ export function NotificheLegaliPage() {
   const [selectedNotificationDocumentIds, setSelectedNotificationDocumentIds] = useState<string[]>([])
   const [manualNotificationDocuments, setManualNotificationDocuments] = useState<ManualNotificationDocument[]>([])
   const [notificationFilesMessage, setNotificationFilesMessage] = useState('')
-  const [selectedDepositDocumentIds, setSelectedDepositDocumentIds] = useState<string[]>([])
   const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
   const requestedDocumentEntrySource = useMemo(() => documentEntrySourceFromUrl(), [])
   const documentSelectionAppliedRef = useRef('')
@@ -1930,26 +1887,6 @@ export function NotificheLegaliPage() {
   const [hydratedDocumentsByPractice, setHydratedDocumentsByPractice] = useState<Record<string, LegalDocumentSuggestion[]>>({})
   const [documentHydrationMessage, setDocumentHydrationMessage] = useState('')
   const [documentPreview, setDocumentPreview] = useState<{ href: string; title: string } | null>(null)
-
-  const [deposito, setDeposito] = useState({
-    atto_notificato: '',
-    atto_sha256: '',
-    relata_firmata: '',
-    relata_sha256: '',
-    pec_inviata: '',
-    pec_inviata_sha256: '',
-    destinatario_nome: '',
-    destinatario_cf: '',
-    destinatario_pec: '',
-    fonte_pec_destinatario: '',
-    rac_file: '',
-    rac_sha256: '',
-    rdac_file: '',
-    rdac_sha256: '',
-    ricevuta_completa: false,
-    dati_atto_ricevute: '',
-  })
-  const [depositAutoMessage, setDepositAutoMessage] = useState('')
 
   const [unep, setUnep] = useState({
     tipo_richiesta_unep: 'notifica_civile_pagamento',
@@ -2206,12 +2143,6 @@ export function NotificheLegaliPage() {
       .filter((item): item is LegalDocumentSuggestion => Boolean(item)),
     [documentSuggestions, selectedNotificationDocumentIds],
   )
-  const selectedDepositDocuments = useMemo(
-    () => selectedDepositDocumentIds
-      .map((id) => documentSuggestions.find((item) => item.id === id))
-      .filter((item): item is LegalDocumentSuggestion => Boolean(item)),
-    [documentSuggestions, selectedDepositDocumentIds],
-  )
   const officeDocuments = useMemo(
     () => documentSuggestions.filter((item) => item.documentoUfficio || item.notificaRichiesta),
     [documentSuggestions],
@@ -2235,12 +2166,10 @@ export function NotificheLegaliPage() {
   )
   const guidedAutomationSteps = tab === 'notifica'
     ? [...data.automazioneGuidata.notifica, ...data.automazioneGuidata.allegati]
-    : tab === 'deposito'
-      ? data.automazioneGuidata.deposito
-      : tab === 'unep'
-        ? data.automazioneGuidata.unep
-        : tab === 'nonpec'
-          ? data.automazioneGuidata.nonPec
+    : tab === 'unep'
+      ? data.automazioneGuidata.unep
+      : tab === 'nonpec'
+        ? data.automazioneGuidata.nonPec
       : []
   const automaticValuesCount = [
     notifica.avvocato_nome,
@@ -2353,13 +2282,6 @@ export function NotificheLegaliPage() {
       ...current,
       destinatario_parte_rappresentata: recipient.parteRappresentata || '',
       parte_rappresentata: recipient.parteRappresentata || '',
-    }))
-    setDeposito((current) => ({
-      ...current,
-      destinatario_nome: recipient.nome || current.destinatario_nome,
-      destinatario_cf: recipient.codiceFiscalePiva || '',
-      destinatario_pec: recipient.pec || '',
-      fonte_pec_destinatario: recipient.fontePecSuggerita || '',
     }))
     setUnep((current) => ({
       ...current,
@@ -2525,7 +2447,7 @@ export function NotificheLegaliPage() {
     const templateId = relataTemplateForDocument(primary)
     const provisionType = documentProvisionTypeSuggestion(primary)
     const provisionDate = documentProvisionDateSuggestion(primary)
-    const provisionDepositDate = documentProvisionDepositDateSuggestion(primary)
+    const provisionReleaseDate = documentProvisionReleaseDateSuggestion(primary)
     setNotifica((current) => ({
       ...current,
       nome_file: documentPrimaryName(primary) || current.nome_file,
@@ -2540,13 +2462,13 @@ export function NotificheLegaliPage() {
         : current.data_comunicazione_cancelleria,
       provvedimento_tipo: provisionType || current.provvedimento_tipo,
       provvedimento_data: provisionDate || current.provvedimento_data,
-      provvedimento_data_deposito: provisionDepositDate || current.provvedimento_data_deposito,
+      provvedimento_data_rilascio: provisionReleaseDate || current.provvedimento_data_rilascio,
     }))
     setModelFields((current) => ({
       ...current,
       provvedimento_tipo: provisionType || current.provvedimento_tipo || '',
       provvedimento_data: provisionDate || current.provvedimento_data || '',
-      provvedimento_data_deposito: provisionDepositDate || current.provvedimento_data_deposito || '',
+      provvedimento_data_rilascio: provisionReleaseDate || current.provvedimento_data_rilascio || '',
     }))
     setLastControlPayloadKey('')
     setLastControlLabel('')
@@ -2561,50 +2483,17 @@ export function NotificheLegaliPage() {
       data_comunicazione_cancelleria: '',
       provvedimento_tipo: '',
       provvedimento_data: '',
-      provvedimento_data_deposito: '',
+      provvedimento_data_rilascio: '',
     }))
     setModelFields((current) => ({
       ...current,
       provvedimento_tipo: '',
       provvedimento_data: '',
-      provvedimento_data_deposito: '',
+      provvedimento_data_rilascio: '',
     }))
     setLastControlPayloadKey('')
     setLastControlLabel('')
   }
-
-  const depositEvidenceKindFromDocument = (documento: LegalDocumentSuggestion): DepositEvidenceKind => {
-    const proofKind = documento.tipoProvaNotifica.toLowerCase()
-    if (proofKind === 'relata') return 'relata'
-    if (proofKind === 'rac') return 'rac'
-    if (proofKind === 'rdac') return 'rdac'
-    if (proofKind === 'pec') return 'pec'
-    return classifyDepositFile(documentEvidenceName(documento))
-  }
-
-  const depositEvidenceKindLabel = (documento: LegalDocumentSuggestion) => {
-    const kind = depositEvidenceKindFromDocument(documento)
-    if (kind === 'relata') return 'Relata'
-    if (kind === 'rac') return 'Ricevuta di accettazione'
-    if (kind === 'rdac') return 'Ricevuta di consegna'
-    if (kind === 'pec') return 'PEC inviata'
-    return documento.provaNotifica ? 'Atto notificato' : 'Documento'
-  }
-
-  const isDepositProofDocument = (documento: LegalDocumentSuggestion) => (
-    documento.provaNotifica
-    || Boolean(documento.tipoProvaNotifica)
-    || ['relata', 'rac', 'rdac', 'pec'].includes(depositEvidenceKindFromDocument(documento))
-  )
-
-  const syncDepositDraftFromRows = (rows: LegalDocumentSuggestion[], current: typeof deposito) => (
-    rows.reduce((draft, documento) => applyDepositFile(
-      draft,
-      depositEvidenceKindFromDocument(documento),
-      documentEvidenceName(documento),
-      documento.hashSha256,
-    ), current)
-  )
 
   const documentDetailLine = (documento: LegalDocumentSuggestion) => {
     const details = [
@@ -2691,18 +2580,14 @@ export function NotificheLegaliPage() {
     if (documentSelectionAppliedRef.current === signature) return
     documentSelectionAppliedRef.current = signature
     setSelectedDocumentId(matchedIds[0] || '')
-    if (tab === 'deposito') {
-      setSelectedDepositDocumentIds(matchedIds)
-    } else {
-      setSelectedNotificationDocumentIds(matchedIds)
-      syncNotificaFromNotificationDocuments(matchedDocuments)
-    }
+    setSelectedNotificationDocumentIds(matchedIds)
+    syncNotificaFromNotificationDocuments(matchedDocuments)
     const sourceIsPresidio = requestedDocumentEntrySource === 'presidio'
     setPracticeSelectionMessage(sourceIsPresidio
       ? `${matchedIds.length === 1 ? '1 documento importato' : `${matchedIds.length} documenti importati`} dal presidio notifiche.`
       : `${matchedIds.length === 1 ? '1 documento preselezionato' : `${matchedIds.length} documenti preselezionati`} dal fascicolo.`
     )
-  }, [documentSuggestions, requestedDocumentEntrySource, requestedDocumentSelectionTokens, selectedPracticeId, tab])
+  }, [documentSuggestions, requestedDocumentEntrySource, requestedDocumentSelectionTokens, selectedPracticeId])
 
   useEffect(() => {
     if (!selectedPracticeId || requestedDocumentSelectionTokens.length || selectedNotificationDocumentIds.length || manualNotificationDocuments.length) return
@@ -2718,27 +2603,9 @@ export function NotificheLegaliPage() {
     setPracticeSelectionMessage(`${matchedIds.length === 1 ? '1 documento importato' : `${matchedIds.length} documenti importati`} dal presidio notifiche.`)
   }, [documentSuggestions, manualNotificationDocuments.length, requestedDocumentSelectionTokens.length, selectedNotificationDocumentIds.length, selectedPracticeId])
 
-  const depositDocumentPayload = (documento: LegalDocumentSuggestion): EvidenceDocumentPayload => ({
-    nome_file: documentEvidenceName(documento),
-    descrizione: documento.descrizione || documento.label,
-    origine: documento.origine || 'nativo_digitale',
-    hash_sha256: documento.hashSha256,
-    riferimento_portale: documento.riferimentoPortale,
-    file_originale: documento.nomeOriginale || documento.nomeFile,
-  })
-
-  const syncDepositoFromDocuments = (ids: string[]) => {
-    const rows = ids
-      .map((id) => documentSuggestions.find((item) => item.id === id))
-      .filter((item): item is LegalDocumentSuggestion => Boolean(item))
-    setDeposito((current) => syncDepositDraftFromRows(rows, current))
-  }
-
   const applyDocument = (documento: LegalDocumentSuggestion) => {
     setSelectedDocumentId(documento.id)
-    setSelectedDepositDocumentIds([documento.id])
     syncNotificaFromNotificationDocuments([documento])
-    setDeposito((current) => syncDepositDraftFromRows([documento], current))
     setUnep((current) => ({
       ...current,
       atto_notificare: documentEvidenceName(documento) || current.atto_notificare,
@@ -2780,7 +2647,7 @@ export function NotificheLegaliPage() {
       modelloRelataSuggerito: documento.modelloRelataSuggerito,
       provvedimentoTipo: documentProvisionTypeSuggestion(documento),
       provvedimentoData: documentProvisionDateSuggestion(documento),
-      provvedimentoDataDeposito: documentProvisionDepositDateSuggestion(documento),
+      provvedimentoDataRilascio: documentProvisionReleaseDateSuggestion(documento),
       criterioTipoDocumento: documento.criterioTipoDocumento,
       testoDocumentoDisponibile: documento.testoDocumentoDisponibile,
     }
@@ -3182,17 +3049,6 @@ export function NotificheLegaliPage() {
     }
   }
 
-  const toggleDepositDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
-    setSelectedDepositDocumentIds((current) => {
-      const next = checked
-        ? Array.from(new Set([...current, documento.id]))
-        : current.filter((id) => id !== documento.id)
-      syncDepositoFromDocuments(next)
-      if (checked && next.length === 1) setSelectedDocumentId(documento.id)
-      return next
-    })
-  }
-
   const applyPractice = (practice: LegalPracticeSuggestion) => {
     setSignaturePin('')
     setSignatureMessage('')
@@ -3205,13 +3061,12 @@ export function NotificheLegaliPage() {
     setPracticeDetailsById((current) => ({ ...current, [practice.id]: practice }))
     setPracticeSelectionMessage('Pratica selezionata e dati compilati.')
     setSelectedPracticeId(practice.id)
-    const destinatariCompleti = practice.destinatari.filter((item) => Boolean(item.pec))
-    const primoDestinatario = destinatariCompleti[0] || practice.destinatari[0] || null
+    const destinatariAutomatici = practice.destinatari.filter((item) => Boolean(item.pec) && !isManualNotificationRecipient(item))
+    const primoDestinatario = destinatariAutomatici[0] || practice.destinatari.find((item) => !isManualNotificationRecipient(item)) || null
     setSelectedRecipientId(primoDestinatario?.id || '')
-    setSelectedRecipientIds(destinatariCompleti.map((item) => item.id).filter(Boolean))
+    setSelectedRecipientIds(primoDestinatario?.id ? [primoDestinatario.id] : [])
     setSelectedDocumentId('')
     setSelectedNotificationDocumentIds([])
-    setSelectedDepositDocumentIds([])
     setSelectedClientId(practice.clienteId || '')
     const derivedRg = deriveProceedingRg(practice.procedimento.numeroRg && practice.procedimento.annoRg ? `${practice.procedimento.numeroRg}/${practice.procedimento.annoRg}` : '', practice.numero, practice.titolo, practice.label)
     const resolvedNumeroRg = practice.procedimento.numeroRg || derivedRg.numero
@@ -3233,12 +3088,12 @@ export function NotificheLegaliPage() {
       sezione: practice.procedimento.sezione || current.sezione,
       numero_rg: resolvedNumeroRg || current.numero_rg,
       anno_rg: resolvedAnnoRg || current.anno_rg,
-      destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
-      destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf || practice.controparteCf,
-      destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
-      destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || current.destinatario_parte_rappresentata || practice.controparte,
-      ruolo_destinatario: primoDestinatario?.ruolo || current.ruolo_destinatario,
-      fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || current.fonte_pec_destinatario,
+      destinatario_nome: primoDestinatario?.nome || practice.controparte || '',
+      destinatario_cf: primoDestinatario?.codiceFiscalePiva || practice.controparteCf || '',
+      destinatario_pec: primoDestinatario?.pec || '',
+      destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || practice.controparte || '',
+      ruolo_destinatario: primoDestinatario?.ruolo || 'controparte',
+      fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || 'reginde',
       nome_file: '',
       descrizione_documento: '',
       origine_documento: 'originale_informatico',
@@ -3248,7 +3103,7 @@ export function NotificheLegaliPage() {
       ...current,
       procedimento_giudice: practice.procedimento.giudice || current.procedimento_giudice || '',
       tipo_procedimento: practice.procedimento.tipoProcedimento || current.tipo_procedimento || '',
-      destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || current.destinatario_parte_rappresentata || practice.controparte || '',
+      destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || practice.controparte || '',
     }))
     setCliente((current) => ({
       ...current,
@@ -3257,25 +3112,6 @@ export function NotificheLegaliPage() {
       numero_rg: resolvedNumeroRg || current.numero_rg,
       anno_rg: resolvedAnnoRg || current.anno_rg,
       provvedimento_descrizione: '',
-    }))
-    setDeposito((current) => ({
-      ...current,
-      atto_notificato: '',
-      atto_sha256: '',
-      relata_firmata: '',
-      relata_sha256: '',
-      pec_inviata: '',
-      pec_inviata_sha256: '',
-      rac_file: '',
-      rac_sha256: '',
-      rdac_file: '',
-      rdac_sha256: '',
-      ricevuta_completa: false,
-      dati_atto_ricevute: '',
-      destinatario_nome: primoDestinatario?.nome || current.destinatario_nome,
-      destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf,
-      destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
-      fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || current.fonte_pec_destinatario,
     }))
     const suggestedUnep = suggestUnepOffice(practice.procedimento.ufficio, data.ufficiUnep)
     setUnep((current) => ({
@@ -3308,7 +3144,6 @@ export function NotificheLegaliPage() {
     const params = new URLSearchParams(window.location.search)
     const practiceId = params.get('id_fascicolo') || params.get('id_fasc') || params.get('fascicolo')
     const phase = params.get('fase')
-    if (phase === 'deposito') setTab('deposito')
     if (phase === 'notifica') setTab('notifica')
     if (phase === 'unep') setTab('unep')
     if (phase === 'nonpec' || phase === 'non-pec') setTab('nonpec')
@@ -3562,11 +3397,6 @@ export function NotificheLegaliPage() {
     if (!signedRelata || signedRelata.payloadKey === signedRelataPayloadKey) return
     setSignedRelata(null)
     setNotifica((current) => ({ ...current, relata_firmata: false }))
-    setDeposito((current) => refreshDepositReference(current, {
-      ...current,
-      relata_firmata: '',
-      relata_sha256: '',
-    }))
     setSignatureMessage('La relata è cambiata: firma nuovamente il documento aggiornato.')
   }, [signedRelataPayloadKey, signedRelata])
 
@@ -3617,35 +3447,6 @@ export function NotificheLegaliPage() {
     relataPreviewRequestIdRef.current += 1
   }, [])
 
-  const buildDepositoPayload = (): Record<string, unknown> => {
-    const atti = selectedDepositDocuments.map(depositDocumentPayload)
-    const destinatarioCf = deposito.destinatario_cf || notifica.destinatario_cf
-    const destinatarioPec = deposito.destinatario_pec || notifica.destinatario_pec
-    const fontePec = deposito.fonte_pec_destinatario || notifica.fonte_pec_destinatario
-    const payload: Record<string, unknown> = {
-      ...deposito,
-      destinatario_cf: destinatarioCf,
-      destinatario_pec: destinatarioPec,
-      fonte_pec_destinatario: fontePec,
-      destinatari: [{
-        nome: deposito.destinatario_nome || notifica.destinatario_nome,
-        codice_fiscale_piva: destinatarioCf,
-        pec: destinatarioPec,
-        fonte_pec: fontePec,
-        rac_file: deposito.rac_file,
-        rdac_file: deposito.rdac_file,
-        rac_sha256: deposito.rac_sha256,
-        rdac_sha256: deposito.rdac_sha256,
-      }],
-    }
-    if (atti.length) {
-      payload.atti_notificati = atti
-      payload.atto_notificato = atti.map((item) => item.nome_file).join('; ')
-      if (atti.length === 1 && atti[0].hash_sha256) payload.atto_sha256 = atti[0].hash_sha256
-    }
-    return payload
-  }
-
   const buildUnepPayload = (): Record<string, unknown> => ({
     ...unep,
     operazione: 'notifica_unep',
@@ -3677,30 +3478,26 @@ export function NotificheLegaliPage() {
     setResult({ ...emptyResult, message: 'Controllo in corso...' })
     const endpoint = key === 'notifica'
       ? data.azioni.notifica
-      : key === 'deposito'
-        ? data.azioni.provaDeposito
-        : key === 'unep'
-          ? data.azioni.unep
-          : key === 'nonpec'
-            ? data.azioni.nonPec
-            : data.azioni.comunicazioneCliente
+      : key === 'unep'
+        ? data.azioni.unep
+        : key === 'nonpec'
+          ? data.azioni.nonPec
+          : data.azioni.comunicazioneCliente
     if (key === 'notifica') {
       await ensureAutomaticPecVerification()
     }
     const payload = key === 'notifica'
       ? buildNotificaPayload(true, notificaOverrides)
-      : key === 'deposito'
-        ? buildDepositoPayload()
-        : key === 'unep'
-          ? buildUnepPayload()
-          : key === 'nonpec'
-            ? buildNonPecPayload()
-            : {
-                ...cliente,
-                operazione: 'comunicazione_cliente_non_notifica',
-                body_override: cliente.corpo,
-                template_id: cliente.template_id,
-              }
+      : key === 'unep'
+        ? buildUnepPayload()
+        : key === 'nonpec'
+          ? buildNonPecPayload()
+          : {
+              ...cliente,
+              operazione: 'comunicazione_cliente_non_notifica',
+              body_override: cliente.corpo,
+              template_id: cliente.template_id,
+            }
     const response = await postLegalWorkflow(endpoint, payload).catch(() => ({ ...emptyResult, blockers: ['Verifica non completata. Riprova tra poco.'] }))
     if (key === 'cliente' && response.ok) {
       setCliente((current) => ({
@@ -3814,10 +3611,29 @@ export function NotificheLegaliPage() {
   const sendNotification = async () => {
     const invioPec = localDateTime()
     setWorking(true)
-    setResult({ ...emptyResult, message: 'Controllo piano PEC Studio Telematico in corso...' })
-    updateLocalPecProgress('preparazione', 'Controllo destinatari, allegati reali, relata firmata e piano PEC.')
+    setSignatureChecking(true)
+    setResult({ ...emptyResult, message: 'Firma relata e preparazione PEC in corso dal PC locale...' })
+    updateLocalPecProgress('firma', 'Firmo la relata corrente dal PC locale.')
     try {
-      await ensureAutomaticPecVerification()
+      if (!selectedPracticeId) {
+        throw new Error('Seleziona prima la pratica della notifica.')
+      }
+      if (!signaturePin.trim()) {
+        signaturePinRef.current?.focus()
+        throw new Error('Inserisci il PIN del dispositivo di firma per firmare la relata.')
+      }
+      const signatureOverrides = {
+        data_relata: todayLocalDate(),
+        ora_relata: currentLocalTime(),
+        data_ora_invio_pec: invioPec,
+      }
+      setNotifica((current) => ({
+        ...current,
+        ...signatureOverrides,
+      }))
+      const signedRelataAttachment = await signCurrentRelataWithLocalSigner(signatureOverrides, { refreshControl: false })
+      updateLocalPecProgress('allegati', 'Relata firmata allegata automaticamente alla PEC.')
+
       let attestationAttachment = savedAttestationFile
       if (notificationNeedsAttestazione) {
         const savedFile = await saveAttestationPdfToFascicolo('', { silent: true })
@@ -3832,12 +3648,8 @@ export function NotificheLegaliPage() {
         attestationAttachment = savedFile
         setAttestationFileMessage('Attestazione di conformità salvata nel fascicolo e pronta come allegato PEC.')
       }
-      setNotifica((current) => ({
-        ...current,
-        data_ora_invio_pec: invioPec,
-      }))
       const payload = {
-        ...buildNotificaPayload(true),
+        ...buildNotificaPayload(true, signatureOverrides),
         ...(attestationAttachment?.fileName
           ? {
               attestazione_conformita_file: attestationAttachment.fileName,
@@ -3845,14 +3657,10 @@ export function NotificheLegaliPage() {
               attestazione_conformita_document_id: attestationAttachment.documentId,
             }
           : {}),
-        ...(signedRelata?.fileName
-          ? {
-              relata_firmata_file: signedRelata.fileName,
-              relata_firmata_sha256: signedRelata.sha256,
-              relata_firmata_document_id: signedRelata.documentId,
-              relata_firmata: true,
-            }
-          : {}),
+        relata_firmata_file: signedRelataAttachment.fileName,
+        relata_firmata_sha256: signedRelataAttachment.sha256,
+        relata_firmata_document_id: signedRelataAttachment.documentId,
+        relata_firmata: true,
         operazione: 'invio_pec_l53',
         conferma_invio_pec: true,
         invio_finale: true,
@@ -3860,7 +3668,7 @@ export function NotificheLegaliPage() {
       }
       const prepared = await postLegalWorkflow(data.azioni.invioPecLocale, payload)
       if (!prepared.ok) {
-        failLocalPecProgress(prepared.blockers[0] || prepared.message || 'Piano PEC non validato.')
+        failLocalPecProgress(prepared.blockers[0] || prepared.message || 'PEC non preparata.')
         setResult(prepared)
         return
       }
@@ -3868,9 +3676,8 @@ export function NotificheLegaliPage() {
       if (messages.length !== 1) {
         throw new Error('Piano PEC non coerente con Studio Telematico: deve esserci un unico messaggio con tutti i destinatari nel campo To.')
       }
-      updateLocalPecProgress('signer', 'Piano pronto: verifico Local Signer sul PC locale.')
+      updateLocalPecProgress('password', 'Relata firmata e allegata: inserisci la password PEC, resta solo su questo PC.')
       await ensureRelataLocalPecServiceReady()
-      updateLocalPecProgress('password', 'Local Signer pronto: inserisci la password PEC, resta solo su questo PC.')
       const password = await requestNotificationPecPassword(messages[0])
       updateLocalPecProgress('trasmissione', 'Password acquisita localmente: trasmetto la PEC con un unico To Studio Telematico.')
       setResult({
@@ -3903,8 +3710,10 @@ export function NotificheLegaliPage() {
       })
     } finally {
       setWorking(false)
+      setSignatureChecking(false)
       setLocalPecPassword('')
       setLocalPecPasswordError('')
+      setSignaturePin('')
     }
   }
 
@@ -3928,7 +3737,6 @@ export function NotificheLegaliPage() {
     }))
     setSelectedDocumentId('')
     setSelectedNotificationDocumentIds([])
-    setSelectedDepositDocumentIds([])
     setSelectedClientId('')
   }
 
@@ -3981,31 +3789,6 @@ export function NotificheLegaliPage() {
         : directive?.allowedRegisters[0] || current.fonte_pec_destinatario,
     }))
   }
-  const refreshDepositReference = (current: typeof deposito, next: typeof deposito) => {
-    const previousReference = depositReference(current)
-    const reference = depositReference(next)
-    if (reference && (!next.dati_atto_ricevute || next.dati_atto_ricevute === previousReference || next.dati_atto_ricevute.startsWith('Destinatario:'))) {
-      next.dati_atto_ricevute = reference
-    }
-    return next
-  }
-  const changeDeposito = (key: keyof typeof deposito, value: string | boolean) => setDeposito((current) => {
-    const next = { ...current, [key]: value }
-    if (
-      key === 'destinatario_nome'
-      || key === 'destinatario_cf'
-      || key === 'destinatario_pec'
-      || key === 'pec_inviata'
-      || key === 'rac_file'
-      || key === 'rdac_file'
-    ) {
-      return refreshDepositReference(current, next)
-    }
-    return next
-  })
-  const updateDepositoFile = (fileKey: keyof typeof deposito, shaKey: keyof typeof deposito, fileName: string, sha256: string) => {
-    setDeposito((current) => refreshDepositReference(current, { ...current, [fileKey]: fileName, [shaKey]: sha256 }))
-  }
   const changeUnep = (key: keyof typeof unep, value: string | boolean) => setUnep((current) => ({ ...current, [key]: value }))
   const applyUnepOffice = (office: LegalUnepOffice | null) => setUnep((current) => ({
     ...current,
@@ -4030,7 +3813,8 @@ export function NotificheLegaliPage() {
     file: File,
     payloadKey: string,
     notificaOverrides: Partial<typeof notifica> = {},
-  ) => {
+    options: { refreshControl?: boolean } = {},
+  ): Promise<SignedRelataRecord> => {
     const form = new FormData()
     form.append('file', file)
     form.append('payload', JSON.stringify(buildNotificaPayload(true, notificaOverrides)))
@@ -4057,13 +3841,71 @@ export function NotificheLegaliPage() {
     }
     setSignedRelata(record)
     setNotifica((current) => ({ ...current, ...notificaOverrides, relata_firmata: true }))
-    setDeposito((current) => refreshDepositReference(current, {
-      ...current,
-      relata_firmata: record.fileName,
-      relata_sha256: record.sha256,
-    }))
     setSignatureMessage('Relata firmata e salvata nel fascicolo.')
-    await run('notifica', { ...notificaOverrides, relata_firmata: true })
+    if (options.refreshControl !== false) {
+      await run('notifica', { ...notificaOverrides, relata_firmata: true })
+    }
+    return record
+  }
+
+  const signCurrentRelataWithLocalSigner = async (
+    notificaOverrides: Partial<typeof notifica>,
+    options: { refreshControl?: boolean } = {},
+  ): Promise<SignedRelataRecord> => {
+    const status = relataSignerCanSign(signatureStatus) ? signatureStatus : await ensureRelataSignerReady()
+    setSignatureStatus(status)
+    if (!relataSignerCanSign(status)) throw new Error('Dispositivo di firma non pronto.')
+
+    const sourceResponse = await fetch(data.azioni.relataPdf, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildNotificaPayload(true, notificaOverrides)),
+    })
+    if (!sourceResponse.ok) {
+      const sourceError = await sourceResponse.json().catch(() => ({})) as Record<string, unknown>
+      const blockers = Array.isArray(sourceError.blockers)
+        ? sourceError.blockers.map((item: unknown) => userFacingNotice(String(item))).filter(Boolean)
+        : []
+      throw new Error(String(blockers.join(' ') || sourceError.message || 'Completa i dati della relata prima della firma.'))
+    }
+    const sourceBuffer = await sourceResponse.arrayBuffer()
+    const token = status?.token?.[0]
+    const certificate = relataSignerCertificate(status)
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), RELATA_LOCAL_SIGNER_TIMEOUT_MS)
+    let signerResponse: Response
+    try {
+      const requestOptions: LocalNetworkRequestInit = {
+        method: 'POST',
+        mode: 'cors',
+        targetAddressSpace: 'loopback',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          documento: arrayBufferToBase64(sourceBuffer),
+          pin: signaturePin.trim(),
+          slot_id: token?.slot_id,
+          cert_thumbprint: certificate?.thumbprint,
+        }),
+      }
+      signerResponse = await fetch(relataLocalSignerEndpoint('/firma'), requestOptions)
+    } finally {
+      window.clearTimeout(timeout)
+    }
+    const signedPayload = await parseRelataSignerResponse(signerResponse)
+    const signedBase64 = String(signedPayload.firmato_b64 || '')
+    if (!signedBase64) throw new Error('Il dispositivo non ha restituito la relata firmata.')
+    const signedBytes = base64ToBytes(signedBase64)
+    const signedCopy = new Uint8Array(signedBytes.byteLength)
+    signedCopy.set(signedBytes)
+    const signedFile = new File([signedCopy.buffer], 'Relata_di_notificazione.pdf.p7m', { type: 'application/pkcs7-mime' })
+    return saveSignedRelata(
+      signedFile,
+      buildSignedRelataPayloadKey(notificaOverrides),
+      notificaOverrides,
+      options,
+    )
   }
 
   const signRelata = async () => {
@@ -4084,63 +3926,7 @@ export function NotificheLegaliPage() {
         ora_relata: currentLocalTime(),
       }
       setNotifica((current) => ({ ...current, ...signatureOverrides }))
-      const pecVerification = await ensureAutomaticPecVerification()
-      if (!pecVerification.ok) {
-        throw new Error(pecVerification.sender?.message || Object.values(pecVerification.recipients)[0]?.message || 'Verifica delle PEC non completata.')
-      }
-      const status = relataSignerCanSign(signatureStatus) ? signatureStatus : await ensureRelataSignerReady()
-      setSignatureStatus(status)
-      if (!relataSignerCanSign(status)) throw new Error('Dispositivo di firma non pronto.')
-
-      const sourceResponse = await fetch(data.azioni.relataPdf, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildNotificaPayload(true, signatureOverrides)),
-      })
-      if (!sourceResponse.ok) {
-        const sourceError = await sourceResponse.json().catch(() => ({})) as Record<string, unknown>
-        const blockers = Array.isArray(sourceError.blockers)
-          ? sourceError.blockers.map((item: unknown) => userFacingNotice(String(item))).filter(Boolean)
-          : []
-        throw new Error(String(blockers.join(' ') || sourceError.message || 'Completa i dati della relata prima della firma.'))
-      }
-      const sourceBuffer = await sourceResponse.arrayBuffer()
-      const token = status?.token?.[0]
-      const certificate = relataSignerCertificate(status)
-      const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), RELATA_LOCAL_SIGNER_TIMEOUT_MS)
-      let signerResponse: Response
-      try {
-        const requestOptions: LocalNetworkRequestInit = {
-          method: 'POST',
-          mode: 'cors',
-          targetAddressSpace: 'loopback',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            documento: arrayBufferToBase64(sourceBuffer),
-            pin: signaturePin.trim(),
-            slot_id: token?.slot_id,
-            cert_thumbprint: certificate?.thumbprint,
-          }),
-        }
-        signerResponse = await fetch(relataLocalSignerEndpoint('/firma'), requestOptions)
-      } finally {
-        window.clearTimeout(timeout)
-      }
-      const signedPayload = await parseRelataSignerResponse(signerResponse)
-      const signedBase64 = String(signedPayload.firmato_b64 || '')
-      if (!signedBase64) throw new Error('Il dispositivo non ha restituito la relata firmata.')
-      const signedBytes = base64ToBytes(signedBase64)
-      const signedCopy = new Uint8Array(signedBytes.byteLength)
-      signedCopy.set(signedBytes)
-      const signedFile = new File([signedCopy.buffer], 'Relata_di_notificazione.pdf.p7m', { type: 'application/pkcs7-mime' })
-      await saveSignedRelata(
-        signedFile,
-        buildSignedRelataPayloadKey(signatureOverrides),
-        signatureOverrides,
-      )
+      await signCurrentRelataWithLocalSigner(signatureOverrides)
     } catch (error) {
       const message = error instanceof DOMException && error.name === 'AbortError'
         ? 'Il dispositivo non ha risposto entro 45 secondi. Riprova la firma.'
@@ -4151,42 +3937,6 @@ export function NotificheLegaliPage() {
       setSignaturePin('')
       setSignatureChecking(false)
     }
-  }
-  const applyDepositFile = (current: typeof deposito, kind: DepositEvidenceKind, fileName: string, sha256: string): typeof deposito => {
-    const next = { ...current }
-    const assignFile = (fileKey: keyof typeof deposito, shaKey: keyof typeof deposito, overwriteFile = true) => {
-      if (fileName && (overwriteFile || !next[fileKey])) next[fileKey] = fileName as never
-      if (sha256 && !next[shaKey]) next[shaKey] = sha256 as never
-    }
-    if (kind === 'atto') {
-      assignFile('atto_notificato', 'atto_sha256', false)
-    } else if (kind === 'relata') {
-      assignFile('relata_firmata', 'relata_sha256')
-    } else if (kind === 'pec') {
-      assignFile('pec_inviata', 'pec_inviata_sha256')
-    } else if (kind === 'rac') {
-      assignFile('rac_file', 'rac_sha256')
-    } else if (kind === 'rdac') {
-      assignFile('rdac_file', 'rdac_sha256')
-    }
-    if (next.rac_file && next.rdac_file) next.ricevuta_completa = true
-    return refreshDepositReference(current, next)
-  }
-  const handleDepositEvidenceFiles = async (files: FileList | null) => {
-    const selected = Array.from(files || [])
-    if (!selected.length) return
-    setDepositAutoMessage('Calcolo impronte in corso...')
-    const calculated: Array<{ fileName: string; sha256: string; kind: DepositEvidenceKind }> = []
-    for (const file of selected) {
-      try {
-        calculated.push({ fileName: file.name, sha256: await calculateSha256(file), kind: classifyDepositFile(file.name) })
-      } catch {
-        calculated.push({ fileName: file.name, sha256: '', kind: classifyDepositFile(file.name) })
-      }
-    }
-    setDeposito((current) => calculated.reduce((draft, item) => applyDepositFile(draft, item.kind, item.fileName, item.sha256), current))
-    const incomplete = calculated.filter((item) => !item.sha256)
-    setDepositAutoMessage(incomplete.length ? 'Alcune impronte non sono state calcolate: riprova o inseriscile manualmente.' : 'File riconosciuti e impronte calcolate.')
   }
   const changeCliente = (key: keyof typeof cliente, value: string) => setCliente((current) => ({ ...current, [key]: value }))
   const changeModelField = (key: string, value: string) => setModelFields((current) => ({ ...current, [key]: value }))
@@ -4258,9 +4008,7 @@ export function NotificheLegaliPage() {
   const nonPecUfficiale = nonPec.tipo_notifica_non_pec === 'ufficiale_giudiziario'
   const nonPecMani = nonPec.tipo_notifica_non_pec === 'mani'
   const nonPecEstero = nonPec.tipo_notifica_non_pec === 'estero'
-  const automationSubtitle = tab === 'deposito'
-    ? 'Prova e deposito'
-    : tab === 'unep'
+  const automationSubtitle = tab === 'unep'
       ? 'Canale UNEP'
       : tab === 'nonpec'
         ? 'Tracciamento non PEC'
@@ -4353,9 +4101,9 @@ export function NotificheLegaliPage() {
     if (['Sentenza', 'Ordinanza', 'Provvedimento', 'Decreto', 'Decreto ingiuntivo', 'Decreto fissazione udienza'].includes(title)) {
       const participle = ['Sentenza', 'Ordinanza'].includes(title) ? 'emessa' : 'emesso'
       const documentDate = formatAttestationDateLabel(
-        documento.provvedimentoDataDeposito
+        documento.provvedimentoDataRilascio
         || documento.provvedimentoData
-        || notifica.provvedimento_data_deposito
+        || notifica.provvedimento_data_rilascio
         || notifica.provvedimento_data
         || documento.data_rilascio_portale
         || documento.data_comunicazione_cancelleria,
@@ -4463,7 +4211,7 @@ export function NotificheLegaliPage() {
           <h1>{tab === 'notifica' ? 'Relata di notifica e attestazione di conformità' : 'Notifiche e canali separati'}</h1>
           <p>
             {tab === 'notifica'
-              ? 'Scegli destinatari e documenti, genera la relata L. 53/1994 e l’attestazione di conformità senza mescolare ricevute o deposito.'
+              ? 'Scegli destinatari e documenti, genera la relata L. 53/1994 e l’attestazione di conformità.'
               : 'PEC L. 53, UNEP, notifiche non PEC e comunicazioni cliente restano distinti. Ogni canale mostra solo i dati necessari.'}
           </p>
         </div>
@@ -4483,13 +4231,6 @@ export function NotificheLegaliPage() {
           title="Notifica ex L. 53/1994"
           text="Controparte, difensori, PA, imprese, professionisti o terzi."
           onClick={() => { setTab('notifica'); setResult(emptyResult) }}
-        />
-        <WorkflowCard
-          active={tab === 'deposito'}
-          icon={<FileCheck2 size={21} />}
-          title="Deposito prova notifica"
-          text="Atto notificato, relata firmata e ricevute originali."
-          onClick={() => { setTab('deposito'); setResult(emptyResult) }}
         />
         <WorkflowCard
           active={tab === 'unep'}
@@ -4857,7 +4598,7 @@ export function NotificheLegaliPage() {
                           <span key={release.documentoId || release.riferimentoPortale || `${release.nome}-${index}`}>
                             <Inbox size={15}/>
                             <em>{release.nome || release.tipo || "Documento d'ufficio"}</em>
-                            <small>{[release.fontePortale || data.portaleServizi.label, release.ufficio, release.numeroRg && release.annoRg ? `R.G. ${release.numeroRg}/${release.annoRg}` : '', release.dataDeposito ? formatDateIt(release.dataDeposito, release.dataDeposito) : ''].filter(Boolean).join(' · ')}</small>
+                            <small>{[release.fontePortale || data.portaleServizi.label, release.ufficio, release.numeroRg && release.annoRg ? `R.G. ${release.numeroRg}/${release.annoRg}` : '', release.dataRilascio ? formatDateIt(release.dataRilascio, release.dataRilascio) : ''].filter(Boolean).join(' · ')}</small>
                           </span>
                         ))}
                       </div>
@@ -5318,195 +5059,6 @@ export function NotificheLegaliPage() {
             </Panel>
           ) : null}
 
-          {tab === 'deposito' ? (
-            <Panel title="Prova della notifica" subtitle="Preparazione fascicolo interno e busta" icon={<FileCheck2 size={17} />}>
-              <div className="iu-legal-auto-box">
-                <div className="iu-legal-auto-box__title">
-                  <WandSparkles size={17} />
-                  <div>
-                    <strong>Compilazione da pratica IUSENTRA</strong>
-                    <span>Seleziona la pratica e IUSENTRA propone atto notificato e destinatario quando sono già presenti.</span>
-                  </div>
-                </div>
-                <div className="iu-legal-form-grid">
-                  <PracticePicker
-                    practices={data.precompilazione.indicePratiche}
-                    value={selectedPracticeId}
-                    loading={practiceSelectionWorking}
-                    message={practiceSelectionMessage}
-                    hint="Usa la stessa pratica della notifica o cercane una per preparare la prova."
-                    onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
-                  />
-                  <Field label="Atto dal fascicolo" hint={documentSuggestions.length ? 'Il nome file viene riportato nella prova deposito.' : 'Nessun documento selezionabile per la pratica corrente.'}>
-                    <select
-                      value={selectedDocumentId}
-                      disabled={!documentSuggestions.length}
-                      onChange={(event) => {
-                        const document = documentSuggestions.find((item) => item.id === event.currentTarget.value)
-                        if (document) applyDocument(document)
-                        else setSelectedDocumentId('')
-                      }}
-                    >
-                      <option value="">Seleziona atto</option>
-                      {documentSuggestions.map((item) => <option value={item.id} key={`deposito-doc-${item.id}`}>{item.label}</option>)}
-                    </select>
-                  </Field>
-                  {documentSuggestions.length ? (
-                    <div className="iu-legal-document-picker iu-legal-field--wide">
-                      <strong>Documenti da inserire nella prova</strong>
-                      <div className="iu-legal-document-picker__grid">
-                        {documentSuggestions.map((item) => (
-                          <label className="iu-legal-check" key={`deposito-multi-${item.id}`}>
-                            <input
-                              type="checkbox"
-                              checked={selectedDepositDocumentIds.includes(item.id)}
-                              onChange={(event) => toggleDepositDocument(item, event.currentTarget.checked)}
-                            />
-                            <span>{depositEvidenceKindLabel(item)} - {item.riferimentoPortale ? `${item.riferimentoPortale} - ${item.label}` : item.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {selectedDepositDocuments.length ? (
-                        <div className="iu-legal-selected-documents">
-                          {selectedDepositDocuments.map((item) => (
-                            <span key={`deposito-selected-${item.id}`}>
-                              <FileCheck2 size={15} />
-                              {depositEvidenceKindLabel(item)} - {documentEvidenceName(item)}{item.hashSha256 ? ` - impronta ${item.hashSha256.slice(0, 12)}...` : ''}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <Field label="Destinatario della prova" hint={recipientSuggestions.length ? 'Il nominativo viene proposto dai soggetti collegati.' : 'Seleziona o compila manualmente il destinatario.'}>
-                    <select
-                      value={selectedRecipientId}
-                      onChange={(event) => {
-                        const recipient = recipientSuggestions.find((item) => item.id === event.currentTarget.value)
-                        if (recipient) applyRecipient(recipient)
-                        else setSelectedRecipientId('')
-                      }}
-                    >
-                      <option value="">Seleziona destinatario</option>
-                      {recipientSuggestions.map((item) => <option value={item.id} key={`deposito-rec-${item.id}`}>{item.label}{item.pec ? ` - ${item.pec}` : ''}</option>)}
-                    </select>
-                  </Field>
-                </div>
-                <div className="iu-legal-auto-notes">
-                  <span><FileText size={15} /> {documentSuggestions.length} atti dalla pratica corrente.</span>
-                  <span><UserRound size={15} /> {recipientSuggestions.length} destinatari proponibili.</span>
-                  <span><Inbox size={15} /> Le ricevute restano originali digitali da associare.</span>
-                </div>
-              </div>
-              <div className="iu-legal-evidence-uploader">
-                <div className="iu-legal-evidence-uploader__text">
-                  <strong>Allega i file della prova</strong>
-                  <span>Scegli insieme atto, relata firmata, PEC inviata e ricevute: IUSENTRA li riconosce dal nome e calcola automaticamente le impronte dei file.</span>
-                  {depositAutoMessage ? <small>{depositAutoMessage}</small> : null}
-                </div>
-                <label className="iu-legal-evidence-uploader__button">
-                  <UploadCloud size={17} />
-                  Scegli file prova
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.p7m,.eml,.msg"
-                    onChange={(event) => void handleDepositEvidenceFiles(event.currentTarget.files)}
-                  />
-                </label>
-              </div>
-              <div className="iu-legal-evidence-summary">
-                <EvidenceSummaryRow label="Atto" fileName={deposito.atto_notificato} shaValue={deposito.atto_sha256} />
-                <EvidenceSummaryRow label="Relata firmata" fileName={deposito.relata_firmata} shaValue={deposito.relata_sha256} />
-                <EvidenceSummaryRow label="PEC inviata" fileName={deposito.pec_inviata} shaValue={deposito.pec_inviata_sha256} />
-                <EvidenceSummaryRow label="Ricevuta di accettazione" fileName={deposito.rac_file} shaValue={deposito.rac_sha256} />
-                <EvidenceSummaryRow label="Ricevuta di consegna" fileName={deposito.rdac_file} shaValue={deposito.rdac_sha256} />
-              </div>
-              <div className="iu-legal-form-grid iu-legal-form-grid--compact">
-                <Field label="Destinatario" hint="Il nominativo può arrivare dalla pratica o essere inserito manualmente.">
-                  <input value={deposito.destinatario_nome} onChange={(event) => changeDeposito('destinatario_nome', event.currentTarget.value)} />
-                </Field>
-                <Field label="C.F. / P. IVA destinatario">
-                  <input value={deposito.destinatario_cf} onChange={(event) => changeDeposito('destinatario_cf', event.currentTarget.value.toUpperCase())} />
-                </Field>
-                <Field label="PEC destinatario">
-                  <input type="email" value={deposito.destinatario_pec} onChange={(event) => changeDeposito('destinatario_pec', event.currentTarget.value)} />
-                </Field>
-                <Field label="Elenco pubblico PEC">
-                  <select value={deposito.fonte_pec_destinatario} onChange={(event) => changeDeposito('fonte_pec_destinatario', event.currentTarget.value)}>
-                    <option value="">Usa quello già scelto</option>
-                    {data.registriPec.map((item) => <option value={item.value} key={`deposito-fonte-${item.value}`}>{item.label}</option>)}
-                  </select>
-                </Field>
-                <label className="iu-legal-check"><input type="checkbox" checked={Boolean(deposito.ricevuta_completa)} onChange={(event) => changeDeposito('ricevuta_completa', event.currentTarget.checked)} /><span>Confermo che la ricevuta di consegna selezionata è completa</span></label>
-                <Field label="Note sulle ricevute da depositare" wide hint="Aggiungi solo le informazioni utili per riconoscere le ricevute.">
-                  <textarea value={deposito.dati_atto_ricevute} rows={3} onChange={(event) => changeDeposito('dati_atto_ricevute', event.currentTarget.value)} placeholder="Ricevute associate al destinatario..." />
-                </Field>
-              </div>
-              <details className="iu-legal-manual-evidence">
-                <summary>Correggi manualmente i dati riconosciuti</summary>
-                <div className="iu-legal-form-grid">
-                  <DepositFileField
-                    label="Atto notificato"
-                    fileName={deposito.atto_notificato}
-                    shaValue={deposito.atto_sha256}
-                    filePlaceholder="ricorso.pdf"
-                    accept=".pdf,.p7m,.eml,.msg"
-                    hint="Usa questo campo solo se il riconoscimento automatico non ha associato il file corretto."
-                    onFileNameChange={(value) => changeDeposito('atto_notificato', value)}
-                    onShaChange={(value) => changeDeposito('atto_sha256', value)}
-                    onFileComputed={(fileName, sha256) => updateDepositoFile('atto_notificato', 'atto_sha256', fileName, sha256)}
-                  />
-                  <DepositFileField
-                    label="Relata firmata"
-                    fileName={deposito.relata_firmata}
-                    shaValue={deposito.relata_sha256}
-                    filePlaceholder="relata_notifica.pdf.p7m"
-                    accept=".p7m,.pdf"
-                    hint="Correzione manuale della relata firmata."
-                    onFileNameChange={(value) => changeDeposito('relata_firmata', value)}
-                    onShaChange={(value) => changeDeposito('relata_sha256', value)}
-                    onFileComputed={(fileName, sha256) => updateDepositoFile('relata_firmata', 'relata_sha256', fileName, sha256)}
-                  />
-                  <DepositFileField
-                    label="PEC inviata"
-                    fileName={deposito.pec_inviata}
-                    shaValue={deposito.pec_inviata_sha256}
-                    filePlaceholder="pec_inviata.eml"
-                    accept=".eml,.msg"
-                    hint="Correzione manuale del messaggio PEC inviato."
-                    onFileNameChange={(value) => changeDeposito('pec_inviata', value)}
-                    onShaChange={(value) => changeDeposito('pec_inviata_sha256', value)}
-                    onFileComputed={(fileName, sha256) => updateDepositoFile('pec_inviata', 'pec_inviata_sha256', fileName, sha256)}
-                  />
-                  <DepositFileField
-                    label="Ricevuta di accettazione"
-                    fileName={deposito.rac_file}
-                    shaValue={deposito.rac_sha256}
-                    filePlaceholder="accettazione.eml"
-                    accept=".eml,.msg"
-                    hint="Correzione manuale della ricevuta di accettazione."
-                    onFileNameChange={(value) => changeDeposito('rac_file', value)}
-                    onShaChange={(value) => changeDeposito('rac_sha256', value)}
-                    onFileComputed={(fileName, sha256) => updateDepositoFile('rac_file', 'rac_sha256', fileName, sha256)}
-                  />
-                  <DepositFileField
-                    label="Ricevuta di consegna completa"
-                    fileName={deposito.rdac_file}
-                    shaValue={deposito.rdac_sha256}
-                    filePlaceholder="consegna.eml"
-                    accept=".eml,.msg"
-                    hint="Correzione manuale della ricevuta completa."
-                    onFileNameChange={(value) => changeDeposito('rdac_file', value)}
-                    onShaChange={(value) => changeDeposito('rdac_sha256', value)}
-                    onFileComputed={(fileName, sha256) => updateDepositoFile('rdac_file', 'rdac_sha256', fileName, sha256)}
-                  />
-                </div>
-              </details>
-              <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('deposito')}><UploadCloud size={16} /> {working ? 'Controllo...' : 'Controlla prova deposito'}</button>
-            </Panel>
-          ) : null}
-
           {tab === 'unep' ? (
             <Panel title="Richiesta UNEP" subtitle="Canale autonomo per notifiche presso l'ufficio competente" icon={<Scale size={17} />}>
               <div className="iu-legal-auto-box">
@@ -5618,7 +5170,7 @@ export function NotificheLegaliPage() {
                 <Field label="Note richiesta" wide hint="Usa note sintetiche per dati non presenti nei campi strutturati.">
                   <textarea value={unep.note} rows={3} onChange={(event) => changeUnep('note', event.currentTarget.value)} />
                 </Field>
-                <DepositFileField
+                <EvidenceFileField
                   label="Atto da notificare"
                   fileName={unep.atto_notificare}
                   shaValue={unep.atto_sha256}
@@ -5629,7 +5181,7 @@ export function NotificheLegaliPage() {
                   onShaChange={(value) => changeUnep('atto_sha256', value)}
                   onFileComputed={(fileName, sha256) => updateUnepFile('atto_notificare', 'atto_sha256', fileName, sha256)}
                 />
-                <DepositFileField
+                <EvidenceFileField
                   label="Richiesta o relata"
                   fileName={unep.richiesta_o_relata}
                   shaValue={unep.richiesta_sha256}
@@ -5640,7 +5192,7 @@ export function NotificheLegaliPage() {
                   onShaChange={(value) => changeUnep('richiesta_sha256', value)}
                   onFileComputed={(fileName, sha256) => updateUnepFile('richiesta_o_relata', 'richiesta_sha256', fileName, sha256)}
                 />
-                <DepositFileField
+                <EvidenceFileField
                   label="Ricevuta pagamento"
                   fileName={unep.ricevuta_pagamento}
                   shaValue={unep.ricevuta_pagamento_sha256}
@@ -5768,7 +5320,7 @@ export function NotificheLegaliPage() {
                 <Field label="Note" wide hint="Annota solo elementi utili per ricostruire la prova e la data.">
                   <textarea value={nonPec.note} rows={3} onChange={(event) => changeNonPec('note', event.currentTarget.value)} />
                 </Field>
-                <DepositFileField
+                <EvidenceFileField
                   label="Prova documentale"
                   fileName={nonPec.prova_file}
                   shaValue={nonPec.prova_sha256}
@@ -5992,7 +5544,7 @@ export function NotificheLegaliPage() {
       <FloatingLex
         context="notifiche-legali"
         title="Lex AI notifiche"
-        body="Posso aiutarti a controllare relata, pubblico elenco PEC, richiesta UNEP, prova non PEC e deposito, tenendo separati i canali."
+        body="Posso aiutarti a controllare relata, pubblico elenco PEC, richiesta UNEP e prova non PEC, tenendo separati i canali."
         primaryHref="#lex"
         primaryLabel="Controlla percorso"
         secondaryHref={data.azioni.fascicoli}

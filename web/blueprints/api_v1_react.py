@@ -62,7 +62,6 @@ from pct.notifiche_legali import (
     validate_custom_template_body,
     template_preview_text,
     validate_non_pec_notification_tracking,
-    validate_deposit_notification_proof,
     validate_legal_notification,
     validate_unep_notification_request,
 )
@@ -3770,6 +3769,28 @@ def _notifiche_relata_document_id(payload: Mapping[str, Any]) -> str:
     return _notifiche_text(raw.get("documentId") or raw.get("document_id") or raw.get("id")) if isinstance(raw, Mapping) else ""
 
 
+def _notifiche_current_signed_relata_document_id(fascicolo: Any, payload: Mapping[str, Any]) -> str:
+    fallback_id = ""
+    try:
+        source_sha256 = hashlib.sha256(generate_relata_pdf_bytes(dict(payload))).hexdigest()
+    except Exception:
+        source_sha256 = ""
+    evidence_tag = f"relata-source-sha256:{source_sha256}" if source_sha256 else ""
+    for document in reversed(list(getattr(fascicolo, "documenti", []) or [])):
+        tags = {_notifiche_text(tag) for tag in (getattr(document, "tags", []) or [])}
+        if (
+            "relata-notifica" in tags
+            and "firma-verificata" in tags
+            and bool(getattr(document, "firmato_digitalmente", False))
+        ):
+            document_id = _notifiche_text(getattr(document, "id", ""))
+            if evidence_tag and evidence_tag in tags:
+                return document_id
+            if not fallback_id:
+                fallback_id = document_id
+    return fallback_id
+
+
 def _notifiche_attestation_document_id(payload: Mapping[str, Any]) -> str:
     direct = _notifiche_text(
         payload.get("attestazione_conformita_document_id")
@@ -3911,16 +3932,6 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
     }
     payload = _stamp_notifica_pec_times(payload)
     payload = _augment_custom_relata_payload(payload)
-    result = validate_legal_notification(payload, require_signed_relata=True)
-    result_payload = sanitize_react_notifiche_legali_payload(result.to_dict())
-    output_plan = dict(result_payload.get("outputPlan") or {})
-    delivery_plan = dict(output_plan.get("deliveryPlan") or {})
-    if not result.ok:
-        raise _NotificheLocalPecError(
-            "Completa i dati indicati prima dell'invio PEC reale.",
-            blockers=result_payload.get("blockers") or result.blockers,
-            payload=result_payload,
-        )
     fascicolo_id = _notifiche_fascicolo_id(payload)
     if not fascicolo_id:
         raise _NotificheLocalPecError(
@@ -3933,6 +3944,23 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
         raise _NotificheLocalPecError(
             "Fascicolo non trovato: la PEC non viene inviata senza allegati reali.",
             blockers=["Fascicolo non trovato: la PEC non viene inviata senza allegati reali."],
+        )
+
+    if not _notifiche_relata_document_id(payload):
+        recovered_relata_id = _notifiche_current_signed_relata_document_id(fascicolo, payload)
+        if recovered_relata_id:
+            payload["relata_firmata"] = True
+            payload["relata_firmata_document_id"] = recovered_relata_id
+
+    result = validate_legal_notification(payload, require_signed_relata=True)
+    result_payload = sanitize_react_notifiche_legali_payload(result.to_dict())
+    output_plan = dict(result_payload.get("outputPlan") or {})
+    delivery_plan = dict(output_plan.get("deliveryPlan") or {})
+    if not result.ok:
+        raise _NotificheLocalPecError(
+            "Completa i dati indicati prima dell'invio PEC reale.",
+            blockers=result_payload.get("blockers") or result.blockers,
+            payload=result_payload,
         )
 
     attachments: list[dict[str, Any]] = []
@@ -4004,7 +4032,7 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
         attachments.append(attachment)
         document_evidence.append(evidence)
 
-    relata_id = _notifiche_relata_document_id(payload)
+    relata_id = _notifiche_relata_document_id(payload) or _notifiche_current_signed_relata_document_id(fascicolo, payload)
     if not relata_id:
         raise _NotificheLocalPecError(
             "Relata firmata mancante: firma la relata prima dell'invio PEC reale.",
@@ -5204,20 +5232,6 @@ def notifiche_legali_comunicazione_cliente():
     )
 
 
-@api_v1_react.post("/notifiche-legali/prova-deposito")
-@_richiedi_auth
-def notifiche_legali_prova_deposito():
-    payload, error = _json_payload_or_error()
-    if error is not None:
-        return error
-    assert payload is not None
-    result = validate_deposit_notification_proof(payload)
-    return _notifiche_legali_result_response(
-        result,
-        success_message="Prova della notifica pronta per il controllo busta.",
-    )
-
-
 @api_v1_react.post("/notifiche-legali/unep")
 @_richiedi_auth
 def notifiche_legali_unep():
@@ -5228,7 +5242,7 @@ def notifiche_legali_unep():
     result = validate_unep_notification_request(payload)
     return _notifiche_legali_result_response(
         result,
-        success_message="Richiesta UNEP pronta per revisione e deposito sul canale dedicato.",
+        success_message="Richiesta UNEP pronta sul canale dedicato.",
     )
 
 

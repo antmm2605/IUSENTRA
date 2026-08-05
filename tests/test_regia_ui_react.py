@@ -522,7 +522,7 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
-    signature_block = source[source.index("const signRelata = async () => {"):source.index("const applyDepositFile")]
+    signature_block = source[source.index("const signCurrentRelataWithLocalSigner = async ("):source.index("const sendNotificationTitle")]
 
     assert "signatureHref" not in source
     assert "Apri firma digitale" not in source
@@ -559,13 +559,13 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "deriveProceedingRg" in source
     apply_practice = source[source.index("const applyPractice"):source.index("const buildNotificaPayload")]
     assert "setSelectedNotificationDocumentIds([])" in apply_practice
-    hydration = source[source.index("useEffect(() => {\n    if (!selectedPracticeId"):source.index("const depositDocumentPayload")]
+    hydration = source[source.index("useEffect(() => {\n    if (!selectedPracticeId"):source.index("const applyDocument")]
     assert "autoSelectableDocuments" not in hydration
     assert "setNotifica" not in hydration
     notification_payloads = source[source.index("const notificationDocumentPayloads"):source.index("const addManualNotificationDocument")]
     assert "const rows = [...selectedRows, ...uploadedRows]" in notification_payloads
     assert "manualNotificationDocument()" not in notification_payloads
-    toggle_notification = source[source.index("const toggleNotificationDocument"):source.index("const toggleDepositDocument")]
+    toggle_notification = source[source.index("const toggleNotificationDocument"):source.index("const applyPractice")]
     assert "setNotifica" not in toggle_notification
     assert "solo quelli spuntati entrano nella relata" in source
     assert "disabled={!canPrepareNotificationSend}" in source

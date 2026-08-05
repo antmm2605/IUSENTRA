@@ -140,7 +140,7 @@ def test_pdfa_required_blocks_or_requires_manual_review(tmp_path: Path) -> None:
     assert any(item.code == "PDFA_NOT_VERIFIABLE_MANUAL_REVIEW" and item.manual_review_required for item in manual)
 
 
-def test_l53_subject_and_receipt_complete_are_blocking() -> None:
+def test_l53_subject_is_blocking_but_receipt_state_is_not_pre_send() -> None:
     subject = _l53_payload()
     subject["oggetto_pec"] = "Notifica telematica - ricorso"
     receipt = _l53_payload()
@@ -150,7 +150,8 @@ def test_l53_subject_and_receipt_complete_are_blocking() -> None:
     receipt_result = validate_legal_notification(receipt)
 
     assert any("L53_SUBJECT_REQUIRED" in item for item in subject_result.blockers)
-    assert any("RICEVUTA_COMPLETA_REQUIRED" in item for item in receipt_result.blockers)
+    assert not any("RICEVUTA_COMPLETA_REQUIRED" in item for item in receipt_result.blockers)
+    assert receipt_result.ok is True
 
 
 def test_legacy_pct_notifica_rejects_wrong_subject_path() -> None:

@@ -21,6 +21,7 @@ from pct.notifiche_legali import (
     build_public_register_confirmation_evidence,
     generate_attestazione_conformita_docx,
     generate_attestazione_conformita_pdf_bytes,
+    generate_relata_pdf_bytes,
     build_notification_attachment_manifest,
     build_notification_normative_checks,
     build_notification_send_plan,
@@ -40,12 +41,12 @@ from pct.notifiche_legali import (
     prepare_pst_failed_notification_workflow,
     released_office_documents_from_pec,
     template_catalog_version,
-    validate_deposit_notification_proof,
     validate_legal_notification,
     validate_non_pec_notification_tracking,
     validate_unep_notification_request,
     _pec_verification_matches,
 )
+from pct.prova_deposito_notifica import validate_deposit_notification_proof
 from pct.clienti import TipoCliente
 from pct.fascicoli import TipoDocumento, TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
@@ -799,7 +800,7 @@ def test_attestazione_pdf_non_tratta_ricorso_come_sentenza_per_caso_globale():
         "ufficio_giudiziario": "",
         "sezione": "",
         "provvedimento_data": "",
-        "provvedimento_data_deposito": "",
+        "provvedimento_data_rilascio": "",
         "documenti": [
             {
                 "nome_file": "sentenza_originale.pdf.p7m",
@@ -819,7 +820,7 @@ def test_attestazione_pdf_non_tratta_ricorso_come_sentenza_per_caso_globale():
 
     assert model["ok"] is True
     assert "procedimento.ufficio" not in model["missing_fields"]
-    assert "provvedimento.data_deposito" not in model["missing_fields"]
+    assert "provvedimento.data_rilascio" not in model["missing_fields"]
     assert model["document_rows"][0]["title"] == "Ricorso"
     assert "Ricorso, in opposizione a decreto ingiuntivo con decreto di fissazione udienza;" in model["text"]
     assert "Sentenza, emessa" not in model["text"]
@@ -932,7 +933,7 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
         "numero_rg": "704",
         "anno_rg": "2026",
         "provvedimento_tipo": "SentenzaDefinitiva",
-        "provvedimento_data_deposito": "2026-06-05",
+        "provvedimento_data_rilascio": "2026-06-05",
         "documenti": [
             {
                 "nome_file": "sentenza.pdf",
@@ -978,7 +979,7 @@ def test_relata_non_trascrive_sentenza_su_verbale_udienza_nello_stesso_elenco():
         "numero_rg": "704",
         "anno_rg": "2026",
         "provvedimento_tipo": "SentenzaDefinitiva",
-        "provvedimento_data_deposito": "2026-06-05",
+        "provvedimento_data_rilascio": "2026-06-05",
         "documenti": [
             {
                 "nome_file": "SentenzaDefinitiva_33581101.pdf",
@@ -1291,7 +1292,7 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
         "provvedimento_anno": "2026",
         "provvedimento_ufficio_origine": "Tribunale di Roma",
         "provvedimento_data": "2026-05-20",
-        "provvedimento_data_deposito": "2026-05-20",
+        "provvedimento_data_rilascio": "2026-05-20",
     })
     payload["verifiche_pec_destinatari"] = [_pec_evidence(
         "reginde", "controparte@example.pec.it", "01234567890", "2026-05-12T10:30:01+02:00",
@@ -1837,10 +1838,10 @@ def test_modello_sentenza_attestazione_esposto_con_campi_autocompilanti():
     assert template is not None
     assert template["label"] == "Sentenza con attestazione di conformità"
     assert "avvocato.full_name" in template["required_fields"]
-    assert "provvedimento.data_deposito" in template["required_fields"]
+    assert "provvedimento.data_rilascio" in template["required_fields"]
     assert "{{ avvocato.firma_in_calce }}" in tokens
     assert "{{ avvocato.firma_digitale_dicitura }}" in tokens
-    assert "{{ provvedimento.data_deposito }}" in tokens
+    assert "{{ provvedimento.data_rilascio }}" in tokens
 
 
 def test_allegati_notifica_ed_eml_pec_ufficio_sono_controllati():
@@ -2496,8 +2497,8 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["automazioneGuidata"]["notifica"][0]["source"].startswith("L. 53/1994")
     assert all(item["id"] != "prova" for item in payload["automazioneGuidata"]["notifica"])
     assert not any(item["title"] == "Pacchetto prova e deposito" for item in payload["automazioneGuidata"]["notifica"])
-    assert payload["automazioneGuidata"]["deposito"][0]["id"] == "pacchetto_prova_deposito"
-    assert any(item["id"] == "atti" for item in payload["automazioneGuidata"]["deposito"])
+    assert "deposito" not in payload["automazioneGuidata"]
+    assert "depositProofWithOriginalReceipts" not in payload["contracts"]
     assert payload["automazioneGuidata"]["unep"][0]["id"] == "unep_canale"
     assert payload["automazioneGuidata"]["nonPec"][0]["id"] == "nonpec_tipo"
     assert any(item["id"] == "eml_ufficio" for item in payload["automazioneGuidata"]["allegati"])
@@ -2528,6 +2529,8 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["azioni"]["attestazioneConformita"] == "/api/v1/ui/notifiche-legali/attestazione-conformita"
     assert payload["azioni"]["invioPecLocale"] == "/api/v1/ui/notifiche-legali/invio-pec-locale"
     assert payload["azioni"]["confermaInvioPecLocale"] == "/api/v1/ui/notifiche-legali/invio-pec-locale/conferma"
+    assert "provaDeposito" not in payload["azioni"]
+    assert "depositoChecklist" not in payload["azioni"]
     assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
@@ -2709,6 +2712,88 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
     assert "1 destinatario" in confirmed["message"]
     assert confirmed["sent"][0]["messageId"] == "<iusentra-test-message@pec.local>"
     assert confirmed["outputPlan"]["deliveryPlan"]["confirmedMessageIds"] == ["<iusentra-test-message@pec.local>"]
+
+
+def test_api_react_notifiche_legali_invio_locale_recupera_relata_firmata_corrente(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "web.blueprints.api_v1_react._local_rome_datetime_seconds",
+        lambda: "2026-05-12T14:26:00",
+    )
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    atto_bytes = b"%PDF-1.4\n%IUSENTRA atto da notificare\n"
+    relata_bytes = b"IUSENTRA RELATA FIRMATA GIA SALVATA CADES DI TEST"
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Pratica notifica con relata gia firmata",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Notifica",
+        )
+        atto = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "ricorso.pdf",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            atto_bytes,
+            note="Atto notificato",
+        )
+
+    payload = _legal_payload()
+    payload.update({
+        "fascicolo_id": fascicolo.id,
+        "practiceId": fascicolo.id,
+        "pratica_codice": str(getattr(fascicolo, "numero", "")),
+        "operazione": "invio_pec_l53",
+        "conferma_invio_pec": True,
+        "invio_finale": True,
+        "data_ora_invio_pec": "2026-05-12T14:26:00",
+        "nome_file": "ricorso.pdf",
+        "descrizione_documento": "Ricorso notificato",
+        "origine_documento": "nativo_digitale",
+        "hash_sha256": atto.hash_sha256,
+        "documenti": [
+            {
+                "nome_file": "ricorso.pdf",
+                "descrizione": "Ricorso notificato",
+                "origine": "nativo_digitale",
+                "hash_sha256": atto.hash_sha256,
+                "document_id": atto.id,
+                "documentId": atto.id,
+            }
+        ],
+        "relata_firmata": False,
+    })
+    source_sha256 = hashlib.sha256(generate_relata_pdf_bytes(dict(payload))).hexdigest()
+    with app.app_context():
+        relata = get_fascicoli().aggiungi_documento(
+            fascicolo.id,
+            "Relata di notifica.pdf.p7m",
+            TipoDocumento.NOTIFICA,
+            relata_bytes,
+            note="Relata firmata digitalmente",
+            tags=["relata-notifica", "firma-verificata", f"relata-source-sha256:{source_sha256}"],
+            firmato=True,
+        )
+
+    prepare_response = client.post(
+        "/api/v1/ui/notifiche-legali/invio-pec-locale",
+        json=payload,
+        headers=headers,
+    )
+
+    assert prepare_response.status_code == 200
+    prepared = prepare_response.get_json()
+    assert prepared["ok"] is True
+    blockers = " ".join(str(item) for item in prepared.get("blockers", []))
+    assert "Relata firmata mancante" not in blockers
+    attachments = prepared["localPecMessages"][0]["payload"]["attachments"]
+    assert [item["filename"] for item in attachments] == ["ricorso.pdf", "Relata di notifica.pdf.p7m"]
+    assert base64.b64decode(attachments[-1]["content_base64"]) == relata_bytes
+    assert attachments[-1]["sha256"] == relata.hash_sha256
 
 
 def test_api_consultazione_pubblico_elenco_salva_la_prova_nel_fascicolo(tmp_path: Path):
@@ -3820,13 +3905,94 @@ def test_ui_notifiche_legali_firma_relata_direttamente_nel_flusso_operativo():
     page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
 
     assert "signRelata" in page
+    assert "signCurrentRelataWithLocalSigner" in page
+    assert "options: { refreshControl?: boolean } = {}" in page
+    assert "if (options.refreshControl !== false)" in page
     assert 'className="iu-legal-signature-pin"' in page
     assert 'aria-label="PIN del dispositivo di firma"' in page
     assert "Il PIN resta su questo PC e viene cancellato dopo la firma della relata." in page
     assert "Firma relata" in page
     assert "Carica relata firmata" not in page
-    assert "relata_sha256" in page
+    assert "relata_firmata_sha256" in page
     assert "setNotifica((current) => ({ ...current, ...notificaOverrides, relata_firmata: true }))" in page
+    control_key_block = page[page.index("function notificationControlPayloadKey"):page.index("function relataLocalSignerBaseUrl")]
+    assert "delete controlled.relata_firmata_file" in control_key_block
+    assert "delete controlled.relata_firmata_sha256" in control_key_block
+    assert "delete controlled.relata_firmata_document_id" in control_key_block
+    assert "delete controlled.relataFirmataDocumentId" in control_key_block
+    assert "delete controlled.signedRelataDocumentId" in control_key_block
+
+
+def test_ui_notifiche_legali_invia_pec_firma_relata_e_allega_prima_della_password():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+    send_block = page[page.index("const sendNotification = async"):page.index("const verifyNotificationPec")]
+
+    assert "updateLocalPecProgress('firma'" in send_block
+    assert "signCurrentRelataWithLocalSigner(signatureOverrides, { refreshControl: false })" in send_block
+    assert "updateLocalPecProgress('allegati'" in send_block
+    assert "relata_firmata_file: signedRelataAttachment.fileName" in send_block
+    assert "relata_firmata_sha256: signedRelataAttachment.sha256" in send_block
+    assert "relata_firmata_document_id: signedRelataAttachment.documentId" in send_block
+    assert "requestNotificationPecPassword(messages[0])" in send_block
+    assert "ensureAutomaticPecVerification()" not in send_block
+    assert "updateLocalPecProgress('preparazione'" not in send_block
+    assert "updateLocalPecProgress('signer'" not in send_block
+    assert "signedRelata?.fileName" not in send_block
+    assert send_block.index("signCurrentRelataWithLocalSigner(signatureOverrides, { refreshControl: false })") < send_block.index("postLegalWorkflow(data.azioni.invioPecLocale, payload)")
+    assert send_block.index("postLegalWorkflow(data.azioni.invioPecLocale, payload)") < send_block.index("requestNotificationPecPassword(messages[0])")
+
+
+def test_ui_notifiche_legali_non_contiene_flusso_deposito():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+    data_client = Path("frontend/src/notificheLegaliData.ts").read_text(encoding="utf-8")
+    templates = Path("pct/data/notifiche_legali_templates.json").read_text(encoding="utf-8")
+    bridge = Path("web/services/react_notifiche_legali_bridge.py").read_text(encoding="utf-8")
+    blueprint = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+
+    assert "type TabKey = 'notifica' | 'unep' | 'nonpec' | 'cliente'" in page
+    assert "tab === 'deposito'" not in page
+    assert "setTab('deposito')" not in page
+    assert "run('deposito')" not in page
+    assert "provaDeposito" not in page
+    assert "Deposito prova notifica" not in page
+    assert "Prova della notifica" not in page
+    assert "Pacchetto prova" not in page
+    assert "setDeposito" not in page
+    assert "selectedDeposit" not in page
+    assert "provvedimentoDataDeposito" not in page
+    assert "provvedimento_data_deposito" not in page
+    assert "dataDeposito" not in page
+    assert "depositoId" not in page
+    assert "provvedimentoDataDeposito" not in data_client
+    assert "provvedimento_data_deposito" not in data_client
+    assert "dataDeposito" not in data_client
+    assert "depositoId" not in data_client
+    assert "provaDeposito" not in data_client
+    assert "depositoChecklist" not in data_client
+    assert "depositProofWithOriginalReceipts" not in data_client
+    assert "workflow_deposito_area_web_pst" not in templates
+    assert "Deposito area web PST" not in templates
+    assert "percorso di deposito" not in templates
+    assert "prova del deposito" not in templates
+    assert '"provaDeposito"' not in bridge
+    assert '"depositoChecklist"' not in bridge
+    assert '"depositProofWithOriginalReceipts"' not in bridge
+    assert 'automation_payload.pop("deposito", None)' not in bridge
+    assert '@api_v1_react.post("/notifiche-legali/prova-deposito")' not in blueprint
+
+
+def test_ui_notifiche_legali_non_preseleziona_vecchi_destinatari_manuali():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+    apply_practice_block = page[page.index("const applyPractice ="):page.index("setModelFields((current)", page.index("const applyPractice ="))]
+
+    assert "function isManualNotificationRecipient" in page
+    assert "const destinatariAutomatici = practice.destinatari.filter((item) => Boolean(item.pec) && !isManualNotificationRecipient(item))" in page
+    assert "setSelectedRecipientIds(primoDestinatario?.id ? [primoDestinatario.id] : [])" in page
+    assert "destinatario_pec: primoDestinatario?.pec || ''" in apply_practice_block
+    assert "applyRecipient(savedRecipient)" in page
+    assert "setSelectedRecipientIds((current) => current.includes(recipient.id) ? current : [...current, recipient.id])" in page
+    assert "destinatariCompleti.map((item) => item.id).filter(Boolean)" not in page
+    assert "destinatario_pec: primoDestinatario?.pec || current.destinatario_pec" not in apply_practice_block
 
 
 def test_ui_notifiche_legali_ogni_controllo_porta_esito_in_vista():

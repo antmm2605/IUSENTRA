@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.276.11 - 2026-08-05
+
+- **CI GitHub: sbloccato il gate OCR.** Il test di guardia su `api_v1_react.py` ora verifica il vecchio uso esatto `get_fascicoli=get_fascicoli` senza intercettare il loader corretto `get_fascicoli_loader`; lo shard `Pytest core fase 8/10 OCR parte 1/3` è stato riprodotto localmente e riportato verde.
+
 ## 2.276.10 - 2026-08-05
 
 - **Fascicoli React: card controparte censita leggibile.** Il riepilogo del soggetto selezionato non comprime più nome, identificativo e PEC in una colonna stretta: le azioni scendono sotto al testo, con wrapping controllato e guardrail CSS dedicato.

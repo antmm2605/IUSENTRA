@@ -1881,7 +1881,7 @@ def test_api_react_fascicoli_usa_loader_runtime_condiviso():
 
     assert "get_fascicoli=_fascicoli_loader()" in block
     assert "gf = _fascicoli_loader()()" in source
-    assert "get_fascicoli=get_fascicoli" not in block
+    assert not re.search(r"\bget_fascicoli=get_fascicoli(?:\s*[,)\n])", block)
     assert "gf=get_fascicoli()" not in block
 
 

@@ -130,6 +130,13 @@ from web.services.react_dashboard_cache import (
     clear_dashboard_payload_cache,
     get_dashboard_payload_cached,
 )
+from web.services.react_dashboard_health import (
+    etichette_sorgenti,
+    messaggio_sorgenti_degradate,
+    segnala_sorgente_non_disponibile,
+    traccia_sorgenti_panoramica,
+)
+from web.services.react_dashboard_time import adesso_rome, oggi_rome
 from web.services.reginde_cache_search import (
     default_reginde_cache_db_path,
     default_registro_ppaa_cache_db_path,
@@ -1707,6 +1714,9 @@ def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
         return func()
     except Exception:
         current_app.logger.exception("Dashboard React: sorgente non disponibile (%s).", label)
+        # La sezione resta vuota, ma la Panoramica deve poterlo dichiarare:
+        # uno zero da archivio caduto non e' uno zero reale.
+        segnala_sorgente_non_disponibile(label)
         return fallback
 
 
@@ -1752,7 +1762,7 @@ def _format_time(value: Any) -> str:
     parsed = _parse_datetime(value)
     if not parsed:
         return ""
-    today = date.today()
+    today = oggi_rome()
     if parsed.date() == today:
         return parsed.strftime("%H:%M")
     if parsed.date() == today - timedelta(days=1):
@@ -1768,7 +1778,7 @@ def _format_date(value: Any) -> str:
     parsed = _parse_date(value)
     if not parsed:
         return ""
-    today = date.today()
+    today = oggi_rome()
     if parsed == today:
         return "oggi"
     if parsed == today + timedelta(days=1):
@@ -1810,7 +1820,7 @@ def _euro(value: float) -> str:
 
 
 def _count_agenda_oggi() -> int:
-    today = date.today()
+    today = oggi_rome()
     appuntamenti = _safe("agenda", lambda: get_agenda().tutti(), [])
     count = 0
     for item in appuntamenti:
@@ -1940,7 +1950,7 @@ def _client_message_rows(limit: int = 5) -> tuple[list[dict[str, Any]], int]:
     messages = _messaggi_tutti()
     rows: list[dict[str, Any]] = []
     recent_count = 0
-    week_ago = date.today() - timedelta(days=7)
+    week_ago = oggi_rome() - timedelta(days=7)
     for message in messages:
         canale = _enum_value(getattr(message, "canale", ""))
         if canale == CanaleMsggio.EMAIL.value:
@@ -1976,7 +1986,7 @@ def _client_message_rows(limit: int = 5) -> tuple[list[dict[str, Any]], int]:
 
 
 def _agenda_rows(limit: int = 6) -> list[dict[str, Any]]:
-    today = date.today()
+    today = oggi_rome()
     until = today + timedelta(days=14)
     appuntamenti = _safe("agenda", lambda: get_agenda().tutti(), [])
     rows: list[dict[str, Any]] = []
@@ -2100,7 +2110,7 @@ def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
         StatoPreventivo.GENERATO.value,
     }
     ignored_states = {StatoPreventivo.RIFIUTATO.value, StatoPreventivo.SCADUTO.value, StatoPreventivo.CONVERTITO.value}
-    today = date.today()
+    today = oggi_rome()
     for preventivo in preventivi.tutti_preventivi():
         stato = _enum_value(getattr(preventivo, "stato", ""))
         if stato in ignored_states or stato not in active_states:
@@ -2135,7 +2145,7 @@ def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
 
 def _expiring_quotes_count() -> int:
     preventivi = _safe("preventivi", lambda: get_preventivi_readonly().tutti_preventivi(), [])
-    today = date.today()
+    today = oggi_rome()
     horizon = today + timedelta(days=14)
     active = {StatoPreventivo.INVIATO.value, StatoPreventivo.APERTO.value, StatoPreventivo.VERIFICATO.value}
     count = 0
@@ -2226,8 +2236,9 @@ def _deadline_distribution() -> list[dict[str, Any]]:
 
 
 def _economic_rows() -> list[dict[str, Any]]:
-    anno = date.today().year
-    month_prefix = f"{anno:04d}-{date.today().month:02d}"
+    oggi = oggi_rome()
+    anno = oggi.year
+    month_prefix = f"{anno:04d}-{oggi.month:02d}"
     stats = _safe("fatturazione", lambda: get_fatturazione().statistiche(anno), {})
     parcelle = _safe("fatturazione", lambda: get_fatturazione().tutte(), [])
     month_parcelle = [
@@ -8870,6 +8881,18 @@ def _dashboard_cache_key() -> str:
 
 
 def _build_dashboard_payload() -> dict[str, Any]:
+    """Payload della Panoramica con dichiarazione esplicita delle sorgenti cadute."""
+
+    with traccia_sorgenti_panoramica() as sorgenti_degradate:
+        payload = _collect_dashboard_payload()
+    if sorgenti_degradate:
+        payload["status"] = "parziale"
+        payload["degraded_sources"] = etichette_sorgenti(sorgenti_degradate)
+        payload["warning"] = messaggio_sorgenti_degradate(sorgenti_degradate)
+    return payload
+
+
+def _collect_dashboard_payload() -> dict[str, Any]:
     overview = _safe("workspace_intelligente", _workspace_overview, {})
     summary = dict(overview.get("summary") or {})
 
@@ -8906,7 +8929,12 @@ def _build_dashboard_payload() -> dict[str, Any]:
     }
     return {
         "source": "repository_reali",
+        "status": "ok",
+        "degraded_sources": [],
         "generated_at": overview.get("generated_at") or _iso_now(),
+        # Timestamp gia' nel fuso dell'utente: la Panoramica mostra l'ora di
+        # aggiornamento senza dover indovinare il fuso di un dato persistito.
+        "generated_at_rome": adesso_rome().replace(microsecond=0).isoformat(),
         "stats": stats,
         "metrics": _metrics(
             urgent_actions=urgent_actions,
@@ -8940,7 +8968,10 @@ def _build_dashboard_payload() -> dict[str, Any]:
 def _dashboard_error_payload() -> dict[str, Any]:
     return {
         "source": "errore_controllato",
+        "status": "errore",
+        "degraded_sources": [],
         "generated_at": _iso_now(),
+        "generated_at_rome": adesso_rome().replace(microsecond=0).isoformat(),
         "stats": {
             "todayAppointments": 0,
             "urgentDeadlines": 0,

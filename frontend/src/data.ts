@@ -3,7 +3,18 @@ export type Metric = { id:string; label:string; value:string|number; tag?:string
 export type Row = { id:string; title:string; subtitle:string; time?:string; avatar?:string; unread?:boolean; badge?:string; tone?:Tone; href?:string }
 export type Dossier = { id:string; area:string; title:string; meta:string; score:number; moves:string[]; href:string; tone:Tone }
 export type Source = { id:string; title:string; description:string; href:string; badge?:string; tone:Tone }
+/**
+ * Stato del quadro operativo:
+ * - `ok`       tutti gli archivi hanno risposto;
+ * - `parziale` una o piu' sorgenti non hanno risposto (conteggi non attendibili);
+ * - `errore`   la Panoramica non e' raggiungibile: i valori mostrati sono zeri di cortesia.
+ */
+export type DashboardStatus = 'ok'|'parziale'|'errore'
 export type DashboardData = {
+  status: DashboardStatus
+  warning: string
+  degradedSources: string[]
+  generatedAt: string
   metrics: Metric[]
   pec: Row[]
   emails: Row[]
@@ -29,6 +40,10 @@ const emptyMetrics: Metric[] = [
 ]
 
 export const emptyDashboard: DashboardData = {
+  status: 'ok',
+  warning: '',
+  degradedSources: [],
+  generatedAt: '',
   metrics: emptyMetrics,
   pec: [],
   emails: [],
@@ -57,6 +72,21 @@ export const emptyDashboard: DashboardData = {
 
 export const dashboardFallback = emptyDashboard
 const DASHBOARD_MAILBOX_SYNC_TIMEOUT_MS = 18000
+const DASHBOARD_UNREACHABLE_WARNING =
+  'Panoramica non raggiungibile: i valori mostrati non provengono dagli archivi dello studio. Riprova con Aggiorna.'
+
+/** Quadro non attendibile: zeri di cortesia dichiarati come tali, mai spacciati per dati reali. */
+function unreachableDashboard(): DashboardData {
+  return {...emptyDashboard, status: 'errore', warning: DASHBOARD_UNREACHABLE_WARNING}
+}
+
+function asDashboardStatus(value: unknown): DashboardStatus {
+  return value === 'parziale' || value === 'errore' ? value : 'ok'
+}
+
+function asStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => String(item ?? '')).filter(Boolean) : []
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -182,9 +212,15 @@ export async function getDashboard(options: { refresh?: boolean } = {}): Promise
       credentials:'same-origin',
       headers:{Accept:'application/json'}
     })
-    if (!res.ok) return emptyDashboard
+    if (!res.ok) return unreachableDashboard()
     const payload = await res.json() as Record<string, unknown>
+    const warning = String(payload.warning ?? '')
+    const status = asDashboardStatus(payload.status ?? (warning ? 'parziale' : 'ok'))
     const dashboard = {
+      status,
+      warning,
+      degradedSources: asStringList(payload.degraded_sources),
+      generatedAt: String(payload.generated_at_rome ?? payload.generated_at ?? ''),
       metrics: asMetrics(payload),
       pec: asRows(payload.pec),
       emails: asRows(payload.emails),
@@ -204,7 +240,7 @@ export async function getDashboard(options: { refresh?: boolean } = {}): Promise
       sources: asSources(payload, dashboard),
     }
   } catch {
-    return emptyDashboard
+    return unreachableDashboard()
   }
 }
 

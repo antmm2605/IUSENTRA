@@ -2636,3 +2636,25 @@ body:has(.iu-client-portal-public) #pct-ai-widget {
 
 @media(max-width:640px){.iu-client-portal-form__grid{grid-template-columns:1fr}}
 .iu-client-portal-input-upper{text-transform:uppercase}
+
+/* ===== Panoramica: freschezza del dato e avviso di quadro parziale =====
+   Regola operativa: uno zero da archivio non raggiungibile non puo' avere
+   lo stesso aspetto di uno zero reale. */
+.iu-sync.warn{background:rgba(245,158,11,.13);color:#b45309}
+.iu-sync.danger{background:rgba(239,68,68,.11);color:#b91c1c}
+.iu-notice{display:flex;align-items:flex-start;gap:11px;margin:0 0 16px;padding:12px 14px;border:1px solid var(--iu-border);border-radius:14px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft)}
+.iu-notice>div{display:grid;gap:3px;min-width:0}
+.iu-notice strong{font-size:13.5px;font-weight:900}
+.iu-notice span{color:var(--iu-slate-600);font-size:12.5px;font-weight:700;line-height:1.45}
+.iu-notice--warning{border-color:rgba(245,158,11,.32);background:rgba(245,158,11,.07)}
+.iu-notice--warning>svg{color:var(--iu-warning-500);flex:0 0 auto}
+.iu-notice--warning strong{color:#b45309}
+.iu-notice--danger{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06)}
+.iu-notice--danger>svg{color:var(--iu-danger-500);flex:0 0 auto}
+.iu-notice--danger strong{color:#b91c1c}
+
+@media(max-width:640px){
+  /* La freschezza del dato resta leggibile anche da telefono: e' la sola
+     conferma che i conteggi mostrati sono quelli di adesso. */
+  .iu-page-heading__actions .iu-sync{display:inline-flex;font-size:11px}
+}

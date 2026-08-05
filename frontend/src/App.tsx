@@ -52,7 +52,8 @@ import {
   Wrench,
   type LucideIcon
 } from 'lucide-react'
-import { DashboardData, Row, Tone, emptyDashboard, getDashboard, syncDashboardMailboxes } from './data'
+import { DashboardData, Row, Tone } from './data'
+import { useDashboardData } from './hooks/useDashboardData'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
 import { IusAppSidebar, IusentraRoutePresetFrame } from './components/iusentra'
@@ -1147,6 +1148,46 @@ function Compact({ title, icon, count, rows, href }:{title:string; icon:ReactNod
   return <Panel title={title} icon={icon} count={count}>{rows.length?<div className="iu-compact">{rows.map(r=><a className="iu-compact-row" href={r.href||href} key={r.id}><div><strong>{r.title}</strong><span>{r.subtitle}</span></div>{r.badge?<Badge tone={r.tone||'neutral'}>{r.badge}</Badge>:null}</a>)}</div>:<Empty/>}<a className="iu-link" href={href}>Vai -&gt;</a></Panel>
 }
 
+function Operations({ data }:{data:DashboardData}) {
+  return <Panel title="Azioni urgenti di oggi" subtitle="Cosa lavorare per primo, dagli archivi operativi dello studio." icon={<AlertTriangle size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione urgente da lavorare adesso.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel>
+}
+
+/** Ora dell'ultimo allineamento nel fuso dell'utente (Europe/Rome). */
+function updateHour(generatedAt:string): string {
+  if (!generatedAt) return ''
+  const parsed = new Date(generatedAt)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toLocaleTimeString('it-IT', {timeZone:'Europe/Rome',hour:'2-digit',minute:'2-digit'})
+}
+
+function dashboardSyncLabel({ data, loading, mailSyncing }:{data:DashboardData; loading:boolean; mailSyncing:boolean}): string {
+  if (loading) return 'Caricamento dati...'
+  if (mailSyncing) return 'Sincronizzazione comunicazioni...'
+  const hour = updateHour(data.generatedAt)
+  if (data.status === 'errore') return 'Dati non disponibili'
+  if (data.status === 'parziale') return hour?`Quadro parziale - ore ${hour}`:'Quadro parziale'
+  return hour?`Aggiornato alle ${hour}`:'Dati aggiornati'
+}
+
+/**
+ * Avviso esplicito quando il quadro non e' attendibile: senza questo, un
+ * archivio caduto restituisce zeri indistinguibili da uno studio senza
+ * pendenze.
+ */
+function DashboardNotice({ data }:{data:DashboardData}) {
+  if (data.status === 'ok' || !data.warning) return null
+  const critico = data.status === 'errore'
+  return (
+    <div className={`iu-notice ${critico?'iu-notice--danger':'iu-notice--warning'}`} role={critico?'alert':'status'}>
+      <AlertTriangle size={17}/>
+      <div>
+        <strong>{critico?'Quadro operativo non disponibile':'Quadro operativo parziale'}</strong>
+        <span>{data.warning}</span>
+      </div>
+    </div>
+  )
+}
+
 function Donut({ data }:{data:DashboardData}) {
   let cur=0
   const parts=data.deadlines.filter(d=>d.percent>0).map(d=>{const s=cur; cur+=d.percent; return `${toneColor[d.tone]} ${s}% ${cur}%`})
@@ -1186,7 +1227,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       </div>
       <section className="iu-metrics">{priorityMetrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
       <section className="iu-grid">
-        <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel></div>
+        <div className="span4"><Operations data={data}/></div>
         <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorità.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
@@ -1209,6 +1250,7 @@ function DashboardPage({
   onRefresh: () => void
   onSyncMailboxes: () => void
 }) {
+  const syncStateClass = loading || mailSyncing ? '' : data.status === 'errore' ? 'danger' : data.status === 'parziale' ? 'warn' : 'ok'
   return (
     <main className="iu-content">
       <div className="iu-page-heading">
@@ -1217,7 +1259,7 @@ function DashboardPage({
           <p>Centro operativo dello studio</p>
         </div>
         <div className="iu-page-heading__actions">
-          <span className={`iu-sync ${loading || mailSyncing?'':'ok'}`}>{loading?'Caricamento dati...':mailSyncing?'Sincronizzazione comunicazioni...':'Dati aggiornati'}</span>
+          <span className={`iu-sync ${syncStateClass}`} role="status" aria-live="polite">{dashboardSyncLabel({data,loading,mailSyncing})}</span>
           <button className="iu-button iu-button--ghost iu-button--compact" type="button" onClick={onRefresh} disabled={loading || mailSyncing}>
             <RefreshCw size={15}/> Aggiorna
           </button>
@@ -1226,17 +1268,21 @@ function DashboardPage({
           </button>
         </div>
       </div>
+      <DashboardNotice data={data}/>
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
+      {/* Righe da 12 colonne esatte: la Panoramica non deve lasciare spazi morti
+          a destra, ne' su desktop largo ne' sui passaggi responsive. */}
       <section className="iu-grid">
-        <div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>
-        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} href="/email-ordinaria/"/><a className="iu-link" href="/email-ordinaria/">Vai alle email ordinarie -&gt;</a></Panel></div>
-        <div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
-        <div className="span3"><Agenda data={data}/></div>
-        <div className="span3"><Completion data={data}/></div>
-        <div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
-        <div className="span2"><Compact title="Fascicoli con priorità alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
+        <div className="span6"><Operations data={data}/></div>
+        <div className="span6"><Agenda data={data}/></div>
+        <div className="span4"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} href="/email-ordinaria/"/><a className="iu-link" href="/email-ordinaria/">Vai alle email ordinarie -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span4"><Donut data={data}/></div>
-        <div className="span5"><Economic data={data}/></div>
+        <div className="span4"><Compact title="Fascicoli con priorità alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
+        <div className="span4"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
+        <div className="span6"><Economic data={data}/></div>
+        <div className="span3"><Completion data={data}/></div>
         <div className="span3"><Lex data={data}/></div>
         <div className="span6"><Dossiers data={data}/></div>
         <div className="span6"><Sources data={data}/></div>
@@ -1380,9 +1426,7 @@ export default function App() {
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
   const shellBootstrap = readShellBootstrap()
-  const [data,setData]=useState<DashboardData>(emptyDashboard)
-  const [loading,setLoading]=useState(!effectiveStandalonePage)
-  const [mailSyncing,setMailSyncing]=useState(false)
+  const {data,loading,mailSyncing,refresh:refreshDashboard,syncMailboxes:syncMailboxesNow}=useDashboardData(!effectiveStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [guidePanelExpanded,setGuidePanelExpanded]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
@@ -1413,31 +1457,6 @@ export default function App() {
       setSidebarCollapsed(false)
     }
   },[guidePanelExpanded,isFascicoliPage])
-  const refreshDashboard = (refresh = false) => {
-    setLoading(true)
-    getDashboard({ refresh })
-      .then(setData)
-      .finally(() => setLoading(false))
-  }
-  const syncMailboxesNow = () => {
-    setMailSyncing(true)
-    syncDashboardMailboxes()
-      .then(() => getDashboard({refresh:true}))
-      .then(setData)
-      .finally(() => setMailSyncing(false))
-  }
-  useEffect(()=>{
-    if(effectiveStandalonePage){
-      setLoading(false)
-      return
-    }
-    let ok=true
-    setLoading(true)
-    getDashboard()
-      .then(d=>{ if(ok)setData(d) })
-      .finally(()=>{if(ok)setLoading(false)})
-    return()=>{ok=false}
-  },[effectiveStandalonePage])
   const openMobileLex = () => {
     const detail = {
       ...lexConfig,
@@ -1459,7 +1478,7 @@ export default function App() {
           {!embeddedViewer?<TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey} supportEnabled={Boolean(shellBootstrap.user)} bootstrap={shellBootstrap}/>:null}
           <Suspense fallback={<PageLoading/>}>
             <IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage} key={routeKey}>
-              {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isClientPortalStudioPage?<ClientPortalPage mode="studio"/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isCalculatorPage?<CalcolaTerminiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isEditorProfessionalePage?<EditorProfessionalePage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isStrumentiLegaliPage?<StrumentiLegaliPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isLexLearningPage?<LexLearningPage/>:isOggiPage?<OggiPage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isPromptPathwaysPage?<PromptPathwaysPage/>:isPromptLibraryPage?<PromptLibraryPage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing} onRefresh={()=>refreshDashboard(true)} onSyncMailboxes={syncMailboxesNow}/>}
+              {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isClientPortalStudioPage?<ClientPortalPage mode="studio"/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isCalculatorPage?<CalcolaTerminiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isEditorProfessionalePage?<EditorProfessionalePage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isStrumentiLegaliPage?<StrumentiLegaliPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isLexLearningPage?<LexLearningPage/>:isOggiPage?<OggiPage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isPromptPathwaysPage?<PromptPathwaysPage/>:isPromptLibraryPage?<PromptLibraryPage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing} onRefresh={refreshDashboard} onSyncMailboxes={syncMailboxesNow}/>}
             </IusentraRoutePresetFrame>
           </Suspense>
         </div>

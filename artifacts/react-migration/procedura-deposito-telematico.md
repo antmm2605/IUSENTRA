@@ -5895,3 +5895,18 @@ Guardrail script eseguiti:
 - `pnpm --filter @iusentra/studio typecheck`.
 
 Stato prova reale: la verifica materiale completa su browser reale `127.0.0.1:8080` e l'invio SMTP effettivo restano da eseguire dopo rebuild Docker locale, con Local Signer attivo e password PEC inserita dall'avvocato sul PC locale.
+
+## Aggiornamento 05/08/2026 - Fascicoli, Agenda e Scadenziario: correzioni UI operative
+
+Intervento UI sul perimetro React lato studio, senza modifiche a repository dati, tabelle, invii PEC, firma o deposito.
+
+- Fascicoli: il riquadro `Scadenze urgenti` non usa piu' il titolo calcolato sul riepilogo globale quando mostra solo le prime righe. Il titolo viene calcolato sulle scadenze effettivamente visibili e il banner filtra le date future fuori dai prossimi 7 giorni. Sul server, al `05/08/2026`, date come `15/05/2026` e `24/05/2026` sono scadute, non "entro 7 giorni".
+- Agenda: le card KPI `OGGI`, `SETTIMANA`, `UDIENZE`, `SCADENZE` e `ALERT` sono riportate sopra il planner e sopra i pannelli `Preparazione udienza guidata` e `Automazioni consigliate`.
+- Scadenziario: le azioni riga restano sotto il badge `Tipo`, ma la griglia ora ha target da 44px, gap, separatore e spaziatura per non risultare compressa.
+- Email PEC: il wrapper `iu-mail-reader-pane` è trattato come colonna destra effettiva della griglia, così lettura rapida e lista messaggi partono dalla stessa riga anche negli stati vuoti.
+
+Guardrail eseguiti prima del rebuild/deploy:
+
+- `python -m pytest tests\test_react_scadenziario_additions.py::test_react_scadenziario_page_collegata_nav_api_e_lex tests\test_fascicoli_pagination.py::test_fascicoli_scadenze_urgenti_distingue_scadute_da_entro_7_giorni tests\test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api -q`;
+- `python -m pytest tests\test_fascicoli_pagination.py::test_fascicoli_frontend_contratto_query_params_e_lazy_tab -q`;
+- `pnpm --filter @iusentra/studio build`.

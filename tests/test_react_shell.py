@@ -934,13 +934,14 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert ".iu-source-document-reader__state" in css
     assert ".iu-ag-source-modal__box--fullscreen" in css
     assert agenda_page.index('className={`iu-ag-planner') < agenda_page.index('className="iu-ag-lower-grid"')
-    assert agenda_page.index('className="iu-ag-lower-grid"') < agenda_page.index('className="iu-ag-kpis"')
-    assert ".iu-agenda-page>.iu-ag-lower-grid{order:3}" in css
-    assert ".iu-agenda-page>.iu-ag-kpis{order:4}" in css
+    assert ".iu-agenda-page>.iu-ag-kpis{order:2}" in css
+    assert ".iu-agenda-page>.iu-ag-planner{order:3}" in css
+    assert ".iu-agenda-page>.iu-ag-lower-grid{order:4}" in css
     assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-lower-grid[data-iusentra-sequence-slot]" in css
     assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-kpis[data-iusentra-sequence-slot]" in css
-    assert "order:70!important" in css
-    assert "order:80!important" in css
+    assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-kpis[data-iusentra-sequence-slot]{\n  order:60!important" in css
+    assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-planner[data-iusentra-sequence-slot]{\n  order:70!important" in css
+    assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-lower-grid[data-iusentra-sequence-slot]{\n  order:80!important" in css
     assert "iu-ag-event__remote-note" in agenda_page
     assert ".iu-ag-event__remote-note" in css
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
@@ -1356,6 +1357,10 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "Lettura email" in email_page
     assert "iu-mail-reader-pane" in email_page
     assert ".iu-mail-reader-pane.is-open" in email_css
+    assert "align-items:start" in email_css
+    assert "height:var(--iu-mail-pane-height)" in email_css
+    preset_source = Path("frontend/src/components/iusentra/IusentraPreset.tsx").read_text(encoding="utf-8")
+    assert ".iu-mail-layout.iusentra-route-grid > .iu-mail-reader-pane" in preset_source
     assert "@media(max-width:1120px)" in email_css
     assert "getEmailPecPage" in email_data
     assert "getEmailOrdinariaPage" in email_data

@@ -1354,9 +1354,11 @@
     grid-row: 1;
   }
 
+  .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-reader-pane,
   .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-preview-card {
     grid-column: 2;
     grid-row: 1;
+    align-self: start;
   }
 
   .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-inspector.iusentra-route-rail {

@@ -597,7 +597,8 @@
 .iu-scad-muted{color:var(--iu-slate-400)!important}
 .iu-scad-fascicolo{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iu-scad-type-cell{
-  min-width:88px;
+  min-width:128px;
+  vertical-align:top;
 }
 .iu-scad-days{
   display:inline-flex;
@@ -620,15 +621,18 @@
 }
 .iu-scad-type-cell .iu-scad-actions{
   display:grid;
-  grid-template-columns:repeat(2,32px);
+  grid-template-columns:repeat(2,44px);
   justify-content:start;
-  margin-top:8px;
+  gap:8px;
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(15,23,42,.08);
 }
 .iu-scad-actions button,.iu-scad-actions a{
-  width:32px;
-  min-width:32px;
-  height:32px;
-  min-height:32px;
+  width:44px;
+  min-width:44px;
+  height:44px;
+  min-height:44px;
   padding:0;
 }
 .iu-scad-actions button:last-child{color:#dc2626;border-color:rgba(239,68,68,.28)}

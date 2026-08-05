@@ -188,9 +188,11 @@ const IUSENTRA_ROUTE_PRESET_RUNTIME_CSS = `
     grid-column: 1 !important;
     grid-row: 1 !important;
   }
+  .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-reader-pane,
   .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-preview-card {
     grid-column: 2 !important;
     grid-row: 1 !important;
+    align-self: start !important;
   }
   .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-inspector.iusentra-route-rail {
     grid-column: 1 / -1 !important;

@@ -242,6 +242,9 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert 'className="iu-scad-type-cell"' in page_source
     assert page_source.index('<Badge tone="neutral">{item.typeLabel}</Badge>') < page_source.index("<DeadlineActions item={item} onComplete={onComplete} onDelete={onDelete}/>")
     assert ".iu-scad-type-cell .iu-scad-actions" in css
+    assert "grid-template-columns:repeat(2,44px)" in css
+    assert "padding-top:8px" in css
+    assert "border-top:1px solid rgba(15,23,42,.08)" in css
     assert "SourceEvidenceLink" in page_source
     assert "Apri fonte" in page_source
     assert "SourceDocumentModal" in page_source

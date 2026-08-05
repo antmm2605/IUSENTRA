@@ -1118,6 +1118,11 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "Scadenze urgenti" in page_source
     assert "Scadenze 7g" not in page_source
     assert "Scadenze scadute" in page_source
+    assert "function isDeadlineAlertVisible" in page_source
+    assert "const deadlineAlertItems = data.deadlines.filter(isDeadlineAlertVisible).slice(0, 4)" in page_source
+    assert "const deadlineAlertHeading = deadlineAlertTitle(deadlineAlertItems, data.summary)" in page_source
+    assert "<strong>{deadlineAlertHeading}</strong>" in page_source
+    assert "data.deadlines.slice(0, 4)" not in page_source
     assert "data.summary.economicAnalysisDue" in page_source
     assert "const presidioDue = Number(data.summary.economicAnalysisDue || 0)" in page_source
     assert "data.summary.invoicesToIssue || 0) + Number(data.summary.economicAnalysisDue" not in page_source

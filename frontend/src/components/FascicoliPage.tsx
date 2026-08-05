@@ -486,6 +486,51 @@ function countIt(value: number, singular: string, plural: string): string {
   return `${value} ${value === 1 ? singular : plural}`
 }
 
+type DeadlineAlertItem = FascicoliPageData['deadlines'][number]
+
+function startOfLocalDay(value = new Date()): Date {
+  const day = new Date(value)
+  day.setHours(0, 0, 0, 0)
+  return day
+}
+
+function parseDeadlineDate(value: string): Date | null {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  const dateOnly = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+  }
+  const parsed = new Date(raw)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function deadlineAlertWindow(item: DeadlineAlertItem, today = new Date()) {
+  const parsed = parseDeadlineDate(item.dateIso)
+  if (!parsed) return 'unknown'
+  const current = startOfLocalDay(today).getTime()
+  const deadline = startOfLocalDay(parsed).getTime()
+  const nextSevenDays = current + 7 * 24 * 60 * 60 * 1000
+  if (deadline < current) return 'overdue'
+  if (deadline <= nextSevenDays) return 'upcoming7'
+  return 'outside'
+}
+
+function isDeadlineAlertVisible(item: DeadlineAlertItem): boolean {
+  const window = deadlineAlertWindow(item)
+  return window === 'overdue' || window === 'upcoming7' || window === 'unknown'
+}
+
+function deadlineAlertTitle(items: DeadlineAlertItem[], summary: FascicoliPageData['summary']) {
+  const windows = items.map((item) => deadlineAlertWindow(item))
+  const overdue = windows.filter((window) => window === 'overdue').length
+  const upcoming7 = windows.filter((window) => window === 'upcoming7').length
+  if (overdue && upcoming7) return 'Scadenze scadute e prossimi 7 giorni'
+  if (overdue) return 'Scadenze scadute'
+  if (upcoming7) return 'Scadenze entro 7 giorni'
+  return deadlineUrgencyCopy(summary).title
+}
+
 function deadlineUrgencyCopy(summary: FascicoliPageData['summary']) {
   const overdue = Number(summary.overdueDeadlines || 0)
   const upcoming7 = Number(summary.deadlines7 || 0)
@@ -2745,6 +2790,8 @@ function FascicoliListPage() {
     </div>
   )
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
+  const deadlineAlertItems = data.deadlines.filter(isDeadlineAlertVisible).slice(0, 4)
+  const deadlineAlertHeading = deadlineAlertTitle(deadlineAlertItems, data.summary)
 
   return (
     <main className="iu-content iu-fascicoli-page">
@@ -2776,12 +2823,12 @@ function FascicoliListPage() {
           <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info" onClick={applyStatContext({ alertsOnly: true })}/>
         </section>
 
-        {data.deadlines.length ? (
+        {deadlineAlertItems.length ? (
           <section className="iu-fas-deadline-alert" id="scadenze-urgenti">
             <AlertIcon />
             <div>
-              <strong>{deadlineCopy.title}</strong>
-              <div>{data.deadlines.slice(0, 4).map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+              <strong>{deadlineAlertHeading}</strong>
+              <div>{deadlineAlertItems.map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
             </div>
           </section>
         ) : null}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.276.5 - 2026-08-05
+
+- **Fascicoli: titolo del banner scadenze coerente con le righe visibili.** Il riepilogo globale resta `Scadenze urgenti` con dettaglio `scadute` / `entro 7 giorni`, ma il riquadro sotto le card ora calcola titolo e lista sulle scadenze effettivamente mostrate. Se le prime righe sono tutte scadute, il titolo diventa `Scadenze scadute`; scadenze future oltre 7 giorni non vengono esposte nel banner.
+- **Agenda: KPI di giornata/settimana/udienze riportati sopra il planner.** L'ordine CSS React mette le card `OGGI`, `SETTIMANA`, `UDIENZE`, `SCADENZE` e `ALERT` prima del calendario settimanale e dei pannelli `Preparazione udienza guidata` / `Automazioni consigliate`.
+- **Scadenziario: azioni sotto `Tipo` rese leggibili.** I pulsanti `Apri dettaglio`, `Modifica`, `Completa` ed `Elimina` restano sotto il badge `Tipo`, ma con griglia 2x2 da 44px, separatore e spaziatura dedicata per evitare che risultino attaccati.
+- **Email PEC: lista e lettura rapida allineate.** Il pannello `iu-mail-reader-pane` è agganciato come colonna destra della griglia e mantiene la stessa riga di partenza della lista, anche nello stato vuoto.
+- Guardrail mirati su Fascicoli, Agenda, Scadenziario ed Email PEC; build React superata.
+
 ## 2.276.4 - 2026-08-04
 
 - **Acquisite le istruzioni link udienza dai PDF allegati PEC.** Quando il provvedimento non contiene un URL pronto ma dispone di depositare/comunicare e-mail e telefono per ricevere il link, la pipeline estrae l'adempimento dal PDF e lo porta in `remote_hearing_access_info`, Agenda, Scadenziario, topbar e centro notifiche.

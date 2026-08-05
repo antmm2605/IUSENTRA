@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.276.12 - 2026-08-05
+
+- **Frontend: allineato PostCSS al lock workspace.** Assorbito il commit Dependabot `987faf1`, aggiornando `frontend/package.json` da `postcss 8.5.18` a `8.5.23` in dipendenze e override, coerentemente con `pnpm-lock.yaml` e `pnpm-workspace.yaml`.
+
 ## 2.276.11 - 2026-08-05
 
 - **CI GitHub: sbloccato il gate OCR.** Il test di guardia su `api_v1_react.py` ora verifica il vecchio uso esatto `get_fascicoli=get_fascicoli` senza intercettare il loader corretto `get_fascicoli_loader`; lo shard `Pytest core fase 8/10 OCR parte 1/3` è stato riprodotto localmente e riportato verde.

@@ -3559,8 +3559,8 @@ export function NotificheLegaliPage() {
 
   const confirmNotificationPecPassword = () => {
     if (!localPecPasswordRequest) return
-    const password = localPecPassword.trim()
-    if (!password) {
+    const password = localPecPassword
+    if (!password.trim()) {
       setLocalPecPasswordError('Inserisci la password PEC per completare l’invio dal PC locale.')
       localPecPasswordRef.current?.focus()
       return
@@ -4995,6 +4995,10 @@ export function NotificheLegaliPage() {
                 const pecPayload = localPecRecord(localPecPasswordRequest.message.payload)
                 const attachments = Array.isArray(pecPayload.attachments) ? pecPayload.attachments : []
                 const recipients = Array.isArray(localPecPasswordRequest.message.recipients) ? localPecPasswordRequest.message.recipients : []
+                const smtpHost = localPecText(pecPayload.smtp_host || pecPayload.host, 'Non disponibile')
+                const smtpPort = localPecText(pecPayload.smtp_port || pecPayload.port, '465')
+                const smtpUsername = localPecText(pecPayload.username || pecPayload.indirizzo || pecPayload.from, 'Non disponibile')
+                const smtpSender = localPecText(pecPayload.from || pecPayload.mittente || pecPayload.indirizzo, 'Non disponibile')
                 return (
                   <div className="iu-legal-local-pec-panel" role="alertdialog" aria-labelledby="iu-local-pec-title" aria-describedby="iu-local-pec-detail">
                     <div className="iu-legal-local-pec-panel__head">
@@ -5012,6 +5016,18 @@ export function NotificheLegaliPage() {
                       <div>
                         <dt>Oggetto</dt>
                         <dd>{localPecText(pecPayload.subject, 'Non disponibile')}</dd>
+                      </div>
+                      <div>
+                        <dt>Mittente PEC</dt>
+                        <dd>{smtpSender}</dd>
+                      </div>
+                      <div>
+                        <dt>Username PEC</dt>
+                        <dd>{smtpUsername}</dd>
+                      </div>
+                      <div>
+                        <dt>Server SMTP</dt>
+                        <dd>{smtpHost}:{smtpPort}</dd>
                       </div>
                       <div>
                         <dt>Allegati</dt>

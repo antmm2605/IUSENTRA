@@ -25,6 +25,12 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _password(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value)
+
+
 def _deposito_subject_ok(subject: str) -> bool:
     return bool(DEPOSITO_SUBJECT_RE.match(" ".join(str(subject or "").strip().split())))
 
@@ -82,7 +88,7 @@ def _payload_config(payload: dict[str, Any]) -> dict[str, Any]:
     use_ssl = _coerce_bool(payload.get("use_ssl"), port == 465)
     username = _text(payload.get("username") or payload.get("indirizzo") or payload.get("from"))
     sender = _text(payload.get("from") or payload.get("mittente") or username)
-    password = _text(payload.get("password"))
+    password = _password(payload.get("password"))
     timeout = _coerce_int(
         payload.get("timeout") or payload.get("timeout_seconds"),
         DEFAULT_TIMEOUT_SECONDS,
@@ -95,7 +101,7 @@ def _payload_config(payload: dict[str, Any]) -> dict[str, Any]:
         raise PecBridgeValidationError("Indirizzo o username PEC mancante.")
     if not sender:
         raise PecBridgeValidationError("Mittente PEC mancante.")
-    if not password:
+    if not password.strip():
         raise PecBridgeValidationError(
             "Password PEC mancante. Inseriscila nel campo password: resta sul PC e non viene salvata dal server."
         )

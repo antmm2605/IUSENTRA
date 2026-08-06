@@ -583,6 +583,11 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "LOCAL_PEC_PROGRESS_STEPS" in source
     assert "iu-legal-local-pec-progress__bar" in source
     assert "Conferma invio PEC dal PC locale" in source
+    assert "const password = localPecPassword\n" in source
+    assert "const password = localPecPassword.trim()" not in source
+    assert "Mittente PEC" in source
+    assert "Username PEC" in source
+    assert "Server SMTP" in source
     assert ".iu-legal-local-pec-progress" in css
     assert ".iu-legal-local-pec-panel" in css
     assert "Invio PEC bloccato" not in source

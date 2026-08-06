@@ -47,3 +47,37 @@ Test eseguiti:
 - `python -m pytest tests/test_notifiche_legali.py -q`
 - `python -m pytest tests/test_telematic_registry_fail_closed.py -q`
 - `python -m pytest tests/test_regia_ui_react.py -q`
+
+## Aggiornamento 06/08/2026 - conferma invio PEC locale
+
+Perimetro: solo notifica L. 53/1994 e invio PEC locale tramite IUSENTRA Local Signer.
+
+Correzione applicata:
+
+- la password PEC digitata dall'avvocato nella conferma `Invia PEC` non viene più tagliata o normalizzata prima della chiamata locale a `127.0.0.1:27272/pec/send`;
+- resta bloccato soltanto il campo vuoto;
+- il riepilogo di conferma mostra i dati realmente passati al Local Signer: mittente PEC, username PEC e server SMTP con porta;
+- nessun invio SMTP viene eseguito dal server IUSENTRA.
+
+Controllo dati locale:
+
+- Local Signer raggiungibile su `127.0.0.1:27272`;
+- configurazione PEC tenant `tenant-8bf98719c459`: mittente `roberto.montagnese@coapalmi.legalmail.it`, SMTP `sendm.cert.legalmail.it:465`, password presente;
+- il messaggio di errore visto dall'utente verso `smtps.pec.aruba.it:465` non coincide con la configurazione PEC tenant-aware locale e va quindi ricondotto a bundle/sessione non aggiornati o a una diversa configurazione caricata nella pagina.
+
+Verifica aggiuntiva sul PC dell'avvocato:
+
+- Local Signer installato aggiornato e riavviato a `1.6.104`;
+- test con SMTP finto: la password arriva al login esattamente come digitata, senza `trim`;
+- test SMTP reale senza invio PEC: il Local Signer usa `sendm.cert.legalmail.it:465`, quindi non usa Aruba; il provider risponde però `Autenticazione SMTP PEC locale non riuscita`, da trattare come combinazione username/password/mittente non accettata da Legalmail;
+- pacchetti Local Signer rigenerati per Windows, macOS e Linux: `SetupLocalSigner-1.6.104.exe`, `InstallaLocalSigner-1.6.104.command`, `InstallaLocalSigner-1.6.104.run`.
+
+Test eseguiti dopo la correzione:
+
+- `python -m pytest tests/test_local_pec_bridge.py -q`
+- `python -m pytest tests/test_local_signer.py::test_endpoint_pec_locale_viene_dispatchato_dal_local_signer -q`
+- `python -m pytest tests/test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q`
+- `python -m pytest tests/test_notifiche_legali.py::test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e_presidio -q`
+- `npm --prefix frontend run typecheck`
+- `npm --prefix frontend run test:notifiche-legali-presidi:bundle`
+- `npm --prefix frontend run build:vite`

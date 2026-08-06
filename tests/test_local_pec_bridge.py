@@ -73,6 +73,25 @@ def test_smtp_locale_usa_configurazione_e_non_espone_password():
     assert _FakeSmtp.instances[0].quit_called is True
 
 
+def test_smtp_locale_non_altera_password_digitata():
+    _FakeSmtp.instances.clear()
+
+    result = _test_pec_smtp_local(_payload(password="  segreta con spazi  "), smtp_ssl_factory=_FakeSmtp)
+
+    assert result["ok"] is True
+    assert _FakeSmtp.instances[0].logged_in == ("studio@example.test", "  segreta con spazi  ")
+
+
+def test_dist_pec_bridge_non_taglia_password_pec():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "dist" / "local_signer_mod" / "pec_bridge.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'password = _password(payload.get("password"))' in source
+    assert 'password = _text(payload.get("password"))' not in source
+
+
 def test_smtp_locale_password_mancante_restituisce_messaggio_operativo():
     result = _test_pec_smtp_local(_payload(password=""), smtp_ssl_factory=_FakeSmtp)
 

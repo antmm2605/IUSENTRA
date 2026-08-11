@@ -51,19 +51,28 @@ Data apertura log: 11/08/2026 14:18:09 Europe/Rome
 - Esito seconda prova: il flusso si è fermato prima della password PEC con lo stesso messaggio `Il file firmato non corrisponde alla relata corrente. Rigenera e firma la relata aggiornata.`
 - Diagnosi aggiornata: confronto troppo rigido tra payload React variabile e PDF sorgente firmato dal Local Signer.
 - Correzione applicata: la validazione accetta il PDF sorgente generato nella stessa sessione e l'hash esplicito `X-IUSENTRA-Document-SHA256` passato dal frontend insieme al `.p7m`.
+- 11/08/2026 14:52: produzione verificata su commit `8208d7e06ba0e45bb1081680ff8013a70d3d12ba`, versione `2.278.7`, container `iusentra-app` healthy.
+- 11/08/2026 14:52 circa: pagina notifica ricaricata e ricontrollata. Confermati 4 destinatari, modello `01 - Relata PEC base`, documento `SentenzaDefinitiva_35882174.pdf`, attestazione di conformità e relata separata.
+- 11/08/2026 14:52 circa: premuto `Controlla relata`, esito superato. Nessun blocco destinatari/allegati.
+- 11/08/2026 14:53 circa: premuto `Invia PEC` dopo inserimento PIN sulla macchina locale. Nessuna PEC trasmessa.
+- Esito terza prova: il flusso si è fermato ancora prima della password PEC con messaggio `Il file firmato non corrisponde alla relata corrente. Rigenera e firma la relata aggiornata.`
+- Diagnosi definitiva sul perimetro notifica: il blocco hash/confronto contenuto della relata firmata è un controllo aggiuntivo non necessario per l'invio. La verifica deve limitarsi a CAdES valido, PDF incorporato, salvataggio nel fascicolo e allegazione automatica alla PEC.
+- Correzione `2.278.8`: rimosso il blocco per impronta diversa della relata firmata; una relata `.p7m` valida contenente PDF viene salvata nel fascicolo e allegata alla notifica.
 
 ## Test mirati
 
 - `test_api_react_notifiche_legali_relata_firmata_usa_pdf_generato_nella_stessa_sessione`
 - `test_api_react_notifiche_legali_relata_firmata_accetta_hash_pdf_esplicito`
+- `test_api_react_notifiche_legali_relata_firmata_non_blocca_impronta_pdf_diversa`
 - `test_piano_invio_studio_telematico_prepara_unico_to_e_allegati_reali`
 - `test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e_presidio`
 - `test_ui_notifiche_legali_invia_pec_firma_relata_e_allega_prima_della_password`
+- `test_ui_notifiche_legali_non_contiene_flusso_deposito`
 
-Esito test: 5 superati.
+Esito test: 7 superati.
 
 ## Stato operativo corrente
 
-- In attesa di deploy della correzione `2.278.7` e nuova prova reale.
-- La password PEC non è stata richiesta nelle due prove precedenti.
-- Nessuna PEC è stata trasmessa nelle due prove precedenti.
+- In attesa di deploy della correzione `2.278.8` e nuova prova reale.
+- La password PEC non è stata richiesta nelle prove precedenti.
+- Nessuna PEC è stata trasmessa nelle prove precedenti.

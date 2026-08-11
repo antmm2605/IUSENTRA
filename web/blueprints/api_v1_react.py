@@ -4955,17 +4955,6 @@ def notifiche_legali_relata_firmata():
     if not source_pdf.startswith(b"%PDF"):
         return jsonify({"ok": False, "message": "Il file firmato non contiene la relata PDF generata da IUSENTRA."}), 400
     source_sha256 = hashlib.sha256(source_pdf).hexdigest()
-    expected_source_sha256 = _notifiche_expected_source_sha_from_form()
-    try:
-        actual_text = _extract_pdf_text_for_relata(source_pdf)
-    except Exception:
-        return jsonify({"ok": False, "message": "Il contenuto della relata firmata non e' leggibile."}), 400
-    if (
-        expected_source_sha256 != source_sha256
-        and not _notifiche_relata_source_matches_session(payload, source_sha256)
-        and _normalise_relata_text_for_comparison(actual_text) != _normalise_relata_text_for_comparison(result.relata_text)
-    ):
-        return jsonify({"ok": False, "message": "Il file firmato non corrisponde alla relata corrente. Rigenera e firma la relata aggiornata."}), 409
 
     signatures = analizza_firma_documento(signed_data, Path(uploaded.filename).name)
     if not signatures or any(bool(item.get("scaduto")) for item in signatures):

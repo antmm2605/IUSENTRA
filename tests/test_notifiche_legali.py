@@ -2708,6 +2708,55 @@ def test_api_react_notifiche_legali_relata_firmata_accetta_hash_pdf_esplicito(tm
     assert signed_payload["sourceSha256"] == source_sha256
 
 
+def test_api_react_notifiche_legali_relata_firmata_non_blocca_impronta_pdf_diversa(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Pratica notifica relata senza blocco impronta",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Notifica",
+        )
+
+    payload = _legal_payload()
+    payload.update({
+        "fascicolo_id": fascicolo.id,
+        "practice_id": fascicolo.id,
+        "practiceId": fascicolo.id,
+    })
+    signed_pdf = b"%PDF-1.4\n%relata firmata dal Local Signer\n1 0 obj\n<<>>\nendobj\n%%EOF"
+    source_sha256 = hashlib.sha256(signed_pdf).hexdigest()
+
+    monkeypatch.setattr(
+        "pct.firme_cades.inspect_signed_document_bytes",
+        lambda *, source_name, data: SimpleNamespace(
+            status=SimpleNamespace(signature_verified=True),
+            payload_bytes=signed_pdf,
+        ),
+    )
+    monkeypatch.setattr(
+        "pct.firma.analizza_firma_documento",
+        lambda data, name: [{"firmatario": "Mario Rossi", "scaduto": False}],
+    )
+
+    signed_response = client.post(
+        "/api/v1/ui/notifiche-legali/relata-firmata",
+        data={
+            "payload": json.dumps(payload),
+            "file": (io.BytesIO(b"fake-cades-signed-data"), "relata_notifica.pdf.p7m"),
+        },
+        headers=headers,
+        content_type="multipart/form-data",
+    )
+    signed_payload = signed_response.get_json()
+
+    assert signed_response.status_code == 200
+    assert signed_payload["ok"] is True
+    assert signed_payload["sourceSha256"] == source_sha256
+    assert "non corrisponde alla relata corrente" not in json.dumps(signed_payload, ensure_ascii=False)
+
+
 def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e_presidio(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

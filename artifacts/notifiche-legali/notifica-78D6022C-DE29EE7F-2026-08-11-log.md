@@ -92,3 +92,11 @@ Esito test: 7 superati.
 - Esito quinta prova: il flusso si è fermato prima della trasmissione con `csrfToken is not defined`, durante il recupero del payload PEC salvato da Impostazioni.
 - Diagnosi: il componente Notifiche Legali richiamava `csrfToken()` come il deposito, ma non importava l'helper da `formSubmit`.
 - Correzione `2.278.10`: importato `csrfToken` in `NotificheLegaliPage.tsx`; aggiunto guardrail nel test mirato per bloccare regressioni.
+
+## Aggiornamento 2.278.11 - conferma presidio con fuso Europe/Rome
+
+- 11/08/2026 15:40 circa: produzione `2.278.10` verificata con 4 destinatari selezionati, modello `01 - Relata PEC base`, controllo relata superato, piano PEC locale pronto e allegati `SentenzaDefinitiva_35882174.pdf`, `Attestazione di conformità.pdf`, `relata_notifica.pdf.p7m`.
+- Premuto `Invia PEC` dopo inserimento PIN sul PC locale. Il flusso non ha mostrato errori SMTP e non ha più mostrato `csrfToken is not defined`.
+- Esito sesta prova: la UI ha indicato `La PEC è partita dal PC locale, ma la conferma/presidio non è stata completata.`
+- Diagnosi log server: `/api/v1/ui/notifiche-legali/invio-pec-locale/conferma` ha risposto 500 perché il `sentAt` ricevuto dal browser era un timestamp locale senza fuso orario; il presidio richiede timestamp ISO con fuso.
+- Correzione `2.278.11`: la conferma notifica normalizza ogni `sentAt` in `Europe/Rome` prima di creare candidato presidio e ricevuta `SENT`, senza modificare firma, allegati, destinatari o regole di invio.

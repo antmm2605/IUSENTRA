@@ -3730,6 +3730,21 @@ def _notifiche_rome_now_iso() -> str:
     return datetime.now(ZoneInfo("Europe/Rome")).replace(microsecond=0).isoformat()
 
 
+def _notifiche_rome_timestamp(value: Any) -> str:
+    text = _notifiche_text(value)
+    if not text:
+        return _notifiche_rome_now_iso()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        current_app.logger.warning("Timestamp notifica PEC non valido: %s", text)
+        return _notifiche_rome_now_iso()
+    rome = ZoneInfo("Europe/Rome")
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=rome)
+    return parsed.astimezone(rome).replace(microsecond=0).isoformat()
+
+
 def _notifiche_safe_filename(value: Any, fallback: str = "allegato.bin") -> str:
     filename = Path(str(value or fallback or "allegato.bin")).name.strip()
     return filename or fallback
@@ -4333,6 +4348,7 @@ def _notifiche_create_presidio_from_confirmation(
             )
         first_message_id = sent_rows[0]["messageId"]
         now_iso = _notifiche_rome_now_iso()
+        first_sent_at = _notifiche_rome_timestamp(sent_rows[0].get("sentAt") or now_iso)
         documents = [
             {
                 **dict(item),
@@ -4344,8 +4360,8 @@ def _notifiche_create_presidio_from_confirmation(
         candidate = NotificationPresidioService(repo).create_candidate({
             "fascicolo_id": context.get("fascicoloId"),
             "source_message_id": first_message_id,
-            "source_effective_at": sent_rows[0].get("sentAt") or now_iso,
-            "event_or_order_at": sent_rows[0].get("sentAt") or now_iso,
+            "source_effective_at": first_sent_at,
+            "event_or_order_at": first_sent_at,
             "source_order_or_event_id": _notifiche_text(delivery_plan.get("notificationId")),
             "trigger_type": "EXPLICIT_NOTIFICATION_ORDER",
             "notification_case": "notifica_l53",
@@ -4374,6 +4390,7 @@ def _notifiche_create_presidio_from_confirmation(
             if _notifiche_pec(item.get("pec_address"))
         }
         for row in sent_rows:
+            row_sent_at = _notifiche_rome_timestamp(row.get("sentAt") or now_iso)
             row_recipients = [
                 _notifiche_public_recipient(item)
                 for item in (row.get("recipients") or [])
@@ -4392,7 +4409,7 @@ def _notifiche_create_presidio_from_confirmation(
                         recipient_address=_notifiche_pec(recipient.get("pec_address")),
                         recipient_name=_notifiche_text(recipient.get("name")),
                         recipient_fiscal_id=_notifiche_text(recipient.get("fiscal_id")),
-                        occurred_at=_notifiche_text(row.get("sentAt")) or now_iso,
+                        occurred_at=row_sent_at,
                         metadata={
                             "notification_id": _notifiche_text(delivery_plan.get("notificationId")),
                             "local_message_id": _notifiche_text(row.get("localMessageId")),
@@ -5255,12 +5272,13 @@ def notifiche_legali_invio_pec_locale_conferma():
             }), 400
         seen_message_ids.add(message_id)
         local_payload = local_message.get("payload") if isinstance(local_message.get("payload"), Mapping) else {}
+        sent_at = _notifiche_rome_timestamp(row.get("sentAt") or row.get("sent_at") or row.get("timestamp"))
         sent_rows.append({
             "localMessageId": local_id,
             "messageId": message_id,
             "to": _notifiche_pec(local_payload.get("to")),
             "subject": _notifiche_text(local_payload.get("subject")),
-            "sentAt": _notifiche_text(row.get("sentAt") or row.get("sent_at") or row.get("timestamp")) or _notifiche_rome_now_iso(),
+            "sentAt": sent_at,
         })
 
     try:

@@ -2871,7 +2871,7 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
             "results": [{
                 "localMessageId": message["id"],
                 "messageId": "<iusentra-test-message@pec.local>",
-                "sentAt": "2026-05-12T14:26:11+02:00",
+                "sentAt": "2026-05-12T14:26:11",
             }],
         },
         headers=headers,
@@ -2883,6 +2883,7 @@ def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e
     assert confirmed["presidioId"]
     assert "1 destinatario" in confirmed["message"]
     assert confirmed["sent"][0]["messageId"] == "<iusentra-test-message@pec.local>"
+    assert confirmed["sent"][0]["sentAt"] == "2026-05-12T14:26:11+02:00"
     assert confirmed["outputPlan"]["deliveryPlan"]["confirmedMessageIds"] == ["<iusentra-test-message@pec.local>"]
 
 

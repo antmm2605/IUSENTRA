@@ -3829,11 +3829,14 @@ export function NotificheLegaliPage() {
     file: File,
     payloadKey: string,
     notificaOverrides: Partial<typeof notifica> = {},
-    options: { refreshControl?: boolean } = {},
+    options: { refreshControl?: boolean; expectedSourceSha256?: string } = {},
   ): Promise<SignedRelataRecord> => {
     const form = new FormData()
     form.append('file', file)
     form.append('payload', JSON.stringify(buildNotificaPayload(true, notificaOverrides)))
+    if (options.expectedSourceSha256) {
+      form.append('expectedSourceSha256', options.expectedSourceSha256)
+    }
     const response = await fetch(data.azioni.relataFirmata, {
       method: 'POST',
       body: form,
@@ -3886,6 +3889,7 @@ export function NotificheLegaliPage() {
       throw new Error(String(blockers.join(' ') || sourceError.message || 'Completa i dati della relata prima della firma.'))
     }
     const sourceBuffer = await sourceResponse.arrayBuffer()
+    const expectedSourceSha256 = sourceResponse.headers.get('X-IUSENTRA-Document-SHA256') || ''
     const token = status?.token?.[0]
     const certificate = relataSignerCertificate(status)
     const controller = new AbortController()
@@ -3920,7 +3924,7 @@ export function NotificheLegaliPage() {
       signedFile,
       buildSignedRelataPayloadKey(notificaOverrides),
       notificaOverrides,
-      options,
+      { ...options, expectedSourceSha256 },
     )
   }
 

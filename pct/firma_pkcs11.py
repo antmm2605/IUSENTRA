@@ -33,7 +33,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -81,6 +81,77 @@ _ENV_LIBRARY = "PCT_PKCS11_LIBRARY"
 _ENV_SLOT    = "PCT_PKCS11_SLOT"
 _ENV_LABEL   = "PCT_PKCS11_LABEL"
 _ENV_ACTIVE_PROBE = "PCT_PKCS11_ACTIVE_PROBE"
+
+
+class _ESSCertIDv2:
+    """Factory compatta per l'attributo CAdES signing-certificate-v2."""
+
+    @staticmethod
+    def attribute(cert_der: bytes):
+        from asn1crypto import algos, cms, core
+
+        class ESSCertIDv2(core.Sequence):
+            _fields = [
+                ("hash_algorithm", algos.DigestAlgorithm, {"optional": True}),
+                ("cert_hash", core.OctetString),
+            ]
+
+        class SigningCertificateV2(core.SequenceOf):
+            _child_spec = ESSCertIDv2
+
+        value = SigningCertificateV2(
+            [
+                ESSCertIDv2(
+                    {
+                        "hash_algorithm": {"algorithm": "sha256"},
+                        "cert_hash": hashlib.sha256(cert_der).digest(),
+                    }
+                )
+            ]
+        )
+        return cms.CMSAttribute(
+            {
+                "type": "1.2.840.113549.1.9.16.2.47",
+                "values": [value],
+            }
+        )
+
+
+def build_cades_signed_attrs_der(
+    doc_digest: bytes,
+    *,
+    cert_der: bytes | None = None,
+    signing_time: datetime | None = None,
+) -> bytes:
+    """Costruisce SignedAttributes CAdES-BES per la firma sul token."""
+    from asn1crypto import cms, core
+
+    firma_dt = signing_time or datetime.now(timezone.utc)
+    if firma_dt.tzinfo is None:
+        firma_dt = firma_dt.replace(tzinfo=timezone.utc)
+    signed_attrs = [
+        cms.CMSAttribute(
+            {
+                "type": cms.CMSAttributeType("content_type"),
+                "values": cms.SetOfContentType([cms.ContentType("data")]),
+            }
+        ),
+        cms.CMSAttribute(
+            {
+                "type": cms.CMSAttributeType("signing_time"),
+                "values": [cms.Time({"utc_time": firma_dt.astimezone(timezone.utc)})],
+            }
+        ),
+        cms.CMSAttribute(
+            {
+                "type": cms.CMSAttributeType("message_digest"),
+                "values": cms.SetOfOctetString([core.OctetString(doc_digest)]),
+            }
+        ),
+    ]
+    if cert_der:
+        signed_attrs.append(_ESSCertIDv2.attribute(cert_der))
+    return cms.CMSAttributes(signed_attrs).dump()
 
 
 def _build_cades_bes(
@@ -615,7 +686,7 @@ class FirmaPKCS11:
         doc_digest = hashlib.sha256(documento).digest()
 
         # 3. Costruisce i SignedAttributes (content-type + message-digest)
-        signed_attrs_der = self._build_signed_attrs(doc_digest)
+        signed_attrs_der = self._build_signed_attrs(doc_digest, cert_der=self._cert_der)
 
         # 4. Firma i SignedAttributes nel token (SHA256_RSA_PKCS hasha internamente)
         #    La chiave privata non lascia MAI il dispositivo.
@@ -633,7 +704,7 @@ class FirmaPKCS11:
         return self._build_pkcs7(documento, doc_digest, signed_attrs_der,
                                   signature_bytes, detached)
 
-    def _build_signed_attrs(self, doc_digest: bytes) -> bytes:
+    def _build_signed_attrs(self, doc_digest: bytes, cert_der: bytes | None = None) -> bytes:
         """
         Costruisce i SignedAttributes DER (tag SET 0x31) per la firma CAdES-BES.
 
@@ -642,20 +713,7 @@ class FirmaPKCS11:
             Attribute 1: content-type = data (1.2.840.113549.1.9.3)
             Attribute 2: message-digest = SHA-256(documento) (1.2.840.113549.1.9.4)
         """
-        from asn1crypto import cms, core
-
-        signed_attrs = cms.CMSAttributes([
-            cms.CMSAttribute({
-                "type":   cms.CMSAttributeType("content_type"),
-                "values": cms.SetOfContentType([cms.ContentType("data")]),
-            }),
-            cms.CMSAttribute({
-                "type":   cms.CMSAttributeType("message_digest"),
-                "values": cms.SetOfOctetString([core.OctetString(doc_digest)]),
-            }),
-        ])
-        # .dump() restituisce bytes con tag SET (0x31) — corretto per la firma
-        return signed_attrs.dump()
+        return build_cades_signed_attrs_der(doc_digest, cert_der=cert_der)
 
     def _build_pkcs7(
         self,

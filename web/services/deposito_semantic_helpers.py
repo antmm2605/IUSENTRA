@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any
 
 
@@ -131,7 +132,144 @@ def _payment_amount(value: Any) -> float | None:
     return amount if amount > 0 else None
 
 
-def ministerial_contributo_unificato_for_context(fascicolo: Any) -> dict[str, Any]:
+def _document_attr(document: Any, name: str) -> Any:
+    if isinstance(document, dict):
+        return document.get(name)
+    return getattr(document, name, None)
+
+
+def _document_source_name(document: Any) -> str:
+    for key in ("nome", "name", "nome_originale", "filename", "percorso", "path"):
+        value = _text(_document_attr(document, key))
+        if value:
+            return value.replace("\\", "/").split("/")[-1]
+    return "documento"
+
+
+def _document_semantic_text(document: Any) -> str:
+    values: list[str] = []
+    for key in (
+        "nome",
+        "name",
+        "nome_originale",
+        "filename",
+        "percorso",
+        "path",
+        "tipo",
+        "descrizione",
+        "description",
+        "note",
+        "ruolo",
+        "deposit_role",
+        "depositRole",
+        "catalog_role",
+        "catalogRole",
+        "catalog_label",
+        "catalogLabel",
+        "catalog_section",
+        "catalogSection",
+        "classificazione_portale",
+        "tipo_atto_portale",
+    ):
+        value = _document_attr(document, key)
+        if isinstance(value, dict):
+            values.extend(_text(item) for item in value.values())
+        elif isinstance(value, (list, tuple, set)):
+            values.extend(_text(item) for item in value)
+        else:
+            values.append(_text(value))
+    return " ".join(value for value in values if value).casefold()
+
+
+def _payment_amount_from_text(value: str) -> float | None:
+    for match in re.finditer(r"(?:eur|euro|€)?\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,.]\d{2})", value, flags=re.IGNORECASE):
+        amount = _payment_amount(match.group(1))
+        if amount is not None:
+            return amount
+    return None
+
+
+def _contributo_unificato_from_documents(
+    fascicolo: Any,
+    documents: Iterable[Any] | None,
+) -> dict[str, Any] | None:
+    selected_documents = list(documents or [])
+    for document in selected_documents:
+        text = _document_semantic_text(document)
+        if not text:
+            continue
+        contribution_context = (
+            "contributo unificato" in text
+            or "cu " in f"{text} "
+            or " cu" in text
+            or "spese giustizia" in text
+        )
+        payment_marker = any(
+            marker in text
+            for marker in (
+                "pagopa",
+                "ricevuta telematica",
+                "ricevuta pagamento",
+                "pagamento contributo",
+                "versamento contributo",
+                "quietanza",
+                "f23",
+                "f24",
+                "iuv",
+            )
+        )
+        if contribution_context and payment_marker:
+            return {
+                "resolved": _payment_amount_from_text(text) is not None,
+                "mode": "pagato",
+                "importo": _payment_amount_from_text(text),
+                "debito": False,
+                "source": _document_source_name(document),
+                "status": "pagato",
+                "natura": "pagamento_contributo_unificato",
+            }
+
+    for document in selected_documents:
+        text = _document_semantic_text(document)
+        if not text:
+            continue
+        explicit_exemption = any(
+            marker in text
+            for marker in (
+                "esenzione contributo unificato",
+                "esente dal pagamento",
+                "contributo unificato non dovuto",
+                "contributo non dovuto",
+                "non debenza",
+                "patrocinio a spese dello stato",
+                "prenotazione a debito",
+                "art. 9 comma 1-bis",
+                "articolo 9 comma 1-bis",
+                "dpr 115",
+            )
+        )
+        carta_docente_reddituale = (
+            is_carta_docente_pubblico_impiego(fascicolo)
+            and any(marker in text for marker in ("autocertific", "dichiarazione sostitutiva"))
+            and any(marker in text for marker in ("reddito", "reddituale", "situazione reddituale", "isee"))
+        )
+        if explicit_exemption or carta_docente_reddituale:
+            return {
+                "resolved": True,
+                "mode": "esente",
+                "importo": None,
+                "debito": False,
+                "source": _document_source_name(document),
+                "status": "non_previsto",
+                "natura": "esenzione_contributo_unificato",
+            }
+    return None
+
+
+def ministerial_contributo_unificato_for_context(
+    fascicolo: Any,
+    documents: Iterable[Any] | None = None,
+) -> dict[str, Any]:
     """Resolve the ministerial contribution state from the fascicolo source of truth."""
     payments = _dict_or_empty(getattr(fascicolo, "pagamenti", {}))
     raw: dict[str, Any] = {}
@@ -170,6 +308,14 @@ def ministerial_contributo_unificato_for_context(fascicolo: Any) -> dict[str, An
     else:
         mode = "da_definire"
         resolved = False
+
+    document_state = _contributo_unificato_from_documents(fascicolo, documents)
+    if document_state and (
+        not raw
+        or mode == "da_definire"
+        or (mode == "pagato" and document_state["mode"] == "pagato" and not resolved)
+    ):
+        return document_state
 
     return {
         "resolved": resolved,

@@ -194,6 +194,93 @@ def test_readiness_deposito_riconosce_esenzione_anagrafica_e_valore_gia_presenti
     assert readiness["valoreCausa"]["valueLabel"] == "€ 500,00"
 
 
+def test_contributo_unificato_riconosce_autocertificazione_reddituale_selezionata_carta_docente():
+    fascicolo = SimpleNamespace(
+        titolo="Martorano Mara c. MIM",
+        oggetto="Carta docente",
+        tipo_procedimento="Lavoro pubblico impiego",
+        area_pratica="Lavoro",
+        controparte="Ministero dell'Istruzione e del Merito",
+        codice_oggetto_pst="222050",
+        dati_json={},
+        profilo_deposito={},
+        pagamenti={},
+    )
+    documents = [
+        SimpleNamespace(
+            id="AUTORED",
+            nome="autocertificazione reddituale.pdf",
+            descrizione="Autocertificazione situazione reddituale",
+            catalogRole="allegato",
+        )
+    ]
+
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=documents)
+
+    assert contribution["resolved"] is True
+    assert contribution["mode"] == "esente"
+    assert contribution["status"] == "non_previsto"
+    assert contribution["natura"] == "esenzione_contributo_unificato"
+    assert contribution["source"] == "autocertificazione reddituale.pdf"
+
+
+def test_contributo_unificato_non_scambia_richiesta_pagamento_carta_docente_per_cu():
+    fascicolo = SimpleNamespace(
+        titolo="Martorano Mara c. MIM",
+        oggetto="Carta docente",
+        tipo_procedimento="Lavoro pubblico impiego",
+        area_pratica="Lavoro",
+        controparte="Ministero dell'Istruzione e del Merito",
+        codice_oggetto_pst="222050",
+        dati_json={},
+        profilo_deposito={},
+        pagamenti={},
+    )
+    documents = [
+        SimpleNamespace(
+            id="EML1",
+            nome='Richiesta pagamento annualita "CARTA DEL DOCENTE" (3).eml',
+            descrizione="Richiesta pagamento annualita Carta del docente",
+            catalogRole="allegato",
+        )
+    ]
+
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=documents)
+
+    assert contribution["resolved"] is False
+    assert contribution["mode"] == "da_definire"
+    assert contribution["source"] == ""
+
+
+def test_contributo_unificato_riconosce_ricevuta_pagopa_selezionata():
+    fascicolo = SimpleNamespace(
+        titolo="Ricorso ordinario",
+        oggetto="Pagamento contributo",
+        tipo_procedimento="Civile",
+        area_pratica="Civile",
+        controparte="Controparte",
+        codice_oggetto_pst="111001",
+        dati_json={},
+        profilo_deposito={},
+        pagamenti={},
+    )
+    documents = [
+        SimpleNamespace(
+            id="CU1",
+            nome="Ricevuta PagoPA contributo unificato euro 98,00.pdf",
+            descrizione="Ricevuta telematica pagamento contributo unificato IUV 123",
+            catalogRole="contributo_unificato",
+        )
+    ]
+
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=documents)
+
+    assert contribution["resolved"] is True
+    assert contribution["mode"] == "pagato"
+    assert contribution["importo"] == 98.0
+    assert contribution["source"] == "Ricevuta PagoPA contributo unificato euro 98,00.pdf"
+
+
 def test_readiness_deposito_pagato_senza_importo_indica_il_dato_mancante():
     fascicolo = _fascicolo()
     fascicolo.valore_causa = 500.0

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.104
+IUSENTRA Local Signer - v1.6.105
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -119,7 +119,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.104"
+VERSION = "1.6.105"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3647,6 +3647,7 @@ $cms = New-Object System.Security.Cryptography.Pkcs.SignedCms -ArgumentList $con
 $signer = New-Object System.Security.Cryptography.Pkcs.CmsSigner -ArgumentList $cert
 $signer.IncludeOption = [System.Security.Cryptography.X509Certificates.X509IncludeOption]::EndCertOnly
 try { $signer.DigestAlgorithm = New-Object System.Security.Cryptography.Oid('2.16.840.1.101.3.4.2.1') } catch {}
+try { $signer.SignedAttributes.Add((New-Object System.Security.Cryptography.Pkcs.Pkcs9SigningTime)) } catch {}
 $cms.ComputeSignature($signer, $false)
 [System.IO.File]::WriteAllBytes($OutputPath, $cms.Encode())
 '''
@@ -3895,7 +3896,7 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             visible_signature_place=visible_signature_place,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
         )
-        signed_attrs_der = _build_signed_attrs_der_inline(documento)
+        signed_attrs_der = _build_signed_attrs_der_inline(documento, cert_der=cert_der)
 
         # Firma RSA-PKCS1v15-SHA256 in-device sui SignedAttributes CAdES.
         # python-pkcs11 espone la firma sul private key object, non sulla sessione.
@@ -3924,14 +3925,25 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
     return firmato, {"intestatario": intestatario, "scadenza": scadenza}
 
 
-def _build_signed_attrs_der_inline(documento: bytes) -> bytes:
+def _build_signed_attrs_der_inline(documento: bytes, cert_der: Optional[bytes] = None) -> bytes:
+    doc_digest = hashlib.sha256(documento).digest()
+    try:
+        from pct.firma_pkcs11 import build_cades_signed_attrs_der
+
+        return build_cades_signed_attrs_der(doc_digest, cert_der=cert_der)
+    except Exception:
+        pass
+
     from asn1crypto import cms, core
 
-    doc_digest = hashlib.sha256(documento).digest()
     signed_attrs = cms.CMSAttributes([
         cms.CMSAttribute({
             "type": cms.CMSAttributeType("content_type"),
             "values": cms.SetOfContentType([cms.ContentType("data")]),
+        }),
+        cms.CMSAttribute({
+            "type": cms.CMSAttributeType("signing_time"),
+            "values": [cms.Time({"utc_time": datetime.now(UTC)})],
         }),
         cms.CMSAttribute({
             "type": cms.CMSAttributeType("message_digest"),

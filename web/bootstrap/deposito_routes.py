@@ -51,6 +51,18 @@ from web.services.deposito_catalogo_runtime import (
 )
 from web.services.security_redaction import redacted_json_response
 
+
+def _documenti_selezionati_deposito(fascicolo: Any, atto_id: str, allegati_ids: list[str]) -> list[Any]:
+    selected_ids = {str(atto_id or "").strip()}
+    selected_ids.update(str(item or "").strip() for item in allegati_ids if str(item or "").strip())
+    selected_ids.discard("")
+    return [
+        doc
+        for doc in list(getattr(fascicolo, "documenti", []) or [])
+        if str(getattr(doc, "id", "") or "").strip() in selected_ids
+    ]
+
+
 def register_deposito_routes(
     app: Flask,
     *,
@@ -269,6 +281,7 @@ def register_deposito_routes(
             [item for item in allegati_ids if item != atto_id],
             AllegatoBusta,
         )
+        selected_documents_for_contribution = _documenti_selezionati_deposito(fascicolo, atto_id, allegati_ids)
         ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
         codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
         try:
@@ -296,7 +309,10 @@ def register_deposito_routes(
             operatore=utente.username if utente else "",
             cf_mittente="",
             valore_causa=_valore_causa_fascicolo(fascicolo),
-            contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
+            contributo_unificato=_contributo_unificato_fascicolo(
+                fascicolo,
+                documents=selected_documents_for_contribution,
+            ),
             contributo_unificato_richiesto=datiatto_hint.get("contributo_unificato_richiesto", False),
             contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
@@ -376,6 +392,7 @@ def register_deposito_routes(
                 [item for item in allegati_ids if item != atto_id],
                 AllegatoBusta,
             )
+            selected_documents_for_contribution = _documenti_selezionati_deposito(fascicolo, atto_id, allegati_ids)
             ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
             codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
             busta = BustaTelematica(
@@ -391,7 +408,10 @@ def register_deposito_routes(
                     operatore=utente.username if utente else "",
                     cf_mittente="",
                     valore_causa=_valore_causa_fascicolo(fascicolo),
-                    contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
+                    contributo_unificato=_contributo_unificato_fascicolo(
+                        fascicolo,
+                        documents=selected_documents_for_contribution,
+                    ),
                 )
             )
             pdf_bytes = busta.crea_indice_documenti_pdf()
@@ -638,6 +658,7 @@ def register_deposito_routes(
             [item for item in allegati_ids if item != atto_id],
             AllegatoBusta,
         )
+        selected_documents_for_contribution = _documenti_selezionati_deposito(fascicolo, atto_id, allegati_ids)
         ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
         codice_ufficio = str(ufficio_deposito.get("codice_ufficio") or "SCONOSCIUTO")
         pec_dest = str(ufficio_deposito.get("pec_dest") or "")
@@ -716,7 +737,10 @@ def register_deposito_routes(
             operatore=utente.username if utente else "",
             cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
             valore_causa=_valore_causa_fascicolo(fascicolo),
-            contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
+            contributo_unificato=_contributo_unificato_fascicolo(
+                fascicolo,
+                documents=selected_documents_for_contribution,
+            ),
             contributo_unificato_richiesto=datiatto_hint.get("contributo_unificato_richiesto", False),
             contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,

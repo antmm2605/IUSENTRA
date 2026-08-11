@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 from pct.formatting import format_euro_it
@@ -315,8 +315,11 @@ def valore_causa_fascicolo(fascicolo: Any) -> float | None:
     return ministerial_valore_causa_for_context(fascicolo)
 
 
-def contributo_unificato_fascicolo(fascicolo: Any) -> dict[str, Any]:
-    return ministerial_contributo_unificato_for_context(fascicolo)
+def contributo_unificato_fascicolo(
+    fascicolo: Any,
+    documents: Iterable[Any] | None = None,
+) -> dict[str, Any]:
+    return ministerial_contributo_unificato_for_context(fascicolo, documents=documents)
 
 
 def deposito_ministerial_readiness(
@@ -325,8 +328,9 @@ def deposito_ministerial_readiness(
     get_clienti: Callable[[], Any],
     get_config_studio: Callable[[], Any],
     operatore: str,
+    documents: Iterable[Any] | None = None,
 ) -> dict[str, Any]:
-    contribution = contributo_unificato_fascicolo(fascicolo)
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=documents)
     contribution_mode = str(contribution.get("mode") or "da_definire")
     contribution_labels = {
         "esente": "Esente",

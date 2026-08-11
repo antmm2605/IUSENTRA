@@ -36,6 +36,17 @@ from web.services.local_pec_runtime import (
 from web.services.security_redaction import redacted_json_response
 
 
+def _documenti_selezionati_deposito(fascicolo: Any, atto_id: str, allegati_ids: list[str]) -> list[Any]:
+    selected_ids = {str(atto_id or "").strip()}
+    selected_ids.update(str(item or "").strip() for item in allegati_ids if str(item or "").strip())
+    selected_ids.discard("")
+    return [
+        doc
+        for doc in list(getattr(fascicolo, "documenti", []) or [])
+        if str(getattr(doc, "id", "") or "").strip() in selected_ids
+    ]
+
+
 def register_deposito_legacy_send_route(
     app: Flask,
     *,
@@ -153,6 +164,7 @@ def register_deposito_legacy_send_route(
                     [item for item in allegati_ids if item != atto_id],
                     AllegatoBusta,
                 )
+                selected_documents_for_contribution = _documenti_selezionati_deposito(fascicolo, atto_id, allegati_ids)
 
                 dati = DatiBusta(
                     codice_ufficio=codice_ufficio or tribunale_nome,
@@ -166,7 +178,10 @@ def register_deposito_legacy_send_route(
                     operatore=utente.username if utente else "",
                     cf_mittente="",
                     valore_causa=_valore_causa_fascicolo(fascicolo),
-                    contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
+                    contributo_unificato=_contributo_unificato_fascicolo(
+                        fascicolo,
+                        documents=selected_documents_for_contribution,
+                    ),
                 )
 
                 cfg_studio = get_config_studio().config

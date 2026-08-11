@@ -1652,7 +1652,10 @@ class ValidatorSchemiPST:
                 operatore=str(context.get("operatore") or ""),
                 cf_mittente=str(context.get("cf_mittente") or ""),
                 valore_causa=ministerial_valore_causa_for_context(fascicolo),
-                contributo_unificato=ministerial_contributo_unificato_for_context(fascicolo),
+                contributo_unificato=ministerial_contributo_unificato_for_context(
+                    fascicolo,
+                    documents=selected_documents,
+                ),
             )
             busta = BustaTelematica(dati)
             xml_bytes = busta._crea_xml_dati_atto()

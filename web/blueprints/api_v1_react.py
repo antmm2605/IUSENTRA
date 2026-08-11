@@ -3329,6 +3329,8 @@ def _notifiche_merge_tags(existing: Iterable[Any], source: str) -> list[str]:
         text_value = _notifiche_text(value)
         if not text_value or text_value.casefold() in seen:
             continue
+        if text_value.casefold().startswith("pubblico-elenco:") and text_value != f"pubblico-elenco:{source}":
+            continue
         seen.add(text_value.casefold())
         tags.append(text_value)
     return tags

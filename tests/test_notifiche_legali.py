@@ -49,6 +49,7 @@ from pct.notifiche_legali import (
 from pct.prova_deposito_notifica import validate_deposit_notification_proof
 from pct.clienti import TipoCliente
 from pct.fascicoli import TipoDocumento, TipoFascicolo
+from pct.soggetti import Recapiti, RuoloSoggetto, TipoSoggetto
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.helpers import get_clienti, get_fascicoli, get_soggetti
@@ -2974,6 +2975,65 @@ def test_api_notifiche_legali_destinatario_manuale_non_fonde_pec_diverse_stesso_
     }
     assert "usprc.contenzioso@postacert.istruzione.it" in linked_addresses
     assert "usprc@postacert.istruzione.it" in linked_addresses
+
+
+def test_api_notifiche_legali_destinatario_manuale_sostituisce_fonte_pubblico_elenco_obsoleta(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Romeo Maria c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Romeo Maria",
+            controparte="MINISTERO ISTRUZIONE E DEL MERITO",
+        )
+        existing = get_soggetti().crea(
+            TipoSoggetto.PUBBLICA_AMMINISTRAZIONE,
+            nome_completo="MINISTERO ISTRUZIONE E DEL MERITO",
+            codice_fiscale="80185250588",
+            recapiti=Recapiti(pec="usprc@postacert.istruzione.it"),
+            tag=["pubblico-elenco:reginde", "notifiche-legali"],
+        )
+        get_soggetti().aggiungi_parte(
+            fascicolo.id,
+            existing.id,
+            RuoloSoggetto.CONTROPARTE,
+            "Ministero dell'Istruzione e del Merito",
+        )
+
+    client = app.test_client()
+    response = client.post(
+        "/api/v1/ui/notifiche-legali/destinatari-manuali",
+        json={
+            "practiceId": fascicolo.id,
+            "nome": "USR Calabria - Ambito Territoriale di Reggio Calabria - Ufficio VI",
+            "codiceFiscalePiva": "80007410808",
+            "pec": "usprc@postacert.istruzione.it",
+            "ruolo": "pa",
+            "fontePecSuggerita": "registro_ppaa",
+            "parteRappresentata": "Ministero dell'Istruzione e del Merito",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["subjectId"] == existing.id
+    assert body["recipient"]["fontePecSuggerita"] == "registro_ppaa"
+
+    payload = client.get("/api/v1/ui/notifiche-legali", headers=headers).get_json()
+    matched = [
+        item
+        for item in payload["precompilazione"]["destinatari"]
+        if item.get("id") == existing.id
+    ]
+    assert matched
+    assert matched[0]["fontePecSuggerita"] == "registro_ppaa"
+    with app.app_context():
+        saved = get_soggetti().get(existing.id)
+    assert saved is not None
+    assert "pubblico-elenco:registro_ppaa" in saved.tag
+    assert "pubblico-elenco:reginde" not in saved.tag
 
 
 def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tmp_path: Path):

@@ -99,3 +99,16 @@ Test mirati:
 - `tests/test_notifiche_legali.py::test_api_notifiche_legali_destinatario_manuale_non_fonde_pec_diverse_stesso_ente`
 - `tests/test_notifiche_legali_preview_ui.py::test_manual_recipient_replaces_stale_destination_fields`
 - `npm --prefix frontend run build:vite`
+
+## Aggiornamento 11/08/2026 - fonte pubblica destinatari manuali
+
+Perimetro: solo `/notifiche-legali`, salvataggio e rilettura dei destinatari manuali.
+
+Correzione applicata:
+
+- se un destinatario già presente aveva un tag di pubblico elenco non più coerente con la fonte scelta dall'avvocato, il salvataggio manuale sostituisce quel tag invece di conservarlo accanto a quello nuovo;
+- verifica produzione senza invio PEC reale sul fascicolo `78D6022C`: `usprc@postacert.istruzione.it` e `usprc.contenzioso@postacert.istruzione.it` restano due destinatari separati della notifica.
+
+Test mirato:
+
+- `tests/test_notifiche_legali.py::test_api_notifiche_legali_destinatario_manuale_sostituisce_fonte_pubblico_elenco_obsoleta`

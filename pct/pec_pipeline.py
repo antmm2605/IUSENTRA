@@ -778,17 +778,20 @@ def _receipt_original_message_id(msg: Message, xml_text: str) -> str:
 
 
 def _receipt_recipient_address(xml_text: str, fallback_text: str = "") -> str:
+    delivered_to = xml_tag_value(xml_text, ("consegna", "consegnata"))
     selected = xml_tag_value(
         xml_text,
         (
             "destinatario",
             "destinatari",
             "ricevente",
-            "consegnata",
             "destinatarioOriginale",
         ),
     )
-    haystack = " ".join(part for part in (selected, fallback_text) if part)
+    # Nelle RdAC il postacert contiene sia l'intestazione del messaggio
+    # originario sia il destinatario effettivamente consegnato: per la prova
+    # della singola consegna deve prevalere <consegna>.
+    haystack = " ".join(part for part in (delivered_to, selected, fallback_text) if part)
     match = re.search(r"\b[a-z0-9._%+\-']+@[a-z0-9.\-]+\.[a-z]{2,}\b", haystack, flags=re.I)
     return clean_text(match.group(0).lower() if match else "", 240)
 

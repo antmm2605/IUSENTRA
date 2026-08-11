@@ -87,6 +87,39 @@ def test_pec_audit_schema_crea_indice_validation_reports_message(tmp_path: Path)
     assert "idx_pec_validation_reports_message" in indexes
 
 
+def test_parse_pec_message_rdac_preferisce_destinatario_consegna_postacert() -> None:
+    msg = EmailMessage()
+    msg["From"] = "Posta Certificata Legalmail <posta-certificata@legalmail.it>"
+    msg["To"] = "studio@example.pec.it"
+    msg["Subject"] = "CONSEGNA: Notificazione ai sensi della legge n. 53/1994 [Notifica_ID:RIOEFC9W]"
+    msg["Message-ID"] = "<rdac-test@legalmail.it>"
+    msg["X-Riferimento-Message-ID"] = "<originale@pcmarco>"
+    msg.set_content("Ricevuta di avvenuta consegna per usprc@postacert.istruzione.it")
+    msg.add_attachment(
+        (
+            "<?xml version='1.0' encoding='UTF-8'?>"
+            "<postacert tipo='avvenuta-consegna' errore='nessuno'>"
+            "<intestazione>"
+            "<destinatari tipo='certificato'>ads.rc@mailcert.avvocaturastato.it</destinatari>"
+            "<destinatari tipo='certificato'>usprc@postacert.istruzione.it</destinatari>"
+            "</intestazione>"
+            "<dati>"
+            "<msgid>&lt;originale@pcmarco&gt;</msgid>"
+            "<consegna>usprc@postacert.istruzione.it</consegna>"
+            "</dati>"
+            "</postacert>"
+        ).encode("utf-8"),
+        maintype="application",
+        subtype="xml",
+        filename="daticert.xml",
+    )
+
+    parsed = parse_pec_message(msg.as_bytes(policy=policy.SMTP))
+
+    assert parsed["pec_receipt"]["original_message_id"] == "originale@pcmarco"
+    assert parsed["pec_receipt"]["recipient_address"] == "usprc@postacert.istruzione.it"
+
+
 def test_presidio_documentale_esclude_ricorso_e_data_contrattuale_da_adempimenti():
     actionable, reason = _document_presidio_candidate_is_actionable(
         {

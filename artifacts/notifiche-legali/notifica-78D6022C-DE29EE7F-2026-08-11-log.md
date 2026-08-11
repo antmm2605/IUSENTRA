@@ -100,3 +100,12 @@ Esito test: 7 superati.
 - Esito sesta prova: la UI ha indicato `La PEC è partita dal PC locale, ma la conferma/presidio non è stata completata.`
 - Diagnosi log server: `/api/v1/ui/notifiche-legali/invio-pec-locale/conferma` ha risposto 500 perché il `sentAt` ricevuto dal browser era un timestamp locale senza fuso orario; il presidio richiede timestamp ISO con fuso.
 - Correzione `2.278.11`: la conferma notifica normalizza ogni `sentAt` in `Europe/Rome` prima di creare candidato presidio e ricevuta `SENT`, senza modificare firma, allegati, destinatari o regole di invio.
+
+## Aggiornamento 2.278.12 - destinatario RdAC da `consegna`
+
+- Verifica server successiva all'invio reale: la casella PEC IUSENTRA contiene la RAC delle 15:40:36 e quattro RdAC tra le 15:40:38 e le 15:40:47, tutte con oggetto `Notificazione ai sensi della legge n. 53/1994 e succ. mod. [JQ2026/320-L01] [Notifica_ID:RIOEFC9W]`.
+- Message-ID originario della PEC inviata dal PC locale: `<178645563104.17784.17278236934861831217@pcmarco>`.
+- Identificativo gestore Aruba: `jpec1329.20260811154036.39864.404.1.1@pec.aruba.it`.
+- Diagnosi: le ricevute erano state importate come `unmatched` perché il presidio iniziale non era stato creato dalla conferma fallita; inoltre il parser PEC prendeva il primo `<destinatari>` del `daticert.xml` invece del tag `<consegna>` della singola RdAC, rischiando di attribuire più consegne allo stesso destinatario.
+- Correzione `2.278.12`: nelle RdAC il parser PEC preferisce il tag `<consegna>` e conserva `<destinatari>` come fallback; test dedicato `test_parse_pec_message_rdac_preferisce_destinatario_consegna_postacert`.
+- Prossimo passo operativo: dopo deploy `2.278.12`, riprocessare solo le cinque ricevute già importate e riconciliare il presidio, senza nuovo invio PEC.

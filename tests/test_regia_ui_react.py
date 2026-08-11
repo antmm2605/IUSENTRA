@@ -475,6 +475,10 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "window.prompt" not in deposit_page
     assert "Password PEC locale" in deposit_page
     assert "Username SMTP locale" in deposit_page
+    assert "/impostazioni/pec/local-smtp-payload" in deposit_page
+    assert "const loadSavedLocalPecPayload" in deposit_page
+    assert "let localSendPayload = await loadSavedLocalPecPayload(localPayload)" in deposit_page
+    assert "body: JSON.stringify(localSendPayload)" in deposit_page
     assert "recordText(localPayload, 'username'" in deposit_page
     assert "Invia dal PC locale" in deposit_page
     assert "local_pec_confirmed" in deposit_page

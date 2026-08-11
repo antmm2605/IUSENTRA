@@ -2074,6 +2074,49 @@ function DepositPreparePage({ id }:{id:string}) {
   const downloadBustaAction = `/fascicoli/${encodedId}/deposito/genera-busta`
   const dryRunBustaAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction
   const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction
+  const loadSavedLocalPecPayload = async (localPayload: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+    const token = csrfToken()
+    try {
+      const response = await fetch('/impostazioni/pec/local-smtp-payload', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(token ? { 'X-CSRFToken': token } : {}),
+        },
+        body: JSON.stringify({
+          indirizzo: recordText(localPayload, 'indirizzo', recordText(localPayload, 'from')),
+          username: recordText(localPayload, 'username', recordText(localPayload, 'indirizzo')),
+          smtp_host: recordText(localPayload, 'smtp_host'),
+          smtp_port: recordNumber(localPayload, 'smtp_port', 465),
+          use_ssl: recordBool(localPayload, 'use_ssl'),
+        }),
+      })
+      const saved = await response.json().catch(() => ({})) as Record<string, unknown>
+      const savedPayload = saved.payload && typeof saved.payload === 'object' && !Array.isArray(saved.payload)
+        ? saved.payload as Record<string, unknown>
+        : {}
+      const savedPassword = String(savedPayload.password ?? '')
+      if (!response.ok || saved.ok === false || !savedPassword) return null
+      const savedUseSsl = Object.prototype.hasOwnProperty.call(savedPayload, 'use_ssl')
+        ? recordBool(savedPayload, 'use_ssl')
+        : recordBool(localPayload, 'use_ssl')
+      return {
+        ...localPayload,
+        indirizzo: recordText(savedPayload, 'indirizzo', recordText(localPayload, 'indirizzo')),
+        username: recordText(savedPayload, 'username', recordText(localPayload, 'username', recordText(localPayload, 'indirizzo'))),
+        from: recordText(savedPayload, 'indirizzo', recordText(localPayload, 'from', recordText(localPayload, 'indirizzo'))),
+        password: savedPassword,
+        smtp_host: recordText(savedPayload, 'smtp_host', recordText(localPayload, 'smtp_host')),
+        smtp_port: recordNumber(savedPayload, 'smtp_port', recordNumber(localPayload, 'smtp_port', 465)),
+        use_ssl: savedUseSsl,
+      }
+    } catch {
+      return null
+    }
+  }
   const requestLocalPecPassword = (localPayload: Record<string, unknown>) => new Promise<string>((resolve, reject) => {
     const attachments = Array.isArray(localPayload.attachments)
       ? localPayload.attachments
@@ -2216,16 +2259,20 @@ function DepositPreparePage({ id }:{id:string}) {
       throw new Error(localSignerProbeFailureMessage(signerStatus, 'inviare la PEC dal PC locale'))
     }
     endpoint = localSignerEndpointForPayload(endpoint, '/pec/send', signerStatus)
-    const password = await requestLocalPecPassword(localPayload)
-    if (!password.trim()) {
-      throw new Error('Password PEC mancante. Inseriscila per completare l’invio dal PC locale.')
+    let localSendPayload = await loadSavedLocalPecPayload(localPayload)
+    if (!localSendPayload) {
+      const password = await requestLocalPecPassword(localPayload)
+      if (!password.trim()) {
+        throw new Error('Password PEC mancante. Inseriscila per completare l’invio dal PC locale.')
+      }
+      localSendPayload = { ...localPayload, password }
     }
     const localRequestOptions: LocalNetworkRequestInit = {
       method: 'POST',
       mode: 'cors',
       targetAddressSpace: 'loopback',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...localPayload, password }),
+      body: JSON.stringify(localSendPayload),
     }
     const localResponse = await fetch(endpoint, localRequestOptions)
     const localResult = await parseLocalSignerResponse(localResponse)

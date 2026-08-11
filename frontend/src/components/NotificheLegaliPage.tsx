@@ -3595,7 +3595,48 @@ export function NotificheLegaliPage() {
     setLocalPecPasswordError('')
   }
 
-  const sendNotificationLocalPecMessage = async (message: LocalPecMessage, password: string) => {
+  const loadSavedNotificationLocalPecPayload = async (localPayload: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+    const token = csrfToken()
+    try {
+      const response = await fetch('/impostazioni/pec/local-smtp-payload', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(token ? { 'X-CSRFToken': token } : {}),
+        },
+        body: JSON.stringify({
+          indirizzo: localPecText(localPayload['indirizzo'] || localPayload['from']),
+          username: localPecText(localPayload['username'] || localPayload['indirizzo']),
+          smtp_host: localPecText(localPayload['smtp_host']),
+          smtp_port: Number(localPayload['smtp_port'] || 465),
+          use_ssl: pecBoolean(localPayload['use_ssl']),
+        }),
+      })
+      const saved = await response.json().catch(() => ({})) as Record<string, unknown>
+      const savedPayload = isRecord(saved['payload']) ? saved['payload'] : {}
+      const savedPassword = String(savedPayload['password'] ?? '')
+      if (!response.ok || saved['ok'] === false || !savedPassword) return null
+      return {
+        ...localPayload,
+        indirizzo: localPecText(savedPayload['indirizzo'], localPecText(localPayload['indirizzo'])),
+        username: localPecText(savedPayload['username'], localPecText(localPayload['username'] || localPayload['indirizzo'])),
+        from: localPecText(savedPayload['indirizzo'], localPecText(localPayload['from'] || localPayload['indirizzo'])),
+        password: savedPassword,
+        smtp_host: localPecText(savedPayload['smtp_host'], localPecText(localPayload['smtp_host'])),
+        smtp_port: Number(savedPayload['smtp_port'] || localPayload['smtp_port'] || 465),
+        use_ssl: Object.prototype.hasOwnProperty.call(savedPayload, 'use_ssl')
+          ? pecBoolean(savedPayload['use_ssl'])
+          : pecBoolean(localPayload['use_ssl']),
+      }
+    } catch {
+      return null
+    }
+  }
+
+  const sendNotificationLocalPecMessage = async (message: LocalPecMessage, localSendPayload: Record<string, unknown>) => {
     const localPayload = localPecRecord(message.payload)
     if (!Object.keys(localPayload).length) {
       throw new Error('Payload PEC locale non disponibile.')
@@ -3606,7 +3647,7 @@ export function NotificheLegaliPage() {
       mode: 'cors',
       targetAddressSpace: 'loopback',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...localPayload, password }),
+      body: JSON.stringify(localSendPayload),
     }
     const response = await fetch(endpoint, requestOptions)
     const localResult = await parseLocalPecResponse(response)
@@ -3694,13 +3735,18 @@ export function NotificheLegaliPage() {
       }
       updateLocalPecProgress('password', 'Relata firmata e allegata: inserisci la password PEC, resta solo su questo PC.')
       await ensureRelataLocalPecServiceReady()
-      const password = await requestNotificationPecPassword(messages[0])
+      const localPayload = localPecRecord(messages[0].payload)
+      let localSendPayload = await loadSavedNotificationLocalPecPayload(localPayload)
+      if (!localSendPayload) {
+        const password = await requestNotificationPecPassword(messages[0])
+        localSendPayload = { ...localPayload, password }
+      }
       updateLocalPecProgress('trasmissione', 'Password acquisita localmente: trasmetto la PEC.')
       setResult({
         ...prepared,
         message: 'Invio PEC dal PC locale in corso.',
       })
-      const sent = [await sendNotificationLocalPecMessage(messages[0], password)]
+      const sent = [await sendNotificationLocalPecMessage(messages[0], localSendPayload)]
       updateLocalPecProgress('conferma', `Message-ID ricevuto: ${sent[0].messageId}. Registro conferma e presidio.`)
       const confirmation = await postLegalWorkflow(data.azioni.confermaInvioPecLocale, {
         payload,

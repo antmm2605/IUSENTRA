@@ -73,6 +73,13 @@ Esito test: 7 superati.
 
 ## Stato operativo corrente
 
-- In attesa di deploy della correzione `2.278.8` e nuova prova reale.
-- La password PEC non è stata richiesta nelle prove precedenti.
-- Nessuna PEC è stata trasmessa nelle prove precedenti.
+## Aggiornamento 2.278.9 - payload PEC da Impostazioni
+
+- 11/08/2026 15:07 circa: produzione `2.278.8` verificata con 4 destinatari selezionati, modello `01 - Relata PEC base`, controllo relata superato e nessun blocco visibile.
+- 11/08/2026 15:08 circa: premuto `Invia PEC` dopo firma relata sul PC locale. Il blocco sulla relata firmata non compare più; relata e allegati PEC risultano preparati.
+- Esito quarta prova: nessuna PEC trasmessa; il flusso arriva al Local Signer e si ferma con `Autenticazione SMTP PEC locale non riuscita verso smtps.pec.aruba.it:465`.
+- Diagnosi aggiornata: la notifica chiedeva/inviava la password PEC manuale, mentre il deposito recupera il payload SMTP locale da `/impostazioni/pec/local-smtp-payload` usando la configurazione PEC salvata in Impostazioni.
+- Correzione `2.278.9`: il flusso notifica usa lo stesso endpoint del deposito per caricare indirizzo, username, host, porta, SSL e password PEC salvata; se la password salvata non è disponibile resta la richiesta manuale.
+- Test mirato: `python -m pytest tests/test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q` superato.
+- Build mirata: `pnpm --filter @iusentra/studio build:vite` superata.
+- Stato: in attesa di deploy `2.278.9` e nuova prova reale su produzione.

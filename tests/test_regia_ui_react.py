@@ -587,6 +587,11 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "LOCAL_PEC_PROGRESS_STEPS" in source
     assert "iu-legal-local-pec-progress__bar" in source
     assert "Conferma invio PEC dal PC locale" in source
+    assert "/impostazioni/pec/local-smtp-payload" in source
+    assert "const loadSavedNotificationLocalPecPayload" in source
+    assert "let localSendPayload = await loadSavedNotificationLocalPecPayload(localPayload)" in source
+    assert "body: JSON.stringify(localSendPayload)" in source
+    assert "sendNotificationLocalPecMessage(messages[0], localSendPayload)" in source
     assert "const password = localPecPassword\n" in source
     assert "const password = localPecPassword.trim()" not in source
     assert "Mittente PEC" in source

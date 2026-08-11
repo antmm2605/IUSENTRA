@@ -109,3 +109,28 @@ Esito test: 7 superati.
 - Diagnosi: le ricevute erano state importate come `unmatched` perché il presidio iniziale non era stato creato dalla conferma fallita; inoltre il parser PEC prendeva il primo `<destinatari>` del `daticert.xml` invece del tag `<consegna>` della singola RdAC, rischiando di attribuire più consegne allo stesso destinatario.
 - Correzione `2.278.12`: nelle RdAC il parser PEC preferisce il tag `<consegna>` e conserva `<destinatari>` come fallback; test dedicato `test_parse_pec_message_rdac_preferisce_destinatario_consegna_postacert`.
 - Prossimo passo operativo: dopo deploy `2.278.12`, riprocessare solo le cinque ricevute già importate e riconciliare il presidio, senza nuovo invio PEC.
+
+## Chiusura operativa 2.278.12 - presidio riconciliato
+
+- 11/08/2026 16:12: deploy Hetzner completato sul commit `438fa843f4ac8890494f6dba2e57b07349b57a34`, versione `2.278.12`.
+- `https://app.iusentra.it/api/pronto`: risposta `ok`, versione `2.278.12`, timezone `Europe/Rome`.
+- Container applicativo verificato: unico container `iusentra-app`, stato healthy.
+- Nessun nuovo invio PEC eseguito: è stata riconciliata solo la PEC già partita dal PC locale.
+- Presidio creato/agganciato: `433baecf-01cd-4b4a-8ea5-2ec1525abc77`.
+- Stato presidio finale: `DELIVERY_COMPLETE`.
+- Message-ID originario: `<178645563104.17784.17278236934861831217@pcmarco>`.
+- RAC agganciata: `<jpec1329.20260811154036.39864.404.1.2@pec.aruba.it>`, ricevuta alle 15:40:36 Europe/Rome.
+- RdAC agganciate:
+  - `ads.rc@mailcert.avvocaturastato.it`: `<FC42F55D-FCB0-E930-D199-B0F3970999DC@telecompost.it>`, consegna alle 15:40:47 Europe/Rome.
+  - `dgosv@postacert.istruzione.it`: `<D6636C9B.00246424.F10DC2FE.3AD6A5E4.posta-certificata@legalmail.it>`, consegna alle 15:40:38 Europe/Rome.
+  - `usprc.contenzioso@postacert.istruzione.it`: `<D66A81BA.00245026.F10DC2CA.A5E285A5.posta-certificata@legalmail.it>`, consegna alle 15:40:38 Europe/Rome.
+  - `usprc@postacert.istruzione.it`: `<D6636C9B.00246423.F10DC2BF.3AD6A5E4.posta-certificata@legalmail.it>`, consegna alle 15:40:38 Europe/Rome.
+- Documenti collegati al presidio:
+  - `DE29EE7F` - atto notificato `SentenzaDefinitiva_35882174.pdf`.
+  - `1D95D185` - relata firmata `Relata_di_notificazione_Avvocatura_dello_Stato_20260811.pdf.p7m`.
+  - `21E515FD` - attestazione `Attestazione_di_conformita_1428_2026.pdf`.
+  - `8D1A00F7` - RAC `.eml`.
+  - `7EAC29C5`, `E31074B9`, `CB5746C4`, `F6D2D992` - quattro RdAC `.eml`.
+- Le cinque righe storiche `unmatched` della notifica `RIOEFC9W` risultano ora `matched` sul presidio corretto.
+- Evidenze audit collegate al presidio: 12.
+- Perimetro rispettato: solo notifica L. 53/1994, nessuna modifica operativa al deposito.

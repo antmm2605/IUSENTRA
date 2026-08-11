@@ -60,6 +60,7 @@ import {
   type LegalWorkflowResult,
   type NotificheLegaliData,
 } from '../notificheLegaliData'
+import { csrfToken } from '../formSubmit'
 import { formatDateIt, formatDateTimeIt } from '../formatting'
 import './NotificheLegaliPage.css'
 

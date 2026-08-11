@@ -83,3 +83,12 @@ Esito test: 7 superati.
 - Test mirato: `python -m pytest tests/test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q` superato.
 - Build mirata: `pnpm --filter @iusentra/studio build:vite` superata.
 - Stato: in attesa di deploy `2.278.9` e nuova prova reale su produzione.
+
+## Aggiornamento 2.278.10 - helper CSRF notifiche
+
+- 11/08/2026 15:31 circa: produzione `2.278.9` verificata su commit `7661d8ebbe698926c34c44b0152b8c3526af2f9e`; container unico `iusentra-app` healthy e `/api/pronto` ok.
+- Prova reale: selezionati i 4 destinatari richiesti, modello `01 - Relata PEC base`, controllo relata superato, nessun `bloccante`.
+- Premuto `Invia PEC` dopo inserimento PIN sul PC locale. Nessuna PEC trasmessa.
+- Esito quinta prova: il flusso si è fermato prima della trasmissione con `csrfToken is not defined`, durante il recupero del payload PEC salvato da Impostazioni.
+- Diagnosi: il componente Notifiche Legali richiamava `csrfToken()` come il deposito, ma non importava l'helper da `formSubmit`.
+- Correzione `2.278.10`: importato `csrfToken` in `NotificheLegaliPage.tsx`; aggiunto guardrail nel test mirato per bloccare regressioni.

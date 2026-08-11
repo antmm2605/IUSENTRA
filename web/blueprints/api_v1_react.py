@@ -3459,6 +3459,72 @@ def _normalise_relata_text_for_comparison(value: str) -> str:
     return re.sub(r"\s+", " ", normalised).strip()
 
 
+_NOTIFICHE_RELATA_SOURCE_SESSION_KEY = "notifiche_relata_sources"
+_NOTIFICHE_RELATA_SOURCE_TTL_SECONDS = 15 * 60
+_NOTIFICHE_RELATA_SOURCE_MAX_ROWS = 5
+
+
+def _notifiche_relata_payload_digest(payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(
+        dict(payload),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8", errors="ignore")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _remember_notifiche_relata_source(payload: Mapping[str, Any], source_sha256: str) -> None:
+    source_sha256 = str(source_sha256 or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+        return
+    now = time.time()
+    raw_rows = session.get(_NOTIFICHE_RELATA_SOURCE_SESSION_KEY)
+    rows = raw_rows if isinstance(raw_rows, dict) else {}
+    cleaned: dict[str, dict[str, Any]] = {}
+    for key, value in rows.items():
+        if not isinstance(value, Mapping):
+            continue
+        try:
+            created_at = float(value.get("createdAt") or 0)
+        except (TypeError, ValueError):
+            continue
+        if now - created_at <= _NOTIFICHE_RELATA_SOURCE_TTL_SECONDS:
+            cleaned[str(key)] = {
+                "payloadSha256": str(value.get("payloadSha256") or ""),
+                "createdAt": created_at,
+            }
+    cleaned[source_sha256] = {
+        "payloadSha256": _notifiche_relata_payload_digest(payload),
+        "createdAt": now,
+    }
+    kept = dict(
+        sorted(cleaned.items(), key=lambda item: float(item[1].get("createdAt") or 0), reverse=True)[
+            :_NOTIFICHE_RELATA_SOURCE_MAX_ROWS
+        ]
+    )
+    session[_NOTIFICHE_RELATA_SOURCE_SESSION_KEY] = kept
+    session.modified = True
+
+
+def _notifiche_relata_source_matches_session(payload: Mapping[str, Any], source_sha256: str) -> bool:
+    source_sha256 = str(source_sha256 or "").strip().lower()
+    rows = session.get(_NOTIFICHE_RELATA_SOURCE_SESSION_KEY)
+    if not isinstance(rows, Mapping):
+        return False
+    row = rows.get(source_sha256)
+    if not isinstance(row, Mapping):
+        return False
+    try:
+        created_at = float(row.get("createdAt") or 0)
+    except (TypeError, ValueError):
+        return False
+    if time.time() - created_at > _NOTIFICHE_RELATA_SOURCE_TTL_SECONDS:
+        return False
+    return str(row.get("payloadSha256") or "") == _notifiche_relata_payload_digest(payload)
+
+
 def _extract_pdf_text_for_relata(data: bytes) -> str:
     from pypdf import PdfReader
 
@@ -4818,6 +4884,7 @@ def notifiche_legali_relata_pdf():
         )
     content = generate_relata_pdf_bytes(payload)
     source_sha256 = hashlib.sha256(content).hexdigest()
+    _remember_notifiche_relata_source(payload, source_sha256)
     date_token = re.sub(r"[^0-9]", "", str(payload.get("data_relata") or date.today().isoformat()))[:8]
     filename = f"Relata_di_notificazione_{date_token or date.today().strftime('%Y%m%d')}.pdf"
     _audit_event(
@@ -4880,18 +4947,21 @@ def notifiche_legali_relata_firmata():
     source_pdf = inspected.payload_bytes
     if not source_pdf.startswith(b"%PDF"):
         return jsonify({"ok": False, "message": "Il file firmato non contiene la relata PDF generata da IUSENTRA."}), 400
+    source_sha256 = hashlib.sha256(source_pdf).hexdigest()
     try:
         actual_text = _extract_pdf_text_for_relata(source_pdf)
     except Exception:
         return jsonify({"ok": False, "message": "Il contenuto della relata firmata non e' leggibile."}), 400
-    if _normalise_relata_text_for_comparison(actual_text) != _normalise_relata_text_for_comparison(result.relata_text):
+    if (
+        not _notifiche_relata_source_matches_session(payload, source_sha256)
+        and _normalise_relata_text_for_comparison(actual_text) != _normalise_relata_text_for_comparison(result.relata_text)
+    ):
         return jsonify({"ok": False, "message": "Il file firmato non corrisponde alla relata corrente. Rigenera e firma la relata aggiornata."}), 409
 
     signatures = analizza_firma_documento(signed_data, Path(uploaded.filename).name)
     if not signatures or any(bool(item.get("scaduto")) for item in signatures):
         return jsonify({"ok": False, "message": "Il certificato di firma della relata non e' valido alla data del controllo."}), 400
 
-    source_sha256 = hashlib.sha256(source_pdf).hexdigest()
     evidence_tag = f"relata-source-sha256:{source_sha256}"
     existing = next(
         (

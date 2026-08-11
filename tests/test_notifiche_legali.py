@@ -52,6 +52,7 @@ from pct.fascicoli import TipoDocumento, TipoFascicolo
 from pct.soggetti import Recapiti, RuoloSoggetto, TipoSoggetto
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
+from web.blueprints import api_v1_react as react_api
 from web.helpers import get_clienti, get_fascicoli, get_soggetti
 from web.services import react_notifiche_legali_bridge
 from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
@@ -2584,6 +2585,68 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert non_pec_blocked_response.status_code == 400
     assert non_pec_blocked_payload["ok"] is False
     assert any("NOTIFICA_ID_REQUIRED" in item for item in non_pec_blocked_payload["blockers"])
+
+
+def test_api_react_notifiche_legali_relata_firmata_usa_pdf_generato_nella_stessa_sessione(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Pratica firma relata Studio Telematico",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Notifica",
+        )
+
+    payload = _legal_payload()
+    payload.update({
+        "fascicolo_id": fascicolo.id,
+        "practice_id": fascicolo.id,
+        "practiceId": fascicolo.id,
+    })
+    source_response = client.post(
+        "/api/v1/ui/notifiche-legali/relata-pdf",
+        json=payload,
+        headers=headers,
+    )
+    assert source_response.status_code == 200
+    source_pdf = source_response.data
+    assert hashlib.sha256(source_pdf).hexdigest() == source_response.headers["X-IUSENTRA-Document-SHA256"]
+
+    monkeypatch.setattr(
+        "pct.firme_cades.inspect_signed_document_bytes",
+        lambda *, source_name, data: SimpleNamespace(
+            status=SimpleNamespace(signature_verified=True),
+            payload_bytes=source_pdf,
+        ),
+    )
+    monkeypatch.setattr(
+        "pct.firma.analizza_firma_documento",
+        lambda data, name: [{"firmatario": "Mario Rossi", "scaduto": False}],
+    )
+    monkeypatch.setattr(
+        react_api,
+        "_extract_pdf_text_for_relata",
+        lambda data: "testo estratto diverso ma PDF sorgente identico",
+    )
+
+    signed_response = client.post(
+        "/api/v1/ui/notifiche-legali/relata-firmata",
+        data={
+            "payload": json.dumps(payload),
+            "file": (io.BytesIO(b"fake-cades-signed-data"), "relata_notifica.pdf.p7m"),
+        },
+        headers=headers,
+        content_type="multipart/form-data",
+    )
+    signed_payload = signed_response.get_json()
+
+    assert signed_response.status_code == 200
+    assert signed_payload["ok"] is True
+    assert signed_payload["sourceSha256"] == hashlib.sha256(source_pdf).hexdigest()
 
 
 def test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e_presidio(tmp_path: Path):

@@ -3350,6 +3350,9 @@ def _notifiche_find_manual_subject(repo: Any, *, pec: str, identity: str, label:
             return soggetto
     if identity:
         for soggetto in subjects:
+            current_pec = _notifiche_pec(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
+            if current_pec and current_pec != pec:
+                continue
             values = {
                 normalizza_identificativo_anagrafico(getattr(soggetto, "codice_fiscale", "")),
                 normalizza_identificativo_anagrafico(getattr(soggetto, "partita_iva", "")),

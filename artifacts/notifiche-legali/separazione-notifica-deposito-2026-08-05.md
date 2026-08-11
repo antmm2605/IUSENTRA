@@ -80,4 +80,22 @@ Test eseguiti dopo la correzione:
 - `python -m pytest tests/test_notifiche_legali.py::test_api_react_notifiche_legali_invio_locale_usa_allegati_reali_message_id_e_presidio -q`
 - `npm --prefix frontend run typecheck`
 - `npm --prefix frontend run test:notifiche-legali-presidi:bundle`
+
+## Aggiornamento 11/08/2026 - destinatari manuali con PEC distinte
+
+Perimetro: solo `/notifiche-legali`, inserimento manuale destinatari e precompilazione dei destinatari della notifica.
+
+Caso reale segnalato: `usprc@postacert.istruzione.it` e `usprc.contenzioso@postacert.istruzione.it` sono due domicili PEC diversi. Anche se appartengono allo stesso ente o condividono dati identificativi, devono poter essere presenti entrambi nella notifica e non devono essere fusi.
+
+Correzione applicata:
+
+- quando l'avvocato scrive una PEC nella ricerca o nel riquadro manuale, quella PEC ha precedenza sui dati del destinatario già selezionato;
+- una PEC `postacert.istruzione.it` viene proposta come Registro PP.AA. e ruolo `PA`, senza lasciare il default `controparte` del vecchio form;
+- il backend non riusa un soggetto esistente con la stessa identità quando la PEC già salvata è diversa dalla PEC che l'avvocato sta inserendo;
+- il nuovo destinatario manuale viene salvato come soggetto distinto e collegato al fascicolo, così alla riapertura della notifica restano visibili entrambe le PEC.
+
+Test mirati:
+
+- `tests/test_notifiche_legali.py::test_api_notifiche_legali_destinatario_manuale_non_fonde_pec_diverse_stesso_ente`
+- `tests/test_notifiche_legali_preview_ui.py::test_manual_recipient_replaces_stale_destination_fields`
 - `npm --prefix frontend run build:vite`

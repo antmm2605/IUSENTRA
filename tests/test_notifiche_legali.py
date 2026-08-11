@@ -2909,6 +2909,73 @@ def test_api_notifiche_legali_destinatario_manuale_salva_soggetto_e_ricarica(tmp
         assert len(get_soggetti().tutti()) == 1
 
 
+def test_api_notifiche_legali_destinatario_manuale_non_fonde_pec_diverse_stesso_ente(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Romeo Maria c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Romeo Maria",
+        )
+
+    client = app.test_client()
+    first_response = client.post(
+        "/api/v1/ui/notifiche-legali/destinatari-manuali",
+        json={
+            "practiceId": fascicolo.id,
+            "nome": "MIM - USR Reggio Calabria",
+            "codiceFiscalePiva": "80007410808",
+            "pec": "usprc.contenzioso@postacert.istruzione.it",
+            "ruolo": "pa",
+            "fontePecSuggerita": "registro_ppaa",
+            "parteRappresentata": "Ministero dell'Istruzione e del Merito",
+        },
+        headers=headers,
+    )
+    second_response = client.post(
+        "/api/v1/ui/notifiche-legali/destinatari-manuali",
+        json={
+            "practiceId": fascicolo.id,
+            "nome": "USR Calabria - Ambito Territoriale di Reggio Calabria - Ufficio VI",
+            "codiceFiscalePiva": "80007410808",
+            "pec": "usprc@postacert.istruzione.it",
+            "ruolo": "pa",
+            "fontePecSuggerita": "registro_ppaa",
+            "parteRappresentata": "Ministero dell'Istruzione e del Merito",
+        },
+        headers=headers,
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    first = first_response.get_json()
+    second = second_response.get_json()
+    assert first["subjectId"] != second["subjectId"]
+    assert second["recipient"]["pec"] == "usprc@postacert.istruzione.it"
+    assert second["recipient"]["ruolo"] == "pa"
+    assert second["recipient"]["fontePecSuggerita"] == "registro_ppaa"
+    assert second["linkedToPractice"] is True
+
+    payload = client.get("/api/v1/ui/notifiche-legali", headers=headers).get_json()
+    saved_addresses = {
+        item["pec"]
+        for item in payload["precompilazione"]["destinatari"]
+        if item.get("codiceFiscalePiva") == "80007410808"
+    }
+    assert "usprc.contenzioso@postacert.istruzione.it" in saved_addresses
+    assert "usprc@postacert.istruzione.it" in saved_addresses
+    with app.app_context():
+        parts = get_soggetti().parti_fascicolo(fascicolo.id)
+    linked_addresses = {
+        soggetto.recapiti.pec
+        for _, soggetto in parts
+        if getattr(getattr(soggetto, "recapiti", None), "pec", "")
+    }
+    assert "usprc.contenzioso@postacert.istruzione.it" in linked_addresses
+    assert "usprc@postacert.istruzione.it" in linked_addresses
+
+
 def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

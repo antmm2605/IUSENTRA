@@ -82,6 +82,9 @@ def test_manual_recipient_replaces_stale_destination_fields() -> None:
     assert "destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf" not in source
     assert "destinatario_pec: recipient.pec || current.destinatario_pec" not in source
     assert "manualNameTyped\n        ? manualRecipientDraft.codiceFiscalePiva" in source
+    assert "const pec = normalizePecAddress(draftPec || searchPec || notifica.destinatario_pec)" in source
+    assert "suggestedPublicRegisterFromPec(pec)" in source
+    assert "manualRecipientDraft.ruolo === 'controparte' && fonte === 'registro_ppaa'" in source
     assert "destinatario_cf: recipient.codiceFiscalePiva || ''" in source
     assert "codice_fiscale_piva: isActive ? notifica.destinatario_cf : recipient.codiceFiscalePiva" in source
 

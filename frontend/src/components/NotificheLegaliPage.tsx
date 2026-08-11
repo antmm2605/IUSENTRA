@@ -933,6 +933,14 @@ function normalizePecAddress(value: unknown): string {
   return String(value || '').trim().toLowerCase()
 }
 
+function suggestedPublicRegisterFromPec(address: unknown): string {
+  const lower = normalizePecAddress(address)
+  if (!lower) return ''
+  if (lower.includes('avvocaturastato') || lower.includes('mailcert.avvocaturastato')) return 'reginde'
+  if (lower.includes('postacert.istruzione.it') || lower.includes('pec.istruzione.it') || lower.endsWith('.gov.it')) return 'registro_ppaa'
+  return ''
+}
+
 function firstEmailAddress(value: unknown): string {
   return String(value || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ''
 }
@@ -2300,7 +2308,7 @@ export function NotificheLegaliPage() {
   const manualRecipientFromFields = (): LegalRecipientSuggestion | null => {
     const draftPec = firstEmailAddress(manualRecipientDraft.pec)
     const searchPec = firstEmailAddress(recipientSearch)
-    const pec = normalizePecAddress(draftPec || notifica.destinatario_pec || searchPec)
+    const pec = normalizePecAddress(draftPec || searchPec || notifica.destinatario_pec)
     if (!looksLikeEmailAddress(pec)) {
       setPecVerificationMessage('Inserisci una PEC valida nel riquadro manuale, nel campo PEC destinatario oppure nella ricerca.')
       return null
@@ -2308,7 +2316,13 @@ export function NotificheLegaliPage() {
     const nameFromSearch = recipientSearch.replace(searchPec, '').trim()
     const manualNameTyped = manualRecipientDraft.nome.trim()
     const nome = (manualNameTyped || notifica.destinatario_nome || nameFromSearch || pec).trim()
-    const fonte = normalizePecSource(manualRecipientDraft.fontePec || notifica.fonte_pec_destinatario || 'reginde') || 'reginde'
+    const inferredSource = suggestedPublicRegisterFromPec(pec)
+    const draftSource = normalizePecSource(manualRecipientDraft.fontePec)
+    const fonte = normalizePecSource(
+      draftSource === 'reginde' && inferredSource && inferredSource !== 'reginde'
+        ? inferredSource
+        : draftSource || notifica.fonte_pec_destinatario || inferredSource || 'reginde',
+    ) || 'reginde'
     const codiceFiscalePiva = (
       manualNameTyped
         ? manualRecipientDraft.codiceFiscalePiva
@@ -2325,7 +2339,9 @@ export function NotificheLegaliPage() {
       nome,
       codiceFiscalePiva,
       pec,
-      ruolo: manualRecipientDraft.ruolo || notifica.ruolo_destinatario || 'controparte',
+      ruolo: manualRecipientDraft.ruolo === 'controparte' && fonte === 'registro_ppaa'
+        ? 'pa'
+        : manualRecipientDraft.ruolo || notifica.ruolo_destinatario || 'controparte',
       ruoloPratica: 'Inserito manualmente',
       fontePecSuggerita: fonte,
       parteRappresentata,

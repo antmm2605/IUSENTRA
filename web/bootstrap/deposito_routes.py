@@ -4,8 +4,9 @@ import os
 from collections.abc import Callable
 from datetime import date
 from typing import Any
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 from pct.pst_cifratura import PSTCifraturaError
+from web.bootstrap.deposito_aux_routes import register_deposito_aux_routes
 from web.bootstrap.deposito_esito_routes import register_deposito_esito_routes
 from web.bootstrap.deposito_legacy_send_routes import register_deposito_legacy_send_route
 from web.bootstrap.deposito_prepara_routes import register_deposito_prepara_route
@@ -13,6 +14,7 @@ from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_rout
 from web.services.deposito_route_helpers import (
     allegati_busta as _allegati_busta,
     deposito_oggetto as _deposito_oggetto,
+    documenti_selezionati_deposito as _documenti_selezionati_deposito,
     guided_transport_completion_response as _guided_transport_completion_response,
     ufficio_deposito_destinatario as _ufficio_deposito_destinatario,
     ufficio_da_nome as _ufficio_da_nome,
@@ -52,17 +54,6 @@ from web.services.deposito_catalogo_runtime import (
 from web.services.security_redaction import redacted_json_response
 
 
-def _documenti_selezionati_deposito(fascicolo: Any, atto_id: str, allegati_ids: list[str]) -> list[Any]:
-    selected_ids = {str(atto_id or "").strip()}
-    selected_ids.update(str(item or "").strip() for item in allegati_ids if str(item or "").strip())
-    selected_ids.discard("")
-    return [
-        doc
-        for doc in list(getattr(fascicolo, "documenti", []) or [])
-        if str(getattr(doc, "id", "") or "").strip() in selected_ids
-    ]
-
-
 def register_deposito_routes(
     app: Flask,
     *,
@@ -85,14 +76,11 @@ def register_deposito_routes(
         get_config_studio=get_config_studio,
         audit=audit,
     )
-    @app.route("/deposito/checklist")
-    def deposito_checklist():
-        """Checklist operativa per il deposito telematico."""
-        return render_template("deposito_checklist.html")
-    @app.route("/guida/firma-digitale")
-    def guida_firma_digitale():
-        """Guida interattiva per la firma digitale."""
-        return render_template("guida_firma_digitale.html")
+    register_deposito_aux_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        run_deposito_validation=run_deposito_validation,
+    )
     register_deposito_prepara_route(
         app,
         get_fascicoli=get_fascicoli,
@@ -116,24 +104,6 @@ def register_deposito_routes(
         audit=audit,
         sync_pubblica=sync_pubblica,
     )
-    @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
-    def api_deposito_valida(id_fasc):
-        try:
-            gestore_fascicoli = get_fascicoli()
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            if not fascicolo:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-            utente = getattr(g, "utente_corrente", None)
-            run = run_deposito_validation(
-                fasc=fascicolo,
-                gf=gestore_fascicoli,
-                form_like=request.form,
-                operatore=utente.username if utente else "",
-            )
-            return jsonify({"ok": True, "validation": run.to_dict()}), 200
-        except Exception as exc:
-            app.logger.exception("Errore api_deposito_valida: %s", exc)
-            return jsonify({"ok": False, "errore": "Validazione deposito non completata. Verifica i dati e riprova."}), 200
     @app.route("/api/v1/ui/fascicoli/<id_fasc>/deposito/certificato-cifratura", methods=["GET", "POST"])
     def api_deposito_certificato_cifratura(id_fasc):
         """Controlla o salva il .cer PST usato per cifrare Atto.msg in Atto.enc."""

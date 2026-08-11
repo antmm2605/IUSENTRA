@@ -5659,3 +5659,21 @@ Guardrail eseguiti:
 - `python -m py_compile tools\dist\local_signer.py tools\local_signer.py pct\firma_pkcs11.py`.
 
 Stato: non verificato su macchina reale con nuovo deposito al Tribunale di Vicenza. Il prossimo tentativo reale deve usare Local Signer `1.6.105`, rigenerare la busta e inviare dal PC locale dell'avvocato.
+
+## Aggiornamento 11/08/2026 - Deposito B494AAB9: riallineamento CI governance
+
+Perimetro: refactor tecnico del bootstrap deposito per superare i gate, senza modificare la procedura di busta, firma, PEC o notifiche.
+
+- Spostato l'helper dei documenti selezionati in `web/services/deposito_route_helpers.py`.
+- Spostati gli endpoint ausiliari `deposito/checklist`, `guida/firma-digitale` e `deposito/valida` in `web/bootstrap/deposito_aux_routes.py`.
+- `web/bootstrap/deposito_routes.py` è sotto la soglia governance (`994` righe).
+- Versione applicativa aggiornata a `2.278.14`.
+- Documenti App V2 rigenerati dopo il nuovo bootstrap.
+
+Guardrail ripetuti:
+
+- `python tools/check_repo_governance.py` -> OK;
+- `python -m py_compile web\bootstrap\deposito_aux_routes.py web\services\deposito_route_helpers.py web\bootstrap\deposito_routes.py web\bootstrap\deposito_legacy_send_routes.py pct\firma_pkcs11.py tools\local_signer.py` -> OK;
+- `python -m pytest -q tests\test_cades_signed_attrs.py tests\test_deposito_anagrafica_ministeriale.py tests\test_busta.py::test_busta_reale_usa_dati_atto_firmato_nell_indice_busta tests\test_busta.py::test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg tests\test_utf8_integrity.py` -> `20 passed`.
+
+Stato: non verificato su macchina reale con nuovo deposito al Tribunale di Vicenza.

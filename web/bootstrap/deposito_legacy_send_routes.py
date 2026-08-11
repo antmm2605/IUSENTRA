@@ -21,6 +21,7 @@ from web.services.deposito_anagrafica_ministeriale import (
 from web.services.deposito_route_helpers import (
     allegati_busta as _allegati_busta,
     deposito_oggetto as _deposito_oggetto,
+    documenti_selezionati_deposito as _documenti_selezionati_deposito,
     guided_transport_completion_response as _guided_transport_completion_response,
     ufficio_deposito_destinatario as _ufficio_deposito_destinatario,
     validate_busta_document_selection as _validate_busta_document_selection,
@@ -34,17 +35,6 @@ from web.services.local_pec_runtime import (
     local_pec_confirmation_result,
 )
 from web.services.security_redaction import redacted_json_response
-
-
-def _documenti_selezionati_deposito(fascicolo: Any, atto_id: str, allegati_ids: list[str]) -> list[Any]:
-    selected_ids = {str(atto_id or "").strip()}
-    selected_ids.update(str(item or "").strip() for item in allegati_ids if str(item or "").strip())
-    selected_ids.discard("")
-    return [
-        doc
-        for doc in list(getattr(fascicolo, "documenti", []) or [])
-        if str(getattr(doc, "id", "") or "").strip() in selected_ids
-    ]
 
 
 def register_deposito_legacy_send_route(

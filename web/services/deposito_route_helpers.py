@@ -133,6 +133,17 @@ def allegati_busta(fascicolo, gestore_fascicoli, id_fascicolo: str, allegati_ids
     return allegati
 
 
+def documenti_selezionati_deposito(fascicolo: Any, atto_id: str, allegati_ids: list[str]) -> list[Any]:
+    selected_ids = {str(atto_id or "").strip()}
+    selected_ids.update(str(item or "").strip() for item in allegati_ids if str(item or "").strip())
+    selected_ids.discard("")
+    return [
+        doc
+        for doc in list(getattr(fascicolo, "documenti", []) or [])
+        if str(getattr(doc, "id", "") or "").strip() in selected_ids
+    ]
+
+
 def validate_busta_document_selection(
     fascicolo,
     gestore_fascicoli,

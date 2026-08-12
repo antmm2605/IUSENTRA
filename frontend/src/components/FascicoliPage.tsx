@@ -516,19 +516,8 @@ function deadlineAlertWindow(item: DeadlineAlertItem, today = new Date()) {
   return 'outside'
 }
 
-function isDeadlineAlertVisible(item: DeadlineAlertItem): boolean {
-  const window = deadlineAlertWindow(item)
-  return window === 'overdue' || window === 'upcoming7' || window === 'unknown'
-}
-
-function deadlineAlertTitle(items: DeadlineAlertItem[], summary: FascicoliPageData['summary']) {
-  const windows = items.map((item) => deadlineAlertWindow(item))
-  const overdue = windows.filter((window) => window === 'overdue').length
-  const upcoming7 = windows.filter((window) => window === 'upcoming7').length
-  if (overdue && upcoming7) return 'Scadenze scadute e prossimi 7 giorni'
-  if (overdue) return 'Scadenze scadute'
-  if (upcoming7) return 'Scadenze entro 7 giorni'
-  return deadlineUrgencyCopy(summary).title
+function isDeadlineAlertUpcoming7(item: DeadlineAlertItem): boolean {
+  return deadlineAlertWindow(item) === 'upcoming7'
 }
 
 function deadlineUrgencyCopy(summary: FascicoliPageData['summary']) {
@@ -2792,8 +2781,11 @@ function FascicoliListPage() {
     </div>
   )
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
-  const deadlineAlertItems = data.deadlines.filter(isDeadlineAlertVisible).slice(0, 4)
-  const deadlineAlertHeading = deadlineAlertTitle(deadlineAlertItems, data.summary)
+  const deadlineAlertItems = data.deadlines
+    .filter(isDeadlineAlertUpcoming7)
+    .sort((a, b) => (parseDeadlineDate(a.dateIso)?.getTime() || 0) - (parseDeadlineDate(b.dateIso)?.getTime() || 0))
+    .slice(0, 4)
+  const deadlineAlertHeading = 'Scadenze entro 7 giorni'
 
   return (
     <main className="iu-content iu-fascicoli-page">

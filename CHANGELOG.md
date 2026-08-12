@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.278.30 - 2026-08-12
+
+- **Riquadro scadenze dei fascicoli orientato al futuro.** L'allerta sopra l'elenco mostra solo le scadenze dei prossimi 7 giorni, ordinate dalla più vicina; le già scadute non riempiono più il riquadro (restano conteggiate nella card "Scadenze urgenti" e nello scadenziario).
+
 ## 2.278.29 - 2026-08-12
 
 - **Azioni rapide Deposito e Notifica sulla riga fascicolo.** Nell'elenco fascicoli, accanto ad Apri/Modifica/PDF, due nuove icone portano direttamente a `Deposito telematico` (`/fascicoli/<id>/deposito/prepara`) e a `Notifica in proprio` (`/notifiche-legali` con fascicolo preselezionato), senza passare dal dettaglio. Nascoste nell'archivio, come Modifica.

@@ -111,6 +111,7 @@ class ConfigDatiStudio:
     nome: str = "IUSENTRA"
     avvocato: str = ""
     qualifica_professionale: str = ""
+    deposito_telematico_role: str = ""
     numero_iscrizione_albo: str = ""
     ordine_avvocati: str = ""
     piva: str = ""
@@ -557,6 +558,7 @@ class GestioneConfigStudio:
                 nome=os.getenv("PCT_STUDIO_NOME", "IUSENTRA"),
                 avvocato=os.getenv("PCT_STUDIO_AVVOCATO", ""),
                 qualifica_professionale=os.getenv("PCT_STUDIO_QUALIFICA_PROFESSIONALE", ""),
+                deposito_telematico_role=os.getenv("PCT_DEPOSITO_TELEMATICO_ROLE", ""),
                 numero_iscrizione_albo=os.getenv("PCT_STUDIO_NUMERO_ISCRIZIONE_ALBO", ""),
                 ordine_avvocati=os.getenv("PCT_STUDIO_ORDINE_AVVOCATI", ""),
                 piva=os.getenv("PCT_STUDIO_PIVA", ""),

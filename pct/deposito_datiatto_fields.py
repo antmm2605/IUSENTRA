@@ -78,6 +78,46 @@ CASSAZIONE_ROLE_OPTIONS = (
     ("AffariCivili", "Affari civili"),
 )
 
+DEPOSITO_PROFESSIONISTA_ROLE_OPTIONS = (
+    ("ARCH.", "Arch."),
+    ("AVV.", "Avv."),
+    ("CAV.", "Cav."),
+    ("CTU", "Consulente"),
+    ("CUR", "Curatore"),
+    ("CUS", "Custode"),
+    ("DR.", "Dr."),
+    ("DOTT.", "Dott."),
+    ("GEOM.", "Geom."),
+    ("ING.", "Ing."),
+    ("NOT", "Notaio"),
+    ("ON.", "On."),
+    ("CTU", "Perito"),
+    ("P.M.", "P.M."),
+    ("PROF.", "Prof."),
+    ("RAG.", "Rag."),
+    ("REV.", "Rev."),
+    ("SIG.", "Sig."),
+    ("SOC.", "Soc."),
+    ("TUT", "Tutore"),
+)
+
+DEPOSITO_PROFESSIONISTA_CASSAZIONE_ROLE_OPTIONS = (
+    ("SOLODIFENSORE", "Avvocato (solo difensore)"),
+    ("DIFENSOREDOMICILIATARIO", "Avvocato (difensore e domiciliatario)"),
+)
+
+
+def deposito_professionista_role_options(tipo_deposito_key: str = "") -> tuple[tuple[str, str], ...]:
+    if str(tipo_deposito_key or "").strip().startswith("Parte_CASSAZIONE::"):
+        return DEPOSITO_PROFESSIONISTA_CASSAZIONE_ROLE_OPTIONS
+    return DEPOSITO_PROFESSIONISTA_ROLE_OPTIONS
+
+
+def normalize_deposito_professionista_role(value: Any, tipo_deposito_key: str = "") -> str:
+    normalized = str(value or "").strip()
+    allowed = {option_value for option_value, _label in deposito_professionista_role_options(tipo_deposito_key)}
+    return normalized if normalized in allowed else ""
+
 PAYMENT_MODE_OPTIONS = (
     ("NonDovuto", "Non dovuto"),
     ("Esente", "Esente"),
@@ -647,6 +687,14 @@ def classi_immobiliari_options() -> list[dict[str, str]]:
 
 def datiatto_reference_data() -> dict[str, Any]:
     return {
+        "qualificheProfessionista": [
+            {"value": value, "label": label}
+            for value, label in DEPOSITO_PROFESSIONISTA_ROLE_OPTIONS
+        ],
+        "qualificheProfessionistaCassazione": [
+            {"value": value, "label": label}
+            for value, label in DEPOSITO_PROFESSIONISTA_CASSAZIONE_ROLE_OPTIONS
+        ],
         "titoliEsecutivi": [{"value": value, "label": label} for value, label in TITLE_OPTIONS],
         "ruoliProvvedimentoCassazione": [
             {"value": value, "label": label} for value, label in CASSAZIONE_ROLE_OPTIONS

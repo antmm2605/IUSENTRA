@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Deposito B494AAB9 - prova materiale 12/08/2026
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Qualifica professionista depositante | Browser reale produzione | Aperto fino al deploy | I test automatici confermano selettore, salvataggio e payload, ma non sostituiscono la prova sulla sessione autenticata dell'avvocato. | Dopo deploy selezionare `Avv.`, salvare/preparare la simulazione e verificare che il flusso superi il precedente blocco fino alla richiesta PIN; non effettuare invio reale. |
+
 ## Presidio notifiche, topbar e Web Push - 2026-07-20
 
 | Area | Stato | Azione necessaria |

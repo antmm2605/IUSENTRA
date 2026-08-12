@@ -265,7 +265,7 @@ def register_deposito_routes(
                 get_config_studio=get_config_studio,
                 operatore=utente.username if utente else "",
                 datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
-                datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
+                datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""), professionista_ruolo=str(datiatto_extra.get("professionista_ruolo") or "").strip(),
             )
         except ValueError as exc:
             flash(str(exc), "danger")
@@ -290,7 +290,7 @@ def register_deposito_routes(
             contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
             **_deposito_catalogo_busta_metadata(datiatto_hint, datiatto_extra),
-            **_deposito_busta_anagrafica_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti, get_config_studio=get_config_studio, operatore=utente.username if utente else ""),
+            **_deposito_busta_anagrafica_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti, get_config_studio=get_config_studio, operatore=utente.username if utente else "", professionista_ruolo=str(datiatto_extra.get("professionista_ruolo") or "").strip()),
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         try:
@@ -685,7 +685,7 @@ def register_deposito_routes(
                 get_config_studio=get_config_studio,
                 operatore=utente.username if utente else "",
                 datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
-                datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
+                datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""), professionista_ruolo=str(datiatto_extra.get("professionista_ruolo") or "").strip(),
             )
         except ValueError as exc:
             return jsonify(
@@ -720,7 +720,7 @@ def register_deposito_routes(
             contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
             **_deposito_catalogo_busta_metadata(datiatto_hint, datiatto_extra),
-            **_deposito_busta_anagrafica_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti, get_config_studio=get_config_studio, operatore=utente.username if utente else ""),
+            **_deposito_busta_anagrafica_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti, get_config_studio=get_config_studio, operatore=utente.username if utente else "", professionista_ruolo=str(datiatto_extra.get("professionista_ruolo") or "").strip()),
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())

@@ -5699,3 +5699,24 @@ Verifiche tecniche eseguite prima del deploy:
 - copia Docker locale `127.0.0.1:8080` ricostruita, container unico `iusentra-app` healthy e `/api/pronto` HTTP 200.
 
 Stato prima del deploy: non verificato sul server reale. La prova materiale sul fascicolo `B494AAB9` viene eseguita su `https://app.iusentra.it` dopo commit e deploy.
+
+## Aggiornamento 12/08/2026 - Qualifica dedicata del professionista depositante
+
+Perimetro: esclusivamente deposito telematico. Notifiche legali, relate e deposito di documenti ulteriori non sono stati modificati.
+
+- Causa del blocco reale `Manca la qualifica del Professionista che esegue il deposito`: IUSENTRA ricavava il ruolo dal campo anagrafico generico `qualifica_professionale`, mentre Studio Telematico usa il selettore dedicato `DepositoTelematicoRole`.
+- Il binario locale `D:\QuickOrganizer\QuickOrganizer.exe` e il relativo file di configurazione sono stati ricontrollati direttamente. Sono stati acquisiti i codici del selettore generale e i due codici specifici della Cassazione, senza aggiungerne altri.
+- La pagina `Prepara deposito` mostra ora `Qualifica del professionista`, la salva in `datiatto_extra.professionista_ruolo`, la conserva nella configurazione tenant-aware dello studio e la ripropone al deposito successivo.
+- La validazione usa esclusivamente il ruolo dedicato del deposito; `qualifica_professionale` non viene più usato come sostituto. Un valore non presente nel catalogo sorgente viene rifiutato dall'API.
+- La scelta entra nel contesto `DatiBusta`; nei depositi Cassazione viene serializzata in `DatiAtto.xml` come `tipoDifensore` (`DI` per solo difensore, `DD` per difensore e domiciliatario). Nei tracciati ordinari non viene aggiunto alcun elemento XML non previsto dal programma sorgente o dallo schema.
+
+Guardrail eseguiti prima di build e deploy:
+
+- `python -m pytest tests/test_deposito_anagrafica_ministeriale.py tests/test_deposito_telematico_catalogo.py -q` -> OK;
+- `python -m pytest tests/test_regia_api_payloads.py -q` -> OK;
+- `python -m pytest tests/test_regia_ui_react.py -q` -> OK;
+- `python -m pytest tests/test_react_shell.py -q -k "impostazioni"` -> OK;
+- `npm --prefix frontend run typecheck` -> OK;
+- compilazione Python dei moduli modificati -> OK.
+
+Stato: codice verificato automaticamente; prova materiale sul server reale ancora da eseguire dopo deploy. Nessun invio PEC reale viene effettuato durante la prova.

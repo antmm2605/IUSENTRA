@@ -140,6 +140,7 @@ def build_fascicoli_runtime(
             "professionista": deposito_professionista_context(
                 get_config_studio,
                 operatore=operatore,
+                ruolo=str(datiatto_extra.get("professionista_ruolo") or "").strip(),
             ),
             "parti": deposito_parti_context(
                 fasc,

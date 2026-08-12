@@ -7,6 +7,7 @@ from web.services.deposito_anagrafica_ministeriale import (
     anagrafica_xml_se_ricorso,
     contributo_unificato_fascicolo,
     deposito_ministerial_readiness,
+    deposito_professionista_context,
     valore_causa_fascicolo,
 )
 
@@ -55,6 +56,8 @@ def _config_studio(*, indirizzo: str = "Via Roma 1", city: str = "Vicenza", prov
             studio=SimpleNamespace(
                 codice_fiscale_avvocato="MNTGPP70A01L840A",
                 avvocato="Giuseppe Montagnese",
+                qualifica_professionale="Patrocinante in Cassazione",
+                deposito_telematico_role="AVV.",
                 indirizzo=indirizzo,
                 city=city,
                 province=province,
@@ -90,6 +93,15 @@ def _soggetti_controparte():
         ),
     )
     return SimpleNamespace(parti_fascicolo=lambda _id: [(parte, soggetto)])
+
+
+def test_professionista_usa_la_qualifica_dedicata_del_deposito():
+    context = deposito_professionista_context(_config_studio)
+    override = deposito_professionista_context(_config_studio, ruolo="CTU")
+
+    assert context["ruolo"] == "AVV."
+    assert context["ruolo"] != "Patrocinante in Cassazione"
+    assert override["ruolo"] == "CTU"
 
 
 def test_indirizzo_cliente_mancante_non_blocca_anagrafica_ricorso():
@@ -155,6 +167,28 @@ def test_indirizzi_mancanti_non_bloccano_anagrafica_cassazione():
     assert xml is not None
     assert b"AnagraficaProcedimento" in xml
     assert b"cassazione/tipi/atti/v13" in xml
+
+
+@pytest.mark.parametrize(
+    ("ruolo", "tipo_difensore"),
+    (("SOLODIFENSORE", b"DI"), ("DIFENSOREDOMICILIATARIO", b"DD")),
+)
+def test_anagrafica_cassazione_usa_la_relazione_difensore_del_decompilato(ruolo, tipo_difensore):
+    xml = anagrafica_xml_se_ricorso(
+        tipo_atto="RICORSO",
+        fascicolo=_fascicolo(),
+        get_clienti=lambda: _clienti(_cliente()),
+        get_soggetti=_soggetti_controparte,
+        get_config_studio=_config_studio,
+        operatore="Giuseppe Montagnese",
+        datiatto_root_name="Ricorso",
+        datiatto_generator_class="ParteCassazione",
+        professionista_ruolo=ruolo,
+    )
+
+    assert xml is not None
+    assert b"tipoDifensore" in xml
+    assert b">" + tipo_difensore + b"<" in xml
 
 
 def test_codice_fiscale_cliente_mancante_resta_bloccante_senza_indirizzo_cliente():

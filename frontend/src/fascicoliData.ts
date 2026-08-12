@@ -851,6 +851,8 @@ export type FascicoloDepositCatalog = {
   counts: { totalDepositTypes: number; macroareas: Record<string, number>; categories: Record<string, number> }
   officialSources: Array<{ id: string; label: string; url: string; note: string }>
   referenceData: {
+    qualificheProfessionista: FascicoloDepositInputOption[]
+    qualificheProfessionistaCassazione: FascicoloDepositInputOption[]
     titoliEsecutivi: FascicoloDepositInputOption[]
     ruoliProvvedimentoCassazione: FascicoloDepositInputOption[]
     materieCassazione: FascicoloDepositInputOption[]
@@ -1297,7 +1299,14 @@ export const emptyDepositCatalog: FascicoloDepositCatalog = {
   generatedAt: '',
   counts: { totalDepositTypes: 0, macroareas: {}, categories: {} },
   officialSources: [],
-  referenceData: { titoliEsecutivi: [], ruoliProvvedimentoCassazione: [], materieCassazione: [], classiImmobiliari: [] },
+  referenceData: {
+    qualificheProfessionista: [],
+    qualificheProfessionistaCassazione: [],
+    titoliEsecutivi: [],
+    ruoliProvvedimentoCassazione: [],
+    materieCassazione: [],
+    classiImmobiliari: [],
+  },
   macroareas: [],
   entries: [],
 }
@@ -2555,6 +2564,8 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
         return { value: text(item.value), label: text(item.label) }
       }).filter((option) => option.value || option.label)
       return {
+        qualificheProfessionista: normalizeOptions(referenceData.qualificheProfessionista ?? referenceData.qualifiche_professionista),
+        qualificheProfessionistaCassazione: normalizeOptions(referenceData.qualificheProfessionistaCassazione ?? referenceData.qualifiche_professionista_cassazione),
         titoliEsecutivi: normalizeOptions(referenceData.titoliEsecutivi ?? referenceData.titoli_esecutivi),
         ruoliProvvedimentoCassazione: normalizeOptions(referenceData.ruoliProvvedimentoCassazione ?? referenceData.ruoli_provvedimento_cassazione),
         materieCassazione: normalizeOptions(referenceData.materieCassazione ?? referenceData.materie_cassazione),

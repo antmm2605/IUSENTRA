@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.17 - 2026-08-12
+
+- **Deposito telematico: qualifica del professionista conforme a Studio Telematico.** Il flusso espone il selettore dedicato con gli stessi codici del programma di riferimento, distingue le opzioni della Cassazione, salva la scelta nel fascicolo e nelle impostazioni tenant-aware e la riusa nei depositi successivi.
+- **Ruolo dedicato nel flusso ministeriale.** La validazione non ricava più la qualifica dal campo anagrafico generico dello studio; il valore selezionato resta nel contesto della busta e, per la Cassazione, viene serializzato in `DatiAtto.xml` come `tipoDifensore` (`DI` o `DD`). Un codice estraneo al catalogo sorgente viene rifiutato.
+- **Guardrail mirati.** Verificati catalogo completo dei 270 tipi, payload anagrafico, persistenza fascicolo/configurazione, API React, UI deposito e typecheck frontend.
+
 ## 2.278.16 - 2026-08-12
 
 - **Deposito telematico: rifirma operativa di `DatiAtto.xml.p7m`.** Se la firma ricevuta dal PC locale non contiene `signingCertificateV2`, il backend restituisce il documento da firmare nuovamente e la UI apre una nuova richiesta PIN; la nuova firma sostituisce quella non conforme ed è validata prima di creare la busta.

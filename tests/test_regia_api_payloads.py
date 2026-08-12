@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
+from pct.config_studio import GestioneConfigStudio
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.storage import StudioDB
 from tests.regia_test_utils import pdfa_bytes
@@ -211,6 +212,49 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert docs[prova.id].tipo == TipoDocumento.ALLEGATO
     assert docs[procura.id].firmato_digitalmente is False
     assert docs[fuori.id].tipo == TipoDocumento.ALTRO
+
+
+def test_api_deposito_salva_qualifica_professionista_nel_fascicolo_e_nello_studio(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    atto = gf.aggiungi_documento(fascicolo.id, "ricorso.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    client = app.test_client()
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "tipo_deposito_telematico_key": "Introduttivi_SICID::Ricorso",
+            "datiatto_extra": {"professionista_ruolo": "AVV."},
+            "documents": [{"document_id": atto.id, "selected": True, "role": "atto_principale"}],
+        },
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )._get_o_errore(fascicolo.id)
+    preparazione = aggiornato.profilo_deposito["preparazione_busta"]
+    assert preparazione["datiatto_extra"]["professionista_ruolo"] == "AVV."
+    assert GestioneConfigStudio(app.config["STUDIO_CONFIG"]).config.studio.deposito_telematico_role == "AVV."
+
+
+def test_api_deposito_rifiuta_qualifica_non_prevista_dal_decompilato(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    atto = gf.aggiungi_documento(fascicolo.id, "ricorso.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
+    response = app.test_client().post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "tipo_deposito_telematico_key": "Introduttivi_SICID::Ricorso",
+            "datiatto_extra": {"professionista_ruolo": "RUOLO_INVENTATO"},
+            "documents": [{"document_id": atto.id, "selected": True, "role": "atto_principale"}],
+        },
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["errore"] == "La qualifica del professionista non è valida per il tipo di deposito selezionato."
 
 
 def test_preparazione_deposito_salva_una_sola_riga_in_unica_transazione(tmp_path, monkeypatch):

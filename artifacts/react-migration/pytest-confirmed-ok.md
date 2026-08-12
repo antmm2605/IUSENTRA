@@ -1,5 +1,13 @@
 # Pytest shard confermati OK
 
+## Deposito telematico - qualifica professionista - 12/08/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests/test_deposito_anagrafica_ministeriale.py tests/test_deposito_telematico_catalogo.py -q` | OK | Catalogo 270 tipi, opzioni professionista Studio Telematico e ruolo dedicato nel contesto ministeriale. |
+| `python -m pytest tests/test_regia_api_payloads.py tests/test_regia_ui_react.py -q` | OK | Persistenza fascicolo/configurazione, rifiuto codici estranei, UI e blocco prima della scrittura. |
+| `python -m pytest tests/test_react_shell.py -q -k "impostazioni"`; `npm --prefix frontend run typecheck` | OK | Il nuovo campo è preservato dalle impostazioni e il frontend compila senza errori. |
+
 ## Topbar notifiche persistenti - 2026-07-20
 
 | Comando / verifica | Esito | Note |

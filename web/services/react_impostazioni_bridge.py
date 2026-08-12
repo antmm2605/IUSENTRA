@@ -415,6 +415,7 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "nome": cfg.studio.nome,
             "avvocato": cfg.studio.avvocato,
             "qualifica_professionale": getattr(cfg.studio, "qualifica_professionale", ""),
+            "deposito_telematico_role": getattr(cfg.studio, "deposito_telematico_role", ""),
             "numero_iscrizione_albo": cfg.studio.numero_iscrizione_albo,
             "ordine_avvocati": cfg.studio.ordine_avvocati,
             "piva": cfg.studio.piva,
@@ -641,6 +642,24 @@ def _audit(section: str) -> None:
         current_app.logger.warning("Audit impostazioni React non registrato: %s", exc)
 
 
+def persist_react_deposito_telematico_role(role: str) -> None:
+    from web.blueprints.impostazioni import _applica_ad_app
+
+    normalized = _text(role)
+    if not normalized:
+        return
+    manager = _gestore_config()
+    cfg = manager.config
+    if _text(getattr(cfg.studio, "deposito_telematico_role", "")) == normalized:
+        return
+    cfg.studio.deposito_telematico_role = normalized
+    manager.aggiorna(cfg)
+    _applica_ad_app(cfg)
+    pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+    _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
+    _audit("deposito_telematico_role")
+
+
 def _upload_path(files: Any, name: str, prefix: str, allowed: set[str], current: str) -> str:
     storage = files.get(name) if files is not None else None
     if storage and getattr(storage, "filename", ""):
@@ -696,6 +715,10 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             nome=_text(data.get("nome")),
             avvocato=_text(data.get("avvocato")),
             qualifica_professionale=_text(data.get("qualifica_professionale")),
+            deposito_telematico_role=_text(
+                data.get("deposito_telematico_role")
+                or getattr(cfg.studio, "deposito_telematico_role", "")
+            ),
             numero_iscrizione_albo=_text(data.get("numero_iscrizione_albo")),
             ordine_avvocati=_text(data.get("ordine_avvocati")),
             piva=_text(data.get("piva")),

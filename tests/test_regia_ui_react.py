@@ -195,6 +195,10 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "defaultDepositRoleForDocument" in source
     assert "normaliseDepositClassificationMainAct" in source
     assert "deposito/classifica-documenti" in source
+    assert 'label="Qualifica del professionista"' in source
+    assert "professionista_ruolo" in source
+    assert "qualificheProfessionistaCassazione" in source
+    assert "qualificheProfessionista" in source
     assert "manualSelectableDocuments" in source
     assert "isDepositManualSelectableDocument" in source
     assert "documenti_selezionati_ids" in source
@@ -519,7 +523,7 @@ def test_ui_deposito_controlla_i_dati_prima_di_qualsiasi_scrittura_e_abilita_inv
     end = source.index("const selectedDepositPayload", start)
     block = source[start:end]
 
-    assert block.index("if (missingRequiredDepositSpecificFields.length)") < block.index("await submitDepositClassification()")
+    assert block.index("if (missingRequiredDepositDataLabels.length)") < block.index("await submitDepositClassification()")
     assert "goToDepositPhase('proposta-busta', 'auto')" in block
     assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)" in source
     assert "setDepositProofInvalidated(false)" in source

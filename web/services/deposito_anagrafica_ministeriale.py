@@ -67,6 +67,7 @@ def deposito_professionista_context(
     get_config_studio: Callable[[], Any],
     *,
     operatore: str = "",
+    ruolo: str = "",
 ) -> dict[str, str]:
     try:
         config = get_config_studio().config
@@ -77,7 +78,7 @@ def deposito_professionista_context(
     pec = getattr(config, "pec", None)
     nome, cognome = _split_nome_cognome(str(getattr(studio, "avvocato", "") or operatore or ""))
     return {
-        "ruolo": str(getattr(studio, "qualifica_professionale", "") or "").strip(),
+        "ruolo": str(ruolo or getattr(studio, "deposito_telematico_role", "") or "").strip(),
         "nome": nome,
         "cognome": cognome,
         "codice_fiscale": _clean_cf(
@@ -205,9 +206,14 @@ def deposito_busta_anagrafica_context(
     get_soggetti: Callable[[], Any] | None,
     get_config_studio: Callable[[], Any],
     operatore: str,
+    professionista_ruolo: str = "",
 ) -> dict[str, Any]:
     return {
-        "professionista": deposito_professionista_context(get_config_studio, operatore=operatore),
+        "professionista": deposito_professionista_context(
+            get_config_studio,
+            operatore=operatore,
+            ruolo=professionista_ruolo,
+        ),
         "parti": deposito_parti_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti),
     }
 
@@ -245,6 +251,7 @@ def _anagrafica_procedimento_deposito_xml(
     cliente: Any | None,
     cfg_studio: Any | None,
     operatore: str,
+    professionista_ruolo: str = "",
     controparte_soggetto: dict[str, Any] | None = None,
     atti_ns: str = _ATTI_NS,
     anagrafiche_ns: str = _ANAGRAFICHE_NS,
@@ -391,7 +398,21 @@ def _anagrafica_procedimento_deposito_xml(
         provincia=studio_province,
         anagrafiche_ns=anagrafiche_ns,
     )
-    etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}parteRappresentata", ref=parte_id)
+    parte_rappresentata = etree.SubElement(
+        avvocato,
+        f"{{{anagrafiche_ns}}}parteRappresentata",
+        ref=parte_id,
+    )
+    if anagrafiche_ns == _CASSAZIONE_ANAGRAFICHE_NS:
+        tipo_difensore = {
+            "SOLODIFENSORE": "DI",
+            "DIFENSOREDOMICILIATARIO": "DD",
+        }.get(str(professionista_ruolo or "").strip())
+        if tipo_difensore:
+            etree.SubElement(
+                parte_rappresentata,
+                f"{{{anagrafiche_ns}}}tipoDifensore",
+            ).text = tipo_difensore
     return etree.tostring(root, pretty_print=True, xml_declaration=False, encoding="UTF-8")
 
 
@@ -432,6 +453,7 @@ def anagrafica_xml_se_ricorso(
     operatore: str,
     datiatto_root_name: str = "",
     datiatto_generator_class: str = "",
+    professionista_ruolo: str = "",
 ) -> bytes | None:
     root_name = str(datiatto_root_name or "").strip()
     generator_class = str(datiatto_generator_class or "").strip()
@@ -486,6 +508,7 @@ def anagrafica_xml_se_ricorso(
         cliente=_cliente_deposito(get_clienti, fascicolo),
         cfg_studio=cfg_studio,
         operatore=operatore,
+        professionista_ruolo=professionista_ruolo,
         controparte_soggetto=controparte,
         atti_ns=atti_ns,
         anagrafiche_ns=anagrafiche_ns,

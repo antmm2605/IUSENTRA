@@ -8075,6 +8075,16 @@ def build_react_fascicolo_detail_payload(
     preparation_documents = preparation_raw.get("documents") if isinstance(preparation_raw.get("documents"), list) else []
     preparation_datiatto_extra = preparation_raw.get("datiatto_extra")
     preparation_datiatto_extra = preparation_datiatto_extra if isinstance(preparation_datiatto_extra, dict) else {}
+    if not _text(preparation_datiatto_extra.get("professionista_ruolo")) and callable(get_config_studio):
+        try:
+            saved_role = _text(getattr(get_config_studio().config.studio, "deposito_telematico_role", ""))
+        except Exception:
+            saved_role = ""
+        if saved_role:
+            preparation_datiatto_extra = {
+                **preparation_datiatto_extra,
+                "professionista_ruolo": saved_role,
+            }
     if not isinstance(preparation_datiatto_extra.get("terzi"), list) and isinstance(preparation_datiatto_extra.get("terzo"), dict):
         preparation_datiatto_extra = {**preparation_datiatto_extra, "terzi": [preparation_datiatto_extra["terzo"]]}
     deposit_preparation = {

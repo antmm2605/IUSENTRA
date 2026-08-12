@@ -829,7 +829,7 @@ function DepositSelectInput({
       <span>{label}{required ? <b aria-hidden="true"> *</b> : null}</span>
       <select value={depositValueText(value)} onChange={(event) => onChange(event.currentTarget.value)} required={required} aria-required={required}>
         <option value="">Seleziona</option>
-        {options.map((option) => <option value={option.value} key={`${label}-${option.value}`}>{option.label}</option>)}
+        {options.map((option, index) => <option value={option.value} key={`${label}-${option.value}-${index}`}>{option.label}</option>)}
       </select>
     </label>
   )
@@ -1198,8 +1198,14 @@ function DepositSpecificDataForm({
   client: FascicoloPerson | undefined
 }) {
   const fields = entry?.schema.inputFields || []
-  if (!fields.length) return null
+  if (!entry) return null
   const missing = missingDepositSpecificFields(fields, values)
+  const professionalRoleOptions = entry.key.startsWith('Parte_CASSAZIONE::')
+    ? catalog.referenceData.qualificheProfessionistaCassazione
+    : catalog.referenceData.qualificheProfessionista
+  const professionalRoleValue = depositValueText(values.professionista_ruolo)
+  const professionalRoleMissing = !professionalRoleOptions.some((option) => option.value === professionalRoleValue)
+  const missingCount = missing.length + (professionalRoleMissing ? 1 : 0)
   const groups = fields.reduce<Array<{ label: string; fields: FascicoloDepositInputField[] }>>((result, field) => {
     const label = field.group || 'Dati del deposito'
     const group = result.find((item) => item.label === label)
@@ -1228,9 +1234,22 @@ function DepositSpecificDataForm({
           <strong>Dati del deposito</strong>
           <span>Mostriamo solo i dati necessari per il tipo selezionato. Il salvataggio li conserva nel fascicolo.</span>
         </div>
-        <Badge tone={missing.length ? 'warning' : 'success'}>{missing.length ? `${missing.length} da completare` : 'Completi'}</Badge>
+        <Badge tone={missingCount ? 'warning' : 'success'}>{missingCount ? `${missingCount} da completare` : 'Completi'}</Badge>
       </header>
-      {missing.length ? <p className="iu-fas-deposit-specific__notice" role="status">Prima dell’invio reale completa: {missing.map((field) => field.label).join(', ')}. I comandi di prova restano disponibili e indicano subito il dato mancante.</p> : null}
+      {missingCount ? <p className="iu-fas-deposit-specific__notice" role="status">Prima dell’invio reale completa: {[professionalRoleMissing ? 'Qualifica del professionista' : '', ...missing.map((field) => field.label)].filter(Boolean).join(', ')}. I comandi di prova restano disponibili e indicano subito il dato mancante.</p> : null}
+      <div className="iu-fas-deposit-specific__group">
+        <h4>Professionista che esegue il deposito</h4>
+        <div className="iu-fas-deposit-specific__grid">
+          <DepositSelectInput
+            label="Qualifica del professionista"
+            value={values.professionista_ruolo}
+            options={professionalRoleOptions}
+            onChange={(next) => onChange('professionista_ruolo', next)}
+            required
+          />
+        </div>
+        <small>La qualifica salvata viene riproposta nel deposito successivo.</small>
+      </div>
       {groups.map((group) => (
         <div className="iu-fas-deposit-specific__group" key={`${entry?.key}-${group.label}`}>
           <h4>{group.label}</h4>
@@ -2128,6 +2147,18 @@ function DepositPreparePage({ id }:{id:string}) {
   const selectedDepositType = data.depositCatalog.entries.find((entry) => entry.key === selectedDepositTypeKey)
   const selectedDepositInputFields = selectedDepositType?.schema.inputFields || []
   const missingRequiredDepositSpecificFields = missingDepositSpecificFields(selectedDepositInputFields, depositSpecificData)
+  const selectedDepositProfessionalRoleOptions = selectedDepositType?.key.startsWith('Parte_CASSAZIONE::')
+    ? data.depositCatalog.referenceData.qualificheProfessionistaCassazione
+    : data.depositCatalog.referenceData.qualificheProfessionista
+  const selectedDepositProfessionalRole = depositValueText(depositSpecificData.professionista_ruolo)
+  const professionalRoleMissing = Boolean(
+    selectedDepositType
+    && !selectedDepositProfessionalRoleOptions.some((option) => option.value === selectedDepositProfessionalRole),
+  )
+  const missingRequiredDepositDataLabels = [
+    ...(professionalRoleMissing ? ['Qualifica del professionista'] : []),
+    ...missingRequiredDepositSpecificFields.map((field) => field.label),
+  ]
   useEffect(() => {
     const savedTypeKey = data.depositPreparation.typeKey
     if (!savedTypeKey || !data.depositCatalog.entries.some((entry) => entry.key === savedTypeKey)) return
@@ -2794,9 +2825,9 @@ function DepositPreparePage({ id }:{id:string}) {
     }
   }
   const prepareDepositBeforeSubmit = async () => {
-    if (missingRequiredDepositSpecificFields.length) {
+    if (missingRequiredDepositDataLabels.length) {
       goToDepositPhase('proposta-busta', 'auto')
-      throw new Error(`Completa i dati obbligatori del deposito: ${missingRequiredDepositSpecificFields.map((field) => field.label).join(', ')}.`)
+      throw new Error(`Completa i dati obbligatori del deposito: ${missingRequiredDepositDataLabels.join(', ')}.`)
     }
     await submitDepositClassification()
     await recoverPstOfficeCertificateBeforePackage()
@@ -2843,7 +2874,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const proofActionBlockedReason = loading || !f.id
     ? 'Caricamento proposta busta in corso.'
     : 'Azione di prova deposito non disponibile.'
-  const requiredDepositDataBlocked = missingRequiredSlots.length > 0 || missingRequiredDepositSpecificFields.length > 0
+  const requiredDepositDataBlocked = missingRequiredSlots.length > 0 || missingRequiredDepositDataLabels.length > 0
   const actionBlockedReason = !selectedDepositType
     ? 'Scegli il tipo di deposito prima di preparare la prova.'
     : !officeRecipientReady
@@ -2855,8 +2886,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const requiredChoicesNotice = missingRequiredSlots.length
     ? `${missingRequiredSlots.length === 1 ? 'Documento richiesto da verificare' : 'Documenti richiesti da verificare'}: ${missingDepositSlotsSummary(missingRequiredSlots) || `${missingRequiredSlots.length} scelte`}. La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente e non blocca la prova.`
     : ''
-  const requiredSpecificDataNotice = missingRequiredDepositSpecificFields.length
-    ? `Dati obbligatori da completare: ${missingRequiredDepositSpecificFields.map((field) => field.label).join(', ')}.`
+  const requiredSpecificDataNotice = missingRequiredDepositDataLabels.length
+    ? `Dati obbligatori da completare: ${missingRequiredDepositDataLabels.join(', ')}.`
     : ''
   const proofBlocksDirectSend = Boolean(
     packagePreview?.pecSenderReady === false
@@ -2878,7 +2909,7 @@ function DepositPreparePage({ id }:{id:string}) {
     ? 'Scegli il tipo di deposito prima di preparare la prova.'
     : !packageReadyForRealSend
     ? 'Esegui prima la prova senza invio reale.'
-    : missingRequiredDepositSpecificFields.length
+    : missingRequiredDepositDataLabels.length
       ? requiredSpecificDataNotice
     : requiredDepositDataBlocked
       ? depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots)

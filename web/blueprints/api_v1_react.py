@@ -42,6 +42,7 @@ from pct.clienti import Indirizzo, Recapiti, TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.fascicolo_document_catalog import classify_fascicolo_document
+from pct.deposito_datiatto_fields import normalize_deposito_professionista_role
 from pct.deposito_telematico_catalogo import build_deposit_catalog_payload, resolve_deposit_type_payload
 from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
@@ -245,6 +246,7 @@ from web.services.react_impostazioni_bridge import (
     build_react_impostazioni_ai_status,
     build_react_impostazioni_error_payload,
     build_react_impostazioni_payload,
+    persist_react_deposito_telematico_role,
     run_react_impostazioni_test,
     update_react_impostazioni_firma_certificato,
     update_react_impostazioni_section,
@@ -8608,6 +8610,21 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         datiatto_extra = _deposit_datiatto_extra(payload.get("datiatto_extra"))
     except ValueError as exc:
         return jsonify({"errore": str(exc), "mock_fallback": False}), 400
+    tipo_deposito_key = str(payload.get("tipo_deposito_telematico_key") or "").strip()
+    raw_professionista_ruolo = str(datiatto_extra.get("professionista_ruolo") or "").strip()
+    if raw_professionista_ruolo:
+        professionista_ruolo = normalize_deposito_professionista_role(
+            raw_professionista_ruolo,
+            tipo_deposito_key,
+        )
+        if not professionista_ruolo:
+            return jsonify(
+                {
+                    "errore": "La qualifica del professionista non è valida per il tipo di deposito selezionato.",
+                    "mock_fallback": False,
+                }
+            ), 400
+        datiatto_extra["professionista_ruolo"] = professionista_ruolo
 
     documents_by_id = {str(getattr(doc, "id", "") or ""): doc for doc in getattr(ctx["fascicolo"], "documenti", []) or []}
     slots = ctx["repo"].ensure_slots(id_fasc, ctx["profile"]) if ctx["profile"] is not None else []
@@ -8683,6 +8700,8 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         document_updates=document_deposit_updates,
         profilo_deposito=deposit_profile,
     )
+    if raw_professionista_ruolo:
+        persist_react_deposito_telematico_role(datiatto_extra["professionista_ruolo"])
 
     if ctx["profile"] is not None:
         run_predeposit_check(

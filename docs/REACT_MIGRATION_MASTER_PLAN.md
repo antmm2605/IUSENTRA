@@ -1,5 +1,9 @@
 # Migrazione progressiva Flask + React
 
+## Deposito telematico - qualifica professionista dedicata - 12/08/2026 - 2.278.17
+
+Il form React del deposito espone la stessa scelta dedicata `DepositoTelematicoRole` del programma sorgente. Il valore è salvato nel fascicolo e nella configurazione tenant-aware, validato sui codici ricavati dal binario e mantenuto nel contesto della busta; nei depositi Cassazione viene inoltre scritto in `DatiAtto.xml` come `tipoDifensore` (`DI` o `DD`). Il campo anagrafico libero `qualifica_professionale` non governa più il ruolo ministeriale e nei tracciati ordinari non viene inventato alcun elemento XML estraneo allo schema. Restano invariati catalogo documenti, contributo unificato, firma locale e invio PEC dal PC dell'avvocato. Test mirati e typecheck sono positivi; la chiusura resta subordinata alla prova reale post-deploy sul fascicolo `B494AAB9`.
+
 ## PAT/SIGA modello ministeriale XFA ufficiale - 2026-06-20 - 2.253.84
 
 La superficie `/pat` e l'endpoint `/api/v1/ui/pat/moduli/compila` sono stati riallineati alla richiesta operativa: il PDF principale non è un riepilogo IUSENTRA e non è un PDF alternativo pensato per il viewer del browser. Il file generato parte dal modello ministeriale XFA originale, lo clona, compila i dati nel pacchetto XFA e lascia gli allegati del fascicolo come file separati da caricare in Formweb.

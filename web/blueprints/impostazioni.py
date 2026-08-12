@@ -404,6 +404,7 @@ def index():
                 cfg.studio = ConfigDatiStudio(
                     nome=f.get("nome", "").strip(),
                     avvocato=f.get("avvocato", "").strip(),
+                    deposito_telematico_role=getattr(cfg.studio, "deposito_telematico_role", ""),
                     numero_iscrizione_albo=f.get("numero_iscrizione_albo", "").strip(),
                     ordine_avvocati=f.get("ordine_avvocati", "").strip(),
                     piva=f.get("piva", "").strip(),

@@ -42,6 +42,32 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     assert len(payload["referenceData"]["ruoliProvvedimentoCassazione"]) == 9
     assert len(payload["referenceData"]["materieCassazione"]) >= 170
     assert len(payload["referenceData"]["classiImmobiliari"]) >= 50
+    assert payload["referenceData"]["qualificheProfessionista"] == [
+        {"value": "ARCH.", "label": "Arch."},
+        {"value": "AVV.", "label": "Avv."},
+        {"value": "CAV.", "label": "Cav."},
+        {"value": "CTU", "label": "Consulente"},
+        {"value": "CUR", "label": "Curatore"},
+        {"value": "CUS", "label": "Custode"},
+        {"value": "DR.", "label": "Dr."},
+        {"value": "DOTT.", "label": "Dott."},
+        {"value": "GEOM.", "label": "Geom."},
+        {"value": "ING.", "label": "Ing."},
+        {"value": "NOT", "label": "Notaio"},
+        {"value": "ON.", "label": "On."},
+        {"value": "CTU", "label": "Perito"},
+        {"value": "P.M.", "label": "P.M."},
+        {"value": "PROF.", "label": "Prof."},
+        {"value": "RAG.", "label": "Rag."},
+        {"value": "REV.", "label": "Rev."},
+        {"value": "SIG.", "label": "Sig."},
+        {"value": "SOC.", "label": "Soc."},
+        {"value": "TUT", "label": "Tutore"},
+    ]
+    assert payload["referenceData"]["qualificheProfessionistaCassazione"] == [
+        {"value": "SOLODIFENSORE", "label": "Avvocato (solo difensore)"},
+        {"value": "DIFENSOREDOMICILIATARIO", "label": "Avvocato (difensore e domiciliatario)"},
+    ]
 
 
 def test_tutti_i_252_depositi_pct_usano_il_profilo_busta_e_firma_studio_telematico():

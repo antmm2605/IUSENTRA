@@ -611,6 +611,49 @@ function DepositRolePicker({
   )
 }
 
+function AuthenticatedDownloadLink({ href, filename, children }:{href:string; filename:string; children:ReactNode}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const download = async () => {
+    if (!href || busy) return
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(href, { credentials: 'same-origin', headers: { Accept: 'application/zip' } })
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type') || ''
+        const payload = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {}
+        throw new Error(String(payload.message || payload.errore || `Bundle audit non disponibile: HTTP ${response.status}`))
+      }
+      const blob = await response.blob()
+      const disposition = response.headers.get('content-disposition') || ''
+      const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(disposition)
+      const downloadName = decodeURIComponent((match?.[1] || filename).replace(/"/g, ''))
+      const objectUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = downloadName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bundle audit non scaricato.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <button className="iu-fas-side-link" type="button" onClick={download} disabled={busy}>
+        {busy ? <RefreshCw size={15} aria-hidden="true"/> : children}
+        {busy ? 'Preparazione bundle...' : null}
+      </button>
+      {error ? <span className="iu-fas-inline-error" role="alert">{error}</span> : null}
+    </>
+  )
+}
+
 function StudioDocumentTypePicker({
   documentName,
   value,
@@ -2083,6 +2126,7 @@ function DepositPreparePage({ id }:{id:string}) {
     setToast({ tone: 'success', message })
     setDepositActionNotice({ tone: 'success', message })
     setDepositProofInvalidated(false)
+    refreshDetail()
     goToDepositPhase('generazione-busta')
   }
   const registerBatchSignatureAction = (action: BatchSignatureAction | null) => {
@@ -4135,8 +4179,12 @@ function DepositPreparePage({ id }:{id:string}) {
           <DetailSection id="audit-deposito" title="Audit" icon={<Fingerprint size={17}/>} count={data.auditTrail.summary.total}>
             <div className="iu-fas-action-stack">
               {evidenceHref ? <a className="iu-fas-side-link" href={evidenceHref}><FileArchive size={15}/> Scarica evidence pack</a> : null}
-              {data.actions.auditBundle ? <a className="iu-fas-side-link" href={data.actions.auditBundle}><PackageCheck size={15}/> Bundle audit</a> : null}
-              {!data.auditTrail.summary.total && data.auditTrail.available ? <p className="iu-empty">Registro audit attivo. Gli eventi del deposito e le ricevute saranno registrati nel fascicolo.</p> : null}
+              {data.auditTrail.summary.total && data.actions.auditBundle ? (
+                <AuthenticatedDownloadLink href={data.actions.auditBundle} filename={`audit-fascicolo-${f.id || id}.zip`}>
+                  <PackageCheck size={15} aria-hidden="true"/> Scarica bundle audit
+                </AuthenticatedDownloadLink>
+              ) : null}
+              {!data.auditTrail.summary.total && data.auditTrail.available ? <p className="iu-empty">Nessun evento probatorio registrato. Esegui la prova della busta per acquisire il pacchetto nel registro audit.</p> : null}
               {!data.auditTrail.available ? <p className="iu-empty">{data.auditTrail.message || 'Registro audit non disponibile.'}</p> : null}
             </div>
           </DetailSection>

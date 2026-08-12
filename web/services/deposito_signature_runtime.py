@@ -23,13 +23,20 @@ def documenti_busta_nomi(
     allegati_busta: list[Any],
     *,
     include_indice_busta: bool = True,
+    atto_nome: str = "",
 ) -> list[str]:
     """Return the technical and operational filenames expected inside Atto.msg."""
-    nomi = [DATI_ATTO_FIRMATO_FILENAME, BustaTelematica.nome_file_ministeriale(Path(atto_path).name)]
+    nomi = [
+        DATI_ATTO_FIRMATO_FILENAME,
+        BustaTelematica.nome_file_ministeriale(atto_nome or Path(atto_path).name),
+    ]
     if include_indice_busta:
         nomi.insert(0, INDICE_BUSTA_FILENAME)
     nomi.extend(
-        BustaTelematica.nome_file_ministeriale(Path(str(getattr(allegato, "percorso", ""))).name)
+        BustaTelematica.nome_file_ministeriale(
+            str(getattr(allegato, "nome_file", ""))
+            or Path(str(getattr(allegato, "percorso", ""))).name
+        )
         for allegato in allegati_busta
     )
     nomi.append(INDICE_DOCUMENTI_FILENAME)

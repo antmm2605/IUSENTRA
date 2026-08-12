@@ -315,11 +315,15 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     entries = list(generated.get("entries") or [])
     generated_names = {Path(str(name)).name.lower() for name in entries}
 
-    indice_ambiguous = bool(generated.get("has_indice_busta_internal") and generated.get("has_indice_busta_xml"))
-    indice_ok = (
-        bool(generated.get("has_indice_busta_xml"))
-        and not indice_ambiguous
-        and generated.get("indice_busta_tipi_ok") is True
+    has_indice_internal = bool(generated.get("has_indice_busta_internal"))
+    has_indice_external = bool(generated.get("has_indice_busta_xml"))
+    indice_ambiguous = has_indice_internal and has_indice_external
+    indice_ok = bool(
+        not indice_ambiguous
+        and (
+            has_indice_internal
+            or (has_indice_external and generated.get("indice_busta_tipi_ok") is True)
+        )
     )
     control_matches = bool(
         (generated.get("has_dati_atto_xml") or generated.get("has_dati_atto_signed"))
@@ -363,13 +367,13 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
                 "action": "Rigenerare la busta includendo l'indice documenti.",
             }
         )
-    if not generated.get("has_indice_busta_xml"):
+    if not indice_ok and not indice_ambiguous:
         differences.append(
             {
                 "level": "block_control",
                 "code": "INDICE_BUSTA_MISSING",
-                "message": "IndiceBusta.xml non presente nel pacchetto generato: il PST reale restituisce 'Indice busta non trovato'.",
-                "action": "Rigenerare Atto.msg includendo IndiceBusta.xml come parte MIME nominata prima della cifratura in Atto.enc.",
+                "message": "IndiceBusta ministeriale non presente né nel DatiAtto né come XML esterno.",
+                "action": "Rigenerare il DatiAtto con IndiceBusta interno oppure, per i tracciati che lo prevedono, includere IndiceBusta.xml esterno.",
             }
         )
     if indice_ambiguous:
@@ -377,8 +381,8 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
             {
                 "level": "block_control",
                 "code": "INDICE_BUSTA_AMBIGUOUS",
-                "message": "Il pacchetto contiene sia IndiceBusta.xml sia IndiceBusta interno nel DatiAtto: il PST reale restituisce 'Indice busta ambiguo'.",
-                "action": "Rigenerare DatiAtto.xml senza IndiceBusta interno quando IndiceBusta.xml esterno è presente in Atto.msg.",
+                "message": "Il pacchetto contiene sia IndiceBusta.xml sia IndiceBusta interno nel DatiAtto.",
+                "action": "Usare una sola modalità IndiceBusta, secondo il tracciato ministeriale del tipo di deposito.",
             }
         )
 

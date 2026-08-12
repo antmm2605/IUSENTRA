@@ -5838,3 +5838,44 @@ Guardrail eseguiti:
 - typecheck frontend.
 
 Stato: correzione installata sul Local Signer reale e verificata fino alla connessione SMTP senza invio. La prova materiale conclusiva richiede un solo nuovo click dell'avvocato su `Invia deposito reale`; Codex non ha effettuato né ritentato alcuna trasmissione PEC.
+## Aggiornamento 12/08/2026 16:34 - Nomi ministeriali delle versioni firmate
+
+- Perimetro: solo deposito telematico `B494AAB9`; nessun intervento sulle notifiche legali e nessun invio PEC reale.
+- Esito ministeriale analizzato: `IDBUSTA 154418409`, con rilievi `Formato di file non ammesso` su `Ricorso.pdf_010f.p7m` e `Procura .pdf_b223.p7m`.
+- Causa: la sostituzione governata delle firme conserva correttamente una versione fisica con suffisso tecnico, ma il generatore copiava quel nome di archiviazione dentro `Atto.msg`. La classificazione del fascicolo aveva invece già i nomi corretti `Ricorso.pdf.p7m` e `Procura .pdf.p7m`.
+- Correzione: atto principale e allegati portano nella busta il nome logico della classificazione; il path fisico versionato resta invariato nello storico. Il comportamento è applicato sia alle route React sia al controllo guidato del catalogo depositi.
+- Confronto Studio Telematico: il decompilato allega i nomi logici dell'atto principale e degli allegati; nei DatiAtto ministeriali l'IndiceBusta è incorporato nel file firmato e non viene dichiarato nel riepilogo come file separato.
+- Prova reale autenticata su `https://app.iusentra.it`, riferimento `8960D6EF`: prova senza invio completata, `8/8`, compatibilità software `100%`, nessuna PEC inviata.
+- Ispezione binaria del file reale `/tmp/busta_cqel__s5/Atto.msg`, dimensione `8.193.036` byte: parti MIME `Ricorso.pdf.p7m` (`1.082.100` byte) e `Procura .pdf.p7m` (`896.977` byte); assenti `Ricorso.pdf_010f.p7m` e `Procura .pdf_b223.p7m`.
+- Limite: la prova conferma composizione e nomi del nuovo pacchetto senza invio; l'esito definitivo di un eventuale deposito resta quello delle ricevute ministeriali e della cancelleria. Il deposito già trasmesso con `IDBUSTA 154418409` non è stato ritentato.
+
+## Aggiornamento 12/08/2026 - Registro audit reale e IndiceBusta interno
+
+Perimetro: esclusivamente deposito telematico del fascicolo `B494AAB9`. Nessuna notifica legale e nessun invio PEC reale sono stati eseguiti.
+
+- Ogni prova della busta registra un evento `DEPOSIT_ATTEMPT` tenant-aware con operazione `prova_senza_invio`, riferimento della prova, hash SHA-256 e metadati di `Atto.enc` e `Atto.msg`.
+- Gli eventi sono firmati JWS `RS256`, concatenati tramite l'hash dell'evento precedente e replicati nel bucket WORM configurato; la route bundle restituisce manifest, certificato del firmatario ed envelope completi.
+- La UI React aggiorna il dettaglio dopo la prova, mostra il conteggio reale e scarica il bundle autenticato senza uscire da IUSENTRA. Quando non esistono eventi propone esplicitamente di eseguire la prova della busta.
+- Corretto il falso blocco sull'`IndiceBusta`: nel tracciato SICID verificato l'indice ministeriale è incorporato nel `DatiAtto.xml.p7m`; non deve essere richiesto anche come allegato esterno quando `dati_atto_indice_busta_interno`, struttura MIME e verifica della busta risultano validi.
+
+Prova materiale autenticata eseguita su `https://app.iusentra.it` il 12/08/2026:
+
+- riferimento prova `22E68461`, `8/8` controlli superati e compatibilità `100%`;
+- controllo `IndiceBusta ministeriale` in stato `OK`, con indice incluso nel `DatiAtto.xml.p7m`;
+- contatore Audit passato da `1` a `2` senza ricariche manuali;
+- bundle scaricato sul PC come `audit-fascicolo-B494AAB9 (1).zip`, dimensione `7.657` byte, con due eventi e quattro file manifestati;
+- secondo evento `dd6bcbff-c63c-48ad-aa94-069b1d10968f`, hash `42373310430cdede41af671cb6d642bbaddf530adb767bcb9acf107c5afccc70`, concatenato all'evento precedente;
+- `Atto.enc` della nuova prova: `8.193.853` byte, SHA-256 `64fbab8fb7ed229a608c2bcc238935f667439c3d55284548a3069be1bca13d60`;
+- `Atto.msg` della nuova prova: `8.193.036` byte, SHA-256 `426df542630811f246a04ef127c10b96a26340f629d3c2bf1dd808ac99d4ea5a`.
+
+Stato: registro audit, download del bundle e compatibilità dell'indice verificati materialmente sul fascicolo reale. La prova non ha inviato alcuna PEC.
+
+### Verifica finale sulla copia locale reale
+
+- Copia Docker reale ricostruita senza cache e ricreata su `http://127.0.0.1:8080`, versione `2.278.26`, endpoint `/api/pronto` in stato `pronto` e container `iusentra-app` healthy.
+- Prova materiale eseguita nel browser reale con un account amministrativo tecnico temporaneo creato tramite il repository utenti tenant-aware dello studio e rimosso subito dopo il collaudo.
+- La route React `/fascicoli/B494AAB9/deposito/prepara` ha mostrato correttamente `Dati fascicolo non caricati` e `Fascicolo non disponibile nella fonte dati corrente`, perché il fascicolo di produzione non appartiene al dataset locale.
+- Verificati visivamente caricamento della shell React, leggibilità dello stato, hover del comando `Torna ai fascicoli`, navigazione reale alla lista fascicoli e scorrimento completo della pagina.
+- L'account tecnico è stato eliminato dal database SQLite locale e la sessione è tornata alla pagina di accesso.
+
+Stato locale: collaudo materiale completato sulla copia reale dell'utente; nessuna PEC è stata preparata o inviata durante questa verifica.

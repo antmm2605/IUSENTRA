@@ -141,7 +141,10 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Contributo unificato: ricevuta di pagamento o documento di esenzione" in source
     assert "linkedExtraSlots" not in source
     assert "catalogAdvisory" not in source
-    assert "Registro audit attivo. Gli eventi del deposito e le ricevute saranno registrati nel fascicolo." in source
+    assert "Nessun evento probatorio registrato. Esegui la prova della busta" in source
+    assert "AuthenticatedDownloadLink" in source
+    assert "Scarica bundle audit" in source
+    assert '<a className="iu-fas-side-link" href={data.actions.auditBundle}' not in source
     assert 'if not diagnostics.get("enabled"):' in bridge
     assert 'if not current_app.config.get("AUDIT_ENABLED"):' not in bridge
     assert "Esenzione già rilevata nel fascicolo. Nessuna ricevuta è necessaria." not in source

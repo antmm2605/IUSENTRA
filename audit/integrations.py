@@ -21,6 +21,7 @@ except Exception:  # pragma: no cover
         return False
 
 from .schemas import ActorContext, AuditFileRef, AuditKind, SourceContext
+from .hashing import sha256_file
 from .service import AuditService
 
 
@@ -213,22 +214,61 @@ def emit_deposit_attempt(
     *,
     fascicolo_id: str,
     busta_path: str | Path,
-    dati_atto_path: str | Path,
     storage_ref_prefix: str,
+    dati_atto_path: str | Path | None = None,
+    atto_msg_path: str | Path | None = None,
+    operation: str = "preparazione",
+    deposit_id: str = "",
+    message_id_hash: str = "",
     tenant_id: str = "",
     idempotency_key: str = "",
 ) -> Any | None:
+    busta = Path(busta_path)
+    files = [
+        AuditFileRef(
+            label=busta.name,
+            storage_ref=f"{storage_ref_prefix}/{busta.name}",
+            path=busta,
+            mime="application/pkcs7-mime",
+        )
+    ]
+    if atto_msg_path:
+        atto_msg = Path(atto_msg_path)
+        files.append(
+            AuditFileRef(
+                label=atto_msg.name,
+                storage_ref=f"{storage_ref_prefix}/{atto_msg.name}",
+                path=atto_msg,
+                mime="message/rfc822",
+            )
+        )
+    if dati_atto_path:
+        dati_atto = Path(dati_atto_path)
+        files.append(
+            AuditFileRef(
+                label=dati_atto.name,
+                storage_ref=f"{storage_ref_prefix}/{dati_atto.name}",
+                path=dati_atto,
+                mime="application/pkcs7-mime" if dati_atto.name.lower().endswith(".p7m") else "application/xml",
+            )
+        )
+    package_hash = sha256_file(busta)
+    payload = {
+        "fascicolo_id": fascicolo_id,
+        "operation": str(operation or "preparazione"),
+        "deposit_id": str(deposit_id or ""),
+        "package_sha256": package_hash,
+    }
+    if message_id_hash:
+        payload["message_id_hash"] = message_id_hash
     return _emit(
         kind=AuditKind.DEPOSIT_ATTEMPT,
         tenant_id=tenant_id,
         fascicolo_id=fascicolo_id,
-        payload={"fascicolo_id": fascicolo_id},
-        files=[
-            AuditFileRef(label=Path(busta_path).name, storage_ref=f"{storage_ref_prefix}/busta.p7m", path=busta_path, mime="application/pkcs7-mime"),
-            AuditFileRef(label=Path(dati_atto_path).name, storage_ref=f"{storage_ref_prefix}/DatiAtto.xml", path=dati_atto_path, mime="application/xml"),
-        ],
+        payload=payload,
+        files=files,
         module="depositi",
-        idempotency_key=idempotency_key or f"DEPOSIT_ATTEMPT:{fascicolo_id}:{Path(busta_path).name}",
+        idempotency_key=idempotency_key or f"DEPOSIT_ATTEMPT:{fascicolo_id}:{operation}:{package_hash}",
     )
 
 

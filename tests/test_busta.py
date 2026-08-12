@@ -699,6 +699,83 @@ def test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg(tmp_path):
     assert all(part.get_content_disposition() == "attachment" for part in parts.values())
 
 
+def test_busta_usa_nomi_logici_senza_suffissi_storage_nel_trasporto(tmp_path):
+    """I suffissi di versionamento del fascicolo non devono entrare nella busta ministeriale."""
+    ricorso = tmp_path / "Ricorso.pdf_010f.p7m"
+    procura = tmp_path / "Procura .pdf_b223.p7m"
+    ricorso.write_bytes(_cades_signed_payload(b"%PDF-1.4\nRICORSO\n%%EOF"))
+    procura.write_bytes(_cades_signed_payload(b"%PDF-1.4\nPROCURA\n%%EOF"))
+    dati = DatiBusta(
+        codice_ufficio="0241160092",
+        codice_registro="RGL",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(ricorso),
+        atto_principale_nome="Ricorso.pdf.p7m",
+        allegati=[
+            Allegato(
+                str(procura),
+                "Procura alle liti",
+                "PROCURA",
+                nome_file="Procura .pdf.p7m",
+            )
+        ],
+        cf_mittente="RSSMRA80A01H501Z",
+        operatore="Avv. Mario Rossi",
+        valore_causa=500.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+    )
+    busta = BustaTelematica(dati)
+    dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+    busta_path = busta.crea_busta(
+        str(tmp_path / "out"),
+        dati_atto_firmato=_cades_signed_payload(dati_atto_xml),
+        require_dati_atto_firmato=True,
+    )
+
+    attachments = _atto_msg_attachments(busta_path)
+    assert "Ricorso.pdf.p7m" in attachments
+    assert "Procura .pdf.p7m" in attachments
+    assert "Ricorso.pdf_010f.p7m" not in attachments
+    assert "Procura .pdf_b223.p7m" not in attachments
+
+
+def test_nome_file_ministeriale_rimuove_solo_il_suffisso_storage_legacy():
+    assert BustaTelematica.nome_file_ministeriale("Ricorso.pdf_010f.p7m") == "Ricorso.pdf.p7m"
+    assert BustaTelematica.nome_file_ministeriale("Procura .pdf_b223.p7m") == "Procura .pdf.p7m"
+    assert BustaTelematica.nome_file_ministeriale("Ricorso_010f.pdf") == "Ricorso.pdf"
+    assert BustaTelematica.nome_file_ministeriale("Ricorso.pdf.p7m") == "Ricorso.pdf.p7m"
+
+
+def test_nome_file_unico_preserva_estensione_composta_cades():
+    used = {"ricorso.pdf.p7m"}
+    assert BustaTelematica._nome_file_unico("Ricorso.pdf.p7m", used) == "Ricorso_2.pdf.p7m"
+
+
+def test_riepilogo_documenti_usa_nomi_logici_e_indice_ministeriale_interno(tmp_path):
+    from web.services.deposito_signature_runtime import documenti_busta_nomi
+
+    allegato = Allegato(
+        percorso=str(tmp_path / "Procura .pdf_b223.p7m"),
+        descrizione="Procura alle liti",
+        tipo="PROCURA",
+        nome_file="Procura .pdf.p7m",
+    )
+    nomi = documenti_busta_nomi(
+        str(tmp_path / "Ricorso.pdf_010f.p7m"),
+        [allegato],
+        atto_nome="Ricorso.pdf.p7m",
+        include_indice_busta=False,
+    )
+
+    assert nomi == [
+        DATI_ATTO_FIRMATO_FILENAME,
+        "Ricorso.pdf.p7m",
+        "Procura .pdf.p7m",
+        INDICE_DOCUMENTI_FILENAME,
+    ]
+
+
 def test_busta_reale_decripta_documenti_cades_prima_di_atto_msg(tmp_path, monkeypatch):
     from pct.document_crypto import ENC_MAGIC, encrypt_doc
 

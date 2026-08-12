@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.26 - 2026-08-12
+
+- **Nomi ministeriali ricavati dalla classificazione del fascicolo.** La busta usa `Ricorso.pdf.p7m` e `Procura .pdf.p7m` anche quando le versioni fisiche conservate nello storico hanno suffissi tecnici come `_010f` e `_b223`; quei suffissi non entrano più in `Atto.msg`, nell'indice firmato o nel testo PEC.
+- **Riepilogo aderente al pacchetto Studio Telematico.** Nei depositi ministeriali l'indice busta resta incorporato in `DatiAtto.xml.p7m`; il riepilogo non elenca più un `IndiceBusta.xml` separato che non è presente nel pacchetto effettivo.
+- **Guardrail sul trasporto reale.** I test costruiscono la busta da file fisici versionati e verificano i nomi logici nelle parti MIME, l'assenza dei suffissi interni e la conservazione dell'estensione composta `.pdf.p7m`.
+
 ## 2.278.25 - 2026-08-12
 
 - **Invio PEC locale del deposito riallineato alle Impostazioni.** Mittente, username, server, porta e SSL/TLS vengono letti esclusivamente dalla configurazione PEC salvata dello studio; il payload del deposito non può più sovrascriverli con valori precedenti.

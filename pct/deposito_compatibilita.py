@@ -158,8 +158,14 @@ def build_deposito_compatibility_report(
     has_indice_busta = any(item.casefold() == "indicebusta.xml" for item in docs)
     has_datiatto_signed = any(item.casefold() == "datiatto.xml.p7m" for item in docs)
     audit_indice_busta = audit.get("indice_busta_xml_generated", audit.get("indice_busta_generated")) is True
+    indice_busta_interno = audit.get("dati_atto_indice_busta_interno") is True
     audit_datiatto_signed = audit.get("dati_atto_signed") is True
     audit_indice_structure = audit.get("atto_msg_indice_busta_valid") is True and audit.get("busta_verifica_valida") is True
+    indice_busta_coerente = (
+        audit_indice_busta
+        and audit_indice_structure
+        and (indice_busta_interno or has_indice_busta)
+    )
     audit_enc_hash = str(audit.get("atto_enc_sha256") or "").strip().upper()
     file_hash = str(file_info.get("sha256") or "").strip().upper()
 
@@ -168,8 +174,7 @@ def build_deposito_compatibility_report(
         and audit.get("atto_enc_cms_valid") is True
         and str(audit.get("required_encryption_algorithm") or "").upper() == "AES256"
         and "AES256" in str(audit.get("transport_mode") or "").upper()
-        and audit_indice_busta
-        and audit_indice_structure
+        and indice_busta_coerente
         and audit_datiatto_signed
         and file_info["exists"]
         and file_info["name"] == "Atto.enc"
@@ -204,11 +209,13 @@ def build_deposito_compatibility_report(
         checks,
         code="INDICE_BUSTA_XML",
         label="IndiceBusta ministeriale",
-        ok=has_indice_busta and audit_indice_busta and audit_indice_structure,
+        ok=indice_busta_coerente,
         weight=12,
         detail=(
-            "IndiceBusta.xml ministeriale generato e incluso in Atto.msg."
-            if has_indice_busta and audit_indice_busta and audit_indice_structure
+            "IndiceBusta ministeriale incluso nel DatiAtto.xml.p7m."
+            if indice_busta_coerente and indice_busta_interno
+            else "IndiceBusta.xml ministeriale generato e incluso in Atto.msg."
+            if indice_busta_coerente
             else "IndiceBusta ministeriale non risulta coerente: il PST può rifiutare la busta."
         ),
     )

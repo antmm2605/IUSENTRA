@@ -163,6 +163,7 @@ def register_deposito_legacy_send_route(
                     tipo_atto=tipo_atto,
                     atto_principale=atto_path,
                     allegati=allegati_busta,
+                    atto_principale_nome=str(getattr(atto_doc, "nome", "") or ""),
                     numero_rg=numero_rg or None,
                     anno_rg=anno_rg or None,
                     operatore=utente.username if utente else "",
@@ -216,7 +217,12 @@ def register_deposito_legacy_send_route(
                 output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
                 busta_dir = _Path(output_dir) / id_dep
                 busta = BustaTelematica(dati)
-                documenti_busta = documenti_busta_nomi(atto_path, allegati_busta)
+                documenti_busta = documenti_busta_nomi(
+                    atto_path,
+                    allegati_busta,
+                    atto_nome=dati.atto_principale_nome,
+                    include_indice_busta=busta.usa_indice_busta_esterno(),
+                )
                 corpo_pec = form.get("corpo_pec", "").strip() or deposito_pec_body(documenti_busta)
                 try:
                     busta_path = busta.crea_busta(str(busta_dir))

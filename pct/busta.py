@@ -295,6 +295,7 @@ class Allegato:
     percorso: str
     descrizione: str
     tipo: str = "ALLEGATO"  # ATTO_PRINCIPALE | ALLEGATO | PROCURA
+    nome_file: str = ""
 
 
 @dataclass
@@ -307,6 +308,7 @@ class DatiBusta:
     tipo_atto: str
     atto_principale: str
     allegati: List[Allegato] = field(default_factory=list)
+    atto_principale_nome: str = ""
     numero_rg: Optional[str] = None
     anno_rg: Optional[int] = None
     operatore: str = ""
@@ -430,7 +432,27 @@ class BustaTelematica:
     @staticmethod
     def nome_file_ministeriale(filename: str) -> str:
         """Nome fisico esposto in Atto.msg e IndiceBusta.xml."""
-        return Path(str(filename or "")).name
+        name = Path(str(filename or "")).name
+        if not name:
+            return "documento"
+
+        # Le sostituzioni versionate del fascicolo aggiungono un suffisso tecnico
+        # al path fisico. Quel suffisso non appartiene al nome ministeriale.
+        signed_storage_name = re.fullmatch(
+            r"(?i)(?P<base>.+\.(?:pdf|rtf|txt|jpg|jpeg|gif|tif|tiff|xml|eml|msg|doc|docx))_[0-9a-f]{4}"
+            r"(?P<signature>\.p7m)",
+            name,
+        )
+        if signed_storage_name:
+            return f"{signed_storage_name.group('base')}{signed_storage_name.group('signature')}"
+
+        storage_name = re.fullmatch(
+            r"(?i)(?P<base>.+)_[0-9a-f]{4}(?P<extension>\.(?:pdf|rtf|txt|jpg|jpeg|gif|tif|tiff|xml|eml|msg))",
+            name,
+        )
+        if storage_name:
+            return f"{storage_name.group('base')}{storage_name.group('extension')}"
+        return name
 
     @staticmethod
     def _nome_file_unico(filename: str, used: set[str]) -> str:
@@ -439,7 +461,12 @@ class BustaTelematica:
         suffix = 2
         while candidate.casefold() in used:
             path = Path(name)
-            candidate = f"{path.stem}_{suffix}{path.suffix}"
+            if path.suffix.casefold() == ".p7m" and len(path.suffixes) >= 2:
+                compound_suffix = "".join(path.suffixes[-2:])
+                stem = name[: -len(compound_suffix)]
+                candidate = f"{stem}_{suffix}{compound_suffix}"
+            else:
+                candidate = f"{path.stem}_{suffix}{path.suffix}"
             suffix += 1
         used.add(candidate.casefold())
         return candidate
@@ -1038,7 +1065,10 @@ class BustaTelematica:
 
         ap_path = self._runtime_path(self.dati.atto_principale, must_be_file=True)
         ap_payload = self._read_document_payload(ap_path)
-        ap_filename = self._nome_file_unico(self.nome_file_ministeriale(ap_path.name), used_names)
+        ap_filename = self._nome_file_unico(
+            self.nome_file_ministeriale(self.dati.atto_principale_nome or ap_path.name),
+            used_names,
+        )
         parts.append(
             _DocumentoBusta(
                 filename=ap_filename,
@@ -1057,7 +1087,10 @@ class BustaTelematica:
         for index, allegato in enumerate(self.dati.allegati, start=2):
             all_path = self._runtime_path(allegato.percorso, must_be_file=True)
             payload = self._read_document_payload(all_path)
-            filename = self._nome_file_unico(self.nome_file_ministeriale(all_path.name), used_names)
+            filename = self._nome_file_unico(
+                self.nome_file_ministeriale(allegato.nome_file or all_path.name),
+                used_names,
+            )
             parts.append(
                 _DocumentoBusta(
                     filename=filename,

@@ -126,11 +126,24 @@ def allegati_busta(fascicolo, gestore_fascicoli, id_fascicolo: str, allegati_ids
                 allegato_cls(
                     percorso=percorso,
                     descrizione=documento.nome if documento else allegato_id,
+                    nome_file=documento.nome if documento else "",
                 )
             )
         except Exception:
             continue
     return allegati
+
+
+def nome_documento_deposito(fascicolo: Any, id_documento: str) -> str:
+    documento = next(
+        (
+            doc
+            for doc in list(getattr(fascicolo, "documenti", []) or [])
+            if str(getattr(doc, "id", "") or "") == str(id_documento or "")
+        ),
+        None,
+    )
+    return str(getattr(documento, "nome", "") or "")
 
 
 def documenti_selezionati_deposito(fascicolo: Any, atto_id: str, allegati_ids: list[str]) -> list[Any]:

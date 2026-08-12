@@ -16,18 +16,14 @@ from web.services.deposito_route_helpers import (
     deposito_oggetto as _deposito_oggetto,
     documenti_selezionati_deposito as _documenti_selezionati_deposito,
     guided_transport_completion_response as _guided_transport_completion_response,
+    nome_documento_deposito as _nome_documento_deposito,
     ufficio_deposito_destinatario as _ufficio_deposito_destinatario,
     ufficio_da_nome as _ufficio_da_nome,
     validate_busta_document_selection as _validate_busta_document_selection,
     validation_summary as _validation_summary,
     wants_json_response as _wants_json_response,
 )
-from web.services.local_pec_runtime import (
-    deposito_pec_subject,
-    local_pec_required_response,
-    local_pec_confirmation_result,
-    resolve_deposito_pec_body,
-)
+from web.services.local_pec_runtime import deposito_pec_subject, local_pec_confirmation_result, local_pec_required_response, resolve_deposito_pec_body
 from web.services.deposito_pec_runtime import (
     build_compatibility_report as _build_compatibility_report,
     build_simulazione_pec_payload as _build_simulazione_pec_payload,
@@ -44,6 +40,7 @@ from web.services.deposito_anagrafica_ministeriale import (
     deposito_busta_anagrafica_context as _deposito_busta_anagrafica_context,
     valore_causa_fascicolo as _valore_causa_fascicolo,
 )
+from web.services.deposito_audit_runtime import registra_audit_pacchetto_deposito as _registra_audit_pacchetto_deposito
 from web.services.deposito_catalogo_runtime import (
     deposito_catalogo_apply as _deposito_catalogo_apply,
     deposito_catalogo_blocker as _deposito_catalogo_blocker,
@@ -53,7 +50,6 @@ from web.services.deposito_catalogo_runtime import (
     deposito_catalogo_entry as _deposito_catalogo_entry,
 )
 from web.services.security_redaction import redacted_json_response
-
 
 def register_deposito_routes(
     app: Flask,
@@ -277,6 +273,7 @@ def register_deposito_routes(
             tipo_atto=tipo_atto,
             atto_principale=atto_path,
             allegati=allegati_busta,
+            atto_principale_nome=_nome_documento_deposito(fascicolo, atto_id),
             numero_rg=numero_rg,
             anno_rg=anno_rg,
             operatore=utente.username if utente else "",
@@ -322,8 +319,7 @@ def register_deposito_routes(
     def deposito_indice_documenti(id_fasc):
         """Genera l'anteprima PDF dell'indice documenti sulla selezione corrente."""
         from io import BytesIO as _BytesIO
-        from pct.busta import Allegato as AllegatoBusta
-        from pct.busta import BustaTelematica, DatiBusta, INDICE_DOCUMENTI_FILENAME
+        from pct.busta import Allegato as AllegatoBusta, BustaTelematica, DatiBusta, INDICE_DOCUMENTI_FILENAME
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         form = request.values
@@ -377,6 +373,7 @@ def register_deposito_routes(
                     tipo_atto=tipo_atto,
                     atto_principale=atto_path,
                     allegati=allegati_busta,
+                    atto_principale_nome=_nome_documento_deposito(fascicolo, atto_id),
                     numero_rg=numero_rg,
                     anno_rg=anno_rg,
                     operatore=utente.username if utente else "",
@@ -401,14 +398,11 @@ def register_deposito_routes(
     @app.route("/fascicoli/<id_fasc>/deposito/invia-pec", methods=["POST"])
     def deposito_invia_pec(id_fasc):
         """Crea la busta telematica e la invia via PEC all'ufficio giudiziario."""
-        import json as _json
-        import tempfile as _tmp
-        import uuid as _uuid
+        import json as _json, tempfile as _tmp, uuid as _uuid
         from datetime import datetime as _dt
         from pct.busta import Allegato as AllegatoBusta, BustaTelematica, DatiBusta
         from pct.fascicoli import EsitoDepositoPCT
-        gestore_fascicoli = get_fascicoli()
-        utente = g.utente_corrente
+        gestore_fascicoli, utente = get_fascicoli(), g.utente_corrente
         form = request.form
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
@@ -707,6 +701,7 @@ def register_deposito_routes(
             tipo_atto=tipo_atto,
             atto_principale=atto_path,
             allegati=allegati_busta,
+            atto_principale_nome=_nome_documento_deposito(fascicolo, atto_id),
             numero_rg=numero_rg,
             anno_rg=anno_rg,
             operatore=utente.username if utente else "",
@@ -739,7 +734,7 @@ def register_deposito_routes(
             anno_rg=anno_rg,
             tribunale=fascicolo.tribunale or "",
         )
-        documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta, include_indice_busta=True)
+        documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta, atto_nome=dati.atto_principale_nome, include_indice_busta=busta.usa_indice_busta_esterno())
         corpo_pec = resolve_deposito_pec_body(form.get("corpo_pec", ""), documenti_busta)
         dati_atto_firmato, signature_payload = _dati_atto_signature_gate(
             form,
@@ -862,6 +857,7 @@ def register_deposito_routes(
                 busta_audit=busta_audit,
             )
             prova_payload["compatibility_report"] = compatibility_report
+            prova_payload.update(_registra_audit_pacchetto_deposito(fascicolo_id=id_fasc, busta=busta, attachment_path=enc_path, id_deposito=id_dep, operation="prova_senza_invio"))
             prova_payload["messaggio"] = (
                 "Prova deposito preparata: busta, indice, destinatario e testo PEC sono pronti per il controllo. "
                 "Nessun invio PEC reale è stato eseguito."
@@ -884,6 +880,7 @@ def register_deposito_routes(
                 compatibility_report=compatibility_report,
                 pec_config_error=pec_config_error,
             )
+            sim_payload.update(_registra_audit_pacchetto_deposito(fascicolo_id=id_fasc, busta=busta, attachment_path=enc_path, id_deposito=id_dep, operation="simulazione_senza_invio"))
             try:
                 _registra_prova_senza_invio_pec(
                     fascicolo=fascicolo,
@@ -911,6 +908,7 @@ def register_deposito_routes(
                 app.logger.warning("Conferma Local Signer non valida per deposito %s: %s", id_dep, exc)
                 return jsonify({"ok": False, "errore": "Conferma Local Signer non valida. Ripeti l'invio dal PC locale."}), 400
             app.logger.info("Deposito %s confermato da invio PEC Local Signer", id_dep)
+            audit_metadata = _registra_audit_pacchetto_deposito(fascicolo_id=id_fasc, busta=busta, attachment_path=enc_path, id_deposito=id_dep, operation="invio_pec_locale_confermato", message_id=str(ris.get("message_id", "")))
         else:
             # Il deposito PCT/SIGP invia sempre dal PC dell'avvocato tramite
             # Local Signer, anche quando la UI e' aperta dal server pubblico.
@@ -996,5 +994,6 @@ def register_deposito_routes(
                 "timestamp": timestamp,
                 "message_id": ris.get("message_id", ""),
                 "messaggio": "Deposito inviato via PEC e registrato nel fascicolo.",
+                **audit_metadata,
             }
         )

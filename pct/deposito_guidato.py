@@ -1633,6 +1633,7 @@ class ValidatorSchemiPST:
                     percorso=str(doc.get("percorso") or ""),
                     descrizione=str(doc.get("nome") or ""),
                     tipo="ALLEGATO",
+                    nome_file=str(doc.get("nome") or ""),
                 )
                 for doc in selected_documents
                 if doc.get("id") != context.get("atto_principale_id")
@@ -1649,6 +1650,7 @@ class ValidatorSchemiPST:
                 tipo_atto=str(context.get("tipo_atto") or "ATTO_GENERICO"),
                 atto_principale=str(main_doc.get("percorso") or ""),
                 allegati=allegati,
+                atto_principale_nome=str(main_doc.get("nome") or ""),
                 numero_rg=str(context.get("numero_rg") or fascicolo.numero_rg or "") or None,
                 anno_rg=_safe_int(context.get("anno_rg") or fascicolo.anno_rg) or None,
                 operatore=str(context.get("operatore") or ""),

@@ -31,7 +31,26 @@ def _eml_with_attachments(path: Path, attachments: dict[str, bytes]) -> Path:
 
 
 def _anagrafica_ministeriale_minima() -> bytes:
-    return b'<AnagraficaProcedimento xmlns="http://schemi.processotelematico.giustizia.it/tipi/atti/v6"/>'
+    return b'''<AnagraficaProcedimento xmlns="http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
+        xmlns:at="http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4">
+      <Partecipanti>
+        <Parte naturaGiuridica="PFI" ID="parte_ricorrente_1">
+          <at:denominazione>Rossi</at:denominazione><at:nome>Mario</at:nome>
+          <at:codiceFiscale>RSSMRA80A01H501Z</at:codiceFiscale>
+          <at:indirizzo><at:via>Via Roma 1</at:via><at:cap>00100</at:cap><at:localita>Roma</at:localita><at:provincia>RM</at:provincia><at:stato>IT</at:stato></at:indirizzo>
+        </Parte>
+        <ControParte naturaGiuridica="ENP" ID="controparte_1">
+          <at:denominazione>Ministero dell'Istruzione e del Merito</at:denominazione>
+          <at:codiceFiscale>80185250588</at:codiceFiscale>
+          <at:indirizzo><at:via>Viale Trastevere 76 A</at:via><at:cap>00153</at:cap><at:localita>Roma</at:localita><at:provincia>RM</at:provincia><at:stato>IT</at:stato></at:indirizzo>
+        </ControParte>
+      </Partecipanti>
+      <Soggetti><Avvocato><at:cognome>Rossi</at:cognome><at:nome>Mario</at:nome>
+        <at:codiceFiscale>RSSMRA80A01H501Z</at:codiceFiscale>
+        <at:indirizzo><at:via>Via Studio 2</at:via><at:cap>00100</at:cap><at:localita>Roma</at:localita><at:provincia>RM</at:provincia><at:stato>IT</at:stato></at:indirizzo>
+        <at:parteRappresentata ref="parte_ricorrente_1"/>
+      </Avvocato></Soggetti>
+    </AnagraficaProcedimento>'''
 
 
 def test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invio_reale(tmp_path):
@@ -73,7 +92,7 @@ def test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invi
     assert "ATTO_ENC_AES256_MISSING" not in codes
 
 
-def test_audit_dry_run_richiede_indice_busta_xml_esterno(tmp_path):
+def test_audit_dry_run_accetta_indice_busta_interno_al_dati_atto(tmp_path):
     atto = _pdf(tmp_path / "Ricorso.pdf", b"atto principale")
     allegato = _pdf(tmp_path / "Documento.pdf", b"allegato")
     dati = DatiBusta(
@@ -97,9 +116,9 @@ def test_audit_dry_run_richiede_indice_busta_xml_esterno(tmp_path):
     report = audit_deposito_package(package, [evidence_copy])
 
     assert report["ok_control_package"] is True
-    assert report["generated"]["has_indice_busta_xml"] is True
-    assert report["generated"]["indice_busta_mode"] == "indice_busta_xml"
-    assert report["generated"]["has_indice_busta_internal"] is False
+    assert report["generated"]["has_indice_busta_xml"] is False
+    assert report["generated"]["indice_busta_mode"] == "interno_dati_atto"
+    assert report["generated"]["has_indice_busta_internal"] is True
     codes = {item["code"] for item in report["comparison"]["differences"]}
     assert "INDICE_BUSTA_MISSING" not in codes
     assert "INDICE_BUSTA_AMBIGUOUS" not in codes

@@ -10,7 +10,7 @@ from web.app import create_app
 from web.services.storage_runtime import resolve_storage_runtime
 
 
-def _cades_signed_payload(documento: bytes) -> bytes:
+def _cades_signed_payload(documento: bytes, *, complete_profile: bool = True) -> bytes:
     from datetime import UTC, datetime, timedelta
 
     from cryptography import x509
@@ -32,17 +32,19 @@ def _cades_signed_payload(documento: bytes) -> bytes:
         .not_valid_after(datetime.now(UTC) + timedelta(days=30))
         .sign(key, hashes.SHA256())
     )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
     digest = hashes.Hash(hashes.SHA256())
     digest.update(documento)
     signed_attrs_der = FirmaPKCS11._build_signed_attrs(
         object.__new__(FirmaPKCS11),
         digest.finalize(),
+        cert_der if complete_profile else None,
     )
     signature = key.sign(signed_attrs_der, padding.PKCS1v15(), hashes.SHA256())
     return _build_cades_bes(
         documento=documento,
         signature_bytes=signature,
-        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        cert_der=cert_der,
         signed_attrs_der=signed_attrs_der,
         detached=False,
     )
@@ -470,3 +472,41 @@ def test_api_fascicolo_verifica_p7m_cifrato_a_riposo(tmp_path, monkeypatch):
     documents = {item["id"]: item for item in response.get_json()["documents"]}
     assert documents[doc.id]["signed"] is True
     assert documents[doc.id]["statusLabel"] == "Firmato"
+    assert documents[doc.id]["signatureProfile"] == "cades_bes"
+    assert documents[doc.id]["signatureReadyForDeposit"] is True
+    assert documents[doc.id]["signatureNeedsRefresh"] is False
+
+
+def test_api_fascicolo_segnala_cades_legacy_da_rigenerare_senza_controfirma(tmp_path, monkeypatch):
+    monkeypatch.setenv("PCT_DOC_KEY", "regia-encrypted-cades-legacy-test")
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    signed_payload = _cades_signed_payload(pdfa_bytes(), complete_profile=False)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "Procura .pdf.p7m",
+        TipoDocumento.PROCURA,
+        signed_payload,
+        firmato=True,
+    )
+    from web.services.document_crypto import encrypt_doc
+
+    encrypted_payload = encrypt_doc(signed_payload)
+    path = gf.percorso_documento(fascicolo.id, doc.id)
+    path.write_bytes(encrypted_payload)
+    doc.dimensione_bytes = len(encrypted_payload)
+    gf._salva()
+
+    client = app.test_client()
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all",
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    row = next(item for item in response.get_json()["documents"] if item["id"] == doc.id)
+    assert row["signed"] is True
+    assert row["signatureProfile"] == "cades_legacy"
+    assert row["signatureReadyForDeposit"] is False
+    assert row["signatureNeedsRefresh"] is True
+    assert "signingCertificateV2" in row["signatureMissingAttributes"]
+    assert row["statusLabel"] == "Firma CAdES-BES da aggiornare"

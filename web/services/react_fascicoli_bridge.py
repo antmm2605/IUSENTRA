@@ -56,6 +56,7 @@ from pct.document_signature_state import (
     document_has_real_digital_signature,
     document_has_signed_container,
 )
+from pct.firma import attributi_cades_bes_mancanti, busta_cades_valida
 from web.services.deposito_anagrafica_ministeriale import deposito_ministerial_readiness
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
@@ -6930,9 +6931,20 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
         text = _text(value)
         return (field, text) if text else None
 
-    def _real_signature(doc: Any, *display_names: Any) -> bool:
+    def _signature_state(doc: Any, *display_names: Any) -> dict[str, Any]:
+        fallback_signed = document_has_real_digital_signature(doc) and not document_has_signed_container(
+            doc,
+            *display_names,
+        )
+        fallback = {
+            "signed": fallback_signed,
+            "profile": "verified" if fallback_signed else "",
+            "ready": fallback_signed,
+            "missing": [],
+            "needs_refresh": False,
+        }
         if gestore_fascicoli is None or not fid or not _text(getattr(doc, "id", "")):
-            return document_has_real_digital_signature(doc) and not document_has_signed_container(doc, *display_names)
+            return fallback
         try:
             if hasattr(gestore_fascicoli, "percorso_documento_lettura"):
                 path = gestore_fascicoli.percorso_documento_lettura(fid, _text(getattr(doc, "id", "")))
@@ -6943,26 +6955,41 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
 
             data = decrypt_doc(raw_data)
         except OSError:
-            return document_has_real_digital_signature(doc) and not document_has_signed_container(doc, *display_names)
+            return fallback
         except Exception:
-            return False
-        if document_bytes_have_real_digital_signature(
+            return {
+                "signed": False,
+                "profile": "",
+                "ready": False,
+                "missing": [],
+                "needs_refresh": False,
+            }
+        signed = document_bytes_have_real_digital_signature(
             data,
             *display_names,
             getattr(doc, "nome", ""),
             getattr(doc, "nome_originale", ""),
             getattr(doc, "nome_portale", ""),
             str(path),
-        ):
-            return True
-        return document_has_real_digital_signature(doc) and not document_has_signed_container(
-            doc,
-            *display_names,
-            getattr(doc, "nome", ""),
-            getattr(doc, "nome_originale", ""),
-            getattr(doc, "nome_portale", ""),
-            str(path),
         )
+        if busta_cades_valida(data):
+            missing = attributi_cades_bes_mancanti(data)
+            return {
+                "signed": True,
+                "profile": "cades_legacy" if missing else "cades_bes",
+                "ready": not missing,
+                "missing": missing,
+                "needs_refresh": bool(missing),
+            }
+        if signed:
+            return {
+                "signed": True,
+                "profile": "pades" if data.startswith(b"%PDF-") else "verified",
+                "ready": True,
+                "missing": [],
+                "needs_refresh": False,
+            }
+        return fallback
 
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
     saved_catalog = _saved_document_catalog_by_id(fascicolo)
@@ -6984,7 +7011,8 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             getattr(doc, "nome_portale", ""),
             getattr(doc, "percorso", ""),
         )
-        signed = _real_signature(doc, name, technical_name)
+        signature_state = _signature_state(doc, name, technical_name)
+        signed = bool(signature_state["signed"])
         raw_type = _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " ")
         catalog = saved_catalog.get(did) or _document_catalog_from_saved_type(doc)
         display_type = catalog.label if catalog.confidence >= 70 else raw_type
@@ -7016,8 +7044,12 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "notes": _short(_italian_dates_in_text(getattr(doc, "note", "")), 180),
                 "tags": _visible_document_tags(doc, display_name=name, technical_name=original_name),
                 "signed": signed,
-                "statusLabel": "Firmato" if signed else "Da firmare",
-                "statusTone": "success" if signed else "warning",
+                "signatureProfile": signature_state["profile"],
+                "signatureReadyForDeposit": signature_state["ready"],
+                "signatureMissingAttributes": signature_state["missing"],
+                "signatureNeedsRefresh": signature_state["needs_refresh"],
+                "statusLabel": "Firma CAdES-BES da aggiornare" if signature_state["needs_refresh"] else ("Firmato" if signed else "Da firmare"),
+                "statusTone": "warning" if signature_state["needs_refresh"] else ("success" if signed else "warning"),
                 "source": _source_label_for_document(doc),
                 "portalName": _clean_document_filename(getattr(doc, "nome_portale", "")) or (_clean_document_filename(getattr(doc, "nome_originale", "")) if not _technical_filename(getattr(doc, "nome_originale", "")) else ""),
                 "portalClass": _portal_class_for_document(doc),

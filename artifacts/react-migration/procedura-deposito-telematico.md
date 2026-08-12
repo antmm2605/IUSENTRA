@@ -5720,3 +5720,54 @@ Guardrail eseguiti prima di build e deploy:
 - compilazione Python dei moduli modificati -> OK.
 
 Stato: codice verificato automaticamente; prova materiale sul server reale ancora da eseguire dopo deploy. Nessun invio PEC reale viene effettuato durante la prova.
+
+## Aggiornamento 12/08/2026 - Firma multipla: CAdES-BES senza controfirma
+
+Perimetro: esclusivamente deposito telematico del fascicolo `B494AAB9`. Notifiche legali, relate di notifica e invio PEC non sono stati modificati.
+
+- Il primo tentativo di firma multipla raggiungeva il ramo PAdES del Local Signer e falliva con `'cryptography.hazmat.bindings._rust.x509.Certificate' object is not subscriptable`: il certificato PKCS#11 del token veniva sovrascritto dalla rappresentazione `cryptography` usata per leggerne i dati. I due oggetti sono ora distinti.
+- Il tentativo successivo arrivava correttamente al salvataggio, ma veniva fermato dal presidio `documento già firmato`. La causa era una regola React introdotta in IUSENTRA che trasformava ogni nome `.pdf.p7m` in una richiesta di rifirma PAdES.
+- Il decompilato `D:\QuickOrganizer\QuickOrganizer.exe` è stato ricontrollato: Studio Telematico non controfirma un `.p7m` durante il deposito e non lo converte in PAdES. La regola forzata è stata rimossa.
+- Il backend legge ora i byte reali, anche se cifrati a riposo, e distingue `cades_bes`, `cades_legacy`, `pades` e firma verificata. Un CAdES-BES completo è pronto e non entra nel lotto.
+- Per i due documenti reali `Ricorso.pdf.p7m` e `Procura .pdf.p7m` è stato accertato che la busta contiene il PDF originale e il certificato qualificato di Giuseppe Montagnese, ma gli attributi firmati comprendono soltanto `content-type` e `message-digest`: mancano `signing-time` e `signingCertificateV2`.
+- Quando l'avvocato avvia il lotto per un CAdES legacy, il Local Signer estrae il PDF incapsulato e crea una nuova busta CAdES-BES. Il backend accetta la sostituzione soltanto in questo percorso esplicito e conserva automaticamente la versione precedente in `documento.versioni`; non viene firmata la vecchia busta e non nasce una firma annidata.
+- Local Signer aggiornato a `1.6.109`, installato sul PC reale: `/ping` rileva token CNS Bit4id e certificato qualificato `GIUSEPPE MONTAGNESE`, scadenza `02/03/2029`.
+
+Guardrail eseguiti prima del deploy:
+
+- `python -m py_compile web/services/react_fascicoli_bridge.py tools/local_signer.py tests/test_regia_api_payloads.py tests/test_local_signer.py`;
+- `npm --prefix frontend run typecheck`;
+- `python -m pytest -q` sui casi CAdES cifrato, CAdES legacy, estrazione contenuto, lotto PIN e regressione PKCS#11 PAdES: `7 passed`;
+- suite firma/deposito mirata: `7 passed`;
+- `npm --prefix frontend run build`;
+- `python tools/build_dist.py`, pacchetti Windows/macOS/Linux `1.6.109` generati;
+- installazione locale `1.6.109` e verifica `/ping` riuscita.
+
+Stato: il codice e il Local Signer locale sono verificati tecnicamente. La prova materiale con PIN sui due documenti reali resta da eseguire sul server aggiornato; nessuna PEC è stata inviata.
+
+## Aggiornamento 12/08/2026 - Rigenerazione CAdES-BES senza alterare il PDF originale
+
+Perimetro: esclusivamente firma multipla del deposito telematico. Notifiche legali, relate e invio PEC non sono stati modificati.
+
+- Local Signer `1.6.110` estrae il PDF originale dalla CAdES legacy e, solo in questo percorso, disabilita ogni firma visibile prima di creare la nuova busta CAdES-BES.
+- Il vecchio contenitore `.p7m` non viene controfirmato, non viene convertito in PAdES e non viene annidato nella nuova firma.
+- Il server consente la sostituzione soltanto quando la UI ha riconosciuto il profilo `cades_legacy`; la versione precedente resta nello storico del documento.
+- Le card del pacchetto mostrano `Firma CAdES-BES da aggiornare`, distinguendola dalla firma di un documento non ancora sottoscritto.
+- Il test del lotto verifica che la sorgente passata al firmatario sia il contenuto estratto e che la modalità sia `nessuna`; il percorso PAdES conserva un test separato sul certificato PKCS#11.
+- Prova reale autenticata eseguita in produzione su `https://app.iusentra.it`, applicazione `2.278.20`: entrambi i documenti reali sono riconosciuti come CAdES da aggiornare, Local Signer `1.6.110` è pronto e non compare il precedente avviso di documento già firmato.
+
+Stato: preparazione e presentazione reale verificate; firma fisica ancora non eseguita perché richiede l'inserimento personale del PIN da parte dell'avvocato. Nessuna PEC è stata inviata.
+
+## Aggiornamento 12/08/2026 - Simulazione completa prima dell'invio reale
+
+Perimetro: esclusivamente deposito telematico. Notifiche legali e invio PEC reale non sono stati modificati né eseguiti.
+
+- Local Signer `1.6.112` crea direttamente CAdES-BES con Windows Store senza passare dal contenitore `SignedCms` che eliminava `signingCertificateV2`.
+- La firma multipla avviata da `Firma e prepara prova` non ricarica più la pagina tra firma dei documenti e preparazione della busta; il refresh resta attivo per il comando manuale di sola firma.
+- L'aggiornamento automatico del corpo PEC non invalida più la simulazione appena completata; una successiva modifica manuale continua invece a richiedere una nuova prova.
+- Prova reale autenticata eseguita su `https://app.iusentra.it`, fascicolo `B494AAB9`: firma locale dei documenti, firma locale di `DatiAtto.xml`, generazione di `IndiceBusta.xml`, preparazione di `Atto.enc` e controllo finale completati nello stesso flusso.
+- Il controllo binario sui due `.pdf.p7m` persistiti conferma CMS `SignedData`, SHA-256, RSA-SHA256 e tutti gli attributi CAdES-BES obbligatori, incluso `signingCertificateV2`.
+- La UI mostra `compatibilità 100%` e abilita `Invia deposito reale`; l'elenco PEC comprende i nomi fisici firmati e tutti i documenti selezionati.
+- Nessun invio PEC reale è stato eseguito e non è stato prodotto alcun Message-ID di trasmissione.
+
+Stato: simulazione e pacchetto verificati materialmente sul server reale; il comando di invio reale è rimasto intenzionalmente non eseguito.

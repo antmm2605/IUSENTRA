@@ -293,6 +293,10 @@ export type FascicoloDocument = {
   notes: string
   tags: string[]
   signed: boolean
+  signatureProfile: string
+  signatureReadyForDeposit: boolean
+  signatureMissingAttributes: string[]
+  signatureNeedsRefresh: boolean
   statusLabel: string
   statusTone: Tone
   source: string
@@ -2237,11 +2241,20 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       const row = isRecord(entry) ? entry : {}
       const actions = isRecord(row.actions) ? row.actions : {}
       const signed = bool(row.signed)
+      const signatureReadyForDeposit = row.signatureReadyForDeposit === undefined && row.signature_ready_for_deposit === undefined
+        ? signed
+        : bool(row.signatureReadyForDeposit ?? row.signature_ready_for_deposit)
       return {
         id: text(row.id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento'), type: text(row.type ?? row.tipo, 'ALTRO'), rawType: text(row.rawType ?? row.raw_type ?? row.tipo, ''),
         size: text(row.size ?? row.dimensione, ''),
         uploadedAt: text(row.uploadedAt ?? row.data_caricamento), documentDate: text(row.documentDate ?? row.data_documento), notes: text(row.notes ?? row.note),
         tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed,
+        signatureProfile: text(row.signatureProfile ?? row.signature_profile),
+        signatureReadyForDeposit,
+        signatureMissingAttributes: asArray(row.signatureMissingAttributes ?? row.signature_missing_attributes).map((item) => text(item)).filter(Boolean),
+        signatureNeedsRefresh: row.signatureNeedsRefresh === undefined && row.signature_needs_refresh === undefined
+          ? signed && !signatureReadyForDeposit
+          : bool(row.signatureNeedsRefresh ?? row.signature_needs_refresh),
         statusLabel: signed ? text(row.statusLabel ?? row.status_label, 'Firmato') : 'Da firmare',
         statusTone: signed ? text(row.statusTone ?? row.status_tone, 'success') as Tone : 'warning',
         source: text(row.source ?? row.fonte_documento),

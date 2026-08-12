@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.278.22 - 2026-08-12
+
+- **Compatibilità PAdES del certificato Windows.** Registrato esplicitamente l'OID standard `signingCertificateV2` richiesto da pyHanko; la suite completa Local Signer impedisce regressioni nel percorso PAdES mentre il deposito aggiorna le CAdES legacy.
+- **Local Signer 1.6.112.** La firma CAdES tramite certificato Windows costruisce direttamente gli attributi CAdES-BES, verifica `signingCertificateV2` prima di restituire il file e riusa il PIN soltanto nella memoria locale per completare nello stesso comando anche `DatiAtto.xml`.
+
+## 2.278.20 - 2026-08-12
+
+- **Rigenerazione CAdES-BES fedele al documento originale.** Il deposito estrae il PDF dalla vecchia busta CAdES, lo firma senza timbri o trasformazioni aggiuntive e produce una sola nuova busta CAdES-BES; la versione precedente resta nello storico del fascicolo.
+- **Local Signer 1.6.110.** La firma multipla distingue l'aggiornamento CAdES-BES dalle firme ordinarie e non propone più la controfirma dei file `.pdf.p7m` già firmati.
+
+## 2.278.19 - 2026-08-12
+
+- **Deposito telematico: niente controfirma dei file `.p7m`.** La firma multipla non forza più i documenti `Ricorso.pdf.p7m` e `Procura .pdf.p7m` in PAdES. Una busta CAdES-BES già completa resta invariata e non entra nel lotto di firma.
+- **Aggiornamento governato delle firme CAdES legacy.** Se una firma esistente è priva degli attributi CAdES-BES richiesti, il software estrae il documento originale incapsulato, produce una nuova busta CAdES-BES con il PIN sul PC locale e conserva la versione precedente nello storico del fascicolo. Non vengono create firme annidate.
+- **Local Signer 1.6.109.** Corretto il ramo PKCS#11 PAdES che confondeva il certificato del token con il certificato analizzato; aggiunto il percorso CAdES-BES sostitutivo e mantenuto il blocco protettivo per ogni sostituzione non richiesta dal flusso deposito.
+
 ## 2.278.17 - 2026-08-12
 
 - **Deposito telematico: qualifica del professionista conforme a Studio Telematico.** Il flusso espone il selettore dedicato con gli stessi codici del programma di riferimento, distingue le opzioni della Cassazione, salva la scelta nel fascicolo e nelle impostazioni tenant-aware e la riusa nei depositi successivi.

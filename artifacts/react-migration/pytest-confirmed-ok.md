@@ -6328,6 +6328,19 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Typecheck e build React | OK | `tsc --noEmit` e build Vite superati; il primo tentativo ha incontrato un lock transitorio su `index.html`, il secondo è riuscito integralmente. |
 | Installazione PC reale | OK tecnico | `/ping?light=1` espone `1.6.101`; `/support/status` risponde; nessun processo `curl` o prompt PIN pendente. |
 
+## Deposito B494AAB9: aggiornamento CAdES-BES senza controfirma - 12/08/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile web/services/react_fascicoli_bridge.py tools/local_signer.py tests/test_regia_api_payloads.py tests/test_local_signer.py` | OK | Sintassi backend, Local Signer e test. |
+| `npm --prefix frontend run typecheck` | OK | Nuovi campi profilo firma e percorso React validi. |
+| Test mirati CAdES/PKCS#11/UI | OK | `7/7`: CAdES cifrato, CAdES legacy, estrazione sorgente, blocco file non firmato, riuso PIN, regressione certificato token PAdES e contratto React. |
+| Test deposito/firma aggiuntivi | OK | `7/7`: rifirma, firme già presenti, attributi CAdES e PKCS#11. |
+| `npm --prefix frontend run build` | OK | Bundle deposito generato senza errori. |
+| `python tools/build_dist.py` | OK | Local Signer `1.6.110` per Windows, macOS e Linux. |
+| Installazione PC reale Local Signer | OK tecnico | `/ping` espone `1.6.110`, token CNS Bit4id e certificato qualificato `GIUSEPPE MONTAGNESE`. Nessun PIN letto o memorizzato. |
+| Browser reale autenticato produzione | OK osservato | Applicazione `2.278.20`; `Procura .pdf.p7m` e `Ricorso.pdf.p7m` mostrano `Firma CAdES-BES da aggiornare`, Local Signer `1.6.110` pronto, pulsante unico per il lotto e nessun avviso di documento già firmato. Nessuna firma o PEC eseguita. |
+
 ## Piano del giorno automatico e dettagliato - 02/08/2026
 
 | Comando / verifica | Esito | Note |

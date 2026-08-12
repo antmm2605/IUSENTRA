@@ -8,8 +8,9 @@ import json
 import os
 import subprocess
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -974,7 +975,7 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "FlashWindowEx" in source
     assert "CREATE_NO_WINDOW" in source
     assert "STARTF_USESHOWWINDOW" in source
-    assert "result = _run_process_with_pin_foreground(command, **run_kwargs)" in source
+    assert "result = _run_process_with_pin_foreground(" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
     raw = source[
@@ -1981,6 +1982,11 @@ def test_firma_inline_usa_privkey_sign_e_signed_attrs(monkeypatch):
             "cert_der": cert_der,
             "signed_attrs_der": signed_attrs_der,
         },
+    )
+    monkeypatch.setattr(
+        module,
+        "_build_signed_attrs_der_inline",
+        lambda documento, cert_der=None: b"signed-attrs-cades-bes",
     )
 
     firmato, info = module._firma_inline("C:\\Windows\\System32\\bit4xpki.dll", b"abc", "123456", 0)
@@ -5919,6 +5925,14 @@ def test_build_cades_bes_inline_restituisce_busta_pkcs7_valida_con_contenuto_emb
     assert signed_data["certificates"] is not None
     assert len(signed_data["certificates"]) == 1
     assert signed_data["encap_content_info"]["content"].native == documento
+    assert module._extract_cades_refresh_source(envelope) == documento
+
+
+def test_extract_cades_refresh_source_rifiuta_file_non_firmato():
+    module = _load_local_signer()
+
+    with pytest.raises(RuntimeError, match="non viene controfirmato"):
+        module._extract_cades_refresh_source(b"%PDF-1.4\n%%EOF")
 
 
 def test_pick_preferred_windows_cert_privilegia_aruba_auth():
@@ -5982,9 +5996,28 @@ def test_pick_preferred_windows_signature_cert_esclude_auth():
     assert cert["thumbprint"] == "A" * 40
 
 
-def test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso(monkeypatch):
+def test_firma_windows_store_cades_include_signing_certificate_v2(monkeypatch):
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
     module = _load_local_signer()
     captured = {}
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "ROSSI MARIO")])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
 
     monkeypatch.setattr(module.sys, "platform", "win32")
     monkeypatch.setattr(
@@ -5997,38 +6030,32 @@ def test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso(mo
             "scadenza": "2029-02-23",
         },
     )
-    monkeypatch.setattr(module, "_windows_store_certificate_der", lambda _thumbprint: b"cert-der")
-    monkeypatch.setattr(
-        module,
-        "_signing_certificate_v2_value_der_inline",
-        lambda _cert_der: b"signing-certificate-v2",
-    )
+    monkeypatch.setattr(module, "_windows_store_certificate_der", lambda _thumbprint: cert_der)
     monkeypatch.setattr(
         module,
         "_prepare_documento_firma_visibile",
         lambda documento, *args, **kwargs: documento,
     )
-    def _fake_run_process_with_pin_foreground(command, **kwargs):
-        captured["command"] = command
-        captured["kwargs"] = kwargs
-        output_path = Path(command[command.index("-OutputPath") + 1])
-        output_path.write_bytes(b"firmato")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
+    def _fake_sign_raw(_thumbprint, payload, digest_algorithm):
+        captured["payload"] = payload
+        captured["digest_algorithm"] = digest_algorithm
+        return key.sign(payload, padding.PKCS1v15(), hashes.SHA256())
 
-    monkeypatch.setattr(
-        module.subprocess,
-        "run",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("firma Windows deve passare dal runner PIN foreground")),
-    )
-    monkeypatch.setattr(module, "_run_process_with_pin_foreground", _fake_run_process_with_pin_foreground)
+    monkeypatch.setattr(module, "_windows_store_sign_raw", _fake_sign_raw)
 
     firmato, info = module._firma_documento_windows_store(b"DatiAtto")
 
-    assert firmato == b"firmato"
+    from asn1crypto import cms
+
+    content_info = cms.ContentInfo.load(firmato)
+    signer_info = content_info["content"]["signer_infos"][0]
+    attributes = {attribute["type"].dotted for attribute in signer_info["signed_attrs"]}
+    assert content_info["content"]["encap_content_info"]["content"].native == b"DatiAtto"
+    assert "1.2.840.113549.1.9.16.2.47" in attributes
+    assert module._cades_bes_missing_attributes_inline(firmato) == []
     assert info["windows_cert_store"] is True
-    assert captured["kwargs"]["capture_output"] is True
-    assert captured["kwargs"]["text"] is True
-    assert captured["kwargs"]["timeout"] == 240
+    assert captured["digest_algorithm"] == "sha256"
+    assert captured["payload"]
 
 
 def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypatch):
@@ -6164,6 +6191,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     captured = {}
     orig_trova = module._trova_libreria
     orig_firma = module._firma_documento
+    orig_extract = module._extract_cades_refresh_source
 
     class _FakeHandler:
         def __init__(self, payload):
@@ -6178,6 +6206,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
 
     try:
         module._trova_libreria = lambda: "fake.dll"
+        module._extract_cades_refresh_source = lambda payload: b"doc-2-originale"
 
         def _fake_firma_documento(
             lib_path,
@@ -6221,7 +6250,12 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
                         "nome": "doc-1.pdf",
                         "formato": "pades",
                     },
-                    {"documento": base64.b64encode(b"doc-2").decode(), "nome": "doc-2.pdf"},
+                    {
+                        "documento": base64.b64encode(b"doc-2.p7m").decode(),
+                        "nome": "doc-2.pdf.p7m",
+                        "formato": "cades",
+                        "replace_existing_signature": True,
+                    },
                 ],
                 "pin": "123456",
                 "slot_id": 0,
@@ -6235,6 +6269,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     finally:
         module._trova_libreria = orig_trova
         module._firma_documento = orig_firma
+        module._extract_cades_refresh_source = orig_extract
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
@@ -6250,10 +6285,125 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert calls[1]["pin"] == ""
     assert calls[1]["pin_session_id"] == "sess-1"
     assert calls[1]["formato"] == "cades"
-    assert calls[1]["visible_signature_mode"] == "basso_destra"
+    assert calls[1]["documento"] == b"doc-2-originale"
+    assert calls[1]["visible_signature_mode"] == "nessuna"
+    assert captured["payload"]["risultati"][1]["replaced_existing_signature"] is True
     assert calls[1]["visible_signature_place"] == "Taurianova"
     assert calls[1]["visible_signature_datetime_mode"] == "solo_data"
     assert calls[1]["cert_thumbprint"] is None
+
+
+def test_firma_inline_pades_mantiene_distinto_certificato_token(monkeypatch):
+    module = _load_local_signer()
+
+    from asn1crypto import keys, x509 as asn1_x509
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+    from pyhanko.sign import pkcs11 as pyhanko_pkcs11, signers
+    from pyhanko_certvalidator.registry import SimpleCertificateStore
+    from reportlab.pdfgen import canvas
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Token"),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
+    key_der = key.private_bytes(
+        serialization.Encoding.DER,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
+    software_signer = signers.SimpleSigner(
+        signing_cert=asn1_x509.Certificate.load(cert_der),
+        signing_key=keys.PrivateKeyInfo.load(key_der),
+        cert_registry=SimpleCertificateStore(),
+    )
+    monkeypatch.setattr(
+        pyhanko_pkcs11,
+        "PKCS11Signer",
+        lambda *args, **kwargs: software_signer,
+    )
+
+    class _Attribute:
+        CLASS = "class"
+        ID = "id"
+        VALUE = "value"
+
+    class _ObjectClass:
+        PRIVATE_KEY = "private_key"
+        CERTIFICATE = "certificate"
+
+    class _TokenObject:
+        def __init__(self, values):
+            self.values = values
+
+        def __getitem__(self, key):
+            return self.values.get(key)
+
+    private_key = _TokenObject({_Attribute.ID: b"firma"})
+    certificate = _TokenObject({_Attribute.ID: b"firma", _Attribute.VALUE: cert_der})
+
+    class _Session:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def get_objects(self, query):
+            if query[_Attribute.CLASS] == _ObjectClass.PRIVATE_KEY:
+                return [private_key]
+            return [certificate]
+
+    class _Token:
+        def open(self, user_pin):
+            assert user_pin == "123456"
+            return _Session()
+
+    class _Slot:
+        def get_token(self):
+            return _Token()
+
+    class _Library:
+        def get_slots(self, token_present):
+            assert token_present is True
+            return [_Slot()]
+
+    fake_pkcs11 = ModuleType("pkcs11")
+    fake_pkcs11.Attribute = _Attribute
+    fake_pkcs11.Mechanism = SimpleNamespace()
+    fake_pkcs11.ObjectClass = _ObjectClass
+    fake_pkcs11.lib = lambda path: _Library()
+    monkeypatch.setitem(sys.modules, "pkcs11", fake_pkcs11)
+
+    source = io.BytesIO()
+    pdf = canvas.Canvas(source)
+    pdf.drawString(72, 720, "Ricorso")
+    pdf.save()
+
+    signed, info = module._firma_inline(
+        "fake.dll",
+        source.getvalue(),
+        "123456",
+        formato="pades",
+        visible_signature_place="Taurianova",
+    )
+
+    assert signed.startswith(b"%PDF")
+    assert info["intestatario"] == "Avv. Test Token"
 
 
 def test_firma_singola_propaga_modalita_visibile_al_signer():

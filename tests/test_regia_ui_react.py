@@ -239,7 +239,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "localSignerOutdated" in source
     assert "Riallinea automaticamente" in source
     assert "canRequestLocalSignerProtocol" in source
-    assert "if (signableDocuments.length) void checkLocalSigner(false)" in source
+    assert "const timer = window.setInterval(() => { void checkLocalSigner(false) }, 12000)" in source
     assert "if (signableDocuments.length) void checkLocalSigner(true)" not in source
     assert "window.setTimeout(() => { void checkLocalSigner(false) }, delay)" in source
     assert "canRequestProtocolStart" in local_signer
@@ -248,6 +248,12 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Prima riavvia e riverifica Local Signer." not in source
     assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function documentHasSignedContainerExtension")]
     assert "Versione firmata tramite firma multipla deposito" in source
+    assert "replace_existing_signature: requiresCadesBesRefresh(doc)" in source
+    assert "if (replaceExistingSignature) form.append('confirm_resign', '1')" in source
+    assert "Firma CAdES-BES da aggiornare" in source
+    assert "Da rifirmare in PAdES" not in source
+    assert "function requiresStudioTelematicoPadesNormalization" not in source
+    assert "if (requiresCadesBesRefresh(doc) || /\\.p7m$/i.test(doc.name)) return 'cades'" in source
     assert "Firma e prepara prova" in source
     assert "Il software non seleziona se la classificazione non è certa." in source
     assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
@@ -306,18 +312,23 @@ def test_ui_deposito_local_signer_usa_alias_sano_e_una_sola_sessione_pin():
         deposit_page.index("const resetDepositSelectionToProposal")
     ]
     assert "batchSignaturePinSessionRef.current = ''" in prepare_signature
-    assert "if (!result?.pinSessionId)" in prepare_signature
+    assert "if (!result?.pinSessionId && !transientPin)" in prepare_signature
     assert "senza aprire la sessione PIN unica richiesta per DatiAtto.xml" in prepare_signature
-    assert "batchSignaturePinSessionRef.current = result.pinSessionId" in prepare_signature
+    assert "batchSignaturePinSessionRef.current = result?.pinSessionId || ''" in prepare_signature
 
     batch_panel = source[
         source.index("function DepositBatchSignaturePanel"):
         source.index("function documentHasSignedContainerExtension")
     ]
-    sign_all = batch_panel[batch_panel.index("const signAll = async () =>"):batch_panel.index("useEffect(() => {", batch_panel.index("const signAll = async () =>"))]
+    sign_all = batch_panel[batch_panel.index("const signAll = async (refreshAfter = true) =>"):batch_panel.index("useEffect(() => {", batch_panel.index("const signAll = async (refreshAfter = true) =>"))]
     assert sign_all.count("signResponse = await fetch(localSignerEndpointForStatus('/firma-batch', localSigner), requestOptions)") == 1
     assert "const pinSessionId = recordText(payload, 'pin_session_id')" in sign_all
     assert "pinSessionId: pinSessionId || undefined" in sign_all
+    assert "const usedWindowsStore = !pinSessionId" in sign_all
+    assert "consumeTransientPin: oneTimePin" in sign_all
+    assert "if (refreshAfter) onDone" in sign_all
+    assert "registerAction?.(signableDocuments.length ? () => signAll(false) : null)" in batch_panel
+    assert "batchSignatureTransientPinRef.current = transientPin" in prepare_signature
 
     package_actions = deposit_page[
         deposit_page.index('className="iu-fas-package-actions"'):
@@ -416,13 +427,15 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "batchSignaturePinSessionRef" in source
     assert "pin_session_id: reusablePinSessionId || undefined" in source
     assert "const pinSessionId = recordText(payload, 'pin_session_id')" in source
-    assert "if (!result?.pinSessionId)" in source
-    assert "batchSignaturePinSessionRef.current = result.pinSessionId" in source
+    assert "if (!result?.pinSessionId && !transientPin)" in source
+    assert "batchSignaturePinSessionRef.current = result?.pinSessionId || ''" in source
     assert "const unsignedCandidateDocuments = unsignedPackageDocuments.length" in deposit_page
     assert "depositCandidateDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc)).length" not in deposit_page
     assert "metadato ministeriale della busta, non un allegato da scegliere" not in deposit_page
     assert "Il software firma i dati del deposito sul PC in uso" in deposit_page
-    assert "const signatureLabel = willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)" in deposit_page
+    assert "const signatureLabel = requiresCadesBesRefresh(doc)" in deposit_page
+    assert "? 'Firma CAdES-BES da aggiornare'" in deposit_page
+    assert ": willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)" in deposit_page
     assert "already_signed: Boolean(doc.signed)" in deposit_page
     assert "doc?.name.toLowerCase().match(/\\.(p7m|sig|pkcs7)$/)" not in source
     assert "Report compatibilità" in deposit_page
@@ -527,6 +540,8 @@ def test_ui_deposito_controlla_i_dati_prima_di_qualsiasi_scrittura_e_abilita_inv
     assert "goToDepositPhase('proposta-busta', 'auto')" in block
     assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)" in source
     assert "setDepositProofInvalidated(false)" in source
+    assert "suppressNextProofInvalidationRef.current = true" in source
+    assert "if (suppressNextProofInvalidationRef.current)" in source
 
 
 def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():

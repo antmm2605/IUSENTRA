@@ -199,7 +199,11 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
 }
 
 type DepositActionPayload = Record<string, string | string[]>
-type BatchSignatureResult = { pinSessionId?: string; pinSessionTtlSeconds?: number }
+type BatchSignatureResult = {
+  pinSessionId?: string
+  pinSessionTtlSeconds?: number
+  consumeTransientPin?: () => string
+}
 type BatchSignatureAction = () => Promise<BatchSignatureResult | void>
 type LocalSignatureCompletion = { payload: ActionPayload; submittedPayload: DepositActionPayload }
 type DepositDocumentRole = 'atto_principale' | 'procura' | 'allegato_prova' | 'allegato' | 'prova_notifica' | 'fuori_busta'
@@ -1978,6 +1982,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const [pendingDepositIncludeIds, setPendingDepositIncludeIds] = useState<string[]>([])
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
   const batchSignaturePinSessionRef = useRef('')
+  const batchSignatureTransientPinRef = useRef('')
+  const suppressNextProofInvalidationRef = useRef(false)
   const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
 
   const refreshDetail = (message?: string) => {
@@ -2069,6 +2075,7 @@ function DepositPreparePage({ id }:{id:string}) {
     })
     const body = String(payload.corpo_pec || '')
     if (body) {
+      suppressNextProofInvalidationRef.current = true
       setPecBodyDraft(body)
       setPecBodyEdited(false)
       setPecBodyEditorOpen(false)
@@ -2312,6 +2319,10 @@ function DepositPreparePage({ id }:{id:string}) {
     }
     if (depositProofInputSignatureRef.current === depositProofInputSignature) return
     depositProofInputSignatureRef.current = depositProofInputSignature
+    if (suppressNextProofInvalidationRef.current) {
+      suppressNextProofInvalidationRef.current = false
+      return
+    }
     setPackagePreview(null)
     setDepositProofInvalidated(true)
   }, [depositProofInputSignature, f.id, loading])
@@ -2441,8 +2452,12 @@ function DepositPreparePage({ id }:{id:string}) {
       throw new Error('Dati del deposito non disponibili per la firma. Ripeti la prova deposito.')
     }
     const signatureRetry = localSignature.retry === true
-    if (signatureRetry) batchSignaturePinSessionRef.current = ''
+    if (signatureRetry) {
+      batchSignaturePinSessionRef.current = ''
+      batchSignatureTransientPinRef.current = ''
+    }
     const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
+    const transientBatchPin = reusablePinSessionId ? '' : batchSignatureTransientPinRef.current.trim()
     let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     if ((!signerStatus || signerStatus.ok === false) && !reusablePinSessionId) {
       requestLocalSignerStart()
@@ -2464,7 +2479,9 @@ function DepositPreparePage({ id }:{id:string}) {
     endpoint = localSignerEndpointForPayload(endpoint, '/firma', signerStatus)
     const windowsCertificate = localSignerWindowsCertificate(signerStatus)
     const token = Array.isArray(signerStatus?.token) ? signerStatus?.token?.[0] : undefined
-    const pin = reusablePinSessionId ? '' : await requestLocalSignaturePin(localSignature)
+    const pin = reusablePinSessionId
+      ? ''
+      : transientBatchPin || await requestLocalSignaturePin(localSignature)
     if (!reusablePinSessionId && !pin.trim()) {
       throw new Error('PIN firma mancante. Inseriscilo per firmare i dati del deposito e proseguire.')
     }
@@ -2489,6 +2506,8 @@ function DepositPreparePage({ id }:{id:string}) {
     } catch {
       if (reusablePinSessionId) batchSignaturePinSessionRef.current = ''
       throw new Error('Local Signer non raggiungibile dal browser per firmare i dati del deposito. Verifica che il servizio locale sia attivo e ripeti la prova deposito.')
+    } finally {
+      if (transientBatchPin) batchSignatureTransientPinRef.current = ''
     }
     const signaturePayload = await parseLocalSignerResponse(signatureResponse)
     const signedB64 = recordText(signaturePayload, 'firmato_b64')
@@ -2601,12 +2620,16 @@ function DepositPreparePage({ id }:{id:string}) {
     }
     try {
       batchSignaturePinSessionRef.current = ''
+      batchSignatureTransientPinRef.current = ''
       const result = await batchSignatureActionRef.current()
-      if (!result?.pinSessionId) {
+      const transientPin = result?.consumeTransientPin?.() || ''
+      if (!result?.pinSessionId && !transientPin) {
         throw signatureInputRequired('Local Signer ha completato la firma dei documenti senza aprire la sessione PIN unica richiesta per DatiAtto.xml. Aggiorna Local Signer e ripeti: il software non chiederà un secondo PIN nello stesso deposito.')
       }
-      batchSignaturePinSessionRef.current = result.pinSessionId
+      batchSignaturePinSessionRef.current = result?.pinSessionId || ''
+      batchSignatureTransientPinRef.current = transientPin
     } catch (err) {
+      batchSignatureTransientPinRef.current = ''
       setActiveDepositPanel('generazione-busta')
       window.location.hash = 'generazione-busta'
       throw err
@@ -3420,13 +3443,13 @@ function DepositPreparePage({ id }:{id:string}) {
                   const canRequestSignature = requiresPackageSignature(doc)
                   const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, roleValue)
                   const signatureRequested = selected && canRequestSignature && (mandatorySignature || Boolean(classification.requiresSignature))
-                  const signatureLabel = requiresStudioTelematicoPadesNormalization(doc)
-                    ? 'Da rifirmare in PAdES'
+                  const signatureLabel = requiresCadesBesRefresh(doc)
+                    ? 'Firma CAdES-BES da aggiornare'
                     : doc.signed
                     ? 'Firmato'
                     : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
-                  const depositStatusLabel = requiresStudioTelematicoPadesNormalization(doc)
-                    ? 'Da rifirmare in PAdES'
+                  const depositStatusLabel = requiresCadesBesRefresh(doc)
+                    ? 'Firma CAdES-BES da aggiornare'
                     : doc.signed
                     ? 'Firmato'
                     : signatureRequested ? 'Da firmare' : (canRequestSignature ? 'Firma facoltativa' : 'Firma non necessaria')
@@ -3445,7 +3468,9 @@ function DepositPreparePage({ id }:{id:string}) {
                       <div className="iu-fas-deposit-selection__document">
                         <strong>{doc.name}</strong>
                         <span>{[roleDisplayLabel, depositStatusLabel, doc.size].filter(Boolean).join(' - ')}</span>
-                        {doc.signed ? <em>Firma digitale verificata</em> : null}
+                        {requiresCadesBesRefresh(doc)
+                          ? <em>Firma presente: il software rigenera il CAdES-BES dal documento originale.</em>
+                          : doc.signed ? <em>Firma digitale verificata</em> : null}
                         {selected && signatureRequested ? <small>IUSENTRA lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
@@ -3678,7 +3703,9 @@ function DepositPreparePage({ id }:{id:string}) {
               {packageDocuments.map((doc) => {
                 const proofLabel = notificationProofKind(doc) ? notificationProofLabel(doc) : ''
                 const willSign = unsignedPackageDocuments.some((item) => item.id === doc.id)
-                const signatureLabel = willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)
+                const signatureLabel = requiresCadesBesRefresh(doc)
+                  ? 'Firma CAdES-BES da aggiornare'
+                  : willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)
                 return (
                   <article key={`package-${doc.id}`}>
                     <FileText size={16}/>
@@ -4177,7 +4204,10 @@ function DepositBatchSignaturePanel({
   }
 
   useEffect(() => {
-    if (signableDocuments.length) void checkLocalSigner(false)
+    if (!signableDocuments.length) return undefined
+    void checkLocalSigner(false)
+    const timer = window.setInterval(() => { void checkLocalSigner(false) }, 12000)
+    return () => window.clearInterval(timer)
   }, [signableDocuments.length])
 
   const scheduleLocalSignerRestartCheck = () => {
@@ -4193,6 +4223,7 @@ function DepositBatchSignaturePanel({
     doc: FascicoloDocument,
     signedB64: string,
     formato: 'cades' | 'pades',
+    replaceExistingSignature: boolean,
   ): Promise<void> => {
     const signedBytes = base64ToUint8Array(signedB64)
     if (!signedBytes.length) throw new Error(`${doc.name}: Local Signer non ha restituito il file firmato.`)
@@ -4207,6 +4238,7 @@ function DepositBatchSignaturePanel({
     form.append('visible_signature_mode', visibleSignatureMode)
     form.append('visible_signature_place', visibleSignaturePlace)
     form.append('visible_signature_datetime_mode', visibleSignatureDatetimeMode)
+    if (replaceExistingSignature) form.append('confirm_resign', '1')
     const action = doc.actions.sign || `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(doc.id)}/firma`
     const uploadResponse = await fetch(action, {
       method: 'POST',
@@ -4220,7 +4252,7 @@ function DepositBatchSignaturePanel({
     }
   }
 
-  const signAll = async () => {
+  const signAll = async (refreshAfter = true) => {
     const targetDocuments = documents.filter(requiresPackageSignature)
     if (!targetDocuments.length) {
       const message = 'Nessun documento da firmare: tutti i documenti selezionati hanno già una firma digitale verificata.'
@@ -4274,7 +4306,8 @@ function DepositBatchSignaturePanel({
         return {
           documento: arrayBufferToBase64(await response.arrayBuffer()),
           nome: doc.name,
-          formato: studioTelematicoSignatureFormat(doc.name),
+          formato: studioTelematicoSignatureFormat(doc),
+          replace_existing_signature: requiresCadesBesRefresh(doc),
         }
       }))
       const controller = new AbortController()
@@ -4326,23 +4359,33 @@ function DepositBatchSignaturePanel({
           await uploadSignedDocument(
             doc,
             String(result.firmato_b64),
-            String(result.formato || studioTelematicoSignatureFormat(doc.name)) === 'pades' ? 'pades' : 'cades',
+            String(result.formato || studioTelematicoSignatureFormat(doc)) === 'pades' ? 'pades' : 'cades',
+            requiresCadesBesRefresh(doc),
           )
           saved += 1
         } catch (exc) {
           errors.push(exc instanceof Error ? exc.message : String(exc))
         }
       }
+      const usedWindowsStore = !pinSessionId && risultati.some((item) => item.windows_cert_store === true)
+      let oneTimePin = usedWindowsStore ? pin.trim() : ''
       setPin('')
       if (errors.length) {
         const prefix = saved ? `${saved} documenti firmati e salvati. ` : ''
         throw new Error(`${prefix}Firma multipla da completare: ${errors.join(' ')}`)
       }
       setMessage(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
-      onDone(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
+      if (refreshAfter) onDone(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
       return {
         pinSessionId: pinSessionId || undefined,
         pinSessionTtlSeconds: pinSessionTtlSeconds || undefined,
+        consumeTransientPin: oneTimePin
+          ? () => {
+            const value = oneTimePin
+            oneTimePin = ''
+            return value
+          }
+          : undefined,
       }
     } catch (exc) {
       const msg = exc instanceof Error ? exc.message : String(exc)
@@ -4356,7 +4399,7 @@ function DepositBatchSignaturePanel({
   }
 
   useEffect(() => {
-    registerAction?.(signableDocuments.length ? signAll : null)
+    registerAction?.(signableDocuments.length ? () => signAll(false) : null)
     return () => registerAction?.(null)
   }, [signableDocuments.length, pin, localSignerCanSign, restartSuggested, localSignerReachable, primaryToken?.slot_id, visibleSignatureMode, visibleSignaturePlace, visibleSignatureDatetimeMode])
 
@@ -4604,15 +4647,16 @@ function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: 
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
-  return !doc.signed || /\.pdf\.p7m$/i.test(doc.name)
+  return !doc.signed || requiresCadesBesRefresh(doc)
 }
 
-function requiresStudioTelematicoPadesNormalization(doc: FascicoloDocument | undefined): boolean {
-  return Boolean(doc?.name && /\.pdf\.p7m$/i.test(doc.name.trim()))
+function requiresCadesBesRefresh(doc: FascicoloDocument | undefined): boolean {
+  return Boolean(doc?.signed && doc.signatureNeedsRefresh && doc.signatureProfile === 'cades_legacy')
 }
 
-function studioTelematicoSignatureFormat(filename: string): 'cades' | 'pades' {
-  return /\.pdf(?:\.p7m)?$/i.test(filename) ? 'pades' : 'cades'
+function studioTelematicoSignatureFormat(doc: FascicoloDocument): 'cades' | 'pades' {
+  if (requiresCadesBesRefresh(doc) || /\.p7m$/i.test(doc.name)) return 'cades'
+  return /\.pdf$/i.test(doc.name) ? 'pades' : 'cades'
 }
 
 function documentHasSignedContainerExtension(doc: FascicoloDocument | undefined): boolean {
@@ -4634,7 +4678,7 @@ function packageDocumentSignatureLabel(doc: FascicoloDocument): string {
 
 function defaultSignatureRequiredForDepositRole(doc: FascicoloDocument | undefined, role: DepositDocumentRole): boolean {
   if (!doc || !requiresPackageSignature(doc)) return false
-  if (doc.signed && !requiresStudioTelematicoPadesNormalization(doc)) return false
+  if (doc.signed && !requiresCadesBesRefresh(doc)) return false
   return role === 'atto_principale' || role === 'procura' || documentExplicitlyRequiresSignature(doc)
 }
 

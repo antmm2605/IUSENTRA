@@ -761,6 +761,7 @@ def _priority_label(value: Any) -> str:
 def _status_label(value: Any) -> str:
     status = _enum_value(value)
     return {
+        StatoTermine.BOZZA.value: "Proposta da confermare",
         StatoTermine.APERTO.value: "Aperta",
         StatoTermine.COMPLETATO.value: "Completata",
         StatoTermine.ANNULLATO.value: "Annullata",
@@ -797,6 +798,8 @@ def _type_label_for_scadenza(scadenza: Any) -> str:
 def _tone_for(priority: Any, status: Any, days: int | None) -> str:
     priority_value = _enum_value(priority)
     status_value = _enum_value(status)
+    if status_value == StatoTermine.BOZZA.value:
+        return "info"
     if status_value == StatoTermine.COMPLETATO.value:
         return "success"
     if status_value == StatoTermine.ANNULLATO.value:
@@ -1121,7 +1124,14 @@ def _row(
 
 def _all_scadenze(gestione_scadenziario: Any) -> list[Any]:
     try:
-        return [item for item in gestione_scadenziario.tutte(solo_aperte=False) if not is_legacy_pec_deadline(item)]
+        return [
+            item
+            for item in gestione_scadenziario.tutte(solo_aperte=False)
+            if not is_legacy_pec_deadline(item)
+            # Le proposte in BOZZA restano fuori dalle viste operative:
+            # vivono nella coda dedicata finche' l'avvocato non decide.
+            and _enum_value(getattr(item, "stato", "")) != StatoTermine.BOZZA.value
+        ]
     except Exception:
         return []
 
@@ -1210,7 +1220,9 @@ def _facets(all_items: list[Any], summary: dict[str, int]) -> dict[str, list[dic
             _facet(priority.value, _priority_label(priority), priority_counts.get(priority.value, 0)) for priority in PrioritaTermine
         ],
         "statuses": [_facet("", "Tutti gli stati", len(all_items))] + [
-            _facet(status.value, _status_label(status), status_counts.get(status.value, 0)) for status in StatoTermine
+            _facet(status.value, _status_label(status), status_counts.get(status.value, 0))
+            for status in StatoTermine
+            if status != StatoTermine.BOZZA
         ],
     }
 
@@ -1795,6 +1807,28 @@ def build_react_scadenziario_payload(
             )
             for item in sorted([item for item in all_items if _is_open(item) and not _is_overdue(item)], key=lambda item: str(getattr(item, "data_scadenza", "") or ""))[:5]
         ]
+    draft_proposals: list[dict[str, Any]] = []
+    if not compact:
+        try:
+            bozze = list(gestione_scadenziario.bozze())
+        except Exception:
+            bozze = []
+        for item in bozze:
+            item_id = str(getattr(item, "id", "") or "")
+            row = _row(
+                item,
+                gestione_fascicoli=gestione_fascicoli,
+                gestione_utenti=gestione_utenti,
+                pec_profile=pec_profiles.get(_pec_audit_message_id(item)),
+                control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
+            )
+            row["sourceSnippet"] = str(getattr(item, "source_snippet", "") or "")
+            row["sourceSnippetLabel"] = str(getattr(item, "source_snippet_label", "") or "")
+            row["sourceDocumentName"] = str(getattr(item, "source_document_name", "") or "")
+            row["sourceConfidence"] = int(round(float(getattr(item, "source_confidence", 0.0) or 0.0) * 100))
+            row["confirmHref"] = f"/scadenziario/{item_id}/conferma-proposta"
+            row["discardHref"] = f"/scadenziario/{item_id}/scarta-proposta"
+            draft_proposals.append(row)
     query["includeCalculator"] = include_calculator
     return {
         "generatedAt": _iso_now(),
@@ -1808,6 +1842,7 @@ def build_react_scadenziario_payload(
         "query": query,
         "summary": summary,
         "items": rows,
+        "draftProposals": draft_proposals,
         "overduePreview": overdue_preview,
         "nextItems": next_items,
         "operativeCards": _operative_cards(summary),

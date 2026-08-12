@@ -39,6 +39,10 @@ class PrioritaTermine(str, Enum):
 
 
 class StatoTermine(str, Enum):
+    # BOZZA: proposta automatica letta da un provvedimento (es. PEC di cancelleria)
+    # in attesa di conferma professionale. Esclusa dai conteggi operativi
+    # (tutte(solo_aperte=True)) finche' l'avvocato non la conferma.
+    BOZZA = "BOZZA"
     APERTO = "APERTO"
     COMPLETATO = "COMPLETATO"
     ANNULLATO = "ANNULLATO"
@@ -621,6 +625,14 @@ class Scadenza:
     remote_hearing_access_info: str = ""
     remote_hearing_evidence_json: str = "[]"
     remote_hearing_pdf_required: bool = False
+    # Evidenza della fonte per le date lette dai provvedimenti in ingresso:
+    # il passaggio testuale citato verbatim, la sua etichetta, il documento
+    # e il messaggio PEC di provenienza. Compilati dalla pipeline PEC.
+    source_snippet: str = ""
+    source_snippet_label: str = ""
+    source_document_name: str = ""
+    source_message_id: str = ""
+    source_confidence: float = 0.0
 
     @property
     def data_scadenza_obj(self) -> Optional[date]:
@@ -1068,6 +1080,40 @@ class GestioneScadenziario:
         scadenza.completata_il = datetime.now().isoformat(timespec="seconds")
         if note:
             scadenza.note = (scadenza.note + "\n" + note).strip()
+        self._salva()
+        return scadenza
+
+    def bozze(self) -> List["Scadenza"]:
+        """Proposte in attesa di conferma professionale, dalla piu' vicina."""
+
+        proposte = [s for s in self._scadenze.values() if s.stato == StatoTermine.BOZZA]
+        return sorted(proposte, key=lambda s: (s.data_scadenza or "9999-12-31", s.creata_il))
+
+    def conferma_bozza(self, id_sc: str, *, attore: str = "") -> Scadenza:
+        """Promuove una proposta a scadenza operativa (BOZZA -> APERTO)."""
+
+        scadenza = self._get_or_raise(id_sc)
+        if scadenza.stato != StatoTermine.BOZZA:
+            raise ValueError("La scadenza non e' una proposta da confermare")
+        scadenza.stato = StatoTermine.APERTO
+        riga = f"Proposta confermata il {datetime.now().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
+        scadenza.note = (scadenza.note + "\n" + riga).strip()
+        scadenza.aggiorna_priorita()
+        self._salva()
+        return scadenza
+
+    def scarta_bozza(self, id_sc: str, *, motivo: str = "", attore: str = "") -> Scadenza:
+        """Chiude una proposta non pertinente (BOZZA -> ANNULLATO), con motivo tracciato."""
+
+        scadenza = self._get_or_raise(id_sc)
+        if scadenza.stato != StatoTermine.BOZZA:
+            raise ValueError("La scadenza non e' una proposta da scartare")
+        scadenza.stato = StatoTermine.ANNULLATO
+        scadenza.completata_il = datetime.now().isoformat(timespec="seconds")
+        riga = f"Proposta scartata il {datetime.now().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
+        if motivo.strip():
+            riga += f" - Motivo: {motivo.strip()}"
+        scadenza.note = (scadenza.note + "\n" + riga).strip()
         self._salva()
         return scadenza
 

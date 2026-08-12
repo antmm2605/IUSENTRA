@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.278.31 - 2026-08-12
+
+- **Scadenze proposte dai provvedimenti PEC con fonte citata.** Le date future lette nei provvedimenti in ingresso ma non promosse dalla matrice PEC non vanno più perdute: diventano proposte in stato `BOZZA` nello scadenziario, con il passaggio testuale citato verbatim (`source_snippet`), documento e messaggio di provenienza, e affidabilità della lettura. Nuovo modulo `pct/scadenze_proposte_pec.py`; base: D.M. 44/2011 artt. 16 ss., art. 136 c.p.c.
+- **Coda di conferma nello Scadenziario.** Nuovo pannello "Date lette nei provvedimenti PEC": ogni proposta mostra la citazione della fonte e i pulsanti Conferma scadenza / Scarta (con motivo tracciato). Le bozze restano fuori da conteggi operativi, notifiche, agenda e sincronizzazioni finché non confermate (fail-closed). Endpoint `/scadenziario/<id>/conferma-proposta` e `/scadenziario/<id>/scarta-proposta`.
+- **Evidenza fonte anche sulle scadenze automatiche.** Le scadenze auto-create dalla pipeline PEC ora portano i campi strutturati del passaggio da cui la data è stata letta (snippet, etichetta, documento, messaggio, confidenza).
+- **Guardrail.** Nuova suite `tests/test_scadenze_proposte_pec.py` (11 test: selezione candidati, ciclo BOZZA→conferma/scarto, idempotenza per messaggio, payload React).
+
 ## 2.278.30 - 2026-08-12
 
 - **Riquadro scadenze dei fascicoli orientato al futuro.** L'allerta sopra l'elenco mostra solo le scadenze dei prossimi 7 giorni, ordinate dalla più vicina; le già scadute non riempiono più il riquadro (restano conteggiate nella card "Scadenze urgenti" e nello scadenziario).

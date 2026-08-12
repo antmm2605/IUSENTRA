@@ -33,6 +33,11 @@ from zoneinfo import ZoneInfo
 
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
+from pct.scadenze_proposte_pec import (
+    bozza_marker,
+    bozza_scadenza_fields,
+    select_draft_candidates,
+)
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
 from pct.pec_notification_presidio import (
@@ -2933,6 +2938,27 @@ def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str
             "raw_due_at": str(legal_dl.get("raw_deadline") or legal_dl.get("deadline") or ""),
             "trace_json": json.dumps(legal_dl.get("steps") or [], ensure_ascii=False),
         },
+    }
+
+
+def _source_evidence_fields(proposal: dict[str, Any] | None, *, message_id: str) -> dict[str, Any]:
+    """Evidenza-fonte strutturata per la scadenza: passaggio citato, documento, PEC.
+
+    Riporta sul modello Scadenza il candidato usato dalla matrice
+    (``detected_procedural_date``) cosi' che la UI possa mostrare il testo
+    da cui la data e' stata letta, senza dipendere dalla prosa troncata
+    della descrizione.
+    """
+
+    candidate = (proposal or {}).get("detected_procedural_date")
+    if not isinstance(candidate, dict):
+        return {"source_message_id": message_id}
+    return {
+        "source_snippet": clean_text(candidate.get("context") or "", 520),
+        "source_snippet_label": clean_text(candidate.get("label") or "", 80),
+        "source_document_name": clean_text(candidate.get("source") or "", 160),
+        "source_message_id": message_id,
+        "source_confidence": float(candidate.get("confidence") or 0.0),
     }
 
 
@@ -8977,6 +9003,13 @@ class PecAuditRepository:
                 auto_deadline = self.schedule_deadline(message_id, actor=actor)
         except Exception as exc:
             auto_deadline = {"ok": False, "message": f"Scadenza automatica non registrata: {exc}"}
+        try:
+            # Le date lette ma non promosse dalla matrice diventano proposte in
+            # BOZZA da confermare: nessuna data va perduta, nessun automatismo
+            # conclusivo senza revisione professionale.
+            draft_proposals = self.create_draft_date_proposals(message_id, actor=actor)
+        except Exception as exc:  # pragma: no cover - il collegamento resta valido
+            draft_proposals = {"ok": False, "created": 0, "message": str(exc)[:180]}
         return {
             "message_id": message_id,
             "status": status,
@@ -8986,6 +9019,7 @@ class PecAuditRepository:
             "seeds": seeds,
             "deposit_upsert": deposit_upsert,
             "auto_deadline": auto_deadline,
+            "draft_proposals": draft_proposals,
             "notification_presidia": presidia_dopo_collegamento,
         }
 
@@ -14049,6 +14083,7 @@ class PecAuditRepository:
                 source_event_at=str(legal_fields["source_event_at"] or proposal.get("source_event_at") or ""),
                 operational_due_at=target_date,
                 deadline_profile_code=legal_fields["profile_code"],
+                **_source_evidence_fields(proposal, message_id=_source_message_id or message_id),
                 **remote_extra,
                 **legal_fields["extra"],
             )
@@ -14240,6 +14275,7 @@ class PecAuditRepository:
                 source_event_at=str(legal_fields["source_event_at"] or proposal.get("source_event_at") or ""),
                 operational_due_at=target_date,
                 deadline_profile_code=legal_fields["profile_code"],
+                **_source_evidence_fields(proposal, message_id=message_id),
                 **remote_extra,
                 **legal_fields["extra"],
             )
@@ -14311,6 +14347,99 @@ class PecAuditRepository:
             actor=actor,
             due_date=due_date,
         )
+
+    def create_draft_date_proposals(self, message_id: str, *, actor: str = "pec-api") -> dict[str, Any]:
+        """Crea proposte in BOZZA per le date future lette ma non promosse dalla matrice.
+
+        Fail-closed: la bozza non tocca agenda, notifiche o calendari e resta
+        fuori dai conteggi operativi finche' l'avvocato non la conferma dalla
+        coda del scadenziario. Idempotente per (messaggio, data) tramite
+        marcatore nelle note, anche dopo conferma o scarto.
+        """
+
+        from pct.scadenziario import StatoTermine, TipoTermine
+
+        if not self.scadenziario_db_path:
+            return {"ok": False, "created": 0, "message": "Scadenziario non configurato."}
+        detail = self.get_message_detail(message_id)
+        parsed = detail.get("parsed") or {}
+        report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
+        message = detail.get("message") if isinstance(detail.get("message"), dict) else {}
+        proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+        exclude_dates = {
+            str(proposal.get("due_date") or "")[:10],
+            *(
+                str(item.get("due_date") or "")[:10]
+                for item in list(report.get("hearing_proposals") or [])
+                if isinstance(item, dict)
+            ),
+        }
+        exclude_dates.discard("")
+        candidates = select_draft_candidates(
+            list(parsed.get("procedural_dates") or []),
+            today=datetime.now(ROME_TZ).date(),
+            classify=_procedural_date_kind,
+            exclude_dates=exclude_dates,
+        )
+        if not candidates:
+            return {"ok": True, "created": 0, "message": "Nessuna data da proporre in bozza."}
+        manager = self._scadenziario_manager()
+        existing_notes = " \n ".join(
+            str(getattr(item, "note", "") or "")
+            for item in manager.tutte(solo_aperte=False)
+        )
+        subject = clean_text(((parsed.get("headers") or {}).get("subject") or "PEC"), 90)
+        event_type = str(proposal.get("source_event_type") or report.get("event_type") or "")
+        source_event_at = str(proposal.get("source_event_at") or _field_date_value(parsed, "data_consegna", "data_invio") or "")
+        fascicolo_id = str(message.get("linked_fascicolo_id") or "")
+        created: list[dict[str, str]] = []
+        for candidate in candidates:
+            due_date = str(candidate.get("date") or "")
+            if bozza_marker(message_id, due_date) in existing_notes:
+                continue
+            fields = bozza_scadenza_fields(
+                candidate,
+                subject=subject,
+                event_type=event_type,
+                message_id=message_id,
+                source_event_at=source_event_at,
+                fascicolo_id=fascicolo_id,
+            )
+            try:
+                scadenza = manager.nuova(
+                    titolo=fields.pop("titolo"),
+                    tipo=TipoTermine.ADEMPIMENTO,
+                    data_scadenza=fields.pop("data_scadenza"),
+                    id_fascicolo=fields.pop("id_fascicolo"),
+                    descrizione=fields.pop("descrizione"),
+                    note=fields.pop("note"),
+                    id_utente_responsabile=_deadline_responsible_actor(actor),
+                    stato=StatoTermine.BOZZA,
+                    **fields,
+                )
+            except Exception:
+                continue
+            created.append({"deadline_id": str(getattr(scadenza, "id", "")), "due_date": due_date})
+        if created:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.deadline.draft_proposed",
+                    resource_type="pec_message",
+                    resource_id=message_id,
+                    payload={"proposte": created},
+                    actor=actor,
+                )
+        return {
+            "ok": True,
+            "created": len(created),
+            "proposals": created,
+            "message": (
+                f"{len(created)} proposte di scadenza in bozza da confermare."
+                if created
+                else "Proposte gia' registrate per questo messaggio."
+            ),
+        }
 
 
 def synthetic_pec_messages() -> list[tuple[str, bytes]]:

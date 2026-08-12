@@ -103,6 +103,15 @@ export type ScadenziarioRow = {
   deleteHref: string
 }
 
+export type ScadenziarioDraftProposal = ScadenziarioRow & {
+  sourceSnippet: string
+  sourceSnippetLabel: string
+  sourceDocumentName: string
+  sourceConfidence: number
+  confirmHref: string
+  discardHref: string
+}
+
 export type ScadenziarioActionCard = {
   id: string
   title: string
@@ -209,6 +218,7 @@ export type ScadenziarioPageData = {
   }
   summary: ScadenziarioSummary
   items: ScadenziarioRow[]
+  draftProposals: ScadenziarioDraftProposal[]
   overduePreview: ScadenziarioRow[]
   nextItems: ScadenziarioRow[]
   operativeCards: ScadenziarioActionCard[]
@@ -334,6 +344,7 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     peremptory: 0,
   },
   items: [],
+  draftProposals: [],
   overduePreview: [],
   nextItems: [],
   operativeCards: [],
@@ -789,6 +800,18 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
       },
       summary: normalizeSummary(payload.summary),
       items: asArray(payload.items).map(normalizeRow),
+      draftProposals: asArray(payload.draftProposals).map((raw) => {
+        const item = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+        return {
+          ...normalizeRow(raw),
+          sourceSnippet: asString(item.sourceSnippet),
+          sourceSnippetLabel: asString(item.sourceSnippetLabel),
+          sourceDocumentName: asString(item.sourceDocumentName),
+          sourceConfidence: asNumber(item.sourceConfidence),
+          confirmHref: asString(item.confirmHref),
+          discardHref: asString(item.discardHref),
+        }
+      }),
       overduePreview: asArray(payload.overduePreview).map(normalizeRow),
       nextItems: asArray(payload.nextItems).map(normalizeRow),
       operativeCards: normalizeCards(payload.operativeCards),

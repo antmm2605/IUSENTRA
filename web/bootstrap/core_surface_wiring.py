@@ -31,6 +31,7 @@ from web.bootstrap.messages_routes import register_messages_routes
 from web.bootstrap.privacy_routes import register_privacy_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
 from web.bootstrap.react_final_block_routes import register_react_final_block_routes
+from web.bootstrap.scadenziario_proposte_routes import register_scadenziario_proposte_routes
 from web.bootstrap.scadenziario_routes import register_scadenziario_routes
 from web.bootstrap.search_routes import register_search_routes
 from web.bootstrap.soggetti_routes import register_soggetti_routes
@@ -79,6 +80,12 @@ def register_core_surfaces(
         get_config_studio=core["get_config_studio"],
         _studio_patron_rule_from_config=core["studio_patron_rule_from_config"],
         _resolve_judicial_office_by_code=core["resolve_judicial_office_by_code"],
+        audit=core["audit"],
+        sync_pubblica=core["sync_pubblica"],
+    )
+    register_scadenziario_proposte_routes(
+        app,
+        get_scadenziario=core["get_scadenziario"],
         audit=core["audit"],
         sync_pubblica=core["sync_pubblica"],
     )

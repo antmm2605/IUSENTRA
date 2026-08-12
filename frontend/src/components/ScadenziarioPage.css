@@ -93,6 +93,76 @@
   flex-wrap:wrap;
   gap:8px;
 }
+.iu-scad-proposals{
+  border:1px solid rgba(14,116,144,.28);
+  border-radius:16px;
+  background:rgba(14,165,233,.07);
+  padding:14px 16px;
+  display:grid;
+  gap:12px;
+}
+.iu-scad-proposals__head strong{display:block;font-size:14px;font-weight:950;color:#0c4a6e}
+.iu-scad-proposals__head p{margin:3px 0 0;font-size:12px;font-weight:700;color:#155e75}
+.iu-scad-proposals__eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#0e7490;
+}
+.iu-scad-proposals__list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:10px;
+}
+.iu-scad-proposal{
+  background:white;
+  border:1px solid var(--iu-border);
+  border-radius:12px;
+  padding:12px 14px;
+  display:grid;
+  gap:8px;
+  align-content:start;
+}
+.iu-scad-proposal__top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iu-scad-proposal__top strong{font-size:14px;font-weight:950;color:#111827}
+.iu-scad-proposal__top em{font-size:11px;font-weight:750;font-style:normal;color:#64748b}
+.iu-scad-proposal__title{margin:0;font-size:12.5px;font-weight:800;color:#1f2937;line-height:1.35}
+.iu-scad-proposal__quote{
+  margin:0;
+  padding:8px 12px;
+  border:1px solid rgba(14,116,144,.30);
+  background:rgba(14,165,233,.08);
+  border-radius:8px;
+  font-size:12px;
+  font-weight:650;
+  font-style:italic;
+  color:#334155;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+.iu-scad-proposal__source{margin:0;font-size:11.5px;font-weight:700;color:#64748b}
+.iu-scad-proposal__source a{color:#0e7490;font-weight:850}
+.iu-scad-proposal__actions{display:flex;gap:8px;flex-wrap:wrap}
+.iu-scad-proposal__actions button{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+  padding:0 12px;
+  border-radius:10px;
+  border:1px solid var(--iu-border);
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+  background:white;
+  color:#111827;
+}
+.iu-scad-proposal__confirm{border-color:rgba(22,163,74,.35) !important;background:rgba(22,163,74,.1) !important;color:#166534 !important}
+.iu-scad-proposal__discard{color:#b91c1c !important}
 .iu-scad-stat{
   flex:0 0 118px;
   min-height:66px;

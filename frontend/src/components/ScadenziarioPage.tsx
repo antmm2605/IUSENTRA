@@ -47,6 +47,7 @@ import {
   type DeadlineCalculatorTemplate,
   type PdfDeadlinePreview,
   type ScadenziarioActionCard,
+  type ScadenziarioDraftProposal,
   type ScadenziarioPageData,
   type ScadenziarioPriority,
   type ScadenziarioQuery,
@@ -233,6 +234,41 @@ async function postDeadlineAction(url: string, label: string, body?: URLSearchPa
   const payload = await response.json() as { ok?: boolean; messaggio?: string; errore?: string }
   if (payload.ok === false) throw new Error(payload.errore || `${label}: errore operativo`)
   return payload.messaggio || `${label}: operazione eseguita.`
+}
+
+function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:ScadenziarioDraftProposal[]; onConfirm:(item:ScadenziarioDraftProposal)=>void; onDiscard:(item:ScadenziarioDraftProposal)=>void}) {
+  if (!proposals.length) return null
+  return (
+    <section className="iu-scad-proposals" aria-label="Proposte di scadenza dalle PEC da confermare">
+      <header className="iu-scad-proposals__head">
+        <span className="iu-scad-proposals__eyebrow"><FileSearch size={15}/> Date lette nei provvedimenti PEC</span>
+        <strong>{proposals.length === 1 ? '1 proposta di scadenza attende la tua conferma' : `${proposals.length} proposte di scadenza attendono la tua conferma`}</strong>
+        <p>Nessuna è operativa finché non la confermi: verifica il passaggio citato e decidi.</p>
+      </header>
+      <div className="iu-scad-proposals__list">
+        {proposals.map((item) => (
+          <article key={item.id} className="iu-scad-proposal">
+            <div className="iu-scad-proposal__top">
+              <Badge tone="info">{item.sourceSnippetLabel || 'Data letta'}</Badge>
+              <strong>{item.dateLabel}</strong>
+              {item.sourceConfidence ? <em>affidabilità lettura {item.sourceConfidence}%</em> : null}
+            </div>
+            <p className="iu-scad-proposal__title">{item.title}</p>
+            {item.sourceSnippet ? <blockquote className="iu-scad-proposal__quote">«{item.sourceSnippet}»</blockquote> : null}
+            <p className="iu-scad-proposal__source">
+              Fonte: {item.sourceDocumentName || item.sourceLabel || 'messaggio PEC'}
+              {item.sourceHref ? <> — <a href={item.sourceHref}>Apri fonte</a></> : null}
+              {item.fascicoloLabel ? <> · {item.fascicoloLabel}</> : null}
+            </p>
+            <div className="iu-scad-proposal__actions">
+              <button type="button" className="iu-scad-proposal__confirm" onClick={() => onConfirm(item)}><CheckCircle2 size={15}/> Conferma scadenza</button>
+              <button type="button" className="iu-scad-proposal__discard" onClick={() => onDiscard(item)}><X size={15}/> Scarta</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 function DeadlineFlags({ item }:{item:ScadenziarioRow}) {
@@ -1038,6 +1074,24 @@ export function ScadenziarioPage() {
       .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Eliminazione non riuscita'))
   }
 
+  const runConfirmProposal = (item: ScadenziarioDraftProposal) => {
+    setStatusLine(`Conferma della proposta "${item.title}"...`)
+    postDeadlineAction(item.confirmHref, 'Conferma proposta')
+      .then((message) => { setStatusLine(message); load() })
+      .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Conferma non riuscita'))
+  }
+
+  const runDiscardProposal = (item: ScadenziarioDraftProposal) => {
+    const motivo = window.prompt('Scartare la proposta? Indica il motivo (facoltativo):', '')
+    if (motivo === null) return
+    const body = new URLSearchParams()
+    body.set('motivo', motivo)
+    setStatusLine(`Scarto della proposta "${item.title}"...`)
+    postDeadlineAction(item.discardHref, 'Scarta proposta', body)
+      .then((message) => { setStatusLine(message); load() })
+      .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Scarto non riuscito'))
+  }
+
   const runBulkComplete = () => {
     if (!selectedIds.length) return
     const body = new URLSearchParams()
@@ -1222,6 +1276,8 @@ export function ScadenziarioPage() {
         <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
         <StatCard icon={<Archive size={19}/>} label="Da PEC" value={data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
       </section>
+
+      <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal}/>
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
         <label className="iu-scad-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca per titolo, descrizione, fascicolo, ufficio..."/></label>

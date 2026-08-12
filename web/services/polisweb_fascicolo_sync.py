@@ -104,6 +104,83 @@ def _proponi_scadenze_da_eventi(
     return creati
 
 
+def cerca_rg_nel_registro(
+    fascicolo_id: str,
+    *,
+    get_fascicoli: Callable[[], Any],
+    get_clienti: Callable[[], Any],
+    auth_mode: str = "",
+) -> dict[str, Any]:
+    """Cerca nel registro i fascicoli per parte + ufficio per agganciare l'RG mancante.
+
+    Non modifica nulla: restituisce i candidati (RG, ufficio, parti, oggetto) che
+    l'avvocato conferma prima dell'aggancio. Doppio canale come il sync.
+    """
+
+    gestione_fascicoli = get_fascicoli()
+    fascicolo = gestione_fascicoli.get(fascicolo_id)
+    if fascicolo is None:
+        return {"ok": False, "message": "Fascicolo non trovato."}
+    ufficio = str(
+        getattr(fascicolo, "codice_ufficio_portale", "")
+        or getattr(fascicolo, "tribunale", "")
+        or ""
+    ).strip()
+    nome_parte = str(getattr(fascicolo, "nome_cliente", "") or "").strip()
+    cf_parte = str(getattr(fascicolo, "cf_cliente", "") or "").strip()
+    if not ufficio or not (nome_parte or cf_parte):
+        return {
+            "ok": False,
+            "message": (
+                "Per cercare nel registro servono l'ufficio giudiziario e almeno il "
+                "nome o il codice fiscale del cliente sul fascicolo."
+            ),
+        }
+    if auth_mode != "reale":
+        return {
+            "ok": False,
+            "requires_local_signer": True,
+            "message": (
+                "La ricerca nel registro richiede il certificato dello studio sul server "
+                "oppure il percorso assistito con smart card (Portali telematici → PolisWeb)."
+            ),
+        }
+    client = crea_client(demo=False)
+    if isinstance(client, ClientPolisWebDemo):
+        return {"ok": False, "message": "Client PST non configurato: ricerca annullata."}
+    try:
+        trovati = client.ricerca_fascicoli(
+            ufficio,
+            nome_parte=nome_parte or None,
+            codice_fiscale_parte=cf_parte or None,
+            tipo_registro=str(getattr(fascicolo, "tipo_registro", "") or ""),
+            max_risultati=10,
+        )
+    except Exception as exc:
+        return {"ok": False, "message": f"Ricerca nel registro non riuscita: {exc}"}
+    candidati = [
+        {
+            "numeroRg": str(getattr(f, "numero_rg", "") or ""),
+            "annoRg": int(getattr(f, "anno_rg", 0) or 0),
+            "ufficio": str(getattr(f, "nome_ufficio", "") or ufficio),
+            "oggetto": str(getattr(f, "oggetto", "") or ""),
+            "parti": str(getattr(f, "parti", "") or ""),
+            "attachHref": f"/fascicoli/{fascicolo_id}/aggancia-rg",
+        }
+        for f in (trovati or [])
+        if str(getattr(f, "numero_rg", "") or "").strip()
+    ]
+    return {
+        "ok": True,
+        "candidati": candidati,
+        "message": (
+            f"{len(candidati)} fascicoli trovati nel registro per {nome_parte or cf_parte}."
+            if candidati
+            else "Nessun fascicolo trovato nel registro per questa parte e ufficio."
+        ),
+    }
+
+
 def sincronizza_fascicolo_da_registro(
     fascicolo_id: str,
     *,

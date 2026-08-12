@@ -2167,6 +2167,53 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(minute="*/30", hour="7-20"), id="sync_polisweb_registri")
+    def _sync_polisweb_registri():
+        with app.app_context():
+            try:
+                from pct.config_studio import GestioneConfigStudio
+                from pct.fascicoli import GestioneFascicoli
+                from pct.polisweb_sync_job import esegui_sync_polisweb
+
+                fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+                if not os.path.exists(fascicoli_db):
+                    return
+                config_studio_db = (
+                    app.config.get("STUDIO_CONFIG")
+                    or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json")
+                )
+                cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
+
+                def _get_fascicoli():
+                    return GestioneFascicoli(
+                        db_path=fascicoli_db,
+                        documents_dir=app.config.get("FASCICOLI_DOCS", "./fascicoli/documenti"),
+                        archive_dir=app.config.get("FASCICOLI_ARCH", "./fascicoli/archivio"),
+                    )
+
+                from pct.clienti import GestioneClienti
+                from pct.scadenziario import GestioneScadenziario
+
+                state_path = os.path.join(
+                    os.path.dirname(os.path.abspath(fascicoli_db)),
+                    "polisweb_sync_state.json",
+                )
+                report = esegui_sync_polisweb(
+                    config_studio=cfg_studio,
+                    get_fascicoli=_get_fascicoli,
+                    get_clienti=lambda: GestioneClienti(db_path=app.config.get("CLIENTI_DB", "./clienti/anagrafica.json")),
+                    get_scadenziario=lambda: GestioneScadenziario(db_path=app.config.get("SCADENZIARIO_DB", "./scadenziario/scadenze.json")),
+                    state_path=state_path,
+                )
+                if not report.get("skipped") and (report.get("sincronizzati") or report.get("proposte")):
+                    logger.info(
+                        "[scheduler] Sync Polisweb: %d fascicoli, %d proposte",
+                        report.get("sincronizzati", 0),
+                        report.get("proposte", 0),
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Sync Polisweb registri fallito: %s", e)
+
     try:
         from apscheduler.events import (
             EVENT_JOB_ERROR,

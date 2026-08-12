@@ -80,6 +80,47 @@ def register_polisweb_routes(
         esito.setdefault("messaggio", esito.get("message", ""))
         return jsonify(esito)
 
+    @app.route("/fascicoli/<id_fasc>/cerca-rg-registro", methods=["POST"])
+    def fascicolo_cerca_rg_registro(id_fasc):
+        from flask import jsonify
+
+        from web.services.polisweb_fascicolo_sync import cerca_rg_nel_registro
+
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("fascicoli.scrivi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        try:
+            esito = cerca_rg_nel_registro(
+                id_fasc,
+                get_fascicoli=get_fascicoli,
+                get_clienti=get_clienti,
+                auth_mode=polis_auth_mode(),
+            )
+        except Exception as exc:
+            app.logger.exception("Errore ricerca RG registro %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "message": f"Ricerca non riuscita: {exc}"}), 200
+        return jsonify(esito)
+
+    @app.route("/fascicoli/<id_fasc>/aggancia-rg", methods=["POST"])
+    def fascicolo_aggancia_rg(id_fasc):
+        from flask import jsonify
+
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("fascicoli.scrivi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        payload = request.get_json(silent=True) or request.form
+        numero_rg = str(payload.get("numeroRg") or payload.get("numero_rg") or "").strip()
+        anno_rg = str(payload.get("annoRg") or payload.get("anno_rg") or "").strip()
+        if not numero_rg or not anno_rg.isdigit():
+            return jsonify({"ok": False, "message": "Numero e anno di ruolo non validi."}), 400
+        try:
+            get_fascicoli().aggiorna(id_fasc, numero_rg=numero_rg, anno_rg=int(anno_rg))
+            audit("polisweb.aggancia_rg", "fascicolo", id_fasc, dettagli=f"RG {numero_rg}/{anno_rg}")
+        except Exception as exc:
+            return jsonify({"ok": False, "message": f"Aggancio RG non riuscito: {exc}"}), 200
+        message = f"RG {numero_rg}/{anno_rg} agganciato al fascicolo dal registro."
+        return jsonify({"ok": True, "message": message, "messaggio": message})
+
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():
         form_data = request.form

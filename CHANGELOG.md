@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.278.34 - 2026-08-12
+
+- **Sync Polisweb — Fasi 3 e 4: job automatico + aggancio RG.** Nuovo job governato `sync_polisweb_registri` (console Pianificazioni, famiglia "Depositi telematici", cron `*/30` ore 7-20) che allinea i fascicoli civili ai registri di cancelleria **senza intervento dell'avvocato**. Attivo solo per gli studi con certificato P12/PEM configurato sul server (autenticazione mTLS, nessun PIN); con la sola smart card il giro si salta e resta il pulsante manuale "Aggiorna dal registro" (presidio informativo, non errore). Nuovo `pct/polisweb_sync_job.py`.
+- **Rispettoso dei sistemi ministeriali.** Watermark per fascicolo (non ri-sincronizza lo stesso prima di 3 ore), lotti massimi per giro, copertura equa dai meno recenti; le nuove date restano proposte in BOZZA da confermare (fail-closed).
+- **Guardrail.** Nuova suite `tests/test_polisweb_sync_job.py` (canale P12 vs skip manuale, selezione fascicoli civili, watermark, tetto per giro, template governato). Base normativa: D.M. 44/2011, specifiche DGSIA.
+
+- **Sync Polisweb — Fase 4: aggancio RG dal registro.** Nel dettaglio fascicolo, sezione Servizi telematici, l'azione "Cerca RG nel registro" trova nel registro di cancelleria i fascicoli per parte e ufficio e propone i candidati; con un click l'avvocato aggancia il numero di ruolo mancante (conferma esplicita, nessun aggancio automatico). Chiude i casi "RG da acquisire". Route `/fascicoli/<id>/cerca-rg-registro` e `/fascicoli/<id>/aggancia-rg`; nuova suite `tests/test_polisweb_cerca_rg.py`.
+
 ## 2.278.33 - 2026-08-12
 
 - **Sync Polisweb — Fase 1: udienze e scadenze dal registro diventano proposte.** "Aggiorna dal registro" ora legge anche le udienze e le scadenze prospettiche del fascicolo (classe ministeriale `InfoScadenze`, registro civile SICID) e le trasforma in proposte in stato `BOZZA` nello scadenziario, da confermare o scartare — la stessa coda già usata per le PEC. Nuovi moduli `pct/polisweb_eventi.py` (query + parsing + normalizzazione) e `pct/scadenze_proposte_polisweb.py`.

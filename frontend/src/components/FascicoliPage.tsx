@@ -3730,6 +3730,60 @@ function RegistroSyncButton({ fascicoloId, lastSyncAt }:{fascicoloId:string; las
   )
 }
 
+type RegistroRgCandidate = { numeroRg:string; annoRg:number; ufficio:string; oggetto:string; parti:string }
+
+function RegistroRgSearch({ fascicoloId }:{fascicoloId:string}) {
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [candidates, setCandidates] = useState<RegistroRgCandidate[]>([])
+  const search = async () => {
+    setBusy(true); setMessage('Ricerca nel registro di cancelleria...'); setCandidates([])
+    try {
+      const response = await fetch(`/fascicoli/${encodeURIComponent(fascicoloId)}/cerca-rg-registro`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await response.json() as { ok?:boolean; message?:string; candidati?:RegistroRgCandidate[] }
+      setMessage(payload.message || '')
+      setCandidates(Array.isArray(payload.candidati) ? payload.candidati : [])
+    } catch {
+      setMessage('Registro non raggiungibile in questo momento.')
+    } finally { setBusy(false) }
+  }
+  const attach = async (candidate: RegistroRgCandidate) => {
+    setBusy(true); setMessage(`Aggancio RG ${candidate.numeroRg}/${candidate.annoRg}...`)
+    try {
+      const response = await fetch(`/fascicoli/${encodeURIComponent(fascicoloId)}/aggancia-rg`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ numeroRg: candidate.numeroRg, annoRg: candidate.annoRg }),
+      })
+      const payload = await response.json() as { ok?:boolean; message?:string }
+      setMessage(payload.message || (payload.ok ? 'RG agganciato.' : 'Aggancio non riuscito.'))
+      if (payload.ok) setTimeout(() => window.location.reload(), 900)
+    } catch {
+      setMessage('Aggancio non riuscito.')
+    } finally { setBusy(false) }
+  }
+  return (
+    <div className="iu-fas-registro-sync">
+      <button type="button" onClick={search} disabled={busy} className="iu-fas-registro-sync__btn"><Search size={15}/> Cerca RG nel registro</button>
+      <span className="iu-fas-registro-sync__meta">Cerca il fascicolo nel registro per parte e ufficio, poi aggancia il numero di ruolo.</span>
+      {message ? <p className="iu-fas-registro-sync__msg iu-fas-registro-sync__msg--info">{message}</p> : null}
+      {candidates.length ? (
+        <ul className="iu-fas-rg-candidates">
+          {candidates.map((c) => (
+            <li key={`${c.numeroRg}-${c.annoRg}`}>
+              <div><strong>RG {c.numeroRg}/{c.annoRg}</strong><span>{c.ufficio}</span>{c.oggetto ? <em>{c.oggetto}</em> : null}</div>
+              <button type="button" onClick={() => attach(c)} disabled={busy}><CheckCircle2 size={14}/> Aggancia</button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
 function DetailSection({
   id,
   title,
@@ -7968,7 +8022,7 @@ function DetailPage({ id }:{id:string}) {
           <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')} defaultOpen={activeHashSection === 'sentenze-economiche'}/>
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
           <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length} defaultOpen={activeHashSection === 'conformita'}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
-          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
+          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>

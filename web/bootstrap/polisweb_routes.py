@@ -52,6 +52,32 @@ def register_polisweb_routes(
             app.logger.error("ERRORE polisWeb_home:\n%s", tb)
             return f"<pre style='color:red;padding:2em'><b>Errore PolisWeb:</b>\n{tb}</pre>", 500
 
+    @app.route("/fascicoli/<id_fasc>/sincronizza-registro", methods=["POST"])
+    def fascicolo_sincronizza_registro(id_fasc):
+        from flask import jsonify
+
+        from web.services.polisweb_fascicolo_sync import sincronizza_fascicolo_da_registro
+
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("fascicoli.scrivi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente.", "errore": "Permesso insufficiente."}), 403
+        try:
+            esito = sincronizza_fascicolo_da_registro(
+                id_fasc,
+                get_fascicoli=get_fascicoli,
+                get_clienti=get_clienti,
+                get_soggetti=get_soggetti,
+                auth_mode=polis_auth_mode(),
+                avvocato_referente=getattr(utente, "username", "") or "",
+            )
+        except Exception as exc:
+            app.logger.exception("Errore sincronizzazione registro fascicolo %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "message": f"Sincronizzazione non riuscita: {exc}"}), 200
+        if esito.get("ok"):
+            audit("polisweb.sincronizza_fascicolo", "fascicolo", id_fasc)
+        esito.setdefault("messaggio", esito.get("message", ""))
+        return jsonify(esito)
+
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():
         form_data = request.form

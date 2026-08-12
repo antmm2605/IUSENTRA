@@ -42,7 +42,11 @@ from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, ri
 # Dal 2026 l'endpoint storico wspa.giustizia.it risulta legacy: il gestionale
 # richiede quindi che l'eventuale proxy attivo venga configurato esplicitamente.
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_WSP_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
+# Root proxy moderno dei servizi consultazione (stesso host usato dal Local
+# Signer): senza configurazione esplicita il client non deve piu' cadere
+# sull'endpoint legacy, rifiutato a runtime.
+_PST_PROXY_ROOT = "https://ext.processotelematico.giustizia.it"
+_WSP_BASE = (os.getenv("PCT_PST_BASE_URL", "") or "").strip() or _PST_PROXY_ROOT
 _PST_SERVICE_ALIASES = {
     "JPW_CASS": "JPW_CASSCI",
     "JPW_SIL": "JPW_SIL_DISTR",
@@ -1686,6 +1690,10 @@ def _sincronizza_metadati_fascicolo_polisweb(
         current = str(getattr(fascicolo_locale, field_name, "") or "").strip()
         if value and current != value:
             campi_update[field_name] = value
+    # Watermark del registro: ogni giro di sincronizzazione aggiorna l'ultimo
+    # allineamento e lo stato, cosi' la UI puo' mostrare "Registro aggiornato al".
+    campi_update["last_sync_at"] = datetime.now().isoformat(timespec="seconds")
+    campi_update["sync_status"] = "SINCRONIZZATO"
     if data_iscrizione and (
         not _parse_data(fascicolo_locale.data_apertura)
         or _data_apertura_generica_polisweb(fascicolo_locale)

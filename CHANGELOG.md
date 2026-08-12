@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.278.32 - 2026-08-12
+
+- **Sync Polisweb — Fase 0: "Aggiorna dal registro".** Nel dettaglio fascicolo, sezione Servizi telematici, un pulsante allinea la pratica ai registri di cancelleria (PST) su richiesta, con badge "Registro aggiornato al …". Doppio canale conforme: con certificato P12/PEM dello studio configurato sul server l'interrogazione è automatica e senza PIN; con la sola smart card il pulsante guida al percorso assistito. Nuovo `web/services/polisweb_fascicolo_sync.py` + route `/fascicoli/<id>/sincronizza-registro`.
+- **Watermark del registro sul fascicolo.** Il percorso di sincronizzazione polisWeb ora scrive `last_sync_at` e `sync_status`, così la UI mostra l'ultimo allineamento per fascicolo.
+- **Endpoint PST moderno di default.** Senza `PCT_PST_BASE_URL` il client non cade più sull'endpoint legacy `wspa.giustizia.it` (rifiutato a runtime) ma sul proxy ufficiale dei servizi di consultazione.
+- **Guardrail.** Nuova suite `tests/test_polisweb_fascicolo_sync.py` (RG mancante, canale reale con watermark, guida Local Signer, mai demo su superfici reali, default non-legacy). Base normativa: D.M. 44/2011, specifiche DGSIA; download documenti resta presidiato (non autonomo).
+
 ## 2.278.31 - 2026-08-12
 
 - **Scadenze proposte dai provvedimenti PEC con fonte citata.** Le date future lette nei provvedimenti in ingresso ma non promosse dalla matrice PEC non vanno più perdute: diventano proposte in stato `BOZZA` nello scadenziario, con il passaggio testuale citato verbatim (`source_snippet`), documento e messaggio di provenienza, e affidabilità della lettura. Nuovo modulo `pct/scadenze_proposte_pec.py`; base: D.M. 44/2011 artt. 16 ss., art. 136 c.p.c.

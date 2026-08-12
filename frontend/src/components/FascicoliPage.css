@@ -2382,6 +2382,37 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   border-radius:13px;
   background:rgba(37,99,235,.045);
 }
+.iu-fas-registro-sync{
+  display:grid;
+  gap:6px;
+  margin-bottom:12px;
+  padding:12px;
+  border:1px solid rgba(14,116,144,.24);
+  border-radius:12px;
+  background:rgba(14,165,233,.06);
+}
+.iu-fas-registro-sync__btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  justify-self:start;
+  min-height:38px;
+  padding:0 16px;
+  border:1px solid rgba(14,116,144,.35);
+  border-radius:10px;
+  background:white;
+  color:#0c4a6e;
+  font-size:13px;
+  font-weight:900;
+  cursor:pointer;
+}
+.iu-fas-registro-sync__btn:disabled{opacity:.6;cursor:progress}
+.iu-fas-registro-sync__meta{font-size:12px;font-weight:750;color:var(--iu-slate-500)}
+.iu-fas-registro-sync__msg{margin:2px 0 0;font-size:12.5px;font-weight:800;line-height:1.4}
+.iu-fas-registro-sync__msg--success{color:var(--iu-emerald-700,#166534)}
+.iu-fas-registro-sync__msg--warning{color:#8a6d1f}
+.iu-fas-registro-sync__msg--danger{color:#b91c1c}
+.iu-fas-registro-sync__msg--info{color:#0c4a6e}
 .iu-fas-source-panel>header{
   display:flex;
   align-items:center;

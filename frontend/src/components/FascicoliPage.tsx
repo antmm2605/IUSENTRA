@@ -3694,6 +3694,42 @@ function SourceSnapshotPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
   )
 }
 
+function RegistroSyncButton({ fascicoloId, lastSyncAt }:{fascicoloId:string; lastSyncAt?:string}) {
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [tone, setTone] = useState<'info'|'success'|'warning'|'danger'>('info')
+  const run = async () => {
+    setBusy(true)
+    setMessage('Interrogazione del registro di cancelleria in corso...')
+    setTone('info')
+    try {
+      const response = await fetch(`/fascicoli/${encodeURIComponent(fascicoloId)}/sincronizza-registro`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await response.json() as { ok?:boolean; message?:string; requires_local_signer?:boolean; rg_mancante?:boolean }
+      setMessage(payload.message || (payload.ok ? 'Registro allineato.' : 'Allineamento non riuscito.'))
+      setTone(payload.ok ? 'success' : payload.requires_local_signer || payload.rg_mancante ? 'warning' : 'danger')
+      if (payload.ok) setTimeout(() => window.location.reload(), 900)
+    } catch {
+      setMessage('Registro non raggiungibile in questo momento.')
+      setTone('danger')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="iu-fas-registro-sync">
+      <button type="button" onClick={run} disabled={busy} className="iu-fas-registro-sync__btn">
+        <RefreshCw size={15}/> {busy ? 'Aggiornamento...' : 'Aggiorna dal registro'}
+      </button>
+      <span className="iu-fas-registro-sync__meta">{lastSyncAt ? `Registro aggiornato al ${lastSyncAt}` : 'Mai allineato dal registro'}</span>
+      {message ? <p className={`iu-fas-registro-sync__msg iu-fas-registro-sync__msg--${tone}`}>{message}</p> : null}
+    </div>
+  )
+}
+
 function DetailSection({
   id,
   title,
@@ -7932,7 +7968,7 @@ function DetailPage({ id }:{id:string}) {
           <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')} defaultOpen={activeHashSection === 'sentenze-economiche'}/>
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
           <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length} defaultOpen={activeHashSection === 'conformita'}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
-          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
+          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>

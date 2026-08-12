@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.27 - 2026-08-12
+
+- **Registro PP.AA. popolato per intero dal PST.** Nuovo tool governato `tools/registro_ppaa_harvest_public.py`: usa l'export ufficiale della `Ricerca Pubblica Amministrazione` (`pst_2_8_2.wp`, azione `/ExtStr2/do/pubbamm/searchPA.action`) con 15 query a copertura totale (cifre 0-9 sul codice fiscale, vocali sulla denominazione), deduplica e importa nella cache SQL locale. Base normativa: art. 16, comma 12, D.L. 179/2012.
+- **Cache reale su questa macchina: 10.796 enti distinti, 7.726 record con PEC indicizzati.** La ricerca destinatari in `/notifiche-legali` propone ora PEC di grado notifica (INPS atti giudiziari, Comune di Milano atti giudiziari, Agenzia delle Entrate cancellerie, ministeri) con badge `Registro PP.AA.`. Gli enti senza PEC pubblicata non vengono importati.
+- **Guardrail.** Nuovo `tests/test_registro_ppaa_harvest_public.py` (parsing export, dedup, piano query, import end-to-end in cache temporanea); dati raw, JSONL e SQLite restano evidenza runtime esclusa da Git.
+
 ## 2.278.26 - 2026-08-12
 
 - **Nomi ministeriali ricavati dalla classificazione del fascicolo.** La busta usa `Ricorso.pdf.p7m` e `Procura .pdf.p7m` anche quando le versioni fisiche conservate nello storico hanno suffissi tecnici come `_010f` e `_b223`; quei suffissi non entrano più in `Atto.msg`, nell'indice firmato o nel testo PEC.

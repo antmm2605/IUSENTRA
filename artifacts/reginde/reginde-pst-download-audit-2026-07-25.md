@@ -206,3 +206,45 @@ Guardrail eseguiti:
 - `python -m pytest tests\test_reginde_sync_cache.py tests\test_reginde_cache_search.py tests\test_registro_ppaa_sync_cache.py tests\test_notifiche_legali.py -q`;
 - `python -m compileall tools\reginde_sync_cache.py tools\registro_ppaa_sync_cache.py web\services\reginde_cache_search.py web\blueprints\api_v1_react.py pct\notifiche_legali.py`;
 - `pnpm --filter @iusentra/studio typecheck`.
+
+## Aggiornamento 12/08/2026 - popolamento completo Registro PP.AA. da export pubblico PST
+
+Riesame della pagina contenitore `https://servizipst.giustizia.it/PST/it/pst_2_8.wp` e del modulo
+`pst_2_8_2.wp`: la tabella dei risultati della `Ricerca Pubblica Amministrazione` e' generata con
+Displaytag e la stessa azione ufficiale `/ExtStr2/do/pubbamm/searchPA.action` espone il parametro di
+export `d-4001731-e=3` che restituisce, senza credenziali, l'intero insieme dei risultati in formato
+XML (`<row>/<column>`: denominazione, codice fiscale, codice univoco, classe, PEC), superando la
+paginazione da 20 righe.
+
+Poiche' la ricerca e' a sottostringa, la copertura totale del registro si ottiene con 15 query:
+`codFiscale=0..9` (ogni codice fiscale/partita IVA numerico contiene almeno una cifra) piu'
+`denominazione=a,e,i,o,u` a copertura degli enti senza codice fiscale. E' stato aggiunto il tool
+governato:
+
+- `tools/registro_ppaa_harvest_public.py` (fetch cortese con delay, salvataggio pagine con SHA-256,
+  parsing, dedup e import opzionale `--import-cache` nella cache SQL esistente);
+- test: `tests/test_registro_ppaa_harvest_public.py`.
+
+Esito reale del 12/08/2026 (fuso `Europe/Rome`):
+
+- query eseguite: `15`; righe osservate totali: `117.884`;
+- enti distinti dopo dedup: `10.796`, di cui `7.725` con PEC pubblicata;
+- record importati nella cache `data/local/registro_ppaa/registro_ppaa_cache.sqlite`: `7.726` distinti
+  (7.725 dall'export pubblico + 1 gia' presente, deduplicati per chiave record);
+- gli enti senza PEC pubblicata (`3.071`) non vengono importati: la cache serve alla proposta PEC e
+  non deve suggerire enti privi di domicilio digitale nel registro;
+- ricerche campione verificate su cache reale: `Ministero istruzione` (uspmt@postacert.istruzione.it),
+  `Comune di Milano` (attigiudiziari@pec.comune.milano.it), `Agenzia Entrate`
+  (comunicazioni_cancellerie@pce.agenziaentrate.it), `INPS`
+  (notifica.attigiudiziari.direzionegenerale@postacert.inps.gov.it), `Avvocatura Milano`
+  (ads.mi@mailcert.avvocaturastato.it), tutte con fonte `registro_ppaa`.
+
+Le pagine raw, il JSONL e il database restano evidenza runtime locale esclusa da Git. Comando per
+ripetere il popolamento (anche sul server, dalla root del repo):
+
+```powershell
+python tools\registro_ppaa_harvest_public.py --import-cache
+```
+
+La verifica valida ai fini della notifica resta quella certificata puntuale prima dell'invio; la
+cache alimenta la proposta destinatari con badge `Registro PP.AA.` nella pagina `/notifiche-legali`.

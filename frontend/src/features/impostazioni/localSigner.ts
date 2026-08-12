@@ -222,13 +222,7 @@ export async function testPecSmtpViaLocalSigner(
       method: 'POST',
       credentials: 'same-origin',
       headers: new Headers({ 'Content-Type': 'application/json', Accept: 'application/json' }),
-      body: JSON.stringify({
-        indirizzo: payload.indirizzo,
-        username: payload.username,
-        smtp_host: payload.smtp_host,
-        smtp_port: payload.smtp_port,
-        use_ssl: payload.use_ssl,
-      }),
+      body: JSON.stringify({}),
     })
     const savedPayload = objectValue(saved?.payload)
     if (!saved?.ok || !Object.keys(savedPayload).length) {
@@ -247,6 +241,7 @@ export async function testPecSmtpViaLocalSigner(
       smtp_host: text(payload.smtp_host, text(savedPayload.smtp_host)),
       smtp_port: integerValue(payload.smtp_port, integerValue(savedPayload.smtp_port, 465)),
       use_ssl: booleanValue(payload.use_ssl, booleanValue(savedPayload.use_ssl, true)),
+      use_tls: !booleanValue(payload.use_ssl, booleanValue(savedPayload.use_ssl, true)),
     }
   }
 

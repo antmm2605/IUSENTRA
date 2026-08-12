@@ -2365,13 +2365,7 @@ function DepositPreparePage({ id }:{id:string}) {
           'X-Requested-With': 'XMLHttpRequest',
           ...(token ? { 'X-CSRFToken': token } : {}),
         },
-        body: JSON.stringify({
-          indirizzo: recordText(localPayload, 'indirizzo', recordText(localPayload, 'from')),
-          username: recordText(localPayload, 'username', recordText(localPayload, 'indirizzo')),
-          smtp_host: recordText(localPayload, 'smtp_host'),
-          smtp_port: recordNumber(localPayload, 'smtp_port', 465),
-          use_ssl: recordBool(localPayload, 'use_ssl'),
-        }),
+        body: JSON.stringify({}),
       })
       const saved = await response.json().catch(() => ({})) as Record<string, unknown>
       const savedPayload = saved.payload && typeof saved.payload === 'object' && !Array.isArray(saved.payload)
@@ -2391,6 +2385,9 @@ function DepositPreparePage({ id }:{id:string}) {
         smtp_host: recordText(savedPayload, 'smtp_host', recordText(localPayload, 'smtp_host')),
         smtp_port: recordNumber(savedPayload, 'smtp_port', recordNumber(localPayload, 'smtp_port', 465)),
         use_ssl: savedUseSsl,
+        use_tls: Object.prototype.hasOwnProperty.call(savedPayload, 'use_tls')
+          ? recordBool(savedPayload, 'use_tls')
+          : !savedUseSsl,
       }
     } catch {
       return null

@@ -5818,3 +5818,23 @@ Stato: correzione del pannello verificata materialmente sul server reale. Nessun
 - I rilievi dei precedenti rigetti su atto principale non apribile, allegati firmati non riconosciuti, mittente non firmatario, formato non valido di `DatiAtto.xml.p7m` e prova dell'esenzione risultano tecnicamente verificati sul nuovo pacchetto.
 
 Stato: pacchetto simulato verificato materialmente e tecnicamente sul server reale; `Invia deposito reale` non è stato premuto. L'accettazione della cancelleria resta verificabile soltanto dopo l'eventuale invio e la ricezione degli esiti ministeriali.
+
+## Aggiornamento 12/08/2026 - Ripristino trasporto PEC locale dalle Impostazioni
+
+Perimetro: esclusivamente trasporto PEC locale del deposito già preparato. Generazione di `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `Atto.enc`, firme, requisiti documentali, notifiche legali e deposito lato server non sono stati modificati.
+
+- Il tentativo reale delle ore 15:39 circa ha preparato il payload locale completo ma il Local Signer ha restituito `Server not connected` durante la trasmissione SMTP; non è seguito alcun POST di conferma, non è stato prodotto alcun Message-ID e IUSENTRA non ha registrato un deposito inviato.
+- Nella stessa sessione la verifica visibile `Impostazioni > PEC > Verifica invio PEC` ha completato connessione e autenticazione verso `smtps.pec.aruba.it:465`. Il guasto era quindi successivo all'autenticazione e riguardava il trasferimento del messaggio con `Atto.enc`, non la password salvata.
+- È stata rimossa la regressione che permetteva ai valori presenti nel payload del deposito di sovrascrivere mittente, username, host, porta e SSL/TLS salvati nelle Impostazioni dello studio. Il trasporto usa ora esclusivamente la configurazione PEC tenant-aware salvata.
+- Il timeout breve di 25 secondi resta limitato a connessione e autenticazione; il trasferimento degli allegati dispone di 180 secondi.
+- Se il provider interrompe la connessione, il Local Signer non ritenta automaticamente perché l'esito SMTP potrebbe essere ambiguo e un nuovo tentativo potrebbe produrre un invio duplicato.
+- Local Signer `1.6.113` generato per Windows, macOS e Linux e installato sul PC reale. `/ping` conferma una sola istanza, token CNS Bit4id e certificato qualificato di firma di Giuseppe Montagnese; l'hash del ponte PEC installato coincide con quello del pacchetto.
+
+Guardrail eseguiti:
+
+- test del ponte PEC locale, incluso trasferimento allegato, timeout dedicato e assenza di ritentativo automatico;
+- test tenant-aware che impedisce al payload client di sovrascrivere la configurazione PEC salvata;
+- test statici React per deposito, notifiche e Impostazioni;
+- typecheck frontend.
+
+Stato: correzione installata sul Local Signer reale e verificata fino alla connessione SMTP senza invio. La prova materiale conclusiva richiede un solo nuovo click dell'avvocato su `Invia deposito reale`; Codex non ha effettuato né ritentato alcuna trasmissione PEC.

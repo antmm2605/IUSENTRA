@@ -3608,13 +3608,7 @@ export function NotificheLegaliPage() {
           'X-Requested-With': 'XMLHttpRequest',
           ...(token ? { 'X-CSRFToken': token } : {}),
         },
-        body: JSON.stringify({
-          indirizzo: localPecText(localPayload['indirizzo'] || localPayload['from']),
-          username: localPecText(localPayload['username'] || localPayload['indirizzo']),
-          smtp_host: localPecText(localPayload['smtp_host']),
-          smtp_port: Number(localPayload['smtp_port'] || 465),
-          use_ssl: pecBoolean(localPayload['use_ssl']),
-        }),
+        body: JSON.stringify({}),
       })
       const saved = await response.json().catch(() => ({})) as Record<string, unknown>
       const savedPayload = isRecord(saved['payload']) ? saved['payload'] : {}
@@ -3631,6 +3625,9 @@ export function NotificheLegaliPage() {
         use_ssl: Object.prototype.hasOwnProperty.call(savedPayload, 'use_ssl')
           ? pecBoolean(savedPayload['use_ssl'])
           : pecBoolean(localPayload['use_ssl']),
+        use_tls: Object.prototype.hasOwnProperty.call(savedPayload, 'use_tls')
+          ? pecBoolean(savedPayload['use_tls'])
+          : !pecBoolean(localPayload['use_ssl']),
       }
     } catch {
       return null

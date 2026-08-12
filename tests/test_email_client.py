@@ -168,10 +168,12 @@ def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tm
         ConfigStudio(
             pec=ConfigPEC(
                 indirizzo="studio@pec.example.it",
+                username="login-salvato",
                 password="segreta",
                 smtp_host="smtp.pec.example.it",
                 smtp_port=465,
                 use_ssl=True,
+                use_tls=False,
             )
         )
     )
@@ -180,7 +182,14 @@ def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tm
     with app.test_request_context(
         "/impostazioni/pec/local-smtp-payload",
         method="POST",
-        json={"smtp_host": "smtp.override.example.it", "smtp_port": 587, "use_ssl": False},
+        json={
+            "indirizzo": "payload@pec.example.it",
+            "username": "login-payload",
+            "smtp_host": "smtp.override.example.it",
+            "smtp_port": 587,
+            "use_ssl": False,
+            "use_tls": True,
+        },
     ):
         g.utente_corrente = SimpleNamespace(id="u1")
         g.data_paths = {"STUDIO_CONFIG": str(tenant_config)}
@@ -189,10 +198,12 @@ def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tm
     payload = response.get_json()
     assert payload["ok"] is True
     assert payload["payload"]["indirizzo"] == "studio@pec.example.it"
+    assert payload["payload"]["username"] == "login-salvato"
     assert payload["payload"]["password"] == "segreta"
-    assert payload["payload"]["smtp_host"] == "smtp.override.example.it"
-    assert payload["payload"]["smtp_port"] == 587
-    assert payload["payload"]["use_ssl"] is False
+    assert payload["payload"]["smtp_host"] == "smtp.pec.example.it"
+    assert payload["payload"]["smtp_port"] == 465
+    assert payload["payload"]["use_ssl"] is True
+    assert payload["payload"]["use_tls"] is False
 
 
 def test_email_pec_scrivi_invia_dal_canale_pec_dedicato_senza_local_signer(tmp_path, monkeypatch):

@@ -12,6 +12,7 @@ from typing import Any
 
 
 DEFAULT_TIMEOUT_SECONDS = 25
+SMTP_SEND_TIMEOUT_SECONDS = 180
 MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
 CMS_ENVELOPED_DATA_OID = b"\x06\x09*\x86H\x86\xf7\r\x01\x07\x03"
 DEPOSITO_SUBJECT_RE = re.compile(r"^DEPOSITO\s+\S", re.IGNORECASE)
@@ -155,6 +156,12 @@ def _close_smtp(client: Any) -> None:
             pass
 
 
+def _set_smtp_send_timeout(client: Any, config: dict[str, Any]) -> None:
+    sock = getattr(client, "sock", None)
+    if sock is not None and hasattr(sock, "settimeout"):
+        sock.settimeout(max(int(config["timeout"]), SMTP_SEND_TIMEOUT_SECONDS))
+
+
 def _human_error(error: Exception, *, host: str = "", port: int | None = None) -> str:
     endpoint = f" verso {host}:{port}" if host and port else ""
     if isinstance(error, PecBridgeValidationError):
@@ -176,6 +183,13 @@ def _human_error(error: Exception, *, host: str = "", port: int | None = None) -
         return f"Connessione SMTP PEC rifiutata{endpoint}. Verifica porta e SSL/TLS."
     if isinstance(error, ssl.SSLError):
         return f"Errore TLS/SSL SMTP PEC{endpoint}. Verifica porta, SSL/TLS e certificati del provider."
+    if isinstance(error, smtplib.SMTPServerDisconnected):
+        return (
+            "Connessione SMTP PEC locale interrotta"
+            f"{endpoint}. Il provider ha chiuso la connessione durante la trasmissione. "
+            "Nessun nuovo tentativo automatico è stato eseguito per evitare un invio duplicato: "
+            "verifica le ricevute PEC prima di riprovare."
+        )
     if isinstance(error, smtplib.SMTPException):
         return f"Errore SMTP PEC locale{endpoint}: {error}"
     if isinstance(error, OSError):
@@ -306,6 +320,7 @@ def send_pec_local(
             smtp_factory=smtp_factory,
             smtp_ssl_factory=smtp_ssl_factory,
         )
+        _set_smtp_send_timeout(client, config)
         client.send_message(message, from_addr=config["sender"], to_addrs=recipients)
         return {
             "ok": True,

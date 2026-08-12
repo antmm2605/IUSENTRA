@@ -20,6 +20,7 @@ class _FakeSmtp:
         self.logged_in = None
         self.sent = []
         self.quit_called = False
+        self.sock = _FakeSocket()
         _FakeSmtp.instances.append(self)
 
     def ehlo(self):
@@ -39,6 +40,14 @@ class _FakeSmtp:
 
     def quit(self):
         self.quit_called = True
+
+
+class _FakeSocket:
+    def __init__(self):
+        self.timeouts: list[int] = []
+
+    def settimeout(self, timeout: int):
+        self.timeouts.append(timeout)
 
 
 def _payload(**extra):
@@ -155,6 +164,32 @@ def test_invio_pec_locale_invia_allegato_base64():
     assert to_addrs == ["tribunale@example.test"]
     assert sent_message["Subject"] == "DEPOSITO TELEMATICO - Ricorso"
     assert sent_message.is_multipart()
+    assert smtp.timeout == 25
+    assert smtp.sock.timeouts == [180]
+
+
+def test_invio_pec_locale_non_ritenta_se_il_provider_interrompe_la_trasmissione():
+    class DisconnectingSmtp(_FakeSmtp):
+        def send_message(self, message, from_addr=None, to_addrs=None):
+            raise smtplib.SMTPServerDisconnected("Server not connected")
+
+    _FakeSmtp.instances.clear()
+    result = send_pec_local(
+        _payload(
+            destinatario="tribunale@example.test",
+            oggetto="DEPOSITO TELEMATICO - Ricorso",
+            corpo="Deposito da IUSENTRA",
+        ),
+        smtp_ssl_factory=DisconnectingSmtp,
+    )
+
+    assert result["ok"] is False
+    assert result["inviato"] is False
+    assert "Connessione SMTP PEC locale interrotta" in result["messaggio"]
+    assert "Nessun nuovo tentativo automatico" in result["messaggio"]
+    assert "invio duplicato" in result["messaggio"]
+    assert "ambiente not connected" not in result["messaggio"]
+    assert len(_FakeSmtp.instances) == 1
 
 
 def test_invio_pec_locale_rifiuta_atto_enc_non_cms():

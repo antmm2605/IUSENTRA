@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.25 - 2026-08-12
+
+- **Invio PEC locale del deposito riallineato alle Impostazioni.** Mittente, username, server, porta e SSL/TLS vengono letti esclusivamente dalla configurazione PEC salvata dello studio; il payload del deposito non può più sovrascriverli con valori precedenti.
+- **Local Signer 1.6.113.** Il collegamento mantiene il timeout breve per connessione e autenticazione, ma concede fino a tre minuti al trasferimento degli allegati del deposito. Se il provider interrompe la connessione, non ritenta automaticamente e impedisce così l'invio duplicato.
+
 ## 2.278.23 - 2026-08-12
 
 - **CI Local Signer multipiattaforma.** Gli shard Windows, macOS e Linux installano anche il profilo dipendenze ufficiale del Local Signer, così i test PAdES e PKCS#11 verificano realmente pyHanko su tutti i sistemi.

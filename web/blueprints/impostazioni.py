@@ -582,9 +582,12 @@ def test_pec_smtp():
 @_richiedi_login
 def pec_local_smtp_payload():
     """Prepara il payload SMTP locale usando la configurazione salvata del tenant."""
-    data = request.get_json(silent=True) or {}
     gs = _get_gestore()
     cfg_pec = gs.config.pec
+    indirizzo = str(getattr(cfg_pec, "indirizzo", "") or "").strip()
+    username = str(getattr(cfg_pec, "username", "") or "").strip() or indirizzo
+    smtp_port = int(getattr(cfg_pec, "smtp_port", 465) or 465)
+    use_ssl = bool(getattr(cfg_pec, "use_ssl", smtp_port == 465))
     password = str(getattr(cfg_pec, "password", "") or "")
     if not password:
         return jsonify(
@@ -600,12 +603,13 @@ def pec_local_smtp_payload():
         {
             "ok": True,
             "payload": {
-                "indirizzo": data.get("indirizzo") or cfg_pec.indirizzo,
-                "username": data.get("username") or getattr(cfg_pec, "username", "") or data.get("indirizzo") or cfg_pec.indirizzo,
+                "indirizzo": indirizzo,
+                "username": username,
                 "password": password,
-                "smtp_host": data.get("smtp_host") or cfg_pec.smtp_host,
-                "smtp_port": int(data.get("smtp_port") or cfg_pec.smtp_port or 465),
-                "use_ssl": data.get("use_ssl", cfg_pec.use_ssl),
+                "smtp_host": str(getattr(cfg_pec, "smtp_host", "") or "").strip(),
+                "smtp_port": smtp_port,
+                "use_ssl": use_ssl,
+                "use_tls": bool(getattr(cfg_pec, "use_tls", not use_ssl)),
             },
         }
     )

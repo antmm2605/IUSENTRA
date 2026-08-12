@@ -84,10 +84,9 @@ def register_core_surfaces(
         sync_pubblica=core["sync_pubblica"],
     )
     register_scadenziario_proposte_routes(
-        app,
-        get_scadenziario=core["get_scadenziario"],
-        audit=core["audit"],
-        sync_pubblica=core["sync_pubblica"],
+        app, get_scadenziario=core["get_scadenziario"], audit=core["audit"],
+        sync_pubblica=core["sync_pubblica"], get_agenda=core["get_agenda"],
+        get_fascicoli=core["get_fascicoli"],
     )
     register_workspace_routes(
         app,

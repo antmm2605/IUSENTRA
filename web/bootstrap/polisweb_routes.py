@@ -24,6 +24,7 @@ def register_polisweb_routes(
     polis_auth_mode: Callable[[], str],
     polis_demo_mode: Callable[[], bool],
     polis_cert_preferences: Callable[[], dict[str, Any]],
+    get_scadenziario: Callable[[], Any] | None = None,
 ) -> None:
     """Register PolisWeb consultation and import routes."""
 
@@ -67,6 +68,7 @@ def register_polisweb_routes(
                 get_fascicoli=get_fascicoli,
                 get_clienti=get_clienti,
                 get_soggetti=get_soggetti,
+                get_scadenziario=get_scadenziario,
                 auth_mode=polis_auth_mode(),
                 avvocato_referente=getattr(utente, "username", "") or "",
             )

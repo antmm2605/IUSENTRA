@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.278.33 - 2026-08-12
+
+- **Sync Polisweb — Fase 1: udienze e scadenze dal registro diventano proposte.** "Aggiorna dal registro" ora legge anche le udienze e le scadenze prospettiche del fascicolo (classe ministeriale `InfoScadenze`, registro civile SICID) e le trasforma in proposte in stato `BOZZA` nello scadenziario, da confermare o scartare — la stessa coda già usata per le PEC. Nuovi moduli `pct/polisweb_eventi.py` (query + parsing + normalizzazione) e `pct/scadenze_proposte_polisweb.py`.
+- **Nessun doppione tra PEC e registro.** Se una data è già presente sul fascicolo (anche creata dalla PEC), il registro non genera una proposta duplicata; le proposte sono idempotenti per fascicolo/evento.
+- **Fail-closed.** Le date lette dal registro non diventano mai termini operativi automatici: restano proposte con revisione professionale obbligatoria. Estensione graduale prevista per SIECIC/SIGP/Cassazione (oggi lista vuota senza errori).
+- **Sync Polisweb — Fase 2: coda proposte con provenienza e agenda alla conferma.** Il pannello "Date da confermare" dello Scadenziario ora distingue le proposte con un badge di provenienza (PEC oppure Registro PST) e ne mostra il conteggio per fonte. Alla conferma di una proposta di udienza, l'evento entra anche in agenda collegato al fascicolo (orario rispettato se presente, all-day di default, idempotente sul back-link `id_appuntamento`). Nuovo `web/services/scadenza_proposta_agenda.py`.
+- **Guardrail.** Nuove suite `tests/test_polisweb_eventi.py` (parsing InfoScadenze/EventoFascicoloAgenda, dedup, selezione candidati, idempotenza, no-doppioni con PEC) e `tests/test_scadenza_proposta_agenda.py` (agenda alla conferma, idempotenza, orario). Base normativa: D.M. 44/2011, cataloghi DGSIA WSDL v1.52.
+
 ## 2.278.32 - 2026-08-12
 
 - **Sync Polisweb — Fase 0: "Aggiorna dal registro".** Nel dettaglio fascicolo, sezione Servizi telematici, un pulsante allinea la pratica ai registri di cancelleria (PST) su richiesta, con badge "Registro aggiornato al …". Doppio canale conforme: con certificato P12/PEM dello studio configurato sul server l'interrogazione è automatica e senza PIN; con la sola smart card il pulsante guida al percorso assistito. Nuovo `web/services/polisweb_fascicolo_sync.py` + route `/fascicoli/<id>/sincronizza-registro`.

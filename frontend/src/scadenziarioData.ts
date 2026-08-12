@@ -104,6 +104,8 @@ export type ScadenziarioRow = {
 }
 
 export type ScadenziarioDraftProposal = ScadenziarioRow & {
+  sourceOrigin: 'pec' | 'registro'
+  sourceOriginLabel: string
   sourceSnippet: string
   sourceSnippetLabel: string
   sourceDocumentName: string
@@ -804,6 +806,8 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
         const item = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
         return {
           ...normalizeRow(raw),
+          sourceOrigin: asString(item.sourceOrigin) === 'registro' ? 'registro' as const : 'pec' as const,
+          sourceOriginLabel: asString(item.sourceOriginLabel) || 'PEC',
           sourceSnippet: asString(item.sourceSnippet),
           sourceSnippetLabel: asString(item.sourceSnippetLabel),
           sourceDocumentName: asString(item.sourceDocumentName),

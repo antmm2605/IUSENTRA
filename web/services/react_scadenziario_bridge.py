@@ -1822,6 +1822,11 @@ def build_react_scadenziario_payload(
                 pec_profile=pec_profiles.get(_pec_audit_message_id(item)),
                 control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
             )
+            profilo = str(getattr(item, "deadline_profile_code", "") or "")
+            evento_type = str(getattr(item, "source_event_type", "") or "")
+            origine = "registro" if profilo == "PST_PROPOSTA_EVENTO" or evento_type == "polisweb_registro" else "pec"
+            row["sourceOrigin"] = origine
+            row["sourceOriginLabel"] = "Registro PST" if origine == "registro" else "PEC"
             row["sourceSnippet"] = str(getattr(item, "source_snippet", "") or "")
             row["sourceSnippetLabel"] = str(getattr(item, "source_snippet_label", "") or "")
             row["sourceDocumentName"] = str(getattr(item, "source_document_name", "") or "")

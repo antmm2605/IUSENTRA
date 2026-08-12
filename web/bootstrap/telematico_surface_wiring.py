@@ -94,6 +94,7 @@ def register_telematico_surfaces(
         polis_auth_mode=telematico["polis_auth_mode"],
         polis_demo_mode=telematico["polis_demo_mode"],
         polis_cert_preferences=telematico["polis_cert_preferences"],
+        get_scadenziario=core["get_scadenziario"],
     )
     register_telematico_portali_routes(
         app,

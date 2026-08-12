@@ -16,9 +16,92 @@ eventi e catalogo (vista a buste), mai i file.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Callable
 
 from pct.polisWeb import ClientPolisWebDemo, crea_client
+from pct.scadenziario import StatoTermine, TipoTermine
+from pct.scadenze_proposte_polisweb import (
+    bozza_marker,
+    bozza_scadenza_fields,
+    select_event_candidates,
+)
+
+
+def _proponi_scadenze_da_eventi(
+    client: Any,
+    fascicolo: Any,
+    *,
+    ufficio: str,
+    numero_rg: str,
+    anno_rg: int,
+    get_scadenziario: Callable[[], Any] | None,
+    attore: str,
+) -> int:
+    """Crea proposte in BOZZA dagli eventi/scadenze futuri letti dal registro.
+
+    Fail-closed: nessuna scadenza operativa senza conferma. Idempotente per
+    (fascicolo, evento) via marcatore nelle note; deduplica contro le date gia'
+    presenti nello scadinziario del fascicolo (incluse quelle create dalla PEC).
+    """
+
+    if get_scadenziario is None:
+        return 0
+    try:
+        eventi = client.consulta_scadenze(
+            ufficio,
+            numero_rg,
+            anno_rg,
+            registro=str(getattr(fascicolo, "tipo_registro", "") or ""),
+            ruolo_polisweb=str(getattr(fascicolo, "ruolo_polisweb", "") or "AVV"),
+            sub_procedimento=str(getattr(fascicolo, "sub_procedimento", "") or ""),
+            id_dfa=str(getattr(fascicolo, "id_dfa", "") or ""),
+            servizio_pst_preferito=str(getattr(fascicolo, "servizio_pst", "") or ""),
+        )
+    except Exception:
+        return 0
+    if not eventi:
+        return 0
+    manager = get_scadenziario()
+    fascicolo_id = str(getattr(fascicolo, "id", "") or "")
+    esistenti = [
+        item for item in manager.tutte(solo_aperte=False)
+        if str(getattr(item, "id_fascicolo", "") or "") == fascicolo_id
+    ]
+    date_gia_presenti = {
+        str(getattr(item, "data_scadenza", "") or "")[:10]
+        for item in esistenti
+        if str(getattr(item, "stato", "")) not in {StatoTermine.ANNULLATO.value, StatoTermine.ANNULLATO}
+    }
+    date_gia_presenti.discard("")
+    note_esistenti = " \n ".join(str(getattr(item, "note", "") or "") for item in esistenti)
+    candidati = select_event_candidates(
+        eventi,
+        today=date.today(),
+        date_gia_presenti=date_gia_presenti,
+    )
+    creati = 0
+    for evento in candidati:
+        marker = bozza_marker(fascicolo_id, ufficio, f"{numero_rg}/{anno_rg}", evento.chiave())
+        if marker in note_esistenti:
+            continue
+        fields = bozza_scadenza_fields(evento, fascicolo_id=fascicolo_id, ufficio=ufficio, rg=f"{numero_rg}/{anno_rg}")
+        try:
+            manager.nuova(
+                titolo=fields.pop("titolo"),
+                tipo=TipoTermine.UDIENZA if getattr(evento, "tipo", "") == "udienza" else TipoTermine.ADEMPIMENTO,
+                data_scadenza=fields.pop("data_scadenza"),
+                id_fascicolo=fields.pop("id_fascicolo"),
+                descrizione=fields.pop("descrizione"),
+                note=fields.pop("note"),
+                id_utente_responsabile=attore,
+                stato=StatoTermine.BOZZA,
+                **fields,
+            )
+            creati += 1
+        except Exception:
+            continue
+    return creati
 
 
 def sincronizza_fascicolo_da_registro(
@@ -27,6 +110,7 @@ def sincronizza_fascicolo_da_registro(
     get_fascicoli: Callable[[], Any],
     get_clienti: Callable[[], Any],
     get_soggetti: Callable[[], Any] | None = None,
+    get_scadenziario: Callable[[], Any] | None = None,
     auth_mode: str = "",
     avvocato_referente: str = "",
 ) -> dict[str, Any]:
@@ -96,12 +180,28 @@ def sincronizza_fascicolo_da_registro(
         gestione_soggetti=get_soggetti() if get_soggetti else None,
     )
     aggiornato = gestione_fascicoli.get(fascicolo_id)
+    proposte_create = _proponi_scadenze_da_eventi(
+        client,
+        aggiornato or fascicolo,
+        ufficio=ufficio,
+        numero_rg=numero_rg,
+        anno_rg=anno_rg,
+        get_scadenziario=get_scadenziario,
+        attore=avvocato_referente,
+    )
+    messaggio = risultato.messaggio
+    if proposte_create:
+        messaggio += (
+            f" Rilevate {proposte_create} nuove date dal registro: "
+            "in attesa di conferma nello scadenziario."
+        )
     return {
         "ok": bool(risultato.successo),
-        "message": risultato.messaggio,
+        "message": messaggio,
         "avvisi": list(risultato.avvisi or []),
         "depositi_importati": risultato.depositi_importati,
         "documenti_importati": risultato.documenti_importati,
+        "proposte_scadenze": proposte_create,
         "last_sync_at": str(getattr(aggiornato, "last_sync_at", "") or ""),
         "sync_status": str(getattr(aggiornato, "sync_status", "") or ""),
     }

@@ -238,25 +238,29 @@ async function postDeadlineAction(url: string, label: string, body?: URLSearchPa
 
 function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:ScadenziarioDraftProposal[]; onConfirm:(item:ScadenziarioDraftProposal)=>void; onDiscard:(item:ScadenziarioDraftProposal)=>void}) {
   if (!proposals.length) return null
+  const daRegistro = proposals.filter((item) => item.sourceOrigin === 'registro').length
+  const daPec = proposals.length - daRegistro
+  const fonti = [daPec ? `${daPec} da PEC` : '', daRegistro ? `${daRegistro} dal registro di cancelleria` : ''].filter(Boolean).join(' · ')
   return (
-    <section className="iu-scad-proposals" aria-label="Proposte di scadenza dalle PEC da confermare">
+    <section className="iu-scad-proposals" aria-label="Proposte di scadenza da confermare">
       <header className="iu-scad-proposals__head">
-        <span className="iu-scad-proposals__eyebrow"><FileSearch size={15}/> Date lette nei provvedimenti PEC</span>
+        <span className="iu-scad-proposals__eyebrow"><FileSearch size={15}/> Date da confermare</span>
         <strong>{proposals.length === 1 ? '1 proposta di scadenza attende la tua conferma' : `${proposals.length} proposte di scadenza attendono la tua conferma`}</strong>
-        <p>Nessuna è operativa finché non la confermi: verifica il passaggio citato e decidi.</p>
+        <p>Provenienza: {fonti}. Nessuna è operativa finché non la confermi: verifica la fonte e decidi.</p>
       </header>
       <div className="iu-scad-proposals__list">
         {proposals.map((item) => (
           <article key={item.id} className="iu-scad-proposal">
             <div className="iu-scad-proposal__top">
-              <Badge tone="info">{item.sourceSnippetLabel || 'Data letta'}</Badge>
+              <Badge tone={item.sourceOrigin === 'registro' ? 'purple' : 'info'}>{item.sourceOriginLabel}</Badge>
+              <Badge tone="neutral">{item.sourceSnippetLabel || 'Data letta'}</Badge>
               <strong>{item.dateLabel}</strong>
               {item.sourceConfidence ? <em>affidabilità lettura {item.sourceConfidence}%</em> : null}
             </div>
             <p className="iu-scad-proposal__title">{item.title}</p>
             {item.sourceSnippet ? <blockquote className="iu-scad-proposal__quote">«{item.sourceSnippet}»</blockquote> : null}
             <p className="iu-scad-proposal__source">
-              Fonte: {item.sourceDocumentName || item.sourceLabel || 'messaggio PEC'}
+              Fonte: {item.sourceDocumentName || item.sourceLabel || (item.sourceOrigin === 'registro' ? 'registro di cancelleria' : 'messaggio PEC')}
               {item.sourceHref ? <> — <a href={item.sourceHref}>Apri fonte</a></> : null}
               {item.fascicoloLabel ? <> · {item.fascicoloLabel}</> : null}
             </p>

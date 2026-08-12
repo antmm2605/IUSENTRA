@@ -2036,6 +2036,60 @@ class ClientPolisWeb:
 
         return self._parse_documenti(risposta)
 
+    def consulta_scadenze(
+        self,
+        codice_ufficio: str,
+        numero_rg: str,
+        anno_rg: int,
+        registro: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        id_dfa: str = "",
+        servizio_pst_preferito: str = "",
+    ) -> list:
+        """Legge udienze e scadenze prospettiche del fascicolo (classe InfoScadenze).
+
+        Base normativa: consultazione registri PST (D.M. 44/2011). Ritorna una
+        lista di ``EventoRegistro`` normalizzati; le date non sono termini
+        legali (alimentano proposte in BOZZA da confermare). Supportato oggi
+        sul registro civile SICID; per gli altri registri ritorna lista vuota
+        senza errori (estensione graduale).
+        """
+
+        from pct.polisweb_eventi import normalizza_eventi
+
+        spec = _polisweb_registro_spec(registro, servizio_pst_preferito)
+        if spec.cassazione or spec.siecic or spec.sigp:
+            return []
+        preferito = servizio_pst_preferito or spec.servizio_preferito
+        base_pst = self._risolvi_base_pst(codice_ufficio, preferito=preferito)
+        codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
+        if not _pst_usa_qbuilder(base_pst):
+            return []
+        role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+        body = self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_pst,
+            "InfoScadenze",
+            [
+                ("idUfficio", "string", codice_pst),
+                ("annoRuolo", "integer", anno_rg),
+                ("numeroRuolo", "string", _numero_ruolo_value(numero_rg)),
+                ("subProcedimento", "string", sub_procedimento or ""),
+                ("idRuoloJPW", "string", role),
+                ("registro", "string", spec.registro if spec.registro != "SIECIC" else ""),
+                ("idDfa", "string", id_dfa),
+            ],
+            order_by="dataScadenza",
+            ruolo_polisweb=role,
+        )
+        try:
+            xml = self._execute_qbuilder(base_pst, body)
+        except Exception:
+            return []
+        righe = _parse_qbuilder_row_list(xml)
+        return normalizza_eventi(righe)
+
     def _precarica_documenti_importazione(
         self,
         fascicolo_pw: FascicoloPolisWeb,

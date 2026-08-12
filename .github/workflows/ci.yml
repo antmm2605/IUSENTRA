@@ -768,6 +768,7 @@ jobs:
       - name: Install dev deps
         run: |
           pip install -c requirements/constraints.txt -r requirements-dev.txt
+          pip install -c requirements/constraints.txt -r tools/requirements_local_signer.txt
 
       - name: Run signer cross-platform shard
         run: |

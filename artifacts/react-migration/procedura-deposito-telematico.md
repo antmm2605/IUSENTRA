@@ -5771,3 +5771,9 @@ Perimetro: esclusivamente deposito telematico. Notifiche legali e invio PEC real
 - Nessun invio PEC reale è stato eseguito e non è stato prodotto alcun Message-ID di trasmissione.
 
 Stato: simulazione e pacchetto verificati materialmente sul server reale; il comando di invio reale è rimasto intenzionalmente non eseguito.
+
+## Aggiornamento 12/08/2026 - Gate CI Local Signer
+
+- Gli shard multipiattaforma del Local Signer installano ora il profilo dipendenze ufficiale del servizio locale prima dei test PAdES e PKCS#11.
+- Il cambiamento è confinato alla CI: non modifica le regole del deposito, i documenti firmati, `DatiAtto.xml`, `IndiceBusta.xml`, `Atto.enc` o l'invio PEC dal PC locale.
+- I test PAdES che richiedono pyHanko e i controlli di packaging/governance risultano superati localmente; la simulazione reale già salvata resta `compatibilità 100%` e nessun invio reale è stato eseguito.

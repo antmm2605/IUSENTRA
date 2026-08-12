@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.278.23 - 2026-08-12
+
+- **CI Local Signer multipiattaforma.** Gli shard Windows, macOS e Linux installano anche il profilo dipendenze ufficiale del Local Signer, così i test PAdES e PKCS#11 verificano realmente pyHanko su tutti i sistemi.
+
 ## 2.278.22 - 2026-08-12
 
 - **Compatibilità PAdES del certificato Windows.** Registrato esplicitamente l'OID standard `signingCertificateV2` richiesto da pyHanko; la suite completa Local Signer impedisce regressioni nel percorso PAdES mentre il deposito aggiorna le CAdES legacy.

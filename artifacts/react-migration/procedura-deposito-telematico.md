@@ -5805,3 +5805,16 @@ Guardrail:
 - `tests/test_deposito_telematico_catalogo.py` -> `14 passed`, catalogo completo di 270 tipi invariato.
 
 Stato: correzione del pannello verificata materialmente sul server reale. Nessuna PEC reale è stata inviata; la conformità finale del nuovo pacchetto richiede l'esecuzione della prova della busta e non equivale a una garanzia sull'accettazione discrezionale della cancelleria.
+
+## Aggiornamento 12/08/2026 - Verifica binaria finale della simulazione
+
+- La nuova simulazione del fascicolo `B494AAB9`, riferimento `8F6D4E91`, ha prodotto in produzione `Atto.msg` e `Atto.enc`; nessun invio PEC reale è stato eseguito.
+- `Atto.enc` è un CMS `EnvelopedData` con cifratura `AES-256-CBC` e destinatario ministeriale; `Atto.msg` contiene `DatiAtto.xml.p7m` e tutti i documenti previsti dall'indice interno.
+- `DatiAtto.xml.p7m`, `Ricorso.pdf_010f.p7m` e `Procura .pdf_b223.p7m` sono CAdES-BES validi dello stesso avvocato depositante, con certificato qualificato ArubaPEC valido e nessun attributo obbligatorio mancante.
+- I PDF incapsulati dell'atto principale e della procura si aprono rispettivamente in 11 e 1 pagina. Tutti gli altri PDF sono apribili; i due EML sono MIME leggibili.
+- Il `DatiAtto.xml` estratto supera lo XSD ministeriale SICID v6 senza errori. I 13 riferimenti dell'`IndiceBusta` corrispondono esattamente ai 13 documenti MIME.
+- Per l'esenzione, il confronto diretto con `D:\QuickOrganizer\QuickOrganizer.exe` conferma che Studio Telematico richiede la scelta del contributo ma `CaricaDati_Introduttivi_ContributoUnificato()` restituisce `null` per `Esente`. Lo XSD ministeriale dichiara a sua volta che l'assenza del nodo indica l'esenzione.
+- Il pacchetto segue questa logica: stato applicativo `esente`, nessun importo o pagamento inventato e `autocertificazione reddituale.pdf` allegata, indicizzata, apribile e recante la dichiarazione di esenzione ai sensi dell'art. 9, comma 1-bis, D.P.R. 115/2002.
+- I rilievi dei precedenti rigetti su atto principale non apribile, allegati firmati non riconosciuti, mittente non firmatario, formato non valido di `DatiAtto.xml.p7m` e prova dell'esenzione risultano tecnicamente verificati sul nuovo pacchetto.
+
+Stato: pacchetto simulato verificato materialmente e tecnicamente sul server reale; `Invia deposito reale` non è stato premuto. L'accettazione della cancelleria resta verificabile soltanto dopo l'eventuale invio e la ricezione degli esiti ministeriali.

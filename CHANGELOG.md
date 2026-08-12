@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.278.29 - 2026-08-12
+
+- **Azioni rapide Deposito e Notifica sulla riga fascicolo.** Nell'elenco fascicoli, accanto ad Apri/Modifica/PDF, due nuove icone portano direttamente a `Deposito telematico` (`/fascicoli/<id>/deposito/prepara`) e a `Notifica in proprio` (`/notifiche-legali` con fascicolo preselezionato), senza passare dal dettaglio. Nascoste nell'archivio, come Modifica.
+
 ## 2.278.28 - 2026-08-12
 
 - **ReGIndE avvocature: censimento uffici e verifica certificata.** Censiti i 37 enti "avvocatura" dell'indice ReGIndE (26 Avvocature dello Stato, 10 comunali, 1 regionale): 33 con PEC già indicizzata dal Registro PP.AA.; Eboli, Lanuvio e Surbo confermate anche via `ricercaEnteEx` certificato con terna descrizione+CF+PEC. Documentato che il servizio ReGIndE enti è di verifica, non di discovery: con sola descrizione o solo CF risponde vuoto.

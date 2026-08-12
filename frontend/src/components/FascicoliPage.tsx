@@ -1581,6 +1581,8 @@ function RowActions({ item, archive = false, onDeleted, onError, className = '' 
       <a href={item.href} aria-label="Apri fascicolo" title="Apri"><Eye size={15}/></a>
       {item.relataStatusLabel ? <a href={relataListHref(item)} aria-label={`Apri Relata notifica ${item.ref}`} title="Relata notifica"><FileSignature size={15}/></a> : null}
       {!archive ? <a href={item.editHref} aria-label="Modifica fascicolo" title="Modifica"><PencilLine size={15}/></a> : null}
+      {!archive ? <a href={`/fascicoli/${encodeURIComponent(item.id)}/deposito/prepara`} aria-label={`Deposito telematico fascicolo ${item.ref}`} title="Deposito telematico"><UploadCloud size={15}/></a> : null}
+      {!archive ? <a href={`/notifiche-legali?id_fascicolo=${encodeURIComponent(item.id)}&fase=notifica#notifica`} aria-label={`Notifica in proprio fascicolo ${item.ref}`} title="Notifica in proprio"><Send size={15}/></a> : null}
       <a href={item.exportPdfHref} aria-label="Esporta PDF fascicolo" title="PDF"><FileDown size={15}/></a>
       {archive && item.archive?.zipAvailable ? <a href={item.archiveZipHref} aria-label="Scarica ZIP archivio" title="ZIP"><FileArchive size={15}/></a> : null}
       <PostAction action={deleteHref} tone="danger" confirm={`Eliminare definitivamente il fascicolo ${item.ref}?`} confirmTitle="Elimina fascicolo" onDone={(message) => onDeleted?.(item.id, message)} onError={onError} title="Elimina fascicolo" ariaLabel={`Elimina fascicolo ${item.ref}`}><Trash2 size={15}/></PostAction>

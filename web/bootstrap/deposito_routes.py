@@ -41,6 +41,7 @@ from web.services.deposito_signature_runtime import (
 from web.services.deposito_anagrafica_ministeriale import (
     anagrafica_xml_se_ricorso as _anagrafica_xml_se_ricorso,
     contributo_unificato_fascicolo as _contributo_unificato_fascicolo,
+    deposito_busta_anagrafica_context as _deposito_busta_anagrafica_context,
     valore_causa_fascicolo as _valore_causa_fascicolo,
 )
 from web.services.deposito_catalogo_runtime import (
@@ -59,6 +60,7 @@ def register_deposito_routes(
     *,
     get_fascicoli: Callable[[], object],
     get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any],
     get_config_studio: Callable[[], object],
     audit: Callable[..., None],
     sync_pubblica: Callable[..., None],
@@ -259,6 +261,7 @@ def register_deposito_routes(
                 tipo_atto=tipo_atto,
                 fascicolo=fascicolo,
                 get_clienti=get_clienti,
+                get_soggetti=get_soggetti,
                 get_config_studio=get_config_studio,
                 operatore=utente.username if utente else "",
                 datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
@@ -287,6 +290,7 @@ def register_deposito_routes(
             contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
             **_deposito_catalogo_busta_metadata(datiatto_hint, datiatto_extra),
+            **_deposito_busta_anagrafica_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti, get_config_studio=get_config_studio, operatore=utente.username if utente else ""),
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         try:
@@ -677,6 +681,7 @@ def register_deposito_routes(
                 tipo_atto=tipo_atto,
                 fascicolo=fascicolo,
                 get_clienti=get_clienti,
+                get_soggetti=get_soggetti,
                 get_config_studio=get_config_studio,
                 operatore=utente.username if utente else "",
                 datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
@@ -715,6 +720,7 @@ def register_deposito_routes(
             contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
             **_deposito_catalogo_busta_metadata(datiatto_hint, datiatto_extra),
+            **_deposito_busta_anagrafica_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti, get_config_studio=get_config_studio, operatore=utente.username if utente else ""),
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())

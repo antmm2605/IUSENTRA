@@ -48,6 +48,8 @@ import {
   type FascicoloDetailData,
   type FascicoloDocument,
   type FascicoloFull,
+  type FascicoloParty,
+  type FascicoloPerson,
   type FascicoloRow,
   type KeyValue,
 } from '../fascicoliData'
@@ -244,6 +246,7 @@ function signatureInputRequiredMessage(message: string): string {
 type DepositDocumentClassification = {
   selected: boolean
   role: DepositDocumentRole
+  studioDocumentType?: string
   alreadySigned: boolean
   requiresSignature?: boolean
 }
@@ -604,6 +607,37 @@ function DepositRolePicker({
   )
 }
 
+function StudioDocumentTypePicker({
+  documentName,
+  value,
+  requirements,
+  onChange,
+}: {
+  documentName: string
+  value: string
+  requirements: FascicoloDepositCatalogEntry['ui']['documentRequirements']
+  onChange: (value: string) => void
+}) {
+  if (!requirements.length) return null
+  return (
+    <label className="iu-fas-deposit-role-picker">
+      <span>Tipologia Studio Telematico</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        aria-label={`Tipologia Studio Telematico per ${documentName}`}
+      >
+        <option value="">Allegato semplice</option>
+        {requirements.map((requirement) => (
+          <option key={`${documentName}-${requirement.code}`} value={requirement.code}>
+            {requirement.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 function normaliseDepositRoleForUi(role: DepositDocumentRole | undefined): DepositDocumentRole {
   if (role === 'allegato_prova') return 'allegato'
   return role || 'allegato'
@@ -617,6 +651,43 @@ function savedDepositDocumentRole(value: string | undefined, fallback: DepositDo
 }
 
 type DepositSpecificData = Record<string, unknown>
+
+const UNEP_NOTIFICATION_OPTIONS: FascicoloDepositInputOption[] = [
+  { value: 'Mani', label: 'A mani' },
+  { value: 'Posta', label: 'A mezzo posta' },
+  { value: 'Estero', label: 'All’estero' },
+  { value: 'Telematica', label: 'Telematica' },
+]
+
+const UNEP_TITLE_KIND_OPTIONS: FascicoloDepositInputOption[] = [
+  { value: 'Titolo esecutivo', label: 'Titolo esecutivo' },
+  { value: 'Titolo non esecutivo', label: 'Titolo non esecutivo' },
+]
+
+const UNEP_NON_EXECUTIVE_TITLE_OPTIONS: FascicoloDepositInputOption[] = [
+  { value: '22', label: 'Sequestro' },
+  { value: '23', label: 'Diritto di pegno' },
+  { value: '24', label: 'Diritto di prelazione risultante da pubblici registri' },
+  { value: '25', label: 'Somma di denaro risultante da scritture contabili' },
+  { value: '26', label: 'Altro' },
+]
+
+const UNEP_REAL_RIGHT_OPTIONS: FascicoloDepositInputOption[] = [
+  { value: '1', label: 'Proprietà' },
+  { value: '1s', label: 'Proprietà superficiataria' },
+  { value: '2', label: 'Nuda proprietà' },
+  { value: '2a', label: 'Nuda proprietà superficiataria' },
+  { value: '3', label: 'Abitazione' },
+  { value: '3s', label: 'Abitazione su proprietà superficiataria' },
+  { value: '4', label: 'Diritto del concedente' },
+  { value: '5', label: 'Diritto dell’enfiteuta' },
+  { value: '6', label: 'Superficie' },
+  { value: '7', label: 'Uso' },
+  { value: '7s', label: 'Uso su proprietà superficiataria' },
+  { value: '8', label: 'Usufrutto' },
+  { value: '8s', label: 'Usufrutto su proprietà superficiataria' },
+  { value: '9', label: 'Servitù' },
+]
 
 function depositObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -650,8 +721,17 @@ function depositSpecificFieldComplete(field: FascicoloDepositInputField, value: 
   if (field.type === 'currency' || field.type === 'integer') return depositPositiveNumber(value)
   if (field.type === 'year') return /^\d{4}$/.test(depositValueText(value).trim())
   if (field.type === 'cassazione-materia') return /^\d{3}$/.test(depositValueText(value).trim())
-  if (field.type === 'beni-pignorati') {
+  if (field.type === 'unep-titoli') {
     const items = depositObjectList(value)
+    return items.length > 0 && items.every((item) => {
+      if (!depositRequiredValuesPresent(item, ['parte_id', 'fattispecie', 'tipologia'])) return false
+      return item.fattispecie !== 'Titolo esecutivo' || depositValueText(item.descrizione).trim().length > 0
+    })
+  }
+  if (field.type === 'beni-pignorati-unep') return depositObjectList(value).length > 0
+  if (field.type === 'beni-pignorati' || field.type === 'beni-pignorati-unep') {
+    const items = depositObjectList(value)
+    const isUnep = field.type === 'beni-pignorati-unep'
     return items.length > 0 && items.every((item) => {
       if (!depositRequiredValuesPresent(item, ['tipo', 'descrizione'])) return false
       if (!normaliseText(depositValueText(item.tipo)).includes('immob')) return depositPositiveNumber(item.valore)
@@ -764,6 +844,21 @@ function DepositRepeatingHeader({ label, onAdd }: { label: string; onAdd: () => 
   )
 }
 
+function unepDestinationParties(parties: FascicoloParty[]): FascicoloParty[] {
+  return parties.filter((party) => ['CONTROPARTE', 'DEBITORE'].includes(String(party.role || '').trim().toUpperCase()))
+}
+
+function unepProceedingParties(client: FascicoloPerson | undefined, parties: FascicoloParty[]): Array<{ id: string; name: string; taxCode: string }> {
+  const result: Array<{ id: string; name: string; taxCode: string }> = []
+  if (client?.id) result.push({ id: client.id, name: client.name, taxCode: client.taxCode })
+  parties
+    .filter((party) => ['PARTE', 'ASSISTITO', 'CREDITORE', 'INTERVENIENTE'].includes(String(party.role || '').trim().toUpperCase()))
+    .forEach((party) => {
+      if (!result.some((item) => item.id === party.id)) result.push({ id: party.id, name: party.name, taxCode: party.taxCode })
+    })
+  return result
+}
+
 function DepositSpecificComplexField({
   field,
   value,
@@ -773,6 +868,8 @@ function DepositSpecificComplexField({
   roleOptions,
   matterOptions,
   propertyClassOptions,
+  parties,
+  client,
 }: {
   field: FascicoloDepositInputField
   value: unknown
@@ -782,9 +879,91 @@ function DepositSpecificComplexField({
   roleOptions: FascicoloDepositInputOption[]
   matterOptions: FascicoloDepositInputOption[]
   propertyClassOptions: FascicoloDepositInputOption[]
+  parties: FascicoloParty[]
+  client: FascicoloPerson | undefined
 }) {
   if (field.type === 'cassazione-materia') {
     return <DepositSelectInput label={field.label} value={value} options={matterOptions} onChange={onChange} required={field.required} />
+  }
+
+  if (field.type === 'unep-destinatari') {
+    const stored = new Map(depositObjectList(value).map((item) => [depositValueText(item.id), item]))
+    const recipients: Array<Record<string, unknown>> = unepDestinationParties(parties).map((party) => ({
+      ...stored.get(party.id),
+      id: party.id,
+      name: party.name,
+      taxCode: party.taxCode,
+    }))
+    const update = (index: number, key: string, nextValue: unknown) => {
+      onChange(recipients.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: nextValue } : item))
+    }
+    const requiresPrecettoDate = catalogKey.startsWith('Atti_UNEP::RichiestaPignoramento')
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label}</legend>
+        {recipients.length ? (
+          <div className="iu-fas-deposit-specific__repeat-list">
+            {recipients.map((recipient, index) => (
+              <article className="iu-fas-deposit-specific__repeat-row" key={`unep-destinatario-${recipient.id}`}>
+                <header><strong>{depositValueText(recipient.name) || `Destinatario ${index + 1}`}</strong><span>{depositValueText(recipient.taxCode)}</span></header>
+                <div className="iu-fas-deposit-specific__grid">
+                  <DepositSelectInput
+                    label="Tipologia di notifica"
+                    value={recipient.tipo_notifica}
+                    options={UNEP_NOTIFICATION_OPTIONS}
+                    onChange={(next) => update(index, 'tipo_notifica', next)}
+                    required
+                  />
+                  {requiresPrecettoDate ? (
+                    <DepositTextInput
+                      label="Data di notifica del precetto"
+                      value={recipient.data_notifica_precetto}
+                      onChange={(next) => update(index, 'data_notifica_precetto', next)}
+                      type="date"
+                      required
+                    />
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : <p className="iu-fas-deposit-specific__empty">Nessun destinatario collegato al fascicolo.</p>}
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'unep-titoli') {
+    const stored = new Map(depositObjectList(value).map((item) => [depositValueText(item.parte_id), item]))
+    const procedenti = unepProceedingParties(client, parties)
+    const titles: Array<Record<string, unknown>> = procedenti.map((party) => ({ ...stored.get(party.id), parte_id: party.id }))
+    const update = (index: number, key: string, nextValue: unknown) => {
+      onChange(titles.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: nextValue } : item))
+    }
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        {procedenti.length ? (
+          <div className="iu-fas-deposit-specific__repeat-list">
+            {procedenti.map((party, index) => {
+              const title = titles[index]
+              const executive = title.fattispecie === 'Titolo esecutivo'
+              return (
+                <article className="iu-fas-deposit-specific__repeat-row" key={`unep-titolo-${party.id}`}>
+                  <header><strong>{party.name || `Procedente ${index + 1}`}</strong><span>{party.taxCode}</span></header>
+                  <div className="iu-fas-deposit-specific__grid">
+                    <DepositSelectInput label="Fattispecie" value={title.fattispecie} options={UNEP_TITLE_KIND_OPTIONS} onChange={(next) => update(index, 'fattispecie', next)} required />
+                    <DepositSelectInput label="Tipologia" value={title.tipologia} options={executive ? titleOptions : UNEP_NON_EXECUTIVE_TITLE_OPTIONS} onChange={(next) => update(index, 'tipologia', next)} required />
+                    {executive ? <DepositTextInput label="Descrizione" value={title.descrizione} onChange={(next) => update(index, 'descrizione', next)} required /> : null}
+                    {executive ? <DepositTextInput label="Numero" value={title.numero} onChange={(next) => update(index, 'numero', next)} /> : null}
+                    {executive ? <DepositTextInput label="Data di emissione" value={title.data_emissione} onChange={(next) => update(index, 'data_emissione', next)} type="date" /> : null}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        ) : <p className="iu-fas-deposit-specific__empty">Nessun procedente collegato al fascicolo.</p>}
+      </fieldset>
+    )
   }
 
   if (field.type === 'titolo-esecutivo') {
@@ -841,8 +1020,9 @@ function DepositSpecificComplexField({
     )
   }
 
-  if (field.type === 'beni-pignorati') {
+  if (field.type === 'beni-pignorati' || field.type === 'beni-pignorati-unep') {
     const items = depositObjectList(value)
+    const isUnep = field.type === 'beni-pignorati-unep'
     const defaultType = /immobiliare/i.test(catalogKey) ? 'immobiliare' : 'mobiliare'
     const update = (index: number, nextItem: Record<string, unknown>) => onChange(items.map((item, itemIndex) => itemIndex === index ? nextItem : item))
     const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index))
@@ -855,16 +1035,19 @@ function DepositSpecificComplexField({
             const isImmobile = normaliseText(depositValueText(item.tipo)).includes('immob')
             const address = depositObject(item.indirizzo)
             const cadastral = depositObject(item.dati_catastali)
+            const rights = depositObjectList(item.diritti)
             const set = (key: string, nextValue: unknown) => update(index, { ...item, [key]: nextValue })
             const setAddress = (key: string, nextValue: unknown) => set('indirizzo', { ...address, [key]: nextValue })
             const setCadastral = (key: string, nextValue: unknown) => set('dati_catastali', { ...cadastral, [key]: nextValue })
+            const setRight = (rightIndex: number, key: string, nextValue: unknown) => set('diritti', rights.map((right, itemIndex) => itemIndex === rightIndex ? { ...right, [key]: nextValue } : right))
             return (
               <article className="iu-fas-deposit-specific__repeat-row" key={`bene-${index}`}>
                 <header><strong>Bene {index + 1}</strong><button type="button" onClick={() => remove(index)} title={`Rimuovi bene ${index + 1}`} aria-label={`Rimuovi bene ${index + 1}`}><Trash2 size={15} /></button></header>
                 <div className="iu-fas-deposit-specific__grid">
                   <DepositSelectInput label="Tipo" value={item.tipo} options={[{ value: 'mobiliare', label: 'Bene mobile' }, { value: 'immobiliare', label: 'Bene immobile' }]} onChange={(next) => set('tipo', next)} required />
                   <DepositTextInput label="Descrizione" value={item.descrizione} onChange={(next) => set('descrizione', next)} required />
-                  {!isImmobile ? <DepositTextInput label="Valore (€)" value={item.valore} onChange={(next) => set('valore', next)} required inputMode="decimal" placeholder="0,00" /> : null}
+                  {!isImmobile && isUnep ? <DepositTextInput label="Tipologia" value={item.tipologia} onChange={(next) => set('tipologia', next)} required /> : null}
+                  {!isImmobile ? <DepositTextInput label="Valore (€)" value={item.valore} onChange={(next) => set('valore', next)} required={!isUnep} inputMode="decimal" placeholder="0,00" /> : null}
                   {isImmobile ? <DepositTextInput label="Indirizzo" value={address.via} onChange={(next) => setAddress('via', next)} required /> : null}
                   {isImmobile ? <DepositTextInput label="CAP" value={address.cap} onChange={(next) => setAddress('cap', next)} required inputMode="numeric" /> : null}
                   {isImmobile ? <DepositTextInput label="Comune" value={address.localita} onChange={(next) => setAddress('localita', next)} required /> : null}
@@ -874,6 +1057,59 @@ function DepositSpecificComplexField({
                   {isImmobile ? <DepositTextInput label="Foglio" value={cadastral.foglio} onChange={(next) => setCadastral('foglio', next)} required /> : null}
                   {isImmobile ? <DepositTextInput label="Particella" value={cadastral.particella} onChange={(next) => setCadastral('particella', next)} required /> : null}
                   {isImmobile ? <DepositSelectInput label="Classe" value={item.classe} options={propertyClassOptions} onChange={(next) => set('classe', next)} required /> : null}
+                </div>
+                {isUnep ? (
+                  <div className="iu-fas-deposit-specific__group">
+                    <DepositRepeatingHeader
+                      label={rights.length ? `${rights.length} ${rights.length === 1 ? 'diritto reale' : 'diritti reali'}` : 'Nessun diritto reale inserito'}
+                      onAdd={() => set('diritti', [...rights, {}])}
+                    />
+                    <div className="iu-fas-deposit-specific__repeat-list">
+                      {rights.map((right, rightIndex) => (
+                        <article className="iu-fas-deposit-specific__repeat-row" key={`bene-${index}-diritto-${rightIndex}`}>
+                          <header><strong>Diritto {rightIndex + 1}</strong><button type="button" onClick={() => set('diritti', rights.filter((_, itemIndex) => itemIndex !== rightIndex))} title={`Rimuovi diritto ${rightIndex + 1}`} aria-label={`Rimuovi diritto ${rightIndex + 1}`}><Trash2 size={15} /></button></header>
+                          <div className="iu-fas-deposit-specific__grid">
+                            <DepositSelectInput label="Tipologia" value={right.tipo} options={UNEP_REAL_RIGHT_OPTIONS} onChange={(next) => setRight(rightIndex, 'tipo', next)} required />
+                            <DepositTextInput label="Quota" value={right.quota} onChange={(next) => setRight(rightIndex, 'quota', next)} required />
+                            <DepositTextInput label="Stato" value={right.stato} onChange={(next) => setRight(rightIndex, 'stato', next)} />
+                            <DepositTextInput label="Stima (€)" value={right.stima} onChange={(next) => setRight(rightIndex, 'stima', next)} inputMode="decimal" placeholder="0,00" />
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'unep-terzi') {
+    const items = depositObjectList(value)
+    const update = (index: number, nextItem: Record<string, unknown>) => onChange(items.map((item, itemIndex) => itemIndex === index ? nextItem : item))
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label}</legend>
+        <DepositRepeatingHeader label={items.length ? `${items.length} ${items.length === 1 ? 'terzo inserito' : 'terzi inseriti'}` : 'Nessun terzo inserito'} onAdd={() => onChange([...items, {}])} />
+        <div className="iu-fas-deposit-specific__repeat-list">
+          {items.map((item, index) => {
+            const set = (key: string, nextValue: unknown) => update(index, { ...item, [key]: nextValue })
+            return (
+              <article className="iu-fas-deposit-specific__repeat-row" key={`unep-terzo-${index}`}>
+                <header><strong>Terzo {index + 1}</strong><button type="button" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} title={`Rimuovi terzo ${index + 1}`} aria-label={`Rimuovi terzo ${index + 1}`}><Trash2 size={15} /></button></header>
+                <div className="iu-fas-deposit-specific__grid">
+                  <DepositTextInput label="Denominazione o cognome" value={item.denominazione} onChange={(next) => set('denominazione', next)} required />
+                  <DepositTextInput label="Nome" value={item.nome} onChange={(next) => set('nome', next)} />
+                  <DepositTextInput label="Codice fiscale" value={item.codice_fiscale} onChange={(next) => set('codice_fiscale', next.toUpperCase())} required />
+                  <DepositTextInput label="Indirizzo" value={item.via} onChange={(next) => set('via', next)} required />
+                  <DepositTextInput label="Civico" value={item.civico} onChange={(next) => set('civico', next)} />
+                  <DepositTextInput label="CAP" value={item.cap} onChange={(next) => set('cap', next)} required inputMode="numeric" />
+                  <DepositTextInput label="Comune" value={item.localita} onChange={(next) => set('localita', next)} required />
+                  <DepositTextInput label="Provincia" value={item.provincia} onChange={(next) => set('provincia', next.toUpperCase())} required />
+                  <DepositTextInput label="Nazione" value={item.nazione} onChange={(next) => set('nazione', next.toUpperCase())} />
                 </div>
               </article>
             )
@@ -951,11 +1187,15 @@ function DepositSpecificDataForm({
   catalog,
   values,
   onChange,
+  parties,
+  client,
 }: {
   entry: FascicoloDepositCatalogEntry | undefined
   catalog: FascicoloDepositCatalog
   values: DepositSpecificData
   onChange: (fieldId: string, value: unknown) => void
+  parties: FascicoloParty[]
+  client: FascicoloPerson | undefined
 }) {
   const fields = entry?.schema.inputFields || []
   if (!fields.length) return null
@@ -969,9 +1209,13 @@ function DepositSpecificDataForm({
   }, [])
   const complexTypes = new Set([
     'beni-pignorati',
+    'beni-pignorati-unep',
     'titolo-esecutivo',
     'persona-indirizzo',
     'terzi-pignorati',
+    'unep-destinatari',
+    'unep-terzi',
+    'unep-titoli',
     'provvedimento-cassazione',
     'motivi-cassazione',
     'contromotivi-cassazione',
@@ -1029,6 +1273,8 @@ function DepositSpecificDataForm({
               roleOptions={catalog.referenceData.ruoliProvvedimentoCassazione}
               matterOptions={catalog.referenceData.materieCassazione}
               propertyClassOptions={catalog.referenceData.classiImmobiliari}
+              parties={parties}
+              client={client}
             />
           ))}
         </div>
@@ -1534,6 +1780,8 @@ function DepositPdfPreviewButton({
 type LocalSignaturePinRequest = {
   filename: string
   outputFilename: string
+  retry: boolean
+  retryReason: string
   resolve: (pin: string) => void
   reject: (error: Error) => void
 }
@@ -1937,7 +2185,7 @@ function DepositPreparePage({ id }:{id:string}) {
     depositSelectableDocuments.map((doc) => doc.id).join('|'),
     requestedDocumentSelectionTokens.join('|'),
     defaultDepositSelectionIds.join('|'),
-    data.depositPreparation.documents.map((row) => `${row.documentId}:${row.selected}:${row.role}:${row.requiresSignature}`).join('|'),
+    data.depositPreparation.documents.map((row) => `${row.documentId}:${row.selected}:${row.role}:${row.studioDocumentType}:${row.requiresSignature}`).join('|'),
     usableLinkedSlotDocuments.map((row) => `${recordText(row.slot, 'slotKey')}:${row.document.id}`).join('|'),
   ].join('::')
   useEffect(() => {
@@ -1955,11 +2203,13 @@ function DepositPreparePage({ id }:{id:string}) {
         next[doc.id] = currentRow || (persistedRow ? {
           selected: persistedRow.selected,
           role: persistedRole,
+          studioDocumentType: persistedRow.studioDocumentType,
           alreadySigned: persistedRow.alreadySigned || doc.signed,
           requiresSignature: persistedRow.requiresSignature,
         } : {
           selected: knownSelection ? false : defaultSelected,
           role: defaultRole,
+          studioDocumentType: '',
           alreadySigned: doc.signed,
           requiresSignature: defaultSelected && defaultSignatureRequiredForDepositRole(doc, defaultRole),
         })
@@ -1971,6 +2221,7 @@ function DepositPreparePage({ id }:{id:string}) {
         && nextKeys.every((key, index) => key === currentKeys[index]
           && current[key]?.selected === next[key]?.selected
           && current[key]?.role === next[key]?.role
+          && current[key]?.studioDocumentType === next[key]?.studioDocumentType
           && current[key]?.alreadySigned === next[key]?.alreadySigned
           && current[key]?.requiresSignature === next[key]?.requiresSignature)
       ) {
@@ -2038,7 +2289,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
     const mandatory = defaultSignatureRequiredForDepositRole(doc, role)
     const requested = mandatory || Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
-    return !doc.signed && requested && requiresPackageSignature(doc)
+    return requested && requiresPackageSignature(doc)
   })
   const unsignedCandidateDocuments = unsignedPackageDocuments.length
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
@@ -2141,6 +2392,8 @@ function DepositPreparePage({ id }:{id:string}) {
     setLocalSignaturePinRequest({
       filename: recordText(localSignature, 'filename', 'DatiAtto.xml'),
       outputFilename: recordText(localSignature, 'output_filename', 'DatiAtto.xml.p7m'),
+      retry: localSignature.retry === true,
+      retryReason: recordText(localSignature, 'retry_reason'),
       resolve,
       reject,
     })
@@ -2156,6 +2409,8 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!signPayload || !endpoint || !recordText(signPayload, 'documento')) {
       throw new Error('Dati del deposito non disponibili per la firma. Ripeti la prova deposito.')
     }
+    const signatureRetry = localSignature.retry === true
+    if (signatureRetry) batchSignaturePinSessionRef.current = ''
     const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
     let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     if ((!signerStatus || signerStatus.ok === false) && !reusablePinSessionId) {
@@ -2334,6 +2589,7 @@ function DepositPreparePage({ id }:{id:string}) {
       return [doc.id, {
         selected: proposed.has(doc.id),
         role,
+        studioDocumentType: '',
         alreadySigned: doc.signed,
         requiresSignature: proposed.has(doc.id) && defaultSignatureRequiredForDepositRole(doc, role),
       }]
@@ -2345,6 +2601,7 @@ function DepositPreparePage({ id }:{id:string}) {
       return [doc.id, {
         selected: false,
         role,
+        studioDocumentType: current[doc.id]?.studioDocumentType || '',
         alreadySigned: current[doc.id]?.alreadySigned ?? doc.signed,
         requiresSignature: false,
       }]
@@ -2357,6 +2614,7 @@ function DepositPreparePage({ id }:{id:string}) {
       const existing = current[documentId] || {
         selected: defaultDepositSelectionIds.includes(documentId),
         role: defaultRole,
+        studioDocumentType: '',
         alreadySigned: Boolean(doc?.signed),
         requiresSignature: doc ? defaultSignatureRequiredForDepositRole(doc, defaultRole) : false,
       }
@@ -2373,7 +2631,7 @@ function DepositPreparePage({ id }:{id:string}) {
       if (normalizedPatch.role === 'atto_principale') {
         Object.keys(next).forEach((key) => {
           if (key !== documentId && next[key]?.role === 'atto_principale') {
-            next[key] = { ...next[key], role: 'allegato' }
+            next[key] = { ...next[key], role: 'allegato', studioDocumentType: '' }
           }
         })
       }
@@ -2397,6 +2655,7 @@ function DepositPreparePage({ id }:{id:string}) {
         next[documentId] = {
           selected: true,
           role,
+          studioDocumentType: existing?.studioDocumentType || '',
           alreadySigned: existing?.alreadySigned ?? doc.signed,
           requiresSignature: existing?.requiresSignature ?? defaultSignatureRequiredForDepositRole(doc, role),
         }
@@ -2436,6 +2695,7 @@ function DepositPreparePage({ id }:{id:string}) {
         document_id: doc.id,
         selected,
         role: normaliseDepositRoleForUi(role),
+        studio_document_type: effectiveDepositClassificationById[doc.id]?.studioDocumentType || '',
         already_signed: Boolean(doc.signed),
         requires_signature: Boolean(mandatorySignature || requestedSignature),
       }
@@ -2923,8 +3183,9 @@ function DepositPreparePage({ id }:{id:string}) {
               submitLocalSignaturePin()
             }}
           >
-            <strong>Firma dati deposito</strong>
+            <strong>{localSignaturePinRequest.retry ? 'Firma nuovamente i dati del deposito' : 'Firma dati deposito'}</strong>
             <p>Il software firma i dati del deposito sul PC in uso e poi prepara il pacchetto finale. Il PIN resta sul dispositivo locale e non viene salvato.</p>
+            {localSignaturePinRequest.retryReason ? <span className="iu-fas-inline-error" role="alert">{localSignaturePinRequest.retryReason}</span> : null}
             <div className="iu-fas-local-pec-summary" aria-label="Riepilogo firma deposito">
               <span>Da firmare</span>
               <strong>{depositAttachmentDisplayName(localSignaturePinRequest.filename) || 'Dati deposito'}</strong>
@@ -2949,7 +3210,7 @@ function DepositPreparePage({ id }:{id:string}) {
             {localSignaturePinError ? <span className="iu-fas-inline-error" role="alert">{localSignaturePinError}</span> : null}
             <footer>
               <button type="button" onClick={cancelLocalSignaturePin}>Annulla</button>
-              <button className="is-danger" type="button" onClick={submitLocalSignaturePin}>Firma e continua</button>
+              <button className="is-danger" type="button" onClick={submitLocalSignaturePin}>{localSignaturePinRequest.retry ? 'Firma nuovamente e continua' : 'Firma e continua'}</button>
             </footer>
           </form>
         </div>
@@ -3096,6 +3357,8 @@ function DepositPreparePage({ id }:{id:string}) {
                 entry={selectedDepositType}
                 catalog={data.depositCatalog}
                 values={depositSpecificData}
+                parties={data.parties}
+                client={data.client}
                 onChange={(fieldId, value) => setDepositSpecificData((current) => ({ ...current, [fieldId]: value }))}
               />
               <div className="iu-fas-deposit-selection__tools">
@@ -3123,13 +3386,17 @@ function DepositPreparePage({ id }:{id:string}) {
                   const isMainAct = mainActDocument?.id === doc.id
                   const roleValue = normaliseDepositRoleForUi(classification.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id))
                   const roleDisplayLabel = depositRoleDisplayLabelForDocument(doc, roleValue)
-                  const canRequestSignature = !doc.signed && requiresPackageSignature(doc)
+                  const canRequestSignature = requiresPackageSignature(doc)
                   const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, roleValue)
                   const signatureRequested = selected && canRequestSignature && (mandatorySignature || Boolean(classification.requiresSignature))
-                  const signatureLabel = doc.signed
+                  const signatureLabel = requiresStudioTelematicoPadesNormalization(doc)
+                    ? 'Da rifirmare in PAdES'
+                    : doc.signed
                     ? 'Firmato'
                     : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
-                  const depositStatusLabel = doc.signed
+                  const depositStatusLabel = requiresStudioTelematicoPadesNormalization(doc)
+                    ? 'Da rifirmare in PAdES'
+                    : doc.signed
                     ? 'Firmato'
                     : signatureRequested ? 'Da firmare' : (canRequestSignature ? 'Firma facoltativa' : 'Firma non necessaria')
                   const showSignatureControl = selected || doc.signed || canRequestSignature
@@ -3181,11 +3448,22 @@ function DepositPreparePage({ id }:{id:string}) {
                         </form>
                       ) : null}
                       <div className="iu-fas-deposit-selection__controls">
-                          <DepositRolePicker
-                            documentName={doc.name}
-                            value={roleValue}
+                        <DepositRolePicker
+                          documentName={doc.name}
+                          value={roleValue}
                           onChange={(nextRole) => updateDepositClassification(doc.id, { role: nextRole })}
                         />
+                        {roleValue !== 'atto_principale' && roleValue !== 'fuori_busta' ? (
+                          <StudioDocumentTypePicker
+                            documentName={doc.name}
+                            value={effectiveDepositClassificationById[doc.id]?.studioDocumentType || ''}
+                            requirements={selectedDepositType?.ui.documentRequirements || []}
+                            onChange={(studioDocumentType) => updateDepositClassification(doc.id, {
+                              studioDocumentType,
+                              selected: true,
+                            })}
+                          />
+                        ) : null}
                         {showSignatureControl ? (
                           <label className="iu-fas-deposit-selection__signed" aria-disabled={!canRequestSignature || mandatorySignature}>
                             <input
@@ -3832,7 +4110,7 @@ function DepositBatchSignaturePanel({
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
-  const signableDocuments = documents.filter((doc) => !doc.signed && requiresPackageSignature(doc))
+  const signableDocuments = documents.filter(requiresPackageSignature)
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
@@ -3880,13 +4158,20 @@ function DepositBatchSignaturePanel({
     }
   }
 
-  const uploadSignedDocument = async (doc: FascicoloDocument, signedB64: string): Promise<void> => {
+  const uploadSignedDocument = async (
+    doc: FascicoloDocument,
+    signedB64: string,
+    formato: 'cades' | 'pades',
+  ): Promise<void> => {
     const signedBytes = base64ToUint8Array(signedB64)
     if (!signedBytes.length) throw new Error(`${doc.name}: Local Signer non ha restituito il file firmato.`)
     const signedBuffer = new Uint8Array(signedBytes).buffer.slice(0)
-    const signedName = doc.name.toLowerCase().endsWith('.p7m') ? doc.name : `${doc.name}.p7m`
+    const signedName = formato === 'pades'
+      ? doc.name.replace(/\.p7m$/i, '')
+      : (doc.name.toLowerCase().endsWith('.p7m') ? doc.name : `${doc.name}.p7m`)
+    const mimeType = formato === 'pades' ? 'application/pdf' : 'application/pkcs7-mime'
     const form = new FormData()
-    form.append('file', new File([signedBuffer], signedName, { type: 'application/pkcs7-mime' }))
+    form.append('file', new File([signedBuffer], signedName, { type: mimeType }))
     form.append('note', 'Versione firmata tramite firma multipla deposito')
     form.append('visible_signature_mode', visibleSignatureMode)
     form.append('visible_signature_place', visibleSignaturePlace)
@@ -3905,7 +4190,7 @@ function DepositBatchSignaturePanel({
   }
 
   const signAll = async () => {
-    const targetDocuments = documents.filter((doc) => !doc.signed && requiresPackageSignature(doc))
+    const targetDocuments = documents.filter(requiresPackageSignature)
     if (!targetDocuments.length) {
       const message = 'Nessun documento da firmare: tutti i documenti selezionati hanno già una firma digitale verificata.'
       setMessage(message)
@@ -3958,6 +4243,7 @@ function DepositBatchSignaturePanel({
         return {
           documento: arrayBufferToBase64(await response.arrayBuffer()),
           nome: doc.name,
+          formato: studioTelematicoSignatureFormat(doc.name),
         }
       }))
       const controller = new AbortController()
@@ -4006,7 +4292,11 @@ function DepositBatchSignaturePanel({
           continue
         }
         try {
-          await uploadSignedDocument(doc, String(result.firmato_b64))
+          await uploadSignedDocument(
+            doc,
+            String(result.firmato_b64),
+            String(result.formato || studioTelematicoSignatureFormat(doc.name)) === 'pades' ? 'pades' : 'cades',
+          )
           saved += 1
         } catch (exc) {
           errors.push(exc instanceof Error ? exc.message : String(exc))
@@ -4283,7 +4573,15 @@ function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: 
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
-  return !doc.signed
+  return !doc.signed || /\.pdf\.p7m$/i.test(doc.name)
+}
+
+function requiresStudioTelematicoPadesNormalization(doc: FascicoloDocument | undefined): boolean {
+  return Boolean(doc?.name && /\.pdf\.p7m$/i.test(doc.name.trim()))
+}
+
+function studioTelematicoSignatureFormat(filename: string): 'cades' | 'pades' {
+  return /\.pdf(?:\.p7m)?$/i.test(filename) ? 'pades' : 'cades'
 }
 
 function documentHasSignedContainerExtension(doc: FascicoloDocument | undefined): boolean {
@@ -4304,7 +4602,8 @@ function packageDocumentSignatureLabel(doc: FascicoloDocument): string {
 }
 
 function defaultSignatureRequiredForDepositRole(doc: FascicoloDocument | undefined, role: DepositDocumentRole): boolean {
-  if (!doc || doc.signed || !requiresPackageSignature(doc)) return false
+  if (!doc || !requiresPackageSignature(doc)) return false
+  if (doc.signed && !requiresStudioTelematicoPadesNormalization(doc)) return false
   return role === 'atto_principale' || role === 'procura' || documentExplicitlyRequiresSignature(doc)
 }
 
@@ -4533,6 +4832,10 @@ function depositSelectionSatisfiesSlot(
 ): boolean {
   const slotText = normaliseText(`${recordText(slot, 'slotKey')} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
   if (/atto principale|atto_principale|atto da notificare|atto_da_notificare/.test(slotText)) return Boolean(mainAct)
+  const studioDocumentType = recordText(slot, 'studioDocumentType')
+  if (studioDocumentType) {
+    return selectedDocuments.some((doc) => classificationById[doc.id]?.studioDocumentType === studioDocumentType)
+  }
   const linkedDocumentId = recordText(slot, 'documentId')
   if (linkedDocumentId && selectedDocuments.some((doc) => doc.id === linkedDocumentId)) return true
   if (selectedDocuments.some((doc) => slotMatchesDepositRole(slot, classificationById[doc.id]?.role || defaultDepositRoleForDocument(doc)))) return true
@@ -4614,20 +4917,15 @@ function depositCatalogSlotType(label: string): string {
   return depositCatalogRequirementKind(label) === 'data' ? 'DATO_DEPOSITO' : 'DOCUMENTO'
 }
 
-function depositCatalogSlotRequired(label: string): boolean {
-  const text = normaliseText(label)
-  if (/contributo/.test(text)) return true
-  if (depositCatalogRequirementKind(label) === 'data') return false
-  if (/allegati|ricevute|destinatari/.test(text)) return false
-  return true
-}
-
 function buildDepositCatalogSlots(
   selectedType: FascicoloDepositCatalogEntry | undefined,
   baseSlots: Array<Record<string, unknown>>,
 ): Array<Record<string, unknown>> {
-  const catalogDocuments = (selectedType?.ui.documents || []).map((item) => item.trim()).filter(Boolean)
-  if (!catalogDocuments.length) return [...baseSlots]
+  const catalogRequirements = selectedType ? [
+    { code: 'AttoPrincipale', label: 'atto principale', required: true, outcome: 'blocco', message: '', ruleId: '' },
+    ...selectedType.ui.documentRequirements,
+  ] : []
+  if (!catalogRequirements.length) return [...baseSlots]
   const baseByKey = new Map<string, Record<string, unknown>>()
   baseSlots.forEach((slot) => {
     const key = recordText(slot, 'slotKey').toUpperCase()
@@ -4639,7 +4937,8 @@ function buildDepositCatalogSlots(
     recordText(slot, 'type'),
   ].join(' '))))
   const used = new Set<string>()
-  const catalogSlots: Array<Record<string, unknown>> = catalogDocuments.map((label, index) => {
+  const catalogSlots: Array<Record<string, unknown>> = catalogRequirements.map((requirement, index) => {
+    const label = requirement.label
     const slotKey = depositCatalogSlotKey(label, index)
     const baseSlotKey = slotKey === 'ATTO_DA_NOTIFICARE' ? 'ATTO_PRINCIPALE' : slotKey
     const baseSlot = baseByKey.get(slotKey) || baseByKey.get(baseSlotKey) || (slotKey === 'ATTO_DA_NOTIFICARE' ? mainActBaseSlot : undefined)
@@ -4657,12 +4956,15 @@ function buildDepositCatalogSlots(
       slotKey,
       label: useCatalogLabel ? labelText : (recordText(baseSlot, 'label') || labelText),
       type: useCatalogLabel ? depositCatalogSlotType(label) : (recordText(baseSlot, 'type') || depositCatalogSlotType(label)),
-      required: baseSlot ? recordBool(baseSlot, 'required') : depositCatalogSlotRequired(label),
+      required: requirement.required,
+      studioDocumentType: requirement.code === 'AttoPrincipale' ? '' : requirement.code,
+      studioOutcome: requirement.outcome,
+      studioRuleId: requirement.ruleId,
       sortOrder: recordText(baseSlot, 'sortOrder') || String((index + 1) * 10),
       status: recordText(baseSlot, 'status') || (kind === 'data' ? 'WARNING' : 'MANCANTE'),
       catalogOnly: !baseSlot,
       catalogRequirementKind: kind,
-      message: recordText(baseSlot, 'message') || (
+      message: requirement.message || recordText(baseSlot, 'message') || (
         kind === 'data'
           ? 'Dato richiesto dal tipo deposito selezionato: verifica nel pannello dati deposito.'
           : 'Documento richiesto dal tipo deposito selezionato.'

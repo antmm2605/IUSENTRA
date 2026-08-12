@@ -63,6 +63,8 @@ def build_application_runtime_bundle(
         app,
         get_deposito_guidato=core["get_deposito_guidato"],
         get_config_studio=core["get_config_studio"],
+        get_clienti=core["get_clienti"],
+        get_soggetti=core["get_soggetti"],
         get_utenti=core["get_utenti"],
         audit=core["audit"],
         sync_pubblica=core["sync_pubblica"],

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import io
 from datetime import UTC, datetime, timedelta
 
 import pct.firma_pkcs11 as firma_pkcs11
@@ -127,6 +128,72 @@ def test_salva_documento_firmato_pkcs11_pdf_usa_cades_contenente_pdf(tmp_path, m
     assert captured["detached"] is False
     assert captured["visible_signature_mode"] == "laterale"
     assert captured["visible_signature_place"] == "Taurianova"
+
+
+def test_firma_pades_pkcs11_riproduce_profilo_studio_telematico(monkeypatch):
+    from asn1crypto import keys, x509 as asn1_x509
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+    from pyhanko.sign import pkcs11 as pyhanko_pkcs11, signers
+    from pyhanko_certvalidator.registry import SimpleCertificateStore
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "GIUSEPPE MONTAGNESE"),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
+    key_der = key.private_bytes(
+        serialization.Encoding.DER,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
+    software_signer = signers.SimpleSigner(
+        signing_cert=asn1_x509.Certificate.load(cert_der),
+        signing_key=keys.PrivateKeyInfo.load(key_der),
+        cert_registry=SimpleCertificateStore(),
+    )
+    monkeypatch.setattr(
+        pyhanko_pkcs11,
+        "PKCS11Signer",
+        lambda *args, **kwargs: software_signer,
+    )
+
+    signer = object.__new__(firma_pkcs11.FirmaPKCS11)
+    signer._cert_der = cert_der
+    signer._cert_id = b"firma"
+    signer._cert_chain_der = []
+    signer._certificate = cert
+    signer._session = object()
+
+    source = io.BytesIO()
+    pdf = canvas.Canvas(source)
+    pdf.drawString(72, 720, "Ricorso")
+    pdf.save()
+
+    signed = signer.firma_pades(source.getvalue(), visible_signature_place="Taurianova")
+    fields = PdfReader(io.BytesIO(signed)).get_fields()
+    signature = fields["Signature1"]["/V"]
+
+    assert signed.startswith(b"%PDF")
+    assert signature["/SubFilter"] == "/ETSI.CAdES.detached"
+    assert signature["/Reason"] == "Per autentica e sottoscrizione"
+    assert signature["/Location"] == "Taurianova"
+    assert signature["/Name"] == "GIUSEPPE MONTAGNESE"
 
 
 def test_prepare_pdf_usa_get_cert_non_self_cert(monkeypatch):

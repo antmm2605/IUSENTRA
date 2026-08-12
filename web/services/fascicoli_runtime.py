@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
+import json
 import os
 import re
 import shutil
@@ -37,6 +38,11 @@ from pct.document_signature_state import (
     document_has_signed_container,
 )
 from pct.reginde import ClientReGINde
+from web.services.deposito_anagrafica_ministeriale import (
+    deposito_parti_context,
+    deposito_professionista_context,
+)
+from web.services.deposito_semantic_helpers import ministerial_contributo_unificato_for_context
 
 
 def build_fascicoli_runtime(
@@ -44,6 +50,8 @@ def build_fascicoli_runtime(
     *,
     get_deposito_guidato,
     get_config_studio,
+    get_clienti,
+    get_soggetti,
     get_utenti,
     audit,
     sync_pubblica,
@@ -55,6 +63,7 @@ def build_fascicoli_runtime(
     _encrypt_doc = encrypt_doc
     _decrypt_doc = decrypt_doc
     _sync = SimpleNamespace(pubblica=sync_pubblica)
+
     def _documento_firmato_reale(gf: GestioneFascicoli, fasc: Fascicolo, doc: Documento, percorso: Path) -> bool:
         try:
             data = _decrypt_doc(percorso.read_bytes())
@@ -105,6 +114,13 @@ def build_fascicoli_runtime(
 
     def _build_deposito_validation_context(form_like, fasc: Fascicolo, operatore: str = "") -> dict:
         anno_rg_raw = (form_like.get("anno_rg", "") or "").strip()
+        datiatto_extra_raw = form_like.get("datiatto_extra", {})
+        if isinstance(datiatto_extra_raw, str):
+            try:
+                datiatto_extra_raw = json.loads(datiatto_extra_raw) if datiatto_extra_raw.strip() else {}
+            except (TypeError, ValueError):
+                datiatto_extra_raw = {}
+        datiatto_extra = datiatto_extra_raw if isinstance(datiatto_extra_raw, dict) else {}
         return {
             "tipo_atto": (form_like.get("tipo_atto", "ATTO_GENERICO") or "ATTO_GENERICO").strip(),
             "codice_registro": (form_like.get("codice_registro", "RG") or "RG").strip(),
@@ -117,6 +133,19 @@ def build_fascicoli_runtime(
             "anno_rg": int(anno_rg_raw) if anno_rg_raw.isdigit() else fasc.anno_rg,
             "atto_principale_id": (form_like.get("atto_principale_id", "") or "").strip(),
             "allegati_ids": list(form_like.getlist("allegati_ids")) if hasattr(form_like, "getlist") else list(form_like.get("allegati_ids", []) or []),
+            "tipo_deposito_telematico_key": (
+                form_like.get("tipo_deposito_telematico_key", "") or ""
+            ).strip(),
+            "datiatto_extra": datiatto_extra,
+            "professionista": deposito_professionista_context(
+                get_config_studio,
+                operatore=operatore,
+            ),
+            "parti": deposito_parti_context(
+                fasc,
+                get_clienti=get_clienti,
+                get_soggetti=get_soggetti,
+            ),
             "note": (form_like.get("note", "") or "").strip(),
             "operatore": operatore,
         }
@@ -140,12 +169,31 @@ def build_fascicoli_runtime(
             for payload in [_documento_payload_per_validazione(gf, fasc, doc_id)]
             if payload
         ]
+        preparation = dict(getattr(fasc, "profilo_deposito", {}) or {}).get("preparazione_busta") or {}
+        preparation_rows = preparation.get("documents") if isinstance(preparation, dict) else []
+        classification_by_id = {
+            str(row.get("documentId") or row.get("document_id") or "").strip(): row
+            for row in (preparation_rows if isinstance(preparation_rows, list) else [])
+            if isinstance(row, dict)
+        }
+        for document in selected_docs:
+            classification = classification_by_id.get(str(document.get("id") or "")) or {}
+            document["deposit_role"] = str(classification.get("role") or "").strip()
+            document["studio_document_type"] = str(
+                classification.get("studioDocumentType")
+                or classification.get("studio_document_type")
+                or ""
+            ).strip()
         all_docs = [
             payload
             for doc in fasc.documenti
             for payload in [_documento_payload_per_validazione(gf, fasc, doc.id)]
             if payload
         ]
+        ctx["contributo_unificato"] = ministerial_contributo_unificato_for_context(
+            fasc,
+            documents=fasc.documenti,
+        )
         return get_deposito_guidato().valida(
             fascicolo=fasc,
             context=ctx,

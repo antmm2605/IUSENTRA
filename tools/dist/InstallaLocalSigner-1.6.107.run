@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# IUSENTRA Local Signer Setup v1.6.107
+set -euo pipefail
+
+BASE_URL="https://app.iusentra.it"
+ALLOWED_ORIGINS="https://app.iusentra.it,https://studio-legale-pct-production.up.railway.app,http://127.0.0.1:8080,http://localhost:8080"
+VERSION="1.6.107"
+DIR="${XDG_DATA_HOME:-$HOME/.local/share}/iusentra/local-signer"
+DATA_DIR="$DIR/data"
+MOD_DIR="$DIR/local_signer_mod"
+VENV="$DIR/.venv"
+PY="$VENV/bin/python"
+SERVICE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+SERVICE="$SERVICE_DIR/iusentra-local-signer.service"
+
+echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
+echo "Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma"
+
+mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$SERVICE_DIR"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Python 3 non trovato. Installarlo prima con il gestore pacchetti della distribuzione."
+  read -r -p "Premi Invio per uscire..." _
+  exit 1
+fi
+
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$DATA_DIR/uffici_pst_pubblici.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
+python3 -m venv "$VENV"
+"$PY" -m pip install --quiet --upgrade pip
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
+
+cat > "$SERVICE" <<EOF
+[Unit]
+Description=IUSENTRA Local Signer
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$DIR
+Environment=PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=$ALLOWED_ORIGINS
+ExecStart=$PY $DIR/local_signer.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now iusentra-local-signer.service
+
+echo
+echo "Installazione completata. Local Signer v$VERSION pronto."
+echo "Local Signer attivo su http://127.0.0.1:27272"
+echo "Tornare su IUSENTRA e cliccare Riverifica."
+read -r -p "Premi Invio per chiudere..." _

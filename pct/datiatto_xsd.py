@@ -16,6 +16,7 @@ _SCHEMA_ROOTS = (
     _ROOT / "docs" / "specs" / "ministero" / "xsd" / "2026-05-12-sici",
     _ROOT / "docs" / "specs" / "ministero" / "schema" / "sigp_v3",
     _ROOT / "docs" / "specs" / "ministero" / "parte" / "parte_v13",
+    _ROOT / "docs" / "specs" / "ministero" / "XSD PLO118 FASE2 per SW House" / "schema",
 )
 
 

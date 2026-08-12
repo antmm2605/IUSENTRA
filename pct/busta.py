@@ -11,7 +11,7 @@ from datetime import datetime
 from email import policy
 from email.message import EmailMessage
 from email.parser import BytesParser
-from email.utils import format_datetime
+from email.utils import make_msgid
 from pathlib import Path
 from typing import Any, List, Optional
 from dataclasses import dataclass, field
@@ -21,6 +21,7 @@ from reportlab.pdfgen import canvas
 
 from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .atto_enc_validation import inspect_atto_enc_payload
+from .document_crypto import ENC_MAGIC, decrypt_doc
 from .pst_catalog import (
     PST_BUSTA_ENCRYPTION_ALGORITHM,
     PST_BUSTA_ENCRYPTION_FATAL_FROM,
@@ -80,6 +81,8 @@ CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/t
 CASSAZIONE_TIPI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/v13"
 CASSAZIONE_EVENTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/eventi/v13"
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
+MINISTERIAL_ALLEGATI_V2_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2"
+CASSAZIONE_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/allegati/v13"
 MINISTERIAL_EVENTI_PARTE_NS = "http://schemi.processotelematico.giustizia.it/eventi/parte"
 MINISTERIAL_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/eventi/professionista"
 SIGP_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sigp/eventi/professionista"
@@ -320,6 +323,8 @@ class DatiBusta:
     datiatto_generator_mode: str = ""
     datiatto_required_data: List[str] = field(default_factory=list)
     datiatto_extra: dict[str, Any] = field(default_factory=dict)
+    professionista: dict[str, Any] = field(default_factory=dict)
+    parti: List[dict[str, Any]] = field(default_factory=list)
     data_notifica_citazione: str = ""
 
 
@@ -402,6 +407,13 @@ class BustaTelematica:
         return hashlib.sha256(payload).hexdigest().upper()
 
     @staticmethod
+    def _read_document_payload(path: Path) -> bytes:
+        payload = decrypt_doc(path.read_bytes())
+        if payload.startswith(ENC_MAGIC):
+            raise ValueError(f"Documento {path.name} ancora cifrato a riposo dopo la lettura.")
+        return payload
+
+    @staticmethod
     def _pdf_text(value: str, *, max_len: int = 110) -> str:
         text = " ".join(str(value or "").split())
         if len(text) > max_len:
@@ -437,7 +449,7 @@ class BustaTelematica:
         digest = hashlib.sha256(
             str(index).encode("ascii") + b"\0" + filename.encode("utf-8") + b"\0" + payload
         ).hexdigest()[:32]
-        return f"part{digest}"
+        return f"part{digest[:8]}-{digest[8:12]}-{digest[12:16]}-{digest[16:20]}-{digest[20:]}"
 
     @staticmethod
     def _ruolo_allegato_ministeriale(filename: str, tipo: str = "", descrizione: str = "") -> str:
@@ -465,14 +477,9 @@ class BustaTelematica:
         return bool(self.dati.anagrafica_procedimento_xml or str(self.dati.datiatto_root_name or "").strip())
 
     def _usa_indice_busta_interno(self) -> bool:
-        # Gli schemi SIGP v3 rendono l'indice interno obbligatorio. Per SICID,
-        # SIECIC e Cassazione resta il trasporto esterno gia' accettato dal PST.
-        return self._datiatto_generator_class() in {
-            "Introduttivi_SIGP",
-            "CorsoCausa_SIGP",
-            "Professionista_SIGP",
-            "AttoSistema_SIGP",
-        }
+        # Studio Telematico inserisce IndiceBusta nel DatiAtto ministeriale
+        # firmato e non aggiunge un IndiceBusta.xml separato ad Atto.msg.
+        return self._usa_dati_atto_ministeriale()
 
     def usa_indice_busta_esterno(self) -> bool:
         return not self._usa_indice_busta_interno()
@@ -640,12 +647,49 @@ class BustaTelematica:
                 result["errori"].append(f"Allegato {name} mancante in Atto.msg")
                 return result
 
+        document_names = [
+            main_name,
+            *(self.nome_file_ministeriale(Path(allegato.percorso).name) for allegato in self.dati.allegati),
+        ]
+        for name in document_names:
+            if not name.casefold().endswith(".p7m"):
+                continue
+            payload = attachments.get(name, b"")
+            if payload.startswith(ENC_MAGIC):
+                result["errori"].append(
+                    f"{name} contiene ancora la cifratura interna PCTENC e non puo' essere inviato al PST"
+                )
+                return result
+            try:
+                from pct.firma import busta_cades_valida, estrai_contenuto_cades
+
+                cades_ok = busta_cades_valida(payload)
+                embedded = estrai_contenuto_cades(payload)
+            except Exception as exc:
+                result["errori"].append(f"{name} non verificabile come CAdES: {exc}")
+                return result
+            if not cades_ok or embedded is None:
+                result["errori"].append(
+                    f"{name} non e' un contenitore CAdES con contenuto incorporato e firmatario leggibile"
+                )
+                return result
+
         if require_dati_atto_firmato and dati_atto_filename != DATI_ATTO_FIRMATO_FILENAME:
             result["errori"].append("DatiAtto.xml.p7m firmato obbligatorio per la busta reale")
             return result
         if require_dati_atto_firmato and dati_atto_filename not in attachments:
             result["errori"].append("DatiAtto.xml.p7m firmato mancante in Atto.msg")
             return result
+        if require_dati_atto_firmato:
+            from pct.firma import attributi_cades_bes_mancanti
+
+            missing_attrs = attributi_cades_bes_mancanti(attachments[dati_atto_filename])
+            if missing_attrs:
+                result["errori"].append(
+                    "DatiAtto.xml.p7m non aderente al profilo CAdES-BES: mancano "
+                    + ", ".join(missing_attrs)
+                )
+                return result
 
         if not usa_indice_interno:
             try:
@@ -845,6 +889,8 @@ class BustaTelematica:
         indice_nodes = root.xpath("//*[local-name()='IndiceBusta']")
         if not indice_nodes:
             return "DatiAtto.xml.p7m non contiene IndiceBusta ministeriale interno"
+        if len(indice_nodes) != 1:
+            return "DatiAtto.xml.p7m deve contenere un solo IndiceBusta ministeriale interno"
         indice = indice_nodes[0]
         atto_nodes = [
             node
@@ -991,15 +1037,14 @@ class BustaTelematica:
         parts: list[_DocumentoBusta] = []
 
         ap_path = self._runtime_path(self.dati.atto_principale, must_be_file=True)
-        ap_payload = ap_path.read_bytes()
+        ap_payload = self._read_document_payload(ap_path)
         ap_filename = self._nome_file_unico(self.nome_file_ministeriale(ap_path.name), used_names)
-        ap_main, ap_sub = self._mime_type(ap_path.name)
         parts.append(
             _DocumentoBusta(
                 filename=ap_filename,
                 payload=ap_payload,
-                maintype=ap_main,
-                subtype=ap_sub,
+                maintype="application",
+                subtype="pkcs7-mime",
                 content_id=self._content_id_documento(ap_filename, ap_payload, 1),
                 ruolo_indice="AttoPrincipale",
                 tipo_indice_esterno="AT",
@@ -1011,15 +1056,14 @@ class BustaTelematica:
 
         for index, allegato in enumerate(self.dati.allegati, start=2):
             all_path = self._runtime_path(allegato.percorso, must_be_file=True)
-            payload = all_path.read_bytes()
+            payload = self._read_document_payload(all_path)
             filename = self._nome_file_unico(self.nome_file_ministeriale(all_path.name), used_names)
-            maintype, subtype = self._mime_type(all_path.name)
             parts.append(
                 _DocumentoBusta(
                     filename=filename,
                     payload=payload,
-                    maintype=maintype,
-                    subtype=subtype,
+                    maintype="application",
+                    subtype="pkcs7-mime",
                     content_id=self._content_id_documento(filename, payload, index),
                     ruolo_indice=self._ruolo_allegato_ministeriale(
                         filename,
@@ -1044,7 +1088,7 @@ class BustaTelematica:
                 filename=index_filename,
                 payload=index_payload,
                 maintype="application",
-                subtype="pdf",
+                subtype="pkcs7-mime",
                 content_id=self._content_id_documento(index_filename, index_payload, len(parts) + 1),
                 ruolo_indice="AllegatoSemplice",
                 tipo_indice_esterno="SM",
@@ -1106,8 +1150,13 @@ class BustaTelematica:
         return MINISTERIAL_ATTI_NS
 
     def _datiatto_allegati_namespace(self) -> str:
-        if "SIGP" in self._datiatto_generator_class():
+        atti_namespace = self._datiatto_atti_namespace()
+        if atti_namespace == SIGP_ATTI_NS:
             return SIGP_ALLEGATI_NS
+        if atti_namespace == CASSAZIONE_ATTI_NS:
+            return CASSAZIONE_ALLEGATI_NS
+        if atti_namespace == MINISTERIAL_ATTI_V7_NS:
+            return MINISTERIAL_ALLEGATI_V2_NS
         return MINISTERIAL_ALLEGATI_NS
 
     def _is_datiatto_introduttivo(self) -> bool:
@@ -1967,7 +2016,8 @@ class BustaTelematica:
             return "", 0.0
         if self.dati.contributo_unificato_richiesto and not bool(contribution.get("resolved")):
             raise ValueError(
-                "Contributo unificato non definito: indica se il deposito è esente, pagato o prenotato a debito."
+                str(contribution.get("blocking_message") or "").strip()
+                or "Contributo unificato non definito: indica se il deposito è esente, pagato o prenotato a debito."
             )
         if mode not in {"esente", "pagato", "prenotato_a_debito"}:
             if self.dati.contributo_unificato_richiesto:
@@ -1976,7 +2026,7 @@ class BustaTelematica:
                 )
             return "", 0.0
         amount = 0.0
-        if mode in {"pagato", "prenotato_a_debito"}:
+        if mode == "pagato":
             try:
                 amount = float(contribution.get("importo"))
             except (TypeError, ValueError):
@@ -2879,7 +2929,22 @@ class BustaTelematica:
         if not root_name:
             root_name = "Ricorso"
             generator_class = generator_class or "IntroduttiviSicid"
-        self._contributo_unificato_dati()
+        contribution_mode, contribution_amount = self._contributo_unificato_dati()
+        if generator_class == "UNEP":
+            from pct.datiatto_unep import build_unep_datiatto
+            from pct.datiatto_xsd import validate_datiatto_xml
+
+            payload = build_unep_datiatto(
+                self.dati,
+                document_parts,
+                contribution_mode=contribution_mode,
+                contribution_amount=contribution_amount,
+            )
+            validation = validate_datiatto_xml(payload)
+            if not validation.ok:
+                detail = "; ".join(validation.errors[:3]) or "controllo ufficiale non superato"
+                raise ValueError(f"Dati del deposito UNEP non conformi: {detail}")
+            return payload
         namespace = self._datiatto_namespace()
         if namespace and (
             self._is_datiatto_introduttivo()
@@ -3123,7 +3188,11 @@ class BustaTelematica:
                 dati_atto_payload,
                 dati_atto_mime[0],
                 dati_atto_mime[1],
-                self._mime_content_id(dati_atto_filename),
+                (
+                    DATI_ATTO_FILENAME
+                    if self._usa_dati_atto_ministeriale()
+                    else self._mime_content_id(dati_atto_filename)
+                ),
             )
         )
 
@@ -3135,17 +3204,14 @@ class BustaTelematica:
         self,
         *,
         xml_content: bytes,
-        indice_busta_xml: bytes,
+        indice_busta_xml: bytes | None,
         indice_pdf: bytes,
         dati_atto_firmato: bytes | None = None,
         document_parts: list[_DocumentoBusta] | None = None,
     ) -> bytes:
         message = EmailMessage(policy=policy.SMTP)
-        message["Subject"] = f"Atto deposito telematico {self.id_busta[:8]}"
-        message["From"] = self.dati.cf_mittente or self.dati.operatore or "iusentra@localhost"
-        message["To"] = self.dati.codice_ufficio
-        message["Date"] = format_datetime(self.timestamp.astimezone())
-        message["X-IUSENTRA-Busta-ID"] = self.id_busta
+        message["Message-ID"] = make_msgid(domain="juris.it")
+        message["X-Mailer"] = "fa9772aa-c144-4f2b-8263-b0cd033c86a8"
         message.make_related()
         for filename, payload, maintype, subtype, content_id in self._document_payloads(
             xml_content=xml_content,
@@ -3163,7 +3229,7 @@ class BustaTelematica:
                 part.set_content(payload, maintype=maintype, subtype=subtype, cte="base64")
             part.set_param("name", filename, header="Content-Type")
             part["Content-ID"] = f"<{content_id}>"
-            part.add_header("Content-Disposition", "inline", filename=filename)
+            part.add_header("Content-Disposition", "attachment", filename=filename)
             message.attach(part)
         return message.as_bytes(policy=policy.SMTP)
 
@@ -3578,11 +3644,11 @@ class BustaTelematica:
             raise ValueError("DatiAtto.xml deve essere firmato prima di generare Atto.enc.")
         if dati_atto_firmato:
             try:
-                from pct.firma import busta_cades_valida
+                from pct.firma import profilo_cades_bes_valido
             except Exception as exc:
                 raise ValueError("Verifica CAdES non disponibile per DatiAtto.xml.p7m.") from exc
-            if not busta_cades_valida(dati_atto_firmato):
-                raise ValueError("DatiAtto.xml.p7m non contiene una firma CAdES valida.")
+            if not profilo_cades_bes_valido(dati_atto_firmato):
+                raise ValueError("DatiAtto.xml.p7m non contiene una firma CAdES-BES completa.")
 
         dati_atto_filename = DATI_ATTO_FIRMATO_FILENAME if dati_atto_firmato else DATI_ATTO_FILENAME
         indice_pdf = self._crea_indice_documenti_pdf()

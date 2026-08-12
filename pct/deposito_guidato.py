@@ -28,6 +28,8 @@ from legal_deposit.payment_policies import payment_policy_for_channel
 from . import __version__ as APP_VERSION
 from .busta import Allegato, BustaTelematica, DatiBusta
 from .checklist_atti import CANALE_LABEL
+from .deposito_studio_telematico_contract import studio_telematico_type_contract
+from .deposito_studio_telematico_validation import validate_studio_telematico_deposit
 from .fascicoli import Fascicolo
 from .pst_catalog import (
     PST_CATALOG_VERSION,
@@ -1912,6 +1914,13 @@ class OrchestratoreDepositoGuidato:
             "note": str(context.get("note") or "").strip(),
             "operatore": str(context.get("operatore") or "").strip(),
             "cf_mittente": str(context.get("cf_mittente") or "").strip(),
+            "tipo_deposito_telematico_key": str(
+                context.get("tipo_deposito_telematico_key") or ""
+            ).strip(),
+            "datiatto_extra": dict(context.get("datiatto_extra") or {}),
+            "professionista": dict(context.get("professionista") or {}),
+            "parti": list(context.get("parti") or []),
+            "contributo_unificato": dict(context.get("contributo_unificato") or {}),
         }
 
         profile = self.kb.resolve_profile(fascicolo, normalized_context["tipo_atto"])
@@ -1923,16 +1932,46 @@ class OrchestratoreDepositoGuidato:
         )
 
         issues: List[ValidationIssue] = []
-        issues.extend(
-            self.validator_normativo.validate(
-                fascicolo=fascicolo,
-                profile=profile,
-                resolver=resolver,
+        catalog_key = normalized_context["tipo_deposito_telematico_key"]
+        studio_contract = studio_telematico_type_contract(catalog_key) if catalog_key else None
+        if studio_contract:
+            for finding in validate_studio_telematico_deposit(
+                key=catalog_key,
                 context=normalized_context,
                 selected_documents=selected_documents,
-                all_documents=all_documents,
+                resolver=resolver,
+            ):
+                method = str(finding.get("method") or "")
+                field_name = str(finding.get("field") or "")
+                service = (
+                    SERVICE_DOCUMENTALE
+                    if field_name in {"atto_principale_id", "allegati_ids"}
+                    else SERVICE_GIURIDICO
+                )
+                message = str(finding.get("message") or "").strip()
+                issues.append(
+                    ValidationIssue(
+                        service=service,
+                        level=str(finding.get("level") or LEVEL_BLOCK),
+                        code=str(finding.get("rule_id") or "studio_telematico"),
+                        title=message or "Controllo Studio Telematico",
+                        detail=message,
+                        source=str(finding.get("source") or ""),
+                        suggested_action="",
+                        field=field_name,
+                    )
+                )
+        else:
+            issues.extend(
+                self.validator_normativo.validate(
+                    fascicolo=fascicolo,
+                    profile=profile,
+                    resolver=resolver,
+                    context=normalized_context,
+                    selected_documents=selected_documents,
+                    all_documents=all_documents,
+                )
             )
-        )
         issues.extend(
             self.validator_documentale.validate(
                 profile=profile,
@@ -1940,15 +1979,16 @@ class OrchestratoreDepositoGuidato:
                 selected_documents=selected_documents,
             )
         )
-        issues.extend(
-            self.validator_tecnico.validate(
-                fascicolo=fascicolo,
-                profile=profile,
-                resolver=resolver,
-                context=normalized_context,
-                selected_documents=selected_documents,
+        if not studio_contract:
+            issues.extend(
+                self.validator_tecnico.validate(
+                    fascicolo=fascicolo,
+                    profile=profile,
+                    resolver=resolver,
+                    context=normalized_context,
+                    selected_documents=selected_documents,
+                )
             )
-        )
 
         semaforo = {
             "giuridico": _service_state(issues, SERVICE_GIURIDICO),
@@ -1979,6 +2019,10 @@ class OrchestratoreDepositoGuidato:
             "profile_deposit_mode": profile.deposit_mode,
             "codice_oggetto_pst": normalized_context["codice_oggetto_pst"],
             "pst_busta_audit": dict(normalized_context.get("pst_busta_audit") or {}),
+            "studio_telematico_contract_key": catalog_key if studio_contract else "",
+            "studio_telematico_validation_rule_ids": list(
+                (studio_contract or {}).get("validation_rule_ids") or []
+            ),
             "selected_documents": selected_summary,
             "selected_count": len(selected_summary),
         }

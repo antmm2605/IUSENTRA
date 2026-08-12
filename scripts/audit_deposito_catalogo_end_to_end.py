@@ -28,6 +28,7 @@ if str(ROOT) not in sys.path:
 
 from pct.busta import BustaTelematica, DatiBusta
 from pct.datiatto_xsd import validate_datiatto_xml
+from pct.deposito_studio_telematico_validation import validate_studio_telematico_deposit
 from pct.deposito_telematico_catalogo import list_deposit_catalog_entries
 from web.services.deposito_anagrafica_ministeriale import (
     _anagrafica_procedimento_deposito_xml,
@@ -128,6 +129,57 @@ DATIATTO_EXTRA_BASE: dict[str, Any] = {
     "stima_diritto": "1234,56",
     "data_citazione": "05/07/2026",
     "data_notifica_pignoramento": "04/07/2026",
+    "unep_natura_atto": "PRECETTO",
+    "unep_codice_natura": "1",
+    "unep_data_richiesta": "01/07/2026",
+    "unep_data_scadenza": "15/07/2026",
+    "unep_ente_debito": "Ministero della giustizia",
+    "unep_numero_debito": "2026-1",
+    "unep_data_debito": "01/07/2026",
+    "unep_causa_ufficio": "0580010",
+    "unep_causa_numero": "1234",
+    "unep_causa_anno": "2026",
+    "unep_causa_data_udienza": "20/07/2026",
+    "unep_inoltro_ufficiale_giudiziario": "0580010",
+    "unep_importo_precetto": "1234,56",
+    "unep_autorita_tipo": "1",
+    "unep_autorita_sede": "Tribunale di Roma",
+    "unep_autorizzazione_numero": "1234",
+    "unep_autorizzazione_data": "01/07/2026",
+    "unep_data_notifica_precetto": "30/06/2026",
+    "unep_rito_codice": "1",
+    "unep_codice_pagamento": "12345",
+    "data_atto_deposito": "01/07/2026",
+    "unep_registro_bilancio": "1",
+    "unep_anno_bilancio": "2026",
+    "unep_iban": "IT60X0542811101000000123456",
+    "unep_destinatari": [
+        {
+            "id": "debitore-audit",
+            "tipo_notifica": "Mani",
+            "data_notifica_precetto": "30/06/2026",
+        }
+    ],
+    "unep_beni": [
+        {
+            "id": "bene-audit",
+            "tipo": "mobile",
+            "tipologia": "ARREDI",
+            "descrizione": "Bene mobile per audit",
+            "valore": "1200,00",
+            "diritti": [{"tipo": "1", "quota": "1"}],
+        }
+    ],
+    "unep_titoli": [
+        {
+            "parte_id": "procedente-audit",
+            "fattispecie": "Titolo esecutivo",
+            "tipologia": "1",
+            "descrizione": "Sentenza di condanna",
+            "numero": "1",
+            "data_emissione": "01/06/2026",
+        }
+    ],
     "precedente_fascicolo_numero": "321",
     "precedente_fascicolo_anno": "2025",
     "precedente_provvedimento_numero": "45",
@@ -342,6 +394,15 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
     root_name = str(schema.get("ministerialRoot") or payload.get("datiatto_root_name") or "").strip()
     required_data = list(schema.get("requiredData") or [])
     contribution_required = bool(schema.get("contributionRequired"))
+    key = str(entry.get("key") or "")
+    if "ADebito" in key or key.endswith("Debito"):
+        contribution = {"resolved": True, "mode": "prenotato_a_debito", "importo": 0.0, "debito": True}
+    elif key.startswith("Atti_UNEP::") and ("Esente" in key or "MateriaLavoro" in key):
+        contribution = {"resolved": True, "mode": "esente", "importo": 0.0, "debito": False}
+    elif contribution_required:
+        contribution = {"resolved": True, "mode": "pagato", "importo": 259.0, "debito": False}
+    else:
+        contribution = None
     return DatiBusta(
         codice_ufficio=codice_ufficio,
         codice_registro=codice_registro,
@@ -353,9 +414,7 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
         operatore="Audit IUSENTRA",
         cf_mittente="RSSMRA80A01H501Z",
         valore_causa=1000.0,
-        contributo_unificato={"resolved": True, "mode": "pagato", "importo": 259.0, "debito": False}
-        if contribution_required
-        else None,
+        contributo_unificato=contribution,
         contributo_unificato_richiesto=contribution_required,
         contributo_unificato_xml_mode=str(schema.get("contributionXmlMode") or ""),
         anagrafica_procedimento_xml=_sample_anagrafica(entry),
@@ -366,6 +425,101 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
         datiatto_generator_mode=str(schema.get("generatorMode") or "").strip(),
         datiatto_required_data=required_data,
         datiatto_extra=_extra_for(entry),
+        professionista={
+            "ruolo": "DIFENSORE",
+            "cognome": "Rossi",
+            "nome": "Mario",
+            "codice_fiscale": "RSSMRA80A01H501Z",
+            "indirizzo": "Via Roma",
+            "civico": "1",
+            "cap": "00100",
+            "citta": "Roma",
+            "provincia": "RM",
+            "nazione": "IT",
+            "iban": "IT60X0542811101000000123456",
+        },
+        parti=[
+            {
+                "id": "procedente-audit",
+                "gruppo": "parte",
+                "ruolo": "ASSISTITO",
+                "nome": "Mario",
+                "cognome": "Rossi",
+                "denominazione": "",
+                "codice_fiscale": "RSSMRA80A01H501Z",
+                "natura_giuridica": "PFI",
+                "indirizzo": {
+                    "via": "Via Roma",
+                    "civico": "1",
+                    "cap": "00100",
+                    "citta": "Roma",
+                    "provincia": "RM",
+                    "nazione": "IT",
+                },
+                "domicilio": {
+                    "via": "Via Roma",
+                    "civico": "1",
+                    "cap": "00100",
+                    "citta": "Roma",
+                    "provincia": "RM",
+                    "nazione": "IT",
+                },
+            },
+            {
+                "id": "debitore-audit",
+                "gruppo": "controparte",
+                "ruolo": "DEBITORE",
+                "nome": "Luigi",
+                "cognome": "Bianchi",
+                "denominazione": "",
+                "codice_fiscale": "BNCLGU70A01H501Y",
+                "natura_giuridica": "PFI",
+                "tipo_notifica": "Mani",
+                "data_notifica_precetto": "30/06/2026",
+                "indirizzo": {
+                    "via": "Via Milano",
+                    "civico": "2",
+                    "cap": "00100",
+                    "citta": "Roma",
+                    "provincia": "RM",
+                    "nazione": "IT",
+                },
+                "domicilio": {
+                    "via": "Via Milano",
+                    "civico": "2",
+                    "cap": "00100",
+                    "citta": "Roma",
+                    "provincia": "RM",
+                    "nazione": "IT",
+                },
+            },
+            {
+                "id": "terzo-audit",
+                "gruppo": "altro",
+                "ruolo": "TERZO_PIGNORATO",
+                "nome": "Anna",
+                "cognome": "Verdi",
+                "denominazione": "",
+                "codice_fiscale": "VRDNNA80A41H501B",
+                "natura_giuridica": "PFI",
+                "indirizzo": {
+                    "via": "Via Napoli",
+                    "civico": "3",
+                    "cap": "00100",
+                    "citta": "Roma",
+                    "provincia": "RM",
+                    "nazione": "IT",
+                },
+                "domicilio": {
+                    "via": "Via Napoli",
+                    "civico": "3",
+                    "cap": "00100",
+                    "citta": "Roma",
+                    "provincia": "RM",
+                    "nazione": "IT",
+                },
+            },
+        ],
         data_notifica_citazione=(
             "30/06/2026"
             if "citazione" in root_name.casefold() or root_name == "OpposizioneDecretoIngiuntivo"
@@ -389,6 +543,15 @@ def _check_common_contract(entry: dict[str, Any], errors: list[str]) -> None:
         for field in ("requires_datiatto", "requires_indice_busta", "requires_atto_enc", "requires_pst_cer"):
             if rules.get(field) is not True:
                 errors.append(f"{key}: regola PCT {field} non attiva")
+        expected_transport = {
+            "indice_busta_mode": "interno_datiatto",
+            "document_signature_profile": "pdf_pades_non_pdf_cades",
+            "datiatto_signature_profile": "cades_bes_sha256_signing_certificate_v2",
+            "mime_disposition": "attachment",
+        }
+        for field, expected in expected_transport.items():
+            if rules.get(field) != expected:
+                errors.append(f"{key}: profilo Studio Telematico {field}={expected!r} non rispettato")
         if not schema.get("generatorClass"):
             errors.append(f"{key}: classe generatore mancante")
         if not schema.get("ministerialRoot"):
@@ -402,13 +565,16 @@ def _check_common_contract(entry: dict[str, Any], errors: list[str]) -> None:
         for field in input_fields:
             if not isinstance(field, dict) or not str(field.get("id") or "").strip() or not str(field.get("label") or "").strip():
                 errors.append(f"{key}: descrittore campo UI deposito incompleto")
-    elif rules.get("channel_kind") == "unep_notifiche":
-        if rules.get("can_prepare_in_pct_panel") is not False:
-            errors.append(f"{key}: UNEP non deve prepararsi nel pannello PCT")
-        if rules.get("requires_atto_enc") is not False:
-            errors.append(f"{key}: UNEP non deve richiedere Atto.enc PCT")
-        if rules.get("requires_relata") is not True:
-            errors.append(f"{key}: UNEP deve richiedere relata/destinatari")
+    elif rules.get("channel_kind") == "unep_deposito_telematico":
+        for field in ("requires_datiatto", "requires_indice_busta", "requires_atto_enc", "requires_pst_cer"):
+            if rules.get(field) is not True:
+                errors.append(f"{key}: regola deposito UNEP {field} non attiva")
+        if rules.get("can_prepare_in_pct_panel") is not True:
+            errors.append(f"{key}: il deposito UNEP deve prepararsi nel pannello deposito")
+        if rules.get("requires_relata") is not False:
+            errors.append(f"{key}: il deposito UNEP non deve dipendere dalla relata di notifica")
+        if not schema.get("generatorClass") or not schema.get("ministerialRoot"):
+            errors.append(f"{key}: generatore DatiAtto UNEP incompleto")
 
 
 def _check_source_contracts(errors: list[str]) -> None:
@@ -512,7 +678,11 @@ def _quickorganizer_office_rows() -> tuple[list[dict[str, Any]], dict[str, Any]]
     fallback = ROOT / "pct" / "data" / "uffici_ministero.json"
     data = json.loads(fallback.read_text(encoding="utf-8"))
     rows = []
-    for item in data.get("uffici", []):
+    uffici = data.get("uffici", [])
+    office_items = uffici.values() if isinstance(uffici, dict) else uffici
+    for item in office_items:
+        if not isinstance(item, dict):
+            continue
         rows.append(
             {
                 "codice": str(item.get("codice_ministero") or "").strip(),
@@ -772,8 +942,49 @@ def _check_xml_fields(entry: dict[str, Any], root: etree._Element) -> list[str]:
     return []
 
 
+def _validation_context(entry: dict[str, Any], dati: DatiBusta, extra: dict[str, Any]) -> dict[str, Any]:
+    key = str(entry.get("key") or "")
+    office_name = "UNEP TRIBUNALE DI ROMA" if key.startswith("Atti_UNEP::") else "Tribunale di Roma"
+    return {
+        "atto_principale_id": "atto-principale-audit",
+        "ufficio_giudiziario": office_name,
+        "codice_registro": dati.codice_registro,
+        "oggetto": dati.oggetto,
+        "codice_oggetto_pst": dati.oggetto,
+        "numero_rg": dati.numero_rg,
+        "anno_rg": dati.anno_rg,
+        "datiatto_extra": extra,
+        "contributo_unificato": dati.contributo_unificato or {},
+        "professionista": {
+            "ruolo": "DIFENSORE",
+            "cognome": "Rossi",
+            "nome": "Mario",
+            "codice_fiscale": "RSSMRA80A01H501Z",
+            "indirizzo": "Via Roma 1",
+            "cap": "00100",
+            "citta": "Roma",
+            "iban": "IT60X0542811101000000123456",
+        },
+        "parti": [
+            {
+                "ruolo": "PARTE",
+                "natura_giuridica": "PFI",
+                "data_nascita": "01/01/1980",
+                "domicilio": {"via": "Via Roma 1", "citta": "Roma"},
+            },
+            {
+                "ruolo": "CONTROPARTE",
+                "natura_giuridica": "PFI",
+                "data_nascita": "01/01/1970",
+                "tipo_notifica": "Mani",
+                "domicilio": {"via": "Via Milano 2", "citta": "Roma"},
+            },
+        ],
+    }
+
+
 def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tuple[list[str], int]:
-    """Verifica che la UI esponga ogni dato senza cui il generatore non puo' lavorare."""
+    """Verifica i campi nello stesso ordine di Studio: validatore, poi generatore/XSD."""
 
     schema = _schema(entry)
     fields = [field for field in (schema.get("inputFields") or []) if isinstance(field, dict)]
@@ -818,13 +1029,33 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
                 "" if field_id == "data_notifica_citazione" else declared_data.data_notifica_citazione
             ),
         )
+        context = _validation_context(entry, missing_data, without_field)
+        findings = validate_studio_telematico_deposit(
+            key=str(entry.get("key") or ""),
+            context=context,
+            selected_documents=[],
+            resolver={
+                "effective_office_found": True,
+                "official_office_found": True,
+                "effective_office_name": context["ufficio_giudiziario"],
+            },
+        )
+        blocked_by_source_validator = any(
+            finding.get("level") == "BLOCK" and finding.get("field") == field_id
+            for finding in findings
+        )
         try:
             BustaTelematica(missing_data).crea_dati_atto_xml_per_firma()
         except Exception:
+            blocked_by_generator = True
+        else:
+            blocked_by_generator = False
+        if blocked_by_source_validator or blocked_by_generator:
             guards_checked += 1
         else:
             errors.append(
-                f"campo UI marcato obbligatorio ma non presidiato dal generatore: {field.get('label') or field_id}"
+                f"campo UI obbligatorio non presidiato dal validatore Studio ne' dal generatore: "
+                f"{field.get('label') or field_id}"
             )
     return errors, guards_checked
 
@@ -849,7 +1080,7 @@ def audit_deposit_catalog() -> dict[str, Any]:
             channel_kind = str(rules.get("channel_kind") or "")
             if channel_kind == "pct_civile_dm44":
                 channels["pct"] += 1
-            elif channel_kind == "unep_notifiche":
+            elif channel_kind == "unep_deposito_telematico":
                 channels["unep"] += 1
             else:
                 channels["other"] += 1
@@ -858,8 +1089,10 @@ def audit_deposit_catalog() -> dict[str, Any]:
             supported = bool(schema.get("supported"))
             requires_specific = bool(schema.get("requiresSpecificGenerator"))
 
-            if channel_kind == "pct_civile_dm44" and requires_specific:
-                errors.append(f"{key}: ramo PCT ancora sospeso, completare generatore e campi prima del verde")
+            is_ministerial_deposit = channel_kind in {"pct_civile_dm44", "unep_deposito_telematico"}
+
+            if is_ministerial_deposit and requires_specific:
+                errors.append(f"{key}: ramo deposito ancora sospeso, completare generatore e campi prima del verde")
                 blocked.append(
                     {
                         "key": key,
@@ -870,8 +1103,8 @@ def audit_deposit_catalog() -> dict[str, Any]:
                 )
                 continue
 
-            if channel_kind == "pct_civile_dm44" and not real_allowed:
-                errors.append(f"{key}: invio reale PCT non abilitato dal catalogo")
+            if is_ministerial_deposit and not real_allowed:
+                errors.append(f"{key}: invio reale del deposito non abilitato dal catalogo")
                 blocked.append(
                     {
                         "key": key,
@@ -882,7 +1115,7 @@ def audit_deposit_catalog() -> dict[str, Any]:
                 )
                 continue
 
-            if channel_kind == "pct_civile_dm44" and supported and real_allowed:
+            if is_ministerial_deposit and supported and real_allowed:
                 entry_errors: list[str] = []
                 try:
                     dati = _dati_busta_for(entry, atto)
@@ -910,7 +1143,10 @@ def audit_deposit_catalog() -> dict[str, Any]:
                 contribution_xml_mode = str(schema.get("contributionXmlMode") or "")
                 if contribution_required:
                     amount_node = _contribution_amount_node(root, contribution_xml_mode)
-                    if contribution_xml_mode == "controllo_documentale":
+                    initial_contribution = dati.contributo_unificato if isinstance(dati.contributo_unificato, dict) else {}
+                    initial_mode = str(initial_contribution.get("mode") or "")
+                    documentary_only = contribution_xml_mode == "controllo_documentale" and not key.startswith("Atti_UNEP::")
+                    if documentary_only:
                         if root.find(".//{*}ContributoUnificato") is not None or root.find(".//{*}contributoUnificato") is not None:
                             entry_errors.append("il controllo documentale non deve aggiungere il contributo a una radice che non lo prevede")
                         try:
@@ -921,11 +1157,19 @@ def audit_deposit_catalog() -> dict[str, Any]:
                         else:
                             entry_errors.append("il contributo obbligatorio non definito non blocca la generazione")
                         amount_node = None
-                    elif amount_node is None or str(amount_node.text or "").strip() != "259.00":
-                        entry_errors.append("ContributoUnificato pagato senza Importo ministeriale coerente")
-                    elif amount_node.get("debito") != "false":
-                        entry_errors.append("ContributoUnificato pagato senza attributo debito=false")
-                    if contribution_xml_mode == "controllo_documentale":
+                    elif initial_mode in {"pagato", "prenotato_a_debito"}:
+                        expected_amount = f"{float(initial_contribution.get('importo') or 0):.2f}"
+                        if amount_node is None or str(amount_node.text or "").strip() != expected_amount:
+                            entry_errors.append("ContributoUnificato senza Importo ministeriale coerente")
+                        elif initial_mode == "pagato" and key.startswith("Atti_UNEP::") and "debito" in amount_node.attrib:
+                            entry_errors.append("ContributoUnificato pagato con attributo debito non previsto da Studio Telematico")
+                        elif initial_mode == "pagato" and not key.startswith("Atti_UNEP::") and amount_node.get("debito") != "false":
+                            entry_errors.append("ContributoUnificato pagato senza attributo debito=false")
+                        elif initial_mode == "prenotato_a_debito" and amount_node.get("debito") != "true":
+                            entry_errors.append("ContributoUnificato prenotato a debito senza attributo debito=true")
+                    elif amount_node is not None:
+                        entry_errors.append("ContributoUnificato presente per una modalita' che Studio Telematico non serializza")
+                    if documentary_only:
                         pass
                     elif contribution_xml_mode == "cassazione_integrazione_spese":
                         try:
@@ -961,7 +1205,7 @@ def audit_deposit_catalog() -> dict[str, Any]:
                             if contribution_xml_mode == "atto_introduttivo" and _child_text(exempt_root, "ValoreCausa") != "0.00":
                                 entry_errors.append("l'esenzione senza valore deve generare ValoreCausa=0.00")
                             contribution_exemption_checked += 1
-                    if contribution_xml_mode != "controllo_documentale":
+                    if not documentary_only:
                         try:
                             debt_data = replace(
                                 dati,
@@ -988,22 +1232,29 @@ def audit_deposit_catalog() -> dict[str, Any]:
                             "key": key,
                             "root": actual_root,
                             "generator": str(schema.get("generatorClass") or ""),
+                            "channel": channel_kind,
                         }
                     )
-            elif channel_kind == "pct_civile_dm44":
-                errors.append(f"{key}: schema PCT non supportato dal generatore")
+            elif is_ministerial_deposit:
+                errors.append(f"{key}: schema ministeriale non supportato dal generatore")
 
     office_catalog = _check_office_catalog_contracts(errors)
     _check_source_contracts(errors)
 
+    pct_generated = sum(item.get("channel") == "pct_civile_dm44" for item in generated)
+    unep_generated = sum(item.get("channel") == "unep_deposito_telematico" for item in generated)
     return {
         "ok": not errors,
         "source_of_truth": "catalogo_tecnico_condiviso_confronto_funzionale_interno_specifiche_pst",
         "total": len(entries),
         "channels": channels,
-        "pct_generated_datiatto": len(generated),
+        "pct_generated_datiatto": pct_generated,
+        "unep_generated_datiatto": unep_generated,
+        "ministerial_generated_datiatto": len(generated),
         "pct_real_send_suspended_until_dedicated_generator": len(blocked),
         "pct_expected_datiatto": channels["pct"],
+        "unep_expected_datiatto": channels["unep"],
+        "ministerial_expected_datiatto": channels["pct"] + channels["unep"],
         "pct_contribution_exemption_branches_checked": contribution_exemption_checked,
         "pct_required_input_guards_checked": required_input_guards_checked,
         "office_catalog": office_catalog,

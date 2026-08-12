@@ -8643,6 +8643,11 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             if "requires_signature" in raw_row
             else raw_row.get("requiresSignature")
         ) and not signed_container
+        studio_document_type = re.sub(
+            r"[^A-Za-z0-9_]+",
+            "",
+            str(raw_row.get("studio_document_type") or raw_row.get("studioDocumentType") or "").strip(),
+        )
         if selected and role != "fuori_busta":
             selected_count += 1
             doc_type = _DEPOSIT_DOCUMENT_ROLE_TO_TYPE.get(role)
@@ -8658,6 +8663,7 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             "documentId": document_id,
             "selected": selected,
             "role": role,
+            "studioDocumentType": studio_document_type,
             "alreadySigned": already_signed,
             "requiresSignature": requires_signature,
         })

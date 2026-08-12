@@ -508,6 +508,40 @@ def busta_cades_valida(data: bytes) -> bool:
         return False
 
 
+def attributi_cades_bes_mancanti(data: bytes) -> list[str]:
+    """Elenca gli attributi CAdES-BES assenti da uno o piu' firmatari."""
+    try:
+        from asn1crypto import cms
+
+        ci = cms.ContentInfo.load(data)
+        if ci["content_type"].native != "signed_data":
+            return ["signed_data"]
+        signer_infos = ci["content"]["signer_infos"]
+        if not signer_infos:
+            return ["firmatario"]
+        required = {
+            "content_type": "content-type",
+            "message_digest": "message-digest",
+            "signing_time": "signing-time",
+            "1.2.840.113549.1.9.16.2.47": "signingCertificateV2",
+        }
+        missing: set[str] = set()
+        for signer_info in signer_infos:
+            present: set[str] = set()
+            for attr in signer_info["signed_attrs"] or []:
+                present.add(str(attr["type"].native or ""))
+                present.add(str(attr["type"].dotted or ""))
+            missing.update(label for oid, label in required.items() if oid not in present)
+        return sorted(missing)
+    except Exception:
+        return ["profilo CAdES-BES"]
+
+
+def profilo_cades_bes_valido(data: bytes) -> bool:
+    """Verifica il profilo usato da Studio Telematico per DatiAtto.xml.p7m."""
+    return busta_cades_valida(data) and not attributi_cades_bes_mancanti(data)
+
+
 def estrai_contenuto_cades(data: bytes) -> bytes | None:
     """Estrae il contenuto incapsulato da una busta CAdES/PKCS#7 signed-data."""
     try:

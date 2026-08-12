@@ -3,6 +3,7 @@ from pathlib import Path
 from lxml import etree
 
 from pct.busta import BustaTelematica
+from pct.deposito_studio_telematico_validation import validate_studio_telematico_deposit
 from pct.deposito_telematico_catalogo import (
     _datiatto_root_hint,
     build_deposit_catalog_payload,
@@ -43,6 +44,31 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     assert len(payload["referenceData"]["classiImmobiliari"]) >= 50
 
 
+def test_tutti_i_252_depositi_pct_usano_il_profilo_busta_e_firma_studio_telematico():
+    entries = list_deposit_catalog_entries()
+    pct_entries = [entry for entry in entries if entry["rules"]["channel_kind"] == "pct_civile_dm44"]
+    unep_entries = [
+        entry for entry in entries if entry["rules"]["channel_kind"] == "unep_deposito_telematico"
+    ]
+
+    assert len(pct_entries) == 252
+    assert len(unep_entries) == 18
+    for entry in [*pct_entries, *unep_entries]:
+        rules = entry["rules"]
+        assert rules["indice_busta_mode"] == "interno_datiatto", entry["key"]
+        assert rules["document_signature_profile"] == "pdf_pades_non_pdf_cades", entry["key"]
+        assert rules["datiatto_signature_profile"] == "cades_bes_sha256_signing_certificate_v2", entry["key"]
+        assert rules["mime_disposition"] == "attachment", entry["key"]
+        assert "IndiceBusta interno a DatiAtto.xml" in entry["ui"]["controls"], entry["key"]
+        assert "IndiceBusta.xml" not in entry["ui"]["transport"], entry["key"]
+
+        assert rules["requires_atto_enc"] is True, entry["key"]
+        assert rules["requires_pst_cer"] is True, entry["key"]
+        assert rules["requires_local_signer"] is True, entry["key"]
+        assert rules["requires_local_pec"] is True, entry["key"]
+        assert rules["server_smtp_allowed"] is False, entry["key"]
+
+
 def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
     entries = list_deposit_catalog_entries()
     curatore = next(entry for entry in entries if entry["key"] == "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale")
@@ -80,7 +106,11 @@ def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
     assert citazione["schema"]["contributionXmlMode"] == "atto_introduttivo"
     assert "Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione" in citazione["schema"]["evidenceMethods"]
     assert citazione["payload"]["datiatto_root_name"] == "Citazione"
-    assert [field["id"] for field in citazione["schema"]["inputFields"]] == ["data_notifica_citazione"]
+    assert [field["id"] for field in citazione["schema"]["inputFields"]] == [
+        "istanza",
+        "data_atto_deposito",
+        "data_notifica_citazione",
+    ]
 
 
 def test_catalogo_espone_i_campi_specifici_solo_sui_rami_pertinenti():
@@ -104,19 +134,118 @@ def test_catalogo_espone_i_campi_specifici_solo_sui_rami_pertinenti():
     assert {"tipo_ricorso_cassazione", "provvedimento_impugnato", "materia_ricorso_cassazione", "motivi_cassazione"} <= cassazione_ids
 
     assert memoria is not None
-    assert memoria["schema"]["inputFields"] == []
+    assert [field["id"] for field in memoria["schema"]["inputFields"]] == [
+        "cci",
+        "sub_procedimento",
+        "istanza",
+    ]
 
 
-def test_catalogo_unep_non_attiva_busta_pct_civile():
+def test_catalogo_unep_attiva_la_propria_busta_di_deposito_senza_relata():
     unep = resolve_deposit_type_payload("Atti_UNEP::AttoCivileDebito")
 
     assert unep is not None
-    assert unep["rules"]["policy_code"] == "unep_notifiche"
-    assert unep["rules"]["can_prepare_in_pct_panel"] is False
-    assert unep["rules"]["requires_atto_enc"] is False
-    assert unep["rules"]["requires_pst_cer"] is False
+    assert unep["rules"]["policy_code"] == "unep_deposito_telematico"
+    assert unep["rules"]["can_prepare_in_pct_panel"] is True
+    assert unep["rules"]["requires_datiatto"] is True
+    assert unep["rules"]["requires_indice_busta"] is True
+    assert unep["rules"]["requires_atto_enc"] is True
+    assert unep["rules"]["requires_pst_cer"] is True
+    assert unep["rules"]["requires_relata"] is False
     assert unep["rules"]["server_smtp_allowed"] is False
-    assert "UNEP" in unep["rules"]["real_send_blocker"]
+    assert unep["rules"]["real_send_allowed_from_pct_panel"] is True
+    assert unep["rules"]["real_send_blocker"] == ""
+
+
+def test_unep_pignoramento_riproduce_i_tre_rami_contributo_studio_telematico(tmp_path):
+    cases = (
+        ("Atti_UNEP::RichiestaPignoramentoMobiliare", "Esecuzione", None),
+        (
+            "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
+            "EsecuzioneEsenteLavoro",
+            None,
+        ),
+        (
+            "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
+            "EsecuzioneDebito",
+            "true",
+        ),
+    )
+
+    for key, expected_branch, expected_debito in cases:
+        entry = resolve_deposit_type_payload(key)
+        assert entry is not None
+        dati = _dati_busta_for(entry, _sample_pdf(tmp_path / f"{expected_branch}.pdf"))
+
+        root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+        branches = root.xpath(".//*[local-name()='TipoRichiestaPign']/*")
+        assert [etree.QName(branch).localname for branch in branches] == [expected_branch]
+
+        importi = root.xpath(
+            ".//*[local-name()='ContributoUnificato']/*[local-name()='Importo']"
+        )
+        if expected_branch == "EsecuzioneEsenteLavoro":
+            assert importi == []
+        else:
+            assert len(importi) == 1
+            assert importi[0].get("debito") == expected_debito
+
+
+def test_unep_controlla_tipo_notifica_titolo_e_iban_con_le_regole_decompilate(tmp_path):
+    pignoramento = resolve_deposit_type_payload("Atti_UNEP::RichiestaPignoramentoMobiliare")
+    assert pignoramento is not None
+    dati = _dati_busta_for(pignoramento, _sample_pdf(tmp_path / "pignoramento.pdf"))
+    parti = [dict(party) for party in dati.parti]
+    debitore = next(party for party in parti if party["id"] == "debitore-audit")
+    debitore.pop("tipo_notifica", None)
+    extra = dict(dati.datiatto_extra)
+    extra["unep_destinatari"] = [{"id": "debitore-audit", "tipo_notifica": ""}]
+    extra["unep_titoli"] = []
+    context = {
+        "atto_principale_id": "atto-principale",
+        "ufficio_giudiziario": "0580010",
+        "oggetto": dati.oggetto,
+        "codice_oggetto_pst": dati.oggetto,
+        "professionista": dati.professionista,
+        "parti": parti,
+        "datiatto_extra": extra,
+        "contributo_unificato": dati.contributo_unificato,
+    }
+
+    findings = validate_studio_telematico_deposit(
+        key=pignoramento["key"],
+        context=context,
+        selected_documents=[],
+    )
+    finding_ids = {finding["rule_id"] for finding in findings}
+    assert "VerificaCampiAnagraficaProcedimento:18675" in finding_ids
+    assert "VerificaCampiAnagraficaProcedimento:18603" in finding_ids
+
+    restituzione = resolve_deposit_type_payload("Atti_UNEP::RichiestaRestituzioneSomme")
+    assert restituzione is not None
+    dati_restituzione = _dati_busta_for(
+        restituzione,
+        _sample_pdf(tmp_path / "restituzione.pdf"),
+    )
+    extra_restituzione = dict(dati_restituzione.datiatto_extra)
+    extra_restituzione.pop("unep_iban", None)
+    findings_restituzione = validate_studio_telematico_deposit(
+        key=restituzione["key"],
+        context={
+            "atto_principale_id": "atto-principale",
+            "ufficio_giudiziario": "0580010",
+            "oggetto": dati_restituzione.oggetto,
+            "codice_oggetto_pst": dati_restituzione.oggetto,
+            "professionista": dati_restituzione.professionista,
+            "parti": dati_restituzione.parti,
+            "datiatto_extra": extra_restituzione,
+            "contributo_unificato": dati_restituzione.contributo_unificato,
+        },
+        selected_documents=[],
+    )
+    assert "VerificaCampiAnagraficaProcedimento:18511" in {
+        finding["rule_id"] for finding in findings_restituzione
+    }
 
 
 def test_catalogo_documenti_attesi_segue_flag_studio_telematico():
@@ -128,40 +257,26 @@ def test_catalogo_documenti_attesi_segue_flag_studio_telematico():
     assert citazione is not None
     citazione_docs = citazione["ui"]["documents"]
     assert "atto principale" in citazione_docs
-    assert "procura alle liti" in citazione_docs
-    assert "contributo unificato o esenzione" in citazione_docs
+    assert "Procura su foglio separato" in citazione_docs
     assert "nota iscrizione a ruolo" not in citazione_docs
-    assert "anagrafica procedimento" in citazione_docs
-    assert "data citazione" in citazione_docs
-    assert "valore causa o esenzione" in citazione_docs
 
     assert memoria is not None
     memoria_docs = memoria["ui"]["documents"]
     assert "atto principale" in memoria_docs
-    assert "procura alle liti" not in memoria_docs
-    assert "contributo unificato o esenzione" not in memoria_docs
-    assert "riferimento procedimento" in memoria_docs
-    assert "istanze o richieste" in memoria_docs
+    assert "Procura su foglio separato" not in memoria_docs
 
     assert cassazione is not None
     cassazione_docs = cassazione["ui"]["documents"]
-    assert "procura alle liti" in cassazione_docs
-    assert "contributo unificato o esenzione" in cassazione_docs
-    assert "nota iscrizione a ruolo" in cassazione_docs
-    assert "provvedimento impugnato" in cassazione_docs
-    assert "prova notifica" in cassazione_docs
+    assert "Procura su foglio separato" in cassazione_docs
+    assert "Copia autentica del provvedimento impugnato" in cassazione_docs
 
     visibilita = resolve_deposit_type_payload("Parte_SICID::AttoRichiestaVisibilità")
     assert visibilita is not None
     assert visibilita["schema"]["contributionRequired"] is False
     assert visibilita["schema"]["contributionXmlMode"] == "none"
     assert "ContributoUnificato" not in visibilita["schema"]["requiredData"]
-    assert "contributo unificato o esenzione" not in visibilita["ui"]["documents"]
-
     assert unep is not None
-    unep_docs = unep["ui"]["documents"]
-    assert unep_docs[:3] == ["atto da notificare", "relata o richiesta", "destinatari"]
-    assert "contributo o anticipazione spese UNEP" in unep_docs
+    assert unep["ui"]["documents"] == ["atto principale"]
 
 
 def test_catalogo_recupera_rami_decompilati_non_presenti_nel_json_menu():
@@ -211,7 +326,11 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert report["total"] == 270
     assert report["channels"] == {"pct": 252, "unep": 18, "other": 0}
     assert report["pct_generated_datiatto"] == 252
+    assert report["unep_generated_datiatto"] == 18
+    assert report["ministerial_generated_datiatto"] == 270
     assert report["pct_expected_datiatto"] == 252
+    assert report["unep_expected_datiatto"] == 18
+    assert report["ministerial_expected_datiatto"] == 270
     assert report["pct_contribution_exemption_branches_checked"] > 0
     assert report["pct_required_input_guards_checked"] >= 120
     assert report["pct_real_send_suspended_until_dedicated_generator"] == 0
@@ -220,7 +339,11 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert report["office_catalog"]["pct_target_missing_in_iusentra"] == 0
     assert report["office_catalog"]["pct_target_without_pec_or_code"] == 0
     assert report["office_catalog"]["react_resolver_errors"] == 0
-    assert report["office_catalog"]["external_operational_pct_rows"] == 593
+    if str(report["office_catalog"]["source"]["source"]).endswith("ListaUfficiGiudiziari.xml"):
+        assert report["office_catalog"]["external_operational_pct_rows"] == 593
+    else:
+        assert str(report["office_catalog"]["source"]["source"]).endswith("uffici_ministero.json")
+        assert report["office_catalog"]["external_operational_pct_rows"] == 346
     assert report["office_catalog"]["external_operational_missing_in_iusentra"] == 0
     assert report["office_catalog"]["external_operational_without_pec"] == 0
     assert report["office_catalog"]["external_operational_pec_mismatch"] == 0

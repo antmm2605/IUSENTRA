@@ -68,11 +68,36 @@ def _clienti(cliente):
     return {"FDA63E4F": cliente}
 
 
+def _soggetti_controparte():
+    parte = SimpleNamespace(ruolo=SimpleNamespace(value="CONTROPARTE"))
+    soggetto = SimpleNamespace(
+        id="MIM001",
+        tipo=SimpleNamespace(value="PUBBLICA_AMMINISTRAZIONE"),
+        nome="",
+        cognome="",
+        ragione_sociale="Ministero dell'Istruzione e del Merito",
+        codice_fiscale="80185250588",
+        partita_iva="",
+        data_nascita="",
+        qualifica="",
+        indirizzo=SimpleNamespace(
+            via="Viale Trastevere",
+            civico="76/A",
+            cap="00153",
+            comune="Roma",
+            provincia="RM",
+            nazione="Italia",
+        ),
+    )
+    return SimpleNamespace(parti_fascicolo=lambda _id: [(parte, soggetto)])
+
+
 def test_indirizzo_cliente_mancante_non_blocca_anagrafica_ricorso():
     xml = anagrafica_xml_se_ricorso(
         tipo_atto="RICORSO",
         fascicolo=_fascicolo(),
         get_clienti=lambda: _clienti(_cliente(cap="", via="", civico="", comune="", provincia="")),
+        get_soggetti=_soggetti_controparte,
         get_config_studio=_config_studio,
         operatore="Giuseppe Montagnese",
     )
@@ -88,6 +113,7 @@ def test_indirizzo_studio_mancante_non_blocca_anagrafica_ricorso():
         tipo_atto="RICORSO",
         fascicolo=_fascicolo(),
         get_clienti=lambda: _clienti(_cliente()),
+        get_soggetti=_soggetti_controparte,
         get_config_studio=lambda: _config_studio(indirizzo="", city="", province=""),
         operatore="Giuseppe Montagnese",
     )
@@ -102,6 +128,7 @@ def test_indirizzi_mancanti_non_bloccano_anagrafica_sigp_introduttivo():
         tipo_atto="ATTO_DI_CITAZIONE",
         fascicolo=_fascicolo(),
         get_clienti=lambda: _clienti(_cliente(cap="", via="", civico="", comune="", provincia="")),
+        get_soggetti=_soggetti_controparte,
         get_config_studio=lambda: _config_studio(indirizzo="", city="", province=""),
         operatore="Giuseppe Montagnese",
         datiatto_root_name="Ricorso",
@@ -118,6 +145,7 @@ def test_indirizzi_mancanti_non_bloccano_anagrafica_cassazione():
         tipo_atto="RICORSO",
         fascicolo=_fascicolo(),
         get_clienti=lambda: _clienti(_cliente(cap="", via="", civico="", comune="", provincia="")),
+        get_soggetti=_soggetti_controparte,
         get_config_studio=lambda: _config_studio(indirizzo="", city="", province=""),
         operatore="Giuseppe Montagnese",
         datiatto_root_name="Ricorso",
@@ -137,6 +165,7 @@ def test_codice_fiscale_cliente_mancante_resta_bloccante_senza_indirizzo_cliente
             get_clienti=lambda: _clienti(
                 _cliente(codice_fiscale="", cap="", via="", civico="", comune="", provincia="")
             ),
+            get_soggetti=_soggetti_controparte,
             get_config_studio=_config_studio,
             operatore="Giuseppe Montagnese",
         )
@@ -182,6 +211,7 @@ def test_readiness_deposito_riconosce_esenzione_anagrafica_e_valore_gia_presenti
     readiness = deposito_ministerial_readiness(
         fascicolo=fascicolo,
         get_clienti=lambda: _clienti(_cliente()),
+        get_soggetti=_soggetti_controparte,
         get_config_studio=_config_studio,
         operatore="Giuseppe Montagnese",
     )
@@ -281,6 +311,72 @@ def test_contributo_unificato_riconosce_ricevuta_pagopa_selezionata():
     assert contribution["source"] == "Ricevuta PagoPA contributo unificato euro 98,00.pdf"
 
 
+def test_contributo_unificato_pagato_con_importo_ma_senza_ricevuta_resta_bloccante():
+    fascicolo = _fascicolo()
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "pagato",
+            "natura": "pagamento_contributo_unificato",
+            "importo": 98.0,
+        }
+    }
+
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=[])
+
+    assert contribution["resolved"] is False
+    assert contribution["mode"] == "pagato"
+    assert contribution["importo"] == 98.0
+    assert contribution["payment_evidence"] is False
+    assert contribution["blocking_message"] == (
+        "Mancano gli estremi di pagamento del Contributo Unificato: "
+        "inserisci la ricevuta telematica tra i documenti del deposito."
+    )
+
+
+def test_contributo_unificato_pagato_unisce_importo_registrato_e_ricevuta_selezionata():
+    fascicolo = _fascicolo()
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "pagato",
+            "natura": "pagamento_contributo_unificato",
+            "importo": 98.0,
+        }
+    }
+    documents = [
+        SimpleNamespace(
+            id="CU1",
+            nome="Ricevuta PagoPA contributo unificato.pdf",
+            descrizione="Ricevuta telematica pagamento contributo unificato IUV 123",
+            catalogRole="contributo_unificato",
+        )
+    ]
+
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=documents)
+
+    assert contribution["resolved"] is True
+    assert contribution["mode"] == "pagato"
+    assert contribution["importo"] == 98.0
+    assert contribution["payment_evidence"] is True
+    assert contribution["source"] == "Ricevuta PagoPA contributo unificato.pdf"
+
+
+def test_contributo_unificato_prenotato_a_debito_non_richiede_ricevuta_o_importo():
+    fascicolo = _fascicolo()
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "pagato",
+            "natura": "prenotazione_a_debito",
+            "importo": None,
+        }
+    }
+
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=[])
+
+    assert contribution["resolved"] is True
+    assert contribution["mode"] == "prenotato_a_debito"
+    assert contribution["importo"] is None
+
+
 def test_readiness_deposito_pagato_senza_importo_indica_il_dato_mancante():
     fascicolo = _fascicolo()
     fascicolo.valore_causa = 500.0
@@ -295,6 +391,7 @@ def test_readiness_deposito_pagato_senza_importo_indica_il_dato_mancante():
     readiness = deposito_ministerial_readiness(
         fascicolo=fascicolo,
         get_clienti=lambda: _clienti(_cliente()),
+        get_soggetti=_soggetti_controparte,
         get_config_studio=_config_studio,
         operatore="Giuseppe Montagnese",
     )
@@ -303,7 +400,21 @@ def test_readiness_deposito_pagato_senza_importo_indica_il_dato_mancante():
     assert contribution["ready"] is False
     assert contribution["mode"] == "pagato"
     assert contribution["amount"] is None
-    assert contribution["message"] == "Inserisci l'importo del contributo unificato pagato per proseguire."
+    assert contribution["message"] == "Manca il contributo unificato: inserisci l'importo pagato."
+
+
+def test_anagrafica_non_inventa_il_codice_fiscale_della_controparte():
+    with pytest.raises(ValueError) as exc:
+        anagrafica_xml_se_ricorso(
+            tipo_atto="RICORSO",
+            fascicolo=_fascicolo(),
+            get_clienti=lambda: _clienti(_cliente()),
+            get_soggetti=lambda: SimpleNamespace(parti_fascicolo=lambda _id: []),
+            get_config_studio=_config_studio,
+            operatore="Giuseppe Montagnese",
+        )
+
+    assert "codice fiscale controparte" in str(exc.value)
 
 
 def test_split_nome_cognome_preserva_ordine_e_cognome_composto():

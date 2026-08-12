@@ -90,6 +90,7 @@ def register_fascicoli_surfaces(
         app,
         get_fascicoli=core["get_fascicoli"],
         get_clienti=core["get_clienti"],
+        get_soggetti=core["get_soggetti"],
         get_config_studio=core["get_config_studio"],
         audit=core["audit"],
         sync_pubblica=core["sync_pubblica"],

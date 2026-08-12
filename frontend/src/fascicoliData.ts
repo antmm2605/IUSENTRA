@@ -822,6 +822,14 @@ export type FascicoloDepositCatalogEntry = {
     behavior: string
     controls: string[]
     documents: string[]
+    documentRequirements: Array<{
+      code: string
+      label: string
+      required: boolean
+      outcome: string
+      message: string
+      ruleId: string
+    }>
   }
 }
 
@@ -889,6 +897,7 @@ export type FascicoloDepositPreparation = {
     documentId: string
     selected: boolean
     role: string
+    studioDocumentType: string
     alreadySigned: boolean
     requiresSignature: boolean
   }>
@@ -2390,6 +2399,7 @@ function normalizeDepositPreparation(value: unknown): FascicoloDepositPreparatio
         documentId: text(document.documentId ?? document.document_id),
         selected: bool(document.selected),
         role: text(document.role, 'allegato'),
+        studioDocumentType: text(document.studioDocumentType ?? document.studio_document_type),
         alreadySigned: bool(document.alreadySigned ?? document.already_signed),
         requiresSignature: bool(document.requiresSignature ?? document.requires_signature),
       }
@@ -2490,6 +2500,17 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
         behavior: text(ui.behavior),
         controls: asArray(ui.controls).map((item) => text(item)).filter(Boolean),
         documents: asArray(ui.documents).map((item) => text(item)).filter(Boolean),
+        documentRequirements: asArray(ui.documentRequirements ?? ui.document_requirements).map((requirement) => {
+          const item = isRecord(requirement) ? requirement : {}
+          return {
+            code: text(item.code),
+            label: text(item.label),
+            required: bool(item.required),
+            outcome: text(item.outcome),
+            message: text(item.message),
+            ruleId: text(item.ruleId ?? item.rule_id),
+          }
+        }).filter((requirement) => requirement.code && requirement.label),
       },
     }
   })

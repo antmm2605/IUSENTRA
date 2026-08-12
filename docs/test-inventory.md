@@ -13,11 +13,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 83 |
-| Backend | 66 |
+| Backend | 65 |
 | E2E | 9 |
 | Frontend static gate | 1 |
 | Frontend/UI | 169 |
-| RBAC | 52 |
+| RBAC | 53 |
 | Security | 37 |
 | Smoke CLI | 6 |
 | Tenant isolation | 137 |
@@ -578,7 +578,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Smoke | Smoke CLI | scripts/smoke_app_v2_workflows.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_backend_security.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_lib.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
-| Telematico | Backend | tests/test_deposito_anagrafica_ministeriale.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_deposito_route_helpers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_import_pst_xsd_codici_oggetto.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_pst_services.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -593,6 +592,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Frontend/UI | tests/test_telematico_repository.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_telematico_resilience.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | RBAC | tests/test_deposito.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | RBAC | tests/test_deposito_anagrafica_ministeriale.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pdp_penale_web.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pdp_penale_workflow.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_integration.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |

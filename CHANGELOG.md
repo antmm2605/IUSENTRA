@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.16 - 2026-08-12
+
+- **Deposito telematico: rifirma operativa di `DatiAtto.xml.p7m`.** Se la firma ricevuta dal PC locale non contiene `signingCertificateV2`, il backend restituisce il documento da firmare nuovamente e la UI apre una nuova richiesta PIN; la nuova firma sostituisce quella non conforme ed è validata prima di creare la busta.
+- **Deposito telematico: parità del catalogo Studio Telematico.** Il catalogo comprende 270 tipi, con contratto comportamentale, validazioni, generatori ministeriali PCT/UNEP e audit dedicati ricavati dal decompilato di riferimento.
+- **Local Signer 1.6.107.** La firma CAdES-BES include gli attributi firmati richiesti e mantiene PIN e operazioni crittografiche sul PC locale dell'avvocato.
+
 ## 2.276.13 - 2026-08-05
 
 - **Notifiche legali: allegati senza blocco su impronta stale.** La preparazione della PEC locale usa i documenti reali salvati nel fascicolo e non blocca più l'invio per differenze tra l'impronta del payload e il file scelto dall'avvocato; l'impronta resta calcolata sul contenuto effettivo allegato alla PEC.

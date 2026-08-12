@@ -8,6 +8,8 @@ from typing import Any
 
 from lxml import etree
 
+from pct.deposito_studio_telematico_contract import studio_telematico_type_contract
+
 
 def _field(
     field_id: str,
@@ -76,6 +78,71 @@ CASSAZIONE_ROLE_OPTIONS = (
     ("AffariCivili", "Affari civili"),
 )
 
+PAYMENT_MODE_OPTIONS = (
+    ("NonDovuto", "Non dovuto"),
+    ("Esente", "Esente"),
+    ("ADebito", "Prenotato a debito"),
+    ("Pagato", "Pagato"),
+)
+
+SUCCESSION_ACT_OPTIONS = (
+    ("AttoGiudiziario", "Atto giudiziario"),
+    ("AttoNotarile", "Atto notarile"),
+    ("Dichiarazione", "Dichiarazione"),
+    ("Istanza", "Istanza"),
+    ("Segnalazione", "Segnalazione"),
+    ("Altro", "Altro"),
+)
+
+SUCCESSION_PART_OPTIONS = (
+    ("Proprio", "In proprio"),
+    ("ProprioQualita", "In proprio e nella qualita'"),
+    ("Qualita", "Nella qualita'"),
+)
+
+SUCCESSION_QUALITY_OPTIONS = (
+    ("AmministratoreDiSostegno", "Amministratore di sostegno"),
+    ("Curatore", "Curatore"),
+    ("CuratoreSpeciale", "Curatore speciale"),
+    ("Genitore", "Genitore"),
+    ("ProcuratoreSpeciale", "Procuratore speciale"),
+    ("Tutore", "Tutore"),
+)
+
+CASSAZIONE_JUSTICE_EXPENSE_KEYS = {
+    "Parte_CASSAZIONE::Ricorso",
+    "Parte_CASSAZIONE::ControRicorso",
+    "Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente",
+    "Parte_CASSAZIONE::ControRicorsoIncidentale",
+    "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente",
+    "Parte_CASSAZIONE::IntegrazioneContradittorio",
+    "Parte_CASSAZIONE::IntegrazioneSpeseGiustizia",
+}
+
+
+def _append_payment_branch(fields: list[dict[str, Any]], prefix: str, label: str) -> None:
+    group = "Spese di giustizia"
+    _append_unique(
+        fields,
+        _field(f"{prefix}_importo", f"Importo {label}", "currency", required=False, group=group),
+        _field(
+            f"{prefix}_tipo_pagamento",
+            f"Pagamento {label}",
+            "select",
+            required=False,
+            group=group,
+            options=PAYMENT_MODE_OPTIONS,
+        ),
+        _field(
+            f"{prefix}_ricevuta",
+            f"Ricevuta {label}",
+            "document-reference",
+            required=False,
+            group=group,
+            note="Richiesta da Studio Telematico solo se il pagamento non e' Non dovuto, Esente o Prenotato a debito.",
+        ),
+    )
+
 
 def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str) -> list[dict[str, Any]]:
     """Restituisce solo i campi pertinenti al tipo di deposito selezionato."""
@@ -83,6 +150,36 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
     key = str(catalog_key or "")
     suffix = key.rsplit("::", 1)[-1]
     fields: list[dict[str, Any]] = []
+    contract = studio_telematico_type_contract(key) or {}
+    controls = contract.get("controls") if isinstance(contract.get("controls"), dict) else {}
+
+    def enabled(control: str) -> bool:
+        state = controls.get(control)
+        return isinstance(state, dict) and str(state.get("Enabled") or "").casefold() == "true"
+
+    common_group = "Dati richiesti dal tipo di deposito"
+    if enabled("txtCCI"):
+        _append_unique(fields, _field("cci", "Numero Codice della crisi d'impresa (CCI)", "integer", required=False, group=common_group))
+    if enabled("txtSub_Procedimento"):
+        _append_unique(fields, _field("sub_procedimento", "Sub-procedimento", "integer", required=False, group=common_group))
+    if enabled("cboRito"):
+        _append_unique(fields, _field("rito", "Rito", group=common_group))
+    if enabled("cboRiferimentoProvvedimento"):
+        _append_unique(fields, _field("precedente_provvedimento_tipo", "Tipologia del provvedimento", group=common_group))
+    if enabled("txtRiferimentoProvvedimentoNumero"):
+        _append_unique(fields, _field("precedente_provvedimento_numero", "Numero del provvedimento", group=common_group))
+    if enabled("dtpDataPrecedenteProvvedimento"):
+        _append_unique(fields, _field("data_precedente_provvedimento", "Data del provvedimento", "date", group=common_group))
+    if enabled("cboPrecedenteFascicolo"):
+        _append_unique(fields, _field("precedente_fascicolo_ufficio", "Ufficio del fascicolo precedente", group=common_group))
+    if enabled("txtPrecedenteFascicoloNumero"):
+        _append_unique(fields, _field("precedente_fascicolo_numero", "Numero del fascicolo precedente", group=common_group))
+    if enabled("txtPrecedenteFascicoloAnno"):
+        _append_unique(fields, _field("precedente_fascicolo_anno", "Anno del fascicolo precedente", "year", group=common_group))
+    if enabled("cboIstanze"):
+        _append_unique(fields, _field("istanza", "Istanza", group=common_group))
+    if enabled("dtpDataAttoDaDepositare"):
+        _append_unique(fields, _field("data_atto_deposito", "Data dell'atto", "date", group=common_group))
 
     if generator_class.startswith("Introduttivi") and (
         "citazione" in root_name.casefold() or root_name == "OpposizioneDecretoIngiuntivo"
@@ -157,17 +254,62 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
             _field("divorzio_sentenza_anno", "Anno della sentenza di divorzio", "year"),
         )
     if root_name == "Successioni":
+        succession_group = "Eredita' e successioni"
+        deceased_group = "Dati del defunto"
+        testament_group = "Dati del testamento"
         _append_unique(
             fields,
-            _field("defunto_cognome", "Cognome del defunto"),
-            _field("defunto_nome", "Nome del defunto"),
+            _field("successione_parte_istante", "Nome o denominazione della parte istante", group=succession_group),
             _field(
-                "testamento_tipo",
-                "Testamento",
+                "successione_parte_agisce",
+                "La parte agisce",
+                "select",
+                group=succession_group,
+                options=SUCCESSION_PART_OPTIONS,
+            ),
+            _field(
+                "successione_qualita",
+                "Qualita' della parte",
                 "select",
                 required=False,
-                options=(("NonSpecificato", "Non specificato"), ("Olografo", "Olografo"), ("Pubblico", "Pubblico"), ("Segreto", "Segreto")),
+                group=succession_group,
+                options=SUCCESSION_QUALITY_OPTIONS,
             ),
+            _field(
+                "successione_tipo_atto",
+                "Atto introduttivo della successione",
+                "select",
+                group=succession_group,
+                options=SUCCESSION_ACT_OPTIONS,
+            ),
+            _field("defunto_cognome", "Cognome del defunto", group=deceased_group),
+            _field("defunto_nome", "Nome del defunto", group=deceased_group),
+            _field("defunto_codice_fiscale", "Codice fiscale del defunto", group=deceased_group),
+            _field("defunto_data_nascita", "Data di nascita del defunto", "date", required=False, group=deceased_group),
+            _field("defunto_data_decesso", "Data del decesso", "date", required=False, group=deceased_group),
+            _field("defunto_luogo_decesso", "Luogo del decesso", required=False, group=deceased_group),
+            _field("defunto_indirizzo", "Ultimo domicilio - indirizzo", required=False, group=deceased_group),
+            _field("defunto_civico", "Ultimo domicilio - civico", required=False, group=deceased_group),
+            _field("defunto_cap", "Ultimo domicilio - CAP", required=False, group=deceased_group),
+            _field("defunto_citta", "Ultimo domicilio - citta'", required=False, group=deceased_group),
+            _field(
+                "testamento_tipo",
+                "Tipo di testamento",
+                "select",
+                group=testament_group,
+                options=(("NonSpecificato", "Non specificato"), ("Olografo", "Olografo"), ("Pubblico", "Pubblico"), ("Segreto", "Segreto"), ("AB", "AB")),
+            ),
+            _field("testamento_notaio", "Notaio", required=False, group=testament_group),
+            _field("testamento_numero_repertorio", "Numero repertorio", "integer", required=False, group=testament_group),
+            _field("testamento_ufficio_registrazione", "Ufficio di registrazione", required=False, group=testament_group),
+            _field("testamento_numero_registrazione", "Numero registrazione", "integer", required=False, group=testament_group),
+            _field("testamento_data_pubblicazione", "Data pubblicazione", "date", required=False, group=testament_group),
+            _field("testamento_data", "Data testamento", "date", required=False, group=testament_group),
+            _field("testamento_data_registrazione", "Data registrazione", "date", required=False, group=testament_group),
+            _field("verbalizzazione_cancelliere", "Cancelliere della verbalizzazione", required=False, group=succession_group),
+            _field("verbalizzazione_data", "Data verbalizzazione", "date", required=False, group=succession_group),
+            _field("inventario_data_deposito", "Data deposito inventario", "date", required=False, group=succession_group),
+            _field("inventario_data_compimento", "Data compimento inventario", "date", required=False, group=succession_group),
         )
     if root_name == "RicorsoMinorenniSoggettoInteressato":
         _append_unique(
@@ -253,6 +395,7 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
         elif "MobiliarePressoTerzi" in key:
             _append_unique(
                 fields,
+                _field("data_notifica_pignoramento", "Data di notifica del pignoramento", "date", group=pign_group),
                 _field("data_citazione", "Data di citazione del terzo", "date", group=pign_group),
                 _field("terzi", "Terzi pignorati", "terzi-pignorati", group="Terzi"),
             )
@@ -305,12 +448,12 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
                 ),
             ),
             _field("data_richiesta_notifica_cassazione", "Data della prima notifica", "date", group=cass_group),
-            _field("data_effettiva_notifica_cassazione", "Data di perfezionamento dell'ultima notifica", "date", required=False, group=cass_group),
+            _field("data_effettiva_notifica_cassazione", "Data di perfezionamento dell'ultima notifica", "date", group=cass_group),
             _field("materia_ricorso_cassazione", "Materia del ricorso", "cassazione-materia", group=cass_group),
-            _field("parole_chiave_cassazione", "Parole chiave", required=False, group=cass_group),
+            _field("parole_chiave_cassazione", "Parole chiave", group=cass_group),
             _field("provvedimento_impugnato", "Provvedimento impugnato", "provvedimento-cassazione", group="Provvedimento impugnato"),
         )
-        if root_name == "Ricorso":
+        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
             _append_unique(
                 fields,
                 _field("inizio_primo_grado_anno", "Anno di inizio del primo grado", "year", group=cass_group),
@@ -320,6 +463,127 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
             _append_unique(fields, _field("motivi_cassazione", "Motivi", "motivi-cassazione", group="Motivi"))
         if root_name in {"ControRicorso", "ControRicorsoIncidentale"}:
             _append_unique(fields, _field("contromotivi_cassazione", "Contromotivi", "contromotivi-cassazione", group="Contromotivi"))
+
+    if key in CASSAZIONE_JUSTICE_EXPENSE_KEYS:
+        _append_payment_branch(fields, "spese_integrazione_art13", "integrazione ex art. 13, comma 2-bis, T.U.")
+        _append_payment_branch(fields, "spese_diritti_art30", "diritti di registrazione a ruolo ex art. 30 T.U.")
+        _append_payment_branch(fields, "spese_notifica_art34", "notifica avvocati ex art. 34 T.U.")
+
+    if key == "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore":
+        organ_group = "Organo di gestione della crisi"
+        occ_group = "Referente OCC"
+        _append_unique(
+            fields,
+            _field("organo_crisi_tipo", "Tipo organo", "select", group=organ_group, options=(("OCC", "OCC"), ("Gestore", "Gestore della crisi"), ("Altro", "Altro"))),
+            _field("organo_crisi_natura_giuridica", "Natura giuridica", "select", group=organ_group, options=(("PFI", "Persona fisica"), ("PGI", "Persona giuridica"), ("PAM", "Pubblica amministrazione"))),
+            _field("organo_crisi_denominazione", "Cognome o denominazione", group=organ_group),
+            _field("organo_crisi_codice_fiscale", "Codice fiscale", group=organ_group),
+            _field("occ_referente_presente", "Referente OCC presente", "boolean", required=False, group=occ_group),
+            _field("occ_referente_qualifica", "Qualifica referente OCC", "select", required=False, group=occ_group, options=(("Referente", "Referente"), ("Gestore", "Gestore"), ("Altro", "Altro"))),
+            _field("occ_referente_natura_giuridica", "Natura giuridica referente OCC", "select", required=False, group=occ_group, options=(("PFI", "Persona fisica"), ("PGI", "Persona giuridica"), ("PAM", "Pubblica amministrazione"))),
+            _field("occ_referente_denominazione", "Cognome o denominazione referente OCC", required=False, group=occ_group),
+            _field("occ_referente_codice_fiscale", "Codice fiscale referente OCC", required=False, group=occ_group),
+        )
+
+    if generator_class == "UNEP":
+        unep_group = "Dati UNEP"
+        cause_group = "Riferimento del procedimento UNEP"
+        controls = contract.get("controls") if isinstance(contract.get("controls"), dict) else {}
+        natura_state = controls.get("cboCodiciNaturaUNEP") if isinstance(controls.get("cboCodiciNaturaUNEP"), dict) else {}
+        natura_visible = str(natura_state.get("Visible") or "").casefold() == "true"
+        natura_enabled = str(natura_state.get("Enabled") or "true").casefold() == "true"
+
+        def append_cause_fields(*, required: bool) -> None:
+            _append_unique(
+                fields,
+                _field("unep_causa_ufficio", "Ufficio del procedimento", required=required, group=cause_group),
+                _field("unep_causa_numero", "Numero R.G. del procedimento", required=required, group=cause_group),
+                _field("unep_causa_sub", "Sub-procedimento", "integer", required=False, group=cause_group),
+                _field("unep_causa_cci", "Numero CCI", "integer", required=False, group=cause_group),
+                _field("unep_causa_anno", "Anno del procedimento", "year", required=required, group=cause_group),
+                _field("unep_causa_data_udienza", "Data dell'udienza", "date", required=required, group=cause_group),
+            )
+
+        if natura_visible and natura_enabled:
+            _append_unique(
+                fields,
+                _field("unep_natura_atto", "Natura del deposito UNEP", group=unep_group),
+                _field(
+                    "unep_codice_natura",
+                    "Codice natura UNEP",
+                    required=not suffix.startswith("PagamentoRichiesta"),
+                    group=unep_group,
+                ),
+            )
+        if suffix.startswith("Atto"):
+            _append_unique(
+                fields,
+                _field("unep_data_richiesta", "Data della richiesta di notifica", "date", group=unep_group),
+                _field("unep_data_scadenza", "Data di scadenza della notifica", "date", group=unep_group),
+                _field(
+                    "unep_destinatari",
+                    "Destinatari e tipologia di notifica",
+                    "unep-destinatari",
+                    required=False,
+                    group=unep_group,
+                ),
+            )
+        if suffix in {"AttoEsenteLavoro", "AttoCivileDebito", "AttoPenaleDebito"}:
+            append_cause_fields(required=True)
+        if suffix.endswith("Debito"):
+            _append_unique(
+                fields,
+                _field("unep_ente_debito", "Ente concedente il debito", group=unep_group),
+                _field("unep_numero_debito", "Numero della concessione a debito", group=unep_group),
+                _field("unep_data_debito", "Data della concessione a debito", "date", group=unep_group),
+            )
+        if suffix.startswith("PagamentoRichiesta"):
+            _append_unique(fields, _field("unep_codice_pagamento", "Codice di pagamento", group=unep_group))
+        if suffix == "RichiestaRestituzioneSomme":
+            _append_unique(
+                fields,
+                _field("unep_codice_pagamento", "Codice di pagamento", group=unep_group),
+                _field("unep_registro_bilancio", "Numero registro del bilancio UNEP", group=unep_group),
+                _field("unep_anno_bilancio", "Anno del bilancio UNEP", "year", group=unep_group),
+                _field("unep_iban", "IBAN per la restituzione", group=unep_group),
+            )
+        if suffix.startswith("RichiestaPignoramento"):
+            source_blocks_missing_assets = (
+                "Mobiliare" in suffix
+                or "PressoTerzi" in suffix
+                or suffix in {"RichiestaPignoramentoImmobiliare", "RichiestaPignoramentoImmobiliareADebito"}
+            )
+            _append_unique(
+                fields,
+                _field("unep_inoltro_ufficiale_giudiziario", "Sede dell'ufficiale giudiziario", group=unep_group),
+                _field("unep_importo_precetto", "Importo dell'atto di precetto", "currency", required=False, group=unep_group),
+                _field("unep_destinatari", "Debitori e dati di notifica del precetto", "unep-destinatari", required=False, group=unep_group),
+                _field("unep_titoli", "Titolo del procedente", "unep-titoli", group=unep_group),
+                _field(
+                    "unep_beni",
+                    "Beni da pignorare e diritti reali",
+                    "beni-pignorati-unep",
+                    required=source_blocks_missing_assets,
+                    group=unep_group,
+                ),
+            )
+            if "PressoTerzi" in suffix:
+                _append_unique(
+                    fields,
+                    _field("unep_terzi", "Terzi pignorati", "unep-terzi", required=False, group=unep_group),
+                )
+            append_cause_fields(required=suffix.endswith("MateriaLavoro") or suffix.endswith("ADebito"))
+        if suffix == "RichiestaRicercaBeni":
+            _append_unique(
+                fields,
+                _field("unep_inoltro_ufficiale_giudiziario", "Sede dell'ufficiale giudiziario", group=unep_group),
+                _field("unep_autorita_tipo", "Autorita' che ha autorizzato la ricerca", group=unep_group),
+                _field("unep_autorita_sede", "Sede dell'autorita'", group=unep_group),
+                _field("unep_autorizzazione_numero", "Numero autorizzazione", group=unep_group),
+                _field("unep_autorizzazione_data", "Data autorizzazione", "date", group=unep_group),
+                _field("unep_data_notifica_precetto", "Data notifica dell'atto di precetto", "date", required=False, group=unep_group),
+                _field("unep_importo_precetto", "Importo dell'atto di precetto", "currency", required=False, group=unep_group),
+            )
 
     return fields
 

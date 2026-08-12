@@ -5677,3 +5677,25 @@ Guardrail ripetuti:
 - `python -m pytest -q tests\test_cades_signed_attrs.py tests\test_deposito_anagrafica_ministeriale.py tests\test_busta.py::test_busta_reale_usa_dati_atto_firmato_nell_indice_busta tests\test_busta.py::test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg tests\test_utf8_integrity.py` -> `20 passed`.
 
 Stato: non verificato su macchina reale con nuovo deposito al Tribunale di Vicenza.
+
+## Aggiornamento 12/08/2026 - Rifirma operativa di DatiAtto.xml.p7m
+
+Perimetro: esclusivamente deposito telematico. Notifiche legali, relate di notifica e relativi invii PEC non sono stati modificati.
+
+- Il messaggio relativo all'assenza di `signingCertificateV2` non è più un vicolo cieco: il backend restituisce nuovamente il contenuto ministeriale esatto di `DatiAtto.xml` con `requires_local_signature=true`, `signature_retry=true` e la causa tecnica della rifirma.
+- La UI React azzera la precedente sessione PIN, apre una nuova richiesta con titolo `Firma nuovamente i dati del deposito` e usa la nuova firma restituita dal Local Signer al posto di quella non conforme.
+- La firma sostitutiva viene validata nuovamente come CAdES-BES prima della generazione di `Atto.msg` e `Atto.enc`; non è stato introdotto alcun bypass del controllo `signingCertificateV2`.
+- Il Local Signer resta il solo esecutore della firma sul PC dell'avvocato e la versione distribuita è `1.6.107`.
+- I test automatici coprono sia la risposta di rifirma per una busta CAdES priva di `signingCertificateV2`, sia l'accettazione della firma sostitutiva CAdES-BES sullo stesso `DatiAtto.xml`.
+
+Verifiche tecniche eseguite prima del deploy:
+
+- `py -3.14 -m pytest -q tests/test_deposito.py -k "dati_atto_non_bes_restituisce_azione_reale_di_rifirma_locale"` -> `1 passed`;
+- `py -3.14 -m pytest -q tests/test_regia_ui_react.py -k "ui_deposito_prova_guidata_non_salta_firma"` -> `1 passed`;
+- `py -3.14 -m pytest -q tests/test_cades_signed_attrs.py` -> `3 passed`;
+- `py -3.14 -m pytest -q tests/test_local_signer.py -k "signing_certificate_v2 or firma_batch or firma_windows_store"` -> `4 passed`;
+- `py -3.14 scripts/audit_deposito_parita_studio_telematico.py` -> `270` tipi verificati, `270` in parità, `0` differenze; il ramo UNEP mantiene `IndiceBusta` interno e `Atto.enc`, come il flusso di deposito del decompilato;
+- `npm run typecheck` e `npm run build` nel frontend -> completati senza errori;
+- copia Docker locale `127.0.0.1:8080` ricostruita, container unico `iusentra-app` healthy e `/api/pronto` HTTP 200.
+
+Stato prima del deploy: non verificato sul server reale. La prova materiale sul fascicolo `B494AAB9` viene eseguita su `https://app.iusentra.it` dopo commit e deploy.

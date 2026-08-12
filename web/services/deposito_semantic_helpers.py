@@ -219,14 +219,16 @@ def _contributo_unificato_from_documents(
             )
         )
         if contribution_context and payment_marker:
+            document_amount = _payment_amount_from_text(text)
             return {
-                "resolved": _payment_amount_from_text(text) is not None,
+                "resolved": document_amount is not None,
                 "mode": "pagato",
-                "importo": _payment_amount_from_text(text),
+                "importo": document_amount,
                 "debito": False,
                 "source": _document_source_name(document),
                 "status": "pagato",
                 "natura": "pagamento_contributo_unificato",
+                "payment_evidence": True,
             }
 
     for document in selected_documents:
@@ -262,6 +264,7 @@ def _contributo_unificato_from_documents(
                 "source": _document_source_name(document),
                 "status": "non_previsto",
                 "natura": "esenzione_contributo_unificato",
+                "payment_evidence": False,
             }
     return None
 
@@ -301,20 +304,49 @@ def ministerial_contributo_unificato_for_context(
         resolved = True
     elif debt:
         mode = "prenotato_a_debito"
-        resolved = amount is not None
+        resolved = True
     elif paid:
         mode = "pagato"
-        resolved = amount is not None
+        resolved = False
     else:
         mode = "da_definire"
         resolved = False
 
     document_state = _contributo_unificato_from_documents(fascicolo, documents)
-    if document_state and (
-        not raw
-        or mode == "da_definire"
-        or (mode == "pagato" and document_state["mode"] == "pagato" and not resolved)
-    ):
+    if document_state and document_state["mode"] == "esente" and (not raw or mode == "da_definire"):
+        return document_state
+
+    if mode == "pagato" or (document_state and document_state["mode"] == "pagato"):
+        document_amount = document_state.get("importo") if document_state else None
+        effective_amount = amount if amount is not None else document_amount
+        if documents is None:
+            payment_evidence = bool(source) or bool(document_state and document_state.get("payment_evidence"))
+            effective_source = source or str((document_state or {}).get("source") or "")
+        else:
+            payment_evidence = bool(document_state and document_state.get("payment_evidence"))
+            effective_source = str((document_state or {}).get("source") or "")
+        if effective_amount is None:
+            blocking_message = "Manca il contributo unificato: inserisci l'importo pagato."
+        elif not payment_evidence:
+            blocking_message = (
+                "Mancano gli estremi di pagamento del Contributo Unificato: "
+                "inserisci la ricevuta telematica tra i documenti del deposito."
+            )
+        else:
+            blocking_message = ""
+        return {
+            "resolved": effective_amount is not None and payment_evidence,
+            "mode": "pagato",
+            "importo": effective_amount,
+            "debito": False,
+            "source": effective_source,
+            "status": status or "pagato",
+            "natura": nature or "pagamento_contributo_unificato",
+            "payment_evidence": payment_evidence,
+            "blocking_message": blocking_message,
+        }
+
+    if document_state and not raw:
         return document_state
 
     return {
@@ -325,4 +357,10 @@ def ministerial_contributo_unificato_for_context(
         "source": source,
         "status": status,
         "natura": nature,
+        "payment_evidence": False,
+        "blocking_message": (
+            "Manca il contributo unificato: indica se non è dovuto, esente, a debito o pagato."
+            if not resolved
+            else ""
+        ),
     }

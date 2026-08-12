@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.105
+IUSENTRA Local Signer - v1.6.107
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import json
 import logging
 import os
@@ -119,7 +120,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.105"
+VERSION = "1.6.107"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3599,6 +3600,258 @@ def _firma_windows_store_error_message(detail: str) -> str:
     return "Firma Windows non completata. Nessuna PEC è stata inviata."
 
 
+def _windows_store_certificate_der(thumbprint: str) -> bytes:
+    clean = str(thumbprint or "").replace(" ", "").upper()
+    if not re.fullmatch(r"[0-9A-F]{40,128}", clean):
+        raise RuntimeError("Thumbprint del certificato Windows non valido.")
+    script = (
+        "$ErrorActionPreference='Stop';"
+        f"$clean='{clean}';"
+        "$cert=Get-ChildItem Cert:\\CurrentUser\\My | "
+        "Where-Object {(($_.Thumbprint -replace ' ','').ToUpperInvariant()) -eq $clean} | "
+        "Select-Object -First 1;"
+        "if(-not $cert){throw 'Certificato Windows non trovato nello store utente.'};"
+        "[Console]::Out.Write([Convert]::ToBase64String($cert.RawData))"
+    )
+    powershell = os.getenv("SystemRoot", r"C:\Windows")
+    powershell_path = Path(powershell) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    result = subprocess.run(
+        [
+            str(powershell_path if powershell_path.exists() else "powershell.exe"),
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or "").strip())
+    try:
+        return base64.b64decode((result.stdout or "").strip(), validate=True)
+    except Exception as exc:
+        raise RuntimeError("Certificato Windows non leggibile in formato DER.") from exc
+
+
+def _windows_store_certificate_chain_der(thumbprint: str) -> list[bytes]:
+    clean = str(thumbprint or "").replace(" ", "").upper()
+    if not re.fullmatch(r"[0-9A-F]{40,128}", clean):
+        raise RuntimeError("Thumbprint del certificato Windows non valido.")
+    script = (
+        "$ErrorActionPreference='Stop';"
+        f"$clean='{clean}';"
+        "$cert=Get-ChildItem Cert:\\CurrentUser\\My | "
+        "Where-Object {(($_.Thumbprint -replace ' ','').ToUpperInvariant()) -eq $clean} | "
+        "Select-Object -First 1;"
+        "if(-not $cert){throw 'Certificato Windows non trovato nello store utente.'};"
+        "$chain=New-Object System.Security.Cryptography.X509Certificates.X509Chain;"
+        "$chain.ChainPolicy.RevocationMode=[System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck;"
+        "[void]$chain.Build($cert);"
+        "$values=@();"
+        "foreach($item in $chain.ChainElements){"
+        "$current=$item.Certificate;"
+        "$currentThumb=(($current.Thumbprint -replace ' ','').ToUpperInvariant());"
+        "if($currentThumb -ne $clean -and $current.Subject -ne $current.Issuer){"
+        "$values += [Convert]::ToBase64String($current.RawData)"
+        "}"
+        "};"
+        "[Console]::Out.Write(($values -join [Environment]::NewLine))"
+    )
+    powershell = os.getenv("SystemRoot", r"C:\Windows")
+    powershell_path = Path(powershell) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    result = subprocess.run(
+        [
+            str(powershell_path if powershell_path.exists() else "powershell.exe"),
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or "").strip())
+    chain: list[bytes] = []
+    for line in (result.stdout or "").splitlines():
+        value = line.strip()
+        if value:
+            chain.append(base64.b64decode(value, validate=True))
+    return chain
+
+
+def _windows_store_sign_raw(thumbprint: str, payload: bytes, digest_algorithm: str) -> bytes:
+    clean = str(thumbprint or "").replace(" ", "").upper()
+    algorithm = str(digest_algorithm or "").replace("-", "").lower()
+    if algorithm != "sha256":
+        raise RuntimeError("Studio Telematico richiede SHA-256 per la firma PAdES.")
+    script = r'''
+param(
+  [Parameter(Mandatory=$true)][string]$Thumbprint,
+  [Parameter(Mandatory=$true)][string]$InputPath,
+  [Parameter(Mandatory=$true)][string]$OutputPath
+)
+$ErrorActionPreference = 'Stop'
+$clean = ($Thumbprint -replace ' ','').ToUpperInvariant()
+$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { (($_.Thumbprint -replace ' ','').ToUpperInvariant()) -eq $clean } | Select-Object -First 1
+if (-not $cert) { throw 'Certificato Windows non trovato nello store utente.' }
+if (-not $cert.HasPrivateKey) { throw 'Certificato Windows senza chiave privata.' }
+$rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
+if (-not $rsa) { throw 'Chiave privata RSA del certificato non disponibile.' }
+$content = [System.IO.File]::ReadAllBytes($InputPath)
+$signature = $rsa.SignData(
+  $content,
+  [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+  [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+)
+[System.IO.File]::WriteAllBytes($OutputPath, $signature)
+'''
+    with tempfile.TemporaryDirectory(prefix="iusentra-win-pades-") as tmp_dir:
+        tmp = Path(tmp_dir)
+        input_path = tmp / "payload.bin"
+        output_path = tmp / "signature.bin"
+        script_path = tmp / "firma_pades_windows_store.ps1"
+        input_path.write_bytes(payload)
+        script_path.write_text(script, encoding="utf-8")
+        powershell = os.getenv("SystemRoot", r"C:\Windows")
+        powershell_path = Path(powershell) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        result = _run_process_with_pin_foreground(
+            [
+                str(powershell_path if powershell_path.exists() else "powershell.exe"),
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(script_path),
+                "-Thumbprint",
+                clean,
+                "-InputPath",
+                str(input_path),
+                "-OutputPath",
+                str(output_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+        if result.returncode != 0 or not output_path.exists():
+            detail = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(_firma_windows_store_error_message(detail))
+        return output_path.read_bytes()
+
+
+def _signing_certificate_v2_value_der_inline(cert_der: bytes) -> bytes:
+    from asn1crypto import tsp, x509 as asn1_x509
+
+    cert = asn1_x509.Certificate.load(cert_der)
+    issuer_names = asn1_x509.GeneralNames(
+        [asn1_x509.GeneralName(name="directory_name", value=cert.issuer)]
+    )
+    return tsp.SigningCertificateV2(
+        {
+            "certs": [
+                {
+                    "cert_hash": hashlib.sha256(cert_der).digest(),
+                    "issuer_serial": {
+                        "issuer": issuer_names,
+                        "serial_number": cert.serial_number,
+                    },
+                }
+            ]
+        }
+    ).dump()
+
+
+def _firma_documento_windows_store_pades(
+    documento: bytes,
+    *,
+    cert_thumbprint: Optional[str] = None,
+    visible_signature_place: str = "",
+) -> tuple[bytes, dict]:
+    from asn1crypto import cms, x509 as asn1_x509
+    from cryptography import x509 as crypto_x509
+    from pypdf import PdfReader
+    from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+    from pyhanko.sign import fields, signers
+    from pyhanko.stamp import TextStampStyle
+    from pyhanko_certvalidator.registry import SimpleCertificateStore
+
+    cert = _windows_certificato_per_firma(cert_thumbprint)
+    thumbprint = str(cert.get("thumbprint") or "").replace(" ", "").upper()
+    if not thumbprint:
+        raise RuntimeError("Certificato Windows di firma non selezionato.")
+    cert_der = _windows_store_certificate_der(thumbprint)
+    chain_der = _windows_store_certificate_chain_der(thumbprint)
+    pdf_payload = documento
+    if not pdf_payload.lstrip().startswith(b"%PDF"):
+        content_info = cms.ContentInfo.load(pdf_payload)
+        pdf_payload = content_info["content"]["encap_content_info"]["content"].native
+        if isinstance(pdf_payload, str):
+            pdf_payload = pdf_payload.encode("latin-1")
+    if not isinstance(pdf_payload, bytes) or not pdf_payload.lstrip().startswith(b"%PDF"):
+        raise RuntimeError("Il documento richiesto per la firma PAdES non contiene un PDF valido.")
+
+    signing_cert = asn1_x509.Certificate.load(cert_der)
+    registry = SimpleCertificateStore()
+    registry.register_multiple(asn1_x509.Certificate.load(raw) for raw in chain_der)
+    key_size = crypto_x509.load_der_x509_certificate(cert_der).public_key().key_size
+
+    class WindowsStoreSigner(signers.Signer):
+        def __init__(self):
+            super().__init__(
+                signing_cert=signing_cert,
+                cert_registry=registry,
+                prefer_pss=False,
+                embed_roots=False,
+            )
+
+        async def async_sign_raw(self, data: bytes, digest_algorithm: str, dry_run: bool = False) -> bytes:
+            if dry_run:
+                return bytes(max(1, key_size // 8))
+            return _windows_store_sign_raw(thumbprint, data, digest_algorithm)
+
+    reader = PdfReader(io.BytesIO(pdf_payload))
+    page_width = int(float(reader.pages[-1].mediabox.width))
+    metadata = signers.PdfSignatureMetadata(
+        field_name="Signature1",
+        md_algorithm="sha256",
+        location=visible_signature_place,
+        reason="Per autentica e sottoscrizione",
+        name=str(cert.get("soggetto") or cert.get("soggetto_completo") or ""),
+        subfilter=fields.SigSeedSubFilter.PADES,
+    )
+    output = io.BytesIO()
+    signers.PdfSigner(
+        metadata,
+        signer=WindowsStoreSigner(),
+        stamp_style=TextStampStyle(
+            stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
+            timestamp_format="%d/%m/%Y ore %H:%M",
+        ),
+        new_field_spec=fields.SigFieldSpec(
+            sig_field_name="Signature1",
+            on_page=-1,
+            box=(20, 10, max(40, page_width - 20), 55),
+        ),
+    ).sign_pdf(
+        IncrementalPdfFileWriter(io.BytesIO(pdf_payload)),
+        output=output,
+    )
+    return output.getvalue(), {
+        "intestatario": str(cert.get("soggetto_completo") or cert.get("soggetto") or ""),
+        "scadenza": str(cert.get("scadenza") or ""),
+        "windows_cert_store": True,
+        "cert_thumbprint": thumbprint,
+        "pin_session_cached": False,
+        "formato": "pades",
+    }
+
+
 def _firma_documento_windows_store(
     documento: bytes,
     *,
@@ -3615,6 +3868,10 @@ def _firma_documento_windows_store(
             "autenticazione sia certificato di firma, seleziona quello di firma qualificata nel "
             "Local Signer o usa il token PKCS#11, poi ripeti la simulazione deposito."
         )
+    cert_der = _windows_store_certificate_der(thumbprint)
+    signing_certificate_v2_b64 = base64.b64encode(
+        _signing_certificate_v2_value_der_inline(cert_der)
+    ).decode("ascii")
 
     intestatario = str(cert.get("soggetto_completo") or cert.get("soggetto") or "")
     issuer = str(cert.get("emittente_completo") or cert.get("emittente") or "")
@@ -3633,7 +3890,8 @@ def _firma_documento_windows_store(
 param(
   [Parameter(Mandatory=$true)][string]$Thumbprint,
   [Parameter(Mandatory=$true)][string]$InputPath,
-  [Parameter(Mandatory=$true)][string]$OutputPath
+  [Parameter(Mandatory=$true)][string]$OutputPath,
+  [Parameter(Mandatory=$true)][string]$SigningCertificateV2Base64
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security
@@ -3645,9 +3903,15 @@ $content = [System.IO.File]::ReadAllBytes($InputPath)
 $contentInfo = New-Object System.Security.Cryptography.Pkcs.ContentInfo -ArgumentList (,$content)
 $cms = New-Object System.Security.Cryptography.Pkcs.SignedCms -ArgumentList $contentInfo, $false
 $signer = New-Object System.Security.Cryptography.Pkcs.CmsSigner -ArgumentList $cert
-$signer.IncludeOption = [System.Security.Cryptography.X509Certificates.X509IncludeOption]::EndCertOnly
+$signer.IncludeOption = [System.Security.Cryptography.X509Certificates.X509IncludeOption]::ExcludeRoot
 try { $signer.DigestAlgorithm = New-Object System.Security.Cryptography.Oid('2.16.840.1.101.3.4.2.1') } catch {}
 try { $signer.SignedAttributes.Add((New-Object System.Security.Cryptography.Pkcs.Pkcs9SigningTime)) } catch {}
+$attrOid = New-Object System.Security.Cryptography.Oid('1.2.840.113549.1.9.16.2.47')
+$attrValues = New-Object System.Security.Cryptography.AsnEncodedDataCollection
+$attrValue = New-Object System.Security.Cryptography.AsnEncodedData -ArgumentList $attrOid,([Convert]::FromBase64String($SigningCertificateV2Base64))
+[void]$attrValues.Add($attrValue)
+$attr = New-Object System.Security.Cryptography.CryptographicAttributeObject -ArgumentList $attrOid,$attrValues
+[void]$signer.SignedAttributes.Add($attr)
 $cms.ComputeSignature($signer, $false)
 [System.IO.File]::WriteAllBytes($OutputPath, $cms.Encode())
 '''
@@ -3673,6 +3937,8 @@ $cms.ComputeSignature($signer, $false)
             str(input_path),
             "-OutputPath",
             str(output_path),
+            "-SigningCertificateV2Base64",
+            signing_certificate_v2_b64,
         ]
         run_kwargs = {
             "capture_output": True,
@@ -3699,6 +3965,7 @@ def _firma_documento_via_sessione(
     pin_session_id: str,
     documento: bytes,
     *,
+    formato: str = "cades",
     visible_signature_mode: str = "laterale",
     visible_signature_place: str = "",
     visible_signature_datetime_mode: str = "data_ora",
@@ -3711,23 +3978,31 @@ def _firma_documento_via_sessione(
 
     signer = entry["signer"]
     try:
-        try:
-            firmato = signer.firma_cades(
+        if formato == "pades":
+            firmato = signer.firma_pades(
                 documento,
-                detached=False,
                 visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
                 visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
-        except TypeError as exc:
-            if "visible_signature_datetime_mode" not in str(exc):
-                raise
-            firmato = signer.firma_cades(
-                documento,
-                detached=False,
-                visible_signature_mode=visible_signature_mode,
-                visible_signature_place=visible_signature_place,
-            )
+        else:
+            try:
+                firmato = signer.firma_cades(
+                    documento,
+                    detached=False,
+                    visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
+                    visible_signature_datetime_mode=visible_signature_datetime_mode,
+                )
+            except TypeError as exc:
+                if "visible_signature_datetime_mode" not in str(exc):
+                    raise
+                firmato = signer.firma_cades(
+                    documento,
+                    detached=False,
+                    visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
+                )
         info = _firma_info_dict(
             getattr(signer, "intestatario", "") or "",
             getattr(signer, "scadenza", None),
@@ -3743,6 +4018,7 @@ def _firma_documento_via_sessione(
 def _firma_documento(lib_path: str, documento: bytes, pin: str,
                      slot_id: Optional[int] = None,
                      pin_session_id: Optional[str] = None,
+                     formato: str = "cades",
                      visible_signature_mode: str = "laterale",
                      visible_signature_place: str = "",
                      visible_signature_datetime_mode: str = "data_ora",
@@ -3760,11 +4036,18 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
         return _firma_documento_via_sessione(
             requested_session_id,
             documento,
+            formato=formato,
             visible_signature_mode=visible_signature_mode,
             visible_signature_place=visible_signature_place,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
         )
     if sys.platform == "win32" and not lib_path and _windows_store_puo_firmare(cert_thumbprint):
+        if formato == "pades":
+            return _firma_documento_windows_store_pades(
+                documento,
+                cert_thumbprint=cert_thumbprint,
+                visible_signature_place=visible_signature_place,
+            )
         return _firma_documento_windows_store(
             documento,
             cert_thumbprint=cert_thumbprint,
@@ -3781,23 +4064,31 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
     try:
         session_id, firma = _create_pin_session(lib_path, pin, slot_id)
         try:
-            try:
-                firmato = firma.firma_cades(
+            if formato == "pades":
+                firmato = firma.firma_pades(
                     documento,
-                    detached=False,
                     visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
                     visible_signature_datetime_mode=visible_signature_datetime_mode,
                 )
-            except TypeError as exc:
-                if "visible_signature_datetime_mode" not in str(exc):
-                    raise
-                firmato = firma.firma_cades(
-                    documento,
-                    detached=False,
-                    visible_signature_mode=visible_signature_mode,
-                    visible_signature_place=visible_signature_place,
-                )
+            else:
+                try:
+                    firmato = firma.firma_cades(
+                        documento,
+                        detached=False,
+                        visible_signature_mode=visible_signature_mode,
+                        visible_signature_place=visible_signature_place,
+                        visible_signature_datetime_mode=visible_signature_datetime_mode,
+                    )
+                except TypeError as exc:
+                    if "visible_signature_datetime_mode" not in str(exc):
+                        raise
+                    firmato = firma.firma_cades(
+                        documento,
+                        detached=False,
+                        visible_signature_mode=visible_signature_mode,
+                        visible_signature_place=visible_signature_place,
+                    )
         except Exception as exc:
             _drop_pin_session(session_id)
             raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
@@ -3828,6 +4119,7 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
             documento,
             pin,
             slot_id,
+            formato=formato,
             visible_signature_mode=visible_signature_mode,
             visible_signature_place=visible_signature_place,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
@@ -3846,6 +4138,7 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
 
 def _firma_inline(lib_path: str, documento: bytes, pin: str,
                   slot_id: Optional[int] = None,
+                  formato: str = "cades",
                   visible_signature_mode: str = "laterale",
                   visible_signature_place: str = "",
                   visible_signature_datetime_mode: str = "data_ora") -> tuple[bytes, dict]:
@@ -3869,7 +4162,27 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
         if not certs:
             raise RuntimeError("Nessun certificato nel token")
 
-        cert_der = bytes(certs[0][Attribute.VALUE])
+        id_attribute = getattr(Attribute, "ID", None)
+        private_key_ids = (
+            {
+                bytes(key[id_attribute])
+                for key in privkeys
+                if key[id_attribute] is not None
+            }
+            if id_attribute is not None
+            else set()
+        )
+        cert_obj = next(
+            (
+                candidate
+                for candidate in certs
+                if id_attribute is not None
+                and candidate[id_attribute] is not None
+                and bytes(candidate[id_attribute]) in private_key_ids
+            ),
+            certs[0],
+        )
+        cert_der = bytes(cert_obj[Attribute.VALUE])
         try:
             from cryptography import x509 as cx509
             from cryptography.hazmat.backends import default_backend
@@ -3886,6 +4199,66 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             scadenza = ""
             issuer = ""
             serial = ""
+
+        if formato == "pades":
+            from asn1crypto import cms, x509 as asn1_x509
+            from pypdf import PdfReader
+            from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+            from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
+            from pyhanko.stamp import TextStampStyle
+
+            pdf_payload = documento
+            if not pdf_payload.lstrip().startswith(b"%PDF"):
+                content_info = cms.ContentInfo.load(pdf_payload)
+                pdf_payload = content_info["content"]["encap_content_info"]["content"].native
+                if isinstance(pdf_payload, str):
+                    pdf_payload = pdf_payload.encode("latin-1")
+            if not isinstance(pdf_payload, bytes) or not pdf_payload.lstrip().startswith(b"%PDF"):
+                raise RuntimeError("Il documento richiesto per la firma PAdES non contiene un PDF valido.")
+            reader = PdfReader(io.BytesIO(pdf_payload))
+            page_width = int(float(reader.pages[-1].mediabox.width))
+            cert_id_raw = cert_obj[id_attribute] if id_attribute is not None else None
+            cert_id = bytes(cert_id_raw) if cert_id_raw is not None else None
+            ca_chain = [
+                asn1_x509.Certificate.load(bytes(candidate[Attribute.VALUE]))
+                for candidate in certs
+                if candidate is not cert_obj
+            ]
+            signer = pyhanko_pkcs11.PKCS11Signer(
+                session,
+                signing_cert=asn1_x509.Certificate.load(cert_der),
+                ca_chain=ca_chain,
+                cert_id=cert_id,
+                key_id=cert_id,
+                embed_roots=False,
+            )
+            metadata = signers.PdfSignatureMetadata(
+                field_name="Signature1",
+                md_algorithm="sha256",
+                location=visible_signature_place,
+                reason="Per autentica e sottoscrizione",
+                name=intestatario,
+                subfilter=fields.SigSeedSubFilter.PADES,
+            )
+            field = fields.SigFieldSpec(
+                sig_field_name="Signature1",
+                on_page=-1,
+                box=(20, 10, max(40, page_width - 20), 55),
+            )
+            output = io.BytesIO()
+            signers.PdfSigner(
+                metadata,
+                signer=signer,
+                stamp_style=TextStampStyle(
+                    stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
+                    timestamp_format="%d/%m/%Y ore %H:%M",
+                ),
+                new_field_spec=field,
+            ).sign_pdf(
+                IncrementalPdfFileWriter(io.BytesIO(pdf_payload)),
+                output=output,
+            )
+            return output.getvalue(), {"intestatario": intestatario, "scadenza": scadenza}
 
         documento = _prepare_documento_firma_visibile(
             documento,
@@ -12932,6 +13305,7 @@ class _Handler(BaseHTTPRequestHandler):
         pin_session_id = str(data.get("pin_session_id") or "").strip()
         slot_id = data.get("slot_id")
         cert_thumbprint = str(data.get("cert_thumbprint") or data.get("certificato_windows_thumbprint") or "").strip()
+        formato = str(data.get("formato") or "cades").strip().lower()
         visible_signature_mode = str(data.get("visible_signature_mode") or "laterale").strip()
         visible_signature_place = str(data.get("visible_signature_place") or "").strip()
         visible_signature_datetime_mode = str(data.get("visible_signature_datetime_mode") or "data_ora").strip()
@@ -12953,6 +13327,9 @@ class _Handler(BaseHTTPRequestHandler):
         if not pin and not pin_session_id:
             self._send_json({"ok": False, "errore": "PIN o pin_session_id obbligatorio"}, 400)
             return
+        if formato not in {"cades", "pades"}:
+            self._send_json({"ok": False, "errore": "Formato firma non supportato."}, 400)
+            return
 
         try:
             documento = base64.b64decode(doc_b64)
@@ -12962,6 +13339,7 @@ class _Handler(BaseHTTPRequestHandler):
                 pin,
                 slot_id,
                 pin_session_id=pin_session_id or None,
+                formato=formato,
                 visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
                 visible_signature_datetime_mode=visible_signature_datetime_mode,
@@ -12971,6 +13349,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "ok": True,
                 "firmato_b64": base64.b64encode(firmato).decode(),
                 "dimensione": len(firmato),
+                "formato": formato,
                 **info,
             })
         except Exception as e:
@@ -13020,12 +13399,22 @@ class _Handler(BaseHTTPRequestHandler):
             item = raw_doc if isinstance(raw_doc, dict) else {}
             doc_b64 = item.get("documento") or item.get("documento_b64")
             nome = str(item.get("nome") or item.get("nome_documento") or f"documento_{idx + 1}").strip()
+            formato = str(item.get("formato") or "cades").strip().lower()
             if not doc_b64:
                 risultati.append({
                     "ok": False,
                     "indice": idx,
                     "nome": nome,
                     "errore": "Campo 'documento' (base64) obbligatorio",
+                })
+                falliti += 1
+                continue
+            if formato not in {"cades", "pades"}:
+                risultati.append({
+                    "ok": False,
+                    "indice": idx,
+                    "nome": nome,
+                    "errore": "Formato firma non supportato.",
                 })
                 falliti += 1
                 continue
@@ -13038,6 +13427,7 @@ class _Handler(BaseHTTPRequestHandler):
                     pin if not current_session_id else "",
                     slot_id,
                     pin_session_id=current_session_id or None,
+                    formato=formato,
                     visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
                     visible_signature_datetime_mode=visible_signature_datetime_mode,
@@ -13050,6 +13440,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "nome": nome,
                     "firmato_b64": base64.b64encode(firmato).decode(),
                     "dimensione": len(firmato),
+                    "formato": formato,
                     **info,
                 })
                 firmati += 1

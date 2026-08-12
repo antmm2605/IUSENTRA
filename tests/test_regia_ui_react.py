@@ -445,6 +445,9 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "result.requires_local_signature && completeLocalSignature" in action_button
     assert "setConfirming(false)\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
     assert "setLocalSignaturePinRequest(null)\n    request.resolve(pinValue)" in deposit_page
+    assert "localSignature.retry === true" in deposit_page
+    assert "Firma nuovamente i dati del deposito" in deposit_page
+    assert "Firma nuovamente e continua" in deposit_page
     assert "if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus))" in deposit_page
     assert "Dispositivo non pronto per firmare i dati del deposito" in deposit_page
     assert "Local Signer non raggiungibile dal browser per firmare i dati del deposito" in deposit_page

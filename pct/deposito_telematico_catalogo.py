@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any
 
 from pct.deposito_datiatto_fields import datiatto_input_fields, datiatto_reference_data
+from pct.deposito_studio_telematico_contract import (
+    studio_telematico_document_requirements,
+    studio_telematico_runtime_payload,
+)
 from pct.pst_cifratura import canali_telematici_cifratura_policy
 from pct.pst_catalog import (
     PST_CASSAZIONE_XSD_20260611_PACKAGE_URL,
@@ -153,129 +157,9 @@ def _root(type_name: str, variable: str) -> dict[str, str]:
 
 
 _CATALOG_OVERRIDES_BY_KEY: dict[str, dict[str, Any]] = {
-    _norm_code("Parte_SICID::MemorieCartabia"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
-        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
-    },
-    _norm_code("Parte_SICID::Memoria171ter1"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
-        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
-    },
-    _norm_code("Parte_SICID::Repliche171ter2"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
-        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
-    },
-    _norm_code("Parte_SICID::Controrepliche171ter3"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
-        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
-    },
-    _norm_code("Parte_SICID::IstanzaAccoglimentoDomanda183ter"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
-        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
-    },
-    _norm_code("Parte_SICID::IstanzaRigettoDomanda183quater"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
-        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
-    },
-    _norm_code("Parte_SICID::AttoRichiestaVisibilit\u00e0"): {
-        "datiatto_methods": ["Create_DatiAtto_Parte_AttoRichiestaVisibilit\u00e0"],
-        "datiatto_roots": [_root("Parte.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "RiferimentoProcedimento",
-            "Parte",
-            "Avvocato",
-            "Urgenza",
-        ],
-    },
-    _norm_code("Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilit\u00e0"): {
-        "datiatto_methods": ["Create_DatiAtto_ParteSiecicEsecuzioni_AttoRichiestaVisibilit\u00e0"],
-        "datiatto_roots": [_root("ParteSiecicEsecuzioni.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "RiferimentoProcedimento",
-            "Parte",
-            "Avvocato",
-            "Urgenza",
-        ],
-    },
-    _norm_code("Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilit\u00e0"): {
-        "datiatto_methods": ["Create_DatiAtto_ParteSiecicConcorsuali_AttoRichiestaVisibilit\u00e0"],
-        "datiatto_roots": [_root("ParteSiecicConcorsuali.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "RiferimentoProcedimento",
-            "Parte",
-            "Avvocato",
-            "Rito",
-            "Urgenza",
-        ],
-    },
-    _norm_code("CorsoCausa_SIGP::AttoRichiestaVisibilit\u00e0"): {
-        "datiatto_methods": ["Create_DatiAtto_CorsoCausa_SIGP_AttoRichiestaVisibilit\u00e0"],
-        "datiatto_roots": [_root("CorsoCausa_SIGP.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "RiferimentoProcedimento",
-            "Parte",
-            "Avvocato",
-            "Ruolo",
-            "Urgenza",
-        ],
-    },
-    _norm_code("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare"): {
-        "datiatto_roots": [
-            _root("IntroduttiviSiecicEsecuzioni.IscrizioneRuoloPignoramento", "iscrizioneRuoloPignoramento")
-        ],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "ContributoUnificato",
-            "CodiceOggetto",
-            "Titolo",
-            "Beni pignorati",
-            "Dati procedente",
-        ],
-    },
-    _norm_code("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore"): {
-        "datiatto_roots": [
-            _root("IntroduttiviSiecicEsecuzioni.IscrizioneRuoloPignoramento", "iscrizioneRuoloPignoramento")
-        ],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "ContributoUnificato",
-            "CodiceOggetto",
-            "Titolo",
-            "Beni pignorati",
-            "Dati procedente",
-            "Custode",
-        ],
-    },
-    _norm_code("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"): {
-        "datiatto_roots": [
-            _root("IntroduttiviSiecicEsecuzioni.IscrizioneRuoloPignoramento", "iscrizioneRuoloPignoramento")
-        ],
-        "datiatto_required_data": [
-            "AnagraficaProcedimento",
-            "ContributoUnificato",
-            "CodiceOggetto",
-            "Titolo",
-            "Beni pignorati",
-            "Dati procedente",
-            "Dati terzo",
-        ],
-    },
     _norm_code("Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione"): {
         "key": "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
         "aliases": ["Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione"],
-        "datiatto_methods": ["Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione"],
-        "datiatto_roots": [_root("ProfSiecicEsecuzioni.ProgettoDistribuzione", "progettoDistribuzione")],
-        "datiatto_required_data": ["RiferimentoProcedimento", "Deposito progetto", "Urgenza"],
     },
 }
 
@@ -283,9 +167,6 @@ _CURATORE_PLACEHOLDER_OVERRIDE = {
     "key": "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
     "text": "Deposito relazione iniziale del curatore",
     "aliases": ["studio-telematico::procedimenti-concorsuali-atti-del-curatore::186"],
-    "datiatto_methods": ["Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale"],
-    "datiatto_roots": [_root("CurSiecicConcorsuali.DepositoRelazioneIniziale", "depositoRelazioneIniziale")],
-    "datiatto_required_data": ["RiferimentoProcedimento", "Rito", "Urgenza"],
 }
 
 
@@ -313,7 +194,8 @@ def _merge_catalog_override(entry: dict[str, Any], override: dict[str, Any]) -> 
         values = []
         if field in override:
             values.extend(override.get(field) or [])
-        values.extend(merged.get(field) or [])
+        if field not in {"datiatto_methods", "datiatto_roots"} or field not in override:
+            values.extend(merged.get(field) or [])
         if field == "datiatto_roots":
             seen_roots: set[str] = set()
             unique_roots: list[Any] = []
@@ -383,6 +265,8 @@ def _method_generator_class(entry: dict[str, Any]) -> str:
         if not method.startswith("Create_DatiAtto_"):
             continue
         name = method.removeprefix("Create_DatiAtto_")
+        if name.startswith("UNEP_"):
+            return "UNEP"
         if name.startswith("Introduttivi_SICID"):
             return "IntroduttiviSicid"
         if name.startswith("Introduttivi_SIGP"):
@@ -570,9 +454,13 @@ def _datiatto_root_hint(entry: dict[str, Any], rules: dict[str, Any], tipo_atto:
         root_name = "Ricorso"
         studio_variable = "ricorso"
     quick_required = _quick_required_data(entry)
-    if rules.get("channel_kind") == "unep_notifiche":
-        mode = "canale_notifiche_separato"
-        required_data: list[str] = []
+    if generator_class == "UNEP":
+        mode = "unep_deposito_telematico"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        )
     elif generator_class.startswith("Introduttivi") and root_name and "citazione" in _norm_code(root_name):
         mode = "introduttivo_citazione"
         required_data = _operational_required_data(
@@ -642,6 +530,15 @@ def _datiatto_root_hint(entry: dict[str, Any], rules: dict[str, Any], tipo_atto:
         "quickDepositFlags": entry.get("deposit_menu_flags") if isinstance(entry.get("deposit_menu_flags"), dict) else {},
         "quickFixedObjectCodes": entry.get("deposit_fixed_object_codes")
         if isinstance(entry.get("deposit_fixed_object_codes"), list)
+        else [],
+        "quickControls": entry.get("deposit_controls")
+        if isinstance(entry.get("deposit_controls"), list)
+        else [],
+        "quickComboSources": entry.get("deposit_combo_sources")
+        if isinstance(entry.get("deposit_combo_sources"), list)
+        else [],
+        "quickAssignments": entry.get("deposit_assignments")
+        if isinstance(entry.get("deposit_assignments"), list)
         else [],
         "primaryEvidenceRoot": primary,
     }
@@ -713,13 +610,13 @@ def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str)
     roots = _raw_roots(entry)
     methods = _unique_texts([_text(item) for item in (entry.get("datiatto_methods") or [])])
     hint = _datiatto_root_hint(entry, rules, tipo_atto)
-    if channel_kind == "unep_notifiche":
+    if channel_kind == "unep_deposito_telematico":
         return {
-            "status": "canale_notifiche_separato",
-            "label": "Schema UNEP/notifiche separato dal PCT civile",
-            "supported": False,
-            "requiresSpecificGenerator": True,
-            "supportedMinisterialRoot": "",
+            "status": "supportato_unep_deposito",
+            "label": f"DatiAtto.xml UNEP {hint['ministerialRoot']} governato dal deposito",
+            "supported": True,
+            "requiresSpecificGenerator": False,
+            "supportedMinisterialRoot": hint["ministerialRoot"],
             "evidenceMethodsCount": len(methods),
             "evidenceRootsCount": len(roots),
             "evidenceMethods": methods[:12],
@@ -776,26 +673,28 @@ def _rules_for(entry: dict[str, Any], registry: dict[str, str]) -> dict[str, Any
     haystack = f"{channel} {_text(entry.get('key'))} {_text(entry.get('text'))}".casefold()
     if "unep" in haystack:
         return {
-            "policy_code": "unep_notifiche",
-            "channel_kind": "unep_notifiche",
+            "policy_code": "unep_deposito_telematico",
+            "channel_kind": "unep_deposito_telematico",
             "official_channel": "UNEP",
             "registry_code": registry["code"],
             "registry_label": registry["label"],
-            "transport_kind": "notifiche_unep",
-            "requires_datiatto": False,
-            "requires_indice_busta": False,
-            "requires_atto_enc": False,
-            "requires_pst_cer": False,
+            "transport_kind": "unep_pec_atto_enc",
+            "requires_datiatto": True,
+            "requires_indice_busta": True,
+            "indice_busta_mode": "interno_datiatto",
+            "document_signature_profile": "pdf_pades_non_pdf_cades",
+            "datiatto_signature_profile": "cades_bes_sha256_signing_certificate_v2",
+            "mime_disposition": "attachment",
+            "requires_atto_enc": True,
+            "requires_pst_cer": True,
             "requires_local_signer": True,
             "requires_local_pec": True,
-            "requires_relata": True,
+            "requires_relata": False,
             "requires_receipts": True,
             "server_smtp_allowed": False,
-            "can_prepare_in_pct_panel": False,
-            "real_send_allowed_from_pct_panel": False,
-            "real_send_blocker": (
-                "Questo tipo appartiene al canale notifiche/UNEP e va gestito nel relativo flusso."
-            ),
+            "can_prepare_in_pct_panel": True,
+            "real_send_allowed_from_pct_panel": True,
+            "real_send_blocker": "",
         }
     return {
         "policy_code": "pct_civile_dm44",
@@ -806,6 +705,10 @@ def _rules_for(entry: dict[str, Any], registry: dict[str, str]) -> dict[str, Any
         "transport_kind": "pct_pec_atto_enc",
         "requires_datiatto": True,
         "requires_indice_busta": True,
+        "indice_busta_mode": "interno_datiatto",
+        "document_signature_profile": "pdf_pades_non_pdf_cades",
+        "datiatto_signature_profile": "cades_bes_sha256_signing_certificate_v2",
+        "mime_disposition": "attachment",
         "requires_atto_enc": True,
         "requires_pst_cer": True,
         "requires_local_signer": True,
@@ -838,50 +741,10 @@ def _required_data_codes(entry: dict[str, Any]) -> set[str]:
 
 
 def _documents_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
-    flags = _deposit_menu_flags(entry)
-    required = _required_data_codes(entry)
-    haystack = " ".join(
-        _text(entry.get(key))
-        for key in ("key", "text", "channel", "macro", "categoria", "path")
-    ).casefold()
-    need_procura = _flag_enabled(flags, "needProcura")
-    need_contributo = _contribution_required(entry)
-    need_nota_ruolo = _flag_enabled(flags, "needNotaIscrizioneRuolo")
-    if rules.get("channel_kind") == "unep_notifiche":
-        documents = ["atto da notificare", "relata o richiesta", "destinatari"]
-        if need_contributo:
-            documents.append("contributo o anticipazione spese UNEP")
-        documents.extend(["allegati", "ricevute"])
-        return _unique_texts(documents)
-
-    documents = ["atto principale"]
-    if need_procura:
-        documents.append("procura alle liti")
-    if need_contributo:
-        documents.append("contributo unificato o esenzione")
-    if need_nota_ruolo:
-        documents.append("nota iscrizione a ruolo")
-    if "cassazione" in haystack:
-        documents.extend(["provvedimento impugnato", "prova notifica"])
-    if "siecic" in haystack:
-        documents.append("dati procedura SIECIC quando richiesti")
-    if _flag_enabled(flags, "VisualizzaGrigliaTerzi"):
-        documents.append("dati terzi pignorati")
-    if _flag_enabled(flags, "VisualizzaAnagraficaProcedimento") or "anagraficaprocedimento" in required:
-        documents.append("anagrafica procedimento")
-    if "datacitazione" in required:
-        documents.append("data citazione")
-    if "valorecausa" in required:
-        documents.append("valore causa o esenzione")
-    if "istanze" in required:
-        documents.append("istanze o richieste")
-    if "modificheanagrafica" in required:
-        documents.append("modifiche anagrafica")
-    if "riferimentoprocedimento" in required:
-        documents.append("riferimento procedimento")
-    if "allegatiinindicebusta" in required:
-        documents.append("allegati")
-    return _unique_texts(documents)
+    del rules
+    key = _text(entry.get("key"))
+    requirements = studio_telematico_document_requirements(key)
+    return _unique_texts(["atto principale", *[item["label"] for item in requirements]])
 
 
 def _controls_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
@@ -889,7 +752,7 @@ def _controls_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
     if rules.get("requires_local_signer"):
         controls.append("firma digitale")
     if rules.get("requires_datiatto"):
-        controls.extend(["DatiAtto.xml", "DatiAtto.xml.p7m", "IndiceBusta.xml"])
+        controls.extend(["DatiAtto.xml", "DatiAtto.xml.p7m", "IndiceBusta interno a DatiAtto.xml"])
     if rules.get("requires_atto_enc"):
         controls.append("Atto.enc AES256")
     if rules.get("requires_pst_cer"):
@@ -931,6 +794,7 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
             str(schema.get("ministerialRoot") or ""),
         ),
     }
+    studio_validation = studio_telematico_runtime_payload(key)
     if rules["real_send_allowed_from_pct_panel"] and schema["requiresSpecificGenerator"]:
         rules = {
             **rules,
@@ -973,20 +837,22 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
         },
         "rules": rules,
         "schema": schema,
+        "studioValidation": studio_validation,
         "ui": {
             "service": registry["label"],
             "transport": (
-                "Atto.msg, DatiAtto.xml.p7m, IndiceBusta.xml, Atto.enc e PEC locale"
+                "Atto.msg, DatiAtto.xml.p7m con IndiceBusta interno, Atto.enc e PEC locale"
                 if rules["channel_kind"] == "pct_civile_dm44"
-                else "Flusso UNEP/notifiche con relata, destinatari e ricevute"
+                else "DatiAtto.xml UNEP, IndiceBusta interno, Atto.enc e PEC locale"
             ),
             "behavior": (
                 "Deposito PCT: il software deve risolvere ufficio, registro, codice oggetto, firme, busta e ricevute."
                 if rules["channel_kind"] == "pct_civile_dm44"
-                else "Canale notifiche/UNEP: alimenta notifiche, fascicolo, ricevute, agenda e scadenziario."
+                else "Deposito UNEP: prepara la richiesta, la busta cifrata e l'invio PEC dal PC locale."
             ),
             "controls": _controls_for(entry, rules),
             "documents": _documents_for(entry, rules),
+            "documentRequirements": studio_validation["documents"],
         },
     }
 
@@ -1098,12 +964,12 @@ def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, 
         },
         "channelPolicies": {
             **policy,
-            "unep_notifiche": {
-                "nome": "UNEP / notifiche / richieste esecuzione",
-                "usa_certificati_pst_cer": False,
-                "trasporto": "Flusso notifiche/UNEP separato, senza Atto.enc PCT civile",
+            "unep_deposito_telematico": {
+                "nome": "Deposito telematico UNEP",
+                "usa_certificati_pst_cer": True,
+                "trasporto": "DatiAtto.xml UNEP, IndiceBusta interno, Atto.enc e PEC dal PC locale",
                 "server_smtp_allowed": False,
-                "fonte": "Catalogo Studio Telematico e regole notifiche/UNEP da flusso dedicato",
+                "fonte": "Catalogo e generatore deposito Studio Telematico decompilato",
             },
         },
         "macroareas": _macroareas_payload(entries, macro_counts),

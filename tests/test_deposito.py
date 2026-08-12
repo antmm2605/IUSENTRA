@@ -21,6 +21,7 @@ from pct.firma import FirmaDigitale, busta_cades_valida, crea_signer_da_config
 from pct.pec import ConfigPEC
 from pct.atto_enc_validation import is_atto_enc_cms_enveloped_data
 from pct.pst_cifratura import PSTCifraturaError
+from pct.storage import StudioDB
 from web.app import create_app
 
 
@@ -63,15 +64,108 @@ def _cades_signed_payload(documento: bytes) -> bytes:
         .not_valid_after(datetime.now(UTC) + timedelta(days=365))
         .sign(key, hashes.SHA256())
     )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
+    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(documento, cert_der=cert_der)
+    signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+    return _build_cades_bes(
+        documento=documento,
+        signature_bytes=signature,
+        cert_der=cert_der,
+        signed_attrs_der=signed_attrs,
+        detached=False,
+    )
+
+
+def _cades_signed_payload_without_signing_certificate_v2(documento: bytes) -> bytes:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.firma_pkcs11 import _build_cades_bes
+    from tools import local_signer as local_signer_mod
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name(
+        [x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Firma Legacy")]
+    )
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
     signed_attrs = local_signer_mod._build_signed_attrs_der_inline(documento)
     signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
     return _build_cades_bes(
         documento=documento,
         signature_bytes=signature,
-        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        cert_der=cert_der,
         signed_attrs_der=signed_attrs,
         detached=False,
     )
+
+
+def test_dati_atto_non_bes_restituisce_azione_reale_di_rifirma_locale():
+    from web.services.deposito_signature_runtime import dati_atto_signature_gate
+
+    dati_atto_xml = b"<DatiAtto><TipoAtto>Ricorso</TipoAtto></DatiAtto>"
+
+    class BustaTest:
+        id_busta = "BUSTA-RIFIRMA-TEST"
+
+        def crea_dati_atto_xml_per_firma(self):
+            return dati_atto_xml
+
+        def audit_conformita_pst(self):
+            return {"ok": False, "fase": "firma"}
+
+    firmato_legacy = _cades_signed_payload_without_signing_certificate_v2(dati_atto_xml)
+    contenuto, payload = dati_atto_signature_gate(
+        {"dati_atto_firmato_b64": base64.b64encode(firmato_legacy).decode("ascii")},
+        BustaTest(),
+        id_deposito="DEP-RIFIRMA-TEST",
+        timestamp="2026-08-12T10:00:00+02:00",
+        pec_dest="tribunale.test@civile.ptel.giustiziacert.it",
+        tipo_atto="RICORSO",
+        oggetto_pec="DEPOSITO TELEMATICO - RICORSO",
+        corpo_pec="Deposito di prova",
+        documenti_busta=["DatiAtto.xml.p7m", "Ricorso.pdf.p7m"],
+    )
+
+    assert contenuto is None
+    assert payload["_status"] == 200
+    assert payload["requires_local_signature"] is True
+    assert payload["signature_retry"] is True
+    assert payload["local_signature"]["retry"] is True
+    assert "signingCertificateV2" in payload["local_signature"]["retry_reason"]
+    assert base64.b64decode(payload["local_signature"]["payload"]["documento"]) == dati_atto_xml
+
+    firmato_bes = _cades_signed_payload(dati_atto_xml)
+    contenuto_rifirmato, errore_rifirma = dati_atto_signature_gate(
+        {
+            "dati_atto_firmato_b64": base64.b64encode(firmato_bes).decode("ascii"),
+            "dati_atto_sha256": payload["dati_atto_sha256"],
+        },
+        BustaTest(),
+        id_deposito="DEP-RIFIRMA-TEST",
+        timestamp="2026-08-12T10:00:00+02:00",
+        pec_dest="tribunale.test@civile.ptel.giustiziacert.it",
+        tipo_atto="RICORSO",
+        oggetto_pec="DEPOSITO TELEMATICO - RICORSO",
+        corpo_pec="Deposito di prova",
+        documenti_busta=["DatiAtto.xml.p7m", "Ricorso.pdf.p7m"],
+    )
+
+    assert errore_rifirma is None
+    assert contenuto_rifirmato == firmato_bes
 
 
 def _cades_signed_pdf() -> bytes:
@@ -129,6 +223,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "STUDIO_DB": str(tmp_path / "studio.db"),
         "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
         "FASCICOLI_DOCS": str(tmp_path / "docs"),
@@ -146,7 +241,10 @@ def _cfg_web(tmp_path: Path) -> dict:
 
 
 def _crea_cliente_deposito(cfg: dict) -> str:
-    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    clienti = GestioneClienti(
+        db_path=cfg["CLIENTI_DB"],
+        studio_db=StudioDB.get(cfg["STUDIO_DB"]),
+    )
     cliente = clienti.nuovo(
         TipoCliente.PERSONA_FISICA,
         nome="Mario",

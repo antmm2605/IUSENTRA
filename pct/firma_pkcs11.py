@@ -31,6 +31,7 @@ Variabili d'ambiente:
 from __future__ import annotations
 
 import hashlib
+import io
 import logging
 import os
 from datetime import datetime, timezone
@@ -88,33 +89,46 @@ class _ESSCertIDv2:
 
     @staticmethod
     def attribute(cert_der: bytes):
-        from asn1crypto import algos, cms, core
+        from asn1crypto import cms
 
-        class ESSCertIDv2(core.Sequence):
-            _fields = [
-                ("hash_algorithm", algos.DigestAlgorithm, {"optional": True}),
-                ("cert_hash", core.OctetString),
-            ]
-
-        class SigningCertificateV2(core.SequenceOf):
-            _child_spec = ESSCertIDv2
-
-        value = SigningCertificateV2(
-            [
-                ESSCertIDv2(
-                    {
-                        "hash_algorithm": {"algorithm": "sha256"},
-                        "cert_hash": hashlib.sha256(cert_der).digest(),
-                    }
-                )
-            ]
-        )
+        value = signing_certificate_v2_value(cert_der)
         return cms.CMSAttribute(
             {
                 "type": "1.2.840.113549.1.9.16.2.47",
                 "values": [value],
             }
         )
+
+
+def signing_certificate_v2_value(cert_der: bytes):
+    """Costruisce SigningCertificateV2 con hash e IssuerSerial del certificato."""
+    from asn1crypto import tsp, x509 as asn1_x509
+
+    cert = asn1_x509.Certificate.load(cert_der)
+    issuer_names = asn1_x509.GeneralNames(
+        [asn1_x509.GeneralName(name="directory_name", value=cert.issuer)]
+    )
+    issuer_serial = tsp.IssuerSerial(
+        {
+            "issuer": issuer_names,
+            "serial_number": cert.serial_number,
+        }
+    )
+    return tsp.SigningCertificateV2(
+        {
+            "certs": [
+                {
+                    "cert_hash": hashlib.sha256(cert_der).digest(),
+                    "issuer_serial": issuer_serial,
+                }
+            ]
+        }
+    )
+
+
+def signing_certificate_v2_value_der(cert_der: bytes) -> bytes:
+    """Restituisce il valore DER dell'attributo CAdES SigningCertificateV2."""
+    return signing_certificate_v2_value(cert_der).dump()
 
 
 def build_cades_signed_attrs_der(
@@ -161,6 +175,7 @@ def _build_cades_bes(
     signed_attrs_der: bytes,
     *,
     detached: bool = False,
+    certificate_chain_der: Optional[List[bytes]] = None,
 ) -> bytes:
     """
     Costruisce una busta CAdES-BES DER valida a partire da firma, certificato
@@ -199,6 +214,19 @@ def _build_cades_bes(
     if not detached:
         encap_content_info["content"] = documento
 
+    certificate_choices = []
+    seen_certificates: set[bytes] = set()
+    for raw_certificate in [cert_der, *(certificate_chain_der or [])]:
+        if not raw_certificate or raw_certificate in seen_certificates:
+            continue
+        seen_certificates.add(raw_certificate)
+        certificate_choices.append(
+            cms.CertificateChoices(
+                name="certificate",
+                value=_ax509.Certificate.load(raw_certificate),
+            )
+        )
+
     signed_data = cms.SignedData({
         "version": cms.CMSVersion(1),
         "digest_algorithms": cms.DigestAlgorithms([
@@ -207,12 +235,7 @@ def _build_cades_bes(
             }),
         ]),
         "encap_content_info": encap_content_info,
-        "certificates": cms.CertificateSet([
-            cms.CertificateChoices(
-                name="certificate",
-                value=cert_asn1,
-            ),
-        ]),
+        "certificates": cms.CertificateSet(certificate_choices),
         "signer_infos": cms.SignerInfos([signer_info]),
     })
 
@@ -447,6 +470,8 @@ class FirmaPKCS11:
         self._lib          = None
         self._session      = None
         self._cert_der: Optional[bytes] = None
+        self._cert_id: Optional[bytes] = None
+        self._cert_chain_der: List[bytes] = []
         self._certificate  = None   # cryptography x509.Certificate
 
     # ── init libreria ────────────────────────────────────────────────────────
@@ -534,9 +559,29 @@ class FirmaPKCS11:
                     pass
 
         if cert_obj is None:
-            cert_obj = certs[0]  # primo certificato (di norma quello di firma)
+            private_key_ids = {
+                bytes(key[Attribute.ID])
+                for key in sess.get_objects({Attribute.CLASS: ObjectClass.PRIVATE_KEY})
+                if key[Attribute.ID] is not None
+            }
+            cert_obj = next(
+                (
+                    candidate
+                    for candidate in certs
+                    if candidate[Attribute.ID] is not None
+                    and bytes(candidate[Attribute.ID]) in private_key_ids
+                ),
+                certs[0],
+            )
 
         self._cert_der = bytes(cert_obj[Attribute.VALUE])
+        cert_id = cert_obj[Attribute.ID]
+        self._cert_id = bytes(cert_id) if cert_id is not None else None
+        self._cert_chain_der = [
+            bytes(candidate[Attribute.VALUE])
+            for candidate in certs
+            if bytes(candidate[Attribute.VALUE]) != self._cert_der
+        ]
         self._certificate = _cx509.load_der_x509_certificate(
             self._cert_der, default_backend()
         )
@@ -704,6 +749,87 @@ class FirmaPKCS11:
         return self._build_pkcs7(documento, doc_digest, signed_attrs_der,
                                   signature_bytes, detached)
 
+    @staticmethod
+    def _pdf_da_firmare(documento: bytes) -> bytes:
+        if documento.lstrip().startswith(b"%PDF"):
+            return documento
+        try:
+            from asn1crypto import cms
+
+            content_info = cms.ContentInfo.load(documento)
+            if content_info["content_type"].native != "signed_data":
+                raise ValueError
+            embedded = content_info["content"]["encap_content_info"]["content"].native
+            if isinstance(embedded, str):
+                embedded = embedded.encode("latin-1")
+            if isinstance(embedded, bytes) and embedded.lstrip().startswith(b"%PDF"):
+                return embedded
+        except Exception as exc:
+            raise ValueError("Il documento richiesto per la firma PAdES non contiene un PDF valido.") from exc
+        raise ValueError("Il documento richiesto per la firma PAdES non contiene un PDF valido.")
+
+    def firma_pades(
+        self,
+        documento: bytes,
+        *,
+        visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
+        visible_signature_datetime_mode: str = "data_ora",
+    ) -> bytes:
+        """Firma il PDF in PAdES come Studio Telematico, mantenendo l'estensione .PDF."""
+        from asn1crypto import x509 as asn1_x509
+        from pypdf import PdfReader
+        from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+        from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
+        from pyhanko.stamp import TextStampStyle
+
+        pdf_payload = self._pdf_da_firmare(documento)
+        reader = PdfReader(io.BytesIO(pdf_payload))
+        last_page = reader.pages[-1]
+        page_width = int(float(last_page.mediabox.width))
+        location = resolve_visible_signature_place(
+            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
+            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
+            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+        )
+
+        signing_cert = asn1_x509.Certificate.load(self._cert_der)
+        ca_chain = [asn1_x509.Certificate.load(raw) for raw in self._cert_chain_der]
+        signer = pyhanko_pkcs11.PKCS11Signer(
+            self._get_session(),
+            signing_cert=signing_cert,
+            ca_chain=ca_chain,
+            cert_id=self._cert_id,
+            key_id=self._cert_id,
+            embed_roots=False,
+        )
+        metadata = signers.PdfSignatureMetadata(
+            field_name="Signature1",
+            md_algorithm="sha256",
+            location=location,
+            reason="Per autentica e sottoscrizione",
+            name=self.intestatario,
+            subfilter=fields.SigSeedSubFilter.PADES,
+        )
+        field = fields.SigFieldSpec(
+            sig_field_name="Signature1",
+            on_page=-1,
+            box=(20, 10, max(40, page_width - 20), 55),
+        )
+        stamp = TextStampStyle(
+            stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
+            timestamp_format="%d/%m/%Y ore %H:%M",
+        )
+        writer = IncrementalPdfFileWriter(io.BytesIO(pdf_payload))
+        output = io.BytesIO()
+        signers.PdfSigner(
+            metadata,
+            signer=signer,
+            stamp_style=stamp,
+            new_field_spec=field,
+        ).sign_pdf(writer, output=output)
+        return output.getvalue()
+
     def _build_signed_attrs(self, doc_digest: bytes, cert_der: bytes | None = None) -> bytes:
         """
         Costruisce i SignedAttributes DER (tag SET 0x31) per la firma CAdES-BES.
@@ -732,6 +858,7 @@ class FirmaPKCS11:
             cert_der=self._cert_der,
             signed_attrs_der=signed_attrs_der,
             detached=detached,
+            certificate_chain_der=self._cert_chain_der,
         )
 
     # ── salva documento firmato (interfaccia FirmaDigitale) ─────────────────
@@ -752,16 +879,22 @@ class FirmaPKCS11:
         Args:
             documento:   Contenuto del documento da firmare.
             output_path: Percorso di output (viene aggiunto .p7m se non presente).
-            formato:     Sempre 'cades' per PKCS#11 (PAdES non supportato).
+            formato:     'pades' per i PDF, 'cades' per gli altri documenti.
 
         Returns:
             Percorso al file firmato.
         """
-        if formato != "cades":
-            raise ValueError(
-                "FirmaPKCS#11 supporta solo formato 'cades' (.p7m). "
-                "Per PAdES usare FirmaDigitale con file P12/PEM."
+        if formato == "pades":
+            firmato = self.firma_pades(
+                documento,
+                visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
+            Path(output_path).write_bytes(firmato)
+            return output_path
+        if formato != "cades":
+            raise ValueError("Formato firma non supportato. Usare 'cades' o 'pades'.")
         detached = not documento.startswith(b"%PDF")
         try:
             firmato = self.firma_cades(

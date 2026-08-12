@@ -13,7 +13,7 @@ from pct.busta import (
     INDICE_BUSTA_FILENAME,
     INDICE_DOCUMENTI_FILENAME,
 )
-from pct.firma import busta_cades_valida, estrai_contenuto_cades
+from pct.firma import attributi_cades_bes_mancanti, busta_cades_valida, estrai_contenuto_cades
 from web.services.deposito_route_helpers import validation_summary
 from web.services.local_pec_runtime import LOCAL_SIGNER_BASE_URL
 
@@ -66,6 +66,54 @@ def dati_atto_signature_gate(
             "_status": 400,
         }
     dati_atto_sha256 = hashlib.sha256(dati_atto_xml).hexdigest().upper()
+
+    def richiedi_firma_locale(*, messaggio: str, ripetizione: bool = False) -> tuple[None, dict[str, Any]]:
+        audit_firma = busta.audit_conformita_pst()
+        local_signature = {
+            "endpoint": f"{LOCAL_SIGNER_BASE_URL}/firma",
+            "filename": DATI_ATTO_FILENAME,
+            "output_filename": DATI_ATTO_FIRMATO_FILENAME,
+            "busta_id": busta.id_busta,
+            "busta_timestamp": timestamp,
+            "dati_atto_sha256": dati_atto_sha256,
+            "requires_pin": True,
+            "payload": {
+                "documento": base64.b64encode(dati_atto_xml).decode("ascii"),
+                "nome": DATI_ATTO_FILENAME,
+                "visible_signature_mode": "nessuna",
+                "visible_signature_datetime_mode": "nessuna",
+            },
+        }
+        response: dict[str, Any] = {
+            "ok": False,
+            "requires_local_signature": True,
+            "package_ready": False,
+            "id_deposito": id_deposito,
+            "busta_id": busta.id_busta,
+            "busta_timestamp": timestamp,
+            "dati_atto_sha256": dati_atto_sha256,
+            "pec_dest": pec_dest,
+            "tipo_atto": tipo_atto,
+            "timestamp": timestamp,
+            "oggetto_pec": oggetto_pec,
+            "corpo_pec": corpo_pec,
+            "documenti_busta": documenti_busta,
+            "busta_audit": audit_firma,
+            "messaggio": messaggio,
+            "next_actions": [
+                "Firma DatiAtto.xml con Local Signer.",
+                "Rigenera Atto.msg con indice ministeriale coerente e DatiAtto.xml.p7m.",
+                "Cifra Atto.msg in Atto.enc AES256 prima della PEC reale.",
+            ],
+            "local_signature": local_signature,
+            "_status": 200,
+        }
+        if ripetizione:
+            response["signature_retry"] = True
+            local_signature["retry"] = True
+            local_signature["retry_reason"] = messaggio
+        return None, response
+
     dati_atto_firmato_b64 = str(form.get("dati_atto_firmato_b64", "") or "").strip()
     if dati_atto_firmato_b64:
         try:
@@ -78,6 +126,16 @@ def dati_atto_signature_gate(
                 "errore": "DatiAtto.xml.p7m non contiene una firma CAdES valida. Ripeti la firma dal PC locale.",
                 "_status": 400,
             }
+        missing_attrs = attributi_cades_bes_mancanti(dati_atto_firmato)
+        if missing_attrs:
+            return richiedi_firma_locale(
+                messaggio=(
+                    "DatiAtto.xml.p7m non aderente al profilo CAdES-BES: mancano "
+                    + ", ".join(missing_attrs)
+                    + ". Firma nuovamente i dati del deposito dal PC locale."
+                ),
+                ripetizione=True,
+            )
         expected_hash = str(form.get("dati_atto_sha256", "") or "").strip().upper()
         if expected_hash and expected_hash != dati_atto_sha256:
             return None, {
@@ -104,45 +162,9 @@ def dati_atto_signature_gate(
             "errore": "Conferma invio non accettata: DatiAtto.xml.p7m firmato non è stato ritrasmesso al server.",
             "_status": 400,
         }
-    audit_firma = busta.audit_conformita_pst()
-    return None, {
-        "ok": False,
-        "requires_local_signature": True,
-        "package_ready": False,
-        "id_deposito": id_deposito,
-        "busta_id": busta.id_busta,
-        "busta_timestamp": timestamp,
-        "dati_atto_sha256": dati_atto_sha256,
-        "pec_dest": pec_dest,
-        "tipo_atto": tipo_atto,
-        "timestamp": timestamp,
-        "oggetto_pec": oggetto_pec,
-        "corpo_pec": corpo_pec,
-        "documenti_busta": documenti_busta,
-        "busta_audit": audit_firma,
-        "messaggio": (
+    return richiedi_firma_locale(
+        messaggio=(
             "DatiAtto.xml deve essere firmato digitalmente prima di creare Atto.enc. "
             "Inserisci il PIN: il software firmerà il metadato ministeriale e riprenderà la stessa fase."
         ),
-        "next_actions": [
-            "Firma DatiAtto.xml con Local Signer.",
-            "Rigenera Atto.msg con indice ministeriale coerente e DatiAtto.xml.p7m.",
-            "Cifra Atto.msg in Atto.enc AES256 prima della PEC reale.",
-        ],
-        "local_signature": {
-            "endpoint": f"{LOCAL_SIGNER_BASE_URL}/firma",
-            "filename": DATI_ATTO_FILENAME,
-            "output_filename": DATI_ATTO_FIRMATO_FILENAME,
-            "busta_id": busta.id_busta,
-            "busta_timestamp": timestamp,
-            "dati_atto_sha256": dati_atto_sha256,
-            "requires_pin": True,
-            "payload": {
-                "documento": base64.b64encode(dati_atto_xml).decode("ascii"),
-                "nome": DATI_ATTO_FILENAME,
-                "visible_signature_mode": "nessuna",
-                "visible_signature_datetime_mode": "nessuna",
-            },
-        },
-        "_status": 200,
-    }
+    )

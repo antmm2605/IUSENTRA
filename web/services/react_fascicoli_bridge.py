@@ -8059,6 +8059,7 @@ def build_react_fascicolo_detail_payload(
         lambda: deposito_ministerial_readiness(
             fascicolo=fascicolo,
             get_clienti=get_clienti,
+            get_soggetti=get_soggetti,
             get_config_studio=get_config_studio if callable(get_config_studio) else (lambda: None),
             operatore=studio_avvocato_titolare,
         ),
@@ -8089,6 +8090,7 @@ def build_react_fascicolo_detail_payload(
                 "documentId": _text(row.get("documentId") or row.get("document_id")),
                 "selected": bool(row.get("selected")),
                 "role": _text(row.get("role")),
+                "studioDocumentType": _text(row.get("studioDocumentType") or row.get("studio_document_type")),
                 "alreadySigned": bool(row.get("alreadySigned") or row.get("already_signed")),
                 "requiresSignature": bool(row.get("requiresSignature") or row.get("requires_signature")),
             }

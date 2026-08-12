@@ -48,18 +48,168 @@ def _cliente_deposito(get_clienti: Callable[[], Any], fascicolo: Any) -> Any | N
         return None
 
 
-def _ministero_istruzione_counterparty(nome: str) -> dict[str, str] | None:
-    text = str(nome or "").casefold()
-    if "ministero" in text and ("istruzione" in text or "merito" in text or "mim" in text):
-        return {
-            "denominazione": "Ministero dell'Istruzione e del Merito",
-            "codice_fiscale": "80185250588",
-            "via": "Viale Trastevere 76 A",
-            "cap": "00153",
-            "localita": "Roma",
-            "provincia": "RM",
-        }
-    return None
+def _enum_value(value: Any) -> str:
+    return str(getattr(value, "value", value) or "").strip()
+
+
+def _indirizzo_context(indirizzo: Any) -> dict[str, str]:
+    return {
+        "via": str(getattr(indirizzo, "via", "") or "").strip(),
+        "civico": str(getattr(indirizzo, "civico", "") or "").strip(),
+        "cap": str(getattr(indirizzo, "cap", "") or "").strip(),
+        "citta": str(getattr(indirizzo, "comune", "") or "").strip(),
+        "provincia": str(getattr(indirizzo, "provincia", "") or "").strip().upper(),
+        "nazione": str(getattr(indirizzo, "nazione", "") or "").strip(),
+    }
+
+
+def deposito_professionista_context(
+    get_config_studio: Callable[[], Any],
+    *,
+    operatore: str = "",
+) -> dict[str, str]:
+    try:
+        config = get_config_studio().config
+    except Exception:
+        return {}
+    studio = getattr(config, "studio", None)
+    firma = getattr(config, "firma", None)
+    pec = getattr(config, "pec", None)
+    nome, cognome = _split_nome_cognome(str(getattr(studio, "avvocato", "") or operatore or ""))
+    return {
+        "ruolo": str(getattr(studio, "qualifica_professionale", "") or "").strip(),
+        "nome": nome,
+        "cognome": cognome,
+        "codice_fiscale": _clean_cf(
+            getattr(studio, "codice_fiscale_avvocato", "")
+            or getattr(firma, "cf_avvocato", "")
+            or getattr(firma, "certificato_codice_fiscale", "")
+            or ""
+        ),
+        "indirizzo": str(getattr(studio, "indirizzo", "") or "").strip(),
+        "cap": str(getattr(studio, "cap", "") or "").strip(),
+        "citta": str(getattr(studio, "city", "") or "").strip(),
+        "provincia": str(getattr(studio, "province", "") or "").strip().upper(),
+        "pec": str(getattr(pec, "indirizzo", "") or "").strip(),
+        "iban": str(getattr(studio, "iban", "") or "").strip(),
+    }
+
+
+def deposito_parti_context(
+    fascicolo: Any,
+    *,
+    get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any] | None = None,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    cliente = _cliente_deposito(get_clienti, fascicolo)
+    if cliente is not None:
+        tipo = _enum_value(getattr(cliente, "tipo", ""))
+        residenza = (
+            getattr(cliente, "indirizzo_residenza", None)
+            if tipo == "PERSONA_FISICA"
+            else getattr(cliente, "indirizzo_sede_legale", None)
+        )
+        rows.append(
+            {
+                "id": str(getattr(cliente, "id", "") or "").strip(),
+                "gruppo": "parte",
+                "ruolo": "ASSISTITO",
+                "nome": str(getattr(cliente, "nome", "") or "").strip(),
+                "cognome": str(getattr(cliente, "cognome", "") or "").strip(),
+                "denominazione": str(getattr(cliente, "ragione_sociale", "") or "").strip(),
+                "codice_fiscale": _clean_cf(
+                    getattr(cliente, "codice_fiscale", "")
+                    or getattr(cliente, "partita_iva", "")
+                    or ""
+                ),
+                "natura_giuridica": "PFI" if tipo == "PERSONA_FISICA" else "PGI",
+                "data_nascita": str(getattr(cliente, "data_nascita", "") or "").strip(),
+                "indirizzo": _indirizzo_context(residenza),
+                "domicilio": _indirizzo_context(getattr(cliente, "indirizzo_domicilio", None)),
+            }
+        )
+
+    linked: list[Any] = []
+    if callable(get_soggetti):
+        try:
+            linked = list(get_soggetti().parti_fascicolo(str(getattr(fascicolo, "id", "") or "")))
+        except Exception:
+            linked = []
+    known_ids = {str(row.get("id") or "") for row in rows if str(row.get("id") or "")}
+    counter_roles = {"CONTROPARTE", "DEBITORE"}
+    party_roles = {"ASSISTITO", "CREDITORE", "INTERVENIENTE"}
+    for parte, soggetto in linked:
+        subject_id = str(getattr(soggetto, "id", "") or "").strip()
+        if subject_id and subject_id in known_ids:
+            continue
+        ruolo = _enum_value(getattr(parte, "ruolo", ""))
+        if ruolo == "DIFENSORE_CONTROPARTE":
+            continue
+        tipo = _enum_value(getattr(soggetto, "tipo", ""))
+        natura = (
+            "PFI"
+            if tipo in {"PERSONA_FISICA", "PROFESSIONISTA"}
+            else "PAM"
+            if tipo == "PUBBLICA_AMMINISTRAZIONE"
+            else "PGI"
+        )
+        rows.append(
+            {
+                "id": subject_id,
+                "gruppo": "controparte" if ruolo in counter_roles else "parte" if ruolo in party_roles else "altro",
+                "ruolo": ruolo,
+                "nome": str(getattr(soggetto, "nome", "") or "").strip(),
+                "cognome": str(getattr(soggetto, "cognome", "") or "").strip(),
+                "denominazione": str(getattr(soggetto, "ragione_sociale", "") or "").strip(),
+                "codice_fiscale": _clean_cf(
+                    getattr(soggetto, "codice_fiscale", "")
+                    or getattr(soggetto, "partita_iva", "")
+                    or ""
+                ),
+                "natura_giuridica": natura,
+                "data_nascita": str(getattr(soggetto, "data_nascita", "") or "").strip(),
+                "qualifica": str(getattr(soggetto, "qualifica", "") or "").strip(),
+                "indirizzo": _indirizzo_context(getattr(soggetto, "indirizzo", None)),
+                "domicilio": _indirizzo_context(getattr(soggetto, "indirizzo", None)),
+            }
+        )
+        if subject_id:
+            known_ids.add(subject_id)
+
+    if not any(row.get("gruppo") == "controparte" for row in rows):
+        nome = str(getattr(fascicolo, "controparte", "") or "").strip()
+        if nome:
+            rows.append(
+                {
+                    "id": "controparte_fascicolo",
+                    "gruppo": "controparte",
+                    "ruolo": "CONTROPARTE",
+                    "nome": "",
+                    "cognome": "",
+                    "denominazione": nome,
+                    "codice_fiscale": _clean_cf(getattr(fascicolo, "cf_controparte", "") or ""),
+                    "natura_giuridica": "PGI",
+                    "data_nascita": "",
+                    "indirizzo": _indirizzo_context(None),
+                    "domicilio": _indirizzo_context(None),
+                }
+            )
+    return rows
+
+
+def deposito_busta_anagrafica_context(
+    fascicolo: Any,
+    *,
+    get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any] | None,
+    get_config_studio: Callable[[], Any],
+    operatore: str,
+) -> dict[str, Any]:
+    return {
+        "professionista": deposito_professionista_context(get_config_studio, operatore=operatore),
+        "parti": deposito_parti_context(fascicolo, get_clienti=get_clienti, get_soggetti=get_soggetti),
+    }
 
 
 def _indirizzo_node(
@@ -95,6 +245,7 @@ def _anagrafica_procedimento_deposito_xml(
     cliente: Any | None,
     cfg_studio: Any | None,
     operatore: str,
+    controparte_soggetto: dict[str, Any] | None = None,
     atti_ns: str = _ATTI_NS,
     anagrafiche_ns: str = _ANAGRAFICHE_NS,
 ) -> bytes:
@@ -137,12 +288,27 @@ def _anagrafica_procedimento_deposito_xml(
     cliente_provincia = str(getattr(indirizzo_cliente, "provincia", "") or "").strip().upper()
     # L'indirizzo del cliente completa l'anagrafica, ma non deve fermare il deposito.
 
-    controparte_nome = str(getattr(fascicolo, "controparte", "") or "").strip()
-    controparte_cf = _clean_cf(getattr(fascicolo, "cf_controparte", "") or "")
-    controparte_addr = _ministero_istruzione_counterparty(controparte_nome)
-    if controparte_addr:
-        controparte_nome = controparte_addr["denominazione"]
-        controparte_cf = controparte_cf or controparte_addr["codice_fiscale"]
+    controparte_soggetto = controparte_soggetto or {}
+    controparte_nome = str(
+        controparte_soggetto.get("denominazione")
+        or " ".join(
+            part
+            for part in (
+                str(controparte_soggetto.get("cognome") or "").strip(),
+                str(controparte_soggetto.get("nome") or "").strip(),
+            )
+            if part
+        )
+        or getattr(fascicolo, "controparte", "")
+        or ""
+    ).strip()
+    controparte_cf = _clean_cf(
+        controparte_soggetto.get("codice_fiscale")
+        or getattr(fascicolo, "cf_controparte", "")
+        or ""
+    )
+    controparte_addr = controparte_soggetto.get("indirizzo")
+    controparte_addr = controparte_addr if isinstance(controparte_addr, dict) else {}
     if not controparte_nome:
         missing.append("controparte")
     if not controparte_cf:
@@ -197,10 +363,17 @@ def _anagrafica_procedimento_deposito_xml(
     etree.SubElement(controparte, f"{{{anagrafiche_ns}}}codiceFiscale").text = controparte_cf
     _indirizzo_node(
         controparte,
-        via=(controparte_addr or {}).get("via", ""),
-        cap=(controparte_addr or {}).get("cap", ""),
-        localita=(controparte_addr or {}).get("localita", ""),
-        provincia=(controparte_addr or {}).get("provincia", ""),
+        via=" ".join(
+            part
+            for part in (
+                str(controparte_addr.get("via") or "").strip(),
+                str(controparte_addr.get("civico") or "").strip(),
+            )
+            if part
+        ),
+        cap=str(controparte_addr.get("cap") or ""),
+        localita=str(controparte_addr.get("citta") or ""),
+        provincia=str(controparte_addr.get("provincia") or ""),
         anagrafiche_ns=anagrafiche_ns,
     )
 
@@ -254,6 +427,7 @@ def anagrafica_xml_se_ricorso(
     tipo_atto: str,
     fascicolo: Any,
     get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any] | None = None,
     get_config_studio: Callable[[], Any],
     operatore: str,
     datiatto_root_name: str = "",
@@ -301,11 +475,18 @@ def anagrafica_xml_se_ricorso(
         cfg_studio = get_config_studio().config
     except Exception:
         cfg_studio = None
+    parti = deposito_parti_context(
+        fascicolo,
+        get_clienti=get_clienti,
+        get_soggetti=get_soggetti,
+    )
+    controparte = next((row for row in parti if row.get("gruppo") == "controparte"), None)
     return _anagrafica_procedimento_deposito_xml(
         fascicolo=fascicolo,
         cliente=_cliente_deposito(get_clienti, fascicolo),
         cfg_studio=cfg_studio,
         operatore=operatore,
+        controparte_soggetto=controparte,
         atti_ns=atti_ns,
         anagrafiche_ns=anagrafiche_ns,
     )
@@ -326,6 +507,7 @@ def deposito_ministerial_readiness(
     *,
     fascicolo: Any,
     get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any] | None = None,
     get_config_studio: Callable[[], Any],
     operatore: str,
     documents: Iterable[Any] | None = None,
@@ -340,16 +522,18 @@ def deposito_ministerial_readiness(
     }
     contribution_messages = {
         "esente": "Esenzione già rilevata nel fascicolo. Nessuna ricevuta è necessaria.",
-        "pagato": "Pagamento registrato e pronto per i dati del deposito.",
+        "pagato": "Pagamento e ricevuta telematica registrati per il deposito.",
         "prenotato_a_debito": "Prenotazione a debito registrata e pronta per i dati del deposito.",
         "da_definire": "Indica se il contributo è esente, pagato o prenotato a debito.",
     }
     contribution_ready = bool(contribution.get("resolved"))
     contribution_message = contribution_messages.get(contribution_mode, contribution_messages["da_definire"])
     if not contribution_ready and contribution_mode == "pagato":
-        contribution_message = "Inserisci l'importo del contributo unificato pagato per proseguire."
+        contribution_message = str(contribution.get("blocking_message") or "").strip() or (
+            "Inserisci l'importo e la ricevuta telematica del contributo unificato per proseguire."
+        )
     elif not contribution_ready and contribution_mode == "prenotato_a_debito":
-        contribution_message = "Inserisci l'importo prenotato a debito per proseguire."
+        contribution_message = "Seleziona la prenotazione a debito per proseguire."
 
     value = valore_causa_fascicolo(fascicolo)
     value_derived_from_exemption = value is None and contribution_mode == "esente"
@@ -361,6 +545,7 @@ def deposito_ministerial_readiness(
             tipo_atto="RICORSO",
             fascicolo=fascicolo,
             get_clienti=get_clienti,
+            get_soggetti=get_soggetti,
             get_config_studio=get_config_studio,
             operatore=operatore,
             datiatto_root_name="Ricorso",

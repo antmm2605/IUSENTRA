@@ -119,12 +119,13 @@ def _cades_signed_payload(payload: bytes) -> bytes:
         .not_valid_after(datetime.now(UTC) + timedelta(days=365))
         .sign(key, hashes.SHA256())
     )
-    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(payload)
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
+    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(payload, cert_der=cert_der)
     signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
     return _build_cades_bes(
         documento=payload,
         signature_bytes=signature,
-        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        cert_der=cert_der,
         signed_attrs_der=signed_attrs,
         detached=False,
     )
@@ -221,6 +222,17 @@ def test_dati_atto_introduttivo_gestisce_contributo_pagato_esente_e_prenotato_a_
     with pytest.raises(ValueError, match="Contributo unificato non definito"):
         BustaTelematica(base).crea_dati_atto_xml_per_firma()
 
+    with pytest.raises(ValueError, match="Mancano gli estremi di pagamento"):
+        BustaTelematica(replace(
+            base,
+            contributo_unificato={
+                "resolved": False,
+                "mode": "pagato",
+                "importo": 259.0,
+                "blocking_message": "Mancano gli estremi di pagamento del Contributo Unificato.",
+            },
+        )).crea_dati_atto_xml_per_firma()
+
     paid = etree.fromstring(BustaTelematica(replace(
         base,
         contributo_unificato={"resolved": True, "mode": "pagato", "importo": 259.0},
@@ -245,6 +257,15 @@ def test_dati_atto_introduttivo_gestisce_contributo_pagato_esente_e_prenotato_a_
     debt_amount = debt.find(".//{*}ContributoUnificato/{*}Importo")
     assert debt_amount is not None
     assert debt_amount.get("debito") == "true"
+
+    debt_without_amount = etree.fromstring(BustaTelematica(replace(
+        base,
+        contributo_unificato={"resolved": True, "mode": "prenotato_a_debito", "importo": None},
+    )).crea_dati_atto_xml_per_firma())
+    debt_without_amount_node = debt_without_amount.find(".//{*}ContributoUnificato/{*}Importo")
+    assert debt_without_amount_node is not None
+    assert debt_without_amount_node.text == "0.00"
+    assert debt_without_amount_node.get("debito") == "true"
 
 
 def test_dati_atto_ministeriale_catalogo_citazione_appello_usa_root_specifica(tmp_pdf):
@@ -452,7 +473,7 @@ def test_busta_contiene_indice_busta_ministeriale(dati_busta, tmp_path):
 
 
 def test_atto_msg_usa_mime_file_parts_compatibili_con_parser_pst(dati_busta, tmp_path):
-    """IndiceBusta.xml deve essere una parte MIME nominata, senza corpo testo extra."""
+    """Le parti MIME seguono la disposizione attachment usata da Studio Telematico."""
     from lxml import etree
 
     busta = BustaTelematica(dati_busta)
@@ -474,7 +495,7 @@ def test_atto_msg_usa_mime_file_parts_compatibili_con_parser_pst(dati_busta, tmp
     )
     assert indice_part.get_content_type() == "text/xml"
     assert indice_part.get_param("name", header="Content-Type") == INDICE_BUSTA_FILENAME
-    assert indice_part.get_content_disposition() == "inline"
+    assert indice_part.get_content_disposition() == "attachment"
     assert indice_part.get("Content-ID") == f"<{INDICE_BUSTA_FILENAME}>"
     assert indice_part.get("Content-Transfer-Encoding", "").lower() != "base64"
     assert etree.fromstring(indice_part.get_payload(decode=True)).tag == "IndiceBusta"
@@ -563,7 +584,7 @@ def test_atto_msg_tratta_eml_come_file_opaco_senza_parti_annidate(dati_busta, tm
     message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
 
     eml_part = next(part for part in message.iter_parts() if part.get_filename() == eml_path.name)
-    assert eml_part.get_content_type() == "application/octet-stream"
+    assert eml_part.get_content_type() == "application/pkcs7-mime"
     assert eml_part.get_param("name", header="Content-Type") == eml_path.name
     assert eml_part.get_payload(decode=True) == eml_path.read_bytes()
     assert all(part.get_content_type() != "message/rfc822" for part in message.walk())
@@ -599,23 +620,19 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     attachments = _atto_msg_attachments(busta_path)
     assert DATI_ATTO_FIRMATO_FILENAME in attachments
     assert DATI_ATTO_FILENAME not in attachments
-    assert INDICE_BUSTA_FILENAME in attachments
-    indice_root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
-    assert indice_root.tag == "IndiceBusta"
-    assert indice_root.find("Atto") is not None
-    dati_nodes = [node for node in indice_root.findall("Allegato") if node.get("Tipo") == "DA"]
-    assert len(dati_nodes) == 1
-    assert dati_nodes[0].get("Nome") == DATI_ATTO_FIRMATO_FILENAME
+    assert INDICE_BUSTA_FILENAME not in attachments
     assert estrai_contenuto_cades(attachments[DATI_ATTO_FIRMATO_FILENAME]) == dati_atto_xml
     signed_root = etree.fromstring(dati_atto_xml)
     assert etree.QName(signed_root).localname == "Ricorso"
-    assert not signed_root.xpath("//*[local-name()='IndiceBusta']")
+    indice_nodes = signed_root.xpath("//*[local-name()='IndiceBusta']")
+    assert len(indice_nodes) == 1
+    assert len(indice_nodes[0].xpath("./*[local-name()='AttoPrincipale']")) == 1
     assert signed_root.xpath("//*[local-name()='AnagraficaProcedimento']")
     audit = busta.audit_conformita_pst()
     assert audit["dati_atto_signed"] is True
-    assert audit["indice_busta_mode"] == "indice_busta_xml"
-    assert audit["indice_busta_external_included"] is True
-    assert audit["dati_atto_indice_busta_interno"] is False
+    assert audit["indice_busta_mode"] == "interno_dati_atto"
+    assert audit["indice_busta_external_included"] is False
+    assert audit["dati_atto_indice_busta_interno"] is True
     assert audit["indice_busta_ambiguous"] is False
     assert not any(issue["code"] == "DATI-ATTO-SIGNATURE-MISSING" for issue in audit["issues"])
     assert audit["atto_msg_indice_busta_valid"] is True
@@ -632,8 +649,8 @@ def test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg(tmp_path):
 
     ricorso = tmp_path / "Ricorso.pdf.p7m"
     procura = tmp_path / "Procura.PDF.p7m"
-    ricorso.write_bytes(b"PKCS7-RICORSO")
-    procura.write_bytes(b"PKCS7-PROCURA")
+    ricorso.write_bytes(_cades_signed_payload(b"%PDF-1.4\nRICORSO\n%%EOF"))
+    procura.write_bytes(_cades_signed_payload(b"%PDF-1.4\nPROCURA\n%%EOF"))
     dati = DatiBusta(
         codice_ufficio="0241160092",
         codice_registro="RGL",
@@ -661,7 +678,7 @@ def test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg(tmp_path):
         for part in message.walk()
         if not part.is_multipart()
     }
-    assert INDICE_BUSTA_FILENAME in parts
+    assert INDICE_BUSTA_FILENAME not in parts
     assert "Ricorso.pdf.p7m" in parts
     assert "Ricorso.pdf" not in parts
     assert "Procura.PDF.p7m" in parts
@@ -669,24 +686,80 @@ def test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg(tmp_path):
     assert parts["Ricorso.pdf.p7m"].get_content_type() == "application/pkcs7-mime"
     assert parts["Procura.PDF.p7m"].get_content_type() == "application/pkcs7-mime"
 
-    indice_root = etree.fromstring(parts[INDICE_BUSTA_FILENAME].get_payload(decode=True))
-    assert indice_root.find("Atto").get("Nome") == "Ricorso.pdf.p7m"
-    indexed_names = {
-        str(node.get("Nome") or "")
-        for node in [indice_root.find("Atto"), *indice_root.findall("Allegato")]
-        if node is not None
-    }
-    assert {"Ricorso.pdf.p7m", "Procura.PDF.p7m", INDICE_DOCUMENTI_FILENAME, DATI_ATTO_FIRMATO_FILENAME} <= indexed_names
-
-    external_ids = {
-        str(node.get("ID") or "")
-        for node in [indice_root.find("Atto"), *indice_root.findall("Allegato")]
-        if node is not None
+    signed_root = etree.fromstring(dati_atto_xml)
+    indice_root = signed_root.xpath("//*[local-name()='IndiceBusta']")[0]
+    internal_ids = {
+        str(node.get("id") or "")
+        for node in indice_root
+        if isinstance(node.tag, str)
     }
     mime_ids = {str(part.get("Content-ID") or "").strip("<> ") for part in parts.values()}
-    assert external_ids <= mime_ids
-    signed_root = etree.fromstring(dati_atto_xml)
-    assert not signed_root.xpath("//*[local-name()='IndiceBusta']")
+    assert internal_ids <= mime_ids
+    assert parts[DATI_ATTO_FIRMATO_FILENAME].get("Content-ID") == f"<{DATI_ATTO_FILENAME}>"
+    assert all(part.get_content_disposition() == "attachment" for part in parts.values())
+
+
+def test_busta_reale_decripta_documenti_cades_prima_di_atto_msg(tmp_path, monkeypatch):
+    from pct.document_crypto import ENC_MAGIC, encrypt_doc
+
+    monkeypatch.setenv("PCT_DOC_KEY", "chiave-test-busta-pctenc")
+    ricorso_payload = _cades_signed_payload(b"%PDF-1.4\nRICORSO CIFRATO\n%%EOF")
+    procura_payload = _cades_signed_payload(b"%PDF-1.4\nPROCURA CIFRATA\n%%EOF")
+    ricorso = tmp_path / "Ricorso.pdf.p7m"
+    procura = tmp_path / "Procura.pdf.p7m"
+    ricorso.write_bytes(encrypt_doc(ricorso_payload))
+    procura.write_bytes(encrypt_doc(procura_payload))
+    dati = DatiBusta(
+        codice_ufficio="0241160092",
+        codice_registro="RGL",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(ricorso),
+        allegati=[Allegato(str(procura), "Procura alle liti", "PROCURA")],
+        cf_mittente="RSSMRA80A01H501Z",
+        operatore="Avv. Mario Rossi",
+        valore_causa=500.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+    )
+    busta = BustaTelematica(dati)
+    dati_atto = busta.crea_dati_atto_xml_per_firma()
+    busta_path = busta.crea_busta(
+        str(tmp_path / "out-cifrato"),
+        dati_atto_firmato=_cades_signed_payload(dati_atto),
+        require_dati_atto_firmato=True,
+    )
+
+    attachments = _atto_msg_attachments(busta_path)
+    assert attachments[ricorso.name] == ricorso_payload
+    assert attachments[procura.name] == procura_payload
+    assert not attachments[ricorso.name].startswith(ENC_MAGIC)
+    assert not attachments[procura.name].startswith(ENC_MAGIC)
+
+
+def test_busta_reale_blocca_p7m_non_cades(tmp_path):
+    ricorso = tmp_path / "Ricorso.pdf.p7m"
+    ricorso.write_bytes(b"payload che non e' una firma CAdES")
+    dati = DatiBusta(
+        codice_ufficio="0241160092",
+        codice_registro="RGL",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(ricorso),
+        allegati=[],
+        cf_mittente="RSSMRA80A01H501Z",
+        operatore="Avv. Mario Rossi",
+        valore_causa=500.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+    )
+    busta = BustaTelematica(dati)
+    dati_atto = busta.crea_dati_atto_xml_per_firma()
+
+    with pytest.raises(ValueError, match="non e' un contenitore CAdES"):
+        busta.crea_busta(
+            str(tmp_path / "out-non-cades"),
+            dati_atto_firmato=_cades_signed_payload(dati_atto),
+            require_dati_atto_firmato=True,
+        )
 
 
 def test_busta_reale_accetta_dati_atto_firmato_con_indice_busta_xml(dati_busta, tmp_path):
@@ -726,7 +799,7 @@ def test_busta_reale_blocca_indice_busta_ambiguo(dati_busta, tmp_path, monkeypat
     monkeypatch.setattr(busta, "_crea_xml_dati_atto_ministeriale", con_indice_interno)
     dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
 
-    with pytest.raises(ValueError, match="Indice busta ambiguo"):
+    with pytest.raises(ValueError, match="un solo IndiceBusta"):
         busta.crea_busta(
             str(tmp_path),
             dati_atto_firmato=_cades_signed_payload(dati_atto_xml),

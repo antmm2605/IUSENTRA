@@ -5969,7 +5969,7 @@ def test_pick_preferred_windows_signature_cert_esclude_auth():
             "scadenza": "2029-02-23",
         },
         {
-            "thumbprint": "SIGN-1",
+            "thumbprint": "A" * 40,
             "soggetto": "ROSSI MARIO - FIRMA DIGITALE",
             "emittente": "ArubaPEC EU Qualified Certificates CA G1",
             "scadenza": "2029-02-23",
@@ -5979,7 +5979,7 @@ def test_pick_preferred_windows_signature_cert_esclude_auth():
     cert = module._pick_preferred_windows_signature_cert(certs, prefer_cf="")
 
     assert cert is not None
-    assert cert["thumbprint"] == "SIGN-1"
+    assert cert["thumbprint"] == "A" * 40
 
 
 def test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso(monkeypatch):
@@ -5996,6 +5996,12 @@ def test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso(mo
             "emittente": "ArubaPEC EU Qualified Certificates CA G1",
             "scadenza": "2029-02-23",
         },
+    )
+    monkeypatch.setattr(module, "_windows_store_certificate_der", lambda _thumbprint: b"cert-der")
+    monkeypatch.setattr(
+        module,
+        "_signing_certificate_v2_value_der_inline",
+        lambda _cert_der: b"signing-certificate-v2",
     )
     monkeypatch.setattr(
         module,
@@ -6023,6 +6029,68 @@ def test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso(mo
     assert captured["kwargs"]["capture_output"] is True
     assert captured["kwargs"]["text"] is True
     assert captured["kwargs"]["timeout"] == 240
+
+
+def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypatch):
+    from datetime import UTC, datetime, timedelta
+    from io import BytesIO
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+
+    module = _load_local_signer()
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "GIUSEPPE MONTAGNESE")])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
+    monkeypatch.setattr(
+        module,
+        "_windows_certificato_per_firma",
+        lambda cert_thumbprint=None: {
+            "thumbprint": "A" * 40,
+            "soggetto": "GIUSEPPE MONTAGNESE",
+            "emittente": "Test CA",
+            "scadenza": "2027-08-11",
+        },
+    )
+    monkeypatch.setattr(module, "_windows_store_certificate_der", lambda _thumbprint: cert_der)
+    monkeypatch.setattr(module, "_windows_store_certificate_chain_der", lambda _thumbprint: [])
+    monkeypatch.setattr(
+        module,
+        "_windows_store_sign_raw",
+        lambda _thumbprint, payload, _digest_algorithm: key.sign(payload, padding.PKCS1v15(), hashes.SHA256()),
+    )
+
+    pdf = BytesIO()
+    writer = canvas.Canvas(pdf)
+    writer.drawString(72, 760, "Ricorso")
+    writer.save()
+
+    firmato, info = module._firma_documento_windows_store_pades(
+        pdf.getvalue(),
+        visible_signature_place="Taurianova",
+    )
+
+    reader = PdfReader(BytesIO(firmato))
+    field = reader.get_fields()["Signature1"]
+    assert field["/V"]["/SubFilter"] == "/ETSI.CAdES.detached"
+    assert field["/V"]["/Reason"] == "Per autentica e sottoscrizione"
+    assert field["/V"]["/Location"] == "Taurianova"
+    assert info["windows_cert_store"] is True
+    assert info["formato"] == "pades"
 
 
 def test_firma_windows_store_error_message_non_espone_stack_tecnico():
@@ -6117,6 +6185,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
             pin,
             slot_id,
             pin_session_id=None,
+            formato="cades",
             visible_signature_mode="laterale",
             visible_signature_place="",
             visible_signature_datetime_mode="data_ora",
@@ -6128,6 +6197,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
                 "pin": pin,
                 "slot_id": slot_id,
                 "pin_session_id": pin_session_id,
+                "formato": formato,
                 "visible_signature_mode": visible_signature_mode,
                 "visible_signature_place": visible_signature_place,
                 "visible_signature_datetime_mode": visible_signature_datetime_mode,
@@ -6146,7 +6216,11 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
         handler = _FakeHandler(
             {
                 "documenti": [
-                    {"documento": base64.b64encode(b"doc-1").decode(), "nome": "doc-1.pdf"},
+                    {
+                        "documento": base64.b64encode(b"doc-1").decode(),
+                        "nome": "doc-1.pdf",
+                        "formato": "pades",
+                    },
                     {"documento": base64.b64encode(b"doc-2").decode(), "nome": "doc-2.pdf"},
                 ],
                 "pin": "123456",
@@ -6168,12 +6242,14 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert captured["payload"]["pin_session_id"] == "sess-1"
     assert calls[0]["pin"] == "123456"
     assert calls[0]["pin_session_id"] is None
+    assert calls[0]["formato"] == "pades"
     assert calls[0]["visible_signature_mode"] == "basso_destra"
     assert calls[0]["visible_signature_place"] == "Taurianova"
     assert calls[0]["visible_signature_datetime_mode"] == "solo_data"
     assert calls[0]["cert_thumbprint"] is None
     assert calls[1]["pin"] == ""
     assert calls[1]["pin_session_id"] == "sess-1"
+    assert calls[1]["formato"] == "cades"
     assert calls[1]["visible_signature_mode"] == "basso_destra"
     assert calls[1]["visible_signature_place"] == "Taurianova"
     assert calls[1]["visible_signature_datetime_mode"] == "solo_data"
@@ -6207,6 +6283,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
             pin,
             slot_id,
             pin_session_id=None,
+            formato="cades",
             visible_signature_mode="laterale",
             visible_signature_place="",
             visible_signature_datetime_mode="data_ora",
@@ -6218,6 +6295,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
                 "pin": pin,
                 "slot_id": slot_id,
                 "pin_session_id": pin_session_id,
+                "formato": formato,
                 "visible_signature_mode": visible_signature_mode,
                 "visible_signature_place": visible_signature_place,
                 "visible_signature_datetime_mode": visible_signature_datetime_mode,
@@ -6251,6 +6329,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert captured["call"]["visible_signature_mode"] == "basso_destra"
+    assert captured["call"]["formato"] == "cades"
     assert captured["call"]["visible_signature_place"] == "Taurianova"
     assert captured["call"]["visible_signature_datetime_mode"] == "nessuna"
     assert captured["call"]["cert_thumbprint"] is None

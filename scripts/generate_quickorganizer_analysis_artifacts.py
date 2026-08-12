@@ -349,17 +349,64 @@ def extract_schema_manifest() -> tuple[list[dict[str, Any]], Counter, list[dict[
 def _switch_datiatto_text(form_text: str) -> str:
     method_start = form_text.find("private void ElencoXSD")
     switch_start = form_text.find("switch (AttoDaInviareKey)", method_start if method_start >= 0 else 0)
-    switch_end = form_text.find("\n\tprivate bool Create_DatiAtto_", switch_start + 1)
-    if switch_start < 0 or switch_end <= switch_start:
+    if switch_start < 0:
         return ""
+    line_start = form_text.rfind("\n", 0, switch_start) + 1
+    switch_indent = form_text[line_start:switch_start]
+    closing = re.search(
+        rf"^{re.escape(switch_indent)}\}}\s*$",
+        form_text[switch_start:],
+        re.M,
+    )
+    if not closing:
+        return ""
+    switch_end = switch_start + closing.end()
     return form_text[switch_start:switch_end]
 
 
-def _case_body_until_break(switch_text: str, body_start: int) -> str:
-    break_match = re.search(r"^\s*break;\s*$", switch_text[body_start:], re.M)
-    if not break_match:
-        return switch_text[body_start:]
-    return switch_text[body_start : body_start + break_match.end()]
+def _outer_case_groups(switch_text: str) -> list[tuple[list[tuple[str, int]], str]]:
+    """Raggruppa i case per livello, preservando gli switch annidati di dispatch."""
+
+    all_matches = list(
+        re.finditer(r'^(?P<indent>[ \t]*)case\s+"(?P<key>[^"]+)"\s*:', switch_text, re.M)
+    )
+    if not all_matches:
+        return []
+    outer_indent = all_matches[0].group("indent")
+    grouped_by_position: list[tuple[int, int, list[tuple[str, int]], str]] = []
+    for indent in dict.fromkeys(match.group("indent") for match in all_matches):
+        matches = [match for match in all_matches if match.group("indent") == indent]
+        index = 0
+        while index < len(matches):
+            group_matches = [matches[index]]
+            last = index
+            while last + 1 < len(matches):
+                between = switch_text[matches[last].end() : matches[last + 1].start()]
+                if between.strip():
+                    break
+                last += 1
+                group_matches.append(matches[last])
+            body_start = group_matches[-1].end()
+            body_end = matches[last + 1].start() if last + 1 < len(matches) else len(switch_text)
+            body = switch_text[body_start:body_end]
+            if len(indent) > len(outer_indent):
+                nested_break = re.search(
+                    rf"^{re.escape(indent + chr(9))}break;\s*$",
+                    body,
+                    re.M,
+                )
+                if nested_break:
+                    body = body[: nested_break.end()]
+            keys = [
+                (clean(match.group("key")), switch_text[: match.start()].count("\n") + 1)
+                for match in group_matches
+            ]
+            grouped_by_position.append(
+                (group_matches[0].start(), len(indent), keys, body)
+            )
+            index = last + 1
+    grouped_by_position.sort(key=lambda item: (item[0], item[1]))
+    return [(keys, body) for _, _, keys, body in grouped_by_position]
 
 
 def _compact_strings(values: list[str], limit: int = 80) -> list[str]:
@@ -379,8 +426,10 @@ def _compact_strings(values: list[str], limit: int = 80) -> list[str]:
 def _assignments_in_block(body: str) -> list[dict[str, str]]:
     assignments: list[dict[str, str]] = []
     assignment_re = re.compile(
-        r"(?P<target>\b(?:needProcura|needContributoUnificato|needNotaIscrizioneRuolo|"
-        r"SingleSelect|VisualizzaAnagraficaProcedimento|VisualizzaGrigliaTerzi|"
+        r"(?P<target>\b(?:needProcura|needValoreControversia|needContributoUnificato|needNotaIscrizioneRuolo|"
+        r"SingleSelect|VisualizzaAnagraficaProcedimento|VisualizzaIntroduttiviCassazione|"
+        r"VisualizzaSanzioniGDP|VisualizzaGrigliaTerzi|isProcessoEsecutivo|"
+        r"isEredit[\u00e0\u00c3 ]*Successioni|TipoOrganoRequired|"
         r"[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)+))\s*=\s*(?P<value>[^;\n]+);"
     )
     for match in assignment_re.finditer(body):
@@ -394,7 +443,11 @@ def _assignments_in_block(body: str) -> list[dict[str, str]]:
 
 def _controls_in_block(body: str) -> list[dict[str, str]]:
     controls: dict[str, dict[str, str]] = {}
-    for match in re.finditer(r"\b(?P<control>(?:cbo|txt|dtp|lbl|btn|checkBox|UltraGrid|UltraCurrencyEditor)[A-Za-z0-9_]+)\.(?P<prop>Enabled|Visible|Text|Tag|SelectedIndex)\s*=\s*(?P<value>[^;\n]+);", body):
+    for match in re.finditer(
+        r"\b(?P<control>[A-Za-z_][A-Za-z0-9_À-ÿ]*)\."
+        r"(?P<prop>Enabled|Visible|Text|Tag|SelectedIndex)\s*=\s*(?P<value>[^;\n]+);",
+        body,
+    ):
         control = clean(match.group("control"))
         prop = clean(match.group("prop"))
         value = clean(match.group("value").strip())
@@ -416,7 +469,23 @@ def _fixed_object_codes(body: str) -> list[dict[str, str]]:
 
 def _flags_in_block(body: str) -> dict[str, bool]:
     flags: dict[str, bool] = {}
-    for match in re.finditer(r"\b(needProcura|needContributoUnificato|needNotaIscrizioneRuolo|SingleSelect|VisualizzaAnagraficaProcedimento|VisualizzaGrigliaTerzi)\s*=\s*(true|false)\s*;", body):
+    flag_names = (
+        "needProcura",
+        "needValoreControversia",
+        "needContributoUnificato",
+        "needNotaIscrizioneRuolo",
+        "SingleSelect",
+        "VisualizzaAnagraficaProcedimento",
+        "VisualizzaIntroduttiviCassazione",
+        "VisualizzaSanzioniGDP",
+        "VisualizzaGrigliaTerzi",
+        "isProcessoEsecutivo",
+        "isEreditàSuccessioni",
+        "isEredit\u00c3 Successioni",
+        "TipoOrganoRequired",
+    )
+    pattern = r"\b(" + "|".join(re.escape(name) for name in flag_names) + r")\s*=\s*(true|false)\s*;"
+    for match in re.finditer(pattern, body):
         flags[match.group(1)] = match.group(2) == "true"
     return flags
 
@@ -515,7 +584,11 @@ def _method_profile(body: str, saved_root_variables: set[str]) -> dict[str, Any]
 def extract_datiatto() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, Any]]]:
     form_text = read_text(FORM)
     starts = list(
-        re.finditer(r"^\tprivate bool (Create_DatiAtto_[A-Za-z0-9_]+)\s*\(", form_text, re.M)
+        re.finditer(
+            r"^\tprivate\s+[A-Za-z_][\w.<>,\[\]]*\s+(Create_DatiAtto_[\w]+)\s*\(",
+            form_text,
+            re.M,
+        )
     )
     methods: list[dict[str, Any]] = []
     method_by_name: dict[str, dict[str, Any]] = {}
@@ -556,12 +629,9 @@ def extract_datiatto() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict
     switch_text = _switch_datiatto_text(form_text)
     key_to_methods: list[dict[str, Any]] = []
     key_method_map: dict[str, dict[str, Any]] = {}
-    case_re = re.compile(r'^\s*case\s+"([^"]+)"\s*:', re.M)
-    for case_match in case_re.finditer(switch_text):
-        key = clean(case_match.group(1))
-        body = _case_body_until_break(switch_text, case_match.end())
+    for grouped_keys, body in _outer_case_groups(switch_text):
         method_names = _compact_strings(
-            re.findall(r"(Create_DatiAtto_[A-Za-z0-9_]+)\s*\(", body),
+            re.findall(r"(Create_DatiAtto_[\w]+)\s*\(", body),
             limit=20,
         )
         saved = [
@@ -572,20 +642,21 @@ def extract_datiatto() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict
         method_required_data = []
         for method_name in method_names:
             method_required_data.extend(method_by_name.get(method_name, {}).get("required_data", []))
-        entry = {
-            "key": key,
-            "methods": method_names,
-            "saved_roots": saved,
-            "flags": _flags_in_block(body),
-            "controls": _controls_in_block(body),
-            "fixed_object_codes": _fixed_object_codes(body),
-            "combo_sources": _combo_sources_in_block(body),
-            "assignments": _assignments_in_block(body),
-            "required_data": _compact_strings(method_required_data + _method_required_data(body), limit=80),
-            "line_start_estimate": switch_text[: case_match.start()].count("\n") + 1,
-        }
-        key_to_methods.append(entry)
-        key_method_map[key] = entry
+        for key, line_start in grouped_keys:
+            entry = {
+                "key": key,
+                "methods": method_names,
+                "saved_roots": saved,
+                "flags": _flags_in_block(body),
+                "controls": _controls_in_block(body),
+                "fixed_object_codes": _fixed_object_codes(body),
+                "combo_sources": _combo_sources_in_block(body),
+                "assignments": _assignments_in_block(body),
+                "required_data": _compact_strings(method_required_data + _method_required_data(body), limit=80),
+                "line_start_estimate": line_start,
+            }
+            key_to_methods.append(entry)
+            key_method_map[key] = entry
     return methods, key_to_methods, key_method_map
 
 

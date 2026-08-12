@@ -319,7 +319,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$D
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
 
         cat > "$PLIST" <<PLISTEOF
         <?xml version="1.0" encoding="UTF-8"?>
@@ -395,7 +395,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$D
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
 
         cat > "$SERVICE" <<EOF
         [Unit]

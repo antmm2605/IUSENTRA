@@ -327,7 +327,7 @@ def _audit_trail(fid: str) -> dict[str, Any]:
             }
         service = current_app.extensions.get("legal_audit_service")
         if not isinstance(service, AuditService):
-            if not current_app.config.get("AUDIT_ENABLED"):
+            if not diagnostics.get("enabled"):
                 return fallback
             service = AuditService.from_config(current_app.config)
             current_app.extensions["legal_audit_service"] = service

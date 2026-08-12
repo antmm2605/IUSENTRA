@@ -5777,3 +5777,31 @@ Stato: simulazione e pacchetto verificati materialmente sul server reale; il com
 - Gli shard multipiattaforma del Local Signer installano ora il profilo dipendenze ufficiale del servizio locale prima dei test PAdES e PKCS#11.
 - Il cambiamento è confinato alla CI: non modifica le regole del deposito, i documenti firmati, `DatiAtto.xml`, `IndiceBusta.xml`, `Atto.enc` o l'invio PEC dal PC locale.
 - I test PAdES che richiedono pyHanko e i controlli di packaging/governance risultano superati localmente; la simulazione reale già salvata resta `compatibilità 100%` e nessun invio reale è stato eseguito.
+
+## Aggiornamento 12/08/2026 - Requisiti documentali reali e contributo unificato
+
+Perimetro: esclusivamente `Prepara deposito` del fascicolo `B494AAB9`. Notifiche legali e invio PEC non sono stati modificati né eseguiti.
+
+- Il pannello `Documenti richiesti` deriva soltanto i requisiti dal tipo selezionato `Introduttivi_SICID::Ricorso`; gli slot residui della Regia non vengono più aggiunti come proposte facoltative.
+- Rimossa la proposta impropria `Documenti retributivi e prove del rapporto`, che collegava `Sentenza_Tribunale_Vicenza_20-04-2023.PDF` senza appartenere al contratto documentale del ricorso.
+- Quando il tipo Studio Telematico espone `needContributoUnificato` o `contributionRequired`, il pannello mostra `Contributo unificato: ricevuta di pagamento o documento di esenzione`.
+- Sul fascicolo reale la fonte SQL tenant-aware conferma l'esenzione e il documento `autocertificazione reddituale.pdf`; la UI mostra `Esente` e il medesimo documento di riferimento. Nessun pagamento viene inventato.
+- Il registro audit di produzione era già configurato, ma il bridge React lo dichiarava non disponibile quando `AUDIT_ENABLED` proveniva dall'ambiente anziché da `current_app.config`. Il bridge usa ora la diagnostica effettiva del servizio e rende disponibile la route del bundle.
+
+Prova materiale autenticata eseguita il 12/08/2026 su `https://app.iusentra.it`:
+
+- `Documenti richiesti`: 3 voci, `Atto principale`, `Procura alle liti`, `Contributo unificato`;
+- nessuna voce `Documenti retributivi e prove del rapporto`;
+- `Ricorso.pdf.p7m` aperto nel lettore interno come `Ricorso.pdf`, 11 pagine renderizzate;
+- fase `Busta e indice`: 12 documenti selezionati, 11 allegati, 0 documenti da firmare, autocertificazione compresa nell'elenco PEC;
+- audit: registro attivo e collegamento `/registro/bundle/fascicolo/B494AAB9` esposto; il browser integrato blocca il download ZIP con `ERR_BLOCKED_BY_CLIENT`, quindi il download non è dichiarato verificato;
+- stato attuale: `7/8`, manca soltanto una nuova `Prova della busta` dopo il riavvio applicativo; `Invia deposito reale` è disabilitato e non è stato premuto.
+
+Guardrail:
+
+- `npm --prefix frontend run typecheck` -> superato;
+- `npm --prefix frontend run build:vite` -> superato;
+- `tests/test_regia_ui_react.py` -> `16 passed`;
+- `tests/test_deposito_telematico_catalogo.py` -> `14 passed`, catalogo completo di 270 tipi invariato.
+
+Stato: correzione del pannello verificata materialmente sul server reale. Nessuna PEC reale è stata inviata; la conformità finale del nuovo pacchetto richiede l'esecuzione della prova della busta e non equivale a una garanzia sull'accettazione discrezionale della cancelleria.

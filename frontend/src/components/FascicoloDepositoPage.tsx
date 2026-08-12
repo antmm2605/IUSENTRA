@@ -625,11 +625,11 @@ function StudioDocumentTypePicker({
   if (!requirements.length) return null
   return (
     <label className="iu-fas-deposit-role-picker">
-      <span>Tipologia Studio Telematico</span>
+      <span>Classificazione allegato</span>
       <select
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
-        aria-label={`Tipologia Studio Telematico per ${documentName}`}
+        aria-label={`Classificazione allegato per ${documentName}`}
       >
         <option value="">Allegato semplice</option>
         {requirements.map((requirement) => (
@@ -2104,19 +2104,12 @@ function DepositPreparePage({ id }:{id:string}) {
   const visibleRg = depositVisibleReference(f.rg, f.ref || f.id)
   const portalCatalog = buildPortalCatalogRows(data)
   const depositCandidateDocuments = data.documents.filter(isDepositCandidateDocument)
-  const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed).length
   const communicationDocuments = data.documents.filter(isCommunicationDocument)
   const documentsToClassify = data.documents.filter((doc) => documentOperationalRole(doc).label === 'Da classificare')
-  const mainActs = depositCandidateDocuments.filter((doc) => {
-    const haystack = normaliseText(`${doc.type} ${doc.name} ${doc.statusLabel} ${doc.tags.join(' ')}`)
-    return haystack.includes('atto') || haystack.includes('ricorso') || haystack.includes('memoria') || haystack.includes('istanza')
-  })
   const documentSections = buildDocumentSections(depositCandidateDocuments)
   const regia = data.regia
   const deposit = regia.deposit
-  const blocked = recordBool(deposit, 'blocked')
   const ready = recordBool(deposit, 'ready') || regia.validation.ready
-  const statusTone: FascicoloRow['tone'] = blocked || regia.validation.blockers.length ? 'danger' : ready ? 'success' : 'warning'
   const deliveryPolicy = deposit.deliveryPolicy && typeof deposit.deliveryPolicy === 'object' && !Array.isArray(deposit.deliveryPolicy) ? deposit.deliveryPolicy as Record<string, unknown> : {}
   const directPecAllowed = recordBool(deliveryPolicy, 'allowsDirectPec')
   const directPecReady = directPecAllowed && recordBool(deliveryPolicy, 'directPecReady')
@@ -2178,13 +2171,6 @@ function DepositPreparePage({ id }:{id:string}) {
     setDepositSpecificData(data.depositPreparation.datiattoExtra)
   }, [data.depositPreparation.datiattoExtra, data.depositPreparation.updatedAt, f.id, id])
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
-  const validationRows = [
-    ...regia.validation.blockers.map((row) => ({ tone: 'danger' as const, label: recordText(row, 'title', recordText(row, 'code', 'Blocco')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
-    ...regia.validation.warnings.map((row) => ({ tone: 'warning' as const, label: recordText(row, 'title', recordText(row, 'code', 'Avviso')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
-    ...regia.validation.results.map((row) => ({ tone: recordText(row, 'status') === 'OK' ? 'success' as const : 'neutral' as const, label: recordText(row, 'title', recordText(row, 'code', 'Controllo')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
-  ].filter((row) => row.label || row.message || row.note)
-  const decisiveValidationRows = validationRows.filter(isDecisiveDepositIssue)
-  const advisoryValidationRows = validationRows.filter((row) => !isDecisiveDepositIssue(row))
   const recentDeposits = data.deposits.slice(0, 8)
   const documentsById = new Map(data.documents.map((doc) => [doc.id, doc]))
   const sortedSlots = buildDepositCatalogSlots(selectedDepositType, regia.documentSlots)
@@ -2926,6 +2912,84 @@ function DepositPreparePage({ id }:{id:string}) {
     ? compatibilityReport.ricevute_attese.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : []
   const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)
+  const selectedDepositRequiredData = selectedDepositType?.schema.requiredData || []
+  const selectedDepositRequiredDataText = normaliseText(selectedDepositRequiredData.join(' '))
+  const selectedDepositFlags = selectedDepositType?.schema.quickDepositFlags || {}
+  const contributionRequired = Boolean(selectedDepositType?.schema.contributionRequired || selectedDepositFlags.needContributoUnificato)
+  const proceedingRegistryRequired = Boolean(selectedDepositFlags.VisualizzaAnagraficaProcedimento || /anagrafica procedimento/.test(selectedDepositRequiredDataText))
+  const caseValueRequired = Boolean(/valore causa/.test(selectedDepositRequiredDataText))
+  const missingRequiredDocumentSlots = missingRequiredSlots.filter((slot) => (
+    !isMainActSlot(slot) && depositReadinessSatisfiesSlot(slot, data.depositReadiness) === null
+  ))
+  const hasRequiredDocumentSlots = sortedSlots.some((slot) => (
+    recordBool(slot, 'required')
+    && !isMainActSlot(slot)
+    && depositReadinessSatisfiesSlot(slot, data.depositReadiness) === null
+  ))
+  const depositRequirementChecks: Array<{ key: string; label: string; detail: string; ready: boolean }> = [
+    {
+      key: 'tipo-deposito',
+      label: 'Tipo deposito',
+      detail: selectedDepositType?.label || 'Scegli il tipo di deposito.',
+      ready: Boolean(selectedDepositType),
+    },
+    ...(officeRecipientRequired ? [{
+      key: 'ufficio-destinatario',
+      label: 'Ufficio destinatario',
+      detail: officeRecipientReady ? `${data.depositOffice.name} - ${data.depositOffice.pec}` : officeRecipientBlockingReason,
+      ready: officeRecipientReady,
+    }] : []),
+    {
+      key: 'atto-principale',
+      label: 'Atto principale',
+      detail: mainActDocument?.name || 'Seleziona l’atto principale.',
+      ready: Boolean(mainActDocument),
+    },
+    ...(proceedingRegistryRequired ? [{
+      key: 'anagrafica-procedimento',
+      label: 'Anagrafica procedimento',
+      detail: data.depositReadiness.anagraficaProcedimento.message || data.depositReadiness.anagraficaProcedimento.label,
+      ready: data.depositReadiness.anagraficaProcedimento.ready,
+    }] : []),
+    ...(caseValueRequired ? [{
+      key: 'valore-causa',
+      label: 'Valore della causa',
+      detail: data.depositReadiness.valoreCausa.message || data.depositReadiness.valoreCausa.valueLabel,
+      ready: data.depositReadiness.valoreCausa.ready,
+    }] : []),
+    ...(contributionRequired ? [{
+      key: 'contributo-unificato',
+      label: 'Contributo unificato',
+      detail: data.depositReadiness.contributoUnificato.message || data.depositReadiness.contributoUnificato.label,
+      ready: data.depositReadiness.contributoUnificato.ready,
+    }] : []),
+    ...(selectedDepositInputFields.length || selectedDepositProfessionalRoleOptions.length ? [{
+      key: 'dati-deposito',
+      label: 'Dati del deposito',
+      detail: missingRequiredDepositDataLabels.length
+        ? `Da completare: ${missingRequiredDepositDataLabels.join(', ')}.`
+        : 'Dati obbligatori completi.',
+      ready: missingRequiredDepositDataLabels.length === 0,
+    }] : []),
+    ...(hasRequiredDocumentSlots ? [{
+      key: 'documenti-obbligatori',
+      label: 'Documenti obbligatori',
+      detail: missingRequiredDocumentSlots.length
+        ? `Da completare: ${missingDepositSlotsSummary(missingRequiredDocumentSlots)}.`
+        : 'Documenti obbligatori presenti.',
+      ready: missingRequiredDocumentSlots.length === 0,
+    }] : []),
+    {
+      key: 'prova-busta',
+      label: 'Prova della busta',
+      detail: packageReadyForRealSend
+        ? `Pacchetto verificato${compatibilityPercent >= 0 ? `: conformità ${compatibilityPercent}%` : ''}.`
+        : 'Esegui la prova senza invio reale.',
+      ready: packageReadyForRealSend,
+    },
+  ]
+  const incompleteDepositRequirementChecks = depositRequirementChecks.filter((check) => !check.ready)
+  const completedDepositRequirementChecks = depositRequirementChecks.length - incompleteDepositRequirementChecks.length
   const selectedDepositTypeBlocksRealSend = Boolean(selectedDepositType && !selectedDepositType.rules.real_send_allowed_from_pct_panel)
   const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend && !selectedDepositTypeBlocksRealSend
   const realSendDisabledReason = !selectedDepositType
@@ -2944,11 +3008,13 @@ function DepositPreparePage({ id }:{id:string}) {
           ? officeRecipientBlockingReason || 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
           : actionBlockedReason
   const signaturesRequiredBeforeAction = false
-  const depositStatusText = depositStatusLabel(recordText(deposit, 'status', regia.validation.status || 'Da verificare'))
-  const preparationTone: FascicoloRow['tone'] = decisiveValidationRows.length ? 'warning' : ready ? 'success' : 'primary'
-  const depositMessage = ready
-    ? 'Il fascicolo è pronto per la preparazione del deposito.'
-    : 'Lavora sulla proposta documentale: il controllo decisivo avviene quando generi la busta.'
+  const depositStatusText = incompleteDepositRequirementChecks.length
+    ? `${incompleteDepositRequirementChecks.length} requisiti da completare`
+    : 'Pronto per l’invio locale'
+  const preparationTone: FascicoloRow['tone'] = incompleteDepositRequirementChecks.length ? 'warning' : 'success'
+  const depositMessage = incompleteDepositRequirementChecks.length
+    ? 'Completa i requisiti del deposito indicati sotto.'
+    : 'I requisiti del deposito e la prova della busta risultano completi.'
   const documentPhaseTone: FascicoloRow['tone'] = !selectedDepositType ? 'warning' : !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
   const documentPhaseState = !selectedDepositType
     ? 'Tipo da scegliere'
@@ -2974,7 +3040,7 @@ function DepositPreparePage({ id }:{id:string}) {
       href: '#verifica-deposito',
       index: '1',
       title: 'Verifica pratica',
-      state: decisiveValidationRows.length ? 'Da controllare' : ready ? 'Pronta' : 'In preparazione',
+      state: incompleteDepositRequirementChecks.length ? 'Da completare' : 'Pronta',
       detail: deliveryOfficialChannel,
       tone: preparationTone,
     },
@@ -3271,12 +3337,12 @@ function DepositPreparePage({ id }:{id:string}) {
       ) : null}
 
       <section className="iu-fas-cockpit iu-fas-deposit-cockpit" aria-label="Stato deposito">
-        <StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${regia.header.completion}%`} note={depositStatusLabel(regia.header.operationalState || 'da verificare')} tone={preparationTone}/>
-        <StatCard icon={<FolderOpen size={19}/>} label="Tutto fascicolo" value={data.documents.length} note={documentsToClassify.length ? `${documentsToClassify.length} da classificare` : 'letto integralmente'} tone={documentsToClassify.length ? 'warning' : 'success'} href="#inventario-fascicolo" onClick={openDepositPhase('#inventario-fascicolo')}/>
-        <StatCard icon={<FileText size={19}/>} label="Candidati busta" value={depositCandidateDocuments.length} note={`${signedCandidateDocuments} firmati`} tone="primary" href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
+        <StatCard icon={<ClipboardCheck size={19}/>} label="Controlli deposito" value={`${completedDepositRequirementChecks}/${depositRequirementChecks.length}`} note={incompleteDepositRequirementChecks.length ? `${incompleteDepositRequirementChecks.length} da completare` : 'tutti superati'} tone={preparationTone} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
+        <StatCard icon={<FolderOpen size={19}/>} label="Documenti busta" value={packageDocuments.length} note={packageDocuments.length === 1 ? '1 documento selezionato' : `${packageDocuments.length} documenti selezionati`} tone={packageDocuments.length ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
+        <StatCard icon={<FileText size={19}/>} label="Atto principale" value={mainActDocument ? 1 : 0} note={mainActDocument?.name || 'da selezionare'} tone={mainActDocument ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
         <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#firma-busta" onClick={openDepositPhase('#firma-busta')}/>
-        <StatCard icon={<Gavel size={19}/>} label="Atti principali" value={mainActs.length || 0} note="da confermare" tone={mainActs.length ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
-        <StatCard icon={<Landmark size={19}/>} label="Documenti portale" value={portalCatalog.length} note="separati dalla busta" tone={portalCatalog.length ? 'info' : 'neutral'} href="#inventario-fascicolo" onClick={openDepositPhase('#inventario-fascicolo')}/>
+        <StatCard icon={<Landmark size={19}/>} label="Ufficio destinatario" value={officeRecipientReady ? 'OK' : '—'} note={data.depositOffice.name || 'da verificare'} tone={officeRecipientReady ? 'success' : 'warning'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
+        <StatCard icon={<PackageCheck size={19}/>} label="Prova busta" value={packageReadyForRealSend ? 'OK' : '—'} note={packageReadyForRealSend ? (compatibilityPercent >= 0 ? `${compatibilityPercent}% conforme` : 'pacchetto pronto') : 'da eseguire'} tone={packageReadyForRealSend ? 'success' : 'warning'} href="#generazione-busta" onClick={openDepositPhase('#generazione-busta')}/>
         <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
       </section>
 
@@ -3313,71 +3379,23 @@ function DepositPreparePage({ id }:{id:string}) {
 
       <section className="iu-fas-detail-grid iu-fas-deposit-step-layout">
         <div className="iu-fas-detail-main iu-fas-deposit-step-main">
-          <DetailSection id="verifica-deposito" title="1. Verifica pratica" icon={<ShieldCheck size={17}/>} open={activeDepositPanel === 'verifica-deposito'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('verifica-deposito') }} count={decisiveValidationRows.length}>
+          <DetailSection id="verifica-deposito" title="1. Verifica pratica" icon={<ShieldCheck size={17}/>} open={activeDepositPanel === 'verifica-deposito'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('verifica-deposito') }} count={incompleteDepositRequirementChecks.length}>
             <div className="iu-fas-regia__deposit iu-fas-deposit-prepare-box">
               <div>
-                <Badge tone={preparationTone}>{decisiveValidationRows.length ? 'Da completare alla generazione' : ready ? 'Pronto per generare' : 'In preparazione'}</Badge>
-                <strong>{recordText(deposit, 'label', 'Deposito telematico')}</strong>
+                <Badge tone={preparationTone}>{incompleteDepositRequirementChecks.length ? 'Da completare' : 'Controlli superati'}</Badge>
+                <strong>Controlli del deposito</strong>
                 <p>{depositUserFacingMessage(depositMessage)}</p>
-                <p className="iu-fas-sync-note"><ShieldCheck size={14}/><strong>{deliveryLabel}</strong><span>{depositUserFacingMessage(deliveryDetail)}</span></p>
-                <p className="iu-fas-sync-note"><Gavel size={14}/><strong>Profilo pratica</strong><span>{[practiceProfileName, practiceProfileReason].filter(Boolean).join(' - ') || 'Il profilo determina documenti obbligatori, controlli e canale di deposito.'}</span></p>
-                <p className="iu-fas-sync-note"><ListChecks size={14}/><strong>Regola operativa</strong><span>Qui lavori sulla proposta. I requisiti obbligatori vengono controllati quando generi la busta; gli avvisi non fermano il lavoro.</span></p>
-                <p className="iu-fas-sync-note"><FileCheck2 size={14}/><strong>Firma nella generazione</strong><span>{immediateBatchSigning || oneStepSigning || signatureBatchRequired ? 'Quando premi Firma e genera busta, il software usa il PIN per firmare in lotto i documenti necessari, salva i documenti firmati e aggiorna i controlli prima del pacchetto.' : 'La firma viene verificata secondo il canale impostato.'}</span></p>
-                <p className="iu-fas-sync-note"><PackageCheck size={14}/><strong>Indice documenti</strong><span>{documentIndexGeneratedBySoftware ? 'L’indice viene generato dal software in tempo reale quando viene preparata la busta.' : 'L’indice viene verificato durante la preparazione.'}</span></p>
-              </div>
-              <div className="iu-fas-regia__actions">
-                {predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={afterVerification} onError={failDetail}><RefreshCw size={15}/> Verifica operativa</PostAction> : null}
-                {prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={afterPreparation} onError={failDetail}><ClipboardCheck size={15}/> {prepareLabel}</PostAction> : null}
-                {ready && directPecReady && sendAction ? <PostAction action={sendAction} tone="primary" onDone={refreshDetail} onError={failDetail} confirm="Inviare la busta con la PEC configurata? Verifica prima ufficio, firma, allegati e ricevute attese." confirmTitle="Invia deposito"><Send size={15}/> {sendLabel}</PostAction> : null}
-                {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
               </div>
             </div>
-            {depositActionNotice ? (
-              <div className={`iu-fas-action-notice iu-fas-action-notice--${depositActionNotice.tone}`} role="status">
-                <Badge tone={depositActionNotice.tone}>{depositActionNotice.tone === 'success' ? 'Azione eseguita' : 'Da controllare'}</Badge>
-                <span>{depositUserFacingMessage(depositActionNotice.message)}</span>
-              </div>
-            ) : null}
-            {guidedCompletion ? (
-              <div className="iu-fas-guided-block">
-                <Badge tone="warning">Completamento richiesto</Badge>
-                <strong>{depositUserFacingMessage(missingOperationalStep || 'Pacchetto deposito da completare')}</strong>
-                <p>Il software prepara i controlli e registra l’invio solo quando il pacchetto è completo.</p>
-                {guidedNextActions.length ? <ul>{guidedNextActions.map((action) => <li key={action}>{depositUserFacingMessage(action)}</li>)}</ul> : null}
-              </div>
-            ) : null}
             <div className="iu-fas-regia-list iu-fas-deposit-check-list">
-              <article>
-                <Badge tone={directPecReady ? 'success' : directPecAllowed ? 'warning' : portalUploadRequired ? 'info' : 'warning'}>{deliveryLabel}</Badge>
-                <strong>{depositUserFacingMessage(packageKindLabel)}</strong>
-                <span>{depositUserFacingMessage(deliveryOfficialChannel)}</span>
-                <small>{depositUserFacingMessage(deliveryNote || (deliveryMode === 'direct_pec' ? 'La ricevuta di accettazione PEC avvia il momento rilevante del deposito solo dopo invio conforme.' : 'Dopo l’invio sul portale importa ricevuta, protocollo o esito nel fascicolo.'))}</small>
-              </article>
-            </div>
-            <div className="iu-fas-regia-list iu-fas-deposit-check-list">
-              {decisiveValidationRows.map((row, index) => (
-                <article className="iu-fas-deposit-check-list__decisive" key={`${row.label}-${row.message}-${index}`}>
-                  <Badge tone="warning">{depositIssueLabel(row)}</Badge>
-                  <strong>{depositIssueMessage(row)}</strong>
-                  {row.note ? <span>{row.note}</span> : null}
+              {depositRequirementChecks.map((check) => (
+                <article className={check.ready ? undefined : 'iu-fas-deposit-check-list__decisive'} key={check.key}>
+                  <Badge tone={check.ready ? 'success' : 'warning'}>{check.ready ? 'Superato' : 'Da completare'}</Badge>
+                  <strong>{check.label}</strong>
+                  <span>{check.detail}</span>
                 </article>
               ))}
-              {!decisiveValidationRows.length ? <p className="iu-empty">Nessun requisito bloccante da risolvere prima del comando di generazione. Gli avvisi restano informativi.</p> : null}
             </div>
-            {advisoryValidationRows.length ? (
-              <details className="iu-fas-deposit-advisory">
-                <summary><AlertTriangle size={14}/> Avvisi e informazioni ({advisoryValidationRows.length})</summary>
-                <div className="iu-fas-regia-list iu-fas-deposit-check-list iu-fas-deposit-check-list--advisory">
-                  {advisoryValidationRows.map((row, index) => (
-                    <article key={`advisory-${row.label}-${row.message}-${index}`}>
-                      <Badge tone={row.tone === 'danger' ? 'warning' : row.tone}>{depositIssueLabel(row)}</Badge>
-                      <strong>{depositIssueMessage(row)}</strong>
-                      {row.note ? <span>{row.note}</span> : null}
-                    </article>
-                  ))}
-                </div>
-              </details>
-            ) : null}
             {renderDepositStepControls('verifica-deposito')}
           </DetailSection>
 
@@ -4121,7 +4139,8 @@ function DepositPreparePage({ id }:{id:string}) {
             <div className="iu-fas-action-stack">
               {evidenceHref ? <a className="iu-fas-side-link" href={evidenceHref}><FileArchive size={15}/> Scarica evidence pack</a> : null}
               {data.actions.auditBundle ? <a className="iu-fas-side-link" href={data.actions.auditBundle}><PackageCheck size={15}/> Bundle audit</a> : null}
-              {!evidenceHref && !data.actions.auditBundle ? <p className="iu-empty">Nessun pacchetto audit disponibile per questo fascicolo.</p> : null}
+              {!data.auditTrail.summary.total && data.auditTrail.available ? <p className="iu-empty">Registro audit attivo. Gli eventi del deposito e le ricevute saranno registrati nel fascicolo.</p> : null}
+              {!data.auditTrail.available ? <p className="iu-empty">{data.auditTrail.message || 'Registro audit non disponibile.'}</p> : null}
             </div>
           </DetailSection>
         </aside>
@@ -4614,36 +4633,6 @@ function notificationCommunicationDetail(doc: FascicoloDocument): string {
   return 'Prova di notifica conservata nel fascicolo.'
 }
 
-function depositIssueLabel(row: { label?: string; message?: string; note?: string }): string {
-  const text = normaliseText(`${row.label || ''} ${row.message || ''}`)
-  if (/atto principale/.test(text)) return 'Atto principale'
-  if (/codice oggetto|catalogo/.test(text)) return 'Codice deposito'
-  if (/ufficio|registro|rg/.test(text)) return 'Dati fascicolo'
-  if (/pdf\/?a/.test(text)) return 'Formato atto'
-  if (/file|slot|documento non collegato|documento vuoto/.test(text)) return 'Documento busta'
-  if (/hash|datiatto|xml|schema|busta|indice/.test(text)) return 'Pacchetto'
-  if (/firm|firma|pin|token/.test(text)) return 'Firma'
-  if (/preventivo|conferimento|pagamento|acconto|fattura/.test(text)) return 'Informazione studio'
-  return row.label || 'Controllo'
-}
-
-function depositIssueMessage(row: { message?: string; note?: string; label?: string }): string {
-  const text = normaliseText(`${row.message || ''} ${row.note || ''} ${row.label || ''}`)
-  if (/hash documento assente|calcolare l'?hash|calcol.*hash/.test(text)) return 'Ricalcola l’impronta del documento prima della generazione.'
-  if (/file non collegato|documento non collegato|collega il documento/.test(text)) return 'Collega il documento richiesto alla busta.'
-  if (/file non apribile|ricarica il documento|correggi il collegamento/.test(text)) return 'Ricarica il documento oppure correggi il collegamento.'
-  if (/documento vuoto|file valido/.test(text)) return 'Ricarica un file valido.'
-  return depositUserFacingMessage(row.message || row.note || row.label || 'Controllo registrato')
-}
-
-function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: string; note?: string }): boolean {
-  if (row.tone !== 'danger') return false
-  const text = normaliseText(`${row.label || ''} ${row.message || ''} ${row.note || ''}`)
-  if (/firm|firma|pin|token|certificat/.test(text)) return false
-  if (/preventivo|conferimento|pagamento|acconto|fattura|onorari|cliente|avvocato referente|recapito|email|controparte/.test(text)) return false
-  return /(atto principale|codice oggetto|catalogo ufficiale|ufficio|registro|rg|documento selezionato|file|percorso|hash|datiatto|xml|schema|busta|indice|pdf\/?a|dimensione|slot|obbligator)/.test(text)
-}
-
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
@@ -4996,9 +4985,22 @@ function buildDepositCatalogSlots(
   selectedType: FascicoloDepositCatalogEntry | undefined,
   baseSlots: Array<Record<string, unknown>>,
 ): Array<Record<string, unknown>> {
+  const contributionRequired = Boolean(
+    selectedType?.schema.contributionRequired
+    || selectedType?.schema.quickDepositFlags.needContributoUnificato,
+  )
+  const contributionAlreadyListed = Boolean(selectedType?.ui.documentRequirements.some((requirement) => /contributo/.test(normaliseText(requirement.label))))
   const catalogRequirements = selectedType ? [
     { code: 'AttoPrincipale', label: 'atto principale', required: true, outcome: 'blocco', message: '', ruleId: '' },
     ...selectedType.ui.documentRequirements,
+    ...(contributionRequired && !contributionAlreadyListed ? [{
+      code: 'ContributoUnificato',
+      label: 'Contributo unificato: ricevuta di pagamento o documento di esenzione',
+      required: true,
+      outcome: 'blocco',
+      message: '',
+      ruleId: '',
+    }] : []),
   ] : []
   if (!catalogRequirements.length) return [...baseSlots]
   const baseByKey = new Map<string, Record<string, unknown>>()
@@ -5011,21 +5013,14 @@ function buildDepositCatalogSlots(
     recordText(slot, 'label'),
     recordText(slot, 'type'),
   ].join(' '))))
-  const used = new Set<string>()
   const catalogSlots: Array<Record<string, unknown>> = catalogRequirements.map((requirement, index) => {
     const label = requirement.label
     const slotKey = depositCatalogSlotKey(label, index)
     const baseSlotKey = slotKey === 'ATTO_DA_NOTIFICARE' ? 'ATTO_PRINCIPALE' : slotKey
     const baseSlot = baseByKey.get(slotKey) || baseByKey.get(baseSlotKey) || (slotKey === 'ATTO_DA_NOTIFICARE' ? mainActBaseSlot : undefined)
-    if (baseSlot) used.add(baseSlotKey)
-    if (baseSlot) {
-      const actualBaseKey = recordText(baseSlot, 'slotKey').toUpperCase()
-      if (actualBaseKey) used.add(actualBaseKey)
-    }
-    if (baseSlot && baseSlotKey !== slotKey) used.add(slotKey)
     const kind = depositCatalogRequirementKind(label)
     const labelText = depositCatalogRequirementLabel(label)
-    const useCatalogLabel = slotKey === 'ATTO_DA_NOTIFICARE'
+    const useCatalogLabel = slotKey === 'ATTO_DA_NOTIFICARE' || slotKey === 'CONTRIBUTO_UNIFICATO'
     return {
       ...(baseSlot || {}),
       slotKey,
@@ -5051,16 +5046,7 @@ function buildDepositCatalogSlots(
       ),
     }
   })
-  const catalogUsesNotifiableAct = catalogSlots.some((slot) => recordText(slot, 'slotKey').toUpperCase() === 'ATTO_DA_NOTIFICARE')
-  const linkedExtraSlots = baseSlots
-    .filter((slot) => {
-      const key = recordText(slot, 'slotKey').toUpperCase()
-      const text = normaliseText([key, recordText(slot, 'label'), recordText(slot, 'type')].join(' '))
-      if (catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)) return false
-      return key && !used.has(key) && recordText(slot, 'documentId')
-    })
-    .map((slot) => ({ ...slot, required: false, catalogAdvisory: true }))
-  return [...catalogSlots, ...linkedExtraSlots]
+  return catalogSlots
 }
 
 function depositPackageKindLabel(value: string): string {

@@ -124,6 +124,29 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Invia tutto" not in source
     assert "Deseleziona tutto" in source
     assert "Salva classificazione" in source
+    deposit_page = source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
+
+    assert 'label="Controlli deposito"' in deposit_page
+    assert 'label="Regia"' not in deposit_page
+    assert "regia.header.completion" not in deposit_page
+    assert "advisoryValidationRows" not in deposit_page
+    assert "decisiveValidationRows" not in deposit_page
+    assert "Tipologia Studio Telematico" not in source
+    assert "Classificazione allegato" in source
+    assert "depositRequirementChecks" in deposit_page
+    assert "selectedDepositType?.schema.contributionRequired" in deposit_page
+    assert "selectedDepositFlags.needContributoUnificato" in deposit_page
+    assert "selectedDepositFlags.VisualizzaAnagraficaProcedimento" in deposit_page
+    assert "selectedType?.schema.quickDepositFlags.needContributoUnificato" in source
+    assert "Contributo unificato: ricevuta di pagamento o documento di esenzione" in source
+    assert "linkedExtraSlots" not in source
+    assert "catalogAdvisory" not in source
+    assert "Registro audit attivo. Gli eventi del deposito e le ricevute saranno registrati nel fascicolo." in source
+    assert 'if not diagnostics.get("enabled"):' in bridge
+    assert 'if not current_app.config.get("AUDIT_ENABLED"):' not in bridge
+    assert "Esenzione già rilevata nel fascicolo. Nessuna ricevuta è necessaria." not in source
+    assert "contributionRequired: bool(schema.contributionRequired" in data
+    assert "quickDepositFlags: Object.fromEntries" in data
     assert "function DepositSpecificDataForm" in source
     assert "Mostriamo solo i dati necessari per il tipo selezionato" in source
     assert "missingRequiredDepositSpecificFields" in source
@@ -157,7 +180,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "depositCandidateDocuments]).map((doc) => doc.id)" not in source
     assert "buildDepositCatalogSlots(selectedDepositType, regia.documentSlots)" in source
     assert 'count={sortedSlots.length}' in source
-    assert ".map((slot) => ({ ...slot, required: false, catalogAdvisory: true }))" in source
+    assert ".map((slot) => ({ ...slot, required: false, catalogAdvisory: true }))" not in source
     assert 'catalogOnly' in source
     assert 'catalogRequirementKind' in source
     assert 'canLinkSlot' in source
@@ -165,10 +188,10 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "atto_da_notificare" in source
     assert "baseSlotKey = slotKey === 'ATTO_DA_NOTIFICARE' ? 'ATTO_PRINCIPALE' : slotKey" in source
     assert "mainActBaseSlot" in source
-    assert "actualBaseKey" in source
-    assert "useCatalogLabel = slotKey === 'ATTO_DA_NOTIFICARE'" in source
-    assert "catalogUsesNotifiableAct" in source
-    assert "catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)" in source
+    assert "actualBaseKey" not in source
+    assert "useCatalogLabel = slotKey === 'ATTO_DA_NOTIFICARE' || slotKey === 'CONTRIBUTO_UNIFICATO'" in source
+    assert "catalogUsesNotifiableAct" not in source
+    assert "catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)" not in source
     assert "regia.documentSlots.length" not in source[source.index('id="slot-deposito-rail"'):source.index('id="audit-deposito"')]
     assert "DEPOSIT_DOCUMENT_ROLE_OPTIONS" in source
     role_options = source[

@@ -818,6 +818,9 @@ export type FascicoloDepositCatalogEntry = {
     evidenceRoots: string[]
     generatorClass: string
     ministerialRoot: string
+    requiredData: string[]
+    contributionRequired: boolean
+    quickDepositFlags: Record<string, boolean>
     inputFields: FascicoloDepositInputField[]
   }
   ui: {
@@ -2500,6 +2503,9 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
         evidenceRoots: asArray(schema.evidenceRoots ?? schema.evidence_roots).map((item) => text(item)).filter(Boolean),
         generatorClass: text(schema.generatorClass ?? schema.generator_class),
         ministerialRoot: text(schema.ministerialRoot ?? schema.ministerial_root),
+        requiredData: asArray(schema.requiredData ?? schema.required_data).map((item) => text(item)).filter(Boolean),
+        contributionRequired: bool(schema.contributionRequired ?? schema.contribution_required),
+        quickDepositFlags: Object.fromEntries(Object.entries(isRecord(schema.quickDepositFlags ?? schema.quick_deposit_flags) ? (schema.quickDepositFlags ?? schema.quick_deposit_flags) as Record<string, unknown> : {}).map(([key, flag]) => [key, bool(flag)])),
         inputFields: asArray(schema.inputFields ?? schema.input_fields).map((field) => {
           const input = isRecord(field) ? field : {}
           return {

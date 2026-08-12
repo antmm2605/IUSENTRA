@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.28 - 2026-08-12
+
+- **ReGIndE avvocature: censimento uffici e verifica certificata.** Censiti i 37 enti "avvocatura" dell'indice ReGIndE (26 Avvocature dello Stato, 10 comunali, 1 regionale): 33 con PEC già indicizzata dal Registro PP.AA.; Eboli, Lanuvio e Surbo confermate anche via `ricercaEnteEx` certificato con terna descrizione+CF+PEC. Documentato che il servizio ReGIndE enti è di verifica, non di discovery: con sola descrizione o solo CF risponde vuoto.
+- **Fonte certa senza invenzioni.** La sotto-struttura avvocatura del Comune di Mugnano di Napoli non ha PEC pubblicata in alcun registro: il dato resta assente per scelta, nessun indirizzo viene proposto.
+
 ## 2.278.27 - 2026-08-12
 
 - **Registro PP.AA. popolato per intero dal PST.** Nuovo tool governato `tools/registro_ppaa_harvest_public.py`: usa l'export ufficiale della `Ricerca Pubblica Amministrazione` (`pst_2_8_2.wp`, azione `/ExtStr2/do/pubbamm/searchPA.action`) con 15 query a copertura totale (cifre 0-9 sul codice fiscale, vocali sulla denominazione), deduplica e importa nella cache SQL locale. Base normativa: art. 16, comma 12, D.L. 179/2012.

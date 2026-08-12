@@ -248,3 +248,34 @@ python tools\registro_ppaa_harvest_public.py --import-cache
 
 La verifica valida ai fini della notifica resta quella certificata puntuale prima dell'invio; la
 cache alimenta la proposta destinatari con badge `Registro PP.AA.` nella pagina `/notifiche-legali`.
+
+## Aggiornamento 12/08/2026 - ReGIndE enti "avvocatura": esito ricerca certificata
+
+Su indicazione dell'utente la ricerca e' stata mirata agli **uffici** (avvocature), escludendo le
+persone fisiche ReGIndE. Censimento dall'indice pubblico enti ReGIndE (11.726 voci, acquisizione
+25/07): **37 enti "avvocatura"** — 26 Avvocature dello Stato, 10 avvocature comunali, 1 servizio
+avvocatura regionale (Marche).
+
+Prove reali con certificato CNS ArubaPEC (thumbprint `4F0CE033...`, PIN inserito dall'utente,
+fuso `Europe/Rome`):
+
+1. `ricercaEnteEx` con sola `descrizione` ("avvocatura" e 12 denominazioni esatte): HTTP `200`,
+   busta `ricercaEnteExResponse` **vuota** (237 B) in tutti i casi.
+2. `ricercaEnteEx` con solo `codiceFiscale` (5 CF, incluso il controllo ADS Milano
+   `97021490152`): sempre risposta vuota.
+3. `ricercaEnteEx` con **terna completa** `descrizione + codiceFiscale + indirizzoPec`
+   (stesso schema del flusso Local Signer del 25/07): **4/4 verificati** — ADS Milano
+   (`ads.mi@mailcert.avvocaturastato.it`), Comune di Eboli
+   (`avvocatura.eboli@asmepec.legalmail.it`), Comune di Lanuvio
+   (`segreterialanuvio@pec.provincia.roma.it`), Comune di Surbo (`comunesurbo@pec.it`).
+
+**Conclusione tecnica**: il servizio certificato ReGIndE enti e' un servizio di *verifica*
+(conferma una PEC attesa gia' nota), non di *discovery*: non consente di scoprire PEC non
+esposte dai registri. Comportamento coerente con il principio fail-closed dei pubblici elenchi.
+
+**Copertura finale avvocature**: 33/37 con PEC dal Registro PP.AA. pubblico gia' in cache;
+Eboli, Lanuvio e Surbo confermate anche via ReGIndE certificato sulla PEC principale dell'ente
+(record aggiornati in cache, `records_distinct` 7.726 -> 7.730); il Comune di Mugnano di Napoli
+(sotto-struttura "AVVOCATURA", CF `00637570631`) **non ha alcuna PEC pubblicata** ne' nel
+Registro PP.AA. ne' verificabile in ReGIndE: nessun indirizzo viene inventato, il dato resta
+assente per scelta di fonte certa.

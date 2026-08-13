@@ -5886,6 +5886,7 @@ Stato locale: collaudo materiale completato sulla copia reale dell'utente; nessu
 - Sono controllati ufficio/codice ministeriale, PEC, servizio telematico, registro/sezione, rito/materia e codice oggetto attivo per il canale.
 - Le incoerenze sono blocchi puntuali prima della generazione; non vengono corrette silenziosamente né trasformate in un deposito su un registro diverso.
 - Il caso `B494AAB9` risolve Tribunale di Vicenza `0241160092`, `JPW_SICID`, ruolo `Lavoro`, registro `LAV`, rito `Lavoro` e codice oggetto `222050 - Pubblico impiego`.
+- Il registro reale acquisito dal fascicolo prevale anche su un valore obsoleto del form: un eventuale `RG` residuo non può più trasformare questo fascicolo in contenzioso civile; il DatiAtto resta `RGL` con ruolo `Lavoro`.
 - Il catalogo completo è stato rieseguito: `270/270` tipi e `186/186` regole estratte, zero errori; ogni tipo è stato provato fino ad Atto.enc AES-256-CBC senza invio PEC.
 - Le prove complete sono versionate in `artifacts/deposito-telematico/audit-speciale-studio-telematico-2026-08-13.md`, `audit-studio-telematico-270-2026-08-13.json` e `audit-tabelle-mdb-studio-telematico-2026-08-13.json`.
 

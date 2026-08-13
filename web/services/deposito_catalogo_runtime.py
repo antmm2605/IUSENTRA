@@ -91,6 +91,19 @@ def _forced_studio_role(entry: dict[str, Any] | None) -> str:
 
 
 def _fascicolo_role(fascicolo: Any) -> str:
+    # I registri acquisiti dal fascicolo sono la prova piu' forte della sezione
+    # reale. Devono prevalere su qualunque valore rimasto nel form deposito.
+    for field in ("registro_operativo", "tipo_registro", "registro_portale"):
+        if isinstance(fascicolo, dict):
+            value = fascicolo.get(field)
+        else:
+            value = getattr(fascicolo, field, "")
+        if hasattr(value, "value"):
+            value = value.value
+        register_role = _REGISTRY_ROLES.get(str(value or "").strip().upper())
+        if register_role:
+            return register_role
+
     values: list[str] = []
     for field in (
         "tipo",
@@ -134,7 +147,9 @@ def _fascicolo_role(fascicolo: Any) -> str:
         return "Agraria"
     if "speciale" in text:
         return "Speciale"
-    return "Contenzioso"
+    if "contenzioso" in text:
+        return "Contenzioso"
+    return ""
 
 
 def _unep_role(entry: dict[str, Any] | None) -> str:
@@ -166,16 +181,19 @@ def deposito_catalogo_destination(
     key = str((entry or {}).get("key") or "")
 
     forced_role = _forced_studio_role(entry)
+    fascicolo_role = _fascicolo_role(fascicolo)
     if key.startswith("Atti_UNEP::"):
         role = forced_role or _unep_role(entry)
     elif forced_role:
         role = forced_role
+    elif fascicolo_role:
+        role = fascicolo_role
     elif requested in _REGISTRY_ROLES:
         role = _REGISTRY_ROLES[requested]
     elif requested and requested not in {"SICID", "SIECIC", "SIECIC_ESECUZIONI", "UNEP"}:
-        role = _REGISTRY_ROLES.get(catalog_registry) or _fascicolo_role(fascicolo)
+        role = _REGISTRY_ROLES.get(catalog_registry) or "Contenzioso"
     else:
-        role = _fascicolo_role(fascicolo)
+        role = _REGISTRY_ROLES.get(catalog_registry) or "Contenzioso"
 
     registry = _ROLE_REGISTRIES.get(role)
     if not registry:

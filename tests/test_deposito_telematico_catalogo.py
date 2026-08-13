@@ -252,7 +252,9 @@ def test_ricorso_generico_conserva_il_ruolo_lavoro_del_fascicolo_nel_datiatto(tm
     assert entry is not None
     registry, role = deposito_catalogo_destination(
         entry,
-        "SICID",
+        # Un valore RG rimasto nel form non deve trasformare un fascicolo
+        # Lavoro in un deposito di contenzioso civile.
+        "RG",
         SimpleNamespace(
             tipo="LAVORO",
             titolo="Ricorso lavoro",

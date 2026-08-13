@@ -64,6 +64,8 @@ Per `B494AAB9` l'esito atteso e ora presidiato è:
 
 Il codice `220050` resta distinto ed è collegato al padre `220 - Lavoro dipendente da privato`. Un fascicolo Lavoro non può quindi essere preparato come contenzioso civile ordinario senza produrre un blocco puntuale prima della busta.
 
+È stato inoltre eliminato un ultimo rischio di precedenza del form: se una schermata conserva un vecchio valore `RG`, i registri acquisiti dal fascicolo (`registro_operativo`, `tipo_registro`, `registro_portale`) prevalgono comunque. Sul caso Lavoro il risultato resta quindi `RGL` con ruolo XML `Lavoro`; il valore del form è usato solo quando il fascicolo non contiene alcuna indicazione di registro. Le assegnazioni esplicite ricavate dal decompilato Studio Telematico restano prioritarie quando il relativo generatore le impone.
+
 ## Precedenti rilievi coperti
 
 - Registro/sezione errati: il ruolo del fascicolo e la tabella ufficio impongono `Lavoro/LAV` per il caso concreto.

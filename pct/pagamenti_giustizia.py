@@ -23,6 +23,9 @@ from dataclasses import dataclass, field
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from defusedxml import ElementTree as DefusedET
+from defusedxml.common import DefusedXmlException
+
 # Esiti del pagamento come da XSD ministeriale (ctDatiVersamentoRT).
 ESITI_RT: dict[str, str] = {
     "0": "Pagamento eseguito",
@@ -112,12 +115,18 @@ def _sblocca_payload(data: bytes) -> bytes:
     return data
 
 
+def _parse_xml_sicuro(data: bytes) -> ET.Element:
+    """Estrae l'eventuale CAdES e analizza XML senza DTD o entita'."""
+
+    return DefusedET.fromstring(_sblocca_payload(data))
+
+
 def e_ricevuta_telematica(data: bytes) -> bool:
     """True se i byte sono una RT pagoPA (radice ``RT`` dello schema ministeriale)."""
 
     try:
-        root = ET.fromstring(_sblocca_payload(data))
-    except ET.ParseError:
+        root = _parse_xml_sicuro(data)
+    except (ET.ParseError, DefusedXmlException):
         return False
     return _local(root.tag) == "RT"
 
@@ -126,8 +135,8 @@ def parse_rt(data: bytes) -> RicevutaTelematica | None:
     """Legge una RT.xml (anche .p7m) e la normalizza. None se non e' una RT."""
 
     try:
-        root = ET.fromstring(_sblocca_payload(data))
-    except ET.ParseError:
+        root = _parse_xml_sicuro(data)
+    except (ET.ParseError, DefusedXmlException):
         return None
     if _local(root.tag) != "RT":
         return None

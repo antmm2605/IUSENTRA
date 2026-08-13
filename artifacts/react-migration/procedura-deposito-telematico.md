@@ -5921,3 +5921,13 @@ Guardrail finale: `254` test mirati dell'intero deposito superati, build e typec
 - Test tabellari e catalogo rieseguiti: `27` test mirati superati, oltre al gate esteso da `254` test e all'audit `270/270` già registrati.
 
 Esito operativo: il preflight tecnico del pacchetto è positivo sul caso reale. L'accettazione sostanziale resta determinata esclusivamente dalle ricevute ministeriali e dalla cancelleria dopo un eventuale invio reale dell'avvocato.
+
+## Aggiornamento 13/08/2026 - Parsing sicuro delle ricevute pagoPA
+
+Perimetro esclusivo: lettura delle ricevute telematiche `RT.xml` collegate al contributo unificato. Generazione della busta, firme, indice, destinazione, allegati e trasporto PEC non sono stati modificati.
+
+- Chiuso il sink segnalato da CodeQL high `py/xml-bomb`: il contenuto XML esterno, anche quando estratto da una firma CAdES, viene analizzato con `defusedxml`.
+- DTD ed entità interne/esterne sono vietati e producono un rifiuto controllato, senza espansione e senza accessi a risorse locali o di rete.
+- Il riconoscimento automatico e il parsing completo condividono lo stesso confine sicuro; le RT ministeriali valide mantengono esito, importo, IUV, IUR, pagatore, beneficiario e causale.
+- Dipendenza runtime dichiarata e test di regressione aggiunti per entità interne ed esterne. Prima campagna: `31` test RT, presidio PEC e packaging superati; Ruff e sincronizzazione packaging superati.
+- Nessuna PEC o deposito reale è stato inviato durante il lavoro.

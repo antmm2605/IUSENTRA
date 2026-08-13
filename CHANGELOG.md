@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.43 - 2026-08-13
+
+- **Ricevute pagoPA protette dall'espansione di entità XML.** Il riconoscimento e la lettura delle `RT.xml`, incluse quelle estratte da CAdES, usano `defusedxml`: DTD ed entità interne o esterne vengono rifiutate prima della normalizzazione, chiudendo l'alert CodeQL high `py/xml-bomb` senza cambiare la logica delle ricevute ministeriali valide.
+- **Guardrail di sicurezza e packaging.** Aggiunti test ostili per entità interne ed esterne, dichiarata `defusedxml` come dipendenza runtime governata e mantenuta la verifica delle RT valide e del loro presidio PEC.
+
 ## 2.278.42 - 2026-08-13
 
 - **Deposito Lavoro verificato contro fascicolo e tabelle Studio Telematico.** Il controllo della destinazione confronta anche la famiglia dell'oggetto ministeriale: per la Carta docente del pubblico impiego il codice resta `222050` e viene bloccato il codice `220050` del lavoro privato. Ufficio, PEC, servizio, registro, rito e oggetto sono verificati prima della busta.

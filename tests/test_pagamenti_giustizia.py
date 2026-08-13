@@ -80,6 +80,22 @@ def test_e_ricevuta_telematica_riconosce_rt():
     assert e_ricevuta_telematica(_rt_xml()) is True
 
 
+def test_rt_con_entita_interna_viene_rifiutata_senza_espansione():
+    xml_ostile = b"""<?xml version="1.0"?>
+<!DOCTYPE RT [<!ENTITY dato "contenuto espanso">]>
+<RT><causaleVersamento>&dato;</causaleVersamento></RT>"""
+    assert e_ricevuta_telematica(xml_ostile) is False
+    assert parse_rt(xml_ostile) is None
+
+
+def test_rt_con_entita_esterna_viene_rifiutata_senza_accesso_alla_risorsa():
+    xml_ostile = b"""<?xml version="1.0"?>
+<!DOCTYPE RT [<!ENTITY dato SYSTEM "file:///etc/passwd">]>
+<RT><causaleVersamento>&dato;</causaleVersamento></RT>"""
+    assert e_ricevuta_telematica(xml_ostile) is False
+    assert parse_rt(xml_ostile) is None
+
+
 # --- Verifica per deposito --------------------------------------------------------
 
 

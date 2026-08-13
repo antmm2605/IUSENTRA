@@ -116,3 +116,11 @@ Il collaudo conclusivo è stato ripetuto sulla pagina autenticata di produzione 
 - interazione: scroll completo, hover dei comandi finali e navigazione da tastiera verificati; pulsanti leggibili e senza salti di layout.
 
 Sono stati inoltre rieseguiti i test mirati sulle tabelle di destinazione e sul catalogo telematico: `27` test superati. Il controllo copre corrispondenza ufficio/PEC/servizio/registro/rito/oggetto e conserva l'audit globale `270/270` tipi senza casi aperti.
+
+## Hardening CodeQL delle ricevute pagoPA - 13/08/2026
+
+- L'alert GitHub Advanced Security `863`, regola `py/xml-bomb`, ha individuato in `pct/pagamenti_giustizia.py` il parsing diretto di una ricevuta XML proveniente dall'esterno.
+- Il confine di parsing ora usa `defusedxml` dopo l'eventuale estrazione CAdES: DTD, entità interne ed entità esterne non vengono espanse e la ricevuta viene rifiutata come non valida.
+- La stessa funzione sicura governa sia il riconoscimento automatico della RT sia la normalizzazione usata da deposito e presidio PEC; campi e regole delle RT ministeriali valide restano invariati.
+- Guardrail iniziali: `31` test superati tra `test_pagamenti_giustizia.py`, `test_pec_pagopa_rt.py` e `test_packaging_consistency.py`; Ruff e sincronizzazione packaging superati.
+- Nessun invio PEC o deposito reale è stato eseguito durante questa correzione di sicurezza.

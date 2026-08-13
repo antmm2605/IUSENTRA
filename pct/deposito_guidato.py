@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import tempfile
 import unicodedata
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -107,6 +108,59 @@ def _document_has_verified_signature(doc: dict[str, Any], path: Path | None = No
         )
     except Exception:
         return False
+
+
+def _verify_document_pdfa(doc: dict[str, Any], path: Path) -> dict[str, Any]:
+    """Verifica il PDF interno quando l'atto principale e' firmato CAdES."""
+    source_name = str(
+        doc.get("nome")
+        or doc.get("filename")
+        or doc.get("percorso")
+        or path.name
+    ).strip()
+    try:
+        data = path.read_bytes()
+        try:
+            from web.services.document_crypto import decrypt_doc
+
+            data = decrypt_doc(data)
+        except ImportError:
+            pass
+
+        if source_name.casefold().endswith(".p7m") or path.name.casefold().endswith(".p7m"):
+            from .firme_cades import inspect_signed_document_bytes
+
+            signed = inspect_signed_document_bytes(
+                source_name=source_name or path.name,
+                source_path=str(path),
+                data=data,
+            )
+            if not signed.payload_bytes:
+                return {
+                    "conforme": None,
+                    "versione": "",
+                    "parte": "",
+                    "livello": "",
+                    "cifrato": False,
+                    "messaggio": "Impossibile verificare il PDF interno del contenitore CAdES.",
+                    "avvisi": [signed.status.message],
+                }
+            data = signed.payload_bytes
+
+        with tempfile.TemporaryDirectory(prefix="iusentra-pdfa-") as tmp:
+            pdf_path = Path(tmp) / "atto-principale.pdf"
+            pdf_path.write_bytes(data)
+            return verifica_pdfa(str(pdf_path))
+    except Exception as exc:
+        return {
+            "conforme": None,
+            "versione": "",
+            "parte": "",
+            "livello": "",
+            "cifrato": False,
+            "messaggio": "Impossibile verificare la conformita PDF/A dell'atto principale.",
+            "avvisi": [str(exc)],
+        }
 
 
 def _guess_comune_from_label(label: str) -> str:
@@ -1082,8 +1136,12 @@ class ValidatorNormativoRedazionale:
             )
 
         effective_registries = list(
-            resolver.get("effective_allowed_registries")
-            or profile.allowed_registries
+            (
+                resolver.get("effective_allowed_registries")
+                or profile.allowed_registries
+            )
+            if profile.channel == "PCT_TELEMATICO"
+            else profile.allowed_registries
         )
         if effective_registries and registro and not _registry_is_compatible_with_profile(registro, effective_registries, resolver):
             issues.append(
@@ -1438,7 +1496,7 @@ class DocumentValidator:
                             field="atto_principale_id",
                         )
                     )
-                pdfa = verifica_pdfa(str(path))
+                pdfa = _verify_document_pdfa(doc, path)
                 if pdfa.get("conforme") is False:
                     issues.append(
                         ValidationIssue(
@@ -1975,6 +2033,7 @@ class OrchestratoreDepositoGuidato:
                 "registro_sezione": "Registro o sezione non coerente con l'ufficio",
                 "rito_materia": "Rito o materia non coerente con l'ufficio",
                 "codice_oggetto_tabella": "Codice oggetto non coerente con la tabella ministeriale",
+                "codice_oggetto_materia": "Codice oggetto non coerente con la materia del fascicolo",
             }
             for check in list(destination_audit.get("checks") or []):
                 if not isinstance(check, dict) or check.get("passed") is True:

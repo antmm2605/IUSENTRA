@@ -1441,7 +1441,7 @@ def test_deposito_invia_pec_tributario_demo_registra_esito(tmp_path):
             },
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_json()
     payload = response.get_json()
     assert payload["ok"] is True
     assert payload["demo"] is True
@@ -1602,6 +1602,9 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
         enc.write_bytes(_atto_enc_cms_payload(path))
+        msg = path / "Atto.msg"
+        msg.write_bytes(b"Atto.msg di prova")
+        self._last_atto_msg_path = str(msg)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
@@ -1736,6 +1739,9 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
         enc.write_bytes(_atto_enc_cms_payload(path))
+        msg = path / "Atto.msg"
+        msg.write_bytes(b"Atto.msg di prova")
+        self._last_atto_msg_path = str(msg)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
@@ -1797,6 +1803,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
         numero_rg="123",
         anno_rg=2026,
         controparte="Ministero dell'Istruzione e del Merito",
+        cf_controparte="80185250588",
         id_cliente=id_cliente,
     )
     atto = gf.aggiungi_documento(
@@ -1873,9 +1880,9 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     assert attachment["ministerial_busta_verified"] is True
     assert is_atto_enc_cms_enveloped_data(base64.b64decode(attachment["content_base64"], validate=True))
     assert "Ricorso.pdf.p7m" in payload["corpo_pec"]
-    assert "Autocertificazione ricorso_63ee.PDF" in payload["corpo_pec"]
+    assert "Autocertificazione ricorso.PDF" in payload["corpo_pec"]
     assert "Procura.PDF.p7m" in payload["corpo_pec"]
-    assert "Autocertificazione ricorso.PDF" not in payload["corpo_pec"]
+    assert "Autocertificazione ricorso_63ee.PDF" not in payload["corpo_pec"]
     corpo_check = next(item for item in payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC")
     assert corpo_check["status"] == "ok"
 
@@ -2173,6 +2180,9 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
         enc.write_bytes(_atto_enc_cms_payload(path))
+        msg = path / "Atto.msg"
+        msg.write_bytes(b"Atto.msg di prova")
+        self._last_atto_msg_path = str(msg)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
@@ -2308,6 +2318,9 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
         enc.write_bytes(_atto_enc_cms_payload(path))
+        msg = path / "Atto.msg"
+        msg.write_bytes(b"Atto.msg di prova")
+        self._last_atto_msg_path = str(msg)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
@@ -2442,6 +2455,9 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
         enc.write_bytes(_atto_enc_cms_payload(path))
+        msg = path / "Atto.msg"
+        msg.write_bytes(b"Atto.msg di prova")
+        self._last_atto_msg_path = str(msg)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
@@ -2569,6 +2585,9 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
         enc.write_bytes(_atto_enc_cms_payload(path))
+        msg = path / "Atto.msg"
+        msg.write_bytes(b"Atto.msg di prova")
+        self._last_atto_msg_path = str(msg)
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",

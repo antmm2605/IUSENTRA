@@ -5890,4 +5890,21 @@ Stato locale: collaudo materiale completato sulla copia reale dell'utente; nessu
 - Il catalogo completo è stato rieseguito: `270/270` tipi e `186/186` regole estratte, zero errori; ogni tipo è stato provato fino ad Atto.enc AES-256-CBC senza invio PEC.
 - Le prove complete sono versionate in `artifacts/deposito-telematico/audit-speciale-studio-telematico-2026-08-13.md`, `audit-studio-telematico-270-2026-08-13.json` e `audit-tabelle-mdb-studio-telematico-2026-08-13.json`.
 
-Stato: verifica automatica positiva; deploy e prova materiale su produzione e copia locale ancora da eseguire. Nessuna PEC reale è stata inviata.
+## Aggiornamento 13/08/2026 - Prova busta B494AAB9 senza invio
+
+Perimetro esclusivo: deposito telematico del fascicolo `B494AAB9`. Le notifiche legali non sono state modificate e non è stato eseguito alcun invio PEC.
+
+- Il controllo dell'oggetto distingue le famiglie ministeriali: `222050` per Carta docente/pubblico impiego; `220050` resta lavoro privato e viene respinto nel caso concreto.
+- Il validatore PDF/A estrae ora il PDF interno della firma CAdES prima del controllo; non tratta più il contenitore `.p7m` come PDF. La procura viene riconosciuta anche dal ruolo di deposito salvato.
+- L'atto principale reale è `PDF/A-2B`, 11 pagine, non cifrato, firmato CAdES-BES dal professionista e verificato dopo il salvataggio sul server.
+- La simulazione completa ha prodotto `DatiAtto.xml.p7m`, `Atto.msg` e `Atto.enc` senza invio. Esito: compatibilità `100%`, nessun blocco, nessun avviso e nessun rilievo di validazione.
+- Il DatiAtto riporta ufficio `0241160092`, ruolo `Lavoro`, oggetto `222050` e indice interno. Il contributo è `esente`; la prova `autocertificazione reddituale.pdf` è presente nella busta e non viene creato un pagamento inesistente.
+- `Atto.enc` è un CMS `EnvelopedData` `AES-256-CBC` destinato al certificato ministeriale del Tribunale di Vicenza; `Atto.msg` contiene 14 allegati con nomi logici corretti e senza suffissi interni.
+- Evento audit: `c8dae0ef-f4a9-440c-b071-0687071964a7`; nessun Message-ID reale e nessuna trasmissione PEC.
+- Il catalogo è stato nuovamente eseguito: `270/270` tipi e `270/270` controlli di ruolo ministeriale, zero errori.
+
+Stato: busta e firme verificate tecnicamente sul caso reale. La prova materiale è stata completata in Google Chrome sul PC reale: banner di simulazione senza invio, `8/8`, `Prova busta 100% conforme`, ufficio `Tribunale di Vicenza`, Audit da `5` a `6` e `Invia deposito reale` abilitato ma non premuto. L'account amministrativo temporaneo usato per il collaudo è stato eliminato e la scheda è stata chiusa.
+
+Stato: verifica automatica e prova materiale di produzione positive; deploy del commit definitivo e prova sulla copia locale ancora da eseguire. Nessuna PEC reale è stata inviata.
+
+Guardrail finale: `254` test mirati dell'intero deposito superati, build e typecheck React superati, integrità UTF-8 e coerenza di packaging superate. Il catalogo decompilato è stato rieseguito su `270/270` tipi e `270/270` ruoli ministeriali senza errori. Il registro dei portali dedicati, incluso `PTT_RICORSI`, resta distinto dai ruoli PCT civili; le prove Audit includono realmente `Atto.msg` e `Atto.enc` e i nomi allegati restano quelli ministeriali logici.

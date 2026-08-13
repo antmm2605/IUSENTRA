@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from pct.deposito_guidato import OrchestratoreDepositoGuidato
+from pct.deposito_guidato import OrchestratoreDepositoGuidato, _verify_document_pdfa
 from pct.deposito_simulazione import SIMULATED_DEPOSIT_NOTE_MARKER
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry
@@ -96,6 +96,16 @@ def _doc_payload(gf: GestioneFascicoli, fasc_id: str, doc) -> dict:
         "dimensione_bytes": doc.dimensione_bytes,
         "firmato_digitalmente": doc.firmato_digitalmente,
     }
+
+
+def test_verifica_pdfa_legge_il_pdf_interno_della_firma_cades(tmp_path: Path):
+    signed_path = tmp_path / "Ricorso.pdf.p7m"
+    signed_path.write_bytes(_cades_signed_payload(_pdf_base()))
+
+    result = _verify_document_pdfa({"nome": signed_path.name}, signed_path)
+
+    assert result["conforme"] is True
+    assert result["versione"] == "PDF/A-2B"
 
 
 def test_pst_xsd_sici_20260611_tracciato_come_anticipazione_non_in_esercizio():

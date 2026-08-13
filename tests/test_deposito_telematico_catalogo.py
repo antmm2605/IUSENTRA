@@ -281,6 +281,17 @@ def test_ricorso_generico_conserva_il_ruolo_lavoro_del_fascicolo_nel_datiatto(tm
     assert busta.audit_conformita_pst()["dati_atto_ruolo_coerente"] is True
 
 
+def test_destinazione_non_pct_conserva_il_registro_del_portale_dedicato():
+    registry, role = deposito_catalogo_destination(
+        None,
+        "PTT_RICORSI",
+        SimpleNamespace(tipo="TRIBUTARIO", tribunale="CGT di primo grado di Milano"),
+    )
+
+    assert registry == "PTT_RICORSI"
+    assert role == ""
+
+
 def test_catalogo_non_sostituisce_il_registro_reale_con_la_famiglia_generatore():
     entry = resolve_deposit_type_payload("Introduttivi_SICID::Ricorso")
     assert entry is not None
@@ -289,6 +300,34 @@ def test_catalogo_non_sostituisce_il_registro_reale_con_la_famiglia_generatore()
 
     assert tipo_atto == "RICORSO"
     assert registry == "RGL"
+
+
+def test_validazione_studio_riconosce_la_procura_dal_ruolo_salvato():
+    findings = validate_studio_telematico_deposit(
+        key="Introduttivi_SICID::Ricorso",
+        context={
+            "atto_principale_id": "atto-principale",
+            "ufficio_giudiziario": "0241160092",
+            "oggetto": "222050",
+            "codice_oggetto_pst": "222050",
+            "professionista": {},
+            "parti": [],
+            "datiatto_extra": {},
+            "contributo_unificato": {"resolved": True, "mode": "esente"},
+        },
+        selected_documents=[
+            {
+                "id": "procura",
+                "nome": "Procura.pdf.p7m",
+                "deposit_role": "procura",
+                "studio_document_type": "",
+            }
+        ],
+    )
+
+    assert "VerificaCampiAttoDaDepositare:17929" not in {
+        finding["rule_id"] for finding in findings
+    }
 
 
 def test_unep_controlla_tipo_notifica_titolo_e_iban_con_le_regole_decompilate(tmp_path):

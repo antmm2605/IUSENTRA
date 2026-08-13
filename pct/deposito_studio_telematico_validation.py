@@ -223,6 +223,8 @@ def _validate_documents(
         not _text(context.get("atto_principale_id")) and not documents,
     )
     classified = {_text(document.get("studio_document_type")) for document in documents}
+    if any(_text(document.get("deposit_role")).lower() == "procura" for document in documents):
+        classified.add("Procura")
     if classified.intersection({"ProcuraLiti", "ProcuraSpeciale", "ProcuraAttoPubblico"}):
         classified.add("Procura")
     for requirement in studio_telematico_document_requirements(key):

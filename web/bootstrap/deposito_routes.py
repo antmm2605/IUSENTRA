@@ -51,7 +51,6 @@ from web.services.deposito_catalogo_runtime import (
     deposito_catalogo_entry as _deposito_catalogo_entry,
 )
 from web.services.security_redaction import redacted_json_response
-
 def register_deposito_routes(
     app: Flask,
     *,
@@ -69,24 +68,10 @@ def register_deposito_routes(
     polis_demo_mode: Callable[[], bool],
 ) -> None:
     """Register deposito guide pages and deposito workflow routes."""
-    register_deposito_receipt_routes(
-        app,
-        get_fascicoli=get_fascicoli,
-        get_config_studio=get_config_studio,
-        audit=audit,
-    )
-    register_deposito_aux_routes(
-        app,
-        get_fascicoli=get_fascicoli,
-        run_deposito_validation=run_deposito_validation,
-    )
-    register_deposito_prepara_route(
-        app,
-        get_fascicoli=get_fascicoli,
-        get_config_studio=get_config_studio,
-        deposito_correction_context=deposito_correction_context,
-        luogo_timbro_firma_visibile=luogo_timbro_firma_visibile,
-    )
+    register_deposito_receipt_routes(app, get_fascicoli=get_fascicoli, get_config_studio=get_config_studio, audit=audit)
+    register_deposito_aux_routes(app, get_fascicoli=get_fascicoli, run_deposito_validation=run_deposito_validation)
+    register_deposito_prepara_route(app, get_fascicoli=get_fascicoli, get_config_studio=get_config_studio,
+                                    deposito_correction_context=deposito_correction_context, luogo_timbro_firma_visibile=luogo_timbro_firma_visibile)
     register_deposito_legacy_send_route(
         app,
         get_fascicoli=get_fascicoli,
@@ -98,10 +83,7 @@ def register_deposito_routes(
         documenti_busta_nomi=_documenti_busta_nomi,
     )
     register_deposito_esito_routes(
-        app,
-        get_fascicoli=get_fascicoli,
-        audit=audit,
-        sync_pubblica=sync_pubblica,
+        app, get_fascicoli=get_fascicoli, audit=audit, sync_pubblica=sync_pubblica,
     )
     @app.route("/api/v1/ui/fascicoli/<id_fasc>/deposito/certificato-cifratura", methods=["GET", "POST"])
     def api_deposito_certificato_cifratura(id_fasc):

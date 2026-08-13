@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from web.services.deposito_route_helpers import deposito_oggetto
+from web.services.react_fascicoli_bridge import _codice_oggetto_label
 
 
 class _Form(dict):
@@ -22,6 +23,7 @@ def test_deposito_oggetto_carta_docente_mim_usa_pubblico_impiego():
     )
 
     assert deposito_oggetto(form, fascicolo) == "222050"
+    assert _codice_oggetto_label(fascicolo) == "222050"
 
 
 def test_deposito_oggetto_non_cambia_retribuzione_privata_senza_mim():

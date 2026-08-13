@@ -79,6 +79,7 @@ def test_destinazione_vicenza_lavoro_controlla_anche_oggetto_pubblico_impiego():
         ministerial_role="Lavoro",
         deposit_key="Introduttivi_SICID::Ricorso",
         object_code="222050",
+        expected_object_parent="222",
     )
 
     object_check = next(item for item in audit["checks"] if item["code"] == "codice_oggetto_tabella")
@@ -86,6 +87,26 @@ def test_destinazione_vicenza_lavoro_controlla_anche_oggetto_pubblico_impiego():
     assert object_check["passed"] is True
     assert object_check["actual"]["codice_padre"] == "222"
     assert object_check["actual"]["descrizione_padre"] == "Pubblico impiego"
+    matter_check = next(item for item in audit["checks"] if item["code"] == "codice_oggetto_materia")
+    assert matter_check["passed"] is True
+
+
+def test_destinazione_blocca_retribuzione_privata_per_carta_docente_pubblico_impiego():
+    audit = audit_deposit_destination(
+        office_code="0241160092",
+        office_name="Tribunale di Vicenza",
+        office_pec="tribunale.vicenza@civile.ptel.giustiziacert.it",
+        ministerial_role="Lavoro",
+        deposit_key="Introduttivi_SICID::Ricorso",
+        object_code="220050",
+        expected_object_parent="222",
+    )
+
+    assert audit["ok"] is False
+    assert "codice_oggetto_materia" in audit["errors"]
+    matter_check = next(item for item in audit["checks"] if item["code"] == "codice_oggetto_materia")
+    assert matter_check["actual"]["codice_padre"] == "220"
+    assert matter_check["actual"]["descrizione_padre"] == "Lavoro dipendente da privato"
 
 
 def test_destinazione_blocca_codice_oggetto_non_presente_nella_tabella_ministeriale():

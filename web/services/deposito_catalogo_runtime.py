@@ -180,6 +180,14 @@ def deposito_catalogo_destination(
     catalog_registry = str(payload.get("codice_registro") or "").strip().upper()
     key = str((entry or {}).get("key") or "")
 
+    if (
+        entry is None
+        and requested
+        and requested not in _REGISTRY_ROLES
+        and requested not in {"SICID", "SIECIC", "SIECIC_ESECUZIONI", "UNEP"}
+    ):
+        return requested, ""
+
     forced_role = _forced_studio_role(entry)
     fascicolo_role = _fascicolo_role(fascicolo)
     if key.startswith("Atti_UNEP::"):

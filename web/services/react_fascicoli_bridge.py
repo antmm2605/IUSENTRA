@@ -58,6 +58,7 @@ from pct.document_signature_state import (
 )
 from pct.firma import attributi_cades_bes_mancanti, busta_cades_valida
 from web.services.deposito_anagrafica_ministeriale import deposito_ministerial_readiness
+from web.services.deposito_semantic_helpers import correct_deposito_oggetto_for_context
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
@@ -1208,7 +1209,7 @@ def _fascicolo_client_label(fascicolo: Any) -> str:
 def _codice_oggetto_label(fascicolo: Any) -> str:
     code = _text(getattr(fascicolo, "codice_oggetto_pst", ""))
     if code:
-        return code
+        return correct_deposito_oggetto_for_context(code, fascicolo)
     object_text = _text(getattr(fascicolo, "oggetto", ""))
     if re.match(r"^\d{3,}\s*-", object_text):
         return object_text

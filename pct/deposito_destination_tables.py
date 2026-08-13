@@ -94,6 +94,7 @@ def audit_deposit_destination(
     ministerial_role: str,
     deposit_key: str,
     object_code: str = "",
+    expected_object_parent: str = "",
 ) -> dict[str, Any]:
     catalog = load_destination_catalog()
     object_catalog = load_object_catalog()
@@ -184,6 +185,22 @@ def audit_deposit_destination(
                 "descrizione_padre": str((object_record or {}).get("descrizionePadre") or ""),
             },
         )
+        clean_expected_parent = str(expected_object_parent or "").strip()
+        if clean_expected_parent:
+            actual_parent = str((object_record or {}).get("codicePadre") or "").strip()
+            add(
+                "codice_oggetto_materia",
+                bool(object_record) and actual_parent == clean_expected_parent,
+                {
+                    "codice_padre": clean_expected_parent,
+                    "registro": expected_object_registry,
+                },
+                {
+                    "codice": clean_object_code,
+                    "codice_padre": actual_parent,
+                    "descrizione_padre": str((object_record or {}).get("descrizionePadre") or ""),
+                },
+            )
 
     errors = [str(item["code"]) for item in checks if item["passed"] is not True]
     return {

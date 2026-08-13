@@ -44,7 +44,10 @@ from web.services.deposito_anagrafica_ministeriale import (
 )
 from web.services.deposito_catalogo_runtime import deposito_catalogo_destination
 from web.services.deposito_route_helpers import deposito_oggetto, ufficio_deposito_destinatario
-from web.services.deposito_semantic_helpers import ministerial_contributo_unificato_for_context
+from web.services.deposito_semantic_helpers import (
+    expected_deposito_object_parent_for_context,
+    ministerial_contributo_unificato_for_context,
+)
 from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
 from pct.deposito_destination_tables import audit_deposit_destination
 
@@ -134,6 +137,11 @@ def build_fascicoli_runtime(
             fasc,
         )
         office = ufficio_deposito_destinatario(fasc)
+        raw_object_code = str(
+            form_like.get("codice_oggetto_pst", "")
+            or getattr(fasc, "codice_oggetto_pst", "")
+            or ""
+        ).strip()
         effective_object_code = deposito_oggetto(form_like, fasc)
         if not re.fullmatch(r"\d{6}", effective_object_code):
             effective_object_code = (
@@ -148,7 +156,13 @@ def build_fascicoli_runtime(
             ministerial_role=ministerial_role,
             deposit_key=catalog_key,
             object_code=effective_object_code,
+            expected_object_parent=expected_deposito_object_parent_for_context(fasc, form_like),
         )
+        destination_table_audit["object_resolution"] = {
+            "submitted": raw_object_code,
+            "effective": effective_object_code,
+            "corrected": bool(raw_object_code and raw_object_code != effective_object_code),
+        }
         return {
             "tipo_atto": (form_like.get("tipo_atto", "ATTO_GENERICO") or "ATTO_GENERICO").strip(),
             "codice_registro": effective_registry,

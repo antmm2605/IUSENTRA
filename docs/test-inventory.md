@@ -13,10 +13,10 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 84 |
-| Backend | 69 |
+| Backend | 68 |
 | E2E | 9 |
 | Frontend static gate | 1 |
-| Frontend/UI | 175 |
+| Frontend/UI | 176 |
 | RBAC | 57 |
 | Security | 38 |
 | Smoke CLI | 6 |
@@ -592,13 +592,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Smoke | Smoke CLI | scripts/smoke_app_v2_workflows.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_backend_security.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_lib.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
-| Telematico | Backend | tests/test_deposito_route_helpers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_import_pst_xsd_codici_oggetto.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_pst_services.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | E2E | tests/test_deposito_telematico_catalogo.py | tenant, feature flag, contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Telematico | Frontend/UI | tests/test_codici_oggetto_pst_catalog.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_conformita_pst.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_deposito_compatibilita.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Telematico | Frontend/UI | tests/test_deposito_route_helpers.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_deposito_server_dry_run_audit.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_profilo_deposito.py | 401 anonimo | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_pst_xsd_catalog_importer.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

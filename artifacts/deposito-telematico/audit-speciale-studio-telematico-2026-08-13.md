@@ -75,6 +75,27 @@ Il codice `220050` resta distinto ed è collegato al padre `220 - Lavoro dipende
 - Contributo unificato: per l'esenzione viene richiesta e allegata la prova documentale; non viene inventato un pagamento.
 - Atto principale non apribile: il contenuto PDF incapsulato viene estratto e verificato prima della composizione.
 
+## Prova reale della busta senza invio
+
+La prova è stata eseguita sul fascicolo di produzione `B494AAB9`, usando il dispositivo di firma collegato al PC dell'avvocato. Il PIN è stato trasmesso esclusivamente al Local Signer e non è stato memorizzato nei file, nei log o sul server.
+
+- modalità: simulazione completa, senza invio PEC;
+- esito applicativo: `package_ready=true`, compatibilità `100%`, zero blocchi, zero avvisi e zero rilievi di validazione;
+- evento audit: `c8dae0ef-f4a9-440c-b071-0687071964a7`, operazione `simulazione_senza_invio`;
+- `Atto.msg`: `7.433.431` byte, SHA-256 `C9DFCBE0C4F4BF551E329D01FD274220EB06A90CA0590F51FA0A80659688BAD9`;
+- `Atto.enc`: `7.434.253` byte, SHA-256 `A78DA332EE71CCE326014CADC6EAC5F8C42C5889EE77F9B0D8CCA3C7D40714AC`;
+- cifratura: CMS `EnvelopedData`, un destinatario, `AES-256-CBC`, certificato ministeriale dell'ufficio `0241160092` valido fino all'11/01/2029;
+- allegati MIME: `14`, nell'ordine atteso e senza duplicati o suffissi tecnici di versionamento;
+- `DatiAtto.xml.p7m`, `Ricorso.pdf.p7m` e `Procura .pdf.p7m`: firme CAdES-BES verificate, `signingCertificateV2` presente;
+- atto principale: PDF interno apribile di 11 pagine, non cifrato e conforme `PDF/A-2B`;
+- `DatiAtto`: radice `Ricorso`, ufficio `0241160092`, ruolo `Lavoro`, oggetto `222050`, indice interno presente;
+- contributo unificato: modalità `esente`, nessun pagamento inventato, `autocertificazione reddituale.pdf` presente fisicamente nella busta;
+- destinatario: `tribunale.vicenza@civile.ptel.giustiziacert.it`.
+
+La prova materiale è stata completata in Google Chrome sul PC reale, nella pagina autenticata di produzione. Dopo la firma locale di `DatiAtto.xml`, l'interfaccia ha mostrato il banner `Simulazione PEC completata senza invio reale: compatibilità 100%`, `8/8` controlli superati, ufficio destinatario `Tribunale di Vicenza`, `Prova busta 100% conforme` e contatore Audit passato da `5` a `6`. Il pulsante `Invia deposito reale` risultava abilitato, ma non è stato premuto. L'account amministrativo temporaneo usato esclusivamente per il collaudo è stato eliminato e la scheda è stata chiusa.
+
 ## Stato della prova
 
-L'audit automatico è positivo e non ha eseguito invii. La modifica deve ancora essere distribuita e verificata materialmente sul server reale e sulla copia locale `127.0.0.1:8080`; fino a quella prova il lavoro non viene dichiarato concluso. L'esito tecnico preventivo non sostituisce l'esito ministeriale o l'accettazione della cancelleria dopo un eventuale invio reale.
+La composizione tecnica della busta, il confronto con Studio Telematico e la prova visibile Chrome-Local Signer sono positivi; nessuna PEC è stata inviata. L'esito tecnico preventivo non sostituisce l'esito ministeriale o l'accettazione della cancelleria dopo un eventuale invio reale. Restano da chiudere il deploy sul commit versionato e il riallineamento della copia locale.
+
+Il gate di regressione esteso del deposito ha eseguito `254` test su busta, catalogo, tabelle di destinazione, profili, classificazione, firma, Local Signer, PEC locale, simulazione, ricevute e UI React. Tutti i test sono superati. Il catalogo separato conferma `270/270` tipi e `270/270` controlli di ruolo ministeriale, senza errori.

@@ -95,6 +95,14 @@ def correct_deposito_oggetto_for_context(raw_code: str, fascicolo: Any, form: An
     return code
 
 
+def expected_deposito_object_parent_for_context(fascicolo: Any, form: Any | None = None) -> str:
+    """Restituisce la famiglia PST certa per i soli casi governati semanticamente."""
+
+    if is_carta_docente_pubblico_impiego(fascicolo, form):
+        return "222"
+    return ""
+
+
 def ministerial_valore_causa_for_context(fascicolo: Any) -> float | None:
     candidates: list[Any] = [
         getattr(fascicolo, "valore_causa", None),

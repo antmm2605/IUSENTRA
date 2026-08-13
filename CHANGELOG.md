@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.278.42 - 2026-08-13
+
+- **Deposito Lavoro verificato contro fascicolo e tabelle Studio Telematico.** Il controllo della destinazione confronta anche la famiglia dell'oggetto ministeriale: per la Carta docente del pubblico impiego il codice resta `222050` e viene bloccato il codice `220050` del lavoro privato. Ufficio, PEC, servizio, registro, rito e oggetto sono verificati prima della busta.
+- **Atto principale CAdES verificato sul PDF effettivo.** Il controllo PDF/A estrae il contenuto della firma `.p7m`, così non interpreta più il contenitore CAdES come se fosse un PDF. La procura classificata tramite il ruolo salvato è riconosciuta correttamente dai requisiti Studio Telematico.
+- **Audit speciale completo senza invio.** Rieseguiti `270/270` tipi di deposito e `270/270` controlli di ruolo ministeriale; sul fascicolo `B494AAB9` sono stati verificati `DatiAtto.xml.p7m`, firme CAdES-BES, PDF/A-2B dell'atto, contributo esente documentato, indice interno, nomi MIME, `Atto.msg` e `Atto.enc` AES-256-CBC. Nessuna PEC è stata inviata.
+- **Contratti di deposito estesi senza falsi positivi.** Il registro dei portali dedicati, compreso `PTT_RICORSI`, non viene più trasformato in un ruolo PCT civile; le prove automatiche producono entrambi i file reali `Atto.msg` e `Atto.enc` richiesti dal registro Audit e verificano i nomi ministeriali logici, senza suffissi di archiviazione.
+
 ## 2.278.41 - 2026-08-13
 
 - **Coda «Tempo rilevato automaticamente» nel Timesheet (completa la Fase B).** Le proposte del tracking passivo appaiono nella pagina Timesheet: fascicolo, data, orari, operazioni rilevate; l'avvocato corregge i minuti se serve, conferma (nasce la voce timesheet, origine `tracking_passivo`, evento in audit) o scarta (non si ripresenta). Nuove route `/timesheet/proposte/<id>/conferma` e `/scarta`; il payload `/api/v1/ui/timesheet` espone `trackingProposals`.

@@ -190,6 +190,14 @@ def test_preventivo_accettato_conferimento_fascicolo_ereditano_profilo(tmp_path)
 
 def test_profilo_deposito_popola_colonne_sqlite_dedicate(tmp_path):
     studio_db = StudioDB(str(tmp_path / "studio.db"))
+    studio_db.conn.execute(
+        """
+        INSERT INTO clienti (id, tipo, cognome, nome, ragione_sociale, dati_json)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        ("CLI-SQL", "persona_fisica", "Marchetti", "Lucia", "", "{}"),
+    )
+    studio_db.conn.commit()
     gp = GestionePreventivi(
         str(tmp_path / "preventivi.json"),
         studio_db=studio_db,

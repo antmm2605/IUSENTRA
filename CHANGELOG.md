@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.36 - 2026-08-13
+
+- **Pagamenti telematici di giustizia: la busta ora legge e verifica le ricevute pagoPA (gap n.2 dell'analisi di mercato).** Nuovo `pct/pagamenti_giustizia.py`: parsing della Ricevuta Telematica `RT.xml` (anche firmata `.p7m`) secondo lo schema ministeriale `PagamentiTelematiciGiustizia` (XSD 6.x versionato in `docs/specs/ministero/`) — esito, importo, IUV, IUR, ente beneficiario, pagatore, causale.
+- **Riconciliazione automatica in busta — solo avvisi, decide l'avvocato.** L'audit di conformità PST ora verifica ogni RT allegata e produce esclusivamente avvisi professionali (mai blocchi: confermando, l'invio procede): esito diverso da "Pagamento eseguito" → avviso "pagamento non provato"; importo complessivo diverso dal contributo unificato dichiarato in DatiAtto → avviso (i versamenti frazionati sono sommati, come da vademecum PST); stesso IUV in due ricevute → avviso duplicato; RT allegata a deposito esente o prenotato a debito (es. autocertificazione reddituale art. 9 c.1-bis D.P.R. 115/2002 nei giudizi di lavoro) → avviso di probabile allegato errato, nessuna ricevuta pretesa. Il riepilogo `ricevute_pagamento` è esposto nell'audit busta.
+- **Guardrail.** Nuova suite `tests/test_pagamenti_giustizia.py` (13 test: parsing campi ministeriali, esiti 0-4, riconciliazione frazionati, IUV duplicati, integrazione audit busta). Il pagamento resta sul canale ufficiale pagoPA/PST con autenticazione dell'avvocato: il gestionale non esegue pagamenti, verifica le ricevute. Base: art. 4 c.9 D.L. 193/2009, CAD art. 5, vademecum pagamenti PST.
+
 ## 2.278.35 - 2026-08-13
 
 - **Sync Polisweb — Fase 5: tutti i registri, non solo il civile.** La lettura di udienze e scadenze dal registro (`consulta_scadenze`) ora copre anche esecuzioni mobiliari/immobiliari e procedure concorsuali (SIECIC), giudice di pace (SIGP), lavoro, volontaria giurisdizione e minorenni — ciascuno con i parametri del proprio catalogo ministeriale WSDL v1.52 (SIECIC: `registro`+`idDfa`; SIGP: `subProcedimento`; SICID: parametri completi). La Cassazione resta esclusa perché i cataloghi CASSCI/CASSPE non espongono la classe `InfoScadenze` (fonte certa, non limitazione nostra).

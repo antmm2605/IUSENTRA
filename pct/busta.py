@@ -3286,6 +3286,49 @@ class BustaTelematica:
                 totale += path.stat().st_size
         return totale
 
+    # Dimensione massima ragionevole di una RT.xml (le ricevute pagoPA sono
+    # pochi KB: oltre 2 MB non e' una ricevuta e non va parsata).
+    _RT_MAX_BYTES = 2 * 1024 * 1024
+
+    def _audit_ricevute_telematiche_pagamento(self) -> dict:
+        """Legge e verifica le RT pagoPA allegate alla busta (gap pagamenti giustizia).
+
+        Fonte: schema ministeriale PagamentiTelematiciGiustizia + vademecum
+        pagamenti PST. Riconcilia l'importo provato dalle ricevute con il
+        contributo unificato dichiarato in DatiAtto; esiti negativi bloccano.
+        """
+
+        from pct.pagamenti_giustizia import riepilogo_rt_allegate  # noqa: PLC0415
+
+        candidati: list[tuple[str, bytes]] = []
+        for allegato in self.dati.allegati:
+            path = Path(allegato.percorso)
+            nome = path.name.casefold()
+            if not (nome.endswith(".xml") or nome.endswith(".xml.p7m")):
+                continue
+            try:
+                if not path.exists() or path.stat().st_size > self._RT_MAX_BYTES:
+                    continue
+                candidati.append((path.name, path.read_bytes()))
+            except OSError:
+                continue
+        if not candidati:
+            return {"ricevute": [], "totale_eseguito": 0.0, "issues": []}
+        try:
+            contribution_mode, amount = self._contributo_unificato_dati()
+        except Exception:
+            contribution_mode, amount = "", 0.0
+        importo_atteso = float(amount or 0.0) if contribution_mode == "pagato" else None
+        try:
+            return riepilogo_rt_allegate(
+                candidati,
+                importo_atteso=importo_atteso,
+                pagamento_richiesto=contribution_mode == "pagato",
+            )
+        except Exception:
+            # L'analisi delle ricevute non deve mai far fallire l'audit busta.
+            return {"ricevute": [], "totale_eseguito": 0.0, "issues": []}
+
     def audit_conformita_pst(self) -> dict:
         """Restituisce un audit tecnico della busta rispetto alle specifiche PST."""
         issues: list[dict[str, str]] = []
@@ -3496,6 +3539,9 @@ class BustaTelematica:
                 }
             )
 
+        ricevute_pagamento = self._audit_ricevute_telematiche_pagamento()
+        issues.extend(ricevute_pagamento.get("issues", []))
+
         transport = dict(self._last_transport_audit or {})
         transport_indice_ok = (
             transport.get("atto_msg_indice_busta_valid") is True
@@ -3575,6 +3621,7 @@ class BustaTelematica:
                 next_actions.insert(0, action)
 
         return {
+            "ricevute_pagamento": ricevute_pagamento,
             "transport_mode": transport.get("transport_mode") or "atto_enc_non_generato",
             "expected_transport_mode": "atto_enc_da_atto_msg_cifrato_aes256",
             "uses_real_encryption": real_transport,

@@ -92,8 +92,8 @@ SIECIC_TIPIBASE_NS = "http://schemi.processotelematico.giustizia.it/siecic/tipib
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 XSD_NS = "http://www.w3.org/2001/XMLSchema"
 DATIATTO_ROOT_NS_BY_GENERATOR_CLASS = {
-    "IntroduttiviSicid": MINISTERIAL_INTRO_NS,
-    "Parte": MINISTERIAL_PARTE_NS,
+    "IntroduttiviSicid": SICID_INTRO_V7_NS,
+    "Parte": SICID_PARTE_V7_NS,
     "Introduttivi_SIGP": SIGP_INTRO_NS,
     "CorsoCausa_SIGP": SIGP_CORSO_CAUSA_NS,
     "Professionista_SIGP": SIGP_PROFESSIONISTA_NS,
@@ -131,8 +131,8 @@ DATIATTO_V7_SICID_INTRO_ROOTS = frozenset(
     {"RicorsoImmigrazioneConvalida", "RicorsoReclamoSospensiva"}
 )
 DATIATTO_ATTI_NS_BY_GENERATOR_CLASS = {
-    "IntroduttiviSicid": MINISTERIAL_ATTI_NS,
-    "Parte": MINISTERIAL_ATTI_NS,
+    "IntroduttiviSicid": MINISTERIAL_ATTI_V7_NS,
+    "Parte": MINISTERIAL_ATTI_V7_NS,
     "Introduttivi_SIGP": SIGP_ATTI_NS,
     "CorsoCausa_SIGP": SIGP_ATTI_NS,
     "Professionista_SIGP": SIGP_ATTI_NS,
@@ -3033,6 +3033,7 @@ class BustaTelematica:
             generator_class = generator_class or "IntroduttiviSicid"
         contribution_mode, contribution_amount = self._contributo_unificato_dati()
         if generator_class == "UNEP":
+            from pct.datiatto_unep import ROOT_NS as UNEP_ROOT_NS
             from pct.datiatto_unep import build_unep_datiatto
             from pct.datiatto_xsd import validate_datiatto_xml
 
@@ -3042,7 +3043,7 @@ class BustaTelematica:
                 contribution_mode=contribution_mode,
                 contribution_amount=contribution_amount,
             )
-            validation = validate_datiatto_xml(payload)
+            validation = validate_datiatto_xml(payload, expected_root_namespace=UNEP_ROOT_NS)
             if not validation.ok:
                 detail = "; ".join(validation.errors[:3]) or "controllo ufficiale non superato"
                 raise ValueError(f"Dati del deposito UNEP non conformi: {detail}")
@@ -3160,7 +3161,7 @@ class BustaTelematica:
         payload = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
         from pct.datiatto_xsd import validate_datiatto_xml
 
-        validation = validate_datiatto_xml(payload)
+        validation = validate_datiatto_xml(payload, expected_root_namespace=namespace)
         if not validation.ok:
             detail = "; ".join(validation.errors[:3]) or "controllo ufficiale non superato"
             raise ValueError(f"Dati del deposito non conformi: {detail}")

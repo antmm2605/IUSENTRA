@@ -18,8 +18,14 @@ from pct.busta import (
     INDICE_BUSTA_FILENAME,
     INDICE_DOCUMENTI_FILENAME,
     CASSAZIONE_PARTE_NS,
+    DATIATTO_ATTI_NS_BY_GENERATOR_CLASS,
+    DATIATTO_ROOT_NS_BY_GENERATOR_CLASS,
     MINISTERIAL_ALLEGATI_NS,
+    MINISTERIAL_ALLEGATI_V2_NS,
     MINISTERIAL_ATTI_NS,
+    MINISTERIAL_ATTI_V7_NS,
+    SICID_INTRO_V7_NS,
+    SICID_PARTE_V7_NS,
     SICID_SISTEMA_NS,
     SIECIC_PARTE_ESECUZIONI_NS,
 )
@@ -132,7 +138,7 @@ def _cades_signed_payload(payload: bytes) -> bytes:
 
 
 def _anagrafica_ministeriale_test(
-    atti: str = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6",
+    atti: str = "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
     ana: str = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4",
 ) -> bytes:
     from lxml import etree
@@ -164,12 +170,14 @@ def _anagrafica_ministeriale_test(
     etree.SubElement(avvocato, f"{{{ana}}}cognome").text = "Rossi"
     etree.SubElement(avvocato, f"{{{ana}}}nome").text = "Mario"
     etree.SubElement(avvocato, f"{{{ana}}}codiceFiscale").text = "RSSMRA80A01H501Z"
-    domicilio = etree.SubElement(avvocato, f"{{{ana}}}indirizzo")
-    etree.SubElement(domicilio, f"{{{ana}}}via").text = "Via Studio 2"
-    etree.SubElement(domicilio, f"{{{ana}}}cap").text = "00100"
-    etree.SubElement(domicilio, f"{{{ana}}}localita").text = "Roma"
-    etree.SubElement(domicilio, f"{{{ana}}}provincia").text = "RM"
-    etree.SubElement(domicilio, f"{{{ana}}}{country_field}").text = "IT"
+    address_names = ("domicilio", "indirizzo") if ana.endswith("/v4") else ("indirizzo",)
+    for address_name in address_names:
+        domicilio = etree.SubElement(avvocato, f"{{{ana}}}{address_name}")
+        etree.SubElement(domicilio, f"{{{ana}}}via").text = "Via Studio 2"
+        etree.SubElement(domicilio, f"{{{ana}}}cap").text = "00100"
+        etree.SubElement(domicilio, f"{{{ana}}}localita").text = "Roma"
+        etree.SubElement(domicilio, f"{{{ana}}}provincia").text = "RM"
+        etree.SubElement(domicilio, f"{{{ana}}}{country_field}").text = "IT"
     etree.SubElement(avvocato, f"{{{ana}}}parteRappresentata", ref="parte_ricorrente_1")
     return etree.tostring(root, encoding="UTF-8")
 
@@ -195,10 +203,33 @@ def test_dati_atto_ministeriale_catalogo_citazione_usa_root_e_data(tmp_pdf):
     root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
 
     assert etree.QName(root).localname == "Citazione"
+    assert etree.QName(root).namespace == SICID_INTRO_V7_NS
     assert root.get("Datacitazione") == "2026-06-30"
     assert root.xpath("//*[local-name()='destinazione']")
     assert root.xpath("//*[local-name()='Oggetto']")
     assert root.xpath("//*[local-name()='AnagraficaProcedimento']")
+    indice = root.xpath("./*[local-name()='IndiceBusta']")[0]
+    assert etree.QName(indice).namespace == MINISTERIAL_ATTI_V7_NS
+    assert {
+        etree.QName(node).namespace for node in indice if isinstance(node.tag, str)
+    } == {MINISTERIAL_ALLEGATI_V2_NS}
+
+
+def test_profili_namespace_sicid_correnti_coincidono_con_studio_telematico():
+    assert DATIATTO_ROOT_NS_BY_GENERATOR_CLASS["IntroduttiviSicid"] == SICID_INTRO_V7_NS
+    assert DATIATTO_ROOT_NS_BY_GENERATOR_CLASS["Parte"] == SICID_PARTE_V7_NS
+    assert DATIATTO_ATTI_NS_BY_GENERATOR_CLASS["IntroduttiviSicid"] == MINISTERIAL_ATTI_V7_NS
+    assert DATIATTO_ATTI_NS_BY_GENERATOR_CLASS["Parte"] == MINISTERIAL_ATTI_V7_NS
+
+
+def test_validatore_rifiuta_schema_storico_quando_il_catalogo_richiede_v7():
+    from pct.datiatto_xsd import validate_datiatto_xml
+
+    payload = b'<Ricorso xmlns="http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v6"/>'
+    validation = validate_datiatto_xml(payload, expected_root_namespace=SICID_INTRO_V7_NS)
+
+    assert validation.ok is False
+    assert "non corrente" in validation.errors[0]
 
 
 def test_dati_atto_introduttivo_gestisce_contributo_pagato_esente_e_prenotato_a_debito(tmp_pdf):
@@ -317,6 +348,7 @@ def test_dati_atto_ministeriale_catalogo_produzione_documenti_usa_procedimento(t
     procedimento = root.xpath("//*[local-name()='procedimento']")[0]
 
     assert etree.QName(root).localname == "ProduzioneDocumentiRichiesti"
+    assert etree.QName(root).namespace == SICID_PARTE_V7_NS
     assert procedimento.get("ufficio") == "0580010"
     assert procedimento.xpath("./*[local-name()='numero']/text()") == ["1234"]
     assert procedimento.xpath("./*[local-name()='anno']/text()") == ["2026"]

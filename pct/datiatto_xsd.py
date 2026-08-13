@@ -63,7 +63,11 @@ def _compiled_schema(path: Path) -> etree.XMLSchema:
     return etree.XMLSchema(etree.parse(str(path)))
 
 
-def validate_datiatto_xml(payload: bytes | str) -> DatiAttoXsdValidation:
+def validate_datiatto_xml(
+    payload: bytes | str,
+    *,
+    expected_root_namespace: str = "",
+) -> DatiAttoXsdValidation:
     raw = payload.encode("utf-8") if isinstance(payload, str) else payload
     try:
         root = etree.fromstring(raw)
@@ -79,6 +83,18 @@ def validate_datiatto_xml(payload: bytes | str) -> DatiAttoXsdValidation:
     qname = etree.QName(root)
     namespace = str(qname.namespace or "")
     name = str(qname.localname or "")
+    expected_namespace = str(expected_root_namespace or "").strip()
+    if expected_namespace and namespace != expected_namespace:
+        return DatiAttoXsdValidation(
+            ok=False,
+            root_namespace=namespace,
+            root_name=name,
+            schema_path="",
+            errors=(
+                "Namespace DatiAtto non corrente per il tipo di deposito: "
+                f"atteso {expected_namespace}, trovato {namespace or 'nessuno'}.",
+            ),
+        )
     candidates = _global_element_index().get((namespace, name), ())
     if not candidates:
         return DatiAttoXsdValidation(

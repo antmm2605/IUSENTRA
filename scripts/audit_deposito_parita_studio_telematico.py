@@ -16,9 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from generate_quickorganizer_analysis_artifacts import FORM, extract_datiatto
+from audit_studio_telematico_schema_namespaces import audit_schema_namespaces  # noqa: E402
+from generate_quickorganizer_analysis_artifacts import FORM, extract_datiatto  # noqa: E402
 
-from pct.deposito_telematico_catalogo import list_deposit_catalog_entries
+from pct.deposito_telematico_catalogo import list_deposit_catalog_entries  # noqa: E402
 
 
 DEFAULT_OUTPUT = (
@@ -58,6 +59,7 @@ def _source_for(entry: dict[str, Any], source_by_key: dict[str, dict[str, Any]])
 
 def audit_parity() -> dict[str, Any]:
     _, _, source_by_key = extract_datiatto()
+    schema_report = audit_schema_namespaces(FORM.parent)
     entries = list(list_deposit_catalog_entries())
     results: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -143,8 +145,13 @@ def audit_parity() -> dict[str, Any]:
 
     area_counts = dict(Counter(str(entry.get("macro") or "") for entry in entries))
     channel_counts = dict(Counter(str(entry.get("rules", {}).get("channel_kind") or "") for entry in entries))
+    if not schema_report["ok"]:
+        errors.append(
+            "namespace/schema Studio Telematico non allineati: "
+            + ", ".join(schema_report["famiglie_con_differenze"] or schema_report["namespace_senza_xsd"])
+        )
     return {
-        "ok": len(entries) == 270 and not errors,
+        "ok": len(entries) == 270 and not errors and schema_report["ok"],
         "data_verifica": datetime.now(ZoneInfo("Europe/Rome")).strftime("%d/%m/%Y %H:%M"),
         "fonte_verita": "Studio Telematico 2026 Rel. 021 - FormSentMailBee.cs decompilato",
         "fonte_sha256": hashlib.sha256(FORM.read_bytes()).hexdigest(),
@@ -153,6 +160,14 @@ def audit_parity() -> dict[str, Any]:
         "canali": channel_counts,
         "tipi_con_parita": sum(1 for result in results if result["parita"]),
         "tipi_con_differenze": sum(1 for result in results if not result["parita"]),
+        "audit_schema": {
+            "ok": schema_report["ok"],
+            "versione_studio_telematico": schema_report["versione_studio_telematico"],
+            "namespace_annotati": schema_report["namespace_annotati"],
+            "namespace_con_xsd": schema_report["namespace_con_xsd"],
+            "famiglie_datiatto_verificate": schema_report["famiglie_datiatto_verificate"],
+            "famiglie_con_differenze": schema_report["famiglie_con_differenze"],
+        },
         "errori": errors,
         "tipi": results,
     }

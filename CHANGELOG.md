@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.44 - 2026-08-13
+
+- **DatiAtto SICID allineato alla release Studio Telematico 26.021.** Le famiglie `IntroduttiviSicid` e `Parte` generano ora le radici `v7`, i tipi atto `v7` e l'indice allegati `v2`; il profilo precedente `v6`, causa del rilievo ministeriale su `IDBUSTA 154441686`, non può più essere accettato solo perché lo storico XSD è presente nel repository.
+- **Anagrafica avvocato conforme al generatore decompilato.** Per il profilo SICID corrente vengono serializzati sia `domicilio` sia `indirizzo` prima della parte rappresentata, usando i dati dello studio.
+- **Audit schema senza falso verde.** Verificati `50/50` namespace annotati nel decompilato, `20/20` famiglie DatiAtto e `270/270` tipi di deposito; tutti gli XSD richiesti sono presenti e la generazione end-to-end non rileva errori. Nessuna PEC è stata inviata durante le prove.
+
 ## 2.278.43 - 2026-08-13
 
 - **Ricevute pagoPA protette dall'espansione di entità XML.** Il riconoscimento e la lettura delle `RT.xml`, incluse quelle estratte da CAdES, usano `defusedxml`: DTD ed entità interne o esterne vengono rifiutate prima della normalizzazione, chiudendo l'alert CodeQL high `py/xml-bomb` senza cambiare la logica delle ricevute ministeriali valide.

@@ -1,0 +1,4352 @@
+{
+  "ok": true,
+  "data_verifica": "13/08/2026 20:36",
+  "fonte_verita": "Studio Telematico 2026 Rel. 021 - FormSentMailBee.cs decompilato",
+  "fonte_sha256": "e27cde904029459e741b64c64ae82fd0ec089094f2d4592746fbf55e6148049b",
+  "totale": 270,
+  "macroaree": {
+    "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione": 125,
+    "Processo esecutivo": 48,
+    "Procedimenti concorsuali": 18,
+    "Corte di Cassazione (civile)": 33,
+    "Giudice di Pace": 28,
+    "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti": 18
+  },
+  "canali": {
+    "pct_civile_dm44": 252,
+    "unep_deposito_telematico": 18
+  },
+  "tipi_con_parita": 270,
+  "tipi_con_differenze": 0,
+  "audit_schema": {
+    "ok": true,
+    "versione_studio_telematico": "26.021",
+    "namespace_annotati": 50,
+    "namespace_con_xsd": 50,
+    "famiglie_datiatto_verificate": 20,
+    "famiglie_con_differenze": []
+  },
+  "errori": [],
+  "tipi": [
+    {
+      "key": "Introduttivi_SICID::CitazioneAppello",
+      "source_key": "Introduttivi_SICID::CitazioneAppello",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneAppello"
+      ],
+      "radice_ministeriale": "CitazioneAppello",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::Citazione",
+      "source_key": "Introduttivi_SICID::Citazione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione"
+      ],
+      "radice_ministeriale": "Citazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneSfratto",
+      "source_key": "Introduttivi_SICID::CitazioneSfratto",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneSfratto"
+      ],
+      "radice_ministeriale": "CitazioneSfratto",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneInRiassunzioneAppello",
+      "source_key": "Introduttivi_SICID::CitazioneInRiassunzioneAppello",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione"
+      ],
+      "radice_ministeriale": "CitazioneInRiassunzione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneInRiassunzione",
+      "source_key": "Introduttivi_SICID::CitazioneInRiassunzione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione"
+      ],
+      "radice_ministeriale": "CitazioneInRiassunzione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniDivorzio",
+      "source_key": "Introduttivi_SICID::ModificaCondizioniDivorzio",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniDivorzio"
+      ],
+      "radice_ministeriale": "ModificaCondizioniDivorzio",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniSeparazioneCongiunto",
+      "source_key": "Introduttivi_SICID::ModificaCondizioniSeparazioneCongiunto",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione"
+      ],
+      "radice_ministeriale": "ModificaCondizioniSeparazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniSeparazioneGiudiziale",
+      "source_key": "Introduttivi_SICID::ModificaCondizioniSeparazioneGiudiziale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione"
+      ],
+      "radice_ministeriale": "ModificaCondizioniSeparazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::OpposizioneDecretoIngiuntivo",
+      "source_key": "Introduttivi_SICID::OpposizioneDecretoIngiuntivo",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_OpposizioneDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "OpposizioneDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoOpposizioneDecretoIngiuntivo",
+      "source_key": "Introduttivi_SICID::RicorsoOpposizioneDecretoIngiuntivo",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoOpposizioneDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoOpposizioneDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::OpposizioneLeggeFornero",
+      "source_key": "Introduttivi_SICID::OpposizioneLeggeFornero",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoReclamoSospensiva",
+      "source_key": "Introduttivi_SICID::RicorsoReclamoSospensiva",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoReclamoSospensiva"
+      ],
+      "radice_ministeriale": "RicorsoReclamoSospensiva",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoAccertamentoTecnicoPreventivo",
+      "source_key": "Introduttivi_SICID::RicorsoAccertamentoTecnicoPreventivo",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoCAInibitoria",
+      "source_key": "Introduttivi_SICID::RicorsoCAInibitoria",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCAInibitoria"
+      ],
+      "radice_ministeriale": "RicorsoCAeInibitoria",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::EreditàSuccessioni",
+      "source_key": "Introduttivi_SICID::EreditàSuccessioni",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Successioni"
+      ],
+      "radice_ministeriale": "Successioni",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::Ricorso",
+      "source_key": "Introduttivi_SICID::Ricorso",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoSeparazione",
+      "source_key": "Introduttivi_SICID::RicorsoSeparazione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSeparazione"
+      ],
+      "radice_ministeriale": "RicorsoSeparazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoSequestroConservativo",
+      "source_key": "Introduttivi_SICID::RicorsoSequestroConservativo",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroConservativo"
+      ],
+      "radice_ministeriale": "RicorsoSequestroConservativo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoSequestroGiudiziario",
+      "source_key": "Introduttivi_SICID::RicorsoSequestroGiudiziario",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroGiudiziario"
+      ],
+      "radice_ministeriale": "RicorsoSequestroGiudiziario",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoCautelareAnteCausam",
+      "source_key": "Introduttivi_SICID::RicorsoCautelareAnteCausam",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCautelareAnteCausam"
+      ],
+      "radice_ministeriale": "RicorsoCautelareAnteCausam",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDivorzioCongiunto",
+      "source_key": "Introduttivi_SICID::RicorsoDivorzioCongiunto",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio"
+      ],
+      "radice_ministeriale": "RicorsoDivorzio",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDivorzioGiudiziale",
+      "source_key": "Introduttivi_SICID::RicorsoDivorzioGiudiziale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio"
+      ],
+      "radice_ministeriale": "RicorsoDivorzio",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::Ricorso702Bis",
+      "source_key": "Introduttivi_SICID::Ricorso702Bis",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_Ricorso702Bis"
+      ],
+      "radice_ministeriale": "Ricorso702Bis",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoAppello",
+      "source_key": "Introduttivi_SICID::RicorsoAppello",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoAppello"
+      ],
+      "radice_ministeriale": "RicorsoAppello",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoImmigrazione",
+      "source_key": "Introduttivi_SICID::RicorsoImmigrazione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazione"
+      ],
+      "radice_ministeriale": "RicorsoImmigrazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoMinorenniPadre",
+      "source_key": "Introduttivi_SICID::RicorsoMinorenniPadre",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni"
+      ],
+      "radice_ministeriale": "RicorsoMinorenni",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoMinorenniMadre",
+      "source_key": "Introduttivi_SICID::RicorsoMinorenniMadre",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni"
+      ],
+      "radice_ministeriale": "RicorsoMinorenni",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoMinorenniSoggettoInteressato",
+      "source_key": "Introduttivi_SICID::RicorsoMinorenniSoggettoInteressato",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenniSoggettoInteressato"
+      ],
+      "radice_ministeriale": "RicorsoMinorenniSoggettoInteressato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoImmigrazioneConvalida",
+      "source_key": "Introduttivi_SICID::RicorsoImmigrazioneConvalida",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazioneConvalida"
+      ],
+      "radice_ministeriale": "RicorsoImmigrazioneConvalida",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamConsegnaBeni",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamConsegnaBeni",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamAssistenzaObbligatoria",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamAssistenzaObbligatoria",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamMateriaLavoro",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamMateriaLavoro",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPrevidenzaObbligatoria",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPrevidenzaObbligatoria",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoIntermediazioneFinanziaria",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoIntermediazioneFinanziaria",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamOneriCondominiali",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamOneriCondominiali",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSommaAndConsegnaBeni",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSommaAndConsegnaBeni",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSomma",
+      "source_key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSomma",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoRitoSemplificatoCartabia",
+      "source_key": "Introduttivi_SICID::RicorsoRitoSemplificatoCartabia",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoRitoSemplificatoCartabia"
+      ],
+      "radice_ministeriale": "RicorsoRitoSemplificatoCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaCostituzioneAppelloIncidentale",
+      "source_key": "Parte_SICID::ComparsaCostituzioneAppelloIncidentale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ComparsaCostituzioneAppelloIncidentale"
+      ],
+      "radice_ministeriale": "ComparsaCostituzioneAppelloIncidentale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::CostituzioneConRiconvenzionale",
+      "source_key": "Parte_SICID::CostituzioneConRiconvenzionale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CostituzioneConRiconvenzionale"
+      ],
+      "radice_ministeriale": "CostituzioneConRiconvenzionale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::CostituzioneSemplice",
+      "source_key": "Parte_SICID::CostituzioneSemplice",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CostituzioneSemplice"
+      ],
+      "radice_ministeriale": "CostituzioneSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaCostituzioneAppello",
+      "source_key": "Parte_SICID::ComparsaCostituzioneAppello",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ComparsaCostituzioneAppello"
+      ],
+      "radice_ministeriale": "ComparsaCostituzioneAppello",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::AttoCostituzioneNuovoAvvocato",
+      "source_key": "Parte_SICID::AttoCostituzioneNuovoAvvocato",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_AttoCostituzioneNuovoAvvocato"
+      ],
+      "radice_ministeriale": "AttoCostituzioneNuovoAvvocato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaConclusionaleReplica190",
+      "source_key": "Parte_SICID::ComparsaConclusionaleReplica190",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ComparsaConclusionaleReplica190"
+      ],
+      "radice_ministeriale": "ComparsaConclusionaleReplica190",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaConclusionale190",
+      "source_key": "Parte_SICID::ComparsaConclusionale190",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ComparsaConclusionale190"
+      ],
+      "radice_ministeriale": "ComparsaConclusionale190",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::Comparsa180",
+      "source_key": "Parte_SICID::Comparsa180",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_Comparsa180"
+      ],
+      "radice_ministeriale": "Comparsa180",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DocumentazioneIntegrativaAUSL",
+      "source_key": "Parte_SICID::DocumentazioneIntegrativaAUSL",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DocumentazioneIntegrativaPM",
+      "source_key": "Parte_SICID::DocumentazioneIntegrativaPM",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DepositoDocumentiRichiesti",
+      "source_key": "Parte_SICID::DepositoDocumentiRichiesti",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::AttoNonCodificato",
+      "source_key": "Parte_SICID::AttoNonCodificato",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_AttoNonCodificato"
+      ],
+      "radice_ministeriale": "AttoNonCodificato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::InventarioEreditaGiacente",
+      "source_key": "Parte_SICID::InventarioEreditaGiacente",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::depositoNotaSpese",
+      "source_key": "Parte_SICID::depositoNotaSpese",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DepositoProveExArt210Cpc",
+      "source_key": "Parte_SICID::DepositoProveExArt210Cpc",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RelazioneAmministrazioneSostegno",
+      "source_key": "Parte_SICID::RelazioneAmministrazioneSostegno",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RelazioneFinaleArt2409cc",
+      "source_key": "Parte_SICID::RelazioneFinaleArt2409cc",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RelazioneIspettoreArt2409cc",
+      "source_key": "Parte_SICID::RelazioneIspettoreArt2409cc",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RendicontoAmministrazioneSostegno",
+      "source_key": "Parte_SICID::RendicontoAmministrazioneSostegno",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RendicontoEreditaGiacente",
+      "source_key": "Parte_SICID::RendicontoEreditaGiacente",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaCongiuntaFissazioneUdienza",
+      "source_key": "Parte_SICID::IstanzaCongiuntaFissazioneUdienza",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaAccoglimentoDomanda183ter",
+      "source_key": "Parte_SICID::IstanzaAccoglimentoDomanda183ter",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemorieCartabia"
+      ],
+      "radice_ministeriale": "MemorieCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaAnticipazioneUdienza",
+      "source_key": "Parte_SICID::IstanzaAnticipazioneUdienza",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaCorrezioneErroreMateriale",
+      "source_key": "Parte_SICID::IstanzaCorrezioneErroreMateriale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaDeferimentoGiuramento",
+      "source_key": "Parte_SICID::IstanzaDeferimentoGiuramento",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaDifferimentoUdienza",
+      "source_key": "Parte_SICID::IstanzaDifferimentoUdienza",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaEstromissione",
+      "source_key": "Parte_SICID::IstanzaEstromissione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaFissazioneUdienza",
+      "source_key": "Parte_SICID::IstanzaFissazioneUdienza",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaFissazioneUdienzaCollegamentiAudioVisivi",
+      "source_key": "Parte_SICID::IstanzaFissazioneUdienzaCollegamentiAudioVisivi",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaInterruzione",
+      "source_key": "Parte_SICID::IstanzaInterruzione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRevocaUdienzaCollegamentiAudioVisivi",
+      "source_key": "Parte_SICID::IstanzaRevocaUdienzaCollegamentiAudioVisivi",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRicusazioneGiudice",
+      "source_key": "Parte_SICID::IstanzaRicusazioneGiudice",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRigettoDomanda183quater",
+      "source_key": "Parte_SICID::IstanzaRigettoDomanda183quater",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemorieCartabia"
+      ],
+      "radice_ministeriale": "MemorieCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRimessioneInIstruttoria",
+      "source_key": "Parte_SICID::IstanzaRimessioneInIstruttoria",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRimessioneTermini",
+      "source_key": "Parte_SICID::IstanzaRimessioneTermini",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRinuncia",
+      "source_key": "Parte_SICID::IstanzaRinuncia",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRinvioXDiscussioneOrale",
+      "source_key": "Parte_SICID::IstanzaRinvioXDiscussioneOrale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaSospensioneProvvisoriaEsecuzione",
+      "source_key": "Parte_SICID::IstanzaSospensioneProvvisoriaEsecuzione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaTrasformazioneInConsensuale",
+      "source_key": "Parte_SICID::IstanzaTrasformazioneInConsensuale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaExArt186Bis",
+      "source_key": "Parte_SICID::IstanzaExArt186Bis",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaExArt186Quater",
+      "source_key": "Parte_SICID::IstanzaExArt186Quater",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaExArt186Ter",
+      "source_key": "Parte_SICID::IstanzaExArt186Ter",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaGenerica",
+      "source_key": "Parte_SICID::IstanzaGenerica",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaReplica183UC",
+      "source_key": "Parte_SICID::MemoriaReplica183UC",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaDifensivaCA",
+      "source_key": "Parte_SICID::MemoriaDifensivaCA",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemoriaDifensivaCA"
+      ],
+      "radice_ministeriale": "MemoriaDifensivaCA",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::Memoria171ter1",
+      "source_key": "Parte_SICID::Memoria171ter1",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemorieCartabia"
+      ],
+      "radice_ministeriale": "MemorieCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::Repliche171ter2",
+      "source_key": "Parte_SICID::Repliche171ter2",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemorieCartabia"
+      ],
+      "radice_ministeriale": "MemorieCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::Controrepliche171ter3",
+      "source_key": "Parte_SICID::Controrepliche171ter3",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemorieCartabia"
+      ],
+      "radice_ministeriale": "MemorieCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::Memoria183",
+      "source_key": "Parte_SICID::Memoria183",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_Memoria183"
+      ],
+      "radice_ministeriale": "Memoria183",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaReplica183",
+      "source_key": "Parte_SICID::MemoriaReplica183",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemoriaReplica183"
+      ],
+      "radice_ministeriale": "MemoriaReplica183",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaReplicaProvaContraria183",
+      "source_key": "Parte_SICID::MemoriaReplicaProvaContraria183",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemoriaReplicaProvaContraria183"
+      ],
+      "radice_ministeriale": "MemoriaReplicaProvaContraria183",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DepositoMemoria2409",
+      "source_key": "Parte_SICID::DepositoMemoria2409",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaGenerica",
+      "source_key": "Parte_SICID::MemoriaGenerica",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemoriaGenerica"
+      ],
+      "radice_ministeriale": "MemoriaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaIstruttoria183UC",
+      "source_key": "Parte_SICID::MemoriaIstruttoria183UC",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::MemorieCartabia",
+      "source_key": "Parte_SICID::MemorieCartabia",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_MemorieCartabia"
+      ],
+      "radice_ministeriale": "MemorieCartabia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::NominaCTPexart87",
+      "source_key": "Parte_SICID::NominaCTPexart87",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_NominaCTPexart87"
+      ],
+      "radice_ministeriale": "NominaCTPexart87",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::NotaDeposito",
+      "source_key": "Parte_SICID::NotaDeposito",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_AttoNonCodificato"
+      ],
+      "radice_ministeriale": "AttoNonCodificato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::NoteConclusionali350Bis",
+      "source_key": "Parte_SICID::NoteConclusionali350Bis",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::NoteTrattazione",
+      "source_key": "Parte_SICID::NoteTrattazione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ScrittiDifensivi"
+      ],
+      "radice_ministeriale": "ScrittiDifensivi",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::NoteScrittePC",
+      "source_key": "Parte_SICID::NoteScrittePC",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::NoteScrittePC_DiscussioneOrale",
+      "source_key": "Parte_SICID::NoteScrittePC_DiscussioneOrale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::OpposizioneTardivaExArt668",
+      "source_key": "Parte_SICID::OpposizioneTardivaExArt668",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoGenerico"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::PrecisazioneConclusioni",
+      "source_key": "Parte_SICID::PrecisazioneConclusioni",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_PrecisazioneConclusioni"
+      ],
+      "radice_ministeriale": "PrecisazioneConclusioni",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::Preverbale",
+      "source_key": "Parte_SICID::Preverbale",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_Preverbale"
+      ],
+      "radice_ministeriale": "Preverbale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ProduzioneDocumentiRichiesti",
+      "source_key": "Parte_SICID::ProduzioneDocumentiRichiesti",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ReclamoResistente",
+      "source_key": "Parte_SICID::ReclamoResistente",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_Reclamo"
+      ],
+      "radice_ministeriale": "Reclamo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ReclamoRicorrente",
+      "source_key": "Parte_SICID::ReclamoRicorrente",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_Reclamo"
+      ],
+      "radice_ministeriale": "Reclamo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ReclamoIntervenuto",
+      "source_key": "Parte_SICID::ReclamoIntervenuto",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_Reclamo"
+      ],
+      "radice_ministeriale": "Reclamo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRichiestaEsecutorietaExArt647",
+      "source_key": "Parte_SICID::IstanzaRichiestaEsecutorietaExArt647",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RichiestaFissazioneModalitaProvvedimento",
+      "source_key": "Parte_SICID::RichiestaFissazioneModalitaProvvedimento",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoGenerico"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RichiestaFormulaEsecutiva",
+      "source_key": "Parte_SICID::RichiestaFormulaEsecutiva",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RichiestaInefficaciaMisuraCautelare",
+      "source_key": "Parte_SICID::RichiestaInefficaciaMisuraCautelare",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRichiestaInefficaciaExArt188",
+      "source_key": "Parte_SICID::IstanzaRichiestaInefficaciaExArt188",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::AttoRichiestaVisibilità",
+      "source_key": "Parte_SICID::AttoRichiestaVisibilità",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_AttoRichiestaVisibilità"
+      ],
+      "radice_ministeriale": "AttoRichiestaVisibilita",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RicorsoCautelareCorsoCausa",
+      "source_key": "Parte_SICID::RicorsoCautelareCorsoCausa",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoCautelareCorsoCausa"
+      ],
+      "radice_ministeriale": "RicorsoCautelareCorsoCausa",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DepositoRicorsoFissazioneUdienzaDiProsecuzioneProcedimento",
+      "source_key": "Parte_SICID::DepositoRicorsoFissazioneUdienzaDiProsecuzioneProcedimento",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoGenerico"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::DepositoRicorsoDiRiassunzione",
+      "source_key": "Parte_SICID::DepositoRicorsoDiRiassunzione",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoGenerico"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RicorsoSequestroConservativoCorsoCausa",
+      "source_key": "Parte_SICID::RicorsoSequestroConservativoCorsoCausa",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoSequestroConservativoCorsoCausa"
+      ],
+      "radice_ministeriale": "RicorsoSequestroConservativoCorsoCausa",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::RicorsoSequestroGiudiziarioCorsoCausa",
+      "source_key": "Parte_SICID::RicorsoSequestroGiudiziarioCorsoCausa",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_RicorsoSequestroGiudiziarioCorsoCausa"
+      ],
+      "radice_ministeriale": "RicorsoSequestroGiudiziarioCorsoCausa",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_SICID::ScrittiDifensivi",
+      "source_key": "Parte_SICID::ScrittiDifensivi",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ScrittiDifensivi"
+      ],
+      "radice_ministeriale": "ScrittiDifensivi",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoGiuramentoTelematico",
+      "source_key": "Professionista_SICID::DepositoGiuramentoTelematico",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoIntegrazionePerizia",
+      "source_key": "Professionista_SICID::DepositoIntegrazionePerizia",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoPerizia",
+      "source_key": "Professionista_SICID::DepositoPerizia",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoRichiestaProrogaTerminiPerizia",
+      "source_key": "Professionista_SICID::DepositoRichiestaProrogaTerminiPerizia",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoIstanzaGenerica",
+      "source_key": "Professionista_SICID::DepositoIstanzaGenerica",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoIstanzaLiquidazioneCTU",
+      "source_key": "Professionista_SICID::DepositoIstanzaLiquidazioneCTU",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SICID::NotaDepositoProfessionista",
+      "source_key": "Professionista_SICID::NotaDepositoProfessionista",
+      "macroarea": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
+      "source_key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore"
+      ],
+      "radice_ministeriale": "IscrizioneRuoloPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
+      "source_key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore"
+      ],
+      "radice_ministeriale": "IscrizioneRuoloPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
+      "source_key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore"
+      ],
+      "radice_ministeriale": "IscrizioneRuoloPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoCostituzioneAvvocato",
+      "source_key": "Parte_ESECUZIONI_SIECIC::AttoCostituzioneAvvocato",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicEsecuzioni_AttoCostituzioneAvvocato"
+      ],
+      "radice_ministeriale": "AttoCostituzioneAvvocato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoRinunciaMandato",
+      "source_key": "Parte_ESECUZIONI_SIECIC::DepositoRinunciaMandato",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoRinunciaEsecuzione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::DepositoRinunciaEsecuzione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoIntervento",
+      "source_key": "Parte_ESECUZIONI_SIECIC::AttoIntervento",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoIntervento"
+      ],
+      "radice_ministeriale": "AttoIntervento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoGenerico",
+      "source_key": "Parte_ESECUZIONI_SIECIC::AttoGenerico",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoIstanza41TUB",
+      "source_key": "Parte_ESECUZIONI_SIECIC::DepositoIstanza41TUB",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
+      "source_key": "Parte_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicEsecuzioni_DepositoRelazioneNotarile"
+      ],
+      "radice_ministeriale": "DepositoRelazioneNotarile",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::IstanzaAssegnazione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::IstanzaAssegnazione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaAssegnazione"
+      ],
+      "radice_ministeriale": "IstanzaAssegnazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::IstanzaDistribuzione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::IstanzaDistribuzione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaDistribuzione"
+      ],
+      "radice_ministeriale": "IstanzaDistribuzione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::IstanzaVendita",
+      "source_key": "Parte_ESECUZIONI_SIECIC::IstanzaVendita",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaVendita"
+      ],
+      "radice_ministeriale": "IstanzaVendita",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::NotaDeposito",
+      "source_key": "Parte_ESECUZIONI_SIECIC::NotaDeposito",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::NotaPrecisazioneCredito",
+      "source_key": "Parte_ESECUZIONI_SIECIC::NotaPrecisazioneCredito",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicEsecuzioni_NotaPrecisazioneCredito"
+      ],
+      "radice_ministeriale": "NotaPrecisazioneCredito",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::NoteTrattazione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::NoteTrattazione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi",
+      "source_key": "Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione"
+      ],
+      "radice_ministeriale": "Opposizione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneAllaDistribuzione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::OpposizioneAllaDistribuzione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione"
+      ],
+      "radice_ministeriale": "Opposizione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneAllaEsecuzione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::OpposizioneAllaEsecuzione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione"
+      ],
+      "radice_ministeriale": "Opposizione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneDiTerzi",
+      "source_key": "Parte_ESECUZIONI_SIECIC::OpposizioneDiTerzi",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione"
+      ],
+      "radice_ministeriale": "Opposizione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneCumuloMezziEspropiazione",
+      "source_key": "Parte_ESECUZIONI_SIECIC::OpposizioneCumuloMezziEspropiazione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione"
+      ],
+      "radice_ministeriale": "Opposizione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::RichiestaFormulaEsecutiva",
+      "source_key": "Parte_ESECUZIONI_SIECIC::RichiestaFormulaEsecutiva",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità",
+      "source_key": "Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicEsecuzioni_AttoRichiestaVisibilità"
+      ],
+      "radice_ministeriale": "AttoRichiestaVisibilita",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::RicorsoExArt534Ter",
+      "source_key": "Parte_ESECUZIONI_SIECIC::RicorsoExArt534Ter",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione"
+      ],
+      "radice_ministeriale": "Opposizione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::RinunciaDebitori",
+      "source_key": "Parte_ESECUZIONI_SIECIC::RinunciaDebitori",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicEsecuzioni_RinunciaDebitori"
+      ],
+      "radice_ministeriale": "RinunciaDebitori",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::AttoNonCodificatoCustode",
+      "source_key": "Custode_ESECUZIONI_SIECIC::AttoNonCodificatoCustode",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::IstanzaGenericaCustode",
+      "source_key": "Custode_ESECUZIONI_SIECIC::IstanzaGenericaCustode",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::IstanzaLiquidazioneCustode",
+      "source_key": "Custode_ESECUZIONI_SIECIC::IstanzaLiquidazioneCustode",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::NotaDepositoCustode",
+      "source_key": "Custode_ESECUZIONI_SIECIC::NotaDepositoCustode",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::RendicontoCustode",
+      "source_key": "Custode_ESECUZIONI_SIECIC::RendicontoCustode",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::AttoNonCodificato",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::AttoNonCodificato",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::DepositoIntegrazioneCTU",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::DepositoIntegrazioneCTU",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneCTU",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneCTU",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoRelazioneNotarile"
+      ],
+      "radice_ministeriale": "DepositoRelazioneNotarile",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::IstanzaProrogaCTU",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::IstanzaProrogaCTU",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_IstanzaProrogaCTU"
+      ],
+      "radice_ministeriale": "IstanzaProrogaCTU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::NotaDeposito",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::NotaDeposito",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+      "source_key": "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione"
+      ],
+      "radice_ministeriale": "ProgettoDistribuzione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::AggiudicazioneLotto",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::AggiudicazioneLotto",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_AggiudicazioneLotto"
+      ],
+      "radice_ministeriale": "AggiudicazioneLotto",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::attoNonCodificato",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::attoNonCodificato",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::avvisoVendita",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::avvisoVendita",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::depositoPrezzo",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::depositoPrezzo",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::istanzaRevocaDecadenzaAggiudicatario",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::istanzaRevocaDecadenzaAggiudicatario",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::MinutaDecreto",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::MinutaDecreto",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_MinutaDecreto"
+      ],
+      "radice_ministeriale": "MinutaDecreto",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::NotaDeposito",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::NotaDeposito",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_ProgettoDistribuzione"
+      ],
+      "radice_ministeriale": "ProgettoDistribuzione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::PropostaProgetto",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::PropostaProgetto",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_PropostaProgetto"
+      ],
+      "radice_ministeriale": "PropostaProgetto",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::relazionePeriodicaDelegato",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::relazionePeriodicaDelegato",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::verbaleAggiudicazione",
+      "source_key": "Delegati_ESECUZIONI_SIECIC::verbaleAggiudicazione",
+      "macroarea": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoAmmissConcordatoPreventivoCCIPUIstanzaDebitore",
+      "source_key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoAmmissConcordatoPreventivoCCIPUIstanzaDebitore",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoAmmissConcordatoPreventivoCCIPU"
+      ],
+      "radice_ministeriale": "RicorsoAmmissConcordatoPreventivoCCIPU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoDichiarazioneInsolvenzaCCIPUIstanzaCreditore",
+      "source_key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoDichiarazioneInsolvenzaCCIPUIstanzaCreditore",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoDichiarazioneInsolvenzaCCIPU"
+      ],
+      "radice_ministeriale": "RicorsoDichiarazioneInsolvenzaCCIPU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore",
+      "source_key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneControllataCCIPU"
+      ],
+      "radice_ministeriale": "RicorsoLiquidazioneControllataCCIPU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaCreditore",
+      "source_key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaCreditore",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneGiudizialeCCIPU"
+      ],
+      "radice_ministeriale": "RicorsoLiquidazioneGiudizialeCCIPU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoOmologaAccordiRistrutturazioneCCIPUOrdinarioIstanzaDebitore",
+      "source_key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoOmologaAccordiRistrutturazioneCCIPUOrdinarioIstanzaDebitore",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoOmologaAccordiRistrutturazioneCCIPU"
+      ],
+      "radice_ministeriale": "RicorsoOmologaAccordiRistrutturazCCIPU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoCostituzioneAvvocato",
+      "source_key": "Parte_CONCORSUALI_SIECIC::AttoCostituzioneAvvocato",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicConcorsuali_AttoCostituzioneAvvocato"
+      ],
+      "radice_ministeriale": "AttoCostituzioneAvvocato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoGenericoCCIPU",
+      "source_key": "Parte_CONCORSUALI_SIECIC::AttoGenericoCCIPU",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenericoCCIPU"
+      ],
+      "radice_ministeriale": "AttoGenericoCCIPU",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoGenerico",
+      "source_key": "Parte_CONCORSUALI_SIECIC::AttoGenerico",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::DepositoMemorie",
+      "source_key": "Parte_CONCORSUALI_SIECIC::DepositoMemorie",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::NotaDepositoCCI",
+      "source_key": "Parte_CONCORSUALI_SIECIC::NotaDepositoCCI",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_NotaDepositoCCI"
+      ],
+      "radice_ministeriale": "NotaDepositoCCI",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::NoteTrattazione",
+      "source_key": "Parte_CONCORSUALI_SIECIC::NoteTrattazione",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità",
+      "source_key": "Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteSiecicConcorsuali_AttoRichiestaVisibilità"
+      ],
+      "radice_ministeriale": "AttoRichiestaVisibilita",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
+      "source_key": "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti del Curatore",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale"
+      ],
+      "radice_ministeriale": "DepositoRelazioneIniziale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::AttoNonCodificato",
+      "source_key": "Professionista_CONCORSUALI_SIECIC::AttoNonCodificato",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::DepositoIntegrazioneCTU",
+      "source_key": "Professionista_CONCORSUALI_SIECIC::DepositoIntegrazioneCTU",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneCTU",
+      "source_key": "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneCTU",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneNotarile",
+      "source_key": "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneNotarile",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoRelazioneNotarile"
+      ],
+      "radice_ministeriale": "DepositoRelazioneNotarile",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::NotaDeposito",
+      "source_key": "Professionista_CONCORSUALI_SIECIC::NotaDeposito",
+      "macroarea": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::Ricorso",
+      "source_key": "Parte_CASSAZIONE::Ricorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_Ricorso"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorso",
+      "source_key": "Parte_CASSAZIONE::ControRicorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_ControRicorso"
+      ],
+      "radice_ministeriale": "ControRicorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente",
+      "source_key": "Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_ControRicorso"
+      ],
+      "radice_ministeriale": "ControRicorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorsoIncidentale",
+      "source_key": "Parte_CASSAZIONE::ControRicorsoIncidentale",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale"
+      ],
+      "radice_ministeriale": "ControRicorsoIncidentale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente",
+      "source_key": "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale"
+      ],
+      "radice_ministeriale": "ControRicorsoIncidentale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::AccettazioneRinunciaRicorso",
+      "source_key": "Parte_CASSAZIONE::AccettazioneRinunciaRicorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_AccettazioneRinunciaRicorso"
+      ],
+      "radice_ministeriale": "AccettazioneRinunciaRicorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::AttoGenerico",
+      "source_key": "Parte_CASSAZIONE::AttoGenerico",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::AvvisoRicevutaNotificaControricorso",
+      "source_key": "Parte_CASSAZIONE::AvvisoRicevutaNotificaControricorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaControricorso"
+      ],
+      "radice_ministeriale": "AvvisoRicevutaNotificaControricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::AvvisoRicevutaNotificaRicorso",
+      "source_key": "Parte_CASSAZIONE::AvvisoRicevutaNotificaRicorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaRicorso"
+      ],
+      "radice_ministeriale": "AvvisoRicevutaNotificaRicorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::DepositoExArt372",
+      "source_key": "Parte_CASSAZIONE::DepositoExArt372",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_DepositoExArt372"
+      ],
+      "radice_ministeriale": "DepositoExArt372",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::DocumentiCondonoFiscale",
+      "source_key": "Parte_CASSAZIONE::DocumentiCondonoFiscale",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_DocumentiCondonoFiscale"
+      ],
+      "radice_ministeriale": "DocumentiCondonoFiscale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IntegrazioneContradittorio",
+      "source_key": "Parte_CASSAZIONE::IntegrazioneContradittorio",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica"
+      ],
+      "radice_ministeriale": "IntegrazioneAnagrafica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IntegrazioneSpeseGiustizia",
+      "source_key": "Parte_CASSAZIONE::IntegrazioneSpeseGiustizia",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IntegrazioneSpeseGiustizia"
+      ],
+      "radice_ministeriale": "IntegrazioneSpeseGiustizia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaAssegnazioneSezioniUnite",
+      "source_key": "Parte_CASSAZIONE::IstanzaAssegnazioneSezioniUnite",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaAssegnazioneSezioniUnite"
+      ],
+      "radice_ministeriale": "IstanzaAssegnazioneSezioniUnite",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaCessazioneMateriaContendere",
+      "source_key": "Parte_CASSAZIONE::IstanzaCessazioneMateriaContendere",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaCessazioneMateriaContendere"
+      ],
+      "radice_ministeriale": "IstanzaCessazioneMateriaContendere",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaPatrocinioASpeseDelloStato",
+      "source_key": "Parte_CASSAZIONE::IstanzaPatrocinioASpeseDelloStato",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaPatrocinioASpeseDelloStato"
+      ],
+      "radice_ministeriale": "IstanzaPatrocinioASpeseDelloStato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaOpposizione380bis",
+      "source_key": "Parte_CASSAZIONE::IstanzaOpposizione380bis",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaOpposizione380bis"
+      ],
+      "radice_ministeriale": "IstanzaOpposizione380bis",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRimborsoSpeseGiustizia",
+      "source_key": "Parte_CASSAZIONE::IstanzaRimborsoSpeseGiustizia",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRimborsoSpeseGiustizia"
+      ],
+      "radice_ministeriale": "IstanzaRimborsoSpeseGiustizia",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRinnovoNotificaRicorso",
+      "source_key": "Parte_CASSAZIONE::IstanzaRinnovoNotificaRicorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRinnovoNotificaRicorso"
+      ],
+      "radice_ministeriale": "IstanzaRinnovoNotificaRicorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRinvioUdienza",
+      "source_key": "Parte_CASSAZIONE::IstanzaRinvioUdienza",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRinvioUdienza"
+      ],
+      "radice_ministeriale": "IstanzaRinvioUdienza",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRiunioneRicorsi",
+      "source_key": "Parte_CASSAZIONE::IstanzaRiunioneRicorsi",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRiunioneRicorsi"
+      ],
+      "radice_ministeriale": "IstanzaRiunioneRicorsi",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::SegnalazioneErroreMateriale",
+      "source_key": "Parte_CASSAZIONE::SegnalazioneErroreMateriale",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_SegnalazioneErroreMateriale"
+      ],
+      "radice_ministeriale": "SegnalazioneErroreMateriale",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaSollecitaFissazione",
+      "source_key": "Parte_CASSAZIONE::IstanzaSollecitaFissazione",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaSollecitaFissazione"
+      ],
+      "radice_ministeriale": "IstanzaSollecitaFissazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaSospensioneGiudizio",
+      "source_key": "Parte_CASSAZIONE::IstanzaSospensioneGiudizio",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_IstanzaSospensioneGiudizio"
+      ],
+      "radice_ministeriale": "IstanzaSospensioneGiudizio",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria378",
+      "source_key": "Parte_CASSAZIONE::Memoria378",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_Memoria378"
+      ],
+      "radice_ministeriale": "Memoria378",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria380bis",
+      "source_key": "Parte_CASSAZIONE::Memoria380bis",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_Memoria380bis"
+      ],
+      "radice_ministeriale": "Memoria380bis",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria380bis1",
+      "source_key": "Parte_CASSAZIONE::Memoria380bis1",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_Memoria380bis1"
+      ],
+      "radice_ministeriale": "Memoria380bis1",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria380ter",
+      "source_key": "Parte_CASSAZIONE::Memoria380ter",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_Memoria380ter"
+      ],
+      "radice_ministeriale": "Memoria380ter",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::NoteDiDeposito",
+      "source_key": "Parte_CASSAZIONE::NoteDiDeposito",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_AttoGenerico"
+      ],
+      "radice_ministeriale": "AttoGenerico",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ProvvedimentoImpugnato",
+      "source_key": "Parte_CASSAZIONE::ProvvedimentoImpugnato",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_ProvvedimentoImpugnato"
+      ],
+      "radice_ministeriale": "ProvvedimentoImpugnato",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::RicorsoRinnovoNotifica",
+      "source_key": "Parte_CASSAZIONE::RicorsoRinnovoNotifica",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_RicorsoRinnovoNotifica"
+      ],
+      "radice_ministeriale": "RicorsoRinnovoNotifica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::RinunciaRicorso",
+      "source_key": "Parte_CASSAZIONE::RinunciaRicorso",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_RinunciaRicorso"
+      ],
+      "radice_ministeriale": "RinunciaRicorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::RinunciaProcura",
+      "source_key": "Parte_CASSAZIONE::RinunciaProcura",
+      "macroarea": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_ParteCassazione_RinunciaProcura"
+      ],
+      "radice_ministeriale": "RinunciaProcura",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::Citazione",
+      "source_key": "Introduttivi_SIGP::Citazione",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_Citazione"
+      ],
+      "radice_ministeriale": "Citazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::CitazioneInRiassunzione",
+      "source_key": "Introduttivi_SIGP::CitazioneInRiassunzione",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_CitazioneInRiassunzione"
+      ],
+      "radice_ministeriale": "CitazioneInRiassunzione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OpposizioneDecretoIngiuntivo",
+      "source_key": "Introduttivi_SIGP::OpposizioneDecretoIngiuntivo",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_OpposizioneDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "OpposizioneDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OSA_CartellaEsattoriale",
+      "source_key": "Introduttivi_SIGP::OSA_CartellaEsattoriale",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa"
+      ],
+      "radice_ministeriale": "OSA",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OSA_IngiunzionePagamento",
+      "source_key": "Introduttivi_SIGP::OSA_IngiunzionePagamento",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa"
+      ],
+      "radice_ministeriale": "OSA",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OSA_VerbaleAccertamento",
+      "source_key": "Introduttivi_SIGP::OSA_VerbaleAccertamento",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa"
+      ],
+      "radice_ministeriale": "OSA",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::Ricorso",
+      "source_key": "Introduttivi_SIGP::Ricorso",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_Ricorso"
+      ],
+      "radice_ministeriale": "Ricorso",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoImmigrazione",
+      "source_key": "Introduttivi_SIGP::RicorsoImmigrazione",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_Cartabia_RicorsoImmigrazioneGDP"
+      ],
+      "radice_ministeriale": "RicorsoImmigrazione",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoConsegnaBeni",
+      "source_key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoConsegnaBeni",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoOneriCondominiale",
+      "source_key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoOneriCondominiale",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoSommaAndConsegnaBeni",
+      "source_key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoSommaAndConsegnaBeni",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoPagamentoSomma",
+      "source_key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoPagamentoSomma",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo"
+      ],
+      "radice_ministeriale": "RicorsoDecretoIngiuntivo",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::CostituzioneSemplice",
+      "source_key": "CorsoCausa_SIGP::CostituzioneSemplice",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_CostituzioneSemplice"
+      ],
+      "radice_ministeriale": "CostituzioneSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::DepositoMemorie",
+      "source_key": "CorsoCausa_SIGP::DepositoMemorie",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_DepositoMemorie"
+      ],
+      "radice_ministeriale": "DepositoMemorie",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::DepositoNoteConclusionali",
+      "source_key": "CorsoCausa_SIGP::DepositoNoteConclusionali",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteConclusionali"
+      ],
+      "radice_ministeriale": "DepositoNoteConclusionali",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::DepositoNoteScritteSostUdie",
+      "source_key": "CorsoCausa_SIGP::DepositoNoteScritteSostUdie",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteScritteSostUdie"
+      ],
+      "radice_ministeriale": "DepositoNoteScritteSostUdie",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaExArt186Bis",
+      "source_key": "CorsoCausa_SIGP::IstanzaExArt186Bis",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaExArt186Quater",
+      "source_key": "CorsoCausa_SIGP::IstanzaExArt186Quater",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaExArt186Ter",
+      "source_key": "CorsoCausa_SIGP::IstanzaExArt186Ter",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaGenerica",
+      "source_key": "CorsoCausa_SIGP::IstanzaGenerica",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::ProduzioneDocumentiRichiesti",
+      "source_key": "CorsoCausa_SIGP::ProduzioneDocumentiRichiesti",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_ProduzioneDocumentiRichiesti"
+      ],
+      "radice_ministeriale": "ProduzioneDocumentiRichiesti",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::RichiestaEsecutorietaExArt647",
+      "source_key": "CorsoCausa_SIGP::RichiestaEsecutorietaExArt647",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica"
+      ],
+      "radice_ministeriale": "IstanzaGenerica",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::AttoRichiestaVisibilità",
+      "source_key": "CorsoCausa_SIGP::AttoRichiestaVisibilità",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_CorsoCausa_SIGP_AttoRichiestaVisibilità"
+      ],
+      "radice_ministeriale": "AttoRichiestaVisibilita",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoPerizia",
+      "source_key": "Professionista_SIGP::DepositoPerizia",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_SIGP_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoRichiestaProrogaTerminiPerizia",
+      "source_key": "Professionista_SIGP::DepositoRichiestaProrogaTerminiPerizia",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_SIGP_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoIstanzaGenerica",
+      "source_key": "Professionista_SIGP::DepositoIstanzaGenerica",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_SIGP_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoIstanzaLiquidazioneCTU",
+      "source_key": "Professionista_SIGP::DepositoIstanzaLiquidazioneCTU",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_SIGP_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Professionista_SIGP::NotaDepositoProfessionista",
+      "source_key": "Professionista_SIGP::NotaDepositoProfessionista",
+      "macroarea": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "canale": "pct_civile_dm44",
+      "metodo_datiatto": [
+        "Create_DatiAtto_Professionista_SIGP_DepositoSemplice"
+      ],
+      "radice_ministeriale": "DepositoSemplice",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::AttoCivileDebito",
+      "source_key": "Atti_UNEP::AttoCivileDebito",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaNotificaDebito"
+      ],
+      "radice_ministeriale": "RichiestaParteDebito",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::AttoCivileAPagamento",
+      "source_key": "Atti_UNEP::AttoCivileAPagamento",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaNotifica"
+      ],
+      "radice_ministeriale": "RichiestaParte",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::AttoEsenteLavoro",
+      "source_key": "Atti_UNEP::AttoEsenteLavoro",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaNotifica"
+      ],
+      "radice_ministeriale": "RichiestaParte",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::AttoPenaleDebito",
+      "source_key": "Atti_UNEP::AttoPenaleDebito",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaNotificaDebito"
+      ],
+      "radice_ministeriale": "RichiestaParteDebito",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::AttoPenaleAPagamento",
+      "source_key": "Atti_UNEP::AttoPenaleAPagamento",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaNotifica"
+      ],
+      "radice_ministeriale": "RichiestaParte",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaRicercaBeni",
+      "source_key": "Atti_UNEP::RichiestaRicercaBeni",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di ricerca beni da pignorare",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaRicercaBeni"
+      ],
+      "radice_ministeriale": "RichiestaRicercaBeni",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoImmobiliare",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoImmobiliare",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramento"
+      ],
+      "radice_ministeriale": "RichiestaPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramentoADebito"
+      ],
+      "radice_ministeriale": "RichiestaPignoramentoDebito",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramento"
+      ],
+      "radice_ministeriale": "RichiestaPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoMobiliare",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoMobiliare",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramento"
+      ],
+      "radice_ministeriale": "RichiestaPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramentoADebito"
+      ],
+      "radice_ministeriale": "RichiestaPignoramentoDebito",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramento"
+      ],
+      "radice_ministeriale": "RichiestaPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoPressoTerzi",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoPressoTerzi",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramento"
+      ],
+      "radice_ministeriale": "RichiestaPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoPressoTerziADebito",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoPressoTerziADebito",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramentoADebito"
+      ],
+      "radice_ministeriale": "RichiestaPignoramentoDebito",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro",
+      "source_key": "Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaPignoramento"
+      ],
+      "radice_ministeriale": "RichiestaPignoramento",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::PagamentoRichiestaNotifica",
+      "source_key": "Atti_UNEP::PagamentoRichiestaNotifica",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Pagamenti",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_PagamentoRichiesta"
+      ],
+      "radice_ministeriale": "PagamentoRichiesta",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::PagamentoRichiestaPignoramento",
+      "source_key": "Atti_UNEP::PagamentoRichiestaPignoramento",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Pagamenti",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_PagamentoRichiesta"
+      ],
+      "radice_ministeriale": "PagamentoRichiesta",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaRestituzioneSomme",
+      "source_key": "Atti_UNEP::RichiestaRestituzioneSomme",
+      "macroarea": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di restituzione",
+      "canale": "unep_deposito_telematico",
+      "metodo_datiatto": [
+        "Create_DatiAtto_UNEP_RichiestaRestituzioneSomme"
+      ],
+      "radice_ministeriale": "RichiestaRestituzioneSomme",
+      "profilo_firma_documenti": "pdf_pades_non_pdf_cades",
+      "profilo_firma_datiatto": "cades_bes_sha256_signing_certificate_v2",
+      "indice_busta": "interno_datiatto",
+      "parita": true,
+      "differenze": []
+    }
+  ]
+}

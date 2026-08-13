@@ -135,6 +135,37 @@ def test_indirizzo_studio_mancante_non_blocca_anagrafica_ricorso():
     assert b"Montagnese" in xml
 
 
+def test_avvocato_sicid_v7_ha_domicilio_e_indirizzo_come_studio_telematico():
+    from lxml import etree
+
+    xml = anagrafica_xml_se_ricorso(
+        tipo_atto="RICORSO",
+        fascicolo=_fascicolo(),
+        get_clienti=lambda: _clienti(_cliente()),
+        get_soggetti=_soggetti_controparte,
+        get_config_studio=_config_studio,
+        operatore="Giuseppe Montagnese",
+        datiatto_root_name="Ricorso",
+        datiatto_generator_class="IntroduttiviSicid",
+    )
+
+    assert xml is not None
+    root = etree.fromstring(xml)
+    avvocato = root.xpath("//*[local-name()='Avvocato']")[0]
+    child_names = [etree.QName(child).localname for child in avvocato]
+    assert child_names == [
+        "cognome",
+        "nome",
+        "codiceFiscale",
+        "domicilio",
+        "indirizzo",
+        "parteRappresentata",
+    ]
+    domicilio = avvocato.xpath("./*[local-name()='domicilio']")[0]
+    indirizzo = avvocato.xpath("./*[local-name()='indirizzo']")[0]
+    assert [node.text for node in domicilio] == [node.text for node in indirizzo]
+
+
 def test_indirizzi_mancanti_non_bloccano_anagrafica_sigp_introduttivo():
     xml = anagrafica_xml_se_ricorso(
         tipo_atto="ATTO_DI_CITAZIONE",

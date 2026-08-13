@@ -226,10 +226,11 @@ def _indirizzo_node(
     localita: str,
     provincia: str,
     anagrafiche_ns: str = _ANAGRAFICHE_NS,
+    element_name: str = "indirizzo",
 ) -> None:
     from lxml import etree
 
-    indirizzo = etree.SubElement(parent, f"{{{anagrafiche_ns}}}indirizzo")
+    indirizzo = etree.SubElement(parent, f"{{{anagrafiche_ns}}}{element_name}")
     if anagrafiche_ns == _SIGP_ANAGRAFICHE_NS:
         etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}indirizzo").text = str(via or "").strip()
         etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}cap").text = str(cap or "").strip()
@@ -390,6 +391,16 @@ def _anagrafica_procedimento_deposito_xml(
     if avvocato_nome:
         etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}nome").text = avvocato_nome
     etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}codiceFiscale").text = avvocato_cf
+    if atti_ns == _ATTI_V7_NS and anagrafiche_ns == _ANAGRAFICHE_NS:
+        _indirizzo_node(
+            avvocato,
+            via=studio_via,
+            cap="",
+            localita=studio_city,
+            provincia=studio_province,
+            anagrafiche_ns=anagrafiche_ns,
+            element_name="domicilio",
+        )
     _indirizzo_node(
         avvocato,
         via=studio_via,
@@ -425,6 +436,8 @@ def _namespace_anagrafica_per_generatore(
     if generator_class.startswith("ParteCassazione"):
         return _CASSAZIONE_ATTI_NS, _CASSAZIONE_ANAGRAFICHE_NS
     if generator_class in {
+        "IntroduttiviSicid",
+        "Parte",
         "IntroduttiviSiecicConcorsuali",
         "IntroduttiviSiecicEsecuzioni",
         "ParteSiecicConcorsuali",
@@ -435,10 +448,7 @@ def _namespace_anagrafica_per_generatore(
         "ProfSiecicConcorsuali",
         "ProfSiecicEsecuzioni",
         "Professionista",
-    } or (
-        generator_class == "IntroduttiviSicid"
-        and root_name in {"RicorsoImmigrazioneConvalida", "RicorsoReclamoSospensiva"}
-    ):
+    }:
         return _ATTI_V7_NS, _ANAGRAFICHE_NS
     return _ATTI_NS, _ANAGRAFICHE_NS
 

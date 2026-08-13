@@ -1,0 +1,619 @@
+{
+  "ok": true,
+  "data_verifica": "13/08/2026 20:34",
+  "fonte_verita": "Studio Telematico decompilato",
+  "versione_studio_telematico": "26.021",
+  "decompilato_sha256": "cd13cef5c938981299bdc7987e48d2df6647de649cfa5a634ee59d8e34f8ef5f",
+  "sorgenti_cs": 4465,
+  "namespace_annotati": 50,
+  "namespace_con_xsd": 50,
+  "namespace_senza_xsd": [],
+  "famiglie_datiatto_verificate": 20,
+  "famiglie_con_differenze": [],
+  "famiglie": [
+    {
+      "famiglia": "AttoSistemaSicid",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sicid/sistema/pubblico/v3",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sicid/sistema/pubblico/v3"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "AttoSistemaSiecic",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "AttoSistema_SIGP",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/sistema/pubblico/v3",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sigp/sistema/pubblico/v3"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/allegati/v3",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "CorsoCausa_SIGP",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/cartabia/corsocausa/v3",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sigp/cartabia/corsocausa/v3"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/allegati/v3",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "CurSiecicConcorsuali",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/curatore/v11",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/curatore/v11"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "CusSiecicEsecuzioni",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/custode/v4",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/custode/v4"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "DelSiecicEsecuzioni",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/delegato/v7",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/delegato/v7"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "IntroduttiviSicid",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v7",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v7"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "IntroduttiviSiecicConcorsuali",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/introduttivi/v7",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/introduttivi/v7"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "IntroduttiviSiecicEsecuzioni",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/introduttivi/v8",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/introduttivi/v8"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "Introduttivi_SIGP",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/cartabia/introduttivi/v3",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sigp/cartabia/introduttivi/v3"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/allegati/v3",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "Parte",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sicid/parte/v7",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sicid/parte/v7"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "ParteCassazione",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/cassazione/tipi/allegati/v13",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "ParteSiecicConcorsuali",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/parte/v8",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/parte/v8"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "ParteSiecicEsecuzioni",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/parte/v8",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/parte/v8"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "ProfSiecicConcorsuali",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/professionista/v6",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/professionista/v6"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "ProfSiecicEsecuzioni",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/professionista/v6",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/professionista/v6"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "Professionista",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sicid/professionista/v2",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sicid/professionista/v2"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "Professionista_SIGP",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/professionista/v3",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/sigp/professionista/v3"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/sigp/tipi/allegati/v3",
+      "ok": true,
+      "errori": []
+    },
+    {
+      "famiglia": "UNEP",
+      "radice_iusentra": "http://schemi.processotelematico.giustizia.it/unep/atti/parte/v1",
+      "radici_studio_telematico": [
+        "http://schemi.processotelematico.giustizia.it/unep/atti/parte/v1"
+      ],
+      "atti_iusentra": "http://schemi.processotelematico.giustizia.it/unep/tipi/atti/v1",
+      "allegati_iusentra": "http://schemi.processotelematico.giustizia.it/unep/tipi/allegati/v1",
+      "ok": true,
+      "errori": []
+    }
+  ],
+  "schemi": [
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/parte/parte_v13/Parte-cassazione.xsd",
+        "docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/parte/parte_v13/Parte-cassazione.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/cassazione/eventi/v13",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/parte/base_v13/eventi-cassazione.xsd",
+        "docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/parte/base_v13/eventi-cassazione.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/cassazione/tipi/allegati/v13",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/parte/base_v13/tipi-allegati.xsd",
+        "docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/parte/base_v13/tipi-allegati.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/v13",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/parte/base_v13/tipi-anagrafiche.xsd",
+        "docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/parte/base_v13/tipi-anagrafiche.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/parte/base_v13/tipi-atti.xsd",
+        "docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/parte/base_v13/tipi-atti.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/cassazione/tipi/v13",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/parte/base_v13/tipi-base.xsd",
+        "docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/parte/base_v13/tipi-base.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/eventi/crisiimpresa",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/eventi-crisiimpresa.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/eventi-crisiimpresa.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/eventi/parte",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/eventi-parte.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/eventi-parte.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/eventi/professionista",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/eventi-professionista.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/eventi-professionista.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v7",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/sicid_v7/Introduttivi.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/sicid_v7/Introduttivi.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sicid/istanzeadozione/v1",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/sicid_v1/AnagraficaIstantiAdozione.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/sicid_v1/AnagraficaIstantiAdozione.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sicid/parte/v7",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/sicid_v7/Parte.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/sicid_v7/Parte.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sicid/professionista/v2",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/sicid_v2/Professionista.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/sicid_v2/Professionista.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sicid/sistema/pubblico/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v3/Sistema-pubbl-sicid.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v3/Sistema-pubbl-sicid.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/curatore/v11",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v11/Cur-siecic-concorsuali.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v11/Cur-siecic-concorsuali.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/introduttivi/v7",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v7/Introduttivi-siecic-concorsuali.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v7/Introduttivi-siecic-concorsuali.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/parte/v8",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v8/Parte-siecic-concorsuali.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v8/Parte-siecic-concorsuali.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/professionista/v6",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v6/Prof-siecic-concorsuali.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v6/Prof-siecic-concorsuali.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/custode/v4",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v4/Cus-siecic-esecuzioni.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v4/Cus-siecic-esecuzioni.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/delegato/v7",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v7/Del-siecic-esecuzioni.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v7/Del-siecic-esecuzioni.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/introduttivi/v8",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v8/Introduttivi-siecic-esecuzioni.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v8/Introduttivi-siecic-esecuzioni.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/parte/v8",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v8/Parte-siecic-esecuzioni.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v8/Parte-siecic-esecuzioni.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/professionista/v6",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/siecic_v6/Prof-siecic-esecuzioni.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/siecic_v6/Prof-siecic-esecuzioni.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/eventi",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/eventi.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/eventi.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v3/Sistema-pubbl-siecic.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v3/Sistema-pubbl-siecic.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/tipibase/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v3/tipi-base-siecic.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v3/tipi-base-siecic.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/siecic/tipibase/v4",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v4/tipi-base-siecic.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v4/tipi-base-siecic.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/cartabia/corsocausa/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/sigp_v3/CorsoCausa.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/cartabia/introduttivi/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/sigp_v3/Introduttivi.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/eventi/parte/v2",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v2/eventi-parte.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/eventi/professionista",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v2/eventi-professionista.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/professionista/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/sigp_v3/Professionista.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/sistema/pubblico/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/sigp_v3/Sistema-pubbl-sigp.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/tipi/allegati/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v3/tipi-allegati.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/tipi/anagrafiche/v2",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v2/tipi-anagrafiche.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v2",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v2/tipi-atti.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v3/tipi-atti.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/sigp/tipi/v2",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/schema/base_v2/tipi-base.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/tipi",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/tipi-base.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v2/tipi-allegati.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v2/tipi-allegati.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v3",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v3/tipi-anagrafiche.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v3/tipi-anagrafiche.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v4/tipi-anagrafiche.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v4/tipi-anagrafiche.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/tipi/atti/v7",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/base_v7/tipi-atti.xsd",
+        "docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/Atti/sici/base_v7/tipi-atti.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/atti/parte/v1",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/atti-unep.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/siecic/tipibase",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/tipi-base-siecic.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/tipi",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/tipi/allegati/v1",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/base_v1/tipi-allegati.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/tipi/anagrafiche",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/tipi-anagrafiche.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/tipi/atti/v1",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/base_v1/tipi-atti.xsd"
+      ]
+    },
+    {
+      "namespace": "http://schemi.processotelematico.giustizia.it/unep/tipiBaseUnep",
+      "presente": true,
+      "xsd": [
+        "docs/specs/ministero/XSD PLO118 FASE2 per SW House/schema/tipi-base-unep.xsd"
+      ]
+    }
+  ]
+}

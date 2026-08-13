@@ -5931,3 +5931,17 @@ Perimetro esclusivo: lettura delle ricevute telematiche `RT.xml` collegate al co
 - Il riconoscimento automatico e il parsing completo condividono lo stesso confine sicuro; le RT ministeriali valide mantengono esito, importo, IUV, IUR, pagatore, beneficiario e causale.
 - Dipendenza runtime dichiarata e test di regressione aggiunti per entità interne ed esterne. Prima campagna: `31` test RT, presidio PEC e packaging superati; Ruff e sincronizzazione packaging superati.
 - Nessuna PEC o deposito reale è stato inviato durante il lavoro.
+
+## Aggiornamento 13/08/2026 - Parità degli schemi con Studio Telematico 26.021
+
+Perimetro esclusivo: generazione e validazione del deposito telematico. Nessuna notifica legale e nessun invio PEC reale sono stati eseguiti.
+
+- Esito ministeriale analizzato: `IDBUSTA 154441686`, codice `-1`, rilievo sul solo `DatiAtto.xml.p7m` come atto non conforme alle specifiche.
+- Causa accertata: il pacchetto trasmesso usava la radice `sicid/introduttivi/v6`, i tipi atto `tipi/atti/v6` e gli allegati `tipi/allegati/v1`. La release installata e decompilata di Studio Telematico `26.021` usa per tutta la famiglia `IntroduttiviSicid` rispettivamente `v7`, `v7` e `v2`; la stessa transizione vale per la famiglia `Parte`.
+- Il precedente controllo interno produceva un falso positivo perché indicizzava anche gli XSD storici e validava il namespace dichiarato dal file, senza imporre il profilo corrente associato al tipo di deposito.
+- Correzione: tutte le radici `IntroduttiviSicid` e `Parte` sono instradate ai namespace correnti; il validatore riceve il namespace atteso dal catalogo e respinge una versione storica anche quando il relativo XSD resta archiviato.
+- Confronto puntuale del metodo decompilato `CaricaDati_Avvocato`: nel profilo SICID corrente l'avvocato contiene sia `domicilio` sia `indirizzo`, prima di `parteRappresentata`; IUSENTRA ora serializza la stessa sequenza con i dati dello studio.
+- Audit completo del decompilato: `4.465` sorgenti C#, hash SHA-256 `cd13cef5c938981299bdc7987e48d2df6647de649cfa5a634ee59d8e34f8ef5f`; `50/50` namespace annotati hanno almeno uno XSD corrispondente nel repository, `20/20` famiglie DatiAtto coincidono per radice, tipi atto e tipi allegati.
+- Audit catalogo integrato: `270/270` tipi in parità, `270/270` generazioni end-to-end e `270/270` controlli di ruolo ministeriale, zero errori.
+- Evidenze: `artifacts/deposito-telematico/audit-schema-studio-telematico-2026-08-13.json`, `audit-parita-studio-telematico-270-2026-08-13.json` e `audit-catalogo-end-to-end-270-2026-08-13.json`.
+- Test mirati iniziali: `61` test della busta e dell'anagrafica ministeriale superati. Il deposito già inviato non è stato ritentato e la ricevuta specifica che non è necessario effettuare nuovamente il deposito.

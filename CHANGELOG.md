@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.37 - 2026-08-13
+
+- **Antiriciclaggio D.Lgs. 231/2007 — adeguata verifica della clientela (gap n.3 dell'analisi di mercato).** Nuovo dominio `pct/antiriciclaggio.py`: schede di adeguata verifica per cliente/prestazione con catalogo chiuso delle prestazioni in ambito (art. 3 c.4 lett. c) ed esclusione dell'attività difensiva (art. 17 c.7); titolare effettivo ex art. 20; griglia di profilatura CNF a 3 macro-aree (cliente, operazione, area geografica) con punteggi 1-5 per indice.
+- **Livello di verifica suggerito, mai imposto.** Le soglie sulla media della griglia sono dichiarate come prassi di studio configurabile (il CNF non fissa valori); la decisione finale resta all'avvocato, con motivazione obbligatoria per scostamenti verso il basso. Unico vincolo non derogabile: PEP o paese terzo ad alto rischio → verifica rafforzata (obbligo artt. 24-25, non prassi). Controllo costante con scadenza per livello e conservazione decennale calcolata ex art. 31.
+- **Fonte certa versionata.** Scaricato e versionato il documento CNF «Criteri e metodologie» (fonti_ufficiali/2026-08-13) con sintesi operativa in `docs/specs/ministero/ANTIRICICLAGGIO_CNF_231_2007_2026-08-13.md`. Nuova suite `tests/test_antiriciclaggio.py` (13 test). UI di studio in una prossima iterazione.
+
 ## 2.278.36 - 2026-08-13
 
 - **Pagamenti telematici di giustizia: la busta ora legge e verifica le ricevute pagoPA (gap n.2 dell'analisi di mercato).** Nuovo `pct/pagamenti_giustizia.py`: parsing della Ricevuta Telematica `RT.xml` (anche firmata `.p7m`) secondo lo schema ministeriale `PagamentiTelematiciGiustizia` (XSD 6.x versionato in `docs/specs/ministero/`) — esito, importo, IUV, IUR, ente beneficiario, pagatore, causale.

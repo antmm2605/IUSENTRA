@@ -2,12 +2,10 @@
 
 Espone il catalogo degli strumenti già dichiarato dal dominio e, per quelli che
 hanno un contratto di input in ``pct.calcolatori.schema``, i campi con cui la
-shell React costruisce il modulo. Gli strumenti non ancora dichiarati restano
-raggiungibili nella vista classica: la pagina li elenca comunque con il proprio
-collegamento, così la migrazione non toglie funzioni all'utente.
+shell React costruisce il modulo.
 
 Il calcolo non è duplicato qui: passa dai metodi di ``GestioneStrumentiLegali``
-già usati dalla vista classica e dagli endpoint JSON esistenti.
+già usati dagli endpoint JSON esistenti.
 """
 from __future__ import annotations
 
@@ -97,7 +95,6 @@ def build_react_strumenti_legali_payload(
                 ]
                 if risolvibile
                 else [],
-                "href_vista_classica": f"/strumenti-legali/?tool={tool_id}&_legacy=1",
             }
         )
 

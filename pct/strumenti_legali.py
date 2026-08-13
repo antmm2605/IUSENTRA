@@ -256,6 +256,8 @@ class GestioneStrumentiLegali:
     def build_form_state(self, prefill: Mapping[str, str], posted: Optional[Mapping[str, Any]] = None) -> Dict[str, str]:
         today = _today().isoformat()
         defaults = {
+            "comune": "",
+            "includi_speciali": "1",
             "med_valore": prefill.get("valore_causa", ""),
             "med_valore_tipo": "determinato",
             "med_regime": "volontaria",

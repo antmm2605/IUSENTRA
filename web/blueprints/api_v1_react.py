@@ -4242,7 +4242,7 @@ def _notifiche_prepare_local_pec_context(raw_payload: Mapping[str, Any], *, incl
         )
     result_payload.update({
         "ok": True,
-        "message": "Invio PEC reale pronto sul PC locale: unico messaggio Studio Telematico con tutti i destinatari nel campo To.",
+        "message": "Invio PEC pronto sul PC locale con tutti i destinatari selezionati.",
         "requiresLocalPec": True,
         "localPecMessages": local_messages,
         "notificationId": _notifiche_text(delivery_plan.get("notificationId")),
@@ -9193,7 +9193,7 @@ def strumenti_legali_react():
                 "totale": 0,
                 "totale_in_react": 0,
                 "endpoint_calcolo": "/api/v1/ui/strumenti-legali/calcola",
-                "warning": "Catalogo strumenti non disponibile. Resta utilizzabile la vista classica.",
+                "warning": "Catalogo strumenti momentaneamente non disponibile. Riprova.",
             }
         ), 200
 
@@ -9225,7 +9225,7 @@ def strumenti_legali_calcola_react():
         return jsonify({"ok": False, "errore": str(exc)}), 200
     except Exception as exc:
         current_app.logger.exception("Errore calcolo strumenti legali %s: %s", tool, exc)
-        return jsonify({"ok": False, "errore": "Calcolo non riuscito. Riprova o usa la vista classica."}), 200
+        return jsonify({"ok": False, "errore": "Calcolo non riuscito. Controlla i dati e riprova."}), 200
 
 
 @api_v1_react.get("/dashboard")

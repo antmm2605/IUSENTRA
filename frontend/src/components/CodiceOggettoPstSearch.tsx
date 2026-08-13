@@ -1,5 +1,5 @@
-import { useDeferredValue, useId, useMemo, useState } from 'react'
-import { CheckCircle2, FolderTree, Search, X } from 'lucide-react'
+import { useDeferredValue, useEffect, useId, useMemo, useState } from 'react'
+import { CheckCircle2, ChevronsDown, FolderTree, Maximize2, Minimize2, Search, X } from 'lucide-react'
 import {
   CODICI_OGGETTO_PST,
   CODICI_OGGETTO_PST_CATALOG,
@@ -106,7 +106,7 @@ function searchCodici(
       const items = filteredIndex
         .map(({ item }) => item)
         .sort((left, right) => left.codice.localeCompare(right.codice, 'it'))
-      return { items: items.slice(0, MAX_VISIBLE_RESULTS), total: items.length }
+      return { items, total: items.length }
     }
     if (!selected) return { items: [], total: 0 }
     const items = CODICI_OGGETTO_PST
@@ -121,7 +121,7 @@ function searchCodici(
     .map(({ item }) => ({ item, score: score(item, normalized, tokens) }))
     .sort((left, right) => right.score - left.score || left.item.codice.localeCompare(right.item.codice, 'it'))
     .map(({ item }) => item)
-  return { items: items.slice(0, MAX_VISIBLE_RESULTS), total: items.length }
+  return { items, total: items.length }
 }
 
 function registriLabel(registri: string[]): string {
@@ -153,6 +153,8 @@ export function CodiceOggettoPstSearch({
   const [areaFilter, setAreaFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
   const [registerFilter, setRegisterFilter] = useState('')
+  const [visibleLimit, setVisibleLimit] = useState(MAX_VISIBLE_RESULTS)
+  const [fullscreen, setFullscreen] = useState(false)
   const deferredQuery = useDeferredValue(query)
   const selected = findCodiceOggettoPst(value)
   const groupOptions = useMemo(() => {
@@ -180,14 +182,33 @@ export function CodiceOggettoPstSearch({
     group: groupFilter,
     register: registerFilter,
   }), [areaFilter, deferredQuery, groupFilter, registerFilter, selected])
-  const results = outcome.items
   const hasSearch = normalize(deferredQuery).length > 0
   const hasClassification = Boolean(areaFilter || groupFilter || registerFilter)
+  const results = outcome.items.slice(0, visibleLimit)
+  const hiddenResults = hasSearch || hasClassification ? Math.max(0, outcome.total - results.length) : 0
   const resultLabel = hasSearch || hasClassification
-    ? `${outcome.total} risultati nel catalogo ufficiale${outcome.total > MAX_VISIBLE_RESULTS ? `, primi ${MAX_VISIBLE_RESULTS} visualizzati` : ''}`
+    ? `${outcome.total} risultati nel catalogo ufficiale${hiddenResults ? `, ${results.length} visualizzati` : ''}`
     : selected
       ? 'Procedimenti collegati allo stesso gruppo'
       : `${CODICI_OGGETTO_PST_CATALOG.totaleCodici} codici ufficiali disponibili`
+
+  useEffect(() => {
+    setVisibleLimit(MAX_VISIBLE_RESULTS)
+  }, [areaFilter, deferredQuery, groupFilter, registerFilter])
+
+  useEffect(() => {
+    if (!fullscreen) return undefined
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullscreen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [fullscreen])
   const handleQueryChange = (nextQuery: string) => {
     setQuery(nextQuery)
     const exact = findCodiceOggettoPst(nextQuery.trim())
@@ -197,7 +218,7 @@ export function CodiceOggettoPstSearch({
   }
 
   return (
-    <div className={['iu-code-search', className].filter(Boolean).join(' ')}>
+    <div className={['iu-code-search', fullscreen ? 'iu-code-search--fullscreen' : '', className].filter(Boolean).join(' ')}>
       {name ? <input type="hidden" name={name} value={selected?.codice || ''} /> : null}
       <label className="iu-code-search__label" htmlFor={`${fieldId}-query`}>
         <span>{label}</span>
@@ -223,20 +244,31 @@ export function CodiceOggettoPstSearch({
         <div className="iu-code-search__classification-title">
           <FolderTree size={17} aria-hidden="true" />
           <strong>Classificazione</strong>
-          {hasClassification ? (
+          <div className="iu-code-search__classification-actions">
             <button
               type="button"
-              onClick={() => {
-                setAreaFilter('')
-                setGroupFilter('')
-                setRegisterFilter('')
-              }}
-              aria-label="Azzera classificazione"
-              title="Azzera classificazione"
+              onClick={() => setFullscreen((current) => !current)}
+              aria-label={fullscreen ? 'Chiudi visualizzazione a schermo intero' : 'Apri classificazione a schermo intero'}
+              title={fullscreen ? 'Chiudi schermo intero' : 'Apri a schermo intero'}
+              aria-pressed={fullscreen}
             >
-              <X size={15} />
+              {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
-          ) : null}
+            {hasClassification ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setAreaFilter('')
+                  setGroupFilter('')
+                  setRegisterFilter('')
+                }}
+                aria-label="Azzera classificazione"
+                title="Azzera classificazione"
+              >
+                <X size={15} />
+              </button>
+            ) : null}
+          </div>
         </div>
         <div className="iu-code-search__filters">
           <label htmlFor={`${fieldId}-area`}>
@@ -300,26 +332,42 @@ export function CodiceOggettoPstSearch({
       <small className="iu-code-search__help" id={`${fieldId}-help`}>{help}</small>
       <div className="iu-code-search__summary" id={`${fieldId}-summary`}>{resultLabel}</div>
       {results.length ? (
-        <div className="iu-code-search__results" role="listbox" aria-label="Risultati codice oggetto PST">
-          {results.map((item) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={item.codice === selected?.codice}
-              key={item.codice}
-              onClick={() => {
-                onChange(item.codice, item.descrizione, item)
-                setQuery('')
-              }}
-            >
-              <span className="iu-code-search__code">{item.codice}</span>
-              <span className="iu-code-search__text">
-                <strong>{item.descrizione}</strong>
-                <small>{item.area}{item.descrizionePadre ? `, ${item.descrizionePadre}` : ''}</small>
-              </span>
-              <span className="iu-code-search__registers">{registriLabel(item.registri)}</span>
-            </button>
-          ))}
+        <div className="iu-code-search__results-wrap">
+          <div className="iu-code-search__results" role="listbox" aria-label="Risultati codice oggetto PST">
+            {results.map((item) => (
+              <button
+                type="button"
+                role="option"
+                aria-selected={item.codice === selected?.codice}
+                key={item.codice}
+                onClick={() => {
+                  onChange(item.codice, item.descrizione, item)
+                  setQuery('')
+                }}
+              >
+                <span className="iu-code-search__code">{item.codice}</span>
+                <span className="iu-code-search__text">
+                  <strong>{item.descrizione}</strong>
+                  <small>{item.area}{item.descrizionePadre ? `, ${item.descrizionePadre}` : ''}</small>
+                </span>
+                <span className="iu-code-search__registers">{registriLabel(item.registri)}</span>
+              </button>
+            ))}
+          </div>
+          {hiddenResults ? (
+            <div className="iu-code-search__more-actions">
+              <button
+                type="button"
+                onClick={() => setVisibleLimit((current) => Math.min(current + MAX_VISIBLE_RESULTS, outcome.total))}
+              >
+                <ChevronsDown size={15} aria-hidden="true" />
+                Mostra altri {Math.min(MAX_VISIBLE_RESULTS, hiddenResults)}
+              </button>
+              <button type="button" onClick={() => setVisibleLimit(outcome.total)}>
+                Mostra tutti ({outcome.total})
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : hasSearch || hasClassification ? (
         <div className="iu-code-search__empty">Nessun codice ufficiale trovato. Prova con meno parole o con il codice numerico.</div>

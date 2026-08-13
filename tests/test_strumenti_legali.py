@@ -825,17 +825,18 @@ def test_api_react_espone_catalogo_e_schema_dei_moduli(tmp_path):
     assert all(campo["type"] in {"number", "select", "date", "text"} for campo in pena["campi"])
 
 
-def test_api_react_lascia_raggiungibili_gli_strumenti_non_migrati(tmp_path):
-    """La migrazione è incrementale: nessuno strumento sparisce dalla suite."""
+def test_api_react_espone_tutti_gli_strumenti_nel_percorso_react(tmp_path):
+    """Ogni strumento della suite è compilabile nella pagina React."""
 
     client = _client_react(tmp_path)
     payload = client.get("/api/v1/ui/strumenti-legali").get_json()
 
-    non_migrati = [voce for voce in payload["strumenti"] if not voce["reso_in_react"]]
-    assert non_migrati
-    for voce in non_migrati:
-        assert voce["href_vista_classica"].endswith("&_legacy=1")
-        assert voce["title"]
+    assert payload["totale_in_react"] == payload["totale"]
+    assert all(voce["reso_in_react"] for voce in payload["strumenti"])
+    assert all("href_vista_classica" not in voce for voce in payload["strumenti"])
+
+    uffici = next(voce for voce in payload["strumenti"] if voce["id"] == "uffici_competenti")
+    assert {campo["name"] for campo in uffici["campi"]} == {"comune", "includi_speciali"}
 
 
 def test_api_react_calcola_riusa_i_metodi_di_produzione(tmp_path):
@@ -853,13 +854,24 @@ def test_api_react_calcola_riusa_i_metodi_di_produzione(tmp_path):
     assert esito["result"]["sources"]
 
 
-def test_api_react_calcola_rifiuta_strumenti_senza_schema_e_input_invalidi(tmp_path):
+def test_api_react_calcola_uffici_e_rifiuta_input_invalidi(tmp_path, monkeypatch):
     client = _client_react(tmp_path)
 
-    senza_schema = client.post(
-        "/api/v1/ui/strumenti-legali/calcola", json={"tool": "uffici_competenti", "dati": {}}
+    monkeypatch.setattr(
+        "pct.strumenti_legali.ricerca_uffici_competenti_ministero",
+        lambda comune, includi_speciali=False: {
+            "comune": comune,
+            "includi_speciali": includi_speciali,
+            "uffici": [{"tipo": "Tribunale", "denominazione": "Tribunale di Palmi"}],
+        },
+    )
+    uffici = client.post(
+        "/api/v1/ui/strumenti-legali/calcola",
+        json={"tool": "uffici_competenti", "dati": {"comune": "Palmi", "includi_speciali": "1"}},
     ).get_json()
-    assert senza_schema["ok"] is False
+    assert uffici["ok"] is True
+    assert uffici["result"]["comune"] == "Palmi"
+    assert uffici["result"]["uffici"][0]["denominazione"] == "Tribunale di Palmi"
 
     input_invalido = client.post(
         "/api/v1/ui/strumenti-legali/calcola", json={"tool": "pena_riti_alternativi", "dati": {}}
@@ -1549,7 +1561,7 @@ def test_bridge_risolve_le_opzioni_dinamiche_dal_dominio(tmp_path):
 
 
 def test_bridge_senza_cataloghi_non_espone_moduli_a_meta(tmp_path):
-    """Se le opzioni dinamiche non sono risolvibili resta la vista classica."""
+    """Un modulo incompleto non espone campi o collegamenti a percorsi precedenti."""
 
     from web.services.react_strumenti_legali_bridge import build_react_strumenti_legali_payload
 
@@ -1563,7 +1575,7 @@ def test_bridge_senza_cataloghi_non_espone_moduli_a_meta(tmp_path):
     onorari = next(voce for voce in payload["strumenti"] if voce["id"] == "onorari_forensi")
     assert onorari["reso_in_react"] is False
     assert onorari["campi"] == []
-    assert onorari["href_vista_classica"].endswith("&_legacy=1")
+    assert "href_vista_classica" not in onorari
 
     # Gli strumenti a opzioni statiche restano invece disponibili in React.
     interessi = next(voce for voce in payload["strumenti"] if voce["id"] == "interessi")
@@ -1571,10 +1583,10 @@ def test_bridge_senza_cataloghi_non_espone_moduli_a_meta(tmp_path):
 
 
 def test_tutti_i_calcolatori_della_suite_sono_migrati_in_react(tmp_path):
-    """Solo la ricerca uffici resta fuori: non è un calcolatore ma un motore di ricerca."""
+    """Ogni strumento del catalogo dispone del proprio schema React."""
 
     from pct.calcolatori.schema import SCHEMI_CALCOLATORI
 
     catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
     fuori_schema = catalogo - set(SCHEMI_CALCOLATORI)
-    assert fuori_schema == {"uffici_competenti"}
+    assert fuori_schema == set()

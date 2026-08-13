@@ -179,7 +179,7 @@ def _append_payment_branch(fields: list[dict[str, Any]], prefix: str, label: str
             "document-reference",
             required=False,
             group=group,
-            note="Richiesta da Studio Telematico solo se il pagamento non e' Non dovuto, Esente o Prenotato a debito.",
+            note="Richiesta solo quando il pagamento è dovuto e non risulta esente o prenotato a debito.",
         ),
     )
 

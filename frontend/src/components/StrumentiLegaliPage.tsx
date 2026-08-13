@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Building2, Mail, MapPin, Phone } from 'lucide-react'
 import {
   caricaStrumentiLegali,
   eseguiCalcolo,
@@ -73,6 +74,68 @@ function CampoModulo({
   )
 }
 
+function testoUfficio(ufficio: Record<string, unknown>, ...chiavi: string[]): string {
+  for (const chiave of chiavi) {
+    const valore = ufficio[chiave]
+    if (typeof valore === 'string' && valore.trim()) return valore.trim()
+  }
+  return ''
+}
+
+function RisultatoUffici({ result }: { result: Record<string, unknown> }) {
+  const uffici = Array.isArray(result.offices)
+    ? result.offices.filter((voce): voce is Record<string, unknown> => typeof voce === 'object' && voce !== null)
+    : []
+  const comune = typeof result.comune === 'string' ? result.comune : ''
+
+  return (
+    <section className="iu-tool-result iu-tool-result--offices" aria-live="polite">
+      <header className="iu-office-results__header">
+        <div>
+          <h3 className="iu-tool-result__title">Uffici competenti</h3>
+          <p>{comune ? `${comune} · ` : ''}{uffici.length} {uffici.length === 1 ? 'ufficio trovato' : 'uffici trovati'}</p>
+        </div>
+      </header>
+      <div className="iu-office-results">
+        {uffici.map((ufficio, indice) => {
+          const nome = testoUfficio(ufficio, 'name', 'nome') || `Ufficio ${indice + 1}`
+          const tipo = testoUfficio(ufficio, 'typeLabel', 'type_label', 'kind')
+          const indirizzo = [
+            testoUfficio(ufficio, 'address', 'indirizzo'),
+            testoUfficio(ufficio, 'cap'),
+            testoUfficio(ufficio, 'city', 'citta'),
+          ].filter(Boolean).join(' · ')
+          const pec = testoUfficio(ufficio, 'pec')
+          const email = testoUfficio(ufficio, 'email')
+          const telefono = testoUfficio(ufficio, 'phone', 'telefono')
+          return (
+            <article className="iu-office-result" key={`${nome}-${pec || indice}`}>
+              <header>
+                <span className="iu-office-result__icon"><Building2 size={17} aria-hidden="true" /></span>
+                <div>
+                  {tipo ? <span>{tipo}</span> : null}
+                  <strong>{nome}</strong>
+                </div>
+              </header>
+              {indirizzo ? <p><MapPin size={15} aria-hidden="true" />{indirizzo}</p> : null}
+              <div className="iu-office-result__contacts">
+                {pec ? <a href={`mailto:${pec}`}><Mail size={15} aria-hidden="true" /><span><b>PEC</b>{pec}</span></a> : null}
+                {email ? <a href={`mailto:${email}`}><Mail size={15} aria-hidden="true" /><span><b>Email</b>{email}</span></a> : null}
+                {telefono ? <span><Phone size={15} aria-hidden="true" /><span><b>Telefono</b>{telefono}</span></span> : null}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+      {uffici.length ? (
+        <p className="iu-office-results__note">Verifica materia, rito, valore e norme speciali prima di usare il risultato in un atto.</p>
+      ) : (
+        <div className="iu-alert iu-alert--warning">Nessun ufficio trovato per il Comune indicato.</div>
+      )}
+    </section>
+  )
+}
+
 function Risultato({ esito }: { esito: EsitoCalcolo }) {
   if (!esito.ok) {
     return (
@@ -80,6 +143,9 @@ function Risultato({ esito }: { esito: EsitoCalcolo }) {
         {esito.errore || 'Calcolo non riuscito.'}
       </div>
     )
+  }
+  if (esito.result && Array.isArray(esito.result.offices)) {
+    return <RisultatoUffici result={esito.result} />
   }
   const righe = righeRisultato(esito.result)
   const note = elencoTestuale(esito.result, 'notes')
@@ -178,14 +244,7 @@ function PannelloStrumento({
     return (
       <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>
         <div className="iu-alert iu-alert--info">
-          <p>
-            <strong>{strumento.title}</strong> non è ancora compilabile in questa pagina.
-          </p>
-          <p>
-            <a className="iu-button" href={strumento.href_vista_classica}>
-              Apri nella vista classica
-            </a>
-          </p>
+          <p><strong>{strumento.title}</strong> non è momentaneamente disponibile.</p>
         </div>
       </section>
     )
@@ -207,9 +266,6 @@ function PannelloStrumento({
           <button className="iu-button iu-button--primary" type="submit" disabled={inCorso}>
             {inCorso ? 'Calcolo in corso...' : strumento.azione || 'Calcola'}
           </button>
-          <a className="iu-button iu-button--ghost" href={strumento.href_vista_classica}>
-            Vista classica
-          </a>
         </div>
       </form>
       {esito ? <Risultato esito={esito} /> : null}

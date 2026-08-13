@@ -96,7 +96,8 @@ def test_attestazione_preview_descrive_tipo_ufficio_data_e_rg() -> None:
     assert "if (haystack.includes('sentenza')) return 'Sentenza'" in source
     assert "function attestationOfficeIntro" in source
     assert "const attestationDocumentTitleDetail" in source
-    assert "documento.provvedimentoDataDeposito" in source
+    assert "documento.provvedimentoDataRilascio" in source
+    assert "documento.provvedimentoData" in source
     assert "detail = `${participle} ${attestationOfficeIntro(notifica.ufficio_giudiziario)}`" in source
     assert "if (notifica.sezione) detail += ` Sez. ${notifica.sezione}`" in source
     assert "if (documentDate) detail += ` in data ${documentDate}`" in source
@@ -109,8 +110,8 @@ def test_result_panel_marks_blocked_delivery_plan_as_visible_simulation() -> Non
     assert "function blockedSimulation(outputPlan: Record<string, unknown>)" in source
     assert "result.ok ? 'Passaggi effettuati' : 'Passaggi previsti'" in source
     assert "result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'" in source
-    assert "invio unico nel campo To dell'unico messaggio Studio Telematico" in source
-    assert "IUSENTRA li inserirà nel campo To dell'unico messaggio PEC, come Studio Telematico." in source
+    assert "Studio Telematico" not in source
+    assert "'regole di compilazione'" in source
     assert "Invio reale su conferma: la trasmissione PEC parte dal PC dell'avvocato." in source
     assert "PEC distinta" not in source
     assert "Nessun invio automatico: la trasmissione PEC resta sul PC dell'avvocato." not in source

@@ -11,6 +11,7 @@ from web.helpers import get_clienti, get_fascicoli
 strumenti_legali = Blueprint("strumenti_legali", __name__, url_prefix="/strumenti-legali")
 
 TOOL_METHODS = {
+    "uffici_competenti": "ricerca_uffici_competenti",
     "contributo_unificato": "calcola_contributo_unificato",
     "interessi": "calcola_interessi",
     "nota_credito": "genera_nota_precisazione_credito",

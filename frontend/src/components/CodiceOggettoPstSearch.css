@@ -4,6 +4,16 @@
   min-width: 0;
 }
 
+.iu-code-search--fullscreen {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  overflow: auto;
+  align-content: start;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  background: var(--iu-bg-app);
+}
+
 .iu-code-search__label span {
   color: var(--iu-text-muted);
   font-size: .78rem;
@@ -73,6 +83,12 @@
   gap: var(--iu-space-2);
   align-items: center;
   color: var(--iu-text-strong);
+}
+
+.iu-code-search__classification-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .iu-code-search__classification-title svg {
@@ -203,8 +219,9 @@
 }
 
 .iu-code-search__results {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-height: 340px;
   overflow: auto;
   padding: 4px;
@@ -213,14 +230,60 @@
   background: color-mix(in oklch, var(--iu-bg-surface) 92%, var(--iu-bg-app));
 }
 
-.iu-code-search__results button {
+.iu-code-search--fullscreen .iu-code-search__results {
+  max-height: calc(100dvh - 340px);
+}
+
+.iu-code-search__results-wrap {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) auto;
   gap: var(--iu-space-2);
+  min-height: 0;
+}
+
+.iu-code-search__more-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--iu-space-2);
+}
+
+.iu-code-search__more-actions button {
+  display: inline-flex;
+  gap: 6px;
   align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  cursor: pointer;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-sm);
+  background: var(--iu-bg-surface);
+  color: var(--iu-text);
+  padding: 0 .8rem;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.iu-code-search__more-actions button:hover,
+.iu-code-search__more-actions button:focus-visible {
+  border-color: var(--iu-blue-500);
+  outline: 3px solid color-mix(in oklch, var(--iu-blue-500) 20%, transparent);
+  color: var(--iu-blue-700);
+}
+
+.iusentra-preset-active .iu-code-search__results button {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  grid-template-areas:
+    "code text"
+    "code registers";
+  gap: var(--iu-space-2);
+  align-items: start;
+  flex: 0 0 auto;
   width: 100%;
-  min-height: 48px;
-  padding: .62rem .7rem;
+  height: fit-content;
+  min-height: 64px;
+  padding: .78rem .85rem;
   border: 1px solid transparent;
   border-radius: var(--iu-radius-sm);
   background: var(--iu-bg-surface);
@@ -236,6 +299,7 @@
 }
 
 .iu-code-search__code {
+  grid-area: code;
   display: inline-flex;
   justify-content: center;
   min-width: 0;
@@ -249,17 +313,40 @@
 }
 
 .iu-code-search__text {
+  grid-area: text;
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
+.iu-code-search__text strong,
+.iu-code-search__text small {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.iu-code-search__text small {
+  color: var(--iu-text-muted);
+}
+
 .iu-code-search__registers {
+  grid-area: registers;
   color: var(--iu-text-muted);
   font-size: .72rem;
   font-weight: 850;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+}
+
+.iu-code-search--fullscreen .iu-code-search__results button {
+  grid-template-columns: 82px minmax(0, 1fr) minmax(160px, 220px);
+  grid-template-areas: "code text registers";
+}
+
+.iu-code-search--fullscreen .iu-code-search__registers {
+  padding-top: .15rem;
   text-align: right;
-  white-space: nowrap;
 }
 
 .iu-code-search__empty {
@@ -272,8 +359,13 @@
 @media (max-width: 720px) {
   .iu-code-search__filters,
   .iu-code-search__selected,
-  .iu-code-search__results button {
+  .iusentra-preset-active .iu-code-search__results button,
+  .iu-code-search--fullscreen .iu-code-search__results button {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "code"
+      "text"
+      "registers";
   }
 
   .iu-code-search__registers {

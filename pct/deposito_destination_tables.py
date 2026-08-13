@@ -112,7 +112,7 @@ def audit_deposit_destination(
             "object_source": object_catalog.get("fonte", {}),
             "office": None,
             "checks": checks,
-            "errors": ["Ufficio non presente nella tabella sorgente di Studio Telematico."],
+            "errors": ["Ufficio non presente nella tabella degli uffici giudiziari."],
         }
 
     source_pec = str(office.get("pec") or "").strip().lower()

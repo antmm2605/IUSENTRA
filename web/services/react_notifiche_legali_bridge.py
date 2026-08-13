@@ -40,7 +40,7 @@ from pct.studio_address import normalize_studio_location
 
 _LEGACY_IMPORT_CONTENT_LABEL_CACHE: dict[str, str] = {}
 _UI_TECHNICAL_LABEL_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\b(?:QuickOrganizer|Studio\s+Telematico)\b", re.IGNORECASE), "gestionale precedente"),
+    (re.compile(r"\b(?:QuickOrganizer|Studio\s+Telematico)\b", re.IGNORECASE), "regole di compilazione"),
     (re.compile(r"\bDatiAtto(?:\.xml)?\b", re.IGNORECASE), "riepilogo della notifica"),
     (re.compile(r"\bTAVOLA\b", re.IGNORECASE), "prospetto dati"),
 )
@@ -337,7 +337,7 @@ def _is_import_pratiche_marker(value: Any) -> bool:
         for marker in (
             "quickorganizer",
             "import pratiche",
-            "gestionale precedente",
+            "regole di compilazione",
             "pacchetto pratiche",
         )
     )

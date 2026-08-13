@@ -248,7 +248,7 @@ def test_orchestratore_blocca_destinazione_non_coerente_con_il_fascicolo(tmp_pat
 
     assert run.can_prepare_deposit is False
     assert any(
-        issue["code"] == "StudioTelematicoTabella:registro_sezione"
+        issue["code"] == "TabellaDestinazione:registro_sezione"
         and issue["level"] == "BLOCK"
         for issue in run.issues
     )

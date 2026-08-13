@@ -227,7 +227,7 @@ function templateVersionLabel(value: string) {
 function userFacingNotice(value: string) {
   return String(value || '')
     .replace(/^[A-Z0-9_]+:\s*/, '')
-    .replace(/\b(?:QuickOrganizer|Studio\s+Telematico)\b/gi, 'gestionale precedente')
+    .replace(/\b(?:QuickOrganizer|Studio\s+Telematico)\b/gi, 'regole di compilazione')
     .replace(/\bhash SHA-256\b/gi, 'impronta del file')
     .replace(/\bSHA-256\b/g, 'impronta del file')
     .replace(/\bDatiAtto\.xml\b/g, 'riepilogo della notifica')

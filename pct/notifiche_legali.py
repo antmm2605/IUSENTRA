@@ -3333,10 +3333,10 @@ def build_notification_send_plan(
         ),
         _check_row(
             id="studio_telematico_to",
-            label="Campo To Studio Telematico",
-            source="Studio Telematico decompilato, FormSentMailBee.cs:15779 e 19727",
+            label="Destinatari del messaggio PEC",
+            source="Regole di composizione dei destinatari PEC",
             passed=bool(studio_telematico_to),
-            detail="Il messaggio di notifica usa il campo To composto con PEC, codice fiscale e pubblico elenco dei destinatari, come nel decompilato.",
+            detail="Il messaggio di notifica comprende PEC, codice fiscale e pubblico elenco dei destinatari.",
         ),
     ]
     if send_phase:
@@ -5201,7 +5201,7 @@ def validate_legal_notification(
             "Rivedi la bozza con l'avvocato responsabile.",
             "Esporta la relata in PDF/PDF-A e firmala digitalmente.",
             "Prepara un unico messaggio PEC dal PC locale dell'avvocato, con tutti i destinatari nel campo To.",
-            "Apri la PEC locale con destinatari, oggetto e allegati preparati secondo Studio Telematico.",
+            "Apri la PEC locale con destinatari, oggetto e allegati già predisposti.",
         ),
         template_id=text(template.get("id")),
         template_label=text(template.get("label")),

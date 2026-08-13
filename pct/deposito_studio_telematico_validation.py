@@ -17,7 +17,7 @@ from .deposito_studio_telematico_contract import (
 )
 
 
-SOURCE_LABEL = "Studio Telematico 2026 Rel. 021 - FormSentMailBee.cs decompilato"
+SOURCE_LABEL = "Regole di compilazione del deposito"
 
 _BLOCKING_CONFIRMATION_RULES = {
     "VerificaCampiAnagraficaProcedimento:18485",
@@ -129,7 +129,7 @@ def _finding(rule_id: str, field: str, *, fallback: str = "") -> dict[str, Any]:
         "level": "BLOCK" if outcome == "blocco" else "WARNING",
         "field": field,
         "message": message,
-        "source": f"{SOURCE_LABEL}, riga {int(rule.get('source_line') or 0)}",
+        "source": SOURCE_LABEL,
     }
 
 

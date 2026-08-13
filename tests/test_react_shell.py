@@ -8648,6 +8648,29 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert "Tutti i registri" in codice_search
     assert "MAX_VISIBLE_RESULTS = 40" in codice_search
     assert "matchesFilter(item, filter)" in codice_search
+    assert "Apri classificazione a schermo intero" in codice_search
+    assert "Mostra altri" in codice_search
+    assert "Mostra tutti" in codice_search
+    assert "setVisibleLimit(outcome.total)" in codice_search
+    codice_search_css = Path("frontend/src/components/CodiceOggettoPstSearch.css").read_text(encoding="utf-8")
+    assert "height: fit-content" in codice_search_css
+    assert "flex-direction: column" in codice_search_css
+    assert "flex: 0 0 auto" in codice_search_css
+    assert 'grid-template-areas:\n    "code text"\n    "code registers"' in codice_search_css
+    assert "max-height: calc(100dvh - 340px)" in codice_search_css
+
+
+def test_strumenti_legali_mostra_gli_uffici_senza_campi_tecnici():
+    source = Path("frontend/src/components/StrumentiLegaliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/StrumentiLegaliPage.css").read_text(encoding="utf-8")
+
+    assert "function RisultatoUffici" in source
+    assert "Uffici competenti" in source
+    assert "PEC" in source
+    assert "Telefono" in source
+    assert "GeneratedAt" not in source
+    assert ".iu-office-results" in css
+    assert "border-radius: 8px" in css
 
 
 def test_post_nuovo_fascicolo_con_cliente_apre_il_fascicolo(tmp_path: Path):

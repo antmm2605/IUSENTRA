@@ -2017,7 +2017,7 @@ class OrchestratoreDepositoGuidato:
                         service=service,
                         level=str(finding.get("level") or LEVEL_BLOCK),
                         code=str(finding.get("rule_id") or "studio_telematico"),
-                        title=message or "Controllo Studio Telematico",
+                        title=message or "Controllo dati deposito",
                         detail=message,
                         source=str(finding.get("source") or ""),
                         suggested_action="",
@@ -2054,14 +2054,13 @@ class OrchestratoreDepositoGuidato:
                     )
                 else:
                     source_label = (
-                        f"Studio Telematico - ListaUfficiGiudiziari.xml, "
-                        f"SHA-256 {str(source_info.get('sha256') or '')}"
+                        "Tabella degli uffici giudiziari"
                     )
                 issues.append(
                     ValidationIssue(
                         service=SERVICE_TECNICO,
                         level=LEVEL_BLOCK,
-                        code=f"StudioTelematicoTabella:{check_code}",
+                        code=f"TabellaDestinazione:{check_code}",
                         title=destination_titles.get(check_code, "Destinazione deposito non coerente"),
                         detail=detail,
                         source=source_label,

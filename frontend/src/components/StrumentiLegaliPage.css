@@ -237,6 +237,117 @@
   text-decoration: underline;
 }
 
+.iu-office-results__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--iu-od-space-3);
+}
+
+.iu-office-results__header p,
+.iu-office-results__note {
+  color: var(--iu-od-muted);
+  font-size: .82rem;
+  margin: 3px 0 0;
+}
+
+.iu-office-results {
+  display: grid;
+  gap: var(--iu-od-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+}
+
+.iu-office-result {
+  border: 1px solid var(--iu-od-border);
+  border-radius: 8px;
+  display: grid;
+  gap: var(--iu-od-space-3);
+  min-width: 0;
+  padding: var(--iu-od-space-3);
+}
+
+.iu-office-result > header {
+  align-items: flex-start;
+  display: grid;
+  gap: var(--iu-od-space-2);
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+
+.iu-office-result > header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.iu-office-result > header span:not(.iu-office-result__icon) {
+  color: var(--iu-od-muted);
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.iu-office-result > header strong {
+  line-height: 1.35;
+}
+
+.iu-office-result__icon {
+  align-items: center;
+  background: var(--iu-od-surface-soft);
+  border-radius: 7px;
+  color: var(--iu-od-primary);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.iu-office-result > p,
+.iu-office-result__contacts > a,
+.iu-office-result__contacts > span {
+  align-items: flex-start;
+  color: var(--iu-od-muted);
+  display: flex;
+  gap: var(--iu-od-space-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.iu-office-result__contacts {
+  display: grid;
+  gap: var(--iu-od-space-2);
+}
+
+.iu-office-result__contacts svg,
+.iu-office-result > p svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.iu-office-result__contacts a {
+  text-decoration: none;
+}
+
+.iu-office-result__contacts a:hover,
+.iu-office-result__contacts a:focus-visible {
+  color: var(--iu-od-primary);
+  outline: 0;
+}
+
+.iu-office-result__contacts span span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.iu-office-result__contacts b {
+  color: var(--iu-od-text);
+  font-size: .72rem;
+}
+
+.iu-office-results__note {
+  margin-top: var(--iu-od-space-3);
+}
+
 .iu-table-wrap {
   margin-top: var(--iu-od-space-4);
   overflow-x: auto;

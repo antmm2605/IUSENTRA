@@ -824,7 +824,7 @@ function depositUserFacingMessage(value: string): string {
   const raw = value.trim()
   if (!raw) return ''
   let result = raw
-  result = result.replace(/Studio Telematico|QuickOrganizer/gi, 'IUSENTRA')
+  result = result.replace(/Studio Telematico|QuickOrganizer/gi, 'regole del deposito')
   result = result.replace(/DatiAtto\.xml(?:\.p7m)?/gi, 'dati del deposito')
   result = result.replace(/IndiceBusta\.xml/gi, 'indice del pacchetto')
   result = result.replace(/IndiceDocumentiDepositati\.PDF/gi, 'indice documenti')

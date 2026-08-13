@@ -3518,10 +3518,10 @@ class BustaTelematica:
                 {
                     "code": "T002",
                     "level": "BLOCK",
-                    "title": "DatiAtto.xml non generabile",
-                    "detail": "Il payload XML tecnico non è stato generato correttamente.",
+                    "title": "Dati del deposito non generabili",
+                    "detail": "Il riepilogo del deposito non è stato generato correttamente.",
                     "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
-                    "suggested_action": "Correggi i metadati della busta prima del deposito.",
+                    "suggested_action": "Correggi i dati indicati e prepara nuovamente il deposito.",
                 }
             )
 
@@ -3536,7 +3536,7 @@ class BustaTelematica:
                         f"Atteso {role_audit.get('dati_atto_ruolo_atteso') or 'ruolo della pratica'}; "
                         f"trovato {', '.join(role_audit.get('dati_atto_ruoli_effettivi') or []) or 'nessun ruolo'}."
                     ),
-                    "source": "Studio Telematico: ruolo selezionato nella pratica e attributo ruolo del DatiAtto.xml",
+                    "source": "Regole di corrispondenza tra fascicolo, sezione e registro",
                     "suggested_action": "Rigenera la busta dopo avere riallineato registro, sezione e ruolo della pratica.",
                 }
             )

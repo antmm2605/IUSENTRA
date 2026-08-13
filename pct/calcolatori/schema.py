@@ -4,10 +4,7 @@ Ogni voce descrive i campi che ``calcola()`` legge dal payload: nome, etichetta
 in italiano, tipo di controllo e opzioni ammesse. La dichiarazione vive accanto
 ai calcolatori perché è parte del loro contratto, non una scelta grafica: la
 shell React la usa per costruire il modulo e il backend la usa per sapere quali
-strumenti sa già rendere senza la vista classica.
-
-Uno strumento assente da questo registro resta pienamente utilizzabile nella
-vista classica: la migrazione è incrementale e non toglie funzioni all'utente.
+strumenti sa già rendere nel percorso React.
 """
 from __future__ import annotations
 
@@ -62,6 +59,17 @@ def _dinamico(nome: str, etichetta: str, sorgente: str, *, aiuto: str = "") -> C
 
 
 SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
+    "uffici_competenti": {
+        "azione": "Cerca uffici",
+        "campi": [
+            _testo("comune", "Comune", aiuto="Indica il Comune per trovare gli uffici giudiziari competenti."),
+            _si_no(
+                "includi_speciali",
+                "Includi uffici specializzati",
+                aiuto="Comprende anche gli uffici con competenza distrettuale o speciale.",
+            ),
+        ],
+    },
     "pena_riti_alternativi": {
         "azione": "Calcola pena",
         "campi": [

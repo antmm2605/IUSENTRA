@@ -5969,3 +5969,26 @@ Perimetro esclusivo: selezione del codice oggetto nella pagina `Nuovo fascicolo`
 - Prova materiale su `https://app.iusentra.it/fascicoli/nuovo`, versione `2.278.46`: il filtro `Lavoro e previdenza` ha restituito `112` codici; il gruppo `Pubblico impiego` ne ha restituiti `27`; la ricerca `222050` ha selezionato `retribuzione` con registri `SICID`, `CASSAZIONE` e `UNEP`.
 - I conteggi dei registri si aggiornano sulla classificazione corrente (`25` SICID, `25` CASSAZIONE e `27` UNEP nel gruppo provato). Sono stati verificati selezione, rimozione, reset, hover, focus e scroll completo; il fascicolo non è stato salvato.
 - La copia locale Docker su `127.0.0.1:8080` è stata ricostruita e risponde healthy con versione `2.278.46`; la sessione browser locale non era autenticata, quindi la prova interattiva completa è stata eseguita sulla sessione reale autenticata di produzione.
+
+### Collaudo locale della visualizzazione completa del 13/08/2026
+
+- Perimetro esclusivo: selettore del codice oggetto nella pagina `Nuovo fascicolo` e presentazione dei risultati. Generazione della busta, schema `DatiAtto.xml`, firma, Local Signer, notifiche legali e invio PEC non sono stati modificati.
+- La lista non usa più righe di altezza fissa: codice, descrizione, area e registri occupano spazi distinti e ogni riga cresce in base al contenuto.
+- La vista ordinaria mostra inizialmente 40 risultati e permette di caricare altri 40 oppure tutti i risultati filtrati.
+- La classificazione può essere aperta a schermo intero; il comando di chiusura ripristina lo scorrimento della pagina e lo stato del form.
+- Prova materiale sulla copia Docker reale `http://127.0.0.1:8080/fascicoli/nuovo`: area `Volontaria giurisdizione`, 238 risultati totali, 40 iniziali e 238 dopo `Mostra tutti`.
+- Controllo geometrico sulle prime 12 righe della vista ordinaria: contenuto sempre compreso nella propria riga, altezze variabili da 93 a 155 pixel e nessuna sovrapposizione tra righe adiacenti.
+- Nella vista a schermo intero sono state osservate 238 righe, elenco scorrevole alto 572 pixel e blocco dello scorrimento della pagina esterna; alla chiusura lo stato `overflow` è tornato vuoto.
+- Il reset finale ha rimosso la classificazione senza salvare o creare alcun fascicolo.
+
+Stato: visualizzazione e navigazione dell'elenco verificate materialmente sulla copia locale reale. Nessun deposito e nessuna PEC sono stati preparati o inviati.
+
+## Aggiornamento 13/08/2026 - Strumenti operativi e ricerca uffici
+
+- Tutti i 36 strumenti esposti nella pagina React sono compilabili senza collegamenti a viste precedenti o riferimenti visibili a prodotti terzi.
+- La ricerca `Uffici competenti per Comune` usa il servizio reale già presente e accetta Comune e inclusione degli uffici specializzati.
+- Il risultato dispone di una presentazione dedicata per denominazione, tipo, indirizzo, PEC, email e telefono; non espone chiavi interne, timestamp o nomi tecnici del payload.
+- Prova materiale sulla copia locale reale con Comune `Palmi` e uffici specializzati inclusi: 10 uffici mostrati, tutte le schede contengono il proprio testo senza overflow e nessuna delle chiavi tecniche controllate è visibile.
+- Nessun dato è stato salvato e nessuna operazione esterna è stata eseguita.
+
+Stato: ricerca e presentazione degli uffici verificate materialmente sulla copia locale reale.

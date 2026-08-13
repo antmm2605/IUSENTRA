@@ -51,6 +51,7 @@ Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito
 - `artifacts/react-migration/quickorganizer-datiatto-generatori/unep-ufficio-notificazioni-esecuzioni-e-protesti.md`
 - `artifacts/react-migration/quickorganizer-regole-menu-deposito/unep-ufficio-notificazioni-esecuzioni-e-protesti.md`
 - `artifacts/react-migration/xsd-quickorganizer-datiatto.md`
+- `artifacts/react-migration/audit-parita-funzionale-studio-telematico-2026-08-13.md`
 
 ## Regola di manutenzione
 

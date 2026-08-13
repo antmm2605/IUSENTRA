@@ -21,7 +21,6 @@ export type StrumentoForense = {
   reso_in_react: boolean
   azione: string
   campi: CampoStrumento[]
-  href_vista_classica: string
 }
 
 export type StrumentiLegaliPayload = {
@@ -48,7 +47,7 @@ const PAYLOAD_VUOTO: StrumentiLegaliPayload = {
   totale: 0,
   totale_in_react: 0,
   endpoint_calcolo: '/api/v1/ui/strumenti-legali/calcola',
-  warning: 'Catalogo strumenti non disponibile. Resta utilizzabile la vista classica.',
+  warning: 'Catalogo strumenti momentaneamente non disponibile. Riprova tra poco.',
 }
 
 export async function caricaStrumentiLegali(tool: string, signal?: AbortSignal): Promise<StrumentiLegaliPayload> {
@@ -64,7 +63,7 @@ export async function eseguiCalcolo(
   return apiPostJson<EsitoCalcolo>(
     '/api/v1/ui/strumenti-legali/calcola',
     { tool, dati },
-    { ok: false, errore: 'Calcolo non riuscito. Riprova o usa la vista classica.' },
+    { ok: false, errore: 'Calcolo non riuscito. Controlla i dati e riprova.' },
     { signal },
   )
 }

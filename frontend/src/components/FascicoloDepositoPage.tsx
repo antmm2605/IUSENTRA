@@ -2886,7 +2886,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const selectedDepositPayload = selectedDepositType?.payload
   const depositActionPayload: DepositActionPayload = {
     tipo_atto: selectedDepositPayload?.tipo_atto || depositActCodeFromDocument(mainActDocument, regia.profile),
-    codice_registro: selectedDepositPayload?.codice_registro || depositRegistryCode(f),
+    codice_registro: depositRegistryCode(f),
     oggetto: f.codiceOggettoPst || f.object || f.title,
     codice_oggetto_pst: f.codiceOggettoPst,
     tipo_deposito_telematico_key: selectedDepositPayload?.tipo_deposito_telematico_key || '',

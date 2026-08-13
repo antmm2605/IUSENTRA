@@ -189,6 +189,61 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
     assert run.snapshot["pst_busta_audit"]["formal_checks"]["T003"]["status"] == "ok"
 
 
+def test_orchestratore_blocca_destinazione_non_coerente_con_il_fascicolo(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Ricorso lavoro",
+        tipo=TipoFascicolo.LAVORO,
+        tribunale="Tribunale di Vicenza",
+        numero_rg="1025",
+        anno_rg=2026,
+        controparte="Ministero",
+        id_cliente="cli-1",
+    )
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "RICORSO",
+            "codice_registro": "RGL",
+            "ruolo_ministeriale": "Lavoro",
+            "oggetto": "222050",
+            "codice_oggetto_pst": "222050",
+            "numero_rg": "1025",
+            "anno_rg": 2026,
+            "tipo_deposito_telematico_key": "Introduttivi_SICID::Ricorso",
+            "destination_table_audit": {
+                "source": {"sha256": "A" * 64},
+                "checks": [
+                    {
+                        "code": "registro_sezione",
+                        "passed": False,
+                        "expected": ["LAV"],
+                        "actual": ["CC"],
+                    }
+                ],
+            },
+        },
+        selected_documents=[],
+        all_documents=[],
+    )
+
+    assert run.can_prepare_deposit is False
+    assert any(
+        issue["code"] == "StudioTelematicoTabella:registro_sezione"
+        and issue["level"] == "BLOCK"
+        for issue in run.issues
+    )
+
+
 def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tmp_path):
     cfg = _cfg_web(tmp_path)
     gu = GestioneUtenti(
@@ -321,6 +376,10 @@ def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch
         return str(target)
 
     monkeypatch.setattr("pct.busta.BustaTelematica.crea_busta", _fake_crea_busta)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._anagrafica_xml_se_ricorso",
+        lambda **kwargs: "",
+    )
     app = create_app(cfg)
     with app.test_client() as client:
         client.post(

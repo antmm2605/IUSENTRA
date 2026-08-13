@@ -307,6 +307,7 @@ class DatiBusta:
     oggetto: str
     tipo_atto: str
     atto_principale: str
+    ruolo_ministeriale: str = ""
     allegati: List[Allegato] = field(default_factory=list)
     atto_principale_nome: str = ""
     numero_rg: Optional[str] = None
@@ -368,6 +369,7 @@ class BustaTelematica:
         self.id_busta = self._normalizza_id_busta(id_busta)
         self.timestamp = self._normalizza_timestamp(timestamp)
         self._last_transport_audit: dict | None = None
+        self._last_role_audit: dict[str, Any] = {}
         self._last_atto_msg_path: str = ""
         self._last_atto_enc_path: str = ""
 
@@ -488,7 +490,33 @@ class BustaTelematica:
         return "AllegatoSemplice"
 
     @staticmethod
-    def _ruolo_ministeriale_registro(codice_registro: str, tipo_atto: str = "") -> str:
+    def _ruolo_ministeriale_registro(
+        codice_registro: str,
+        tipo_atto: str = "",
+        ruolo_ministeriale: str = "",
+    ) -> str:
+        explicit = str(ruolo_ministeriale or "").strip()
+        allowed = {
+            "AffariCivili",
+            "AffariCiviliMinorenni",
+            "Agraria",
+            "CassazioneCivile",
+            "Contenzioso",
+            "EsecuzioniCivili",
+            "EspropriazioniImmobiliari",
+            "GiudiceDiPace",
+            "Lavoro",
+            "Minorenni",
+            "Notifiche",
+            "Pagamenti",
+            "ProcedimentoUnitario",
+            "Speciale",
+            "VolontariaGiurisdizione",
+        }
+        if explicit:
+            if explicit not in allowed:
+                raise ValueError(f"Ruolo ministeriale non riconosciuto: {explicit}.")
+            return explicit
         text = f"{codice_registro} {tipo_atto}".upper()
         if "SIGP" in text or "GIUDICE DI PACE" in text:
             return "GiudiceDiPace"
@@ -496,9 +524,42 @@ class BustaTelematica:
             return "CassazioneCivile"
         if "RGL" in text or "LAVOR" in text:
             return "Lavoro"
+        if "RGEI" in text or "ESIM" in text or "ESPROPRIAZION" in text:
+            return "EspropriazioniImmobiliari"
+        if "RGE" in text or "ESM" in text or "ESECUZION" in text:
+            return "EsecuzioniCivili"
+        if "SIMIN" in text or "MINORENN" in text:
+            return "Minorenni"
         if "VG" in text or "VOLONTARIA" in text:
             return "VolontariaGiurisdizione"
         return "Contenzioso"
+
+    def _verifica_ruolo_ministeriale_xml(self, payload: bytes) -> None:
+        expected = self._ruolo_ministeriale_registro(
+            self.dati.codice_registro,
+            self.dati.tipo_atto,
+            self.dati.ruolo_ministeriale,
+        )
+        root = etree.fromstring(payload)
+        actual = [
+            str(child.get("ruolo") or "").strip()
+            for child in root
+            if isinstance(child.tag, str)
+            and etree.QName(child).localname in {"destinazione", "procedimento"}
+            and str(child.get("ruolo") or "").strip()
+        ]
+        self._last_role_audit = {
+            "dati_atto_ruolo_atteso": expected,
+            "dati_atto_ruoli_effettivi": actual,
+            "dati_atto_ruolo_coerente": bool(actual) and all(role == expected for role in actual),
+        }
+        if not actual:
+            raise ValueError("DatiAtto.xml non contiene il ruolo ministeriale del deposito.")
+        if any(role != expected for role in actual):
+            raise ValueError(
+                "DatiAtto.xml contiene un ruolo diverso dalla pratica: "
+                f"atteso {expected}, trovato {', '.join(actual)}."
+            )
 
     def _usa_dati_atto_ministeriale(self) -> bool:
         return bool(self.dati.anagrafica_procedimento_xml or str(self.dati.datiatto_root_name or "").strip())
@@ -2889,7 +2950,11 @@ class BustaTelematica:
             root,
             f"{{{atti_ns}}}destinazione",
             ufficio=str(self.dati.codice_ufficio or "").strip(),
-            ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
+            ruolo=self._ruolo_ministeriale_registro(
+                self.dati.codice_registro,
+                self.dati.tipo_atto,
+                self.dati.ruolo_ministeriale,
+            ),
         )
         if self._is_datiatto_sistema():
             return
@@ -2935,7 +3000,11 @@ class BustaTelematica:
             root,
             f"{{{atti_ns}}}procedimento",
             ufficio=str(self.dati.codice_ufficio or "").strip(),
-            ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
+            ruolo=self._ruolo_ministeriale_registro(
+                self.dati.codice_registro,
+                self.dati.tipo_atto,
+                self.dati.ruolo_ministeriale,
+            ),
         )
         etree.SubElement(procedimento, f"{{{atti_ns}}}numero").text = numero_rg_digits
         etree.SubElement(procedimento, f"{{{atti_ns}}}anno").text = anno_rg
@@ -2977,6 +3046,7 @@ class BustaTelematica:
             if not validation.ok:
                 detail = "; ".join(validation.errors[:3]) or "controllo ufficiale non superato"
                 raise ValueError(f"Dati del deposito UNEP non conformi: {detail}")
+            self._verifica_ruolo_ministeriale_xml(payload)
             return payload
         namespace = self._datiatto_namespace()
         if namespace and (
@@ -3094,6 +3164,7 @@ class BustaTelematica:
         if not validation.ok:
             detail = "; ".join(validation.errors[:3]) or "controllo ufficiale non superato"
             raise ValueError(f"Dati del deposito non conformi: {detail}")
+        self._verifica_ruolo_ministeriale_xml(payload)
         return payload
 
     def _crea_xml_dati_atto(
@@ -3453,6 +3524,22 @@ class BustaTelematica:
                 }
             )
 
+        role_audit = dict(self._last_role_audit or {})
+        if role_audit and role_audit.get("dati_atto_ruolo_coerente") is not True:
+            issues.append(
+                {
+                    "code": "DATI-ATTO-RUOLO",
+                    "level": "BLOCK",
+                    "title": "Ruolo ministeriale non coerente con il fascicolo",
+                    "detail": (
+                        f"Atteso {role_audit.get('dati_atto_ruolo_atteso') or 'ruolo della pratica'}; "
+                        f"trovato {', '.join(role_audit.get('dati_atto_ruoli_effettivi') or []) or 'nessun ruolo'}."
+                    ),
+                    "source": "Studio Telematico: ruolo selezionato nella pratica e attributo ruolo del DatiAtto.xml",
+                    "suggested_action": "Rigenera la busta dopo avere riallineato registro, sezione e ruolo della pratica.",
+                }
+            )
+
         if indice_busta_ambiguous:
             issues.append(
                 {
@@ -3621,6 +3708,7 @@ class BustaTelematica:
                 next_actions.insert(0, action)
 
         return {
+            **role_audit,
             "ricevute_pagamento": ricevute_pagamento,
             "transport_mode": transport.get("transport_mode") or "atto_enc_non_generato",
             "expected_transport_mode": "atto_enc_da_atto_msg_cifrato_aes256",
@@ -3637,7 +3725,18 @@ class BustaTelematica:
             "atto_msg_sha256": transport.get("atto_msg_sha256", ""),
             "atto_enc_path": transport.get("atto_enc_path", ""),
             "atto_enc_sha256": transport.get("atto_enc_sha256", ""),
+            "atto_enc_size": transport.get("atto_enc_size"),
             "atto_enc_cms_valid": transport.get("atto_enc_cms_valid") is True,
+            "cms_content_type": transport.get("cms_content_type", ""),
+            "cms_recipients": transport.get("cms_recipients"),
+            "content_encryption_algorithm": transport.get(
+                "content_encryption_algorithm",
+                "",
+            ),
+            "content_encryption_algorithm_oid": transport.get(
+                "content_encryption_algorithm_oid",
+                "",
+            ),
             "busta_verifica_valida": transport.get("busta_verifica_valida") is True,
             "atto_msg_indice_busta_valid": transport.get("atto_msg_indice_busta_valid") is True,
             "certificate": transport.get("certificate"),

@@ -1902,6 +1902,9 @@ class OrchestratoreDepositoGuidato:
         normalized_context = {
             "tipo_atto": str(context.get("tipo_atto") or "ATTO_GENERICO").strip(),
             "codice_registro": str(context.get("codice_registro") or "RG").strip().upper(),
+            "registro_richiesto": str(context.get("registro_richiesto") or "").strip().upper(),
+            "ruolo_ministeriale": str(context.get("ruolo_ministeriale") or "").strip(),
+            "destination_table_audit": dict(context.get("destination_table_audit") or {}),
             "oggetto": str(context.get("oggetto") or fascicolo.titolo or "").strip(),
             "codice_oggetto_pst": normalize_codice_oggetto_pst(
                 context.get("codice_oggetto_pst")
@@ -1961,6 +1964,53 @@ class OrchestratoreDepositoGuidato:
                         source=str(finding.get("source") or ""),
                         suggested_action="",
                         field=field_name,
+                    )
+                )
+            destination_audit = normalized_context["destination_table_audit"]
+            source_info = destination_audit.get("source") if isinstance(destination_audit.get("source"), dict) else {}
+            destination_titles = {
+                "ufficio_tabella": "Ufficio non coerente con la tabella di destinazione",
+                "pec_ufficio": "PEC dell'ufficio non coerente con la tabella di destinazione",
+                "servizio_deposito": "Servizio telematico non attivo per il deposito selezionato",
+                "registro_sezione": "Registro o sezione non coerente con l'ufficio",
+                "rito_materia": "Rito o materia non coerente con l'ufficio",
+                "codice_oggetto_tabella": "Codice oggetto non coerente con la tabella ministeriale",
+            }
+            for check in list(destination_audit.get("checks") or []):
+                if not isinstance(check, dict) or check.get("passed") is True:
+                    continue
+                check_code = str(check.get("code") or "destinazione_deposito")
+                expected = check.get("expected")
+                actual = check.get("actual")
+                detail = f"Atteso: {expected}. Rilevato: {actual}."
+                if check_code == "codice_oggetto_tabella":
+                    object_source = (
+                        destination_audit.get("object_source")
+                        if isinstance(destination_audit.get("object_source"), dict)
+                        else {}
+                    )
+                    source_label = (
+                        f"{str(object_source.get('nome') or 'PST Giustizia - XSD ufficiali')}, "
+                        f"{str(object_source.get('fileFontePrevalente') or 'tipi-base.xsd')}"
+                    )
+                else:
+                    source_label = (
+                        f"Studio Telematico - ListaUfficiGiudiziari.xml, "
+                        f"SHA-256 {str(source_info.get('sha256') or '')}"
+                    )
+                issues.append(
+                    ValidationIssue(
+                        service=SERVICE_TECNICO,
+                        level=LEVEL_BLOCK,
+                        code=f"StudioTelematicoTabella:{check_code}",
+                        title=destination_titles.get(check_code, "Destinazione deposito non coerente"),
+                        detail=detail,
+                        source=source_label,
+                        suggested_action=(
+                            "Riallinea ufficio, registro/sezione, rito e codice oggetto del fascicolo, "
+                            "quindi rigenera la busta."
+                        ),
+                        field="destinazione_deposito",
                     )
                 )
         else:
@@ -2025,6 +2075,7 @@ class OrchestratoreDepositoGuidato:
             "studio_telematico_validation_rule_ids": list(
                 (studio_contract or {}).get("validation_rule_ids") or []
             ),
+            "destination_table_audit": normalized_context.get("destination_table_audit", {}),
             "selected_documents": selected_summary,
             "selected_count": len(selected_summary),
         }

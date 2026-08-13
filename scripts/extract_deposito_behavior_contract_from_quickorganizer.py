@@ -272,8 +272,7 @@ def _document_flag_map(body: str) -> dict[str, str]:
 
 
 def _applicable_keys(condition: str, keys: list[str]) -> list[str]:
-    positive_tests: list[tuple[str, str]] = []
-    negative_tests: list[tuple[str, str]] = []
+    tests: list[tuple[int, int, bool, str, str]] = []
     patterns = (
         ("equals", r'AttoDaInviareKey\s*==\s*"([^"]+)"'),
         ("contains", r'AttoDaInviareKey\.Contains\(\s*"([^"]+)"\s*\)'),
@@ -281,9 +280,17 @@ def _applicable_keys(condition: str, keys: list[str]) -> list[str]:
     )
     for kind, pattern in patterns:
         for match in re.finditer(pattern, condition):
-            prefix = condition[max(0, match.start() - 2) : match.start()]
-            target = negative_tests if "!" in prefix else positive_tests
-            target.append((kind, _clean(match.group(1))))
+            prefix = condition[max(0, match.start() - 3) : match.start()]
+            tests.append(
+                (
+                    match.start(),
+                    match.end(),
+                    "!" in prefix,
+                    kind,
+                    _clean(match.group(1)),
+                )
+            )
+    tests.sort(key=lambda item: item[0])
 
     def matches(key: str, test: tuple[str, str]) -> bool:
         kind, value = test
@@ -293,13 +300,33 @@ def _applicable_keys(condition: str, keys: list[str]) -> list[str]:
             return key.startswith(value)
         return value in key
 
+    def condition_matches(key: str) -> bool:
+        if not tests:
+            return True
+        values: list[bool] = []
+        operators: list[str] = []
+        previous_end = tests[0][1]
+        for position, (start, end, negative, kind, value) in enumerate(tests):
+            if position:
+                between = condition[previous_end:start]
+                operators.append("or" if "||" in between else "and")
+            current = matches(key, (kind, value))
+            values.append(not current if negative else current)
+            previous_end = end
+
+        # In C# && ha precedenza su ||. Riduciamo prima i gruppi AND e poi OR.
+        groups = [values[0]]
+        for operator, value in zip(operators, values[1:]):
+            if operator == "and":
+                groups[-1] = groups[-1] and value
+            else:
+                groups.append(value)
+        return any(groups)
+
     selected = []
     for key in keys:
-        if positive_tests and not any(matches(key, test) for test in positive_tests):
-            continue
-        if any(matches(key, test) for test in negative_tests):
-            continue
-        selected.append(key)
+        if condition_matches(key):
+            selected.append(key)
     return selected
 
 

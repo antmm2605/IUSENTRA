@@ -1,8 +1,11 @@
+from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 from lxml import etree
 
 from pct.busta import BustaTelematica
+from pct.deposito_studio_telematico_contract import studio_telematico_document_requirements
 from pct.deposito_studio_telematico_validation import validate_studio_telematico_deposit
 from pct.deposito_telematico_catalogo import (
     _datiatto_root_hint,
@@ -10,12 +13,17 @@ from pct.deposito_telematico_catalogo import (
     list_deposit_catalog_entries,
     resolve_deposit_type_payload,
 )
-from web.services.deposito_catalogo_runtime import deposito_catalogo_datiatto_extra
+from web.services.deposito_catalogo_runtime import (
+    deposito_catalogo_apply,
+    deposito_catalogo_datiatto_extra,
+    deposito_catalogo_destination,
+)
 from scripts.audit_deposito_catalogo_end_to_end import (
     _dati_busta_for,
     _sample_pdf,
     audit_deposit_catalog,
 )
+from scripts.extract_deposito_behavior_contract_from_quickorganizer import _applicable_keys
 
 
 def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
@@ -139,6 +147,28 @@ def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
     ]
 
 
+def test_estrattore_preserva_i_predicati_annidati_sui_tipi_di_pignoramento():
+    keys = [
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
+    ]
+    condition = (
+        '(AttoDaInviareKey.Contains("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramento"))'
+        ' && (AttoDaInviareKey.Contains("PignoramentoMobiliarePressoTerzi") && !flag3)'
+    )
+
+    assert _applicable_keys(condition, keys) == [keys[2]]
+
+    requirements = studio_telematico_document_requirements(keys[2])
+    assert [(item["code"], item["ruleId"]) for item in requirements] == [
+        ("AttoCitazione", "VerificaCampiAttoDaDepositare:17839"),
+        ("TitoloEsecutivo", "VerificaCampiAttoDaDepositare:17847"),
+        ("Precetto", "VerificaCampiAttoDaDepositare:17853"),
+        ("Procura", "VerificaCampiAttoDaDepositare:17929"),
+    ]
+
+
 def test_catalogo_espone_i_campi_specifici_solo_sui_rami_pertinenti():
     reclamo = resolve_deposit_type_payload("Introduttivi_SICID::RicorsoReclamoSospensiva")
     pignoramento = resolve_deposit_type_payload(
@@ -215,6 +245,48 @@ def test_unep_pignoramento_riproduce_i_tre_rami_contributo_studio_telematico(tmp
         else:
             assert len(importi) == 1
             assert importi[0].get("debito") == expected_debito
+
+
+def test_ricorso_generico_conserva_il_ruolo_lavoro_del_fascicolo_nel_datiatto(tmp_path):
+    entry = resolve_deposit_type_payload("Introduttivi_SICID::Ricorso")
+    assert entry is not None
+    registry, role = deposito_catalogo_destination(
+        entry,
+        "SICID",
+        SimpleNamespace(
+            tipo="LAVORO",
+            titolo="Ricorso lavoro",
+            area_pratica="Lavoro e previdenza",
+            tipo_procedimento="retribuzione",
+            sezione="Lavoro",
+            registro_operativo="RGL",
+            tipo_registro="SIL",
+            registro_portale="SIL",
+            ruolo_polisweb="Lavoro",
+        ),
+    )
+    assert registry == "RGL"
+    assert role == "Lavoro"
+
+    dati = replace(
+        _dati_busta_for(entry, _sample_pdf(tmp_path / "ricorso-lavoro.pdf")),
+        codice_registro=registry,
+        ruolo_ministeriale=role,
+    )
+    busta = BustaTelematica(dati)
+    root = etree.fromstring(busta.crea_dati_atto_xml_per_firma())
+    assert root.xpath("string(./*[local-name()='destinazione']/@ruolo)") == "Lavoro"
+    assert busta.audit_conformita_pst()["dati_atto_ruolo_coerente"] is True
+
+
+def test_catalogo_non_sostituisce_il_registro_reale_con_la_famiglia_generatore():
+    entry = resolve_deposit_type_payload("Introduttivi_SICID::Ricorso")
+    assert entry is not None
+
+    tipo_atto, registry = deposito_catalogo_apply(entry, "RICORSO", "RGL")
+
+    assert tipo_atto == "RICORSO"
+    assert registry == "RGL"
 
 
 def test_unep_controlla_tipo_notifica_titolo_e_iban_con_le_regole_decompilate(tmp_path):
@@ -357,9 +429,44 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert report["pct_expected_datiatto"] == 252
     assert report["unep_expected_datiatto"] == 18
     assert report["ministerial_expected_datiatto"] == 270
+    assert report["ministerial_role_checks"] == 270
+    rule_coverage = report["studio_validation_rule_coverage"]
+    assert rule_coverage["ok"] is True
+    assert rule_coverage["source_rules_total"] == 186
+    assert rule_coverage["runtime_rule_ids"] == 161
+    assert rule_coverage["document_rule_ids"] == 12
+    assert rule_coverage["follow_up_rule_ids"] == 3
+    assert rule_coverage["catalog_unreachable_rule_ids"] == 10
+    assert rule_coverage["covered_rule_ids"] == 186
+    assert rule_coverage["missing_rule_ids"] == []
+    assert rule_coverage["unknown_rule_ids"] == []
+    assert report["verified_entries"] == 270
+    assert len(report["entries"]) == 270
+    assert all(item["status"] == "verified" and not item["errors"] for item in report["entries"])
+    assert all(item["fonte_decompilata"]["catalog_entry_found"] for item in report["entries"])
+    assert all(
+        item["prova_generata"]["xsd"]["ok"]
+        and item["prova_generata"]["ruolo_coerente"]
+        and item["prova_generata"]["indice_busta"]["generated"]
+        and item["prova_generata"]["indice_busta"]["mime_contract_ok"]
+        and all(item["prova_generata"]["pacchetto_completo"]["checks"].values())
+        for item in report["entries"]
+    )
     assert report["pct_contribution_exemption_branches_checked"] > 0
     assert report["pct_required_input_guards_checked"] >= 120
     assert report["pct_real_send_suspended_until_dedicated_generator"] == 0
+    reference_tables = report["reference_tables"]
+    assert reference_tables["studio_destination_tables"]["offices"] == 1442
+    assert reference_tables["ministerial_object_table"]["records"] == 1018
+    assert reference_tables["studio_mdb_schema_audit"]["table_count"] == 22
+    assert reference_tables["studio_mdb_schema_audit"]["deposit_relevant_tables"] == [
+        "EMAILS",
+        "NOMI",
+        "PRATICHE",
+        "PrecisazioneCredito",
+        "TAVOLA",
+        "Titoli",
+    ]
     assert report["office_catalog"]["ok"] is True
     assert report["office_catalog"]["pct_target_codes"] == 593
     assert report["office_catalog"]["pct_target_missing_in_iusentra"] == 0

@@ -12,10 +12,16 @@ Lo script controlla tutti i tipi del catalogo tecnico condiviso:
 from __future__ import annotations
 
 import argparse
+import ast
+import hashlib
 import json
+import os
+import re
 import sys
 import tempfile
 from dataclasses import replace
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -28,16 +34,46 @@ if str(ROOT) not in sys.path:
 
 from pct.busta import BustaTelematica, DatiBusta
 from pct.datiatto_xsd import validate_datiatto_xml
-from pct.deposito_studio_telematico_validation import validate_studio_telematico_deposit
+from pct.firma import estrai_contenuto_cades, profilo_cades_bes_valido
+from pct.firma_pkcs11 import _build_cades_bes
+from pct.pst_cifratura import crea_certificato_cifratura_test
+from pct.deposito_studio_telematico_contract import studio_telematico_document_requirements
+from pct.deposito_studio_telematico_validation import (
+    CATALOG_UNREACHABLE_RULE_IDS,
+    FOLLOW_UP_MESSAGE_RULE_IDS,
+    validate_studio_telematico_deposit,
+)
 from pct.deposito_telematico_catalogo import list_deposit_catalog_entries
 from web.services.deposito_anagrafica_ministeriale import (
     _anagrafica_procedimento_deposito_xml,
     _namespace_anagrafica_per_generatore,
 )
+from web.services.deposito_catalogo_runtime import deposito_catalogo_destination
 
 
-QUICKORGANIZER_LISTA_UFFICI = Path(r"C:\QuickOrganizer\ListaUfficiGiudiziari.xml")
-QUICKORGANIZER_QC_UFFICI = Path(r"C:\QuickOrganizer\QC_Uffici.xml")
+QUICKORGANIZER_LISTA_UFFICI_CANDIDATES = (
+    Path(r"D:\QuickOrganizer\ListaUfficiGiudiziari.xml"),
+    Path(r"C:\QuickOrganizer\ListaUfficiGiudiziari.xml"),
+)
+QUICKORGANIZER_QC_UFFICI_CANDIDATES = (
+    Path(r"D:\QuickOrganizer\QC_Uffici.xml"),
+    Path(r"C:\QuickOrganizer\QC_Uffici.xml"),
+)
+QUICKORGANIZER_EXE_CANDIDATES = (
+    Path(r"D:\QuickOrganizer\QuickOrganizer.exe"),
+    Path(r"C:\QuickOrganizer\QuickOrganizer.exe"),
+)
+QUICKORGANIZER_DECOMPILED_FORM = Path(
+    r"C:\Users\antmm\AppData\Local\Temp\quickorganizer_decompiled_full\FormSentMailBee.cs"
+)
+QUICKORGANIZER_CATALOG = ROOT / "pct" / "data" / "cataloghi" / "quickorganizer_depositi_studio_telematico.json"
+QUICKORGANIZER_VALIDATIONS = ROOT / "pct" / "data" / "cataloghi" / "quickorganizer_deposito_validazioni.json"
+STUDIO_DESTINATION_TABLES = ROOT / "pct" / "data" / "cataloghi" / "studio_telematico_uffici_deposito.json"
+MINISTERIAL_OBJECT_TABLE = ROOT / "pct" / "data" / "cataloghi" / "codici_oggetto_pst.json"
+STUDIO_MDB_TABLE_AUDIT = (
+    ROOT / "artifacts" / "deposito-telematico" / "audit-tabelle-mdb-studio-telematico-2026-08-13.json"
+)
+STUDIO_VALIDATION_IMPLEMENTATION = ROOT / "pct" / "deposito_studio_telematico_validation.py"
 NON_OPERATIVE_OFFICE_MARKERS = (
     "EX GIUD",
     "NON ATTIVO",
@@ -47,6 +83,239 @@ NON_OPERATIVE_OFFICE_MARKERS = (
     "FORMAZIONE",
 )
 PCT_OFFICE_TYPES_REQUIRING_DEPOSIT_RESOLUTION = {"CA", "OR", "SC", "TM", "GP", "CC"}
+AES256_CBC_OID = "2.16.840.1.101.3.4.1.42"
+
+
+def _first_existing(candidates: tuple[Path, ...]) -> Path:
+    return next((path for path in candidates if path.exists()), candidates[0])
+
+
+QUICKORGANIZER_LISTA_UFFICI = _first_existing(QUICKORGANIZER_LISTA_UFFICI_CANDIDATES)
+QUICKORGANIZER_QC_UFFICI = _first_existing(QUICKORGANIZER_QC_UFFICI_CANDIDATES)
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _source_evidence() -> dict[str, Any]:
+    executable = next((path for path in QUICKORGANIZER_EXE_CANDIDATES if path.exists()), None)
+    source_lines = (
+        QUICKORGANIZER_DECOMPILED_FORM.read_text(encoding="utf-8", errors="replace").splitlines()
+        if QUICKORGANIZER_DECOMPILED_FORM.exists()
+        else []
+    )
+    return {
+        "application": "Studio Telematico 2026 Rel. 021",
+        "executable": str(executable or ""),
+        "executable_sha256": _sha256_file(executable) if executable else "",
+        "decompiled_form": str(QUICKORGANIZER_DECOMPILED_FORM),
+        "decompiled_form_sha256": (
+            _sha256_file(QUICKORGANIZER_DECOMPILED_FORM) if QUICKORGANIZER_DECOMPILED_FORM.exists() else ""
+        ),
+        "decompiled_form_lines": len(source_lines),
+        "catalog": str(QUICKORGANIZER_CATALOG),
+        "catalog_sha256": _sha256_file(QUICKORGANIZER_CATALOG),
+        "validations": str(QUICKORGANIZER_VALIDATIONS),
+        "validations_sha256": _sha256_file(QUICKORGANIZER_VALIDATIONS),
+    }
+
+
+def _reference_table_evidence(errors: list[str]) -> dict[str, Any]:
+    evidence: dict[str, Any] = {}
+    payloads: dict[str, dict[str, Any]] = {}
+    required_files = {
+        "studio_destination_tables": STUDIO_DESTINATION_TABLES,
+        "ministerial_object_table": MINISTERIAL_OBJECT_TABLE,
+        "studio_mdb_schema_audit": STUDIO_MDB_TABLE_AUDIT,
+    }
+    for key, path in required_files.items():
+        if not path.exists():
+            errors.append(f"tabella di riferimento mancante: {path}")
+            evidence[key] = {"path": str(path), "present": False}
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError) as exc:
+            errors.append(f"tabella di riferimento illeggibile {path}: {exc}")
+            evidence[key] = {"path": str(path), "present": True, "readable": False}
+            continue
+        payloads[key] = payload
+        evidence[key] = {
+            "path": str(path),
+            "present": True,
+            "readable": True,
+            "sha256": _sha256_file(path),
+            "source": payload.get("source"),
+            "counts": payload.get("counts"),
+            "table_count": payload.get("table_count"),
+            "deposit_relevant_tables": payload.get("deposit_relevant_tables"),
+            "records": len(payload.get("records") or []),
+            "offices": len(payload.get("offices") or []),
+        }
+
+    destination_payload = payloads.get("studio_destination_tables", {})
+    destination_source = destination_payload.get("source") or {}
+    if not QUICKORGANIZER_LISTA_UFFICI.exists():
+        errors.append("ListaUfficiGiudiziari.xml sorgente non disponibile")
+    elif destination_source.get("sha256") != _sha256_file(QUICKORGANIZER_LISTA_UFFICI):
+        errors.append("tabella uffici deposito non allineata a ListaUfficiGiudiziari.xml")
+
+    mdb_source = payloads.get("studio_mdb_schema_audit", {}).get("source") or {}
+    mdb_source_path = Path(str(mdb_source.get("path") or ""))
+    if not mdb_source_path.exists():
+        errors.append("QuickOrganizer.mdb sorgente non disponibile")
+    elif mdb_source.get("sha256") != _sha256_file(mdb_source_path):
+        errors.append("audit schema MDB non allineato a QuickOrganizer.mdb")
+
+    object_payload = payloads.get("ministerial_object_table", {})
+    object_records = {
+        str(item.get("codice") or ""): item for item in object_payload.get("records") or [] if isinstance(item, dict)
+    }
+    for required_code, required_parent in (("220050", "220"), ("222050", "222")):
+        record = object_records.get(required_code)
+        if not record or str(record.get("codicePadre") or "") != required_parent:
+            errors.append(f"tabella oggetti ministeriale non coerente per {required_code}/{required_parent}")
+    if "ministerial_object_table" in evidence:
+        evidence["ministerial_object_table"]["case_b494aab9"] = {
+            "private_employment_code": object_records.get("220050"),
+            "public_employment_code": object_records.get("222050"),
+        }
+    return evidence
+
+
+def _method_evidence(methods: list[str], source_lines: list[str]) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    for method in methods:
+        needle = f"{method}("
+        source_line = next(
+            (index for index, line in enumerate(source_lines, start=1) if needle in line),
+            0,
+        )
+        evidence.append(
+            {
+                "method": method,
+                "source_file": str(QUICKORGANIZER_DECOMPILED_FORM),
+                "source_line": source_line,
+                "found": source_line > 0,
+            }
+        )
+    return evidence
+
+
+def _xml_structure(root: etree._Element) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+
+    def visit(node: etree._Element, parent_path: str) -> None:
+        localname = etree.QName(node).localname
+        parent = node.getparent()
+        siblings = [
+            item
+            for item in (list(parent) if parent is not None else [])
+            if isinstance(item.tag, str) and etree.QName(item).localname == localname
+        ]
+        position = siblings.index(node) + 1 if len(siblings) > 1 else 0
+        path = f"{parent_path}/{localname}" + (f"[{position}]" if position else "")
+        text_value = str(node.text or "").strip()
+        rows.append(
+            {
+                "path": path,
+                "namespace": etree.QName(node).namespace or "",
+                "attributes": {str(etree.QName(key).localname): value for key, value in node.attrib.items()},
+                "value": text_value,
+            }
+        )
+        for child in node:
+            if isinstance(child.tag, str):
+                visit(child, path)
+
+    visit(root, "")
+    return rows
+
+
+def _source_validation_payload() -> dict[str, Any]:
+    payload = json.loads(QUICKORGANIZER_VALIDATIONS.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
+def _studio_validation_rule_coverage(
+    validation_payload: dict[str, Any],
+    entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Dimostra come ogni regola estratta entra nel runtime dei 270 tipi."""
+
+    source_rules = [
+        item for item in validation_payload.get("rules") or [] if isinstance(item, dict) and str(item.get("id") or "")
+    ]
+    active_ids = {str(item["id"]) for item in source_rules}
+    implementation_source = STUDIO_VALIDATION_IMPLEMENTATION.read_text(encoding="utf-8")
+    tree = ast.parse(implementation_source, filename=str(STUDIO_VALIDATION_IMPLEMENTATION))
+    implemented_ids = {
+        node.value
+        for function in tree.body
+        if isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef))
+        for node in ast.walk(function)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and re.fullmatch(r"VerificaCampi[^:]+:[0-9]+", node.value)
+    }
+    document_contract_keys: dict[str, set[str]] = {}
+    for entry in entries:
+        key = str(entry.get("key") or "")
+        for requirement in studio_telematico_document_requirements(key):
+            rule_id = str(requirement.get("ruleId") or "")
+            if rule_id:
+                document_contract_keys.setdefault(rule_id, set()).add(key)
+    document_contract_ids = set(document_contract_keys)
+    unreachable_ids = set(CATALOG_UNREACHABLE_RULE_IDS)
+    follow_up_ids = set(FOLLOW_UP_MESSAGE_RULE_IDS)
+    covered_ids = (implemented_ids | document_contract_ids | unreachable_ids | follow_up_ids) & active_ids
+    missing_ids = sorted(active_ids - covered_ids)
+    unknown_ids = sorted((implemented_ids | document_contract_ids | unreachable_ids | follow_up_ids) - active_ids)
+
+    rows: list[dict[str, Any]] = []
+    for rule in source_rules:
+        rule_id = str(rule["id"])
+        classifications: list[str] = []
+        if rule_id in implemented_ids:
+            classifications.append("validatore_runtime")
+        if rule_id in document_contract_ids:
+            classifications.append("requisito_documentale_dinamico")
+        if rule_id in follow_up_ids:
+            classifications.append("messaggio_successivo_alla_scelta_gia_gestita")
+        if rule_id in unreachable_ids:
+            classifications.append("ramo_non_raggiungibile_nel_catalogo_deposito")
+        rows.append(
+            {
+                "rule_id": rule_id,
+                "source_line": int(rule.get("source_line") or 0),
+                "method": str(rule.get("method") or ""),
+                "condition": str(rule.get("combined_condition") or rule.get("condition") or ""),
+                "outcome": str(rule.get("outcome") or ""),
+                "classifications": classifications,
+                "document_contract_keys": sorted(document_contract_keys.get(rule_id, set())),
+                "covered": rule_id in covered_ids,
+            }
+        )
+
+    return {
+        "ok": not missing_ids and not unknown_ids,
+        "source_rules_total": len(active_ids),
+        "runtime_rule_ids": len(implemented_ids & active_ids),
+        "document_rule_ids": len(document_contract_ids & active_ids),
+        "follow_up_rule_ids": len(follow_up_ids & active_ids),
+        "catalog_unreachable_rule_ids": len(unreachable_ids & active_ids),
+        "covered_rule_ids": len(covered_ids),
+        "missing_rule_ids": missing_ids,
+        "unknown_rule_ids": unknown_ids,
+        "implementation_file": str(STUDIO_VALIDATION_IMPLEMENTATION),
+        "implementation_sha256": hashlib.sha256(implementation_source.encode("utf-8")).hexdigest(),
+        "rules": rows,
+    }
 
 
 ANAGRAFICA_PROCEDIMENTO_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -116,6 +385,7 @@ def _sample_anagrafica(entry: dict[str, Any]) -> bytes | None:
         atti_ns=atti_ns,
         anagrafiche_ns=anagrafiche_ns,
     )
+
 
 DATIATTO_EXTRA_BASE: dict[str, Any] = {
     "parte_codice_fiscale": "RSSMRA80A01H501Z",
@@ -329,6 +599,78 @@ def _sample_pdf(path: Path) -> Path:
     return path
 
 
+def _test_cades_identity() -> tuple[Any, bytes]:
+    """Crea una sola identita' di firma offline per tutte le prove del catalogo."""
+
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Audit Studio Telematico IUSENTRA")])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    return key, cert.public_bytes(serialization.Encoding.DER)
+
+
+def _sign_cades_bes(payload: bytes, identity: tuple[Any, bytes]) -> bytes:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from tools.local_signer import (
+        _build_signed_attrs_der_inline,
+        _ensure_signing_certificate_v2_oid_registered,
+    )
+
+    key, cert_der = identity
+    _ensure_signing_certificate_v2_oid_registered()
+    signed_attrs = _build_signed_attrs_der_inline(payload, cert_der=cert_der)
+    signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+    signed = _build_cades_bes(
+        documento=payload,
+        signature_bytes=signature,
+        cert_der=cert_der,
+        signed_attrs_der=signed_attrs,
+        detached=False,
+    )
+    if not profilo_cades_bes_valido(signed):
+        raise RuntimeError("La firma CAdES-BES di audit non supera il controllo del prodotto.")
+    return signed
+
+
+def _atto_msg_parts(path: Path) -> list[dict[str, Any]]:
+    message = BytesParser(policy=policy.default).parsebytes(path.read_bytes())
+    rows: list[dict[str, Any]] = []
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = Path(part.get_filename() or part.get_param("name", header="Content-Type") or "").name
+        if not filename:
+            continue
+        payload = part.get_payload(decode=True) or b""
+        rows.append(
+            {
+                "filename": filename,
+                "content_type": part.get_content_type(),
+                "content_id": str(part.get("Content-ID") or "").strip("<> "),
+                "content_disposition": part.get_content_disposition(),
+                "size": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+        )
+    return rows
+
+
 def _payload(entry: dict[str, Any]) -> dict[str, Any]:
     payload = entry.get("payload")
     return payload if isinstance(payload, dict) else {}
@@ -373,12 +715,22 @@ def _extra_for(entry: dict[str, Any]) -> dict[str, Any]:
     if "MobiliarePressoDebitore" in key:
         extra["tipo_pignoramento"] = "mobiliare_presso_debitore"
         extra["beni_pignorati"] = [
-            {"tipo": "mobile", "descrizione": "Bene mobile sintetico per audit", "tipologia": "ARREDI", "valore": "1200,00"}
+            {
+                "tipo": "mobile",
+                "descrizione": "Bene mobile sintetico per audit",
+                "tipologia": "ARREDI",
+                "valore": "1200,00",
+            }
         ]
     elif "MobiliarePressoTerzi" in key:
         extra["tipo_pignoramento"] = "mobiliare_presso_terzi"
         extra["beni_pignorati"] = [
-            {"tipo": "mobile", "descrizione": "Credito sintetico presso terzi", "tipologia": "CREDITO", "valore": "1200,00"}
+            {
+                "tipo": "mobile",
+                "descrizione": "Credito sintetico presso terzi",
+                "tipologia": "CREDITO",
+                "valore": "1200,00",
+            }
         ]
     elif "PignoramentoImmobiliare" in key:
         extra["tipo_pignoramento"] = "immobiliare"
@@ -390,6 +742,21 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
     schema = _schema(entry)
     registry = entry.get("registry") if isinstance(entry.get("registry"), dict) else {}
     codice_registro = str(payload.get("codice_registro") or registry.get("code") or "SICID").strip()
+    codice_registro, ruolo_ministeriale = deposito_catalogo_destination(
+        entry,
+        codice_registro,
+        SimpleNamespace(
+            tipo="CIVILE",
+            titolo="Fascicolo civile sintetico per audit",
+            area_pratica="Civile",
+            tipo_procedimento="",
+            sezione="",
+            registro_operativo="",
+            tipo_registro="",
+            registro_portale="",
+            ruolo_polisweb="",
+        ),
+    )
     codice_ufficio = "80417740588" if codice_registro == "CASSCI" else "0580010"
     root_name = str(schema.get("ministerialRoot") or payload.get("datiatto_root_name") or "").strip()
     required_data = list(schema.get("requiredData") or [])
@@ -406,6 +773,7 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
     return DatiBusta(
         codice_ufficio=codice_ufficio,
         codice_registro=codice_registro,
+        ruolo_ministeriale=ruolo_ministeriale,
         oggetto=_fixed_object_code(entry),
         tipo_atto=str(payload.get("tipo_atto") or "ATTO_GENERICO").strip(),
         atto_principale=str(atto_principale),
@@ -521,9 +889,7 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
             },
         ],
         data_notifica_citazione=(
-            "30/06/2026"
-            if "citazione" in root_name.casefold() or root_name == "OpposizioneDecretoIngiuntivo"
-            else ""
+            "30/06/2026" if "citazione" in root_name.casefold() or root_name == "OpposizioneDecretoIngiuntivo" else ""
         ),
     )
 
@@ -563,7 +929,11 @@ def _check_common_contract(entry: dict[str, Any], errors: list[str]) -> None:
         if len(input_ids) != len(set(input_ids)):
             errors.append(f"{key}: campi UI deposito duplicati")
         for field in input_fields:
-            if not isinstance(field, dict) or not str(field.get("id") or "").strip() or not str(field.get("label") or "").strip():
+            if (
+                not isinstance(field, dict)
+                or not str(field.get("id") or "").strip()
+                or not str(field.get("label") or "").strip()
+            ):
                 errors.append(f"{key}: descrittore campo UI deposito incompleto")
     elif rules.get("channel_kind") == "unep_deposito_telematico":
         for field in ("requires_datiatto", "requires_indice_busta", "requires_atto_enc", "requires_pst_cer"):
@@ -612,7 +982,7 @@ def _check_source_contracts(errors: list[str]) -> None:
                 "build_local_pec_payload",
                 "Allegato Atto.enc non conforme",
                 "LOCAL_SIGNER_BASE_URL",
-                "attachment_name=\"Atto.enc\"",
+                'attachment_name="Atto.enc"',
             ],
         ),
         (
@@ -748,7 +1118,13 @@ def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
         if str(office.get("codice_ministero") or office.get("codice") or "").strip()
     }
     target_rows = list(_iter_certificati_cifratura_target_rows())
-    target_codes = sorted({str(row.get("codice_ufficio") or "").strip() for row in target_rows if str(row.get("codice_ufficio") or "").strip()})
+    target_codes = sorted(
+        {
+            str(row.get("codice_ufficio") or "").strip()
+            for row in target_rows
+            if str(row.get("codice_ufficio") or "").strip()
+        }
+    )
 
     missing_target: list[dict[str, str]] = []
     empty_target: list[dict[str, str]] = []
@@ -834,7 +1210,14 @@ def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
             errors.append(f"catalogo uffici: {label}: {len(rows)} ({sample})")
 
     return {
-        "ok": not (missing_target or empty_target or resolver_errors or external_missing or external_no_pec or external_mismatch),
+        "ok": not (
+            missing_target
+            or empty_target
+            or resolver_errors
+            or external_missing
+            or external_no_pec
+            or external_mismatch
+        ),
         "source": external_source,
         "iusentra_offices": len(offices),
         "pct_target_codes": len(target_codes),
@@ -862,7 +1245,11 @@ def _required_xml_fields(entry: dict[str, Any]) -> list[str]:
         for item in (schema.get("requiredData") or [])
     }
     contribution_xml_mode = str(schema.get("contributionXmlMode") or "")
-    required = ["AttoRichiestaVisibilita", "Parte", "Avvocato", "codiceFiscale", "parteRappresentata"] if root == "AttoRichiestaVisibilita" else []
+    required = (
+        ["AttoRichiestaVisibilita", "Parte", "Avvocato", "codiceFiscale", "parteRappresentata"]
+        if root == "AttoRichiestaVisibilita"
+        else []
+    )
     if root == "IscrizioneRuoloPignoramento":
         required = [
             "AnagraficaProcedimento",
@@ -918,7 +1305,9 @@ def _required_xml_fields(entry: dict[str, Any]) -> list[str]:
         required = ["procedimento", "numero", "anno", "ModificheAnagrafica", "deposito"]
     elif generator.startswith("Introduttivi"):
         required = ["destinazione", "Oggetto", "AnagraficaProcedimento"]
-    elif generator.startswith(("Parte", "CorsoCausa", "Professionista", "ProfSiecic", "CurSiecic", "CusSiecic", "DelSiecic")):
+    elif generator.startswith(
+        ("Parte", "CorsoCausa", "Professionista", "ProfSiecic", "CurSiecic", "CusSiecic", "DelSiecic")
+    ):
         required = ["procedimento", "numero", "anno"]
     if "valorecausa" in source_required:
         required.append("ValoreCausa")
@@ -983,7 +1372,7 @@ def _validation_context(entry: dict[str, Any], dati: DatiBusta, extra: dict[str,
     }
 
 
-def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tuple[list[str], int]:
+def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tuple[list[str], list[str]]:
     """Verifica i campi nello stesso ordine di Studio: validatore, poi generatore/XSD."""
 
     schema = _schema(entry)
@@ -991,17 +1380,11 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
     field_ids = {str(field.get("id") or "").strip() for field in fields if str(field.get("id") or "").strip()}
     source_extra = dict(dati.datiatto_extra or {})
     derived_keys = {"tipo_pignoramento"}
-    declared_extra = {
-        key: value
-        for key, value in source_extra.items()
-        if key in field_ids or key in derived_keys
-    }
+    declared_extra = {key: value for key, value in source_extra.items() if key in field_ids or key in derived_keys}
     declared_data = replace(
         dati,
         datiatto_extra=declared_extra,
-        data_notifica_citazione=(
-            dati.data_notifica_citazione if "data_notifica_citazione" in field_ids else ""
-        ),
+        data_notifica_citazione=(dati.data_notifica_citazione if "data_notifica_citazione" in field_ids else ""),
     )
     errors: list[str] = []
     try:
@@ -1011,9 +1394,9 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
             errors.append("i soli campi esposti in UI producono XML non valido: " + "; ".join(validation.errors[:2]))
     except Exception as exc:
         errors.append(f"campo richiesto dal generatore non esposto in UI: {exc}")
-        return errors, 0
+        return errors, []
 
-    guards_checked = 0
+    guards_checked: list[str] = []
     for field in fields:
         if not bool(field.get("required")):
             continue
@@ -1041,8 +1424,7 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
             },
         )
         blocked_by_source_validator = any(
-            finding.get("level") == "BLOCK" and finding.get("field") == field_id
-            for finding in findings
+            finding.get("level") == "BLOCK" and finding.get("field") == field_id for finding in findings
         )
         try:
             BustaTelematica(missing_data).crea_dati_atto_xml_per_firma()
@@ -1051,7 +1433,7 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
         else:
             blocked_by_generator = False
         if blocked_by_source_validator or blocked_by_generator:
-            guards_checked += 1
+            guards_checked.append(field_id)
         else:
             errors.append(
                 f"campo UI obbligatorio non presidiato dal validatore Studio ne' dal generatore: "
@@ -1062,20 +1444,136 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
 
 def audit_deposit_catalog() -> dict[str, Any]:
     entries = list(list_deposit_catalog_entries())
+    source_evidence = _source_evidence()
+    source_lines = QUICKORGANIZER_DECOMPILED_FORM.read_text(
+        encoding="utf-8",
+        errors="replace",
+    ).splitlines()
+    raw_catalog = json.loads(QUICKORGANIZER_CATALOG.read_text(encoding="utf-8"))
+    raw_entries = raw_catalog.get("entries") if isinstance(raw_catalog.get("entries"), list) else []
+    raw_entries_by_key = {
+        str(item.get("key") or ""): item
+        for item in raw_entries
+        if isinstance(item, dict) and str(item.get("key") or "")
+    }
+    validation_payload = _source_validation_payload()
+    validation_types = (
+        validation_payload.get("deposit_types") if isinstance(validation_payload.get("deposit_types"), list) else []
+    )
+    validation_types_by_key = {
+        str(item.get("key") or ""): item
+        for item in validation_types
+        if isinstance(item, dict) and str(item.get("key") or "")
+    }
     errors: list[str] = []
+    reference_tables = _reference_table_evidence(errors)
+    validation_rule_coverage = _studio_validation_rule_coverage(validation_payload, entries)
+    if validation_rule_coverage["missing_rule_ids"]:
+        errors.append(
+            "regole Studio Telematico non coperte: " + ", ".join(validation_rule_coverage["missing_rule_ids"])
+        )
+    if validation_rule_coverage["unknown_rule_ids"]:
+        errors.append(
+            "regole runtime non presenti nella fonte estratta: "
+            + ", ".join(validation_rule_coverage["unknown_rule_ids"])
+        )
     generated: list[dict[str, str]] = []
+    detailed_entries: list[dict[str, Any]] = []
     blocked: list[dict[str, str]] = []
     contribution_exemption_checked = 0
     required_input_guards_checked = 0
+    ministerial_role_checks = 0
     channels = {"pct": 0, "unep": 0, "other": 0}
 
     with tempfile.TemporaryDirectory(prefix="iusentra-deposito-audit-") as tmp_dir:
-        atto = _sample_pdf(Path(tmp_dir) / "atto.pdf")
+        tmp_root = Path(tmp_dir)
+        identity = _test_cades_identity()
+        atto_pdf = _sample_pdf(tmp_root / "atto.pdf")
+        atto = tmp_root / "atto.pdf.p7m"
+        atto.write_bytes(_sign_cades_bes(atto_pdf.read_bytes(), identity))
+        certificate_dir = tmp_root / "certificati-cifratura"
+        for office_code in ("0580010", "80417740588"):
+            crea_certificato_cifratura_test(certificate_dir / f"{office_code}.cer")
         for entry in entries:
             key = str(entry.get("key") or "")
             rules = _rules(entry)
             schema = _schema(entry)
+            quick = entry.get("quickOrganizer") if isinstance(entry.get("quickOrganizer"), dict) else {}
+            source_key = str(quick.get("rawKey") or key)
+            methods = [str(item) for item in (schema.get("evidenceMethods") or []) if str(item)]
+            aliases = [str(item) for item in (quick.get("aliases") or []) if str(item)]
+            source_entry = raw_entries_by_key.get(source_key)
+            source_match = "raw_key" if source_entry is not None else ""
+            if source_entry is None:
+                alias_key = next((alias for alias in aliases if alias in raw_entries_by_key), "")
+                if alias_key:
+                    source_entry = raw_entries_by_key[alias_key]
+                    source_match = "documented_alias"
+            if source_entry is None and methods:
+                candidates = [
+                    item
+                    for item in raw_entries
+                    if isinstance(item, dict)
+                    and list(item.get("datiatto_methods") or []) == methods
+                    and str(item.get("macro") or "") == str(entry.get("macro") or "")
+                    and str(item.get("categoria") or "") == str(entry.get("category") or "")
+                ]
+                if len(candidates) == 1:
+                    source_entry = candidates[0]
+                    source_match = "unique_method_macro_category"
+            validation_contract = validation_types_by_key.get(key) or validation_types_by_key.get(source_key) or {}
+            method_evidence = _method_evidence(methods, source_lines)
+            detail: dict[str, Any] = {
+                "key": key,
+                "source_key": source_key,
+                "label": str(entry.get("label") or ""),
+                "macroarea": str(entry.get("macro") or ""),
+                "categoria": str(entry.get("category") or ""),
+                "canale": str(rules.get("channel_kind") or ""),
+                "fonte_decompilata": {
+                    "catalog_entry_found": source_entry is not None,
+                    "catalog_match": source_match,
+                    "catalog_original_key": str((source_entry or {}).get("key") or ""),
+                    "documented_aliases": aliases,
+                    "methods": method_evidence,
+                    "roots": list(schema.get("evidenceRoots") or []),
+                    "required_data": list(schema.get("quickRequiredData") or []),
+                    "assignments": list(schema.get("quickAssignments") or []),
+                    "controls": list(schema.get("quickControls") or []),
+                    "combo_sources": list(schema.get("quickComboSources") or []),
+                    "fixed_object_codes": list(schema.get("quickFixedObjectCodes") or []),
+                    "flags": dict(schema.get("quickDepositFlags") or {}),
+                },
+                "validazioni_studio_telematico": {
+                    "methods": list(validation_contract.get("validation_methods") or []),
+                    "rule_ids": list(validation_contract.get("validation_rule_ids") or []),
+                    "controls": dict(validation_contract.get("controls") or {}),
+                    "flags": dict(validation_contract.get("flags") or {}),
+                    "documents": list((entry.get("studioValidation") or {}).get("documents") or []),
+                    "outcomes": dict((entry.get("studioValidation") or {}).get("outcomes") or {}),
+                },
+                "contratto_iusentra": {
+                    "payload": dict(_payload(entry)),
+                    "rules": dict(rules),
+                    "generator_class": str(schema.get("generatorClass") or ""),
+                    "ministerial_root": str(schema.get("ministerialRoot") or ""),
+                    "generator_mode": str(schema.get("generatorMode") or ""),
+                    "required_data": list(schema.get("requiredData") or []),
+                    "input_fields": list(schema.get("inputFields") or []),
+                    "contribution_required": bool(schema.get("contributionRequired")),
+                    "contribution_xml_mode": str(schema.get("contributionXmlMode") or ""),
+                    "document_requirements": list((entry.get("ui") or {}).get("documentRequirements") or []),
+                },
+                "prova_generata": {},
+                "status": "pending",
+                "errors": [],
+            }
             _check_common_contract(entry, errors)
+            if source_entry is None:
+                detail["errors"].append("Voce non collegata al catalogo decompilato.")
+            missing_methods = [item["method"] for item in method_evidence if not item["found"]]
+            if missing_methods:
+                detail["errors"].append("Metodi non trovati nel decompilato: " + ", ".join(missing_methods))
 
             channel_kind = str(rules.get("channel_kind") or "")
             if channel_kind == "pct_civile_dm44":
@@ -1092,7 +1590,10 @@ def audit_deposit_catalog() -> dict[str, Any]:
             is_ministerial_deposit = channel_kind in {"pct_civile_dm44", "unep_deposito_telematico"}
 
             if is_ministerial_deposit and requires_specific:
-                errors.append(f"{key}: ramo deposito ancora sospeso, completare generatore e campi prima del verde")
+                message = "ramo deposito ancora sospeso, completare generatore e campi prima del verde"
+                errors.append(f"{key}: {message}")
+                detail["errors"].append(message)
+                detail["status"] = "blocked"
                 blocked.append(
                     {
                         "key": key,
@@ -1101,10 +1602,14 @@ def audit_deposit_catalog() -> dict[str, Any]:
                         "status": str(schema.get("status") or ""),
                     }
                 )
+                detailed_entries.append(detail)
                 continue
 
             if is_ministerial_deposit and not real_allowed:
-                errors.append(f"{key}: invio reale del deposito non abilitato dal catalogo")
+                message = "invio reale del deposito non abilitato dal catalogo"
+                errors.append(f"{key}: {message}")
+                detail["errors"].append(message)
+                detail["status"] = "blocked"
                 blocked.append(
                     {
                         "key": key,
@@ -1113,6 +1618,7 @@ def audit_deposit_catalog() -> dict[str, Any]:
                         "status": str(schema.get("status") or ""),
                     }
                 )
+                detailed_entries.append(detail)
                 continue
 
             if is_ministerial_deposit and supported and real_allowed:
@@ -1124,12 +1630,33 @@ def audit_deposit_catalog() -> dict[str, Any]:
                     root = etree.fromstring(xml_payload)
                     busta_audit = busta.audit_conformita_pst()
                 except Exception as exc:  # pragma: no cover - diagnostic detail matters.
-                    errors.append(f"{key}: generazione DatiAtto.xml fallita: {exc}")
+                    message = f"generazione DatiAtto.xml fallita: {exc}"
+                    errors.append(f"{key}: {message}")
+                    detail["errors"].append(message)
+                    detail["status"] = "failed"
+                    detailed_entries.append(detail)
                     continue
                 expected_root = str(schema.get("ministerialRoot") or "")
                 actual_root = etree.QName(root).localname
                 if actual_root != expected_root:
                     entry_errors.append(f"radice generata {actual_root}, attesa {expected_root}")
+                actual_roles = [
+                    str(child.get("ruolo") or "").strip()
+                    for child in root
+                    if isinstance(child.tag, str)
+                    and etree.QName(child).localname in {"destinazione", "procedimento"}
+                    and str(child.get("ruolo") or "").strip()
+                ]
+                if not actual_roles:
+                    entry_errors.append("ruolo ministeriale mancante nel DatiAtto.xml")
+                elif any(role != dati.ruolo_ministeriale for role in actual_roles):
+                    entry_errors.append(
+                        f"ruolo ministeriale atteso {dati.ruolo_ministeriale}, trovato {', '.join(actual_roles)}"
+                    )
+                elif busta_audit.get("dati_atto_ruolo_coerente") is not True:
+                    entry_errors.append("audit busta non conferma il ruolo ministeriale")
+                else:
+                    ministerial_role_checks += 1
                 entry_errors.extend(_check_xml_fields(entry, root))
                 xsd_validation = validate_datiatto_xml(xml_payload)
                 if not xsd_validation.ok:
@@ -1138,22 +1665,101 @@ def audit_deposit_catalog() -> dict[str, Any]:
                     entry_errors.append(f"XSD {schema_label}: {details}")
                 input_errors, input_guards = _check_declared_input_contract(entry, dati)
                 entry_errors.extend(input_errors)
-                required_input_guards_checked += input_guards
+                required_input_guards_checked += len(input_guards)
+                indice_pdf = busta._crea_indice_documenti_pdf()
+                document_parts = busta._documenti_busta_preparati(indice_pdf)
+                detail["prova_generata"] = {
+                    "registro_effettivo": dati.codice_registro,
+                    "ruolo_atteso": dati.ruolo_ministeriale,
+                    "ruoli_xml": actual_roles,
+                    "ruolo_coerente": busta_audit.get("dati_atto_ruolo_coerente") is True,
+                    "xml_root_attesa": expected_root,
+                    "xml_root_effettiva": actual_root,
+                    "xml_sha256": hashlib.sha256(xml_payload).hexdigest(),
+                    "xml_structure": _xml_structure(root),
+                    "xsd": {
+                        "ok": xsd_validation.ok,
+                        "schema_path": str(xsd_validation.schema_path or ""),
+                        "errors": list(xsd_validation.errors or []),
+                    },
+                    "required_input_guards": input_guards,
+                    "document_parts": [
+                        {
+                            "filename": part.filename,
+                            "source_name": part.source_name,
+                            "is_main": part.is_main,
+                            "mime": f"{part.maintype}/{part.subtype}",
+                            "content_id": part.content_id,
+                            "internal_index_role": part.ruolo_indice,
+                            "external_index_role": part.tipo_indice_esterno,
+                            "size": len(part.payload),
+                        }
+                        for part in document_parts
+                    ],
+                    "indice_busta": {
+                        "generated": busta_audit.get("indice_busta_generated") is True,
+                        "mode": busta_audit.get("indice_busta_mode"),
+                        "mime_contract_ok": busta_audit.get("indice_busta_mime_contract_ok") is True,
+                        "type_contract_ok": busta_audit.get("indice_busta_tipi_ok") is True,
+                        "references": [
+                            {
+                                "role": etree.QName(node).localname,
+                                "id": str(node.get("id") or ""),
+                            }
+                            for node in root.xpath(".//*[local-name()='IndiceBusta']/*")
+                            if isinstance(node.tag, str)
+                        ],
+                    },
+                    "indice_documenti": {
+                        "generated": busta_audit.get("indice_documenti_generated") is True,
+                        "filename": busta_audit.get("indice_documenti_filename"),
+                    },
+                    "firma": {
+                        "documenti": rules.get("document_signature_profile"),
+                        "datiatto": rules.get("datiatto_signature_profile"),
+                    },
+                    "trasporto": {
+                        "kind": rules.get("transport_kind"),
+                        "requires_atto_enc": rules.get("requires_atto_enc") is True,
+                        "requires_pst_cer": rules.get("requires_pst_cer") is True,
+                        "requires_local_signer": rules.get("requires_local_signer") is True,
+                        "requires_local_pec": rules.get("requires_local_pec") is True,
+                        "server_smtp_allowed": rules.get("server_smtp_allowed") is True,
+                        "requires_receipts": rules.get("requires_receipts") is True,
+                    },
+                    "contributo_checks": [],
+                }
                 contribution_required = bool(schema.get("contributionRequired"))
                 contribution_xml_mode = str(schema.get("contributionXmlMode") or "")
+                contribution_checks = detail["prova_generata"]["contributo_checks"]
+                if not contribution_required:
+                    contribution_checks.append("non_richiesto_dal_decompilato")
                 if contribution_required:
                     amount_node = _contribution_amount_node(root, contribution_xml_mode)
-                    initial_contribution = dati.contributo_unificato if isinstance(dati.contributo_unificato, dict) else {}
+                    initial_contribution = (
+                        dati.contributo_unificato if isinstance(dati.contributo_unificato, dict) else {}
+                    )
                     initial_mode = str(initial_contribution.get("mode") or "")
-                    documentary_only = contribution_xml_mode == "controllo_documentale" and not key.startswith("Atti_UNEP::")
+                    contribution_checks.append(f"modalita_iniziale_{initial_mode or 'assente'}")
+                    documentary_only = contribution_xml_mode == "controllo_documentale" and not key.startswith(
+                        "Atti_UNEP::"
+                    )
                     if documentary_only:
-                        if root.find(".//{*}ContributoUnificato") is not None or root.find(".//{*}contributoUnificato") is not None:
-                            entry_errors.append("il controllo documentale non deve aggiungere il contributo a una radice che non lo prevede")
+                        if (
+                            root.find(".//{*}ContributoUnificato") is not None
+                            or root.find(".//{*}contributoUnificato") is not None
+                        ):
+                            entry_errors.append(
+                                "il controllo documentale non deve aggiungere il contributo a una radice che non lo prevede"
+                            )
                         try:
-                            unresolved_data = replace(dati, contributo_unificato={"resolved": False, "mode": "da_definire"})
+                            unresolved_data = replace(
+                                dati, contributo_unificato={"resolved": False, "mode": "da_definire"}
+                            )
                             BustaTelematica(unresolved_data).crea_dati_atto_xml_per_firma()
                         except ValueError:
                             contribution_exemption_checked += 1
+                            contribution_checks.append("assenza_prova_documentale_bloccata")
                         else:
                             entry_errors.append("il contributo obbligatorio non definito non blocca la generazione")
                         amount_node = None
@@ -1161,14 +1767,28 @@ def audit_deposit_catalog() -> dict[str, Any]:
                         expected_amount = f"{float(initial_contribution.get('importo') or 0):.2f}"
                         if amount_node is None or str(amount_node.text or "").strip() != expected_amount:
                             entry_errors.append("ContributoUnificato senza Importo ministeriale coerente")
-                        elif initial_mode == "pagato" and key.startswith("Atti_UNEP::") and "debito" in amount_node.attrib:
-                            entry_errors.append("ContributoUnificato pagato con attributo debito non previsto da Studio Telematico")
-                        elif initial_mode == "pagato" and not key.startswith("Atti_UNEP::") and amount_node.get("debito") != "false":
+                        elif (
+                            initial_mode == "pagato"
+                            and key.startswith("Atti_UNEP::")
+                            and "debito" in amount_node.attrib
+                        ):
+                            entry_errors.append(
+                                "ContributoUnificato pagato con attributo debito non previsto da Studio Telematico"
+                            )
+                        elif (
+                            initial_mode == "pagato"
+                            and not key.startswith("Atti_UNEP::")
+                            and amount_node.get("debito") != "false"
+                        ):
                             entry_errors.append("ContributoUnificato pagato senza attributo debito=false")
                         elif initial_mode == "prenotato_a_debito" and amount_node.get("debito") != "true":
                             entry_errors.append("ContributoUnificato prenotato a debito senza attributo debito=true")
+                        else:
+                            contribution_checks.append("modalita_iniziale_serializzata_e_validata")
                     elif amount_node is not None:
-                        entry_errors.append("ContributoUnificato presente per una modalita' che Studio Telematico non serializza")
+                        entry_errors.append(
+                            "ContributoUnificato presente per una modalita' che Studio Telematico non serializza"
+                        )
                     if documentary_only:
                         pass
                     elif contribution_xml_mode == "cassazione_integrazione_spese":
@@ -1176,11 +1796,17 @@ def audit_deposit_catalog() -> dict[str, Any]:
                             exempt_data = replace(
                                 dati,
                                 valore_causa=None,
-                                contributo_unificato={"resolved": True, "mode": "esente", "importo": None, "debito": False},
+                                contributo_unificato={
+                                    "resolved": True,
+                                    "mode": "esente",
+                                    "importo": None,
+                                    "debito": False,
+                                },
                             )
                             BustaTelematica(exempt_data).crea_dati_atto_xml_per_firma()
                         except ValueError:
                             contribution_exemption_checked += 1
+                            contribution_checks.append("esenzione_non_ammessa_bloccata")
                         else:
                             entry_errors.append("l’integrazione spese non deve accettare il contributo come esente")
                     else:
@@ -1188,7 +1814,12 @@ def audit_deposit_catalog() -> dict[str, Any]:
                             exempt_data = replace(
                                 dati,
                                 valore_causa=None,
-                                contributo_unificato={"resolved": True, "mode": "esente", "importo": None, "debito": False},
+                                contributo_unificato={
+                                    "resolved": True,
+                                    "mode": "esente",
+                                    "importo": None,
+                                    "debito": False,
+                                },
                             )
                             exempt_root = etree.fromstring(BustaTelematica(exempt_data).crea_dati_atto_xml_per_firma())
                         except Exception as exc:
@@ -1199,17 +1830,30 @@ def audit_deposit_catalog() -> dict[str, Any]:
                                 if exempt_node is None or str(exempt_node.text or "").strip().casefold() != "true":
                                     entry_errors.append("l’esenzione Cassazione deve generare Esente=true")
                             else:
-                                wrapper = "contributoUnificato" if contribution_xml_mode == "siecic_istanza_vendita" else "ContributoUnificato"
+                                wrapper = (
+                                    "contributoUnificato"
+                                    if contribution_xml_mode == "siecic_istanza_vendita"
+                                    else "ContributoUnificato"
+                                )
                                 if exempt_root.find(f".//{{*}}{wrapper}") is not None:
                                     entry_errors.append("l'esenzione non deve generare ContributoUnificato")
-                            if contribution_xml_mode == "atto_introduttivo" and _child_text(exempt_root, "ValoreCausa") != "0.00":
+                            if (
+                                contribution_xml_mode == "atto_introduttivo"
+                                and _child_text(exempt_root, "ValoreCausa") != "0.00"
+                            ):
                                 entry_errors.append("l'esenzione senza valore deve generare ValoreCausa=0.00")
                             contribution_exemption_checked += 1
+                            contribution_checks.append("ramo_esenzione_generato_e_validato")
                     if not documentary_only:
                         try:
                             debt_data = replace(
                                 dati,
-                                contributo_unificato={"resolved": True, "mode": "prenotato_a_debito", "importo": 259.0, "debito": True},
+                                contributo_unificato={
+                                    "resolved": True,
+                                    "mode": "prenotato_a_debito",
+                                    "importo": 259.0,
+                                    "debito": True,
+                                },
                             )
                             debt_root = etree.fromstring(BustaTelematica(debt_data).crea_dati_atto_xml_per_firma())
                             debt_amount = _contribution_amount_node(debt_root, contribution_xml_mode)
@@ -1218,15 +1862,84 @@ def audit_deposit_catalog() -> dict[str, Any]:
                         else:
                             if debt_amount is None or debt_amount.get("debito") != "true":
                                 entry_errors.append("la prenotazione a debito deve generare Importo con debito=true")
+                            else:
+                                contribution_checks.append("ramo_prenotazione_a_debito_generato_e_validato")
                 if busta_audit.get("indice_documenti_generated") is not True:
                     entry_errors.append("IndiceDocumentiDepositati.PDF non generato")
                 if busta_audit.get("indice_busta_generated") is not True:
                     entry_errors.append("IndiceBusta ministeriale non generato")
                 if busta_audit.get("indice_busta_mime_contract_ok") is not True:
                     entry_errors.append("IndiceBusta non coerente con i file fisici della busta")
+
+                signed_dati_atto = _sign_cades_bes(xml_payload, identity)
+                previous_certificate_dir = os.environ.get("PCT_CERTIFICATI_CIFRATURA_DIR")
+                os.environ["PCT_CERTIFICATI_CIFRATURA_DIR"] = str(certificate_dir)
+                try:
+                    atto_enc_path = Path(
+                        busta.crea_busta(
+                            str(tmp_root / "pacchetti"),
+                            dati_atto_firmato=signed_dati_atto,
+                            require_dati_atto_firmato=True,
+                        )
+                    )
+                except Exception as exc:
+                    entry_errors.append(f"generazione pacchetto ministeriale completa fallita: {exc}")
+                    atto_enc_path = Path()
+                finally:
+                    if previous_certificate_dir is None:
+                        os.environ.pop("PCT_CERTIFICATI_CIFRATURA_DIR", None)
+                    else:
+                        os.environ["PCT_CERTIFICATI_CIFRATURA_DIR"] = previous_certificate_dir
+
+                if atto_enc_path and atto_enc_path.is_file():
+                    transport_audit = busta.audit_conformita_pst()
+                    atto_msg_path = Path(str(transport_audit.get("atto_msg_path") or ""))
+                    mime_parts = _atto_msg_parts(atto_msg_path) if atto_msg_path.is_file() else []
+                    signed_part = next(
+                        (item for item in mime_parts if item["filename"] == "DatiAtto.xml.p7m"),
+                        None,
+                    )
+                    transport_checks = {
+                        "atto_principale_cades_bes": profilo_cades_bes_valido(atto.read_bytes()),
+                        "datiatto_cades_bes": profilo_cades_bes_valido(signed_dati_atto),
+                        "datiatto_contenuto_identico": estrai_contenuto_cades(signed_dati_atto) == xml_payload,
+                        "datiatto_mime_presente": signed_part is not None,
+                        "atto_msg_presente": atto_msg_path.is_file(),
+                        "atto_enc_presente": atto_enc_path.is_file(),
+                        "atto_enc_cms_valido": transport_audit.get("atto_enc_cms_valid") is True,
+                        "atto_enc_aes256": (
+                            str(transport_audit.get("content_encryption_algorithm") or "").casefold()
+                            in {"aes256_cbc", "aes256"}
+                            or str(transport_audit.get("content_encryption_algorithm_oid") or "") == AES256_CBC_OID
+                        ),
+                        "busta_riaperta_valida": transport_audit.get("busta_verifica_valida") is True,
+                        "indice_mime_coerente": transport_audit.get("indice_busta_mime_contract_ok") is True,
+                        "nomi_mime_presenti": bool(mime_parts),
+                        "disposizione_allegati": bool(mime_parts)
+                        and all(item["content_disposition"] == "attachment" for item in mime_parts),
+                    }
+                    failed_transport_checks = [name for name, passed in transport_checks.items() if passed is not True]
+                    if failed_transport_checks:
+                        entry_errors.append("pacchetto completo non conforme: " + ", ".join(failed_transport_checks))
+                    detail["prova_generata"]["pacchetto_completo"] = {
+                        "checks": transport_checks,
+                        "atto_msg_sha256": transport_audit.get("atto_msg_sha256"),
+                        "atto_enc_sha256": transport_audit.get("atto_enc_sha256"),
+                        "atto_enc_size": transport_audit.get("atto_enc_size"),
+                        "cms_content_type": transport_audit.get("cms_content_type"),
+                        "content_encryption_algorithm": transport_audit.get("content_encryption_algorithm"),
+                        "content_encryption_algorithm_oid": transport_audit.get("content_encryption_algorithm_oid"),
+                        "cms_recipients": transport_audit.get("cms_recipients"),
+                        "certificate": transport_audit.get("certificate"),
+                        "mime_parts": mime_parts,
+                    }
+                entry_errors.extend(str(item) for item in detail["errors"] if str(item))
+                detail["errors"] = entry_errors
                 if entry_errors:
+                    detail["status"] = "failed"
                     errors.extend(f"{key}: {message}" for message in entry_errors)
                 else:
+                    detail["status"] = "verified"
                     generated.append(
                         {
                             "key": key,
@@ -1235,11 +1948,30 @@ def audit_deposit_catalog() -> dict[str, Any]:
                             "channel": channel_kind,
                         }
                     )
+                detailed_entries.append(detail)
             elif is_ministerial_deposit:
-                errors.append(f"{key}: schema ministeriale non supportato dal generatore")
+                message = "schema ministeriale non supportato dal generatore"
+                errors.append(f"{key}: {message}")
+                detail["errors"].append(message)
+                detail["status"] = "failed"
+                detailed_entries.append(detail)
+            else:
+                message = "tipo non appartenente a un canale ministeriale censito"
+                errors.append(f"{key}: {message}")
+                detail["errors"].append(message)
+                detail["status"] = "failed"
+                detailed_entries.append(detail)
 
     office_catalog = _check_office_catalog_contracts(errors)
     _check_source_contracts(errors)
+    if len(raw_entries) != 270:
+        errors.append(f"catalogo decompilato: attese 270 voci, trovate {len(raw_entries)}")
+    if len(validation_types) != 270:
+        errors.append(f"contratti di validazione: attese 270 voci, trovate {len(validation_types)}")
+    if len(detailed_entries) != 270:
+        errors.append(f"matrice analitica: attese 270 schede, prodotte {len(detailed_entries)}")
+    if not source_evidence.get("executable_sha256") or not source_evidence.get("decompiled_form_sha256"):
+        errors.append("fonte Studio Telematico o decompilato non disponibile per l'impronta probatoria")
 
     pct_generated = sum(item.get("channel") == "pct_civile_dm44" for item in generated)
     unep_generated = sum(item.get("channel") == "unep_deposito_telematico" for item in generated)
@@ -1257,9 +1989,31 @@ def audit_deposit_catalog() -> dict[str, Any]:
         "ministerial_expected_datiatto": channels["pct"] + channels["unep"],
         "pct_contribution_exemption_branches_checked": contribution_exemption_checked,
         "pct_required_input_guards_checked": required_input_guards_checked,
+        "ministerial_role_checks": ministerial_role_checks,
+        "source_evidence": source_evidence,
+        "reference_tables": reference_tables,
+        "source_catalog_contract": {
+            "schema_version": raw_catalog.get("schema_version"),
+            "generated_at": raw_catalog.get("generated_at"),
+            "source": raw_catalog.get("source"),
+            "source_evidence_contract": raw_catalog.get("source_evidence_contract"),
+            "entries": len(raw_entries),
+        },
+        "source_validation_contract": {
+            "schema_version": validation_payload.get("schema_version"),
+            "generated_at": validation_payload.get("generated_at"),
+            "source": validation_payload.get("source"),
+            "scope": validation_payload.get("scope"),
+            "method_rule_ids": validation_payload.get("method_rule_ids"),
+            "rules": validation_payload.get("rules"),
+            "deposit_types": len(validation_types),
+        },
+        "studio_validation_rule_coverage": validation_rule_coverage,
         "office_catalog": office_catalog,
         "blocked_keys": blocked,
         "sample_generated": generated[:12],
+        "verified_entries": sum(item.get("status") == "verified" for item in detailed_entries),
+        "entries": detailed_entries,
         "errors": errors,
     }
 
@@ -1272,7 +2026,22 @@ def main() -> int:
     payload = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output:
         Path(args.output).write_text(payload + "\n", encoding="utf-8")
-    print(payload)
+        print(
+            json.dumps(
+                {
+                    "ok": report["ok"],
+                    "output": str(Path(args.output).resolve()),
+                    "total": report["total"],
+                    "verified_entries": report["verified_entries"],
+                    "ministerial_role_checks": report["ministerial_role_checks"],
+                    "errors": report["errors"],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    else:
+        print(payload)
     return 0 if report["ok"] else 1
 
 

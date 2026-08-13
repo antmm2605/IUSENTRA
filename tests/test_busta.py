@@ -639,6 +639,11 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     assert audit["busta_verifica_valida"] is True
     assert audit["atto_enc_cms_valid"] is True
     assert audit["atto_enc_sha256"]
+    assert audit["atto_enc_size"] > 0
+    assert audit["cms_content_type"] == "data"
+    assert audit["cms_recipients"] >= 1
+    assert audit["content_encryption_algorithm"] == "aes256_cbc"
+    assert audit["content_encryption_algorithm_oid"] == "2.16.840.1.101.3.4.1.42"
     assert audit["indice_busta_dati_atto_filename"] == DATI_ATTO_FIRMATO_FILENAME
     assert audit["formal_checks"]["T002"]["status"] == "ok"
 

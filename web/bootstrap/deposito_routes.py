@@ -47,6 +47,7 @@ from web.services.deposito_catalogo_runtime import (
     deposito_catalogo_busta_metadata as _deposito_catalogo_busta_metadata,
     deposito_catalogo_datiatto_extra as _deposito_catalogo_datiatto_extra,
     deposito_catalogo_datiatto_hint as _deposito_catalogo_datiatto_hint,
+    deposito_catalogo_destination as _deposito_catalogo_destination,
     deposito_catalogo_entry as _deposito_catalogo_entry,
 )
 from web.services.security_redaction import redacted_json_response
@@ -187,6 +188,11 @@ def register_deposito_routes(
             flash(catalog_error, "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
         tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
+        codice_registro, ruolo_ministeriale = _deposito_catalogo_destination(
+            catalog_entry,
+            codice_registro,
+            fascicolo,
+        )
         catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=True)
         if catalog_blocker:
             if _wants_json_response(request.headers):
@@ -269,6 +275,7 @@ def register_deposito_routes(
         dati = DatiBusta(
             codice_ufficio=codice_ufficio,
             codice_registro=codice_registro,
+            ruolo_ministeriale=ruolo_ministeriale,
             oggetto=oggetto,
             tipo_atto=tipo_atto,
             atto_principale=atto_path,
@@ -332,6 +339,11 @@ def register_deposito_routes(
         if catalog_error:
             return jsonify({"ok": False, "errore": catalog_error}), 400
         tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
+        codice_registro, ruolo_ministeriale = _deposito_catalogo_destination(
+            catalog_entry,
+            codice_registro,
+            fascicolo,
+        )
         catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=False)
         if catalog_blocker:
             return jsonify({"ok": False, "errore": catalog_blocker}), 400
@@ -369,6 +381,7 @@ def register_deposito_routes(
                 DatiBusta(
                     codice_ufficio=codice_ufficio,
                     codice_registro=codice_registro,
+                    ruolo_ministeriale=ruolo_ministeriale,
                     oggetto=oggetto,
                     tipo_atto=tipo_atto,
                     atto_principale=atto_path,
@@ -413,6 +426,11 @@ def register_deposito_routes(
         if catalog_error:
             return jsonify({"ok": False, "package_ready": False, "errore": catalog_error}), 400
         tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
+        codice_registro, ruolo_ministeriale = _deposito_catalogo_destination(
+            catalog_entry,
+            codice_registro,
+            fascicolo,
+        )
         catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=True)
         if catalog_blocker:
             return jsonify({
@@ -697,6 +715,7 @@ def register_deposito_routes(
         dati = DatiBusta(
             codice_ufficio=codice_ufficio,
             codice_registro=codice_registro,
+            ruolo_ministeriale=ruolo_ministeriale,
             oggetto=oggetto,
             tipo_atto=tipo_atto,
             atto_principale=atto_path,

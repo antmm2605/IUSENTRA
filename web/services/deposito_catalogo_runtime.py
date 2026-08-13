@@ -2,9 +2,185 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
+
+
+_ROLE_LABELS = {
+    "affari civili": "AffariCivili",
+    "affari civili minorenni": "AffariCiviliMinorenni",
+    "agraria": "Agraria",
+    "cassazione civile": "CassazioneCivile",
+    "contenzioso": "Contenzioso",
+    "esecuzioni civili": "EsecuzioniCivili",
+    "espropriazioni immobiliari": "EspropriazioniImmobiliari",
+    "giudice di pace": "GiudiceDiPace",
+    "lavoro": "Lavoro",
+    "minorenni": "Minorenni",
+    "notifiche": "Notifiche",
+    "pagamenti": "Pagamenti",
+    "procedimento unitario": "ProcedimentoUnitario",
+    "procedimentounitario": "ProcedimentoUnitario",
+    # Studio Telematico visualizza questa etichetta, ma il valore ministeriale
+    # associato dal combo e' VolontariaGiurisdizione.
+    "procedure concorsuali": "VolontariaGiurisdizione",
+    "speciale": "Speciale",
+    "volontaria giurisdizione": "VolontariaGiurisdizione",
+}
+
+_REGISTRY_ROLES = {
+    "CASSCI": "CassazioneCivile",
+    "MIN": "Minorenni",
+    "MINORI": "Minorenni",
+    "RG": "Contenzioso",
+    "RGE": "EsecuzioniCivili",
+    "RGEI": "EspropriazioniImmobiliari",
+    "RGL": "Lavoro",
+    "SIECIC_CONCORSUALI": "VolontariaGiurisdizione",
+    "SIECIC_ESIM": "EspropriazioniImmobiliari",
+    "SIECIC_ESM": "EsecuzioniCivili",
+    "SIGP": "GiudiceDiPace",
+    "SIL": "Lavoro",
+    "SIMIN": "Minorenni",
+    "SIVG": "VolontariaGiurisdizione",
+    "VG": "VolontariaGiurisdizione",
+}
+
+_ROLE_REGISTRIES = {
+    "CassazioneCivile": "CASSCI",
+    "Contenzioso": "RG",
+    "EsecuzioniCivili": "RGE",
+    "EspropriazioniImmobiliari": "RGEI",
+    "GiudiceDiPace": "SIGP",
+    "Lavoro": "RGL",
+    "Minorenni": "SIMIN",
+    "VolontariaGiurisdizione": "VG",
+}
+
+
+def _normalise_role_label(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in {'"', "'"}:
+        raw = raw[1:-1].strip()
+    label = re.sub(r"\s+", " ", raw.replace("_", " ")).casefold()
+    return _ROLE_LABELS.get(label, raw if raw in set(_ROLE_LABELS.values()) else "")
+
+
+def _forced_studio_role(entry: dict[str, Any] | None) -> str:
+    if not entry:
+        return ""
+    schema = entry.get("schema") if isinstance(entry.get("schema"), dict) else {}
+    assignments = schema.get("quickAssignments") if isinstance(schema.get("quickAssignments"), list) else []
+    for assignment in assignments:
+        if not isinstance(assignment, dict):
+            continue
+        if str(assignment.get("target") or "").strip() not in {
+            "cboRuolo.Text",
+            "cboRuolo.Value",
+            "cboRuolo.SelectedValue",
+        }:
+            continue
+        role = _normalise_role_label(assignment.get("value"))
+        if role:
+            return role
+    return ""
+
+
+def _fascicolo_role(fascicolo: Any) -> str:
+    values: list[str] = []
+    for field in (
+        "tipo",
+        "titolo",
+        "area_pratica",
+        "tipo_procedimento",
+        "sezione",
+        "rito",
+        "registro_operativo",
+        "tipo_registro",
+        "registro_portale",
+        "ruolo_polisweb",
+    ):
+        if isinstance(fascicolo, dict):
+            value = fascicolo.get(field)
+        else:
+            value = getattr(fascicolo, field, "")
+        if hasattr(value, "value"):
+            value = value.value
+        values.append(str(value or ""))
+    text = re.sub(r"\s+", " ", " ".join(values)).casefold()
+    if any(marker in text for marker in ("cassazione", "cassci")):
+        return "CassazioneCivile"
+    if any(marker in text for marker in ("giudice di pace", "sigp")):
+        return "GiudiceDiPace"
+    if any(marker in text for marker in ("lavoro", "previdenz", "assistenz", " rgl", " sil")):
+        return "Lavoro"
+    if "esecuz" in text and any(marker in text for marker in ("immob", "rgei", "esim")):
+        return "EspropriazioniImmobiliari"
+    if any(marker in text for marker in ("esecuz", "rge", "esiecic")):
+        return "EsecuzioniCivili"
+    if any(marker in text for marker in ("procedimento unitario", "procedimentounitario")):
+        return "ProcedimentoUnitario"
+    if any(marker in text for marker in ("concors", "falliment", "liquidazione giudiziale", "concordato")):
+        return "VolontariaGiurisdizione"
+    if any(marker in text for marker in ("minoren", "simin", " min ")):
+        return "Minorenni"
+    if any(marker in text for marker in ("volontaria", "sivg", "tutela", "curatela")):
+        return "VolontariaGiurisdizione"
+    if "agrari" in text:
+        return "Agraria"
+    if "speciale" in text:
+        return "Speciale"
+    return "Contenzioso"
+
+
+def _unep_role(entry: dict[str, Any] | None) -> str:
+    key = str((entry or {}).get("key") or "")
+    if key.endswith("RichiestaRestituzioneSomme"):
+        return "Pagamenti"
+    if "::PagamentoRichiesta" in key:
+        return "Notifiche"
+    if "::RichiestaPignoramento" in key or key.endswith("RichiestaRicercaBeni"):
+        return "EsecuzioniCivili"
+    return "Notifiche"
+
+
+def deposito_catalogo_destination(
+    entry: dict[str, Any] | None,
+    codice_registro: str,
+    fascicolo: Any,
+) -> tuple[str, str]:
+    """Risolve registro operativo e ruolo XML come fa il combo di Studio Telematico.
+
+    Il codice catalogo identifica la famiglia del generatore (per esempio SICID),
+    non il ruolo del fascicolo. Le assegnazioni esplicite del decompilato hanno
+    precedenza; negli altri casi il ruolo resta quello della pratica selezionata.
+    """
+
+    requested = str(codice_registro or "").strip().upper()
+    payload = entry.get("payload") if entry and isinstance(entry.get("payload"), dict) else {}
+    catalog_registry = str(payload.get("codice_registro") or "").strip().upper()
+    key = str((entry or {}).get("key") or "")
+
+    forced_role = _forced_studio_role(entry)
+    if key.startswith("Atti_UNEP::"):
+        role = forced_role or _unep_role(entry)
+    elif forced_role:
+        role = forced_role
+    elif requested in _REGISTRY_ROLES:
+        role = _REGISTRY_ROLES[requested]
+    elif requested and requested not in {"SICID", "SIECIC", "SIECIC_ESECUZIONI", "UNEP"}:
+        role = _REGISTRY_ROLES.get(catalog_registry) or _fascicolo_role(fascicolo)
+    else:
+        role = _fascicolo_role(fascicolo)
+
+    registry = _ROLE_REGISTRIES.get(role)
+    if not registry:
+        registry = requested or catalog_registry or "SICID"
+    return registry, role
 
 
 def deposito_catalogo_entry(form_like: Any) -> tuple[dict[str, Any] | None, str]:
@@ -23,7 +199,7 @@ def deposito_catalogo_apply(entry: dict[str, Any] | None, tipo_atto: str, codice
     payload = entry.get("payload") if isinstance(entry.get("payload"), dict) else {}
     return (
         str(payload.get("tipo_atto") or tipo_atto).strip() or tipo_atto,
-        str(payload.get("codice_registro") or codice_registro).strip() or codice_registro,
+        str(codice_registro or payload.get("codice_registro") or "").strip() or codice_registro,
     )
 
 

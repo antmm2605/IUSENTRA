@@ -26,10 +26,35 @@ _BLOCKING_CONFIRMATION_RULES = {
     "VerificaCampiEredit\u00c3\u00a0Successioni:19195",
 }
 
-_FOLLOW_UP_MESSAGE_RULES = {
+FOLLOW_UP_MESSAGE_RULE_IDS = {
     "VerificaCampiAnagraficaProcedimento:18562",
     "VerificaCampiAnagraficaProcedimento:18576",
     "VerificaCampiAnagraficaProcedimento:18581",
+}
+
+# Questi rami esistono nel metodo comune decompilato, ma non sono raggiungibili
+# quando il deposito proviene da una delle 270 chiavi catalogate. Restano
+# censiti nell'audit, senza trasformarli in controlli autonomi IUSENTRA.
+CATALOG_UNREACHABLE_RULE_IDS = {
+    # Studio li usa soltanto quando AttoDaInviareKey e' vuota.
+    "VerificaCampiAttoDaDepositare:17333",
+    "VerificaCampiAttoDaDepositare:17340",
+    # IsNotificaMezzoPEC appartiene al flusso notifica, non al deposito.
+    "VerificaCampiAttoDaDepositare:17750",
+    # Duplicati successivi a controlli identici che hanno gia' restituito false.
+    "VerificaCampiAnagraficaProcedimento:18458",
+    "VerificaCampiAnagraficaProcedimento:18467",
+    # Il ramo esterno richiede Cassazione e quello interno richiede SIECIC.
+    "VerificaCampiAnagraficaProcedimento:18579",
+    # IsNotificaMezzoPEC appartiene alla notifica e non puo' essere vero nel
+    # flusso dei 270 depositi, anche se il metodo sorgente e' condiviso.
+    "VerificaCampiAnagraficaProcedimento:18659",
+    # Nel controllo WinForms SelectedIndex e Value sono verificati in due rami
+    # consecutivi. Il select React normalizza i due stati: una voce selezionata
+    # ha sempre un value e l'assenza della voce e' gia' coperta dal primo ramo.
+    "VerificaCampiIscrizioneRuolo:18853",
+    "VerificaCampiIscrizioneRuolo:18888",
+    "VerificaCampiIscrizioneRuolo:18923",
 }
 
 
@@ -144,6 +169,30 @@ def _professionista(context: dict[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _role_text(context: dict[str, Any]) -> str:
+    explicit = _text(context.get("ruolo_ministeriale"))
+    if explicit:
+        return explicit
+    registry = _text(context.get("codice_registro")).upper()
+    return {
+        "CASSCI": "CassazioneCivile",
+        "MIN": "Minorenni",
+        "MINORI": "Minorenni",
+        "RG": "Contenzioso",
+        "RGE": "EsecuzioniCivili",
+        "RGEI": "EspropriazioniImmobiliari",
+        "RGL": "Lavoro",
+        "SIECIC_CONCORSUALI": "VolontariaGiurisdizione",
+        "SIECIC_ESIM": "EspropriazioniImmobiliari",
+        "SIECIC_ESM": "EsecuzioniCivili",
+        "SIGP": "GiudiceDiPace",
+        "SIL": "Lavoro",
+        "SIMIN": "Minorenni",
+        "SIVG": "VolontariaGiurisdizione",
+        "VG": "VolontariaGiurisdizione",
+    }.get(registry, registry)
+
+
 def _unep_parties(context: dict[str, Any]) -> list[dict[str, Any]]:
     changes = {
         _text(item.get("id")): item
@@ -174,12 +223,32 @@ def _validate_documents(
         not _text(context.get("atto_principale_id")) and not documents,
     )
     classified = {_text(document.get("studio_document_type")) for document in documents}
+    if classified.intersection({"ProcuraLiti", "ProcuraSpeciale", "ProcuraAttoPubblico"}):
+        classified.add("Procura")
     for requirement in studio_telematico_document_requirements(key):
         code = _text(requirement.get("code"))
         if code and code not in classified:
             rule_id = _text(requirement.get("ruleId"))
             if rule_id:
                 _append(findings, rule_id, "allegati_ids", True)
+
+    if key.startswith("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramento"):
+        main_id = _text(context.get("atto_principale_id"))
+        main_document = next((document for document in documents if _text(document.get("id")) == main_id), None)
+        main_name = _text((main_document or {}).get("nome")).upper()
+        _append(
+            findings,
+            "VerificaCampiAttoDaDepositare:17818",
+            "atto_principale_id",
+            bool(main_name) and "ISCRIZIONE A RUOLO" not in main_name,
+        )
+
+    _append(
+        findings,
+        "VerificaCampiAttoDaDepositare:17902",
+        "allegati_ids",
+        key == "Parte_CASSAZIONE::IstanzaOpposizione380bis",
+    )
 
 
 def _validate_atto(
@@ -196,7 +265,12 @@ def _validate_atto(
         or resolver.get("official_office_found")
         or _text(context.get("ufficio_giudiziario"))
     )
-    _append(findings, "VerificaCampiAttoDaDepositare:17355", "ufficio_giudiziario", not office_found)
+    _append(
+        findings,
+        "VerificaCampiAttoDaDepositare:17351" if key.startswith("Atti_UNEP::") else "VerificaCampiAttoDaDepositare:17355",
+        "ufficio_giudiziario",
+        not office_found,
+    )
 
     is_cassazione = key.startswith("Parte_CASSAZIONE::")
     if is_cassazione:
@@ -247,12 +321,54 @@ def _validate_atto(
         _enabled(controls, "cboRito") and not _text(extra.get("rito")),
     )
 
+    role = _role_text(context)
+    role_upper = role.upper()
+    office_name = _text(
+        resolver.get("effective_office_name")
+        or resolver.get("official_office_name")
+        or context.get("ufficio_giudiziario")
+    ).upper()
+    if "SICID" in key:
+        _append(findings, "VerificaCampiAttoDaDepositare:17484", "codice_registro", "ESECUZION" in role_upper)
+        _append(findings, "VerificaCampiAttoDaDepositare:17491", "codice_registro", "ESPROPRIAZION" in role_upper)
+        _append(findings, "VerificaCampiAttoDaDepositare:17498", "codice_registro", "CONCORSUAL" in role_upper)
+    if "SIECIC" in key:
+        _append(findings, "VerificaCampiAttoDaDepositare:17505", "codice_registro", "CONTENZIOSO" in role_upper)
+        _append(findings, "VerificaCampiAttoDaDepositare:17512", "codice_registro", "LAVORO" in role_upper)
+        _append(findings, "VerificaCampiAttoDaDepositare:17519", "codice_registro", "AGRARIA" in role_upper)
+        _append(findings, "VerificaCampiAttoDaDepositare:17526", "codice_registro", "SPECIALE" in role_upper)
+    _append(
+        findings,
+        "VerificaCampiAttoDaDepositare:17533",
+        "codice_registro",
+        "PACE" in role_upper and "SIGP" not in key,
+    )
+    _append(
+        findings,
+        "VerificaCampiAttoDaDepositare:17540",
+        "codice_registro",
+        "CASSAZIONE" in office_name and "CASSAZIONE" not in role_upper,
+    )
+    _append(
+        findings,
+        "VerificaCampiAttoDaDepositare:17547",
+        "codice_registro",
+        "PACE" in office_name and "PACE" not in role_upper,
+    )
+
     if _enabled(controls, "cboRiferimentoProvvedimento"):
         _append(findings, "VerificaCampiAttoDaDepositare:17556", "precedente_provvedimento_tipo", not _text(extra.get("precedente_provvedimento_tipo")))
     if _enabled(controls, "txtRiferimentoProvvedimentoNumero"):
         _append(findings, "VerificaCampiAttoDaDepositare:17564", "precedente_provvedimento_numero", not _text(extra.get("precedente_provvedimento_numero")))
     if _enabled(controls, "dtpDataPrecedenteProvvedimento"):
-        _append(findings, "VerificaCampiAttoDaDepositare:17582", "data_precedente_provvedimento", _date(extra.get("data_precedente_provvedimento")) is None)
+        previous_date = _text(extra.get("data_precedente_provvedimento"))
+        _append(findings, "VerificaCampiAttoDaDepositare:17574", "data_precedente_provvedimento", not previous_date)
+        _append(
+            findings,
+            "VerificaCampiAttoDaDepositare:17582",
+            "data_precedente_provvedimento",
+            bool(previous_date) and _date(previous_date) is None,
+        )
     if _enabled(controls, "cboPrecedenteFascicolo"):
         _append(findings, "VerificaCampiAttoDaDepositare:17597", "precedente_fascicolo_ufficio", not _text(extra.get("precedente_fascicolo_ufficio")))
     if _enabled(controls, "txtPrecedenteFascicoloAnno"):
@@ -263,9 +379,22 @@ def _validate_atto(
     if _enabled(controls, "txtPrecedenteFascicoloNumero"):
         _append(findings, "VerificaCampiAttoDaDepositare:17632", "precedente_fascicolo_numero", not _text(extra.get("precedente_fascicolo_numero")))
     if _enabled(controls, "dtpDataAttoDaDepositare"):
-        _append(findings, "VerificaCampiAttoDaDepositare:17653", "data_atto_deposito", _date(extra.get("data_atto_deposito")) is None)
+        missing_deposit_date = _date(extra.get("data_atto_deposito")) is None
+        date_rule = (
+            "VerificaCampiAttoDaDepositare:17644"
+            if key == "Atti_UNEP::RichiestaRestituzioneSomme"
+            else "VerificaCampiAttoDaDepositare:17648"
+            if key.startswith("Atti_UNEP::")
+            else "VerificaCampiAttoDaDepositare:17653"
+        )
+        _append(findings, date_rule, "data_atto_deposito", missing_deposit_date)
     if _enabled(controls, "cboIstanze"):
-        _append(findings, "VerificaCampiAttoDaDepositare:17758", "istanza", not _text(extra.get("istanza")))
+        instance_rule = (
+            "VerificaCampiAttoDaDepositare:17754"
+            if key.startswith("Atti_UNEP::")
+            else "VerificaCampiAttoDaDepositare:17758"
+        )
+        _append(findings, instance_rule, "istanza", not _text(extra.get("istanza")))
 
     if "_SIGP::" in key:
         office = _text(resolver.get("effective_office_name") or context.get("ufficio_giudiziario")).upper()
@@ -289,26 +418,47 @@ def _validate_atto(
         if _visible(controls, "dataScadenzaNotificaUNEP"):
             _append(findings, "VerificaCampiAttoDaDepositare:17668", "unep_data_scadenza", _date(extra.get("unep_data_scadenza")) is None)
         if _visible(controls, "txtCodicePagamento"):
-            _append(findings, "VerificaCampiAttoDaDepositare:17696", "unep_codice_pagamento", not _text(extra.get("unep_codice_pagamento")))
-        if _enabled(controls, "dtpDataAttoDaDepositare"):
-            _append(findings, "VerificaCampiAttoDaDepositare:17644", "data_atto_deposito", _date(extra.get("data_atto_deposito")) is None)
+            payment_code_rule = (
+                "VerificaCampiAttoDaDepositare:17693"
+                if key == "Atti_UNEP::RichiestaRestituzioneSomme"
+                else "VerificaCampiAttoDaDepositare:17696"
+            )
+            _append(
+                findings,
+                payment_code_rule,
+                "unep_codice_pagamento",
+                not _text(extra.get("unep_codice_pagamento")),
+            )
         if _visible(controls, "txtRegistroUnep"):
             register = _text(extra.get("unep_registro_bilancio"))
             _append(findings, "VerificaCampiAttoDaDepositare:17706", "unep_registro_bilancio", not register)
             _append(findings, "VerificaCampiAttoDaDepositare:17712", "unep_registro_bilancio", bool(register) and register not in {"0", "1"})
         if _visible(controls, "txtAnnoUnep"):
-            _append(findings, "VerificaCampiAttoDaDepositare:17724", "unep_anno_bilancio", not _valid_year(extra.get("unep_anno_bilancio")))
-        if _enabled(controls, "cboIstanze"):
-            _append(findings, "VerificaCampiAttoDaDepositare:17754", "unep_urgenza", not _text(extra.get("unep_urgenza")))
+            unep_year = _text(extra.get("unep_anno_bilancio"))
+            _append(findings, "VerificaCampiAttoDaDepositare:17724", "unep_anno_bilancio", not unep_year)
+            _append(
+                findings,
+                "VerificaCampiAttoDaDepositare:17731",
+                "unep_anno_bilancio",
+                bool(unep_year) and not unep_year.isdigit(),
+            )
+            _append(
+                findings,
+                "VerificaCampiAttoDaDepositare:17739",
+                "unep_anno_bilancio",
+                bool(unep_year) and unep_year.isdigit() and len(unep_year) != 4,
+            )
 
 
 def _validate_anagrafica(
     key: str,
+    contract: dict[str, Any],
     context: dict[str, Any],
     findings: list[dict[str, Any]],
 ) -> None:
     professionista = _professionista(context)
     extra = _extra(context)
+    controls = contract.get("controls") if isinstance(contract.get("controls"), dict) else {}
     role = _text(extra.get("professionista_ruolo") or professionista.get("ruolo"))
     _append(findings, "VerificaCampiAnagraficaProcedimento:18401", "professionista_ruolo", not role)
     _append(findings, "VerificaCampiAnagraficaProcedimento:18417", "professionista_cognome", not _text(professionista.get("cognome")))
@@ -324,11 +474,14 @@ def _validate_anagrafica(
         other = extra.get("altri_difensori")
         _append(findings, "VerificaCampiAnagraficaProcedimento:18409", "altri_difensori", not isinstance(other, list) or not other)
 
-    if key.startswith("Atti_UNEP::"):
-        if key.endswith("RichiestaRestituzioneSomme"):
+    if _visible(controls, "txtPecProfessionista"):
+        if key == "Atti_UNEP::RichiestaRestituzioneSomme":
             iban = _text(extra.get("unep_iban"))
             _append(findings, "VerificaCampiAnagraficaProcedimento:18511", "unep_iban", not iban)
             _append(findings, "VerificaCampiAnagraficaProcedimento:18524", "unep_iban", bool(iban) and not _valid_iban(iban))
+        else:
+            pec = _text(professionista.get("pec") or extra.get("professionista_pec"))
+            _append(findings, "VerificaCampiAnagraficaProcedimento:18515", "professionista_pec", not pec)
 
     parties = _unep_parties(context) if key.startswith("Atti_UNEP::") else [item for item in context.get("parti") or [] if isinstance(item, dict)]
     if key in {
@@ -503,7 +656,7 @@ def _validate_contribution(
             "spese_diritti_art30": "Importo_SpeseGiustiziaDiritti_registrazione_ruolo_tu_art_30",
             "spese_notifica_art34": "Importo_SpeseGiustiziaNotifica_avvocati_art_34_tu",
         }[prefix]
-        if source_control not in controls:
+        if not _enabled(controls, source_control):
             continue
         amount = _number(extra.get(f"{prefix}_importo"))
         payment_mode = _text(extra.get(f"{prefix}_tipo_pagamento"))
@@ -668,7 +821,7 @@ def validate_studio_telematico_deposit(
     _validate_documents(key, context, selected_documents, findings)
     _validate_atto(key, contract, context, resolver or {}, findings)
     if "VerificaCampiAnagraficaProcedimento" in methods:
-        _validate_anagrafica(key, context, findings)
+        _validate_anagrafica(key, contract, context, findings)
     if "VerificaCampiIscrizioneRuolo" in methods:
         _validate_contribution(key, contract, context, findings)
     if "VerificaCampiIntroduttiviCassazione" in methods:
@@ -691,5 +844,5 @@ def validate_studio_telematico_deposit(
         finding
         for finding in findings
         if finding["rule_id"] in allowed_ids
-        and finding["rule_id"] not in _FOLLOW_UP_MESSAGE_RULES
+        and finding["rule_id"] not in FOLLOW_UP_MESSAGE_RULE_IDS
     ]

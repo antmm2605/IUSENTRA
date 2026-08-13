@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "12/08/2026 00:03",
+  "generated_at": "13/08/2026 12:49",
   "source": {
     "application": "Studio Telematico 2026 Rel. 021",
     "file": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\FormSentMailBee.cs",
@@ -8397,23 +8397,6 @@
       "controls": [],
       "document_types": [],
       "applicable_source_keys": [
-        "Atti_UNEP::AttoCivileDebito",
-        "Atti_UNEP::AttoCivileAPagamento",
-        "Atti_UNEP::AttoEsenteLavoro",
-        "Atti_UNEP::AttoPenaleDebito",
-        "Atti_UNEP::AttoPenaleAPagamento",
-        "Atti_UNEP::RichiestaRicercaBeni",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliare",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro",
-        "Atti_UNEP::RichiestaPignoramentoMobiliare",
-        "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
-        "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
-        "Atti_UNEP::RichiestaPignoramentoPressoTerzi",
-        "Atti_UNEP::RichiestaPignoramentoPressoTerziADebito",
-        "Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro",
-        "Atti_UNEP::PagamentoRichiestaNotifica",
-        "Atti_UNEP::PagamentoRichiestaPignoramento",
         "Atti_UNEP::RichiestaRestituzioneSomme"
       ]
     },
@@ -11409,9 +11392,7 @@
         "ProcessoVerbale"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore"
       ]
     },
     {
@@ -11435,9 +11416,7 @@
         "TitoloEsecutivo"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore"
       ]
     },
     {
@@ -11461,9 +11440,7 @@
         "Precetto"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore"
       ]
     },
     {
@@ -11487,8 +11464,6 @@
         "AttoCitazione"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
         "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
       ]
     },
@@ -11513,8 +11488,6 @@
         "TitoloEsecutivo"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
         "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
       ]
     },
@@ -11539,8 +11512,6 @@
         "Precetto"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
         "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
       ]
     },
@@ -11565,12 +11536,7 @@
         "Pignoramento"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliare",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro"
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare"
       ]
     },
     {
@@ -11594,12 +11560,7 @@
         "TitoloEsecutivo"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliare",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro"
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare"
       ]
     },
     {
@@ -11623,12 +11584,7 @@
         "Precetto"
       ],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliare",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
-        "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro"
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare"
       ]
     },
     {
@@ -16198,77 +16154,10 @@
       "controls": [],
       "document_types": [],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
-        "Parte_ESECUZIONI_SIECIC::AttoCostituzioneAvvocato",
-        "Parte_ESECUZIONI_SIECIC::DepositoRinunciaMandato",
-        "Parte_ESECUZIONI_SIECIC::DepositoRinunciaEsecuzione",
-        "Parte_ESECUZIONI_SIECIC::AttoIntervento",
-        "Parte_ESECUZIONI_SIECIC::AttoGenerico",
-        "Parte_ESECUZIONI_SIECIC::DepositoIstanza41TUB",
-        "Parte_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
-        "Parte_ESECUZIONI_SIECIC::IstanzaAssegnazione",
-        "Parte_ESECUZIONI_SIECIC::IstanzaDistribuzione",
-        "Parte_ESECUZIONI_SIECIC::IstanzaVendita",
-        "Parte_ESECUZIONI_SIECIC::NotaDeposito",
-        "Parte_ESECUZIONI_SIECIC::NotaPrecisazioneCredito",
-        "Parte_ESECUZIONI_SIECIC::NoteTrattazione",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneAllaDistribuzione",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneAllaEsecuzione",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneDiTerzi",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneCumuloMezziEspropiazione",
-        "Parte_ESECUZIONI_SIECIC::RichiestaFormulaEsecutiva",
-        "Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità",
-        "Parte_ESECUZIONI_SIECIC::RicorsoExArt534Ter",
-        "Parte_ESECUZIONI_SIECIC::RinunciaDebitori",
-        "Custode_ESECUZIONI_SIECIC::AttoNonCodificatoCustode",
-        "Custode_ESECUZIONI_SIECIC::IstanzaGenericaCustode",
-        "Custode_ESECUZIONI_SIECIC::IstanzaLiquidazioneCustode",
-        "Custode_ESECUZIONI_SIECIC::NotaDepositoCustode",
-        "Custode_ESECUZIONI_SIECIC::RendicontoCustode",
-        "Professionista_ESECUZIONI_SIECIC::AttoNonCodificato",
-        "Professionista_ESECUZIONI_SIECIC::DepositoIntegrazioneCTU",
-        "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneCTU",
-        "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
-        "Professionista_ESECUZIONI_SIECIC::IstanzaProrogaCTU",
-        "Professionista_ESECUZIONI_SIECIC::NotaDeposito",
-        "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
-        "Delegati_ESECUZIONI_SIECIC::AggiudicazioneLotto",
-        "Delegati_ESECUZIONI_SIECIC::attoNonCodificato",
-        "Delegati_ESECUZIONI_SIECIC::avvisoVendita",
-        "Delegati_ESECUZIONI_SIECIC::depositoPrezzo",
-        "Delegati_ESECUZIONI_SIECIC::istanzaRevocaDecadenzaAggiudicatario",
-        "Delegati_ESECUZIONI_SIECIC::MinutaDecreto",
-        "Delegati_ESECUZIONI_SIECIC::NotaDeposito",
-        "Delegati_ESECUZIONI_SIECIC::ProgettoDistribuzione",
-        "Delegati_ESECUZIONI_SIECIC::PropostaProgetto",
-        "Delegati_ESECUZIONI_SIECIC::relazionePeriodicaDelegato",
-        "Delegati_ESECUZIONI_SIECIC::verbaleAggiudicazione",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoAmmissConcordatoPreventivoCCIPUIstanzaDebitore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoDichiarazioneInsolvenzaCCIPUIstanzaCreditore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaCreditore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoOmologaAccordiRistrutturazioneCCIPUOrdinarioIstanzaDebitore",
-        "Parte_CONCORSUALI_SIECIC::AttoCostituzioneAvvocato",
-        "Parte_CONCORSUALI_SIECIC::AttoGenericoCCIPU",
-        "Parte_CONCORSUALI_SIECIC::AttoGenerico",
-        "Parte_CONCORSUALI_SIECIC::DepositoMemorie",
-        "Parte_CONCORSUALI_SIECIC::NotaDepositoCCI",
-        "Parte_CONCORSUALI_SIECIC::NoteTrattazione",
-        "Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità",
-        "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
-        "Professionista_CONCORSUALI_SIECIC::AttoNonCodificato",
-        "Professionista_CONCORSUALI_SIECIC::DepositoIntegrazioneCTU",
-        "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneCTU",
-        "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneNotarile",
-        "Professionista_CONCORSUALI_SIECIC::NotaDeposito",
         "Parte_CASSAZIONE::Ricorso",
         "Parte_CASSAZIONE::ControRicorso",
         "Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente",
-        "Parte_CASSAZIONE::ControRicorsoIncidentale",
-        "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente"
+        "Parte_CASSAZIONE::ControRicorsoIncidentale"
       ]
     },
     {
@@ -16291,77 +16180,10 @@
       "controls": [],
       "document_types": [],
       "applicable_source_keys": [
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
-        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
-        "Parte_ESECUZIONI_SIECIC::AttoCostituzioneAvvocato",
-        "Parte_ESECUZIONI_SIECIC::DepositoRinunciaMandato",
-        "Parte_ESECUZIONI_SIECIC::DepositoRinunciaEsecuzione",
-        "Parte_ESECUZIONI_SIECIC::AttoIntervento",
-        "Parte_ESECUZIONI_SIECIC::AttoGenerico",
-        "Parte_ESECUZIONI_SIECIC::DepositoIstanza41TUB",
-        "Parte_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
-        "Parte_ESECUZIONI_SIECIC::IstanzaAssegnazione",
-        "Parte_ESECUZIONI_SIECIC::IstanzaDistribuzione",
-        "Parte_ESECUZIONI_SIECIC::IstanzaVendita",
-        "Parte_ESECUZIONI_SIECIC::NotaDeposito",
-        "Parte_ESECUZIONI_SIECIC::NotaPrecisazioneCredito",
-        "Parte_ESECUZIONI_SIECIC::NoteTrattazione",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneAllaDistribuzione",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneAllaEsecuzione",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneDiTerzi",
-        "Parte_ESECUZIONI_SIECIC::OpposizioneCumuloMezziEspropiazione",
-        "Parte_ESECUZIONI_SIECIC::RichiestaFormulaEsecutiva",
-        "Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità",
-        "Parte_ESECUZIONI_SIECIC::RicorsoExArt534Ter",
-        "Parte_ESECUZIONI_SIECIC::RinunciaDebitori",
-        "Custode_ESECUZIONI_SIECIC::AttoNonCodificatoCustode",
-        "Custode_ESECUZIONI_SIECIC::IstanzaGenericaCustode",
-        "Custode_ESECUZIONI_SIECIC::IstanzaLiquidazioneCustode",
-        "Custode_ESECUZIONI_SIECIC::NotaDepositoCustode",
-        "Custode_ESECUZIONI_SIECIC::RendicontoCustode",
-        "Professionista_ESECUZIONI_SIECIC::AttoNonCodificato",
-        "Professionista_ESECUZIONI_SIECIC::DepositoIntegrazioneCTU",
-        "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneCTU",
-        "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
-        "Professionista_ESECUZIONI_SIECIC::IstanzaProrogaCTU",
-        "Professionista_ESECUZIONI_SIECIC::NotaDeposito",
-        "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
-        "Delegati_ESECUZIONI_SIECIC::AggiudicazioneLotto",
-        "Delegati_ESECUZIONI_SIECIC::attoNonCodificato",
-        "Delegati_ESECUZIONI_SIECIC::avvisoVendita",
-        "Delegati_ESECUZIONI_SIECIC::depositoPrezzo",
-        "Delegati_ESECUZIONI_SIECIC::istanzaRevocaDecadenzaAggiudicatario",
-        "Delegati_ESECUZIONI_SIECIC::MinutaDecreto",
-        "Delegati_ESECUZIONI_SIECIC::NotaDeposito",
-        "Delegati_ESECUZIONI_SIECIC::ProgettoDistribuzione",
-        "Delegati_ESECUZIONI_SIECIC::PropostaProgetto",
-        "Delegati_ESECUZIONI_SIECIC::relazionePeriodicaDelegato",
-        "Delegati_ESECUZIONI_SIECIC::verbaleAggiudicazione",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoAmmissConcordatoPreventivoCCIPUIstanzaDebitore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoDichiarazioneInsolvenzaCCIPUIstanzaCreditore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaCreditore",
-        "Introduttivi_CONCORSUALI_SIECIC::RicorsoOmologaAccordiRistrutturazioneCCIPUOrdinarioIstanzaDebitore",
-        "Parte_CONCORSUALI_SIECIC::AttoCostituzioneAvvocato",
-        "Parte_CONCORSUALI_SIECIC::AttoGenericoCCIPU",
-        "Parte_CONCORSUALI_SIECIC::AttoGenerico",
-        "Parte_CONCORSUALI_SIECIC::DepositoMemorie",
-        "Parte_CONCORSUALI_SIECIC::NotaDepositoCCI",
-        "Parte_CONCORSUALI_SIECIC::NoteTrattazione",
-        "Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità",
-        "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
-        "Professionista_CONCORSUALI_SIECIC::AttoNonCodificato",
-        "Professionista_CONCORSUALI_SIECIC::DepositoIntegrazioneCTU",
-        "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneCTU",
-        "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneNotarile",
-        "Professionista_CONCORSUALI_SIECIC::NotaDeposito",
         "Parte_CASSAZIONE::Ricorso",
         "Parte_CASSAZIONE::ControRicorso",
         "Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente",
-        "Parte_CASSAZIONE::ControRicorsoIncidentale",
-        "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente"
+        "Parte_CASSAZIONE::ControRicorsoIncidentale"
       ]
     },
     {
@@ -56068,12 +55890,6 @@
         "VerificaCampiAttoDaDepositare:17758",
         "VerificaCampiAttoDaDepositare:17766",
         "VerificaCampiAttoDaDepositare:17818",
-        "VerificaCampiAttoDaDepositare:17824",
-        "VerificaCampiAttoDaDepositare:17830",
-        "VerificaCampiAttoDaDepositare:17836",
-        "VerificaCampiAttoDaDepositare:17839",
-        "VerificaCampiAttoDaDepositare:17847",
-        "VerificaCampiAttoDaDepositare:17853",
         "VerificaCampiAttoDaDepositare:17859",
         "VerificaCampiAttoDaDepositare:17865",
         "VerificaCampiAttoDaDepositare:17871",
@@ -56092,8 +55908,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18629",
         "VerificaCampiAnagraficaProcedimento:18638",
         "VerificaCampiAnagraficaProcedimento:18659",
@@ -56289,12 +56103,6 @@
         "VerificaCampiAttoDaDepositare:17824",
         "VerificaCampiAttoDaDepositare:17830",
         "VerificaCampiAttoDaDepositare:17836",
-        "VerificaCampiAttoDaDepositare:17839",
-        "VerificaCampiAttoDaDepositare:17847",
-        "VerificaCampiAttoDaDepositare:17853",
-        "VerificaCampiAttoDaDepositare:17859",
-        "VerificaCampiAttoDaDepositare:17865",
-        "VerificaCampiAttoDaDepositare:17871",
         "VerificaCampiAttoDaDepositare:17929",
         "VerificaCampiAnagraficaProcedimento:18401",
         "VerificaCampiAnagraficaProcedimento:18409",
@@ -56310,8 +56118,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18629",
         "VerificaCampiAnagraficaProcedimento:18638",
         "VerificaCampiAnagraficaProcedimento:18659",
@@ -56522,15 +56328,9 @@
         "VerificaCampiAttoDaDepositare:17758",
         "VerificaCampiAttoDaDepositare:17766",
         "VerificaCampiAttoDaDepositare:17818",
-        "VerificaCampiAttoDaDepositare:17824",
-        "VerificaCampiAttoDaDepositare:17830",
-        "VerificaCampiAttoDaDepositare:17836",
         "VerificaCampiAttoDaDepositare:17839",
         "VerificaCampiAttoDaDepositare:17847",
         "VerificaCampiAttoDaDepositare:17853",
-        "VerificaCampiAttoDaDepositare:17859",
-        "VerificaCampiAttoDaDepositare:17865",
-        "VerificaCampiAttoDaDepositare:17871",
         "VerificaCampiAttoDaDepositare:17929",
         "VerificaCampiAnagraficaProcedimento:18401",
         "VerificaCampiAnagraficaProcedimento:18409",
@@ -56546,8 +56346,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18629",
         "VerificaCampiAnagraficaProcedimento:18638",
         "VerificaCampiAnagraficaProcedimento:18659",
@@ -56719,8 +56517,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -56857,8 +56653,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -56995,8 +56789,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -57136,8 +56928,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -57394,8 +57184,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -57655,8 +57443,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -57796,8 +57582,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -57938,8 +57722,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiIscrizioneRuolo:18767",
         "VerificaCampiIscrizioneRuolo:18785",
@@ -58224,8 +58006,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -58482,8 +58262,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -58620,8 +58398,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -58758,8 +58534,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -58896,8 +58670,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -59034,8 +58806,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -59328,8 +59098,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -59466,8 +59234,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -59604,8 +59370,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -62517,8 +62281,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiIscrizioneRuolo:18767",
         "VerificaCampiIscrizioneRuolo:18785",
@@ -62701,8 +62463,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiIscrizioneRuolo:18767",
         "VerificaCampiIscrizioneRuolo:18785",
@@ -62884,8 +62644,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiTipoOrgano:19238",
         "VerificaCampiTipoOrgano:19245",
@@ -63076,8 +62834,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiIscrizioneRuolo:18767",
         "VerificaCampiIscrizioneRuolo:18785",
@@ -63255,8 +63011,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiIscrizioneRuolo:18767",
         "VerificaCampiIscrizioneRuolo:18785",
@@ -63421,8 +63175,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -63800,8 +63552,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -64179,8 +63929,6 @@
         "VerificaCampiAnagraficaProcedimento:18511",
         "VerificaCampiAnagraficaProcedimento:18515",
         "VerificaCampiAnagraficaProcedimento:18524",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659"
       ]
     },
@@ -66024,8 +65772,6 @@
         "VerificaCampiAnagraficaProcedimento:18562",
         "VerificaCampiAnagraficaProcedimento:18574",
         "VerificaCampiAnagraficaProcedimento:18576",
-        "VerificaCampiAnagraficaProcedimento:18579",
-        "VerificaCampiAnagraficaProcedimento:18581",
         "VerificaCampiAnagraficaProcedimento:18659",
         "VerificaCampiIntroduttiviCassazione:17958",
         "VerificaCampiIntroduttiviCassazione:17966",
@@ -73732,7 +73478,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -73941,7 +73686,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -74150,7 +73894,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -74377,7 +74120,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -74586,7 +74328,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -74828,7 +74569,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -75053,7 +74793,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -75069,9 +74808,6 @@
         "VerificaCampiAttoDaDepositare:17754",
         "VerificaCampiAttoDaDepositare:17758",
         "VerificaCampiAttoDaDepositare:17766",
-        "VerificaCampiAttoDaDepositare:17859",
-        "VerificaCampiAttoDaDepositare:17865",
-        "VerificaCampiAttoDaDepositare:17871",
         "VerificaCampiAttoDaDepositare:17929",
         "VerificaCampiAnagraficaProcedimento:18401",
         "VerificaCampiAnagraficaProcedimento:18409",
@@ -75300,7 +75036,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -75316,9 +75051,6 @@
         "VerificaCampiAttoDaDepositare:17754",
         "VerificaCampiAttoDaDepositare:17758",
         "VerificaCampiAttoDaDepositare:17766",
-        "VerificaCampiAttoDaDepositare:17859",
-        "VerificaCampiAttoDaDepositare:17865",
-        "VerificaCampiAttoDaDepositare:17871",
         "VerificaCampiAttoDaDepositare:17929",
         "VerificaCampiAnagraficaProcedimento:18401",
         "VerificaCampiAnagraficaProcedimento:18409",
@@ -75529,7 +75261,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -75545,9 +75276,6 @@
         "VerificaCampiAttoDaDepositare:17754",
         "VerificaCampiAttoDaDepositare:17758",
         "VerificaCampiAttoDaDepositare:17766",
-        "VerificaCampiAttoDaDepositare:17859",
-        "VerificaCampiAttoDaDepositare:17865",
-        "VerificaCampiAttoDaDepositare:17871",
         "VerificaCampiAttoDaDepositare:17929",
         "VerificaCampiAnagraficaProcedimento:18401",
         "VerificaCampiAnagraficaProcedimento:18409",
@@ -75757,7 +75485,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -75999,7 +75726,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -76223,7 +75949,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -76447,7 +76172,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -76691,7 +76415,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -76917,7 +76640,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -77115,7 +76837,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",
@@ -77261,7 +76982,6 @@
         "VerificaCampiAttoDaDepositare:17615",
         "VerificaCampiAttoDaDepositare:17623",
         "VerificaCampiAttoDaDepositare:17632",
-        "VerificaCampiAttoDaDepositare:17644",
         "VerificaCampiAttoDaDepositare:17648",
         "VerificaCampiAttoDaDepositare:17653",
         "VerificaCampiAttoDaDepositare:17662",

@@ -42,7 +42,11 @@ from web.services.deposito_anagrafica_ministeriale import (
     deposito_parti_context,
     deposito_professionista_context,
 )
+from web.services.deposito_catalogo_runtime import deposito_catalogo_destination
+from web.services.deposito_route_helpers import deposito_oggetto, ufficio_deposito_destinatario
 from web.services.deposito_semantic_helpers import ministerial_contributo_unificato_for_context
+from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
+from pct.deposito_destination_tables import audit_deposit_destination
 
 
 def build_fascicoli_runtime(
@@ -121,21 +125,43 @@ def build_fascicoli_runtime(
             except (TypeError, ValueError):
                 datiatto_extra_raw = {}
         datiatto_extra = datiatto_extra_raw if isinstance(datiatto_extra_raw, dict) else {}
-        return {
-            "tipo_atto": (form_like.get("tipo_atto", "ATTO_GENERICO") or "ATTO_GENERICO").strip(),
-            "codice_registro": (form_like.get("codice_registro", "RG") or "RG").strip(),
-            "oggetto": (form_like.get("oggetto", "") or fasc.titolo).strip(),
-            "codice_oggetto_pst": (
+        catalog_key = (form_like.get("tipo_deposito_telematico_key", "") or "").strip()
+        requested_registry = (form_like.get("codice_registro", "RG") or "RG").strip()
+        catalog_entry = resolve_deposit_type_payload(catalog_key) if catalog_key else None
+        effective_registry, ministerial_role = deposito_catalogo_destination(
+            catalog_entry,
+            requested_registry,
+            fasc,
+        )
+        office = ufficio_deposito_destinatario(fasc)
+        effective_object_code = deposito_oggetto(form_like, fasc)
+        if not re.fullmatch(r"\d{6}", effective_object_code):
+            effective_object_code = (
                 form_like.get("codice_oggetto_pst", "")
                 or getattr(fasc, "codice_oggetto_pst", "")
-            ).strip(),
+                or ""
+            ).strip()
+        destination_table_audit = audit_deposit_destination(
+            office_code=str(office.get("codice_ufficio") or ""),
+            office_name=str(office.get("nome") or getattr(fasc, "tribunale", "") or ""),
+            office_pec=str(office.get("pec_dest") or ""),
+            ministerial_role=ministerial_role,
+            deposit_key=catalog_key,
+            object_code=effective_object_code,
+        )
+        return {
+            "tipo_atto": (form_like.get("tipo_atto", "ATTO_GENERICO") or "ATTO_GENERICO").strip(),
+            "codice_registro": effective_registry,
+            "registro_richiesto": requested_registry,
+            "ruolo_ministeriale": ministerial_role,
+            "destination_table_audit": destination_table_audit,
+            "oggetto": (form_like.get("oggetto", "") or fasc.titolo).strip(),
+            "codice_oggetto_pst": effective_object_code,
             "numero_rg": (form_like.get("numero_rg", "") or fasc.numero_rg).strip(),
             "anno_rg": int(anno_rg_raw) if anno_rg_raw.isdigit() else fasc.anno_rg,
             "atto_principale_id": (form_like.get("atto_principale_id", "") or "").strip(),
             "allegati_ids": list(form_like.getlist("allegati_ids")) if hasattr(form_like, "getlist") else list(form_like.get("allegati_ids", []) or []),
-            "tipo_deposito_telematico_key": (
-                form_like.get("tipo_deposito_telematico_key", "") or ""
-            ).strip(),
+            "tipo_deposito_telematico_key": catalog_key,
             "datiatto_extra": datiatto_extra,
             "professionista": deposito_professionista_context(
                 get_config_studio,

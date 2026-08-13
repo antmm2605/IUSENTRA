@@ -81,6 +81,21 @@ export type TimesheetBilling = {
   action: string
 }
 
+export type TrackingProposal = {
+  id: string
+  fascicoloId: string
+  fascicoloLabel: string
+  username: string
+  data: string
+  oraInizio: string
+  oraFine: string
+  minuti: number
+  eventi: number
+  descrizione: string
+  confirmHref: string
+  dismissHref: string
+}
+
 export type TimesheetData = {
   source: string
   generatedAt: string
@@ -88,6 +103,7 @@ export type TimesheetData = {
   filters: Record<string, string>
   summary: TimesheetSummary
   entries: TimesheetEntry[]
+  trackingProposals: TrackingProposal[]
   options: {
     clients: TimesheetOption[]
     matters: TimesheetOption[]
@@ -133,6 +149,7 @@ const emptyTimesheetData: TimesheetData = {
     notBillable: 0,
   },
   entries: [],
+  trackingProposals: [],
   options: { clients: [], matters: [], statuses: [], users: [] },
   billing: {
     ready: false,
@@ -308,6 +325,24 @@ export async function getTimesheetPage(): Promise<TimesheetData> {
       filters: filtersFrom(payload.filters),
       summary: summaryFrom(payload.summary),
       entries: Array.isArray(payload.entries) ? payload.entries.map(entryFrom).filter((item): item is TimesheetEntry => Boolean(item)) : [],
+      trackingProposals: Array.isArray(payload.trackingProposals)
+        ? payload.trackingProposals
+            .map((item) => isRecord(item) ? {
+              id: text(item.id),
+              fascicoloId: text(item.fascicoloId),
+              fascicoloLabel: text(item.fascicoloLabel, 'Fascicolo'),
+              username: text(item.username),
+              data: text(item.data),
+              oraInizio: text(item.oraInizio),
+              oraFine: text(item.oraFine),
+              minuti: Number(item.minuti) || 0,
+              eventi: Number(item.eventi) || 0,
+              descrizione: text(item.descrizione),
+              confirmHref: text(item.confirmHref),
+              dismissHref: text(item.dismissHref),
+            } : null)
+            .filter((item): item is TrackingProposal => Boolean(item && item.id))
+        : [],
       options: {
         clients: Array.isArray(options.clients) ? options.clients.map(optionFrom).filter((item): item is TimesheetOption => Boolean(item)) : [],
         matters: Array.isArray(options.matters) ? options.matters.map(optionFrom).filter((item): item is TimesheetOption => Boolean(item)) : [],

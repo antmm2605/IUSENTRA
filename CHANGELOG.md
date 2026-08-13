@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.41 - 2026-08-13
+
+- **Coda «Tempo rilevato automaticamente» nel Timesheet (completa la Fase B).** Le proposte del tracking passivo appaiono nella pagina Timesheet: fascicolo, data, orari, operazioni rilevate; l'avvocato corregge i minuti se serve, conferma (nasce la voce timesheet, origine `tracking_passivo`, evento in audit) o scarta (non si ripresenta). Nuove route `/timesheet/proposte/<id>/conferma` e `/scarta`; il payload `/api/v1/ui/timesheet` espone `trackingProposals`.
+- **CRM di studio — intake lead con verifica conflitti (Fase C, dominio).** Nuovo `pct/crm_intake.py`: pipeline dei potenziali clienti (NUOVO → CONTATTATO → APPUNTAMENTO → PREVENTIVO → VINTO/PERSO) con fonte, materia ed esigenza; **verifica conflitto d'interessi ex art. 24 CDF** prima dell'assunzione dell'incarico — match certo su CF/P.IVA contro controparti e anagrafiche, omonimie segnalate come "da valutare" (decide l'avvocato); niente stato VINTO né conversione in cliente senza verifica; lead perso solo con motivo (alimenta il tasso di conversione per fonte). Conversione idempotente verso l'anagrafica clienti. Suite `tests/test_crm_intake.py` (11 test). UI pipeline in una prossima iterazione. Base: artt. 23-24 CDF, L. 247/2012 art. 13.
+
 ## 2.278.40 - 2026-08-13
 
 - **Chat sul fascicolo con citazioni cliccabili (Fase A dei differenziatori).** Quando Lex risponde su un fascicolo, le fonti documentali nel blocco «Fonti» diventano link che aprono il documento esatto del fascicolo — alla pagina precisa del passaggio citato (`/fascicoli/<id>/documenti/<id_doc>/visualizza?page=N`, dal `page_no` del chunk di retrieval). Coerente col principio delle fonti certe: ogni affermazione è verificabile in un click.

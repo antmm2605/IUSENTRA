@@ -187,6 +187,53 @@ def _filter_entries(entries: list[Any], filters: dict[str, str]) -> list[Any]:
     return filtered
 
 
+def _tracking_proposals_payload(
+    timesheet: Any,
+    fascicoli_by_id: dict[str, Any],
+    fascicoli_manager: Any,
+) -> list[dict[str, Any]]:
+    """Coda delle proposte del time tracking passivo (bozze da confermare)."""
+
+    try:
+        from pathlib import Path
+
+        from pct.time_tracking_passivo import GestioneTrackingPassivo
+
+        base = Path(str(getattr(timesheet, "db_path", "./timesheet/entries.json")))
+        tracking = GestioneTrackingPassivo(db_path=str(base.parent / "tracking_passivo.json"))
+        bozze = tracking.bozze()
+    except Exception:
+        return []
+    rows: list[dict[str, Any]] = []
+    for proposta in bozze[:50]:
+        fascicolo_id = _safe_text(proposta.get("fascicolo_id"))
+        fascicolo = fascicoli_by_id.get(fascicolo_id)
+        if fascicolo is None and fascicolo_id:
+            try:
+                fascicolo = fascicoli_manager.get(fascicolo_id)
+            except Exception:
+                fascicolo = None
+        rows.append(
+            {
+                "id": _safe_text(proposta.get("id")),
+                "fascicoloId": fascicolo_id,
+                "fascicoloLabel": _safe_text(
+                    getattr(fascicolo, "titolo", "") or getattr(fascicolo, "numero", "") or fascicolo_id
+                ),
+                "username": _safe_text(proposta.get("username")),
+                "data": _safe_text(proposta.get("inizio"))[:10],
+                "oraInizio": _safe_text(proposta.get("inizio"))[11:16],
+                "oraFine": _safe_text(proposta.get("fine"))[11:16],
+                "minuti": int(proposta.get("minuti") or 0),
+                "eventi": int(proposta.get("eventi") or 0),
+                "descrizione": _safe_text(proposta.get("descrizione")),
+                "confirmHref": f"/timesheet/proposte/{proposta.get('id')}/conferma",
+                "dismissHref": f"/timesheet/proposte/{proposta.get('id')}/scarta",
+            }
+        )
+    return rows
+
+
 def build_react_timesheet_payload(
     *,
     get_timesheet: Callable[[], Any],
@@ -246,6 +293,7 @@ def build_react_timesheet_payload(
             "notBillable": int(stats.get("non_fatturabili") or 0),
         },
         "entries": [_entry_payload(entry, clienti_by_id, fascicoli_by_id) for entry in entries],
+        "trackingProposals": _tracking_proposals_payload(timesheet, fascicoli_by_id, fascicoli_manager),
         "options": {
             "clients": clienti_options,
             "matters": fascicoli_options,

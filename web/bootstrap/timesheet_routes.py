@@ -116,6 +116,76 @@ def register_timesheet_routes(
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fascicolo, focus=focus or "workflow"))
         return redirect(url_for("timesheet_lista", id_cliente=id_cliente, id_fascicolo=id_fascicolo))
 
+    def _tracking_passivo():
+        from pathlib import Path
+
+        from pct.time_tracking_passivo import GestioneTrackingPassivo
+
+        gestore = get_timesheet()
+        base = Path(str(getattr(gestore, "db_path", "./timesheet/entries.json")))
+        return GestioneTrackingPassivo(db_path=str(base.parent / "tracking_passivo.json"))
+
+    @app.route("/timesheet/proposte/<id_proposta>/conferma", methods=["POST"])
+    def timesheet_proposta_conferma(id_proposta: str):
+        """Conferma una proposta del tracking passivo: crea la voce timesheet."""
+        from flask import jsonify
+
+        payload = request.get_json(silent=True) or request.form
+        gestore = get_timesheet()
+        utente = g.utente_corrente
+
+        def _crea_voce(dati: dict[str, Any]):
+            fascicolo = get_fascicoli().get(dati.get("id_fascicolo") or "")
+            return gestore.crea(
+                descrizione=dati.get("descrizione") or "",
+                minuti=int(dati.get("minuti") or 0),
+                id_fascicolo=dati.get("id_fascicolo") or "",
+                id_cliente=getattr(fascicolo, "id_cliente", "") or "",
+                id_utente=dati.get("id_utente") or getattr(utente, "id", ""),
+                username=dati.get("username") or getattr(utente, "username", ""),
+                data_attivita=dati.get("data_attivita") or "",
+                fatturabile=True,
+                origine=dati.get("origine") or "tracking_passivo",
+                note=dati.get("note") or "",
+            )
+
+        try:
+            minuti_raw = str(payload.get("minuti") or "").strip()
+            esito = _tracking_passivo().conferma(
+                id_proposta,
+                crea_voce_timesheet=_crea_voce,
+                minuti=int(minuti_raw) if minuti_raw.isdigit() else None,
+                descrizione=str(payload.get("descrizione") or ""),
+            )
+        except (KeyError, ValueError) as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Errore conferma proposta timesheet %s: %s", id_proposta, exc)
+            return jsonify({"ok": False, "message": f"Conferma non riuscita: {exc}"}), 200
+        audit(
+            "timesheet.proposta_confermata",
+            "timesheet",
+            esito.get("voce_timesheet_id") or id_proposta,
+            dettagli=f"proposta={id_proposta} minuti={esito.get('minuti')}",
+        )
+        message = f"Voce timesheet creata: {esito.get('minuti')} minuti sul fascicolo."
+        return jsonify({"ok": True, "message": message, "messaggio": message, "proposta": esito})
+
+    @app.route("/timesheet/proposte/<id_proposta>/scarta", methods=["POST"])
+    def timesheet_proposta_scarta(id_proposta: str):
+        from flask import jsonify
+
+        payload = request.get_json(silent=True) or request.form
+        try:
+            esito = _tracking_passivo().scarta(id_proposta, motivo=str(payload.get("motivo") or ""))
+        except KeyError as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 404
+        except Exception as exc:
+            return jsonify({"ok": False, "message": f"Scarto non riuscito: {exc}"}), 200
+        audit("timesheet.proposta_scartata", "timesheet", id_proposta, dettagli=esito.get("motivo_scarto") or "")
+        message = "Proposta scartata: non verra' riproposta."
+        return jsonify({"ok": True, "message": message, "messaggio": message})
+
     @app.route("/timesheet/<id_entry>/stato", methods=["POST"])
     def timesheet_cambia_stato(id_entry: str):
         gestore = get_timesheet()

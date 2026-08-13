@@ -4,11 +4,69 @@ import { AlertTriangle, Banknote, CalendarDays, CheckCircle2, Clock3, FileText, 
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
-import { getTimesheetPage, type TimesheetData, type TimesheetEntry } from '../timesheetData'
+import { getTimesheetPage, type TimesheetData, type TimesheetEntry, type TrackingProposal } from '../timesheetData'
 import './TimesheetPage.css'
 
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
+}
+
+function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingProposal[]; onDone:()=>void}) {
+  const [busyId, setBusyId] = useState('')
+  const [message, setMessage] = useState('')
+  const [minutesById, setMinutesById] = useState<Record<string, string>>({})
+  if (!proposals.length) return null
+  const send = async (href: string, id: string, body: Record<string, unknown>) => {
+    setBusyId(id); setMessage('')
+    try {
+      const response = await fetch(href, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify(body),
+      })
+      const payload = await response.json().catch(() => ({})) as { ok?:boolean; message?:string }
+      setMessage(payload.message || (response.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
+      if (payload.ok) window.setTimeout(onDone, 700)
+    } catch {
+      setMessage('Operazione non riuscita.')
+    } finally { setBusyId('') }
+  }
+  return (
+    <section className="iu-timesheet-proposals" aria-label="Proposte dal tracking passivo">
+      <header>
+        <span><Clock3 size={17}/> Tempo rilevato automaticamente</span>
+        <small>Sessioni di lavoro rilevate dalle attivita' registrate: conferma per creare la voce timesheet (art. 22-bis D.M. 55/2014) o scarta.</small>
+      </header>
+      {message ? <p className="iu-timesheet-proposals__msg" role="status">{message}</p> : null}
+      <ul>
+        {proposals.map((proposta) => (
+          <li key={proposta.id}>
+            <div className="iu-timesheet-proposals__info">
+              <strong>{proposta.fascicoloLabel}</strong>
+              <span>{proposta.data} · {proposta.oraInizio}-{proposta.oraFine} · {proposta.username}</span>
+              <em>{proposta.descrizione}</em>
+            </div>
+            <div className="iu-timesheet-proposals__actions">
+              <label>
+                <span>Minuti</span>
+                <input
+                  type="number" min={1} max={720}
+                  value={minutesById[proposta.id] ?? String(proposta.minuti)}
+                  onChange={(event) => setMinutesById((prev) => ({ ...prev, [proposta.id]: event.target.value }))}
+                />
+              </label>
+              <button type="button" disabled={busyId === proposta.id} onClick={() => send(proposta.confirmHref, proposta.id, { minuti: minutesById[proposta.id] ?? String(proposta.minuti) })}>
+                <CheckCircle2 size={15}/> Conferma
+              </button>
+              <button type="button" className="iu-timesheet-proposals__dismiss" disabled={busyId === proposta.id} onClick={() => send(proposta.dismissHref, proposta.id, {})}>
+                Scarta
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: ReactNode }) {
@@ -291,6 +349,8 @@ export function TimesheetPage() {
       </section>
 
       <FilterBar data={data} />
+
+      <TrackingProposalsSection proposals={data.trackingProposals} onDone={() => window.location.reload()} />
 
       <section className="iu-timesheet-layout">
         <div>

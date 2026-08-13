@@ -52,3 +52,21 @@
 @media(max-width:1180px){.iu-timesheet-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.iu-timesheet-layout{grid-template-columns:1fr}.iu-timesheet-side{position:static}.iu-timesheet-entry{grid-template-columns:1fr}}
 @media(max-width:720px){.iu-timesheet-page{padding:16px 14px 96px}.iu-timesheet-hero{flex-direction:column}.iu-timesheet-stats,.iu-timesheet-filters,.iu-timesheet-form{grid-template-columns:1fr}.iu-timesheet-filters__search{grid-column:auto}.iu-timesheet-entry dl{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.iu-timesheet-page *{scroll-behavior:auto;transition:none!important}}
+.iu-timesheet-proposals{background:white;border:1px solid var(--iu-border,#e2e8f0);border-radius:14px;padding:14px 16px;display:grid;gap:10px}
+.iu-timesheet-proposals header{display:grid;gap:2px}
+.iu-timesheet-proposals header span{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:900;color:#0f172a}
+.iu-timesheet-proposals header small{font-size:12px;font-weight:600;color:#64748b;line-height:1.4}
+.iu-timesheet-proposals__msg{margin:0;padding:8px 12px;border-radius:10px;background:rgba(2,132,199,.08);color:#0c4a6e;font-size:12.5px;font-weight:700}
+.iu-timesheet-proposals ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.iu-timesheet-proposals li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 12px;border:1px solid var(--iu-border,#e2e8f0);border-radius:12px;background:#f8fafc}
+.iu-timesheet-proposals__info{display:grid;gap:1px;min-width:0}
+.iu-timesheet-proposals__info strong{font-size:13.5px;font-weight:900;color:#111827}
+.iu-timesheet-proposals__info span{font-size:12px;font-weight:700;color:#64748b}
+.iu-timesheet-proposals__info em{font-size:12px;font-style:normal;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-timesheet-proposals__actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.iu-timesheet-proposals__actions label{display:grid;gap:1px;font-size:10.5px;font-weight:800;color:#64748b}
+.iu-timesheet-proposals__actions input{width:74px;min-height:34px;padding:0 8px;border:1px solid var(--iu-border,#e2e8f0);border-radius:9px;font-size:13px;font-weight:800}
+.iu-timesheet-proposals__actions button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:10px;border:1px solid rgba(22,163,74,.35);background:rgba(22,163,74,.1);color:#166534;font-size:12.5px;font-weight:900;cursor:pointer}
+.iu-timesheet-proposals__actions button.iu-timesheet-proposals__dismiss{border-color:var(--iu-border,#e2e8f0);background:white;color:#64748b}
+.iu-timesheet-proposals__actions button:disabled{opacity:.55;cursor:progress}
+@media (max-width:768px){.iu-timesheet-proposals li{flex-direction:column;align-items:stretch}.iu-timesheet-proposals__actions{justify-content:flex-end;flex-wrap:wrap}}

@@ -8580,7 +8580,175 @@ class PecAuditRepository:
             message_id,
             actor=actor,
         )
+        result["pagopa_receipt_automation"] = self.reconcile_pagopa_payment_receipt(
+            message_id,
+            actor=actor,
+        )
         return result
+
+    _PAGOPA_RT_MAX_BYTES = 2 * 1024 * 1024
+    _PAGOPA_RG_PATTERN = re.compile(r"(?:R\.?\s?G\.?[A-Z\.]*\s*(?:n\.?\s*)?)?(\d{1,7})\s*/\s*(20\d{2})")
+
+    def _pagopa_match_fascicolo_da_causale(self, manager: Any, causale: str) -> str:
+        """Match del fascicolo dal numero di ruolo nella causale della RT.
+
+        La causale dei pagamenti PST contiene di norma il riferimento RG
+        (es. "Contributo unificato RG 1234/2024"): match esatto su
+        numero_rg/anno_rg, e solo se unico (fail-closed: ambiguo → nessun
+        aggancio automatico).
+        """
+
+        candidati: set[str] = set()
+        for numero, anno in self._PAGOPA_RG_PATTERN.findall(causale or ""):
+            try:
+                fascicoli = [
+                    f for f in manager.tutti()
+                    if str(getattr(f, "numero_rg", "") or "").strip() == numero
+                    and str(getattr(f, "anno_rg", "") or "").strip() == anno
+                ]
+            except Exception:
+                return ""
+            candidati.update(str(getattr(f, "id", "") or "") for f in fascicoli)
+        candidati.discard("")
+        return next(iter(candidati)) if len(candidati) == 1 else ""
+
+    def reconcile_pagopa_payment_receipt(
+        self,
+        message_id: str,
+        *,
+        actor: str = "pec-pagopa-rt",
+    ) -> dict[str, Any]:
+        """Archivia nel fascicolo le Ricevute Telematiche pagoPA arrivate via posta.
+
+        Percorso conforme alle regole PST: nessun download autonomo dal portale;
+        se la RT.xml (schema ministeriale PagamentiTelematiciGiustizia) arriva
+        come allegato di un messaggio gia' acquisito dal presidio, viene
+        verificata e archiviata nel fascicolo collegato (o agganciato per RG
+        dalla causale, solo se il match e' univoco). Idempotente per hash.
+        """
+
+        try:
+            from pct.pagamenti_giustizia import parse_rt
+
+            with self.connect() as conn:
+                try:
+                    _ctx, payloads = self._attachment_payloads_for_message(conn, message_id)
+                except Exception:
+                    return {"ok": True, "skipped": True, "reason": "messaggio_non_disponibile"}
+                link = self.latest_link(conn, message_id)
+
+            ricevute: list[tuple[AttachmentPayload, Any]] = []
+            for item in payloads:
+                nome = str(item.filename or "").casefold()
+                if not nome.endswith((".xml", ".xml.p7m")):
+                    continue
+                if not item.data or len(item.data) > self._PAGOPA_RT_MAX_BYTES:
+                    continue
+                try:
+                    rt = parse_rt(item.data)
+                except Exception:
+                    rt = None
+                if rt is not None:
+                    ricevute.append((item, rt))
+            if not ricevute:
+                return {"ok": True, "skipped": True, "reason": "nessuna_rt_pagopa"}
+
+            if not self.fascicoli_db_path:
+                return {"ok": True, "skipped": True, "reason": "fascicoli_non_configurati"}
+            from pct.fascicoli import GestioneFascicoli, TipoDocumento
+
+            manager = GestioneFascicoli(
+                db_path=str(self.fascicoli_db_path),
+                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+            )
+            fascicolo_id = clean_text((link or {}).get("fascicolo_id"), 120)
+            if not fascicolo_id:
+                fascicolo_id = self._pagopa_match_fascicolo_da_causale(
+                    manager,
+                    " ".join(rt.causale for _item, rt in ricevute),
+                )
+            if not fascicolo_id:
+                return {
+                    "ok": True,
+                    "skipped": True,
+                    "reason": "fascicolo_non_determinabile",
+                    "ricevute": len(ricevute),
+                }
+            fascicolo = manager.get(fascicolo_id)
+            if fascicolo is None:
+                return {"ok": True, "skipped": True, "reason": "fascicolo_non_trovato"}
+
+            note_esistenti = " \n ".join(
+                str(getattr(doc, "note", "") or "")
+                for doc in list(getattr(fascicolo, "documenti", []) or [])
+            )
+            archiviate: list[dict[str, Any]] = []
+            gia_presenti = 0
+            for item, rt in ricevute:
+                digest = sha256_bytes(item.data)
+                marker = f"IUSENTRA_PAGOPA_RT:{digest[:16]}"
+                if marker in note_esistenti:
+                    gia_presenti += 1
+                    continue
+                nota = "\n".join(
+                    [
+                        marker,
+                        "Fonte: presidio PEC audit-grade IUSENTRA (ricevuta pagoPA in ingresso).",
+                        f"esito: {rt.esito_label}",
+                        f"importo: {rt.importo_totale:.2f} EUR",
+                        f"iuv: {rt.iuv or 'n.d.'}",
+                        f"data_ricevuta: {rt.data_ricevuta or 'n.d.'}",
+                        f"pec_audit_message_id: {message_id}",
+                    ]
+                )
+                try:
+                    documento = manager.aggiungi_documento(
+                        fascicolo_id,
+                        str(item.filename or "RT.xml"),
+                        TipoDocumento.ALLEGATO,
+                        item.data,
+                        note=nota,
+                        tags=["pagopa", "ricevuta-pagamento", "pagamenti-giustizia"],
+                        data_documento=clean_text(rt.data_ricevuta, 10) or date.today().isoformat(),
+                        caricato_da=actor,
+                        fonte_documento="PAGOPA_RT_PEC",
+                        hash_contenuto_sha256=digest,
+                        msg_id_portale=message_id,
+                    )
+                except Exception as exc:
+                    archiviate.append({"filename": item.filename, "ok": False, "error": clean_text(exc, 200)})
+                    continue
+                archiviate.append(
+                    {
+                        "filename": item.filename,
+                        "ok": True,
+                        "document_id": clean_text(getattr(documento, "id", ""), 80),
+                        "esito": rt.esito_label,
+                        "importo": round(rt.importo_totale, 2),
+                        "iuv": rt.iuv,
+                        "pagamento_eseguito": rt.pagamento_eseguito,
+                    }
+                )
+            if archiviate:
+                with self.connect() as audit_conn:
+                    self.append_audit(
+                        audit_conn,
+                        action="pec.pagopa_rt.archived",
+                        resource_type="pec_message",
+                        resource_id=message_id,
+                        payload={"fascicolo_id": fascicolo_id, "ricevute": archiviate},
+                        actor=actor,
+                    )
+            return {
+                "ok": True,
+                "skipped": False,
+                "fascicolo_id": fascicolo_id,
+                "archiviate": archiviate,
+                "gia_presenti": gia_presenti,
+            }
+        except Exception as exc:
+            return {"ok": False, "skipped": False, "reason": clean_text(exc, 500)}
 
     def refresh_validation_reports(
         self,

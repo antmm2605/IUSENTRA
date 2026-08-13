@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.39 - 2026-08-13
+
+- **Ricevute pagoPA intercettate automaticamente dalla posta.** Il presidio PEC ora riconosce gli allegati `RT.xml` pagoPA in ingresso (schema ministeriale `PagamentiTelematiciGiustizia`, anche firmati `.p7m`), li verifica e li archivia da solo nel fascicolo collegato al messaggio — o agganciato dal numero di ruolo presente nella causale, solo quando il match è univoco (fail-closed: RG ambiguo → nessun automatismo). Esito, importo e IUV nelle note del documento; idempotente per hash; evento in audit hash-chain. Nuovo `reconcile_pagopa_payment_receipt` in `pct/pec_pipeline.py`, suite `tests/test_pec_pagopa_rt.py` (5 test). Chiude il cerchio del flusso pagamenti: calcolo CU → pagamento sul portale ufficiale → ricevuta che si archivia da sola.
+- **Fix CI: pannello rapido allineato alla policy design system.** Il posizionamento del menu contestuale sulla riga fascicolo ora usa lo snippet inline autorizzato dalla governance (`left: position.x, top: position.y` — eccezione già prevista dalla policy per i popover che seguono il click). Sblocca la catena CI → sync Codex → deploy Hetzner ferma dalla 2.278.36.
+
 ## 2.278.38 - 2026-08-13
 
 - **Pannello rapido del fascicolo (tasto destro sulla riga).** Nell'elenco fascicoli il click destro su una riga apre un menu contestuale con il flusso operativo completo: apri fascicolo, registro su portale servizi, calcolo del contributo unificato già prefillato dal fascicolo, pagamento su pagoPA giustizia (portale ufficiale), caricamento della ricevuta telematica RT con verifica automatica, generazione fattura proforma, deposito telematico, notifica in proprio, PEC del fascicolo filtrate per RG/cliente, copia riferimento.

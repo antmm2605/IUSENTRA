@@ -2095,8 +2095,10 @@ function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:
   }, [onClose])
   // Il pannello resta nel viewport anche vicino ai bordi.
   const width = 300
-  const left = Math.max(8, Math.min(state.x, window.innerWidth - width - 8))
-  const top = Math.max(8, Math.min(state.y, window.innerHeight - 420))
+  const position = {
+    x: Math.max(8, Math.min(state.x, window.innerWidth - width - 8)),
+    y: Math.max(8, Math.min(state.y, window.innerHeight - 420)),
+  }
   const pecQuery = !item.rgMissing && item.rg && item.rg !== 'n.d.' ? item.rg : item.client
   const generaProforma = async () => {
     setBusy(true); setMessage('Generazione proforma...')
@@ -2131,7 +2133,7 @@ function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:
     } catch { setMessage('Copia non disponibile in questo browser.') }
   }
   return (
-    <div className="iu-fas-quick-panel" ref={panelRef} role="menu" aria-label={`Pannello rapido ${item.ref}`} data-iusentra-quick-panel style={{ left, top }}>
+    <div className="iu-fas-quick-panel" ref={panelRef} role="menu" aria-label={`Pannello rapido ${item.ref}`} data-iusentra-quick-panel style={{ left: position.x, top: position.y }}>
       <header>
         <strong>{item.ref}</strong>
         <span>{item.client}</span>

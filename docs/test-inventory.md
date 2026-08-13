@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 568.
+- File pytest censiti: 569.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -17,7 +17,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | E2E | 9 |
 | Frontend static gate | 1 |
 | Frontend/UI | 175 |
-| RBAC | 56 |
+| RBAC | 57 |
 | Security | 38 |
 | Smoke CLI | 6 |
 | Tenant isolation | 137 |
@@ -32,7 +32,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 48 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 39 |
-| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 58 |
+| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 59 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 163 |
@@ -608,6 +608,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Frontend/UI | tests/test_telematico_resilience.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | RBAC | tests/test_deposito.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_deposito_anagrafica_ministeriale.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | RBAC | tests/test_deposito_destination_tables.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pdp_penale_web.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pdp_penale_workflow.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_integration.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |

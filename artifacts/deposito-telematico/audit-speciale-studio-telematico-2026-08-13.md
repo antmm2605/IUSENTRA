@@ -99,3 +99,20 @@ La prova materiale è stata completata in Google Chrome sul PC reale, nella pagi
 La composizione tecnica della busta, il confronto con Studio Telematico e la prova visibile Chrome-Local Signer sono positivi; nessuna PEC è stata inviata. L'esito tecnico preventivo non sostituisce l'esito ministeriale o l'accettazione della cancelleria dopo un eventuale invio reale. Restano da chiudere il deploy sul commit versionato e il riallineamento della copia locale.
 
 Il gate di regressione esteso del deposito ha eseguito `254` test su busta, catalogo, tabelle di destinazione, profili, classificazione, firma, Local Signer, PEC locale, simulazione, ricevute e UI React. Tutti i test sono superati. Il catalogo separato conferma `270/270` tipi e `270/270` controlli di ruolo ministeriale, senza errori.
+
+## Collaudo conclusivo post-deploy del 13/08/2026
+
+Il collaudo conclusivo è stato ripetuto sulla pagina autenticata di produzione del fascicolo `B494AAB9`, con Local Signer e dispositivo di firma reali del PC dell'avvocato. Sono stati eseguiti sia `Prova senza invio reale` sia `Simula invio PEC`; `Invia deposito reale` non è stato premuto.
+
+- riferimento della simulazione: `DBD55C86`;
+- esito visibile: `8/8` controlli superati e compatibilità `100%`;
+- documenti selezionati: `12`, con atto principale `Ricorso.pdf.p7m` e procura classificata;
+- apertura fascicolo: area `Lavoro e previdenza`, tipo `LAVORO`, oggetto `Carta docente`, codice `222050`;
+- destinazione risolta: Tribunale di Vicenza, codice PST `0241160092`, canale `PCT lavoro / SICID`, PEC `tribunale.vicenza@civile.ptel.giustiziacert.it`;
+- tabella oggetti: `222050` appartiene alla famiglia `222 - Pubblico impiego` ed è coerente con il fascicolo;
+- contributo unificato: esenzione governata e autocertificazione reddituale inclusa;
+- stato registrato: `PROVA_SENZA_INVIO`, `id_deposito_esterno` vuoto, nessun Message-ID e nessuna PEC trasmessa;
+- Audit visibile: `8` eventi dopo la simulazione;
+- interazione: scroll completo, hover dei comandi finali e navigazione da tastiera verificati; pulsanti leggibili e senza salti di layout.
+
+Sono stati inoltre rieseguiti i test mirati sulle tabelle di destinazione e sul catalogo telematico: `27` test superati. Il controllo copre corrispondenza ufficio/PEC/servizio/registro/rito/oggetto e conserva l'audit globale `270/270` tipi senza casi aperti.

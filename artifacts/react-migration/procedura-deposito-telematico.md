@@ -5908,3 +5908,16 @@ Stato: busta e firme verificate tecnicamente sul caso reale. La prova materiale 
 Stato: verifica automatica e prova materiale di produzione positive; deploy del commit definitivo e prova sulla copia locale ancora da eseguire. Nessuna PEC reale è stata inviata.
 
 Guardrail finale: `254` test mirati dell'intero deposito superati, build e typecheck React superati, integrità UTF-8 e coerenza di packaging superate. Il catalogo decompilato è stato rieseguito su `270/270` tipi e `270/270` ruoli ministeriali senza errori. Il registro dei portali dedicati, incluso `PTT_RICORSI`, resta distinto dai ruoli PCT civili; le prove Audit includono realmente `Atto.msg` e `Atto.enc` e i nomi allegati restano quelli ministeriali logici.
+
+### Collaudo conclusivo post-deploy del 13/08/2026
+
+- Pagina reale di produzione: fascicolo `B494AAB9`, fase `Busta e indice`.
+- Local Signer e dispositivo di firma reali utilizzati esclusivamente per la prova; il PIN non è stato scritto in file o log.
+- `Prova senza invio reale` e `Simula invio PEC` completate con riferimento `DBD55C86`.
+- UI osservata: `8/8`, compatibilità `100%`, `12` documenti, Tribunale di Vicenza, PCT Lavoro/SICID, Audit `8`.
+- Apertura e destinazione coincidono: Carta docente, area Lavoro, oggetto ministeriale `222050` della famiglia Pubblico impiego, ufficio `0241160092` e PEC civile ministeriale.
+- Stato persistito `PROVA_SENZA_INVIO`; nessun `id_deposito_esterno`, nessun Message-ID e nessuna PEC reale.
+- Il pulsante di invio reale si abilita soltanto dopo la prova positiva; è stato controllato ma non premuto.
+- Test tabellari e catalogo rieseguiti: `27` test mirati superati, oltre al gate esteso da `254` test e all'audit `270/270` già registrati.
+
+Esito operativo: il preflight tecnico del pacchetto è positivo sul caso reale. L'accettazione sostanziale resta determinata esclusivamente dalle ricevute ministeriali e dalla cancelleria dopo un eventuale invio reale dell'avvocato.

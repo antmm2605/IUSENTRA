@@ -2072,6 +2072,87 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
   )
 }
 
+// URL ufficiale pagamenti pagoPA di giustizia (vademecum PST versionato):
+// il pagamento avviene sul portale autenticato, mai dal gestionale.
+const PAGOPA_GIUSTIZIA_URL = 'https://servizipst.giustizia.it/PST/it/pagopa.wp'
+
+type QuickPanelState = { item: FascicoloRow; x: number; y: number }
+
+function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:()=>void}) {
+  const { item } = state
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    const onDown = (event: Event) => {
+      if (panelRef.current && event.target instanceof Node && !panelRef.current.contains(event.target)) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown) }
+  }, [onClose])
+  // Il pannello resta nel viewport anche vicino ai bordi.
+  const width = 300
+  const left = Math.max(8, Math.min(state.x, window.innerWidth - width - 8))
+  const top = Math.max(8, Math.min(state.y, window.innerHeight - 420))
+  const pecQuery = !item.rgMissing && item.rg && item.rg !== 'n.d.' ? item.rg : item.client
+  const generaProforma = async () => {
+    setBusy(true); setMessage('Generazione proforma...')
+    try {
+      const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(item.id)}/proforma/genera`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: '{}',
+      })
+      const payload = await response.json().catch(() => ({})) as { message?:string; messaggio?:string; ok?:boolean }
+      setMessage(payload.message || payload.messaggio || (response.ok ? 'Proforma collegata al fascicolo.' : 'Generazione non riuscita.'))
+    } catch { setMessage('Generazione non riuscita.') } finally { setBusy(false) }
+  }
+  const caricaRicevuta = async (file: File) => {
+    setBusy(true); setMessage('Verifica ricevuta telematica...')
+    try {
+      const form = new FormData()
+      form.append('ricevuta', file)
+      const response = await fetch(`/fascicoli/${encodeURIComponent(item.id)}/ricevuta-pagamento`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: form,
+      })
+      const payload = await response.json().catch(() => ({})) as { message?:string; ok?:boolean }
+      setMessage(payload.message || 'Caricamento non riuscito.')
+    } catch { setMessage('Caricamento non riuscito.') } finally { setBusy(false) }
+  }
+  const copiaRiferimento = async () => {
+    try {
+      await navigator.clipboard.writeText(`${item.ref} — ${item.client}`)
+      setMessage('Riferimento copiato negli appunti.')
+    } catch { setMessage('Copia non disponibile in questo browser.') }
+  }
+  return (
+    <div className="iu-fas-quick-panel" ref={panelRef} role="menu" aria-label={`Pannello rapido ${item.ref}`} data-iusentra-quick-panel style={{ left, top }}>
+      <header>
+        <strong>{item.ref}</strong>
+        <span>{item.client}</span>
+      </header>
+      <a role="menuitem" href={item.href}><Eye size={15}/> Apri fascicolo</a>
+      <a role="menuitem" href="/polisweb"><Landmark size={15}/> Registro su portale servizi</a>
+      <a role="menuitem" href={`/strumenti-legali/?tool=contributo_unificato&id_fascicolo=${encodeURIComponent(item.id)}`}><Calculator size={15}/> Calcola contributo unificato</a>
+      <a role="menuitem" href={PAGOPA_GIUSTIZIA_URL} target="_blank" rel="noopener noreferrer"><Euro size={15}/> Paga contributo su pagoPA</a>
+      <button role="menuitem" type="button" disabled={busy} onClick={() => fileRef.current?.click()}><FileCheck2 size={15}/> Carica ricevuta pagamento (RT)</button>
+      <input ref={fileRef} type="file" accept=".xml,.p7m" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) caricaRicevuta(file); event.target.value = '' }}/>
+      <button role="menuitem" type="button" disabled={busy} onClick={generaProforma}><Euro size={15}/> Genera fattura proforma</button>
+      <a role="menuitem" href={`/fascicoli/${encodeURIComponent(item.id)}/deposito/prepara`}><UploadCloud size={15}/> Deposito telematico</a>
+      <a role="menuitem" href={`/notifiche-legali?id_fascicolo=${encodeURIComponent(item.id)}&fase=notifica#notifica`}><Send size={15}/> Notifica in proprio</a>
+      <a role="menuitem" href={`/email/?q=${encodeURIComponent(pecQuery)}`}><Mail size={15}/> PEC del fascicolo</a>
+      <button role="menuitem" type="button" onClick={copiaRiferimento}><Copy size={15}/> Copia riferimento</button>
+      {message ? <p className="iu-fas-quick-panel__msg" role="status">{message}</p> : null}
+      <footer>Il pagamento e il download della ricevuta avvengono sul portale ufficiale autenticato; qui la RT viene verificata e archiviata.</footer>
+    </div>
+  )
+}
+
 function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, onPagePrefetch, pendingPage = null, view = 'operativa', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; onPagePrefetch?:(value:number)=>void; pendingPage?:number | null; view?:ListView; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
   const economic = view === 'economica' && !archive
   const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
@@ -2079,6 +2160,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   const totalLabel = filtered ? 'fascicoli filtrati' : 'fascicoli'
   const handleError = onError || (() => {})
   const [expandedEconomicId, setExpandedEconomicId] = useState<string | null>(null)
+  const [quickPanel, setQuickPanel] = useState<QuickPanelState | null>(null)
   const statusCell = (item: FascicoloRow) => (
     !archive && onStatusSaved
       ? <StatusEditCell item={item} onSaved={onStatusSaved} onError={handleError}/>
@@ -2170,7 +2252,10 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               const economicEditorId = `economic-editor-${item.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
               return (
                 <Fragment key={item.id}>
-                  <tr className={[economicEditorOpen ? 'is-economic-open' : '', item.duplicateCount > 1 ? 'iu-fas-row--duplicate' : ''].filter(Boolean).join(' ') || undefined}>
+                  <tr
+                    className={[economicEditorOpen ? 'is-economic-open' : '', item.duplicateCount > 1 ? 'iu-fas-row--duplicate' : ''].filter(Boolean).join(' ') || undefined}
+                    onContextMenu={(event) => { event.preventDefault(); setQuickPanel({ item, x: event.clientX, y: event.clientY }) }}
+                  >
                     <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
                     <td>
                       {economic
@@ -2256,6 +2341,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       <div className="iu-fas-mobile-list">
         {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} economic={economic} onDeleted={onDeleted} onError={onError} onPaymentSaved={onPaymentSaved} key={item.id}/>) }
       </div>
+      {quickPanel ? <FascicoloQuickPanel state={quickPanel} onClose={() => setQuickPanel(null)}/> : null}
     </IusentraDataSurface>
   )
 }

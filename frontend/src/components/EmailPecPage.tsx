@@ -1521,9 +1521,15 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const copy = mailboxCopy[mode]
   const [data, setData] = useState<EmailPecPageData>(copy.emptyData)
   const [loading, setLoading] = useState(true)
-  const [folder, setFolder] = useState<EmailFolder>('INBOX')
-  const [query, setQuery] = useState('')
-  const [deferredQuery, setDeferredQuery] = useState('')
+  // Deep-link: /email/?q=... apre la casella gia' filtrata (es. dal pannello
+  // rapido del fascicolo: RG + cliente); ?cartella= seleziona la cartella.
+  const initialParams = useMemo(() => new URLSearchParams(window.location.search), [])
+  const folderParam = (initialParams.get('cartella') || '').toUpperCase()
+  const initialFolder: EmailFolder = folderParam === 'INVIATI' || folderParam === 'CESTINO' ? folderParam : 'INBOX'
+  const initialQuery = initialParams.get('q') || ''
+  const [folder, setFolder] = useState<EmailFolder>(initialFolder)
+  const [query, setQuery] = useState(initialQuery)
+  const [deferredQuery, setDeferredQuery] = useState(initialQuery)
   const [status, setStatus] = useState<EmailStatus>('tutti')
   const [sort, setSort] = useState<SortKey>('recenti')
   const [onlyPst, setOnlyPst] = useState(false)

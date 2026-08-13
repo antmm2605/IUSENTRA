@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, redirect, render_template, request, url_for
@@ -120,6 +121,85 @@ def register_polisweb_routes(
             return jsonify({"ok": False, "message": f"Aggancio RG non riuscito: {exc}"}), 200
         message = f"RG {numero_rg}/{anno_rg} agganciato al fascicolo dal registro."
         return jsonify({"ok": True, "message": message, "messaggio": message})
+
+    @app.route("/fascicoli/<id_fasc>/ricevuta-pagamento", methods=["POST"])
+    def fascicolo_carica_ricevuta_pagamento(id_fasc):
+        """Carica una Ricevuta Telematica pagoPA nel fascicolo, verificandola.
+
+        Il download della RT avviene sul portale ufficiale con autenticazione
+        dell'avvocato (regole PST: niente sessioni salvate ne' download
+        autonomo); qui il file scaricato viene letto, verificato secondo lo
+        schema ministeriale PagamentiTelematiciGiustizia e archiviato tra i
+        documenti del fascicolo con l'esito in nota.
+        """
+        from flask import jsonify
+
+        from pct.fascicoli import TipoDocumento
+        from pct.pagamenti_giustizia import parse_rt
+
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("fascicoli.scrivi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        gestore = get_fascicoli()
+        fascicolo = gestore.get(id_fasc)
+        if fascicolo is None:
+            return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
+        upload = request.files.get("ricevuta")
+        if upload is None or not upload.filename:
+            return jsonify({"ok": False, "message": "Nessun file ricevuta selezionato."}), 400
+        nome = Path(upload.filename).name
+        if not nome.casefold().endswith((".xml", ".xml.p7m")):
+            return jsonify({
+                "ok": False,
+                "message": "La ricevuta telematica e' il file RT in formato XML (anche firmato .p7m) scaricato dal portale pagamenti.",
+            }), 400
+        contenuto = upload.read()
+        if len(contenuto) > 2 * 1024 * 1024:
+            return jsonify({"ok": False, "message": "File troppo grande per essere una ricevuta telematica."}), 400
+        try:
+            rt = parse_rt(contenuto)
+        except Exception:
+            rt = None
+        if rt is None:
+            return jsonify({
+                "ok": False,
+                "message": "Il file non e' una Ricevuta Telematica pagoPA valida (schema PagamentiTelematiciGiustizia).",
+            }), 400
+        nota = (
+            f"Ricevuta telematica pagoPA — esito: {rt.esito_label}; importo {rt.importo_totale:.2f} EUR; "
+            f"IUV {rt.iuv or 'n.d.'}; data {rt.data_ricevuta or 'n.d.'}"
+        )
+        try:
+            documento = gestore.aggiungi_documento(
+                id_fasc,
+                nome,
+                TipoDocumento.ALLEGATO,
+                contenuto,
+                note=nota,
+                caricato_da=getattr(utente, "username", "") or "",
+                fonte_documento="pagopa_rt",
+            )
+        except Exception as exc:
+            return jsonify({"ok": False, "message": f"Archiviazione non riuscita: {exc}"}), 200
+        audit(
+            "pagamenti.ricevuta_rt",
+            "fascicolo",
+            id_fasc,
+            dettagli=f"{nome}: {rt.esito_label}, {rt.importo_totale:.2f} EUR, IUV {rt.iuv or 'n.d.'}",
+        )
+        message = (
+            f"Ricevuta verificata e archiviata nel fascicolo: {rt.esito_label}, "
+            f"{rt.importo_totale:.2f} EUR (IUV {rt.iuv or 'n.d.'})."
+        )
+        if not rt.pagamento_eseguito:
+            message += " Attenzione: la ricevuta non prova un pagamento eseguito."
+        return jsonify({
+            "ok": True,
+            "message": message,
+            "messaggio": message,
+            "ricevuta": rt.to_dict(),
+            "documento_id": getattr(documento, "id", ""),
+        })
 
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():

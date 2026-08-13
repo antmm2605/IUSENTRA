@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.38 - 2026-08-13
+
+- **Pannello rapido del fascicolo (tasto destro sulla riga).** Nell'elenco fascicoli il click destro su una riga apre un menu contestuale con il flusso operativo completo: apri fascicolo, registro su portale servizi, calcolo del contributo unificato già prefillato dal fascicolo, pagamento su pagoPA giustizia (portale ufficiale), caricamento della ricevuta telematica RT con verifica automatica, generazione fattura proforma, deposito telematico, notifica in proprio, PEC del fascicolo filtrate per RG/cliente, copia riferimento.
+- **Ricevuta pagoPA verificata e archiviata nel fascicolo.** Nuova route `/fascicoli/<id>/ricevuta-pagamento`: la RT scaricata dal portale (anche firmata `.p7m`) viene letta secondo lo schema ministeriale, l'esito/importo/IUV finiscono nelle note del documento e l'operazione è tracciata in audit. Il pagamento e il download della ricevuta restano sul portale ufficiale autenticato (regole PST: nessuna sessione salvata, nessun download autonomo).
+- **Mailbox con deep-link.** `/email/?q=...&cartella=...` apre la casella già filtrata: il pannello rapido la usa per mostrare le PEC del fascicolo (ricerca per numero di ruolo o nome cliente).
+
 ## 2.278.37 - 2026-08-13
 
 - **Antiriciclaggio D.Lgs. 231/2007 — adeguata verifica della clientela (gap n.3 dell'analisi di mercato).** Nuovo dominio `pct/antiriciclaggio.py`: schede di adeguata verifica per cliente/prestazione con catalogo chiuso delle prestazioni in ambito (art. 3 c.4 lett. c) ed esclusione dell'attività difensiva (art. 17 c.7); titolare effettivo ex art. 20; griglia di profilatura CNF a 3 macro-aree (cliente, operazione, area geografica) con punteggi 1-5 per indice.

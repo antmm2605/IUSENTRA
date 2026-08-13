@@ -71,9 +71,22 @@ def _save_state(state_path: str, state: dict[str, Any]) -> None:
         pass
 
 
-def _fascicolo_sincronizzabile(fascicolo: Any) -> bool:
-    """Civile con RG e ufficio noti, non archiviato, sync eventi non disattivato."""
+# Tipologie fuori dai registri Polisweb: penale → PDP, amministrativo → PAT,
+# tributario → SIGIT, stragiudiziale/consulenza → nessun registro di cancelleria.
+_TIPI_NON_POLISWEB = {"PENALE", "AMMINISTRATIVO", "TRIBUTARIO", "STRAGIUDIZIALE", "CONSULENZA"}
 
+
+def _fascicolo_sincronizzabile(fascicolo: Any) -> bool:
+    """Fascicolo nei registri Polisweb, con RG e ufficio noti, non archiviato.
+
+    Coperti (Fase 5): civile SICID, lavoro SIL, volontaria giurisdizione SIVG,
+    minorenni, esecuzioni/concorsuali SIECIC, giudice di pace SIGP. Esclusi i
+    riti che viaggiano su altri portali (vedi ``_TIPI_NON_POLISWEB``).
+    """
+
+    tipo = str(getattr(getattr(fascicolo, "tipo", ""), "value", getattr(fascicolo, "tipo", "")) or "")
+    if tipo.upper() in _TIPI_NON_POLISWEB:
+        return False
     numero = str(getattr(fascicolo, "numero_rg", "") or "").strip()
     anno = str(getattr(fascicolo, "anno_rg", "") or "").strip()
     ufficio = str(

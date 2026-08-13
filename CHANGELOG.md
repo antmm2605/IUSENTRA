@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.35 - 2026-08-13
+
+- **Sync Polisweb — Fase 5: tutti i registri, non solo il civile.** La lettura di udienze e scadenze dal registro (`consulta_scadenze`) ora copre anche esecuzioni mobiliari/immobiliari e procedure concorsuali (SIECIC), giudice di pace (SIGP), lavoro, volontaria giurisdizione e minorenni — ciascuno con i parametri del proprio catalogo ministeriale WSDL v1.52 (SIECIC: `registro`+`idDfa`; SIGP: `subProcedimento`; SICID: parametri completi). La Cassazione resta esclusa perché i cataloghi CASSCI/CASSPE non espongono la classe `InfoScadenze` (fonte certa, non limitazione nostra).
+- **Job automatico esteso e più preciso.** Il job `sync_polisweb_registri` ora seleziona i fascicoli di tutti i registri Polisweb ed esclude i riti che viaggiano su altri portali (penale → PDP, amministrativo → PAT, tributario → SIGIT, stragiudiziale/consulenza).
+- **Guardrail.** Nuova suite `tests/test_polisweb_scadenze_registri.py`: parametri per famiglia di catalogo verificati contro le definizioni ministeriali, Cassazione esclusa senza errori, selezione job per tipologia. Base normativa: D.M. 44/2011, cataloghi DGSIA WSDL v1.52.
+
 ## 2.278.34 - 2026-08-12
 
 - **Sync Polisweb — Fasi 3 e 4: job automatico + aggancio RG.** Nuovo job governato `sync_polisweb_registri` (console Pianificazioni, famiglia "Depositi telematici", cron `*/30` ore 7-20) che allinea i fascicoli civili ai registri di cancelleria **senza intervento dell'avvocato**. Attivo solo per gli studi con certificato P12/PEM configurato sul server (autenticazione mTLS, nessun PIN); con la sola smart card il giro si salta e resta il pulsante manuale "Aggiorna dal registro" (presidio informativo, non errore). Nuovo `pct/polisweb_sync_job.py`.

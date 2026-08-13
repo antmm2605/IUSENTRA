@@ -2051,15 +2051,18 @@ class ClientPolisWeb:
 
         Base normativa: consultazione registri PST (D.M. 44/2011). Ritorna una
         lista di ``EventoRegistro`` normalizzati; le date non sono termini
-        legali (alimentano proposte in BOZZA da confermare). Supportato oggi
-        sul registro civile SICID; per gli altri registri ritorna lista vuota
-        senza errori (estensione graduale).
+        legali (alimentano proposte in BOZZA da confermare). La classe
+        ``InfoScadenze`` esiste nei cataloghi ministeriali v1.52 di SICID
+        (catalog_sicc_be.xml), SIECIC (catalog_siecic_be.xml) e SIGP
+        (catalogJpw.xml) con parametri diversi per famiglia; i cataloghi di
+        Cassazione non la espongono, quindi CASSCI/CASSPE ritornano lista
+        vuota senza errori.
         """
 
         from pct.polisweb_eventi import normalizza_eventi
 
         spec = _polisweb_registro_spec(registro, servizio_pst_preferito)
-        if spec.cassazione or spec.siecic or spec.sigp:
+        if spec.cassazione:
             return []
         preferito = servizio_pst_preferito or spec.servizio_preferito
         base_pst = self._risolvi_base_pst(codice_ufficio, preferito=preferito)
@@ -2067,19 +2070,36 @@ class ClientPolisWeb:
         if not _pst_usa_qbuilder(base_pst):
             return []
         role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+        comuni = [
+            ("idUfficio", "string", codice_pst),
+            ("annoRuolo", "integer", anno_rg),
+            ("numeroRuolo", "string", _numero_ruolo_value(numero_rg)),
+        ]
+        if spec.siecic:
+            # Catalogo SIECIC: filtri registro (ESM/ESIM/FALL) e idDfa; niente subProcedimento.
+            values = comuni + [
+                ("idRuoloJPW", "string", role),
+                ("registro", "string", spec.registro if spec.registro != "SIECIC" else ""),
+                ("idDfa", "string", id_dfa),
+            ]
+        elif spec.sigp:
+            # Catalogo SIGP: filtro subProcedimento; niente registro/idDfa/idRuoloJPW.
+            values = comuni + [
+                ("subProcedimento", "string", sub_procedimento or ""),
+            ]
+        else:
+            # Catalogo SICID (civile, lavoro, volontaria, minorenni).
+            values = comuni + [
+                ("subProcedimento", "string", sub_procedimento or ""),
+                ("idRuoloJPW", "string", role),
+                ("registro", "string", spec.registro),
+                ("idDfa", "string", id_dfa),
+            ]
         body = self._soap_qbuilder_execute_body(
             base_pst,
             codice_pst,
             "InfoScadenze",
-            [
-                ("idUfficio", "string", codice_pst),
-                ("annoRuolo", "integer", anno_rg),
-                ("numeroRuolo", "string", _numero_ruolo_value(numero_rg)),
-                ("subProcedimento", "string", sub_procedimento or ""),
-                ("idRuoloJPW", "string", role),
-                ("registro", "string", spec.registro if spec.registro != "SIECIC" else ""),
-                ("idDfa", "string", id_dfa),
-            ],
+            values,
             order_by="dataScadenza",
             ruolo_polisweb=role,
         )

@@ -584,6 +584,10 @@
     sources.forEach(function (item) {
       var title = String(item && (item.title || item.citation || item.id || '') || '').trim();
       var excerpt = String(item && (item.excerpt || item.text || '') || '').trim();
+      // Citazione cliccabile: href interno al gestionale (documento del
+      // fascicolo, pagina inclusa) reso come link che apre la fonte esatta.
+      var href = String(item && (item.href || item.document_href || '') || '').trim();
+      var isInternalHref = href.charAt(0) === '/' && href.indexOf('//') !== 0;
       var accessLabel = String(item && (item.source_access_label || item.access_label || '') || '').trim();
       var requiresCredentials = Boolean(item && item.source_requires_credentials);
       var restricted = Boolean(item && item.source_restricted);
@@ -605,9 +609,13 @@
       if (!title && !excerpt) {
         return;
       }
+      var titleHtml = isInternalHref
+        ? '<a class="fw-semibold pct-ai-source-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' +
+            escapeHtml(title || 'Fonte') + ' <i class="bi bi-box-arrow-up-right small"></i></a>'
+        : '<span class="fw-semibold">' + escapeHtml(title || 'Fonte') + '</span>';
       items.push(
         '<li>' +
-          '<span class="fw-semibold">' + escapeHtml(title || 'Fonte') + '</span>' +
+          titleHtml +
           (badge ? '<div class="mt-1">' + badge + '</div>' : '') +
           (excerpt ? '<div class="small text-muted">' + escapeHtml(excerpt.slice(0, 220)) + '</div>' : '') +
           (note ? '<div class="small text-muted mt-1">' + escapeHtml(note) + '</div>' : '') +

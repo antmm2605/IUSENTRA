@@ -2167,6 +2167,35 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(hour="20", minute="30"), id="time_tracking_passivo")
+    def _time_tracking_passivo():
+        """Proposte di timesheet dal segnale audit del giorno (conferma manuale)."""
+        with app.app_context():
+            try:
+                from datetime import timedelta as _td
+
+                from pct.auth import GestioneUtenti
+                from pct.time_tracking_passivo import GestioneTrackingPassivo
+
+                gestore_utenti = GestioneUtenti(
+                    db_path=app.config.get("AUTH_DB", "./auth/utenti.json"),
+                    audit_path=app.config.get("AUDIT_DB", "./audit/audit.json"),
+                )
+                da = (datetime.now() - _td(days=1)).isoformat()
+                eventi = gestore_utenti.audit_log(da=da, limit=5000)
+                timesheet_db = app.config.get("TIMESHEET_DB", "./timesheet/entries.json")
+                tracking = GestioneTrackingPassivo(
+                    db_path=str(Path(timesheet_db).parent / "tracking_passivo.json"),
+                )
+                nuove = tracking.genera_da_eventi(eventi)
+                if nuove:
+                    logger.info(
+                        "[scheduler] Time tracking passivo: %d proposte in bozza da confermare",
+                        len(nuove),
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Time tracking passivo fallito: %s", e)
+
     @scheduler.scheduled_job(CronTrigger(minute="*/30", hour="7-20"), id="sync_polisweb_registri")
     def _sync_polisweb_registri():
         with app.app_context():

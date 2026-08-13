@@ -586,7 +586,22 @@ def _citation_label(citation: Citation) -> str:
     return title or excerpt
 
 
-def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
+def _document_citation_href(fascicolo_id: str, document_id: str, page_no: Any = None) -> str:
+    """Link interno al viewer documento per la citazione cliccabile in chat."""
+
+    if not fascicolo_id or not document_id:
+        return ""
+    from urllib.parse import quote
+
+    base = f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(document_id, safe='')}/visualizza"
+    try:
+        page = int(page_no or 0)
+    except (TypeError, ValueError):
+        page = 0
+    return f"{base}?page={page}" if page > 0 else base
+
+
+def _source_rows(response: LexResponse, *, fascicolo_id: str = "") -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
     workflow = _clean_spaces(response.metadata.get("workflow"))
@@ -602,6 +617,7 @@ def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
                 "title": _clean_spaces(row.get("title")) or "Fonte",
                 "excerpt": _clean_spaces(row.get("excerpt")),
                 "url": _clean_spaces(row.get("url")),
+                "href": _clean_spaces(row.get("href")),
                 "authority": _clean_spaces(row.get("authority")),
                 "confidence": float(row.get("confidence") or 0.0),
                 "verified_reference": bool(row.get("verified_reference")),
@@ -624,6 +640,15 @@ def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
         source_id = _clean_spaces(getattr(citation, "source_id", ""))
         title = _clean_spaces(getattr(citation, "title", ""))
         compared = compared_index.get(f"id:{source_id.lower()}") or compared_index.get(f"title:{title.lower()}") or {}
+        # Citazione cliccabile per i documenti del fascicolo: href dal metadata
+        # propagato (compared) o ricostruito dal source_id dei chunk docling.
+        citation_href = _clean_spaces(compared.get("href"))
+        if not citation_href and fascicolo_id and ":docling:" in source_id:
+            citation_href = _document_citation_href(
+                fascicolo_id,
+                source_id.split(":docling:", 1)[0],
+                getattr(citation, "page_no", None),
+            )
         rows.append(
             {
                 "id": source_id,
@@ -640,6 +665,7 @@ def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
                 "source_requires_credentials": bool(compared.get("source_requires_credentials")),
                 "source_restricted": bool(compared.get("source_restricted")),
                 "source_supports_web_search": bool(compared.get("source_supports_web_search", True)),
+                "href": citation_href,
             }
         )
         seen.add(key)
@@ -1110,7 +1136,10 @@ def build_bounded_http_payload(
         label = _citation_label(item)
         if label and label not in citations:
             citations.append(label)
-    sources = [*attachment_source_rows, *_source_rows(response)]
+    sources = [
+        *attachment_source_rows,
+        *_source_rows(response, fascicolo_id=_clean_spaces(data.get("fascicolo_id"))),
+    ]
     external_sources_used = bool(
         response.metadata.get("external_sources_used")
         or response.metadata.get("fallback_triggered")

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.278.40 - 2026-08-13
+
+- **Chat sul fascicolo con citazioni cliccabili (Fase A dei differenziatori).** Quando Lex risponde su un fascicolo, le fonti documentali nel blocco «Fonti» diventano link che aprono il documento esatto del fascicolo — alla pagina precisa del passaggio citato (`/fascicoli/<id>/documenti/<id_doc>/visualizza?page=N`, dal `page_no` del chunk di retrieval). Coerente col principio delle fonti certe: ogni affermazione è verificabile in un click.
+- **Catena completa.** L'href nasce nel retrieval documenti (metadata dei chunk), sopravvive nel pack evidenze e nelle sources del payload chat (con fallback dal `source_id` docling), e le fonti linkate non vengono più soppiantate dalle sources del contesto studio (restano in testa). Il widget rende cliccabili solo href interni al gestionale. Nessun link per fonti non documentali o mapping incerti (niente 404 inventati).
+- **Guardrail.** Nuova suite `tests/test_lex_citazioni_cliccabili.py` (7 test: formati href, quoting, propagazione pack, compared, fallback docling, fonti esterne senza link interno).
+
+- **Time tracking passivo (Fase B dei differenziatori).** Il gestionale registra già ogni azione in audit: il nuovo job governato `time_tracking_passivo` (console Pianificazioni, ore 20:30) raggruppa gli eventi in sessioni di lavoro per avvocato e fascicolo (finestra di inattività 15 min) e propone voci timesheet in **BOZZA** — minuti misurati dagli orari reali, descrizione con conteggio e tipi delle operazioni (consultazione, redazione atti, depositi, registri). Nessun minuto diventa fatturabile da solo: l'avvocato conferma (potendo correggere durata e descrizione) e nasce la `VoceTimesheet` con origine `tracking_passivo`, agganciabile ai compensi a tempo ex art. 22-bis D.M. 55/2014 — che è anche la prova documentale dell'attività per l'equo compenso.
+- **Fail-closed.** Operazioni isolate non generano proposte; sessioni sotto i 5 minuti ignorate; l'unità minima (6 min = 0,1h di prassi) vale solo con almeno 2 operazioni; idempotente per finestra; le proposte scartate non si ripresentano. Nuovo `pct/time_tracking_passivo.py`, suite `tests/test_time_tracking_passivo.py` (11 test).
+
 ## 2.278.39 - 2026-08-13
 
 - **Ricevute pagoPA intercettate automaticamente dalla posta.** Il presidio PEC ora riconosce gli allegati `RT.xml` pagoPA in ingresso (schema ministeriale `PagamentiTelematiciGiustizia`, anche firmati `.p7m`), li verifica e li archivia da solo nel fascicolo collegato al messaggio — o agganciato dal numero di ruolo presente nella causale, solo quando il match è univoco (fail-closed: RG ambiguo → nessun automatismo). Esito, importo e IUV nelle note del documento; idempotente per hash; evento in audit hash-chain. Nuovo `reconcile_pagopa_payment_receipt` in `pct/pec_pipeline.py`, suite `tests/test_pec_pagopa_rt.py` (5 test). Chiude il cerchio del flusso pagamenti: calcolo CU → pagamento sul portale ufficiale → ricevuta che si archivia da sola.

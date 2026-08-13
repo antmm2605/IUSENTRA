@@ -554,6 +554,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("polling_esiti_deposito", "Esiti deposito", "Depositi telematici", "Controlla esiti deposito e PEC cancelleria.", "cron", "", "*/15", built_in=True),
         SchedulerTemplate("poll_pec_cancelleria", "PEC cancelleria", "Depositi telematici", "Associa comunicazioni PEC ai fascicoli.", "cron", "", "*/30", built_in=True),
         SchedulerTemplate("sync_polisweb_registri", "Sync registri Polisweb", "Depositi telematici", "Allinea i fascicoli ai registri di cancelleria: civile, lavoro, volontaria, esecuzioni, giudice di pace (solo con certificato P12/PEM).", "cron", "7-20", "*/30", built_in=True),
+        SchedulerTemplate("time_tracking_passivo", "Time tracking passivo", "Studio", "Propone voci timesheet in bozza dalle attivita' registrate in audit (conferma dell'avvocato).", "cron", "20", "30", built_in=True),
         SchedulerTemplate("scheduler_registry_reload", "Console pianificazioni", "Manutenzione", "Applica modifiche pianificazioni e richieste manuali.", "cron", "", "*/1", built_in=True, editable=False),
     )
     return builtins

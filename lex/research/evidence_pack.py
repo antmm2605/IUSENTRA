@@ -43,6 +43,9 @@ def _to_dict(item: Any) -> dict[str, Any]:
         "page_no": metadata.get("page_no"),
         "section_path": metadata.get("section_path") or "",
         "chunk_index": metadata.get("chunk_index"),
+        # Link interno al documento del fascicolo: rende la citazione cliccabile.
+        "href": metadata.get("href") or "",
+        "fascicolo_id": metadata.get("fascicolo_id") or "",
         "metadata": metadata,
     }
 
@@ -81,6 +84,8 @@ class EvidencePackBuilder:
                 "page_no": row.get("page_no"),
                 "section_path": str(row.get("section_path") or ""),
                 "chunk_index": row.get("chunk_index"),
+                "href": str(row.get("href") or ""),
+                "fascicolo_id": str(row.get("fascicolo_id") or ""),
             }
             for row in rows
         ]

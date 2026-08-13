@@ -110,6 +110,23 @@ def _docling_metadata(result: DocumentParseResult | None, warning: str) -> dict[
     }
 
 
+def _document_href(pratica_id: str, doc_id: str, page_no: Any = None) -> str:
+    """Link interno al viewer del documento (citazione cliccabile in chat).
+
+    Route esistente: /fascicoli/<id>/documenti/<id_doc>/visualizza; la pagina
+    del chunk apre il punto esatto della fonte.
+    """
+
+    if not pratica_id or not doc_id:
+        return ""
+    base = f"/fascicoli/{pratica_id}/documenti/{doc_id}/visualizza"
+    try:
+        page = int(page_no or 0)
+    except (TypeError, ValueError):
+        page = 0
+    return f"{base}?page={page}" if page > 0 else base
+
+
 def _chunk_title(nome: str, chunk) -> str:
     section = _clean(getattr(chunk, "section_path", ""))
     page_no = getattr(chunk, "page_no", None)
@@ -127,6 +144,7 @@ def _docling_chunk_items(
     nome: str,
     tipo: str,
     result: DocumentParseResult | None,
+    pratica_id: str = "",
 ) -> list[EvidenceItem]:
     if result is None:
         return []
@@ -158,6 +176,8 @@ def _docling_chunk_items(
             "id_deposito_pct": deposito,
             "authority": "internal_fascicolo_documents",
             "has_text": True,
+            "fascicolo_id": pratica_id,
+            "href": _document_href(pratica_id, doc_id, chunk.page_no),
         }
         items.append(
             EvidenceItem(
@@ -518,6 +538,8 @@ def search_document_sources(
             "data_documento": _clean(getattr(doc, "data_documento", "")),
             "id_deposito_pct": _clean(getattr(doc, "id_deposito_pct", "")),
             "has_text": bool(text),
+            "fascicolo_id": pratica_id,
+            "href": _document_href(pratica_id, doc_id),
         }
         metadata.update(_docling_metadata(docling_result, docling_warning))
 
@@ -531,5 +553,5 @@ def search_document_sources(
                 metadata=metadata,
             )
         )
-        items.extend(_docling_chunk_items(doc=doc, nome=nome, tipo=tipo, result=docling_result))
+        items.extend(_docling_chunk_items(doc=doc, nome=nome, tipo=tipo, result=docling_result, pratica_id=pratica_id))
     return items

@@ -379,7 +379,20 @@ def build_context_response(
             dict(item) for item in list(studio_context.get("sources") or []) if isinstance(item, dict)
         ]
         if context_sources:
-            bounded_payload["sources"] = context_sources
+            # Le citazioni documentali del retrieval portano il link al
+            # documento del fascicolo (href): non vanno soppiantate dal
+            # contesto studio — restano in testa, il contesto segue.
+            linked_rows = [
+                row
+                for row in list(bounded_payload.get("sources") or [])
+                if isinstance(row, dict) and clean_spaces(str(row.get("href") or ""))
+            ]
+            linked_titles = {clean_spaces(str(row.get("title") or "")).lower() for row in linked_rows}
+            bounded_payload["sources"] = linked_rows + [
+                row
+                for row in context_sources
+                if clean_spaces(str(row.get("title") or "")).lower() not in linked_titles
+            ]
         context_citations = [] if free_web_payload else [
             clean_spaces(item) for item in list(studio_context.get("citations") or []) if clean_spaces(item)
         ]

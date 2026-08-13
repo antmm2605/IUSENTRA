@@ -6,14 +6,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 565.
+- File pytest censiti: 567.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 83 |
-| Backend | 67 |
+| API contract | 84 |
+| Backend | 68 |
 | E2E | 9 |
 | Frontend static gate | 1 |
 | Frontend/UI | 175 |
@@ -33,9 +33,9 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 39 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 58 |
-| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 169 |
+| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 161 |
+| 09-misc | Test non classificati dalle fasi principali | 162 |
 
 ## Suite CI aggiuntive
 
@@ -134,6 +134,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Backend | tests/test_runtime_service_checks.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_scheduler_registry.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_structured_logging.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_time_tracking_passivo.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_uffici_competenti.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | E2E | tests/e2e/test_ai_pipeline_full.py | audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/e2e/test_operational_crash_day.py | tenant, audit | richiede ambiente/credenziali quando esce dal test client | censito |
@@ -474,6 +475,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | API contract | tests/test_lex_autonomous_discovery_web.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_autonomous_learning.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_autonomous_nightly.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Lex/Ricerca | API contract | tests/test_lex_citazioni_cliccabili.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_docling_parser.py | feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_fascicolo_first_retrieval.py | tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_giurisprudenza_workflow.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

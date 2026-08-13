@@ -8605,7 +8605,8 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert dati_generali.index("personalizzabile") < dati_generali.index("PraticheCollegateField data={data}") < dati_generali.index("Fascicolo Veloce")
     assert "PraticheCollegateField data={data}" not in identificazione
     assert "ClientChoiceField data={data}" in source
-    assert "CounterpartyFields data={data} required={fascicoloVeloce}" in source
+    assert "<CounterpartyFields" in source
+    assert "required={fascicoloVeloce}" in source
     assert "JudicialOfficeField data={data} required={fascicoloVeloce}" in source
     assert "id_soggetto_controparte" in source
     assert "cf_controparte" in source
@@ -8638,6 +8639,15 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert 'name="email_fascicolo"' in source
     assert 'accept=".eml,message/rfc822"' in source
     assert "findCodiceOggettoPst(nextQuery.trim())" in codice_search
+    assert "Classificazione" in codice_search
+    assert "AREA_OPTIONS" in codice_search
+    assert "registerOptions" in codice_search
+    assert "groupOptions" in codice_search
+    assert "Tutte le aree" in codice_search
+    assert "Tutti i gruppi" in codice_search
+    assert "Tutti i registri" in codice_search
+    assert "MAX_VISIBLE_RESULTS = 40" in codice_search
+    assert "matchesFilter(item, filter)" in codice_search
 
 
 def test_post_nuovo_fascicolo_con_cliente_apre_il_fascicolo(tmp_path: Path):

@@ -1,0 +1,55 @@
+{
+  "audit": "Pratiche collegate - confronto Studio Telematico e catalogo PST IUSENTRA",
+  "data": "13/08/2026",
+  "timezone": "Europe/Rome",
+  "source_of_truth": {
+    "studio_telematico": {
+      "file": "D:/tmp/qo-decomp-codex-20260812/QuickOrganizer/SchedaPratica.cs",
+      "sha256": "8D2622562F18A7167719FBB8F150EC34F9A123FBC2BE0AC56F2711DF176E2BD4",
+      "method": "CreateTreeOggettoPratica",
+      "leaf_codes": 779
+    },
+    "studio_telematico_search": {
+      "file": "D:/tmp/qo-decomp-codex-20260812/QuickOrganizer/FormSearchCodiceOggetto.cs",
+      "sha256": "63BE7A1139FEDDA31BCEBFABD062BDCA1136DD6DA76FD5752DE4C3EB7C50BFDA",
+      "behavior": [
+        "ricerca per codice o parola dell'oggetto",
+        "risultati ordinati per descrizione",
+        "selezione dalla struttura classificata"
+      ]
+    },
+    "iusentra": {
+      "file": "pct/data/cataloghi/codici_oggetto_pst_ui.json",
+      "sha256": "3B009473791F931CFCE5E74902A3AFBD70807BEE6AAEB8A6965B207C2B65B673",
+      "version": "2026-05-11.pst-xsd-official",
+      "official_active_codes": 1018
+    }
+  },
+  "comparison": {
+    "studio_codes_present_in_active_pst_catalog": 773,
+    "studio_legacy_codes_not_present_in_active_pst_xsd": 6,
+    "active_pst_codes_not_present_in_studio_tree": 245,
+    "duplicate_studio_codes": 0,
+    "active_studio_codes_covered_percent": 100.0
+  },
+  "legacy_only": [
+    { "code": "461401", "description": "Misure protettive" },
+    { "code": "461402", "description": "Nomina esperto ex art. 17, lett. a" },
+    { "code": "461403", "description": "Liquidazione compensi OCRI" },
+    { "code": "481321", "description": "Approvazione della revoca dei sindaci (art. 2400)" },
+    { "code": "481322", "description": "Procedure ex artt. 2437-quater, 2445, 2482, 2447-quater, 2487-ter, 2500-novies, 2503 c.c." },
+    { "code": "481323", "description": "Decreto di accertamento dello scioglimento della società (art. 2485 c.c.)" }
+  ],
+  "decision": {
+    "legacy_codes_selectable": false,
+    "reason": "Studio Telematico li espone nel proprio albero storico, ma non risultano negli XSD PST attivi. IUSENTRA non li presenta come codici ufficiali utilizzabili nella busta.",
+    "ui": [
+      "ricerca testuale per codice, descrizione e parole chiave",
+      "filtro per area",
+      "filtro per gruppo",
+      "filtro per registro",
+      "conteggi per classificazione",
+      "valore salvato limitato al catalogo PST/XSD attivo"
+    ]
+  }
+}

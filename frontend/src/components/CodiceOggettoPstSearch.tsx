@@ -1,5 +1,5 @@
 import { useDeferredValue, useId, useMemo, useState } from 'react'
-import { CheckCircle2, Search, X } from 'lucide-react'
+import { CheckCircle2, FolderTree, Search, X } from 'lucide-react'
 import {
   CODICI_OGGETTO_PST,
   CODICI_OGGETTO_PST_CATALOG,
@@ -33,6 +33,25 @@ const searchIndex = CODICI_OGGETTO_PST.map((item) => ({
   ].join(' ')),
 }))
 
+const MAX_VISIBLE_RESULTS = 40
+
+type CatalogFilter = {
+  area: string
+  group: string
+  register: string
+}
+
+type CatalogOption = {
+  value: string
+  label: string
+  count: number
+}
+
+type SearchOutcome = {
+  items: CodiceOggettoPstRecord[]
+  total: number
+}
+
 function normalize(value: string): string {
   return value
     .toLowerCase()
@@ -59,27 +78,64 @@ function score(item: CodiceOggettoPstRecord, normalized: string, tokens: string[
   return total
 }
 
-function searchCodici(query: string, selected?: CodiceOggettoPstRecord): CodiceOggettoPstRecord[] {
+function classificationKey(item: CodiceOggettoPstRecord): string {
+  return `${item.area}::${item.codicePadre || 'senza-gruppo'}`
+}
+
+function groupLabel(item: CodiceOggettoPstRecord): string {
+  if (item.descrizionePadre) return item.descrizionePadre
+  if (item.codicePadre) return `Gruppo ${item.codicePadre}`
+  return 'Altri procedimenti'
+}
+
+function matchesFilter(item: CodiceOggettoPstRecord, filter: CatalogFilter): boolean {
+  return (!filter.area || item.area === filter.area)
+    && (!filter.group || classificationKey(item) === filter.group)
+    && (!filter.register || item.registri.includes(filter.register))
+}
+
+function searchCodici(
+  query: string,
+  selected: CodiceOggettoPstRecord | undefined,
+  filter: CatalogFilter,
+): SearchOutcome {
   const normalized = normalize(query)
+  const filteredIndex = searchIndex.filter(({ item }) => matchesFilter(item, filter))
   if (!normalized) {
-    if (!selected) return []
-    return CODICI_OGGETTO_PST
-      .filter((item) => item.codice !== selected.codice && item.codicePadre === selected.codicePadre)
-      .slice(0, 6)
+    if (filter.area || filter.group || filter.register) {
+      const items = filteredIndex
+        .map(({ item }) => item)
+        .sort((left, right) => left.codice.localeCompare(right.codice, 'it'))
+      return { items: items.slice(0, MAX_VISIBLE_RESULTS), total: items.length }
+    }
+    if (!selected) return { items: [], total: 0 }
+    const items = CODICI_OGGETTO_PST
+      .filter((item) => item.codice !== selected.codice && classificationKey(item) === classificationKey(selected))
+      .sort((left, right) => left.codice.localeCompare(right.codice, 'it'))
+    return { items: items.slice(0, 6), total: items.length }
   }
   const tokens = normalized.split(/\s+/).filter(Boolean)
-  if (!tokens.length) return []
-  return searchIndex
+  if (!tokens.length) return { items: [], total: 0 }
+  const items = filteredIndex
     .filter(({ haystack }) => tokens.every((token) => haystack.includes(token)))
     .map(({ item }) => ({ item, score: score(item, normalized, tokens) }))
     .sort((left, right) => right.score - left.score || left.item.codice.localeCompare(right.item.codice, 'it'))
-    .slice(0, 12)
     .map(({ item }) => item)
+  return { items: items.slice(0, MAX_VISIBLE_RESULTS), total: items.length }
 }
 
 function registriLabel(registri: string[]): string {
   return registri.length ? registri.join(', ') : 'PST'
 }
+
+function catalogOptions(values: string[]): CatalogOption[] {
+  const counts = new Map<string, number>()
+  values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1))
+  return Array.from(counts, ([value, count]) => ({ value, label: value, count }))
+    .sort((left, right) => left.label.localeCompare(right.label, 'it'))
+}
+
+const AREA_OPTIONS = catalogOptions(CODICI_OGGETTO_PST.map((item) => item.area))
 
 export function CodiceOggettoPstSearch({
   value,
@@ -94,12 +150,41 @@ export function CodiceOggettoPstSearch({
   const generatedId = useId()
   const fieldId = id || `codice-oggetto-${generatedId}`
   const [query, setQuery] = useState('')
+  const [areaFilter, setAreaFilter] = useState('')
+  const [groupFilter, setGroupFilter] = useState('')
+  const [registerFilter, setRegisterFilter] = useState('')
   const deferredQuery = useDeferredValue(query)
   const selected = findCodiceOggettoPst(value)
-  const results = useMemo(() => searchCodici(deferredQuery, selected), [deferredQuery, selected])
+  const groupOptions = useMemo(() => {
+    const groups = new Map<string, CatalogOption>()
+    CODICI_OGGETTO_PST
+      .filter((item) => (!areaFilter || item.area === areaFilter) && (!registerFilter || item.registri.includes(registerFilter)))
+      .forEach((item) => {
+        const value = classificationKey(item)
+        const current = groups.get(value)
+        groups.set(value, {
+          value,
+          label: groupLabel(item),
+          count: (current?.count || 0) + 1,
+        })
+      })
+    return Array.from(groups.values()).sort((left, right) => left.label.localeCompare(right.label, 'it'))
+  }, [areaFilter, registerFilter])
+  const registerOptions = useMemo(() => catalogOptions(
+    CODICI_OGGETTO_PST
+      .filter((item) => (!areaFilter || item.area === areaFilter) && (!groupFilter || classificationKey(item) === groupFilter))
+      .flatMap((item) => item.registri),
+  ), [areaFilter, groupFilter])
+  const outcome = useMemo(() => searchCodici(deferredQuery, selected, {
+    area: areaFilter,
+    group: groupFilter,
+    register: registerFilter,
+  }), [areaFilter, deferredQuery, groupFilter, registerFilter, selected])
+  const results = outcome.items
   const hasSearch = normalize(deferredQuery).length > 0
-  const resultLabel = hasSearch
-    ? `${results.length} risultati nel catalogo ufficiale`
+  const hasClassification = Boolean(areaFilter || groupFilter || registerFilter)
+  const resultLabel = hasSearch || hasClassification
+    ? `${outcome.total} risultati nel catalogo ufficiale${outcome.total > MAX_VISIBLE_RESULTS ? `, primi ${MAX_VISIBLE_RESULTS} visualizzati` : ''}`
     : selected
       ? 'Procedimenti collegati allo stesso gruppo'
       : `${CODICI_OGGETTO_PST_CATALOG.totaleCodici} codici ufficiali disponibili`
@@ -133,6 +218,73 @@ export function CodiceOggettoPstSearch({
             <X size={15} />
           </button>
         ) : null}
+      </div>
+      <div className="iu-code-search__classification">
+        <div className="iu-code-search__classification-title">
+          <FolderTree size={17} aria-hidden="true" />
+          <strong>Classificazione</strong>
+          {hasClassification ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAreaFilter('')
+                setGroupFilter('')
+                setRegisterFilter('')
+              }}
+              aria-label="Azzera classificazione"
+              title="Azzera classificazione"
+            >
+              <X size={15} />
+            </button>
+          ) : null}
+        </div>
+        <div className="iu-code-search__filters">
+          <label htmlFor={`${fieldId}-area`}>
+            <span>Area</span>
+            <select
+              id={`${fieldId}-area`}
+              value={areaFilter}
+              onChange={(event) => {
+                setAreaFilter(event.currentTarget.value)
+                setGroupFilter('')
+              }}
+            >
+              <option value="">Tutte le aree</option>
+              {AREA_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label} ({option.count})</option>
+              ))}
+            </select>
+          </label>
+          <label htmlFor={`${fieldId}-group`}>
+            <span>Gruppo</span>
+            <select
+              id={`${fieldId}-group`}
+              value={groupFilter}
+              onChange={(event) => setGroupFilter(event.currentTarget.value)}
+            >
+              <option value="">Tutti i gruppi</option>
+              {groupOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label} ({option.count})</option>
+              ))}
+            </select>
+          </label>
+          <label htmlFor={`${fieldId}-register`}>
+            <span>Registro</span>
+            <select
+              id={`${fieldId}-register`}
+              value={registerFilter}
+              onChange={(event) => {
+                setRegisterFilter(event.currentTarget.value)
+                setGroupFilter('')
+              }}
+            >
+              <option value="">Tutti i registri</option>
+              {registerOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label} ({option.count})</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
       {selected ? (
         <div className="iu-code-search__selected">
@@ -169,7 +321,7 @@ export function CodiceOggettoPstSearch({
             </button>
           ))}
         </div>
-      ) : hasSearch ? (
+      ) : hasSearch || hasClassification ? (
         <div className="iu-code-search__empty">Nessun codice ufficiale trovato. Prova con meno parole o con il codice numerico.</div>
       ) : null}
     </div>

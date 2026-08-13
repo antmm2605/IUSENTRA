@@ -5945,3 +5945,27 @@ Perimetro esclusivo: generazione e validazione del deposito telematico. Nessuna 
 - Audit catalogo integrato: `270/270` tipi in parità, `270/270` generazioni end-to-end e `270/270` controlli di ruolo ministeriale, zero errori.
 - Evidenze: `artifacts/deposito-telematico/audit-schema-studio-telematico-2026-08-13.json`, `audit-parita-studio-telematico-270-2026-08-13.json` e `audit-catalogo-end-to-end-270-2026-08-13.json`.
 - Test mirati iniziali: `61` test della busta e dell'anagrafica ministeriale superati. Il deposito già inviato non è stato ritentato e la ricevuta specifica che non è necessario effettuare nuovamente il deposito.
+
+### Collaudo reale schemi e dispositivo di firma del 13/08/2026
+
+- Applicazione verificata in produzione: `2.278.46`, fascicolo `B494AAB9`, fase `Busta e indice`.
+- Il confronto del decompilato Studio Telematico `26.021` resta positivo: `50/50` namespace dispongono degli XSD corrispondenti, `20/20` famiglie `DatiAtto` coincidono e i `270/270` tipi di deposito superano generazione e controllo del ruolo ministeriale.
+- Il controllo del PC reale rileva il lettore `bit4id keyfour Lite`, la CNS `JS2048`, il middleware `C:\Windows\System32\bit4xpki.dll` e il certificato qualificato di firma, valido fino al `02/03/2029`.
+- Causa del falso blocco `Nessun dispositivo di firma rilevato`: la prima enumerazione PKCS#11 può completarsi dopo il caricamento della pagina, mentre il controllo applicativo decideva immediatamente sul primo esito vuoto.
+- Correzione: prima di dichiarare indisponibile il dispositivo, la fase che firma `DatiAtto.xml` esegue fino a tre nuovi controlli completi, distanziati di `500 ms`, e applica l'eventuale riallineamento già previsto dal Local Signer.
+- Prova materiale sulla pagina reale: `Simula invio PEC` ha raggiunto la finestra `Firma dati deposito` con campo `PIN firma`; non è più comparso il messaggio sul dispositivo assente.
+- La prova è stata annullata nella finestra PIN: nessuna firma, nessun `Atto.enc` nuovo, nessun Message-ID e nessuna PEC reale sono stati prodotti.
+- Guardrail mirato: `tests/test_regia_ui_react.py` verifica che il secondo controllo avvenga prima del blocco e che il flusso conservi una sola firma e una sola sessione PIN.
+
+## Aggiornamento 13/08/2026 - Classificazione delle pratiche collegate
+
+Perimetro esclusivo: selezione del codice oggetto nella pagina `Nuovo fascicolo`. Generazione della busta, schema `DatiAtto.xml`, firma, Local Signer e invio PEC non sono stati modificati.
+
+- Il metodo decompilato `CreateTreeOggettoPratica` di Studio Telematico contiene `779` codici foglia organizzati per area e gruppo; la relativa finestra di ricerca accetta codice o parole dell'oggetto e ordina i risultati per descrizione.
+- Il catalogo IUSENTRA contiene `1.018` codici PST/XSD attivi: `773` coincidono con le voci ancora attive dell'albero di Studio Telematico e `245` sono codici ufficiali ulteriori presenti negli XSD correnti.
+- Le sole sei voci dell'albero storico non presenti negli XSD attivi sono `461401`, `461402`, `461403`, `481321`, `481322` e `481323`. Restano documentate ma non vengono presentate come codici ufficiali selezionabili per il deposito.
+- Il selettore React conserva la ricerca testuale e aggiunge classificazione per `Area`, `Gruppo` e `Registro`, con conteggi, reset esplicito, risultati limitati visivamente e valore salvato sempre risolto dal catalogo PST/XSD attivo.
+- Evidenza completa con impronte SHA-256 delle fonti: `artifacts/react-migration/audit-pratiche-collegate-studio-telematico-2026-08-13.json`.
+- Prova materiale su `https://app.iusentra.it/fascicoli/nuovo`, versione `2.278.46`: il filtro `Lavoro e previdenza` ha restituito `112` codici; il gruppo `Pubblico impiego` ne ha restituiti `27`; la ricerca `222050` ha selezionato `retribuzione` con registri `SICID`, `CASSAZIONE` e `UNEP`.
+- I conteggi dei registri si aggiornano sulla classificazione corrente (`25` SICID, `25` CASSAZIONE e `27` UNEP nel gruppo provato). Sono stati verificati selezione, rimozione, reset, hover, focus e scroll completo; il fascicolo non è stato salvato.
+- La copia locale Docker su `127.0.0.1:8080` è stata ricostruita e risponde healthy con versione `2.278.46`; la sessione browser locale non era autenticata, quindi la prova interattiva completa è stata eseguita sulla sessione reale autenticata di produzione.

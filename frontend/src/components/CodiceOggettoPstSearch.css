@@ -58,6 +58,93 @@
   color: var(--iu-text-muted);
 }
 
+.iu-code-search__classification {
+  display: grid;
+  gap: var(--iu-space-2);
+  padding: var(--iu-space-3);
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-md);
+  background: color-mix(in oklch, var(--iu-bg-surface) 94%, var(--iu-bg-app));
+}
+
+.iu-code-search__classification-title {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--iu-space-2);
+  align-items: center;
+  color: var(--iu-text-strong);
+}
+
+.iu-code-search__classification-title svg {
+  color: var(--iu-blue-700);
+}
+
+.iu-code-search__classification-title strong {
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+.iu-code-search__classification-title button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  place-items: center;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-sm);
+  background: var(--iu-bg-surface);
+  color: var(--iu-text-muted);
+}
+
+.iu-code-search__classification-title button:hover,
+.iu-code-search__classification-title button:focus-visible {
+  border-color: var(--iu-blue-500);
+  outline: 3px solid color-mix(in oklch, var(--iu-blue-500) 20%, transparent);
+  color: var(--iu-blue-700);
+}
+
+.iu-code-search__filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.5fr) minmax(150px, .75fr);
+  gap: var(--iu-space-2);
+}
+
+.iu-code-search__filters label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.iu-code-search__filters label > span {
+  color: var(--iu-text-muted);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.iu-code-search__filters select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-sm);
+  outline: 0;
+  background: var(--iu-bg-surface);
+  color: var(--iu-text);
+  padding: 0 2rem 0 .65rem;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.iu-code-search__filters select:hover {
+  border-color: color-mix(in oklch, var(--iu-blue-500) 36%, var(--iu-border));
+}
+
+.iu-code-search__filters select:focus-visible {
+  border-color: var(--iu-blue-500);
+  outline: 3px solid color-mix(in oklch, var(--iu-blue-500) 20%, transparent);
+}
+
 .iu-code-search__selected {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -183,6 +270,7 @@
 }
 
 @media (max-width: 720px) {
+  .iu-code-search__filters,
   .iu-code-search__selected,
   .iu-code-search__results button {
     grid-template-columns: 1fr;

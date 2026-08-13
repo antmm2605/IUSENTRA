@@ -2500,6 +2500,11 @@ function DepositPreparePage({ id }:{id:string}) {
       throw new Error(localSignerProbeFailureMessage(signerStatus, 'firmare i dati del deposito'))
     }
     if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus)) {
+      signerStatus = await waitForSignableLocalSignerStatus(signerStatus, {
+        onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
+      })
+    }
+    if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus)) {
       const signerDetail = String(signerStatus.errore_token || signerStatus.errore_libreria || signerStatus.messaggio || signerStatus.error || '').trim()
       throw new Error(signerDetail ? `Dispositivo non pronto per firmare i dati del deposito: ${depositUserFacingMessage(signerDetail)}` : 'Dispositivo non pronto per firmare i dati del deposito. Inserisci il dispositivo fisico o seleziona un certificato Windows utilizzabile, poi ripeti la prova deposito.')
     }
@@ -5756,6 +5761,22 @@ function localSignerNeedsRestart(status?: LocalSignerStatus | null): boolean {
 
 function localSignerStatusCanSign(status?: LocalSignerStatus | null): boolean {
   return Boolean((status?.token?.[0] || localSignerWindowsCertificate(status)) && !localSignerNeedsRestart(status) && !localSignerStatusOutdated(status))
+}
+
+async function waitForSignableLocalSignerStatus(
+  initialStatus: LocalSignerStatus,
+  options: LocalSignerRecoveryOptions = {},
+  attempts = 3,
+  delayMs = 500,
+): Promise<LocalSignerStatus> {
+  let latest = initialStatus
+  for (let attempt = 0; attempt < attempts && !localSignerStatusCanSign(latest); attempt += 1) {
+    await sleep(delayMs)
+    const refreshed = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
+    if (!refreshed || refreshed.ok === false) continue
+    latest = await recoverLocalSignerAutomatically(refreshed, options)
+  }
+  return latest
 }
 
 async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStatus | null> {

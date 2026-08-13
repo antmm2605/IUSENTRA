@@ -328,10 +328,20 @@ def test_ui_deposito_local_signer_usa_alias_sano_e_una_sola_sessione_pin():
     assert "const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()" in complete_signature
     assert "&& !reusablePinSessionId" in complete_signature
     assert "if (signerStatus && !reusablePinSessionId)" in complete_signature
+    assert "signerStatus = await waitForSignableLocalSignerStatus(signerStatus" in complete_signature
     assert "if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus))" in complete_signature
     assert "pin_session_id: reusablePinSessionId || undefined" in complete_signature
     assert complete_signature.count("signatureResponse = await fetch(endpoint, requestOptions)") == 1
     assert "if (reusablePinSessionId) batchSignaturePinSessionRef.current = ''" in complete_signature
+
+    signable_retry = source[
+        source.index("async function waitForSignableLocalSignerStatus"):
+        source.index("async function fetchLocalSignerStatus")
+    ]
+    assert "attempts = 3" in signable_retry
+    assert "delayMs = 500" in signable_retry
+    assert "await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)" in signable_retry
+    assert "latest = await recoverLocalSignerAutomatically(refreshed, options)" in signable_retry
 
     prepare_signature = deposit_page[
         deposit_page.index("const runBatchSignatureBeforeDeposit"):

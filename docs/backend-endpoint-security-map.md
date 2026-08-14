@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 289.
-- Endpoint con `_richiedi_auth`: 289/289.
+- Endpoint React API censiti: 290.
+- Endpoint con `_richiedi_auth`: 290/290.
 - Endpoint con metodo di scrittura o cancellazione: 153.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 118; critical: 18; high/P1: 76.
@@ -79,6 +79,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/conferimenti/<conferimento_id>/apri-fascicolo` | Conferimenti | P0 | `fatturazione.leggi/scrivi` | apertura fascicolo da incarico | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/dashboard` | Panoramica | P1 | `sessione/API tenant-aware` | metriche aggregate studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/dashboard/sync-mailboxes` | Panoramica | P1 | `sessione/API tenant-aware` | metriche aggregate studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/editor-professionale` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/email` | Email PEC | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/email-ordinaria` | Email ordinaria | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/email-ordinaria/bulk-action` | Email ordinaria | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

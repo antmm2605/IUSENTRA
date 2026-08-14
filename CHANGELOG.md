@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.278.52 - 2026-08-14
+
+- **Firma remota qualificata: astrazione provider con adapter Aruba (Fase F, fondamenta).** Nuovo `pct/firma_remota.py`: interfaccia `FirmaRemotaProvider` (CAdES/PAdES dall'HSM del QTSP, eIDAS 910/2014 art. 29, CAD art. 20, D.M. 44/2011 art. 12) con regole non derogabili — **credenziali di firma e OTP mai persistiti né loggati** (campi mascherati anche in repr/str), registry fail-closed (nessun provider di default, mock mai selezionabile implicitamente).
+- **Adapter Aruba ARSS predisposto.** Si attiva con endpoint e credenziali applicative dell'accordo commerciale Aruba (`ARUBA_ARSS_URL`, `ARUBA_ARSS_APP_*`); finché mancano risponde con istruzioni operative, e per principio delle fonti certe i payload del servizio si implementeranno **solo dalle specifiche ufficiali ARSS** consegnate con l'accordo, mai improvvisati. Il provider mock per i collaudi marca l'output come privo di valore legale. Suite `tests/test_firma_remota.py` (10 test). Il cablaggio nel workflow di firma avverrà quando l'adapter sarà operativo.
+- **UI incarichi CTU nel dettaglio fascicolo.** Nuova sezione «CTU e perizie»: timeline art. 195 c.3 c.p.c. con le date dell'ordinanza (nomina → giuramento → bozza → osservazioni → deposito), avvisi sulle incoerenze cronologiche, consulenti di parte, pulsante «Proponi scadenze» (BOZZA nello scadenziario, per ruolo parte/ausiliario) e form nuovo incarico con nota esplicita: le date le fissa il giudice, il software non le calcola. Route `/api/v1/ui/fascicoli/<id>/ctu` + POST operativi con audit (`web/bootstrap/ctu_routes.py`).
+- **UI prima nota su `/prima-nota`.** Saldi del periodo (incassi, pagamenti, saldo), totali per categoria, registro cronologico filtrabile per date e tipo, form nuovo movimento con categorie coerenti al tipo, **storno con motivo dal registro** (il movimento originale resta), «Riconcilia parcelle» a un click ed «Esporta CSV» per il commercialista. Avvertenza fissa in pagina: la prima nota registra ed esporta, non calcola imposte. Nuovi `web/bootstrap/prima_nota_routes.py`, `web/services/react_prima_nota_bridge.py`, wiring dedicato `studio_operations_wiring.py` (limite 250 righe rispettato).
+
 ## 2.278.51 - 2026-08-14
 
 - **Fascicoli economici coerenti in ogni modalità.** Le viste `Compatta` e `Schede` mantengono contributo unificato, spese/esborsi, liquidazione, parcella e controllo documentale; il cambio di rappresentazione non torna più alla scheda operativa.

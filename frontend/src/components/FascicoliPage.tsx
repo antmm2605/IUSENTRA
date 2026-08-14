@@ -4115,6 +4115,93 @@ function RegistroSyncButton({ fascicoloId, lastSyncAt }:{fascicoloId:string; las
   )
 }
 
+type CtuIncarico = {
+  id: string
+  ruoloStudio: string
+  statoLabel: string
+  nomeCtu: string
+  timeline: Array<{ chiave: string; label: string; data: string }>
+  avvisi: string[]
+  consulentiParte: Array<{ nome: string; parte: string }>
+  actions: { proponiScadenze: string }
+}
+
+function CtuSection({ fascicoloId }:{fascicoloId:string}) {
+  const [incarichi, setIncarichi] = useState<CtuIncarico[]>([])
+  const [message, setMessage] = useState('')
+  const [formOpen, setFormOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [form, setForm] = useState({ ruoloStudio: 'PARTE', nomeCtu: '', dataNomina: '', termineBozza: '', termineOsservazioni: '', termineDeposito: '' })
+  const load = () => {
+    fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/ctu`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : { incarichi: [] })
+      .then((payload) => setIncarichi(Array.isArray(payload.incarichi) ? payload.incarichi : []))
+      .catch(() => setIncarichi([]))
+  }
+  useEffect(() => { load() }, [fascicoloId])
+  const post = async (href: string, body: Record<string, unknown>) => {
+    setBusy(true)
+    try {
+      const response = await fetch(href, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify(body),
+      })
+      const payload = await response.json().catch(() => ({})) as { ok?:boolean; message?:string }
+      setMessage(payload.message || (response.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
+      if (payload.ok) { setFormOpen(false); load() }
+    } catch { setMessage('Operazione non riuscita.') } finally { setBusy(false) }
+  }
+  return (
+    <div className="iu-fas-ctu">
+      {message ? <p className="iu-fas-ctu__msg" role="status">{message}</p> : null}
+      {incarichi.map((incarico) => (
+        <article className="iu-fas-ctu__card" key={incarico.id}>
+          <header>
+            <strong>{incarico.nomeCtu || 'CTU da indicare'}</strong>
+            <Badge tone="neutral">{incarico.statoLabel}</Badge>
+            <span>{incarico.ruoloStudio === 'AUSILIARIO' ? 'Lo studio assiste il CTU' : 'Lo studio assiste una parte'}</span>
+          </header>
+          <ol className="iu-fas-ctu__timeline">
+            {incarico.timeline.map((tappa) => (
+              <li className={tappa.data ? 'is-set' : ''} key={tappa.chiave}><span>{tappa.label}</span><strong>{tappa.data ? formatDateIt(tappa.data) : '—'}</strong></li>
+            ))}
+          </ol>
+          {incarico.avvisi.map((avviso) => <p className="iu-fas-ctu__warn" key={avviso}><AlertTriangle size={13}/> {avviso}</p>)}
+          {incarico.consulentiParte.length ? (
+            <p className="iu-fas-ctu__ctp">CTP: {incarico.consulentiParte.map((c) => `${c.nome} (${c.parte || 'parte'})`).join(', ')}</p>
+          ) : null}
+          <footer>
+            <button type="button" disabled={busy} onClick={() => post(incarico.actions.proponiScadenze, {})}><CalendarDays size={14}/> Proponi scadenze</button>
+          </footer>
+        </article>
+      ))}
+      {formOpen ? (
+        <div className="iu-fas-ctu__form" role="form" aria-label="Nuovo incarico CTU">
+          <label><span>Ruolo studio</span>
+            <select value={form.ruoloStudio} onChange={(e) => setForm({ ...form, ruoloStudio: e.target.value })}>
+              <option value="PARTE">Assistiamo una parte</option>
+              <option value="AUSILIARIO">Assistiamo il CTU</option>
+            </select>
+          </label>
+          <label><span>Nome CTU</span><input value={form.nomeCtu} onChange={(e) => setForm({ ...form, nomeCtu: e.target.value })} placeholder="Es. Ing. Bruni"/></label>
+          <label><span>Ordinanza di nomina</span><input type="date" value={form.dataNomina} onChange={(e) => setForm({ ...form, dataNomina: e.target.value })}/></label>
+          <label><span>Termine bozza (art. 195)</span><input type="date" value={form.termineBozza} onChange={(e) => setForm({ ...form, termineBozza: e.target.value })}/></label>
+          <label><span>Termine osservazioni</span><input type="date" value={form.termineOsservazioni} onChange={(e) => setForm({ ...form, termineOsservazioni: e.target.value })}/></label>
+          <label><span>Termine deposito</span><input type="date" value={form.termineDeposito} onChange={(e) => setForm({ ...form, termineDeposito: e.target.value })}/></label>
+          <div className="iu-fas-ctu__form-actions">
+            <button type="button" disabled={busy || !form.nomeCtu.trim()} onClick={() => post(`/fascicoli/${encodeURIComponent(fascicoloId)}/ctu/nuovo`, form)}>Registra incarico</button>
+            <button type="button" className="iu-fas-ctu__cancel" onClick={() => setFormOpen(false)}>Annulla</button>
+          </div>
+          <p className="iu-fas-ctu__note">Le date vengono dall'ordinanza del giudice: il software non le calcola (art. 195 c.3 c.p.c.).</p>
+        </div>
+      ) : (
+        <button type="button" className="iu-fas-ctu__add" onClick={() => setFormOpen(true)}><Gavel size={15}/> Nuovo incarico CTU</button>
+      )}
+    </div>
+  )
+}
+
 type RegistroRgCandidate = { numeroRg:string; annoRg:number; ufficio:string; oggetto:string; parti:string }
 
 function RegistroRgSearch({ fascicoloId }:{fascicoloId:string}) {
@@ -8407,6 +8494,7 @@ function DetailPage({ id }:{id:string}) {
           <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')} defaultOpen={activeHashSection === 'sentenze-economiche'}/>
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
           <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length} defaultOpen={activeHashSection === 'conformita'}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
+          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} count={0}><CtuSection fascicoloId={f.id}/></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>

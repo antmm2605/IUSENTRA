@@ -268,6 +268,14 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "CRM_DB",
         os.getenv("PCT_CRM_DB", "./crm/leads.json"),
     )
+    app.config["CTU_DB"] = cfg.get(
+        "CTU_DB",
+        os.getenv("PCT_CTU_DB", "./ctu/incarichi.json"),
+    )
+    app.config["PRIMA_NOTA_DB"] = cfg.get(
+        "PRIMA_NOTA_DB",
+        os.getenv("PCT_PRIMA_NOTA_DB", "./contabilita/prima_nota.json"),
+    )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
     )
@@ -713,6 +721,8 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "timesheet": _cfg_data_path("TIMESHEET_DB"),
             "time_tracking": _cfg_data_path("TIME_TRACKING_DB"),
             "crm": _cfg_data_path("CRM_DB"),
+            "ctu": _cfg_data_path("CTU_DB"),
+            "prima_nota": _cfg_data_path("PRIMA_NOTA_DB"),
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
             "notifiche": _cfg_data_path("NOTIFICHE_LOG"),
             "notifications": _cfg_data_path("NOTIFICATIONS_DB"),
@@ -995,6 +1005,20 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
             g._crm_intake = GestioneCrmIntake(db_path=_cfg_data_path("CRM_DB"))
         return g._crm_intake
+
+    def get_ctu():
+        if not hasattr(g, "_ctu"):
+            from pct.ctu import GestioneCtu
+
+            g._ctu = GestioneCtu(db_path=_cfg_data_path("CTU_DB"))
+        return g._ctu
+
+    def get_prima_nota():
+        if not hasattr(g, "_prima_nota"):
+            from pct.prima_nota import GestionePrimaNota
+
+            g._prima_nota = GestionePrimaNota(db_path=_cfg_data_path("PRIMA_NOTA_DB"))
+        return g._prima_nota
 
     def get_preventivi() -> GestionePreventivi:
         if not hasattr(g, "_preventivi"):
@@ -1306,6 +1330,8 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_scadenziario": get_scadenziario,
         "get_timesheet": get_timesheet,
         "get_crm": get_crm,
+        "get_ctu": get_ctu,
+        "get_prima_nota": get_prima_nota,
         "get_preventivi": get_preventivi,
         "get_fatturazione": get_fatturazione,
         "get_pagamenti": get_pagamenti,

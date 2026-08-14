@@ -11,6 +11,7 @@ from web.bootstrap.core_surface_wiring import register_core_surfaces
 from web.bootstrap.fascicoli_surface_wiring import register_fascicoli_surfaces
 from web.bootstrap.register_blueprints import register_blueprints
 from web.bootstrap.react_route_gate import register_react_route_gate
+from web.bootstrap.studio_operations_wiring import register_studio_operations
 from web.bootstrap.telematico_surface_wiring import register_telematico_surfaces
 from web.services.support_runtime import register_support_websocket
 
@@ -51,6 +52,7 @@ def register_app_wiring(
         telematico=telematico,
         pdp_penale=pdp_penale,
     )
+    register_studio_operations(app, core)
     register_blueprints(app)
     register_react_route_gate(app)
     register_support_websocket(app)

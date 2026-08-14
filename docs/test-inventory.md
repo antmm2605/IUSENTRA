@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 572.
+- File pytest censiti: 574.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,11 +16,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 69 |
 | E2E | 9 |
 | Frontend static gate | 1 |
-| Frontend/UI | 176 |
+| Frontend/UI | 177 |
 | RBAC | 58 |
 | Security | 38 |
 | Smoke CLI | 6 |
-| Tenant isolation | 137 |
+| Tenant isolation | 138 |
 
 ## Fasi pytest governate
 
@@ -28,14 +28,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | --- | --- | --- |
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 20 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 19 |
-| 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 32 |
+| 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 33 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 48 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 39 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 59 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 165 |
+| 09-misc | Test non classificati dalle fasi principali | 166 |
 
 ## Suite CI aggiuntive
 
@@ -77,6 +77,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Audit | Backend | tests/test_audit_hashing.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Frontend/UI | tests/test_audit_merkle.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Audit | Frontend/UI | tests/test_audit_signing.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Audit | Frontend/UI | tests/test_functional_parity_audit.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Audit | Frontend/UI | tests/test_sentenza_economic_audit.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Audit | Security | tests/test_audit_hmac.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Security | tests/test_audit_worm.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -434,6 +435,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Security | tests/test_impostazioni_firma_local_signer_versione_react.py | feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_pec_auto_acquire.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_portali_payload_import_ui.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Frontend React | Tenant isolation | tests/test_react_document_archive.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_react_legal_intelligence_search.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_react_scadenziario_additions.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_api.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |

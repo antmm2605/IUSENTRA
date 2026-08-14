@@ -1,6 +1,6 @@
 import type { Tone } from './data'
 
-export type AgendaView = 'day' | 'week' | 'month'
+export type AgendaView = 'day' | 'week' | 'month' | 'timeline'
 export type AgendaKind = 'tutti' | 'udienza' | 'appuntamento' | 'scadenza' | 'deposito' | 'call' | 'studio'
 export type AgendaPriority = 'critica' | 'alta' | 'media' | 'bassa'
 export type AgendaSyncStatus = 'sincronizzato' | 'locale' | 'da_sincronizzare' | 'errore'
@@ -148,6 +148,11 @@ export function agendaRange(anchor = new Date(), view: AgendaView = 'week'): { f
   const day = new Date(anchor)
   day.setHours(0, 0, 0, 0)
   if (view === 'day') return { from: day, to: day }
+  if (view === 'timeline') {
+    const firstOfMonth = new Date(day.getFullYear(), day.getMonth(), 1)
+    const lastOfMonth = new Date(day.getFullYear(), day.getMonth() + 1, 0)
+    return { from: firstOfMonth, to: lastOfMonth }
+  }
   if (view === 'month') {
     const firstOfMonth = new Date(day.getFullYear(), day.getMonth(), 1)
     const gridStart = startOfWeek(firstOfMonth)

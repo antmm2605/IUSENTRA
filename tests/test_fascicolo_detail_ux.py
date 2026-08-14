@@ -151,11 +151,13 @@ def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith(f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo")
-    assert not GestioneFascicoli(
+    fascicolo_aggiornato = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
         documents_dir=cfg["FASCICOLI_DOCS"],
         archive_dir=cfg["FASCICOLI_ARCH"],
-    ).get(fascicolo.id).documenti
+    ).get(fascicolo.id)
+    assert not fascicolo_aggiornato.documenti
+    assert [item.id for item in fascicolo_aggiornato.documenti_cestino] == [doc.id]
 
 
 def test_rinomina_documento_da_react_action(fascicolo_ux):

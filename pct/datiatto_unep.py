@@ -619,5 +619,5 @@ def build_unep_datiatto(
     elif root_name == "RichiestaRestituzioneSomme":
         root = _restitution(dati, document_parts)
     else:
-        raise ValueError(f"Radice DatiAtto UNEP non prevista da Studio Telematico: {root_name} ({key}).")
+        raise ValueError(f"Tipo di atto UNEP non previsto dal catalogo del deposito: {root_name} ({key}).")
     return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")

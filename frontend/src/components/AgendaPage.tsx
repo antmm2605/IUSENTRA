@@ -4,10 +4,12 @@ import {
   Bell,
   BriefcaseBusiness,
   CalendarCheck,
+  CalendarClock,
   CalendarDays,
   CalendarPlus,
   CalendarSync,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -21,6 +23,7 @@ import {
   Minimize2,
   Move,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   Settings2,
@@ -28,6 +31,7 @@ import {
   UploadCloud,
   UsersRound,
   Video,
+  Trash2,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
@@ -65,6 +69,7 @@ const viewLabels: Record<AgendaView, string> = {
   day: 'Giorno',
   week: 'Sett.',
   month: 'Mese',
+  timeline: 'Cronologia',
 }
 
 const timelineSlots = Array.from({ length: 24 }, (_, index) => {
@@ -94,6 +99,28 @@ function Kpi({ icon, label, value, note }:{icon:ReactNode; label:string; value:s
       <strong>{value}</strong>
       <small>{note}</small>
     </article>
+  )
+}
+
+function newAgendaHref(tipo: string, titolo = ''): string {
+  const params = new URLSearchParams({ tipo, data: toDateKey(new Date()) })
+  if (titolo) params.set('titolo', titolo)
+  return `/agenda/nuovo?${params.toString()}`
+}
+
+function NewAgendaMenu() {
+  return (
+    <details className="iu-ag-new-menu">
+      <summary><Plus size={16}/> Nuovo <ChevronDown size={15}/></summary>
+      <nav aria-label="Nuova voce agenda">
+        <a href={newAgendaHref('UDIENZA')}><Landmark size={16}/><span><strong>Udienza</strong><small>Comparizione o trattazione</small></span></a>
+        <a href={newAgendaHref('CONSULTAZIONE')}><CalendarPlus size={16}/><span><strong>Appuntamento</strong><small>Cliente o assistito</small></span></a>
+        <a href={newAgendaHref('DEPOSITO')}><BriefcaseBusiness size={16}/><span><strong>Adempimento</strong><small>Attività collegata alla pratica</small></span></a>
+        <a href={newAgendaHref('ALTRO', 'Promemoria')}><Bell size={16}/><span><strong>Promemoria</strong><small>Nota operativa con avviso</small></span></a>
+        <a href={newAgendaHref('ALTRO')}><UsersRound size={16}/><span><strong>Attività di studio</strong><small>Impegno interno</small></span></a>
+        <a href="/scadenziario/nuova"><AlertTriangle size={16}/><span><strong>Scadenza</strong><small>Termine da presidiare</small></span></a>
+      </nav>
+    </details>
   )
 }
 
@@ -137,7 +164,7 @@ function initialAgendaDate(): Date {
 
 function initialAgendaView(): AgendaView {
   const value = new URLSearchParams(window.location.search).get('vista')
-  return value === 'day' || value === 'month' || value === 'week' ? value : 'week'
+  return value === 'day' || value === 'month' || value === 'week' || value === 'timeline' ? value : 'week'
 }
 
 function initialAgendaKind(): AgendaKind {
@@ -490,6 +517,62 @@ function DayColumn({
   )
 }
 
+function AgendaTimeline({
+  days,
+  onCreateSlot,
+  onOpenDetail,
+}: {
+  days: ReturnType<typeof buildAgendaPageData>['days']
+  onCreateSlot: (dayIso: string, time: string) => void
+  onOpenDetail: (event: AgendaEvent) => void
+}) {
+  const activeDays = days.filter((day) => day.events.length)
+  if (!activeDays.length) {
+    return (
+      <div className="iu-ag-timeline-empty">
+        <CalendarDays size={22}/>
+        <strong>Nessun impegno nel mese selezionato</strong>
+        <button type="button" onClick={() => onCreateSlot(toDateKey(new Date()), '09:00')}>Aggiungi una voce</button>
+      </div>
+    )
+  }
+  return (
+    <div className="iu-ag-timeline" aria-label="Cronologia agenda">
+      {activeDays.map((day) => (
+        <section className={day.isToday ? 'is-today' : ''} key={day.id}>
+          <button type="button" className="iu-ag-timeline__date" onClick={() => onCreateSlot(day.iso, '09:00')}>
+            <span>{day.weekday}</span>
+            <strong>{day.label}</strong>
+            <small>{day.month}</small>
+          </button>
+          <div className="iu-ag-timeline__events">
+            {day.events.map((event) => (
+              <a
+                className={`iu-ag-timeline__event iu-ag-event--${event.tone}`}
+                href={event.href || '/agenda'}
+                key={event.id}
+                onClick={(clickEvent) => {
+                  if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
+                  clickEvent.preventDefault()
+                  onOpenDetail(event)
+                }}
+              >
+                <time>{event.timeLabel}</time>
+                <span>{eventIcon(event.kind)}</span>
+                <div>
+                  <strong>{agendaHeadline(event)}</strong>
+                  <small>{agendaSubjectLine(event)}</small>
+                </div>
+                <Badge tone={event.tone}>{event.priority}</Badge>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
 function AgendaInspector({ events, nextEvent, unsynced, onOpenDetail }:{events:AgendaEvent[]; nextEvent?:AgendaEvent; unsynced:number; onOpenDetail:(event:AgendaEvent)=>void}) {
   const critical = events.filter((event) => event.priority === 'critica' || event.priority === 'alta').slice(0, 4)
   const focusEvent = nextEvent || [...events].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime())[0]
@@ -551,6 +634,22 @@ function agendaSourceLabel(source: string, event?: AgendaEvent): string {
   return 'Registro operativo'
 }
 
+function AgendaDeleteAction({ event }:{event:AgendaEvent}) {
+  const [confirming, setConfirming] = useState(false)
+  if (!confirming) {
+    return <button type="button" onClick={() => setConfirming(true)}><Trash2 size={15}/>Elimina</button>
+  }
+  return (
+    <div className="iu-ag-delete-confirm" role="group" aria-label={`Elimina ${agendaHeadline(event)}`}>
+      <span>Confermi l'eliminazione?</span>
+      <JsonPostForm action={`/agenda/${encodeURIComponent(event.id)}/elimina`} redirectTo="/agenda" successMessage="Voce eliminata dall'agenda.">
+        <button className="is-danger" type="submit"><Trash2 size={15}/>Elimina</button>
+      </JsonPostForm>
+      <button type="button" onClick={() => setConfirming(false)}>Annulla</button>
+    </div>
+  )
+}
+
 function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(event:AgendaEvent)=>void}) {
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
@@ -582,13 +681,17 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
       </dl>
       <div className="iu-ag-focus__actions">
         {event.remoteHearingVerified && event.remoteHearingUrl ? <a href={event.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={15}/>Collegati all'udienza</a> : null}
+        {event.matterId ? <a href={`/fascicoli/${encodeURIComponent(event.matterId)}`}><BriefcaseBusiness size={15}/>Apri fascicolo</a> : null}
         <a href={editHref}><Settings2 size={15}/>Modifica</a>
+        {!isDeadline ? <a href={`${editHref}#quando`}><CalendarClock size={15}/>Rinvia</a> : null}
         {event.sourceHref ? (
           <button type="button" onClick={() => onOpenSource(event)} title={`Apri origine: ${event.sourceLabel || 'fonte originaria'}`}><FileSearch size={15}/>Apri origine</button>
         ) : (
           <a href={event.href || '/agenda'}><CalendarDays size={15}/>Apri origine</a>
         )}
         <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(agendaHeadline(event))}`}><MessageCircleIcon/>Avvisa cliente</a>
+        {event.matterId ? <a href={`/notifiche-legali?id_fascicolo=${encodeURIComponent(event.matterId)}&fase=notifica`}><Bell size={15}/>Prepara notifica</a> : null}
+        <a href="/scadenziario/calcola-termini"><CalendarCheck size={15}/>Calcola termine</a>
         <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${agendaHeadline(event)}`}><Sparkles size={15}/>Chiedi a Lex</a>
         {!isDeadline && event.completed ? (
           <span className="iu-ag-focus__completed" role="status"><CheckCircle2 size={15}/>Attività completata</span>
@@ -598,6 +701,7 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
             <button type="submit"><CheckCircle2 size={15}/>Segna completato</button>
           </JsonPostForm>
         ) : null}
+        {!isDeadline ? <AgendaDeleteAction event={event}/> : null}
       </div>
     </section>
   )
@@ -719,7 +823,7 @@ export function AgendaPage() {
   const sourceLabel = loading ? 'Sincronizzazione agenda...' : 'Dati agenda aggiornati'
   const dateLabel = view === 'day'
     ? anchorDate.toLocaleDateString('it-IT')
-    : view === 'month'
+    : view === 'month' || view === 'timeline'
       ? anchorDate.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', month: 'long', year: 'numeric' })
       : rangeLabel(weekStart, weekEnd)
   const automationTarget = selectedEvent || agenda.summary.nextEvent || filteredEvents[0]
@@ -727,7 +831,7 @@ export function AgendaPage() {
   const canCreateTimesheet = Boolean(automationTarget?.matterId)
 
   const shiftPeriod = (direction: -1 | 1) => {
-    setAnchorDate((current) => view === 'month'
+    setAnchorDate((current) => view === 'month' || view === 'timeline'
       ? addMonths(current, direction)
       : addDays(current, view === 'day' ? direction : direction * 7))
   }
@@ -793,7 +897,8 @@ export function AgendaPage() {
         <div className="iu-ag-hero__actions">
           <Button href="/workspace-intelligente"><Sparkles size={15}/> Regia</Button>
           <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
-          <Button variant="primary" href="/agenda/nuovo"><Plus size={16}/> Nuovo appuntamento</Button>
+          <Button href="/polisWeb"><Landmark size={15}/> Aggiorna dagli uffici</Button>
+          <NewAgendaMenu/>
         </div>
       </section>
 
@@ -817,28 +922,31 @@ export function AgendaPage() {
           <button type="button" onClick={() => shiftPeriod(1)} aria-label="Periodo successivo"><ChevronRight size={16}/></button>
           <strong>{dateLabel}</strong>
         </div>
-        <label className="iu-ag-search">
-          <Search size={17}/>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca in agenda..."/>
-        </label>
-        <label className="iu-ag-filter">
-          <Filter size={16}/>
-          <select value={kind} onChange={(event) => setKind(event.target.value as AgendaKind)}>
-            {(Object.keys(kindLabels) as AgendaKind[]).map((item) => <option value={item} key={item}>{kindLabels[item]}</option>)}
-          </select>
-        </label>
-        <button className="iu-ag-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna agenda"><RefreshCw size={17}/></button>
-        <button
-          className="iu-ag-icon-btn"
-          type="button"
-          onClick={() => void togglePlannerExpanded()}
-          aria-label={plannerExpanded ? 'Esci dalla visualizzazione a tutto schermo' : 'Espandi il planner a tutto schermo'}
-          title={plannerExpanded ? 'Esci da tutto schermo' : 'Planner a tutto schermo'}
-        >
-          {plannerExpanded ? <Minimize2 size={17}/> : <Maximize2 size={17}/>}
-        </button>
-        <a className="iu-ag-icon-btn" href="/agenda/export.ics" aria-label="Scarica calendario"><Download size={17}/></a>
-        <a className="iu-ag-icon-btn" href="/agenda/importa" aria-label="Importa calendario"><UploadCloud size={17}/></a>
+        <div className="iu-ag-toolbar__actions">
+          <label className="iu-ag-search">
+            <Search size={17}/>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca in agenda..."/>
+          </label>
+          <label className="iu-ag-filter">
+            <Filter size={16}/>
+            <select value={kind} onChange={(event) => setKind(event.target.value as AgendaKind)}>
+              {(Object.keys(kindLabels) as AgendaKind[]).map((item) => <option value={item} key={item}>{kindLabels[item]}</option>)}
+            </select>
+          </label>
+          <button className="iu-ag-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna agenda"><RefreshCw size={17}/></button>
+          <button
+            className="iu-ag-icon-btn"
+            type="button"
+            onClick={() => void togglePlannerExpanded()}
+            aria-label={plannerExpanded ? 'Esci dalla visualizzazione a tutto schermo' : 'Espandi il planner a tutto schermo'}
+            title={plannerExpanded ? 'Esci da tutto schermo' : 'Planner a tutto schermo'}
+          >
+            {plannerExpanded ? <Minimize2 size={17}/> : <Maximize2 size={17}/>}
+          </button>
+          <button className="iu-ag-icon-btn" type="button" onClick={() => window.print()} aria-label="Stampa agenda"><Printer size={17}/></button>
+          <a className="iu-ag-icon-btn" href="/agenda/export.ics" aria-label="Scarica calendario"><Download size={17}/></a>
+          <a className="iu-ag-icon-btn" href="/agenda/importa" aria-label="Importa calendario"><UploadCloud size={17}/></a>
+        </div>
       </section>
 
       <section className="iu-ag-status-line">
@@ -863,21 +971,33 @@ export function AgendaPage() {
         <div className="iu-ag-calendar-card">
           <header>
             <div>
-              <strong>{view === 'day' ? 'Vista giorno' : view === 'month' ? 'Vista mese compatta' : 'Vista settimana'}</strong>
+              <strong>{view === 'day' ? 'Vista giorno' : view === 'month' ? 'Vista mese compatta' : view === 'timeline' ? 'Cronologia mensile' : 'Vista settimana'}</strong>
               <span>{rangeLabel(visibleRange.from, visibleRange.to)} - {displayDays.length} giorni visibili - {filteredEvents.length} {filteredEvents.length === 1 ? 'elemento' : 'elementi'}</span>
               <AgendaLegend />
             </div>
             <div>
               <Badge tone={agenda.summary.unsynced ? 'warning' : 'success'}>{agenda.summary.unsynced ? `${agenda.summary.unsynced} da sincronizzare` : 'allineata'}</Badge>
+              <button
+                type="button"
+                onClick={() => void togglePlannerExpanded()}
+                aria-label={plannerExpanded ? 'Esci dalla visualizzazione a tutto schermo' : 'Apri il calendario a tutto schermo'}
+              >
+                {plannerExpanded ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
+                {plannerExpanded ? 'Riduci' : 'Tutto schermo'}
+              </button>
               <a href="/impostazioni/calendario"><Settings2 size={16}/> Preferenze</a>
             </div>
           </header>
+          {view === 'timeline' ? (
+            <AgendaTimeline days={displayDays} onCreateSlot={openNewAppointment} onOpenDetail={openAgendaDetail}/>
+          ) : (
           <div
             className={`iu-ag-week ${view === 'month' ? 'iu-ag-week--month' : view === 'week' ? 'iu-ag-week--week' : 'iu-ag-week--day'}`}
             style={{ gridTemplateColumns: view === 'month' ? undefined : `repeat(${displayDays.length}, minmax(var(--iu-ag-day-min-width, 118px), 1fr))` }}
           >
             {displayDays.map((day) => <DayColumn day={day} key={day.id} view={view} onCreateSlot={openNewAppointment} onDropEvent={moveEvent} onOpenSource={setSourcePreview} onOpenDetail={openAgendaDetail}/>)}
           </div>
+          )}
         </div>
         <AgendaInspector events={filteredEvents} nextEvent={agenda.summary.nextEvent} unsynced={agenda.summary.unsynced} onOpenDetail={openAgendaDetail}/>
       </section>

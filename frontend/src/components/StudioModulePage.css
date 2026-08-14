@@ -336,7 +336,7 @@
 
 .iu-sm-focus dl{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:8px;
   margin:12px 0 0;
 }
@@ -425,6 +425,47 @@
   margin-top:14px;
 }
 
+.iu-sm-focus__record-tools{
+  display:grid;
+  grid-template-columns:minmax(240px,1fr) minmax(190px,.55fr) auto;
+  gap:8px;
+  align-items:center;
+  margin-top:14px;
+}
+
+.iu-sm-focus__record-tools label{
+  min-width:0;
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid rgba(148,163,184,.38);
+  border-radius:8px;
+  background:#fff;
+  color:var(--iu-slate-500);
+  padding:0 11px;
+}
+
+.iu-sm-focus__record-tools input,
+.iu-sm-focus__record-tools select{
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#111827;
+  font:inherit;
+  font-size:13px;
+  font-weight:750;
+}
+
+.iu-sm-focus__record-tools>span{
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:850;
+  white-space:nowrap;
+}
+
 .iu-sm-focus__records a{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto auto;
@@ -461,6 +502,44 @@
   font-size:12px;
   font-style:normal;
   font-weight:850;
+}
+
+.iu-sm-focus__record-empty{
+  border:1px dashed rgba(148,163,184,.45);
+  border-radius:8px;
+  color:var(--iu-slate-600);
+  padding:14px;
+  text-align:center;
+  font-size:13px;
+  font-weight:750;
+}
+
+.iu-sm-focus__record-more{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  padding-top:4px;
+}
+
+.iu-sm-focus__record-more button{
+  min-height:36px;
+  border:1px solid rgba(37,99,235,.2);
+  border-radius:8px;
+  background:#fff;
+  color:var(--iu-blue-700);
+  padding:0 12px;
+  font:inherit;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.iu-sm-focus__record-more button:hover,
+.iu-sm-focus__record-more button:focus-visible{
+  border-color:var(--iu-blue-600);
+  background:#eff6ff;
+  outline:2px solid rgba(37,99,235,.18);
+  outline-offset:1px;
 }
 
 .iu-sm-focus__form{
@@ -1059,6 +1138,12 @@
   .iu-sm-check-grid{
     grid-template-columns:1fr;
   }
+  .iu-sm-focus__record-tools{
+    grid-template-columns:1fr;
+  }
+  .iu-sm-focus__record-tools>span{
+    white-space:normal;
+  }
   .iu-sm-office-contact{
     grid-template-columns:18px 64px minmax(0,1fr) 32px;
   }
@@ -1069,6 +1154,10 @@
   }
   .iu-sm-focus__records a{
     grid-template-columns:1fr;
+  }
+  .iu-sm-focus__record-more{
+    align-items:stretch;
+    flex-direction:column;
   }
   .iu-sm-focus__actions{
     justify-items:stretch;

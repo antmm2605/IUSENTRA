@@ -149,6 +149,7 @@ from web.services.react_payload_cache import ReactPayloadTTLCache
 from web.services.security_redaction import redacted_json_response
 from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
+from web.services.react_document_archive_bridge import build_react_document_archive_payload
 from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
@@ -7064,6 +7065,35 @@ def studio_module_react_payload(module_id: str):
     ))
 
 
+@api_v1_react.get("/editor-professionale")
+@_richiedi_auth
+def editor_professionale_react_payload():
+    try:
+        payload = build_react_document_archive_payload(
+            get_fascicoli=_fascicoli_loader(),
+            query=dict(request.args),
+        )
+        return jsonify(payload)
+    except Exception as exc:
+        current_app.logger.exception("Archivio documentale React non disponibile: %s", exc)
+        return jsonify(
+            {
+                "source": "errore_controllato",
+                "contracts": {"mockFallback": False, "readOnly": False},
+                "message": "Archivio documentale momentaneamente non disponibile. Riprova tra pochi secondi.",
+                "summary": {"active": 0, "trash": 0, "matters": 0, "formats": 0},
+                "facets": {"types": [], "formats": [], "matters": []},
+                "pagination": {"page": 1, "perPage": 50, "pages": 1, "total": 0, "from": 0, "to": 0},
+                "items": [],
+                "actions": {
+                    "newDocument": "/template-atti/editor",
+                    "openMatters": "/fascicoli",
+                    "searchStudio": "/global-search?tipo=documenti",
+                },
+            }
+        ), 200
+
+
 def _gestore_strumenti_legali_react() -> GestioneStrumentiLegali:
     return GestioneStrumentiLegali(
         normative_db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
@@ -7682,7 +7712,10 @@ def clear_react_fascicoli_list_payload_cache() -> None:
 
 
 _FASCICOLI_FILTER_PREFERENCES_SECTION = "fascicoli_filtri"
-_FASCICOLI_FILTER_SORTS = {"recenti", "rg", "cliente", "scadenza", "documenti"}
+_FASCICOLI_FILTER_SORTS = {
+    "recenti", "rg", "cliente", "scadenza", "documenti", "titolo", "ufficio", "apertura",
+    "stato", "gruppo", "responsabile", "valore",
+}
 _FASCICOLI_FILTER_STATUSES = {"tutti", "aperto", "in_corso", "definito", "da_archiviare", "archiviato", "sospeso"}
 _FASCICOLI_FILTER_TYPES = {
     "tutti",
@@ -7699,6 +7732,46 @@ _FASCICOLI_FILTER_TYPES = {
 }
 _FASCICOLI_FILTER_PAYMENT_STATUSES = {"tutti", "non_previsto", "da_registrare", "pagato", "parziale", "da_emettere"}
 _FASCICOLI_FILTER_VIEWS = {"operativa", "economica"}
+_FASCICOLI_DISPLAY_MODES = {"tabella", "compatta", "schede"}
+_FASCICOLI_GROUP_MODES = {"nessuno", "gruppo", "stato", "tipo", "ufficio", "anno", "responsabile"}
+_FASCICOLI_FIELD_FILTER_ARGS: dict[str, tuple[str, ...]] = {
+    "register": ("f_register",),
+    "value": ("f_value",),
+    "holder": ("f_holder",),
+    "responsible": ("f_responsible",),
+    "object": ("f_object",),
+    "denomination": ("f_denomination",),
+    "internal_ref": ("f_internal_ref",),
+    "rg_year": ("f_rg_year",),
+    "opened_year": ("f_opened_year",),
+    "archived_year": ("f_archived_year",),
+    "court": ("f_court",),
+    "rg": ("f_rg",),
+    "section": ("f_section",),
+    "section_role": ("f_section_role",),
+    "judge": ("f_judge",),
+    "opposing_lawyer": ("f_opposing_lawyer",),
+    "notes": ("f_notes",),
+    "clerk": ("f_clerk",),
+    "ctu": ("f_ctu",),
+    "ctp": ("f_ctp",),
+    "operational_status": ("f_operational_status",),
+    "claimant": ("f_claimant",),
+    "respondent": ("f_respondent",),
+    "custom_1": ("f_custom_1",),
+    "custom_2": ("f_custom_2",),
+    "group": ("f_group",),
+}
+
+
+def _fascicoli_request_field_filters() -> dict[str, str]:
+    return {
+        field: next(
+            (request.args.get(name, "").strip()[:160] for name in names if request.args.get(name, "").strip()),
+            "",
+        )
+        for field, names in _FASCICOLI_FIELD_FILTER_ARGS.items()
+    }
 
 
 def _fascicoli_filter_preferences_defaults() -> dict[str, Any]:
@@ -7706,8 +7779,12 @@ def _fascicoli_filter_preferences_defaults() -> dict[str, Any]:
         "type": "tutti",
         "status": "tutti",
         "sort": "rg",
+        "secondarySort": "",
         "view": "operativa",
+        "displayMode": "tabella",
+        "groupBy": "nessuno",
         "court": "",
+        "fieldFilters": {},
         "alertsOnly": False,
         "paymentsOnly": False,
         "missingRgOnly": False,
@@ -7738,12 +7815,34 @@ def _fascicoli_filter_preferences_payload(raw: Mapping[str, Any] | None) -> dict
         page_size = int(source.get("pageSize") or source.get("page_size") or defaults["pageSize"])
     except (TypeError, ValueError):
         page_size = defaults["pageSize"]
+    raw_field_filters = source.get("fieldFilters") if isinstance(source.get("fieldFilters"), Mapping) else source.get("field_filters")
+    field_filters = {
+        field: str((raw_field_filters or {}).get(field) or "").strip()[:160]
+        for field in _FASCICOLI_FIELD_FILTER_ARGS
+        if str((raw_field_filters or {}).get(field) or "").strip()
+    }
     return {
         "type": _fascicoli_filter_choice(source.get("type"), _FASCICOLI_FILTER_TYPES, defaults["type"]),
         "status": _fascicoli_filter_choice(source.get("status"), _FASCICOLI_FILTER_STATUSES, defaults["status"]),
         "sort": _fascicoli_filter_choice(source.get("sort"), _FASCICOLI_FILTER_SORTS, defaults["sort"]),
+        "secondarySort": _fascicoli_filter_choice(
+            source.get("secondarySort") or source.get("secondary_sort"),
+            _FASCICOLI_FILTER_SORTS | {""},
+            defaults["secondarySort"],
+        ),
         "view": _fascicoli_filter_choice(source.get("view"), _FASCICOLI_FILTER_VIEWS, defaults["view"]),
+        "displayMode": _fascicoli_filter_choice(
+            source.get("displayMode") or source.get("display_mode"),
+            _FASCICOLI_DISPLAY_MODES,
+            defaults["displayMode"],
+        ),
+        "groupBy": _fascicoli_filter_choice(
+            source.get("groupBy") or source.get("group_by"),
+            _FASCICOLI_GROUP_MODES,
+            defaults["groupBy"],
+        ),
         "court": str(source.get("court") or "").strip()[:120],
+        "fieldFilters": field_filters,
         "alertsOnly": _fascicoli_filter_bool(source.get("alertsOnly") if "alertsOnly" in source else source.get("alerts_only")),
         "paymentsOnly": _fascicoli_filter_bool(source.get("paymentsOnly") if "paymentsOnly" in source else source.get("payments_only")),
         "missingRgOnly": _fascicoli_filter_bool(source.get("missingRgOnly") if "missingRgOnly" in source else source.get("missing_rg_only")),
@@ -7984,6 +8083,8 @@ def _fascicoli_list_cache_key() -> tuple | None:
         ("status", request.args.get("status", "").strip()),
         ("court", request.args.get("court", "").strip()),
         ("sort", request.args.get("sort", "rg").strip() or "rg"),
+        ("secondary_sort", request.args.get("secondary_sort", "").strip()),
+        ("group_by", request.args.get("group_by", "").strip()),
         ("view", (request.args.get("view", "") or request.args.get("vista", "")).strip()),
         ("alerts_only", "1" if (_request_bool("alerts_only") or _request_bool("alertsOnly")) else "0"),
         ("payments_only", "1" if (_request_bool("payments_only") or _request_bool("paymentsOnly")) else "0"),
@@ -7993,6 +8094,7 @@ def _fascicoli_list_cache_key() -> tuple | None:
         ("fondo_spese", (request.args.get("fondo_spese", "") or request.args.get("fondoSpese", "")).strip()),
         ("liquidazione", (request.args.get("liquidazione", "") or request.args.get("liquidazione_giudice", "")).strip()),
         ("parcella", request.args.get("parcella", "").strip()),
+        *(('field_' + field, value) for field, value in sorted(_fascicoli_request_field_filters().items())),
     )
     return ("fascicoli-list", tenant_slug, user_key, args)
 
@@ -8018,6 +8120,8 @@ def fascicoli_react_list():
         status_filter=request.args.get("status", ""),
         court=request.args.get("court", ""),
         sort=request.args.get("sort", "rg"),
+        secondary_sort=request.args.get("secondary_sort", ""),
+        group_by=request.args.get("group_by", ""),
         view=request.args.get("view", "") or request.args.get("vista", ""),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
         payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
@@ -8029,6 +8133,7 @@ def fascicoli_react_list():
             "liquidazione_giudice": request.args.get("liquidazione", "") or request.args.get("liquidazione_giudice", ""),
             "parcella": request.args.get("parcella", ""),
         },
+        field_filters=_fascicoli_request_field_filters(),
     ))
     if cache_key is not None and response.status_code == 200:
         _FASCICOLI_LIST_PAYLOAD_CACHE.set(cache_key, response.get_data())

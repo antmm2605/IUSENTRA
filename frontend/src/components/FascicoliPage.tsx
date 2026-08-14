@@ -35,6 +35,8 @@ import {
   Gavel,
   Landmark,
   ListChecks,
+  List,
+  LayoutGrid,
   Mail,
   MapPin,
   Maximize2,
@@ -51,6 +53,7 @@ import {
   ShieldCheck,
   Sparkles,
   Save,
+  TableProperties,
   Trash2,
   UploadCloud,
   UserRound,
@@ -95,6 +98,10 @@ import {
   defaultFascicoliFilterPreferences,
   fascicoloPaymentKinds,
   type FascicoliFilterPreferences,
+  type FascicoliFieldFilterKey,
+  type FascicoliFieldFilters,
+  type FascicoliDisplayMode,
+  type FascicoliGroupMode,
   type FascicoliPageData,
   type FascicoliPageParams,
   type FascicoloPaymentFilter,
@@ -147,7 +154,7 @@ const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'
 const PAGOPA_PROXY_NEW_PAYMENT_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp'
 const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'
 
-type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti'
+type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti' | 'titolo' | 'ufficio' | 'apertura' | 'stato' | 'gruppo' | 'responsabile' | 'valore'
 type Route =
   | { kind: 'list' }
   | { kind: 'archive' }
@@ -217,7 +224,52 @@ const sortLabels: Record<SortKey, string> = {
   cliente: 'Cliente',
   scadenza: 'Prossima scadenza',
   documenti: 'Documenti',
+  titolo: 'Titolo',
+  ufficio: 'Ufficio giudiziario',
+  apertura: 'Data di apertura',
+  stato: 'Stato',
+  gruppo: 'Gruppo',
+  responsabile: 'Responsabile',
+  valore: 'Valore causa',
 }
+
+type PracticeFilterSection = 'pratica' | 'procedimento' | 'persone'
+
+const practiceFieldFilters: Array<{
+  key: FascicoliFieldFilterKey
+  label: string
+  placeholder: string
+  section: PracticeFilterSection
+  inputMode?: 'text' | 'numeric' | 'decimal'
+}> = [
+  { key: 'register', label: 'Registro', placeholder: 'Civile, lavoro, SICID...', section: 'pratica' },
+  { key: 'value', label: 'Valore causa', placeholder: 'Importo', section: 'pratica', inputMode: 'decimal' },
+  { key: 'object', label: 'Oggetto', placeholder: 'Oggetto della pratica', section: 'pratica' },
+  { key: 'denomination', label: 'Denominazione', placeholder: 'Titolo del fascicolo', section: 'pratica' },
+  { key: 'internal_ref', label: 'Riferimento cartaceo', placeholder: 'Riferimento interno', section: 'pratica' },
+  { key: 'opened_year', label: 'Anno apertura', placeholder: 'es. 2026', section: 'pratica', inputMode: 'numeric' },
+  { key: 'archived_year', label: 'Anno archiviazione', placeholder: 'es. 2025', section: 'pratica', inputMode: 'numeric' },
+  { key: 'operational_status', label: 'Stato pratica', placeholder: 'Stato operativo', section: 'pratica' },
+  { key: 'custom_1', label: 'Campo personalizzato 1', placeholder: 'Valore', section: 'pratica' },
+  { key: 'custom_2', label: 'Campo personalizzato 2', placeholder: 'Valore', section: 'pratica' },
+  { key: 'group', label: 'Gruppo', placeholder: 'Nome gruppo', section: 'pratica' },
+  { key: 'rg_year', label: 'Anno RG', placeholder: 'es. 2026', section: 'procedimento', inputMode: 'numeric' },
+  { key: 'rg', label: 'Numero RG', placeholder: 'Numero o RG completo', section: 'procedimento' },
+  { key: 'section', label: 'Sezione', placeholder: 'Sezione giudiziaria', section: 'procedimento' },
+  { key: 'section_role', label: 'Ruolo di sezione', placeholder: 'Numero di ruolo', section: 'procedimento' },
+  { key: 'judge', label: 'Giudice', placeholder: 'Nome del giudice', section: 'procedimento' },
+  { key: 'notes', label: 'Annotazioni', placeholder: 'Testo nelle annotazioni', section: 'procedimento' },
+  { key: 'clerk', label: 'Cancelliere', placeholder: 'Nome del cancelliere', section: 'procedimento' },
+  { key: 'holder', label: 'Titolare', placeholder: 'Avvocato titolare', section: 'persone' },
+  { key: 'responsible', label: 'Responsabile', placeholder: 'Avvocato responsabile', section: 'persone' },
+  { key: 'opposing_lawyer', label: 'Avvocato controparte', placeholder: 'Nome dell’avvocato', section: 'persone' },
+  { key: 'ctu', label: 'CTU', placeholder: 'Consulente tecnico', section: 'persone' },
+  { key: 'ctp', label: 'CTP', placeholder: 'Consulente di parte', section: 'persone' },
+  { key: 'claimant', label: 'Attore o ricorrente', placeholder: 'Nome della parte', section: 'persone' },
+  { key: 'respondent', label: 'Convenuto o resistente', placeholder: 'Nome della parte', section: 'persone' },
+]
+
+const emptyPracticeFieldFilters: FascicoliFieldFilters = {}
 
 const paymentFullLabels: Record<FascicoloPaymentKind, string> = {
   contributo_unificato: 'Contributo unificato',
@@ -267,6 +319,25 @@ const fascicoloStatusEditOptions: Array<{ value: Exclude<FascicoloStato, 'tutti'
 function initialListView(): ListView {
   const params = new URLSearchParams(window.location.search)
   return (params.get('vista') || params.get('view')) === 'economica' ? 'economica' : 'operativa'
+}
+
+function initialDisplayMode(): FascicoliDisplayMode {
+  const value = initialUrlParam('visualizzazione', 'tabella')
+  return ['tabella', 'compatta', 'schede'].includes(value) ? value as FascicoliDisplayMode : 'tabella'
+}
+
+function initialGroupMode(): FascicoliGroupMode {
+  const value = initialUrlParam('raggruppa', 'nessuno')
+  return ['nessuno', 'gruppo', 'stato', 'tipo', 'ufficio', 'anno', 'responsabile'].includes(value) ? value as FascicoliGroupMode : 'nessuno'
+}
+
+function initialFieldFilters(): FascicoliFieldFilters {
+  const params = new URLSearchParams(window.location.search)
+  return Object.fromEntries(
+    practiceFieldFilters
+      .map(({ key }) => [key, params.get(`f_${key}`)?.trim() || ''] as const)
+      .filter(([, value]) => value),
+  ) as FascicoliFieldFilters
 }
 
 function syncListViewInUrl(view: ListView) {
@@ -324,8 +395,11 @@ function hasExplicitListPreferenceParams(): boolean {
     'status',
     'court',
     'sort',
+    'secondary_sort',
     'view',
     'vista',
+    'visualizzazione',
+    'raggruppa',
     'alerts_only',
     'alertsOnly',
     'payments_only',
@@ -343,7 +417,7 @@ function hasExplicitListPreferenceParams(): boolean {
     'parcella',
     'page_size',
     'pageSize',
-  ].some((name) => params.has(name))
+  ].some((name) => params.has(name)) || Array.from(params.keys()).some((name) => name.startsWith('f_'))
 }
 
 function initialStatusFilter(): FascicoloStato {
@@ -351,9 +425,16 @@ function initialStatusFilter(): FascicoloStato {
   return ['aperto', 'in_corso', 'definito', 'da_archiviare', 'archiviato', 'sospeso'].includes(raw) ? raw as FascicoloStato : 'tutti'
 }
 
+function initialTypeFilter(): FascicoloTipo {
+  const raw = initialUrlParam('type').toLowerCase()
+  return ['civile', 'penale', 'amministrativo', 'tributario', 'lavoro', 'stragiudiziale', 'altro'].includes(raw)
+    ? raw as FascicoloTipo
+    : 'tutti'
+}
+
 function initialSortFilter(): SortKey {
   const raw = initialUrlParam('sort', 'rg').toLowerCase()
-  return ['recenti', 'rg', 'cliente', 'scadenza', 'documenti'].includes(raw) ? raw as SortKey : 'rg'
+  return raw in sortLabels ? raw as SortKey : 'rg'
 }
 
 function initialPaymentFilter(name: string): FascicoloPaymentFilter {
@@ -362,7 +443,7 @@ function initialPaymentFilter(name: string): FascicoloPaymentFilter {
 }
 
 function toSavedSortKey(value: string): SortKey {
-  return ['recenti', 'rg', 'cliente', 'scadenza', 'documenti'].includes(value) ? value as SortKey : defaultFascicoliFilterPreferences.sort as SortKey
+  return value in sortLabels ? value as SortKey : defaultFascicoliFilterPreferences.sort as SortKey
 }
 
 function toSavedListView(value: string): ListView {
@@ -378,8 +459,12 @@ function filterPreferencesSignature(preferences: FascicoliFilterPreferences): st
     type: preferences.type,
     status: preferences.status,
     sort: preferences.sort,
+    secondarySort: preferences.secondarySort,
     view: preferences.view,
+    displayMode: preferences.displayMode,
+    groupBy: preferences.groupBy,
     court: preferences.court.trim(),
+    fieldFilters: Object.fromEntries(Object.entries(preferences.fieldFilters).sort(([a], [b]) => a.localeCompare(b))),
     alertsOnly: preferences.alertsOnly,
     paymentsOnly: preferences.paymentsOnly,
     missingRgOnly: preferences.missingRgOnly,
@@ -400,7 +485,9 @@ function fascicoliListCacheKey(params: FascicoliPageParams): string {
     params.status || 'tutti',
     (params.court || '').trim(),
     params.sort || 'rg',
+    params.secondarySort || '',
     params.view || 'operativa',
+    JSON.stringify(Object.fromEntries(Object.entries(params.fieldFilters || {}).sort(([a], [b]) => a.localeCompare(b)))),
     params.alertsOnly ? '1' : '0',
     params.paymentsOnly ? '1' : '0',
     params.missingRgOnly ? '1' : '0',
@@ -2078,6 +2165,27 @@ const PAGOPA_GIUSTIZIA_URL = 'https://servizipst.giustizia.it/PST/it/pagopa.wp'
 
 type QuickPanelState = { item: FascicoloRow; x: number; y: number }
 
+function fascicoloGroupLabel(item: FascicoloRow, mode: FascicoliGroupMode): string {
+  if (mode === 'gruppo') return item.groupName || 'Senza gruppo'
+  if (mode === 'stato') return formatFascicoloStatus(item.status)
+  if (mode === 'tipo') return formatFascicoloType(item.type)
+  if (mode === 'ufficio') return item.court || 'Ufficio non impostato'
+  if (mode === 'anno') return item.rgYear ? String(item.rgYear) : 'Anno RG non indicato'
+  if (mode === 'responsabile') return item.responsible || 'Responsabile non indicato'
+  return ''
+}
+
+function orderFascicoliByGroup(items: FascicoloRow[], mode: FascicoliGroupMode): FascicoloRow[] {
+  if (mode === 'nessuno') return items
+  return items
+    .map((item, sourceIndex) => ({ item, sourceIndex }))
+    .sort((left, right) => {
+      const groupOrder = fascicoloGroupLabel(left.item, mode).localeCompare(fascicoloGroupLabel(right.item, mode), 'it', { sensitivity: 'base' })
+      return groupOrder || left.sourceIndex - right.sourceIndex
+    })
+    .map(({ item }) => item)
+}
+
 function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:()=>void}) {
   const { item } = state
   const [busy, setBusy] = useState(false)
@@ -2155,14 +2263,39 @@ function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:
   )
 }
 
-function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, onPagePrefetch, pendingPage = null, view = 'operativa', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; onPagePrefetch?:(value:number)=>void; pendingPage?:number | null; view?:ListView; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
+function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, onPagePrefetch, pendingPage = null, view = 'operativa', displayMode = 'tabella', groupBy = 'nessuno', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; onPagePrefetch?:(value:number)=>void; pendingPage?:number | null; view?:ListView; displayMode?:FascicoliDisplayMode; groupBy?:FascicoliGroupMode; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
   const economic = view === 'economica' && !archive
-  const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
+  const displayItems = useMemo(() => orderFascicoliByGroup(items, groupBy), [groupBy, items])
+  const allSelected = displayItems.length > 0 && displayItems.every((item) => selected.has(item.id))
   const total = pagination?.total ?? items.length
   const totalLabel = filtered ? 'fascicoli filtrati' : 'fascicoli'
   const handleError = onError || (() => {})
   const [expandedEconomicId, setExpandedEconomicId] = useState<string | null>(null)
   const [quickPanel, setQuickPanel] = useState<QuickPanelState | null>(null)
+  useEffect(() => {
+    const syncFullscreenState = () => setExpanded(document.fullscreenElement === stageRef.current)
+    document.addEventListener('fullscreenchange', syncFullscreenState)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState)
+  }, [])
+  useEffect(() => {
+    document.body.classList.toggle('iu-fascicoli-table-expanded', expanded)
+    return () => document.body.classList.remove('iu-fascicoli-table-expanded')
+  }, [expanded])
+  const toggleExpanded = async () => {
+    if (expanded) {
+      setExpanded(false)
+      if (document.fullscreenElement === stageRef.current) void document.exitFullscreen().catch(() => {})
+      return
+    }
+    // Applica subito la superficie estesa: alcuni browser espongono requestFullscreen
+    // ma non ne risolvono la Promise quando la richiesta viene negata.
+    setExpanded(true)
+    if (stageRef.current?.requestFullscreen) {
+      void stageRef.current.requestFullscreen().catch(() => {})
+    }
+  }
   const statusCell = (item: FascicoloRow) => (
     !archive && onStatusSaved
       ? <StatusEditCell item={item} onSaved={onStatusSaved} onError={handleError}/>
@@ -2170,6 +2303,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   )
   const currentPage = pagination?.page ?? 1
   const totalPages = pagination?.pages ?? (items.length ? 1 : 0)
+  const tableColumnCount = economic ? 6 : 9
   const pageBusy = Boolean(pendingPage && pendingPage !== currentPage)
   const pageNumbers = (() => {
     const last = Math.max(1, totalPages)
@@ -2214,6 +2348,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
     </>
   ) : null
   return (
+    <div ref={stageRef} className={`iu-fas-table-stage ${expanded ? 'is-expanded' : ''}`}>
     <IusentraDataSurface
       title={`${total} ${totalLabel}`}
       subtitle={archive
@@ -2221,19 +2356,31 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
         : economic
           ? 'Elenco unico dello studio — vista economica (contributo, spese/esborsi, liquidazione, parcella)'
           : 'Elenco unico dello studio — vista operativa'}
-      toolbar={viewToggle || pageSizeControl ? (
+      toolbar={(
         <div className="iu-fas-table-toolbar">
+          <div className="iu-fas-table-toolbar__top">
+            <button
+              type="button"
+              className="iu-fas-table-expand"
+              onClick={() => void toggleExpanded()}
+              aria-label={expanded ? 'Riduci elenco fascicoli' : 'Apri elenco fascicoli a tutto schermo'}
+              title={expanded ? 'Riduci' : 'Tutto schermo'}
+            >
+              {expanded ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
+              <span>{expanded ? 'Riduci' : 'Tutto schermo'}</span>
+            </button>
+          </div>
           {viewToggle}
           {pageSizeControl}
         </div>
-      ) : null}
+      )}
       footer={paginationControls}
       fill
       className="iu-fas-table-card"
       ariaLabel={archive ? 'Archivio fascicoli' : 'Elenco fascicoli'}
       empty={!items.length ? <p className="iu-empty">Nessun fascicolo corrisponde ai filtri impostati.</p> : null}
     >
-      <SyncedTopScrollbar className="iu-fas-table-wrap iusentra-data-surface__scroll">
+      <SyncedTopScrollbar className={`iu-fas-table-wrap iusentra-data-surface__scroll ${displayMode !== 'tabella' ? 'iu-fas-table-wrap--hidden' : ''}`}>
         <table className={economic ? 'iu-fas-table iu-fas-table--economic' : 'iu-fas-table'}>
           <thead>
             <tr>
@@ -2249,11 +2396,17 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => {
+            {displayItems.map((item, itemIndex) => {
               const economicEditorOpen = economic && expandedEconomicId === item.id
               const economicEditorId = `economic-editor-${item.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+              const startsGroup = groupBy !== 'nessuno' && (itemIndex === 0 || fascicoloGroupLabel(displayItems[itemIndex - 1], groupBy) !== fascicoloGroupLabel(item, groupBy))
               return (
                 <Fragment key={item.id}>
+                  {startsGroup ? (
+                    <tr className="iu-fas-table-group-row">
+                      <td colSpan={tableColumnCount}>{fascicoloGroupLabel(item, groupBy)}</td>
+                    </tr>
+                  ) : null}
                   <tr
                     className={[economicEditorOpen ? 'is-economic-open' : '', item.duplicateCount > 1 ? 'iu-fas-row--duplicate' : ''].filter(Boolean).join(' ') || undefined}
                     onContextMenu={(event) => { event.preventDefault(); setQuickPanel({ item, x: event.clientX, y: event.clientY }) }}
@@ -2340,11 +2493,63 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
           </tbody>
         </table>
       </SyncedTopScrollbar>
+      {displayMode !== 'tabella' ? (
+        <div className={displayMode === 'schede' ? 'iu-fas-card-grid' : 'iu-fas-compact-list'}>
+          {displayItems.map((item, itemIndex) => {
+            const startsGroup = groupBy !== 'nessuno' && (itemIndex === 0 || fascicoloGroupLabel(displayItems[itemIndex - 1], groupBy) !== fascicoloGroupLabel(item, groupBy))
+            return (
+              <Fragment key={`${displayMode}-${item.id}`}>
+                {startsGroup ? <h3 className="iu-fas-collection-group">{fascicoloGroupLabel(item, groupBy)}</h3> : null}
+                <article className="iu-fas-collection-item" onContextMenu={(event) => { event.preventDefault(); setQuickPanel({ item, x: event.clientX, y: event.clientY }) }}>
+                  <label className="iu-fas-collection-select"><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></label>
+                  <div className="iu-fas-collection-main">
+                    <span>{item.ref}{item.internalRef && item.internalRef !== 'n.d.' ? ` · ${item.internalRef}` : ''}</span>
+                    <a href={item.href}>{item.title}</a>
+                    <small>{[item.client, item.court, item.rgMissing ? '' : item.rg].filter(Boolean).join(' · ')}</small>
+                  </div>
+                  <div className="iu-fas-collection-meta">
+                    <Badge tone="neutral">{formatFascicoloType(item.type)}</Badge>
+                    {statusCell(item)}
+                    {economic ? <strong>{item.paymentSummary.statoLabel}</strong> : <span><CalendarDays size={14}/>{item.nextDeadline || 'n.d.'}</span>}
+                    <span><FileText size={14}/>{item.documents}</span>
+                  </div>
+                  <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/>
+                  {economic ? (
+                    <div className="iu-fas-collection-economic">
+                      <div className="iu-fas-economic-summary-grid">
+                        {economicPaymentKinds.map((kind) => (
+                          <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
+                        ))}
+                      </div>
+                      <EconomicEvidenceStrip row={item}/>
+                      <button
+                        type="button"
+                        className="iu-fas-economic-edit-toggle"
+                        aria-expanded={expandedEconomicId === item.id}
+                        onClick={() => setExpandedEconomicId((current) => current === item.id ? null : item.id)}
+                      >
+                        {expandedEconomicId === item.id ? <ChevronUp size={14}/> : <PencilLine size={14}/>}
+                        <span>{expandedEconomicId === item.id ? 'Chiudi controllo economico' : 'Modifica controllo economico'}</span>
+                      </button>
+                      {expandedEconomicId === item.id ? (
+                        <section className="iu-fas-economic-editor" aria-label={`Modifica controllo economico ${item.ref}`}>
+                          <EconomicEditorPanel row={item} onSaved={onPaymentSaved || (() => {})} onError={handleError}/>
+                        </section>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </article>
+              </Fragment>
+            )
+          })}
+        </div>
+      ) : null}
       <div className="iu-fas-mobile-list">
-        {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} economic={economic} onDeleted={onDeleted} onError={onError} onPaymentSaved={onPaymentSaved} key={item.id}/>) }
+        {displayItems.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} economic={economic} onDeleted={onDeleted} onError={onError} onPaymentSaved={onPaymentSaved} key={item.id}/>) }
       </div>
       {quickPanel ? <FascicoloQuickPanel state={quickPanel} onClose={() => setQuickPanel(null)}/> : null}
     </IusentraDataSurface>
+    </div>
   )
 }
 
@@ -2447,16 +2652,25 @@ function FascicoliListPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [type, setType] = useState<FascicoloTipo>('tutti')
+  const [type, setType] = useState<FascicoloTipo>(initialTypeFilter)
   const [status, setStatus] = useState<FascicoloStato>(initialStatusFilter)
   const [sort, setSort] = useState<SortKey>(initialSortFilter)
-  const [court, setCourt] = useState('')
-  const [debouncedCourt, setDebouncedCourt] = useState('')
+  const [secondarySort, setSecondarySort] = useState<SortKey | ''>(() => {
+    const value = initialUrlParam('secondary_sort')
+    return value in sortLabels ? value as SortKey : ''
+  })
+  const [court, setCourt] = useState(() => initialUrlParam('court'))
+  const [debouncedCourt, setDebouncedCourt] = useState(() => initialUrlParam('court'))
+  const [fieldFilters, setFieldFilters] = useState<FascicoliFieldFilters>(initialFieldFilters)
+  const [debouncedFieldFilters, setDebouncedFieldFilters] = useState<FascicoliFieldFilters>(initialFieldFilters)
+  const [filterSection, setFilterSection] = useState<PracticeFilterSection>('pratica')
   const [alertsOnly, setAlertsOnly] = useState(() => initialUrlBool('alerts_only', 'alertsOnly'))
   const [paymentsOnly, setPaymentsOnly] = useState(() => initialUrlBool('payments_only', 'paymentsOnly'))
   const [missingRgOnly, setMissingRgOnly] = useState(() => initialUrlBool('missing_rg_only', 'missingRgOnly'))
   const [duplicatesOnly, setDuplicatesOnly] = useState(() => initialUrlBool('duplicates_only', 'duplicatesOnly'))
   const [view, setView] = useState<ListView>(initialListView)
+  const [displayMode, setDisplayMode] = useState<FascicoliDisplayMode>(initialDisplayMode)
+  const [groupBy, setGroupBy] = useState<FascicoliGroupMode>(initialGroupMode)
   const [cuFilter, setCuFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('cu'))
   const [liquidazioneFilter, setLiquidazioneFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('liquidazione'))
   const [parcellaFilter, setParcellaFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('parcella'))
@@ -2484,7 +2698,10 @@ function FascicoliListPage() {
     status,
     court: debouncedCourt,
     sort,
+    secondarySort,
+    groupBy,
     view,
+    fieldFilters: debouncedFieldFilters,
     alertsOnly,
     paymentsOnly,
     missingRgOnly,
@@ -2499,8 +2716,12 @@ function FascicoliListPage() {
     type,
     status,
     sort,
+    secondarySort,
     view,
+    displayMode,
+    groupBy,
     court: court.trim(),
+    fieldFilters,
     alertsOnly,
     paymentsOnly,
     missingRgOnly,
@@ -2509,7 +2730,7 @@ function FascicoliListPage() {
     liquidazione: liquidazioneFilter,
     parcella: parcellaFilter,
     pageSize,
-  }), [alertsOnly, court, cuFilter, duplicatesOnly, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
+  }), [alertsOnly, court, cuFilter, displayMode, duplicatesOnly, fieldFilters, groupBy, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, secondarySort, sort, status, type, view])
 
   const currentFilterPreferencesSignature = useMemo(
     () => filterPreferencesSignature(currentFilterPreferences),
@@ -2559,6 +2780,7 @@ function FascicoliListPage() {
       || params.client?.trim()
       || params.rg?.trim()
       || params.court?.trim()
+      || Object.values(params.fieldFilters || {}).some((value) => value?.trim())
       || (params.type && params.type !== 'tutti')
       || (params.status && params.status !== 'tutti')
       || params.alertsOnly
@@ -2588,9 +2810,14 @@ function FascicoliListPage() {
           setType(preferences.type)
           setStatus(preferences.status)
           setSort(toSavedSortKey(String(preferences.sort)))
+          setSecondarySort(preferences.secondarySort ? toSavedSortKey(String(preferences.secondarySort)) : '')
           setView(toSavedListView(String(preferences.view)))
+          setDisplayMode(preferences.displayMode)
+          setGroupBy(preferences.groupBy)
           setCourt(preferences.court)
           setDebouncedCourt(preferences.court.trim())
+          setFieldFilters(preferences.fieldFilters)
+          setDebouncedFieldFilters(preferences.fieldFilters)
           setAlertsOnly(preferences.alertsOnly)
           setPaymentsOnly(preferences.paymentsOnly)
           setMissingRgOnly(preferences.missingRgOnly)
@@ -2601,6 +2828,7 @@ function FascicoliListPage() {
           setPageSize(preferences.pageSize)
           setAdvancedOpen(Boolean(
             preferences.court.trim()
+            || Object.values(preferences.fieldFilters).some((value) => value.trim())
             || preferences.alertsOnly
             || preferences.paymentsOnly
             || preferences.missingRgOnly
@@ -2628,9 +2856,12 @@ function FascicoliListPage() {
       setPage(1)
       setDebouncedQuery(query.trim())
       setDebouncedCourt(court.trim())
+      setDebouncedFieldFilters(Object.fromEntries(
+        Object.entries(fieldFilters).map(([key, value]) => [key, value.trim()]).filter(([, value]) => value),
+      ) as FascicoliFieldFilters)
     }, 350)
     return () => window.clearTimeout(timer)
-  }, [court, query])
+  }, [court, fieldFilters, query])
 
   useEffect(() => {
     if (!preferencesReady) return
@@ -2653,7 +2884,7 @@ function FascicoliListPage() {
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, preferencesReady, sort, status, type, view])
+  }, [alertsOnly, cuFilter, debouncedCourt, debouncedFieldFilters, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, preferencesReady, secondarySort, sort, status, type, view])
 
   useEffect(() => {
     if (!preferencesReady) return
@@ -2676,7 +2907,7 @@ function FascicoliListPage() {
     })
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita prefetch su filtri vecchi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, preferencesReady, sort, status, type, view])
+  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedFieldFilters, debouncedQuery, duplicatesOnly, groupBy, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, preferencesReady, secondarySort, sort, status, type, view])
 
   useEffect(() => {
     const presidioDue = Number(data.summary.economicAnalysisDue || 0)
@@ -2708,16 +2939,36 @@ function FascicoliListPage() {
 
   const visible = data.items
   const economicFiltersActive = cuFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'
-  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly || paymentsOnly || missingRgOnly || duplicatesOnly || economicFiltersActive)
+  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || Object.values(fieldFilters).some((value) => value.trim()) || alertsOnly || paymentsOnly || missingRgOnly || duplicatesOnly || economicFiltersActive)
   const updateType = (value: FascicoloTipo) => { setPage(1); setType(value) }
   const updateStatus = (value: FascicoloStato) => { setPage(1); setStatus(value) }
   const updateSort = (value: SortKey) => { setPage(1); setSort(value) }
+  const updateFieldFilter = (key: FascicoliFieldFilterKey, value: string) => {
+    setPage(1)
+    setFieldFilters((current) => ({ ...current, [key]: value }))
+  }
+  const resetPracticeFieldFilters = () => { setPage(1); setFieldFilters(emptyPracticeFieldFilters); setCourt('') }
   const updateAlertsOnly = (value: boolean) => { setPage(1); setAlertsOnly(value) }
   const updatePaymentsOnly = (value: boolean) => { setPage(1); setPaymentsOnly(value) }
   const updateCuFilter = (value: FascicoloPaymentFilter) => { setPage(1); setCuFilter(value) }
   const updateLiquidazioneFilter = (value: FascicoloPaymentFilter) => { setPage(1); setLiquidazioneFilter(value) }
   const updateParcellaFilter = (value: FascicoloPaymentFilter) => { setPage(1); setParcellaFilter(value) }
   const updateView = (value: ListView) => { setView(value); syncListViewInUrl(value) }
+  const updateDisplayMode = (value: FascicoliDisplayMode) => {
+    setDisplayMode(value)
+    const url = new URL(window.location.href)
+    if (value === 'tabella') url.searchParams.delete('visualizzazione')
+    else url.searchParams.set('visualizzazione', value)
+    window.history.replaceState({}, '', url.toString())
+  }
+  const updateGroupBy = (value: FascicoliGroupMode) => {
+    setPage(1)
+    setGroupBy(value)
+    const url = new URL(window.location.href)
+    if (value === 'nessuno') url.searchParams.delete('raggruppa')
+    else url.searchParams.set('raggruppa', value)
+    window.history.replaceState({}, '', url.toString())
+  }
   const updatePageSize = (value: number) => { setPage(1); setPageSize(value) }
   const saveCurrentFilterPreferences = () => {
     setFilterPreferencesState('saving')
@@ -2859,14 +3110,33 @@ function FascicoliListPage() {
   }
 
   const viewToggle = (
-    <div className="iu-fas-viewtoggle" role="tablist" aria-label="Vista elenco fascicoli">
-      <button type="button" role="tab" aria-selected={view === 'operativa'} className={view === 'operativa' ? 'is-active' : ''} onClick={() => updateView('operativa')}>
-        <FolderOpen size={14}/> Operativa
-      </button>
-      <button type="button" role="tab" aria-selected={view === 'economica'} className={view === 'economica' ? 'is-active' : ''} onClick={() => updateView('economica')}>
-        <Euro size={14}/> Economica
-      </button>
-    </div>
+    <>
+      <div className="iu-fas-viewtoggle" role="tablist" aria-label="Contenuto elenco fascicoli">
+        <button type="button" role="tab" aria-selected={view === 'operativa'} className={view === 'operativa' ? 'is-active' : ''} onClick={() => updateView('operativa')}>
+          <FolderOpen size={14}/> Operativa
+        </button>
+        <button type="button" role="tab" aria-selected={view === 'economica'} className={view === 'economica' ? 'is-active' : ''} onClick={() => updateView('economica')}>
+          <Euro size={14}/> Economica
+        </button>
+      </div>
+      <div className="iu-fas-display-toggle" role="group" aria-label="Modalità di visualizzazione">
+        <button type="button" className={displayMode === 'tabella' ? 'is-active' : ''} onClick={() => updateDisplayMode('tabella')} aria-pressed={displayMode === 'tabella'} title="Visualizzazione tabellare"><TableProperties size={15}/><span>Tabella</span></button>
+        <button type="button" className={displayMode === 'compatta' ? 'is-active' : ''} onClick={() => updateDisplayMode('compatta')} aria-pressed={displayMode === 'compatta'} title="Visualizzazione compatta"><List size={15}/><span>Compatta</span></button>
+        <button type="button" className={displayMode === 'schede' ? 'is-active' : ''} onClick={() => updateDisplayMode('schede')} aria-pressed={displayMode === 'schede'} title="Visualizzazione a schede"><LayoutGrid size={15}/><span>Schede</span></button>
+      </div>
+      <label className="iu-fas-group-select">
+        <span>Raggruppa</span>
+        <select value={groupBy} onChange={(event) => updateGroupBy(event.currentTarget.value as FascicoliGroupMode)}>
+          <option value="nessuno">Nessun raggruppamento</option>
+          <option value="gruppo">Gruppo</option>
+          <option value="stato">Stato</option>
+          <option value="tipo">Tipo</option>
+          <option value="ufficio">Ufficio</option>
+          <option value="anno">Anno RG</option>
+          <option value="responsabile">Responsabile</option>
+        </select>
+      </label>
+    </>
   )
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
   const deadlineAlertItems = data.deadlines
@@ -2925,19 +3195,32 @@ function FascicoliListPage() {
           <strong>{sortLabels[sort]}</strong>
           <small>{court ? `Ufficio: ${court}` : 'Tutti gli uffici'}{alertsOnly ? ' · solo alert' : ''}</small>
         </div>
-        {advancedOpen ? (
-          <>
-            <label><span>Ufficio giudiziario</span><input value={court} onChange={(event) => setCourt(event.target.value)} placeholder="Tribunale, TAR, GDP..."/></label>
-            <label><span>Ordinamento</span><select value={sort} onChange={(event) => updateSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
-            <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
-            <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
-            <div className="iu-fas-economic-filters" role="group" aria-label="Filtri per voce economica">
-              <label><span>Contributo</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
-              <label><span>Liquidazione</span><select value={liquidazioneFilter} onChange={(event) => updateLiquidazioneFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
-              <label><span>Parcella</span><select value={parcellaFilter} onChange={(event) => updateParcellaFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
-            </div>
-          </>
-        ) : null}
+        <div className="iu-fas-filter-tabs" role="tablist" aria-label="Categorie filtri fascicoli">
+          {([['pratica', 'Pratica'], ['procedimento', 'Procedimento'], ['persone', 'Persone']] as Array<[PracticeFilterSection, string]>).map(([key, label]) => (
+            <button type="button" role="tab" aria-selected={filterSection === key} className={filterSection === key ? 'is-active' : ''} onClick={() => setFilterSection(key)} key={key}>{label}</button>
+          ))}
+        </div>
+        <div className="iu-fas-practice-filters">
+          {filterSection === 'procedimento' ? <label><span>Ufficio giudiziario</span><input value={court} onChange={(event) => setCourt(event.target.value)} placeholder="Tribunale, TAR, GDP..."/></label> : null}
+          {practiceFieldFilters.filter((field) => field.section === filterSection).map((field) => (
+            <label key={field.key}>
+              <span>{field.label}</span>
+              <input value={fieldFilters[field.key] || ''} onChange={(event) => updateFieldFilter(field.key, event.currentTarget.value)} placeholder={field.placeholder} inputMode={field.inputMode}/>
+            </label>
+          ))}
+        </div>
+        <div className="iu-fas-filter-options">
+          <label><span>Primo ordinamento</span><select value={sort} onChange={(event) => updateSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
+          <label><span>Secondo ordinamento</span><select value={secondarySort} onChange={(event) => { setPage(1); setSecondarySort(event.target.value as SortKey | '') }}><option value="">Nessuno</option>{(Object.keys(sortLabels) as SortKey[]).filter((item) => item !== sort).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
+          <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
+          <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
+          <button type="button" className="iu-fas-reset-filters" onClick={resetPracticeFieldFilters}><RotateCcw size={15}/> Azzera ricerca dettagliata</button>
+        </div>
+        <div className="iu-fas-economic-filters" role="group" aria-label="Filtri per voce economica">
+          <label><span>Contributo</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+          <label><span>Liquidazione</span><select value={liquidazioneFilter} onChange={(event) => updateLiquidazioneFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+          <label><span>Parcella</span><select value={parcellaFilter} onChange={(event) => updateParcellaFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+        </div>
       </IusentraContextFilters>
       ) : null}
 
@@ -2969,7 +3252,7 @@ function FascicoliListPage() {
               </div>
             </div>
           ) : null}
-          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} onPagePrefetch={prefetchPage} pendingPage={pendingPage} view={view} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
+          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} onPagePrefetch={prefetchPage} pendingPage={pendingPage} view={view} displayMode={displayMode} groupBy={groupBy} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
         </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>
       </IusentraMainArea>
@@ -3717,10 +4000,14 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label={labels.fields.numeroRuolo} name="numero_rg" defaultValue={getValue(data, 'numeroRg')}/>
               <Field label="Anno iscrizione" name="anno_rg" type="number" defaultValue={getValue(data, 'annoRg') || new Date().getFullYear()}/>
               <Field label="Sezione" name="sezione" defaultValue={getValue(data, 'section')}/>
+              <Field label="Ruolo di sezione" name="ruolo_sezione" defaultValue={getValue(data, 'sectionRole')}/>
               <Field label={labels.fields.istruttorePmGip} name="istruttore_pm_gip" defaultValue={getValue(data, 'istruttorePmGip') || getValue(data, 'judge')}/>
               <Field label={labels.fields.cancelliere} name="cancelliere" defaultValue={getValue(data, 'cancelliere')}/>
               <Field label={labels.fields.ctu} name="ctu" defaultValue={getValue(data, 'ctu')}/>
               <Field label={labels.fields.ctp} name="ctp" defaultValue={getValue(data, 'ctp')}/>
+              <Field label="Numero attori o ricorrenti" name="numero_attori" type="number" defaultValue={getValue(data, 'claimantsCount')} min="0" step="1" inputMode="numeric"/>
+              <Field label="Numero convenuti o resistenti" name="numero_convenuti" type="number" defaultValue={getValue(data, 'respondentsCount')} min="0" step="1" inputMode="numeric"/>
+              <Field label="Numero CCI" name="numero_cci" defaultValue={getValue(data, 'cciNumber')}/>
               <Field label="Valore causa (€)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0,00" step="0.01" min="0" inputMode="decimal"/>
               <Field label="Compenso pattuito (€)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))} step="0.01" min="0" inputMode="decimal"/>
               <Field label="Valore preventivato (€)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))} step="0.01" min="0" inputMode="decimal"/>
@@ -3731,7 +4018,17 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
             </div>
           </CollapsibleFormPanel>
           <CollapsibleFormPanel title={labels.sections.annotazioni} subtitle="Referente, dominus e note operative" icon={<BriefcaseBusiness size={17}/>}>
-            <div className="iu-fas-form-grid"><Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/><Field label="Avvocato dominus" name="avvocato_dominus" defaultValue={getValue(data, 'dominus')}/><TextAreaField label={labels.fields.annotazioni} name="note" defaultValue={getValue(data, 'notes')} rows={4}/></div>
+            <div className="iu-fas-form-grid">
+              <Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/>
+              <Field label="Avvocato dominus" name="avvocato_dominus" defaultValue={getValue(data, 'dominus')}/>
+              <Field label="Avvocato della controparte" name="avvocato_controparte" defaultValue={getValue(data, 'opposingLawyer')}/>
+              <Field label="Qualifica processuale del titolare" name="qualifica_giudiziale_titolare" defaultValue={getValue(data, 'holderRole')}/>
+              <Field label="Gruppo fascicolo" name="nome_gruppo" defaultValue={getValue(data, 'groupName')} placeholder="es. Contenzioso lavoro"/>
+              <Field label="Collegamento cartella esterna" name="link_cartella_esterna" defaultValue={getValue(data, 'externalFolderLink')} placeholder="Percorso o collegamento"/>
+              <Field label="Campo personalizzato 1" name="testo_personalizzabile_1" defaultValue={getValue(data, 'customText1')}/>
+              <Field label="Campo personalizzato 2" name="testo_personalizzabile_2" defaultValue={getValue(data, 'customText2')}/>
+              <TextAreaField label={labels.fields.annotazioni} name="note" defaultValue={getValue(data, 'notes')} rows={4}/>
+            </div>
           </CollapsibleFormPanel>
           {mode === 'new' ? <FascicoloVeloceUploadSections enabled={fascicoloVeloce}/> : null}
           <div className="iu-fas-form-actions"><button className="iu-fas-submit" type="submit"><CheckCircle2 size={16}/> {mode === 'edit' ? 'Salva modifiche' : 'Crea fascicolo'}</button><a href={data.detailHref || data.backHref}>Annulla</a></div>

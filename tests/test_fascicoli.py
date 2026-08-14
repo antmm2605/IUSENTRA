@@ -839,10 +839,54 @@ def test_rimuovi_documento(gf, fascicolo_base):
         TipoDocumento.ALTRO, b"contenuto"
     )
     percorso = gf.percorso_documento(fascicolo_base.id, doc.id)
-    gf.rimuovi_documento(fascicolo_base.id, doc.id)
-    assert not percorso.exists()
+    gf.rimuovi_documento(fascicolo_base.id, doc.id, eliminato_da="Avv. Prova")
+    assert percorso.exists()
     f = gf.get(fascicolo_base.id)
     assert len(f.documenti) == 0
+    assert len(f.documenti_cestino) == 1
+    assert f.documenti_cestino[0].id == doc.id
+    assert f.documenti_cestino[0].eliminato_il
+    assert f.documenti_cestino[0].eliminato_da == "Avv. Prova"
+
+    ripristinato = gf.ripristina_documento(fascicolo_base.id, doc.id)
+    assert ripristinato.id == doc.id
+    assert ripristinato.eliminato_il == ""
+    assert ripristinato.eliminato_da == ""
+    assert percorso.exists()
+    assert [item.id for item in gf.get(fascicolo_base.id).documenti] == [doc.id]
+    assert gf.get(fascicolo_base.id).documenti_cestino == []
+
+    gf.rimuovi_documento(fascicolo_base.id, doc.id)
+    gf.elimina_documento_definitivamente(fascicolo_base.id, doc.id)
+    assert not percorso.exists()
+    assert gf.get(fascicolo_base.id).documenti_cestino == []
+
+
+def test_eliminazione_definitiva_ripristina_il_cestino_se_il_file_non_si_cancella(
+    gf, fascicolo_base, monkeypatch
+):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "file_bloccato.pdf",
+        TipoDocumento.ALTRO,
+        b"contenuto",
+    )
+    percorso = gf.percorso_documento(fascicolo_base.id, doc.id)
+    gf.rimuovi_documento(fascicolo_base.id, doc.id)
+    original_unlink = Path.unlink
+
+    def unlink_bloccato(path, *args, **kwargs):
+        if path == percorso:
+            raise OSError("file in uso")
+        return original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", unlink_bloccato)
+
+    with pytest.raises(OSError, match="file in uso"):
+        gf.elimina_documento_definitivamente(fascicolo_base.id, doc.id)
+
+    assert percorso.exists()
+    assert [item.id for item in gf.get(fascicolo_base.id).documenti_cestino] == [doc.id]
 
 
 def test_documento_nomi_collisione(gf, fascicolo_base):

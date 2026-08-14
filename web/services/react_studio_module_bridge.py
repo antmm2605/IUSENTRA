@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
-from pct.applicazioni_catalogo import catalogo_applicazioni
+from pct.applicazioni_catalogo import catalogo_applicazioni, statistiche_catalogo
 from pct.applicazioni_runtime import TOOL_PRESET_OVERRIDES, TOOL_SCHEMAS, resolve_runtime
 from pct.strumenti_legali import GestioneStrumentiLegali
 
@@ -316,6 +316,89 @@ def _tool_catalog_entries() -> list[dict[str, Any]]:
             continue
         entries.append({"entry": entry, "runtime": runtime})
     return entries
+
+
+_CATALOG_ENDPOINT_PATHS = {
+    "applicazioni.index": "/strumenti-operativi",
+    "checklist_atti": "/deposito/checklist",
+    "fatturazione.lista": "/fatturazione",
+    "fatturazione.nuova": "/fatturazione/nuova",
+    "legal_intelligence.index": "/ricerca-legale",
+    "legal_intelligence.registro_mediazione": "/ricerca-legale/mediazione",
+    "lista_clienti": "/clienti",
+    "pagamenti.impostazioni_pagamenti": "/impostazioni?tab=pagamenti",
+    "polisWeb_home": "/polisweb",
+    "preventivi.wizard": "/preventivi/wizard",
+    "scadenziario": "/scadenziario",
+    "tariffario": "/compensi-forensi",
+    "telematico_dashboard": "/telematico",
+    "template_atti.catalogo": "/template-atti",
+    "tribunali": "/tribunali",
+}
+
+
+def _catalog_entry_href(entry: dict[str, Any]) -> str:
+    endpoint = _text(entry.get("endpoint"))
+    entry_id = _text(entry.get("id"))
+    if endpoint == "strumenti_legali.index":
+        tool_id = _text(dict(entry.get("params") or {}).get("tool"))
+        query = f"?app={entry_id}"
+        if tool_id:
+            query += f"&tool={tool_id}"
+        return f"/strumenti-legali/{query}#funzione-operativa"
+    path = _CATALOG_ENDPOINT_PATHS.get(endpoint)
+    if path:
+        return path
+    section_id = _text(entry.get("section_id"))
+    if section_id in {"fatturazione_avvocati", "dichiarazione_redditi"}:
+        return "/fatturazione"
+    if section_id in {"atti_giudiziari", "scadenze_e_termini"}:
+        return "/template-atti"
+    if section_id == "diritto_penale":
+        return "/giurisprudenza"
+    return "/strumenti-operativi"
+
+
+def _build_strumenti_operativi() -> dict[str, Any]:
+    entries = list(catalogo_applicazioni())
+    stats = statistiche_catalogo(entries)
+    records = [
+        _record(
+            entry.get("id"),
+            entry.get("title"),
+            entry.get("summary"),
+            badge=entry.get("section_title"),
+            href=_catalog_entry_href(entry),
+            meta=entry.get("status_label"),
+        )
+        for entry in entries
+    ]
+    records = [record for record in records if _is_visible_record(record)]
+    return {
+        "metrics": [
+            _metric("Funzioni", stats.get("totale", len(records)), "catalogo completo"),
+            _metric("Aree", stats.get("sezioni_attive", 0), "ricerca per argomento"),
+            _metric("Accesso diretto", stats.get("accessi_diretti", 0), "funzioni subito disponibili"),
+        ],
+        "operations": [
+            _operation(
+                "catalogo-funzioni",
+                "Catalogo delle funzioni",
+                "Cerca per nome o argomento e apri il percorso necessario.",
+                metrics=[
+                    _metric("Voci disponibili", len(records)),
+                    _metric("Aree", stats.get("sezioni_attive", 0)),
+                    _metric("In evidenza", stats.get("primo_piano", 0)),
+                ],
+                records=records,
+                actions=[
+                    _action("Cerca nello studio", "/global-search"),
+                    _action("Apri strumenti forensi", "/strumenti-legali"),
+                ],
+            ),
+            *_catalog_operations("strumenti-operativi", []),
+        ],
+    }
 
 
 def _build_strumenti_forensi(
@@ -1196,6 +1279,8 @@ def build_react_studio_module_payload(
             get_config_studio=get_config_studio,
             query=query,
         )
+    elif normalized == "strumenti-operativi":
+        data = _build_strumenti_operativi()
     else:
         data = _build_generic(normalized, get_clienti, get_fascicoli)
     data.setdefault("metrics", [])

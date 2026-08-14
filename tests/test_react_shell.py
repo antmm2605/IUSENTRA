@@ -404,9 +404,8 @@ def test_editor_professionale_resta_route_autonoma_distinta_da_redazione_atti():
     assert "{ label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' }" in app_source
     assert 'href="/template-atti/editor" tone="primary"' in page_source
     assert "Apre subito un foglio vuoto con timbro studio" in page_source
-    assert "Redazione Atti quando serve il modulo specifico degli atti" in page_source
-    assert "Lettore documenti legali" in page_source
-    assert "XML.P7M" in page_source
+    assert 'href="/redazione-atti" tone="neutral"' in page_source
+    assert 'title="Archivio documenti"' in page_source
     assert '"/editor-professionale"' in route_gate
     assert '("/editor-professionale", "src/components/EditorProfessionalePage.tsx")' in shell_source
     editor_entry = next((entry for entry in manifest["routes"] if entry.get("route") == "/editor-professionale"), None)
@@ -843,6 +842,14 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "document.body.classList.toggle('iu-agenda-planner-expanded', plannerExpanded)" in agenda_page
     assert "if (plannerExpanded)" in agenda_page
     assert "Planner a tutto schermo" in agenda_page
+    assert "Apri il calendario a tutto schermo" in agenda_page
+    assert "plannerExpanded ? 'Riduci' : 'Tutto schermo'" in agenda_page
+    assert "timeline: 'Cronologia'" in agenda_page
+    assert "function AgendaTimeline" in agenda_page
+    assert "function NewAgendaMenu" in agenda_page
+    assert "function AgendaDeleteAction" in agenda_page
+    assert "Confermi l'eliminazione?" in agenda_page
+    assert "<CalendarClock size={15}/>Rinvia" in agenda_page
     assert "formatDateIt(event.date, event.date)" in agenda_page
     assert "<span>{event.date} - {event.timeLabel}</span>" not in agenda_page
     assert "iu-ag-event__context" in agenda_page
@@ -965,6 +972,8 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert ".iu-ag-planner.is-expanded:not(:fullscreen)" in css
     assert ".iu-ag-planner{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;width:100%;min-width:0}" in css
     assert "body.iu-agenda-planner-expanded .iu-topbar" in css
+    assert "body.iu-agenda-planner-expanded .iu-ag-planner.is-expanded .iu-ag-inspector.iusentra-route-rail" in css
+    assert "display:none!important" in css
     assert "@media(max-height:850px) and (min-width:921px)" in css
     assert ".iu-ag-layout{grid-template-columns:1fr}" in css
     assert ".iu-mobile__lex" in css
@@ -1232,7 +1241,7 @@ def test_react_regia_operativa_e_pagina_separata_non_in_panorama():
     assert "/workspace-intelligente" in app_source
     assert "isRegiaPage?<RegiaOperativaPage" in app_source
     assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
-    assert "Azioni operative" in app_source
+    assert "Agenda da presidiare" in app_source
     assert "Centro operativo di oggi" not in app_source
 
 
@@ -1590,8 +1599,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert '"pdp.html"' in portali_routes
     assert '"pat.html"' in portali_routes
     assert '"sigit.html"' in portali_routes
-    assert 'render_template("deposito_checklist.html")' in deposito_routes
-    assert 'render_template("guida_firma_digitale.html")' in deposito_routes
+    assert 'render_template("deposito_checklist.html")' not in deposito_routes
+    assert 'render_template("guida_firma_digitale.html")' not in deposito_routes
     assert 'render_template("tribunali.html", uffici=uffici)' in lookup_routes
     assert ".iu-tel-surface-page" in css
     assert ".iu-tel-op-card.is-selected" in css
@@ -4598,7 +4607,7 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
     assert payload["cache"] == {"hit": False, "ttl_seconds": 60}
     assert payload["pec"][0]["id"] == "pec-dashboard"
     assert payload["emails"][0]["id"] == "mail-ordinaria-dashboard"
-    assert payload["emails"][0]["href"] == "/email-ordinaria/"
+    assert payload["emails"][0]["href"] == "/email-ordinaria/messaggio/mail-ordinaria-dashboard"
     assert payload["contracts"]["ordinary_email_recent_enabled"] is True
     assert payload["contracts"]["pec_and_ordinary_email_separated"] is True
 
@@ -7282,9 +7291,9 @@ def test_fascicolo_e_notifiche_mostrano_data_rilascio_portale_in_formato_italian
 
     expected = "formatDateIt(doc.dataDeposito, doc.dataDeposito)"
     assert expected in fascicoli_source
-    assert "formatDateIt(release.dataDeposito, release.dataDeposito)" in notifiche_source
+    assert "formatDateIt(release.dataRilascio, release.dataRilascio)" in notifiche_source
     assert "doc.dataDeposito].filter(Boolean)" not in fascicoli_source
-    assert "release.dataDeposito].filter(Boolean)" not in notifiche_source
+    assert "release.dataRilascio].filter(Boolean)" not in notifiche_source
 
 
 def test_react_fascicoli_non_collega_rg_ambiguo_senza_cliente_o_parte(tmp_path: Path):

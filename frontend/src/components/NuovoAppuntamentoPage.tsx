@@ -217,13 +217,15 @@ const officeKinds = [
 function initialForm(): AppointmentForm {
   const params = new URLSearchParams(window.location.search)
   const oraParam = params.get('ora') ?? '09:00'
+  const requestedType = String(params.get('tipo') || '').toUpperCase()
+  const typeMeta = appointmentTypes.find((item) => item.value === requestedType) ?? appointmentTypes[0]
   return {
-    titolo: '',
-    tipo: 'UDIENZA',
+    titolo: params.get('titolo') ?? '',
+    tipo: typeMeta.value,
     data: params.get('data') ?? '',
     ora: /^\d{2}:\d{2}$/.test(oraParam) ? oraParam : '09:00',
-    durata: '60',
-    reminder: '60',
+    durata: typeMeta.duration,
+    reminder: typeMeta.reminder,
     luogo: '',
     cliente: '',
     cf_cliente: '',

@@ -4,6 +4,7 @@ import json
 
 import pytest
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from pct.agenda import Agenda, Appuntamento, TipoAppuntamento, StatoAppuntamento
 from pct.ical_import import EventoImportato
@@ -169,6 +170,13 @@ def test_elimina(agenda):
 def test_elimina_inesistente(agenda):
     with pytest.raises(KeyError):
         agenda.elimina("XXXXXXXX")
+
+
+def test_route_eliminazione_agenda_restituisce_esito_json_per_react():
+    source = Path("web/bootstrap/dashboard_routes.py").read_text(encoding="utf-8")
+    assert 'message = "Voce eliminata dall\'agenda."' in source
+    assert '"redirect": url_for("agenda_view")' in source
+    assert 'return jsonify({"ok": False, "message": str(e)}), 404' in source
 
 
 def test_per_giorno(agenda):

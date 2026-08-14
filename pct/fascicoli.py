@@ -303,6 +303,8 @@ class Documento:
     id_repeatto_portale: str = ""
     msg_id_portale: str = ""
     ocr_estratto: bool = False     # True dopo OCR completato e testo indicizzato
+    eliminato_il: str = ""
+    eliminato_da: str = ""
     # #7 — Storico versioni (versioni precedenti del documento)
     versioni: List["DocumentoVersione"] = field(default_factory=list)
 
@@ -341,6 +343,8 @@ class Documento:
         d.setdefault("id_cat_portale", "")
         d.setdefault("id_repeatto_portale", "")
         d.setdefault("msg_id_portale", "")
+        d.setdefault("eliminato_il", "")
+        d.setdefault("eliminato_da", "")
         return cls(**d)
 
 
@@ -737,6 +741,14 @@ class Fascicolo:
     anno_rg: int = 0
     giudice: str = ""
     sezione: str = ""
+    ruolo_sezione: str = ""
+    avvocato_controparte: str = ""
+    numero_attori: int = 0
+    numero_convenuti: int = 0
+    qualifica_giudiziale_titolare: str = ""
+    link_cartella_esterna: str = ""
+    nome_gruppo: str = ""
+    numero_cci: str = ""
 
     # --- Studio
     avvocato_referente: str = ""
@@ -761,6 +773,8 @@ class Fascicolo:
     ctu: str = ""
     ctp: str = ""
     stato_pratica_operativa: str = ""
+    testo_personalizzabile_1: str = ""
+    testo_personalizzabile_2: str = ""
     personalizzabile: bool = False
     fascicolo_veloce: bool = False
     documenti_iniziali_count: int = 0
@@ -784,6 +798,7 @@ class Fascicolo:
 
     # --- Contenuto
     documenti: List[Documento] = field(default_factory=list)
+    documenti_cestino: List[Documento] = field(default_factory=list)
     attivita: List[AttivitaProcessuale] = field(default_factory=list)
     avanzamento: List[AvanzamentoPratica] = field(default_factory=list)
     depositi_pct: List[EsitoDepositoPCT] = field(default_factory=list)
@@ -859,6 +874,7 @@ class Fascicolo:
         d["tipo"] = self.tipo.value
         d["stato"] = self.stato.value
         d["documenti"] = [doc.to_dict() for doc in self.documenti]
+        d["documenti_cestino"] = [doc.to_dict() for doc in self.documenti_cestino]
         d["attivita"] = [att.to_dict() for att in self.attivita]
         d["depositi_pct"] = [dep.to_dict() for dep in self.depositi_pct]
         if self.archivio:
@@ -872,6 +888,9 @@ class Fascicolo:
         d["stato"] = StatoFascicolo(d["stato"])
         d["documenti"] = [
             Documento.from_dict(doc) for doc in (d.get("documenti") or [])
+        ]
+        d["documenti_cestino"] = [
+            Documento.from_dict(doc) for doc in (d.get("documenti_cestino") or [])
         ]
         d["attivita"] = [
             AttivitaProcessuale.from_dict(att) for att in (d.get("attivita") or [])
@@ -1343,6 +1362,14 @@ class GestioneFascicoli:
             "anno_rg",
             "giudice",
             "sezione",
+            "ruolo_sezione",
+            "avvocato_controparte",
+            "numero_attori",
+            "numero_convenuti",
+            "qualifica_giudiziale_titolare",
+            "link_cartella_esterna",
+            "nome_gruppo",
+            "numero_cci",
             "avvocato_referente",
             "avvocato_dominus",
             "oggetto",
@@ -1354,9 +1381,13 @@ class GestioneFascicoli:
             "file_fonte_codice_oggetto",
             "riferimento_cartaceo",
             "attore_principale",
+            "istruttore_pm_gip",
             "cancelliere",
             "ctu",
             "ctp",
+            "stato_pratica_operativa",
+            "testo_personalizzabile_1",
+            "testo_personalizzabile_2",
             "source",
             "source_external_id",
             "codice_ufficio_portale",
@@ -2711,16 +2742,30 @@ class GestioneFascicoli:
             "depositi_toccati": len(depositi_toccati),
         }
 
-    def rimuovi_documento(self, id_fasc: str, id_doc: str) -> None:
+    def rimuovi_documento(
+        self,
+        id_fasc: str,
+        id_doc: str,
+        *,
+        eliminato_da: str = "",
+    ) -> None:
+        """Sposta il documento nel cestino senza cancellare il file originale."""
+
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
-        percorso = self.documents_dir / doc.percorso
         original_docs = list(f.documenti)
+        original_trash = list(f.documenti_cestino)
         original_modificato = f.modificato_il
         original_pagamenti = dict(f.pagamenti or {})
+        original_eliminato_il = doc.eliminato_il
+        original_eliminato_da = doc.eliminato_da
         f.documenti = [d for d in f.documenti if d.id != id_doc]
+        doc.eliminato_il = datetime.now().isoformat()
+        doc.eliminato_da = str(eliminato_da or "").strip()
+        f.documenti_cestino = [d for d in f.documenti_cestino if d.id != id_doc]
+        f.documenti_cestino.append(doc)
         self._segna_analisi_fascicolo_da_rieseguire(
             f,
             reason="documento_rimosso",
@@ -2731,14 +2776,77 @@ class GestioneFascicoli:
             self._salva()
         except Exception:
             f.documenti = original_docs
+            f.documenti_cestino = original_trash
             f.modificato_il = original_modificato
             f.pagamenti = original_pagamenti
+            doc.eliminato_il = original_eliminato_il
+            doc.eliminato_da = original_eliminato_da
+            raise
+
+    def ripristina_documento(self, id_fasc: str, id_doc: str) -> Documento:
+        """Ripristina nel fascicolo un documento presente nel cestino."""
+
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti_cestino if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel cestino.")
+        if any(active.id == id_doc for active in f.documenti):
+            raise ValueError("Nel fascicolo è già presente un documento con lo stesso identificativo.")
+
+        original_docs = list(f.documenti)
+        original_trash = list(f.documenti_cestino)
+        original_modificato = f.modificato_il
+        original_pagamenti = dict(f.pagamenti or {})
+        original_eliminato_il = doc.eliminato_il
+        original_eliminato_da = doc.eliminato_da
+        f.documenti_cestino = [d for d in f.documenti_cestino if d.id != id_doc]
+        doc.eliminato_il = ""
+        doc.eliminato_da = ""
+        f.documenti.append(doc)
+        self._segna_analisi_fascicolo_da_rieseguire(
+            f,
+            reason="documento_ripristinato",
+            document_id=id_doc,
+        )
+        f.modificato_il = datetime.now().isoformat()
+        try:
+            self._salva()
+        except Exception:
+            f.documenti = original_docs
+            f.documenti_cestino = original_trash
+            f.modificato_il = original_modificato
+            f.pagamenti = original_pagamenti
+            doc.eliminato_il = original_eliminato_il
+            doc.eliminato_da = original_eliminato_da
+            raise
+        return doc
+
+    def elimina_documento_definitivamente(self, id_fasc: str, id_doc: str) -> None:
+        """Cancella definitivamente un documento già spostato nel cestino."""
+
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti_cestino if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel cestino.")
+        percorso = self.documents_dir / doc.percorso
+        original_trash = list(f.documenti_cestino)
+        original_modificato = f.modificato_il
+        f.documenti_cestino = [d for d in f.documenti_cestino if d.id != id_doc]
+        f.modificato_il = datetime.now().isoformat()
+        try:
+            self._salva()
+        except Exception:
+            f.documenti_cestino = original_trash
+            f.modificato_il = original_modificato
             raise
         try:
             if percorso.exists():
                 percorso.unlink()
         except OSError:
-            pass
+            f.documenti_cestino = original_trash
+            f.modificato_il = original_modificato
+            self._salva()
+            raise
 
     def aggiorna_documento_metadati(
         self,
@@ -3720,6 +3828,22 @@ class GestioneFascicoli:
                 or t in f.controparte.lower()
                 or t in f.numero_rg.lower()
                 or t in f.oggetto.lower()
+                or t in f.tribunale.lower()
+                or t in f.sezione.lower()
+                or t in f.ruolo_sezione.lower()
+                or t in f.giudice.lower()
+                or t in f.avvocato_referente.lower()
+                or t in f.avvocato_dominus.lower()
+                or t in f.avvocato_controparte.lower()
+                or t in f.riferimento_cartaceo.lower()
+                or t in f.attore_principale.lower()
+                or t in f.cancelliere.lower()
+                or t in f.ctu.lower()
+                or t in f.ctp.lower()
+                or t in f.stato_pratica_operativa.lower()
+                or t in f.testo_personalizzabile_1.lower()
+                or t in f.testo_personalizzabile_2.lower()
+                or t in f.nome_gruppo.lower()
             ]
         return risultati
 

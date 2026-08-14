@@ -6351,3 +6351,13 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Docker locale reale `127.0.0.1:8080` | OK tecnico | App e pianificatore ricostruiti alla versione `2.265.18`, entrambi healthy. `/api/pronto` restituisce `200`, stato `pronto` e fuso `Europe/Rome`; al riavvio il recupero automatico ha materializzato senza click `4` snapshot e `817` attività per la data odierna nel tenant locale controllato. |
 | Browser reale locale e produzione | Da completare con accesso autorizzato | Dopo la ricostruzione Docker la scheda locale ha mantenuto soltanto la shell React, mentre l'API di aggiornamento ha correttamente rifiutato la sessione scaduta con `401 authentication_required`. Non sono state aggirate credenziali, cookie o sessioni; serve un nuovo accesso per la prova visiva del piano con dati di studio. |
 | Produzione: recupero e automazione del 02/08/2026 | OK tecnico-operativo | Il recupero governato ha materializzato `2` snapshot / `437` attività per lo studio interessato e `2` snapshot / `109` attività per l'altro studio. Il commit `dcb1f8dd0` è distribuito su Hetzner: app e pianificatore sono healthy, il job `studio_daily_operational_plan` è attivo alle `05:30` Europe/Rome e `https://app.iusentra.it/api/pronto` risponde `200` con versione `2.265.18`. Resta esclusivamente la prova visiva autenticata, senza aggirare credenziali o sessioni. |
+
+## Fascicoli economici, Agenda e archivio documenti - 14/08/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Suite estesa React/Fascicoli | OK | `348/348` test superati su Agenda, Fascicoli, paginazione, dettaglio fascicolo, shell React, audit funzionale e archivio documenti. |
+| Test mirati archivio e Fascicoli | OK | `108/108` test superati dopo la separazione delle route del cestino documenti. |
+| Frontend e governance | OK | Contratti React, presidi notifiche, sequenza UI, design system, coverage, build Vite, governance repository, Ruff con la selezione usata dalla CI, integrità UTF-8 e `git diff --check` superati. |
+| Docker reale locale | OK | App, scheduler e OCR ricostruiti sulla versione `2.278.51`; tutti healthy; `/api/pronto` restituisce stato `pronto`, fuso `Europe/Rome` e versione corretta. |
+| Browser reale autenticato | OK osservato | In `Economica` + `Schede` restano visibili contributo, spese/esborsi, liquidazione e parcella. Il comando sopra i selettori apre e riduce il pieno schermo conservando vista, modalità e dati economici. |

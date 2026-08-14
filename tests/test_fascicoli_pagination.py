@@ -929,6 +929,121 @@ def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
     assert [item["title"] for item in combined["items"]] == ["Pratica paginata 12"]
 
 
+def test_fascicoli_api_filtri_dettagliati_combinabili_e_campi_organizzativi(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicoli.nuovo(
+            "Ricorso lavoro MIM",
+            TipoFascicolo.LAVORO,
+            nome_cliente="Elisabetta Montagnese",
+            controparte="Ministero dell'Istruzione",
+            tribunale="Tribunale di Palmi",
+            numero_rg="704",
+            anno_rg=2026,
+            sezione="Lavoro",
+            ruolo_sezione="LAV-18",
+            giudice="Giudice Rossi",
+            avvocato_referente="Avv. Giuseppe Montagnese",
+            avvocato_dominus="Avv. Giuseppe Montagnese",
+            avvocato_controparte="Avv. Stato Reggio Calabria",
+            oggetto="Carta del docente",
+            valore_causa=1500.0,
+            riferimento_cartaceo="FALDONE-2026-18",
+            attore_principale="Elisabetta Montagnese",
+            cancelliere="Dott.ssa Verdi",
+            ctu="Ing. Bianchi",
+            ctp="Dott. Neri",
+            stato_pratica_operativa="Istruttoria",
+            testo_personalizzabile_1="Priorità alta",
+            testo_personalizzabile_2="Sede Reggio Calabria",
+            nome_gruppo="Contenzioso lavoro",
+            note="Udienza da presidiare",
+        )
+        fascicoli.nuovo(
+            "Pratica estranea",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Altro cliente",
+            tribunale="Tribunale di Milano",
+            numero_rg="999",
+            anno_rg=2025,
+        )
+
+    query = {
+        "page_size": 25,
+        "f_register": "lavoro",
+        "f_value": "1500",
+        "f_holder": "Montagnese",
+        "f_responsible": "Giuseppe",
+        "f_object": "docente",
+        "f_denomination": "Ricorso",
+        "f_internal_ref": "2026/",
+        "f_rg_year": "2026",
+        "f_opened_year": str(date.today().year),
+        "f_court": "Palmi",
+        "f_rg": "704",
+        "f_section": "Lavoro",
+        "f_section_role": "LAV-18",
+        "f_judge": "Rossi",
+        "f_opposing_lawyer": "Stato",
+        "f_notes": "presidiare",
+        "f_clerk": "Verdi",
+        "f_ctu": "Bianchi",
+        "f_ctp": "Neri",
+        "f_operational_status": "Istruttoria",
+        "f_claimant": "Elisabetta",
+        "f_respondent": "Ministero",
+        "f_custom_1": "Priorità",
+        "f_custom_2": "Reggio",
+        "f_group": "Contenzioso",
+    }
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/fascicoli",
+            query_string=query,
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["pagination"]["total"] == 1
+    item = payload["items"][0]
+    assert item["title"] == "Ricorso lavoro MIM"
+    assert item["sectionRole"] == "LAV-18"
+    assert item["opposingLawyer"] == "Avv. Stato Reggio Calabria"
+    assert item["groupName"] == "Contenzioso lavoro"
+    assert item["customText1"] == "Priorità alta"
+
+
+def test_fascicoli_api_raggruppa_prima_della_paginazione(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        for index, group in enumerate(("Zeta", "Alfa", "Zeta", "Alfa"), start=1):
+            fascicoli.nuovo(
+                f"Pratica gruppo {index}",
+                TipoFascicolo.CIVILE,
+                nome_gruppo=group,
+                numero_rg=str(index),
+                anno_rg=2026,
+            )
+
+    with app.test_client() as client:
+        first = client.get(
+            "/api/v1/ui/fascicoli",
+            query_string={"page": 1, "page_size": 2, "sort": "rg", "group_by": "gruppo"},
+            headers={"X-API-Key": "react-test-key"},
+        ).get_json()
+        second = client.get(
+            "/api/v1/ui/fascicoli",
+            query_string={"page": 2, "page_size": 2, "sort": "rg", "group_by": "gruppo"},
+            headers={"X-API-Key": "react-test-key"},
+        ).get_json()
+
+    assert [item["groupName"] for item in first["items"]] == ["Alfa", "Alfa"]
+    assert [item["groupName"] for item in second["items"]] == ["Zeta", "Zeta"]
+
+
 def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
     app = _app(tmp_path)
     _seed_fascicoli(app, 3)
@@ -936,8 +1051,12 @@ def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
         "type": "civile",
         "status": "definito",
         "sort": "scadenza",
+        "secondarySort": "cliente",
         "view": "economica",
+        "displayMode": "schede",
+        "groupBy": "ufficio",
         "court": "Tribunale",
+        "fieldFilters": {"judge": "Rossi", "group": "Contenzioso"},
         "alertsOnly": True,
         "paymentsOnly": False,
         "missingRgOnly": True,
@@ -964,6 +1083,10 @@ def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
     loaded = load_response.get_json()
     assert saved["configured"] is True
     assert saved["preferences"]["sort"] == "scadenza"
+    assert saved["preferences"]["secondarySort"] == "cliente"
+    assert saved["preferences"]["displayMode"] == "schede"
+    assert saved["preferences"]["groupBy"] == "ufficio"
+    assert saved["preferences"]["fieldFilters"] == {"group": "Contenzioso", "judge": "Rossi"}
     assert loaded["configured"] is True
     assert loaded["preferences"]["status"] == "definito"
     assert loaded["preferences"]["pageSize"] == 50
@@ -1354,3 +1477,44 @@ def test_bump_versione_analisi_rilegge_una_volta_sola(tmp_path, monkeypatch):
     assert salvato.pagamenti["_presidio_documentale"]["analysisVersion"] == (
         react_fascicoli_bridge.ECONOMIC_DOCUMENT_ANALYSIS_VERSION
     )
+
+
+def test_tabella_fascicoli_mostra_intestazione_estesa_per_ogni_gruppo():
+    root = Path(__file__).resolve().parents[1]
+    component = (root / "frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    styles = (root / "frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert 'className="iu-fas-table-group-row"' in component
+    assert "<td colSpan={tableColumnCount}>{fascicoloGroupLabel(item, groupBy)}</td>" in component
+    assert ".iu-fas-table-group-row td" in styles
+
+
+def test_elenco_fascicoli_puo_essere_aperto_a_tutto_schermo():
+    root = Path(__file__).resolve().parents[1]
+    component = (root / "frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    styles = (root / "frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert "const toggleExpanded = async () =>" in component
+    assert "stageRef.current.requestFullscreen()" in component
+    assert "Apri elenco fascicoli a tutto schermo" in component
+    toggle_start = component.index("const toggleExpanded")
+    assert component.index("setExpanded(true)", toggle_start) < component.index("void stageRef.current.requestFullscreen()", toggle_start)
+    assert 'className="iu-fas-table-toolbar__top"' in component
+    assert ".iu-fas-table-toolbar__top{display:flex;justify-content:flex-end;width:100%}" in styles
+    assert "iu-fas-table-stage is-expanded" not in component
+    assert ".iu-fas-table-stage.is-expanded:not(:fullscreen)" in styles
+    assert ".iu-fas-table-stage.is-expanded .iusentra-data-surface__header" in styles
+    assert "min-height:126px" in styles
+    assert "body.iu-fascicoli-table-expanded" in styles
+
+
+def test_viste_compatta_e_schede_mantengono_i_dati_economici():
+    root = Path(__file__).resolve().parents[1]
+    component = (root / "frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    styles = (root / "frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert 'className="iu-fas-collection-economic"' in component
+    assert "economicPaymentKinds.map((kind) =>" in component
+    assert "<EconomicPaymentSummary payment={item.paymentSummary.items[kind]}" in component
+    assert "<EconomicEvidenceStrip row={item}/>" in component
+    assert ".iu-fas-card-grid .iu-fas-collection-economic>.iu-fas-economic-summary-grid" in styles

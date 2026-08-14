@@ -118,7 +118,6 @@ def register_dashboard_routes(
         vista = request.args.get("vista", "settimana")
         oggi = date.today()
         offset = int(request.args.get("offset", 0))
-
         if vista == "giorno":
             giorno = oggi + timedelta(days=offset)
             apps = agenda.per_giorno(giorno)
@@ -211,7 +210,6 @@ def register_dashboard_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-
         data_default = request.args.get("data", "")
         id_cliente_get = request.args.get("id_cliente", "")
         from_cliente_get = request.args.get("from_cliente", "")
@@ -253,7 +251,6 @@ def register_dashboard_routes(
             return redirect(url_for("agenda_view"))
         if request.method == "GET" and not richiede_vista_classica():
             return render_react_shell_response(f"agenda/{id_app}/modifica")
-
         if request.method == "POST":
             data = request.form.get("data", "")
             ora = request.form.get("ora", "09:00")
@@ -310,10 +307,15 @@ def register_dashboard_routes(
         agenda = get_agenda()
         try:
             agenda.elimina(id_app)
-            flash("Appuntamento eliminato.", "success")
+            message = "Voce eliminata dall'agenda."
+            flash(message, "success")
             sync_pubblica("elimina", "agenda", id_app)
+            if richiede_json():
+                return jsonify({"ok": True, "id": id_app, "message": message, "redirect": url_for("agenda_view")})
         except KeyError as e:
             flash(str(e), "danger")
+            if richiede_json():
+                return jsonify({"ok": False, "message": str(e)}), 404
         return redirect(url_for("agenda_view"))
     @app.route("/agenda/importa", methods=["GET", "POST"])
     def importa_calendario():
@@ -404,7 +406,6 @@ def register_dashboard_routes(
                     source_url=preview["source_url"],
                     content_type=preview.get("content_type", ""),
                 )
-
             file = request.files.get("file_ics")
             if not file or not file.filename:
                 flash("Nessun file selezionato.", "warning")
@@ -619,7 +620,6 @@ def register_dashboard_routes(
         except Exception as e:
             app.logger.exception("Errore api_agenda: %s", e)
             return jsonify([])
-
     @app.route("/api/agenda/<id_app>")
     def api_appuntamento(id_app):
         try:

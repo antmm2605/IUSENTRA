@@ -162,12 +162,15 @@ def _fascicoli_base_cache_key(
     status_filter: str,
     court: str,
     sort: str,
+    secondary_sort: str,
+    group_by: str,
     view: str,
     alerts_only: bool,
     payments_only: bool,
     missing_rg_only: bool,
     duplicates_only: bool,
     payment_filters: dict[str, str] | None,
+    field_filters: dict[str, str] | None,
 ) -> tuple | None:
     if _FASCICOLI_LIST_BASE_TTL_SECONDS <= 0:
         return None
@@ -178,6 +181,13 @@ def _fascicoli_base_cache_key(
                 _text(value).strip().lower(),
             )
             for kind, value in (payment_filters or {}).items()
+        )
+    )
+    practice_filters = tuple(
+        sorted(
+            (_text(kind).strip().lower(), _text(value).strip().lower())
+            for kind, value in (field_filters or {}).items()
+            if _text(value).strip()
         )
     )
     return (
@@ -192,12 +202,15 @@ def _fascicoli_base_cache_key(
         _text(status_filter).strip().lower(),
         _text(court).strip().lower(),
         _text(sort, "rg").strip().lower(),
+        _text(secondary_sort).strip().lower(),
+        _text(group_by).strip().lower(),
         _text(view).strip().lower(),
         bool(alerts_only),
         bool(payments_only),
         bool(missing_rg_only),
         bool(duplicates_only),
         filters,
+        practice_filters,
     )
 
 
@@ -5087,6 +5100,26 @@ def _item(
         "type": _type_for_filters(fascicolo),
         "client": _fascicolo_client_label(fascicolo),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
+        "object": _text(getattr(fascicolo, "oggetto", "")),
+        "procedureType": _text(getattr(fascicolo, "tipo_procedimento", "")),
+        "register": _text(getattr(fascicolo, "tipo_registro", "")) or _type_for_filters(fascicolo),
+        "section": _text(getattr(fascicolo, "sezione", "")),
+        "sectionRole": _text(getattr(fascicolo, "ruolo_sezione", "")),
+        "judge": _text(getattr(fascicolo, "giudice", "")) or _text(getattr(fascicolo, "istruttore_pm_gip", "")),
+        "opposingLawyer": _text(getattr(fascicolo, "avvocato_controparte", "")),
+        "holder": _text(getattr(fascicolo, "avvocato_dominus", "")),
+        "responsible": _text(getattr(fascicolo, "avvocato_referente", "")),
+        "counterparty": _text(getattr(fascicolo, "controparte", "")),
+        "claimant": _text(getattr(fascicolo, "attore_principale", "")),
+        "clerk": _text(getattr(fascicolo, "cancelliere", "")),
+        "ctu": _text(getattr(fascicolo, "ctu", "")),
+        "ctp": _text(getattr(fascicolo, "ctp", "")),
+        "notes": _text(getattr(fascicolo, "note", "")),
+        "operationalStatus": _text(getattr(fascicolo, "stato_pratica_operativa", "")),
+        "customText1": _text(getattr(fascicolo, "testo_personalizzabile_1", "")),
+        "customText2": _text(getattr(fascicolo, "testo_personalizzabile_2", "")),
+        "groupName": _text(getattr(fascicolo, "nome_gruppo", "")),
+        "value": float(getattr(fascicolo, "valore_causa", 0) or 0),
         "rg": rg_meta["rg"],
         "rgMissing": rg_meta["rgMissing"],
         "rgStatusLabel": rg_meta["rgStatusLabel"],
@@ -5211,6 +5244,26 @@ def _item_light(
         "type": _type_for_filters(fascicolo),
         "client": _fascicolo_client_label(fascicolo),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
+        "object": _text(getattr(fascicolo, "oggetto", "")),
+        "procedureType": _text(getattr(fascicolo, "tipo_procedimento", "")),
+        "register": _text(getattr(fascicolo, "tipo_registro", "")) or _type_for_filters(fascicolo),
+        "section": _text(getattr(fascicolo, "sezione", "")),
+        "sectionRole": _text(getattr(fascicolo, "ruolo_sezione", "")),
+        "judge": _text(getattr(fascicolo, "giudice", "")) or _text(getattr(fascicolo, "istruttore_pm_gip", "")),
+        "opposingLawyer": _text(getattr(fascicolo, "avvocato_controparte", "")),
+        "holder": _text(getattr(fascicolo, "avvocato_dominus", "")),
+        "responsible": _text(getattr(fascicolo, "avvocato_referente", "")),
+        "counterparty": _text(getattr(fascicolo, "controparte", "")),
+        "claimant": _text(getattr(fascicolo, "attore_principale", "")),
+        "clerk": _text(getattr(fascicolo, "cancelliere", "")),
+        "ctu": _text(getattr(fascicolo, "ctu", "")),
+        "ctp": _text(getattr(fascicolo, "ctp", "")),
+        "notes": _text(getattr(fascicolo, "note", "")),
+        "operationalStatus": _text(getattr(fascicolo, "stato_pratica_operativa", "")),
+        "customText1": _text(getattr(fascicolo, "testo_personalizzabile_1", "")),
+        "customText2": _text(getattr(fascicolo, "testo_personalizzabile_2", "")),
+        "groupName": _text(getattr(fascicolo, "nome_gruppo", "")),
+        "value": float(getattr(fascicolo, "valore_causa", 0) or 0),
         "rg": rg_meta["rg"],
         "rgMissing": rg_meta["rgMissing"],
         "rgStatusLabel": rg_meta["rgStatusLabel"],
@@ -5522,12 +5575,18 @@ def _matches_list_filters(
     missing_rg_only: bool = False,
     duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
+    field_filters: dict[str, str] | None = None,
 ) -> bool:
     needle = _text(query).lower()
     if needle:
         haystack = " ".join(
             _text(item.get(key)).lower()
-            for key in ("ref", "internalRef", "title", "subtitle", "client", "court", "rg", "rgStatusLabel", "rgSourceLabel")
+            for key in (
+                "ref", "internalRef", "title", "subtitle", "client", "court", "rg", "rgStatusLabel",
+                "rgSourceLabel", "object", "procedureType", "register", "section", "sectionRole", "judge",
+                "opposingLawyer", "holder", "responsible", "counterparty", "claimant", "clerk", "ctu", "ctp",
+                "notes", "operationalStatus", "customText1", "customText2", "groupName",
+            )
         )
         if needle not in haystack:
             return False
@@ -5583,20 +5642,93 @@ def _matches_list_filters(
             actual = _text((summary_items.get(normalized_kind) or {}).get("status")).strip().lower()
             if actual != wanted_key:
                 return False
+    if field_filters:
+        values = {
+            "register": item.get("register"),
+            "value": item.get("value"),
+            "holder": item.get("holder"),
+            "responsible": item.get("responsible"),
+            "object": item.get("object") or item.get("subtitle"),
+            "denomination": item.get("title"),
+            "internal_ref": item.get("internalRef"),
+            "rg_year": item.get("rgYear"),
+            "opened_year": _text(item.get("openedAt"))[:4],
+            "archived_year": _text(item.get("closedAt"))[:4],
+            "court": item.get("court"),
+            "rg": item.get("rg"),
+            "section": item.get("section"),
+            "section_role": item.get("sectionRole"),
+            "judge": item.get("judge"),
+            "opposing_lawyer": item.get("opposingLawyer"),
+            "notes": item.get("notes"),
+            "clerk": item.get("clerk"),
+            "ctu": item.get("ctu"),
+            "ctp": item.get("ctp"),
+            "operational_status": item.get("operationalStatus") or item.get("status"),
+            "claimant": item.get("claimant"),
+            "respondent": item.get("counterparty"),
+            "custom_1": item.get("customText1"),
+            "custom_2": item.get("customText2"),
+            "group": item.get("groupName"),
+        }
+        for name, wanted in field_filters.items():
+            needle_value = _text(wanted).strip().casefold()
+            if needle_value and needle_value not in _text(values.get(name)).casefold():
+                return False
     return True
 
 
-def _sort_list_items(items: list[dict[str, Any]], sort: str) -> list[dict[str, Any]]:
-    key = _text(sort, "rg")
-    if key == "rg":
-        return sorted(items, key=_rg_order_from_item)
-    if key == "cliente":
-        return sorted(items, key=lambda item: (_text(item.get("client")).lower(), _text(item.get("title")).lower(), _text(item.get("id"))))
-    if key == "scadenza":
-        return sorted(items, key=lambda item: (_text(item.get("nextDeadlineIso")) or "9999-12-31", _text(item.get("id"))))
-    if key == "documenti":
-        return sorted(items, key=lambda item: (-int(item.get("documents") or 0), _text(item.get("title")).lower(), _text(item.get("id"))))
-    return sorted(items, key=lambda item: (_text(item.get("updatedAt")) or _text(item.get("openedAt")) or "", _text(item.get("id"))), reverse=True)
+def _sort_list_items(items: list[dict[str, Any]], sort: str, secondary_sort: str = "") -> list[dict[str, Any]]:
+    def apply(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+        key = _text(key, "rg").strip().lower()
+        if key == "rg":
+            return sorted(rows, key=_rg_order_from_item)
+        if key == "cliente":
+            return sorted(rows, key=lambda item: (_text(item.get("client")).casefold(), _text(item.get("title")).casefold(), _text(item.get("id"))))
+        if key == "scadenza":
+            return sorted(rows, key=lambda item: (_text(item.get("nextDeadlineIso")) or "9999-12-31", _text(item.get("id"))))
+        if key == "documenti":
+            return sorted(rows, key=lambda item: (-int(item.get("documents") or 0), _text(item.get("title")).casefold(), _text(item.get("id"))))
+        if key == "titolo":
+            return sorted(rows, key=lambda item: (_text(item.get("title")).casefold(), _text(item.get("id"))))
+        if key == "ufficio":
+            return sorted(rows, key=lambda item: (_text(item.get("court")).casefold(), _text(item.get("title")).casefold()))
+        if key == "apertura":
+            return sorted(rows, key=lambda item: (_text(item.get("openedAt")) or "9999-12-31", _text(item.get("title")).casefold()))
+        if key == "stato":
+            return sorted(rows, key=lambda item: (_text(item.get("status")).casefold(), _text(item.get("title")).casefold()))
+        if key == "gruppo":
+            return sorted(rows, key=lambda item: (_text(item.get("groupName")).casefold(), _text(item.get("title")).casefold()))
+        if key == "responsabile":
+            return sorted(rows, key=lambda item: (_text(item.get("responsible")).casefold(), _text(item.get("title")).casefold()))
+        if key == "valore":
+            return sorted(rows, key=lambda item: (-float(item.get("value") or 0), _text(item.get("title")).casefold()))
+        return sorted(rows, key=lambda item: (_text(item.get("updatedAt")) or _text(item.get("openedAt")) or "", _text(item.get("id"))), reverse=True)
+
+    ordered = list(items)
+    secondary = _text(secondary_sort).strip().lower()
+    primary = _text(sort, "rg").strip().lower()
+    if secondary and secondary != primary:
+        ordered = apply(ordered, secondary)
+    return apply(ordered, primary)
+
+
+def _group_list_items(items: list[dict[str, Any]], group_by: str) -> list[dict[str, Any]]:
+    key = _text(group_by).strip().lower()
+    extractors = {
+        "gruppo": lambda item: _text(item.get("groupName"), "Senza gruppo"),
+        "stato": lambda item: _text(item.get("status"), "Stato non indicato"),
+        "tipo": lambda item: _text(item.get("type"), "Tipo non indicato"),
+        "ufficio": lambda item: _text(item.get("court"), "Ufficio non impostato"),
+        "anno": lambda item: _text(item.get("rgYear"), "Anno RG non indicato"),
+        "responsabile": lambda item: _text(item.get("responsible"), "Responsabile non indicato"),
+    }
+    extractor = extractors.get(key)
+    if extractor is None:
+        return items
+    # Python mantiene stabile l'ordinamento: dentro ogni gruppo resta valido
+    # l'ordinamento principale e secondario scelto dall'avvocato.
+    return sorted(items, key=lambda item: extractor(item).casefold())
 
 
 def _pagination(page: int, page_size: int, total: int) -> dict[str, int]:
@@ -5619,12 +5751,15 @@ def build_react_fascicoli_payload(
     status_filter: str = "",
     court: str = "",
     sort: str = "rg",
+    secondary_sort: str = "",
+    group_by: str = "",
     view: str = "",
     alerts_only: bool = False,
     payments_only: bool = False,
     missing_rg_only: bool = False,
     duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
+    field_filters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     view_key = _text(view).strip().lower()
     base_cache_key = _fascicoli_base_cache_key(
@@ -5635,12 +5770,15 @@ def build_react_fascicoli_payload(
         status_filter=status_filter,
         court=court,
         sort=sort,
+        secondary_sort=secondary_sort,
+        group_by=group_by,
         view=view,
         alerts_only=alerts_only,
         payments_only=payments_only,
         missing_rg_only=missing_rg_only,
         duplicates_only=duplicates_only,
         payment_filters=payment_filters,
+        field_filters=field_filters,
     )
     base = _fascicoli_base_cache_get(base_cache_key)
     if base is None:
@@ -5683,9 +5821,13 @@ def build_react_fascicoli_payload(
                 missing_rg_only=missing_rg_only,
                 duplicates_only=duplicates_only,
                 payment_filters=payment_filters,
+                field_filters=field_filters,
             )
         ]
-        sorted_items = _sort_list_items(filtered, sort)
+        sorted_items = _group_list_items(
+            _sort_list_items(filtered, sort, secondary_sort),
+            group_by,
+        )
         items_by_id = {item["id"]: item for item in light_items}
         urgent_deadlines = _deadline_rows_from_scadenze(
             scadenze_rows,
@@ -5746,12 +5888,30 @@ def build_react_fascicoli_payload(
                 enriched_items.append(item)
                 continue
             enriched = dict(item)
-            enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
-                fascicolo,
-                related_fascicoli=_related_duplicate_fascicoli(fascicoli_for_summary, fascicolo),
-                parcelle=parcelle_by_fasc.get(fid, []),
-                duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
-            )
+            related_fascicoli = _related_duplicate_fascicoli(fascicoli_for_summary, fascicolo)
+            parcelle = parcelle_by_fasc.get(fid, [])
+            duplicate_group = duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo))
+            has_documents = bool(getattr(fascicolo, "documenti", []) or [])
+            if has_documents:
+                enriched["paymentSummary"] = payment_summary_for_fascicolo(
+                    fascicolo,
+                    automatic=True,
+                    related_fascicoli=related_fascicoli,
+                    parcelle=parcelle,
+                    duplicate_group=duplicate_group,
+                )
+                automatic_deadline = _automatic_next_deadline_from_documents(fascicolo)
+                automatic_deadline_date = _next_deadline_date_value(fascicolo, automatic_deadline)
+                if automatic_deadline_date:
+                    enriched["nextDeadline"] = _date_label(automatic_deadline_date)
+                    enriched["nextDeadlineIso"] = automatic_deadline_date
+            else:
+                enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
+                    fascicolo,
+                    related_fascicoli=related_fascicoli,
+                    parcelle=parcelle,
+                    duplicate_group=duplicate_group,
+                )
             enriched_items.append(enriched)
         items = enriched_items
     return {
@@ -6163,6 +6323,14 @@ def _form_fascicolo_payload(
             "counterpartyTaxCode": _text(getattr(fascicolo, "cf_controparte", "")),
             "judge": _text(getattr(fascicolo, "giudice", "")),
             "section": _text(getattr(fascicolo, "sezione", "")),
+            "sectionRole": _text(getattr(fascicolo, "ruolo_sezione", "")),
+            "opposingLawyer": _text(getattr(fascicolo, "avvocato_controparte", "")),
+            "claimantsCount": int(getattr(fascicolo, "numero_attori", 0) or 0),
+            "respondentsCount": int(getattr(fascicolo, "numero_convenuti", 0) or 0),
+            "holderRole": _text(getattr(fascicolo, "qualifica_giudiziale_titolare", "")),
+            "externalFolderLink": _text(getattr(fascicolo, "link_cartella_esterna", "")),
+            "groupName": _text(getattr(fascicolo, "nome_gruppo", "")),
+            "cciNumber": _text(getattr(fascicolo, "numero_cci", "")),
             "leadLawyer": lead_lawyer,
             "studioLeadLawyer": _text(studio_avvocato_titolare),
             "dominus": _text(getattr(fascicolo, "avvocato_dominus", "")),
@@ -6184,6 +6352,8 @@ def _form_fascicolo_payload(
             "ctu": _text(getattr(fascicolo, "ctu", "")),
             "ctp": _text(getattr(fascicolo, "ctp", "")),
             "statoPraticaOperativa": _text(getattr(fascicolo, "stato_pratica_operativa", "")),
+            "customText1": _text(getattr(fascicolo, "testo_personalizzabile_1", "")),
+            "customText2": _text(getattr(fascicolo, "testo_personalizzabile_2", "")),
             "personalizzabile": bool(getattr(fascicolo, "personalizzabile", False)),
             "fascicoloVeloce": bool(getattr(fascicolo, "fascicolo_veloce", False)),
             "documentiInizialiCount": int(getattr(fascicolo, "documenti_iniziali_count", 0) or 0),

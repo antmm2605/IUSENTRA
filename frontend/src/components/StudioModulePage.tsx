@@ -19,11 +19,13 @@ import {
   FileText,
   FolderOpen,
   Landmark,
+  ListFilter,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
   Plus,
+  Search,
   Send,
   Settings2,
   ShieldAlert,
@@ -46,7 +48,6 @@ import {
   type StudioRuntimeOperation,
   type StudioRuntimeResult,
 } from '../studioModuleRuntime'
-import { displayWritesLabel } from '../displayText'
 import { csrfToken } from '../formSubmit'
 import './StudioModulePage.css'
 
@@ -57,7 +58,7 @@ type ToolResultState = {
 }
 
 function runtimeSourceLabel(source: string): string {
-  return source === 'repository_reali' ? 'Dati dello studio' : 'Caricamento'
+  return source === 'repository_reali' ? 'Aggiornati' : 'Caricamento'
 }
 
 const toneLabel: Record<StudioModuleTone, string> = {
@@ -93,6 +94,7 @@ const iconMap: Record<string, LucideIcon> = {
   'map-pin': MapPin,
   message: MessageCircle,
   plus: Plus,
+  search: Search,
   send: Send,
   settings: Settings2,
   shield: ShieldCheck,
@@ -488,18 +490,39 @@ function ActiveFunctionPanel({
   const Icon = iconFor(card.icon)
   const actions = operation?.actions?.length ? operation.actions : [{ label: card.action, href: card.href, method: 'GET' as const, tone: card.tone }]
   const metrics = operation?.metrics?.length ? operation.metrics : runtime.metrics
-  const recordLimit = 12
+  const records = operation?.records || []
+  const [recordQuery, setRecordQuery] = useState('')
+  const [recordArea, setRecordArea] = useState('')
+  const [recordLimit, setRecordLimit] = useState(24)
+  const recordAreas = Array.from(new Set(records.map((record) => record.badge).filter(Boolean))).sort((left, right) => left.localeCompare(right, 'it'))
+  const normalizedRecordQuery = recordQuery.trim().toLocaleLowerCase('it')
+  const filteredRecords = records.filter((record) => {
+    if (recordArea && record.badge !== recordArea) return false
+    if (!normalizedRecordQuery) return true
+    return [record.title, record.subtitle, record.badge, record.meta]
+      .join(' ')
+      .toLocaleLowerCase('it')
+      .includes(normalizedRecordQuery)
+  })
+  const visibleRecords = filteredRecords.slice(0, recordLimit)
+
+  useEffect(() => {
+    setRecordQuery('')
+    setRecordArea('')
+    setRecordLimit(24)
+  }, [operation?.id])
+
   return (
     <section id="funzione-operativa" className={`iu-sm-focus iu-sm-focus--${card.tone}`}>
       <div className="iu-sm-focus__icon"><Icon size={22}/></div>
       <div className="iu-sm-focus__copy">
-        <span>{loading ? 'Caricamento dati reali' : 'Operazione pronta'}</span>
+        <span>{loading ? 'Caricamento' : 'Operazione pronta'}</span>
         <h2>{operation?.title || card.title}</h2>
         <p>{operation?.body || card.body}</p>
         <dl>
           <div><dt>Area</dt><dd>{module.title}</dd></div>
-          <div><dt>Dati</dt><dd>{runtimeSourceLabel(runtime.source)}</dd></div>
-          <div><dt>Comandi</dt><dd>{displayWritesLabel(runtime.contracts.writes)}</dd></div>
+          <div><dt>Informazioni</dt><dd>{runtimeSourceLabel(runtime.source)}</dd></div>
+          <div><dt>Disponibilità</dt><dd>Attiva</dd></div>
         </dl>
         {metrics.length ? (
           <div className="iu-sm-focus__metrics">
@@ -517,9 +540,40 @@ function ActiveFunctionPanel({
             {operation.warnings.map((warning) => <span key={warning}>{warning}</span>)}
           </div>
         ) : null}
-        {operation?.records?.length ? (
+        {records.length > 12 ? (
+          <div className="iu-sm-focus__record-tools" aria-label="Ricerca nel catalogo">
+            <label>
+              <Search size={16}/>
+              <input
+                type="search"
+                value={recordQuery}
+                onChange={(event) => {
+                  setRecordQuery(event.target.value)
+                  setRecordLimit(24)
+                }}
+                placeholder="Cerca funzione o argomento"
+              />
+            </label>
+            <label>
+              <ListFilter size={16}/>
+              <select
+                value={recordArea}
+                onChange={(event) => {
+                  setRecordArea(event.target.value)
+                  setRecordLimit(24)
+                }}
+                aria-label="Filtra per area"
+              >
+                <option value="">Tutte le aree</option>
+                {recordAreas.map((area) => <option value={area} key={area}>{area}</option>)}
+              </select>
+            </label>
+            <span>{filteredRecords.length} {filteredRecords.length === 1 ? 'risultato' : 'risultati'}</span>
+          </div>
+        ) : null}
+        {records.length ? (
           <div className="iu-sm-focus__records">
-            {operation.records.slice(0, recordLimit).map((record) => (
+            {visibleRecords.map((record) => (
               <a href={record.href || card.href} key={record.id}>
                 <div>
                   <strong>{record.title}</strong>
@@ -529,6 +583,21 @@ function ActiveFunctionPanel({
                 {record.meta ? <em>{record.meta}</em> : null}
               </a>
             ))}
+            {!visibleRecords.length ? (
+              <div className="iu-sm-focus__record-empty" role="status">
+                Nessuna funzione corrisponde alla ricerca.
+              </div>
+            ) : null}
+            {visibleRecords.length < filteredRecords.length ? (
+              <div className="iu-sm-focus__record-more">
+                <button type="button" onClick={() => setRecordLimit((current) => current + 24)}>
+                  Mostra altri
+                </button>
+                <button type="button" onClick={() => setRecordLimit(filteredRecords.length)}>
+                  Mostra tutti ({filteredRecords.length})
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {operation?.form ? (
@@ -573,7 +642,7 @@ export function StudioModulePage() {
   const [runtime, setRuntime] = useState<StudioModuleRuntime>(emptyStudioModuleRuntime)
   const [runtimeLoading, setRuntimeLoading] = useState(true)
   const [toolResults, setToolResults] = useState<Record<string, ToolResultState>>({})
-  const selectedCard = module.cards.find((card) => card.title === selectedCardTitle) || initialCard
+  const selectedCard = module.cards.find((card) => card.title === selectedCardTitle) || initialCard || module.cards[0]
   const selectedOperation = operationForCurrentRoute(runtime, selectedCard)
   const selectedResultKey = selectedOperation?.tool?.toolId || selectedOperation?.id || ''
   const selectedResultState = selectedResultKey ? toolResults[selectedResultKey] : undefined
@@ -682,7 +751,7 @@ export function StudioModulePage() {
           <div className="iu-sm-section-head">
             <div>
               <h2>Funzioni operative</h2>
-              <p>Ogni scheda apre una funzione collegata a dati, moduli o azioni reali del gestionale.</p>
+              <p>Cerca e apri la funzione necessaria senza uscire dal lavoro in corso.</p>
             </div>
             <span>Operativo</span>
           </div>

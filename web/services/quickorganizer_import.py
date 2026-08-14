@@ -2035,7 +2035,15 @@ def import_quickorganizer_package(
             "numero_rg": _text(rg_info.get("numero")),
             "anno_rg": _number(rg_info.get("anno")),
             "sezione": _text(_row_value(row, "SEZIONE")),
+            "ruolo_sezione": _text(_row_value(row, "RUOLO_SEZ")),
             "giudice": _text(_row_value(row, "ISTRUTTORE")),
+            "avvocato_controparte": _text(_row_value(row, "AVV_CONTROP")),
+            "numero_attori": _number(_row_value(row, "NumeroAttori")),
+            "numero_convenuti": _number(_row_value(row, "NumeroConvenuti")),
+            "qualifica_giudiziale_titolare": _text(_row_value(row, "QualificaGiudizialeTitolarePratica")),
+            "link_cartella_esterna": _text(_row_value(row, "LinkCartellaEsterna")),
+            "nome_gruppo": _text(_row_value(row, "NomeGruppo")),
+            "numero_cci": _text(_row_value(row, "NumeroCCI")),
             "cancelliere": _text(_row_value(row, "CANCELL")),
             "ctu": _text(_row_value(row, "CTU")),
             "ctp": _text(_row_value(row, "CTP")),
@@ -2046,6 +2054,8 @@ def import_quickorganizer_package(
             "riferimento_cartaceo": _text(_row_value(row, "RIF")),
             "attore_principale": _text(_row_value(row, "AttorePrincipale")),
             "stato_pratica_operativa": _text(_row_value(row, "Stato_Pratica")),
+            "testo_personalizzabile_1": _text(_row_value(row, "TXT_PERSONALIZZABILE1")),
+            "testo_personalizzabile_2": _text(_row_value(row, "TXT_PERSONALIZZABILE2")),
             "data_apertura": _iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
             "data_chiusura": _iso_date(_row_value(row, "DATA_ARC")),
             "data_prima_udienza": first_hearing or _text(getattr(existing, "data_prima_udienza", "")),
@@ -2438,7 +2448,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "documento_non_allineato",
-                f"Documento {filename} della pratica {matter_number} non trovato con titolo Studio Telematico {expected_name}.",
+                f"Documento {filename} della pratica {matter_number} non trovato con il titolo originario {expected_name}.",
             )
 
     for row in emails:
@@ -2463,7 +2473,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "email_non_allineata",
-                f"Email {filename} della pratica {matter_number} non trovata con oggetto Studio Telematico {expected_name}.",
+                f"Email {filename} della pratica {matter_number} non trovata con l'oggetto originario {expected_name}.",
             )
 
     for row in agenda:

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.278.51 - 2026-08-14
+
+- **Fascicoli economici coerenti in ogni modalità.** Le viste `Compatta` e `Schede` mantengono contributo unificato, spese/esborsi, liquidazione, parcella e controllo documentale; il cambio di rappresentazione non torna più alla scheda operativa.
+- **Elenco fascicoli a tutto schermo.** Il comando dedicato è ora collocato sopra `Operativa` e `Economica`, apre l'intera superficie senza tagliare l'intestazione e conserva vista, modalità e focus quando si entra o si esce dal pieno schermo.
+- **Analisi economiche senza scansioni ripetute.** I fascicoli già analizzati riusano il riepilogo consolidato finché l'impronta dei documenti resta invariata; soltanto documenti nuovi o modificati riattivano l'analisi necessaria.
+- **Agenda e archivio documenti.** Comandi Agenda riallineati e centrati, planner a tutto schermo e archivio documenti React collegato al repository tenant-aware dei fascicoli, con ricerca, filtri, anteprima, modifica e cestino governato.
+- **Guardrail.** Collaudo reale desktop, tablet e smartphone sulla copia Docker dell'utente; suite estesa di 348 test e typecheck frontend superati.
+
 ## 2.278.50 - 2026-08-14
 
 - **Prima nota di studio (Fase E, sotto-fase 1: dominio).** Nuovo `pct/prima_nota.py`: registro cronologico di incassi e pagamenti per principio di cassa (art. 54 TUIR; art. 19 D.P.R. 600/1973) con piano dei conti minimo dello studio legale — onorari, **anticipazioni ex art. 15 D.P.R. 633/1972 in categorie dedicate** (pagate per conto del cliente e rimborsate), spese studio, compensi a terzi, imposte/contributi registrati. I movimenti non si cancellano: si **stornano** con movimento contrario collegato e motivato (registro ricostruibile, coerente con l'impianto probatorio).

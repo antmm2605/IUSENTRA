@@ -138,6 +138,26 @@ export type FascicoloRow = {
   type: Exclude<FascicoloTipo, 'tutti'>
   client: string
   court: string
+  object: string
+  procedureType: string
+  register: string
+  section: string
+  sectionRole: string
+  judge: string
+  opposingLawyer: string
+  holder: string
+  responsible: string
+  counterparty: string
+  claimant: string
+  clerk: string
+  ctu: string
+  ctp: string
+  notes: string
+  operationalStatus: string
+  customText1: string
+  customText2: string
+  groupName: string
+  caseValue: number
   rg: string
   rgNumber: number
   rgYear: number
@@ -223,6 +243,16 @@ export type FascicoliPagination = {
 
 export type FascicoloPaymentFilter = 'tutti' | FascicoloPaymentStatus
 
+export type FascicoliFieldFilterKey =
+  | 'register' | 'value' | 'holder' | 'responsible' | 'object' | 'denomination' | 'internal_ref'
+  | 'rg_year' | 'opened_year' | 'archived_year' | 'court' | 'rg' | 'section' | 'section_role'
+  | 'judge' | 'opposing_lawyer' | 'notes' | 'clerk' | 'ctu' | 'ctp' | 'operational_status'
+  | 'claimant' | 'respondent' | 'custom_1' | 'custom_2' | 'group'
+
+export type FascicoliFieldFilters = Partial<Record<FascicoliFieldFilterKey, string>>
+export type FascicoliDisplayMode = 'tabella' | 'compatta' | 'schede'
+export type FascicoliGroupMode = 'nessuno' | 'gruppo' | 'stato' | 'tipo' | 'ufficio' | 'anno' | 'responsabile'
+
 export type FascicoliPageParams = {
   page?: number
   pageSize?: number
@@ -233,7 +263,10 @@ export type FascicoliPageParams = {
   status?: FascicoloStato
   court?: string
   sort?: string
+  secondarySort?: string
+  groupBy?: FascicoliGroupMode
   view?: 'operativa' | 'economica' | string
+  fieldFilters?: FascicoliFieldFilters
   alertsOnly?: boolean
   paymentsOnly?: boolean
   missingRgOnly?: boolean
@@ -248,8 +281,12 @@ export type FascicoliFilterPreferences = {
   type: FascicoloTipo
   status: FascicoloStato
   sort: 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti' | string
+  secondarySort: string
   view: 'operativa' | 'economica' | string
+  displayMode: FascicoliDisplayMode
+  groupBy: FascicoliGroupMode
   court: string
+  fieldFilters: FascicoliFieldFilters
   alertsOnly: boolean
   paymentsOnly: boolean
   missingRgOnly: boolean
@@ -580,6 +617,11 @@ export type FascicoloFull = FascicoloRow & {
   section: string
   leadLawyer: string
   dominus: string
+  claimantsCount: number
+  respondentsCount: number
+  holderRole: string
+  externalFolderLink: string
+  cciNumber: string
   value: string
   valueRaw: string
   quotedValue: string
@@ -1216,8 +1258,12 @@ export const defaultFascicoliFilterPreferences: FascicoliFilterPreferences = {
   type: 'tutti',
   status: 'tutti',
   sort: 'rg',
+  secondarySort: '',
   view: 'operativa',
+  displayMode: 'tabella',
+  groupBy: 'nessuno',
   court: '',
+  fieldFilters: {},
   alertsOnly: false,
   paymentsOnly: false,
   missingRgOnly: false,
@@ -1364,17 +1410,18 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   requestError: '',
   fascicolo: {
-    id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
+    id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.',
+    object: '', procedureType: '', register: '', section: '', sectionRole: '', judge: '', opposingLawyer: '', holder: '', responsible: '', counterparty: '', claimant: '', clerk: '', ctu: '', ctp: '', notes: '', operationalStatus: '', customText1: '', customText2: '', groupName: '', caseValue: 0, rg: 'n.d.',
     rgNumber: 0, rgYear: 0, rgMissing: false, rgStatusLabel: '', rgSourceLabel: '', nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
     duplicateCount: 0, duplicateIds: [], duplicateKey: '', duplicateLabel: '', duplicateHref: '',
     paymentSummary: emptyPaymentSummary,
-    clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', valueRaw: '', quotedValue: '', agreedFee: '',
-    procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
-    riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
+    clientId: '', counterpartyTaxCode: '', leadLawyer: '', dominus: '', claimantsCount: 0, respondentsCount: 0, holderRole: '', externalFolderLink: '', cciNumber: '', value: '', valueRaw: '', quotedValue: '', agreedFee: '',
+    practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
+    riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '',
     statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
-    firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
+    firstHearing: '', citationNotification: '', nextHearing: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '',
     sourceSnapshot: { portale: '', importLogId: '', acquisitoIl: '', externalId: '', numero: '', anno: 0, ufficioNome: '', ufficioCodice: '', registroPortale: '', servizioPst: '', tabellaMinisteriale: '', idDfa: '', idRuoloJpw: '', idFascicoloPortale: '', procedimento: '', subProcedimento: '', sezione: '', stato: '', oggetto: '', dataIscrizione: '', dataUdienza: '', ultimaAttivita: '', parti: [], controparti: [], difensori: [], counts: {} },
     hasConflicts: false, documentSyncEnabled: false,
@@ -1646,6 +1693,26 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     type,
     client,
     court: text(item.court ?? item.tribunale ?? item.ufficio, 'Ufficio non impostato'),
+    object: text(item.object ?? item.oggetto ?? item.subtitle),
+    procedureType: text(item.procedureType ?? item.tipo_procedimento),
+    register: text(item.register ?? item.tipo_registro ?? item.type),
+    section: text(item.section ?? item.sezione),
+    sectionRole: text(item.sectionRole ?? item.ruolo_sezione),
+    judge: text(item.judge ?? item.giudice ?? item.istruttore_pm_gip),
+    opposingLawyer: text(item.opposingLawyer ?? item.avvocato_controparte),
+    holder: text(item.holder ?? item.avvocato_dominus),
+    responsible: text(item.responsible ?? item.avvocato_referente),
+    counterparty: text(item.counterparty ?? item.controparte),
+    claimant: text(item.claimant ?? item.attore_principale),
+    clerk: text(item.clerk ?? item.cancelliere),
+    ctu: text(item.ctu),
+    ctp: text(item.ctp),
+    notes: text(item.notes ?? item.note),
+    operationalStatus: text(item.operationalStatus ?? item.stato_pratica_operativa),
+    customText1: text(item.customText1 ?? item.testo_personalizzabile_1),
+    customText2: text(item.customText2 ?? item.testo_personalizzabile_2),
+    groupName: text(item.groupName ?? item.nome_gruppo),
+    caseValue: number(item.value ?? item.valore_causa),
     rg,
     rgNumber: number(item.rgNumber ?? item.rg_number ?? item.numeroRg ?? item.numero_rg),
     rgYear: number(item.rgYear ?? item.rg_year ?? item.annoRg ?? item.anno_rg),
@@ -1824,6 +1891,12 @@ function normalizeFascicoliFilterPreferences(value: unknown): FascicoliFilterPre
   const status = text(row.status, defaultFascicoliFilterPreferences.status) as FascicoloStato
   const sort = text(row.sort, defaultFascicoliFilterPreferences.sort)
   const view = text(row.view, defaultFascicoliFilterPreferences.view)
+  const displayMode = text(row.displayMode ?? row.display_mode, defaultFascicoliFilterPreferences.displayMode) as FascicoliDisplayMode
+  const groupBy = text(row.groupBy ?? row.group_by, defaultFascicoliFilterPreferences.groupBy) as FascicoliGroupMode
+  const rawFieldFilters = isRecord(row.fieldFilters ?? row.field_filters) ? (row.fieldFilters ?? row.field_filters) as Record<string, unknown> : {}
+  const fieldFilters = Object.fromEntries(
+    Object.entries(rawFieldFilters).map(([key, value]) => [key, text(value)]).filter(([, value]) => value),
+  ) as FascicoliFieldFilters
   const cu = text(row.cu, defaultFascicoliFilterPreferences.cu) as FascicoloPaymentFilter
   const liquidazione = text(row.liquidazione, defaultFascicoliFilterPreferences.liquidazione) as FascicoloPaymentFilter
   const parcella = text(row.parcella, defaultFascicoliFilterPreferences.parcella) as FascicoloPaymentFilter
@@ -1831,8 +1904,12 @@ function normalizeFascicoliFilterPreferences(value: unknown): FascicoliFilterPre
     type,
     status,
     sort,
+    secondarySort: text(row.secondarySort ?? row.secondary_sort, ''),
     view,
+    displayMode: ['tabella', 'compatta', 'schede'].includes(displayMode) ? displayMode : 'tabella',
+    groupBy: ['nessuno', 'gruppo', 'stato', 'tipo', 'ufficio', 'anno', 'responsabile'].includes(groupBy) ? groupBy : 'nessuno',
     court: text(row.court, ''),
+    fieldFilters,
     alertsOnly: bool(row.alertsOnly ?? row.alerts_only),
     paymentsOnly: bool(row.paymentsOnly ?? row.payments_only),
     missingRgOnly: bool(row.missingRgOnly ?? row.missing_rg_only),
@@ -2171,6 +2248,11 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     section: text(fullPayload.section ?? fullPayload.sezione),
     leadLawyer: text(fullPayload.leadLawyer ?? fullPayload.avvocato_referente),
     dominus: text(fullPayload.dominus ?? fullPayload.avvocato_dominus),
+    claimantsCount: number(fullPayload.claimantsCount ?? fullPayload.numero_attori),
+    respondentsCount: number(fullPayload.respondentsCount ?? fullPayload.numero_convenuti),
+    holderRole: text(fullPayload.holderRole ?? fullPayload.qualifica_giudiziale_titolare),
+    externalFolderLink: text(fullPayload.externalFolderLink ?? fullPayload.link_cartella_esterna),
+    cciNumber: text(fullPayload.cciNumber ?? fullPayload.numero_cci),
     value: text(fullPayload.value ?? fullPayload.valore_causa),
     valueRaw: text(fullPayload.valueRaw ?? fullPayload.value_raw ?? fullPayload.valore_causa),
     quotedValue: text(fullPayload.quotedValue ?? fullPayload.valore_preventivato),
@@ -2800,7 +2882,12 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.status && params.status !== 'tutti') query.set('status', params.status)
   if (params.court?.trim()) query.set('court', params.court.trim())
   if (params.sort) query.set('sort', params.sort)
+  if (params.secondarySort?.trim()) query.set('secondary_sort', params.secondarySort.trim())
+  if (params.groupBy && params.groupBy !== 'nessuno') query.set('group_by', params.groupBy)
   if (params.view?.trim()) query.set('view', params.view.trim())
+  Object.entries(params.fieldFilters || {}).forEach(([key, value]) => {
+    if (value?.trim()) query.set(`f_${key}`, value.trim())
+  })
   if (params.alertsOnly) query.set('alerts_only', '1')
   if (params.paymentsOnly) query.set('payments_only', '1')
   if (params.missingRgOnly) query.set('missing_rg_only', '1')

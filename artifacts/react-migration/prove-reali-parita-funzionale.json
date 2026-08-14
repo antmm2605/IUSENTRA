@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-08-14T13:55:22+02:00",
+  "timezone": "Europe/Rome",
+  "capabilities": {
+    "fascicoli_elenco_attivi": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/fascicoli",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1146, "height": 912},
+        {"width": 768, "height": 1024},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "La copia Docker reale ha risposto a /api/pronto con stato pronto e fuso Europe/Rome.",
+        "L'elenco autenticato ha mostrato 10 fascicoli reali con tabella, vista compatta, schede e lista mobile.",
+        "La pagina e' stata scorsa dall'inizio al fondo su desktop, tablet e mobile senza sovrapposizioni o testo tagliato.",
+        "Il registro console del browser non ha mostrato errori o avvisi durante il collaudo."
+      ]
+    },
+    "fascicoli_gruppi": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/fascicoli",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1146, "height": 912},
+        {"width": 768, "height": 1024},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "Il raggruppamento per tipo ha prodotto intestazioni Civile, Lavoro e Penale anche sulla seconda pagina.",
+        "Il raggruppamento per gruppo ha prodotto l'intestazione Senza gruppo sui dati reali disponibili.",
+        "La tabella mostra ogni intestazione in una riga completa estesa a tutte le colonne."
+      ]
+    },
+    "fascicoli_ricerca_filtri": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/fascicoli",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1146, "height": 912},
+        {"width": 768, "height": 1024},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "Il filtro Tipo=Lavoro ha restituito 1 fascicolo reale.",
+        "Il filtro dettagliato Ufficio giudiziario=Palmi ha restituito 4 fascicoli reali.",
+        "La ricerca RG 1025/2026 ha restituito un solo fascicolo.",
+        "L'ordinamento Cliente seguito da Ufficio giudiziario ha riportato la pagina alla prima pagina.",
+        "La paginazione a 5 elementi ha mostrato e aperto correttamente la pagina 2 di 2."
+      ]
+    },
+    "agenda_nuovo_evento": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/agenda/nuovo",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1048, "height": 912},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "Il menu Nuovo ha mostrato Udienza, Appuntamento, Adempimento, Promemoria, Attività di studio e Scadenza con collegamenti distinti.",
+        "I collegamenti hanno precompilato tipo, data, durata e titolo coerenti nel modulo reale.",
+        "Una voce controllata denominata Collaudo Agenda Codex è stata salvata dal modulo visibile, mostrata nella settimana e aperta nel dettaglio operativo.",
+        "La voce di collaudo è stata rimossa al termine tramite il repository Agenda, riallineando SQLite e mirror JSON; il periodo è tornato a zero elementi."
+      ]
+    },
+    "agenda_viste": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/agenda",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1920, "height": 1080},
+        {"width": 1048, "height": 912},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "Le viste Giorno, Settimana, Mese e Cronologia sono disponibili nello stesso selettore e conservano data e vista nell'indirizzo.",
+        "Cronologia ha mostrato l'intero mese dal 01/08/2026 al 31/08/2026 e la navigazione ha aperto il mese precedente.",
+        "Il comando Tutto schermo nell'intestazione del calendario ha occupato l'intera superficie, nascosto il pannello laterale e mostrato Riduci.",
+        "Riduci ha ripristinato la pagina; la stessa sequenza è stata provata a 390 x 844 senza larghezza eccedente o contenuti sovrapposti.",
+        "Il menu Nuovo è rimasto interamente visibile sopra il contenuto a 1048 x 912, senza essere tagliato dal contenitore della pagina."
+      ]
+    },
+    "agenda_gestione_evento": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/agenda/:id",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1048, "height": 912}
+      ],
+      "evidence": [
+        "Il dettaglio di una voce controllata ha mostrato Modifica, Rinvia ed Elimina come comandi separati.",
+        "Rinvia ha aperto il modulo di modifica della voce corretta mantenendo titolo, data e ora e mostrando Salva modifiche.",
+        "Elimina ha richiesto conferma con le scelte Elimina e Annulla prima di eseguire l'operazione.",
+        "La conferma ha cancellato la voce da Agenda, restituito alla vista settimanale e ripristinato il conteggio a zero senza messaggi di errore."
+      ]
+    },
+    "documenti_archivio": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/editor-professionale",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1280, "height": 720},
+        {"width": 820, "height": 900},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "L'archivio autenticato ha letto 76 documenti reali distribuiti in 5 fascicoli e 3 formati, senza usare dati dimostrativi.",
+        "La tabella desktop ha mostrato documento, fascicolo, tipo, formato, data e azioni; a 390 px ogni riga è diventata una scheda leggibile.",
+        "La pagina è stata scorsa dall'inizio alle azioni dei documenti su desktop, tablet e smartphone senza overflow orizzontale della pagina.",
+        "Visualizza, scarica, modifica, apri fascicolo e cestino hanno mantenuto dimensioni e icone leggibili; su smartphone ogni comando misura 44 px."
+      ]
+    },
+    "documenti_ricerca_filtri": {
+      "status": "verificata",
+      "base_url": "http://127.0.0.1:8080",
+      "route": "/editor-professionale",
+      "browser_console_errors": 0,
+      "viewports": [
+        {"width": 1280, "height": 720},
+        {"width": 820, "height": 900},
+        {"width": 390, "height": 844}
+      ],
+      "evidence": [
+        "La ricerca Attestazione_di_conformita ha restituito un solo documento reale e ha conservato il filtro nell'indirizzo.",
+        "Il filtro formato PDF.P7M ha restituito 15 documenti reali.",
+        "Il passaggio al Cestino ha aggiornato stato selezionato, conteggio e messaggio vuoto senza confondere i documenti attivi.",
+        "Ricerca, tipo, formato e fascicolo restano leggibili e utilizzabili su desktop, tablet e smartphone."
+      ]
+    }
+  }
+}

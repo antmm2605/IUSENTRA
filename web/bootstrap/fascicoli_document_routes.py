@@ -24,9 +24,9 @@ from web.bootstrap.fascicoli_document_helpers import (
     percorso_documento_lettura,
     preview_error_html,
     preview_unavailable_html,
-    redirect_to_documenti_section,
     wants_json_response,
 )
+from web.bootstrap.fascicoli_document_trash_routes import register_fascicoli_document_trash_routes
 from web.services.fascicoli_document_rename import rinomina_documento_response
 from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
 from web.services.signed_document_runtime import build_document_signed_snapshot_from_bytes, build_document_version_candidates
@@ -579,64 +579,4 @@ def register_fascicoli_document_routes(
             app.logger.exception("Errore api_info_firma_documento: %s", exc)
             return jsonify({"firme": [], "errore": "Lettura firme non completata. Verifica il documento e riprova."})
 
-    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/elimina", methods=["POST"])
-    def elimina_documento(id_fasc, id_doc):
-        try:
-            get_fascicoli().rimuovi_documento(id_fasc, id_doc)
-            msg = "Documento eliminato dal fascicolo."
-            flash(msg, "success")
-            clear_react_fascicoli_list_cache()
-            if wants_json_response():
-                return jsonify(
-                    {
-                        "ok": True,
-                        "messaggio": msg,
-                        "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#documenti",
-                    }
-                )
-        except KeyError as exc:
-            app.logger.warning("Eliminazione documento non valida id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-            msg = "Documento non trovato nel fascicolo."
-            if wants_json_response():
-                return jsonify({"ok": False, "messaggio": msg}), 404
-            flash(msg, "danger")
-        except Exception as exc:
-            app.logger.exception("Errore elimina_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-            msg = "Archivio documenti momentaneamente occupato. Riprova tra pochi secondi."
-            if wants_json_response():
-                return jsonify({"ok": False, "messaggio": msg}), 503
-            flash(msg, "danger")
-        return redirect_to_documenti_section(id_fasc)
-
-    @app.route("/fascicoli/<id_fasc>/documenti/elimina-multipla", methods=["POST"])
-    def elimina_documenti_multipli(id_fasc):
-        ids_raw = str(request.form.get("documenti_ids") or "").strip()
-        ids_doc = [item.strip() for item in ids_raw.split(",") if item.strip()]
-        if not ids_doc:
-            flash("Seleziona almeno un documento da eliminare.", "warning")
-            return redirect_to_documenti_section(id_fasc)
-
-        gestore_fascicoli = get_fascicoli()
-        rimossi = 0
-        errori: list[str] = []
-        for id_doc in dict.fromkeys(ids_doc):
-            try:
-                gestore_fascicoli.rimuovi_documento(id_fasc, id_doc)
-                rimossi += 1
-            except KeyError as exc:
-                app.logger.warning("Documento da eliminare non trovato id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-                errori.append("Documento non trovato nel fascicolo.")
-            except Exception as exc:
-                app.logger.exception("Errore elimina_documenti_multipli id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-                errori.append("Archivio documenti momentaneamente occupato.")
-
-        if rimossi:
-            clear_react_fascicoli_list_cache()
-            audit("fascicoli.documento.elimina_multipla", "fascicolo", id_fasc, dettagli=f"{rimossi} documenti")
-            flash(
-                f"{rimossi} document{'o' if rimossi == 1 else 'i'} eliminat{'o' if rimossi == 1 else 'i'} dal fascicolo.",
-                "success",
-            )
-        if errori:
-            flash("Alcuni documenti non sono stati eliminati: " + "; ".join(errori[:3]), "warning")
-        return redirect_to_documenti_section(id_fasc)
+    register_fascicoli_document_trash_routes(app, get_fascicoli=get_fascicoli, audit=audit)

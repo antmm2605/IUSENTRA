@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.50 - 2026-08-14
+
+- **Prima nota di studio (Fase E, sotto-fase 1: dominio).** Nuovo `pct/prima_nota.py`: registro cronologico di incassi e pagamenti per principio di cassa (art. 54 TUIR; art. 19 D.P.R. 600/1973) con piano dei conti minimo dello studio legale — onorari, **anticipazioni ex art. 15 D.P.R. 633/1972 in categorie dedicate** (pagate per conto del cliente e rimborsate), spese studio, compensi a terzi, imposte/contributi registrati. I movimenti non si cancellano: si **stornano** con movimento contrario collegato e motivato (registro ricostruibile, coerente con l'impianto probatorio).
+- **Riconciliazione ed export.** Le parcelle pagate in fatturazione diventano incassi in prima nota una sola volta (idempotente per parcella); export CSV per il commercialista con decimali all'italiana. **Perimetro dichiarato fail-closed: il modulo registra ed esporta, non calcola imposte, ritenute o contributi** — la qualificazione fiscale resta al professionista incaricato. Suite `tests/test_prima_nota.py` (10 test). UI e riconciliazione bancaria nelle prossime sotto-fasi.
+
 ## 2.278.49 - 2026-08-14
 
 - **Incarichi CTU nel fascicolo (Fase D dei differenziatori, dominio).** Nuovo `pct/ctu.py`: registro degli incarichi peritali con doppio punto di vista (lo studio assiste una parte oppure il CTU stesso), ausiliario nominato con PEC e albo, quesiti del giudice, consulenti di parte ex art. 201 c.p.c. Timeline ex art. 195 c.3 c.p.c. (riforma Cartabia): nomina → giuramento → bozza alle parti → osservazioni → deposito finale, con **date sempre dall'ordinanza del giudice** (validate, mai calcolate dal software) e segnalazione delle incoerenze cronologiche.

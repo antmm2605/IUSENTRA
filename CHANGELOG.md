@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.49 - 2026-08-14
+
+- **Incarichi CTU nel fascicolo (Fase D dei differenziatori, dominio).** Nuovo `pct/ctu.py`: registro degli incarichi peritali con doppio punto di vista (lo studio assiste una parte oppure il CTU stesso), ausiliario nominato con PEC e albo, quesiti del giudice, consulenti di parte ex art. 201 c.p.c. Timeline ex art. 195 c.3 c.p.c. (riforma Cartabia): nomina → giuramento → bozza alle parti → osservazioni → deposito finale, con **date sempre dall'ordinanza del giudice** (validate, mai calcolate dal software) e segnalazione delle incoerenze cronologiche.
+- **Scadenze in BOZZA per ruolo.** Le tappe della timeline diventano proposte nello scadenziario — per la parte il termine osservazioni, per l'ausiliario bozza e deposito — idempotenti e mai operative senza conferma dell'avvocato. Il calcolo dei compensi resta nel tool «CTU, vacazioni e compensi» (D.P.R. 115/2002 + D.M. 30/05/2002) e i tipi atto per il deposito dell'ausiliario (`DepositoRelazioneCTU`, `DepositoIntegrazioneCTU`, `DepositoIstanzaLiquidazioneCTU`) sono già a catalogo busta. Suite `tests/test_ctu.py` (9 test). UI nel dettaglio fascicolo in una prossima iterazione.
+
 ## 2.278.48 - 2026-08-14
 
 - **Pipeline nuovi clienti: la UI del CRM di intake (completa la Fase C).** Nuova pagina `/crm`: kanban a 6 colonne (Nuovi contatti → Contattati → Appuntamento → Preventivo inviato → Incarico assunto / Persi) sul dominio `pct/crm_intake.py` già rilasciato. Ogni scheda mostra fonte, materia, esigenza e lo stato della **verifica conflitti ex art. 24 CDF** (badge: nessun riscontro / da valutare / potenziale conflitto, con i riscontri nominativi e il tipo di match certo/omonimia); azioni: verifica conflitti, avanzamento di stato, conversione in cliente (persona fisica o giuridica in anagrafica), chiusura come perso con motivo obbligatorio. Statistiche di testata: contatti in lavorazione, incarichi, tasso di conversione e contatti per fonte.

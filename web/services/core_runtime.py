@@ -264,6 +264,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "TIME_TRACKING_DB",
         os.getenv("PCT_TIME_TRACKING_DB", "./timesheet/time_tracking.json"),
     )
+    app.config["CRM_DB"] = cfg.get(
+        "CRM_DB",
+        os.getenv("PCT_CRM_DB", "./crm/leads.json"),
+    )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
     )
@@ -708,6 +712,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "scadenze": _cfg_data_path("SCADENZIARIO_DB"),
             "timesheet": _cfg_data_path("TIMESHEET_DB"),
             "time_tracking": _cfg_data_path("TIME_TRACKING_DB"),
+            "crm": _cfg_data_path("CRM_DB"),
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
             "notifiche": _cfg_data_path("NOTIFICHE_LOG"),
             "notifications": _cfg_data_path("NOTIFICATIONS_DB"),
@@ -983,6 +988,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 studio_db=get_studio_db("TIMESHEET_DB"),
             )
         return g._timesheet
+
+    def get_crm():
+        if not hasattr(g, "_crm_intake"):
+            from pct.crm_intake import GestioneCrmIntake
+
+            g._crm_intake = GestioneCrmIntake(db_path=_cfg_data_path("CRM_DB"))
+        return g._crm_intake
 
     def get_preventivi() -> GestionePreventivi:
         if not hasattr(g, "_preventivi"):
@@ -1293,6 +1305,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_utenti": get_utenti,
         "get_scadenziario": get_scadenziario,
         "get_timesheet": get_timesheet,
+        "get_crm": get_crm,
         "get_preventivi": get_preventivi,
         "get_fatturazione": get_fatturazione,
         "get_pagamenti": get_pagamenti,

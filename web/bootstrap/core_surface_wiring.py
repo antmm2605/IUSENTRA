@@ -37,6 +37,7 @@ from web.bootstrap.search_routes import register_search_routes
 from web.bootstrap.soggetti_routes import register_soggetti_routes
 from web.bootstrap.sync_runtime_routes import register_sync_runtime_routes
 from web.bootstrap.template_runtime import register_template_runtime
+from web.bootstrap.crm_routes import register_crm_routes
 from web.bootstrap.timesheet_routes import register_timesheet_routes
 from web.bootstrap.workspace_routes import register_workspace_routes
 
@@ -201,6 +202,7 @@ def register_core_surfaces(
         get_fatturazione=core["get_fatturazione"],
         audit=core["audit"],
     )
+    register_crm_routes(app, core)
     register_condivisioni_routes(
         app,
         get_condivisioni=core["get_condivisioni"],

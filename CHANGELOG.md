@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.48 - 2026-08-14
+
+- **Pipeline nuovi clienti: la UI del CRM di intake (completa la Fase C).** Nuova pagina `/crm`: kanban a 6 colonne (Nuovi contatti → Contattati → Appuntamento → Preventivo inviato → Incarico assunto / Persi) sul dominio `pct/crm_intake.py` già rilasciato. Ogni scheda mostra fonte, materia, esigenza e lo stato della **verifica conflitti ex art. 24 CDF** (badge: nessun riscontro / da valutare / potenziale conflitto, con i riscontri nominativi e il tipo di match certo/omonimia); azioni: verifica conflitti, avanzamento di stato, conversione in cliente (persona fisica o giuridica in anagrafica), chiusura come perso con motivo obbligatorio. Statistiche di testata: contatti in lavorazione, incarichi, tasso di conversione e contatti per fonte.
+- **Wiring governabile.** Nuovi `web/bootstrap/crm_routes.py` (shell `/crm`, payload `/api/v1/ui/crm`, azioni POST con permessi clienti e audit) e `web/services/react_crm_bridge.py`; accessor `get_crm` tenant-aware su `CRM_DB` in `core_runtime`. Suite `tests/test_react_crm_bridge.py` (3 test). Nota: le entry 2.278.45-47 (fix firma/SICID/PagoPA di altre sessioni) non hanno changelog dedicato.
+
 ## 2.278.44 - 2026-08-13
 
 - **DatiAtto SICID allineato alla release Studio Telematico 26.021.** Le famiglie `IntroduttiviSicid` e `Parte` generano ora le radici `v7`, i tipi atto `v7` e l'indice allegati `v2`; il profilo precedente `v6`, causa del rilievo ministeriale su `IDBUSTA 154441686`, non può più essere accettato solo perché lo storico XSD è presente nel repository.

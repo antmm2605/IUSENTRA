@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 270.
+- Route Flask GET candidate rilevate fuori manifest: 271.
 
 ### Distribuzione rischio
 
@@ -754,6 +754,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /clienti/{id_cliente}/modifica | GET,POST | web/bootstrap/clienti_routes.py | clienti/dettaglio.html, clienti/form.html, clienti/lista.html |
 | /clienti/{id_cliente}/porta-via | GET | web/bootstrap/privacy_routes.py | privacy/registro.html |
 | /clienti/{id_cliente}/portale | GET | web/bootstrap/clienti_workspace_routes.py | clienti/copertina_faldone.html, clienti/faldone.html, clienti/portale_config.html |
+| /crm | GET | web/bootstrap/crm_routes.py | non rilevato |
 | /dashboard | GET | web/blueprints/api_v1_client_portal.py | non rilevato |
 | /email-ordinaria/api/stats | GET | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
 | /email-ordinaria/messaggio/{id_email} | GET | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
@@ -828,7 +829,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /polisWeb/local-signer/download | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/download/lex-document-context | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/download/local-ai-bridge | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/download/local-signer-mod/{path:filename} | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

@@ -25,6 +25,7 @@
     "frontend/src/components/CartelleCondivisePage.css",
     "frontend/src/components/CodiceOggettoPstSearch.css",
     "frontend/src/components/CompensiForensiPage.css",
+    "frontend/src/components/CrmPage.css",
     "frontend/src/components/DocumentEditorPage.css",
     "frontend/src/components/DocumentiAIPage.css",
     "frontend/src/components/EditorProfessionalePage.css",

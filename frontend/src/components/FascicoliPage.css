@@ -1759,6 +1759,25 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   grid-column:span 1;
   width:100%;
 }
+@media(max-width:1180px) and (min-width:981px){
+  .iu-fas-toolbar.iusentra-filters-bar{
+    grid-template-columns:minmax(140px,1fr) minmax(160px,1.1fr) minmax(220px,1.4fr) 44px 44px 42px;
+  }
+  .iu-fas-toolbar.iusentra-filters-bar label.iu-fas-filter-field--type,
+  .iu-fas-toolbar.iusentra-filters-bar label.iu-fas-filter-field--status,
+  .iu-fas-toolbar.iusentra-filters-bar label.iu-fas-filter-field--sort,
+  .iu-fas-toolbar.iusentra-filters-bar .iu-fas-filter-btn,
+  .iu-fas-toolbar.iusentra-filters-bar .iu-fas-filter-save,
+  .iu-fas-toolbar.iusentra-filters-bar .iu-fas-icon-btn{
+    grid-column:span 1;
+    min-width:0;
+  }
+}
+@media(max-width:1180px) and (min-width:761px){
+  .iu-fas-toolbar.iusentra-filters-bar .iu-fas-toolbar-btn-label{
+    display:none;
+  }
+}
 .iu-fas-advanced.iusentra-context-filters{
   grid-template-columns:minmax(220px,1fr) minmax(240px,auto);
   margin:0;
@@ -1946,7 +1965,7 @@ body.iu-fascicoli-table-expanded{
 
 @media(max-width:980px){
   .iu-fas-toolbar.iusentra-filters-bar{
-    grid-template-columns:repeat(16,minmax(0,1fr));
+    grid-template-columns:repeat(12,minmax(0,1fr));
     gap:8px;
   }
   .iu-fas-toolbar.iusentra-filters-bar .iu-fas-search{
@@ -1954,17 +1973,17 @@ body.iu-fascicoli-table-expanded{
   }
   .iu-fas-toolbar.iusentra-filters-bar label.iu-fas-filter-field--type,
   .iu-fas-toolbar.iusentra-filters-bar label.iu-fas-filter-field--status{
-    grid-column:span 3;
+    grid-column:span 6;
   }
   .iu-fas-toolbar.iusentra-filters-bar label.iu-fas-filter-field--sort{
-    grid-column:span 4;
-    min-width:210px;
+    grid-column:span 9;
+    min-width:0;
   }
   .iu-fas-toolbar.iusentra-filters-bar .iu-fas-filter-btn{
-    grid-column:span 2;
+    grid-column:span 1;
   }
   .iu-fas-toolbar.iusentra-filters-bar .iu-fas-filter-save{
-    grid-column:span 3;
+    grid-column:span 1;
   }
   .iu-fas-toolbar.iusentra-filters-bar .iu-fas-icon-btn{
     grid-column:span 1;
@@ -2646,6 +2665,17 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-mobile-card__economic ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
 
 .iu-fas-table:not(.iu-fas-table--economic){min-width:1030px}
+.iu-fas-table--operational{table-layout:fixed}
+.iu-fas-table--operational th:first-child,.iu-fas-table--operational td:first-child{width:44px;min-width:44px}
+.iu-fas-table--operational .iu-fas-table-value{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:12.5px;font-weight:730}
+.iu-fas-table--density-compatta td{height:50px}
+.iu-fas-table--density-adattiva td{height:auto;min-height:54px;vertical-align:top}
+.iu-fas-table--density-adattiva .iu-fas-table-value{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
+.iu-fas-table--operational .iu-fas-col--title{vertical-align:top}
+.iu-fas-table--operational .iu-fas-col--notes .iu-fas-table-value{max-height:5.2em}
+@media(max-width:1700px) and (min-width:761px){
+  .iu-fas-table-wrap--operational{overflow-x:auto}
+}
 
 /* Ricerca e presentazione fascicoli */
 .iu-fas-advanced.iusentra-context-filters{display:block;padding:12px;border-radius:8px}
@@ -2674,6 +2704,33 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-group-select{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 9px;border:1px solid var(--iu-border);border-radius:8px;background:#fff}
 .iu-fas-group-select span{font-size:10px;font-weight:900;text-transform:uppercase;color:#64748b}
 .iu-fas-group-select select{max-width:180px;border:0;background:transparent;color:#0f172a;font-size:12px;font-weight:800;outline:0}
+.iu-fas-table-options{display:inline-flex;align-items:center;gap:6px}
+.iu-fas-column-picker{position:relative}
+.iu-fas-column-button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;color:#334155;font-size:12px;font-weight:850;cursor:pointer}
+.iu-fas-column-button strong{min-width:20px;padding:2px 5px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:10px;text-align:center}
+.iu-fas-column-button:hover,.iu-fas-column-button:focus-visible,.iu-fas-column-button[aria-expanded="true"]{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8;outline:2px solid #bfdbfe;outline-offset:1px}
+.iu-fas-density-select{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 9px;border:1px solid var(--iu-border);border-radius:8px;background:#fff}
+.iu-fas-density-select>span{color:#64748b;font-size:10px;font-weight:900;text-transform:uppercase}
+.iu-fas-density-select select{border:0;background:transparent;color:#0f172a;font-size:12px;font-weight:800;outline:0}
+.iu-fas-column-backdrop{position:fixed;inset:0;z-index:79;background:rgba(15,23,42,.22)}
+.iu-fas-column-panel{position:fixed;top:50%;left:50%;z-index:80;width:min(720px,calc(100vw - 48px));max-height:min(680px,calc(100vh - 48px));display:flex;flex-direction:column;border:1px solid #bfdbfe;border-radius:8px;background:#fff;box-shadow:0 20px 48px rgba(15,23,42,.25);overflow:hidden;transform:translate(-50%,-50%)}
+.iu-fas-column-panel>header{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 12px;border-bottom:1px solid var(--iu-border);background:#f8fafc}
+.iu-fas-column-panel>header>div{min-width:0;display:grid;gap:2px}
+.iu-fas-column-panel>header strong{color:#0f172a;font-size:14px}
+.iu-fas-column-panel>header span{color:#64748b;font-size:11px;font-weight:700}
+.iu-fas-column-panel>header button{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border:1px solid var(--iu-border);border-radius:7px;background:#fff;color:#475569;cursor:pointer}
+.iu-fas-column-panel>header button:hover,.iu-fas-column-panel>header button:focus-visible{border-color:#93c5fd;color:#1d4ed8;outline:2px solid #bfdbfe;outline-offset:1px}
+.iu-fas-column-presets{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--iu-border);overflow-x:auto;overflow-y:hidden}
+.iu-fas-column-presets button{min-height:32px;flex:0 0 auto;padding:0 10px;border:1px solid var(--iu-border);border-radius:7px;background:#fff;color:#334155;font-size:11px;font-weight:850;cursor:pointer}
+.iu-fas-column-presets button:hover,.iu-fas-column-presets button:focus-visible{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8;outline:none}
+.iu-fas-column-groups{min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;overflow:auto}
+.iu-fas-column-groups fieldset{min-width:0;margin:0;padding:10px 12px 12px;border:0;border-bottom:1px solid var(--iu-border)}
+.iu-fas-column-groups fieldset:nth-child(odd){border-right:1px solid var(--iu-border)}
+.iu-fas-column-groups legend{padding:0 0 6px;color:#334155;font-size:11px;font-weight:900;text-transform:uppercase}
+.iu-fas-column-groups label{min-height:30px;display:flex;align-items:center;gap:8px;padding:3px 0;color:#334155;font-size:12px;font-weight:750;cursor:pointer}
+.iu-fas-column-groups label:hover{color:#1d4ed8}
+.iu-fas-column-groups input{width:16px;height:16px;flex:0 0 auto;accent-color:#2563eb}
+.iu-fas-column-groups input:disabled{opacity:.7;cursor:not-allowed}
 .iu-fas-table-wrap--hidden{display:none!important}
 .iu-fas-table-group-row td{padding:8px 12px;border-top:1px solid #cbd5e1;border-bottom:1px solid #dbe3ec;background:#eef4fb;color:#334155;font-size:11px;font-weight:900;text-transform:uppercase}
 .iu-fas-compact-list,.iu-fas-card-grid{padding:10px;background:#f8fafc}
@@ -2713,6 +2770,11 @@ body.iu-fascicoli-table-expanded{
   .iu-fas-display-toggle button span{display:none}
   .iu-fas-group-select{width:100%;justify-content:space-between}
   .iu-fas-group-select select{max-width:none;flex:1}
+  .iu-fas-table-options{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .iu-fas-column-button,.iu-fas-density-select{width:100%;justify-content:center}
+  .iu-fas-column-panel{inset:12px;width:auto;max-height:none;transform:none}
+  .iu-fas-column-groups{grid-template-columns:1fr}
+  .iu-fas-column-groups fieldset:nth-child(odd){border-right:0}
   .iu-fas-table-toolbar__top{justify-content:flex-start}
   .iu-fas-table-expand span{display:none}
   .iu-fas-compact-list,.iu-fas-card-grid{display:none}

@@ -252,6 +252,14 @@ export type FascicoliFieldFilterKey =
 export type FascicoliFieldFilters = Partial<Record<FascicoliFieldFilterKey, string>>
 export type FascicoliDisplayMode = 'tabella' | 'compatta' | 'schede'
 export type FascicoliGroupMode = 'nessuno' | 'gruppo' | 'stato' | 'tipo' | 'ufficio' | 'anno' | 'responsabile'
+export type FascicoliRowDensity = 'compatta' | 'adattiva'
+export type FascicoliTableColumnKey =
+  | 'ref' | 'internal_ref' | 'title' | 'object' | 'type' | 'client' | 'court' | 'procedure_type'
+  | 'register' | 'section' | 'section_role' | 'judge' | 'opposing_lawyer' | 'holder' | 'responsible'
+  | 'counterparty' | 'claimant' | 'clerk' | 'ctu' | 'ctp' | 'notes' | 'operational_status'
+  | 'custom_1' | 'custom_2' | 'group' | 'case_value' | 'rg' | 'rg_number' | 'rg_year'
+  | 'next_deadline' | 'status' | 'documents' | 'unread_communications' | 'alerts' | 'opened_at'
+  | 'closed_at' | 'updated_at'
 
 export type FascicoliPageParams = {
   page?: number
@@ -285,6 +293,8 @@ export type FascicoliFilterPreferences = {
   view: 'operativa' | 'economica' | string
   displayMode: FascicoliDisplayMode
   groupBy: FascicoliGroupMode
+  visibleColumns: FascicoliTableColumnKey[]
+  rowDensity: FascicoliRowDensity
   court: string
   fieldFilters: FascicoliFieldFilters
   alertsOnly: boolean
@@ -1262,6 +1272,8 @@ export const defaultFascicoliFilterPreferences: FascicoliFilterPreferences = {
   view: 'operativa',
   displayMode: 'tabella',
   groupBy: 'nessuno',
+  visibleColumns: ['ref', 'title', 'type', 'client', 'rg', 'next_deadline', 'status', 'documents'],
+  rowDensity: 'compatta',
   court: '',
   fieldFilters: {},
   alertsOnly: false,
@@ -1893,6 +1905,22 @@ function normalizeFascicoliFilterPreferences(value: unknown): FascicoliFilterPre
   const view = text(row.view, defaultFascicoliFilterPreferences.view)
   const displayMode = text(row.displayMode ?? row.display_mode, defaultFascicoliFilterPreferences.displayMode) as FascicoliDisplayMode
   const groupBy = text(row.groupBy ?? row.group_by, defaultFascicoliFilterPreferences.groupBy) as FascicoliGroupMode
+  const allowedColumns = new Set<FascicoliTableColumnKey>([
+    'ref', 'internal_ref', 'title', 'object', 'type', 'client', 'court', 'procedure_type', 'register',
+    'section', 'section_role', 'judge', 'opposing_lawyer', 'holder', 'responsible', 'counterparty',
+    'claimant', 'clerk', 'ctu', 'ctp', 'notes', 'operational_status', 'custom_1', 'custom_2', 'group',
+    'case_value', 'rg', 'rg_number', 'rg_year', 'next_deadline', 'status', 'documents',
+    'unread_communications', 'alerts', 'opened_at', 'closed_at', 'updated_at',
+  ])
+  const requestedColumns = Array.isArray(row.visibleColumns ?? row.visible_columns)
+    ? (row.visibleColumns ?? row.visible_columns) as unknown[]
+    : []
+  const visibleColumns = Array.from(new Set([
+    'ref',
+    'title',
+    ...requestedColumns.map((item) => text(item) as FascicoliTableColumnKey).filter((item) => allowedColumns.has(item)),
+  ])) as FascicoliTableColumnKey[]
+  const rowDensity = text(row.rowDensity ?? row.row_density, defaultFascicoliFilterPreferences.rowDensity) as FascicoliRowDensity
   const rawFieldFilters = isRecord(row.fieldFilters ?? row.field_filters) ? (row.fieldFilters ?? row.field_filters) as Record<string, unknown> : {}
   const fieldFilters = Object.fromEntries(
     Object.entries(rawFieldFilters).map(([key, value]) => [key, text(value)]).filter(([, value]) => value),
@@ -1908,6 +1936,8 @@ function normalizeFascicoliFilterPreferences(value: unknown): FascicoliFilterPre
     view,
     displayMode: ['tabella', 'compatta', 'schede'].includes(displayMode) ? displayMode : 'tabella',
     groupBy: ['nessuno', 'gruppo', 'stato', 'tipo', 'ufficio', 'anno', 'responsabile'].includes(groupBy) ? groupBy : 'nessuno',
+    visibleColumns,
+    rowDensity: rowDensity === 'adattiva' ? 'adattiva' : 'compatta',
     court: text(row.court, ''),
     fieldFilters,
     alertsOnly: bool(row.alertsOnly ?? row.alerts_only),

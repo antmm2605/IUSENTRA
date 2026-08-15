@@ -7734,6 +7734,17 @@ _FASCICOLI_FILTER_PAYMENT_STATUSES = {"tutti", "non_previsto", "da_registrare", 
 _FASCICOLI_FILTER_VIEWS = {"operativa", "economica"}
 _FASCICOLI_DISPLAY_MODES = {"tabella", "compatta", "schede"}
 _FASCICOLI_GROUP_MODES = {"nessuno", "gruppo", "stato", "tipo", "ufficio", "anno", "responsabile"}
+_FASCICOLI_ROW_DENSITIES = {"compatta", "adattiva"}
+_FASCICOLI_TABLE_COLUMNS = {
+    "ref", "internal_ref", "title", "object", "type", "client", "court", "procedure_type",
+    "register", "section", "section_role", "judge", "opposing_lawyer", "holder", "responsible",
+    "counterparty", "claimant", "clerk", "ctu", "ctp", "notes", "operational_status", "custom_1",
+    "custom_2", "group", "case_value", "rg", "rg_number", "rg_year", "next_deadline", "status",
+    "documents", "unread_communications", "alerts", "opened_at", "closed_at", "updated_at",
+}
+_FASCICOLI_DEFAULT_TABLE_COLUMNS = [
+    "ref", "title", "type", "client", "rg", "next_deadline", "status", "documents",
+]
 _FASCICOLI_FIELD_FILTER_ARGS: dict[str, tuple[str, ...]] = {
     "register": ("f_register",),
     "value": ("f_value",),
@@ -7783,6 +7794,8 @@ def _fascicoli_filter_preferences_defaults() -> dict[str, Any]:
         "view": "operativa",
         "displayMode": "tabella",
         "groupBy": "nessuno",
+        "visibleColumns": list(_FASCICOLI_DEFAULT_TABLE_COLUMNS),
+        "rowDensity": "compatta",
         "court": "",
         "fieldFilters": {},
         "alertsOnly": False,
@@ -7821,6 +7834,17 @@ def _fascicoli_filter_preferences_payload(raw: Mapping[str, Any] | None) -> dict
         for field in _FASCICOLI_FIELD_FILTER_ARGS
         if str((raw_field_filters or {}).get(field) or "").strip()
     }
+    raw_visible_columns = source.get("visibleColumns") if isinstance(source.get("visibleColumns"), list) else source.get("visible_columns")
+    visible_columns = []
+    for value in raw_visible_columns if isinstance(raw_visible_columns, list) else []:
+        column = str(value or "").strip().lower()
+        if column in _FASCICOLI_TABLE_COLUMNS and column not in visible_columns:
+            visible_columns.append(column)
+    for required_column in ("ref", "title"):
+        if required_column not in visible_columns:
+            visible_columns.insert(0 if required_column == "ref" else 1, required_column)
+    if len(visible_columns) <= 2 and not raw_visible_columns:
+        visible_columns = list(defaults["visibleColumns"])
     return {
         "type": _fascicoli_filter_choice(source.get("type"), _FASCICOLI_FILTER_TYPES, defaults["type"]),
         "status": _fascicoli_filter_choice(source.get("status"), _FASCICOLI_FILTER_STATUSES, defaults["status"]),
@@ -7840,6 +7864,12 @@ def _fascicoli_filter_preferences_payload(raw: Mapping[str, Any] | None) -> dict
             source.get("groupBy") or source.get("group_by"),
             _FASCICOLI_GROUP_MODES,
             defaults["groupBy"],
+        ),
+        "visibleColumns": visible_columns,
+        "rowDensity": _fascicoli_filter_choice(
+            source.get("rowDensity") or source.get("row_density"),
+            _FASCICOLI_ROW_DENSITIES,
+            defaults["rowDensity"],
         ),
         "court": str(source.get("court") or "").strip()[:120],
         "fieldFilters": field_filters,

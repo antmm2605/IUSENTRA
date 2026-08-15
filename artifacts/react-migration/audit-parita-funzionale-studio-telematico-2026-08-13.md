@@ -24,6 +24,16 @@
 - Il form del fascicolo è stato ripristinato e nessun fascicolo è stato creato.
 - Nessun deposito, notifica o messaggio PEC è stato preparato o inviato durante questa campagna.
 
+## Estensione registro fascicoli del 15/08/2026
+
+- La tabella operativa espone 37 campi selezionabili, organizzati in Pratica, Procedimento, Persone e Controlli; Riferimento e Titolo / oggetto restano sempre presenti.
+- Sono disponibili le composizioni Essenziali, Procedimento, Persone e Tutte, oltre alla selezione puntuale e alle densità Compatta e Adattiva.
+- Colonne e densità sono salvate nelle preferenze dello studio insieme ai filtri; i valori non riconosciuti vengono esclusi dal servizio prima della persistenza.
+- La tabella economica resta separata: mantiene le sei colonne economiche e non mostra il selettore delle colonne operative.
+- Prova reale su `http://127.0.0.1:8080`, viewport 1146 x 912: il criterio `Anno e numero RG` è interamente leggibile, la barra non presenta overflow e le azioni Filtri, Salva vista e Aggiorna fascicoli restano accessibili.
+- Nel selettore sono state contate 37 caselle; la composizione Procedimento con Annotazioni ha prodotto 11 colonne reali e la densità Adattiva è stata applicata alla tabella.
+- Dopo il salvataggio e il ritorno a `/fascicoli`, la vista Operativa ha ripristinato `Anno e numero RG`, otto colonne essenziali e righe compatte.
+
 ## Limite dichiarativo
 
 Le verifiche sopra certificano soltanto le aree e le matrici nominate. Non costituiscono una dichiarazione generica di identità dell'intero prodotto: ogni ulteriore flusso viene considerato equivalente solo dopo confronto documentale, guardrail automatici e prova materiale sulla copia reale dell'utente.

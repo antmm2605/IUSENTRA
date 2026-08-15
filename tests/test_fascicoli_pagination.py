@@ -1055,6 +1055,8 @@ def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
         "view": "economica",
         "displayMode": "schede",
         "groupBy": "ufficio",
+        "visibleColumns": ["ref", "title", "client", "court", "judge", "status", "campo_inesistente"],
+        "rowDensity": "adattiva",
         "court": "Tribunale",
         "fieldFilters": {"judge": "Rossi", "group": "Contenzioso"},
         "alertsOnly": True,
@@ -1086,11 +1088,14 @@ def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
     assert saved["preferences"]["secondarySort"] == "cliente"
     assert saved["preferences"]["displayMode"] == "schede"
     assert saved["preferences"]["groupBy"] == "ufficio"
+    assert saved["preferences"]["visibleColumns"] == ["ref", "title", "client", "court", "judge", "status"]
+    assert saved["preferences"]["rowDensity"] == "adattiva"
     assert saved["preferences"]["fieldFilters"] == {"group": "Contenzioso", "judge": "Rossi"}
     assert loaded["configured"] is True
     assert loaded["preferences"]["status"] == "definito"
     assert loaded["preferences"]["pageSize"] == 50
     assert loaded["preferences"]["cu"] == "da_registrare"
+    assert loaded["preferences"]["visibleColumns"] == ["ref", "title", "client", "court", "judge", "status"]
     preferences_db = Path(app.config["FASCICOLI_DB"]).parent / "ui_preferences.db"
     assert preferences_db.exists()
     with sqlite3.connect(preferences_db) as conn:
@@ -1238,6 +1243,18 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "Salva vista" in page_source
     assert "preferencesState === 'saved' ? 'Vista salvata'" in page_source
     assert ".iu-fas-filter-save" in css_source
+    columns_start = page_source.index("const fascicoliTableColumns:")
+    columns_end = page_source.index("const fascicoliTableColumnPresets", columns_start)
+    columns_source = page_source[columns_start:columns_end]
+    assert columns_source.count("key: '") == 37
+    assert "function FascicoliTableColumnsControl" in page_source
+    assert "visibleColumns={visibleColumns}" in page_source
+    assert "rowDensity={rowDensity}" in page_source
+    assert "iu-fas-table--density-${rowDensity}" in page_source
+    assert "view === 'operativa' && displayMode === 'tabella' ? (" in page_source
+    assert "iu-fas-toolbar-btn-label" in page_source
+    assert "minmax(220px,1.4fr) 44px 44px 42px" in css_source
+    assert "overflow-x:auto;overflow-y:hidden" in css_source
     assert "Scadenze urgenti" in page_source
     assert "Scadenze 7g" not in page_source
     # Il riquadro di allerta mostra solo le scadenze dei prossimi 7 giorni, mai le già scadute.

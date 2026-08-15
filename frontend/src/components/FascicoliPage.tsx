@@ -102,6 +102,8 @@ import {
   type FascicoliFieldFilters,
   type FascicoliDisplayMode,
   type FascicoliGroupMode,
+  type FascicoliRowDensity,
+  type FascicoliTableColumnKey,
   type FascicoliPageData,
   type FascicoliPageParams,
   type FascicoloPaymentFilter,
@@ -267,6 +269,65 @@ const practiceFieldFilters: Array<{
   { key: 'ctp', label: 'CTP', placeholder: 'Consulente di parte', section: 'persone' },
   { key: 'claimant', label: 'Attore o ricorrente', placeholder: 'Nome della parte', section: 'persone' },
   { key: 'respondent', label: 'Convenuto o resistente', placeholder: 'Nome della parte', section: 'persone' },
+]
+
+type FascicoliTableColumnGroup = 'Pratica' | 'Procedimento' | 'Persone' | 'Controlli'
+
+type FascicoliTableColumnDefinition = {
+  key: FascicoliTableColumnKey
+  label: string
+  group: FascicoliTableColumnGroup
+  width: number
+  required?: boolean
+}
+
+const fascicoliTableColumns: FascicoliTableColumnDefinition[] = [
+  { key: 'ref', label: 'Riferimento', group: 'Pratica', width: 118, required: true },
+  { key: 'internal_ref', label: 'Rif. cartaceo', group: 'Pratica', width: 130 },
+  { key: 'title', label: 'Titolo / oggetto', group: 'Pratica', width: 300, required: true },
+  { key: 'object', label: 'Oggetto', group: 'Pratica', width: 240 },
+  { key: 'type', label: 'Tipo', group: 'Pratica', width: 105 },
+  { key: 'client', label: 'Cliente', group: 'Persone', width: 170 },
+  { key: 'court', label: 'Ufficio giudiziario', group: 'Procedimento', width: 190 },
+  { key: 'procedure_type', label: 'Procedimento', group: 'Procedimento', width: 160 },
+  { key: 'register', label: 'Registro', group: 'Procedimento', width: 130 },
+  { key: 'section', label: 'Sezione', group: 'Procedimento', width: 130 },
+  { key: 'section_role', label: 'Ruolo di sezione', group: 'Procedimento', width: 135 },
+  { key: 'judge', label: 'Giudice', group: 'Persone', width: 160 },
+  { key: 'opposing_lawyer', label: 'Avvocato controparte', group: 'Persone', width: 180 },
+  { key: 'holder', label: 'Titolare', group: 'Persone', width: 160 },
+  { key: 'responsible', label: 'Responsabile', group: 'Persone', width: 160 },
+  { key: 'counterparty', label: 'Controparte', group: 'Persone', width: 180 },
+  { key: 'claimant', label: 'Attore / ricorrente', group: 'Persone', width: 180 },
+  { key: 'clerk', label: 'Cancelliere', group: 'Persone', width: 150 },
+  { key: 'ctu', label: 'CTU', group: 'Persone', width: 150 },
+  { key: 'ctp', label: 'CTP', group: 'Persone', width: 150 },
+  { key: 'notes', label: 'Annotazioni', group: 'Pratica', width: 260 },
+  { key: 'operational_status', label: 'Stato operativo', group: 'Controlli', width: 150 },
+  { key: 'custom_1', label: 'Campo personalizzato 1', group: 'Pratica', width: 180 },
+  { key: 'custom_2', label: 'Campo personalizzato 2', group: 'Pratica', width: 180 },
+  { key: 'group', label: 'Gruppo', group: 'Pratica', width: 140 },
+  { key: 'case_value', label: 'Valore causa', group: 'Pratica', width: 125 },
+  { key: 'rg', label: 'N. causa', group: 'Procedimento', width: 130 },
+  { key: 'rg_number', label: 'Numero RG', group: 'Procedimento', width: 110 },
+  { key: 'rg_year', label: 'Anno RG', group: 'Procedimento', width: 95 },
+  { key: 'next_deadline', label: 'Prossima scadenza', group: 'Controlli', width: 135 },
+  { key: 'status', label: 'Stato', group: 'Controlli', width: 120 },
+  { key: 'documents', label: 'Documenti', group: 'Controlli', width: 95 },
+  { key: 'unread_communications', label: 'Comunicazioni', group: 'Controlli', width: 120 },
+  { key: 'alerts', label: 'Avvisi', group: 'Controlli', width: 85 },
+  { key: 'opened_at', label: 'Data apertura', group: 'Pratica', width: 120 },
+  { key: 'closed_at', label: 'Data archiviazione', group: 'Pratica', width: 135 },
+  { key: 'updated_at', label: 'Ultimo aggiornamento', group: 'Controlli', width: 155 },
+]
+
+const defaultFascicoliTableColumns = defaultFascicoliFilterPreferences.visibleColumns
+const fascicoliTableColumnGroups: FascicoliTableColumnGroup[] = ['Pratica', 'Procedimento', 'Persone', 'Controlli']
+const fascicoliTableColumnPresets: Array<{ label: string; columns: FascicoliTableColumnKey[] }> = [
+  { label: 'Essenziali', columns: defaultFascicoliTableColumns },
+  { label: 'Procedimento', columns: ['ref', 'title', 'court', 'register', 'section', 'section_role', 'rg', 'judge', 'next_deadline', 'status'] },
+  { label: 'Persone', columns: ['ref', 'title', 'client', 'counterparty', 'claimant', 'opposing_lawyer', 'holder', 'responsible', 'ctu', 'ctp', 'status'] },
+  { label: 'Tutte', columns: fascicoliTableColumns.map((column) => column.key) },
 ]
 
 const emptyPracticeFieldFilters: FascicoliFieldFilters = {}
@@ -463,6 +524,8 @@ function filterPreferencesSignature(preferences: FascicoliFilterPreferences): st
     view: preferences.view,
     displayMode: preferences.displayMode,
     groupBy: preferences.groupBy,
+    visibleColumns: preferences.visibleColumns,
+    rowDensity: preferences.rowDensity,
     court: preferences.court.trim(),
     fieldFilters: Object.fromEntries(Object.entries(preferences.fieldFilters).sort(([a], [b]) => a.localeCompare(b))),
     alertsOnly: preferences.alertsOnly,
@@ -2263,7 +2326,92 @@ function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:
   )
 }
 
-function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, onPagePrefetch, pendingPage = null, view = 'operativa', displayMode = 'tabella', groupBy = 'nessuno', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; onPagePrefetch?:(value:number)=>void; pendingPage?:number | null; view?:ListView; displayMode?:FascicoliDisplayMode; groupBy?:FascicoliGroupMode; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
+function FascicoliTableColumnsControl({ visibleColumns, rowDensity, onColumnsChange, onRowDensityChange }:{visibleColumns:FascicoliTableColumnKey[]; rowDensity:FascicoliRowDensity; onColumnsChange:(columns:FascicoliTableColumnKey[])=>void; onRowDensityChange:(density:FascicoliRowDensity)=>void}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const selected = useMemo(() => new Set(visibleColumns), [visibleColumns])
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnOutside = (event: globalThis.MouseEvent) => {
+      if (rootRef.current && event.target instanceof Node && !rootRef.current.contains(event.target)) setOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', closeOnOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  const applySelection = (columns: FascicoliTableColumnKey[]) => {
+    const requested = new Set<FascicoliTableColumnKey>(['ref', 'title', ...columns])
+    onColumnsChange(fascicoliTableColumns.filter((column) => requested.has(column.key)).map((column) => column.key))
+  }
+  const toggleColumn = (key: FascicoliTableColumnKey) => {
+    const next = new Set(selected)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    applySelection(Array.from(next))
+  }
+
+  return (
+    <div className="iu-fas-table-options">
+      <div className="iu-fas-column-picker" ref={rootRef}>
+        <button type="button" className="iu-fas-column-button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((current) => !current)}>
+          <TableProperties size={15}/>
+          <span>Colonne</span>
+          <strong>{visibleColumns.length}</strong>
+          <ChevronDown size={14}/>
+        </button>
+        {open ? (
+          <>
+          <div className="iu-fas-column-backdrop" aria-hidden="true" onClick={() => setOpen(false)}/>
+          <section className="iu-fas-column-panel" role="dialog" aria-modal="true" aria-label="Scegli colonne della tabella">
+            <header>
+              <div>
+                <strong>Colonne della tabella</strong>
+                <span>{visibleColumns.length} di {fascicoliTableColumns.length} visibili</span>
+              </div>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Chiudi scelta colonne"><X size={16}/></button>
+            </header>
+            <div className="iu-fas-column-presets" aria-label="Composizioni rapide">
+              {fascicoliTableColumnPresets.map((preset) => (
+                <button type="button" onClick={() => applySelection(preset.columns)} key={preset.label}>{preset.label}</button>
+              ))}
+            </div>
+            <div className="iu-fas-column-groups">
+              {fascicoliTableColumnGroups.map((group) => (
+                <fieldset key={group}>
+                  <legend>{group}</legend>
+                  {fascicoliTableColumns.filter((column) => column.group === group).map((column) => (
+                    <label key={column.key}>
+                      <input type="checkbox" checked={selected.has(column.key)} disabled={column.required} onChange={() => toggleColumn(column.key)}/>
+                      <span>{column.label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              ))}
+            </div>
+          </section>
+          </>
+        ) : null}
+      </div>
+      <label className="iu-fas-density-select">
+        <span>Righe</span>
+        <select value={rowDensity} onChange={(event) => onRowDensityChange(event.currentTarget.value as FascicoliRowDensity)}>
+          <option value="compatta">Compatte</option>
+          <option value="adattiva">Adattive</option>
+        </select>
+      </label>
+    </div>
+  )
+}
+
+function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, onPagePrefetch, pendingPage = null, view = 'operativa', displayMode = 'tabella', groupBy = 'nessuno', visibleColumns = defaultFascicoliTableColumns, rowDensity = 'compatta', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; onPagePrefetch?:(value:number)=>void; pendingPage?:number | null; view?:ListView; displayMode?:FascicoliDisplayMode; groupBy?:FascicoliGroupMode; visibleColumns?:FascicoliTableColumnKey[]; rowDensity?:FascicoliRowDensity; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
   const stageRef = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
   const economic = view === 'economica' && !archive
@@ -2301,9 +2449,80 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       ? <StatusEditCell item={item} onSaved={onStatusSaved} onError={handleError}/>
       : <Badge tone={item.tone}>{formatFascicoloStatus(item.status)}</Badge>
   )
+  const activeColumns = useMemo(() => {
+    const selectedColumns = new Set<FascicoliTableColumnKey>(['ref', 'title', ...visibleColumns])
+    return fascicoliTableColumns.filter((column) => selectedColumns.has(column.key))
+  }, [visibleColumns])
+  const activeColumnKeys = useMemo(() => new Set(activeColumns.map((column) => column.key)), [activeColumns])
+  const operationalTableMinWidth = 44 + activeColumns.reduce((totalWidth, column) => totalWidth + column.width, 0)
+  const textCell = (value: string | number | null | undefined) => {
+    const label = String(value ?? '').trim() || 'n.d.'
+    return <span className="iu-fas-table-value" title={label}>{label}</span>
+  }
+  const renderOperationalCell = (item: FascicoloRow, column: FascicoliTableColumnDefinition) => {
+    let content: ReactNode
+    switch (column.key) {
+      case 'ref':
+        content = <><strong>{item.ref}</strong>{!activeColumnKeys.has('internal_ref') && item.internalRef ? <span>{item.internalRef}</span> : null}</>
+        break
+      case 'internal_ref': content = textCell(item.internalRef); break
+      case 'title':
+        content = (
+          <>
+            <div className="iu-fas-title-line"><a href={item.href}>{item.title}</a></div>
+            <span>{item.subtitle || item.court}</span>
+            <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError} className="iu-fas-title-actions"/>
+            <DuplicatePracticeBadge item={item}/>
+            <MissingRgBadge item={item}/>
+            {item.relataStatusLabel ? (
+              <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
+                <FileSignature size={14}/><span>Relata notifica</span><strong>{item.relataStatusLabel}</strong>
+              </a>
+            ) : null}
+          </>
+        )
+        break
+      case 'object': content = textCell(item.object); break
+      case 'type': content = <Badge tone="neutral">{formatFascicoloType(item.type)}</Badge>; break
+      case 'client': content = textCell(item.client); break
+      case 'court': content = textCell(item.court); break
+      case 'procedure_type': content = textCell(item.procedureType); break
+      case 'register': content = textCell(item.register); break
+      case 'section': content = textCell(item.section); break
+      case 'section_role': content = textCell(item.sectionRole); break
+      case 'judge': content = textCell(item.judge); break
+      case 'opposing_lawyer': content = textCell(item.opposingLawyer); break
+      case 'holder': content = textCell(item.holder); break
+      case 'responsible': content = textCell(item.responsible); break
+      case 'counterparty': content = textCell(item.counterparty); break
+      case 'claimant': content = textCell(item.claimant); break
+      case 'clerk': content = textCell(item.clerk); break
+      case 'ctu': content = textCell(item.ctu); break
+      case 'ctp': content = textCell(item.ctp); break
+      case 'notes': content = textCell(item.notes); break
+      case 'operational_status': content = textCell(item.operationalStatus); break
+      case 'custom_1': content = textCell(item.customText1); break
+      case 'custom_2': content = textCell(item.customText2); break
+      case 'group': content = textCell(item.groupName); break
+      case 'case_value': content = textCell(item.caseValue > 0 ? formatCurrency(item.caseValue) : 'n.d.'); break
+      case 'rg': content = item.rgMissing ? <MissingRgBadge item={item} compact/> : textCell(item.rg); break
+      case 'rg_number': content = textCell(item.rgNumber || 'n.d.'); break
+      case 'rg_year': content = textCell(item.rgYear || 'n.d.'); break
+      case 'next_deadline': content = archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : textCell(item.nextDeadline); break
+      case 'status': content = statusCell(item); break
+      case 'documents': content = <span className="iu-fas-doc-count">{item.documents}</span>; break
+      case 'unread_communications': content = textCell(item.unreadCommunications); break
+      case 'alerts': content = textCell(item.alerts); break
+      case 'opened_at': content = textCell(formatDateIt(item.openedAt, 'n.d.')); break
+      case 'closed_at': content = textCell(formatDateIt(item.closedAt || item.archive?.archivedAt, 'n.d.')); break
+      case 'updated_at': content = textCell(formatDateTimeIt(item.updatedAt, 'n.d.')); break
+      default: content = textCell('n.d.')
+    }
+    return <td className={`iu-fas-col iu-fas-col--${column.key} ${column.key === 'title' ? 'iu-fas-title-cell' : ''}`} key={column.key}>{content}</td>
+  }
   const currentPage = pagination?.page ?? 1
   const totalPages = pagination?.pages ?? (items.length ? 1 : 0)
-  const tableColumnCount = economic ? 6 : 9
+  const tableColumnCount = economic ? 6 : activeColumns.length + 1
   const pageBusy = Boolean(pendingPage && pendingPage !== currentPage)
   const pageNumbers = (() => {
     const last = Math.max(1, totalPages)
@@ -2380,19 +2599,25 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       ariaLabel={archive ? 'Archivio fascicoli' : 'Elenco fascicoli'}
       empty={!items.length ? <p className="iu-empty">Nessun fascicolo corrisponde ai filtri impostati.</p> : null}
     >
-      <SyncedTopScrollbar className={`iu-fas-table-wrap iusentra-data-surface__scroll ${displayMode !== 'tabella' ? 'iu-fas-table-wrap--hidden' : ''}`}>
-        <table className={economic ? 'iu-fas-table iu-fas-table--economic' : 'iu-fas-table'}>
+      <SyncedTopScrollbar className={`iu-fas-table-wrap ${economic ? 'iu-fas-table-wrap--economic' : 'iu-fas-table-wrap--operational'} iusentra-data-surface__scroll ${displayMode !== 'tabella' ? 'iu-fas-table-wrap--hidden' : ''}`}>
+        <table
+          className={economic ? 'iu-fas-table iu-fas-table--economic' : `iu-fas-table iu-fas-table--operational iu-fas-table--density-${rowDensity}`}
+          style={economic ? undefined : { minWidth: `${operationalTableMinWidth}px` }}
+        >
           <thead>
             <tr>
               <th><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Seleziona tutti i fascicoli visibili"/></th>
-              <th>Rif.</th>
-              {economic ? null : <th>Titolo / oggetto</th>}
-              {economic ? null : <th>Tipo</th>}
-              <th>Cliente</th>
-              {economic ? null : <th>N. causa</th>}
-              <th>{archive ? 'Esito / archiviazione' : 'Prossima scad.'}</th>
-              <th>Stato</th>
-              {economic ? <th>Controllo economico</th> : <th>Documenti</th>}
+              {economic ? (
+                <>
+                  <th>Rif.</th>
+                  <th>Cliente</th>
+                  <th>Prossima scad.</th>
+                  <th>Stato</th>
+                  <th>Controllo economico</th>
+                </>
+              ) : activeColumns.map((column) => (
+                <th className={`iu-fas-col iu-fas-col--${column.key}`} style={{ minWidth: `${column.width}px`, width: `${column.width}px` }} key={column.key}>{column.label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -2412,61 +2637,37 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                     onContextMenu={(event) => { event.preventDefault(); setQuickPanel({ item, x: event.clientX, y: event.clientY }) }}
                   >
                     <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
-                    <td>
-                      {economic
-                        ? <span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span><MissingRgBadge item={item} compact/></span>
-                        : <><strong>{item.ref}</strong><span>{item.internalRef}</span></>}
-                    </td>
-                    {economic ? null : (
-                      <td className="iu-fas-title-cell">
-                        <div className="iu-fas-title-line">
-                          <a href={item.href}>{item.title}</a>
-                        </div>
-                        <span>{item.subtitle || item.court}</span>
-                        <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError} className="iu-fas-title-actions"/>
-                        <DuplicatePracticeBadge item={item}/>
-                        <MissingRgBadge item={item}/>
-                        {item.relataStatusLabel ? (
-                          <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
-                            <FileSignature size={14}/>
-                            <span>Relata notifica</span>
-                            <strong>{item.relataStatusLabel}</strong>
-                          </a>
-                        ) : null}
-                      </td>
-                    )}
-                    {economic ? null : <td><Badge tone="neutral">{formatFascicoloType(item.type)}</Badge></td>}
-                    <td className={economic ? 'iu-fas-economic-client-cell' : undefined}>
-                      {economic ? (
-                        <span className="iu-fas-economic-client">
-                          <strong>{item.client}</strong>
-                          <DuplicatePracticeBadge item={item}/>
-                          <button
-                            type="button"
-                            className="iu-fas-economic-edit-toggle"
-                            aria-expanded={economicEditorOpen}
-                            aria-controls={economicEditorId}
-                            onClick={() => setExpandedEconomicId(economicEditorOpen ? null : item.id)}
-                          >
-                            <Edit3 size={14}/>
-                            <span>{economicEditorOpen ? 'Chiudi modifica' : 'Modifica controllo economico'}</span>
-                          </button>
-                        </span>
-                      ) : item.client}
-                    </td>
-                    {economic ? null : <td>{item.rgMissing ? <MissingRgBadge item={item} compact/> : item.rg}</td>}
-                    <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
-                    <td>{statusCell(item)}</td>
                     {economic ? (
-                      <td className="iu-fas-economic-matrix">
-                        <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
-                          {economicPaymentKinds.map((kind) => (
-                            <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
-                          ))}
-                        </div>
-                        <EconomicEvidenceStrip row={item}/>
-                      </td>
-                    ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
+                      <>
+                        <td><span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span><MissingRgBadge item={item} compact/></span></td>
+                        <td className="iu-fas-economic-client-cell">
+                          <span className="iu-fas-economic-client">
+                            <strong>{item.client}</strong>
+                            <DuplicatePracticeBadge item={item}/>
+                            <button
+                              type="button"
+                              className="iu-fas-economic-edit-toggle"
+                              aria-expanded={economicEditorOpen}
+                              aria-controls={economicEditorId}
+                              onClick={() => setExpandedEconomicId(economicEditorOpen ? null : item.id)}
+                            >
+                              <Edit3 size={14}/>
+                              <span>{economicEditorOpen ? 'Chiudi modifica' : 'Modifica controllo economico'}</span>
+                            </button>
+                          </span>
+                        </td>
+                        <td>{item.nextDeadline || 'n.d.'}</td>
+                        <td>{statusCell(item)}</td>
+                        <td className="iu-fas-economic-matrix">
+                          <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
+                            {economicPaymentKinds.map((kind) => (
+                              <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
+                            ))}
+                          </div>
+                          <EconomicEvidenceStrip row={item}/>
+                        </td>
+                      </>
+                    ) : activeColumns.map((column) => renderOperationalCell(item, column))}
                   </tr>
                   {economicEditorOpen ? (
                     <tr className="iu-fas-economic-editor-row">
@@ -2578,10 +2779,10 @@ function ListFilters({ data, query, setQuery, type, setType, status, setStatus, 
         <span>Ordine</span>
         <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select>
       </label>
-      <button className="iu-fas-filter-btn" type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}><Filter size={16}/> Filtri</button>
-      <button className={`iu-fas-filter-save iu-fas-filter-save--${preferencesState}`} type="button" onClick={onSavePreferences} disabled={preferencesState === 'saving'} title={saveTitle}>
+      <button className="iu-fas-filter-btn" type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen} aria-label="Filtri avanzati" title="Filtri avanzati"><Filter size={16}/><span className="iu-fas-toolbar-btn-label">Filtri</span></button>
+      <button className={`iu-fas-filter-save iu-fas-filter-save--${preferencesState}`} type="button" onClick={onSavePreferences} disabled={preferencesState === 'saving'} aria-label={saveLabel} title={saveTitle}>
         {preferencesState === 'saving' ? <RefreshCw size={16}/> : <Save size={16}/>}
-        {saveLabel}
+        <span className="iu-fas-toolbar-btn-label">{saveLabel}</span>
       </button>
       <button className="iu-fas-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna fascicoli"><RefreshCw size={17}/></button>
     </IusentraFiltersBar>
@@ -2671,6 +2872,8 @@ function FascicoliListPage() {
   const [view, setView] = useState<ListView>(initialListView)
   const [displayMode, setDisplayMode] = useState<FascicoliDisplayMode>(initialDisplayMode)
   const [groupBy, setGroupBy] = useState<FascicoliGroupMode>(initialGroupMode)
+  const [visibleColumns, setVisibleColumns] = useState<FascicoliTableColumnKey[]>(() => [...defaultFascicoliTableColumns])
+  const [rowDensity, setRowDensity] = useState<FascicoliRowDensity>('compatta')
   const [cuFilter, setCuFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('cu'))
   const [liquidazioneFilter, setLiquidazioneFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('liquidazione'))
   const [parcellaFilter, setParcellaFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('parcella'))
@@ -2720,6 +2923,8 @@ function FascicoliListPage() {
     view,
     displayMode,
     groupBy,
+    visibleColumns,
+    rowDensity,
     court: court.trim(),
     fieldFilters,
     alertsOnly,
@@ -2730,7 +2935,7 @@ function FascicoliListPage() {
     liquidazione: liquidazioneFilter,
     parcella: parcellaFilter,
     pageSize,
-  }), [alertsOnly, court, cuFilter, displayMode, duplicatesOnly, fieldFilters, groupBy, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, secondarySort, sort, status, type, view])
+  }), [alertsOnly, court, cuFilter, displayMode, duplicatesOnly, fieldFilters, groupBy, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, rowDensity, secondarySort, sort, status, type, view, visibleColumns])
 
   const currentFilterPreferencesSignature = useMemo(
     () => filterPreferencesSignature(currentFilterPreferences),
@@ -2814,6 +3019,8 @@ function FascicoliListPage() {
           setView(toSavedListView(String(preferences.view)))
           setDisplayMode(preferences.displayMode)
           setGroupBy(preferences.groupBy)
+          setVisibleColumns(preferences.visibleColumns)
+          setRowDensity(preferences.rowDensity)
           setCourt(preferences.court)
           setDebouncedCourt(preferences.court.trim())
           setFieldFilters(preferences.fieldFilters)
@@ -3136,6 +3343,9 @@ function FascicoliListPage() {
           <option value="responsabile">Responsabile</option>
         </select>
       </label>
+      {view === 'operativa' && displayMode === 'tabella' ? (
+        <FascicoliTableColumnsControl visibleColumns={visibleColumns} rowDensity={rowDensity} onColumnsChange={setVisibleColumns} onRowDensityChange={setRowDensity}/>
+      ) : null}
     </>
   )
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
@@ -3252,7 +3462,7 @@ function FascicoliListPage() {
               </div>
             </div>
           ) : null}
-          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} onPagePrefetch={prefetchPage} pendingPage={pendingPage} view={view} displayMode={displayMode} groupBy={groupBy} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
+          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} onPagePrefetch={prefetchPage} pendingPage={pendingPage} view={view} displayMode={displayMode} groupBy={groupBy} visibleColumns={visibleColumns} rowDensity={rowDensity} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
         </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>
       </IusentraMainArea>

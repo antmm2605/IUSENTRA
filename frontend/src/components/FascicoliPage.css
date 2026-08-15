@@ -2665,8 +2665,44 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-mobile-card__economic ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
 
 .iu-fas-table:not(.iu-fas-table--economic){min-width:1030px}
-.iu-fas-table--operational{table-layout:fixed}
+.iu-fas-table--operational{width:max-content;min-width:100%;table-layout:fixed}
 .iu-fas-table--operational th:first-child,.iu-fas-table--operational td:first-child{width:44px;min-width:44px}
+.iu-fas-table--operational .iu-fas-col--ref{width:118px;min-width:118px}
+.iu-fas-table--operational .iu-fas-col--internal_ref{width:130px;min-width:130px}
+.iu-fas-table--operational .iu-fas-col--title{width:300px;min-width:300px}
+.iu-fas-table--operational .iu-fas-col--object{width:240px;min-width:240px}
+.iu-fas-table--operational .iu-fas-col--type{width:105px;min-width:105px}
+.iu-fas-table--operational .iu-fas-col--client{width:170px;min-width:170px}
+.iu-fas-table--operational .iu-fas-col--court{width:190px;min-width:190px}
+.iu-fas-table--operational .iu-fas-col--procedure_type{width:160px;min-width:160px}
+.iu-fas-table--operational .iu-fas-col--register{width:130px;min-width:130px}
+.iu-fas-table--operational .iu-fas-col--section{width:130px;min-width:130px}
+.iu-fas-table--operational .iu-fas-col--section_role{width:135px;min-width:135px}
+.iu-fas-table--operational .iu-fas-col--judge{width:160px;min-width:160px}
+.iu-fas-table--operational .iu-fas-col--opposing_lawyer{width:180px;min-width:180px}
+.iu-fas-table--operational .iu-fas-col--holder{width:160px;min-width:160px}
+.iu-fas-table--operational .iu-fas-col--responsible{width:160px;min-width:160px}
+.iu-fas-table--operational .iu-fas-col--counterparty{width:180px;min-width:180px}
+.iu-fas-table--operational .iu-fas-col--claimant{width:180px;min-width:180px}
+.iu-fas-table--operational .iu-fas-col--clerk{width:150px;min-width:150px}
+.iu-fas-table--operational .iu-fas-col--ctu{width:150px;min-width:150px}
+.iu-fas-table--operational .iu-fas-col--ctp{width:150px;min-width:150px}
+.iu-fas-table--operational .iu-fas-col--notes{width:260px;min-width:260px}
+.iu-fas-table--operational .iu-fas-col--operational_status{width:150px;min-width:150px}
+.iu-fas-table--operational .iu-fas-col--custom_1,.iu-fas-table--operational .iu-fas-col--custom_2{width:180px;min-width:180px}
+.iu-fas-table--operational .iu-fas-col--group{width:140px;min-width:140px}
+.iu-fas-table--operational .iu-fas-col--case_value{width:125px;min-width:125px}
+.iu-fas-table--operational .iu-fas-col--rg{width:130px;min-width:130px}
+.iu-fas-table--operational .iu-fas-col--rg_number{width:110px;min-width:110px}
+.iu-fas-table--operational .iu-fas-col--rg_year{width:95px;min-width:95px}
+.iu-fas-table--operational .iu-fas-col--next_deadline{width:135px;min-width:135px}
+.iu-fas-table--operational .iu-fas-col--status{width:120px;min-width:120px}
+.iu-fas-table--operational .iu-fas-col--documents{width:95px;min-width:95px}
+.iu-fas-table--operational .iu-fas-col--unread_communications{width:120px;min-width:120px}
+.iu-fas-table--operational .iu-fas-col--alerts{width:85px;min-width:85px}
+.iu-fas-table--operational .iu-fas-col--opened_at{width:120px;min-width:120px}
+.iu-fas-table--operational .iu-fas-col--closed_at{width:135px;min-width:135px}
+.iu-fas-table--operational .iu-fas-col--updated_at{width:155px;min-width:155px}
 .iu-fas-table--operational .iu-fas-table-value{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:12.5px;font-weight:730}
 .iu-fas-table--density-compatta td{height:50px}
 .iu-fas-table--density-adattiva td{height:auto;min-height:54px;vertical-align:top}

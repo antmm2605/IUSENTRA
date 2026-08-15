@@ -2454,7 +2454,6 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
     return fascicoliTableColumns.filter((column) => selectedColumns.has(column.key))
   }, [visibleColumns])
   const activeColumnKeys = useMemo(() => new Set(activeColumns.map((column) => column.key)), [activeColumns])
-  const operationalTableMinWidth = 44 + activeColumns.reduce((totalWidth, column) => totalWidth + column.width, 0)
   const textCell = (value: string | number | null | undefined) => {
     const label = String(value ?? '').trim() || 'n.d.'
     return <span className="iu-fas-table-value" title={label}>{label}</span>
@@ -2600,10 +2599,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       empty={!items.length ? <p className="iu-empty">Nessun fascicolo corrisponde ai filtri impostati.</p> : null}
     >
       <SyncedTopScrollbar className={`iu-fas-table-wrap ${economic ? 'iu-fas-table-wrap--economic' : 'iu-fas-table-wrap--operational'} iusentra-data-surface__scroll ${displayMode !== 'tabella' ? 'iu-fas-table-wrap--hidden' : ''}`}>
-        <table
-          className={economic ? 'iu-fas-table iu-fas-table--economic' : `iu-fas-table iu-fas-table--operational iu-fas-table--density-${rowDensity}`}
-          style={economic ? undefined : { minWidth: `${operationalTableMinWidth}px` }}
-        >
+        <table className={economic ? 'iu-fas-table iu-fas-table--economic' : `iu-fas-table iu-fas-table--operational iu-fas-table--density-${rowDensity}`}>
           <thead>
             <tr>
               <th><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Seleziona tutti i fascicoli visibili"/></th>
@@ -2616,7 +2612,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                   <th>Controllo economico</th>
                 </>
               ) : activeColumns.map((column) => (
-                <th className={`iu-fas-col iu-fas-col--${column.key}`} style={{ minWidth: `${column.width}px`, width: `${column.width}px` }} key={column.key}>{column.label}</th>
+                <th className={`iu-fas-col iu-fas-col--${column.key}`} key={column.key}>{column.label}</th>
               ))}
             </tr>
           </thead>

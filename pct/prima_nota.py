@@ -82,6 +82,13 @@ class MovimentoPrimaNota:
     note: str = ""
     creato_da: str = ""
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
+    # Riconciliazione bancaria: valorizzati alla conferma dell'abbinamento
+    # con una riga dell'estratto conto (mai automatica).
+    riconciliato_il: str = ""
+    riga_estratto_id: str = ""
+    # Storno strutturato: id del movimento stornato (il marcatore testuale
+    # nelle note resta per retrocompatibilita' di lettura).
+    storno_di: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -154,13 +161,22 @@ class GestionePrimaNota:
         if not _norm(motivo):
             raise ValueError("Lo storno richiede il motivo.")
         marcatore = f"storno di {movimento_id}".casefold()
-        gia_stornato = any(marcatore in str(m.note or "").casefold() for m in self._movimenti.values())
+        gia_stornato = any(
+            m.storno_di == movimento_id or marcatore in str(m.note or "").casefold()
+            for m in self._movimenti.values()
+        )
         if gia_stornato:
             raise ValueError("Movimento gia' stornato.")
         contrario = "PAGAMENTO" if originale.tipo == "INCASSO" else "INCASSO"
         categoria_contraria = (
             "altri_pagamenti" if contrario == "PAGAMENTO" else "altri_incassi"
         )
+        nota_storno = f"Storno di {movimento_id}: {_norm(motivo)}"
+        if originale.riconciliato_il:
+            nota_storno += (
+                f" [il movimento era riconciliato con la riga estratto {originale.riga_estratto_id}: "
+                "verifica la riconciliazione bancaria]"
+            )
         storno = MovimentoPrimaNota(
             data=date.today().isoformat(),
             tipo=contrario,
@@ -172,8 +188,9 @@ class GestionePrimaNota:
             parcella_id=originale.parcella_id,
             fascicolo_id=originale.fascicolo_id,
             cliente_id=originale.cliente_id,
-            note=f"Storno di {movimento_id}: {_norm(motivo)}",
+            note=nota_storno,
             creato_da=attore,
+            storno_di=movimento_id,
         )
         self._movimenti[storno.id] = storno
         self._salva()
@@ -252,9 +269,75 @@ class GestionePrimaNota:
             creati.append(movimento)
         return creati
 
+    # ------------------------------------------------------------ riconciliazione bancaria
+    def _e_storno_o_stornato(self, movimento: MovimentoPrimaNota) -> bool:
+        if movimento.storno_di or str(movimento.note or "").casefold().startswith("storno di"):
+            return True
+        marcatore = f"storno di {movimento.id}".casefold()
+        return any(
+            m.storno_di == movimento.id or marcatore in str(m.note or "").casefold()
+            for m in self._movimenti.values()
+        )
+
+    def marca_riconciliato(
+        self,
+        movimento_id: str,
+        *,
+        riga_estratto_id: str,
+        importo_riga: float | None = None,
+        verso_riga: str = "",
+    ) -> MovimentoPrimaNota:
+        """Conferma dell'abbinamento con una riga dell'estratto conto.
+
+        Validazioni server-side (il client non e' fidato): il movimento non
+        deve essere gia' riconciliato, ne' uno storno o stornato; se il
+        chiamante fornisce importo e verso della riga bancaria, devono
+        coincidere col movimento; la stessa riga non puo' riconciliare due
+        movimenti diversi.
+        """
+
+        movimento = self._movimenti.get(movimento_id)
+        if movimento is None:
+            raise KeyError(f"Movimento {movimento_id} non trovato.")
+        if movimento.riconciliato_il:
+            raise ValueError("Movimento gia' riconciliato con l'estratto conto.")
+        if self._e_storno_o_stornato(movimento):
+            raise ValueError("Gli storni e i movimenti stornati non si riconciliano con la banca.")
+        riga_id = _norm(riga_estratto_id)
+        if not riga_id:
+            raise ValueError("Riga estratto mancante per la riconciliazione.")
+        if any(m.riga_estratto_id == riga_id for m in self._movimenti.values()):
+            raise ValueError("Questa riga dell'estratto e' gia' riconciliata con un altro movimento.")
+        if importo_riga is not None and abs(abs(float(importo_riga)) - movimento.importo) > 0.005:
+            raise ValueError(
+                "L'importo della riga bancaria non coincide col movimento selezionato: abbinamento rifiutato."
+            )
+        if verso_riga and verso_riga != movimento.tipo:
+            raise ValueError(
+                "Il verso della riga bancaria (incasso/pagamento) non coincide col movimento: abbinamento rifiutato."
+            )
+        movimento.riconciliato_il = datetime.now().isoformat(timespec="seconds")
+        movimento.riga_estratto_id = riga_id
+        self._salva()
+        return movimento
+
+    def non_riconciliati(self, *, dal: str = "", al: str = "") -> list[MovimentoPrimaNota]:
+        """Movimenti bancari senza riscontro: esclusi contanti, storni e stornati."""
+
+        return [
+            m for m in self.registro(dal=dal, al=al)
+            if not m.riconciliato_il and m.metodo != "cassa" and not self._e_storno_o_stornato(m)
+        ]
+
     # ------------------------------------------------------------------ export
     def esporta_csv(self, *, dal: str = "", al: str = "") -> str:
         """Registro cronologico in CSV per il commercialista (delimitatore ;)."""
+
+        def _sicura(value: str) -> str:
+            # Anti formula-injection: una cella che inizia con =, +, -, @ verrebbe
+            # eseguita come formula da Excel/Calc — prefisso apostrofo.
+            testo = str(value or "")
+            return f"'{testo}" if testo[:1] in {"=", "+", "-", "@"} else testo
 
         output = io.StringIO()
         writer = csv.writer(output, delimiter=";", lineterminator="\n")
@@ -268,12 +351,12 @@ class GestionePrimaNota:
                     m.tipo,
                     f"{m.importo:.2f}".replace(".", ","),
                     m.categoria,
-                    m.controparte,
-                    m.causale,
+                    _sicura(m.controparte),
+                    _sicura(m.causale),
                     m.metodo,
-                    m.documento_riferimento,
+                    _sicura(m.documento_riferimento),
                     m.fascicolo_id,
-                    m.note,
+                    _sicura(m.note),
                 ]
             )
         return output.getvalue()

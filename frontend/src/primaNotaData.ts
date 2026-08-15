@@ -37,8 +37,16 @@ export type PrimaNotaData = {
     categoriePagamento: Array<{ value: string; label: string }>
     metodi: Array<{ value: string; label: string }>
   }
-  actions: { registra: string; riconcilia: string; esporta: string }
+  actions: { registra: string; riconcilia: string; esporta: string; analizzaEstratto: string; confermaRiconciliazione: string }
+  nonRiconciliati: number
   avvertenza: string
+}
+
+export type RiconciliazioneProposta = {
+  riga: { id: string; data: string; importo: number; descrizione: string; verso: string }
+  tipo: 'abbinamento' | 'ambiguo' | 'nuovo_movimento'
+  movimento: { id: string; data: string; importo: number; causale: string } | null
+  candidati: Array<{ id: string; data: string; importo: number; causale: string }>
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -62,7 +70,8 @@ export const emptyPrimaNotaData: PrimaNotaData = {
   summary: { incassi: 0, incassiLabel: '€ 0,00', pagamenti: 0, pagamentiLabel: '€ 0,00', saldo: 0, saldoLabel: '€ 0,00', movimenti: 0, perCategoria: [] },
   movimenti: [],
   options: { categorieIncasso: [], categoriePagamento: [], metodi: [] },
-  actions: { registra: '/prima-nota/registra', riconcilia: '/prima-nota/riconcilia-parcelle', esporta: '/prima-nota/esporta.csv' },
+  actions: { registra: '/prima-nota/registra', riconcilia: '/prima-nota/riconcilia-parcelle', esporta: '/prima-nota/esporta.csv', analizzaEstratto: '/prima-nota/riconciliazione/analizza', confermaRiconciliazione: '/prima-nota/riconciliazione/conferma' },
+  nonRiconciliati: 0,
   avvertenza: '',
 }
 
@@ -128,7 +137,10 @@ export async function getPrimaNotaPage(params?: Record<string, string>): Promise
         registra: text(actions.registra, '/prima-nota/registra'),
         riconcilia: text(actions.riconcilia, '/prima-nota/riconcilia-parcelle'),
         esporta: text(actions.esporta, '/prima-nota/esporta.csv'),
+        analizzaEstratto: text(actions.analizzaEstratto, '/prima-nota/riconciliazione/analizza'),
+        confermaRiconciliazione: text(actions.confermaRiconciliazione, '/prima-nota/riconciliazione/conferma'),
       },
+      nonRiconciliati: Number(payload.nonRiconciliati) || 0,
       avvertenza: text(payload.avvertenza),
     }
   } catch {

@@ -99,7 +99,10 @@ def build_react_prima_nota_payload(
             "registra": "/prima-nota/registra",
             "riconcilia": "/prima-nota/riconcilia-parcelle",
             "esporta": "/prima-nota/esporta.csv",
+            "analizzaEstratto": "/prima-nota/riconciliazione/analizza",
+            "confermaRiconciliazione": "/prima-nota/riconciliazione/conferma",
         },
+        "nonRiconciliati": len(registro.non_riconciliati(dal=dal, al=al)),
         "avvertenza": (
             "La prima nota registra ed esporta i movimenti: non calcola imposte, "
             "ritenute o contributi. La qualificazione fiscale resta al professionista incaricato."

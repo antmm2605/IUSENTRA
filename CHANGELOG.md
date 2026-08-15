@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.53 - 2026-08-15
+
+- **Riconciliazione bancaria della prima nota (Fase E, sotto-fase 3).** Nella pagina `/prima-nota` si carica l'estratto conto CSV (auto-mappatura: separatore `;`/`,`, date italiane e ISO, importo unico o colonne dare/avere) e il sistema propone gli abbinamenti coi movimenti: match per importo, verso e data con tolleranza di 3 giorni, assegnazione globale per distanza minima; più candidati → scelta manuale; nessuno → registrazione dalla riga (idempotente, nasce già riconciliata). **Nessun abbinamento è automatico**: conferma sempre dell'avvocato, con validazione server-side di importo e verso; contatore dei movimenti bancari non riscontrati; contanti, storni e stornati fuori dal perimetro.
+- **Parser temprato da review multi-agente (19 agenti, 16 finding corretti).** Importi `1.220` letti come milleduecentoventi (migliaia all'italiana) e formati ambigui (`1,000`) scartati con avviso invece che importati sbagliati; segno meno in coda (`234,56-`) riconosciuto come addebito; rettifiche bancarie negative in dare/avere scartate con istruzione di registrazione manuale; transazioni identiche legittime conservate con id stabili; export CSV protetto da formula injection; storno strutturato (`storno_di`) e incrocio storno/riconciliazione segnalato. Suite `tests/test_riconciliazione_bancaria.py` estesa a 25 test.
+
 ## 2.278.52 - 2026-08-14
 
 - **Firma remota qualificata: astrazione provider con adapter Aruba (Fase F, fondamenta).** Nuovo `pct/firma_remota.py`: interfaccia `FirmaRemotaProvider` (CAdES/PAdES dall'HSM del QTSP, eIDAS 910/2014 art. 29, CAD art. 20, D.M. 44/2011 art. 12) con regole non derogabili — **credenziali di firma e OTP mai persistiti né loggati** (campi mascherati anche in repr/str), registry fail-closed (nessun provider di default, mock mai selezionabile implicitamente).

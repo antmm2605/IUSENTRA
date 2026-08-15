@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
-import { ArrowDownCircle, ArrowUpCircle, Banknote, CheckCircle2, FileDown, Plus, RefreshCw, RotateCcw, Scale } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Banknote, CheckCircle2, FileDown, Landmark, Link2, Plus, RefreshCw, RotateCcw, Scale, Upload } from 'lucide-react'
 import { FloatingLex } from './FloatingLex'
-import { emptyPrimaNotaData, getPrimaNotaPage, type PrimaNotaData, type PrimaNotaMovimento } from '../primaNotaData'
+import { emptyPrimaNotaData, getPrimaNotaPage, type PrimaNotaData, type PrimaNotaMovimento, type RiconciliazioneProposta } from '../primaNotaData'
 import './PrimaNotaPage.css'
+
+function csrfToken(): string {
+  return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
+}
 
 async function postJson(href: string, body: Record<string, unknown>): Promise<{ ok: boolean; message: string }> {
   try {
     const response = await fetch(href, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken() },
       body: JSON.stringify(body),
     })
     const payload = await response.json().catch(() => ({})) as { ok?: boolean; message?: string }
@@ -67,6 +71,102 @@ function NewMovementForm({ data, onDone, onMessage }:{data:PrimaNotaData; onDone
         <button type="button" className="iu-pn-form__cancel" onClick={() => setOpen(false)}>Annulla</button>
       </div>
     </div>
+  )
+}
+
+function BankReconciliation({ data, onDone, onMessage }:{data:PrimaNotaData; onDone:()=>void; onMessage:(text:string)=>void}) {
+  const [proposte, setProposte] = useState<RiconciliazioneProposta[]>([])
+  const [conteggi, setConteggi] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [scelte, setScelte] = useState<Record<string, string>>({})
+  const analizza = async (file: File) => {
+    setBusy(true); setProposte([])
+    try {
+      const form = new FormData()
+      form.append('estratto', file)
+      const response = await fetch(data.actions.analizzaEstratto, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: form,
+      })
+      const payload = await response.json().catch(() => ({})) as { ok?:boolean; message?:string; proposte?:RiconciliazioneProposta[]; avvisi?:string[]; conteggi?:{abbinamenti:number;ambigui:number;nuovi:number} }
+      if (!payload.ok) { onMessage(payload.message || 'Analisi non riuscita.'); return }
+      setProposte(Array.isArray(payload.proposte) ? payload.proposte : [])
+      const c = payload.conteggi
+      setConteggi(c ? `${c.abbinamenti} abbinamenti proposti · ${c.ambigui} da scegliere · ${c.nuovi} nuovi movimenti` : '')
+      if (payload.avvisi?.length) onMessage(`Analisi completata con ${payload.avvisi.length} righe saltate.`)
+    } catch { onMessage('Analisi non riuscita.') } finally { setBusy(false) }
+  }
+  const conferma = async (proposta: RiconciliazioneProposta, movimentoId: string) => {
+    setBusy(true)
+    // Importo e verso della riga viaggiano insieme all'abbinamento: il server
+    // li riverifica contro il movimento (il client non e' fidato).
+    const result = await postJson(data.actions.confermaRiconciliazione, {
+      movimentoId,
+      rigaId: proposta.riga.id,
+      importoRiga: proposta.riga.importo,
+      versoRiga: proposta.riga.verso,
+    })
+    onMessage(result.message)
+    setBusy(false)
+    if (result.ok) { setProposte((prev) => prev.filter((p) => p.riga.id !== proposta.riga.id)); onDone() }
+  }
+  const registraNuovo = async (proposta: RiconciliazioneProposta) => {
+    setBusy(true)
+    const result = await postJson('/prima-nota/riconciliazione/registra-da-riga', {
+      rigaId: proposta.riga.id,
+      data: proposta.riga.data,
+      verso: proposta.riga.verso,
+      importo: Math.abs(proposta.riga.importo),
+      descrizione: proposta.riga.descrizione,
+    })
+    onMessage(result.message)
+    setBusy(false)
+    if (result.ok) { setProposte((prev) => prev.filter((p) => p.riga.id !== proposta.riga.id)); onDone() }
+  }
+  return (
+    <section className="iu-pn-recon" aria-label="Riconciliazione bancaria">
+      <header>
+        <span><Landmark size={16}/> Riconciliazione bancaria</span>
+        <small>Carica l'estratto conto CSV: il sistema propone gli abbinamenti, confermi tu movimento per movimento. {data.nonRiconciliati ? `${data.nonRiconciliati} movimenti non ancora riconciliati.` : ''}</small>
+      </header>
+      <label className="iu-pn-recon__upload">
+        <Upload size={15}/> {busy ? 'Analisi in corso...' : "Carica estratto conto (CSV)"}
+        <input type="file" accept=".csv,.txt" hidden disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) analizza(file); e.target.value = '' }}/>
+      </label>
+      {conteggi ? <p className="iu-pn-recon__counts">{conteggi}</p> : null}
+      {proposte.length ? (
+        <ul className="iu-pn-recon__list">
+          {proposte.map((proposta) => (
+            <li key={proposta.riga.id} className={`iu-pn-recon__item iu-pn-recon__item--${proposta.tipo}`}>
+              <div className="iu-pn-recon__row">
+                <strong>{proposta.riga.data} · {proposta.riga.importo.toFixed(2).replace('.', ',')} €</strong>
+                <span>{proposta.riga.descrizione || '(senza descrizione)'}</span>
+              </div>
+              <div className="iu-pn-recon__actions">
+                {proposta.tipo === 'abbinamento' && proposta.movimento ? (
+                  <button type="button" disabled={busy} onClick={() => conferma(proposta, proposta.movimento!.id)}>
+                    <Link2 size={14}/> Abbina a: {proposta.movimento.causale || proposta.movimento.data}
+                  </button>
+                ) : null}
+                {proposta.tipo === 'ambiguo' ? (
+                  <span className="iu-pn-recon__choose">
+                    <select value={scelte[proposta.riga.id] || ''} onChange={(e) => setScelte((prev) => ({ ...prev, [proposta.riga.id]: e.target.value }))}>
+                      <option value="">Scegli il movimento...</option>
+                      {proposta.candidati.map((c) => <option value={c.id} key={c.id}>{c.data} · {c.causale || c.id}</option>)}
+                    </select>
+                    <button type="button" disabled={busy || !scelte[proposta.riga.id]} onClick={() => conferma(proposta, scelte[proposta.riga.id])}><Link2 size={14}/> Abbina</button>
+                  </span>
+                ) : null}
+                {proposta.tipo === 'nuovo_movimento' ? (
+                  <button type="button" disabled={busy} onClick={() => registraNuovo(proposta)}><Plus size={14}/> Registra in prima nota</button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   )
 }
 
@@ -153,6 +253,8 @@ export function PrimaNotaPage() {
       </div>
 
       {message ? <p className="iu-pn-message" role="status"><CheckCircle2 size={15}/> {message}</p> : null}
+
+      <BankReconciliation data={data} onDone={() => load()} onMessage={setMessage} />
 
       {data.summary.perCategoria.length ? (
         <div className="iu-pn-categories" aria-label="Totali per categoria">

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p8.json",
+  "sha256": "0F49A917514989300C53101A121FB13A9FCE34A259B2EECAFBFFD510A9DA0237",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413245",
+    "413250",
+    "415125",
+    "510135",
+    "155075"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_GENITORIALE_LIMITAZIONE_E_DECADENZA_ARTT_330_336_C_C_CPA_2_413245",
+    "GUIDA_MANTENIMENTO_DEL_FIGLIO_MAGGIORENNE_QUANDO_CESSA_L_OBBLIGO_E_CONTROVERSI_413250",
+    "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_PER_IL_MINORE_QUANDO_E_COME_ARTT_78_80_C_P__415125",
+    "GUIDA_CREDITI_DA_LAVORO_NELL_ESECUZIONE_FORZATA_PRIVILEGIO_GENERALE_E_SPECIALE_510135",
+    "GUIDA_INSIDER_TRADING_E_ABUSO_DI_MERCATO_DIVIETO_E_TUTELA_DEGLI_INVESTITORI_RE_155075"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413245",
+      "codice_integrato": "GUIDA_RESPONSABILIT_GENITORIALE_LIMITAZIONE_E_DECADENZA_ARTT_330_336_C_C_CPA_2_413245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413250",
+      "codice_integrato": "GUIDA_MANTENIMENTO_DEL_FIGLIO_MAGGIORENNE_QUANDO_CESSA_L_OBBLIGO_E_CONTROVERSI_413250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415125",
+      "codice_integrato": "GUIDA_NOMINA_DEL_CURATORE_SPECIALE_PER_IL_MINORE_QUANDO_E_COME_ARTT_78_80_C_P__415125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510135",
+      "codice_integrato": "GUIDA_CREDITI_DA_LAVORO_NELL_ESECUZIONE_FORZATA_PRIVILEGIO_GENERALE_E_SPECIALE_510135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155075",
+      "codice_integrato": "GUIDA_INSIDER_TRADING_E_ABUSO_DI_MERCATO_DIVIETO_E_TUTELA_DEGLI_INVESTITORI_RE_155075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

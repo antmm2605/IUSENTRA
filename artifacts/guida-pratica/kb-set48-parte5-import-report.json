@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p5.json",
+  "sha256": "5E0EF8B090670938EA3420AEFD265137C1FBC23BE1CAFA7E5D791D115649E8EE",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220520",
+    "220525",
+    "620155",
+    "620160",
+    "240415"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_COLLABORAZIONE_COORDINATA_E_CONTINUATIVA_ETERO_ORGANIZZATA_QUALIFICAZION_220520",
+    "GUIDA_PATTO_DI_PROVA_VALIDITA_DURATA_MASSIMA_E_RECESSO_DURANTE_IL_PERIODO_DI_P_220525",
+    "GUIDA_NASPI_ASSEGNO_DI_DISOCCUPAZIONE_REQUISITI_CALCOLO_DINIEGO_E_RICORSO_INPS_620155",
+    "GUIDA_CONTRIBUZIONE_VOLONTARIA_INPS_REQUISITI_ACCESSO_VERSAMENTI_E_CONTROVERSI_620160",
+    "GUIDA_CONCESSIONE_D_USO_DEI_BENI_DEL_DEMANIO_CULTURALE_REQUISITI_CANONE_E_CONT_240415"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220520",
+      "codice_integrato": "GUIDA_COLLABORAZIONE_COORDINATA_E_CONTINUATIVA_ETERO_ORGANIZZATA_QUALIFICAZION_220520",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220525",
+      "codice_integrato": "GUIDA_PATTO_DI_PROVA_VALIDITA_DURATA_MASSIMA_E_RECESSO_DURANTE_IL_PERIODO_DI_P_220525",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620155",
+      "codice_integrato": "GUIDA_NASPI_ASSEGNO_DI_DISOCCUPAZIONE_REQUISITI_CALCOLO_DINIEGO_E_RICORSO_INPS_620155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620160",
+      "codice_integrato": "GUIDA_CONTRIBUZIONE_VOLONTARIA_INPS_REQUISITI_ACCESSO_VERSAMENTI_E_CONTROVERSI_620160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240415",
+      "codice_integrato": "GUIDA_CONCESSIONE_D_USO_DEI_BENI_DEL_DEMANIO_CULTURALE_REQUISITI_CANONE_E_CONT_240415",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

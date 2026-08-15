@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p4.json",
+  "sha256": "16854B994D68293DCE48105FD7617743D789ABB02A4556AA8F6E31D54CE4C94C",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190130",
+    "191125",
+    "199175",
+    "211140",
+    "211145"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_REGRESSO_TRA_COOBBLIGATI_SOLIDALI_QUOTA_INTERNA_E_CONTROVERSIE_190130",
+    "GUIDA_SOSPENSIONE_DEL_PROCESSO_CIVILE_PER_PREGIUDIZIALITA_PENALE_PRESUPPOSTI_E_191125",
+    "GUIDA_ASTENSIONE_E_RICUSAZIONE_DEL_GIUDICE_MOTIVI_PROCEDIMENTO_E_CONSEGUENZE_A_199175",
+    "GUIDA_CLAUSOLA_DI_INDENNIZZO_DELLE_SPESE_LEGALI_ATTORNEY_FEES_CLAUSE_NEI_CONTR_211140",
+    "GUIDA_MEDIAZIONE_DELLE_CONTROVERSIE_FAMILIARI_PROCEDURE_ACCORDO_E_OMOLOGAZIONE_211145"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190130",
+      "codice_integrato": "GUIDA_AZIONE_DI_REGRESSO_TRA_COOBBLIGATI_SOLIDALI_QUOTA_INTERNA_E_CONTROVERSIE_190130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191125",
+      "codice_integrato": "GUIDA_SOSPENSIONE_DEL_PROCESSO_CIVILE_PER_PREGIUDIZIALITA_PENALE_PRESUPPOSTI_E_191125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199175",
+      "codice_integrato": "GUIDA_ASTENSIONE_E_RICUSAZIONE_DEL_GIUDICE_MOTIVI_PROCEDIMENTO_E_CONSEGUENZE_A_199175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211140",
+      "codice_integrato": "GUIDA_CLAUSOLA_DI_INDENNIZZO_DELLE_SPESE_LEGALI_ATTORNEY_FEES_CLAUSE_NEI_CONTR_211140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211145",
+      "codice_integrato": "GUIDA_MEDIAZIONE_DELLE_CONTROVERSIE_FAMILIARI_PROCEDURE_ACCORDO_E_OMOLOGAZIONE_211145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

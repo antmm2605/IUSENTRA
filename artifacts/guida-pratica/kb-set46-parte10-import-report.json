@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p10.json",
+  "sha256": "85BB150197CA29D36BE276455BD8419BAAA3A5B4F9A996C1ED27D5E8F6B02267",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "170140",
+    "180150",
+    "211135",
+    "190125",
+    "140125"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SEGRETI_COMMERCIALI_E_KNOW_HOW_AZIENDALE_TUTELA_E_AZIONI_CONTRO_L_APPROP_170140",
+    "GUIDA_ABBONAMENTI_A_PALESTRE_E_CENTRI_FITNESS_RECESSO_ANTICIPATO_RIMBORSO_E_PR_180150",
+    "GUIDA_ARBITRATO_IN_MATERIA_DI_LAVORO_AMMISSIBILITA_LIMITI_E_CLAUSOLE_COMPROMIS_211135",
+    "GUIDA_AZIONE_DI_USUCAPIONE_POSSESSO_ANIMUS_INTERRUZIONE_E_PROCEDIMENTO_ARTT_11_190125",
+    "GUIDA_CONTRATTO_DI_AFFITTO_D_AZIENDA_OBBLIGHI_DELL_AFFITTUARIO_GESTIONE_E_CONT_140125"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170140",
+      "codice_integrato": "GUIDA_SEGRETI_COMMERCIALI_E_KNOW_HOW_AZIENDALE_TUTELA_E_AZIONI_CONTRO_L_APPROP_170140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180150",
+      "codice_integrato": "GUIDA_ABBONAMENTI_A_PALESTRE_E_CENTRI_FITNESS_RECESSO_ANTICIPATO_RIMBORSO_E_PR_180150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211135",
+      "codice_integrato": "GUIDA_ARBITRATO_IN_MATERIA_DI_LAVORO_AMMISSIBILITA_LIMITI_E_CLAUSOLE_COMPROMIS_211135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190125",
+      "codice_integrato": "GUIDA_AZIONE_DI_USUCAPIONE_POSSESSO_ANIMUS_INTERRUZIONE_E_PROCEDIMENTO_ARTT_11_190125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140125",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_AFFITTO_D_AZIENDA_OBBLIGHI_DELL_AFFITTUARIO_GESTIONE_E_CONT_140125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

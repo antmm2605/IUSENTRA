@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p3.json",
+  "sha256": "B5B47267BB17B3119D1EAF5497FD89E1AA3913DB5689E9B1DC96072D68863E62",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160440",
+    "160445",
+    "160450",
+    "170125",
+    "180135"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DANNI_DA_VIOLAZIONE_DEL_GDPR_RISARCIMENTO_DEL_DANNO_NON_PATRIMONIALE_EX__160440",
+    "GUIDA_RESPONSABILITA_DEL_COMMERCIALISTA_PER_PRESCRIZIONE_LASCIATA_DECORRERE_E__160445",
+    "GUIDA_CADUTA_IN_UN_NEGOZIO_O_CENTRO_COMMERCIALE_RESPONSABILITA_DEL_GESTORE_EX__160450",
+    "GUIDA_SOFTWARE_OPEN_SOURCE_LICENZE_GPL_MIT_APACHE_COPYLEFT_E_CONTROVERSIE_PER__170125",
+    "GUIDA_AGENZIA_DI_VIAGGI_INTERMEDIARIA_RESPONSABILITA_VERSO_IL_VIAGGIATORE_PER__180135"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160440",
+      "codice_integrato": "GUIDA_DANNI_DA_VIOLAZIONE_DEL_GDPR_RISARCIMENTO_DEL_DANNO_NON_PATRIMONIALE_EX__160440",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160445",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_COMMERCIALISTA_PER_PRESCRIZIONE_LASCIATA_DECORRERE_E__160445",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160450",
+      "codice_integrato": "GUIDA_CADUTA_IN_UN_NEGOZIO_O_CENTRO_COMMERCIALE_RESPONSABILITA_DEL_GESTORE_EX__160450",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170125",
+      "codice_integrato": "GUIDA_SOFTWARE_OPEN_SOURCE_LICENZE_GPL_MIT_APACHE_COPYLEFT_E_CONTROVERSIE_PER__170125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180135",
+      "codice_integrato": "GUIDA_AGENZIA_DI_VIAGGI_INTERMEDIARIA_RESPONSABILITA_VERSO_IL_VIAGGIATORE_PER__180135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

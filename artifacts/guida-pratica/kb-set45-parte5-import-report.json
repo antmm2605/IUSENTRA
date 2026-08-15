@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p5.json",
+  "sha256": "1EA2222F1FFD78B043FDECB5DE2C6744ECE70B39DC8BB4C58D086498A3F1DAD5",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220490",
+    "220495",
+    "620125",
+    "620130",
+    "143170"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_A_TUTELE_CRESCENTI_PER_I_NUOVI_ASSUNTI_LICENZIAMENTO_INDENNITA_220490",
+    "GUIDA_LICENZIAMENTO_DURANTE_IL_COMPORTO_PER_MALATTIA_NULLITA_E_REINTEGRAZIONE__220495",
+    "GUIDA_LAVORO_SPORTIVO_PROFESSIONISTI_DILETTANTI_E_CONTROVERSIE_DOPO_LA_RIFORMA_620125",
+    "GUIDA_MEDICI_DIPENDENTI_DEL_SSN_RESPONSABILITA_CIVILE_E_PENALE_DOPO_LA_L_24_20_620130",
+    "GUIDA_DANNO_MORALE_IURE_PROPRIO_DEI_PROSSIMI_CONGIUNTI_PER_LA_MORTE_DEL_CONGIU_143170"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220490",
+      "codice_integrato": "GUIDA_CONTRATTO_A_TUTELE_CRESCENTI_PER_I_NUOVI_ASSUNTI_LICENZIAMENTO_INDENNITA_220490",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220495",
+      "codice_integrato": "GUIDA_LICENZIAMENTO_DURANTE_IL_COMPORTO_PER_MALATTIA_NULLITA_E_REINTEGRAZIONE__220495",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620125",
+      "codice_integrato": "GUIDA_LAVORO_SPORTIVO_PROFESSIONISTI_DILETTANTI_E_CONTROVERSIE_DOPO_LA_RIFORMA_620125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620130",
+      "codice_integrato": "GUIDA_MEDICI_DIPENDENTI_DEL_SSN_RESPONSABILITA_CIVILE_E_PENALE_DOPO_LA_L_24_20_620130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143170",
+      "codice_integrato": "GUIDA_DANNO_MORALE_IURE_PROPRIO_DEI_PROSSIMI_CONGIUNTI_PER_LA_MORTE_DEL_CONGIU_143170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

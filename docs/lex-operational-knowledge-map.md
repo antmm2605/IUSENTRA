@@ -1,5 +1,7 @@
 # Lex AI Operational Knowledge Map
 
+Aggiornamento 2026-08-15, Guida Avvocato set42–49 2.278.57: Lex legge anche le 399 schede operative importate dai moduli `kb_98_set42_*`–`kb_98_set49_*`, con termini, fonti, presupposti, adempimenti e avvertimenti originali. Sono tutte guide interne non depositabili: nelle risposte Lex deve separarle dal `codice_oggetto_pst` ufficiale selezionato nel fascicolo e non può trasformarle in codici di deposito. La fonte `415120` sull'esecutore testamentario resta esclusa perché duplicava con contenuto divergente la guida canonica già disponibile; gli undici DOCX scolastici consegnati insieme agli archivi non sono fonte Lex né contenuto della guida professionale.
+
 Aggiornamento 2026-06-07, gate reali avvocato/RAG/Ricerca Legale: ogni nuova
 logica Lex deve essere verificata su domande operative reali, non solo su test
 di presenza. Sono gate obbligatori: fonte correttiva Cartabia civile con D.Lgs.

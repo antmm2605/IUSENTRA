@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p8.json",
+  "sha256": "2AF2389A4A8DFDDB85580D1197F6E74A563BB228705E588AC631E7FBF249A4E8",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413280",
+    "413285",
+    "415160",
+    "415165",
+    "415170"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_LA_SEPARAZIONE_E_IL_DIVORZIO_PROCEDURA_ACCORD_413280",
+    "GUIDA_CAMBIO_DI_RESIDENZA_DEL_GENITORE_AFFIDATARIO_CON_I_FIGLI_AUTORIZZAZIONE__413285",
+    "GUIDA_DIVISIONE_EREDITARIA_FORMAZIONE_DELLE_QUOTE_CONGUAGLI_MONETARI_E_VIZI_DE_415160",
+    "GUIDA_COLLAZIONE_DEI_BENI_DONATI_OBBLIGO_ESONERO_E_CONTROVERSIE_ARTT_737_751_C_415165",
+    "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_CALCOLO_E_RESTI_415170"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413280",
+      "codice_integrato": "GUIDA_NEGOZIAZIONE_ASSISTITA_PER_LA_SEPARAZIONE_E_IL_DIVORZIO_PROCEDURA_ACCORD_413280",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413285",
+      "codice_integrato": "GUIDA_CAMBIO_DI_RESIDENZA_DEL_GENITORE_AFFIDATARIO_CON_I_FIGLI_AUTORIZZAZIONE__413285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415160",
+      "codice_integrato": "GUIDA_DIVISIONE_EREDITARIA_FORMAZIONE_DELLE_QUOTE_CONGUAGLI_MONETARI_E_VIZI_DE_415160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415165",
+      "codice_integrato": "GUIDA_COLLAZIONE_DEI_BENI_DONATI_OBBLIGO_ESONERO_E_CONTROVERSIE_ARTT_737_751_C_415165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415170",
+      "codice_integrato": "GUIDA_AZIONE_DI_RIDUZIONE_PER_LESIONE_DELLA_QUOTA_DI_LEGITTIMA_CALCOLO_E_RESTI_415170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

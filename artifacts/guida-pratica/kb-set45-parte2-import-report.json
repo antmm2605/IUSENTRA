@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p2.json",
+  "sha256": "7E87E6E22EA5B921DF3D6F8CAD2A329B9EB4C594BFC5BE3E4956092B4C058459",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150260",
+    "150265",
+    "155085",
+    "156080",
+    "156085"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_R_L_ESCLUSIONE_DEL_SOCIO_PER_GRAVI_INADEMPIENZE_ART_2473_BIS_C_C_150260",
+    "GUIDA_AZIONE_DI_RESPONSABILITA_DEL_CURATORE_CONTRO_GLI_AMMINISTRATORI_NELLA_LG_150265",
+    "GUIDA_PARTECIPAZIONI_QUALIFICATE_NELLE_BANCHE_AUTORIZZAZIONE_DELLA_BANCA_D_ITA_155085",
+    "GUIDA_LEASING_OPERATIVO_E_IFRS_16_CLASSIFICAZIONE_TRATTAMENTO_FISCALE_E_CONTRO_156080",
+    "GUIDA_CONTRATTO_DI_PRONTI_CONTRO_TERMINE_REPO_CONTROVERSIE_E_DISCIPLINA_TUF_RE_156085"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150260",
+      "codice_integrato": "GUIDA_S_R_L_ESCLUSIONE_DEL_SOCIO_PER_GRAVI_INADEMPIENZE_ART_2473_BIS_C_C_150260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150265",
+      "codice_integrato": "GUIDA_AZIONE_DI_RESPONSABILITA_DEL_CURATORE_CONTRO_GLI_AMMINISTRATORI_NELLA_LG_150265",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155085",
+      "codice_integrato": "GUIDA_PARTECIPAZIONI_QUALIFICATE_NELLE_BANCHE_AUTORIZZAZIONE_DELLA_BANCA_D_ITA_155085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156080",
+      "codice_integrato": "GUIDA_LEASING_OPERATIVO_E_IFRS_16_CLASSIFICAZIONE_TRATTAMENTO_FISCALE_E_CONTRO_156080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156085",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_PRONTI_CONTRO_TERMINE_REPO_CONTROVERSIE_E_DISCIPLINA_TUF_RE_156085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

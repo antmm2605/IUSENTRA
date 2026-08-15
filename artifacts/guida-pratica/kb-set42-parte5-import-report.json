@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p5.json",
+  "sha256": "3A7E95421BEDA8336646871AC9E00FCE6509DD446A9A8E2A43FA95FCF18E9F1C",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220450",
+    "220455",
+    "220460",
+    "620095",
+    "620100"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TRASFERTA_E_DISTACCO_DEL_LAVORATORE_PRIVATO_INDENNIT_RIMBORSI_E_CONTROVE_220450",
+    "GUIDA_DEMANSIONAMENTO_UNILATERALE_DEL_LAVORATORE_ART_2103_C_C_POST_JOBS_ACT_E__220455",
+    "GUIDA_COMPORTAMENTO_ANTISINDACALE_DEL_DATORE_DI_LAVORO_AZIONE_DI_REPRESSIONE_E_220460",
+    "GUIDA_PREVIDENZA_SOCIALE_TRANSFRONTALIERA_CONTRIBUZIONE_PENSIONE_E_CONTROVERSI_620095",
+    "GUIDA_DISTACCO_DI_LAVORATORI_ITALIANI_ALL_ESTERO_TUTELE_PREVIDENZIALI_RETRIBUT_620100"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220450",
+      "codice_integrato": "GUIDA_TRASFERTA_E_DISTACCO_DEL_LAVORATORE_PRIVATO_INDENNIT_RIMBORSI_E_CONTROVE_220450",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220455",
+      "codice_integrato": "GUIDA_DEMANSIONAMENTO_UNILATERALE_DEL_LAVORATORE_ART_2103_C_C_POST_JOBS_ACT_E__220455",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220460",
+      "codice_integrato": "GUIDA_COMPORTAMENTO_ANTISINDACALE_DEL_DATORE_DI_LAVORO_AZIONE_DI_REPRESSIONE_E_220460",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620095",
+      "codice_integrato": "GUIDA_PREVIDENZA_SOCIALE_TRANSFRONTALIERA_CONTRIBUZIONE_PENSIONE_E_CONTROVERSI_620095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620100",
+      "codice_integrato": "GUIDA_DISTACCO_DI_LAVORATORI_ITALIANI_ALL_ESTERO_TUTELE_PREVIDENZIALI_RETRIBUT_620100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p2.json",
+  "sha256": "D1423F0A63CFE94096CD3340472F1F41169BEFCA8BF0A247E5F91AAC9A90B2CE",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150290",
+    "155105",
+    "156105",
+    "144110",
+    "143190"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_P_A_INVALIDITA_DELLA_DELIBERA_ASSEMBLEARE_PER_VIZI_FORMALI_E_SOSTANZIA_150290",
+    "GUIDA_VENDITE_ALLO_SCOPERTO_SHORT_SELLING_ESENZIONI_RESTRIZIONI_E_CONTROVERSIE_155105",
+    "GUIDA_OBBLIGAZIONI_SUBORDINATE_E_AT1_TIER_2_RANKING_NEL_BAIL_IN_TUTELE_DEGLI_I_156105",
+    "GUIDA_PRESTITO_PERSONALE_NON_FINALIZZATO_TAEG_RIMBORSO_ANTICIPATO_E_INADEMPIME_144110",
+    "GUIDA_RESPONSABILITA_DEL_COMUNE_PER_BUCHE_E_DISSESTI_STRADALI_OMESSA_MANUTENZI_143190"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150290",
+      "codice_integrato": "GUIDA_S_P_A_INVALIDITA_DELLA_DELIBERA_ASSEMBLEARE_PER_VIZI_FORMALI_E_SOSTANZIA_150290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155105",
+      "codice_integrato": "GUIDA_VENDITE_ALLO_SCOPERTO_SHORT_SELLING_ESENZIONI_RESTRIZIONI_E_CONTROVERSIE_155105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156105",
+      "codice_integrato": "GUIDA_OBBLIGAZIONI_SUBORDINATE_E_AT1_TIER_2_RANKING_NEL_BAIL_IN_TUTELE_DEGLI_I_156105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144110",
+      "codice_integrato": "GUIDA_PRESTITO_PERSONALE_NON_FINALIZZATO_TAEG_RIMBORSO_ANTICIPATO_E_INADEMPIME_144110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143190",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_COMUNE_PER_BUCHE_E_DISSESTI_STRADALI_OMESSA_MANUTENZI_143190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p4.json",
+  "sha256": "09F57DFE13DE11F5F1E19BA3490F16C3EA3FE8923D5787C6A16C7230B35C177E",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "191110",
+    "199155",
+    "199160",
+    "211095",
+    "211100"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_COSA_CONTROVERSA_PRESUPPOSTI_NOMINA_DEL_CUSTODE_191110",
+    "GUIDA_COMPENSAZIONE_DELLE_SPESE_PROCESSUALI_CRITERI_CONTESTAZIONE_E_RIFORME_AR_199155",
+    "GUIDA_NULLIT_DELLA_CITAZIONE_VIZI_FORMALI_SANABILI_SANATORIA_EX_ART_164_C_P_C__199160",
+    "GUIDA_MEDIAZIONE_IN_MATERIA_CONDOMINIALE_OBBLIGATORIET_REGOLAMENTO_E_CONTROVER_211095",
+    "GUIDA_ARBITRAGGIO_DETERMINAZIONE_DEL_CONTENUTO_DEL_CONTRATTO_DA_PARTE_DEL_TERZ_211100"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "191110",
+      "codice_integrato": "GUIDA_SEQUESTRO_GIUDIZIARIO_DI_COSA_CONTROVERSA_PRESUPPOSTI_NOMINA_DEL_CUSTODE_191110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199155",
+      "codice_integrato": "GUIDA_COMPENSAZIONE_DELLE_SPESE_PROCESSUALI_CRITERI_CONTESTAZIONE_E_RIFORME_AR_199155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199160",
+      "codice_integrato": "GUIDA_NULLIT_DELLA_CITAZIONE_VIZI_FORMALI_SANABILI_SANATORIA_EX_ART_164_C_P_C__199160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211095",
+      "codice_integrato": "GUIDA_MEDIAZIONE_IN_MATERIA_CONDOMINIALE_OBBLIGATORIET_REGOLAMENTO_E_CONTROVER_211095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211100",
+      "codice_integrato": "GUIDA_ARBITRAGGIO_DETERMINAZIONE_DEL_CONTENUTO_DEL_CONTRATTO_DA_PARTE_DEL_TERZ_211100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

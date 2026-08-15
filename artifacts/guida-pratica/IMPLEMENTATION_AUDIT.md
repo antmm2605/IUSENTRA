@@ -1,5 +1,15 @@
 # Audit implementazione Guida Pratica - 2026-05-23
 
+## Aggiornamento set42–49 — 15 agosto 2026
+
+- Materiale esaminato: 80 JSON giuridici negli archivi `files (31).zip`–`files (38).zip`, per 400 schede e 400 termini; 11 DOCX nell'archivio `files (30).zip`, esclusi perché temi scolastici di attualità estranei alla guida professionale.
+- Import eseguito: 399 schede distribuite in 80 moduli `kb_98_set42_*`–`kb_98_set49_*`; 399 termini aggiunti al repository runtime, che passa a 4.307 record e 1.263 template calcolabili.
+- Deduplicazione: la sorgente `415120` è stata esclusa perché già coperta dalla guida canonica `GUIDA_ESECUTORE_TESTAMENTARIO_NOMINA_POTERI_E_RESPONSABILIT_ARTT_700_712_C_C_415055`; la divergenza contenutistica è registrata nel report di import, senza creare una seconda guida concorrente.
+- Sicurezza deposito: 399/399 schede importate sono alias interni non depositabili; catalogo PST/XSD invariato a 1.018 codici ufficiali, con zero contaminazioni di deposito.
+- Audit dati: 1.145 record utente controllati, zero perdite tra modulo, KB completo, servizio/API, UI e Lex; validazione catalogo 2.154/2.154 schede curate, 1.018/1.018 codici ufficiali coperti, zero mancanti e zero incoerenze.
+- UTF-8: 80 moduli controllati, zero artefatti, zero errori e zero riparazioni necessarie (`utf8-integrity-set42-49-2026-08-15.json`).
+- Prova visiva reale: eseguita sulla copia Docker `http://127.0.0.1:8080`, release `2.278.57`, fascicolo `DD242366`. Il pannello Guida Pratica ha caricato la scheda collegata; click reale sulla tab Normativa, hover e focus del controllo verificati; nessun errore console. Il refresh a cache calda ha completato in circa 1,6 secondi. Desktop, tablet 768×1024 e mobile 390×844 sono stati controllati con scorrimento fino al fondo: nessun overflow orizzontale e nessun contenuto tagliato nel pannello guida.
+
 ## Esito
 
 - Catalogo ufficiale PST/XSD mantenuto come fonte di deposito: 1.018 record.

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p6.json",
+  "sha256": "C5EB34D2B5B9D29344FF2B01C91E4440BC4E4671735403DEDC682538F614A775",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240310",
+    "240315",
+    "240320",
+    "240325",
+    "240330"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DANNO_AMBIENTALE_BONIFICA_RIPRISTINO_E_AZIONE_DI_RISARCIMENTO_STATALE_D__240310",
+    "GUIDA_SCIA_ASSEVERAZIONI_FALSE_DEL_TECNICO_AUTOTUTELA_DELLA_PA_E_TUTELE_DEL_TE_240315",
+    "GUIDA_ORDINANZA_CONTINGIBILE_E_URGENTE_DEL_SINDACO_PRESUPPOSTI_PROPORZIONALIT__240320",
+    "GUIDA_COLLAUDO_DI_LAVORI_PUBBLICI_VIZI_EMERSI_NEL_COLLAUDO_CONTROVERSIE_CON_LA_240325",
+    "GUIDA_AUTORIZZAZIONE_INTEGRATA_AMBIENTALE_AIA_PROCEDIMENTO_RINNOVO_E_IMPUGNAZI_240330"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240310",
+      "codice_integrato": "GUIDA_DANNO_AMBIENTALE_BONIFICA_RIPRISTINO_E_AZIONE_DI_RISARCIMENTO_STATALE_D__240310",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240315",
+      "codice_integrato": "GUIDA_SCIA_ASSEVERAZIONI_FALSE_DEL_TECNICO_AUTOTUTELA_DELLA_PA_E_TUTELE_DEL_TE_240315",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240320",
+      "codice_integrato": "GUIDA_ORDINANZA_CONTINGIBILE_E_URGENTE_DEL_SINDACO_PRESUPPOSTI_PROPORZIONALIT__240320",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240325",
+      "codice_integrato": "GUIDA_COLLAUDO_DI_LAVORI_PUBBLICI_VIZI_EMERSI_NEL_COLLAUDO_CONTROVERSIE_CON_LA_240325",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240330",
+      "codice_integrato": "GUIDA_AUTORIZZAZIONE_INTEGRATA_AMBIENTALE_AIA_PROCEDIMENTO_RINNOVO_E_IMPUGNAZI_240330",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

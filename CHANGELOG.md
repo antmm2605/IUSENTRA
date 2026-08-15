@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.278.57 - 2026-08-15
+
+- **Guida Avvocato: integrate 399 nuove schede operative e 399 termini processuali dagli archivi utente set42–49.** Le schede alimentano la Guida Pratica e la conoscenza conversazionale di Lex, mantenendo intatte le voci specialistiche, le fonti e i presìdi dei materiali ricevuti. Tutte sono guide interne non depositabili: non modificano né sostituiscono i 1.018 codici oggetto PST/XSD ufficiali.
+- **Deduplicazione governata.** La scheda ricevuta `415120` sull'esecutore testamentario non è stata duplicata: il suo contenuto divergeva dalla guida canonica già presente, mantenuta come unica fonte interna. Audit, controllo UTF-8 e contratti di import impediscono perdita di contenuti o contaminazione del catalogo di deposito.
+- **Catalogo completo disponibile.** Il limite dell'API Guida Pratica è stato innalzato a 5.000 risultati: l'incremento delle schede non può più nascondere le ultime voci del catalogo dopo i 2.000 record.
+- **Documenti fuori perimetro esclusi.** Gli undici DOCX allegati sono temi scolastici di attualità e non sono stati inseriti nella guida professionale dell'avvocato.
+
 ## 2.278.56 - 2026-08-15
 
 - **Sei nuovi strumenti nella suite Strumenti Legali (Lotto 2A dell'inventario catalogo).** Conta giorni tra date e ricorrenze (aritmetica di calendario, con rinvio esplicito al modulo Termini processuali per i termini ex art. 155 c.p.c.); scorporo/aggiunta IVA con le sole aliquote vigenti 4-5-10-22% (D.P.R. 633/1972); percentuali e quote (quota, incidenza, variazione); codice fiscale — calcolo e decodifica ex D.M. 23/12/1976 riusando `pct/codice_fiscale` con archivio Belfiore, e avvertenza a verificare col documento ufficiale; tabella indici ISTAT FOI/NIC per anno e mese con variazione annua dal dataset versionato interno; tabella storica dei tassi legali (art. 1284 c.c.) e moratori (D.Lgs. 231/2002) con fonte ufficiale per periodo e filtro vista. Tutti disponibili sia nella vista classica sia nel percorso React (schema dichiarato in `pct/calcolatori/schema.py`), con API `/strumenti-legali/api/*` dedicate.

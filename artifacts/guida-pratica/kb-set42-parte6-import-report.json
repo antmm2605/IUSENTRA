@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p6.json",
+  "sha256": "06307485C2DEBBA6F2DC3767C39A2AE11ED431251467E74D47CBC732803DB167",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240255",
+    "240260",
+    "240265",
+    "240270",
+    "240275"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PIANO_PAESAGGISTICO_REGIONALE_PPR_PRESCRIZIONI_E_CONTESTAZIONE_D_LGS_42__240255",
+    "GUIDA_SEQUESTRO_PENALE_DI_BENI_AZIENDALI_RIESAME_E_TUTELE_DEL_TERZO_PROPRIETAR_240260",
+    "GUIDA_ANTIRICICLAGGIO_OBBLIGHI_DEI_PROFESSIONISTI_SOS_E_SANZIONI_D_LGS_231_200_240265",
+    "GUIDA_PATENTE_A_CREDITI_NEI_CANTIERI_TEMPORANEI_REVOCA_E_CONTROVERSIE_ART_29_D_240270",
+    "GUIDA_VALUTAZIONE_AMBIENTALE_STRATEGICA_VAS_PROCEDIMENTO_E_IMPUGNAZIONE_D_LGS__240275"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240255",
+      "codice_integrato": "GUIDA_PIANO_PAESAGGISTICO_REGIONALE_PPR_PRESCRIZIONI_E_CONTESTAZIONE_D_LGS_42__240255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240260",
+      "codice_integrato": "GUIDA_SEQUESTRO_PENALE_DI_BENI_AZIENDALI_RIESAME_E_TUTELE_DEL_TERZO_PROPRIETAR_240260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240265",
+      "codice_integrato": "GUIDA_ANTIRICICLAGGIO_OBBLIGHI_DEI_PROFESSIONISTI_SOS_E_SANZIONI_D_LGS_231_200_240265",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240270",
+      "codice_integrato": "GUIDA_PATENTE_A_CREDITI_NEI_CANTIERI_TEMPORANEI_REVOCA_E_CONTROVERSIE_ART_29_D_240270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240275",
+      "codice_integrato": "GUIDA_VALUTAZIONE_AMBIENTALE_STRATEGICA_VAS_PROCEDIMENTO_E_IMPUGNAZIONE_D_LGS__240275",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

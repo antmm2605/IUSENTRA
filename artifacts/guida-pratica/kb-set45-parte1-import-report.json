@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p1.json",
+  "sha256": "44D218AC9CFFC7F77D1425B6DD8CBAA2F06168C9A5E2A8E6A53E4962554805C1",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE1",
+  "denominazione": "Quarantacinquesimo set – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130430",
+    "130435",
+    "130440",
+    "130445",
+    "141140"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PROMESSA_DI_PAGAMENTO_E_RICOGNIZIONE_DI_DEBITO_EFFETTI_PROBATORI_E_INVER_130430",
+    "GUIDA_COASSICURAZIONE_GESTIONE_DEL_SINISTRO_DELEGA_E_RIPARTIZIONE_TRA_COASSICU_130435",
+    "GUIDA_PEGNO_NON_POSSESSORIO_SU_BENI_MOBILI_AZIENDALI_COSTITUZIONE_REGISTRO_E_C_130440",
+    "GUIDA_VENDITA_FORZATA_PURGAZIONE_DELLE_IPOTECHE_GARANZIE_DELL_AGGIUDICATARIO_E_130445",
+    "GUIDA_LIQUIDAZIONE_VOLONTARIA_DELLA_SOCIETA_DI_PERSONE_POTERI_DEI_LIQUIDATORI__141140"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130430",
+      "codice_integrato": "GUIDA_PROMESSA_DI_PAGAMENTO_E_RICOGNIZIONE_DI_DEBITO_EFFETTI_PROBATORI_E_INVER_130430",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130435",
+      "codice_integrato": "GUIDA_COASSICURAZIONE_GESTIONE_DEL_SINISTRO_DELEGA_E_RIPARTIZIONE_TRA_COASSICU_130435",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130440",
+      "codice_integrato": "GUIDA_PEGNO_NON_POSSESSORIO_SU_BENI_MOBILI_AZIENDALI_COSTITUZIONE_REGISTRO_E_C_130440",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130445",
+      "codice_integrato": "GUIDA_VENDITA_FORZATA_PURGAZIONE_DELLE_IPOTECHE_GARANZIE_DELL_AGGIUDICATARIO_E_130445",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141140",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_VOLONTARIA_DELLA_SOCIETA_DI_PERSONE_POTERI_DEI_LIQUIDATORI__141140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

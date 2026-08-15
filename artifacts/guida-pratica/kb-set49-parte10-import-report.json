@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p10.json",
+  "sha256": "12A15EBE8E8152DB84928AF6E0D4D712D4C5A2CBCD377D29BCEDFAAC2282F264",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "170170",
+    "180180",
+    "211180",
+    "190155",
+    "140140"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_OPERE_FOTOGRAFICHE_E_FOTOGRAFIE_SEMPLICI_PROTEZIONE_E_CONTRAFFAZIONE_L_6_170170",
+    "GUIDA_RESPONSABILITA_DEL_TOUR_OPERATOR_PER_DANNI_FISICI_DURANTE_ESCURSIONI_E_A_180180",
+    "GUIDA_DRAG_ALONG_E_TAG_ALONG_NEI_PATTI_PARASOCIALI_VALIDITA_ESCUSSIONE_E_CONTR_211180",
+    "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_PRESUPPOSTI_AZIONE__190155",
+    "GUIDA_CONTRATTO_DI_SALE_AND_LEASE_BACK_CARATTERISTICHE_RISCHIO_COMMISSORIO_E_C_140140"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170170",
+      "codice_integrato": "GUIDA_OPERE_FOTOGRAFICHE_E_FOTOGRAFIE_SEMPLICI_PROTEZIONE_E_CONTRAFFAZIONE_L_6_170170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180180",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_TOUR_OPERATOR_PER_DANNI_FISICI_DURANTE_ESCURSIONI_E_A_180180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211180",
+      "codice_integrato": "GUIDA_DRAG_ALONG_E_TAG_ALONG_NEI_PATTI_PARASOCIALI_VALIDITA_ESCUSSIONE_E_CONTR_211180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190155",
+      "codice_integrato": "GUIDA_RESCISSIONE_DEL_CONTRATTO_PER_LESIONE_ULTRA_DIMIDIUM_PRESUPPOSTI_AZIONE__190155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140140",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_SALE_AND_LEASE_BACK_CARATTERISTICHE_RISCHIO_COMMISSORIO_E_C_140140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

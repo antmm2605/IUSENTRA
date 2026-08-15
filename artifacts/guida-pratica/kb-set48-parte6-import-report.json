@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p6.json",
+  "sha256": "ADD8D14ED588FE1F6BB86F324115AA900F79EA4A5A9AC327A66476E20202A448",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240420",
+    "240425",
+    "240430",
+    "240435",
+    "240440"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PERMESSO_DI_COSTRUIRE_IN_DEROGA_AGLI_STRUMENTI_URBANISTICI_PRESUPPOSTI_P_240420",
+    "GUIDA_ZONIZZAZIONE_ACUSTICA_COMUNALE_CLASSIFICAZIONE_DELLE_AREE_LIMITI_E_CONTE_240425",
+    "GUIDA_PROCEDIMENTO_DISCIPLINARE_DEI_NOTAI_SANZIONI_SOSPENSIONE_E_IMPUGNAZIONE__240430",
+    "GUIDA_RICORSO_PER_CASSAZIONE_IN_MATERIA_AMMINISTRATIVA_MOTIVI_AMMISSIBILI_E_PR_240435",
+    "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILITA_DEI_BENI_CULTURALI_PRIVATI_PROCEDIME_240440"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240420",
+      "codice_integrato": "GUIDA_PERMESSO_DI_COSTRUIRE_IN_DEROGA_AGLI_STRUMENTI_URBANISTICI_PRESUPPOSTI_P_240420",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240425",
+      "codice_integrato": "GUIDA_ZONIZZAZIONE_ACUSTICA_COMUNALE_CLASSIFICAZIONE_DELLE_AREE_LIMITI_E_CONTE_240425",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240430",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DISCIPLINARE_DEI_NOTAI_SANZIONI_SOSPENSIONE_E_IMPUGNAZIONE__240430",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240435",
+      "codice_integrato": "GUIDA_RICORSO_PER_CASSAZIONE_IN_MATERIA_AMMINISTRATIVA_MOTIVI_AMMISSIBILI_E_PR_240435",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240440",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILITA_DEI_BENI_CULTURALI_PRIVATI_PROCEDIME_240440",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

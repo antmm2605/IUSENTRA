@@ -570,7 +570,7 @@ def _mark_suggested_code_payload(payload: dict[str, Any], match: dict[str, Any])
     return payload
 
 
-def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str = "", limit: int = 500, service: GuidaPraticaService | None = None) -> dict[str, Any]:
+def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str = "", limit: int = 5000, service: GuidaPraticaService | None = None) -> dict[str, Any]:
     service = service or get_guida_pratica_service()
     rows = service.list_guidance(query=query, coverage=coverage, limit=limit)
     counts: dict[str, int] = {}

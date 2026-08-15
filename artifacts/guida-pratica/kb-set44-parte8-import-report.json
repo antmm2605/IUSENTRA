@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p8.json",
+  "sha256": "E5614370D7D5AD328EBD8CAF459D4ABCE8029D8CAF618BD62C304376663131C0",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413260",
+    "413265",
+    "415130",
+    "415135",
+    "415140"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_PRESUPPOSTI_NOMINA_E_CONTROVERSIE_CON_L_INTE_413260",
+    "GUIDA_OBBLIGAZIONE_ALIMENTARE_PRESUPPOSTI_MISURA_MODALIT_E_REVISIONE_ARTT_433__413265",
+    "GUIDA_LEGATO_CON_ONERE_ADEMPIMENTO_INADEMPIMENTO_E_TUTELE_DEL_BENEFICIARIO_DEL_415130",
+    "GUIDA_DISPOSIZIONI_ANTICIPATE_DI_TRATTAMENTO_DAT_E_TESTAMENTO_BIOLOGICO_EFFICA_415135",
+    "GUIDA_PATTO_DI_FAMIGLIA_PER_LA_SUCCESSIONE_DELL_AZIENDA_O_DELLE_PARTECIPAZIONI_415140"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413260",
+      "codice_integrato": "GUIDA_AMMINISTRAZIONE_DI_SOSTEGNO_PRESUPPOSTI_NOMINA_E_CONTROVERSIE_CON_L_INTE_413260",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413265",
+      "codice_integrato": "GUIDA_OBBLIGAZIONE_ALIMENTARE_PRESUPPOSTI_MISURA_MODALIT_E_REVISIONE_ARTT_433__413265",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415130",
+      "codice_integrato": "GUIDA_LEGATO_CON_ONERE_ADEMPIMENTO_INADEMPIMENTO_E_TUTELE_DEL_BENEFICIARIO_DEL_415130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415135",
+      "codice_integrato": "GUIDA_DISPOSIZIONI_ANTICIPATE_DI_TRATTAMENTO_DAT_E_TESTAMENTO_BIOLOGICO_EFFICA_415135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415140",
+      "codice_integrato": "GUIDA_PATTO_DI_FAMIGLIA_PER_LA_SUCCESSIONE_DELL_AZIENDA_O_DELLE_PARTECIPAZIONI_415140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

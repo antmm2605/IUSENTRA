@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p3.json",
+  "sha256": "1A31571A88EAB29C8923A9ECFE8FAA2F34D9959B27B8435C11443F6C3E5C450E",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "144060",
+    "155065",
+    "156060",
+    "190085",
+    "190090"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LETTERA_DI_CREDITO_DOCUMENTARIO_LC_CONTROVERSIE_TRA_BANCA_EMITTENTE_BENE_144060",
+    "GUIDA_CRISI_BANCARIA_E_BAIL_IN_TUTELA_DEGLI_OBBLIGAZIONISTI_JUNIOR_E_DEGLI_AZI_155065",
+    "GUIDA_CREDITO_FONDIARIO_SOSPENSIONE_DELLE_RATE_IMPUGNAZIONE_DELLA_PROCEDURA_ES_156060",
+    "GUIDA_AZIONE_DI_INGIUSTIFICATO_ARRICCHIMENTO_PRESUPPOSTI_SUBSIDIRARIET_E_ONERE_190085",
+    "GUIDA_AZIONE_SURROGATORIA_ESERCIZIO_DEI_DIRITTI_DEL_DEBITORE_INERTE_PER_CONTO__190090"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "144060",
+      "codice_integrato": "GUIDA_LETTERA_DI_CREDITO_DOCUMENTARIO_LC_CONTROVERSIE_TRA_BANCA_EMITTENTE_BENE_144060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155065",
+      "codice_integrato": "GUIDA_CRISI_BANCARIA_E_BAIL_IN_TUTELA_DEGLI_OBBLIGAZIONISTI_JUNIOR_E_DEGLI_AZI_155065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156060",
+      "codice_integrato": "GUIDA_CREDITO_FONDIARIO_SOSPENSIONE_DELLE_RATE_IMPUGNAZIONE_DELLA_PROCEDURA_ES_156060",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190085",
+      "codice_integrato": "GUIDA_AZIONE_DI_INGIUSTIFICATO_ARRICCHIMENTO_PRESUPPOSTI_SUBSIDIRARIET_E_ONERE_190085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190090",
+      "codice_integrato": "GUIDA_AZIONE_SURROGATORIA_ESERCIZIO_DEI_DIRITTI_DEL_DEBITORE_INERTE_PER_CONTO__190090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p1.json",
+  "sha256": "112D58D9D2AA95E219FFFBE46C4062719E68AF30C78D6C84AD16878B840A6FDA",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE1",
+  "denominazione": "Quarantatreesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130395",
+    "130400",
+    "130405",
+    "141130",
+    "144065"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_SUBFORNITURA_DIPENDENZA_ECONOMICA_ABUSO_E_TUTELE_L_192_1998_130395",
+    "GUIDA_CONTRATTO_A_DISTANZA_E_FUORI_DAI_LOCALI_COMMERCIALI_DIRITTO_DI_RECESSO_D_130400",
+    "GUIDA_CONTRATTO_DI_EDIZIONE_LETTERARIA_OBBLIGHI_DELL_EDITORE_DIRITTI_DELL_AUTO_130405",
+    "GUIDA_FUSIONE_PER_INCORPORAZIONE_OPPOSIZIONE_DEI_CREDITORI_E_TUTELE_POST_FUSIO_141130",
+    "GUIDA_CONTO_CORRENTE_BANCARIO_ERRORI_NEL_CONTO_CONTESTAZIONE_E_PRESCRIZIONE_DE_144065"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130395",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_SUBFORNITURA_DIPENDENZA_ECONOMICA_ABUSO_E_TUTELE_L_192_1998_130395",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130400",
+      "codice_integrato": "GUIDA_CONTRATTO_A_DISTANZA_E_FUORI_DAI_LOCALI_COMMERCIALI_DIRITTO_DI_RECESSO_D_130400",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130405",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_EDIZIONE_LETTERARIA_OBBLIGHI_DELL_EDITORE_DIRITTI_DELL_AUTO_130405",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141130",
+      "codice_integrato": "GUIDA_FUSIONE_PER_INCORPORAZIONE_OPPOSIZIONE_DEI_CREDITORI_E_TUTELE_POST_FUSIO_141130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144065",
+      "codice_integrato": "GUIDA_CONTO_CORRENTE_BANCARIO_ERRORI_NEL_CONTO_CONTESTAZIONE_E_PRESCRIZIONE_DE_144065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p10.json",
+  "sha256": "0D8837E203907BE95DA53B91E2EB149292F056C43A5A58D6BD54A9F275CC70C8",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "170150",
+    "180160",
+    "211150",
+    "190135",
+    "140130"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LICENZA_ESCLUSIVA_DI_BREVETTO_SUB_LICENZA_ROYALTIES_E_CONTROVERSIE_ARTT__170150",
+    "GUIDA_VENDITA_INTERNAZIONALE_DI_BENI_MOBILI_CONVENZIONE_DI_VIENNA_CISG_E_CONTR_180160",
+    "GUIDA_ARBITRATO_SPORTIVO_DAVANTI_AL_TNAS_E_TAS_PROCEDIMENTO_E_RICORSO_D_LGS_36_211150",
+    "GUIDA_TUTELA_DEI_CREDITORI_NELLA_CESSIONE_DEL_RAMO_D_AZIENDA_RESPONSABILITA_DE_190135",
+    "GUIDA_PATTO_DI_PRELAZIONE_VOLONTARIA_VALIDITA_OPPONIBILITA_A_TERZI_E_RETRATTO__140130"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170150",
+      "codice_integrato": "GUIDA_LICENZA_ESCLUSIVA_DI_BREVETTO_SUB_LICENZA_ROYALTIES_E_CONTROVERSIE_ARTT__170150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180160",
+      "codice_integrato": "GUIDA_VENDITA_INTERNAZIONALE_DI_BENI_MOBILI_CONVENZIONE_DI_VIENNA_CISG_E_CONTR_180160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211150",
+      "codice_integrato": "GUIDA_ARBITRATO_SPORTIVO_DAVANTI_AL_TNAS_E_TAS_PROCEDIMENTO_E_RICORSO_D_LGS_36_211150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190135",
+      "codice_integrato": "GUIDA_TUTELA_DEI_CREDITORI_NELLA_CESSIONE_DEL_RAMO_D_AZIENDA_RESPONSABILITA_DE_190135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140130",
+      "codice_integrato": "GUIDA_PATTO_DI_PRELAZIONE_VOLONTARIA_VALIDITA_OPPONIBILITA_A_TERZI_E_RETRATTO__140130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

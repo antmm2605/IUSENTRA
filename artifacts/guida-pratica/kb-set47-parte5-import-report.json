@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p5.json",
+  "sha256": "8C7B22DC008DE0E877C44468B5E81956F36EFFDE79372B6E36146A31337FECC5",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220510",
+    "220515",
+    "620145",
+    "620150",
+    "240385"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CLAUSOLA_DI_NON_CONCORRENZA_POST_CONTRATTUALE_VALIDITA_LIMITI_E_VIOLAZIO_220510",
+    "GUIDA_DIRIGENTI_TRATTAMENTO_PREVIDENZIALE_INTEGRATIVO_E_PREVINDAI_CCNL_DIRIGEN_220515",
+    "GUIDA_LAVORO_INTERMITTENTE_A_CHIAMATA_INDENNITA_DI_DISPONIBILITA_CONTROVERSIE__620145",
+    "GUIDA_ASSISTENZA_FAMILIARE_BADANTE_CONTRATTO_CONTRIBUTI_CONTROVERSIE_E_CCNL_DO_620150",
+    "GUIDA_PIANO_REGOLATORE_PORTUALE_APPROVAZIONE_VARIANTI_E_IMPUGNAZIONE_DA_PARTE__240385"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220510",
+      "codice_integrato": "GUIDA_CLAUSOLA_DI_NON_CONCORRENZA_POST_CONTRATTUALE_VALIDITA_LIMITI_E_VIOLAZIO_220510",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220515",
+      "codice_integrato": "GUIDA_DIRIGENTI_TRATTAMENTO_PREVIDENZIALE_INTEGRATIVO_E_PREVINDAI_CCNL_DIRIGEN_220515",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620145",
+      "codice_integrato": "GUIDA_LAVORO_INTERMITTENTE_A_CHIAMATA_INDENNITA_DI_DISPONIBILITA_CONTROVERSIE__620145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620150",
+      "codice_integrato": "GUIDA_ASSISTENZA_FAMILIARE_BADANTE_CONTRATTO_CONTRIBUTI_CONTROVERSIE_E_CCNL_DO_620150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240385",
+      "codice_integrato": "GUIDA_PIANO_REGOLATORE_PORTUALE_APPROVAZIONE_VARIANTI_E_IMPUGNAZIONE_DA_PARTE__240385",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

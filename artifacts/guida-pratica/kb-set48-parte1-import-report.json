@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p1.json",
+  "sha256": "ED6DDE27A73EA61948A9DB2DB0D41A492F71A006F4D8701155AC01A7FC36CAD9",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE1",
+  "denominazione": "Quarantottesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130490",
+    "130495",
+    "130500",
+    "130505",
+    "141155"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SERVIZI_CLOUD_E_ICT_CRITICI_SLA_RESILIENZA_OPERATIVA_E_CONTROVERSIE_REG__130490",
+    "GUIDA_CONTRATTO_ESCO_ENERGY_SERVICE_COMPANY_RISPARMIO_ENERGETICO_GARANTITO_MIS_130495",
+    "GUIDA_CESSIONE_DI_QUOTE_DI_S_R_L_FORMA_CONDIZIONI_OPPONIBILITA_E_CLAUSOLE_DI_P_130500",
+    "GUIDA_GARANZIA_BANCARIA_AUTONOMA_ON_DEMAND_ESCUSSIONE_EXCEPTIO_DOLI_E_CONTROVE_130505",
+    "GUIDA_TRASFORMAZIONE_SOCIETARIA_CONTINUITA_DEL_RAPPORTO_GIURIDICO_TUTELE_DEI_C_141155"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130490",
+      "codice_integrato": "GUIDA_SERVIZI_CLOUD_E_ICT_CRITICI_SLA_RESILIENZA_OPERATIVA_E_CONTROVERSIE_REG__130490",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130495",
+      "codice_integrato": "GUIDA_CONTRATTO_ESCO_ENERGY_SERVICE_COMPANY_RISPARMIO_ENERGETICO_GARANTITO_MIS_130495",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130500",
+      "codice_integrato": "GUIDA_CESSIONE_DI_QUOTE_DI_S_R_L_FORMA_CONDIZIONI_OPPONIBILITA_E_CLAUSOLE_DI_P_130500",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130505",
+      "codice_integrato": "GUIDA_GARANZIA_BANCARIA_AUTONOMA_ON_DEMAND_ESCUSSIONE_EXCEPTIO_DOLI_E_CONTROVE_130505",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141155",
+      "codice_integrato": "GUIDA_TRASFORMAZIONE_SOCIETARIA_CONTINUITA_DEL_RAPPORTO_GIURIDICO_TUTELE_DEI_C_141155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

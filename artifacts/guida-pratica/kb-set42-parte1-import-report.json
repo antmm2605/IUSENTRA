@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p1.json",
+  "sha256": "290997496F665DB07877C2FD969B3432991BF39A2F4C4B4F18974593F6C1C601",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE1",
+  "denominazione": "Quarantaduesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130370",
+    "130375",
+    "130380",
+    "130385",
+    "130390"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_PERMUTA_GARANZIA_PER_EVIZIONE_VIZI_DELLA_COSA_E_RISOLUZIONE_130370",
+    "GUIDA_CONTRATTO_DI_RENDITA_VITALIZIA_INADEMPIMENTO_RISOLUZIONE_E_TUTELE_DEL_VI_130375",
+    "GUIDA_CONTRATTO_DI_PRESTAZIONE_D_OPERA_INTELLETTUALE_RECESSO_DEL_CLIENTE_COMPE_130380",
+    "GUIDA_CONTRATTO_DI_TRASPORTO_DI_PERSONE_RESPONSABILIT_DEL_VETTORE_PER_LESIONI__130385",
+    "GUIDA_CONTRATTO_DI_ALBERGO_E_STRUTTURE_RICETTIVE_RESPONSABILIT_PER_PERDITA_DI__130390"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130370",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_PERMUTA_GARANZIA_PER_EVIZIONE_VIZI_DELLA_COSA_E_RISOLUZIONE_130370",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130375",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_RENDITA_VITALIZIA_INADEMPIMENTO_RISOLUZIONE_E_TUTELE_DEL_VI_130375",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130380",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_PRESTAZIONE_D_OPERA_INTELLETTUALE_RECESSO_DEL_CLIENTE_COMPE_130380",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130385",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_TRASPORTO_DI_PERSONE_RESPONSABILIT_DEL_VETTORE_PER_LESIONI__130385",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130390",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_ALBERGO_E_STRUTTURE_RICETTIVE_RESPONSABILIT_PER_PERDITA_DI__130390",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

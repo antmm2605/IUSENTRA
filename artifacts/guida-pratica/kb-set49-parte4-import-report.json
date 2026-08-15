@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p4.json",
+  "sha256": "6C3B9DFC247FCAE6541C241A8767E6018012BE1C202745DF23B3AD6C33AE72E0",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190150",
+    "191135",
+    "199185",
+    "211170",
+    "211175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ECCEZIONE_DI_INADEMPIMENTO_EXCEPTIO_NON_ADIMPLETI_CONTRACTUS_PRESUPPOSTI_190150",
+    "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ATP_EX_ART_696_BIS_C_P_C_PROCEDIMENTO_CO_191135",
+    "GUIDA_INTERRUZIONE_E_SOSPENSIONE_DELLA_PRESCRIZIONE_ATTI_INTERRUTTIVI_EFFETTI__199185",
+    "GUIDA_MEDIAZIONE_OBBLIGATORIA_SANZIONI_PER_LA_MANCATA_PARTECIPAZIONE_E_OSTRUZI_211170",
+    "GUIDA_ACCORDO_DI_CONCILIAZIONE_IN_MEDIAZIONE_VIZI_IMPUGNAZIONE_E_OMOLOGAZIONE__211175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190150",
+      "codice_integrato": "GUIDA_ECCEZIONE_DI_INADEMPIMENTO_EXCEPTIO_NON_ADIMPLETI_CONTRACTUS_PRESUPPOSTI_190150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191135",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_ATP_EX_ART_696_BIS_C_P_C_PROCEDIMENTO_CO_191135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199185",
+      "codice_integrato": "GUIDA_INTERRUZIONE_E_SOSPENSIONE_DELLA_PRESCRIZIONE_ATTI_INTERRUTTIVI_EFFETTI__199185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211170",
+      "codice_integrato": "GUIDA_MEDIAZIONE_OBBLIGATORIA_SANZIONI_PER_LA_MANCATA_PARTECIPAZIONE_E_OSTRUZI_211170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211175",
+      "codice_integrato": "GUIDA_ACCORDO_DI_CONCILIAZIONE_IN_MEDIAZIONE_VIZI_IMPUGNAZIONE_E_OMOLOGAZIONE__211175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

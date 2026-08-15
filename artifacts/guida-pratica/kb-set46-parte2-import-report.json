@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p2.json",
+  "sha256": "6A09228B646309D1E9D48BAC106DF67761CA90C2B576244C8C04D1B6460297DF",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150270",
+    "150275",
+    "155090",
+    "156090",
+    "144080"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_P_A_EMISSIONE_DI_OBBLIGAZIONI_CONVERTIBILI_IN_AZIONI_E_CONTROVERSIE_AR_150270",
+    "GUIDA_S_P_A_AZIONI_DI_CATEGORIA_CON_DIRITTI_PARTICOLARI_E_CONTROVERSIE_ARTT_23_150275",
+    "GUIDA_MARKET_MAKING_NEI_MERCATI_REGOLAMENTATI_ESENZIONI_DALL_ABUSO_DI_MERCATO__155090",
+    "GUIDA_CROWDFUNDING_FINANZIAMENTO_PARTECIPATIVO_DI_IMPRESE_E_CONTROVERSIE_REG_U_156090",
+    "GUIDA_CARTA_DI_CREDITO_ADDEBITI_NON_AUTORIZZATI_RESPONSABILITA_DELL_EMITTENTE__144080"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150270",
+      "codice_integrato": "GUIDA_S_P_A_EMISSIONE_DI_OBBLIGAZIONI_CONVERTIBILI_IN_AZIONI_E_CONTROVERSIE_AR_150270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150275",
+      "codice_integrato": "GUIDA_S_P_A_AZIONI_DI_CATEGORIA_CON_DIRITTI_PARTICOLARI_E_CONTROVERSIE_ARTT_23_150275",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155090",
+      "codice_integrato": "GUIDA_MARKET_MAKING_NEI_MERCATI_REGOLAMENTATI_ESENZIONI_DALL_ABUSO_DI_MERCATO__155090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156090",
+      "codice_integrato": "GUIDA_CROWDFUNDING_FINANZIAMENTO_PARTECIPATIVO_DI_IMPRESE_E_CONTROVERSIE_REG_U_156090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144080",
+      "codice_integrato": "GUIDA_CARTA_DI_CREDITO_ADDEBITI_NON_AUTORIZZATI_RESPONSABILITA_DELL_EMITTENTE__144080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

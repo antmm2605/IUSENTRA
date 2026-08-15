@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p6.json",
+  "sha256": "4B0B790AD32A40EEEE97CB9E21148FABC6B1F05BBD17E25863AE5DDB313B6AD9",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240335",
+    "240340",
+    "240345",
+    "240350",
+    "240355"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SOCIETA_MISTE_PUBBLICO_PRIVATE_SELEZIONE_DEL_SOCIO_PRIVATO_E_CONTROVERSI_240335",
+    "GUIDA_PIANO_DI_RECUPERO_URBANO_ADOZIONE_EFFICACIA_E_IMPUGNAZIONE_DA_PARTE_DEI__240340",
+    "GUIDA_CONCESSIONE_RADIO_TELEVISIVA_RILASCIO_RINNOVO_E_CONTROVERSIE_D_LGS_208_2_240345",
+    "GUIDA_OFFERTA_ANOMALA_NEGLI_APPALTI_PUBBLICI_VERIFICA_ESCLUSIONE_E_CONTROVERSI_240350",
+    "GUIDA_RICORSO_INCIDENTALE_NEGLI_APPALTI_INTERESSE_A_RICORRERE_ORDINE_DI_ESAME__240355"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240335",
+      "codice_integrato": "GUIDA_SOCIETA_MISTE_PUBBLICO_PRIVATE_SELEZIONE_DEL_SOCIO_PRIVATO_E_CONTROVERSI_240335",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240340",
+      "codice_integrato": "GUIDA_PIANO_DI_RECUPERO_URBANO_ADOZIONE_EFFICACIA_E_IMPUGNAZIONE_DA_PARTE_DEI__240340",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240345",
+      "codice_integrato": "GUIDA_CONCESSIONE_RADIO_TELEVISIVA_RILASCIO_RINNOVO_E_CONTROVERSIE_D_LGS_208_2_240345",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240350",
+      "codice_integrato": "GUIDA_OFFERTA_ANOMALA_NEGLI_APPALTI_PUBBLICI_VERIFICA_ESCLUSIONE_E_CONTROVERSI_240350",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240355",
+      "codice_integrato": "GUIDA_RICORSO_INCIDENTALE_NEGLI_APPALTI_INTERESSE_A_RICORRERE_ORDINE_DI_ESAME__240355",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

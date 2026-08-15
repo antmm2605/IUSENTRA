@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p6.json",
+  "sha256": "67400ED21A8D0BA2B2C0374BD70AA02BA6CE687BEDE41C6E435B7776EBD63AC7",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240360",
+    "240365",
+    "240370",
+    "240375",
+    "240380"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PEREQUAZIONE_URBANISTICA_OBBLIGHI_DEI_PROPRIETARI_CESSIONE_DI_AREE_E_CON_240360",
+    "GUIDA_CONCESSIONE_DI_PARCHEGGI_DI_PERTINENZA_E_PARCHEGGI_PUBBLICI_DIRITTI_DEI__240365",
+    "GUIDA_PROCEDIMENTO_DAVANTI_ALL_AGCM_PER_VIOLAZIONE_DELLA_NORMATIVA_ANTITRUST_S_240370",
+    "GUIDA_ANNULLAMENTO_D_UFFICIO_E_REVOCA_DEL_PROVVEDIMENTO_AMMINISTRATIVO_PRESUPP_240375",
+    "GUIDA_SILENZIO_ASSENSO_VERSO_LA_PA_FORMAZIONE_EFFETTI_E_RIMEDI_PER_IL_TERZO_PR_240380"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240360",
+      "codice_integrato": "GUIDA_PEREQUAZIONE_URBANISTICA_OBBLIGHI_DEI_PROPRIETARI_CESSIONE_DI_AREE_E_CON_240360",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240365",
+      "codice_integrato": "GUIDA_CONCESSIONE_DI_PARCHEGGI_DI_PERTINENZA_E_PARCHEGGI_PUBBLICI_DIRITTI_DEI__240365",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240370",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DAVANTI_ALL_AGCM_PER_VIOLAZIONE_DELLA_NORMATIVA_ANTITRUST_S_240370",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240375",
+      "codice_integrato": "GUIDA_ANNULLAMENTO_D_UFFICIO_E_REVOCA_DEL_PROVVEDIMENTO_AMMINISTRATIVO_PRESUPP_240375",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240380",
+      "codice_integrato": "GUIDA_SILENZIO_ASSENSO_VERSO_LA_PA_FORMAZIONE_EFFETTI_E_RIMEDI_PER_IL_TERZO_PR_240380",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

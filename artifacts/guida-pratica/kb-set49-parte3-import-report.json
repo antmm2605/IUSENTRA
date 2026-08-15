@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p3.json",
+  "sha256": "5EF5AB0A46C755CDF4F9BB6A3E0D1C1E706E776AB4AB7AC1EC0CB634DCB202A2",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160500",
+    "160505",
+    "160510",
+    "170165",
+    "180175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_MOBBING_RESPONSABILITA_DEL_DATORE_E_DEL_COLLEGA_CRITERI_DANNI_E_RISARCIM_160500",
+    "GUIDA_RESPONSABILITA_DEL_MEDICO_DI_MEDICINA_GENERALE_PER_DIAGNOSI_ERRATA_O_MAN_160505",
+    "GUIDA_DANNO_DA_INTERRUZIONE_DEL_SERVIZIO_ELETTRICO_RESPONSABILITA_DEL_DISTRIBU_160510",
+    "GUIDA_TUTELA_DEL_DATABASE_DIRITTO_SUI_GENERIS_DEL_COSTITUTORE_E_CONTRAFFAZIONE_170165",
+    "GUIDA_ASSICURAZIONE_SULLA_VITA_DI_TERZO_DESIGNAZIONE_DEL_BENEFICIARIO_MODIFICA_180175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160500",
+      "codice_integrato": "GUIDA_MOBBING_RESPONSABILITA_DEL_DATORE_E_DEL_COLLEGA_CRITERI_DANNI_E_RISARCIM_160500",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160505",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_MEDICO_DI_MEDICINA_GENERALE_PER_DIAGNOSI_ERRATA_O_MAN_160505",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160510",
+      "codice_integrato": "GUIDA_DANNO_DA_INTERRUZIONE_DEL_SERVIZIO_ELETTRICO_RESPONSABILITA_DEL_DISTRIBU_160510",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170165",
+      "codice_integrato": "GUIDA_TUTELA_DEL_DATABASE_DIRITTO_SUI_GENERIS_DEL_COSTITUTORE_E_CONTRAFFAZIONE_170165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180175",
+      "codice_integrato": "GUIDA_ASSICURAZIONE_SULLA_VITA_DI_TERZO_DESIGNAZIONE_DEL_BENEFICIARIO_MODIFICA_180175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

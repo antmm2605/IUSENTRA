@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p9.json",
+  "sha256": "43AB0A3E7FC24418092D5167E73C8C2131068ACDC94F70ABA5427753C1C5505D",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "191105",
+    "199150",
+    "150240",
+    "156070",
+    "220475"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RINVIO_PREGIUDIZIALE_ALLA_CORTE_DI_GIUSTIZIA_DELL_UE_PROCEDURA_E_CASI_AR_191105",
+    "GUIDA_PROCEDIMENTO_DISCIPLINARE_DEGLI_AVVOCATI_FASI_GARANZIE_E_IMPUGNAZIONE_DA_199150",
+    "GUIDA_S_R_L_DECISIONI_DEI_SOCI_SENZA_ADUNANZA_ASSEMBLEARE_CONSULTAZIONE_SCRITT_150240",
+    "GUIDA_CONTO_DI_PAGAMENTO_E_SERVIZI_DI_PAGAMENTO_PSD2_CONTROVERSIE_E_DIRITTO_AL_156070",
+    "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_CONVERSIONE_DEL_PART_TIME_RIFIUTO_D_220475"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "191105",
+      "codice_integrato": "GUIDA_RINVIO_PREGIUDIZIALE_ALLA_CORTE_DI_GIUSTIZIA_DELL_UE_PROCEDURA_E_CASI_AR_191105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199150",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DISCIPLINARE_DEGLI_AVVOCATI_FASI_GARANZIE_E_IMPUGNAZIONE_DA_199150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150240",
+      "codice_integrato": "GUIDA_S_R_L_DECISIONI_DEI_SOCI_SENZA_ADUNANZA_ASSEMBLEARE_CONSULTAZIONE_SCRITT_150240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156070",
+      "codice_integrato": "GUIDA_CONTO_DI_PAGAMENTO_E_SERVIZI_DI_PAGAMENTO_PSD2_CONTROVERSIE_E_DIRITTO_AL_156070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220475",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_LAVORO_A_TEMPO_PARZIALE_CONVERSIONE_DEL_PART_TIME_RIFIUTO_D_220475",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

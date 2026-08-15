@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p3.json",
+  "sha256": "AD26F1D33F4449E651B57AD1EE4E52DD6480EBCBA6E6579D04F104FEDDF9D277",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160425",
+    "160430",
+    "160435",
+    "180125",
+    "140115"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DELLA_STRUTTURA_SCOLASTICA_PER_INFORTUNI_DEGLI_ALUNNI_CULP_160425",
+    "GUIDA_RESPONSABILIT_DELLA_PA_PER_CADUTA_SU_STRADE_BIANCHE_E_MULATTIERE_ART_204_160430",
+    "GUIDA_MOBBING_RESPONSABILIT_DEL_DATORE_PER_DANNO_PSICHICO_DA_SISTEMATICA_MOLES_160435",
+    "GUIDA_TOUR_OPERATOR_INADEMPIMENTO_DEL_PACCHETTO_TURISTICO_E_DANNO_DA_VACANZA_R_180125",
+    "GUIDA_CONCESSIONE_DI_COSTRUZIONE_E_GESTIONE_DI_OPERE_PUBBLICHE_OBBLIGHI_DEL_CO_140115"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160425",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_STRUTTURA_SCOLASTICA_PER_INFORTUNI_DEGLI_ALUNNI_CULP_160425",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160430",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_PA_PER_CADUTA_SU_STRADE_BIANCHE_E_MULATTIERE_ART_204_160430",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160435",
+      "codice_integrato": "GUIDA_MOBBING_RESPONSABILIT_DEL_DATORE_PER_DANNO_PSICHICO_DA_SISTEMATICA_MOLES_160435",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180125",
+      "codice_integrato": "GUIDA_TOUR_OPERATOR_INADEMPIMENTO_DEL_PACCHETTO_TURISTICO_E_DANNO_DA_VACANZA_R_180125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140115",
+      "codice_integrato": "GUIDA_CONCESSIONE_DI_COSTRUZIONE_E_GESTIONE_DI_OPERE_PUBBLICHE_OBBLIGHI_DEL_CO_140115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

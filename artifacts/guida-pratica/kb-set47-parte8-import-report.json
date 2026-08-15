@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p8.json",
+  "sha256": "85ED9507A6BE50D2682C85927534F73A672960A69BF847F448CBD8C2E27C9F0C",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413290",
+    "413295",
+    "415175",
+    "415180",
+    "415185"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RETTIFICAZIONE_DELL_ATTRIBUZIONE_DI_SESSO_E_MODIFICA_DEI_DOCUMENTI_ANAGR_413290",
+    "GUIDA_UNIONE_CIVILE_COSTITUZIONE_SCIOGLIMENTO_DIRITTI_PATRIMONIALI_E_CONTROVER_413295",
+    "GUIDA_ACCETTAZIONE_DELL_EREDITA_CON_BENEFICIO_D_INVENTARIO_PROCEDIMENTO_CONTRO_415175",
+    "GUIDA_EREDITA_GIACENTE_NOMINA_DEL_CURATORE_GESTIONE_E_RESPONSABILITA_ARTT_528__415180",
+    "GUIDA_LEGATO_DI_ALIMENTI_CONTENUTO_MISURA_REVISIONE_E_CONTROVERSIE_ARTT_660_66_415185"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413290",
+      "codice_integrato": "GUIDA_RETTIFICAZIONE_DELL_ATTRIBUZIONE_DI_SESSO_E_MODIFICA_DEI_DOCUMENTI_ANAGR_413290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413295",
+      "codice_integrato": "GUIDA_UNIONE_CIVILE_COSTITUZIONE_SCIOGLIMENTO_DIRITTI_PATRIMONIALI_E_CONTROVER_413295",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415175",
+      "codice_integrato": "GUIDA_ACCETTAZIONE_DELL_EREDITA_CON_BENEFICIO_D_INVENTARIO_PROCEDIMENTO_CONTRO_415175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415180",
+      "codice_integrato": "GUIDA_EREDITA_GIACENTE_NOMINA_DEL_CURATORE_GESTIONE_E_RESPONSABILITA_ARTT_528__415180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415185",
+      "codice_integrato": "GUIDA_LEGATO_DI_ALIMENTI_CONTENUTO_MISURA_REVISIONE_E_CONTROVERSIE_ARTT_660_66_415185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

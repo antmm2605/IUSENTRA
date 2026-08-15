@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p9.json",
+  "sha256": "3C35B2443D32D7FD74FE3AA76E9A0BB4D789CC9130989A67D2CE99912B4A5B60",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510140",
+    "500105",
+    "500110",
+    "510145",
+    "144070"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_PIANO_DI_RIPARTO__510140",
+    "GUIDA_TRANSAZIONE_FISCALE_NEL_CONCORDATO_PREVENTIVO_AMMISSIBILIT_TRATTAMENTO_D_500105",
+    "GUIDA_PREDEDUZIONE_DEI_CREDITI_NEL_CONCORDATO_E_NELLA_LIQUIDAZIONE_GIUDIZIALE__500110",
+    "GUIDA_RIUNIONE_DI_PROCEDURE_ESECUTIVE_PRESUPPOSTI_PRIORIT_E_CONTROVERSIE_ARTT__510145",
+    "GUIDA_APERTURA_DI_CREDITO_BANCARIA_REVOCA_ANTICIPATA_RISOLUZIONE_E_CONTROVERSI_144070"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510140",
+      "codice_integrato": "GUIDA_DISTRIBUZIONE_DEL_RICAVATO_NELL_ESECUZIONE_IMMOBILIARE_PIANO_DI_RIPARTO__510140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500105",
+      "codice_integrato": "GUIDA_TRANSAZIONE_FISCALE_NEL_CONCORDATO_PREVENTIVO_AMMISSIBILIT_TRATTAMENTO_D_500105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500110",
+      "codice_integrato": "GUIDA_PREDEDUZIONE_DEI_CREDITI_NEL_CONCORDATO_E_NELLA_LIQUIDAZIONE_GIUDIZIALE__500110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510145",
+      "codice_integrato": "GUIDA_RIUNIONE_DI_PROCEDURE_ESECUTIVE_PRESUPPOSTI_PRIORIT_E_CONTROVERSIE_ARTT__510145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144070",
+      "codice_integrato": "GUIDA_APERTURA_DI_CREDITO_BANCARIA_REVOCA_ANTICIPATA_RISOLUZIONE_E_CONTROVERSI_144070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

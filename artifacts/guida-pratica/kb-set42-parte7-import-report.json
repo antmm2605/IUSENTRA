@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p7.json",
+  "sha256": "E99027555970B66C3B4C349830E7F6CA631DB188EDB6987D5FB3299B8905E635",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512345",
+    "512350",
+    "512355",
+    "512360",
+    "512365"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_INVERSIONE_CONTABILE_IVA_REVERSE_CHARGE_OMESSA_APPLICAZIONE_E_SANZIONI_D_512345",
+    "GUIDA_NOTA_DI_VARIAZIONE_IVA_EMISSIONE_IN_DIMINUZIONE_E_CONTESTAZIONE_DPR_633__512350",
+    "GUIDA_PATENT_BOX_2022_SU_BENI_IMMATERIALI_AUTO_PRODOTTI_SUPER_DEDUZIONE_E_CONT_512355",
+    "GUIDA_RULING_INTERNAZIONALE_PREVENTIVO_CON_LE_AUTORIT_FISCALI_PROCEDURA_E_VIOL_512360",
+    "GUIDA_TASSAZIONE_DEI_REDDITI_DA_CRIPTOVALUTE_PLUSVALENZE_E_CONTESTAZIONE_L_197_512365"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512345",
+      "codice_integrato": "GUIDA_INVERSIONE_CONTABILE_IVA_REVERSE_CHARGE_OMESSA_APPLICAZIONE_E_SANZIONI_D_512345",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512350",
+      "codice_integrato": "GUIDA_NOTA_DI_VARIAZIONE_IVA_EMISSIONE_IN_DIMINUZIONE_E_CONTESTAZIONE_DPR_633__512350",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512355",
+      "codice_integrato": "GUIDA_PATENT_BOX_2022_SU_BENI_IMMATERIALI_AUTO_PRODOTTI_SUPER_DEDUZIONE_E_CONT_512355",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512360",
+      "codice_integrato": "GUIDA_RULING_INTERNAZIONALE_PREVENTIVO_CON_LE_AUTORIT_FISCALI_PROCEDURA_E_VIOL_512360",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512365",
+      "codice_integrato": "GUIDA_TASSAZIONE_DEI_REDDITI_DA_CRIPTOVALUTE_PLUSVALENZE_E_CONTESTAZIONE_L_197_512365",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

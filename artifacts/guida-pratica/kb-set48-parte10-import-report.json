@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p10.json",
+  "sha256": "1586DDAAE29EFC653488860AC42F6104A6C63420FC98EFCB29F5B74DA7741103",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "170160",
+    "180170",
+    "211165",
+    "190145",
+    "140135"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_NOME_E_DENOMINAZIONE_COMMERCIALE_COME_SEGNI_DISTINTIVI_TUTELA_E_CONTROVE_170160",
+    "GUIDA_CROCIERE_RESPONSABILITA_DEL_VETTORE_MARITTIMO_PER_DANNI_AI_PASSEGGERI_E__180170",
+    "GUIDA_TRANSAZIONE_IN_MATERIA_EREDITARIA_EFFICACIA_ESTENSIONE_E_CONTROVERSIE_AR_211165",
+    "GUIDA_TUTELA_DEL_POSSESSO_CONTRO_LE_IMMISSIONI_ILLECITE_E_LE_TURBATIVE_DEL_VIC_190145",
+    "GUIDA_FONDO_PATRIMONIALE_FAMILIARE_COSTITUZIONE_BENI_CONFERIBILI_VINCOLI_E_TUT_140135"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170160",
+      "codice_integrato": "GUIDA_NOME_E_DENOMINAZIONE_COMMERCIALE_COME_SEGNI_DISTINTIVI_TUTELA_E_CONTROVE_170160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180170",
+      "codice_integrato": "GUIDA_CROCIERE_RESPONSABILITA_DEL_VETTORE_MARITTIMO_PER_DANNI_AI_PASSEGGERI_E__180170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211165",
+      "codice_integrato": "GUIDA_TRANSAZIONE_IN_MATERIA_EREDITARIA_EFFICACIA_ESTENSIONE_E_CONTROVERSIE_AR_211165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190145",
+      "codice_integrato": "GUIDA_TUTELA_DEL_POSSESSO_CONTRO_LE_IMMISSIONI_ILLECITE_E_LE_TURBATIVE_DEL_VIC_190145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140135",
+      "codice_integrato": "GUIDA_FONDO_PATRIMONIALE_FAMILIARE_COSTITUZIONE_BENI_CONFERIBILI_VINCOLI_E_TUT_140135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

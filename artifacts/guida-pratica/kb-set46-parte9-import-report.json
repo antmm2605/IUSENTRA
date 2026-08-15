@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p9.json",
+  "sha256": "5E5EFCF72BC5FFFA15268A8F50D070EB82E9BA3EC2C7118AA91806527C7DBA9B",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510160",
+    "500125",
+    "500130",
+    "510165",
+    "144085"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ESPROPRIAZIONE_DI_CREDITI_NEI_CONFRONTI_DELLA_PA_PROCEDURA_SPECIALE_E_OP_510160",
+    "GUIDA_OMOLOGAZIONE_DEL_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEI_CREDITORI_E_ACCER_500125",
+    "GUIDA_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DEL_CONSUMATORE_SOVRAINDEBITATO_ACCE_500130",
+    "GUIDA_ESECUZIONE_FORZATA_PER_OBBLIGHI_DI_FARE_E_NON_FARE_PROCEDIMENTO_E_ASTREI_510165",
+    "GUIDA_ANATOCISMO_BANCARIO_INTERESSI_SU_INTERESSI_SCADUTI_E_CONTESTAZIONE_ART_1_144085"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510160",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_DI_CREDITI_NEI_CONFRONTI_DELLA_PA_PROCEDURA_SPECIALE_E_OP_510160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500125",
+      "codice_integrato": "GUIDA_OMOLOGAZIONE_DEL_CONCORDATO_PREVENTIVO_OPPOSIZIONE_DEI_CREDITORI_E_ACCER_500125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500130",
+      "codice_integrato": "GUIDA_ACCORDO_DI_COMPOSIZIONE_DELLA_CRISI_DEL_CONSUMATORE_SOVRAINDEBITATO_ACCE_500130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510165",
+      "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_PER_OBBLIGHI_DI_FARE_E_NON_FARE_PROCEDIMENTO_E_ASTREI_510165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144085",
+      "codice_integrato": "GUIDA_ANATOCISMO_BANCARIO_INTERESSI_SU_INTERESSI_SCADUTI_E_CONTESTAZIONE_ART_1_144085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

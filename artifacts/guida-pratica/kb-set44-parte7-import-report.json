@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p7.json",
+  "sha256": "6F6527B261F4CE797CAE2E7ECCB5E4C860ECED27803CAA5FD2E988784BDBFA7F",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512400",
+    "512405",
+    "512410",
+    "512415",
+    "512420"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AGEVOLAZIONI_FISCALI_PER_L_ACQUISTO_DELLA_PRIMA_CASA_UNDER_36_REQUISITI__512400",
+    "GUIDA_SUCCESSIONE_INTERNAZIONALE_E_IMPOSTA_DI_SUCCESSIONE_SU_BENI_ESTERI_TASSA_512405",
+    "GUIDA_IMPOSTA_SULLE_TRANSAZIONI_FINANZIARIE_FTT_TOBIN_TAX_ESENZIONI_ALIQUOTE_E_512410",
+    "GUIDA_REDDITI_AGRARI_E_DOMINICALI_RIVALUTAZIONE_IMU_E_CONTESTAZIONE_FISCALE_DP_512415",
+    "GUIDA_DICHIARAZIONE_INFEDELE_ERRORE_SCUSABILE_DOLO_SPECIFICO_E_DIFESA_PROCESSU_512420"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512400",
+      "codice_integrato": "GUIDA_AGEVOLAZIONI_FISCALI_PER_L_ACQUISTO_DELLA_PRIMA_CASA_UNDER_36_REQUISITI__512400",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512405",
+      "codice_integrato": "GUIDA_SUCCESSIONE_INTERNAZIONALE_E_IMPOSTA_DI_SUCCESSIONE_SU_BENI_ESTERI_TASSA_512405",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512410",
+      "codice_integrato": "GUIDA_IMPOSTA_SULLE_TRANSAZIONI_FINANZIARIE_FTT_TOBIN_TAX_ESENZIONI_ALIQUOTE_E_512410",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512415",
+      "codice_integrato": "GUIDA_REDDITI_AGRARI_E_DOMINICALI_RIVALUTAZIONE_IMU_E_CONTESTAZIONE_FISCALE_DP_512415",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512420",
+      "codice_integrato": "GUIDA_DICHIARAZIONE_INFEDELE_ERRORE_SCUSABILE_DOLO_SPECIFICO_E_DIFESA_PROCESSU_512420",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

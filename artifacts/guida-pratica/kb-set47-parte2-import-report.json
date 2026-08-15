@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p2.json",
+  "sha256": "FBC42F4450AB12919461CC74690C464BC1075745C85CEBC3C0BE93213DE4BE4D",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150280",
+    "155095",
+    "156095",
+    "144090",
+    "143180"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_R_L_MANCATA_O_IRREGOLARE_CONVOCAZIONE_DELL_ASSEMBLEA_E_RESPONSABILITA__150280",
+    "GUIDA_FONDI_DI_INVESTIMENTO_ALTERNATIVI_FIA_AIFM_RESPONSABILITA_DEL_GESTORE_E__155095",
+    "GUIDA_DERIVATI_OTC_SU_COMMODITIES_REQUISITI_EMIR_OBBLIGO_DI_COMPENSAZIONE_E_CO_156095",
+    "GUIDA_CONTO_DEPOSITO_A_RISPARMIO_INTERESSI_TASSO_E_CONTROVERSIE_CON_LA_BANCA_A_144090",
+    "GUIDA_RISARCIMENTO_DEL_DANNO_A_BENI_CULTURALI_RESPONSABILITA_DEL_PRIVATO_E_DEL_143180"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150280",
+      "codice_integrato": "GUIDA_S_R_L_MANCATA_O_IRREGOLARE_CONVOCAZIONE_DELL_ASSEMBLEA_E_RESPONSABILITA__150280",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155095",
+      "codice_integrato": "GUIDA_FONDI_DI_INVESTIMENTO_ALTERNATIVI_FIA_AIFM_RESPONSABILITA_DEL_GESTORE_E__155095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156095",
+      "codice_integrato": "GUIDA_DERIVATI_OTC_SU_COMMODITIES_REQUISITI_EMIR_OBBLIGO_DI_COMPENSAZIONE_E_CO_156095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144090",
+      "codice_integrato": "GUIDA_CONTO_DEPOSITO_A_RISPARMIO_INTERESSI_TASSO_E_CONTROVERSIE_CON_LA_BANCA_A_144090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143180",
+      "codice_integrato": "GUIDA_RISARCIMENTO_DEL_DANNO_A_BENI_CULTURALI_RESPONSABILITA_DEL_PRIVATO_E_DEL_143180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

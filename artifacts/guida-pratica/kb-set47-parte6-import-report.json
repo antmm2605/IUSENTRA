@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p6.json",
+  "sha256": "9315C62DD526940ADC71BAACFA52C307188BAF977BA4B1C9E0E2361292FB313C",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240390",
+    "240395",
+    "240400",
+    "240405",
+    "240410"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_DI_PROGRAMMA_PER_LE_AREE_SVANTAGGIATE_OBBLIGHI_DELL_IMPRESA_E__240390",
+    "GUIDA_COMMISSARIO_STRAORDINARIO_PER_LE_GRANDI_OPERE_POTERI_SOSTITUTIVI_DEROGHE_240395",
+    "GUIDA_RESPONSABILITA_DELLA_PA_PER_OMESSA_VIGILANZA_SU_SOGGETTI_PRIVATI_CULPA_I_240400",
+    "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_PROROGA_GARA_EUROPEA_E_SENTENZA_CGUE_BOL_240405",
+    "GUIDA_VERIFICA_DI_IMPATTO_AMBIENTALE_VIA_PROCEDIMENTO_PARTECIPAZIONE_PUBBLICA__240410"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240390",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_PROGRAMMA_PER_LE_AREE_SVANTAGGIATE_OBBLIGHI_DELL_IMPRESA_E__240390",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240395",
+      "codice_integrato": "GUIDA_COMMISSARIO_STRAORDINARIO_PER_LE_GRANDI_OPERE_POTERI_SOSTITUTIVI_DEROGHE_240395",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240400",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DELLA_PA_PER_OMESSA_VIGILANZA_SU_SOGGETTI_PRIVATI_CULPA_I_240400",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240405",
+      "codice_integrato": "GUIDA_CONCESSIONE_DEMANIALE_MARITTIMA_PROROGA_GARA_EUROPEA_E_SENTENZA_CGUE_BOL_240405",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240410",
+      "codice_integrato": "GUIDA_VERIFICA_DI_IMPATTO_AMBIENTALE_VIA_PROCEDIMENTO_PARTECIPAZIONE_PUBBLICA__240410",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

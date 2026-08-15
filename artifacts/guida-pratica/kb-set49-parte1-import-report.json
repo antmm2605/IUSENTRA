@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p1.json",
+  "sha256": "72C569EA2A67A527482917DA1DBD4BDD2270327AF01901B9EA0A8F8358464D9D",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE1",
+  "denominazione": "Quarantanovesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130510",
+    "130515",
+    "130520",
+    "130525",
+    "141160"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCORDO_DI_RISERVATEZZA_NDA_VIOLAZIONE_INIBITORIA_E_RISARCIMENTO_DEL_DAN_130510",
+    "GUIDA_CONTRATTO_DI_COMODATO_USO_DELLA_COSA_MIGLIORAMENTI_E_RESTITUZIONE_ARTT_1_130515",
+    "GUIDA_MUTUO_IPOTECARIO_A_TASSO_VARIABILE_INDICIZZAZIONE_EURIBOR_CAPS_E_CONTROV_130520",
+    "GUIDA_CLAUSOLA_PENALE_MISURA_RIDUZIONE_GIUDIZIALE_PER_MANIFESTA_ECCESSIVITA_E__130525",
+    "GUIDA_S_R_L_SEMPLIFICATA_SRLS_CARATTERISTICHE_LIMITAZIONI_DELLO_STATUTO_E_CONV_141160"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130510",
+      "codice_integrato": "GUIDA_ACCORDO_DI_RISERVATEZZA_NDA_VIOLAZIONE_INIBITORIA_E_RISARCIMENTO_DEL_DAN_130510",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130515",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_COMODATO_USO_DELLA_COSA_MIGLIORAMENTI_E_RESTITUZIONE_ARTT_1_130515",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130520",
+      "codice_integrato": "GUIDA_MUTUO_IPOTECARIO_A_TASSO_VARIABILE_INDICIZZAZIONE_EURIBOR_CAPS_E_CONTROV_130520",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130525",
+      "codice_integrato": "GUIDA_CLAUSOLA_PENALE_MISURA_RIDUZIONE_GIUDIZIALE_PER_MANIFESTA_ECCESSIVITA_E__130525",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141160",
+      "codice_integrato": "GUIDA_S_R_L_SEMPLIFICATA_SRLS_CARATTERISTICHE_LIMITAZIONI_DELLO_STATUTO_E_CONV_141160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

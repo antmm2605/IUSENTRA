@@ -86,9 +86,9 @@ def guida_pratica_catalogo():
     if denied:
         return denied
     try:
-        limit = max(1, min(2000, int(request.args.get("limit", "2000") or 2000)))
+        limit = max(1, min(5000, int(request.args.get("limit", "5000") or 5000)))
     except ValueError:
-        limit = 2000
+        limit = 5000
     try:
         return jsonify(
             build_react_guida_pratica_catalog_payload(

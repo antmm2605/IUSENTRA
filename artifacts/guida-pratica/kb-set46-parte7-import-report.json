@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p7.json",
+  "sha256": "6ACA0BD3BDC55B37E185A15A058C412CC6AE12F91D22F10270DFCCF3A9884517",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512450",
+    "512455",
+    "512460",
+    "512465",
+    "512470"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SOCIETA_DI_PERSONE_TASSAZIONE_PER_TRASPARENZA_E_CONTROVERSIE_ARTT_5_6_TU_512450",
+    "GUIDA_PERDITE_FISCALI_RIPORTO_IN_AVANTI_UTILIZZO_E_CONTESTAZIONE_DEL_DISCONOSC_512455",
+    "GUIDA_REGIME_FORFETTARIO_FLAT_TAX_AL_15_ACCESSO_CAUSE_DI_ESCLUSIONE_E_CONTESTA_512460",
+    "GUIDA_ACE_AIUTO_ALLA_CRESCITA_ECONOMICA_BENEFICIO_RENDIMENTO_NOZIONALE_E_CONTE_512465",
+    "GUIDA_SUPERBONUS_110_E_BONUS_EDILIZI_ACCESSO_CESSIONE_DEL_CREDITO_REVOCA_E_CON_512470"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512450",
+      "codice_integrato": "GUIDA_SOCIETA_DI_PERSONE_TASSAZIONE_PER_TRASPARENZA_E_CONTROVERSIE_ARTT_5_6_TU_512450",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512455",
+      "codice_integrato": "GUIDA_PERDITE_FISCALI_RIPORTO_IN_AVANTI_UTILIZZO_E_CONTESTAZIONE_DEL_DISCONOSC_512455",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512460",
+      "codice_integrato": "GUIDA_REGIME_FORFETTARIO_FLAT_TAX_AL_15_ACCESSO_CAUSE_DI_ESCLUSIONE_E_CONTESTA_512460",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512465",
+      "codice_integrato": "GUIDA_ACE_AIUTO_ALLA_CRESCITA_ECONOMICA_BENEFICIO_RENDIMENTO_NOZIONALE_E_CONTE_512465",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512470",
+      "codice_integrato": "GUIDA_SUPERBONUS_110_E_BONUS_EDILIZI_ACCESSO_CESSIONE_DEL_CREDITO_REVOCA_E_CON_512470",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

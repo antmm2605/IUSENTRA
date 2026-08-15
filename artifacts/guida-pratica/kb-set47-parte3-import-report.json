@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p3.json",
+  "sha256": "3E42762269073E1102CCC7D4E78D490AEE8D8E789167F332E60819FBC2D60DD9",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160470",
+    "160475",
+    "160480",
+    "170145",
+    "180155"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILITA_DEL_MEDICO_VETERINARIO_PER_ERRORI_DI_CURA_DEGLI_ANIMALI_D_160470",
+    "GUIDA_RESPONSABILITA_DEL_REVISORE_CONTABILE_PER_FALSA_ATTESTAZIONE_DEL_BILANCI_160475",
+    "GUIDA_RESPONSABILITA_DEL_PRODUTTORE_DI_ALIMENTI_PER_DANNI_ALLA_SALUTE_DEL_CONS_160480",
+    "GUIDA_INDICAZIONE_GEOGRAFICA_PROTETTA_IGP_E_DENOMINAZIONE_DI_ORIGINE_PROTETTA__170145",
+    "GUIDA_ASSICURAZIONE_SANITARIA_PRIVATA_POLIZZA_SALUTE_RIMBORSO_DELLE_SPESE_MEDI_180155"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160470",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_MEDICO_VETERINARIO_PER_ERRORI_DI_CURA_DEGLI_ANIMALI_D_160470",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160475",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_REVISORE_CONTABILE_PER_FALSA_ATTESTAZIONE_DEL_BILANCI_160475",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160480",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_PRODUTTORE_DI_ALIMENTI_PER_DANNI_ALLA_SALUTE_DEL_CONS_160480",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170145",
+      "codice_integrato": "GUIDA_INDICAZIONE_GEOGRAFICA_PROTETTA_IGP_E_DENOMINAZIONE_DI_ORIGINE_PROTETTA__170145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180155",
+      "codice_integrato": "GUIDA_ASSICURAZIONE_SANITARIA_PRIVATA_POLIZZA_SALUTE_RIMBORSO_DELLE_SPESE_MEDI_180155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

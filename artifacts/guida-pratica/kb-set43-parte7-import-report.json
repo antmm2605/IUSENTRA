@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p7.json",
+  "sha256": "613846CE90A91F5F716A8D00D3BEE05C4E55F62D5BF4A2BD199A37F9FAFD769A",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "170115",
+    "180120",
+    "415120",
+    "140110",
+    "500095"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONCORRENZA_SLEALE_PER_AGGANCIAMENTO_E_DENIGRAZIONE_SISTEMATICA_TUTELA_D_170115",
+    "GUIDA_RESPONSABILIT_DEL_PROVIDER_DI_HOSTING_PER_CONTENUTI_ILLECITI_CARICATI_DA_180120",
+    "GUIDA_AFFITTO_RUSTICO_DI_FONDO_AGRICOLO_DURATA_CANONE_PRELAZIONE_E_CONTROVERSI_140110",
+    "GUIDA_PIANO_DI_RISANAMENTO_ATTESTATO_CONDIZIONI_PROTEZIONE_DAI_REATI_E_LIMITI__500095"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170115",
+      "codice_integrato": "GUIDA_CONCORRENZA_SLEALE_PER_AGGANCIAMENTO_E_DENIGRAZIONE_SISTEMATICA_TUTELA_D_170115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180120",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_PROVIDER_DI_HOSTING_PER_CONTENUTI_ILLECITI_CARICATI_DA_180120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140110",
+      "codice_integrato": "GUIDA_AFFITTO_RUSTICO_DI_FONDO_AGRICOLO_DURATA_CANONE_PRELAZIONE_E_CONTROVERSI_140110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500095",
+      "codice_integrato": "GUIDA_PIANO_DI_RISANAMENTO_ATTESTATO_CONDIZIONI_PROTEZIONE_DAI_REATI_E_LIMITI__500095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [
+    {
+      "source_codice": "415120",
+      "denominazione": "Esecutore testamentario: nomina, poteri e responsabilità (artt. 700-712 c.c.)",
+      "canonical_code": "GUIDA_ESECUTORE_TESTAMENTARIO_NOMINA_POTERI_E_RESPONSABILIT_ARTT_700_712_C_C_415055",
+      "reason": "La scheda ricevuta replica una guida interna già presente e contiene un contenuto divergente sulla durata del possesso. È mantenuta la sola guida canonica, da verificare sulle fonti collegate."
+    }
+  ],
+  "termini_processuali_raw": 4
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p7.json",
+  "sha256": "383321D4F988C4C3FE821C43545FE263A300A754BDD20E907E9478CC62513D8E",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512425",
+    "512430",
+    "512435",
+    "512440",
+    "512445"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ABUSO_DEL_DIRITTO_FISCALE_RIQUALIFICAZIONE_DELLE_OPERAZIONI_E_DIFESA_DEL_512425",
+    "GUIDA_ESTEROVESTIZIONE_SOCIETARIA_ACCERTAMENTO_DELLA_SEDE_EFFETTIVA_IN_ITALIA__512430",
+    "GUIDA_IMPOSTA_DI_REGISTRO_CLASSIFICAZIONE_DELL_ATTO_ALIQUOTE_E_CONTESTAZIONE_D_512435",
+    "GUIDA_PREZZO_VALORE_NELLE_COMPRAVENDITE_IMMOBILIARI_VALORE_CATASTALE_VS_PREZZO_512440",
+    "GUIDA_RIMBORSO_IVA_AI_SOGGETTI_NON_RESIDENTI_IN_ITALIA_PROCEDURA_TERMINI_E_CON_512445"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512425",
+      "codice_integrato": "GUIDA_ABUSO_DEL_DIRITTO_FISCALE_RIQUALIFICAZIONE_DELLE_OPERAZIONI_E_DIFESA_DEL_512425",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512430",
+      "codice_integrato": "GUIDA_ESTEROVESTIZIONE_SOCIETARIA_ACCERTAMENTO_DELLA_SEDE_EFFETTIVA_IN_ITALIA__512430",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512435",
+      "codice_integrato": "GUIDA_IMPOSTA_DI_REGISTRO_CLASSIFICAZIONE_DELL_ATTO_ALIQUOTE_E_CONTESTAZIONE_D_512435",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512440",
+      "codice_integrato": "GUIDA_PREZZO_VALORE_NELLE_COMPRAVENDITE_IMMOBILIARI_VALORE_CATASTALE_VS_PREZZO_512440",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512445",
+      "codice_integrato": "GUIDA_RIMBORSO_IVA_AI_SOGGETTI_NON_RESIDENTI_IN_ITALIA_PROCEDURA_TERMINI_E_CON_512445",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p1.json",
+  "sha256": "333F03EF329C2925F102486BCDE637E3288807DCD8EC58993DA23444727FEF03",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE1",
+  "denominazione": "Quarantaseiesimo set – 50 nuovi codici – PARTE 1 di 10",
+  "codici_materia_originali": [
+    "130450",
+    "130455",
+    "130460",
+    "130465",
+    "141145"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ASSICURAZIONE_RC_AUTO_INDENNIZZO_DIRETTO_RISARCIMENTO_DEL_TERZO_E_CONTRO_130450",
+    "GUIDA_CONTRATTO_DI_NOLEGGIO_A_LUNGO_TERMINE_NLT_INADEMPIMENTO_VIZI_DEL_VEICOLO_130455",
+    "GUIDA_PATTO_COMMISSORIO_E_PATTO_MARCIANO_NULLITA_DEL_COMMISSORIO_E_VALIDITA_DE_130460",
+    "GUIDA_CONTRATTO_DI_TRASPORTO_DI_MERCI_RESPONSABILITA_DEL_VETTORE_PER_PERDITA_A_130465",
+    "GUIDA_AUMENTO_DI_CAPITALE_CON_ESCLUSIONE_DEL_DIRITTO_DI_OPZIONE_CONDIZIONI_E_I_141145"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130450",
+      "codice_integrato": "GUIDA_ASSICURAZIONE_RC_AUTO_INDENNIZZO_DIRETTO_RISARCIMENTO_DEL_TERZO_E_CONTRO_130450",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130455",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_NOLEGGIO_A_LUNGO_TERMINE_NLT_INADEMPIMENTO_VIZI_DEL_VEICOLO_130455",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130460",
+      "codice_integrato": "GUIDA_PATTO_COMMISSORIO_E_PATTO_MARCIANO_NULLITA_DEL_COMMISSORIO_E_VALIDITA_DE_130460",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "130465",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_TRASPORTO_DI_MERCI_RESPONSABILITA_DEL_VETTORE_PER_PERDITA_A_130465",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141145",
+      "codice_integrato": "GUIDA_AUMENTO_DI_CAPITALE_CON_ESCLUSIONE_DEL_DIRITTO_DI_OPZIONE_CONDIZIONI_E_I_141145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

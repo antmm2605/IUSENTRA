@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p4.json",
+  "sha256": "3173108E089C1A792AF6DB60277CD4860876A4BA48BDBED57D4A9BD7EA5A29C8",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "199120",
+    "199125",
+    "199130",
+    "211075",
+    "211080"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PROPOSTA_CONCILIATIVA_DEL_GIUDICE_EX_ART_185_BIS_C_P_C_EFFETTI_DEL_RIFIU_199120",
+    "GUIDA_CTU_CONSULENTE_TECNICO_D_UFFICIO_NOMINA_POTERI_CONTRADDITTORIO_E_IMPUGNA_199125",
+    "GUIDA_GIUDIZIO_DI_OTTEMPERANZA_ALLE_SENTENZE_DEL_GIUDICE_AMMINISTRATIVO_ESECUZ_199130",
+    "GUIDA_CONTRATTO_DI_TRANSAZIONE_NULLIT_PER_OGGETTO_ILLECITO_ANNULLABILIT_E_REVO_211075",
+    "GUIDA_RICONOSCIMENTO_E_TRASCRIZIONE_DI_ATTI_DELLO_STATO_CIVILE_STRANIERO_IN_IT_211080"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "199120",
+      "codice_integrato": "GUIDA_PROPOSTA_CONCILIATIVA_DEL_GIUDICE_EX_ART_185_BIS_C_P_C_EFFETTI_DEL_RIFIU_199120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199125",
+      "codice_integrato": "GUIDA_CTU_CONSULENTE_TECNICO_D_UFFICIO_NOMINA_POTERI_CONTRADDITTORIO_E_IMPUGNA_199125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199130",
+      "codice_integrato": "GUIDA_GIUDIZIO_DI_OTTEMPERANZA_ALLE_SENTENZE_DEL_GIUDICE_AMMINISTRATIVO_ESECUZ_199130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211075",
+      "codice_integrato": "GUIDA_CONTRATTO_DI_TRANSAZIONE_NULLIT_PER_OGGETTO_ILLECITO_ANNULLABILIT_E_REVO_211075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211080",
+      "codice_integrato": "GUIDA_RICONOSCIMENTO_E_TRASCRIZIONE_DI_ATTI_DELLO_STATO_CIVILE_STRANIERO_IN_IT_211080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

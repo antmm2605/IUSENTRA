@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p7.json",
+  "sha256": "8B30F8A5CF8F8022CE2D46F6FD666CA2F97F05532DC6C789292BFB558C4E04C5",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512525",
+    "512530",
+    "512535",
+    "512540",
+    "512545"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPOSTA_DI_SUCCESSIONE_ACCERTAMENTO_VALUTAZIONE_DEI_BENI_E_CONTESTAZIONE_512525",
+    "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_CONDONO_MODALITA_EFFET_512530",
+    "GUIDA_IMU_SUGLI_IMMOBILI_POSSEDUTI_DA_SOCIETA_E_IMPRENDITORI_SOGGETTI_PASSIVI__512535",
+    "GUIDA_RECUPERO_DEGLI_AIUTI_DI_STATO_INCOMPATIBILI_CON_IL_DIRITTO_UE_PROCEDIMEN_512540",
+    "GUIDA_STABILE_ORGANIZZAZIONE_IN_ITALIA_DI_SOGGETTI_NON_RESIDENTI_ACCERTAMENTO__512545"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512525",
+      "codice_integrato": "GUIDA_IMPOSTA_DI_SUCCESSIONE_ACCERTAMENTO_VALUTAZIONE_DEI_BENI_E_CONTESTAZIONE_512525",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512530",
+      "codice_integrato": "GUIDA_DEFINIZIONE_AGEVOLATA_DELLE_LITI_FISCALI_PENDENTI_CONDONO_MODALITA_EFFET_512530",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512535",
+      "codice_integrato": "GUIDA_IMU_SUGLI_IMMOBILI_POSSEDUTI_DA_SOCIETA_E_IMPRENDITORI_SOGGETTI_PASSIVI__512535",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512540",
+      "codice_integrato": "GUIDA_RECUPERO_DEGLI_AIUTI_DI_STATO_INCOMPATIBILI_CON_IL_DIRITTO_UE_PROCEDIMEN_512540",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512545",
+      "codice_integrato": "GUIDA_STABILE_ORGANIZZAZIONE_IN_ITALIA_DI_SOGGETTI_NON_RESIDENTI_ACCERTAMENTO__512545",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

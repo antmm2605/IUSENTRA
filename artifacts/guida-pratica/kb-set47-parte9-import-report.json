@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p9.json",
+  "sha256": "3C1D23851679F891246183F39E9A1DE9C5C75C84D3D084E7F506E8ECA9466CA0",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510170",
+    "500135",
+    "500140",
+    "510175",
+    "144095"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_OPPOSIZIONE_ALL_ESECUZIONE_DEL_LODO_ARBITRALE_MOTIVI_AMMISSIBILI_E_PROCE_510170",
+    "GUIDA_RIVENDICAZIONE_DI_BENI_DI_TERZI_NELLA_LIQUIDAZIONE_GIUDIZIALE_PROCEDIMEN_500135",
+    "GUIDA_TRATTAMENTO_DEI_SOCI_FINANZIATORI_NELLA_LIQUIDAZIONE_GIUDIZIALE_POSTERGA_500140",
+    "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_RIDUZIONE_DELLE_SOMME_PIGNORATE_ART_495_C_P_510175",
+    "GUIDA_PORTABILITA_DEL_MUTUO_SURROGAZIONE_DEL_CREDITORE_PROCEDURA_E_CONTROVERSI_144095"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510170",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_ALL_ESECUZIONE_DEL_LODO_ARBITRALE_MOTIVI_AMMISSIBILI_E_PROCE_510170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500135",
+      "codice_integrato": "GUIDA_RIVENDICAZIONE_DI_BENI_DI_TERZI_NELLA_LIQUIDAZIONE_GIUDIZIALE_PROCEDIMEN_500135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500140",
+      "codice_integrato": "GUIDA_TRATTAMENTO_DEI_SOCI_FINANZIATORI_NELLA_LIQUIDAZIONE_GIUDIZIALE_POSTERGA_500140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510175",
+      "codice_integrato": "GUIDA_CONVERSIONE_DEL_PIGNORAMENTO_RIDUZIONE_DELLE_SOMME_PIGNORATE_ART_495_C_P_510175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144095",
+      "codice_integrato": "GUIDA_PORTABILITA_DEL_MUTUO_SURROGAZIONE_DEL_CREDITORE_PROCEDURA_E_CONTROVERSI_144095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

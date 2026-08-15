@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p10.json",
+  "sha256": "5181DB9D9975BD85322FD5D24FF4D6DC1FB7E7CE805AC9699F6EB63D306D2D20",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "180115",
+    "140105",
+    "141125",
+    "143155",
+    "199135"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PORTABILIT_DEL_NUMERO_TELEFONICO_CONTROVERSIE_CON_IL_GESTORE_PER_INADEMP_180115",
+    "GUIDA_IMPRENDITORE_AGRICOLO_RESPONSABILIT_PER_DANNI_A_TERZI_CAUSATI_DALL_ATTIV_140105",
+    "GUIDA_USUFRUTTO_DI_AZIONI_E_QUOTE_SOCIALI_ESERCIZIO_DEI_DIRITTI_E_CONTROVERSIE_141125",
+    "GUIDA_RETTIFICAZIONE_DEGLI_ATTI_DELLO_STATO_CIVILE_PROCEDIMENTO_E_MOTIVI_ARTT__143155",
+    "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_EX_ART_696_BIS_C_P_C_PROCEDURA_CONCILIAZ_199135"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "180115",
+      "codice_integrato": "GUIDA_PORTABILIT_DEL_NUMERO_TELEFONICO_CONTROVERSIE_CON_IL_GESTORE_PER_INADEMP_180115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140105",
+      "codice_integrato": "GUIDA_IMPRENDITORE_AGRICOLO_RESPONSABILIT_PER_DANNI_A_TERZI_CAUSATI_DALL_ATTIV_140105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "141125",
+      "codice_integrato": "GUIDA_USUFRUTTO_DI_AZIONI_E_QUOTE_SOCIALI_ESERCIZIO_DEI_DIRITTI_E_CONTROVERSIE_141125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143155",
+      "codice_integrato": "GUIDA_RETTIFICAZIONE_DEGLI_ATTI_DELLO_STATO_CIVILE_PROCEDIMENTO_E_MOTIVI_ARTT__143155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199135",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_TECNICO_PREVENTIVO_EX_ART_696_BIS_C_P_C_PROCEDURA_CONCILIAZ_199135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

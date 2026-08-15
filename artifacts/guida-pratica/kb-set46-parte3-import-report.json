@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p3.json",
+  "sha256": "82F17B77EDDBEB71A9FEF628D62FDEF2F7B0CAA371C3500BF52F391F43ED5169",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160455",
+    "160460",
+    "160465",
+    "170135",
+    "180145"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILITA_DELL_ORGANIZZATORE_DI_EVENTI_PER_INCIDENTI_AGLI_SPETTATOR_160455",
+    "GUIDA_DANNO_DA_ESPOSIZIONE_ALL_AMIANTO_RESPONSABILITA_DEL_DATORE_DI_LAVORO_INA_160460",
+    "GUIDA_DIFFAMAZIONE_A_MEZZO_SOCIAL_MEDIA_E_INTERNET_QUANTIFICAZIONE_DEL_DANNO_E_160465",
+    "GUIDA_DISEGNI_E_MODELLI_INDUSTRIALI_REGISTRAZIONE_TUTELA_E_CONTRAFFAZIONE_D_LG_170135",
+    "GUIDA_RECENSIONI_FALSE_E_CONCORRENZA_SLEALE_ONLINE_TUTELE_DEL_COMMERCIANTE_E_R_180145"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160455",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DELL_ORGANIZZATORE_DI_EVENTI_PER_INCIDENTI_AGLI_SPETTATOR_160455",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160460",
+      "codice_integrato": "GUIDA_DANNO_DA_ESPOSIZIONE_ALL_AMIANTO_RESPONSABILITA_DEL_DATORE_DI_LAVORO_INA_160460",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160465",
+      "codice_integrato": "GUIDA_DIFFAMAZIONE_A_MEZZO_SOCIAL_MEDIA_E_INTERNET_QUANTIFICAZIONE_DEL_DANNO_E_160465",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170135",
+      "codice_integrato": "GUIDA_DISEGNI_E_MODELLI_INDUSTRIALI_REGISTRAZIONE_TUTELA_E_CONTRAFFAZIONE_D_LG_170135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180145",
+      "codice_integrato": "GUIDA_RECENSIONI_FALSE_E_CONCORRENZA_SLEALE_ONLINE_TUTELE_DEL_COMMERCIANTE_E_R_180145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

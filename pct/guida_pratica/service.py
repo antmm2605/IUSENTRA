@@ -501,7 +501,7 @@ class GuidaPraticaService:
     def official_catalog_size(self) -> int:
         return len(self._official_catalog_index)
 
-    def list_guidance(self, *, query: str = "", coverage: str = "", limit: int = 2000) -> list[dict[str, Any]]:
+    def list_guidance(self, *, query: str = "", coverage: str = "", limit: int = 5000) -> list[dict[str, Any]]:
         """Lista sintetica di copertura guida per catalogo UI/admin."""
 
         needle = query.strip().casefold()

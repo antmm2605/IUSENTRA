@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p6.json",
+  "sha256": "CB3A43958C2CF5ED79D0BD051089E9680B9BBC191A0AC9EBB01DA82598EE3BAD",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "240450",
+    "240455",
+    "240460",
+    "240465",
+    "240470"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PIANO_DI_LOTTIZZAZIONE_E_CONVENZIONI_URBANISTICHE_IMPUGNAZIONE_E_INADEMP_240450",
+    "GUIDA_CONTRIBUTO_DI_COSTRUZIONE_CALCOLO_CONTESTAZIONE_E_RIMBORSO_DPR_380_2001__240455",
+    "GUIDA_BONIFICA_DEL_SITO_CONTAMINATO_OBBLIGHI_RESPONSABILITA_E_CONTROVERSIE_D_L_240460",
+    "GUIDA_STAND_STILL_PERIOD_NELL_AGGIUDICAZIONE_DEGLI_APPALTI_VIOLAZIONE_E_RICORS_240465",
+    "GUIDA_RESPONSABILITA_PRECONTRATTUALE_DELLA_PA_AFFIDAMENTO_LEGITTIMO_DEL_PRIVAT_240470"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240450",
+      "codice_integrato": "GUIDA_PIANO_DI_LOTTIZZAZIONE_E_CONVENZIONI_URBANISTICHE_IMPUGNAZIONE_E_INADEMP_240450",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240455",
+      "codice_integrato": "GUIDA_CONTRIBUTO_DI_COSTRUZIONE_CALCOLO_CONTESTAZIONE_E_RIMBORSO_DPR_380_2001__240455",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240460",
+      "codice_integrato": "GUIDA_BONIFICA_DEL_SITO_CONTAMINATO_OBBLIGHI_RESPONSABILITA_E_CONTROVERSIE_D_L_240460",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240465",
+      "codice_integrato": "GUIDA_STAND_STILL_PERIOD_NELL_AGGIUDICAZIONE_DEGLI_APPALTI_VIOLAZIONE_E_RICORS_240465",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240470",
+      "codice_integrato": "GUIDA_RESPONSABILITA_PRECONTRATTUALE_DELLA_PA_AFFIDAMENTO_LEGITTIMO_DEL_PRIVAT_240470",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

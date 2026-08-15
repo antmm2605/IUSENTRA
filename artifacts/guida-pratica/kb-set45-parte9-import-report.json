@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p9.json",
+  "sha256": "FE1DCCFD6DD1C42C129BC72F8197C0922C5F0AF032B0F52B5517235BB31AC6F3",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510150",
+    "500115",
+    "500120",
+    "510155",
+    "144075"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_MANCATA_EMISSIONE_DEL_DECRETO_DI_TRASFERIMENTO_TUTELE_DELL_AGGIUDICATARI_510150",
+    "GUIDA_ACCORDO_DI_RISTRUTTURAZIONE_CON_EFFETTI_ESTESI_AI_CREDITORI_FINANZIARI_D_500115",
+    "GUIDA_CONTINUAZIONE_DELL_ATTIVITA_D_IMPRESA_NELLA_LIQUIDAZIONE_GIUDIZIALE_AUTO_500120",
+    "GUIDA_PIGNORABILITA_DELLE_POLIZZE_VITA_LIMITI_E_TUTELA_DEL_BENEFICIARIO_ART_19_510155",
+    "GUIDA_COMMISSIONI_DI_MASSIMO_SCOPERTO_E_COMMISSIONI_DI_AFFIDAMENTO_CONTESTAZIO_144075"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510150",
+      "codice_integrato": "GUIDA_MANCATA_EMISSIONE_DEL_DECRETO_DI_TRASFERIMENTO_TUTELE_DELL_AGGIUDICATARI_510150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500115",
+      "codice_integrato": "GUIDA_ACCORDO_DI_RISTRUTTURAZIONE_CON_EFFETTI_ESTESI_AI_CREDITORI_FINANZIARI_D_500115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500120",
+      "codice_integrato": "GUIDA_CONTINUAZIONE_DELL_ATTIVITA_D_IMPRESA_NELLA_LIQUIDAZIONE_GIUDIZIALE_AUTO_500120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510155",
+      "codice_integrato": "GUIDA_PIGNORABILITA_DELLE_POLIZZE_VITA_LIMITI_E_TUTELA_DEL_BENEFICIARIO_ART_19_510155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144075",
+      "codice_integrato": "GUIDA_COMMISSIONI_DI_MASSIMO_SCOPERTO_E_COMMISSIONI_DI_AFFIDAMENTO_CONTESTAZIO_144075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

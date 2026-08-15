@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p2.json",
+  "sha256": "846C11A368AF8055B920B5D363FE29BCF02CAF70C58F80ED7675851A2B197397",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "160415",
+    "150235",
+    "155070",
+    "156065",
+    "190095"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_DEL_GESTORE_DI_PIATTAFORMA_ONLINE_PER_CONTENUTI_ILLECITI_D_160415",
+    "GUIDA_S_P_A_RECESSO_DEL_SOCIO_CAUSE_E_LIQUIDAZIONE_DELLA_QUOTA_ARTT_2437_2437__150235",
+    "GUIDA_OFFERTA_PUBBLICA_DI_ACQUISTO_OPA_OBBLIGHI_PROCEDIMENTO_E_TUTELE_DEGLI_AZ_155070",
+    "GUIDA_SWAP_SUI_TASSI_DI_INTERESSE_IRS_E_PRODOTTI_DERIVATI_NULLIT_PER_DEFICIT_I_156065",
+    "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_PRESUPPOSTI_SCIENTIA_DAMNI_E_DIFFERENZA_DAL_190095"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160415",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_GESTORE_DI_PIATTAFORMA_ONLINE_PER_CONTENUTI_ILLECITI_D_160415",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150235",
+      "codice_integrato": "GUIDA_S_P_A_RECESSO_DEL_SOCIO_CAUSE_E_LIQUIDAZIONE_DELLA_QUOTA_ARTT_2437_2437__150235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155070",
+      "codice_integrato": "GUIDA_OFFERTA_PUBBLICA_DI_ACQUISTO_OPA_OBBLIGHI_PROCEDIMENTO_E_TUTELE_DEGLI_AZ_155070",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156065",
+      "codice_integrato": "GUIDA_SWAP_SUI_TASSI_DI_INTERESSE_IRS_E_PRODOTTI_DERIVATI_NULLIT_PER_DEFICIT_I_156065",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190095",
+      "codice_integrato": "GUIDA_AZIONE_REVOCATORIA_ORDINARIA_PRESUPPOSTI_SCIENTIA_DAMNI_E_DIFFERENZA_DAL_190095",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

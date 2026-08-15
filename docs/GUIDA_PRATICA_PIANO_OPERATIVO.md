@@ -1,6 +1,15 @@
 # Guida Pratica, template atti e piano assistito del fascicolo
 
-Aggiornato: 22 maggio 2026.
+Aggiornato: 15 agosto 2026.
+
+## Import archivi utente set42–49 — 15 agosto 2026
+
+- Gli archivi `files (31).zip`–`files (38).zip` hanno apportato 400 schede giuridiche e 400 termini; 399 schede e 399 termini sono stati integrati nei moduli `kb_98_set42_*`–`kb_98_set49_*`, nel KB completo e nel repository termini.
+- Ogni scheda importata è una guida interna: non modifica, non sovrascrive e non abilita alcun `codice_oggetto_pst` ufficiale. Il catalogo di deposito resta a 1.018 record ufficiali curati.
+- La scheda sorgente `415120`, «Esecutore testamentario: nomina, poteri e responsabilità (artt. 700-712 c.c.)», è stata esclusa dal merge perché duplicava una guida canonica già presente ma con contenuto divergente. Il report di import registra codice sorgente, guida canonica e motivazione della deduplicazione.
+- Gli undici documenti Word dell'archivio `files (30).zip` sono temi scolastici di attualità e non costituiscono materiale operativo per la Guida Avvocato: restano fuori dall'importazione.
+- Tracciabilità: `artifacts/guida-pratica/kb-set42-43-44-45-46-47-48-49-import-summary.json`, audit campi utente, audit arricchimento web, audit validazione, report termini e controllo UTF-8 datati 15 agosto 2026.
+- Prova reale: su `http://127.0.0.1:8080/fascicoli/DD242366#guida-pratica` la guida è stata aperta, è stata selezionata la sezione Normativa e sono stati verificati focus, hover, refresh, scorrimento completo e resa desktop/tablet/mobile senza overflow orizzontale. Il refresh a cache calda ha completato in circa 1,6 secondi senza errori console.
 
 Questo documento è la memoria operativa da seguire prima di integrare la Guida Pratica nell'applicazione reale. Serve a evitare regressioni, scorciatoie e interpretazioni errate del flusso. Finché l'utente non approva la visualizzazione, non si implementa nulla in produzione.
 

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p6.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p6.json",
+  "sha256": "D427689F5DEE8D168C736482357F7E13F4B9F17F6A234F4403D50E83623D01D2",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE6",
+  "denominazione": "PARTE 6 di 10",
+  "codici_materia_originali": [
+    "512370",
+    "512375",
+    "512380",
+    "512385",
+    "512390"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCERTAMENTO_SINTETICO_DEL_REDDITO_REDDITOMETRO_CONTESTAZIONE_E_ONERE_DE_512370",
+    "GUIDA_RESPONSABILIT_FISCALE_DEL_CESSIONARIO_D_AZIENDA_PER_I_DEBITI_TRIBUTARI_D_512375",
+    "GUIDA_VOLUNTARY_DISCLOSURE_PROCEDURA_DI_COLLABORAZIONE_VOLONTARIA_E_CONTESTAZI_512380",
+    "GUIDA_CONCORDATO_PREVENTIVO_BIENNALE_PER_LE_PARTITE_IVA_ACCESSO_ESCLUSIONI_E_C_512385",
+    "GUIDA_CREDITO_D_IMPOSTA_PER_RICERCA_E_SVILUPPO_REVOCA_CONTESTAZIONE_E_DIFESA_L_512390"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512370",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_SINTETICO_DEL_REDDITO_REDDITOMETRO_CONTESTAZIONE_E_ONERE_DE_512370",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512375",
+      "codice_integrato": "GUIDA_RESPONSABILIT_FISCALE_DEL_CESSIONARIO_D_AZIENDA_PER_I_DEBITI_TRIBUTARI_D_512375",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512380",
+      "codice_integrato": "GUIDA_VOLUNTARY_DISCLOSURE_PROCEDURA_DI_COLLABORAZIONE_VOLONTARIA_E_CONTESTAZI_512380",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512385",
+      "codice_integrato": "GUIDA_CONCORDATO_PREVENTIVO_BIENNALE_PER_LE_PARTITE_IVA_ACCESSO_ESCLUSIONI_E_C_512385",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512390",
+      "codice_integrato": "GUIDA_CREDITO_D_IMPOSTA_PER_RICERCA_E_SVILUPPO_REVOCA_CONTESTAZIONE_E_DIFESA_L_512390",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p9.json",
+  "sha256": "8B3C9517C52764BE468A8D6C17BA5BCD460C7DF390F0D4672C55FB005500E44F",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510190",
+    "500155",
+    "500160",
+    "510195",
+    "144115"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ORDINE_DEI_CREDITORI_CONTRO_510190",
+    "GUIDA_CONCORDATO_PREVENTIVO_CON_CONTINUITA_AZIENDALE_REQUISITI_PIANO_E_TUTELE__500155",
+    "GUIDA_GRUPPI_DI_IMPRESE_IN_CRISI_COORDINAMENTO_DELLE_PROCEDURE_CONCORSUALI_E_A_500160",
+    "GUIDA_CONTESTAZIONE_DEL_CREDITO_NEL_PROCESSO_ESECUTIVO_ACCERTAMENTO_DEL_CREDIT_510195",
+    "GUIDA_FIDEIUSSIONE_BANCARIA_OMNIBUS_LIMITAZIONE_ALLA_SOMMA_MASSIMA_GARANTITA_E_144115"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510190",
+      "codice_integrato": "GUIDA_PIANO_DI_RIPARTO_NELL_ESECUZIONE_IMMOBILIARE_ORDINE_DEI_CREDITORI_CONTRO_510190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500155",
+      "codice_integrato": "GUIDA_CONCORDATO_PREVENTIVO_CON_CONTINUITA_AZIENDALE_REQUISITI_PIANO_E_TUTELE__500155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500160",
+      "codice_integrato": "GUIDA_GRUPPI_DI_IMPRESE_IN_CRISI_COORDINAMENTO_DELLE_PROCEDURE_CONCORSUALI_E_A_500160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510195",
+      "codice_integrato": "GUIDA_CONTESTAZIONE_DEL_CREDITO_NEL_PROCESSO_ESECUTIVO_ACCERTAMENTO_DEL_CREDIT_510195",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144115",
+      "codice_integrato": "GUIDA_FIDEIUSSIONE_BANCARIA_OMNIBUS_LIMITAZIONE_ALLA_SOMMA_MASSIMA_GARANTITA_E_144115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

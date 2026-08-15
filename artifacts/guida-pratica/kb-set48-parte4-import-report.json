@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p4.json",
+  "sha256": "A87A5C3596931E7093069204A2B00F30DC88E4341977A808592E0A40B1DF8163",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190140",
+    "191130",
+    "199180",
+    "211155",
+    "211160"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_NULLITA_DEL_CONTRATTO_PER_CAUSA_ILLECITA_OGGETTO_ILLECITO_E_CONTRARIET_A_190140",
+    "GUIDA_DECRETO_INGIUNTIVO_PROCEDIMENTO_OPPOSIZIONE_PROVVISORIA_ESECUZIONE_E_OPP_191130",
+    "GUIDA_RECLAMO_AL_COLLEGIO_CONTRO_I_PROVVEDIMENTI_DEL_GIUDICE_ISTRUTTORE_PRESUP_199180",
+    "GUIDA_ARBITRO_BANCARIO_FINANZIARIO_ABF_PROCEDIMENTO_DECISIONE_E_EFFETTI_REGOLA_211155",
+    "GUIDA_IMPUGNAZIONE_DEL_LODO_ARBITRALE_RITUALE_DAVANTI_ALLA_CORTE_D_APPELLO_MOT_211160"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190140",
+      "codice_integrato": "GUIDA_NULLITA_DEL_CONTRATTO_PER_CAUSA_ILLECITA_OGGETTO_ILLECITO_E_CONTRARIET_A_190140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191130",
+      "codice_integrato": "GUIDA_DECRETO_INGIUNTIVO_PROCEDIMENTO_OPPOSIZIONE_PROVVISORIA_ESECUZIONE_E_OPP_191130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199180",
+      "codice_integrato": "GUIDA_RECLAMO_AL_COLLEGIO_CONTRO_I_PROVVEDIMENTI_DEL_GIUDICE_ISTRUTTORE_PRESUP_199180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211155",
+      "codice_integrato": "GUIDA_ARBITRO_BANCARIO_FINANZIARIO_ABF_PROCEDIMENTO_DECISIONE_E_EFFETTI_REGOLA_211155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211160",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DEL_LODO_ARBITRALE_RITUALE_DAVANTI_ALLA_CORTE_D_APPELLO_MOT_211160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

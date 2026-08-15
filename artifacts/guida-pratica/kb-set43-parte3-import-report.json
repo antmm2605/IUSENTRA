@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p3.json",
+  "sha256": "802BB7B6FFE35468E4B6D147B06985F698B482DB92A33E2EEB23B50124A91AD2",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "199140",
+    "191100",
+    "211085",
+    "211090",
+    "199145"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PROCEDIMENTO_DAVANTI_AL_GIUDICE_DI_PACE_COMPETENZA_PER_MATERIA_RITO_E_LI_199140",
+    "GUIDA_SOSPENSIONE_FERIALE_DEI_TERMINI_PROCESSUALI_DAL_1_AL_31_AGOSTO_ECCEZIONI_191100",
+    "GUIDA_ARBITRATO_IRRITUALE_LIBERO_NATURA_CONTRATTUALE_LODO_E_IMPUGNAZIONE_ART_8_211085",
+    "GUIDA_MEDIAZIONE_FAMILIARE_PROCEDIMENTO_ACCORDO_E_OMOLOGAZIONE_D_LGS_149_2022__211090",
+    "GUIDA_RICORSO_STRAORDINARIO_AL_PRESIDENTE_DELLA_REPUBBLICA_NATURA_LIMITI_E_ALT_199145"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "199140",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DAVANTI_AL_GIUDICE_DI_PACE_COMPETENZA_PER_MATERIA_RITO_E_LI_199140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191100",
+      "codice_integrato": "GUIDA_SOSPENSIONE_FERIALE_DEI_TERMINI_PROCESSUALI_DAL_1_AL_31_AGOSTO_ECCEZIONI_191100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211085",
+      "codice_integrato": "GUIDA_ARBITRATO_IRRITUALE_LIBERO_NATURA_CONTRATTUALE_LODO_E_IMPUGNAZIONE_ART_8_211085",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211090",
+      "codice_integrato": "GUIDA_MEDIAZIONE_FAMILIARE_PROCEDIMENTO_ACCORDO_E_OMOLOGAZIONE_D_LGS_149_2022__211090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199145",
+      "codice_integrato": "GUIDA_RICORSO_STRAORDINARIO_AL_PRESIDENTE_DELLA_REPUBBLICA_NATURA_LIMITI_E_ALT_199145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

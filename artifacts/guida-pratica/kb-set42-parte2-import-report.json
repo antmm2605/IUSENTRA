@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p2.json",
+  "sha256": "D9B6D8A9915EE343E714AF1E8F23D1B4575A306D973D9C827C0D02F3FB147D8E",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "160390",
+    "160395",
+    "160400",
+    "160405",
+    "160410"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DANNO_DA_PERDITA_DI_CHANCE_CRITERI_PROBABILIT_E_LIQUIDAZIONE_CASS_SU_269_160390",
+    "GUIDA_RESPONSABILIT_DEL_DISTRIBUTORE_PER_PRODOTTO_DIFETTOSO_LITISCONSORZIO_CON_160395",
+    "GUIDA_RESPONSABILIT_DEL_MEDICO_DEL_PRONTO_SOCCORSO_STANDARD_DI_CURA_IN_URGENZA_160400",
+    "GUIDA_DANNI_DA_RUMORE_E_VIBRAZIONI_DI_CANTIERI_TEMPORANEI_AGLI_IMMOBILI_VICINI_160405",
+    "GUIDA_RESPONSABILIT_DELLA_CASA_DI_CURA_PER_ANZIANI_PER_DANNI_AL_DEGENTE_CADUTE_160410"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160390",
+      "codice_integrato": "GUIDA_DANNO_DA_PERDITA_DI_CHANCE_CRITERI_PROBABILIT_E_LIQUIDAZIONE_CASS_SU_269_160390",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160395",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_DISTRIBUTORE_PER_PRODOTTO_DIFETTOSO_LITISCONSORZIO_CON_160395",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160400",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DEL_MEDICO_DEL_PRONTO_SOCCORSO_STANDARD_DI_CURA_IN_URGENZA_160400",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160405",
+      "codice_integrato": "GUIDA_DANNI_DA_RUMORE_E_VIBRAZIONI_DI_CANTIERI_TEMPORANEI_AGLI_IMMOBILI_VICINI_160405",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160410",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DELLA_CASA_DI_CURA_PER_ANZIANI_PER_DANNI_AL_DEGENTE_CADUTE_160410",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

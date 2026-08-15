@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p9.json",
+  "sha256": "6CC15E5894327950F0D52572F30F3EF0A97385F1BF9DF11492D3257014F5BB78",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "500090",
+    "510125",
+    "510130",
+    "150230",
+    "170110"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ACCORDO_DI_MORATORIA_NELLA_CRISI_D_IMPRESA_SOSPENSIONE_PAGAMENTI_E_TUTEL_500090",
+    "GUIDA_VENDITA_FORZATA_TELEMATICA_IMMOBILIARE_PORTALI_OFFERTE_E_CONTROVERSIE_SU_510125",
+    "GUIDA_LIBERAZIONE_DELL_IMMOBILE_DALL_OCCUPAZIONE_ABUSIVA_NELL_ESECUZIONE_FORZA_510130",
+    "GUIDA_S_P_A_IMPUGNAZIONE_DELLE_DELIBERE_ASSEMBLEARI_PER_NULLIT_E_ANNULLABILIT__150230",
+    "GUIDA_DIRITTO_D_AUTORE_SU_OPERE_FOTOGRAFICHE_TUTELA_VIOLAZIONE_E_RISARCIMENTO__170110"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "500090",
+      "codice_integrato": "GUIDA_ACCORDO_DI_MORATORIA_NELLA_CRISI_D_IMPRESA_SOSPENSIONE_PAGAMENTI_E_TUTEL_500090",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510125",
+      "codice_integrato": "GUIDA_VENDITA_FORZATA_TELEMATICA_IMMOBILIARE_PORTALI_OFFERTE_E_CONTROVERSIE_SU_510125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510130",
+      "codice_integrato": "GUIDA_LIBERAZIONE_DELL_IMMOBILE_DALL_OCCUPAZIONE_ABUSIVA_NELL_ESECUZIONE_FORZA_510130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150230",
+      "codice_integrato": "GUIDA_S_P_A_IMPUGNAZIONE_DELLE_DELIBERE_ASSEMBLEARI_PER_NULLIT_E_ANNULLABILIT__150230",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170110",
+      "codice_integrato": "GUIDA_DIRITTO_D_AUTORE_SU_OPERE_FOTOGRAFICHE_TUTELA_VIOLAZIONE_E_RISARCIMENTO__170110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p7.json",
+  "sha256": "B43DCA724305BCAB2FBDFDEEB2BD534198D31384BEE9B276BD0F5EBCFB1FA3CF",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512500",
+    "512505",
+    "512510",
+    "512515",
+    "512520"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPOSTA_SULLE_DONAZIONI_SOGGETTI_PASSIVI_ALIQUOTE_FRANCHIGIE_E_CONTESTAZ_512500",
+    "GUIDA_RAVVEDIMENTO_OPEROSO_TIPOLOGIE_RIDUZIONE_DELLE_SANZIONI_E_CONTROVERSIE_A_512505",
+    "GUIDA_RESPONSABILITA_TRIBUTARIA_DEL_LIQUIDATORE_PER_I_DEBITI_FISCALI_DELLA_SOC_512510",
+    "GUIDA_RIMBORSO_DELLE_IMPOSTE_PAGATE_IN_ECCESSO_ISTANZA_TERMINI_E_PROCEDURA_ART_512515",
+    "GUIDA_ACCERTAMENTO_CON_ADESIONE_PROCEDIMENTO_RIDUZIONE_DELLE_SANZIONI_E_EFFETT_512520"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512500",
+      "codice_integrato": "GUIDA_IMPOSTA_SULLE_DONAZIONI_SOGGETTI_PASSIVI_ALIQUOTE_FRANCHIGIE_E_CONTESTAZ_512500",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512505",
+      "codice_integrato": "GUIDA_RAVVEDIMENTO_OPEROSO_TIPOLOGIE_RIDUZIONE_DELLE_SANZIONI_E_CONTROVERSIE_A_512505",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512510",
+      "codice_integrato": "GUIDA_RESPONSABILITA_TRIBUTARIA_DEL_LIQUIDATORE_PER_I_DEBITI_FISCALI_DELLA_SOC_512510",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512515",
+      "codice_integrato": "GUIDA_RIMBORSO_DELLE_IMPOSTE_PAGATE_IN_ECCESSO_ISTANZA_TERMINI_E_PROCEDURA_ART_512515",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512520",
+      "codice_integrato": "GUIDA_ACCERTAMENTO_CON_ADESIONE_PROCEDIMENTO_RIDUZIONE_DELLE_SANZIONI_E_EFFETT_512520",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (31).zip::kb_set42_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set42_p8.json",
+  "sha256": "04A499B3CEDF95B371E32A2A6B7C07CDD43B4DBE3EF718F96C4AC6C1A167A6C4",
+  "changed": true,
+  "macro_area_id": "SET42_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413235",
+    "413240",
+    "415105",
+    "415110",
+    "415115"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AFFIDAMENTO_FAMILIARE_A_TERZI_PROCEDIMENTO_E_TUTELE_ARTT_2_5_L_184_1983_413235",
+    "GUIDA_ORDINE_EUROPEO_DI_PROTEZIONE_CIVILE_RICONOSCIMENTO_TRANSFRONTALIERO_REG__413240",
+    "GUIDA_SUCCESSIONE_DEL_CONIUGE_SUPERSTITE_QUOTA_DI_RISERVA_E_DIRITTO_DI_ABITAZI_415105",
+    "GUIDA_CERTIFICATO_SUCCESSORIO_EUROPEO_RILASCIO_EFFICACIA_E_IMPUGNAZIONE_REG_UE_415110",
+    "GUIDA_INDEGNIT_A_SUCCEDERE_CAUSE_EFFETTI_E_RIABILITAZIONE_ARTT_463_466_C_C_415115"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413235",
+      "codice_integrato": "GUIDA_AFFIDAMENTO_FAMILIARE_A_TERZI_PROCEDIMENTO_E_TUTELE_ARTT_2_5_L_184_1983_413235",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413240",
+      "codice_integrato": "GUIDA_ORDINE_EUROPEO_DI_PROTEZIONE_CIVILE_RICONOSCIMENTO_TRANSFRONTALIERO_REG__413240",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415105",
+      "codice_integrato": "GUIDA_SUCCESSIONE_DEL_CONIUGE_SUPERSTITE_QUOTA_DI_RISERVA_E_DIRITTO_DI_ABITAZI_415105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415110",
+      "codice_integrato": "GUIDA_CERTIFICATO_SUCCESSORIO_EUROPEO_RILASCIO_EFFICACIA_E_IMPUGNAZIONE_REG_UE_415110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415115",
+      "codice_integrato": "GUIDA_INDEGNIT_A_SUCCEDERE_CAUSE_EFFETTI_E_RIABILITAZIONE_ARTT_463_466_C_C_415115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

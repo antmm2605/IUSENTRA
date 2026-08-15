@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p3.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p3.json",
+  "sha256": "D40113B2D8084AF8384C3507CF205CF2E3933C681CBA13B99E1EE05131FAFE73",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE3",
+  "denominazione": "PARTE 3 di 10",
+  "codici_materia_originali": [
+    "160485",
+    "160490",
+    "160495",
+    "170155",
+    "180165"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_INCIDENTE_IN_ZONA_DI_CANTIERE_STRADALE_RESPONSABILITA_DEL_COMUNE_DELL_AP_160485",
+    "GUIDA_DANNO_DA_FARMACO_DIFETTOSO_RESPONSABILITA_DEL_PRODUTTORE_FARMACEUTICO_E__160490",
+    "GUIDA_RESPONSABILITA_DEL_COSTRUTTORE_PER_INFILTRAZIONI_D_ACQUA_E_DIFETTI_DELL__160495",
+    "GUIDA_MARCHIO_DI_FORMA_TRADE_DRESS_TUTELA_DELLA_CONFIGURAZIONE_DEL_PRODOTTO_E__170155",
+    "GUIDA_SERVIZI_DI_CONTENUTO_DIGITALE_ONLINE_STREAMING_RECESSO_RIMBORSO_E_PRATIC_180165"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160485",
+      "codice_integrato": "GUIDA_INCIDENTE_IN_ZONA_DI_CANTIERE_STRADALE_RESPONSABILITA_DEL_COMUNE_DELL_AP_160485",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160490",
+      "codice_integrato": "GUIDA_DANNO_DA_FARMACO_DIFETTOSO_RESPONSABILITA_DEL_PRODUTTORE_FARMACEUTICO_E__160490",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160495",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_COSTRUTTORE_PER_INFILTRAZIONI_D_ACQUA_E_DIFETTI_DELL__160495",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "170155",
+      "codice_integrato": "GUIDA_MARCHIO_DI_FORMA_TRADE_DRESS_TUTELA_DELLA_CONFIGURAZIONE_DEL_PRODOTTO_E__170155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180165",
+      "codice_integrato": "GUIDA_SERVIZI_DI_CONTENUTO_DIGITALE_ONLINE_STREAMING_RECESSO_RIMBORSO_E_PRATIC_180165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

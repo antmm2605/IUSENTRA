@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (36).zip::kb_set47_p7.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set47_p7.json",
+  "sha256": "7C339553CAF537E00691588EE8AEF5C7416A06726F9CE1E59EF881CF2BF611EA",
+  "changed": true,
+  "macro_area_id": "SET47_PARTE7",
+  "denominazione": "PARTE 7 di 10",
+  "codici_materia_originali": [
+    "512475",
+    "512480",
+    "512485",
+    "512490",
+    "512495"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IRAP_BASE_IMPONIBILE_DEDUZIONI_PER_IL_COSTO_DEL_LAVORO_E_CONTROVERSIE_D__512475",
+    "GUIDA_IMPOSTA_DI_BOLLO_SULLE_COMUNICAZIONI_DIGITALI_E_SUI_CONTI_CORRENTI_OBBLI_512480",
+    "GUIDA_LOCAZIONI_BREVI_AIRBNB_CEDOLARE_SECCA_DEL_26_OBBLIGHI_DELL_INTERMEDIARIO_512485",
+    "GUIDA_TARI_TASSA_SUI_RIFIUTI_BASE_IMPONIBILE_AGEVOLAZIONI_E_CONTESTAZIONE_DELL_512490",
+    "GUIDA_LOCAZIONI_DI_IMMOBILI_A_USO_ABITATIVO_CON_CEDOLARE_SECCA_OPZIONE_TASSAZI_512495"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "512475",
+      "codice_integrato": "GUIDA_IRAP_BASE_IMPONIBILE_DEDUZIONI_PER_IL_COSTO_DEL_LAVORO_E_CONTROVERSIE_D__512475",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512480",
+      "codice_integrato": "GUIDA_IMPOSTA_DI_BOLLO_SULLE_COMUNICAZIONI_DIGITALI_E_SUI_CONTI_CORRENTI_OBBLI_512480",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512485",
+      "codice_integrato": "GUIDA_LOCAZIONI_BREVI_AIRBNB_CEDOLARE_SECCA_DEL_26_OBBLIGHI_DELL_INTERMEDIARIO_512485",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512490",
+      "codice_integrato": "GUIDA_TARI_TASSA_SUI_RIFIUTI_BASE_IMPONIBILE_AGEVOLAZIONI_E_CONTESTAZIONE_DELL_512490",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512495",
+      "codice_integrato": "GUIDA_LOCAZIONI_DI_IMMOBILI_A_USO_ABITATIVO_CON_CEDOLARE_SECCA_OPZIONE_TASSAZI_512495",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p9.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p9.json",
+  "sha256": "F87F0AD74D2D5E0128B88876AAFD9718FD9E5FA6AF773E95D6040711549FA047",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE9",
+  "denominazione": "PARTE 9 di 10",
+  "codici_materia_originali": [
+    "510180",
+    "500145",
+    "500150",
+    "510185",
+    "144105"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ESECUZIONE_FORZATA_SUI_BENI_MOBILI_PIGNORAMENTO_STIMA_E_VENDITA_ALL_ASTA_510180",
+    "GUIDA_LIQUIDAZIONE_COATTA_AMMINISTRATIVA_PRESUPPOSTI_DIFFERENZE_DALLA_LG_E_TUT_500145",
+    "GUIDA_DOMANDA_DI_AMMISSIONE_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_INSINUAZI_500150",
+    "GUIDA_ESECUZIONE_FORZATA_PER_LA_CONSEGNA_DI_COSA_DETERMINATA_PROCEDIMENTO_E_TU_510185",
+    "GUIDA_ACCOLLO_DEL_MUTUO_E_SURROGA_DEL_CREDITORE_PORTABILITA_CON_ACCOLLO_E_CONT_144105"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "510180",
+      "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_SUI_BENI_MOBILI_PIGNORAMENTO_STIMA_E_VENDITA_ALL_ASTA_510180",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500145",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_COATTA_AMMINISTRATIVA_PRESUPPOSTI_DIFFERENZE_DALLA_LG_E_TUT_500145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500150",
+      "codice_integrato": "GUIDA_DOMANDA_DI_AMMISSIONE_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_INSINUAZI_500150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "510185",
+      "codice_integrato": "GUIDA_ESECUZIONE_FORZATA_PER_LA_CONSEGNA_DI_COSA_DETERMINATA_PROCEDIMENTO_E_TU_510185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144105",
+      "codice_integrato": "GUIDA_ACCOLLO_DEL_MUTUO_E_SURROGA_DEL_CREDITORE_PORTABILITA_CON_ACCOLLO_E_CONT_144105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

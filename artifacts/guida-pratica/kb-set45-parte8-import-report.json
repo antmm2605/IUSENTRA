@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p8.json",
+  "sha256": "681076AB312C744A3CE23D20D0D0D391A787FCA472028D811466B452DC0E443A",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413270",
+    "413275",
+    "415145",
+    "415150",
+    "415155"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_FIGLIO_PER_VIOLENZA_ERRORE_O_DIFETTO__413270",
+    "GUIDA_MODIFICA_DELL_ACCORDO_DI_SEPARAZIONE_OMOLOGATO_PER_SOPRAVVENIENZE_RILEVA_413275",
+    "GUIDA_RINUNCIA_ALL_EREDITA_TERMINI_RETROATTIVITA_REVOCA_E_RINUNCIA_ABDICATIVA__415145",
+    "GUIDA_COMUNIONE_EREDITARIA_GESTIONE_DEI_BENI_SPESE_E_CONTROVERSIE_PRIMA_DELLA__415150",
+    "GUIDA_TESTAMENTO_OLOGRAFO_REQUISITI_DI_OLOGRAFIA_FIRMA_DATA_VIZI_FORMALI_E_IMP_415155"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413270",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DEL_RICONOSCIMENTO_DI_FIGLIO_PER_VIOLENZA_ERRORE_O_DIFETTO__413270",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413275",
+      "codice_integrato": "GUIDA_MODIFICA_DELL_ACCORDO_DI_SEPARAZIONE_OMOLOGATO_PER_SOPRAVVENIENZE_RILEVA_413275",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415145",
+      "codice_integrato": "GUIDA_RINUNCIA_ALL_EREDITA_TERMINI_RETROATTIVITA_REVOCA_E_RINUNCIA_ABDICATIVA__415145",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415150",
+      "codice_integrato": "GUIDA_COMUNIONE_EREDITARIA_GESTIONE_DEI_BENI_SPESE_E_CONTROVERSIE_PRIMA_DELLA__415150",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415155",
+      "codice_integrato": "GUIDA_TESTAMENTO_OLOGRAFO_REQUISITI_DI_OLOGRAFIA_FIRMA_DATA_VIZI_FORMALI_E_IMP_415155",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

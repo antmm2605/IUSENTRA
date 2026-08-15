@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p10.json",
+  "sha256": "FF6F1A63B62C18034D018A4A9455F76C025F516772B408C2E65E1C1EA22A51E9",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "170120",
+    "180130",
+    "211105",
+    "190100",
+    "190105"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_VARIET_VEGETALI_PROTETTE_REGISTRAZIONE_ROYALTIES_E_TUTELA_CONTRO_LA_RIPR_170120",
+    "GUIDA_SICUREZZA_DEI_PRODOTTI_OBBLIGHI_DEL_PRODUTTORE_E_DEL_DISTRIBUTORE_RITIRO_180130",
+    "GUIDA_MEDIAZIONE_OBBLIGATORIA_IN_MATERIA_DI_RESPONSABILIT_MEDICA_SPECIFICIT_DE_211105",
+    "GUIDA_AZIONE_DI_REINTEGRAZIONE_NEL_POSSESSO_SPOGLIO_VIOLENTO_O_CLANDESTINO_E_T_190100",
+    "GUIDA_TUTELA_DELL_ACQUIRENTE_DI_IMMOBILE_DA_COSTRUIRE_FIDEIUSSIONE_OBBLIGATORI_190105"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170120",
+      "codice_integrato": "GUIDA_VARIET_VEGETALI_PROTETTE_REGISTRAZIONE_ROYALTIES_E_TUTELA_CONTRO_LA_RIPR_170120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180130",
+      "codice_integrato": "GUIDA_SICUREZZA_DEI_PRODOTTI_OBBLIGHI_DEL_PRODUTTORE_E_DEL_DISTRIBUTORE_RITIRO_180130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211105",
+      "codice_integrato": "GUIDA_MEDIAZIONE_OBBLIGATORIA_IN_MATERIA_DI_RESPONSABILIT_MEDICA_SPECIFICIT_DE_211105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190100",
+      "codice_integrato": "GUIDA_AZIONE_DI_REINTEGRAZIONE_NEL_POSSESSO_SPOGLIO_VIOLENTO_O_CLANDESTINO_E_T_190100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190105",
+      "codice_integrato": "GUIDA_TUTELA_DELL_ACQUIRENTE_DI_IMMOBILE_DA_COSTRUIRE_FIDEIUSSIONE_OBBLIGATORI_190105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

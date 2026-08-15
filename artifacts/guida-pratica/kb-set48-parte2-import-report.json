@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p2.json",
+  "sha256": "B576C13F645246FE64334F90EA9B21FE393AD95B8198C8D9B7073C76001D286E",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150285",
+    "155100",
+    "156100",
+    "144100",
+    "143185"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_P_A_ACQUISTO_DI_AZIONI_PROPRIE_LIMITI_DI_LEGGE_E_CONTROVERSIE_ARTT_235_150285",
+    "GUIDA_FONDI_PENSIONE_APERTI_ADESIONE_PORTABILITA_SWITCH_DI_COMPARTO_E_CONTROVE_155100",
+    "GUIDA_CARTOLARIZZAZIONE_DEI_CREDITI_ABS_SECURITIZATION_DIRITTI_DEGLI_INVESTITO_156100",
+    "GUIDA_CREDITO_AL_CONSUMO_REVOLVING_COSTO_TOTALE_COMMISSIONI_DI_DISPONIBILITA_E_144100",
+    "GUIDA_RESPONSABILITA_DEL_CURATORE_FALLIMENTARE_VERSO_I_CREDITORI_E_I_TERZI_PRE_143185"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150285",
+      "codice_integrato": "GUIDA_S_P_A_ACQUISTO_DI_AZIONI_PROPRIE_LIMITI_DI_LEGGE_E_CONTROVERSIE_ARTT_235_150285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155100",
+      "codice_integrato": "GUIDA_FONDI_PENSIONE_APERTI_ADESIONE_PORTABILITA_SWITCH_DI_COMPARTO_E_CONTROVE_155100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156100",
+      "codice_integrato": "GUIDA_CARTOLARIZZAZIONE_DEI_CREDITI_ABS_SECURITIZATION_DIRITTI_DEGLI_INVESTITO_156100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "144100",
+      "codice_integrato": "GUIDA_CREDITO_AL_CONSUMO_REVOLVING_COSTO_TOTALE_COMMISSIONI_DI_DISPONIBILITA_E_144100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143185",
+      "codice_integrato": "GUIDA_RESPONSABILITA_DEL_CURATORE_FALLIMENTARE_VERSO_I_CREDITORI_E_I_TERZI_PRE_143185",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

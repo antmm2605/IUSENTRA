@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p5.json",
+  "sha256": "5348E155AD8B8E4AB7D9BD73EFCB18D62B6D9FC5355FA5F404A3924B511585E6",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220530",
+    "220535",
+    "620165",
+    "620170",
+    "240445"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_TRASFERIMENTO_DEL_LAVORATORE_CONDIZIONI_LIMITI_E_OPPOSIZIONE_ART_2103_C__220530",
+    "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_STAFF_LEASING_A_TEMPO_INDETERMINATO_LIMITI_E__220535",
+    "GUIDA_PENSIONE_DI_INVALIDITA_CIVILE_INPS_REQUISITI_MISURA_RICORSO_E_INTEGRAZIO_620165",
+    "GUIDA_RISCATTO_DELLA_LAUREA_AI_FINI_PENSIONISTICI_REQUISITI_COSTO_E_CONTROVERS_620170",
+    "GUIDA_SEGNALAZIONE_DI_ILLECITI_WHISTLEBLOWING_TUTELE_DEL_SEGNALANTE_CANALI_E_C_240445"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220530",
+      "codice_integrato": "GUIDA_TRASFERIMENTO_DEL_LAVORATORE_CONDIZIONI_LIMITI_E_OPPOSIZIONE_ART_2103_C__220530",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220535",
+      "codice_integrato": "GUIDA_SOMMINISTRAZIONE_DI_LAVORO_STAFF_LEASING_A_TEMPO_INDETERMINATO_LIMITI_E__220535",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620165",
+      "codice_integrato": "GUIDA_PENSIONE_DI_INVALIDITA_CIVILE_INPS_REQUISITI_MISURA_RICORSO_E_INTEGRAZIO_620165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620170",
+      "codice_integrato": "GUIDA_RISCATTO_DELLA_LAUREA_AI_FINI_PENSIONISTICI_REQUISITI_COSTO_E_CONTROVERS_620170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240445",
+      "codice_integrato": "GUIDA_SEGNALAZIONE_DI_ILLECITI_WHISTLEBLOWING_TUTELE_DEL_SEGNALANTE_CANALI_E_C_240445",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

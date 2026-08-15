@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p5.json",
+  "sha256": "7DEF6A20AAF9594D5D022F5970570128A89F9B3FB25EAD89CF6FC5FD6F7E77B9",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220500",
+    "220505",
+    "620135",
+    "620140",
+    "143175"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONTRATTO_COLLETTIVO_AZIENDALE_DI_SECONDO_LIVELLO_DEROGHE_AI_CCNL_E_CONT_220500",
+    "GUIDA_APPALTO_DI_SERVIZI_DI_PULIZIA_E_FACCHINAGGIO_RESPONSABILITA_SOLIDALE_E_T_220505",
+    "GUIDA_PENSIONE_ANTICIPATA_CON_41_ANNI_DI_CONTRIBUTI_PER_I_LAVORATORI_PRECOCI_L_620135",
+    "GUIDA_RICONOSCIMENTO_DELLA_MALATTIA_PROFESSIONALE_INAIL_PROCEDIMENTO_CONTESTAZ_620140",
+    "GUIDA_INTERDIZIONE_LEGALE_DEL_CONDANNATO_EFFETTI_PATRIMONIALI_TUTORE_E_CONTROV_143175"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220500",
+      "codice_integrato": "GUIDA_CONTRATTO_COLLETTIVO_AZIENDALE_DI_SECONDO_LIVELLO_DEROGHE_AI_CCNL_E_CONT_220500",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220505",
+      "codice_integrato": "GUIDA_APPALTO_DI_SERVIZI_DI_PULIZIA_E_FACCHINAGGIO_RESPONSABILITA_SOLIDALE_E_T_220505",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620135",
+      "codice_integrato": "GUIDA_PENSIONE_ANTICIPATA_CON_41_ANNI_DI_CONTRIBUTI_PER_I_LAVORATORI_PRECOCI_L_620135",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620140",
+      "codice_integrato": "GUIDA_RICONOSCIMENTO_DELLA_MALATTIA_PROFESSIONALE_INAIL_PROCEDIMENTO_CONTESTAZ_620140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143175",
+      "codice_integrato": "GUIDA_INTERDIZIONE_LEGALE_DEL_CONDANNATO_EFFETTI_PATRIMONIALI_TUTORE_E_CONTROV_143175",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

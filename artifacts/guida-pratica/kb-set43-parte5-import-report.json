@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p5.json",
+  "sha256": "4A3743055BAC30D4D506AF4963E66AC1BCDD2AEDC2D534FFC5473FBC0331B687",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "240280",
+    "240285",
+    "240290",
+    "240295",
+    "240300"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIT_DI_ESPROPRIO_OPPOSIZIONE_E_R_240280",
+    "GUIDA_AUTORIZZAZIONE_UNICA_PER_IMPIANTI_DI_ENERGIA_RINNOVABILE_PROCEDIMENTO_E__240285",
+    "GUIDA_GARA_PUBBLICA_ESCLUSIONE_DEL_CONCORRENTE_E_IMPUGNAZIONE_AL_TAR_D_LGS_36__240290",
+    "GUIDA_DIRITTO_DI_ACCESSO_AGLI_ATTI_DELLA_PA_EX_L_241_1990_DISTINZIONE_DAL_FOIA_240295",
+    "GUIDA_PROCEDIMENTO_DI_INFRAZIONE_UE_CONTRO_L_ITALIA_EFFETTI_SULL_ORDINAMENTO_E_240300"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240280",
+      "codice_integrato": "GUIDA_ESPROPRIAZIONE_PER_PUBBLICA_UTILIT_INDENNIT_DI_ESPROPRIO_OPPOSIZIONE_E_R_240280",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240285",
+      "codice_integrato": "GUIDA_AUTORIZZAZIONE_UNICA_PER_IMPIANTI_DI_ENERGIA_RINNOVABILE_PROCEDIMENTO_E__240285",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240290",
+      "codice_integrato": "GUIDA_GARA_PUBBLICA_ESCLUSIONE_DEL_CONCORRENTE_E_IMPUGNAZIONE_AL_TAR_D_LGS_36__240290",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240295",
+      "codice_integrato": "GUIDA_DIRITTO_DI_ACCESSO_AGLI_ATTI_DELLA_PA_EX_L_241_1990_DISTINZIONE_DAL_FOIA_240295",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "240300",
+      "codice_integrato": "GUIDA_PROCEDIMENTO_DI_INFRAZIONE_UE_CONTRO_L_ITALIA_EFFETTI_SULL_ORDINAMENTO_E_240300",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

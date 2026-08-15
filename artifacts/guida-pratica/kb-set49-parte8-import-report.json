@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (38).zip::kb_set49_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set49_p8.json",
+  "sha256": "6889B263CB27AB78A95E6DBFF43B7B0092BFE491C2EA667043D7A96E59F1D5AB",
+  "changed": true,
+  "macro_area_id": "SET49_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413310",
+    "413315",
+    "415205",
+    "415210",
+    "415215"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_COMMISSIONE_PER_LE_ADOZIONI_INTERNA_413310",
+    "GUIDA_AFFIDAMENTO_ETERO_FAMILIARE_DEL_MINORE_PRESUPPOSTI_MODALITA_E_CONTROVERS_413315",
+    "GUIDA_COMUNIONE_FORZOSA_DEL_MURO_DIVISORIO_ACQUISTO_INDENNIZZO_E_CONTRIBUZIONE_415205",
+    "GUIDA_TESTAMENTO_PUBBLICO_REQUISITI_FORMALI_IL_NOTAIO_I_TESTIMONI_E_IMPUGNAZIO_415210",
+    "GUIDA_INDEGNITA_A_SUCCEDERE_CAUSE_EFFETTI_E_RIABILITAZIONE_ARTT_463_466_C_C_415215"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413310",
+      "codice_integrato": "GUIDA_ADOZIONE_INTERNAZIONALE_PROCEDIMENTO_COMMISSIONE_PER_LE_ADOZIONI_INTERNA_413310",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413315",
+      "codice_integrato": "GUIDA_AFFIDAMENTO_ETERO_FAMILIARE_DEL_MINORE_PRESUPPOSTI_MODALITA_E_CONTROVERS_413315",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415205",
+      "codice_integrato": "GUIDA_COMUNIONE_FORZOSA_DEL_MURO_DIVISORIO_ACQUISTO_INDENNIZZO_E_CONTRIBUZIONE_415205",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415210",
+      "codice_integrato": "GUIDA_TESTAMENTO_PUBBLICO_REQUISITI_FORMALI_IL_NOTAIO_I_TESTIMONI_E_IMPUGNAZIO_415210",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415215",
+      "codice_integrato": "GUIDA_INDEGNITA_A_SUCCEDERE_CAUSE_EFFETTI_E_RIABILITAZIONE_ARTT_463_466_C_C_415215",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

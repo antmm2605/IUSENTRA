@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p5.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p5.json",
+  "sha256": "744FCE7696FCB383C04699A1007016F27944446C80CFEA6DAE0192D4C4B359AA",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE5",
+  "denominazione": "PARTE 5 di 10",
+  "codici_materia_originali": [
+    "220480",
+    "220485",
+    "620115",
+    "620120",
+    "143165"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILIT_SOLIDALE_DEL_COMMITTENTE_E_DELL_APPALTATORE_PER_I_CREDITI__220480",
+    "GUIDA_TRASFERIMENTO_D_AZIENDA_TUTELE_DEI_LAVORATORI_CEDUTI_E_DIRITTO_DI_OPPOSI_220485",
+    "GUIDA_SORVEGLIANZA_SANITARIA_E_IDONEIT_ALLA_MANSIONE_DIRITTI_DEL_LAVORATORE_E__620115",
+    "GUIDA_AGENTI_DI_COMMERCIO_E_ENASARCO_OBBLIGHI_CONTRIBUTIVI_CONTROVERSIE_E_PRES_620120",
+    "GUIDA_RISARCIMENTO_DEL_DANNO_IN_FORMA_SPECIFICA_PRESUPPOSTI_E_LIMITAZIONI_RISP_143165"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220480",
+      "codice_integrato": "GUIDA_RESPONSABILIT_SOLIDALE_DEL_COMMITTENTE_E_DELL_APPALTATORE_PER_I_CREDITI__220480",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220485",
+      "codice_integrato": "GUIDA_TRASFERIMENTO_D_AZIENDA_TUTELE_DEI_LAVORATORI_CEDUTI_E_DIRITTO_DI_OPPOSI_220485",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620115",
+      "codice_integrato": "GUIDA_SORVEGLIANZA_SANITARIA_E_IDONEIT_ALLA_MANSIONE_DIRITTI_DEL_LAVORATORE_E__620115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620120",
+      "codice_integrato": "GUIDA_AGENTI_DI_COMMERCIO_E_ENASARCO_OBBLIGHI_CONTRIBUTIVI_CONTROVERSIE_E_PRES_620120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143165",
+      "codice_integrato": "GUIDA_RISARCIMENTO_DEL_DANNO_IN_FORMA_SPECIFICA_PRESUPPOSTI_E_LIMITAZIONI_RISP_143165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

@@ -33,6 +33,13 @@ class ConversionRule:
     reason: str
 
 
+@dataclass(frozen=True)
+class ExistingGuidanceDuplicate:
+    canonical_code: str
+    title: str
+    reason: str
+
+
 CONVERSION_RULES: dict[str, ConversionRule] = {
     "140011": ConversionRule(
         "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
@@ -181,6 +188,23 @@ CONVERSION_RULES: dict[str, ConversionRule] = {
     ),
 }
 
+
+# Materiale ricevuto il 15/08/2026: la scheda 415120 ripete una guida gia'
+# presente. Non va importata come seconda scheda perche' il testo in ingresso
+# diverge anche su un presupposto operativo; la guida canonica resta l'unico
+# punto di consultazione, con fonti e termini gia' governati.
+EXISTING_GUIDANCE_DUPLICATES: dict[str, ExistingGuidanceDuplicate] = {
+    "415120": ExistingGuidanceDuplicate(
+        canonical_code="GUIDA_ESECUTORE_TESTAMENTARIO_NOMINA_POTERI_E_RESPONSABILIT_ARTT_700_712_C_C_415055",
+        title="Esecutore testamentario: nomina, poteri e responsabilità (artt. 700-712 c.c.)",
+        reason=(
+            "La scheda ricevuta replica una guida interna già presente e contiene un contenuto "
+            "divergente sulla durata del possesso. È mantenuta la sola guida canonica, da "
+            "verificare sulle fonti collegate."
+        ),
+    ),
+}
+
 WEB_SOURCE_LIBRARY = SOURCE_LIBRARY
 
 WEB_SOURCE_RULES: tuple[tuple[set[str], tuple[str, ...]], ...] = (
@@ -303,6 +327,20 @@ def _count_terms(payload: dict[str, Any]) -> int:
     return sum(len(item.get("termini_processuali") or []) for item in _items(payload) if isinstance(item.get("termini_processuali"), list))
 
 
+def _normalized_title(value: Any) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", str(value or "").casefold()).split())
+
+
+def _existing_guidance_duplicate(item: dict[str, Any]) -> ExistingGuidanceDuplicate | None:
+    original_code = normalize_codice_materia(
+        item.get("codice_originale_ricevuto") or item.get("codice") or item.get("codice_logico") or item.get("codice_materia")
+    )
+    rule = EXISTING_GUIDANCE_DUPLICATES.get(original_code)
+    if not rule:
+        return None
+    return rule if _normalized_title(item.get("denominazione")) == _normalized_title(rule.title) else None
+
+
 def _convert_item(item: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None, str | None]:
     row = deepcopy(item)
     original_code = normalize_codice_materia(
@@ -386,6 +424,7 @@ def _convert_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str,
     integrated_codes: list[str] = []
     conversions: list[dict[str, Any]] = []
     official_kept: list[str] = []
+    existing_guidance_duplicates: list[dict[str, str]] = []
     rows: list[dict[str, Any]] = []
     for item in converted.get("codici_materia") or []:
         if not isinstance(item, dict):
@@ -396,6 +435,17 @@ def _convert_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str,
         if original_code:
             original_codes.append(original_code)
         new_item, conversion, official_code = _convert_item(item)
+        duplicate = _existing_guidance_duplicate(new_item)
+        if duplicate:
+            existing_guidance_duplicates.append(
+                {
+                    "source_codice": original_code,
+                    "denominazione": str(new_item.get("denominazione") or ""),
+                    "canonical_code": duplicate.canonical_code,
+                    "reason": duplicate.reason,
+                }
+            )
+            continue
         _attach_web_sources(new_item)
         rows.append(new_item)
         integrated = normalize_codice_materia(new_item.get("codice"))
@@ -413,7 +463,12 @@ def _convert_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str,
         "codici_materia_integrati": integrated_codes,
         "conversioni_deposito": conversions,
         "codici_ufficiali_mantenuti_depositabili": official_kept,
-        "termini_processuali_raw": _count_terms(converted),
+        "deduplicati_su_guida_esistente": existing_guidance_duplicates,
+        "termini_processuali_raw": sum(
+            len(item.get("termini_processuali") or [])
+            for item in rows
+            if isinstance(item.get("termini_processuali"), list)
+        ),
     }
     return converted, report
 
@@ -438,6 +493,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
     seen_hashes: dict[str, str] = {}
     official_kept: list[str] = []
     aliases: list[str] = []
+    existing_guidance_duplicates: list[dict[str, str]] = []
     total_terms = 0
     for source_name, data in _source_files(paths):
         digest = _sha256(data)
@@ -465,6 +521,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
         files.append(file_report)
         official_kept.extend(report["codici_ufficiali_mantenuti_depositabili"])
         aliases.extend(item["codice_integrato"] for item in report["conversioni_deposito"])
+        existing_guidance_duplicates.extend(report["deduplicati_su_guida_esistente"])
         total_terms += int(report["termini_processuali_raw"])
 
         match = re.search(r"set(\d+)_(?:parte|p)(\d+)", destination.name)
@@ -482,6 +539,7 @@ def import_sources(paths: Iterable[Path], *, modules_dir: Path = MODULES_DIR, ar
         "records_integrated": sum(len(file["codici_materia_integrati"]) for file in files),
         "official_depositable_kept": sorted(set(official_kept)),
         "internal_non_depositable_aliases": sorted(set(aliases)),
+        "deduplicati_su_guida_esistente": existing_guidance_duplicates,
         "termini_processuali_raw": total_terms,
     }
     artifacts_dir.mkdir(parents=True, exist_ok=True)

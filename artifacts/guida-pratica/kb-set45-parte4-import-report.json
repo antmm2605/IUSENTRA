@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p4.json",
+  "sha256": "7C0EBB9EDAC79BCFE71E6573119A507418047DDD69AC34ACD8133B1F4B9DA209",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190110",
+    "191115",
+    "199165",
+    "211110",
+    "211115"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_SIMULAZIONE_ASSOLUTA_E_RELATIVA_ONERE_DELLA_PROVA_E_TUTELE_DEI_190110",
+    "GUIDA_INEFFICACIA_DEL_PROVVEDIMENTO_CAUTELARE_PER_MANCATA_NOTIFICA_O_MANCATO_I_191115",
+    "GUIDA_REVOCAZIONE_DELLA_SENTENZA_PER_DOLO_FALSA_PROVA_O_CONFLITTO_CON_ALTRA_SE_199165",
+    "GUIDA_LODO_ARBITRALE_STRANIERO_RICONOSCIMENTO_ED_ESECUZIONE_IN_ITALIA_CONV_NEW_211110",
+    "GUIDA_CONCILIAZIONE_IN_SEDE_SINDACALE_ACCORDI_DI_CONCILIAZIONE_PROTETTI_E_LORO_211115"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190110",
+      "codice_integrato": "GUIDA_AZIONE_DI_SIMULAZIONE_ASSOLUTA_E_RELATIVA_ONERE_DELLA_PROVA_E_TUTELE_DEI_190110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191115",
+      "codice_integrato": "GUIDA_INEFFICACIA_DEL_PROVVEDIMENTO_CAUTELARE_PER_MANCATA_NOTIFICA_O_MANCATO_I_191115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199165",
+      "codice_integrato": "GUIDA_REVOCAZIONE_DELLA_SENTENZA_PER_DOLO_FALSA_PROVA_O_CONFLITTO_CON_ALTRA_SE_199165",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211110",
+      "codice_integrato": "GUIDA_LODO_ARBITRALE_STRANIERO_RICONOSCIMENTO_ED_ESECUZIONE_IN_ITALIA_CONV_NEW_211110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211115",
+      "codice_integrato": "GUIDA_CONCILIAZIONE_IN_SEDE_SINDACALE_ACCORDI_DI_CONCILIAZIONE_PROTETTI_E_LORO_211115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

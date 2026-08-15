@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (33).zip::kb_set44_p2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set44_p2.json",
+  "sha256": "E6DEA4CB1FDB1B2A4B5315A1237AA83E76D81A5A231FB435990235F40CF9CC29",
+  "changed": true,
+  "macro_area_id": "SET44_PARTE2",
+  "denominazione": "PARTE 2 di 10",
+  "codici_materia_originali": [
+    "150245",
+    "150250",
+    "150255",
+    "155080",
+    "156075"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_S_R_L_FINANZIAMENTO_DEI_SOCI_E_POSTERGAZIONE_NELLA_CRISI_ART_2467_C_C_150245",
+    "GUIDA_S_P_A_OPERAZIONI_CON_PARTI_CORRELATE_E_CONFLITTO_DI_INTERESSI_DEGLI_AMMI_150250",
+    "GUIDA_ACCORDO_DI_INVESTIMENTO_TERM_SHEET_NELLE_STARTUP_VINCOLATIVIT_RESPONSABI_150255",
+    "GUIDA_OFFERTA_PUBBLICA_DI_VENDITA_OPV_E_OFFERTA_AL_PUBBLICO_DI_SOTTOSCRIZIONE__155080",
+    "GUIDA_PEGNO_SU_STRUMENTI_FINANZIARI_E_SU_TITOLI_ESCUSSIONE_SEMPLIFICATA_E_CONT_156075"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "150245",
+      "codice_integrato": "GUIDA_S_R_L_FINANZIAMENTO_DEI_SOCI_E_POSTERGAZIONE_NELLA_CRISI_ART_2467_C_C_150245",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150250",
+      "codice_integrato": "GUIDA_S_P_A_OPERAZIONI_CON_PARTI_CORRELATE_E_CONFLITTO_DI_INTERESSI_DEGLI_AMMI_150250",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "150255",
+      "codice_integrato": "GUIDA_ACCORDO_DI_INVESTIMENTO_TERM_SHEET_NELLE_STARTUP_VINCOLATIVIT_RESPONSABI_150255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "155080",
+      "codice_integrato": "GUIDA_OFFERTA_PUBBLICA_DI_VENDITA_OPV_E_OFFERTA_AL_PUBBLICO_DI_SOTTOSCRIZIONE__155080",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "156075",
+      "codice_integrato": "GUIDA_PEGNO_SU_STRUMENTI_FINANZIARI_E_SU_TITOLI_ESCUSSIONE_SEMPLIFICATA_E_CONT_156075",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

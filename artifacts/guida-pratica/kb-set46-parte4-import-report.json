@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (35).zip::kb_set46_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set46_p4.json",
+  "sha256": "045E229C28B3E175B0637169EA969F97252BC31443E174D8902D563EF66A48C3",
+  "changed": true,
+  "macro_area_id": "SET46_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "190120",
+    "191120",
+    "199170",
+    "211125",
+    "211130"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_AZIONE_DI_ACCERTAMENTO_DI_UNA_SERVITU_CONTENUTO_ESERCIZIO_E_CONTROVERSIE_190120",
+    "GUIDA_RICORSO_PER_CASSAZIONE_MOTIVI_AMMISSIBILI_FILTRO_DI_AMMISSIBILITA_E_PROC_191120",
+    "GUIDA_LIQUIDAZIONE_DEL_COMPENSO_DEL_CTU_CRITERI_OPPOSIZIONE_E_RESPONSABILITA_A_199170",
+    "GUIDA_CLAUSOLA_DI_HARDSHIP_NEI_CONTRATTI_INTERNAZIONALI_ADATTAMENTO_DEL_CONTRA_211125",
+    "GUIDA_ONLINE_DISPUTE_RESOLUTION_ODR_MEDIAZIONE_E_ARBITRATO_TELEMATICO_PER_CONT_211130"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "190120",
+      "codice_integrato": "GUIDA_AZIONE_DI_ACCERTAMENTO_DI_UNA_SERVITU_CONTENUTO_ESERCIZIO_E_CONTROVERSIE_190120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "191120",
+      "codice_integrato": "GUIDA_RICORSO_PER_CASSAZIONE_MOTIVI_AMMISSIBILI_FILTRO_DI_AMMISSIBILITA_E_PROC_191120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "199170",
+      "codice_integrato": "GUIDA_LIQUIDAZIONE_DEL_COMPENSO_DEL_CTU_CRITERI_OPPOSIZIONE_E_RESPONSABILITA_A_199170",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211125",
+      "codice_integrato": "GUIDA_CLAUSOLA_DI_HARDSHIP_NEI_CONTRATTI_INTERNAZIONALI_ADATTAMENTO_DEL_CONTRA_211125",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211130",
+      "codice_integrato": "GUIDA_ONLINE_DISPUTE_RESOLUTION_ODR_MEDIAZIONE_E_ARBITRATO_TELEMATICO_PER_CONT_211130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

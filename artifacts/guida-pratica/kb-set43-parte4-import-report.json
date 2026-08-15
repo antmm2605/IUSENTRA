@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p4.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p4.json",
+  "sha256": "5A0B0E466F543DBFEBEAE4DCC97FACD55137399512231D9840428C4F51589CAF",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE4",
+  "denominazione": "PARTE 4 di 10",
+  "codici_materia_originali": [
+    "220465",
+    "220470",
+    "143160",
+    "620105",
+    "620110"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_WHISTLEBLOWER_TUTELA_DEL_SEGNALANTE_DI_ILLECITI_NEL_SETTORE_PRIVATO_D_LG_220465",
+    "GUIDA_LAVORO_TRAMITE_PIATTAFORME_DIGITALI_TUTELE_DEI_RIDER_E_GIG_WORKERS_DIR_U_220470",
+    "GUIDA_INVALIDIT_CIVILE_DOMANDA_VERBALE_E_CONTROVERSIE_CON_L_INPS_PER_IL_RICONO_143160",
+    "GUIDA_SOCIO_DI_COOPERATIVA_RAPPORTO_MUTUALISTICO_RECESSO_E_CONTROVERSIE_D_LGS__620105",
+    "GUIDA_COLLOCAMENTO_OBBLIGATORIO_DEI_LAVORATORI_CON_DISABILIT_OBBLIGHI_DEL_DATO_620110"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220465",
+      "codice_integrato": "GUIDA_WHISTLEBLOWER_TUTELA_DEL_SEGNALANTE_DI_ILLECITI_NEL_SETTORE_PRIVATO_D_LG_220465",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "220470",
+      "codice_integrato": "GUIDA_LAVORO_TRAMITE_PIATTAFORME_DIGITALI_TUTELE_DEI_RIDER_E_GIG_WORKERS_DIR_U_220470",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "143160",
+      "codice_integrato": "GUIDA_INVALIDIT_CIVILE_DOMANDA_VERBALE_E_CONTROVERSIE_CON_L_INPS_PER_IL_RICONO_143160",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620105",
+      "codice_integrato": "GUIDA_SOCIO_DI_COOPERATIVA_RAPPORTO_MUTUALISTICO_RECESSO_E_CONTROVERSIE_D_LGS__620105",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "620110",
+      "codice_integrato": "GUIDA_COLLOCAMENTO_OBBLIGATORIO_DEI_LAVORATORI_CON_DISABILIT_OBBLIGHI_DEL_DATO_620110",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

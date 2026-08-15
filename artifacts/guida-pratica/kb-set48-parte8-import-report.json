@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (37).zip::kb_set48_p8.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set48_p8.json",
+  "sha256": "6EC994E1836DF185B012A82F08DD491CAA425E8BB85CE8E9609D8CFB0CCC0027",
+  "changed": true,
+  "macro_area_id": "SET48_PARTE8",
+  "denominazione": "PARTE 8 di 10",
+  "codici_materia_originali": [
+    "413300",
+    "413305",
+    "415190",
+    "415195",
+    "415200"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PROTEZIONE_INTERNAZIONALE_ASILO_POLITICO_PROCEDIMENTO_DINIEGO_E_IMPUGNAZ_413300",
+    "GUIDA_MINORI_STRANIERI_NON_ACCOMPAGNATI_MSNA_NOMINA_DEL_TUTORE_ACCOGLIENZA_E_D_413305",
+    "GUIDA_RIFIUTO_DEL_LEGATO_DICHIARAZIONE_EFFETTI_RETROATTIVI_E_CONTROVERSIE_ARTT_415190",
+    "GUIDA_SOSTITUZIONE_VOLGARE_TRA_PIU_EREDI_PRESUPPOSTI_CONDIZIONI_E_CONTROVERSIE_415195",
+    "GUIDA_PETIZIONE_DI_EREDITA_PRESUPPOSTI_ONERE_DELLA_PROVA_E_PRESCRIZIONE_ARTT_5_415200"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413300",
+      "codice_integrato": "GUIDA_PROTEZIONE_INTERNAZIONALE_ASILO_POLITICO_PROCEDIMENTO_DINIEGO_E_IMPUGNAZ_413300",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413305",
+      "codice_integrato": "GUIDA_MINORI_STRANIERI_NON_ACCOMPAGNATI_MSNA_NOMINA_DEL_TUTORE_ACCOGLIENZA_E_D_413305",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415190",
+      "codice_integrato": "GUIDA_RIFIUTO_DEL_LEGATO_DICHIARAZIONE_EFFETTI_RETROATTIVI_E_CONTROVERSIE_ARTT_415190",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415195",
+      "codice_integrato": "GUIDA_SOSTITUZIONE_VOLGARE_TRA_PIU_EREDI_PRESUPPOSTI_CONDIZIONI_E_CONTROVERSIE_415195",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "415200",
+      "codice_integrato": "GUIDA_PETIZIONE_DI_EREDITA_PRESUPPOSTI_ONERE_DELLA_PROVA_E_PRESCRIZIONE_ARTT_5_415200",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

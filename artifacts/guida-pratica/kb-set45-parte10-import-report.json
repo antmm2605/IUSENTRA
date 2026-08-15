@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (34).zip::kb_set45_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set45_p10.json",
+  "sha256": "AF20894768968C5473A9D67CBBBF8B4C1CD39D465AB1EAD980692FAB0F5D61EC",
+  "changed": true,
+  "macro_area_id": "SET45_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "170130",
+    "180140",
+    "211120",
+    "190115",
+    "140120"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SOFTWARE_COME_OPERA_DELL_INGEGNO_TUTELA_CONTRAFFAZIONE_E_MISURE_TECNOLOG_170130",
+    "GUIDA_MARKETPLACE_E_PRATICHE_COMMERCIALI_SLEALI_ONLINE_DIR_OMNIBUS_E_RESPONSAB_180140",
+    "GUIDA_CONCILIAZIONE_IN_SEDE_DI_CERTIFICAZIONE_DEI_CONTRATTI_DI_LAVORO_EFFETTI__211120",
+    "GUIDA_ARRICCHIMENTO_SENZA_CAUSA_VERSO_LA_PUBBLICA_AMMINISTRAZIONE_LIMITI_E_TUT_190115",
+    "GUIDA_COMPRAVENDITA_DI_AZIENDA_AGRICOLA_PECULIARITA_GARANZIE_E_PRELAZIONE_DEL__140120"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "170130",
+      "codice_integrato": "GUIDA_SOFTWARE_COME_OPERA_DELL_INGEGNO_TUTELA_CONTRAFFAZIONE_E_MISURE_TECNOLOG_170130",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "180140",
+      "codice_integrato": "GUIDA_MARKETPLACE_E_PRATICHE_COMMERCIALI_SLEALI_ONLINE_DIR_OMNIBUS_E_RESPONSAB_180140",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "211120",
+      "codice_integrato": "GUIDA_CONCILIAZIONE_IN_SEDE_DI_CERTIFICAZIONE_DEI_CONTRATTI_DI_LAVORO_EFFETTI__211120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "190115",
+      "codice_integrato": "GUIDA_ARRICCHIMENTO_SENZA_CAUSA_VERSO_LA_PUBBLICA_AMMINISTRAZIONE_LIMITI_E_TUT_190115",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "140120",
+      "codice_integrato": "GUIDA_COMPRAVENDITA_DI_AZIENDA_AGRICOLA_PECULIARITA_GARANZIE_E_PRELAZIONE_DEL__140120",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

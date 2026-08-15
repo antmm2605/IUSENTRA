@@ -1,0 +1,57 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (32).zip::kb_set43_p10.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_set43_p10.json",
+  "sha256": "3C60AE9EED63765DA4E6A0CEA9844EF26417079693F6A720A2AD3B0A9FAC479C",
+  "changed": true,
+  "macro_area_id": "SET43_PARTE10",
+  "denominazione": "PARTE 10 di 10",
+  "codici_materia_originali": [
+    "240305",
+    "413255",
+    "512395",
+    "160420",
+    "500100"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_CONCESSIONE_DI_SUOLO_PUBBLICO_PER_DEHORS_E_COSAP_CONTROVERSIE_TARIFFARIE_240305",
+    "GUIDA_SOTTRAZIONE_INTERNAZIONALE_DI_MINORI_RIMPATRIO_E_PROCEDIMENTO_CONV_L_AIA_413255",
+    "GUIDA_TRUST_E_IMPOSTA_SULLE_SUCCESSIONI_E_DONAZIONI_IMPOSIZIONE_E_CONTESTAZION_512395",
+    "GUIDA_RESPONSABILIT_DA_ATTI_DI_TERRORISMO_INDENNIZZO_STATALE_E_AZIONE_CIVILIST_160420",
+    "GUIDA_COMPOSIZIONE_NEGOZIATA_DELLA_CRISI_CNC_ACCESSO_MISURE_PROTETTIVE_E_DEBIT_500100"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "240305",
+      "codice_integrato": "GUIDA_CONCESSIONE_DI_SUOLO_PUBBLICO_PER_DEHORS_E_COSAP_CONTROVERSIE_TARIFFARIE_240305",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "413255",
+      "codice_integrato": "GUIDA_SOTTRAZIONE_INTERNAZIONALE_DI_MINORI_RIMPATRIO_E_PROCEDIMENTO_CONV_L_AIA_413255",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "512395",
+      "codice_integrato": "GUIDA_TRUST_E_IMPOSTA_SULLE_SUCCESSIONI_E_DONAZIONI_IMPOSIZIONE_E_CONTESTAZION_512395",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "160420",
+      "codice_integrato": "GUIDA_RESPONSABILIT_DA_ATTI_DI_TERRORISMO_INDENNIZZO_STATALE_E_AZIONE_CIVILIST_160420",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    },
+    {
+      "codice_originale": "500100",
+      "codice_integrato": "GUIDA_COMPOSIZIONE_NEGOZIATA_DELLA_CRISI_CNC_ACCESSO_MISURE_PROTETTIVE_E_DEBIT_500100",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; conservato come guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "deduplicati_su_guida_esistente": [],
+  "termini_processuali_raw": 5
+}

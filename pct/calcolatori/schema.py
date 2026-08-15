@@ -600,6 +600,79 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _data("amm_data_prima_rata", "Prima rata"),
         ],
     },
+    "conta_giorni": {
+        "azione": "Conta i giorni",
+        "campi": [
+            _data("giorni_data_inizio", "Data iniziale"),
+            _data(
+                "giorni_data_fine",
+                "Data finale",
+                aiuto="Conteggio di calendario: per i termini processuali usare il modulo dedicato.",
+            ),
+        ],
+    },
+    "scorporo_iva": {
+        "azione": "Calcola",
+        "campi": [
+            _scelta("iva_verso", "Operazione", [("scorporo", "Scorporo dal lordo"), ("aggiunta", "Aggiunta al netto")]),
+            _numero("iva_importo", "Importo"),
+            _scelta(
+                "iva_aliquota",
+                "Aliquota",
+                [("4", "4%"), ("5", "5%"), ("10", "10%"), ("22", "22%")],
+                aiuto="Aliquote vigenti ex D.P.R. 633/1972.",
+            ),
+        ],
+    },
+    "percentuali": {
+        "azione": "Calcola",
+        "campi": [
+            _numero("perc_base", "Importo base"),
+            _numero("perc_percento", "Percentuale", aiuto="Compila per ottenere la quota (X% della base)."),
+            _numero("perc_parte", "Parte", aiuto="Compila per ottenere incidenza e variazione rispetto alla base."),
+        ],
+    },
+    "codice_fiscale": {
+        "azione": "Calcola o decodifica",
+        "campi": [
+            _testo(
+                "cf_codice",
+                "Codice fiscale da decodificare",
+                aiuto="Se compilato decodifica il codice; lascia vuoto per calcolarlo dai dati anagrafici.",
+            ),
+            _testo("cf_cognome", "Cognome"),
+            _testo("cf_nome", "Nome"),
+            _scelta("cf_sesso", "Sesso", [("M", "M"), ("F", "F")]),
+            _data("cf_data_nascita", "Data di nascita"),
+            _testo("cf_luogo", "Comune di nascita"),
+            _testo("cf_provincia", "Provincia (sigla)"),
+        ],
+    },
+    "tabella_istat": {
+        "azione": "Mostra la tabella",
+        "campi": [
+            _scelta(
+                "istat_tipo",
+                "Indice",
+                [("FOI", "FOI (famiglie operai e impiegati)"), ("NIC", "NIC (intera collettività)")],
+            ),
+            _intero("istat_anni", "Anni da mostrare", minimo=1, massimo=15),
+        ],
+    },
+    "tabella_tassi": {
+        "azione": "Mostra le tabelle",
+        "campi": [
+            _scelta(
+                "tassi_vista",
+                "Tabelle da mostrare",
+                [
+                    ("entrambe", "Legali e moratori"),
+                    ("legali", "Solo interessi legali (art. 1284 c.c.)"),
+                    ("moratori", "Solo mora commerciale (D.Lgs. 231/2002)"),
+                ],
+            ),
+        ],
+    },
 }
 
 

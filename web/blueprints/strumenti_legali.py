@@ -47,6 +47,12 @@ TOOL_METHODS = {
     "impugnazioni": "calcola_impugnazioni",
     "ravvedimento_operoso": "calcola_ravvedimento_operoso",
     "compenso_a_tempo": "calcola_compenso_a_tempo",
+    "conta_giorni": "calcola_conta_giorni",
+    "scorporo_iva": "calcola_scorporo_iva",
+    "percentuali": "calcola_percentuali",
+    "codice_fiscale": "calcola_codice_fiscale",
+    "tabella_istat": "tabella_variazioni_istat",
+    "tabella_tassi": "tabella_tassi_interesse",
 }
 
 
@@ -396,6 +402,42 @@ def api_ravvedimento_operoso():
 @_richiedi_login
 def api_compenso_a_tempo():
     return _json_result("calcola_compenso_a_tempo")
+
+
+@strumenti_legali.route("/api/conta-giorni", methods=["POST"])
+@_richiedi_login
+def api_conta_giorni():
+    return _json_result("calcola_conta_giorni")
+
+
+@strumenti_legali.route("/api/scorporo-iva", methods=["POST"])
+@_richiedi_login
+def api_scorporo_iva():
+    return _json_result("calcola_scorporo_iva")
+
+
+@strumenti_legali.route("/api/percentuali", methods=["POST"])
+@_richiedi_login
+def api_percentuali():
+    return _json_result("calcola_percentuali")
+
+
+@strumenti_legali.route("/api/codice-fiscale", methods=["POST"])
+@_richiedi_login
+def api_codice_fiscale():
+    return _json_result("calcola_codice_fiscale")
+
+
+@strumenti_legali.route("/api/tabella-istat", methods=["POST"])
+@_richiedi_login
+def api_tabella_istat():
+    return _json_result("tabella_variazioni_istat")
+
+
+@strumenti_legali.route("/api/tabella-tassi", methods=["POST"])
+@_richiedi_login
+def api_tabella_tassi():
+    return _json_result("tabella_tassi_interesse")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

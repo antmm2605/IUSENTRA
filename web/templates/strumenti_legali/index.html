@@ -267,6 +267,7 @@
           <select name="int_tipo" class="form-select">
             <option value="legali" {{ 'selected' if form_state.int_tipo == 'legali' }}>Interessi legali</option>
             <option value="mora_commerciale" {{ 'selected' if form_state.int_tipo == 'mora_commerciale' }}>Mora commerciale D.Lgs. 231/2002</option>
+            <option value="convenzionale" {{ 'selected' if form_state.int_tipo == 'convenzionale' }}>Convenzionale (tasso pattuito)</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -280,6 +281,10 @@
         <div class="col-md-3">
           <label class="form-label">Al</label>
           <input type="date" name="int_data_fine" class="form-control" value="{{ form_state.int_data_fine }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Tasso annuo % (solo convenzionale)</label>
+          <input type="number" step="0.01" min="0" max="100" name="int_tasso" class="form-control" value="{{ form_state.int_tasso }}">
         </div>
         <div class="col-12"><button class="btn btn-primary"><i class="bi bi-lightning-charge me-2"></i>Calcola interessi</button></div>
       </form>
@@ -1203,6 +1208,127 @@
       </div>
       {{ render_messages(risultato_cat.notes, risultato_cat.warnings) }}
       {{ render_sources(risultato_cat.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_giorni = results.get('conta_giorni') %}
+    {% call tool_section('conta_giorni', 'Conta giorni tra date', 'bi-calendar-range', 'Giorni, settimane, mesi e prossima ricorrenza: aritmetica di calendario.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('conta_giorni', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Data iniziale</label><input type="date" name="giorni_data_inizio" class="form-control" value="{{ form_state.giorni_data_inizio }}"></div>
+        <div class="col-md-4"><label class="form-label">Data finale</label><input type="date" name="giorni_data_fine" class="form-control" value="{{ form_state.giorni_data_fine }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calendar-range me-2"></i>Conta i giorni</button></div>
+      </form>
+      {% if risultato_giorni %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Giorni', risultato_giorni.days, risultato_giorni.days_inclusive ~ ' includendo gli estremi') }}
+        {{ metric_box('Settimane', risultato_giorni.weeks ~ ' + ' ~ risultato_giorni.weeks_remainder_days ~ ' gg') }}
+        {{ metric_box('Mesi compiuti', risultato_giorni.months_full, risultato_giorni.years_full ~ ' anni compiuti') }}
+        {{ metric_box('Prossima ricorrenza', risultato_giorni.next_anniversary|data_it) }}
+      </div>
+      {{ render_messages(risultato_giorni.notes, risultato_giorni.warnings) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_iva = results.get('scorporo_iva') %}
+    {% call tool_section('scorporo_iva', 'Scorporo e aggiunta IVA', 'bi-percent', 'Imponibile e imposta con le aliquote vigenti (D.P.R. 633/1972).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('scorporo_iva', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Operazione</label><select name="iva_verso" class="form-select"><option value="scorporo" {{ 'selected' if form_state.iva_verso != 'aggiunta' }}>Scorporo dal lordo</option><option value="aggiunta" {{ 'selected' if form_state.iva_verso == 'aggiunta' }}>Aggiunta al netto</option></select></div>
+        <div class="col-md-4"><label class="form-label">Importo</label><input type="number" step="0.01" min="0" name="iva_importo" class="form-control" value="{{ form_state.iva_importo }}"></div>
+        <div class="col-md-4"><label class="form-label">Aliquota</label><select name="iva_aliquota" class="form-select">{% for aliq in ['4', '5', '10', '22'] %}<option value="{{ aliq }}" {{ 'selected' if form_state.iva_aliquota == aliq }}>{{ aliq }}%</option>{% endfor %}</select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-percent me-2"></i>Calcola</button></div>
+      </form>
+      {% if risultato_iva %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Imponibile', risultato_iva.imponibile|euro) }}
+        {{ metric_box('IVA', risultato_iva.iva|euro, 'aliquota ' ~ risultato_iva.aliquota ~ '%') }}
+        {{ metric_box('Lordo', risultato_iva.lordo|euro) }}
+      </div>
+      {{ render_messages(risultato_iva.notes, risultato_iva.warnings) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_perc = results.get('percentuali') %}
+    {% call tool_section('percentuali', 'Calcolo percentuali', 'bi-pie-chart', 'Quota, incidenza e variazione percentuale per riparti e transazioni.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('percentuali', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Importo base</label><input type="number" step="0.01" min="0" name="perc_base" class="form-control" value="{{ form_state.perc_base }}"></div>
+        <div class="col-md-4"><label class="form-label">Percentuale (per la quota)</label><input type="number" step="0.01" min="0" name="perc_percento" class="form-control" value="{{ form_state.perc_percento }}"></div>
+        <div class="col-md-4"><label class="form-label">Parte (per incidenza e variazione)</label><input type="number" step="0.01" min="0" name="perc_parte" class="form-control" value="{{ form_state.perc_parte }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-pie-chart me-2"></i>Calcola</button></div>
+      </form>
+      {% if risultato_perc %}
+      <div class="row g-3 mt-1">
+        {% if risultato_perc.quota is defined %}{{ metric_box('Quota', risultato_perc.quota|euro, risultato_perc.inputs.percento ~ '% di ' ~ risultato_perc.inputs.base|euro) }}{% endif %}
+        {% if risultato_perc.incidenza is defined %}{{ metric_box('Incidenza', risultato_perc.incidenza ~ '%', 'della parte sulla base') }}{% endif %}
+        {% if risultato_perc.variazione is defined %}{{ metric_box('Variazione', risultato_perc.variazione ~ '%', 'dalla base alla parte') }}{% endif %}
+      </div>
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_cf = results.get('codice_fiscale') %}
+    {% call tool_section('codice_fiscale', 'Codice fiscale', 'bi-person-vcard', 'Calcolo e decodifica ex D.M. 23/12/1976: verificare sempre con il documento ufficiale.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('codice_fiscale', fascicolo_sel) }}
+        <div class="col-md-6"><label class="form-label">Codice fiscale da decodificare (lascia vuoto per calcolare)</label><input type="text" name="cf_codice" maxlength="16" class="form-control text-uppercase" value="{{ form_state.cf_codice }}"></div>
+        <div class="col-md-3"><label class="form-label">Cognome</label><input type="text" name="cf_cognome" class="form-control" value="{{ form_state.cf_cognome }}"></div>
+        <div class="col-md-3"><label class="form-label">Nome</label><input type="text" name="cf_nome" class="form-control" value="{{ form_state.cf_nome }}"></div>
+        <div class="col-md-2"><label class="form-label">Sesso</label><select name="cf_sesso" class="form-select"><option value="M" {{ 'selected' if form_state.cf_sesso != 'F' }}>M</option><option value="F" {{ 'selected' if form_state.cf_sesso == 'F' }}>F</option></select></div>
+        <div class="col-md-3"><label class="form-label">Data di nascita</label><input type="date" name="cf_data_nascita" class="form-control" value="{{ form_state.cf_data_nascita }}"></div>
+        <div class="col-md-4"><label class="form-label">Comune di nascita</label><input type="text" name="cf_luogo" class="form-control" value="{{ form_state.cf_luogo }}"></div>
+        <div class="col-md-3"><label class="form-label">Provincia</label><input type="text" name="cf_provincia" maxlength="2" class="form-control text-uppercase" value="{{ form_state.cf_provincia }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-person-vcard me-2"></i>Calcola o decodifica</button></div>
+      </form>
+      {% if risultato_cf %}
+      <div class="row g-3 mt-1">
+        {% if risultato_cf.codice_fiscale %}{{ metric_box('Codice fiscale', risultato_cf.codice_fiscale, 'operazione: ' ~ risultato_cf.operazione) }}{% endif %}
+        {{ metric_box('Nascita', risultato_cf.data_nascita|data_it, risultato_cf.luogo_nascita ~ (' (' ~ risultato_cf.provincia_nascita ~ ')' if risultato_cf.provincia_nascita else '')) }}
+        {{ metric_box('Sesso', risultato_cf.sesso) }}
+        {% if risultato_cf.eta is defined %}{{ metric_box('Et&agrave;', risultato_cf.eta ~ ' anni') }}{% endif %}
+      </div>
+      {% if risultato_cf.nota %}<div class="alert alert-info mt-3 mb-0">{{ risultato_cf.nota }}</div>{% endif %}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_istat = results.get('tabella_istat') %}
+    {% call tool_section('tabella_istat', 'Tabella indici ISTAT', 'bi-table', 'Indici FOI e NIC per anno e mese con variazione annua sul dataset versionato interno.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('tabella_istat', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Indice</label><select name="istat_tipo" class="form-select"><option value="FOI" {{ 'selected' if form_state.istat_tipo != 'NIC' }}>FOI (famiglie operai e impiegati)</option><option value="NIC" {{ 'selected' if form_state.istat_tipo == 'NIC' }}>NIC (intera collettivit&agrave;)</option></select></div>
+        <div class="col-md-4"><label class="form-label">Anni da mostrare</label><input type="number" min="1" max="15" name="istat_anni" class="form-control" value="{{ form_state.istat_anni }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-table me-2"></i>Mostra la tabella</button></div>
+      </form>
+      {% if risultato_istat %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Indice', risultato_istat.tipo|upper) }}
+        {{ metric_box('Ultimo disponibile', risultato_istat.ultimo_disponibile.mese ~ '/' ~ risultato_istat.ultimo_disponibile.anno) }}
+      </div>
+      {% for blocco in risultato_istat.anni|reverse %}
+      <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>{{ blocco.anno }}</th><th class="text-end">Indice</th><th class="text-end">Variazione annua</th></tr></thead><tbody>{% for riga in blocco.mesi %}<tr><td class="fw-semibold">{{ riga.mese }}/{{ blocco.anno }}</td><td class="text-end">{{ riga.indice }}</td><td class="text-end">{{ (riga.variazione_annua ~ '%') if riga.variazione_annua is not none else '—' }}</td></tr>{% endfor %}</tbody></table></div>
+      {% endfor %}
+      {{ render_messages(risultato_istat.notes, risultato_istat.warnings) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_tassi = results.get('tabella_tassi') %}
+    {% call tool_section('tabella_tassi', 'Tabella tassi di interesse', 'bi-graph-up', 'Storico tassi legali (art. 1284 c.c.) e moratori (D.Lgs. 231/2002) con fonti ufficiali.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('tabella_tassi', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Tabelle da mostrare</label><select name="tassi_vista" class="form-select"><option value="entrambe" {{ 'selected' if form_state.tassi_vista not in ['legali', 'moratori'] }}>Legali e moratori</option><option value="legali" {{ 'selected' if form_state.tassi_vista == 'legali' }}>Solo interessi legali (art. 1284 c.c.)</option><option value="moratori" {{ 'selected' if form_state.tassi_vista == 'moratori' }}>Solo mora commerciale (D.Lgs. 231/2002)</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-graph-up me-2"></i>Mostra le tabelle</button></div>
+      </form>
+      {% if risultato_tassi %}
+      {% if risultato_tassi.tassi_legali %}
+      <h6 class="mt-3 mb-2">Interessi legali — art. 1284 c.c.</h6>
+      <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Periodo</th><th>Dal</th><th>Al</th><th class="text-end">Tasso</th></tr></thead><tbody>{% for riga in risultato_tassi.tassi_legali %}<tr><td class="fw-semibold">{{ riga.label }}</td><td>{{ riga.dal|data_it }}</td><td>{{ riga.al|data_it }}</td><td class="text-end">{{ "%.2f"|format(riga.tasso) }}%</td></tr>{% endfor %}</tbody></table></div>
+      {% endif %}
+      {% if risultato_tassi.tassi_moratori %}
+      <h6 class="mt-3 mb-2">Mora commerciale — D.Lgs. 231/2002</h6>
+      <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Periodo</th><th>Dal</th><th>Al</th><th class="text-end">Rif. BCE</th><th class="text-end">Tasso</th></tr></thead><tbody>{% for riga in risultato_tassi.tassi_moratori %}<tr><td class="fw-semibold">{{ riga.label }}</td><td>{{ riga.dal|data_it }}</td><td>{{ riga.al|data_it }}</td><td class="text-end">{{ ("%.2f"|format(riga.riferimento) ~ '%') if riga.riferimento is not none else '—' }}</td><td class="text-end">{{ "%.2f"|format(riga.tasso) }}%</td></tr>{% endfor %}</tbody></table></div>
+      {% endif %}
+      {{ render_messages(risultato_tassi.notes, risultato_tassi.warnings) }}
+      {{ render_sources(risultato_tassi.sources) }}
       {% endif %}
     {% endcall %}
   </div>

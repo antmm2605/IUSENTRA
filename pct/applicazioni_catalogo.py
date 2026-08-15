@@ -614,6 +614,51 @@ for _slug_l1, _override_l1 in _LOTTO1_DEEP_LINKS.items():
     ITEM_OVERRIDES[_slug_l1] = {**ITEM_OVERRIDES.get(_slug_l1, {}), **_override_l1}
 
 
+# Lotto 2A dell'inventario catalogo (15/08/2026): nuovi tool in Strumenti
+# Legali (conta_giorni, scorporo_iva, percentuali, codice_fiscale,
+# tabella_istat, tabella_tassi) e riclassifica delle voci 'gia_operativa_di
+# _fatto' scartate nel Lotto 1 per endpoint allora non verificabile.
+# Le utility con pannello sulla scheda (verifica P.IVA/IBAN, minuti in
+# centesimali, giorni lavorativi, eta') puntano alla scheda stessa in
+# /applicazioni, dove il calcolo avviene realmente (applicazioni_runtime).
+_LOTTO2A_DEEP_LINKS: Dict[str, Dict[str, Any]] = {
+    # Nuovi tool Strumenti Legali
+    "conta_giorni_tra_date_e_ricorrenze": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "conta_giorni"}, "cta_label": "Apri conta giorni"},
+    "calcolo_tempo_trascorso": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "conta_giorni"}, "cta_label": "Apri conta giorni"},
+    "scorporo_iva": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "scorporo_iva"}, "cta_label": "Apri scorporo IVA"},
+    "scorporo_importi": {"status": "guidata", "endpoint": "strumenti_legali.index", "params": {"tool": "scorporo_iva"}, "cta_label": "Apri scorporo IVA"},
+    "calcolo_percentuale": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "percentuali"}, "cta_label": "Apri percentuali"},
+    "percentuali_e_quote": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "percentuali"}, "cta_label": "Apri percentuali"},
+    "calcolo_proporzione": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "percentuali"}, "cta_label": "Apri percentuali"},
+    "calcolo_codice_fiscale": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "codice_fiscale"}, "cta_label": "Apri codice fiscale"},
+    "decodifica_codice_fiscale": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "codice_fiscale"}, "cta_label": "Apri codice fiscale"},
+    # Viste tabellari su dati normativi versionati
+    "variazioni_storiche_istat": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "tabella_istat"}, "cta_label": "Apri tabella ISTAT"},
+    "tabella_variazioni_istat": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "tabella_istat"}, "cta_label": "Apri tabella ISTAT"},
+    "ultimo_indice_istat": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "tabella_istat"}, "cta_label": "Apri tabella ISTAT"},
+    "tabella_interessi_legali": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "tabella_tassi"}, "cta_label": "Apri tabella tassi"},
+    "tabella_interessi_di_mora": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "tabella_tassi"}, "cta_label": "Apri tabella tassi"},
+    "tabella_tassi_appalti": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "tabella_tassi"}, "cta_label": "Apri tabella tassi"},
+    # Utility con pannello di calcolo sulla scheda della voce
+    "verifica_partita_iva": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "verifica_partita_iva"}, "cta_label": "Apri verifica P.IVA"},
+    "verifica_iban": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "verifica_iban"}, "cta_label": "Apri verifica IBAN"},
+    "conversione_minuti_in_centesimi": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "conversione_minuti_in_centesimi"}, "cta_label": "Apri conversione"},
+    "calcolo_giorni_lavorativi": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "calcolo_giorni_lavorativi"}, "cta_label": "Apri giorni lavorativi"},
+    "calcolo_eta_anagrafica": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "calcolo_eta_anagrafica"}, "cta_label": "Apri calcolo eta'"},
+    # Aree reali gia' esistenti (scartate nel Lotto 1 per endpoint non dichiarato)
+    "parcelle_professionisti": {"status": "operativa", "endpoint": "fatturazione.lista", "cta_label": "Apri Parcelle e Fatture"},
+    "scadenze_impugnazioni": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "impugnazioni"}, "cta_label": "Apri termini impugnazione"},
+    "deposito_telematico_documenti": {"status": "operativa", "endpoint": "telematico_dashboard", "cta_label": "Apri regia telematica"},
+    "controllo_cause_a_ruolo": {"status": "operativa", "endpoint": "polisWeb_home", "cta_label": "Apri PolisWeb / PST"},
+    "parametri_2014_civile": {"status": "operativa", "endpoint": "tariffario", "cta_label": "Apri Compensi Forensi"},
+    "parametri_2014_penale": {"status": "operativa", "endpoint": "tariffario", "cta_label": "Apri Compensi Forensi"},
+    "parametri_stragiudiziali": {"status": "operativa", "endpoint": "tariffario", "cta_label": "Apri Compensi Forensi"},
+    "tabelle_parametri": {"status": "operativa", "endpoint": "tariffario", "cta_label": "Apri Compensi Forensi"},
+}
+for _slug_l2, _override_l2 in _LOTTO2A_DEEP_LINKS.items():
+    ITEM_OVERRIDES[_slug_l2] = {**ITEM_OVERRIDES.get(_slug_l2, {}), **_override_l2}
+
+
 def _default_summary(section_title: str, title: str) -> str:
     return (
         f"{title}: voce del catalogo {section_title.lower()} con percorso operativo, "

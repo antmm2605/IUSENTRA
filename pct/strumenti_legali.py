@@ -185,6 +185,12 @@ class GestioneStrumentiLegali:
             {"id": "impugnazioni", "title": "Termini di impugnazione", "subtitle": "Termine breve (art. 325 c.p.c.) e termine lungo (art. 327 c.p.c.) a confronto, con sospensione feriale.", "icon": "bi-arrow-up-right-square", "categoria": "Processo"},
             {"id": "ravvedimento_operoso", "title": "Ravvedimento operoso", "subtitle": "Sanzione ridotta e interessi legali, con i due regimi prima e dal 1 settembre 2024 (D.Lgs. 87/2024).", "icon": "bi-cash-coin", "categoria": "Fiscale"},
             {"id": "compenso_a_tempo", "title": "Compenso a tempo", "subtitle": "Tariffa oraria e ore fatturabili secondo l'art. 22-bis D.M. 55/2014, con spese generali.", "icon": "bi-stopwatch", "categoria": "Professione"},
+            {"id": "conta_giorni", "title": "Conta giorni tra date", "subtitle": "Giorni, settimane, mesi e prossima ricorrenza tra due date di calendario.", "icon": "bi-calendar-range", "categoria": "Utilita"},
+            {"id": "scorporo_iva", "title": "Scorporo e aggiunta IVA", "subtitle": "Imponibile e imposta con le aliquote vigenti 4, 5, 10 e 22% (D.P.R. 633/1972).", "icon": "bi-percent", "categoria": "Fiscale"},
+            {"id": "percentuali", "title": "Calcolo percentuali", "subtitle": "Quota, incidenza e variazione percentuale per riparti e transazioni.", "icon": "bi-pie-chart", "categoria": "Utilita"},
+            {"id": "codice_fiscale", "title": "Codice fiscale", "subtitle": "Calcolo e decodifica del codice fiscale ex D.M. 23/12/1976, con verifica finale a carico dell'operatore.", "icon": "bi-person-vcard", "categoria": "Utilita"},
+            {"id": "tabella_istat", "title": "Tabella indici ISTAT", "subtitle": "Indici FOI e NIC per anno e mese con variazione annua, dal dataset versionato interno.", "icon": "bi-table", "categoria": "Danni"},
+            {"id": "tabella_tassi", "title": "Tabella tassi di interesse", "subtitle": "Storico tassi legali (art. 1284 c.c.) e moratori (D.Lgs. 231/2002) con fonti ufficiali.", "icon": "bi-graph-up", "categoria": "Credito"},
         ]
 
     def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -493,6 +499,32 @@ class GestioneStrumentiLegali:
             "cat_massimale_ore": "",
             "cat_soglia_ore": "",
             "cat_spese_generali_percent": "15",
+            # Interessi convenzionali (tool interessi, modalita' aggiuntiva)
+            "int_tasso": "",
+            # Conta giorni
+            "giorni_data_inizio": today,
+            "giorni_data_fine": today,
+            # Scorporo IVA
+            "iva_importo": "",
+            "iva_aliquota": "22",
+            "iva_verso": "scorporo",
+            # Percentuali
+            "perc_base": "",
+            "perc_percento": "",
+            "perc_parte": "",
+            # Codice fiscale
+            "cf_codice": "",
+            "cf_cognome": "",
+            "cf_nome": "",
+            "cf_sesso": "M",
+            "cf_data_nascita": "",
+            "cf_luogo": "",
+            "cf_provincia": "",
+            # Tabella ISTAT
+            "istat_tipo": "FOI",
+            "istat_anni": "5",
+            # Tabella tassi
+            "tassi_vista": "entrambe",
         }
         if posted:
             for key in defaults:
@@ -750,6 +782,48 @@ class GestioneStrumentiLegali:
         if data_fine < data_inizio:
             raise ValueError("La data finale deve essere successiva o uguale alla data iniziale.")
 
+        if mode == "convenzionale":
+            # Tasso fisso pattuito (art. 1284 c.3 c.c.: oltre il tasso legale la
+            # pattuizione richiede forma scritta). Nessuna tabella: il tasso lo
+            # indica l'avvocato; la verifica antiusura (L. 108/1996) resta sua.
+            tasso = _safe_float(payload.get("int_tasso"))
+            if tasso <= 0:
+                raise ValueError("Indica il tasso convenzionale annuo pattuito (percentuale positiva).")
+            if tasso > 100:
+                raise ValueError("Tasso convenzionale non plausibile: verifica il valore inserito.")
+            giorni = _days_inclusive(data_inizio, data_fine)
+            denominatore = _year_denominator(data_inizio)
+            interesse = round(capitale * (tasso / 100.0) * (giorni / denominatore), 2)
+            return {
+                "mode": mode,
+                "label": f"Interessi convenzionali al {tasso:g}% annuo (art. 1284 c.c.)",
+                "capital": round(capitale, 2),
+                "start_date": data_inizio.isoformat(),
+                "end_date": data_fine.isoformat(),
+                "days": giorni,
+                "covered_days": giorni,
+                "segments": [
+                    {
+                        "label": f"Tasso convenzionale {tasso:g}%",
+                        "from": data_inizio.isoformat(),
+                        "to": data_fine.isoformat(),
+                        "days": giorni,
+                        "rate": tasso,
+                        "interest": interesse,
+                        "reference_rate": "",
+                        "source": {"label": "Pattuizione tra le parti (art. 1284 c.c.)", "url": ""},
+                    }
+                ],
+                "total_interest": interesse,
+                "total_amount": round(capitale + interesse, 2),
+                "notes": ["Calcolo pro-rata die su giorni effettivi con denominatore 365/366."],
+                "warnings": [
+                    "Interessi superiori al tasso legale: la pattuizione richiede forma scritta (art. 1284 c.3 c.c.).",
+                    "La verifica del rispetto delle soglie antiusura (L. 108/1996) spetta al professionista sul caso concreto.",
+                ],
+                "sources": [],
+            }
+
         periods: List[InterestPeriod] = self.norme.interest_periods(mode)
         label = "Interessi legali ex art. 1284 c.c." if mode == "legali" else "Interessi moratori ex D.Lgs. 231/2002"
 
@@ -807,6 +881,205 @@ class GestioneStrumentiLegali:
             "warnings": warnings,
             "sources": list({source["url"]: source for source in sources}.values()),
         }
+
+    def calcola_conta_giorni(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Giorni tra due date e ricorrenze. Aritmetica di calendario.
+
+        NON e' il calcolo dei termini processuali: per quelli (sospensione
+        feriale, giorni festivi, art. 155 c.p.c.) esiste il tool dedicato.
+        """
+
+        data_inizio = _parse_date(payload.get("giorni_data_inizio"))
+        data_fine = _parse_date(payload.get("giorni_data_fine"))
+        if not data_inizio or not data_fine:
+            raise ValueError("Inserisci le due date da confrontare.")
+        if data_fine < data_inizio:
+            data_inizio, data_fine = data_fine, data_inizio
+        delta = (data_fine - data_inizio).days
+        anni = data_fine.year - data_inizio.year
+        mesi = anni * 12 + (data_fine.month - data_inizio.month)
+        if data_fine.day < data_inizio.day:
+            mesi -= 1
+        try:
+            ricorrenza_annuale = data_inizio.replace(year=data_fine.year + (1 if (data_fine.month, data_fine.day) >= (data_inizio.month, data_inizio.day) else 0))
+        except ValueError:  # 29 febbraio
+            ricorrenza_annuale = data_inizio.replace(year=data_fine.year + 1, day=28)
+        return {
+            "start_date": data_inizio.isoformat(),
+            "end_date": data_fine.isoformat(),
+            "days": delta,
+            "days_inclusive": delta + 1,
+            "weeks": delta // 7,
+            "weeks_remainder_days": delta % 7,
+            "months_full": max(mesi, 0),
+            "years_full": max(mesi // 12, 0),
+            "next_anniversary": ricorrenza_annuale.isoformat(),
+            "warnings": [
+                "Conteggio di calendario: per i termini processuali (sospensione feriale, "
+                "festivi, art. 155 c.p.c.) usare il modulo Termini processuali."
+            ],
+        }
+
+    def calcola_scorporo_iva(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Scorporo IVA da importo lordo o aggiunta IVA al netto (D.P.R. 633/1972)."""
+
+        importo = _safe_float(payload.get("iva_importo"))
+        aliquota = _safe_float(payload.get("iva_aliquota"), 22.0)
+        verso = _clean_text(payload.get("iva_verso")) or "scorporo"
+        if importo <= 0:
+            raise ValueError("Inserisci un importo positivo.")
+        if aliquota not in (4.0, 5.0, 10.0, 22.0):
+            raise ValueError("Aliquota non prevista: le aliquote vigenti sono 4%, 5%, 10% e 22% (D.P.R. 633/1972).")
+        if verso == "scorporo":
+            imponibile = round(importo / (1 + aliquota / 100.0), 2)
+            iva = round(importo - imponibile, 2)
+            lordo = round(importo, 2)
+        else:
+            imponibile = round(importo, 2)
+            iva = round(importo * aliquota / 100.0, 2)
+            lordo = round(imponibile + iva, 2)
+        return {
+            "verso": verso,
+            "aliquota": aliquota,
+            "imponibile": imponibile,
+            "iva": iva,
+            "lordo": lordo,
+            "notes": [f"Aliquota {aliquota:g}% ex D.P.R. 633/1972."],
+        }
+
+    def calcola_percentuali(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Percentuali e quote: X% di Y, incidenza, variazione percentuale."""
+
+        base = _safe_float(payload.get("perc_base"))
+        percento = _safe_float(payload.get("perc_percento"))
+        parte = _safe_float(payload.get("perc_parte"))
+        risultato: Dict[str, Any] = {"inputs": {"base": base, "percento": percento, "parte": parte}}
+        if base > 0 and percento > 0:
+            risultato["quota"] = round(base * percento / 100.0, 2)
+        if base > 0 and parte > 0:
+            risultato["incidenza"] = round(parte / base * 100.0, 4)
+            risultato["variazione"] = round((parte - base) / base * 100.0, 4)
+        if "quota" not in risultato and "incidenza" not in risultato:
+            raise ValueError(
+                "Inserisci base e percentuale (per la quota) oppure base e parte (per incidenza e variazione)."
+            )
+        return risultato
+
+    def calcola_codice_fiscale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Calcolo e decodifica del codice fiscale (D.M. 23/12/1976).
+
+        Riusa ``pct/codice_fiscale.py``: calcolo ordinario senza omocodie, con
+        avvertenza a verificare sempre col documento fiscale ufficiale.
+        """
+
+        from pct import codice_fiscale as cf_mod
+
+        cf_input = _clean_text(payload.get("cf_codice")).upper()
+        if cf_input:
+            esito = cf_mod.decodifica(cf_input)
+            if not esito:
+                raise ValueError("Codice fiscale non valido o malformato (16 caratteri attesi).")
+            return {"operazione": "decodifica", "codice_fiscale": cf_input, **esito}
+        esito = cf_mod.calcola(
+            cognome=_clean_text(payload.get("cf_cognome")),
+            nome=_clean_text(payload.get("cf_nome")),
+            sesso=_clean_text(payload.get("cf_sesso")),
+            data_nascita=_clean_text(payload.get("cf_data_nascita")),
+            luogo_nascita=_clean_text(payload.get("cf_luogo")),
+            provincia_nascita=_clean_text(payload.get("cf_provincia")),
+        )
+        if not esito:
+            raise ValueError(
+                "Dati insufficienti o Comune non riconosciuto: servono cognome, nome, sesso, "
+                "data e luogo di nascita presenti nei codici catastali."
+            )
+        return {"operazione": "calcolo", **esito}
+
+    def tabella_variazioni_istat(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Vista tabellare degli indici FOI/NIC e variazioni % (dati versionati)."""
+
+        tipo = (_clean_text(payload.get("istat_tipo")) or "FOI").lower()
+        anni_richiesti = int(_safe_float(payload.get("istat_anni"), 5.0))
+        anni_richiesti = min(max(anni_richiesti, 1), 15)
+        ultimo = self.norme.istat_last_available(tipo)
+        if not ultimo:
+            raise ValueError("Indici ISTAT non disponibili nel modulo normativo.")
+        anno_fine = int(ultimo.get("year", 0))
+        mese_fine = int(ultimo.get("month", 0))
+        if not anno_fine:
+            raise ValueError("Indici ISTAT non disponibili nel modulo normativo.")
+        righe: List[Dict[str, Any]] = []
+        for anno in range(anno_fine - anni_richiesti + 1, anno_fine + 1):
+            mesi: List[Dict[str, Any]] = []
+            for mese in range(1, 13):
+                indice = self.norme.istat_index(tipo, anno, mese)
+                if indice is None:
+                    continue
+                anno_prec = self.norme.istat_index(tipo, anno - 1, mese)
+                variazione = round((indice / anno_prec - 1) * 100.0, 2) if anno_prec else None
+                mesi.append({"mese": mese, "indice": indice, "variazione_annua": variazione})
+            if mesi:
+                righe.append({"anno": anno, "mesi": mesi})
+        righe_piatte = [
+            {
+                "anno": blocco["anno"],
+                "mese": voce["mese"],
+                "indice": voce["indice"],
+                "variazione_annua": voce["variazione_annua"],
+            }
+            for blocco in righe
+            for voce in blocco["mesi"]
+        ]
+        return {
+            "tipo": tipo,
+            "ultimo_disponibile": {"anno": anno_fine, "mese": mese_fine},
+            "anni": righe,
+            "righe": righe_piatte,
+            "notes": [
+                "Indici ISTAT versionati nel modulo normativo interno; le variazioni annue "
+                "confrontano lo stesso mese dell'anno precedente."
+            ],
+        }
+
+    def tabella_tassi_interesse(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Tabella dei tassi legali (art. 1284 c.c.) e moratori (D.Lgs. 231/2002)."""
+
+        vista = _clean_text(payload.get("tassi_vista")) or "entrambe"
+        risultato: Dict[str, Any] = {"vista": vista}
+        for mode, chiave in (("legali", "tassi_legali"), ("mora_commerciale", "tassi_moratori")):
+            if vista == "legali" and chiave == "tassi_moratori":
+                risultato[chiave] = []
+                continue
+            if vista == "moratori" and chiave == "tassi_legali":
+                risultato[chiave] = []
+                continue
+            righe = []
+            for period in self.norme.interest_periods(mode):
+                righe.append(
+                    {
+                        "label": period.label,
+                        "dal": period.start.isoformat(),
+                        "al": period.end.isoformat(),
+                        "tasso": period.rate,
+                        "riferimento": period.reference_rate,
+                        "fonte": period.source.to_dict(),
+                    }
+                )
+            risultato[chiave] = righe
+        if not risultato.get("tassi_legali") and not risultato.get("tassi_moratori"):
+            raise ValueError("Tabelle tassi non disponibili nel modulo normativo.")
+        fonti_uniche: Dict[str, Dict[str, Any]] = {}
+        for righe in (risultato["tassi_legali"], risultato["tassi_moratori"]):
+            for riga in righe:
+                fonte = riga.get("fonte") or {}
+                if fonte.get("url"):
+                    fonti_uniche.setdefault(fonte.get("code") or fonte["url"], fonte)
+        risultato["sources"] = list(fonti_uniche.values())
+        risultato["notes"] = [
+            "Tassi versionati nel modulo normativo interno con fonte ufficiale per periodo; "
+            "per la mora commerciale il tasso e' BCE di riferimento + 8 punti (D.Lgs. 231/2002)."
+        ]
+        return risultato
 
     def genera_nota_precisazione_credito(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         creditore = _clean_text(payload.get("note_creditore"))

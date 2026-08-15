@@ -11,9 +11,9 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from tests.test_applicazioni import _crea_operatore, _login
-from tests.test_web_bootstrap import _cfg_web, _write_studio_config
-from web.app import create_app
+from tests.test_applicazioni import _crea_operatore, _login  # noqa: E402
+from tests.test_web_bootstrap import _cfg_web, _write_studio_config  # noqa: E402
+from web.app import create_app  # noqa: E402
 
 
 OPENAPI = REPO_ROOT / "docs" / "openapi.yaml"
@@ -92,6 +92,7 @@ def _sample_path(path: str) -> str:
         "asset_id": "1",
         "job_id": "1",
         "article_id": "1",
+        "news_id": "1",
         "profile_id": "PROFILO_TEST",
         "account_id": "ACCOUNT_TEST",
         "calendar_id": "CALENDAR_TEST",

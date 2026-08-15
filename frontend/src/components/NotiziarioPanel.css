@@ -537,6 +537,13 @@
   background: #f6faff;
 }
 
+.iu-notiziario__quick-sources button.is-active {
+  border-color: var(--iu-blue-600);
+  background: #eff6ff;
+  color: var(--iu-blue-700);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
 .iu-notiziario__actions button:focus-visible,
 .iu-notiziario__actions a:focus-visible,
 .iu-notiziario__case-linker button:focus-visible,

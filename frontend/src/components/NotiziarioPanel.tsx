@@ -147,8 +147,12 @@ export function NotiziarioPanel() {
   const openQuickSource = (source: NotiziarioQuickSource) => {
     setWebSource(source)
     setSourceReader(null)
-    setSourceLoading(true)
     setExpanded(true)
+    if (source.requiresAuthentication) {
+      setSourceLoading(false)
+      return
+    }
+    setSourceLoading(true)
     void loadNotiziarioSource(source)
       .then(setSourceReader)
       .catch(() => setSourceReader({
@@ -269,25 +273,30 @@ export function NotiziarioPanel() {
             <>
               <div className="iu-notiziario__reader-head">
                 <button type="button" onClick={() => setWebSource(null)}><ChevronLeft size={16} /> Torna al Notiziario</button>
-                <span>Fonte istituzionale</span>
+                <span>Fonte ufficiale</span>
               </div>
               <div className="iu-notiziario__reader-title">
                 <span className="iu-notiziario__source-mark"><Landmark size={19} /></span>
-                <div><small>Consultazione nel lettore IUSENTRA</small><h3>{webSource.label}</h3></div>
+                <div><small>{webSource.requiresAuthentication ? 'Accesso protetto con credenziali personali' : 'Notizie e comunicazioni ufficiali'}</small><h3>{webSource.label}</h3></div>
               </div>
               <div className="iu-notiziario__web-reader" aria-live="polite">
-                {sourceLoading ? (
+                {webSource.requiresAuthentication ? (
+                  <div className="iu-notiziario__source-state">
+                    <Landmark size={20} />
+                    <strong>Area riservata dell’Agenzia delle Entrate</strong>
+                    <span>Per accedere a Fatture e Corrispettivi sono necessarie le credenziali personali abilitate. IUSENTRA non acquisisce né conserva tali credenziali.</span>
+                  </div>
+                ) : sourceLoading ? (
                   <div className="iu-notiziario__source-state" role="status"><RefreshCw className="is-spinning" size={20} /><strong>Apertura della fonte in corso...</strong><span>Sto preparando una lettura interna del sito istituzionale.</span></div>
                 ) : sourceReader?.ok && sourceReader.blocks.length ? (
                   <div className="iu-notiziario__source-copy">
-                    <h4>{visibleText(sourceReader.title, webSource.label)}</h4>
                     {sourceReader.blocks.map((block, index) => <p key={`${webSource.id}-${index}`}>{visibleText(block)}</p>)}
                   </div>
                 ) : (
                   <div className="iu-notiziario__source-state is-warning" role="alert"><ExternalLink size={20} /><strong>Fonte non leggibile nel pannello</strong><span>{visibleText(sourceReader?.message || '', 'Usa il collegamento al sito ufficiale per consultare il contenuto.')}</span></div>
                 )}
               </div>
-              <a className="iu-notiziario__original" href={webSource.url} target="_blank" rel="noreferrer"><ExternalLink size={15} /> Apri il sito ufficiale</a>
+              <a className="iu-notiziario__original" href={webSource.url} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {webSource.requiresAuthentication ? 'Apri l’accesso ufficiale' : 'Apri il sito ufficiale'}</a>
             </>
           ) : selected ? (
             <>
@@ -340,7 +349,14 @@ export function NotiziarioPanel() {
         <strong>Fonti rapide</strong>
         <div>
           {payload.quickSources.map((source) => (
-            <button type="button" key={source.id} onClick={() => openQuickSource(source)}>
+            <button
+              type="button"
+              key={source.id}
+              className={webSource?.id === source.id ? 'is-active' : ''}
+              aria-pressed={webSource?.id === source.id}
+              title={`Apri ${visibleText(source.label)} nel lettore IUSENTRA`}
+              onClick={() => openQuickSource(source)}
+            >
               <Landmark size={15} /> {visibleText(source.label)}
             </button>
           ))}

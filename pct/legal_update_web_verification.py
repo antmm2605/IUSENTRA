@@ -60,6 +60,7 @@ OFFICIAL_ATTACHMENT_SOURCE_DOMAINS: tuple[tuple[str, str], ...] = (
     ("normattiva.it", "Normattiva"),
     ("eur-lex.europa.eu", "EUR-Lex"),
     ("cassaforense.it", "Cassa Forense"),
+    ("cfnews.it", "Cassa Forense"),
     ("consiglionazionaleforense.it", "Consiglio Nazionale Forense"),
     ("agenziaentrate.gov.it", "Agenzia delle Entrate"),
 )

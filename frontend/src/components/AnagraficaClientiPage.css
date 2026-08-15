@@ -4,10 +4,7 @@
 @media(max-width:760px){.iu-clienti-page{gap:12px}.iu-cli-hero{padding:14px;border-radius:14px}.iu-cli-hero h1{font-size:25px}.iu-cli-hero p{font-size:13px}.iu-cli-hero__actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.iu-cli-hero__actions .iu-button--primary{grid-column:1/-1}.iu-cli-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.iu-cli-stat{min-height:92px;grid-template-columns:34px 1fr;padding:11px;border-radius:13px}.iu-cli-stat>div{width:34px;height:34px;border-radius:11px}.iu-cli-stat>strong{font-size:21px}.iu-cli-toolbar{grid-template-columns:1fr;padding:9px;border-radius:13px}.iu-cli-toolbar .iu-cli-search{grid-column:auto}.iu-cli-filter-btn,.iu-cli-icon-btn{width:100%}.iu-cli-table-wrap,.iu-cli-table-head{display:none}.iu-cli-mobile-list{display:grid;gap:10px;padding:10px;background:#f8fafc}.iu-cli-mobile-card{display:grid;gap:9px;padding:12px;border:1px solid var(--iu-border);border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(15,23,42,.05)}.iu-cli-mobile-card header,.iu-cli-mobile-card footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.iu-cli-mobile-card label{display:flex;align-items:center;gap:8px;min-width:0;color:#0f172a;font-size:12px;font-weight:900}.iu-cli-mobile-card__title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:15px;font-weight:950}.iu-cli-mobile-card p{margin:0;color:var(--iu-slate-500);font-size:12px;font-weight:720;line-height:1.35}.iu-cli-mobile-card dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}.iu-cli-mobile-card dt{color:var(--iu-slate-500);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.iu-cli-mobile-card dd{margin:2px 0 0;color:#0f172a;font-size:12px;font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.iu-cli-mobile-card footer{align-items:flex-end;flex-wrap:wrap}.iu-cli-mobile-card footer>span{display:inline-flex;align-items:center;gap:5px;color:var(--iu-slate-600);font-size:12px;font-weight:800}.iu-cli-actions{margin-left:auto}.iu-cli-integrations{grid-template-columns:1fr}}
 @media(max-width:420px){.iu-cli-stats{grid-template-columns:1fr}.iu-cli-mobile-card dl{grid-template-columns:1fr}}
 
-.iu-cli-table{min-width:1010px}
-.iu-cli-title-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
-.iu-cli-title-line>a{min-width:0}
-.iu-cli-title-line .iu-cli-actions{justify-content:flex-end}
+.iu-cli-table{min-width:1240px}.iu-cli-table-head__summary,.iu-cli-table-head__actions{display:flex;align-items:center;gap:10px;min-width:0}.iu-cli-table-head__summary strong{display:inline-flex;align-items:center;gap:8px}.iu-cli-table-head__summary>span{overflow:hidden;color:var(--iu-slate-500);font-size:12px;font-weight:760;text-overflow:ellipsis;white-space:nowrap}.iu-cli-table-head__actions{margin-left:auto}.iu-cli-table-fullscreen{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 11px;border:1px solid color-mix(in oklch,var(--iu-blue-600) 22%,var(--iu-border));border-radius:10px;background:color-mix(in oklch,var(--iu-blue-600) 7%,#fff);color:var(--iu-blue-700);font-size:12px;font-weight:900;cursor:pointer;transition:background-color .18s ease-out,border-color .18s ease-out,box-shadow .18s ease-out}.iu-cli-table-fullscreen:hover{border-color:color-mix(in oklch,var(--iu-blue-600) 46%,var(--iu-border));background:color-mix(in oklch,var(--iu-blue-600) 12%,#fff)}.iu-cli-table-fullscreen:focus-visible{outline:3px solid color-mix(in oklch,var(--iu-blue-600) 28%,transparent);outline-offset:2px}.iu-cli-table-actions-head,.iu-cli-table-actions-cell{width:166px}.iu-cli-table-actions-cell{position:sticky;right:0;z-index:2;background:#fff;box-shadow:-10px 0 18px rgba(15,23,42,.035)}.iu-cli-table tr:hover .iu-cli-table-actions-cell{background:rgba(248,251,255,.98)}.iu-cli-table th.iu-cli-table-actions-head{position:sticky;right:0;z-index:3;background:#f8fafc;box-shadow:-10px 0 18px rgba(15,23,42,.035)}.iu-cli-table-actions-cell .iu-cli-actions{justify-content:flex-start}.iu-cli-table-card--fullscreen{position:fixed;z-index:1250;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;border-radius:0;background:var(--iu-bg-app);box-shadow:none}.iu-cli-table-card--fullscreen .iu-cli-table-head{min-height:64px;padding:0 clamp(16px,3vw,40px);background:#fff}.iu-cli-table-card--fullscreen .iu-cli-table-wrap{min-height:0;overflow:auto}.iu-cli-table-card--fullscreen .iu-top-scrollbar{margin:0 clamp(16px,3vw,40px)}.iu-cli-table-card--fullscreen .iu-cli-table{min-width:1320px}.iu-cli-table-card--fullscreen .iu-cli-mobile-list{display:none}
 
 @media(max-width:1700px){
   .iu-cli-layout,
@@ -23,11 +20,11 @@
     grid-template-columns:repeat(3,minmax(0,1fr))!important
   }
   .iu-cli-table-wrap{
-    overflow-x:hidden
+    overflow:auto
   }
   .iu-cli-table{
-    min-width:0;
-    table-layout:fixed
+    min-width:1240px;
+    table-layout:auto
   }
   .iu-cli-table th,
   .iu-cli-table td{
@@ -39,7 +36,7 @@
   }
   .iu-cli-table th:nth-child(2),
   .iu-cli-table td:nth-child(2){
-    width:32%
+    min-width:300px
   }
   .iu-cli-table th:nth-child(3),
   .iu-cli-table td:nth-child(3),
@@ -66,20 +63,14 @@
   .iu-cli-table td:nth-child(9){
     width:104px
   }
-  .iu-cli-title-cell{
-    max-width:none
-  }
-  .iu-cli-title-line .iu-cli-actions a,
-  .iu-cli-title-line .iu-cli-actions button{
-    width:34px;
-    height:34px;
-    min-height:34px;
-    padding:0
+  .iu-cli-table th:nth-child(10),
+  .iu-cli-table td:nth-child(10){
+    width:166px
   }
 }
 
-.iu-cli-title-line .iu-cli-actions a,
-.iu-cli-title-line .iu-cli-actions button{
+.iu-cli-table-actions-cell .iu-cli-actions a,
+.iu-cli-table-actions-cell .iu-cli-actions button{
   width:34px;
   height:34px;
   min-width:34px;
@@ -91,14 +82,14 @@
   padding:0;
   line-height:0;
 }
-.iu-cli-title-line .iu-cli-actions a svg,
-.iu-cli-title-line .iu-cli-actions button svg{
+.iu-cli-table-actions-cell .iu-cli-actions a svg,
+.iu-cli-table-actions-cell .iu-cli-actions button svg{
   display:block;
   flex:0 0 auto;
   margin:auto;
 }
-.iusentra-preset-active .iu-content .iu-cli-title-line .iu-cli-actions a[href],
-.iusentra-preset-active .iu-content .iu-cli-title-line .iu-cli-actions button{
+.iusentra-preset-active .iu-content .iu-cli-table-actions-cell .iu-cli-actions a[href],
+.iusentra-preset-active .iu-content .iu-cli-table-actions-cell .iu-cli-actions button{
   width:34px!important;
   height:34px!important;
   min-width:34px!important;

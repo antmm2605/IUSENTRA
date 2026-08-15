@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.278.58 - 2026-08-15
+
+### Migliorato
+
+- Anagrafiche: l'elenco clienti ora mantiene nome e dati leggibili, sposta le azioni in una colonna fissa con tooltip e offre la vista a schermo intero.
+- Scadenziario: i filtri su notebook sono più compatti e l'elenco operativo può essere aperto e chiuso a schermo intero, anche da tastiera con Esc.
+- Panoramica: le fonti rapide aprono il lettore interno con un riscontro visivo; Cassa Forense usa il portale editoriale ufficiale CF News e Fatture e Corrispettivi presenta l’accesso riservato senza acquisire credenziali.
+
 ## 2.278.57 - 2026-08-15
 
 - **Guida Avvocato: integrate 399 nuove schede operative e 399 termini processuali dagli archivi utente set42–49.** Le schede alimentano la Guida Pratica e la conoscenza conversazionale di Lex, mantenendo intatte le voci specialistiche, le fonti e i presìdi dei materiali ricevuti. Tutte sono guide interne non depositabili: non modificano né sostituiscono i 1.018 codici oggetto PST/XSD ufficiali.

@@ -12,6 +12,7 @@ export type NotiziarioQuickSource = {
   id: string
   label: string
   url: string
+  requiresAuthentication: boolean
 }
 
 export type NotiziarioSourceReader = {
@@ -127,7 +128,12 @@ function normalisePayload(value: unknown): NotiziarioPayload {
     }).filter((item) => item.id && item.label),
     quickSources: rows(payload.quickSources).map((value) => {
       const item = record(value)
-      return { id: text(item.id), label: text(item.label), url: text(item.url) }
+      return {
+        id: text(item.id),
+        label: text(item.label),
+        url: text(item.url),
+        requiresAuthentication: boolean(item.requiresAuthentication),
+      }
     }).filter((item) => item.id && item.label && item.url),
     cases: rows(payload.cases).map((value) => {
       const item = record(value)

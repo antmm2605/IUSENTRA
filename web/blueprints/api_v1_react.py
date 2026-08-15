@@ -9301,15 +9301,27 @@ _NOTIZIARIO_SOURCE_FILTERS = (
 )
 _NOTIZIARIO_QUICK_SOURCES = (
     {"id": "gazzetta_ufficiale", "label": "Gazzetta Ufficiale", "url": "https://www.gazzettaufficiale.it/"},
-    {"id": "cassa_forense", "label": "Cassa Forense", "url": "https://www.cassaforense.it/"},
+    {"id": "cassa_forense", "label": "Cassa Forense", "url": "https://www.cfnews.it/"},
     {"id": "cnf", "label": "Consiglio Nazionale Forense", "url": "https://www.consiglionazionaleforense.it/"},
-    {"id": "fatture_corrispettivi", "label": "Fatture e Corrispettivi", "url": "https://ivaservizi.agenziaentrate.gov.it/portale/"},
+    {
+        "id": "fatture_corrispettivi",
+        "label": "Fatture e Corrispettivi",
+        "url": "https://ivaservizi.agenziaentrate.gov.it/portale/",
+        "requiresAuthentication": True,
+    },
 )
 
 
-def _notiziario_quick_source(source_id: str) -> dict[str, str] | None:
+def _notiziario_quick_sources() -> list[dict[str, Any]]:
+    return [
+        {**dict(item), "requiresAuthentication": bool(item.get("requiresAuthentication"))}
+        for item in _NOTIZIARIO_QUICK_SOURCES
+    ]
+
+
+def _notiziario_quick_source(source_id: str) -> dict[str, Any] | None:
     normalized = str(source_id or "").strip().lower()
-    return next((dict(item) for item in _NOTIZIARIO_QUICK_SOURCES if item["id"] == normalized), None)
+    return next((item for item in _notiziario_quick_sources() if item["id"] == normalized), None)
 
 
 def _notiziario_studio_db():
@@ -9450,7 +9462,7 @@ def notiziario_react():
             "generatedAt": _iso_now(),
             "items": items,
             "filters": list(_NOTIZIARIO_SOURCE_FILTERS),
-            "quickSources": list(_NOTIZIARIO_QUICK_SOURCES),
+            "quickSources": _notiziario_quick_sources(),
             "cases": cases,
             "unreadCount": sum(1 for item in items if not item["read"]),
             "contracts": {
@@ -9468,7 +9480,7 @@ def notiziario_react():
             "ok": False,
             "items": [],
             "filters": list(_NOTIZIARIO_SOURCE_FILTERS),
-            "quickSources": list(_NOTIZIARIO_QUICK_SOURCES),
+            "quickSources": _notiziario_quick_sources(),
             "cases": [],
             "unreadCount": 0,
             "message": "Notiziario momentaneamente non disponibile. Riprova dalla Panoramica.",

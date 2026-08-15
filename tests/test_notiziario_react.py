@@ -102,6 +102,24 @@ def test_lettore_rifiuta_url_non_istituzionale(monkeypatch):
     assert called is False
 
 
+def test_lettore_accetta_cf_news_come_fonte_editoriale_della_cassa(monkeypatch):
+    html = b"""
+    <html><head><title>CF News</title></head><body>
+      <main><h1>Notizie dalla Cassa Forense</h1><p>Scadenza del Modello 5 e indicazioni operative per gli iscritti.</p></main>
+    </body></html>
+    """
+    monkeypatch.setattr(
+        "pct.legal_update_web_verification._download_limited",
+        lambda *_args, **_kwargs: (html, "text/html; charset=utf-8"),
+    )
+
+    result = fetch_official_reader_content("https://www.cfnews.it/")
+
+    assert result["ok"] is True
+    assert result["source_name"] == "Cassa Forense"
+    assert any("Modello 5" in block for block in result["blocks"])
+
+
 def test_api_notiziario_espone_solo_dati_reali_e_stato_tenant(tmp_path: Path, monkeypatch):
     import web.blueprints.api_v1_react as api
 
@@ -144,6 +162,26 @@ def test_api_notiziario_espone_solo_dati_reali_e_stato_tenant(tmp_path: Path, mo
         }
     ]
     assert payload["unreadCount"] == 0
+
+
+def test_api_notiziario_espone_la_fonte_editoriale_ufficiale_della_cassa(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    monkeypatch.setattr(api, "get_legal_update_pipeline", lambda: SimpleNamespace(repository=_NewsRepository()))
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {})
+    monkeypatch.setattr(api, "_notiziario_case_options", lambda: [])
+    client, headers = _client(tmp_path)
+
+    response = client.get("/api/v1/ui/notiziario", headers=headers)
+
+    assert response.status_code == 200
+    source = next(item for item in response.get_json()["quickSources"] if item["id"] == "cassa_forense")
+    assert source == {
+        "id": "cassa_forense",
+        "label": "Cassa Forense",
+        "url": "https://www.cfnews.it/",
+        "requiresAuthentication": False,
+    }
 
 
 def test_api_interazione_salva_preferito_e_lettura(tmp_path: Path, monkeypatch):

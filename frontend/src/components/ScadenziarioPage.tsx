@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -18,6 +18,8 @@ import {
   Gavel,
   Link2,
   ListChecks,
+  Maximize2,
+  Minimize2,
   MoreHorizontal,
   RefreshCw,
   Search,
@@ -953,6 +955,7 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
 }
 
 export function ScadenziarioPage() {
+  const deadlineTableRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<ScadenziarioPageData>(emptyScadenziarioPage)
   const [loading, setLoading] = useState(true)
   const [backgroundLoading, setBackgroundLoading] = useState(false)
@@ -978,6 +981,27 @@ export function ScadenziarioPage() {
   const [pdfStatus, setPdfStatus] = useState('')
   const [sourcePreview, setSourcePreview] = useState<ScadenziarioRow | null>(null)
   const [detailPreviewId, setDetailPreviewId] = useState<string>(() => routeDeadlineId())
+  const [tableFullscreen, setTableFullscreen] = useState(false)
+
+  useEffect(() => {
+    const syncFullscreenState = () => setTableFullscreen(document.fullscreenElement === deadlineTableRef.current)
+    document.addEventListener('fullscreenchange', syncFullscreenState)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState)
+  }, [])
+
+  useEffect(() => {
+    if (!tableFullscreen) return undefined
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTableFullscreen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [tableFullscreen])
 
   const buildQuery = (compact = false): ScadenziarioQuery => ({
     view,
@@ -1124,6 +1148,32 @@ export function ScadenziarioPage() {
     setPeremptory(false)
     setAdvanced(false)
     setOperative(false)
+  }
+
+  const toggleDeadlineTableFullscreen = async () => {
+    const tableCard = deadlineTableRef.current
+    if (!tableCard) return
+    if (tableFullscreen) {
+      if (document.fullscreenElement === tableCard) {
+        try {
+          await document.exitFullscreen()
+        } catch {
+          // La vista espansa dell'app resta disponibile anche quando il browser nega l'uscita nativa.
+        }
+      }
+      setTableFullscreen(false)
+      return
+    }
+    if (tableCard.requestFullscreen) {
+      try {
+        await tableCard.requestFullscreen()
+        setTableFullscreen(true)
+        return
+      } catch {
+        // La vista espansa dell'app mantiene la tabella operativa quando il browser nega il fullscreen nativo.
+      }
+    }
+    setTableFullscreen(true)
   }
 
   const pdfRequestOptions = () => ({
@@ -1285,11 +1335,15 @@ export function ScadenziarioPage() {
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
         <label className="iu-scad-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca per titolo, descrizione, fascicolo, ufficio..."/></label>
-        <label className="iu-scad-select"><Filter size={16}/><select value={type} onChange={(event) => setType(event.target.value)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
-        <label className="iu-scad-select"><ShieldCheck size={16}/><select value={priority} onChange={(event) => setPriority(event.target.value)}>{data.facets.priorities.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
-        <button className="iu-scad-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16}/> Filtri</button>
-        <button className="iu-scad-icon-btn" type="button" onClick={load} aria-label="Aggiorna scadenziario"><RefreshCw size={17}/></button>
-        <button className="iu-scad-reset" type="button" onClick={resetFilters}><X size={15}/> Reset</button>
+        <div className="iu-scad-toolbar__filters">
+          <label className="iu-scad-select"><Filter size={16}/><select value={type} onChange={(event) => setType(event.target.value)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
+          <label className="iu-scad-select"><ShieldCheck size={16}/><select value={priority} onChange={(event) => setPriority(event.target.value)}>{data.facets.priorities.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
+        </div>
+        <div className="iu-scad-toolbar__actions">
+          <button className="iu-scad-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16}/> Filtri</button>
+          <button className="iu-scad-icon-btn" type="button" onClick={load} aria-label="Aggiorna scadenziario"><RefreshCw size={17}/></button>
+          <button className="iu-scad-reset" type="button" onClick={resetFilters}><X size={15}/> Reset</button>
+        </div>
       </section>
 
       {advancedOpen ? (
@@ -1392,13 +1446,24 @@ export function ScadenziarioPage() {
       ) : null}
 
       <section className="iu-scad-layout">
-        <div className="iu-scad-table-card">
+        <div className={`iu-scad-table-card${tableFullscreen ? ' iu-scad-table-card--fullscreen' : ''}`} ref={deadlineTableRef}>
           <header>
             <div><strong>{visibleRows.length} scadenze</strong><span>{query.trim() ? 'Ricerca in tutto lo scadenziario' : (data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente')} · {sourceLabel(data.source)}</span></div>
             <div>
               <Badge tone={query.trim() || view === 'scadute' || view === 'tutte' ? 'warning' : 'success'}>
                 {query.trim() ? 'tutti gli stati' : (view === 'scadute' || view === 'tutte' ? `${data.summary.overdue} nello storico` : 'vista operativa')}
               </Badge>
+              <button
+                className="iu-scad-table-fullscreen"
+                type="button"
+                onClick={() => void toggleDeadlineTableFullscreen()}
+                aria-label={tableFullscreen ? 'Chiudi elenco scadenze a schermo intero' : 'Apri elenco scadenze a schermo intero'}
+                aria-pressed={tableFullscreen}
+                title={tableFullscreen ? 'Chiudi schermo intero' : 'Apri a schermo intero'}
+              >
+                {tableFullscreen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}
+                <span>{tableFullscreen ? 'Chiudi schermo intero' : 'Apri a schermo intero'}</span>
+              </button>
               <a href={data.actions.exportCsv}><Download size={15}/> Esporta</a>
             </div>
           </header>

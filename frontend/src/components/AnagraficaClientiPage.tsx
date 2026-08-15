@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Archive,
   AlertTriangle,
   BadgeCheck,
   BriefcaseBusiness,
   CheckCircle2,
-  ChevronDown,
   Download,
   Eye,
   FileText,
   Filter,
   FolderOpen,
   Mail,
+  Maximize2,
+  Minimize2,
   PencilLine,
   Phone,
   RefreshCw,
@@ -136,10 +137,10 @@ function RowActions({
 }) {
   return (
     <div className="iu-cli-actions" aria-label={`Azioni cliente ${item.name}`}>
-      <a href={item.href} aria-label="Apri scheda cliente"><Eye size={15}/></a>
-      <a href={item.editHref} aria-label="Modifica cliente"><PencilLine size={15}/></a>
-      <a href={item.folderHref} aria-label="Apri cartella cliente"><FolderOpen size={15}/></a>
-      <button type="button" onClick={() => onDelete(item)} disabled={deleting} aria-label={`Elimina cliente ${item.name}`}>
+      <a href={item.href} aria-label={`Apri scheda cliente ${item.name}`} title="Apri scheda cliente"><Eye size={15}/></a>
+      <a href={item.editHref} aria-label={`Modifica cliente ${item.name}`} title="Modifica cliente"><PencilLine size={15}/></a>
+      <a href={item.folderHref} aria-label={`Apri cartella cliente ${item.name}`} title="Apri cartella cliente"><FolderOpen size={15}/></a>
+      <button type="button" onClick={() => onDelete(item)} disabled={deleting} aria-label={`Elimina cliente ${item.name}`} title="Elimina cliente">
         <Trash2 size={15}/>
       </button>
     </div>
@@ -209,12 +210,80 @@ function ClientiTable({
   deletingIds: Set<string>
   onDelete: (item: ClienteRow) => void
 }) {
+  const tableCardRef = useRef<HTMLElement>(null)
+  const [fullscreen, setFullscreen] = useState(false)
   const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
+
+  useEffect(() => {
+    const syncFullscreenState = () => setFullscreen(document.fullscreenElement === tableCardRef.current)
+    document.addEventListener('fullscreenchange', syncFullscreenState)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState)
+  }, [])
+
+  useEffect(() => {
+    if (!fullscreen) return undefined
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullscreen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [fullscreen])
+
+  const toggleFullscreen = async () => {
+    const tableCard = tableCardRef.current
+    if (!tableCard) return
+    if (fullscreen) {
+      if (document.fullscreenElement === tableCard) {
+        try {
+          await document.exitFullscreen()
+        } catch {
+          // La vista espansa dell'app resta disponibile anche quando il browser nega l'uscita nativa.
+        }
+      }
+      setFullscreen(false)
+      return
+    }
+    if (tableCard.requestFullscreen) {
+      try {
+        await tableCard.requestFullscreen()
+        setFullscreen(true)
+        return
+      } catch {
+        // La vista espansa dell'app mantiene la tabella operativa quando il browser nega il fullscreen nativo.
+      }
+    }
+    setFullscreen(true)
+  }
+
   return (
-    <section className="iu-cli-table-card" aria-label="Elenco clienti">
+    <section
+      className={`iu-cli-table-card${fullscreen ? ' iu-cli-table-card--fullscreen' : ''}`}
+      aria-label="Elenco clienti"
+      ref={tableCardRef}
+    >
       <div className="iu-cli-table-head">
-        <strong>{items.length} clienti</strong>
-        <label><span>25 per pagina</span><ChevronDown size={14}/></label>
+        <div className="iu-cli-table-head__summary">
+          <strong><UsersRound size={16}/> {items.length} clienti</strong>
+          <span>{items.length === 1 ? '1 risultato visibile' : `${items.length} risultati visibili`}</span>
+        </div>
+        <div className="iu-cli-table-head__actions">
+          <button
+            className="iu-cli-table-fullscreen"
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            aria-label={fullscreen ? 'Chiudi elenco clienti a schermo intero' : 'Apri elenco clienti a schermo intero'}
+            aria-pressed={fullscreen}
+            title={fullscreen ? 'Chiudi schermo intero' : 'Apri a schermo intero'}
+          >
+            {fullscreen ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
+            <span>{fullscreen ? 'Chiudi schermo intero' : 'Apri a schermo intero'}</span>
+          </button>
+        </div>
       </div>
       <SyncedTopScrollbar className="iu-cli-table-wrap">
         <table className="iu-cli-table">
@@ -229,6 +298,7 @@ function ClientiTable({
               <th>Pratiche</th>
               <th>Qualità</th>
               <th>Stato</th>
+              <th className="iu-cli-table-actions-head">Azioni</th>
             </tr>
           </thead>
           <tbody>
@@ -236,10 +306,7 @@ function ClientiTable({
               <tr key={item.id}>
                 <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.name}`}/></td>
                 <td className="iu-cli-title-cell">
-                  <div className="iu-cli-title-line">
-                    <a href={item.href}>{item.name}</a>
-                    <RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/>
-                  </div>
+                  <a href={item.href}>{item.name}</a>
                   <span>{item.subtitle || item.tags.join(', ') || 'Anagrafica cliente'}</span>
                 </td>
                 <td><Badge tone="neutral">{formatClienteType(item.type)}</Badge></td>
@@ -249,6 +316,7 @@ function ClientiTable({
                 <td><span className="iu-cli-matter-count">{item.matters}</span></td>
                 <td><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></td>
                 <td><Badge tone={item.tone}>{formatClienteStatus(item.status)}</Badge></td>
+                <td className="iu-cli-table-actions-cell"><RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/></td>
               </tr>
             ))}
           </tbody>

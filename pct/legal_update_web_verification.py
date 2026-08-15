@@ -59,6 +59,9 @@ OFFICIAL_ATTACHMENT_SOURCE_DOMAINS: tuple[tuple[str, str], ...] = (
     ("echr.coe.int", "Corte europea dei diritti dell'uomo"),
     ("normattiva.it", "Normattiva"),
     ("eur-lex.europa.eu", "EUR-Lex"),
+    ("cassaforense.it", "Cassa Forense"),
+    ("consiglionazionaleforense.it", "Consiglio Nazionale Forense"),
+    ("agenziaentrate.gov.it", "Agenzia delle Entrate"),
 )
 OFFICIAL_POLICY_AREAS = (
     "default",
@@ -1083,6 +1086,98 @@ def _fetch_official_web_context_with_attachments(url: str, *, timeout: int = 8) 
 def _fetch_official_web_context(url: str, *, timeout: int = 8) -> str:
     context, _attachments = _fetch_official_web_context_with_attachments(url, timeout=timeout)
     return context
+
+
+def fetch_official_reader_content(
+    url: str,
+    *,
+    timeout: int = 8,
+    max_bytes: int = 3 * 1024 * 1024,
+) -> dict[str, Any]:
+    """Restituisce una lettura testuale governata di una fonte istituzionale."""
+
+    target = _clean_spaces(url)
+    source_name = _recognized_official_source_name(target)
+    if not source_name or not _is_recognized_official_url(target):
+        return {
+            "ok": False,
+            "title": "Fonte non disponibile",
+            "source_name": "Fonte istituzionale",
+            "blocks": [],
+            "message": "Questa fonte non rientra tra i siti istituzionali abilitati.",
+        }
+
+    content, content_type = _download_limited(target, timeout=timeout, max_bytes=max_bytes)
+    if not content:
+        return {
+            "ok": False,
+            "title": source_name,
+            "source_name": source_name,
+            "blocks": [],
+            "message": "Il sito istituzionale non ha restituito contenuti leggibili. Usa il collegamento al sito ufficiale.",
+        }
+
+    file_type = _file_type_from_url(target, content_type)
+    if file_type in {"pdf", "docx", "doc", "xml", "txt"}:
+        extracted = _text_from_attachment(target, content, content_type)
+        blocks = [_truncate(extracted, 12000)] if extracted else []
+        return {
+            "ok": bool(blocks),
+            "title": source_name,
+            "source_name": source_name,
+            "blocks": blocks,
+            "message": "" if blocks else "La fonte non contiene testo leggibile.",
+        }
+
+    charset_match = re.search(r"charset\s*=\s*['\"]?([\w.-]+)", content_type, flags=re.IGNORECASE)
+    charset = charset_match.group(1) if charset_match else "utf-8"
+    try:
+        html_text = content.decode(charset, errors="replace")
+    except (LookupError, UnicodeDecodeError):
+        html_text = content.decode("utf-8", errors="replace")
+
+    try:
+        document = lxml_html.fromstring(html_text)
+        for node in document.xpath("//script|//style|//noscript|//nav|//header|//footer|//form"):
+            try:
+                node.drop_tree()
+            except Exception:
+                continue
+        title = _clean_spaces(" ".join(document.xpath("//title[1]/text()"))) or source_name
+        content_nodes = document.xpath("//main|//article|//*[@role='main']")
+        source_node = content_nodes[0] if content_nodes else document
+        candidates = source_node.xpath(".//h1|.//h2|.//h3|.//p|.//li")
+        blocks: list[str] = []
+        seen: set[str] = set()
+        total = 0
+        for node in candidates:
+            block = _clean_spaces(node.text_content())
+            key = block.casefold()
+            if len(block) < 24 or key in seen:
+                continue
+            seen.add(key)
+            block = _truncate(block, 900)
+            if total + len(block) > 12000:
+                break
+            blocks.append(block)
+            total += len(block)
+            if len(blocks) >= 32:
+                break
+        if not blocks:
+            fallback = _truncate(_text_from_html(html_text), 12000)
+            blocks = [fallback] if fallback else []
+    except Exception:
+        title = source_name
+        fallback = _truncate(_text_from_html(html_text), 12000)
+        blocks = [fallback] if fallback else []
+
+    return {
+        "ok": bool(blocks),
+        "title": title,
+        "source_name": source_name,
+        "blocks": blocks,
+        "message": "" if blocks else "Il sito istituzionale non contiene testo leggibile.",
+    }
 
 
 def _search_and_confirm(

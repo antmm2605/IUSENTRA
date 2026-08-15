@@ -9292,6 +9292,271 @@ def _dashboard_error_payload() -> dict[str, Any]:
     }
 
 
+_NOTIZIARIO_SOURCE_FILTERS = (
+    {"id": "all", "label": "Tutte"},
+    {"id": "giustizia", "label": "Giustizia"},
+    {"id": "cnf", "label": "CNF"},
+    {"id": "cassa_forense", "label": "Cassa Forense"},
+    {"id": "gazzetta_ufficiale", "label": "Gazzetta Ufficiale"},
+)
+_NOTIZIARIO_QUICK_SOURCES = (
+    {"id": "gazzetta_ufficiale", "label": "Gazzetta Ufficiale", "url": "https://www.gazzettaufficiale.it/"},
+    {"id": "cassa_forense", "label": "Cassa Forense", "url": "https://www.cassaforense.it/"},
+    {"id": "cnf", "label": "Consiglio Nazionale Forense", "url": "https://www.consiglionazionaleforense.it/"},
+    {"id": "fatture_corrispettivi", "label": "Fatture e Corrispettivi", "url": "https://ivaservizi.agenziaentrate.gov.it/portale/"},
+)
+
+
+def _notiziario_quick_source(source_id: str) -> dict[str, str] | None:
+    normalized = str(source_id or "").strip().lower()
+    return next((dict(item) for item in _NOTIZIARIO_QUICK_SOURCES if item["id"] == normalized), None)
+
+
+def _notiziario_studio_db():
+    anchor = tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True)
+    return get_request_studio_db(anchor)
+
+
+def _notiziario_preferences_section() -> str:
+    user_id = _current_user_id() or _actor_label() or "utente"
+    digest = hashlib.sha256(user_id.encode("utf-8")).hexdigest()[:16]
+    return f"notiziario_{digest}"
+
+
+def _notiziario_load_interactions() -> dict[str, dict[str, Any]]:
+    from pct.impostazioni_config_repository import load_settings_config_section
+
+    stored = load_settings_config_section(_notiziario_studio_db(), _notiziario_preferences_section())
+    raw = stored.get("interactions") if isinstance(stored.get("interactions"), dict) else {}
+    interactions: dict[str, dict[str, Any]] = {}
+    for raw_id, raw_value in raw.items():
+        if not str(raw_id).isdigit() or not isinstance(raw_value, dict):
+            continue
+        interactions[str(raw_id)] = {
+            "read": bool(raw_value.get("read")),
+            "readAt": str(raw_value.get("readAt") or ""),
+            "favorite": bool(raw_value.get("favorite")),
+            "linkedCaseId": str(raw_value.get("linkedCaseId") or ""),
+            "updatedAt": str(raw_value.get("updatedAt") or ""),
+        }
+    return interactions
+
+
+def _notiziario_save_interactions(interactions: Mapping[str, Mapping[str, Any]]) -> str:
+    from pct.impostazioni_config_repository import save_settings_config_section
+
+    ordered = sorted(
+        ((str(key), dict(value)) for key, value in interactions.items() if str(key).isdigit()),
+        key=lambda item: str(item[1].get("updatedAt") or ""),
+        reverse=True,
+    )[:500]
+    return save_settings_config_section(
+        _notiziario_studio_db(),
+        _notiziario_preferences_section(),
+        {"interactions": dict(ordered)},
+        source="react_notiziario",
+    )
+
+
+def _notiziario_source_group(row: Mapping[str, Any]) -> str:
+    source = " ".join(
+        str(row.get(key) or "")
+        for key in ("source_code", "source_name", "source_category")
+    ).lower()
+    if "gazzetta" in source:
+        return "gazzetta_ufficiale"
+    if "cassa" in source and "forense" in source:
+        return "cassa_forense"
+    if "consiglio nazionale forense" in source or re.search(r"\bcnf\b", source):
+        return "cnf"
+    return "giustizia"
+
+
+def _notiziario_public_url(row: Mapping[str, Any]) -> str:
+    candidate = str(row.get("source_url") or "").strip()
+    parsed = urlparse(candidate)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return ""
+    return candidate
+
+
+def _notiziario_case_options() -> list[dict[str, str]]:
+    try:
+        rows = get_fascicoli().tutti(archiviati=False)
+    except TypeError:
+        rows = get_fascicoli().tutti()
+    options: list[dict[str, str]] = []
+    for item in rows:
+        item_id = str(getattr(item, "id", "") or "").strip()
+        if not item_id:
+            continue
+        rg = str(
+            getattr(item, "rg_completo", "")
+            or getattr(item, "numero_rg", "")
+            or getattr(item, "numero", "")
+            or ""
+        ).strip()
+        title = str(getattr(item, "titolo", "") or getattr(item, "oggetto", "") or "Fascicolo").strip()
+        options.append({
+            "id": item_id,
+            "label": f"{rg} - {title}" if rg else title,
+        })
+    return options
+
+
+def _notiziario_item_payload(
+    row: Mapping[str, Any],
+    interaction: Mapping[str, Any],
+    case_labels: Mapping[str, str],
+) -> dict[str, Any]:
+    case_id = str(interaction.get("linkedCaseId") or "")
+    return {
+        "id": str(row.get("id") or ""),
+        "slug": str(row.get("slug") or ""),
+        "title": str(row.get("title") or "Aggiornamento senza titolo"),
+        "summary": str(row.get("short_summary") or ""),
+        "content": str(row.get("content") or ""),
+        "newsType": str(row.get("news_type") or "focus"),
+        "publishedAt": str(row.get("published_at") or row.get("created_at") or ""),
+        "sourceName": str(row.get("source_name") or "Fonte istituzionale"),
+        "sourceCode": str(row.get("source_code") or ""),
+        "sourceGroup": _notiziario_source_group(row),
+        "sourceUrl": _notiziario_public_url(row),
+        "matterName": str(row.get("matter_name") or ""),
+        "submatterName": str(row.get("submatter_name") or ""),
+        "read": bool(interaction.get("read")),
+        "readAt": str(interaction.get("readAt") or ""),
+        "favorite": bool(interaction.get("favorite")),
+        "linkedCaseId": case_id,
+        "linkedCaseLabel": str(case_labels.get(case_id) or ""),
+    }
+
+
+@api_v1_react.get("/notiziario")
+@_richiedi_auth
+def notiziario_react():
+    try:
+        rows = get_legal_update_pipeline().repository.list_news(limit=120)
+        interactions = _notiziario_load_interactions()
+        cases = _notiziario_case_options()
+        case_labels = {row["id"]: row["label"] for row in cases}
+        items = [
+            _notiziario_item_payload(row, interactions.get(str(row.get("id") or ""), {}), case_labels)
+            for row in rows
+        ]
+        response = jsonify({
+            "ok": True,
+            "source": "legal_updates_repository",
+            "generatedAt": _iso_now(),
+            "items": items,
+            "filters": list(_NOTIZIARIO_SOURCE_FILTERS),
+            "quickSources": list(_NOTIZIARIO_QUICK_SOURCES),
+            "cases": cases,
+            "unreadCount": sum(1 for item in items if not item["read"]),
+            "contracts": {
+                "publishedOnly": True,
+                "tenantInteractions": True,
+                "externalFetchOnOpen": True,
+                "mockFallback": False,
+            },
+        })
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
+    except Exception as exc:
+        current_app.logger.exception("Notiziario React non disponibile: %s", exc)
+        return jsonify({
+            "ok": False,
+            "items": [],
+            "filters": list(_NOTIZIARIO_SOURCE_FILTERS),
+            "quickSources": list(_NOTIZIARIO_QUICK_SOURCES),
+            "cases": [],
+            "unreadCount": 0,
+            "message": "Notiziario momentaneamente non disponibile. Riprova dalla Panoramica.",
+        }), 200
+
+
+@api_v1_react.get("/notiziario/fonti/<source_id>")
+@_richiedi_auth
+def notiziario_react_fonte(source_id: str):
+    source = _notiziario_quick_source(source_id)
+    if not source:
+        return jsonify({"ok": False, "message": "Fonte istituzionale non disponibile."}), 404
+    try:
+        from pct.legal_update_web_verification import fetch_official_reader_content
+
+        reader = fetch_official_reader_content(source["url"], timeout=8)
+        response = jsonify({
+            "ok": bool(reader.get("ok")),
+            "id": source["id"],
+            "label": source["label"],
+            "url": source["url"],
+            "title": str(reader.get("title") or source["label"]),
+            "sourceName": str(reader.get("source_name") or source["label"]),
+            "blocks": list(reader.get("blocks") or []),
+            "message": str(reader.get("message") or ""),
+            "fetchedAt": _iso_now(),
+        })
+        response.headers["Cache-Control"] = "private, max-age=300"
+        return response
+    except Exception as exc:
+        current_app.logger.warning("Lettura fonte Notiziario %s non riuscita: %s", source_id, exc)
+        return jsonify({
+            "ok": False,
+            "id": source["id"],
+            "label": source["label"],
+            "url": source["url"],
+            "title": source["label"],
+            "sourceName": source["label"],
+            "blocks": [],
+            "message": "Il sito istituzionale non è leggibile in questo momento. Usa il collegamento al sito ufficiale.",
+            "fetchedAt": _iso_now(),
+        }), 200
+
+
+@api_v1_react.patch("/notiziario/<int:news_id>/interazione")
+@_richiedi_auth
+def notiziario_react_interazione(news_id: int):
+    row = get_legal_update_pipeline().repository.get_news_detail(news_id)
+    if not row or str(row.get("publication_status") or "") != "published":
+        return jsonify({"ok": False, "message": "Aggiornamento non disponibile."}), 404
+    payload = _request_payload()
+    mutable_fields = {"read", "favorite", "linkedCaseId"}
+    if not mutable_fields.intersection(payload):
+        return jsonify({"ok": False, "message": "Nessuna modifica indicata."}), 400
+    interactions = _notiziario_load_interactions()
+    key = str(news_id)
+    interaction = dict(interactions.get(key) or {})
+    now = _iso_now()
+    if "read" in payload:
+        interaction["read"] = bool(payload.get("read"))
+        interaction["readAt"] = now if interaction["read"] else ""
+    if "favorite" in payload:
+        interaction["favorite"] = bool(payload.get("favorite"))
+    if "linkedCaseId" in payload:
+        case_id = str(payload.get("linkedCaseId") or "").strip()
+        if case_id:
+            valid_case, error_payload = _validate_current_tenant_fascicolo_id(case_id)
+            if not valid_case:
+                return jsonify(error_payload or {"ok": False, "message": "Fascicolo non disponibile."}), 404
+        interaction["linkedCaseId"] = case_id
+    interaction["updatedAt"] = now
+    interactions[key] = interaction
+    updated_at = _notiziario_save_interactions(interactions)
+    case_labels = {case["id"]: case["label"] for case in _notiziario_case_options()}
+    _audit_event(
+        "notiziario.interazione",
+        "aggiornamento_legale",
+        key,
+        "Stato del Notiziario aggiornato per l'utente corrente.",
+    )
+    return jsonify({
+        "ok": True,
+        "updatedAt": updated_at,
+        "item": _notiziario_item_payload(row, interaction, case_labels),
+        "message": "Notiziario aggiornato.",
+    })
+
+
 @api_v1_react.get("/strumenti-legali")
 @_richiedi_auth
 def strumenti_legali_react():

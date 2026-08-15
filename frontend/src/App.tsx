@@ -58,6 +58,7 @@ import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/das
 import { FloatingLex } from './components/FloatingLex'
 import { IusAppSidebar, IusentraRoutePresetFrame } from './components/iusentra'
 import { JsonPostForm } from './components/JsonPostForm'
+import { NotiziarioPanel } from './components/NotiziarioPanel'
 import { TopBar } from './components/layout/TopBar'
 import { sanitizeDisplayText } from './displayText'
 import { appV2FeatureFlagForPath, isFeatureFlagEnabledSync, type FeatureFlagKey } from './lib/featureFlags'
@@ -1302,6 +1303,7 @@ function DashboardPage({
       {/* Righe da 12 colonne esatte: la Panoramica non deve lasciare spazi morti
           a destra, ne' su desktop largo ne' sui passaggi responsive. */}
       <section className="iu-grid">
+        <NotiziarioPanel />
         <div className="span6"><Operations data={data}/></div>
         <div className="span6"><Agenda data={data}/></div>
         <div className="span4"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>

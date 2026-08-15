@@ -212,6 +212,52 @@ def load_settings_config_section(studio_db: Any, section: str) -> dict[str, Any]
     return dict(payload) if isinstance(payload, dict) else {}
 
 
+def save_settings_config_section(
+    studio_db: Any,
+    section: str,
+    payload: dict[str, Any],
+    *,
+    source: str = "react_impostazioni",
+    updated_at: str | None = None,
+) -> str:
+    """Salva una singola sezione tenant nel backend SQL configurato."""
+
+    if studio_db is None:
+        raise RuntimeError("Archivio strutturato dello studio non disponibile.")
+    normalized = str(section or "").strip().lower()
+    if not normalized:
+        raise ValueError("Sezione impostazioni non indicata.")
+    ensure_settings_config_schema(studio_db)
+    conn = getattr(studio_db, "conn", None)
+    if conn is None:
+        raise RuntimeError("Connessione al database dello studio non disponibile.")
+    timestamp = updated_at or _iso_now()
+    conn.execute(
+        """
+        INSERT INTO settings_config
+        (section, updated_at, source, secret_fields_json, dati_json)
+        VALUES (?,?,?,?,?)
+        ON CONFLICT(section) DO UPDATE SET
+            updated_at = excluded.updated_at,
+            source = excluded.source,
+            secret_fields_json = excluded.secret_fields_json,
+            dati_json = excluded.dati_json
+        """,
+        (
+            normalized,
+            timestamp,
+            str(source or "react_impostazioni").strip() or "react_impostazioni",
+            "[]",
+            _json(_json_safe(payload)),
+        ),
+    )
+    try:
+        conn.commit()
+    except Exception:
+        pass
+    return timestamp
+
+
 def save_settings_config_snapshot(
     studio_db: Any,
     cfg: ConfigStudio,

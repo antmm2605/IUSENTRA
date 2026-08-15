@@ -235,9 +235,10 @@ async function safeJson(response: Response): Promise<unknown> {
 
 function initialForm(): DeadlineForm {
   const params = new URLSearchParams(window.location.search)
+  const requestedType = (params.get('tipo') || '').toUpperCase()
   return {
-    titolo: '',
-    tipo: 'UDIENZA',
+    titolo: params.get('titolo') ?? '',
+    tipo: fallbackTypes.some((item) => item.value === requestedType) ? requestedType as DeadlineType : 'UDIENZA',
     preset: params.get('preset') ?? '',
     deadline_profile_code: params.get('deadline_profile_code') ?? '',
     source_event_at: params.get('source_event_at') ?? '',
@@ -246,14 +247,14 @@ function initialForm(): DeadlineForm {
     perentorio: params.get('perentorio') === '1',
     id_fascicolo: params.get('id_fascicolo') ?? '',
     id_utente: params.get('id_utente') ?? '',
-    descrizione: '',
-    note: '',
+    descrizione: params.get('descrizione') ?? '',
+    note: params.get('note') ?? '',
     judicial_office_id: '',
     office_patron_name: '',
     office_patron_day: '',
     office_patron_month: '',
     office_operating_mode: 'open',
-    office_source_url: '',
+    office_source_url: params.get('office_source_url') ?? '',
     office_verified_at: '',
     operational_lead_business_days: '2',
     october_observance_blocks: false,

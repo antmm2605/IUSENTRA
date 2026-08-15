@@ -314,3 +314,11 @@ Un test automatico verde non significa lavoro concluso. Per qualsiasi comportame
 - Ogni superficie React che chiama il servizio locale deve usare lo stesso contratto; la distinzione tenant resta lato API e payload, non tramite URL o database paralleli.
 - Il controllo `tools/check_local_signer_boundaries.py` è parte del doppio controllo dati/route: se un nuovo file frontend torna a `targetAddressSpace: local`, il lavoro non può essere dichiarato chiuso.
 - La prova reale su produzione e su `127.0.0.1:8080` resta necessaria perché il guardrail verifica il contratto statico, non l'interazione materiale con Chrome, permesso locale, PIN e sessione PST.
+# Aggiornamento 15 agosto 2026 - Notiziario Panoramica
+
+- Fonte operativa: repository SQL `legal_updates`; nessun elenco dimostrativo o JSON usato per conteggi e contenuti.
+- Proprietà tenant: lettura, preferiti e fascicolo collegato persistono in `settings_config`, con schema SQLite/PostgreSQL condiviso e sezione distinta per utente.
+- API React: `/api/v1/ui/notiziario`, `/api/v1/ui/notiziario/<id>/interazione` e `/api/v1/ui/notiziario/fonti/<fonte>`.
+- Interfaccia full React: `NotiziarioPanel` nella Panoramica, con ricerca, filtri, lettore, tutto schermo e azioni verso fascicolo e Scadenziario.
+- Fonti esterne: soltanto lista istituzionale chiusa; recupero limitato e nessun URL libero inviato al backend.
+- Collaudo reale e matrice completa: `artifacts/react-migration/notiziario-panoramica-2026-08-15.md`.

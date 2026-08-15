@@ -38,6 +38,7 @@
     "frontend/src/components/LegalIntelligencePage.css",
     "frontend/src/components/LexLearningPage.css",
     "frontend/src/components/MessaggiPage.css",
+    "frontend/src/components/NotiziarioPanel.css",
     "frontend/src/components/NotificheLegaliPage.css",
     "frontend/src/components/NuovaScadenzaPage.css",
     "frontend/src/components/NuovoAppuntamentoPage.css",

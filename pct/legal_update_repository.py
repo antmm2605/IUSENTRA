@@ -2852,10 +2852,15 @@ class LegalUpdateRepository:
             row = conn.execute(
                 """
                 SELECT n.*, m.slug AS matter_slug, m.name AS matter_name,
-                       sm.slug AS submatter_slug, sm.name AS submatter_name
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       s.name AS source_name, s.code AS source_code,
+                       s.category AS source_category, s.is_official AS source_is_official
                 FROM news n
                 LEFT JOIN matters m ON m.id = n.matter_id
                 LEFT JOIN matters sm ON sm.id = n.submatter_id
+                LEFT JOIN source_documents_normalized nd ON nd.id = n.source_document_id
+                LEFT JOIN source_documents_raw raw ON raw.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = raw.source_id
                 WHERE n.id = ?
                 """,
                 (int(entity_id),),
@@ -2867,10 +2872,15 @@ class LegalUpdateRepository:
             row = conn.execute(
                 """
                 SELECT n.*, m.slug AS matter_slug, m.name AS matter_name,
-                       sm.slug AS submatter_slug, sm.name AS submatter_name
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       s.name AS source_name, s.code AS source_code,
+                       s.category AS source_category, s.is_official AS source_is_official
                 FROM news n
                 LEFT JOIN matters m ON m.id = n.matter_id
                 LEFT JOIN matters sm ON sm.id = n.submatter_id
+                LEFT JOIN source_documents_normalized nd ON nd.id = n.source_document_id
+                LEFT JOIN source_documents_raw raw ON raw.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = raw.source_id
                 WHERE n.slug = ? AND n.publication_status = 'published'
                 """,
                 (_slugify(slug),),
@@ -2882,10 +2892,15 @@ class LegalUpdateRepository:
             row = conn.execute(
                 """
                 SELECT n.*, m.slug AS matter_slug, m.name AS matter_name,
-                       sm.slug AS submatter_slug, sm.name AS submatter_name
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       s.name AS source_name, s.code AS source_code,
+                       s.category AS source_category, s.is_official AS source_is_official
                 FROM news n
                 LEFT JOIN matters m ON m.id = n.matter_id
                 LEFT JOIN matters sm ON sm.id = n.submatter_id
+                LEFT JOIN source_documents_normalized nd ON nd.id = n.source_document_id
+                LEFT JOIN source_documents_raw raw ON raw.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = raw.source_id
                 WHERE n.id = ?
                 """,
                 (int(entity_id),),
@@ -2916,10 +2931,15 @@ class LegalUpdateRepository:
             rows = conn.execute(
                 f"""
                 SELECT n.*, m.slug AS matter_slug, m.name AS matter_name,
-                       sm.slug AS submatter_slug, sm.name AS submatter_name
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       s.name AS source_name, s.code AS source_code,
+                       s.category AS source_category, s.is_official AS source_is_official
                 FROM news n
                 LEFT JOIN matters m ON m.id = n.matter_id
                 LEFT JOIN matters sm ON sm.id = n.submatter_id
+                LEFT JOIN source_documents_normalized nd ON nd.id = n.source_document_id
+                LEFT JOIN source_documents_raw raw ON raw.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = raw.source_id
                 {where}
                 ORDER BY COALESCE(NULLIF(n.published_at, ''), n.created_at) DESC
                 LIMIT ?

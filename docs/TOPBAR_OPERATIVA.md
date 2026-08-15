@@ -8,7 +8,7 @@ La top bar desktop React e' il centro rapido trasversale della shell IUSENTRA. U
 - `+ Nuovo`: menu contestuale globale, fascicolo o cliente, con sole route applicative reali.
 - `Oggi`: riepilogo compatto di udienze, scadenze, attivita, PEC importanti e urgenze entro 7 giorni.
 - `Notifiche`: elementi operativi persistenti derivati da scadenze, udienze, PEC, depositi, documenti e fatture; supporta segna letta e segna tutte come lette.
-- `Scadenze`: contatori oggi/domani/7 giorni/urgenti/scadute e lista rapida.
+- `Scadenze`: contatori oggi/domani/7 giorni/urgenti/scadute e lista rapida; le proposte in BOZZA (PEC/registri/CTU) hanno il contatore dedicato «proposte da confermare» con link allo scadenziario e restano fuori dai conteggi operativi.
 - `Recenti`: riusa il tracking sessione esistente ed evita duplicati.
 - `Timer attivita`: persiste il timer lato backend e allo stop crea una voce timesheet reale.
 

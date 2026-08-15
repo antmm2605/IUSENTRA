@@ -1,0 +1,1151 @@
+{
+ "generato": "2026-08-15",
+ "conteggi": {
+  "deep_link_mancante": 39,
+  "gia_operativa_di_fatto": 24,
+  "implementabile_piccola": 84,
+  "mancante_grande": 21
+ },
+ "voci": [
+  {
+   "id": "rivalutazione_e_interessi",
+   "title": "Rivalutazione e Interessi",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=maggior_danno",
+   "dettaglio": "Il tool 'maggior_danno' (pct/calcolatori/maggior_danno.py) fa esattamente rivalutazione ISTAT FOI/NIC + interessi legali del periodo con tre basi (capitale rivalutato anno per anno ex Cass. SS.UU. 1712/1995, semisomma, originario). Il catalogo punta a tool=rivalutazione_istat che fa solo la rivalutazione senza interessi: il deep link corretto è tool=maggior_danno."
+  },
+  {
+   "id": "rivalutazione_mensile",
+   "title": "Rivalutazione Mensile",
+   "classe": "gia_operativa_di_fatto",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=rivalutazione_istat",
+   "dettaglio": "calcola_rivalutazione_istat (pct/strumenti_legali.py:1171) lavora proprio su base mese/anno iniziale e mese/anno finale con indici mensili FOI/NIC: la rivalutazione mensile è esattamente la funzione della pagina già indicata dai params."
+  },
+  {
+   "id": "interessi_vari_sul_capitale_rivalutato",
+   "title": "Interessi Vari sul Capitale Rivalutato",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=maggior_danno",
+   "dettaglio": "Il tool 'maggior_danno' calcola gli interessi legali sul capitale rivalutato con tre basi di calcolo selezionabili (rivalutato annuale/semisomma/originario). Il catalogo punta a tool=rivalutazione_istat che non calcola interessi. Nota: il calcolatore applica solo i tassi legali per periodo; per tassi convenzionali servirebbe una piccola estensione."
+  },
+  {
+   "id": "calcolo_devalutazione",
+   "title": "Calcolo Devalutazione",
+   "classe": "gia_operativa_di_fatto",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=rivalutazione_istat",
+   "dettaglio": "calcola_rivalutazione_istat non impone ordine cronologico tra periodo base e finale (verificato: nessun check fine>base, righe 1182-1189): impostando come periodo finale una data anteriore si ottiene importo × (indice_passato/indice_recente), cioè la devalutazione, con warning esplicito in caso di variazione negativa."
+  },
+  {
+   "id": "rivalutazione_storica",
+   "title": "Rivalutazione Storica",
+   "classe": "gia_operativa_di_fatto",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=rivalutazione_istat",
+   "dettaglio": "Il tool accetta qualunque coppia anno/mese coperta dalle tabelle ISTAT versionate in normative_tables (fail-closed con messaggio se l'indice manca): la rivalutazione su periodi storici è la stessa funzione della pagina già linkata."
+  },
+  {
+   "id": "variazioni_storiche_istat",
+   "title": "Variazioni Storiche Istat",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Gli indici mensili FOI/NIC sono già nel repository (norme.istat_index in pct/normative_tables.py, usati da calcola_rivalutazione_istat); manca solo una vista tabellare delle variazioni percentuali periodo su periodo: puro rendering di dati già versionati, poche ore."
+  },
+  {
+   "id": "tabella_variazioni_istat",
+   "title": "Tabella Variazioni Istat",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Stessa situazione della voce 'variazioni_storiche_istat': i dati indice sono già caricati e governati; serve solo una tabella di consultazione (anno × mese, variazioni %) senza alcun dato nuovo."
+  },
+  {
+   "id": "ultimo_indice_istat",
+   "title": "Ultimo Indice Istat",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "norme.istat_last_available(tipo) esiste già ed è usato nei messaggi d'errore di calcola_rivalutazione_istat (righe 1200-1213): manca solo l'esposizione UI dell'ultimo indice disponibile FOI/NIC. Poche righe."
+  },
+  {
+   "id": "rivalutazione_annuale_media",
+   "title": "Rivalutazione Annuale Media",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "La rivalutazione su media annua ISTAT è formula certa (media aritmetica degli indici mensili già presenti nelle tabelle versionate, o indice medio annuo ISTAT da aggiungere alla tabella normativa); estensione piccola del motore rivalutazione esistente."
+  },
+  {
+   "id": "calcolo_inflazione",
+   "title": "Calcolo Inflazione",
+   "classe": "gia_operativa_di_fatto",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=rivalutazione_istat",
+   "dettaglio": "calcola_rivalutazione_istat restituisce già variazione_perc = ((indice_fine/indice_base)-1)×100 tra due periodi qualsiasi (riga 1215): il calcolo dell'inflazione di periodo è esattamente questo output della pagina già linkata."
+  },
+  {
+   "id": "inflazione_e_titoli_di_stato",
+   "title": "Inflazione e Titoli di Stato",
+   "classe": "mancante_grande",
+   "dettaglio": "Il confronto inflazione/rendimenti dei titoli di Stato richiede serie storiche dei rendimenti BOT/BTP (MEF/Banca d'Italia) che non esistono nel repository (nessuna fonte finanziaria in normative_tables); servirebbe un modulo dati con fonte ufficiale governata, non una semplice formula."
+  },
+  {
+   "id": "interessi_a_tasso_fisso",
+   "title": "Interessi a Tasso Fisso",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "calcola_interessi (pct/strumenti_legali.py:740) supporta solo le modalità 'legali' e 'mora_commerciale' con tassi presi dalle tabelle ufficiali: non esiste la modalità a tasso convenzionale fisso indicato dall'utente. La formula è certa (C × r × gg/365-366, art. 1284 c.c. per interessi convenzionali) e il motore a segmenti esiste già: piccola estensione del tool interessi."
+  },
+  {
+   "id": "calcolo_maggior_danno",
+   "title": "Calcolo Maggior Danno",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=maggior_danno",
+   "dettaglio": "Il tool dedicato esiste: 'maggior_danno' in TOOL_METHODS (web/blueprints/strumenti_legali.py:36) → calc_maggior_danno.calcola, art. 1224 co. 2 c.c. con rivalutazione ISTAT + interessi legali. Il catalogo punta erroneamente a tool=interessi."
+  },
+  {
+   "id": "calcolo_surroga",
+   "title": "Calcolo Surroga",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Non esiste un tool surroga, ma il motore calcola_piano_ammortamento (pct/strumenti_legali.py:2364, metodo francese/italiano) c'è già: la surroga è il confronto tra il piano residuo attuale e un nuovo piano a condizioni diverse — riuso del motore esistente, formula certa, poche ore."
+  },
+  {
+   "id": "calcolo_taeg",
+   "title": "Calcolo TAEG",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Non esiste un tool TAEG; la formula è definita dalle Disposizioni Banca d'Italia sulla trasparenza (TAEG = tasso che eguaglia il valore attuale dei flussi, risoluzione numerica standard) e il generatore di flussi rateali esiste già in calcola_piano_ammortamento: estensione piccola con base normativa certa."
+  },
+  {
+   "id": "interessi_mora_appalti",
+   "title": "Interessi Mora Appalti",
+   "classe": "gia_operativa_di_fatto",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=interessi",
+   "dettaglio": "calcola_interessi in modalità 'mora_commerciale' applica i tassi D.Lgs. 231/2002 (BCE + 8 punti) per periodo dalle tabelle ufficiali, con warning dedicato (riga 792-793): gli interessi di mora nelle transazioni commerciali/appalti sono esattamente la funzione della pagina già linkata dai params."
+  },
+  {
+   "id": "tabella_tassi_appalti",
+   "title": "Tabella Tassi Appalti",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "I tassi moratori semestrali sono già versionati (norme.interest_periods('mora_commerciale') con label, periodo, tasso e fonte per ogni semestre); manca solo la vista tabellare di consultazione: puro rendering di dati esistenti."
+  },
+  {
+   "id": "calcolo_risarcimento_danno_tabella_unica",
+   "title": "Calcolo Risarcimento Danno Tabella Unica",
+   "classe": "mancante_grande",
+   "dettaglio": "calcola_danno_biologico (pct/strumenti_legali.py:1717) usa le Tabelle Milano 2024, non la Tabella Unica Nazionale macropermanenti (D.P.R. attuativo art. 138 Cod. Ass.): recepire la TUN significa importare la matrice ministeriale valore punto × età × IP con i suoi coefficienti — un modulo dati/calcolo vero, non una formula rapida."
+  },
+  {
+   "id": "danno_non_patrimoniale",
+   "title": "Danno non Patrimoniale",
+   "classe": "gia_operativa_di_fatto",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=danno_biologico",
+   "dettaglio": "calcola_danno_biologico liquida biologico permanente (IP a punti Milano 2024), temporaneo (ITT/ITP), personalizzazione e quota morale autonoma (Cass. SS.UU. 26972/2008): è la liquidazione del danno non patrimoniale, esattamente la funzione della pagina già linkata."
+  },
+  {
+   "id": "danno_parentale_roma",
+   "title": "Danno Parentale Roma",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "calc_danno_parentale (pct/calcolatori/danno_parentale.py) implementa solo la tabella a punti Milano 2024; la tabella a punti del Tribunale di Roma è pubblicata ufficialmente e ha struttura analoga (valore punto × punti per parametro): aggiungerla come seconda configurazione del calcolatore esistente è lavoro di poche ore su dati certi."
+  },
+  {
+   "id": "danno_parentale_milano",
+   "title": "Danno Parentale Milano",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=danno_parentale",
+   "dettaglio": "Il tool dedicato esiste: 'danno_parentale' in TOOL_METHODS → calc_danno_parentale.calcola, tabella a punti Milano 2024 con i cinque parametri della Cassazione (verificato in pct/calcolatori/danno_parentale.py). Il catalogo punta erroneamente a tool=danno_biologico."
+  },
+  {
+   "id": "calcolo_menomazioni_plurime",
+   "title": "Calcolo Menomazioni Plurime",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Non esiste nel calcolatore danno_biologico (accetta una sola percentuale IP); la combinazione di menomazioni plurime segue la formula riconosciuta di capacità residua (Balthazard: IPtot = IP1 + IP2×(100-IP1)/100, iterata): formula certa, estensione piccola del tool esistente."
+  },
+  {
+   "id": "risarcimento_inail",
+   "title": "Risarcimento INAIL",
+   "classe": "mancante_grande",
+   "dettaglio": "Nessun modulo INAIL nel repository: l'indennizzo D.Lgs. 38/2000 richiede le tabelle ministeriali dedicate (indennizzo in capitale per danno biologico 6-15%, rendita oltre 16%, tabella delle menomazioni e coefficienti retributivi): serve un modulo dati/calcolo completo con fonti ufficiali INAIL."
+  },
+  {
+   "id": "calcolo_equo_indennizzo",
+   "title": "Calcolo Equo Indennizzo",
+   "classe": "mancante_grande",
+   "dettaglio": "Nessun tool esistente: l'equo indennizzo (D.P.R. 461/2001, categorie tabelle A/B annesse al D.P.R. 834/1981, istituto abrogato per i civili dal D.L. 201/2011 con eccezioni per comparti sicurezza/difesa) richiede tabelle dedicate e regole di categoria: modulo vero, non formula rapida."
+  },
+  {
+   "id": "tabelle_danno_biologico",
+   "title": "Tabelle Danno Biologico",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "I valori operativi Milano 2024 sono già nel codice (_valore_punto_ip, _coeff_eta, _VALORE_GIORNO_ITT usati da calcola_danno_biologico): una vista di consultazione tabellare dei valori punto per IP ed età è rendering di dati già presenti, poche ore. Per le matrici ufficiali integrali vale invece la voce macropermanenti."
+  },
+  {
+   "id": "tabella_unica_macropermanenti",
+   "title": "Tabella Unica Macropermanenti",
+   "classe": "mancante_grande",
+   "dettaglio": "La Tabella Unica Nazionale macropermanenti (art. 138 Cod. Ass.) non è presente nel repository in alcuna forma (il danno biologico usa l'approssimazione Milano 2024): la consultazione/applicazione della TUN richiede il recepimento della matrice ministeriale completa — stesso modulo vero della voce 'calcolo_risarcimento_danno_tabella_unica'."
+  },
+  {
+   "id": "tabelle_milano_e_roma",
+   "title": "Tabelle Milano e Roma",
+   "classe": "mancante_grande",
+   "dettaglio": "Nel codice esistono solo l'approssimazione operativa Milano 2024 per il biologico (formula a punti, non la matrice integrale) e la tabella a punti Milano per il parentale; le tabelle integrali Milano e Roma (matrici età × IP e griglie ufficiali) non sono versionate: una consultazione fedele richiede l'importazione governata delle tabelle ufficiali complete."
+  },
+  {
+   "id": "tabella_delle_menomazioni",
+   "title": "Tabella delle Menomazioni",
+   "classe": "mancante_grande",
+   "dettaglio": "Il barème medico-legale (D.M. 3/7/2003 per le micropermanenti, tabelle INAIL per le menomazioni) non esiste nel repository: è un dataset ufficiale esteso (centinaia di voci menomazione → percentuale) da importare e governare come catalogo — modulo dati vero."
+  },
+  {
+   "id": "aumenti_riduzioni_pena",
+   "title": "Aumenti/Riduzioni Pena",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=pena_riti_alternativi",
+   "dettaglio": "Il tool dedicato esiste: 'pena_riti_alternativi' → calc_pena_riti_alternativi calcola aumenti (continuazione art. 81 c.p., recidiva art. 81 co. 4) e riduzioni (attenuanti artt. 62-bis/65 c.p., abbreviato art. 442, patteggiamento art. 444) con computo ex art. 132 c.p. Il catalogo punta erroneamente a tool=prescrizione_penale."
+  },
+  {
+   "id": "conversione_pena",
+   "title": "Conversione Pena",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "calc_pena_riti_alternativi valuta solo le soglie di ammissibilità delle pene sostitutive (entro_limite, righe 264-299: pecuniaria ≤1 anno, LPU ≤3, semilibertà/domiciliare ≤4) ma non converte la pena (tasso giornaliero pena pecuniaria sostitutiva ex art. 56-quater L. 689/1981, ragguaglio art. 135 c.p.): frazioni e tassi fissati per legge, estensione piccola del calcolatore esistente."
+  },
+  {
+   "id": "calcolo_fine_pena",
+   "title": "Calcolo Fine Pena",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente (custodia_cautelare monitora solo i termini di interrogatorio/riesame): il fine pena base è aritmetica di date con regole certe (decorrenza + pena − presofferto, computo ex art. 132 c.p. già implementato in calc_pena_riti_alternativi, liberazione anticipata 45 gg/semestre art. 54 O.P. come proiezione dichiarata): calcolatore piccolo riusando le utility esistenti."
+  },
+  {
+   "id": "codice_di_procedura_penale",
+   "title": "Codice di Procedura Penale",
+   "classe": "mancante_grande",
+   "dettaglio": "Non esiste un modulo di consultazione del testo dei codici: normative_tables contiene tabelle di valori, non testi normativi articolo per articolo. Una consultazione interna del c.p.p. richiede l'integrazione di un archivio testi governato (Normattiva); il semplice link esterno non svolge la funzione di consultazione promessa dalla voce."
+  },
+  {
+   "id": "calcolo_imposte_di_successione",
+   "title": "Calcolo Imposte di Successione",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente (calcola_successione_legittima riparte solo le quote, non calcola imposte): aliquote e franchigie sono certe e stabili (D.Lgs. 346/1990 come mod. D.L. 262/2006: 4% oltre 1M coniuge/figli, 6% oltre 100k fratelli, 6% altri parenti, 8% estranei, franchigia 1,5M disabili): calcolatore piccolo con formula certa."
+  },
+  {
+   "id": "calcolo_usufrutto",
+   "title": "Calcolo Usufrutto",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=usufrutto",
+   "dettaglio": "Il tool dedicato esiste: 'usufrutto' in TOOL_METHODS → calc_usufrutto.calcola (pct/calcolatori/usufrutto.py) con fasce d'età D.P.R. 131/1986 e tasso legale corrente, valore usufrutto e nuda proprietà. Il catalogo punta erroneamente a tool=successione_legittima."
+  },
+  {
+   "id": "coefficienti_usufrutto",
+   "title": "Coefficienti Usufrutto",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "tool=usufrutto",
+   "dettaglio": "I coefficienti sono già nel calcolatore usufrutto (_FASCE_USUFRUTTO e coefficiente = percentuale/tasso legale, esposti nel risultato con la formula dichiarata): la funzione di applicazione/consultazione del coefficiente per età esiste nel tool usufrutto; il catalogo punta erroneamente a tool=successione_legittima. Un'eventuale tabella completa di tutte le fasce sarebbe un'aggiunta minima."
+  },
+  {
+   "id": "pensione_di_reversibilita",
+   "title": "Pensione di Reversibilità",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: le aliquote di reversibilità sono certe (L. 335/1995 tab. F: 60% coniuge, 70% figlio unico, 80% coniuge+figlio, 100% coniuge+2 figli, con riduzioni per cumulo redditi): calcolatore piccolo con formula certa."
+  },
+  {
+   "id": "grado_di_parentela",
+   "title": "Grado di Parentela",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: il computo dei gradi è algoritmo deterministico da codice civile (artt. 74-78 c.c.: linea retta = numero generazioni; collaterale = generazioni risalendo allo stipite comune, escluso lo stipite): implementazione piccola e certa."
+  },
+  {
+   "id": "calcolo_imu",
+   "title": "Calcolo IMU",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: la formula IMU è certa (rendita catastale × 1,05 × moltiplicatore di categoria × aliquota comunale inserita dall'utente, L. 160/2019): calcolatore piccolo; l'aliquota comunale resta input dell'utente per non introdurre dati non governati."
+  },
+  {
+   "id": "calcolo_valore_catastale",
+   "title": "Calcolo Valore Catastale",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: formula certa (rendita × 1,05 × moltiplicatore per categoria e regime, D.P.R. 131/1986 art. 52: 110/120 prima casa, 168 A-C, 140 B, ecc.): calcolatore piccolo con coefficienti fissati per legge."
+  },
+  {
+   "id": "categorie_catastali",
+   "title": "Categorie Catastali",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessuna vista esistente: le categorie catastali (gruppi A-F con descrizioni ufficiali Agenzia delle Entrate) sono un catalogo statico e stabile: pagina di consultazione piccola su dati certi."
+  },
+  {
+   "id": "ricerca_codici_catastali",
+   "title": "Ricerca Codici Catastali",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "I dati esistono già nel repository: pct/data/belfiore.json con lookup trova_belfiore() in pct/codice_fiscale.py (codici catastali/Belfiore dei comuni, usati per il codice fiscale); manca solo una UI di ricerca comune → codice: poche ore su dati già versionati."
+  },
+  {
+   "id": "calcolo_superficie_commerciale",
+   "title": "Calcolo Superficie Commerciale",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: la superficie commerciale si calcola con coefficienti standard dichiarati (D.P.R. 138/1998 all. C e prassi OMI: 100% superficie coperta, 30% balconi, 10% giardini oltre soglia ecc.): calcolatore piccolo con coefficienti resi espliciti come assunzioni."
+  },
+  {
+   "id": "imposte_compravendita",
+   "title": "Imposte Compravendita",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "calcola_imposta_registro (pct/strumenti_legali.py:1866) copre solo gli atti giudiziari (_TIPI_ATTO_REGISTRO: sentenze, decreti ingiuntivi, lodi), non la compravendita immobiliare; le aliquote compravendita sono certe (D.P.R. 131/1986: 9%, 2% prima casa, minimo 1.000 €, ipotecaria+catastale 50+50 €, casi IVA): estensione piccola del tool esistente con nuovi tipi atto."
+  },
+  {
+   "id": "tassa_registro_locazioni",
+   "title": "Tassa Registro Locazioni",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "calcola_cedolare_secca (pct/strumenti_legali.py:2289) calcola già il registro annuo 2% del canone come termine di confronto (riga 2301) ma senza minimo 67 €, riparto 50/50 tra le parti e opzione pluriennale con sconto: calcolatore dedicato piccolo con formula certa (art. 5 Tariffa D.P.R. 131/1986)."
+  },
+  {
+   "id": "spese_condominiali",
+   "title": "Spese Condominiali",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: la ripartizione millesimale è formula certa (quota = spesa × millesimi/1000 ex art. 1123 c.c.; criteri speciali artt. 1124-1126 c.c. per scale/lastrici come opzioni dichiarate): calcolatore piccolo con base normativa precisa."
+  },
+  {
+   "id": "rendimento_bot",
+   "title": "Rendimento BOT",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: il rendimento BOT è formula certa dai dati inseriti dall'utente (rendimento netto da prezzo di acquisto/rimborso su durata, ritenuta 12,5% D.Lgs. 239/1996, commissioni): calcolatore piccolo senza necessità di serie dati esterne."
+  },
+  {
+   "id": "pronti_contro_termine",
+   "title": "Pronti contro Termine",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "dettaglio": "Nessun tool esistente: il rendimento del PcT è formula certa dai prezzi a pronti e a termine inseriti dall'utente (differenziale su durata, ritenuta 26%): calcolatore piccolo autonomo."
+  },
+  {
+   "id": "rendimento_buoni_postali",
+   "title": "Rendimento Buoni Postali",
+   "classe": "mancante_grande",
+   "dettaglio": "Il rendimento dei buoni fruttiferi postali dipende dalle tabelle di serie CDP (serie/sottoserie per epoca di emissione, tassi scalari per anno, D.M. successivi): dati non presenti nel repository e non riducibili a una formula unica; servirebbe un modulo dati governato delle serie CDP con fonte ufficiale."
+  },
+  {
+   "id": "fattura_elettronica_avvocati",
+   "title": "Fattura Elettronica Avvocati",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "fatturazione.nuova",
+   "params_correti": "{}",
+   "dettaglio": "La generazione FatturaPA per avvocati esiste davvero: route /fatturazione/<id_parcella>/xml (web/blueprints/fatturazione.py riga 503) che usa pct/fattura_pa.py:genera_xml_fattura_pa (tracciato FPR12/FPA12, cassa forense TC01, regimi RF19/RF02). Flusso: crea fattura da fatturazione.nuova, poi export XML dal dettaglio. Il link a fatturazione.lista e' solo generico."
+  },
+  {
+   "id": "visualizzatore_fatture_elettroniche",
+   "title": "Visualizzatore Fatture Elettroniche",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste: pct/fattura_pa.py solo genera XML, nessun parser/viewer di fatture elettroniche ricevute. Implementabile in poche ore: parse lxml del tracciato ufficiale FatturaPA (FPR12/FPA12, gia' noto al modulo) + rendering leggibile, sul modello del foglio di stile AdE."
+  },
+  {
+   "id": "scorporo_importi",
+   "title": "Scorporo Importi",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste in IUSENTRA (grep 'scorporo' trova solo il legacy QuickOrganizer FormScorporo documentato in artifacts/react-migration/audit-menu-funzioni-studio-telematico.md, che definisce il comportamento atteso: da totale da ottenere + spese esenti/imponibili risale alle competenze). Formula inversa certa con CPA 4% e IVA 22%, parametri gia' presenti nel motore pct/fatturazione.py."
+  },
+  {
+   "id": "spese_trasferta_avvocati",
+   "title": "Spese Trasferta Avvocati",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna implementazione (grep 'trasferta' in pct/ trova solo la voce del catalogo). Base normativa certa: art. 27 D.M. 55/2014 (rimborso spese documentate + indennita' di trasferta). Calcolatore con formula definita, integrabile nei tool di strumenti_legali in poche ore."
+  },
+  {
+   "id": "parametri_2012_civile",
+   "title": "Parametri 2012 Civile",
+   "classe": "mancante_grande",
+   "dettaglio": "Il tariffario copre solo D.M. 55/2014 e D.M. 147/2022 (pct/tariffario.py, pct/tariffario_catalogo.py); nessuna traccia del D.M. 140/2012 nel codice. Servirebbe la trascrizione completa delle tabelle storiche 2012 (struttura scaglioni/fasi diversa) piu' una variante del motore: e' un set di dati ministeriali ampio, non un fix di poche ore. Uso limitato alle liquidazioni ante aprile 2014."
+  },
+  {
+   "id": "parametri_2012_penale",
+   "title": "Parametri 2012 Penale",
+   "classe": "mancante_grande",
+   "dettaglio": "Come Parametri 2012 Civile: D.M. 140/2012 assente dal codice, servono tabelle storiche penali complete e adattamento del motore tariffario. Il penale attuale esiste solo su base D.M. 55/2014 (Materia.PENALE, tabelle A15 in pct/tariffario.py)."
+  },
+  {
+   "id": "tariffe_forensi_2004",
+   "title": "Tariffe Forensi 2004",
+   "classe": "mancante_grande",
+   "dettaglio": "D.M. 127/2004 assente dal codice. Sistema a diritti + onorari (minimi/massimi per singolo atto) strutturalmente diverso dal motore per fasi DM 55/2014: richiederebbe un modulo tabellare dedicato di sole tariffe storiche abrogate."
+  },
+  {
+   "id": "calcolo_nota_spese",
+   "title": "Calcolo Nota Spese",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "fatturazione.nuova",
+   "params_correti": "{\"documento_operativo\": \"PROFORMA\"}",
+   "dettaglio": "La funzione esiste come proforma: /fatturazione/nuova?documento_operativo=PROFORMA (link gia' costruito in web/services/react_fatturazione_bridge.py riga 965), con motore competenze+spese+CPA+IVA in pct/fatturazione.py e conversione proforma->fiscale (righe 630-650). Dal fascicolo esiste anche POST /api/v1/ui/fascicoli/<id>/proforma/genera (web/blueprints/api_v1_react.py riga 8273)."
+  },
+  {
+   "id": "modelli_di_notula",
+   "title": "Modelli di Notula",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "fatturazione.nuova",
+   "params_correti": "{\"documento_operativo\": \"PROFORMA\"}",
+   "dettaglio": "La notula/proforma si genera davvero (parcella PROFORMA + PDF via /fatturazione/<id>/pdf), quindi il percorso corretto e' il flusso proforma. Attenzione pero': esiste un solo modello di stampa, non un catalogo di 'modelli' multipli personalizzabili (grep 'notula' non trova template dedicati)."
+  },
+  {
+   "id": "calcolo_notula_penale",
+   "title": "Calcolo Notula Penale",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"onorari_forensi\"}",
+   "dettaglio": "Il calcolo dei compensi penali esiste: pct/tariffario.py supporta Materia.PENALE con le tabelle A15 del D.M. 55/2014 (righe 923-947), esposto dal tool onorari_forensi di strumenti_legali (materia selezionabile nel form) e dalla pagina /tariffario (profili penale_base/penale_appello in pct/tariffario_catalogo.py). Il documento notula si emette poi come proforma in fatturazione."
+  },
+  {
+   "id": "parcelle_professionisti",
+   "title": "Parcelle Professionisti",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "fatturazione.lista E' esattamente la gestione parcelle: GestioneParcelle in pct/fatturazione.py (stati BOZZA/EMESSA/PAGATA/SCADUTA, numerazione progressiva per anno, cassa forense, ritenuta, bollo) con lista/nuova/dettaglio/pdf nel blueprint. La voce e' correttamente instradata."
+  },
+  {
+   "id": "fattura_elettronica",
+   "title": "Fattura Elettronica",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "fatturazione.nuova",
+   "params_correti": "{}",
+   "dettaglio": "Duplicato di 'Fattura Elettronica Avvocati': la generazione XML FatturaPA esiste (route /fatturazione/<id>/xml + pct/fattura_pa.py). Deep link corretto: creare la fattura da fatturazione.nuova e scaricare l'XML dal dettaglio."
+  },
+  {
+   "id": "visualizza_messaggi_sdi",
+   "title": "Visualizza Messaggi SDI",
+   "classe": "mancante_grande",
+   "dettaglio": "Nessun canale SdI nel codice: pct/fattura_pa.py genera solo l'XML, non esiste trasmissione ne' gestione delle notifiche SdI (RC/NS/MC/NE). Il bridge React lo ammette ('XML e invio SdI saranno disponibili dopo la conferma della proforma', react_fatturazione_bridge.py riga 288). Serve una vera integrazione con SdI (accreditamento canale, PEC dedicata o intermediario) con parser degli esiti."
+  },
+  {
+   "id": "fattura_professionisti",
+   "title": "Fattura Professionisti",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "fatturazione.nuova",
+   "params_correti": "{}",
+   "dettaglio": "La creazione fattura esiste: fatturazione.nuova (web/blueprints/fatturazione.py riga 186) con cassa 4%, IVA 22%, ritenuta opzionale, bollo. Stesso pattern gia' usato dall'override 'fattura_avvocati' nel catalogo: basta replicarlo."
+  },
+  {
+   "id": "compenso_curatore_fallimentare",
+   "title": "Compenso Curatore Fallimentare",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna implementazione (grep 'curatore fallimentare' in pct/ senza esiti). Formula certa: D.M. 25/1/2012 n. 30 (percentuali a scaglioni su attivo realizzato e passivo accertato). Calcolatore a formula definita, integrabile nei tool di strumenti_legali in poche ore."
+  },
+  {
+   "id": "compenso_delegati_vendite_giudiziarie",
+   "title": "Compenso Delegati Vendite Giudiziarie",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna implementazione. Formula certa: D.M. 15/10/2015 n. 227 (compenso del professionista delegato per fasi, a scaglioni sul prezzo di aggiudicazione, con aumenti/riduzioni definiti). Calcolatore a formula definita, poche ore."
+  },
+  {
+   "id": "compenso_mediatore_familiare",
+   "title": "Compenso Mediatore Familiare",
+   "classe": "mancante_grande",
+   "dettaglio": "Nessuna implementazione e, soprattutto, nessuna tabella ministeriale univoca dei compensi del mediatore familiare (la L. 206/2021 e il D.M. attuativo disciplinano la professione, non una tariffa certa). Per il principio delle fonti certe di IUSENTRA la voce non e' implementabile senza base normativa: da rivalutare la sua presenza nel catalogo."
+  },
+  {
+   "id": "calcolo_fattura_enasarco",
+   "title": "Calcolo Fattura Enasarco",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna implementazione (grep 'enasarco' senza esiti in pct/). Formula certa: aliquota contributiva Enasarco pubblicata ufficialmente (17% ripartito 50/50 agente/preponente, con minimali e massimali annui) su fattura agente con IVA e ritenuta. Calcolatore a formula definita, poche ore."
+  },
+  {
+   "id": "ricevuta_prestazione_occasionale",
+   "title": "Ricevuta Prestazione Occasionale",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna implementazione. Modello certo: ritenuta d'acconto 20% ex art. 25 D.P.R. 600/1973, bollo 2 euro oltre 77,47 euro, nessuna IVA. Generatore di ricevuta (calcolo + PDF con ReportLab gia' in stack) stimabile in poche ore."
+  },
+  {
+   "id": "calcolo_compenso_a_ore",
+   "title": "Calcolo Compenso a Ore",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"compenso_a_tempo\"}",
+   "dettaglio": "La funzione esiste ed e' dedicata: pct/compensi_a_tempo.py (calcola_compenso_a_tempo_art22bis, art. 22-bis D.M. 55/2014 con spese generali), esposta come tool 'compenso_a_tempo' in web/blueprints/strumenti_legali.py (TOOL_METHODS riga 49). Manca solo l'override nel catalogo con endpoint e params corretti, come gia' fatto per contributo_unificato."
+  },
+  {
+   "id": "calcolo_rimborso_chilometrico_aci",
+   "title": "Calcolo Rimborso Chilometrico ACI",
+   "classe": "mancante_grande",
+   "dettaglio": "Nessuna implementazione e nessun dataset ACI nel repo. Le tabelle ACI complete per modello di veicolo sono un dataset proprietario ampio aggiornato annualmente (in G.U. escono solo le tabelle fringe benefit): servirebbe una fonte dati governata e versionata per modello/alimentazione, non un semplice calcolatore."
+  },
+  {
+   "id": "calcolo_ritenuta_d_acconto",
+   "title": "Calcolo Ritenuta d'Acconto",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "fatturazione.nuova",
+   "params_correti": "{}",
+   "dettaglio": "Il calcolo esiste nel motore parcelle: pct/fatturazione.py righe 263-281 (base = competenze + spese generali, aliquota 20%, netto a pagare), attivabile col flag applica_ritenuta nel form di fatturazione.nuova. Non esiste come calcolatore standalone: se si volesse un tool dedicato in strumenti_legali sarebbe comunque questione di poche ore riusando la stessa formula."
+  },
+  {
+   "id": "calcolatrice_online",
+   "title": "Calcolatrice Online",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna calcolatrice generica nel codice (grep 'calcolatrice' trova solo la voce di catalogo). Widget UI banale senza base normativa richiesta, implementabile in poche ore; da valutare se abbia senso mantenerla come voce a se' o rimuoverla."
+  },
+  {
+   "id": "calcolo_irpef",
+   "title": "Calcolo IRPEF",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun calcolatore IRPEF nel codice (l'unica occorrenza in pct/normative_tables.py riga 295 e' testo del patrocinio a spese dello Stato). Formula certa: scaglioni art. 11 TUIR vigenti. Calcolatore a formula definita, integrabile come tool strumenti_legali (pattern pct/calcolatori/ gia' pronto) in poche ore."
+  },
+  {
+   "id": "detrazione_figli_21_anni",
+   "title": "Detrazione Figli >= 21 anni",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 12 TUIR (950 euro teorici con degressione su 95.000 di reddito), unica detrazione figli residua dopo l'Assegno Unico (D.Lgs. 230/2021). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_figli_a_carico",
+   "title": "Detrazione Figli a Carico",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula art. 12 TUIR certa, ma attenzione normativa: dal 1/3/2022 la detrazione spetta solo per figli >= 21 anni (sotto c'e' l'Assegno Unico); il calcolatore deve dichiararlo. Voce in pratica sovrapposta alla precedente: poche ore, eventualmente un unico tool."
+  },
+  {
+   "id": "detrazione_coniuge_a_carico",
+   "title": "Detrazione Coniuge a Carico",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa a tre fasce ex art. 12 co. 1 lett. a-b TUIR (800 euro con degressione, importi fissi intermedi). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_altri_familiari",
+   "title": "Detrazione Altri Familiari",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 12 co. 1 lett. d TUIR (750 euro teorici con degressione su 80.000). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_lavoro_dipendente",
+   "title": "Detrazione Lavoro Dipendente",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 13 co. 1 TUIR con le fasce vigenti (1.955/1.910 euro e degressioni). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_altri_redditi",
+   "title": "Detrazione Altri Redditi",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 13 co. 5 TUIR (1.265 euro con degressione su 50.000 per redditi assimilati/autonomo occasionale). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_pensione",
+   "title": "Detrazione Pensione",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 13 co. 3 TUIR (1.955 euro e fasce di degressione per redditi da pensione). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_assegno_coniuge",
+   "title": "Detrazione Assegno Coniuge",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 13 co. 5-bis TUIR (all'assegno periodico dal coniuge si applica la detrazione dei pensionati senza ragguaglio ad anno). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_canone",
+   "title": "Detrazione Canone",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: art. 16 TUIR (detrazioni forfettarie per canoni di locazione abitazione principale per fasce di reddito, incluse ipotesi giovani e canone concordato). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "calcolo_acconto_irpef",
+   "title": "Calcolo Acconto Irpef",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Regole certe: metodo storico 100% del rigo differenza, soglie 51,65/257,52 euro, ripartizione 40/60 (50/50 per ISA). Poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "acconto_cedolare_secca",
+   "title": "Acconto Cedolare Secca",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Il tool cedolare_secca esiste in strumenti_legali (pct/strumenti_legali.py righe 2289-2320) ma calcola solo imposta annua e confronto col registro: NON calcola l'acconto. Estensione piccola e certa (acconto 100% dell'imposta anno precedente, unica soluzione o due rate 40/60 in base alla soglia 257,52 euro) dentro il tool gia' esistente."
+  },
+  {
+   "id": "calcolo_ravvedimento_operoso",
+   "title": "Calcolo Ravvedimento Operoso",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"ravvedimento_operoso\"}",
+   "dettaglio": "La funzione esiste ed e' dedicata: pct/calcolatori/ravvedimento_operoso.py (regimi ante/post 1/9/2024 ex D.Lgs. 87/2024), esposta come tool 'ravvedimento_operoso' in web/blueprints/strumenti_legali.py (TOOL_METHODS riga 48). Manca solo l'override di catalogo con endpoint e params corretti."
+  },
+  {
+   "id": "rateizzazione_imposte",
+   "title": "Rateizzazione Imposte",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste. Formula certa: rateazione avvisi bonari ex art. 3-bis D.Lgs. 462/1997 (fino a 8/20 rate trimestrali con interessi al tasso definito) e piani cartelle ADER. Calcolatore con piano rate, poche ore col pattern pct/calcolatori/."
+  },
+  {
+   "id": "regime_forfettario",
+   "title": "Regime Forfettario",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Non esiste (grep 'forfettario' trova solo cataloghi/seed, nessun calcolo). Formula certa: L. 190/2014 con coefficienti di redditivita' per ATECO (78% per avvocati), imposta sostitutiva 15%/5%, contributi previdenziali deducibili. Calcolatore a formula definita, poche ore."
+  },
+  {
+   "id": "calcolo_assegno_unico_universale",
+   "title": "Calcolo Assegno Unico Universale",
+   "classe": "mancante_grande",
+   "dettaglio": "Non esiste. Il calcolo AUU (D.Lgs. 230/2021) dipende dalle tabelle INPS basate su ISEE con molte maggiorazioni (figli successivi al secondo, disabilita', madri under 21, genitori entrambi occupati) rivalutate ogni anno: serve un modulo tabellare versionato con aggiornamento annuale governato, non un calcolatore di poche ore."
+  },
+  {
+   "id": "lettera_adeguamento_canone_locazione",
+   "title": "Lettera Adeguamento Canone Locazione",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"STR_BLT_003\"}",
+   "dettaglio": "Il template esiste nel catalogo unificato con titolo identico: STR_BLT_003 'Lettera adeguamento canone locazione' (verificato nel payload reale di build_react_template_atti_payload, 612 record). La pagina React del catalogo legge ?scheda=<codice> (TemplateAttiPage.tsx r.3912) ed e' lo stesso formato di deep link che il bridge genera come detailHref. La voce attuale punta al catalogo con params errati {\"tool\": \"rivalutazione_istat\"} ereditati dalla sezione ISTAT: basta sostituirli con scheda=STR_BLT_003."
+  },
+  {
+   "id": "calcolo_diritti_di_copia",
+   "title": "Calcolo Diritti di Copia",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"diritti_copia\"} (tool nuovo da aggiungere)",
+   "dettaglio": "Non e' un template ma un calcolatore. Nessun tool esistente: pct/strumenti_legali.py ha 36 tool (contributo_unificato, imposta_registro, ecc.) ma nessuno per i diritti di copia; nessun template nel catalogo master. Formula certa: tabelle allegate al D.P.R. 115/2002 (diritti di copia senza/con certificazione di conformita', scaglioni per pagine, maggiorazione urgenza), aggiornate con D.M. Giustizia — snapshot versionabile come gia' fatto per il contributo unificato in pct/tariffario.py. Stimabile in poche ore sul pattern dei tool esistenti."
+  },
+  {
+   "id": "copie_processo_tributario",
+   "title": "Copie Processo Tributario",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"diritti_copia\"} (variante tributaria dello stesso tool nuovo)",
+   "dettaglio": "Calcolatore dei diritti di copia nel contenzioso tributario, non un template. Nessun match reale nel catalogo: l'unico affine e' PEN_COPIE_001 'Richiesta Copie' che pero' e' penale, non tributario — verificato che non fa quella cosa. Le tabelle ufficiali dei diritti di copia per il processo tributario sono fissate nel quadro del D.P.R. 115/2002 con decreti attuativi MEF: formula a scaglioni certa, implementabile come variante/parametro dello stesso tool 'diritti di copia' proposto sopra."
+  },
+  {
+   "id": "fascicolo_di_parte",
+   "title": "Fascicolo di Parte",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"CIV_NOT_006\"}",
+   "dettaglio": "Template esistente con titolo identico: CIV_NOT_006 'Fascicolo di parte' (verificato come record.id nel payload della pagina catalogo). La voce oggi apre il catalogo generico senza preselezione: aggiungere scheda=CIV_NOT_006 apre direttamente la scheda in pagina (il componente React usa il param per selectedId)."
+  },
+  {
+   "id": "procura_alle_liti",
+   "title": "Procura alle Liti",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"STD_004\"}",
+   "dettaglio": "Template esistente con titolo identico nel catalogo master: STD_004 'Procura alle liti' (famiglia Atti interni di studio, catalogo_master.json) e presente come record.id nel payload della pagina. Serve solo il param scheda=STD_004."
+  },
+  {
+   "id": "attestazione_conformita",
+   "title": "Attestazione Conformità",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"CIV_NOT_007\"}",
+   "dettaglio": "Template esistente con titolo identico: CIV_NOT_007 'Attestazione di conformita' (verificato nel payload reale). Attenzione a non confonderlo con CON_009 'Diffida per garanzia legale di conformita'' che e' tutt'altro (consumatori). Deep link: scheda=CIV_NOT_007."
+  },
+  {
+   "id": "relata_notifica_pec",
+   "title": "Relata Notifica PEC",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"CIV_NOT_003\"}",
+   "dettaglio": "Template esistente con titolo identico: CIV_NOT_003 'Relata di notifica PEC' (piu' i collegati CIV_NOT_002 'Atto per notificazione in proprio'). Il flusso completo L. 53/1994 vive gia' in pct/notifiche_legali.py, ma per questa voce di catalogo il template richiesto esiste: basta scheda=CIV_NOT_003."
+  },
+  {
+   "id": "note_di_trattazione_scritta",
+   "title": "Note di Trattazione Scritta",
+   "classe": "mancante_grande",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "",
+   "dettaglio": "Il template specifico NON esiste: nel catalogo c'e' solo CIV_ORD_026 'Istanza di trattazione scritta' (e il gemello CIV_SUC_006), che e' l'istanza con cui si chiede la sostituzione dell'udienza, non le note scritte ex art. 127-ter c.p.c. che le parti depositano in luogo dell'udienza — atto diverso, verificato titoli e tag. Serve un nuovo template nel catalogo master con base normativa dichiarata (art. 127-ter c.p.c., D.Lgs. 149/2022): fonte certa esistente, ma processo completo di aggiunta template (fonti, regole Cartabia, prefill)."
+  },
+  {
+   "id": "sollecito_di_pagamento",
+   "title": "Sollecito di Pagamento",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"STR_BLT_002\"}",
+   "dettaglio": "Template esistente con titolo identico: STR_BLT_002 'Sollecito di pagamento' (verificato come record.id nel payload). In alternativa la famiglia recupero crediti offre STR_001 'Sollecito bonario', STR_002/STR_003. Il match esatto di titolo e' STR_BLT_002: usare scheda=STR_BLT_002."
+  },
+  {
+   "id": "decreto_ingiuntivo",
+   "title": "Decreto Ingiuntivo",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"MON_001\"}",
+   "dettaglio": "La famiglia monitoria del catalogo master copre l'intero ciclo (18 template MON_*): il punto d'ingresso naturale della voce e' MON_001 'Ricorso per decreto ingiuntivo' (con MON_002 provvisoria esecutorieta', MON_011 opposizione, ecc.). Deep link: scheda=MON_001."
+  },
+  {
+   "id": "sfratto_per_morosita",
+   "title": "Sfratto per Morosità",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"LOC_001\"}",
+   "dettaglio": "Template esistente: LOC_001 'Intimazione di sfratto per morosita'' (famiglia Locazioni), che e' esattamente l'atto della voce; collegati LOC_002 'Citazione per convalida di sfratto' e LOC_004 'Opposizione a sfratto'. Deep link: scheda=LOC_001."
+  },
+  {
+   "id": "atto_di_precetto",
+   "title": "Atto di Precetto",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"ESE_001\"}",
+   "dettaglio": "Template esistente con titolo identico: ESE_001 'Atto di precetto' (famiglia Esecuzioni; verificato nel payload reale, con detailHref gia' generato dal bridge come /template-atti/catalogo?scheda=ESE_001 e compilatore collegato CIV_PREC_001). Deep link: scheda=ESE_001."
+  },
+  {
+   "id": "dichiarazione_553_cpc",
+   "title": "Dichiarazione 553 cpc",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"CIV_ESE_012\"}",
+   "dettaglio": "Template esistente con titolo identico: CIV_ESE_012 'Dichiarazione 553 c.p.c.' (verificato come record.id nel payload); nel master esistono anche ESE_023 'Dichiarazione del terzo' ed ESE_024 per il pignoramento presso terzi. Il match esatto e' CIV_ESE_012: usare scheda=CIV_ESE_012."
+  },
+  {
+   "id": "indice_allegati",
+   "title": "Indice Allegati",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"CIV_NOT_008\"}",
+   "dettaglio": "Template esistente con titolo identico: CIV_NOT_008 'Indice allegati' (verificato nel payload reale della pagina catalogo). Deep link: scheda=CIV_NOT_008."
+  },
+  {
+   "id": "note_iscrizione_ruolo",
+   "title": "Note Iscrizione Ruolo",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "{\"scheda\": \"CIV_NOT_009\"}",
+   "dettaglio": "Template esistente con titolo identico: CIV_NOT_009 'Note iscrizione ruolo' (presente anche come modello del compilatore atti con lo stesso codice). Deep link: scheda=CIV_NOT_009."
+  },
+  {
+   "id": "codici_iscrizione_ruolo",
+   "title": "Codici Iscrizione Ruolo",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "",
+   "params_correti": "",
+   "dettaglio": "Non e' un template ma la consultazione della tabella dei codici oggetto per la nota di iscrizione a ruolo. Il dato esiste gia' governato: pct/pratiche_collegate_catalog.py espone codice_oggetto_pst_entry(), looks_like_codice_oggetto_pst() e resolve_codice_oggetto_pst_payload() sul catalogo ufficiale PST (pct/data/cataloghi/), gia' usati con validazione bloccante nei form fascicolo (web/bootstrap/fascicoli_create_routes.py, api_v1_react.py). Manca solo una piccola vista di consultazione/ricerca autonoma su quel catalogo: poche ore, nessuna nuova fonte da procurare."
+  },
+  {
+   "id": "calcolo_impronta_hash",
+   "title": "Calcolo Impronta Hash",
+   "classe": "implementabile_piccola",
+   "endpoint_corretto": "",
+   "params_correti": "",
+   "dettaglio": "Utility di calcolo SHA-256 di un file (impronta ex specifiche DGSIA D.M. 44/2011). Non esiste come tool utente (nessun tool in pct/strumenti_legali.py, nessuna route dedicata), ma la capacita' e' gia' core nel dominio: pct/busta.py calcola l'hash SHA-256 degli atti nel DatiAtto.xml e pct/evidence_vault.py/audit/ fanno hashing evidence-grade. Esporla come piccolo strumento con upload file e' questione di poche ore riusando il codice esistente."
+  },
+  {
+   "id": "testimonianza_scritta",
+   "title": "Testimonianza Scritta",
+   "classe": "mancante_grande",
+   "endpoint_corretto": "template_atti.catalogo",
+   "params_correti": "",
+   "dettaglio": "Nessun template nel catalogo (verificate le chiavi 'testimonianza', '257-bis', 'testimone' su tutti i 612 record e sui 192 modelli del compilatore: zero match). Serve un nuovo template nel catalogo master con base normativa dichiarata: art. 257-bis c.p.c., art. 103-bis disp. att. c.p.c. e modello ufficiale approvato con D.M. 17/02/2010 — la fonte certa esiste ed e' un modulo ministeriale fisso, ma va seguito il processo completo di aggiunta template (fonti in docs/specs, regole, prefill), quindi non e' un deep link ne' un quick win."
+  },
+  {
+   "id": "codice_di_procedura_civile",
+   "title": "Codice di Procedura Civile",
+   "classe": "mancante_grande",
+   "endpoint_corretto": "",
+   "params_correti": "",
+   "dettaglio": "La voce e' la consultazione del testo del c.p.c., non un template: nel catalogo non esiste nulla di simile e pct/normative_tables.py contiene fonti operative/tariffe, non i testi degli articoli. Copertura solo parziale via ricerca legale unificata (legal_intelligence.ricerca_unificata accetta ?q=, verificato in web/blueprints/legal_intelligence.py r.415-420) che cerca sulle fonti presidiate (Normattiva), ma non e' una consultazione strutturata articolo per articolo: servirebbe un modulo vero di consultazione codici con archivio Normattiva versionato."
+  },
+  {
+   "id": "codice_della_strada",
+   "title": "Codice della Strada",
+   "classe": "mancante_grande",
+   "endpoint_corretto": "",
+   "params_correti": "",
+   "dettaglio": "Come per il c.p.c.: consultazione del testo del D.Lgs. 285/1992, non un template. Nessun match nel catalogo (gli affini GDP_007/RCD_003/AMM_017 sono atti su sinistri/sanzioni, non la consultazione del codice — verificato che non fanno quella cosa). Copertura solo parziale via legal_intelligence.ricerca_unificata?q=; una consultazione strutturata del codice richiede un modulo vero su fonte ufficiale versionata."
+  },
+  {
+   "id": "termini_processuali_civili",
+   "title": "Termini Processuali Civili",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"termini_processuali\"}",
+   "dettaglio": "Il tool 'Termini processuali e sospensione feriale' (art. 155 c.p.c., L. 742/1969) esiste ed e' operativo in pct/strumenti_legali.py (id termini_processuali, riga 184) con calcolo via web/blueprints/strumenti_legali.py (mapping calcola_termini_processuali, API /api/termini_processuali riga 379). L'endpoint attuale checklist_atti apre solo il catalogo checklist e non calcola termini."
+  },
+  {
+   "id": "termini_memorie_e_repliche",
+   "title": "Termini Memorie e Repliche",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "scadenziario",
+   "params_correti": "{\"calcolatore\": \"1\"}",
+   "dettaglio": "Il calcolatore termini dello scadenziario (react_scadenziario_bridge.py righe 1854-1866, API /api/v1/ui/scadenziario/termini/calculate) espone i template CIV_MEMORIA_171_TER_1/2/3, CIV_CONCLUSIONALI_189 e CIV_REPLICHE_189 di pct/termini_processuali.py. Serve solo reindirizzare la voce dal catalogo checklist al calcolatore."
+  },
+  {
+   "id": "termini_separazione_e_divorzio",
+   "title": "Termini Separazione e Divorzio",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Il motore ItalianDeadlineCalculator e' pronto ma per il rito famiglia esiste solo il template FAM_473BIS_COSTITUZIONE (pct/termini_processuali.py riga 306). Aggiungere i template dedicati 473-bis c.p.c. (memorie integrative, appello famiglia) e' questione di poche ore: sono dataclass DeadlineTemplate con base normativa dichiarata."
+  },
+  {
+   "id": "termini_procedimento_semplificato",
+   "title": "Termini Procedimento Semplificato",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun template 281-undecies/281-duodecies c.p.c. nel repertorio (grep '281|semplificato' su pct/termini_processuali.py senza risultati). Il motore di calcolo con feriale e festivita' e' gia' operativo: servono solo i nuovi DeadlineTemplate con i termini del rito semplificato."
+  },
+  {
+   "id": "termini_183_plus_190_cpc",
+   "title": "Termini 183 + 190 cpc",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "scadenziario",
+   "params_correti": "{\"calcolatore\": \"1\"}",
+   "dettaglio": "I template del vecchio rito VR_MEMORIA_183_6_N1/2/3, VR_CONCLUSIONALI_190 e VR_REPLICHE_190 esistono in pct/termini_processuali.py (righe 315-347) e sono esposti dal calcolatore termini dello scadenziario. L'endpoint attuale checklist_atti non calcola nulla."
+  },
+  {
+   "id": "termini_esecuzioni",
+   "title": "Termini Esecuzioni",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "scadenziario",
+   "params_correti": "{\"calcolatore\": \"1\"}",
+   "dettaglio": "Template esecuzioni gia' presenti nel calcolatore: ESE_PRECETTO_ADEMPIMENTO_10GG, ESE_PRECETTO_EFFICACIA_90GG, ESE_OPPOSIZIONE_ATTI_617, ESE_ISCRIZIONE_RUOLO_MOBILIARE/PRESSO_TERZI/IMMOBILIARE (pct/termini_processuali.py righe 389-430). Serve solo il deep link al calcolatore dello scadenziario."
+  },
+  {
+   "id": "termini_deposito_atti_appello",
+   "title": "Termini Deposito Atti Appello",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"impugnazioni\"}",
+   "dettaglio": "Il tool 'Termini di impugnazione' (art. 325/327 c.p.c. con sospensione feriale) e' operativo: pct/calcolatori/impugnazioni.py + voce catalogo strumenti (riga 185) + API /api/impugnazioni (web/blueprints/strumenti_legali.py riga 383). In alternativa i template CIV_APPELLO_BREVE/LUNGO sono nel calcolatore scadenziario."
+  },
+  {
+   "id": "scadenze_impugnazioni",
+   "title": "Scadenze Impugnazioni",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "L'endpoint e' gia' scadenziario e la pagina integra il calcolatore termini con i template CIV_APPELLO_BREVE, CIV_APPELLO_LUNGO e CIV_CASSAZIONE_BREVE (react_scadenziario_bridge.py righe 1762-1866). Esiste anche il tool 'impugnazioni' negli Strumenti Forensi come percorso alternativo."
+  },
+  {
+   "id": "scadenze_multe",
+   "title": "Scadenze Multe",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "scadenziario",
+   "params_correti": "{\"calcolatore\": \"1\"}",
+   "dettaglio": "Template Codice della Strada gia' presenti nel calcolatore: CDS_PAGAMENTO_RIDOTTO_5GG, CDS_PAGAMENTO_60GG, CDS_RICORSO_PREFETTO_60GG, CDS_RICORSO_GDP_30GG (pct/termini_processuali.py righe 355-388). L'endpoint attuale checklist_atti e' fuori bersaglio."
+  },
+  {
+   "id": "termini_deposito_ctu",
+   "title": "Termini Deposito CTU",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "scadenziario",
+   "params_correti": "{\"calcolatore\": \"1\"}",
+   "dettaglio": "Il modulo pct/ctu.py gestisce la timeline art. 195 c.3 c.p.c. (termine bozza, osservazioni, deposito relazione) con proposte scadenze in BOZZA verso lo scadenziario (proposte_scadenze_incarico, riga 146); il template CUSTOM_PROCESSUALE del calcolatore copre i termini assegnati dal giudice. La destinazione operativa corretta e' lo scadenziario, non la checklist atti."
+  },
+  {
+   "id": "deposito_telematico_documenti",
+   "title": "Deposito Telematico Documenti",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "L'endpoint telematico_dashboard apre il Centro Servizi Telematici reale (web/bootstrap/telematico_dashboard_routes.py) con workflow depositi, control tower e backfill: e' esattamente la funzione descritta dalla voce."
+  },
+  {
+   "id": "visibilita_fascicolo_telematico",
+   "title": "Visibilita Fascicolo Telematico",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "polisWeb_home",
+   "params_correti": "{}",
+   "dettaglio": "La consultazione/visibilita' del fascicolo telematico e' svolta dall'area polisWeb (web/bootstrap/polisweb_routes.py, pct/polisWeb.py: ricerca fascicoli e documenti, sync registro attivo), mentre telematico_dashboard riguarda i depositi in uscita. Serve solo correggere il deep link."
+  },
+  {
+   "id": "controllo_cause_a_ruolo",
+   "title": "Controllo Cause a Ruolo",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "polisWeb_home (endpoint gia' impostato) svolge esattamente la funzione: ricerca fascicoli/cause a ruolo per ufficio e RG (polisweb_routes.py, ricerca_fascicoli in pct/polisWeb.py) con sync dal registro."
+  },
+  {
+   "id": "parametri_2014_civile",
+   "title": "Parametri 2014 Civile",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La pagina /tariffario (endpoint gia' impostato) calcola i compensi DM 55/2014 con Materia 'Civile di cognizione' e affini (pct/tariffario.py Materia enum, calcola_compenso; web/bootstrap/tariffario_routes.py): e' esattamente la funzione della voce."
+  },
+  {
+   "id": "parametri_2014_penale",
+   "title": "Parametri 2014 Penale",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "Materia.PENALE e i gradi penali (GIP/GUP, Tribunale monocratico/collegiale, Assise, Appello penale) sono nel tariffario operativo (pct/tariffario.py righe 28, 46-52): la pagina di destinazione calcola gia' i parametri penali DM 55/2014."
+  },
+  {
+   "id": "parametri_stragiudiziali",
+   "title": "Parametri Stragiudiziali",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "Materia.STRAGIUD 'Stragiudiziale / Consulenza' e' tra le materie del tariffario (pct/tariffario.py riga 31) con profili e fasi dedicate in pct/tariffario_catalogo.py: la destinazione attuale svolge la funzione."
+  },
+  {
+   "id": "tabelle_parametri",
+   "title": "Tabelle Parametri",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "Il tariffario espone i cataloghi completi fasi/gradi/regole/complessita' (phase_catalog_by_materia, grade_catalog_by_materia, rule_catalog_by_materia in pct/tariffario_catalogo.py) oltre al calcolo: le tabelle parametriche DM 55/2014 sono gia' consultabili nella pagina di destinazione."
+  },
+  {
+   "id": "calcolo_spese_di_mediazione",
+   "title": "Calcolo Spese di Mediazione",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"indennita_mediazione\"}",
+   "dettaglio": "Il tool 'Indennita di mediazione' D.M. 150/2023 (spese di avvio, primo incontro, indennita' per scaglione con riduzioni e maggiorazioni) e' operativo: pct/strumenti_legali.py riga 179 + pct/mediazione_dm150.py + mapping calcola_indennita_mediazione. L'endpoint attuale registro_mediazione mostra solo l'elenco organismi, non calcola."
+  },
+  {
+   "id": "tariffe_mediazione",
+   "title": "Tariffe Mediazione",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"indennita_mediazione\"}",
+   "dettaglio": "Gli scaglioni e le tariffe D.M. 150/2023 sono esposti dal tool indennita_mediazione (pct/mediazione_dm150.py con tabelle normative datate). La pagina registro_mediazione attuale e' il registro organismi, non le tariffe."
+  },
+  {
+   "id": "rendimento_bot",
+   "title": "Rendimento BOT",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun calcolatore esistente (il tool piano_ammortamento attualmente collegato e' altra cosa; grep 'rendimento' su pct/ senza riscontri di dominio). La formula e' certa: rendimento lordo da prezzo/durata e netto con ritenuta 12,5% (D.Lgs. 239/1996). Poche ore su pct/calcolatori/ con lo schema esistente."
+  },
+  {
+   "id": "pronti_contro_termine",
+   "title": "Pronti contro Termine",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun calcolatore esistente. Formula finanziaria certa (differenza prezzo a pronti/a termine, ritenuta 26%): implementabile in poche ore sul pattern pct/calcolatori/ come rendimento_bot."
+  },
+  {
+   "id": "rendimento_buoni_postali",
+   "title": "Rendimento Buoni Postali",
+   "classe": "mancante_grande",
+   "dettaglio": "Il rendimento dipende dalle tabelle tassi per singola serie CDP (decine di serie storiche e correnti, ciascuna con struttura propria e aggiornamenti periodici). Per il principio delle fonti certe servirebbe un catalogo serie versionato con snapshot datati e manutenzione continua: e' un modulo dati vero, non un calcolatore da poche ore."
+  },
+  {
+   "id": "calcolo_irpef",
+   "title": "Calcolo IRPEF",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun calcolatore IRPEF nel repo (grep 'irpef' su pct/*.py senza codice di calcolo). Scaglioni art. 11 TUIR certi e stabili: calcolatore con snapshot annuale in normative_tables, realizzabile in poche ore sul pattern pct/calcolatori/."
+  },
+  {
+   "id": "detrazione_figli_21_anni",
+   "title": "Detrazione Figli >= 21 anni",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula certa art. 12 TUIR (950 euro teorici, coefficiente su 95.000). Nessun codice esistente; calcolatore da poche ore."
+  },
+  {
+   "id": "detrazione_figli_a_carico",
+   "title": "Detrazione Figli a Carico",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Post assegno unico la detrazione art. 12 TUIR resta solo per figli >= 21 anni: formula certa, nessun codice esistente, implementazione breve condivisa con la voce gemella."
+  },
+  {
+   "id": "detrazione_coniuge_a_carico",
+   "title": "Detrazione Coniuge a Carico",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula a fasce art. 12 c.1 lett. a) TUIR, certa e stabile. Nessun codice esistente; poche ore."
+  },
+  {
+   "id": "detrazione_altri_familiari",
+   "title": "Detrazione Altri Familiari",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula certa art. 12 c.1 lett. d) TUIR (750 euro teorici, coefficiente su 80.000). Nessun codice esistente; poche ore."
+  },
+  {
+   "id": "detrazione_lavoro_dipendente",
+   "title": "Detrazione Lavoro Dipendente",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula a fasce art. 13 c.1 TUIR, certa. Nessun codice esistente; poche ore."
+  },
+  {
+   "id": "detrazione_altri_redditi",
+   "title": "Detrazione Altri Redditi",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula art. 13 c.5 TUIR, certa. Nessun codice esistente; poche ore."
+  },
+  {
+   "id": "detrazione_pensione",
+   "title": "Detrazione Pensione",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula a fasce art. 13 c.3 TUIR, certa. Nessun codice esistente; poche ore."
+  },
+  {
+   "id": "detrazione_assegno_coniuge",
+   "title": "Detrazione Assegno Coniuge",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula art. 13 c.5-bis TUIR (equiparata alla pensione), certa. Nessun codice esistente; poche ore. Voce affine al dominio famiglia gia' presidiato (assegno_mantenimento negli strumenti)."
+  },
+  {
+   "id": "detrazione_canone",
+   "title": "Detrazione Canone",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Detrazioni per canoni di locazione art. 16 TUIR: importi fissi per fasce di reddito, tabella certa. Nessun codice esistente; poche ore."
+  },
+  {
+   "id": "calcolo_acconto_irpef",
+   "title": "Calcolo Acconto Irpef",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Metodo storico con soglie 51,65/257,52 euro e ripartizione rate: regole certe D.P.R. 435/2001. Nessun codice esistente; poche ore, condivisibile con il calcolatore IRPEF."
+  },
+  {
+   "id": "acconto_cedolare_secca",
+   "title": "Acconto Cedolare Secca",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Il tool cedolare_secca esistente calcola solo l'imposta annua (calcola_cedolare_secca in pct/strumenti_legali.py riga 2289): manca la parte acconto (100%, soglia 257,52 euro, due rate ex art. 3 D.Lgs. 23/2011). Estensione di poche ore del calcolatore gia' operativo."
+  },
+  {
+   "id": "calcolo_ravvedimento_operoso",
+   "title": "Calcolo Ravvedimento Operoso",
+   "classe": "deep_link_mancante",
+   "endpoint_corretto": "strumenti_legali.index",
+   "params_correti": "{\"tool\": \"ravvedimento_operoso\"}",
+   "dettaglio": "Il tool e' completo e operativo: pct/calcolatori/ravvedimento_operoso.py, voce catalogo strumenti (pct/strumenti_legali.py riga 186, con i due regimi ante/post D.Lgs. 87/2024) e mapping calcola_ravvedimento_operoso in web/blueprints/strumenti_legali.py riga 48. La voce catalogo punta erroneamente a fatturazione.lista."
+  },
+  {
+   "id": "rateizzazione_imposte",
+   "title": "Rateizzazione Imposte",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula certa (art. 20 D.Lgs. 241/1997: interesse 4% annuo, rate mensili con scadenze note). Nessun codice esistente; calcolatore da poche ore."
+  },
+  {
+   "id": "regime_forfettario",
+   "title": "Regime Forfettario",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Coefficienti di redditivita' per gruppo ATECO (tabella ufficiale L. 190/2014, piccola e stabile) + imposta sostitutiva 15%/5% + contributi: modello certo, nessun codice esistente, poche ore."
+  },
+  {
+   "id": "calcolo_assegno_unico_universale",
+   "title": "Calcolo Assegno Unico Universale",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Formula certa e pubblicata (D.Lgs. 230/2021 + tabelle INPS annuali: importo per figlio scalato su ISEE piu' maggiorazioni). Nessun codice esistente. Implementabile in poche ore, con l'avvertenza che la tabella INPS va versionata come snapshot annuale ex principio fonti certe. Rilevante per il dominio famiglia (mantenimento figli)."
+  },
+  {
+   "id": "decurtazione_punti_patente",
+   "title": "Decurtazione Punti Patente",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun codice esistente. La tabella allegata all'art. 126-bis CdS e' fonte ufficiale statica: lookup violazione -> punti con eventuale raddoppio neopatentati, realizzabile in poche ore come asset versionato + ramo utility."
+  },
+  {
+   "id": "calcolo_tasso_alcolemico",
+   "title": "Calcolo Tasso Alcolemico",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun codice esistente. La formula di Widmark e' il modello standard usato in ambito forense per le soglie art. 186 CdS: calcolatore di stima con disclaimer, poche ore."
+  },
+  {
+   "id": "conta_giorni_tra_date_e_ricorrenze",
+   "title": "Conta Giorni tra Date e Ricorrenze",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni calcola gia' i giorni tra due date (pannello utility, web/services/applicazioni_runtime.py righe 302-316, form righe 230-234). La sola parte 'ricorrenze' (anniversari futuri) non c'e', ma la funzione principale e' operativa nella pagina stessa."
+  },
+  {
+   "id": "calcolo_giorni_lavorativi",
+   "title": "Calcolo Giorni Lavorativi",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Il pannello utility esistente conta solo i giorni lun-ven (applicazioni_runtime.py righe 312-314) senza escludere le festivita' nazionali, benche' national_holidays() con calcolo della Pasqua esista gia' in pct/termini_processuali.py riga 102. Integrazione di poche righe per rendere il conteggio corretto."
+  },
+  {
+   "id": "calcolo_tempo_trascorso",
+   "title": "Calcolo Tempo Trascorso",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni calcola gia' l'intervallo tra due date con esito in giorni (pannello utility, applicazioni_runtime.py righe 302-311): la funzione dichiarata e' svolta nella pagina stessa."
+  },
+  {
+   "id": "calcolo_ora_inizio_fine_attivita",
+   "title": "Calcolo Ora Inizio/Fine Attivita",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun ramo dedicato nel pannello utility (cade nel ramo generico 'Richiesta operativa'). Calcolo orario banale (ora inizio + durata, differenza tra orari): estensione di poche ore in _utility_form/_utility_result di web/services/applicazioni_runtime.py."
+  },
+  {
+   "id": "scorporo_iva",
+   "title": "Scorporo IVA",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni scorpora gia' imponibile e IVA dal lordo con aliquote 22/10/4 (pannello utility, applicazioni_runtime.py righe 216-228 e 292-301)."
+  },
+  {
+   "id": "calcolo_percentuale",
+   "title": "Calcolo Percentuale",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni calcola gia' la quota da base e percentuale (pannello utility, applicazioni_runtime.py righe 283-291)."
+  },
+  {
+   "id": "percentuali_e_quote",
+   "title": "Percentuali e Quote",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "Stesso pannello utility operativo di calcolo_percentuale (base x percentuale -> quota, applicazioni_runtime.py righe 283-291): la funzione della voce e' svolta nella pagina stessa."
+  },
+  {
+   "id": "variazione_media_fatturato",
+   "title": "Variazione Media Fatturato",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun ramo dedicato nel pannello utility. Media delle variazioni percentuali tra piu' importi: formula banale, estensione di poche ore del pannello esistente."
+  },
+  {
+   "id": "ripartizione_utenze",
+   "title": "Ripartizione Utenze",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun ramo dedicato nel pannello utility. Riparto pro-quota (per millesimi, persone o giorni di occupazione): formula certa e banale, estensione di poche ore del pannello esistente."
+  },
+  {
+   "id": "calcolo_codice_fiscale",
+   "title": "Calcolo Codice Fiscale",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La funzione esiste ed e' collegata: pct/codice_fiscale.calcola() con archivio Belfiore, API /api/cf/calcola (web/bootstrap/reference_lookup_routes.py riga 179) usata dal form Nuovo Cliente (frontend/src/components/NuovoClientePage.tsx e web/templates/clienti/form.html). La destinazione lista_clienti porta al flusso che calcola il CF in automatico."
+  },
+  {
+   "id": "decodifica_codice_fiscale",
+   "title": "Decodifica Codice Fiscale",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "pct/codice_fiscale.decodifica() + API /api/cf/decodifica (reference_lookup_routes.py riga 164) restituiscono data/luogo di nascita e sesso, gia' usati nel form clienti raggiungibile dalla destinazione attuale."
+  },
+  {
+   "id": "verifica_partita_iva",
+   "title": "Verifica Partita IVA",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni esegue la verifica con la cifra di controllo reale (algoritmo Luhn-variante in _validate_partita_iva, web/services/applicazioni_runtime.py righe 252-265, esito nel pannello lookup righe 323-328). Il flusso clienti ha inoltre la validazione sintattica valida_piva."
+  },
+  {
+   "id": "verifica_iban",
+   "title": "Verifica IBAN",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni verifica l'IBAN con il controllo mod-97 reale (_validate_iban, applicazioni_runtime.py righe 268-276, esito righe 329-334). L'endpoint pagamenti.impostazioni_pagamenti resta valido come area correlata."
+  },
+  {
+   "id": "calcolo_eta_anagrafica",
+   "title": "Calcolo Eta Anagrafica",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Il ramo date del pannello utility mostra solo il totale giorni (applicazioni_runtime.py righe 302-311): manca l'espressione in anni/mesi compiuti che definisce l'eta' anagrafica. Estensione minima del ramo esistente."
+  },
+  {
+   "id": "ricerca_comuni",
+   "title": "Ricerca Comuni",
+   "classe": "implementabile_piccola",
+   "dettaglio": "La funzione di dominio esiste gia': pct/territorio_italia.search_comuni() su SQLite territorio con API React comuni (web/blueprints/api_v1_react.py riga 2762) e servizio territorio_forms. Manca solo il ramo di ricerca nella scheda /applicazioni (o una pagina dedicata): cablaggio di poche ore, nessuna logica nuova."
+  },
+  {
+   "id": "ricerca_codici_ateco",
+   "title": "Ricerca Codici ATECO",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nel repo esiste solo il campo codice_ateco in pct/clienti.py (riga 126), nessun catalogo ATECO. Serve l'asset ufficiale ISTAT versionato + funzione di ricerca sul pattern di territorio_italia: poche ore."
+  },
+  {
+   "id": "calcolatore_per_frazioni",
+   "title": "Calcolatore per Frazioni",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun ramo dedicato nel pannello utility. Aritmetica delle frazioni (somma, semplificazione, conversione decimale, utile per quote ereditarie/millesimali): estensione banale del pannello esistente."
+  },
+  {
+   "id": "calcolo_proporzione",
+   "title": "Calcolo Proporzione",
+   "classe": "implementabile_piccola",
+   "dettaglio": "La voce oggi condivide il ramo percentuale del pannello utility (base x percentuale, applicazioni_runtime.py riga 211), che non risolve una proporzione a:b=c:x. Servono tre campi e la formula del quarto proporzionale: estensione minima del pannello."
+  },
+  {
+   "id": "conversione_unita_di_misura",
+   "title": "Conversione Unita di Misura",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessun ramo dedicato nel pannello utility. Tabella fattori di conversione (superfici, lunghezze, pesi) con select e calcolo diretto: poche ore sul pannello esistente."
+  },
+  {
+   "id": "conversione_minuti_in_centesimi",
+   "title": "Conversione minuti in centesimi",
+   "classe": "gia_operativa_di_fatto",
+   "dettaglio": "La scheda della voce in /applicazioni converte gia' i minuti in ore centesimali (pannello utility, applicazioni_runtime.py righe 235-236 e 317-322)."
+  },
+  {
+   "id": "cronometro_online",
+   "title": "Cronometro Online",
+   "classe": "implementabile_piccola",
+   "dettaglio": "Nessuna base esistente per un cronometro manuale (il time tracking passivo da segnale audit e' funzione diversa). Timer JavaScript lato client nella scheda /applicazioni: implementazione di poche ore senza backend."
+  }
+ ]
+}

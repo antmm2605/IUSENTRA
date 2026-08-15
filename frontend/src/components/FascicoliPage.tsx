@@ -4408,6 +4408,48 @@ function CtuSection({ fascicoloId }:{fascicoloId:string}) {
   )
 }
 
+type RegistroDifferenza = { id:string; tipo:string; messaggio:string; rilevataIl:string }
+
+function RegistroCancelleriaPanel({ fascicoloId }:{fascicoloId:string}) {
+  const [differenze, setDifferenze] = useState<RegistroDifferenza[]>([])
+  const [monitorato, setMonitorato] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  useEffect(() => {
+    fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/registro-cancelleria`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : {})
+      .then((payload: { monitorato?: boolean; differenze?: RegistroDifferenza[] }) => {
+        setMonitorato(Boolean(payload.monitorato))
+        setDifferenze(Array.isArray(payload.differenze) ? payload.differenze.filter((d) => d && d.messaggio) : [])
+      })
+      .catch(() => {})
+  }, [fascicoloId])
+  if (!monitorato && !differenze.length) return null
+  const visibili = expanded ? differenze : differenze.slice(0, 3)
+  return (
+    <div className="iu-fas-registro-diff" aria-label="Storico variazioni dal registro di cancelleria">
+      <header>
+        <span><Landmark size={14}/> Variazioni dal registro</span>
+        {differenze.length ? <em>{differenze.length} rilevate</em> : <em>nessuna variazione dalle letture</em>}
+      </header>
+      {visibili.length ? (
+        <ul>
+          {visibili.map((diff) => (
+            <li key={diff.id} className={`iu-fas-registro-diff__item--${diff.tipo}`}>
+              <span>{diff.messaggio}</span>
+              <small>{formatDateTimeIt(diff.rilevataIl, '')}</small>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {differenze.length > 3 ? (
+        <button type="button" onClick={() => setExpanded(!expanded)}>
+          {expanded ? 'Mostra meno' : `Mostra tutte (${differenze.length})`}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 type RegistroRgCandidate = { numeroRg:string; annoRg:number; ufficio:string; oggetto:string; parti:string }
 
 function RegistroRgSearch({ fascicoloId }:{fascicoloId:string}) {
@@ -8701,7 +8743,7 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
           <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length} defaultOpen={activeHashSection === 'conformita'}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
           <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} count={0}><CtuSection fascicoloId={f.id}/></DetailSection>
-          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
+          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>

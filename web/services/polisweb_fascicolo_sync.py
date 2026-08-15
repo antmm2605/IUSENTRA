@@ -28,6 +28,45 @@ from pct.scadenze_proposte_polisweb import (
 )
 
 
+def _leggi_eventi_registro(
+    client: Any,
+    fascicolo: Any,
+    *,
+    ufficio: str,
+    numero_rg: str,
+    anno_rg: int,
+) -> list[Any]:
+    """Una sola lettura di udienze/scadenze, condivisa da proposte e diff."""
+
+    try:
+        return list(
+            client.consulta_scadenze(
+                ufficio,
+                numero_rg,
+                anno_rg,
+                registro=str(getattr(fascicolo, "tipo_registro", "") or ""),
+                ruolo_polisweb=str(getattr(fascicolo, "ruolo_polisweb", "") or "AVV"),
+                sub_procedimento=str(getattr(fascicolo, "sub_procedimento", "") or ""),
+                id_dfa=str(getattr(fascicolo, "id_dfa", "") or ""),
+                servizio_pst_preferito=str(getattr(fascicolo, "servizio_pst", "") or ""),
+            )
+            or []
+        )
+    except Exception:
+        return []
+
+
+def _diff_repository(gestione_fascicoli: Any) -> Any:
+    """Repository differenze accanto al database fascicoli del tenant."""
+
+    from pathlib import Path
+
+    from pct.polisweb_diff import GestioneDiffRegistro
+
+    base = Path(str(getattr(gestione_fascicoli, "db_path", "./fascicoli/fascicoli.json")))
+    return GestioneDiffRegistro(db_path=str(base.parent / "polisweb_diff.json"))
+
+
 def _proponi_scadenze_da_eventi(
     client: Any,
     fascicolo: Any,
@@ -37,6 +76,7 @@ def _proponi_scadenze_da_eventi(
     anno_rg: int,
     get_scadenziario: Callable[[], Any] | None,
     attore: str,
+    eventi: list[Any] | None = None,
 ) -> int:
     """Crea proposte in BOZZA dagli eventi/scadenze futuri letti dal registro.
 
@@ -47,19 +87,8 @@ def _proponi_scadenze_da_eventi(
 
     if get_scadenziario is None:
         return 0
-    try:
-        eventi = client.consulta_scadenze(
-            ufficio,
-            numero_rg,
-            anno_rg,
-            registro=str(getattr(fascicolo, "tipo_registro", "") or ""),
-            ruolo_polisweb=str(getattr(fascicolo, "ruolo_polisweb", "") or "AVV"),
-            sub_procedimento=str(getattr(fascicolo, "sub_procedimento", "") or ""),
-            id_dfa=str(getattr(fascicolo, "id_dfa", "") or ""),
-            servizio_pst_preferito=str(getattr(fascicolo, "servizio_pst", "") or ""),
-        )
-    except Exception:
-        return 0
+    if eventi is None:
+        eventi = _leggi_eventi_registro(client, fascicolo, ufficio=ufficio, numero_rg=numero_rg, anno_rg=anno_rg)
     if not eventi:
         return 0
     manager = get_scadenziario()
@@ -257,6 +286,26 @@ def sincronizza_fascicolo_da_registro(
         gestione_soggetti=get_soggetti() if get_soggetti else None,
     )
     aggiornato = gestione_fascicoli.get(fascicolo_id)
+    eventi = _leggi_eventi_registro(
+        client, aggiornato or fascicolo, ufficio=ufficio, numero_rg=numero_rg, anno_rg=anno_rg
+    )
+    # Comunicazioni di cancelleria e notifiche da ritirare: presidio
+    # informativo per il pannello variazioni (la PEC resta fonte primaria);
+    # NON alimentano le proposte di scadenza.
+    try:
+        comunicazioni = list(
+            client.consulta_comunicazioni(
+                ufficio,
+                numero_rg,
+                anno_rg,
+                registro=str(getattr(aggiornato or fascicolo, "tipo_registro", "") or ""),
+                ruolo_polisweb=str(getattr(aggiornato or fascicolo, "ruolo_polisweb", "") or "AVV"),
+                servizio_pst_preferito=str(getattr(aggiornato or fascicolo, "servizio_pst", "") or ""),
+            )
+            or []
+        )
+    except Exception:
+        comunicazioni = []
     proposte_create = _proponi_scadenze_da_eventi(
         client,
         aggiornato or fascicolo,
@@ -265,13 +314,29 @@ def sincronizza_fascicolo_da_registro(
         anno_rg=anno_rg,
         get_scadenziario=get_scadenziario,
         attore=avvocato_referente,
+        eventi=eventi,
     )
+    # Motore differenze: confronto con la lettura precedente, storico per il
+    # pannello "Registro di cancelleria". Informativo, mai bloccante.
+    differenze: list[dict[str, Any]] = []
+    try:
+        registrate = _diff_repository(gestione_fascicoli).registra_lettura(
+            fascicolo_id,
+            eventi + comunicazioni,
+            depositi_importati=int(risultato.depositi_importati or 0),
+            origine=avvocato_referente or "sync",
+        )
+        differenze = [d.to_dict() for d in registrate]
+    except Exception:
+        differenze = []
     messaggio = risultato.messaggio
     if proposte_create:
         messaggio += (
             f" Rilevate {proposte_create} nuove date dal registro: "
             "in attesa di conferma nello scadenziario."
         )
+    if differenze:
+        messaggio += f" {len(differenze)} variazioni rispetto alla lettura precedente."
     return {
         "ok": bool(risultato.successo),
         "message": messaggio,
@@ -279,6 +344,7 @@ def sincronizza_fascicolo_da_registro(
         "depositi_importati": risultato.depositi_importati,
         "documenti_importati": risultato.documenti_importati,
         "proposte_scadenze": proposte_create,
+        "differenze": differenze,
         "last_sync_at": str(getattr(aggiornato, "last_sync_at", "") or ""),
         "sync_status": str(getattr(aggiornato, "sync_status", "") or ""),
     }

@@ -1600,3 +1600,5 @@ textarea[data-iusentra-voice-preview="ascolto"]{
   }
   .iu-voice-assistant__trigger-label{display:none}
 }
+.iu-deadline-summary__drafts{grid-column:1/-1;display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:9px;background:rgba(3,105,161,.08);color:#075985;font-size:11.5px;font-weight:800;text-decoration:none}
+.iu-deadline-summary__drafts strong{font-weight:900}

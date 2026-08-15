@@ -3071,3 +3071,14 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-ctu__form-actions button:disabled{opacity:.5;cursor:not-allowed}
 .iu-fas-ctu__form-actions .iu-fas-ctu__cancel{background:white;border:1px solid var(--iu-border);color:#64748b}
 .iu-fas-ctu__note{grid-column:1/-1;margin:0;font-size:10.5px;font-weight:600;color:#94a3b8}
+.iu-fas-registro-diff{display:grid;gap:6px;padding:10px 12px;background:white;border:1px solid var(--iu-border);border-radius:12px}
+.iu-fas-registro-diff header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.iu-fas-registro-diff header span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:900;color:#0f172a}
+.iu-fas-registro-diff header em{font-size:11px;font-style:normal;font-weight:700;color:var(--iu-slate-500)}
+.iu-fas-registro-diff ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.iu-fas-registro-diff li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 9px;border-radius:8px;background:#f8fafc;font-size:11.5px;font-weight:700;color:#334155}
+.iu-fas-registro-diff li small{flex:0 0 auto;font-size:10px;font-weight:600;color:#94a3b8}
+.iu-fas-registro-diff li.iu-fas-registro-diff__item--evento_spostato{background:rgba(217,119,6,.07);color:#92400e}
+.iu-fas-registro-diff li.iu-fas-registro-diff__item--nuovo_evento{background:rgba(3,105,161,.06);color:#075985}
+.iu-fas-registro-diff li.iu-fas-registro-diff__item--evento_rimosso{background:rgba(153,27,27,.06);color:#991b1b}
+.iu-fas-registro-diff button{justify-self:start;min-height:30px;padding:0 11px;border-radius:8px;border:1px solid var(--iu-border);background:white;color:#64748b;font-size:11.5px;font-weight:800;cursor:pointer}

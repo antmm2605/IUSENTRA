@@ -137,3 +137,43 @@ def test_job_include_registri_polisweb_ed_esclude_altri_portali():
         assert _fascicolo_sincronizzabile(_fascicolo(tipo)) is True, tipo
     for tipo in ("PENALE", "AMMINISTRATIVO", "TRIBUTARIO", "STRAGIUDIZIALE", "CONSULENZA"):
         assert _fascicolo_sincronizzabile(_fascicolo(tipo)) is False, tipo
+
+
+# --- Comunicazioni e notifiche da ritirare (residuo fase 1) ----------------------
+
+
+def test_comunicazioni_e_notifiche_da_ritiro(client_catturato):
+    client, captura, mp = client_catturato
+    mp.setattr(client, "_risolvi_base_pst", lambda *a, **k: _base("JPW_SICID"))
+    chiamate = []
+    originale = client._soap_qbuilder_execute_body
+
+    def registra(base, codice, classe, values, **kwargs):
+        chiamate.append(classe)
+        return originale(base, codice, classe, values, **kwargs)
+
+    mp.setattr(client, "_soap_qbuilder_execute_body", registra)
+    mp.setattr(
+        client,
+        "_execute_qbuilder",
+        lambda base, body: (
+            '<response><return><row class="Comunicazioni">'
+            '<property name="attestazione">2026-09-01</property>'
+            '<property name="descrizioneEvento">Deposito ordinanza</property>'
+            "</row></return></response>"
+        ),
+    )
+    eventi = client.consulta_comunicazioni("0580010", "100", 2026, registro="CC")
+    assert chiamate == ["Comunicazioni", "NotificaDaRitiro"]  # interroga entrambe
+    # Il mock XML ha i campi di Comunicazioni: NotificaDaRitiro correttamente
+    # non vi trova i propri (DESCEVENTO/DATAEVENTO) e scarta la riga.
+    assert len(eventi) == 1
+    assert eventi[0].tipo == "comunicazione"
+    assert eventi[0].data == "2026-09-01"
+    assert "Deposito ordinanza" in eventi[0].descrizione
+
+
+def test_comunicazioni_escluse_fuori_sicid(client_catturato):
+    client, captura, mp = client_catturato
+    mp.setattr(client, "_risolvi_base_pst", lambda *a, **k: _base("JPW_SIECIC"))
+    assert client.consulta_comunicazioni("0580010", "100", 2026, registro="ESIM") == []

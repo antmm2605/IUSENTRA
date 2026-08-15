@@ -2110,6 +2110,80 @@ class ClientPolisWeb:
         righe = _parse_qbuilder_row_list(xml)
         return normalizza_eventi(righe)
 
+    def consulta_comunicazioni(
+        self,
+        codice_ufficio: str,
+        numero_rg: str,
+        anno_rg: int,
+        registro: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        servizio_pst_preferito: str = "",
+    ) -> list:
+        """Comunicazioni di cancelleria e notifiche da ritirare del fascicolo.
+
+        Classi ministeriali ``Comunicazioni`` (idatto, tipoatto, attestazione,
+        descrizioneEvento) e ``NotificaDaRitiro`` (descevento, dataevento) dal
+        catalogo SICID v1.52. Presidio INFORMATIVO: la fonte primaria delle
+        comunicazioni resta la PEC ex D.M. 44/2011 artt. 16 ss. — qui si
+        alimenta solo il pannello variazioni, mai scadenze operative.
+        Registri non SICID e Cassazione: lista vuota senza errori.
+        """
+
+        from pct.polisweb_eventi import EventoRegistro
+
+        spec = _polisweb_registro_spec(registro, servizio_pst_preferito)
+        if spec.cassazione or spec.siecic or spec.sigp:
+            return []
+        preferito = servizio_pst_preferito or spec.servizio_preferito
+        base_pst = self._risolvi_base_pst(codice_ufficio, preferito=preferito)
+        codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
+        if not _pst_usa_qbuilder(base_pst):
+            return []
+        role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+        comuni = [
+            ("idUfficio", "string", codice_pst),
+            ("anno", "string", anno_rg),
+            ("numero", "integer", _numero_ruolo_value(numero_rg)),
+            ("idRuoloJPW", "string", role),
+            ("registro", "string", spec.registro),
+        ]
+        eventi: list = []
+        for classe, tipo_evento, campi_data, campi_desc in (
+            ("Comunicazioni", "comunicazione", ("ATTESTAZIONE",), ("DESCRIZIONEEVENTO", "TIPOATTO")),
+            ("NotificaDaRitiro", "notifica_da_ritiro", ("DATAEVENTO", "DATAREGEVENTO"), ("DESCEVENTO",)),
+        ):
+            try:
+                body = self._soap_qbuilder_execute_body(
+                    base_pst, codice_pst, classe, list(comuni), ruolo_polisweb=role
+                )
+                xml = self._execute_qbuilder(base_pst, body)
+            except Exception:
+                continue
+            for row in _parse_qbuilder_row_list(xml):
+                data = ""
+                for campo in campi_data:
+                    data = _qbuilder_row_value(row, campo)[:10]
+                    if data:
+                        break
+                descrizione = ""
+                for campo in campi_desc:
+                    descrizione = _qbuilder_row_value(row, campo)
+                    if descrizione:
+                        break
+                if not (data or descrizione):
+                    continue
+                eventi.append(
+                    EventoRegistro(
+                        tipo=tipo_evento,
+                        descrizione=descrizione
+                        or ("Comunicazione di cancelleria" if tipo_evento == "comunicazione" else "Notifica in attesa di ritiro"),
+                        data=data,
+                        fonte_classe=classe,
+                    )
+                )
+        return eventi
+
     def _precarica_documenti_importazione(
         self,
         fascicolo_pw: FascicoloPolisWeb,
@@ -2767,7 +2841,9 @@ class ClientPolisWeb:
                 ('subpro', 'integer', subpro if spec.sigp and subpro else ''),
                 ('subProc', 'string', subpro if (subpro and not spec.sigp and not spec.siecic) else ''),
                 ('fascPrecedente', 'boolean', '0'),
-                ('scadTermini', 'boolean', '0'),
+                # Piano Polisweb fase 1: il profilo include anche scadenze e
+                # termini del fascicolo (catalogo SICID, ProfiloFascicolo).
+                ('scadTermini', 'boolean', '1'),
                 ('idRuoloJPW', 'string', role),
                 ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
                 ('idDfa', 'string', id_dfa or getattr(fascicolo, "id_dfa", "")),

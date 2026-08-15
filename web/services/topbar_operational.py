@@ -649,7 +649,7 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
     week = today + timedelta(days=7)
     fascicoli = _case_lookup()
     clienti = _client_lookup()
-    summary = {"today": 0, "tomorrow": 0, "nextSevenDays": 0, "urgent": 0, "overdue": 0}
+    summary = {"today": 0, "tomorrow": 0, "nextSevenDays": 0, "urgent": 0, "overdue": 0, "drafts": 0}
     rows: list[dict[str, Any]] = []
     try:
         scadenze = get_scadenziario().tutte(solo_aperte=False)
@@ -660,6 +660,12 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
             continue
         due = _deadline_date(scadenza)
         if due is None:
+            continue
+        # Le proposte in BOZZA (PEC/registri/CTU) non sono scadenze operative:
+        # contatore dedicato, fuori dai conteggi urgenti (convenzione dello
+        # scadenziario: vivono nella coda finche' l'avvocato non decide).
+        if _enum_value(getattr(scadenza, "stato", "")) == StatoTermine.BOZZA.value:
+            summary["drafts"] += 1
             continue
         status = _deadline_status(scadenza, today)
         if status == "completed":

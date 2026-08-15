@@ -52,6 +52,11 @@ export function TopBarDeadlines({
                 <span><strong>{data.summary.tomorrow}</strong> domani</span>
                 <span><strong>{data.summary.nextSevenDays}</strong> 7 giorni</span>
                 <span><strong>{data.summary.overdue}</strong> scadute</span>
+                {(data.summary.drafts ?? 0) > 0 ? (
+                  <a className="iu-deadline-summary__drafts" href="/scadenziario#proposte">
+                    <strong>{data.summary.drafts}</strong> proposte da confermare
+                  </a>
+                ) : null}
               </div>
               <div className="iu-panel-list">
                 {deadlines.length ? deadlines.map((deadline) => (

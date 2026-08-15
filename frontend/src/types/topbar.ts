@@ -101,6 +101,7 @@ export type TopbarDeadlinesPayload = {
     nextSevenDays: number
     urgent: number
     overdue: number
+    drafts: number
   }
   deadlines: TopbarDeadline[]
 }

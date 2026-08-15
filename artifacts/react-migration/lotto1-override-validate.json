@@ -1,0 +1,217 @@
+{
+ "rivalutazione_e_interessi": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "maggior_danno"
+  }
+ },
+ "rivalutazione_mensile": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "rivalutazione_istat"
+  }
+ },
+ "interessi_vari_sul_capitale_rivalutato": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "maggior_danno"
+  }
+ },
+ "calcolo_devalutazione": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "rivalutazione_istat"
+  }
+ },
+ "rivalutazione_storica": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "rivalutazione_istat"
+  }
+ },
+ "calcolo_inflazione": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "rivalutazione_istat"
+  }
+ },
+ "calcolo_maggior_danno": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "maggior_danno"
+  }
+ },
+ "interessi_mora_appalti": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "interessi"
+  }
+ },
+ "danno_non_patrimoniale": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "danno_biologico"
+  }
+ },
+ "danno_parentale_milano": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "danno_parentale"
+  }
+ },
+ "aumenti_riduzioni_pena": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "pena_riti_alternativi"
+  }
+ },
+ "calcolo_usufrutto": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "usufrutto"
+  }
+ },
+ "coefficienti_usufrutto": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index",
+  "params": {
+   "tool": "usufrutto"
+  }
+ },
+ "fattura_elettronica_avvocati": {
+  "status": "operativa",
+  "endpoint": "fatturazione.nuova"
+ },
+ "calcolo_nota_spese": {
+  "status": "operativa",
+  "endpoint": "fatturazione.nuova"
+ },
+ "modelli_di_notula": {
+  "status": "operativa",
+  "endpoint": "fatturazione.nuova"
+ },
+ "calcolo_notula_penale": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ },
+ "fattura_elettronica": {
+  "status": "operativa",
+  "endpoint": "fatturazione.nuova"
+ },
+ "fattura_professionisti": {
+  "status": "operativa",
+  "endpoint": "fatturazione.nuova"
+ },
+ "calcolo_compenso_a_ore": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ },
+ "calcolo_ritenuta_d_acconto": {
+  "status": "operativa",
+  "endpoint": "fatturazione.nuova"
+ },
+ "calcolo_ravvedimento_operoso": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ },
+ "lettera_adeguamento_canone_locazione": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "fascicolo_di_parte": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "procura_alle_liti": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "attestazione_conformita": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "relata_notifica_pec": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "sollecito_di_pagamento": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "decreto_ingiuntivo": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "sfratto_per_morosita": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "atto_di_precetto": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "dichiarazione_553_cpc": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "indice_allegati": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "note_iscrizione_ruolo": {
+  "status": "operativa",
+  "endpoint": "template_atti.catalogo"
+ },
+ "termini_processuali_civili": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ },
+ "termini_memorie_e_repliche": {
+  "status": "operativa",
+  "endpoint": "scadenziario"
+ },
+ "termini_183_plus_190_cpc": {
+  "status": "operativa",
+  "endpoint": "scadenziario"
+ },
+ "termini_esecuzioni": {
+  "status": "operativa",
+  "endpoint": "scadenziario"
+ },
+ "termini_deposito_atti_appello": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ },
+ "scadenze_multe": {
+  "status": "operativa",
+  "endpoint": "scadenziario"
+ },
+ "termini_deposito_ctu": {
+  "status": "operativa",
+  "endpoint": "scadenziario"
+ },
+ "visibilita_fascicolo_telematico": {
+  "status": "operativa",
+  "endpoint": "polisWeb_home"
+ },
+ "calcolo_spese_di_mediazione": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ },
+ "tariffe_mediazione": {
+  "status": "operativa",
+  "endpoint": "strumenti_legali.index"
+ }
+}

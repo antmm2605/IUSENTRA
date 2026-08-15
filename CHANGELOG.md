@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.278.55 - 2026-08-15
+
+- **Catalogo delle funzioni: 44 voci diventano realmente operative (Lotto 1 dell'inventario).** Ricognizione multi-agente sulle 149 voci non operative del catalogo (183 totali): 44 avevano la funzione **già implementata** ma il deep-link sbagliato o assente — ora aprono direttamente il tool giusto (es. «Calcolo Maggior Danno» → calcolatore art. 1224 c.2 c.c. con Cass. SS.UU. 1712/1995; «Rivalutazione e Interessi» → tool maggior danno; «Interessi Mora Appalti» → tassi D.Lgs. 231/2002). Ogni deep-link è stato **validato fail-closed contro il registro reale dei tool** prima dell'inserimento; le voci con suggerimento non verificabile sono state scartate e restano nei lotti successivi. Il catalogo passa da 34 a **78 funzioni operative**.
+- **Guardia permanente.** Nuova suite `tests/test_applicazioni_catalogo_lotto1.py`: nessuna voce «operativa» può puntare a un tool inesistente. Inventario completo versionato in `artifacts/react-migration/inventario-catalogo-funzioni-2026-08-15.json` (39 deep-link, 24 riclassifiche, 84 implementabili piccole, 21 mancanti grandi — i lotti 2 e 3 seguono con priorità concordate).
+
 ## 2.278.54 - 2026-08-15
 
 - **Motore differenze dei registri (residuo Fase 1 del piano Polisweb).** Nuovo `pct/polisweb_diff.py`: ogni lettura del registro viene confrontata con lo snapshot precedente del fascicolo e produce variazioni leggibili — nuova udienza fissata, **udienza spostata (con data prima → dopo)**, scadenza non più a registro, nuovi depositi importati. Identità evento per tipo+descrizione (lo spostamento si vede), prima lettura senza rumore, storico limitato per fascicolo. Le differenze sono informative: le scadenze operative restano al circuito proposte in BOZZA con conferma.

@@ -559,6 +559,61 @@ STATUS_META: Dict[str, Dict[str, str]] = {
 SECTION_LOOKUP: Dict[str, Dict[str, Any]] = {section["id"]: section for section in SECTION_SPECS}
 
 
+
+
+# Lotto 1 dell'inventario catalogo (15/08/2026): deep-link corretti verso i
+# tool reali e riclassifiche a 'operativa' validate contro TOOL_METHODS.
+# Fonte: artifacts/react-migration/inventario-catalogo-funzioni-2026-08-15.json
+_LOTTO1_DEEP_LINKS: Dict[str, Dict[str, Any]] = {
+    "attestazione_conformita": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "atto_di_precetto": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "aumenti_riduzioni_pena": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "pena_riti_alternativi"}},
+    "calcolo_compenso_a_ore": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "calcolo_devalutazione": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rivalutazione_istat"}},
+    "calcolo_inflazione": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rivalutazione_istat"}},
+    "calcolo_maggior_danno": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "maggior_danno"}},
+    "calcolo_nota_spese": {"status": "operativa", "endpoint": "fatturazione.nuova"},
+    "calcolo_notula_penale": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "calcolo_ravvedimento_operoso": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "calcolo_ritenuta_d_acconto": {"status": "operativa", "endpoint": "fatturazione.nuova"},
+    "calcolo_spese_di_mediazione": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "calcolo_usufrutto": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "usufrutto"}},
+    "coefficienti_usufrutto": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "usufrutto"}},
+    "danno_non_patrimoniale": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "danno_biologico"}},
+    "danno_parentale_milano": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "danno_parentale"}},
+    "decreto_ingiuntivo": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "dichiarazione_553_cpc": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "fascicolo_di_parte": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "fattura_elettronica": {"status": "operativa", "endpoint": "fatturazione.nuova"},
+    "fattura_elettronica_avvocati": {"status": "operativa", "endpoint": "fatturazione.nuova"},
+    "fattura_professionisti": {"status": "operativa", "endpoint": "fatturazione.nuova"},
+    "indice_allegati": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "interessi_mora_appalti": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "interessi"}},
+    "interessi_vari_sul_capitale_rivalutato": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "maggior_danno"}},
+    "lettera_adeguamento_canone_locazione": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "modelli_di_notula": {"status": "operativa", "endpoint": "fatturazione.nuova"},
+    "note_iscrizione_ruolo": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "procura_alle_liti": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "relata_notifica_pec": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "rivalutazione_e_interessi": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "maggior_danno"}},
+    "rivalutazione_mensile": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rivalutazione_istat"}},
+    "rivalutazione_storica": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rivalutazione_istat"}},
+    "scadenze_multe": {"status": "operativa", "endpoint": "scadenziario"},
+    "sfratto_per_morosita": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "sollecito_di_pagamento": {"status": "operativa", "endpoint": "template_atti.catalogo"},
+    "tariffe_mediazione": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "termini_183_plus_190_cpc": {"status": "operativa", "endpoint": "scadenziario"},
+    "termini_deposito_atti_appello": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "termini_deposito_ctu": {"status": "operativa", "endpoint": "scadenziario"},
+    "termini_esecuzioni": {"status": "operativa", "endpoint": "scadenziario"},
+    "termini_memorie_e_repliche": {"status": "operativa", "endpoint": "scadenziario"},
+    "termini_processuali_civili": {"status": "operativa", "endpoint": "strumenti_legali.index"},
+    "visibilita_fascicolo_telematico": {"status": "operativa", "endpoint": "polisWeb_home"},
+}
+for _slug_l1, _override_l1 in _LOTTO1_DEEP_LINKS.items():
+    ITEM_OVERRIDES[_slug_l1] = {**ITEM_OVERRIDES.get(_slug_l1, {}), **_override_l1}
+
+
 def _default_summary(section_title: str, title: str) -> str:
     return (
         f"{title}: voce del catalogo {section_title.lower()} con percorso operativo, "

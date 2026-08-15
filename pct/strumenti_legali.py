@@ -11,10 +11,13 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
+    catastale as calc_catastale,
     competenza_valore as calc_competenza_valore,
     compenso_a_tempo_calc as calc_compenso_a_tempo,
+    compravendita_imposte as calc_compravendita,
     crediti_lavoro as calc_crediti_lavoro,
     danno_parentale as calc_danno_parentale,
+    grado_parentela as calc_grado_parentela,
     impugnazioni as calc_impugnazioni,
     interessi_acconti as calc_interessi_acconti,
     maggior_danno as calc_maggior_danno,
@@ -22,7 +25,14 @@ from pct.calcolatori import (
     pena_riti_alternativi as calc_pena_riti_alternativi,
     quote_riserva as calc_quote_riserva,
     ravvedimento_operoso as calc_ravvedimento,
+    reversibilita as calc_reversibilita,
+    riparto_spese as calc_riparto_spese,
+    rivalutazione_media as calc_rivalutazione_media,
+    successione_imposte as calc_successione_imposte,
+    surroga as calc_surroga,
+    taeg as calc_taeg,
     termini_scadenza as calc_termini_scadenza,
+    titoli_rendimenti as calc_titoli_rendimenti,
     usufrutto as calc_usufrutto,
 )
 from pct.normative_tables import (
@@ -191,6 +201,19 @@ class GestioneStrumentiLegali:
             {"id": "codice_fiscale", "title": "Codice fiscale", "subtitle": "Calcolo e decodifica del codice fiscale ex D.M. 23/12/1976, con verifica finale a carico dell'operatore.", "icon": "bi-person-vcard", "categoria": "Utilita"},
             {"id": "tabella_istat", "title": "Tabella indici ISTAT", "subtitle": "Indici FOI e NIC per anno e mese con variazione annua, dal dataset versionato interno.", "icon": "bi-table", "categoria": "Danni"},
             {"id": "tabella_tassi", "title": "Tabella tassi di interesse", "subtitle": "Storico tassi legali (art. 1284 c.c.) e moratori (D.Lgs. 231/2002) con fonti ufficiali.", "icon": "bi-graph-up", "categoria": "Credito"},
+            {"id": "taeg", "title": "TAEG di verifica", "subtitle": "Tasso effettivo globale con spese iniziali e ricorrenti (art. 121 T.U.B., Disposizioni Banca d'Italia).", "icon": "bi-calculator", "categoria": "Finanza"},
+            {"id": "surroga", "title": "Surroga del mutuo", "subtitle": "Confronto rata e interessi tra piano attuale e offerta di portabilita' (art. 120-quater T.U.B.).", "icon": "bi-arrow-left-right", "categoria": "Finanza"},
+            {"id": "rivalutazione_media", "title": "Rivalutazione su media annua", "subtitle": "Coefficiente da medie annue degli indici ISTAT FOI/NIC versionati.", "icon": "bi-graph-up-arrow", "categoria": "Danni"},
+            {"id": "rendimento_bot", "title": "Rendimento BOT", "subtitle": "Rendimento netto annualizzato dallo scarto di emissione, ritenuta 12,5% (D.Lgs. 239/1996).", "icon": "bi-bank2", "categoria": "Finanza"},
+            {"id": "pronti_contro_termine", "title": "Pronti contro termine", "subtitle": "Rendimento del PcT dai prezzi contrattuali, ritenuta 26% (art. 3 D.L. 66/2014).", "icon": "bi-arrow-repeat", "categoria": "Finanza"},
+            {"id": "grado_parentela", "title": "Grado di parentela", "subtitle": "Computo civilistico dei gradi (artt. 74-78 c.c.) con relazioni tipiche e rilevanza successoria.", "icon": "bi-diagram-2", "categoria": "Famiglia"},
+            {"id": "reversibilita", "title": "Pensione di reversibilita'", "subtitle": "Aliquote Tabella F L. 335/1995 e riduzioni per cumulo redditi con limite Corte Cost. 162/2022.", "icon": "bi-person-hearts", "categoria": "Previdenza"},
+            {"id": "imposte_successione", "title": "Imposte di successione", "subtitle": "Aliquote e franchigie per beneficiario (D.L. 262/2006) con ipotecaria e catastale sugli immobili.", "icon": "bi-file-earmark-text", "categoria": "Patrimonio"},
+            {"id": "valore_catastale", "title": "Valore catastale", "subtitle": "Rendita rivalutata e moltiplicatori per registro e successioni (D.P.R. 131/1986).", "icon": "bi-house", "categoria": "Immobili"},
+            {"id": "imu", "title": "Calcolo IMU", "subtitle": "Base imponibile e imposta annua con moltiplicatori L. 160/2019, esenzione abitazione principale.", "icon": "bi-house-gear", "categoria": "Immobili"},
+            {"id": "imposte_compravendita", "title": "Imposte compravendita", "subtitle": "Registro, ipocatastali e IVA su acquisto abitazioni, con prezzo-valore e prima casa.", "icon": "bi-house-add", "categoria": "Immobili"},
+            {"id": "riparto_spese", "title": "Riparto spese e utenze", "subtitle": "Ripartizione per millesimi (art. 1123 c.c.), persone o giorni con quadratura al centesimo.", "icon": "bi-people", "categoria": "Immobili"},
+            {"id": "categorie_catastali", "title": "Categorie catastali", "subtitle": "Catalogo delle categorie A-F con le descrizioni ufficiali dell'Agenzia delle Entrate.", "icon": "bi-card-list", "categoria": "Immobili"},
         ]
 
     def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -525,6 +548,81 @@ class GestioneStrumentiLegali:
             "istat_anni": "5",
             # Tabella tassi
             "tassi_vista": "entrambe",
+            # TAEG
+            "taeg_capitale": "",
+            "taeg_tan": "",
+            "taeg_durata_anni": "",
+            "taeg_rate_anno": "12",
+            "taeg_spese_iniziali": "0",
+            "taeg_spese_rata": "0",
+            "taeg_spese_annue": "0",
+            # Surroga
+            "sur_debito_residuo": "",
+            "sur_tan_attuale": "",
+            "sur_anni_residui": "",
+            "sur_tan_nuovo": "",
+            "sur_anni_nuovi": "",
+            "sur_rate_anno": "12",
+            # Rivalutazione media annua
+            "rivm_importo": "",
+            "rivm_anno_base": "",
+            "rivm_anno_target": "",
+            "rivm_tipo": "FOI",
+            # Rendimento BOT
+            "bot_prezzo": "",
+            "bot_giorni": "",
+            "bot_nominale": "100",
+            "bot_commissioni": "0",
+            # Pronti contro termine
+            "pct_prezzo_pronti": "",
+            "pct_prezzo_termine": "",
+            "pct_giorni": "",
+            # Grado di parentela
+            "par_relazione": "fratelli",
+            "par_linea": "collaterale",
+            "par_generazioni_su": "",
+            "par_generazioni_giu": "",
+            "par_affinita": "0",
+            # Reversibilita'
+            "rev_pensione_annua": "",
+            "rev_coniuge": "1",
+            "rev_figli": "0",
+            "rev_genitori": "0",
+            "rev_fratelli": "0",
+            "rev_reddito_beneficiario": "0",
+            "rev_trattamento_minimo": "",
+            "rev_figli_tutelati": "0",
+            # Imposte di successione
+            "succ_quota": "",
+            "succ_rapporto": "coniuge_linea_retta",
+            "succ_handicap": "0",
+            "succ_valore_immobili": "0",
+            "succ_prima_casa": "0",
+            # Valore catastale
+            "cat_rendita": "",
+            "cat_gruppo": "abitazione_altri",
+            "cat_ambito": "registro",
+            # IMU
+            "imu_rendita": "",
+            "imu_gruppo": "a_non_a10",
+            "imu_aliquota": "0.86",
+            "imu_abitazione_principale": "0",
+            "imu_lusso": "0",
+            "imu_mesi": "12",
+            "imu_quota": "100",
+            "imu_residenti": "1",
+            # Imposte compravendita
+            "comp_regime": "privato",
+            "comp_prezzo": "",
+            "comp_valore_catastale": "0",
+            "comp_prima_casa": "0",
+            "comp_lusso": "0",
+            # Riparto spese
+            "rip_importo": "",
+            "rip_criterio": "millesimi",
+            "rip_quote": "",
+            # Categorie catastali
+            "catcat_gruppo": "TUTTI",
         }
         if posted:
             for key in defaults:
@@ -1350,6 +1448,45 @@ class GestioneStrumentiLegali:
 
     def calcola_usufrutto(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_usufrutto.calcola(payload, self.norme)
+
+    def calcola_taeg(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_taeg.calcola(payload)
+
+    def calcola_surroga(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_surroga.calcola(payload)
+
+    def calcola_rivalutazione_media(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_rivalutazione_media.calcola(payload, self.norme)
+
+    def calcola_rendimento_bot(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_titoli_rendimenti.calcola_bot(payload)
+
+    def calcola_pronti_contro_termine(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_titoli_rendimenti.calcola_pct(payload)
+
+    def calcola_grado_parentela(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_grado_parentela.calcola(payload)
+
+    def calcola_reversibilita(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_reversibilita.calcola(payload)
+
+    def calcola_imposte_successione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_successione_imposte.calcola(payload)
+
+    def calcola_valore_catastale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_catastale.calcola_valore_catastale(payload)
+
+    def calcola_imu(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_catastale.calcola_imu(payload)
+
+    def calcola_imposte_compravendita(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_compravendita.calcola(payload)
+
+    def calcola_riparto_spese(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_riparto_spese.calcola(payload)
+
+    def tabella_categorie_catastali(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_catastale.tabella_categorie(payload)
 
     def calcola_quote_riserva(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_quote_riserva.calcola(payload)

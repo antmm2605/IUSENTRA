@@ -673,6 +673,205 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             ),
         ],
     },
+    "taeg": {
+        "azione": "Calcola TAEG",
+        "campi": [
+            _numero("taeg_capitale", "Capitale finanziato"),
+            _numero("taeg_tan", "TAN %"),
+            _intero("taeg_durata_anni", "Durata in anni", minimo=1, massimo=50),
+            _scelta("taeg_rate_anno", "Rate per anno", [("12", "12"), ("6", "6"), ("4", "4"), ("2", "2"), ("1", "1")]),
+            _numero("taeg_spese_iniziali", "Spese iniziali", aiuto="Istruttoria, perizia, imposta sostitutiva e altri costi trattenuti all'erogazione (le imposte note al finanziatore entrano nel TAEG)."),
+            _numero("taeg_spese_rata", "Spese per rata", aiuto="Es. commissione di incasso rata."),
+            _numero("taeg_spese_annue", "Spese annue ricorrenti", aiuto="Es. polizza obbligatoria annua."),
+        ],
+    },
+    "surroga": {
+        "azione": "Confronta i piani",
+        "campi": [
+            _numero("sur_debito_residuo", "Debito residuo"),
+            _numero("sur_tan_attuale", "TAN attuale %"),
+            _intero("sur_anni_residui", "Anni residui", minimo=1, massimo=50),
+            _numero("sur_tan_nuovo", "TAN offerta %"),
+            _intero("sur_anni_nuovi", "Durata nuova (anni)", minimo=0, massimo=50, aiuto="Lascia 0 per mantenere la durata residua."),
+            _scelta("sur_rate_anno", "Rate per anno", [("12", "12"), ("6", "6"), ("4", "4"), ("2", "2"), ("1", "1")]),
+        ],
+    },
+    "rivalutazione_media": {
+        "azione": "Rivaluta su media annua",
+        "campi": [
+            _numero("rivm_importo", "Importo da rivalutare"),
+            _intero("rivm_anno_base", "Anno di partenza", minimo=1948),
+            _intero("rivm_anno_target", "Anno di arrivo", minimo=1948),
+            _scelta("rivm_tipo", "Indice", [("FOI", "FOI (famiglie operai e impiegati)"), ("NIC", "NIC (intera collettività)")]),
+        ],
+    },
+    "rendimento_bot": {
+        "azione": "Calcola rendimento",
+        "campi": [
+            _numero("bot_prezzo", "Prezzo di acquisto (per 100)", aiuto="Dalla nota di eseguito, es. 98,45."),
+            _intero("bot_giorni", "Giorni alla scadenza", minimo=1, massimo=730),
+            _numero("bot_nominale", "Valore nominale", aiuto="Importo nominale sottoscritto (default 100)."),
+            _numero("bot_commissioni", "Commissioni (per 100)", aiuto="Commissioni bancarie riferite a 100 di nominale."),
+        ],
+    },
+    "pronti_contro_termine": {
+        "azione": "Calcola rendimento",
+        "campi": [
+            _numero("pct_prezzo_pronti", "Prezzo a pronti"),
+            _numero("pct_prezzo_termine", "Prezzo a termine"),
+            _intero("pct_giorni", "Durata in giorni", minimo=1, massimo=730),
+        ],
+    },
+    "grado_parentela": {
+        "azione": "Calcola il grado",
+        "campi": [
+            _scelta(
+                "par_relazione",
+                "Relazione",
+                [
+                    ("manuale", "Computo manuale per generazioni"),
+                    ("genitore_figlio", "Genitore e figlio"),
+                    ("nonno_nipote", "Nonno e nipote (di figlio)"),
+                    ("bisnonno_pronipote", "Bisnonno e pronipote"),
+                    ("fratelli", "Fratelli / sorelle"),
+                    ("zio_nipote", "Zio e nipote (di fratello)"),
+                    ("cugini", "Cugini (figli di fratelli)"),
+                    ("prozio_pronipote", "Prozio e pronipote"),
+                    ("cugini_secondi", "Cugini di secondo grado"),
+                    ("figlio_cugino", "Uno e il figlio del proprio cugino"),
+                ],
+            ),
+            _scelta("par_linea", "Linea (solo computo manuale)", [("collaterale", "Collaterale"), ("retta", "Retta")]),
+            _intero("par_generazioni_su", "Generazioni primo ramo", massimo=10, aiuto="Dal primo parente allo stipite comune (manuale)."),
+            _intero("par_generazioni_giu", "Generazioni secondo ramo", massimo=10, aiuto="Dallo stipite comune al secondo parente (manuale)."),
+            _si_no("par_affinita", "Rapporto di affinità (art. 78 c.c.)"),
+        ],
+    },
+    "reversibilita": {
+        "azione": "Calcola la reversibilità",
+        "campi": [
+            _numero("rev_pensione_annua", "Pensione annua del dante causa"),
+            _si_no("rev_coniuge", "Coniuge superstite"),
+            _intero("rev_figli", "Figli aventi diritto", massimo=15),
+            _intero("rev_genitori", "Genitori (nei casi di legge)", massimo=2),
+            _intero("rev_fratelli", "Fratelli/sorelle (nei casi di legge)", massimo=15),
+            _numero("rev_reddito_beneficiario", "Reddito annuo del beneficiario"),
+            _numero("rev_trattamento_minimo", "Trattamento minimo INPS annuo", aiuto="13 volte l'importo mensile FPLD al 1° gennaio (comunicato INPS): serve solo per la verifica del cumulo."),
+            _si_no("rev_figli_tutelati", "Figli minori, studenti o inabili nel nucleo"),
+        ],
+    },
+    "imposte_successione": {
+        "azione": "Calcola le imposte",
+        "campi": [
+            _numero("succ_quota", "Quota devoluta al beneficiario"),
+            _scelta(
+                "succ_rapporto",
+                "Rapporto col defunto",
+                [
+                    ("coniuge_linea_retta", "Coniuge o parente in linea retta"),
+                    ("fratello_sorella", "Fratello o sorella"),
+                    ("parente_4_affine_3", "Altro parente fino al 4° / affine fino al 3°"),
+                    ("altro", "Altro soggetto"),
+                ],
+            ),
+            _si_no("succ_handicap", "Beneficiario con handicap grave (L. 104/1992)"),
+            _numero("succ_valore_immobili", "Valore immobili nella quota"),
+            _si_no("succ_prima_casa", "Requisiti prima casa sugli immobili"),
+        ],
+    },
+    "valore_catastale": {
+        "azione": "Calcola il valore",
+        "campi": [
+            _numero("cat_rendita", "Rendita catastale (non rivalutata)"),
+            _scelta(
+                "cat_gruppo",
+                "Tipologia",
+                [
+                    ("abitazione_prima_casa", "Abitazione prima casa"),
+                    ("abitazione_altri", "Gruppo A (escl. A/10) e C (escl. C/1)"),
+                    ("gruppo_b", "Gruppo B"),
+                    ("a10_gruppo_d", "A/10 e gruppo D"),
+                    ("c1_gruppo_e", "C/1 e gruppo E"),
+                ],
+            ),
+            _scelta(
+                "cat_ambito",
+                "Ambito",
+                [("registro", "Registro / atti onerosi"), ("successione", "Successioni e donazioni")],
+                aiuto="Rileva per il gruppo B: moltiplicatore 168 al registro, 140 nelle successioni.",
+            ),
+        ],
+    },
+    "imu": {
+        "azione": "Calcola IMU",
+        "campi": [
+            _numero("imu_rendita", "Rendita catastale (non rivalutata)"),
+            _scelta(
+                "imu_gruppo",
+                "Categoria",
+                [
+                    ("a_non_a10", "Gruppo A escluso A/10 (abitazioni)"),
+                    ("c2_c6_c7", "C/2, C/6, C/7"),
+                    ("gruppo_b", "Gruppo B"),
+                    ("c3_c4_c5", "C/3, C/4, C/5"),
+                    ("a10", "A/10 (uffici)"),
+                    ("d5", "D/5 (banche e assicurazioni)"),
+                    ("gruppo_d", "Gruppo D escluso D/5"),
+                    ("c1", "C/1 (negozi)"),
+                ],
+            ),
+            _numero("imu_aliquota", "Aliquota comunale %", aiuto="Es. 0,86: verificare la delibera del Comune sul sito del MEF."),
+            _si_no("imu_abitazione_principale", "Abitazione principale"),
+            _si_no("imu_lusso", "Categoria di lusso (A/1, A/8, A/9)"),
+            _intero("imu_mesi", "Mesi di possesso", minimo=1, massimo=12),
+            _numero("imu_quota", "Quota di possesso %"),
+            _intero("imu_residenti", "Contitolari residenti", minimo=1, massimo=20, aiuto="Per la detrazione abitazione di lusso: ripartita in parti uguali tra i residenti."),
+        ],
+    },
+    "imposte_compravendita": {
+        "azione": "Calcola le imposte",
+        "campi": [
+            _scelta("comp_regime", "Regime", [("privato", "Cessione da privato"), ("iva", "Cessione soggetta a IVA")]),
+            _numero("comp_prezzo", "Prezzo di compravendita"),
+            _numero("comp_valore_catastale", "Valore catastale (prezzo-valore)", aiuto="Solo cessioni da privato di abitazioni: se 0 si tassa il prezzo."),
+            _si_no("comp_prima_casa", "Agevolazione prima casa"),
+            _si_no("comp_lusso", "Categoria di lusso (A/1, A/8, A/9)"),
+        ],
+    },
+    "riparto_spese": {
+        "azione": "Ripartisci",
+        "campi": [
+            _numero("rip_importo", "Importo da ripartire"),
+            _scelta(
+                "rip_criterio",
+                "Criterio",
+                [
+                    ("millesimi", "Millesimi di proprietà (art. 1123 c.c.)"),
+                    ("persone", "Numero di persone (utenze)"),
+                    ("giorni", "Giorni di occupazione (utenze)"),
+                ],
+            ),
+            _testo("rip_quote", "Quote", aiuto="Una per riga o separate da «;», formato nome: valore (es. Interno 1: 120; Interno 2: 250)."),
+        ],
+    },
+    "categorie_catastali": {
+        "azione": "Mostra le categorie",
+        "campi": [
+            _scelta(
+                "catcat_gruppo",
+                "Gruppo",
+                [
+                    ("TUTTI", "Tutti i gruppi"),
+                    ("A", "A — Abitazioni e uffici"),
+                    ("B", "B — Edifici collettivi"),
+                    ("C", "C — Commerciale e pertinenze"),
+                    ("D", "D — Immobili speciali produttivi"),
+                    ("E", "E — Immobili particolari"),
+                    ("F", "F — Entità urbane"),
+                ],
+            ),
+        ],
+    },
 }
 
 

@@ -659,6 +659,30 @@ for _slug_l2, _override_l2 in _LOTTO2A_DEEP_LINKS.items():
     ITEM_OVERRIDES[_slug_l2] = {**ITEM_OVERRIDES.get(_slug_l2, {}), **_override_l2}
 
 
+# Lotto 2B-1 dell'inventario catalogo: tredici nuovi calcolatori con base
+# normativa dichiarata (finanza, famiglia, successioni, immobili) in
+# pct/calcolatori/, esposti come tool della suite Strumenti Legali.
+_LOTTO2B_DEEP_LINKS: Dict[str, Dict[str, Any]] = {
+    "calcolo_taeg": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "taeg"}, "cta_label": "Apri TAEG"},
+    "calcolo_surroga": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "surroga"}, "cta_label": "Apri surroga"},
+    "rivalutazione_annuale_media": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rivalutazione_media"}, "cta_label": "Apri rivalutazione media"},
+    "rendimento_bot": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rendimento_bot"}, "cta_label": "Apri rendimento BOT"},
+    "pronti_contro_termine": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "pronti_contro_termine"}, "cta_label": "Apri pronti contro termine"},
+    "grado_di_parentela": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "grado_parentela"}, "cta_label": "Apri grado di parentela"},
+    "pensione_di_reversibilita": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "reversibilita"}, "cta_label": "Apri reversibilita'"},
+    "calcolo_imposte_di_successione": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "imposte_successione"}, "cta_label": "Apri imposte successione"},
+    "calcolo_valore_catastale": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "valore_catastale"}, "cta_label": "Apri valore catastale"},
+    "calcolo_imu": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "imu"}, "cta_label": "Apri calcolo IMU"},
+    "imposte_compravendita": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "imposte_compravendita"}, "cta_label": "Apri imposte compravendita"},
+    "spese_condominiali": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "riparto_spese"}, "cta_label": "Apri riparto spese"},
+    "ripartizione_utenze": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "riparto_spese"}, "cta_label": "Apri riparto utenze"},
+    "categorie_catastali": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "categorie_catastali"}, "cta_label": "Apri categorie catastali"},
+    "inflazione_e_titoli_di_stato": {"status": "guidata", "endpoint": "strumenti_legali.index", "params": {"tool": "rendimento_bot"}, "cta_label": "Apri rendimento titoli"},
+}
+for _slug_l2b, _override_l2b in _LOTTO2B_DEEP_LINKS.items():
+    ITEM_OVERRIDES[_slug_l2b] = {**ITEM_OVERRIDES.get(_slug_l2b, {}), **_override_l2b}
+
+
 def _default_summary(section_title: str, title: str) -> str:
     return (
         f"{title}: voce del catalogo {section_title.lower()} con percorso operativo, "

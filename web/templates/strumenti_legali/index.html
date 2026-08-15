@@ -1331,6 +1331,298 @@
       {{ render_sources(risultato_tassi.sources) }}
       {% endif %}
     {% endcall %}
+
+    {% set risultato_taeg = results.get('taeg') %}
+    {% call tool_section('taeg', 'TAEG di verifica', 'bi-calculator', 'Tasso effettivo globale con spese iniziali e ricorrenti (art. 121 T.U.B.).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('taeg', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Capitale finanziato</label><input type="number" step="0.01" min="0" name="taeg_capitale" class="form-control" value="{{ form_state.taeg_capitale }}"></div>
+        <div class="col-md-2"><label class="form-label">TAN %</label><input type="number" step="0.01" min="0" name="taeg_tan" class="form-control" value="{{ form_state.taeg_tan }}"></div>
+        <div class="col-md-2"><label class="form-label">Durata (anni)</label><input type="number" min="1" max="50" name="taeg_durata_anni" class="form-control" value="{{ form_state.taeg_durata_anni }}"></div>
+        <div class="col-md-2"><label class="form-label">Rate per anno</label><select name="taeg_rate_anno" class="form-select">{% for n in ['12', '6', '4', '2', '1'] %}<option value="{{ n }}" {{ 'selected' if form_state.taeg_rate_anno == n }}>{{ n }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Spese iniziali</label><input type="number" step="0.01" min="0" name="taeg_spese_iniziali" class="form-control" value="{{ form_state.taeg_spese_iniziali }}"></div>
+        <div class="col-md-3"><label class="form-label">Spese per rata</label><input type="number" step="0.01" min="0" name="taeg_spese_rata" class="form-control" value="{{ form_state.taeg_spese_rata }}"></div>
+        <div class="col-md-3"><label class="form-label">Spese annue ricorrenti</label><input type="number" step="0.01" min="0" name="taeg_spese_annue" class="form-control" value="{{ form_state.taeg_spese_annue }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola TAEG</button></div>
+      </form>
+      {% if risultato_taeg %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('TAEG', risultato_taeg.taeg ~ '%', 'TAN ' ~ risultato_taeg.tan ~ '%') }}
+        {{ metric_box('Rata', risultato_taeg.rata|euro, 'con spese ' ~ risultato_taeg.rata_con_spese|euro) }}
+        {{ metric_box('Costo totale del credito', risultato_taeg.costo_totale_credito|euro, risultato_taeg.numero_rate ~ ' rate') }}
+        {{ metric_box('Erogato netto', risultato_taeg.erogato_netto|euro) }}
+      </div>
+      {{ render_messages(risultato_taeg.notes, risultato_taeg.warnings) }}
+      {{ render_sources(risultato_taeg.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_sur = results.get('surroga') %}
+    {% call tool_section('surroga', 'Surroga del mutuo', 'bi-arrow-left-right', 'Confronto tra piano attuale e offerta di portabilità (art. 120-quater T.U.B.).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('surroga', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Debito residuo</label><input type="number" step="0.01" min="0" name="sur_debito_residuo" class="form-control" value="{{ form_state.sur_debito_residuo }}"></div>
+        <div class="col-md-2"><label class="form-label">TAN attuale %</label><input type="number" step="0.01" min="0" name="sur_tan_attuale" class="form-control" value="{{ form_state.sur_tan_attuale }}"></div>
+        <div class="col-md-2"><label class="form-label">Anni residui</label><input type="number" min="1" max="50" name="sur_anni_residui" class="form-control" value="{{ form_state.sur_anni_residui }}"></div>
+        <div class="col-md-2"><label class="form-label">TAN offerta %</label><input type="number" step="0.01" min="0" name="sur_tan_nuovo" class="form-control" value="{{ form_state.sur_tan_nuovo }}"></div>
+        <div class="col-md-3"><label class="form-label">Nuova durata (vuoto = residua)</label><input type="number" min="0" max="50" name="sur_anni_nuovi" class="form-control" value="{{ form_state.sur_anni_nuovi }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-arrow-left-right me-2"></i>Confronta i piani</button></div>
+      </form>
+      {% if risultato_sur %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Risparmio totale', risultato_sur.risparmio_totale|euro, 'conveniente' if risultato_sur.conveniente else 'NON conveniente') }}
+        {{ metric_box('Rata attuale', risultato_sur.rata_attuale|euro) }}
+        {{ metric_box('Rata nuova', risultato_sur.rata_nuova|euro, risultato_sur.risparmio_per_rata|euro ~ ' per rata') }}
+        {{ metric_box('Interessi nuovi vs attuali', risultato_sur.interessi_nuovo_piano|euro, 'attuali ' ~ risultato_sur.interessi_residui_attuali|euro) }}
+      </div>
+      {{ render_messages(risultato_sur.notes, risultato_sur.warnings) }}
+      {{ render_sources(risultato_sur.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_rivm = results.get('rivalutazione_media') %}
+    {% call tool_section('rivalutazione_media', 'Rivalutazione su media annua', 'bi-graph-up-arrow', 'Coefficiente da medie annue degli indici ISTAT versionati.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('rivalutazione_media', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Importo</label><input type="number" step="0.01" min="0" name="rivm_importo" class="form-control" value="{{ form_state.rivm_importo }}"></div>
+        <div class="col-md-2"><label class="form-label">Anno di partenza</label><input type="number" min="1948" name="rivm_anno_base" class="form-control" value="{{ form_state.rivm_anno_base }}"></div>
+        <div class="col-md-2"><label class="form-label">Anno di arrivo</label><input type="number" min="1948" name="rivm_anno_target" class="form-control" value="{{ form_state.rivm_anno_target }}"></div>
+        <div class="col-md-3"><label class="form-label">Indice</label><select name="rivm_tipo" class="form-select"><option value="FOI" {{ 'selected' if form_state.rivm_tipo != 'NIC' }}>FOI</option><option value="NIC" {{ 'selected' if form_state.rivm_tipo == 'NIC' }}>NIC</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-graph-up-arrow me-2"></i>Rivaluta</button></div>
+      </form>
+      {% if risultato_rivm %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Importo rivalutato', risultato_rivm.importo_rivalutato|euro, '+' ~ risultato_rivm.differenza|euro) }}
+        {{ metric_box('Coefficiente', risultato_rivm.coefficiente, risultato_rivm.variazione_percentuale ~ '%') }}
+        {{ metric_box('Media ' ~ risultato_rivm.anno_base, risultato_rivm.media_anno_base, risultato_rivm.indice) }}
+        {{ metric_box('Media ' ~ risultato_rivm.anno_target, risultato_rivm.media_anno_target, risultato_rivm.indice) }}
+      </div>
+      {{ render_messages(risultato_rivm.notes, risultato_rivm.warnings) }}
+      {{ render_sources(risultato_rivm.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_bot = results.get('rendimento_bot') %}
+    {% call tool_section('rendimento_bot', 'Rendimento BOT', 'bi-bank2', 'Rendimento netto annualizzato dallo scarto di emissione (ritenuta 12,5%).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('rendimento_bot', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Prezzo di acquisto (per 100)</label><input type="number" step="0.0001" min="0" name="bot_prezzo" class="form-control" value="{{ form_state.bot_prezzo }}"></div>
+        <div class="col-md-2"><label class="form-label">Giorni alla scadenza</label><input type="number" min="1" max="730" name="bot_giorni" class="form-control" value="{{ form_state.bot_giorni }}"></div>
+        <div class="col-md-3"><label class="form-label">Valore nominale</label><input type="number" step="0.01" min="0" name="bot_nominale" class="form-control" value="{{ form_state.bot_nominale }}"></div>
+        <div class="col-md-3"><label class="form-label">Commissioni (per 100)</label><input type="number" step="0.0001" min="0" name="bot_commissioni" class="form-control" value="{{ form_state.bot_commissioni }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-bank2 me-2"></i>Calcola rendimento</button></div>
+      </form>
+      {% if risultato_bot %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Rendimento netto annuo', risultato_bot.rendimento_netto_annuo ~ '%', 'lordo ' ~ risultato_bot.rendimento_lordo_annuo ~ '%') }}
+        {{ metric_box('Guadagno netto', risultato_bot.guadagno_netto|euro, 'su esborso ' ~ risultato_bot.esborso_totale|euro) }}
+        {{ metric_box('Imposta sostitutiva 12,5%', risultato_bot.imposta_sostitutiva|euro, 'su scarto ' ~ risultato_bot.scarto_emissione|euro) }}
+        {{ metric_box('Rimborso a scadenza', risultato_bot.rimborso_a_scadenza|euro) }}
+      </div>
+      {{ render_messages(risultato_bot.notes, risultato_bot.warnings) }}
+      {{ render_sources(risultato_bot.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_pct = results.get('pronti_contro_termine') %}
+    {% call tool_section('pronti_contro_termine', 'Pronti contro termine', 'bi-arrow-repeat', 'Rendimento del PcT dai prezzi contrattuali (ritenuta 26%).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('pronti_contro_termine', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Prezzo a pronti</label><input type="number" step="0.01" min="0" name="pct_prezzo_pronti" class="form-control" value="{{ form_state.pct_prezzo_pronti }}"></div>
+        <div class="col-md-3"><label class="form-label">Prezzo a termine</label><input type="number" step="0.01" min="0" name="pct_prezzo_termine" class="form-control" value="{{ form_state.pct_prezzo_termine }}"></div>
+        <div class="col-md-2"><label class="form-label">Durata (giorni)</label><input type="number" min="1" max="730" name="pct_giorni" class="form-control" value="{{ form_state.pct_giorni }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-arrow-repeat me-2"></i>Calcola rendimento</button></div>
+      </form>
+      {% if risultato_pct %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Rendimento netto annuo', risultato_pct.rendimento_netto_annuo ~ '%', 'lordo ' ~ risultato_pct.rendimento_lordo_annuo ~ '%') }}
+        {{ metric_box('Provento netto', risultato_pct.provento_netto|euro, 'lordo ' ~ risultato_pct.provento_lordo|euro) }}
+        {{ metric_box('Ritenuta 26%', risultato_pct.ritenuta_fiscale|euro) }}
+        {{ metric_box('Durata', risultato_pct.giorni ~ ' giorni') }}
+      </div>
+      {{ render_messages(risultato_pct.notes, risultato_pct.warnings) }}
+      {{ render_sources(risultato_pct.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_par = results.get('grado_parentela') %}
+    {% call tool_section('grado_parentela', 'Grado di parentela', 'bi-diagram-2', 'Computo civilistico dei gradi (artt. 74-78 c.c.).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('grado_parentela', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Relazione</label><select name="par_relazione" class="form-select">{% for value, label in [('manuale', 'Computo manuale per generazioni'), ('genitore_figlio', 'Genitore e figlio'), ('nonno_nipote', 'Nonno e nipote (di figlio)'), ('bisnonno_pronipote', 'Bisnonno e pronipote'), ('fratelli', 'Fratelli / sorelle'), ('zio_nipote', 'Zio e nipote (di fratello)'), ('cugini', 'Cugini (figli di fratelli)'), ('prozio_pronipote', 'Prozio e pronipote'), ('cugini_secondi', 'Cugini di secondo grado'), ('figlio_cugino', 'Uno e il figlio del proprio cugino')] %}<option value="{{ value }}" {{ 'selected' if form_state.par_relazione == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Linea (manuale)</label><select name="par_linea" class="form-select"><option value="collaterale" {{ 'selected' if form_state.par_linea != 'retta' }}>Collaterale</option><option value="retta" {{ 'selected' if form_state.par_linea == 'retta' }}>Retta</option></select></div>
+        <div class="col-md-2"><label class="form-label">Generazioni 1° ramo</label><input type="number" min="0" max="10" name="par_generazioni_su" class="form-control" value="{{ form_state.par_generazioni_su }}"></div>
+        <div class="col-md-2"><label class="form-label">Generazioni 2° ramo</label><input type="number" min="0" max="10" name="par_generazioni_giu" class="form-control" value="{{ form_state.par_generazioni_giu }}"></div>
+        <div class="col-md-3"><label class="form-label">Affinit&agrave; (art. 78 c.c.)</label><select name="par_affinita" class="form-select"><option value="0" {{ 'selected' if form_state.par_affinita != '1' }}>No</option><option value="1" {{ 'selected' if form_state.par_affinita == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-diagram-2 me-2"></i>Calcola il grado</button></div>
+      </form>
+      {% if risultato_par %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Grado', risultato_par.grado ~ '°', risultato_par.linea) }}
+        {{ metric_box('Relazione', risultato_par.relazione) }}
+        {{ metric_box('Rilevanza successoria', risultato_par.rilevanza_successoria) }}
+        {{ metric_box('Affinit&agrave;', risultato_par.affinita) }}
+      </div>
+      {{ render_messages(risultato_par.notes, risultato_par.warnings) }}
+      {{ render_sources(risultato_par.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_rev = results.get('reversibilita') %}
+    {% call tool_section('reversibilita', 'Pensione di reversibilità', 'bi-person-hearts', 'Aliquote Tabella F L. 335/1995 e riduzioni per cumulo redditi.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('reversibilita', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Pensione annua del dante causa</label><input type="number" step="0.01" min="0" name="rev_pensione_annua" class="form-control" value="{{ form_state.rev_pensione_annua }}"></div>
+        <div class="col-md-2"><label class="form-label">Coniuge</label><select name="rev_coniuge" class="form-select"><option value="1" {{ 'selected' if form_state.rev_coniuge != '0' }}>S&igrave;</option><option value="0" {{ 'selected' if form_state.rev_coniuge == '0' }}>No</option></select></div>
+        <div class="col-md-2"><label class="form-label">Figli</label><input type="number" min="0" max="15" name="rev_figli" class="form-control" value="{{ form_state.rev_figli }}"></div>
+        <div class="col-md-2"><label class="form-label">Genitori</label><input type="number" min="0" max="2" name="rev_genitori" class="form-control" value="{{ form_state.rev_genitori }}"></div>
+        <div class="col-md-2"><label class="form-label">Fratelli/sorelle</label><input type="number" min="0" max="15" name="rev_fratelli" class="form-control" value="{{ form_state.rev_fratelli }}"></div>
+        <div class="col-md-3"><label class="form-label">Reddito annuo beneficiario</label><input type="number" step="0.01" min="0" name="rev_reddito_beneficiario" class="form-control" value="{{ form_state.rev_reddito_beneficiario }}"></div>
+        <div class="col-md-3"><label class="form-label">Trattamento minimo INPS annuo</label><input type="number" step="0.01" min="0" name="rev_trattamento_minimo" class="form-control" value="{{ form_state.rev_trattamento_minimo }}"></div>
+        <div class="col-md-3"><label class="form-label">Figli minori/studenti/inabili</label><select name="rev_figli_tutelati" class="form-select"><option value="0" {{ 'selected' if form_state.rev_figli_tutelati != '1' }}>No</option><option value="1" {{ 'selected' if form_state.rev_figli_tutelati == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-person-hearts me-2"></i>Calcola la reversibilit&agrave;</button></div>
+      </form>
+      {% if risultato_rev %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Spettante annua', risultato_rev.reversibilita_spettante|euro, risultato_rev.reversibilita_mensile_13|euro ~ ' su 13 mensilità') }}
+        {{ metric_box('Aliquota', risultato_rev.aliquota ~ '%', risultato_rev.composizione) }}
+        {{ metric_box('Lorda', risultato_rev.reversibilita_lorda|euro) }}
+        {{ metric_box('Riduzione cumulo', risultato_rev.riduzione_cumulo|euro, risultato_rev.fascia_cumulo) }}
+      </div>
+      {{ render_messages(risultato_rev.notes, risultato_rev.warnings) }}
+      {{ render_sources(risultato_rev.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_succ = results.get('imposte_successione') %}
+    {% call tool_section('imposte_successione', 'Imposte di successione', 'bi-file-earmark-text', 'Aliquote e franchigie per beneficiario (D.L. 262/2006) con ipocatastali.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('imposte_successione', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Quota devoluta</label><input type="number" step="0.01" min="0" name="succ_quota" class="form-control" value="{{ form_state.succ_quota }}"></div>
+        <div class="col-md-4"><label class="form-label">Rapporto col defunto</label><select name="succ_rapporto" class="form-select">{% for value, label in [('coniuge_linea_retta', 'Coniuge o parente in linea retta'), ('fratello_sorella', 'Fratello o sorella'), ('parente_4_affine_3', 'Altro parente fino al 4° / affine fino al 3°'), ('altro', 'Altro soggetto')] %}<option value="{{ value }}" {{ 'selected' if form_state.succ_rapporto == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><label class="form-label">Handicap grave</label><select name="succ_handicap" class="form-select"><option value="0" {{ 'selected' if form_state.succ_handicap != '1' }}>No</option><option value="1" {{ 'selected' if form_state.succ_handicap == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Valore immobili nella quota</label><input type="number" step="0.01" min="0" name="succ_valore_immobili" class="form-control" value="{{ form_state.succ_valore_immobili }}"></div>
+        <div class="col-md-3"><label class="form-label">Prima casa sugli immobili</label><select name="succ_prima_casa" class="form-select"><option value="0" {{ 'selected' if form_state.succ_prima_casa != '1' }}>No</option><option value="1" {{ 'selected' if form_state.succ_prima_casa == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-file-earmark-text me-2"></i>Calcola le imposte</button></div>
+      </form>
+      {% if risultato_succ %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Totale imposte', risultato_succ.totale_imposte|euro, risultato_succ.rapporto) }}
+        {{ metric_box('Imposta di successione', risultato_succ.imposta_successione|euro, risultato_succ.aliquota ~ '% su ' ~ risultato_succ.imponibile|euro) }}
+        {{ metric_box('Franchigia', risultato_succ.franchigia|euro) }}
+        {{ metric_box('Ipotecaria + catastale', (risultato_succ.imposta_ipotecaria + risultato_succ.imposta_catastale)|euro) }}
+      </div>
+      {{ render_messages(risultato_succ.notes, risultato_succ.warnings) }}
+      {{ render_sources(risultato_succ.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_vcat = results.get('valore_catastale') %}
+    {% call tool_section('valore_catastale', 'Valore catastale', 'bi-house', 'Rendita rivalutata e moltiplicatori per registro e successioni.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('valore_catastale', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Rendita catastale</label><input type="number" step="0.01" min="0" name="cat_rendita" class="form-control" value="{{ form_state.cat_rendita }}"></div>
+        <div class="col-md-5"><label class="form-label">Tipologia</label><select name="cat_gruppo" class="form-select">{% for value, label in [('abitazione_prima_casa', 'Abitazione prima casa'), ('abitazione_altri', 'Gruppo A (escl. A/10) e C (escl. C/1)'), ('gruppo_b', 'Gruppo B'), ('a10_gruppo_d', 'A/10 e gruppo D'), ('c1_gruppo_e', 'C/1 e gruppo E')] %}<option value="{{ value }}" {{ 'selected' if form_state.cat_gruppo == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-4"><label class="form-label">Ambito</label><select name="cat_ambito" class="form-select"><option value="registro" {{ 'selected' if form_state.cat_ambito != 'successione' }}>Registro / atti onerosi</option><option value="successione" {{ 'selected' if form_state.cat_ambito == 'successione' }}>Successioni e donazioni</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-house me-2"></i>Calcola il valore</button></div>
+      </form>
+      {% if risultato_vcat %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Valore catastale', risultato_vcat.valore_catastale|euro, risultato_vcat.gruppo) }}
+        {{ metric_box('Rendita rivalutata 5%', risultato_vcat.rendita_rivalutata|euro) }}
+        {{ metric_box('Moltiplicatore', risultato_vcat.moltiplicatore) }}
+      </div>
+      {{ render_messages(risultato_vcat.notes, risultato_vcat.warnings) }}
+      {{ render_sources(risultato_vcat.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_imu = results.get('imu') %}
+    {% call tool_section('imu', 'Calcolo IMU', 'bi-house-gear', 'Base imponibile e imposta annua con i moltiplicatori L. 160/2019.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('imu', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Rendita catastale</label><input type="number" step="0.01" min="0" name="imu_rendita" class="form-control" value="{{ form_state.imu_rendita }}"></div>
+        <div class="col-md-4"><label class="form-label">Categoria</label><select name="imu_gruppo" class="form-select">{% for value, label in [('a_non_a10', 'Gruppo A escluso A/10 (abitazioni)'), ('c2_c6_c7', 'C/2, C/6, C/7'), ('gruppo_b', 'Gruppo B'), ('c3_c4_c5', 'C/3, C/4, C/5'), ('a10', 'A/10 (uffici)'), ('d5', 'D/5 (banche e assicurazioni)'), ('gruppo_d', 'Gruppo D escluso D/5'), ('c1', 'C/1 (negozi)')] %}<option value="{{ value }}" {{ 'selected' if form_state.imu_gruppo == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><label class="form-label">Aliquota comunale %</label><input type="number" step="0.01" min="0" max="1.5" name="imu_aliquota" class="form-control" value="{{ form_state.imu_aliquota }}"></div>
+        <div class="col-md-3"><label class="form-label">Abitazione principale</label><select name="imu_abitazione_principale" class="form-select"><option value="0" {{ 'selected' if form_state.imu_abitazione_principale != '1' }}>No</option><option value="1" {{ 'selected' if form_state.imu_abitazione_principale == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Categoria di lusso (A/1, A/8, A/9)</label><select name="imu_lusso" class="form-select"><option value="0" {{ 'selected' if form_state.imu_lusso != '1' }}>No</option><option value="1" {{ 'selected' if form_state.imu_lusso == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-2"><label class="form-label">Mesi di possesso</label><input type="number" min="1" max="12" name="imu_mesi" class="form-control" value="{{ form_state.imu_mesi }}"></div>
+        <div class="col-md-2"><label class="form-label">Quota di possesso %</label><input type="number" step="0.01" min="1" max="100" name="imu_quota" class="form-control" value="{{ form_state.imu_quota }}"></div>
+        <div class="col-md-2"><label class="form-label">Contitolari residenti</label><input type="number" min="1" max="20" name="imu_residenti" class="form-control" value="{{ form_state.imu_residenti }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-house-gear me-2"></i>Calcola IMU</button></div>
+      </form>
+      {% if risultato_imu %}
+      <div class="row g-3 mt-1">
+        {% if risultato_imu.esito is defined %}
+        {{ metric_box('Esito', risultato_imu.esito, 'abitazione principale non di lusso') }}
+        {% else %}
+        {{ metric_box('Imposta annua', risultato_imu.imposta_annua|euro, risultato_imu.mesi_possesso ~ ' mesi, quota ' ~ risultato_imu.quota_possesso ~ '%') }}
+        {{ metric_box('Base imponibile', risultato_imu.base_imponibile|euro, 'moltiplicatore ' ~ risultato_imu.moltiplicatore) }}
+        {{ metric_box('Aliquota', risultato_imu.aliquota ~ '%') }}
+        {% if risultato_imu.detrazione %}{{ metric_box('Detrazione', risultato_imu.detrazione|euro) }}{% endif %}
+        {% endif %}
+      </div>
+      {{ render_messages(risultato_imu.notes, risultato_imu.warnings) }}
+      {{ render_sources(risultato_imu.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_comp = results.get('imposte_compravendita') %}
+    {% call tool_section('imposte_compravendita', 'Imposte compravendita', 'bi-house-add', 'Registro, ipocatastali e IVA su acquisto abitazioni.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('imposte_compravendita', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Regime</label><select name="comp_regime" class="form-select"><option value="privato" {{ 'selected' if form_state.comp_regime != 'iva' }}>Cessione da privato</option><option value="iva" {{ 'selected' if form_state.comp_regime == 'iva' }}>Cessione soggetta a IVA</option></select></div>
+        <div class="col-md-3"><label class="form-label">Prezzo</label><input type="number" step="0.01" min="0" name="comp_prezzo" class="form-control" value="{{ form_state.comp_prezzo }}"></div>
+        <div class="col-md-3"><label class="form-label">Valore catastale (prezzo-valore)</label><input type="number" step="0.01" min="0" name="comp_valore_catastale" class="form-control" value="{{ form_state.comp_valore_catastale }}"></div>
+        <div class="col-md-3"><label class="form-label">Prima casa</label><select name="comp_prima_casa" class="form-select"><option value="0" {{ 'selected' if form_state.comp_prima_casa != '1' }}>No</option><option value="1" {{ 'selected' if form_state.comp_prima_casa == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Categoria di lusso</label><select name="comp_lusso" class="form-select"><option value="0" {{ 'selected' if form_state.comp_lusso != '1' }}>No</option><option value="1" {{ 'selected' if form_state.comp_lusso == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-house-add me-2"></i>Calcola le imposte</button></div>
+      </form>
+      {% if risultato_comp %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Totale imposte', risultato_comp.totale_imposte|euro, risultato_comp.regime) }}
+        {{ metric_box('Base imponibile', risultato_comp.base_imponibile|euro) }}
+        {{ metric_box('Prima casa', risultato_comp.prima_casa) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Voce</th><th class="text-end">Importo</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_comp.dettaglio %}<tr><td class="fw-semibold">{{ row.voce }}</td><td class="text-end">{{ row.importo|euro }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_comp.notes, risultato_comp.warnings) }}
+      {{ render_sources(risultato_comp.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_rip = results.get('riparto_spese') %}
+    {% call tool_section('riparto_spese', 'Riparto spese e utenze', 'bi-people', 'Ripartizione per millesimi (art. 1123 c.c.), persone o giorni.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('riparto_spese', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Importo da ripartire</label><input type="number" step="0.01" min="0" name="rip_importo" class="form-control" value="{{ form_state.rip_importo }}"></div>
+        <div class="col-md-4"><label class="form-label">Criterio</label><select name="rip_criterio" class="form-select"><option value="millesimi" {{ 'selected' if form_state.rip_criterio not in ['persone', 'giorni'] }}>Millesimi (art. 1123 c.c.)</option><option value="persone" {{ 'selected' if form_state.rip_criterio == 'persone' }}>Numero di persone</option><option value="giorni" {{ 'selected' if form_state.rip_criterio == 'giorni' }}>Giorni di occupazione</option></select></div>
+        <div class="col-12"><label class="form-label">Quote (una per riga o separate da «;», formato nome: valore)</label><textarea name="rip_quote" rows="3" class="form-control" placeholder="Interno 1: 120&#10;Interno 2: 250">{{ form_state.rip_quote }}</textarea></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-people me-2"></i>Ripartisci</button></div>
+      </form>
+      {% if risultato_rip %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Importo ripartito', risultato_rip.importo_totale|euro, risultato_rip.criterio) }}
+        {{ metric_box('Quote', risultato_rip.numero_quote, 'totale ' ~ risultato_rip.totale_quote) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Nome</th><th class="text-end">Quota</th><th class="text-end">Incidenza</th><th class="text-end">Importo</th></tr></thead><tbody>{% for row in risultato_rip.riparto %}<tr><td class="fw-semibold">{{ row.nome }}</td><td class="text-end">{{ row.quota }}</td><td class="text-end">{{ row.incidenza }}%</td><td class="text-end fw-semibold">{{ row.importo|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_rip.notes, risultato_rip.warnings) }}
+      {{ render_sources(risultato_rip.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_catcat = results.get('categorie_catastali') %}
+    {% call tool_section('categorie_catastali', 'Categorie catastali', 'bi-card-list', 'Catalogo delle categorie A-F con le descrizioni ufficiali.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('categorie_catastali', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Gruppo</label><select name="catcat_gruppo" class="form-select">{% for value, label in [('TUTTI', 'Tutti i gruppi'), ('A', 'A — Abitazioni e uffici'), ('B', 'B — Edifici collettivi'), ('C', 'C — Commerciale e pertinenze'), ('D', 'D — Immobili speciali produttivi'), ('E', 'E — Immobili particolari'), ('F', 'F — Entità urbane')] %}<option value="{{ value }}" {{ 'selected' if form_state.catcat_gruppo == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-card-list me-2"></i>Mostra le categorie</button></div>
+      </form>
+      {% if risultato_catcat %}
+      <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Categoria</th><th>Descrizione</th></tr></thead><tbody>{% for row in risultato_catcat.categorie %}<tr><td class="fw-semibold">{{ row.categoria }}</td><td>{{ row.descrizione }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_catcat.notes, risultato_catcat.warnings) }}
+      {{ render_sources(risultato_catcat.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

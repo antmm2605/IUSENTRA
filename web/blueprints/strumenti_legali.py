@@ -53,6 +53,19 @@ TOOL_METHODS = {
     "codice_fiscale": "calcola_codice_fiscale",
     "tabella_istat": "tabella_variazioni_istat",
     "tabella_tassi": "tabella_tassi_interesse",
+    "taeg": "calcola_taeg",
+    "surroga": "calcola_surroga",
+    "rivalutazione_media": "calcola_rivalutazione_media",
+    "rendimento_bot": "calcola_rendimento_bot",
+    "pronti_contro_termine": "calcola_pronti_contro_termine",
+    "grado_parentela": "calcola_grado_parentela",
+    "reversibilita": "calcola_reversibilita",
+    "imposte_successione": "calcola_imposte_successione",
+    "valore_catastale": "calcola_valore_catastale",
+    "imu": "calcola_imu",
+    "imposte_compravendita": "calcola_imposte_compravendita",
+    "riparto_spese": "calcola_riparto_spese",
+    "categorie_catastali": "tabella_categorie_catastali",
 }
 
 
@@ -438,6 +451,84 @@ def api_tabella_istat():
 @_richiedi_login
 def api_tabella_tassi():
     return _json_result("tabella_tassi_interesse")
+
+
+@strumenti_legali.route("/api/taeg", methods=["POST"])
+@_richiedi_login
+def api_taeg():
+    return _json_result("calcola_taeg")
+
+
+@strumenti_legali.route("/api/surroga", methods=["POST"])
+@_richiedi_login
+def api_surroga():
+    return _json_result("calcola_surroga")
+
+
+@strumenti_legali.route("/api/rivalutazione-media", methods=["POST"])
+@_richiedi_login
+def api_rivalutazione_media():
+    return _json_result("calcola_rivalutazione_media")
+
+
+@strumenti_legali.route("/api/rendimento-bot", methods=["POST"])
+@_richiedi_login
+def api_rendimento_bot():
+    return _json_result("calcola_rendimento_bot")
+
+
+@strumenti_legali.route("/api/pronti-contro-termine", methods=["POST"])
+@_richiedi_login
+def api_pronti_contro_termine():
+    return _json_result("calcola_pronti_contro_termine")
+
+
+@strumenti_legali.route("/api/grado-parentela", methods=["POST"])
+@_richiedi_login
+def api_grado_parentela():
+    return _json_result("calcola_grado_parentela")
+
+
+@strumenti_legali.route("/api/reversibilita", methods=["POST"])
+@_richiedi_login
+def api_reversibilita():
+    return _json_result("calcola_reversibilita")
+
+
+@strumenti_legali.route("/api/imposte-successione", methods=["POST"])
+@_richiedi_login
+def api_imposte_successione():
+    return _json_result("calcola_imposte_successione")
+
+
+@strumenti_legali.route("/api/valore-catastale", methods=["POST"])
+@_richiedi_login
+def api_valore_catastale():
+    return _json_result("calcola_valore_catastale")
+
+
+@strumenti_legali.route("/api/imu", methods=["POST"])
+@_richiedi_login
+def api_imu():
+    return _json_result("calcola_imu")
+
+
+@strumenti_legali.route("/api/imposte-compravendita", methods=["POST"])
+@_richiedi_login
+def api_imposte_compravendita():
+    return _json_result("calcola_imposte_compravendita")
+
+
+@strumenti_legali.route("/api/riparto-spese", methods=["POST"])
+@_richiedi_login
+def api_riparto_spese():
+    return _json_result("calcola_riparto_spese")
+
+
+@strumenti_legali.route("/api/categorie-catastali", methods=["POST"])
+@_richiedi_login
+def api_categorie_catastali():
+    return _json_result("tabella_categorie_catastali")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

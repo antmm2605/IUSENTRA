@@ -28,6 +28,8 @@ export type DashboardData = {
   matters: Row[]
   deadlines: Array<{label:string; count:number; percent:number; tone:Tone}>
   economic: Array<{label:string; value:string; note?:string; delta?:string}>
+  notificationPresidia: Row[]
+  billingWork: Row[]
   lex: string[]
   dossiers: Dossier[]
   sources: Source[]
@@ -68,6 +70,8 @@ export const emptyDashboard: DashboardData = {
     {label:'Da incassare',value:'€ 0,00',note:'0 parcelle aperte'},
     {label:'Ore lavorate',value:'0 h',note:'0 voci timesheet'}
   ],
+  notificationPresidia: [],
+  billingWork: [],
   lex: [],
   dossiers: [],
   sources: []
@@ -236,6 +240,8 @@ export async function getDashboard(options: { refresh?: boolean } = {}): Promise
       matters: asRows(payload.high_priority_matters),
       deadlines: Array.isArray(payload.deadline_distribution) ? payload.deadline_distribution as DashboardData['deadlines'] : emptyDashboard.deadlines,
       economic: Array.isArray(payload.economic) ? payload.economic as DashboardData['economic'] : emptyDashboard.economic,
+      notificationPresidia: asRows(payload.notification_presidia),
+      billingWork: asRows(payload.billing_work),
       lex: Array.isArray(payload.lex_suggestions) ? payload.lex_suggestions as string[] : emptyDashboard.lex
     }
     return {

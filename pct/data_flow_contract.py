@@ -42,9 +42,9 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
         postgres_tables=("appuntamenti", "scadenze", "fascicoli", "clienti"),
     ),
     "regia_operativa": DataFlowArea(
-        label="Regia Operativa",
+        label="Controllo Studio",
         react_routes=("/workspace-intelligente",),
-        menu_items=(("Regia Operativa", "/workspace-intelligente"),),
+        menu_items=(("Controllo Studio", "/workspace-intelligente"),),
         api_routes=("/api/v1/ui/workspace-intelligente",),
         tenant_path_keys=("WORKSPACE_INTELLIGENCE_DB", "AGENDA_DB", "FASCICOLI_DB"),
         json_modules=("appuntamenti", "fascicoli", "scadenze"),

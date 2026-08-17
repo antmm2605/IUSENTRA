@@ -418,7 +418,7 @@ function readShellBootstrap(): ShellBootstrap {
 const primaryNav: NavItem[] = [
   { label: 'Panoramica', icon: LayoutDashboard, href: '/' },
   { label: 'Oggi', icon: Sunrise, href: '/oggi', featureFlag: 'routes.appV2.dailyPlan.home', requiresAnyPermission: ['agenda.leggi', 'scadenziario.leggi'] },
-  { label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' },
+  { label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' },
   { label: 'Ricerca Studio', icon: Search, href: '/global-search' }
 ]
 
@@ -750,12 +750,12 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
   if (route === '/workspace-intelligente' || route === '/regia-operativa' || route.startsWith('/regia-operativa/')) {
     return {
       context: 'regia-operativa',
-      title: 'Lex AI regia',
+      title: 'Lex AI controllo studio',
       body: 'Legge priorità, PEC, scadenze e fascicoli da presidiare per suggerire il prossimo passo operativo.',
       primaryHref: OPEN_LEX_WIDGET_HREF,
-      primaryLabel: 'Apri Lex regia',
+      primaryLabel: 'Apri Lex controllo studio',
       secondaryHref: '/workspace-intelligente',
-      secondaryLabel: 'Regia operativa',
+      secondaryLabel: 'Controllo Studio',
     }
   }
   if (route === '/agenda/nuovo' || route.startsWith('/agenda/nuovo/') || /^\/agenda\/[^/]+\/modifica$/.test(route)) {
@@ -939,7 +939,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
     primaryHref: OPEN_LEX_WIDGET_HREF,
     primaryLabel: 'Apri Lex',
     secondaryHref: '/workspace-intelligente',
-    secondaryLabel: 'Regia operativa',
+    secondaryLabel: 'Controllo Studio',
   }
 }
 
@@ -1150,7 +1150,7 @@ function Compact({ title, icon, count, rows, href }:{title:string; icon:ReactNod
 }
 
 function Operations({ data }:{data:DashboardData}) {
-  return <Panel title="Azioni urgenti di oggi" subtitle="Cosa lavorare per primo, dagli archivi operativi dello studio." icon={<AlertTriangle size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione urgente da lavorare adesso.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel>
+  return <Panel title="Azioni urgenti di oggi" subtitle="Cosa lavorare per primo, dagli archivi operativi dello studio." icon={<AlertTriangle size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione urgente da lavorare adesso.</Empty>}<a className="iu-link" href="/workspace-intelligente">Apri Controllo Studio -&gt;</a></Panel>
 }
 
 /**
@@ -1244,24 +1244,36 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
   const agendaRows = data.agenda.slice(0,5)
   const matterRows = data.matters.slice(0,5)
   const pecRows = data.pec.slice(0,5)
+  const notificationRows = data.notificationPresidia.slice(0,5)
+  const billingRows = data.billingWork.slice(0,5)
   return (
     <main className="iu-content iu-regia-page">
       <div className="iu-page-heading">
         <div>
-          <h1>Regia Operativa</h1>
-          <p>La regia vede tutto lo studio: ogni riga apre direttamente l'evento da lavorare.</p>
+          <h1>Controllo Studio</h1>
+          <p>Scadenze, notifiche, comunicazioni e incassi da lavorare in un solo quadro.</p>
         </div>
-        <a className={`iu-sync ${loading?'':'ok'}`} href="/workspace-intelligente">{loading?'Sincronizzazione dati...':'Apri versione completa'}</a>
+        <span className={`iu-sync ${loading?'':'ok'}`} role="status" aria-live="polite">{loading ? 'Aggiornamento dati...' : 'Dati dello studio aggiornati'}</span>
       </div>
+      <nav className="iu-regia-actions" aria-label="Azioni rapide dello studio">
+        <a href="/notifiche-legali?section=operazioni"><ShieldCheck size={18}/><span><strong>Prepara notifica</strong><small>Relata, firma e invio locale</small></span></a>
+        <a href="/fatturazione/nuova"><FileText size={18}/><span><strong>Nuova fattura</strong><small>Cliente, fascicolo e voci</small></span></a>
+        <a href="/incassi-pagamenti#registra-incasso"><Banknote size={18}/><span><strong>Registra incasso</strong><small>Bonifico o altro pagamento</small></span></a>
+        <a href="/incassi-pagamenti"><CreditCard size={18}/><span><strong>Pagamenti aperti</strong><small>Parcelle, link ed esiti</small></span></a>
+      </nav>
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
       <section className="iu-grid">
         <div className="span6"><Worklist data={data}/></div>
+        <div className="span6"><Panel title="Notifiche da presidiare" subtitle="Ogni riga apre il presidio e la prossima azione registrata." icon={<ShieldCheck size={17}/>} count={notificationRows.length}><List rows={notificationRows} href="/notifiche-legali?section=presidi"/><a className="iu-link" href="/notifiche-legali?section=presidi">Apri presidi notifiche -&gt;</a></Panel></div>
+        <div className="span6"><Panel title="Parcelle e incassi" subtitle="Scadenze di pagamento lette dall'archivio economico dello studio." icon={<Banknote size={17}/>} count={billingRows.length}><List rows={billingRows} href="/incassi-pagamenti"/><a className="iu-link" href="/incassi-pagamenti">Apri incassi e pagamenti -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Agenda da presidiare" subtitle="Udienze e appuntamenti dei prossimi giorni: un clic apre l'impegno." icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
         <div className="span4"><Panel title="PEC da presidiare" subtitle="Ultime PEC ricevute: un clic apre il messaggio." icon={<Mail size={17}/>} count={pecRows.length}><List rows={pecRows} href="/email/"/><a className="iu-link" href="/email/">Apri casella PEC -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Comunicazioni clienti" subtitle="Messaggi recenti: un clic apre la conversazione." icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Fascicoli prioritari" subtitle="Pratiche con termini critici: un clic apre il fascicolo." icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorità.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span6"><Economic data={data}/></div>
         <div className="span6"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
         <div className="span6"><Lex data={data}/></div>
+        <div className="span6"><Sources data={data}/></div>
       </section>
     </main>
   )
@@ -1522,7 +1534,7 @@ export default function App() {
             <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isCartelleCondivisePage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/><span>Clienti</span></a>
             <a className={isEmailPage||isEmailOrdinariaPage||isNotificheLegaliPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/><span>Posta</span></a>
             <a className={isAgendaImportPage||isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isTimesheetPage||isScadenziarioPage||isCalculatorPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/><span>Agenda</span></a>
-            <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage||isQuickOrganizerImportPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/><span>Regia</span></a>
+            <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage||isQuickOrganizerImportPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/><span>Controllo</span></a>
           </div>
           <button
             type="button"

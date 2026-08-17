@@ -895,7 +895,7 @@ export function AgendaPage() {
           <p>Appuntamenti, udienze, scadenze, sincronizzazioni e priorita dello studio in una vista unica.</p>
         </div>
         <div className="iu-ag-hero__actions">
-          <Button href="/workspace-intelligente"><Sparkles size={15}/> Regia</Button>
+          <Button href="/workspace-intelligente"><Sparkles size={15}/> Controllo studio</Button>
           <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
           <Button href="/polisWeb"><Landmark size={15}/> Aggiorna dagli uffici</Button>
           <NewAgendaMenu/>

@@ -45,7 +45,7 @@ export type StudioModuleConfig = {
 
 const commonStudioLinks: StudioModuleLink[] = [
   { label: 'Panoramica', href: '/' },
-  { label: 'Regia operativa', href: '/workspace-intelligente' },
+  { label: 'Controllo Studio', href: '/workspace-intelligente' },
   { label: 'Ricerca Studio', href: '/global-search' },
 ]
 
@@ -405,7 +405,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Timesheet', body: 'Registra attività e genera parcelle dalle ore lavorate.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Tempo' },
       { title: 'Esporta dati', body: 'Scarica i dati economici dello studio per controlli e analisi.', href: '/export/fatturazione.csv', action: 'Esporta', icon: 'download', tone: 'success', meta: 'Dati economici' },
       { title: 'Condivisioni', body: 'Gestisci cartelle condivise e accesso documentale dei clienti.', href: '/cartelle-condivise', action: 'Apri condivisioni', icon: 'folder', tone: 'warning', meta: 'Clienti' },
-      { title: 'Regia operativa', body: 'Torna alla cabina con priorità e prossime azioni.', href: '/workspace-intelligente', action: 'Apri regia', icon: 'spark', tone: 'purple', meta: 'Priorità' },
+      { title: 'Controllo Studio', body: 'Torna al quadro con priorità e prossime azioni.', href: '/workspace-intelligente', action: 'Apri controllo', icon: 'spark', tone: 'purple', meta: 'Priorità' },
       { title: 'Agenda', body: 'Apri appuntamenti, udienze e calendario dello studio.', href: '/agenda', action: 'Apri agenda', icon: 'calendar', tone: 'primary', meta: 'Calendario' },
       { title: 'Nuovo appuntamento', body: 'Inserisci un impegno collegato a cliente o fascicolo.', href: '/agenda/nuovo', action: 'Crea appuntamento', icon: 'plus', tone: 'success', meta: 'Agenda' },
       { title: 'Ricerca studio', body: 'Trova rapidamente fascicoli, clienti, scadenze, comunicazioni e documenti.', href: '/global-search', action: 'Cerca', icon: 'book', tone: 'purple', meta: 'Ricerca' },

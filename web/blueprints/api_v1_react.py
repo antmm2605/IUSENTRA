@@ -415,6 +415,13 @@ from web.services.studio_site_runtime import site_admin_identity_or_403
 from web.services.feature_flags import feature_disabled_response, feature_flags_payload, is_feature_enabled
 from web.services.notification_presidia_runtime import (
     apply_legal_notification_presidia_effective_flags,
+    build_notification_presidio_repository,
+    legal_notification_presidia_rollout,
+)
+from web.services.notification_presidia_payloads import (
+    NEXT_ACTIONS as NOTIFICATION_NEXT_ACTIONS,
+    NOTIFICATION_CASE_LABELS,
+    STATUS_LABELS as NOTIFICATION_STATUS_LABELS,
 )
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -2297,6 +2304,119 @@ def _economic_rows() -> list[dict[str, Any]]:
         },
         {"label": "Ore lavorate", "value": f"{str(hours).replace('.', ',')} h", "note": f"{len(month_time)} voci timesheet"},
     ]
+
+
+_NOTIFICATION_TERMINAL_STATUSES = {
+    "CLOSED",
+    "NOT_REQUIRED",
+    "CANCELLED",
+    "PROOF_DEPOSITED",
+}
+
+
+def _notification_presidia_rows(limit: int = 5) -> list[dict[str, Any]]:
+    """Presidi aperti letti dal registro notifiche, senza mutarne lo stato."""
+
+    decision = legal_notification_presidia_rollout(fail_closed_on_error=False)
+    if not bool(decision.get("enabled")):
+        return []
+    repo = build_notification_presidio_repository()
+    page = repo.list_presidia(limit=max(limit * 3, 15)).to_public_dict()
+    rows: list[dict[str, Any]] = []
+    for item in page.get("items") or []:
+        status = str(item.get("status") or "DETECTED").upper()
+        if status in _NOTIFICATION_TERMINAL_STATUSES:
+            continue
+        presidio_id = str(item.get("id") or "").strip()
+        notification_case = str(item.get("notificationCase") or "").strip()
+        priority = str(item.get("priority") or "P1").upper()
+        progress = item.get("recipientProgress") if isinstance(item.get("recipientProgress"), Mapping) else {}
+        total = int(progress.get("total") or 0)
+        delivered = int(progress.get("delivered") or 0)
+        failed = int(progress.get("failed") or 0)
+        progress_label = ""
+        if total:
+            progress_label = f"Destinatari: {delivered}/{total} consegnati"
+            if failed:
+                progress_label += f", {failed} non consegnati"
+        next_action = NOTIFICATION_NEXT_ACTIONS.get(status, "Apri il presidio")
+        subtitle = " · ".join(part for part in (next_action, progress_label) if part)
+        tone = (
+            "danger"
+            if status in {"DELIVERY_FAILED", "PARTIAL_DELIVERY"} or priority == "P0"
+            else "warning"
+            if bool(item.get("humanReviewRequired")) or priority == "P1"
+            else "primary"
+        )
+        rows.append(
+            {
+                "id": f"presidio-{presidio_id}",
+                "title": NOTIFICATION_CASE_LABELS.get(
+                    notification_case.casefold(),
+                    "Notifica legale da verificare",
+                ),
+                "subtitle": subtitle,
+                "time": _format_date(item.get("explicitDueAt") or item.get("updatedAt")),
+                "badge": NOTIFICATION_STATUS_LABELS.get(status, status),
+                "tone": tone,
+                "href": "/notifiche-legali?"
+                + urlencode(
+                    {
+                        "section": "presidi",
+                        "coda": "da-lavorare",
+                        "presidio": presidio_id,
+                    }
+                ),
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def _billing_work_rows(limit: int = 5) -> list[dict[str, Any]]:
+    """Parcelle da incassare lette dallo stesso bridge di Incassi e Pagamenti."""
+
+    payload = build_react_incassi_pagamenti_payload(
+        get_fatturazione=get_fatturazione,
+        get_pagamenti=get_pagamenti,
+        get_clienti=get_clienti,
+        current_user=g.get("utente_corrente"),
+        query={},
+    )
+    rows: list[dict[str, Any]] = []
+    for item in payload.get("records") or []:
+        invoice_id = str(item.get("invoiceId") or "").strip()
+        invoice_number = str(item.get("invoiceNumber") or "").strip()
+        customer = str(item.get("customerName") or "Cliente non indicato").strip()
+        amount = str(item.get("amountDisplay") or "").strip()
+        state_label = str(item.get("stateLabel") or "Da verificare").strip()
+        state = str(item.get("state") or "").upper()
+        tone = (
+            "danger"
+            if state in {"SCADUTA", "FALLITO"}
+            else "warning"
+            if state not in {"PAGATO", "CONFERMATO"}
+            else "success"
+        )
+        rows.append(
+            {
+                "id": f"incasso-{invoice_id or item.get('id') or len(rows)}",
+                "title": f"Parcella {invoice_number}" if invoice_number else "Parcella da incassare",
+                "subtitle": " · ".join(part for part in (customer, amount) if part),
+                "time": str(item.get("dueAt") or "").strip(),
+                "badge": state_label,
+                "tone": tone,
+                "href": (
+                    f"/incassi-pagamenti?{urlencode({'id_parcella': invoice_id})}#registra-incasso"
+                    if invoice_id
+                    else "/incassi-pagamenti"
+                ),
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows
 
 
 def _lex_suggestions(
@@ -9190,6 +9310,8 @@ def _collect_dashboard_payload() -> dict[str, Any]:
         [],
     )
     economic = _economic_rows()
+    notification_presidia = _safe("notifiche_legali", _notification_presidia_rows, [])
+    billing_work = _safe("fatturazione", _billing_work_rows, [])
     lex = _lex_suggestions(
         urgent_actions=urgent_actions,
         incomplete_registry=completion,
@@ -9238,6 +9360,8 @@ def _collect_dashboard_payload() -> dict[str, Any]:
         "high_priority_matters": matter_rows,
         "deadline_distribution": deadline_distribution,
         "economic": economic,
+        "notification_presidia": notification_presidia,
+        "billing_work": billing_work,
         "lex_suggestions": lex,
         "contracts": {
             "empty_sections_are_real_empty_state": True,
@@ -9287,6 +9411,8 @@ def _dashboard_error_payload() -> dict[str, Any]:
         "high_priority_matters": [],
         "deadline_distribution": [],
         "economic": [],
+        "notification_presidia": [],
+        "billing_work": [],
         "lex_suggestions": [],
         "contracts": {
             "empty_sections_are_real_empty_state": True,

@@ -2719,8 +2719,16 @@ body:has(.iu-client-portal-public) #pct-ai-widget {
   .iu-page-heading__actions .iu-sync{display:inline-flex;font-size:11px}
 }
 
-/* ===== Regia Operativa: coda "Da lavorare adesso" =====
+/* ===== Controllo Studio: azioni rapide e coda "Da lavorare adesso" =====
    Voci numerate per urgenza reale; ogni riga apre l'evento specifico. */
+.iu-regia-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.iu-regia-actions>a{min-height:68px;display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--iu-border);border-radius:10px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);transition:border-color .18s,box-shadow .18s,transform .18s}
+.iu-regia-actions>a:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.28);box-shadow:0 12px 26px rgba(15,23,42,.08)}
+.iu-regia-actions>a:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:2px}
+.iu-regia-actions svg{flex:0 0 auto;color:var(--iu-blue-700)}
+.iu-regia-actions span{min-width:0;display:grid;gap:3px}
+.iu-regia-actions strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1f2937;font-size:13px;font-weight:900}
+.iu-regia-actions small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:700}
 .iu-worklist{margin:0;padding:0;list-style:none;display:grid;gap:2px}
 .iu-worklist-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;align-items:center;gap:10px;min-height:48px;padding:5px 0;border-radius:10px}
 .iu-worklist-row:hover{background:rgba(37,99,235,.045)}
@@ -2733,7 +2741,12 @@ body:has(.iu-client-portal-public) #pct-ai-widget {
 .iu-worklist-rank.tone-warning,.iu-worklist-rank.tone-orange{background:rgba(245,158,11,.14);color:#b45309}
 .iu-worklist-rank.tone-primary{background:rgba(37,99,235,.11);color:var(--iu-blue-700)}
 .iu-worklist-rank.tone-success{background:rgba(16,185,129,.12);color:#047857}
+@media(max-width:1100px){
+  .iu-regia-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media(max-width:640px){
+  .iu-regia-actions{grid-template-columns:1fr;gap:8px;margin-bottom:10px}
+  .iu-regia-actions>a{min-height:58px}
   .iu-worklist-row{grid-template-columns:26px minmax(0,1fr) auto}
   .iu-worklist-row time{display:none}
 }

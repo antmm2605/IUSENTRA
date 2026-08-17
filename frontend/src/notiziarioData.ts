@@ -48,9 +48,23 @@ export type NotiziarioItem = {
   linkedCaseLabel: string
 }
 
+export type NotiziarioSourceState = {
+  id: string
+  label: string
+  url: string
+  ok: boolean
+  count: number
+  latestPublishedAt: string
+  message: string
+  preservedFromCache: boolean
+}
+
 export type NotiziarioPayload = {
   ok: boolean
   generatedAt: string
+  refreshedAt: string
+  refreshRequired: boolean
+  sourceStates: NotiziarioSourceState[]
   items: NotiziarioItem[]
   filters: NotiziarioFilter[]
   quickSources: NotiziarioQuickSource[]
@@ -68,6 +82,9 @@ type InteractionPatch = {
 const emptyPayload: NotiziarioPayload = {
   ok: false,
   generatedAt: '',
+  refreshedAt: '',
+  refreshRequired: true,
+  sourceStates: [],
   items: [],
   filters: [{ id: 'all', label: 'Tutte' }],
   quickSources: [],
@@ -121,6 +138,21 @@ function normalisePayload(value: unknown): NotiziarioPayload {
   return {
     ok: boolean(payload.ok),
     generatedAt: text(payload.generatedAt),
+    refreshedAt: text(payload.refreshedAt),
+    refreshRequired: boolean(payload.refreshRequired),
+    sourceStates: rows(payload.sourceStates).map((value) => {
+      const item = record(value)
+      return {
+        id: text(item.id),
+        label: text(item.label),
+        url: text(item.url),
+        ok: boolean(item.ok),
+        count: Number(item.count || 0),
+        latestPublishedAt: text(item.latestPublishedAt),
+        message: text(item.message),
+        preservedFromCache: boolean(item.preservedFromCache),
+      }
+    }).filter((item) => item.id && item.label),
     items: rows(payload.items).map(normaliseItem).filter((item) => item.id),
     filters: rows(payload.filters).map((value) => {
       const item = record(value)
@@ -161,7 +193,20 @@ export async function loadNotiziario(): Promise<NotiziarioPayload> {
   })
   const payload = normalisePayload(await readJson(response))
   if (!response.ok || !payload.ok) {
-    throw new Error(payload.message || 'Notiziario momentaneamente non disponibile.')
+    throw new Error(payload.message || 'Notizie utili momentaneamente non disponibili.')
+  }
+  return payload
+}
+
+export async function refreshNotiziario(): Promise<NotiziarioPayload> {
+  const response = await fetch('/api/v1/ui/notiziario/aggiorna', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  const payload = normalisePayload(await readJson(response))
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.message || 'Aggiornamento delle fonti non riuscito.')
   }
   return payload
 }
@@ -178,7 +223,7 @@ export async function updateNotiziarioInteraction(id: string, patch: Interaction
   })
   const payload = record(await readJson(response))
   if (!response.ok || payload.ok !== true) {
-    throw new Error(text(payload.message) || 'Modifica del Notiziario non salvata.')
+    throw new Error(text(payload.message) || 'Modifica della notizia utile non salvata.')
   }
   return normaliseItem(payload.item)
 }

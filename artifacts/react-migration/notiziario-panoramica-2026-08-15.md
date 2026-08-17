@@ -51,3 +51,49 @@ Gli stati di lettura e preferito usati nel collaudo sono stati ripristinati; nes
 ## Limite governato
 
 Alcuni siti istituzionali possono non esporre testo leggibile senza autenticazione o possono rifiutare il recupero automatico. In quel caso il pannello non simula contenuti: dichiara l'indisponibilità e offre il collegamento ufficiale. Il Notiziario e tutte le altre azioni restano operativi.
+
+
+## Aggiornamento 17 agosto 2026 - Notizie utili
+
+Il nome visibile della superficie è stato aggiornato in **Notizie utili**, coerente con l'uso quotidiano di uno studio legale.
+
+### Fonti ufficiali presidiate
+
+L'aggiornamento dedicato interroga esclusivamente queste fonti:
+
+- Ministero della giustizia;
+- Portale dei Servizi Telematici del Ministero della giustizia;
+- Consiglio Nazionale Forense;
+- Cassa Forense tramite CF News;
+- Gazzetta Ufficiale;
+- Corte Suprema di Cassazione.
+
+La fonte fiscale non pertinente è stata rimossa dalla superficie. Ogni risposta e ogni reindirizzamento devono restare nei domini ufficiali ammessi.
+
+### Aggiornamento e persistenza
+
+- POST /api/v1/ui/notiziario/aggiorna aggiorna le sei fonti in parallelo con limiti di tempo e quantità.
+- La cache ufficiale è salvata nella tabella tenant settings_config, sezione notizie_utili_fonti_v1, valida sia per SQLite sia per PostgreSQL.
+- Il caricamento iniziale usa la cache SQL e richiede automaticamente un aggiornamento quando manca o supera sei ore.
+- Se una sola fonte non risponde, vengono conservati soltanto i suoi elementi precedenti; le altre fonti continuano ad aggiornarsi.
+- Lettura, preferito e collegamento al fascicolo restano persistenti anche per gli identificativi ufficiali stabili.
+
+### Interfaccia
+
+- Il comando Aggiorna esegue ora un recupero reale dalle fonti, non una semplice rilettura del database.
+- I filtri e le fonti rapide comprendono anche PST Giustizia e Corte di Cassazione.
+- La freccia nell'angolo inferiore destro chiude e riapre l'intero pannello.
+- Il pannello conserva ricerca, lettore interno, tutto schermo, preferiti, fascicolo e creazione della scadenza.
+
+### Verifiche eseguite prima del collaudo visivo
+
+- python -m compileall pct web -q;
+- npm run typecheck;
+- python -m pytest tests/test_notizie_utili.py tests/test_notiziario_react.py tests/test_utf8_integrity.py -q: 19 test superati;
+- recupero reale delle sei fonti: tutte raggiungibili, con contenuti più recenti rilevati il 17 agosto 2026 per Gazzetta Ufficiale e Corte di Cassazione.
+- container locale ricostruito e healthy su http://127.0.0.1:8080;
+- POST reale /api/v1/ui/notiziario/aggiorna nel container: 61 elementi, sette filtri compreso Tutte e sei fonti con esito positivo.
+
+### Stato della prova visiva
+
+Il servizio di controllo del browser integrato Codex non si è avviato per un errore del sandbox Windows. La nuova freccia e i filtri non sono quindi dichiarati verificati materialmente in questa sessione; la prova API reale non viene usata come sostituto della prova visiva.

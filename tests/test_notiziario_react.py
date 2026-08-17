@@ -210,6 +210,93 @@ def test_api_interazione_salva_preferito_e_lettura(tmp_path: Path, monkeypatch):
     assert saved["7"]["favorite"] is True
 
 
+
+
+def _official_news_row() -> dict[str, object]:
+    return {
+        "id": "official_0123456789abcdef01234567",
+        "slug": "pst-0123456789ab",
+        "title": "Aggiornamento PST",
+        "short_summary": "Indicazioni operative pubblicate dal Portale dei servizi telematici.",
+        "content": "Indicazioni operative pubblicate dal Portale dei servizi telematici.",
+        "news_type": "informazione_professionale",
+        "published_at": "2026-08-17",
+        "source_name": "PST Giustizia",
+        "source_code": "pst_giustizia",
+        "source_category": "informazione_professionale",
+        "source_url": "https://pst.giustizia.it/PST/it/news.page",
+        "matter_name": "",
+        "submatter_name": "",
+        "publication_status": "published",
+    }
+
+
+def test_api_aggiorna_sei_fonti_ufficiali_e_salva_la_cache_tenant(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    saved: dict[str, object] = {}
+    source_states = [
+        {
+            "id": row["id"],
+            "label": row["label"],
+            "url": row["url"],
+            "ok": True,
+            "count": 1 if row["id"] == "pst_giustizia" else 0,
+            "latestPublishedAt": "2026-08-17" if row["id"] == "pst_giustizia" else "",
+            "message": "",
+        }
+        for row in api.SOURCE_DEFINITIONS
+    ]
+    monkeypatch.setattr(api, "_notiziario_load_cache", lambda: {"items": [], "sources": [], "refreshedAt": ""})
+    monkeypatch.setattr(api, "refresh_notizie_utili", lambda **_kwargs: {
+        "items": [_official_news_row()],
+        "sources": source_states,
+        "refreshedAt": "2026-08-17T10:00:00Z",
+    })
+    monkeypatch.setattr(api, "_notiziario_save_cache", lambda cache: saved.update(cache) or "2026-08-17T10:00:00Z")
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {})
+    monkeypatch.setattr(api, "_notiziario_case_options", lambda: [])
+    monkeypatch.setattr(api, "_audit_event", lambda *_args, **_kwargs: None)
+    client, headers = _client(tmp_path)
+
+    response = client.post("/api/v1/ui/notiziario/aggiorna", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["items"][0]["sourceGroup"] == "pst_giustizia"
+    assert [row["id"] for row in payload["quickSources"]] == [
+        "giustizia",
+        "pst_giustizia",
+        "cnf",
+        "cassa_forense",
+        "gazzetta_ufficiale",
+        "cassazione",
+    ]
+    assert "fatture_corrispettivi" not in {row["id"] for row in payload["quickSources"]}
+    assert saved["items"][0]["id"] == "official_0123456789abcdef01234567"
+
+
+def test_api_interazione_supporta_notizie_ufficiali_della_cache(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    saved: dict[str, object] = {}
+    monkeypatch.setattr(api, "_notiziario_cache_item", lambda _news_id: _official_news_row())
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {})
+    monkeypatch.setattr(api, "_notiziario_save_interactions", lambda interactions: saved.update(interactions) or "2026-08-17T10:00:00Z")
+    monkeypatch.setattr(api, "_notiziario_case_options", lambda: [])
+    monkeypatch.setattr(api, "_audit_event", lambda *_args, **_kwargs: None)
+    client, headers = _client(tmp_path)
+
+    response = client.patch(
+        "/api/v1/ui/notiziario/official_0123456789abcdef01234567/interazione",
+        headers=headers,
+        json={"read": True, "favorite": True},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["item"]["read"] is True
+    assert saved["official_0123456789abcdef01234567"]["favorite"] is True
+
 def test_api_fonte_rapida_usa_il_lettore_governato(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(
         "pct.legal_update_web_verification.fetch_official_reader_content",

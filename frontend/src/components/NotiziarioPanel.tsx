@@ -5,6 +5,8 @@ import {
   CalendarPlus,
   Check,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   FolderPlus,
   Landmark,
@@ -20,6 +22,7 @@ import { sanitizeDisplayText } from '../displayText'
 import { formatDateIt } from '../formatting'
 import {
   loadNotiziario,
+  refreshNotiziario,
   loadNotiziarioSource,
   notiziarioEmptyPayload,
   updateNotiziarioInteraction,
@@ -44,7 +47,7 @@ function deadlineHref(item: NotiziarioItem): string {
   const params = new URLSearchParams()
   params.set('titolo', `Verifica aggiornamento: ${item.title}`)
   params.set('descrizione', [item.summary, item.sourceUrl ? `Fonte: ${item.sourceUrl}` : ''].filter(Boolean).join('\n\n'))
-  params.set('note', `Aggiornamento dal Notiziario IUSENTRA (${item.sourceName}).`)
+  params.set('note', `Aggiornamento da Notizie utili IUSENTRA (${item.sourceName}).`)
   if (item.linkedCaseId) params.set('id_fascicolo', item.linkedCaseId)
   return `/scadenziario/nuova?${params.toString()}`
 }
@@ -59,26 +62,57 @@ export function NotiziarioPanel() {
   const [selectedId, setSelectedId] = useState('')
   const [busyId, setBusyId] = useState('')
   const [expanded, setExpanded] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const [linking, setLinking] = useState(false)
   const [caseId, setCaseId] = useState('')
   const [webSource, setWebSource] = useState<NotiziarioQuickSource | null>(null)
   const [sourceReader, setSourceReader] = useState<NotiziarioSourceReader | null>(null)
   const [sourceLoading, setSourceLoading] = useState(false)
 
+  const acceptPayload = (next: typeof payload) => {
+    setPayload(next)
+    setSelectedId((current) => (
+      current && next.items.some((item) => item.id === current)
+        ? current
+        : next.items[0]?.id || ''
+    ))
+  }
+
   const refresh = () => {
     setLoading(true)
     setError('')
-    loadNotiziario()
-      .then((next) => {
-        setPayload(next)
-        setSelectedId((current) => current && next.items.some((item) => item.id === current) ? current : next.items[0]?.id || '')
-      })
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Notiziario momentaneamente non disponibile.'))
+    refreshNotiziario()
+      .then(acceptPayload)
+      .catch((reason: unknown) => setError(
+        reason instanceof Error ? reason.message : 'Aggiornamento delle fonti non riuscito.',
+      ))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
-    refresh()
+    let active = true
+    setLoading(true)
+    setError('')
+    loadNotiziario()
+      .then(async (next) => {
+        if (!active) return
+        acceptPayload(next)
+        if (next.refreshRequired) {
+          const refreshed = await refreshNotiziario()
+          if (active) acceptPayload(refreshed)
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(
+          reason instanceof Error ? reason.message : 'Notizie utili momentaneamente non disponibili.',
+        )
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [])
 
   useEffect(() => {
@@ -169,17 +203,24 @@ export function NotiziarioPanel() {
       .finally(() => setSourceLoading(false))
   }
 
+  const toggleCollapsed = () => {
+    if (!collapsed) {
+      setExpanded(false)
+    }
+    setCollapsed((value) => !value)
+  }
+
   return (
-    <section className={`iu-notiziario ${expanded ? 'is-expanded' : ''}`} aria-labelledby="iu-notiziario-title">
+    <section className={`iu-notiziario ${expanded ? 'is-expanded' : ''} ${collapsed ? 'is-collapsed' : ''}`} aria-labelledby="iu-notiziario-title">
       <header className="iu-notiziario__header">
         <div>
           <span className="iu-notiziario__eyebrow"><Newspaper size={15} /> Informazione professionale</span>
-          <h2 id="iu-notiziario-title">Notiziario</h2>
+          <h2 id="iu-notiziario-title">Notizie utili</h2>
           <p>Aggiornamenti pubblicati dalle fonti istituzionali, pronti da leggere e collegare al lavoro dello studio.</p>
         </div>
-        <div className="iu-notiziario__summary" aria-label="Stato del Notiziario">
+        <div className="iu-notiziario__summary" aria-label="Stato delle Notizie utili">
           <span><BellRing size={15} /><strong>{unreadCount}</strong> da leggere</span>
-          <button type="button" onClick={refresh} disabled={loading} title="Aggiorna il Notiziario">
+          <button type="button" onClick={refresh} disabled={loading} title="Aggiorna le fonti">
             <RefreshCw size={16} className={loading ? 'is-spinning' : ''} />
             <span>Aggiorna</span>
           </button>
@@ -198,7 +239,7 @@ export function NotiziarioPanel() {
       <div className="iu-notiziario__toolbar">
         <label className="iu-notiziario__search">
           <Search size={16} />
-          <span className="sr-only">Cerca nel Notiziario</span>
+          <span className="sr-only">Cerca nelle Notizie utili</span>
           <input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Cerca titolo, materia o fonte" />
           {query ? <button type="button" onClick={() => setQuery('')} title="Cancella ricerca"><X size={14} /></button> : null}
         </label>
@@ -272,7 +313,7 @@ export function NotiziarioPanel() {
           {webSource ? (
             <>
               <div className="iu-notiziario__reader-head">
-                <button type="button" onClick={() => setWebSource(null)}><ChevronLeft size={16} /> Torna al Notiziario</button>
+                <button type="button" onClick={() => setWebSource(null)}><ChevronLeft size={16} /> Torna alle Notizie utili</button>
                 <span>Fonte ufficiale</span>
               </div>
               <div className="iu-notiziario__reader-title">
@@ -362,6 +403,16 @@ export function NotiziarioPanel() {
           ))}
         </div>
       </footer>
+      <button
+        type="button"
+        className="iu-notiziario__collapse"
+        onClick={toggleCollapsed}
+        aria-expanded={!collapsed}
+        title={collapsed ? 'Apri Notizie utili' : 'Chiudi Notizie utili'}
+      >
+        {collapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        <span className="sr-only">{collapsed ? 'Apri Notizie utili' : 'Chiudi Notizie utili'}</span>
+      </button>
     </section>
   )
 }

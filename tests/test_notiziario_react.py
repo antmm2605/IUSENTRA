@@ -22,10 +22,10 @@ class _NewsRepository:
         "content": "Testo pubblicato dalla fonte.",
         "news_type": "normativa",
         "published_at": "2026-08-15T09:30:00+02:00",
-        "source_name": "Gazzetta Ufficiale",
-        "source_code": "gazzetta_ufficiale",
+        "source_name": "Giustizia",
+        "source_code": "giustizia",
         "source_category": "normativa",
-        "source_url": "https://www.gazzettaufficiale.it/eli/id/2026/08/15/test/sg",
+        "source_url": "https://www.giustizia.it/giustizia/page/it/aggiornamento_istituzionale",
         "matter_name": "Diritto civile",
         "submatter_name": "Procedura civile",
         "publication_status": "published",
@@ -148,10 +148,10 @@ def test_api_notiziario_espone_solo_dati_reali_e_stato_tenant(tmp_path: Path, mo
             "content": "Testo pubblicato dalla fonte.",
             "newsType": "normativa",
             "publishedAt": "2026-08-15T09:30:00+02:00",
-            "sourceName": "Gazzetta Ufficiale",
-            "sourceCode": "gazzetta_ufficiale",
-            "sourceGroup": "gazzetta_ufficiale",
-            "sourceUrl": "https://www.gazzettaufficiale.it/eli/id/2026/08/15/test/sg",
+            "sourceName": "Giustizia",
+            "sourceCode": "giustizia",
+            "sourceGroup": "giustizia",
+            "sourceUrl": "https://www.giustizia.it/giustizia/page/it/aggiornamento_istituzionale",
             "matterName": "Diritto civile",
             "submatterName": "Procedura civile",
             "read": True,
@@ -181,6 +181,7 @@ def test_api_notiziario_espone_la_fonte_editoriale_ufficiale_della_cassa(tmp_pat
         "label": "Cassa Forense",
         "url": "https://www.cfnews.it/",
         "requiresAuthentication": False,
+        "directOpen": False,
     }
 
 
@@ -231,7 +232,7 @@ def _official_news_row() -> dict[str, object]:
     }
 
 
-def test_api_aggiorna_sei_fonti_ufficiali_e_salva_la_cache_tenant(tmp_path: Path, monkeypatch):
+def test_api_aggiorna_cinque_elenchi_e_mantiene_gazzetta_come_fonte_diretta(tmp_path: Path, monkeypatch):
     import web.blueprints.api_v1_react as api
 
     saved: dict[str, object] = {}
@@ -246,8 +247,13 @@ def test_api_aggiorna_sei_fonti_ufficiali_e_salva_la_cache_tenant(tmp_path: Path
             "message": "",
         }
         for row in api.SOURCE_DEFINITIONS
+        if row["id"] in api.AGGREGATED_SOURCE_IDS
     ]
-    monkeypatch.setattr(api, "_notiziario_load_cache", lambda: {"items": [], "sources": [], "refreshedAt": ""})
+    monkeypatch.setattr(api, "_notiziario_load_cache", lambda: {
+        "items": [dict(_NewsRepository.row)],
+        "sources": [],
+        "refreshedAt": "2026-08-16T10:00:00Z",
+    })
     monkeypatch.setattr(api, "refresh_notizie_utili", lambda **_kwargs: {
         "items": [_official_news_row()],
         "sources": source_states,
@@ -273,7 +279,12 @@ def test_api_aggiorna_sei_fonti_ufficiali_e_salva_la_cache_tenant(tmp_path: Path
         "cassazione",
     ]
     assert "fatture_corrispettivi" not in {row["id"] for row in payload["quickSources"]}
+    gazzetta = next(row for row in payload["quickSources"] if row["id"] == "gazzetta_ufficiale")
+    assert gazzetta["directOpen"] is True
+    assert gazzetta["url"] == "https://www.gazzettaufficiale.it/"
+    assert "gazzetta_ufficiale" not in {row["id"] for row in payload["filters"]}
     assert saved["items"][0]["id"] == "official_0123456789abcdef01234567"
+    assert all(row["source_code"] != "gazzetta_ufficiale" for row in saved["items"])
 
 
 def test_api_interazione_supporta_notizie_ufficiali_della_cache(tmp_path: Path, monkeypatch):

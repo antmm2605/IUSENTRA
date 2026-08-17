@@ -182,7 +182,7 @@ export function NotiziarioPanel() {
     setWebSource(source)
     setSourceReader(null)
     setExpanded(true)
-    if (source.requiresAuthentication) {
+    if (source.requiresAuthentication || source.directOpen) {
       setSourceLoading(false)
       return
     }
@@ -321,7 +321,13 @@ export function NotiziarioPanel() {
                 <div><small>{webSource.requiresAuthentication ? 'Accesso protetto con credenziali personali' : 'Notizie e comunicazioni ufficiali'}</small><h3>{webSource.label}</h3></div>
               </div>
               <div className="iu-notiziario__web-reader" aria-live="polite">
-                {webSource.requiresAuthentication ? (
+                {webSource.directOpen ? (
+                  <div className="iu-notiziario__source-state">
+                    <ExternalLink size={20} />
+                    <strong>Consulta la pubblicazione ufficiale</strong>
+                    <span>La Gazzetta Ufficiale si apre dalla fonte istituzionale, così visualizzi sempre l’edizione corrente.</span>
+                  </div>
+                ) : webSource.requiresAuthentication ? (
                   <div className="iu-notiziario__source-state">
                     <Landmark size={20} />
                     <strong>Area riservata dell’Agenzia delle Entrate</strong>
@@ -337,7 +343,7 @@ export function NotiziarioPanel() {
                   <div className="iu-notiziario__source-state is-warning" role="alert"><ExternalLink size={20} /><strong>Fonte non leggibile nel pannello</strong><span>{visibleText(sourceReader?.message || '', 'Usa il collegamento al sito ufficiale per consultare il contenuto.')}</span></div>
                 )}
               </div>
-              <a className="iu-notiziario__original" href={webSource.url} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {webSource.requiresAuthentication ? 'Apri l’accesso ufficiale' : 'Apri il sito ufficiale'}</a>
+              <a className="iu-notiziario__original" href={webSource.url} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {webSource.requiresAuthentication ? 'Apri l’accesso ufficiale' : webSource.directOpen ? 'Apri la Gazzetta Ufficiale' : 'Apri il sito ufficiale'}</a>
             </>
           ) : selected ? (
             <>
@@ -395,7 +401,7 @@ export function NotiziarioPanel() {
               key={source.id}
               className={webSource?.id === source.id ? 'is-active' : ''}
               aria-pressed={webSource?.id === source.id}
-              title={`Apri ${visibleText(source.label)} nel lettore IUSENTRA`}
+              title={source.directOpen ? `Apri ${visibleText(source.label)}` : `Consulta ${visibleText(source.label)}`}
               onClick={() => openQuickSource(source)}
             >
               <Landmark size={15} /> {visibleText(source.label)}

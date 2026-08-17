@@ -59,20 +59,21 @@ Il nome visibile della superficie è stato aggiornato in **Notizie utili**, coer
 
 ### Fonti ufficiali presidiate
 
-L'aggiornamento dedicato interroga esclusivamente queste fonti:
+La superficie consulta esclusivamente queste fonti, distinguendo gli aggiornamenti aggregati dalle fonti ufficiali ad apertura diretta:
 
 - Ministero della giustizia;
 - Portale dei Servizi Telematici del Ministero della giustizia;
 - Consiglio Nazionale Forense;
 - Cassa Forense tramite CF News;
-- Gazzetta Ufficiale;
+- Gazzetta Ufficiale, come fonte ufficiale ad apertura diretta;
 - Corte Suprema di Cassazione.
 
 La fonte fiscale non pertinente è stata rimossa dalla superficie. Ogni risposta e ogni reindirizzamento devono restare nei domini ufficiali ammessi.
 
 ### Aggiornamento e persistenza
 
-- POST /api/v1/ui/notiziario/aggiorna aggiorna le sei fonti in parallelo con limiti di tempo e quantità.
+- POST /api/v1/ui/notiziario/aggiorna aggiorna in parallelo i cinque elenchi di notizie, con limiti di tempo e quantità.
+- Gazzetta Ufficiale non entra nella cache degli aggiornamenti: il comando rapido apre la fonte ufficiale corrente.
 - La cache ufficiale è salvata nella tabella tenant settings_config, sezione notizie_utili_fonti_v1, valida sia per SQLite sia per PostgreSQL.
 - Il caricamento iniziale usa la cache SQL e richiede automaticamente un aggiornamento quando manca o supera sei ore.
 - Se una sola fonte non risponde, vengono conservati soltanto i suoi elementi precedenti; le altre fonti continuano ad aggiornarsi.
@@ -89,11 +90,33 @@ La fonte fiscale non pertinente è stata rimossa dalla superficie. Ogni risposta
 
 - python -m compileall pct web -q;
 - npm run typecheck;
-- python -m pytest tests/test_notizie_utili.py tests/test_notiziario_react.py tests/test_utf8_integrity.py -q: 19 test superati;
-- recupero reale delle sei fonti: tutte raggiungibili, con contenuti più recenti rilevati il 17 agosto 2026 per Gazzetta Ufficiale e Corte di Cassazione.
+- python -m pytest tests/test_notizie_utili.py tests/test_notiziario_react.py tests/test_utf8_integrity.py -q: 21 test superati;
+- recupero reale dei cinque elenchi: tutti raggiungibili, con contenuti più recenti rilevati il 17 agosto 2026 per Corte di Cassazione, l'11 agosto 2026 per Cassa Forense e il 6 agosto 2026 per PST;
+- Gazzetta Ufficiale verificata come fonte ufficiale diretta e rimossa dai filtri e dalla cache delle notizie;
 - container locale ricostruito e healthy su http://127.0.0.1:8080;
-- POST reale /api/v1/ui/notiziario/aggiorna nel container: 61 elementi, sette filtri compreso Tutte e sei fonti con esito positivo.
+- prova in sola lettura del raccoglitore reale: 20 elementi con limite di 4 per ciascuno dei cinque elenchi.
 
 ### Stato della prova visiva
 
 Il servizio di controllo del browser integrato Codex non si è avviato per un errore del sandbox Windows. La nuova freccia e i filtri non sono quindi dichiarati verificati materialmente in questa sessione; la prova API reale non viene usata come sostituto della prova visiva.
+### Confronto della logica delle fonti
+
+Il confronto analitico con il programma di riferimento ha confermato due comportamenti distinti:
+
+- gli avvisi PST vengono letti dalla pagina filtrata metadata_category_frame6=avvisi;
+- le notizie Cassa vengono raccolte dalle sezioni info-cassa, diritto e avvocatura;
+- Gazzetta Ufficiale non viene aggregata nell'elenco delle notizie: resta un comando rapido verso la pubblicazione ufficiale;
+- le vecchie righe Gazzetta presenti nella cache tenant non vengono più conservate né mostrate;
+- Giustizia, CNF e Corte di Cassazione restano elenchi aggiuntivi richiesti per il presidio professionale IUSENTRA.
+
+La pagina Gazzetta applica vincoli di incorporamento sul proprio dominio. IUSENTRA non usa proxy terzi né contenuti copiati: mostra un pannello esplicito e il collegamento alla fonte ufficiale corrente.
+
+### Guardrail aggiunti
+
+- test_gazzetta_resta_una_fonte_diretta_e_non_un_elenco_in_cache;
+- verifica che i filtri comprendano solo i cinque elenchi aggregati;
+- verifica che quickSources mantenga Gazzetta con directOpen=true;
+- verifica che eventuali righe Gazzetta precedenti siano eliminate al successivo aggiornamento tenant;
+- typecheck React e build Vite completati senza errori.
+
+La prova visiva materiale resta aperta perché il collegamento al browser integrato è stato bloccato dal helper sandbox Windows. Il container reale su porta 8080 è stato ricostruito ed è healthy, ma questo stato tecnico non sostituisce il click reale richiesto.

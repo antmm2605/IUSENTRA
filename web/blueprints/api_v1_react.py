@@ -45,7 +45,12 @@ from pct.fascicolo_document_catalog import classify_fascicolo_document
 from pct.deposito_datiatto_fields import normalize_deposito_professionista_role
 from pct.deposito_telematico_catalogo import build_deposit_catalog_payload, resolve_deposit_type_payload
 from pct.fascicoli import TipoDocumento
-from pct.notizie_utili import SOURCE_DEFINITIONS, refresh_notizie_utili
+from pct.notizie_utili import (
+    AGGREGATED_SOURCE_IDS,
+    DIRECT_SOURCE_IDS,
+    SOURCE_DEFINITIONS,
+    refresh_notizie_utili,
+)
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
     LEGAL_RECIPIENT_ROLES,
@@ -9295,10 +9300,19 @@ def _dashboard_error_payload() -> dict[str, Any]:
 
 _NOTIZIARIO_SOURCE_FILTERS = (
     {"id": "all", "label": "Tutte"},
-    *({"id": row["id"], "label": row["label"]} for row in SOURCE_DEFINITIONS),
+    *(
+        {"id": row["id"], "label": row["label"]}
+        for row in SOURCE_DEFINITIONS
+        if row["id"] in AGGREGATED_SOURCE_IDS
+    ),
 )
 _NOTIZIARIO_QUICK_SOURCES = tuple(
-    {"id": row["id"], "label": row["label"], "url": row["url"]}
+    {
+        "id": row["id"],
+        "label": row["label"],
+        "url": row["url"],
+        "directOpen": row["id"] in DIRECT_SOURCE_IDS,
+    }
     for row in SOURCE_DEFINITIONS
 )
 _NOTIZIARIO_CACHE_SECTION = "notizie_utili_fonti_v1"
@@ -9306,7 +9320,11 @@ _NOTIZIARIO_CACHE_SECTION = "notizie_utili_fonti_v1"
 
 def _notiziario_quick_sources() -> list[dict[str, Any]]:
     return [
-        {**dict(item), "requiresAuthentication": bool(item.get("requiresAuthentication"))}
+        {
+            **dict(item),
+            "requiresAuthentication": bool(item.get("requiresAuthentication")),
+            "directOpen": bool(item.get("directOpen")),
+        }
         for item in _NOTIZIARIO_QUICK_SOURCES
     ]
 
@@ -9515,6 +9533,7 @@ def _notiziario_response_data(
     items = [
         _notiziario_item_payload(row, interactions.get(str(row.get("id") or ""), {}), case_labels)
         for row in rows
+        if _notiziario_source_group(row) not in DIRECT_SOURCE_IDS
     ]
     return {
         "ok": True,
@@ -9576,7 +9595,10 @@ def notiziario_react_aggiorna():
             str(row.get("id") or "") for row in states if bool(row.get("ok"))
         }
         previous_items = [
-            dict(row) for row in previous.get("items", []) if isinstance(row, Mapping)
+            dict(row)
+            for row in previous.get("items", [])
+            if isinstance(row, Mapping)
+            and _notiziario_source_group(row) in AGGREGATED_SOURCE_IDS
         ]
         refreshed_items = [
             dict(row) for row in refreshed.get("items", []) if isinstance(row, Mapping)

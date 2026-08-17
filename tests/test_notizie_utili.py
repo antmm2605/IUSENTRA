@@ -7,6 +7,7 @@ import pytest
 from pct.notizie_utili import (
     CASSAZIONE_URL,
     PST_GIUSTIZIA_URL,
+    _cassa_candidates,
     _collect_cassazione,
     _collect_pst_giustizia,
     _date_iso,
@@ -57,6 +58,23 @@ def test_pst_giustizia_legge_titolo_data_e_collegamento_ufficiale():
     assert rows[0]["source_url"] == "https://pst.giustizia.it/PST/it/news_istanza_web.wp"
 
 
+def test_cassa_include_gli_aggiornamenti_della_sezione_info_cassa():
+    from lxml import html as lxml_html
+
+    tree = lxml_html.fromstring("""
+      <main>
+        <a href="/info-cassa/contributi-2026/">Contributi previdenziali e indicazioni operative 2026</a>
+      </main>
+    """)
+
+    rows = _cassa_candidates(tree)
+
+    assert rows == [(
+        "Contributi previdenziali e indicazioni operative 2026",
+        "https://www.cfnews.it/info-cassa/contributi-2026/",
+    )]
+
+
 def test_cassazione_legge_solo_notizie_datate_dalla_pagina_ufficiale():
     html = """
     <html><body><main>
@@ -101,3 +119,17 @@ def test_raccoglitore_non_contatta_la_destinazione_di_un_redirect_non_ammesso():
         _response(_request, PST_GIUSTIZIA_URL)
 
     assert called == [PST_GIUSTIZIA_URL]
+
+
+def test_gazzetta_resta_una_fonte_diretta_e_non_un_elenco_in_cache():
+    from pct.notizie_utili import (
+        AGGREGATED_SOURCE_IDS,
+        DIRECT_SOURCE_IDS,
+        _source_collectors,
+    )
+
+    collectors = _source_collectors(lambda *_args, **_kwargs: None, limit=12)
+
+    assert set(collectors) == set(AGGREGATED_SOURCE_IDS)
+    assert "gazzetta_ufficiale" in DIRECT_SOURCE_IDS
+    assert "gazzetta_ufficiale" not in collectors

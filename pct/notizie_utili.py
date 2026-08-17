@@ -23,9 +23,17 @@ GIUSTIZIA_URL = (
 )
 CNF_URL = "https://www.consiglionazionaleforense.it/"
 CASSA_FORENSE_URL = "https://www.cfnews.it/"
-GAZZETTA_URL = "https://www.gazzettaufficiale.it/30giorni/serie_generale"
-PST_GIUSTIZIA_URL = "https://pst.giustizia.it/PST/it/news.page"
+GAZZETTA_URL = "https://www.gazzettaufficiale.it/"
+PST_GIUSTIZIA_URL = (
+    "https://pst.giustizia.it/PST/it/news.page"
+    "?metadata_category_frame6=avvisi"
+)
 CASSAZIONE_URL = "https://www.cortedicassazione.it/it/ultime_dalla_corte.page"
+CASSA_FORENSE_FEED_URLS = (
+    "https://www.cfnews.it/info-cassa/",
+    "https://www.cfnews.it/diritto/",
+    "https://www.cfnews.it/avvocatura/",
+)
 
 SOURCE_DEFINITIONS: tuple[dict[str, str], ...] = (
     {"id": "giustizia", "label": "Giustizia", "url": GIUSTIZIA_URL},
@@ -35,6 +43,14 @@ SOURCE_DEFINITIONS: tuple[dict[str, str], ...] = (
     {"id": "gazzetta_ufficiale", "label": "Gazzetta Ufficiale", "url": GAZZETTA_URL},
     {"id": "cassazione", "label": "Corte di Cassazione", "url": CASSAZIONE_URL},
 )
+AGGREGATED_SOURCE_IDS = frozenset({
+    "giustizia",
+    "pst_giustizia",
+    "cnf",
+    "cassa_forense",
+    "cassazione",
+})
+DIRECT_SOURCE_IDS = frozenset({"gazzetta_ufficiale"})
 
 _MONTHS = {
     "gennaio": 1,
@@ -68,7 +84,13 @@ _ITALIAN_DATE_RE = re.compile(
 )
 _NUMERIC_DATE_RE = re.compile(r"\b([0-3]?\d)[/.-]([01]?\d)[/.-]((?:20)?\d{2})\b")
 _ISO_DATE_RE = re.compile(r"\b(20\d{2})-([01]\d)-([0-3]\d)\b")
-_ARTICLE_PATHS = ("/diritto/", "/avvocatura/", "/assistenza/", "/societa-e-impresa/")
+_ARTICLE_PATHS = (
+    "/info-cassa/",
+    "/diritto/",
+    "/avvocatura/",
+    "/assistenza/",
+    "/societa-e-impresa/",
+)
 _ALLOWED_HOSTS = {
     "www.giustizia.it",
     "giustizia.it",
@@ -305,12 +327,21 @@ def _collect_detail_source(
     *,
     source_id: str,
     source_name: str,
-    base_url: str,
+    base_url: str | tuple[str, ...],
     candidate_builder: Callable[[Any], list[tuple[str, str]]],
     limit: int,
 ) -> list[dict[str, Any]]:
-    tree = _tree(request_get, base_url)
-    candidates = candidate_builder(tree)[: max(limit + 3, limit)]
+    source_urls = (base_url,) if isinstance(base_url, str) else base_url
+    candidates: list[tuple[str, str]] = []
+    seen_urls: set[str] = set()
+    per_source_limit = max(4, ((limit + len(source_urls) - 1) // len(source_urls)) + 2)
+    for source_url in source_urls:
+        tree = _tree(request_get, source_url)
+        for title, url in candidate_builder(tree)[:per_source_limit]:
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            candidates.append((title, url))
     rows: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=min(6, max(1, len(candidates)))) as executor:
         futures = [
@@ -466,11 +497,10 @@ def _source_collectors(request_get: RequestGet, *, limit: int) -> dict[str, Call
             request_get,
             source_id="cassa_forense",
             source_name="Cassa Forense",
-            base_url=CASSA_FORENSE_URL,
+            base_url=CASSA_FORENSE_FEED_URLS,
             candidate_builder=_cassa_candidates,
             limit=limit,
         ),
-        "gazzetta_ufficiale": lambda: _collect_gazzetta(request_get, limit=limit),
         "cassazione": lambda: _collect_cassazione(request_get, limit=limit),
     }
 
@@ -522,6 +552,10 @@ def refresh_notizie_utili(
     refreshed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     return {
         "items": ordered_items,
-        "sources": [states[row["id"]] for row in SOURCE_DEFINITIONS],
+        "sources": [
+            states[row["id"]]
+            for row in SOURCE_DEFINITIONS
+            if row["id"] in AGGREGATED_SOURCE_IDS
+        ],
         "refreshedAt": refreshed_at,
     }

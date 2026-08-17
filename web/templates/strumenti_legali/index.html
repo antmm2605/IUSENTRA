@@ -1623,6 +1623,192 @@
       {{ render_sources(risultato_catcat.sources) }}
       {% endif %}
     {% endcall %}
+
+    {% set risultato_irpef = results.get('irpef') %}
+    {% call tool_section('irpef', 'IRPEF lorda a scaglioni', 'bi-cash-stack', 'Scaglioni versionati per anno d\'imposta (art. 11 TUIR).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('irpef', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Reddito imponibile</label><input type="number" step="0.01" min="0" name="irpef_reddito" class="form-control" value="{{ form_state.irpef_reddito }}"></div>
+        <div class="col-md-3"><label class="form-label">Anno d'imposta</label><select name="irpef_anno" class="form-select">{% for anno in ['2026', '2025', '2024'] %}<option value="{{ anno }}" {{ 'selected' if form_state.irpef_anno == anno }}>{{ anno }}</option>{% endfor %}</select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-cash-stack me-2"></i>Calcola IRPEF lorda</button></div>
+      </form>
+      {% if risultato_irpef %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('IRPEF lorda', risultato_irpef.irpef_lorda|euro, 'anno ' ~ risultato_irpef.anno) }}
+        {{ metric_box('Aliquota media', risultato_irpef.aliquota_media ~ '%') }}
+        {{ metric_box('Aliquota marginale', risultato_irpef.aliquota_marginale ~ '%') }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Scaglione</th><th class="text-end">Aliquota</th><th class="text-end">Imponibile</th><th class="text-end">Imposta</th></tr></thead><tbody>{% for row in risultato_irpef.dettaglio %}<tr><td class="fw-semibold">{{ row.scaglione }}</td><td class="text-end">{{ row.aliquota }}%</td><td class="text-end">{{ row.imponibile|euro }}</td><td class="text-end">{{ row.imposta|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_irpef.notes, risultato_irpef.warnings) }}
+      {{ render_sources(risultato_irpef.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_acc = results.get('acconto_imposte') %}
+    {% call tool_section('acconto_imposte', 'Acconto IRPEF e cedolare', 'bi-calendar2-check', 'Metodo storico con soglie e ripartizione delle rate.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('acconto_imposte', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Rigo differenza (imposta anno precedente)</label><input type="number" step="0.01" min="0" name="acc_rigo_differenza" class="form-control" value="{{ form_state.acc_rigo_differenza }}"></div>
+        <div class="col-md-3"><label class="form-label">Imposta</label><select name="acc_imposta" class="form-select"><option value="irpef" {{ 'selected' if form_state.acc_imposta != 'cedolare' }}>IRPEF</option><option value="cedolare" {{ 'selected' if form_state.acc_imposta == 'cedolare' }}>Cedolare secca</option></select></div>
+        <div class="col-md-3"><label class="form-label">Soggetto ISA / forfettario</label><select name="acc_isa" class="form-select"><option value="0" {{ 'selected' if form_state.acc_isa != '1' }}>No</option><option value="1" {{ 'selected' if form_state.acc_isa == '1' }}>S&igrave;</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calendar2-check me-2"></i>Calcola acconto</button></div>
+      </form>
+      {% if risultato_acc %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Acconto totale', risultato_acc.acconto_totale|euro, risultato_acc.esito) }}
+        {{ metric_box('Prima rata (col saldo)', risultato_acc.prima_rata|euro) }}
+        {{ metric_box('Seconda rata (30 novembre)', risultato_acc.seconda_rata|euro) }}
+        {{ metric_box('Imposta', risultato_acc.imposta) }}
+      </div>
+      {{ render_messages(risultato_acc.notes, risultato_acc.warnings) }}
+      {{ render_sources(risultato_acc.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_rate = results.get('rateazione_imposte') %}
+    {% call tool_section('rateazione_imposte', 'Rateazione imposte', 'bi-list-ol', 'Rate mensili ex art. 20 D.Lgs. 241/1997 con interessi 0,33% mensile.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('rateazione_imposte', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Importo da rateizzare</label><input type="number" step="0.01" min="0" name="rate_importo" class="form-control" value="{{ form_state.rate_importo }}"></div>
+        <div class="col-md-3"><label class="form-label">Numero di rate</label><input type="number" min="2" max="7" name="rate_numero" class="form-control" value="{{ form_state.rate_numero }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-list-ol me-2"></i>Genera il piano</button></div>
+      </form>
+      {% if risultato_rate %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Totale versato', risultato_rate.totale_versato|euro, risultato_rate.numero_rate ~ ' rate') }}
+        {{ metric_box('Interessi complessivi', risultato_rate.totale_interessi|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Rata</th><th class="text-end">Quota</th><th class="text-end">Interessi</th><th class="text-end">Totale</th></tr></thead><tbody>{% for row in risultato_rate.piano %}<tr><td class="fw-semibold">{{ row.rata }}</td><td class="text-end">{{ row.quota_capitale|euro }}</td><td class="text-end">{{ row.interessi|euro }}</td><td class="text-end fw-semibold">{{ row.totale_rata|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_rate.notes, risultato_rate.warnings) }}
+      {{ render_sources(risultato_rate.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_detfam = results.get('detrazioni_familiari') %}
+    {% call tool_section('detrazioni_familiari', 'Detrazioni familiari a carico', 'bi-people', 'Coniuge, figli 21-30 anni e ascendenti conviventi (art. 12 TUIR).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('detrazioni_familiari', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Reddito complessivo</label><input type="number" step="0.01" min="0" name="detfam_reddito" class="form-control" value="{{ form_state.detfam_reddito }}"></div>
+        <div class="col-md-3"><label class="form-label">Coniuge a carico</label><select name="detfam_coniuge" class="form-select"><option value="0" {{ 'selected' if form_state.detfam_coniuge != '1' }}>No</option><option value="1" {{ 'selected' if form_state.detfam_coniuge == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Figli 21-30 anni</label><input type="number" min="0" max="15" name="detfam_figli" class="form-control" value="{{ form_state.detfam_figli }}"></div>
+        <div class="col-md-3"><label class="form-label">Figli a carico totali (anche under 21)</label><input type="number" min="0" max="20" name="detfam_figli_totali" class="form-control" value="{{ form_state.detfam_figli_totali }}" placeholder="per la soglia"></div>
+        <div class="col-md-3"><label class="form-label">Ascendenti conviventi</label><input type="number" min="0" max="10" name="detfam_altri" class="form-control" value="{{ form_state.detfam_altri }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-people me-2"></i>Calcola le detrazioni</button></div>
+      </form>
+      {% if risultato_detfam %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Totale detrazioni', risultato_detfam.totale_detrazioni|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Voce</th><th class="text-end">Detrazione</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_detfam.dettaglio %}<tr><td class="fw-semibold">{{ row.voce }}</td><td class="text-end">{{ row.detrazione|euro }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_detfam.notes, risultato_detfam.warnings) }}
+      {{ render_sources(risultato_detfam.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_detred = results.get('detrazioni_reddito') %}
+    {% call tool_section('detrazioni_reddito', 'Detrazioni per tipo di reddito', 'bi-person-badge', 'Lavoro dipendente, pensione, assegno dal coniuge e altri redditi (art. 13 TUIR).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('detrazioni_reddito', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Reddito complessivo</label><input type="number" step="0.01" min="0" name="detred_reddito" class="form-control" value="{{ form_state.detred_reddito }}"></div>
+        <div class="col-md-4"><label class="form-label">Tipo di reddito</label><select name="detred_tipo" class="form-select">{% for value, label in [('dipendente', 'Lavoro dipendente'), ('pensione', 'Pensione'), ('assegno_coniuge', 'Assegno periodico dal coniuge'), ('altri_redditi', 'Autonomo, assimilati e altri redditi')] %}<option value="{{ value }}" {{ 'selected' if form_state.detred_tipo == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Tempo determinato</label><select name="detred_determinato" class="form-select"><option value="0" {{ 'selected' if form_state.detred_determinato != '1' }}>No</option><option value="1" {{ 'selected' if form_state.detred_determinato == '1' }}>S&igrave;</option></select></div>
+        <div class="col-md-3"><label class="form-label">Reddito di solo lavoro dipendente</label><input type="number" step="0.01" min="0" name="detred_reddito_dipendente" class="form-control" value="{{ form_state.detred_reddito_dipendente }}" placeholder="se diverso dal complessivo"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-person-badge me-2"></i>Calcola la detrazione</button></div>
+      </form>
+      {% if risultato_detred %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Detrazione art. 13', risultato_detred.detrazione|euro) }}
+        {{ metric_box('Totale con misure cuneo', risultato_detred.totale_con_misure_cuneo|euro, 'L. 207/2024') }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Voce</th><th class="text-end">Importo</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_detred.dettaglio %}<tr><td class="fw-semibold">{{ row.voce }}</td><td class="text-end">{{ row.detrazione|euro }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_detred.notes, risultato_detred.warnings) }}
+      {{ render_sources(risultato_detred.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_detcan = results.get('detrazione_canone') %}
+    {% call tool_section('detrazione_canone', 'Detrazione canoni di locazione', 'bi-house-check', 'Abitazione principale: ordinario, concordato, giovani e trasferiti (art. 16 TUIR).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('detrazione_canone', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Reddito complessivo</label><input type="number" step="0.01" min="0" name="detcan_reddito" class="form-control" value="{{ form_state.detcan_reddito }}"></div>
+        <div class="col-md-4"><label class="form-label">Tipologia</label><select name="detcan_tipo" class="form-select">{% for value, label in [('ordinario', 'Contratto ordinario'), ('concordato', 'Canone concordato 3+2'), ('giovani', 'Giovani 20-31 anni (primi 4 anni)'), ('trasferimento_lavoro', 'Lavoratore trasferito')] %}<option value="{{ value }}" {{ 'selected' if form_state.detcan_tipo == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Canone annuo (solo giovani)</label><input type="number" step="0.01" min="0" name="detcan_canone" class="form-control" value="{{ form_state.detcan_canone }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-house-check me-2"></i>Calcola la detrazione</button></div>
+      </form>
+      {% if risultato_detcan %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Detrazione annua', risultato_detcan.detrazione|euro, risultato_detcan.spiegazione) }}
+        {{ metric_box('Tipologia', risultato_detcan.tipologia, risultato_detcan.riferimento) }}
+      </div>
+      {{ render_messages(risultato_detcan.notes, risultato_detcan.warnings) }}
+      {{ render_sources(risultato_detcan.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_forf = results.get('regime_forfettario') %}
+    {% call tool_section('regime_forfettario', 'Regime forfettario', 'bi-percent', 'Coefficienti di redditività allegato 4 L. 190/2014, imposta 15% o 5%.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('regime_forfettario', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Ricavi o compensi</label><input type="number" step="0.01" min="0" name="forf_ricavi" class="form-control" value="{{ form_state.forf_ricavi }}"></div>
+        <div class="col-md-5"><label class="form-label">Gruppo ATECO</label><select name="forf_gruppo" class="form-select">{% for value, label in [('professionali', 'Attività professionali e sanitarie — 78%'), ('altri_servizi', 'Altre attività economiche — 67%'), ('intermediari', 'Intermediari del commercio — 62%'), ('ambulante_altri', 'Ambulanti altri prodotti — 54%'), ('commercio', 'Commercio ingrosso e dettaglio — 40%'), ('alimentari', 'Industrie alimentari e bevande — 40%'), ('ambulante_alimentari', 'Ambulanti alimentari — 40%'), ('alloggio_ristorazione', 'Alloggio e ristorazione — 40%'), ('costruzioni', 'Costruzioni e immobiliari — 86%')] %}<option value="{{ value }}" {{ 'selected' if form_state.forf_gruppo == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Contributi versati</label><input type="number" step="0.01" min="0" name="forf_contributi" class="form-control" value="{{ form_state.forf_contributi }}"></div>
+        <div class="col-md-3"><label class="form-label">Nuova attività (primi 5 anni)</label><select name="forf_startup" class="form-select"><option value="0" {{ 'selected' if form_state.forf_startup != '1' }}>No (15%)</option><option value="1" {{ 'selected' if form_state.forf_startup == '1' }}>S&igrave; (5%)</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-percent me-2"></i>Calcola l'imposta</button></div>
+      </form>
+      {% if risultato_forf %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Imposta sostitutiva', risultato_forf.imposta_sostitutiva|euro, risultato_forf.aliquota ~ '%') }}
+        {{ metric_box('Reddito forfettario', risultato_forf.reddito_forfettario|euro, 'coefficiente ' ~ risultato_forf.coefficiente ~ '%') }}
+        {{ metric_box('Imponibile', risultato_forf.imponibile|euro, 'contributi dedotti ' ~ risultato_forf.contributi_dedotti|euro) }}
+        {{ metric_box('Netto indicativo', risultato_forf.netto_indicativo|euro) }}
+      </div>
+      {{ render_messages(risultato_forf.notes, risultato_forf.warnings) }}
+      {{ render_sources(risultato_forf.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_age = results.get('fattura_agente') %}
+    {% call tool_section('fattura_agente', 'Fattura agente con Enasarco', 'bi-receipt-cutoff', 'Ritenuta ex art. 25-bis D.P.R. 600/1973 e quota Enasarco 8,5%.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('fattura_agente', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Provvigioni imponibili</label><input type="number" step="0.01" min="0" name="age_provvigioni" class="form-control" value="{{ form_state.age_provvigioni }}"></div>
+        <div class="col-md-4"><label class="form-label">Collaboratori continuativi</label><select name="age_collaboratori" class="form-select"><option value="0" {{ 'selected' if form_state.age_collaboratori != '1' }}>No (base ritenuta 50%)</option><option value="1" {{ 'selected' if form_state.age_collaboratori == '1' }}>S&igrave; (base ritenuta 20%)</option></select></div>
+        <div class="col-md-4"><div class="form-text mt-4">Aliquota della ritenuta fissa al primo scaglione IRPEF (23%) per legge (art. 25-bis, c. 1, D.P.R. 600/1973).</div></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-receipt-cutoff me-2"></i>Calcola la fattura</button></div>
+      </form>
+      {% if risultato_age %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Netto a pagare', risultato_age.netto_a_pagare|euro) }}
+        {{ metric_box('IVA 22%', risultato_age.iva|euro) }}
+        {{ metric_box('Ritenuta d\'acconto', risultato_age.ritenuta_acconto|euro, 'sul ' ~ risultato_age.base_ritenuta_percent ~ '% delle provvigioni') }}
+        {{ metric_box('Enasarco agente 8,5%', risultato_age.enasarco_agente|euro) }}
+      </div>
+      {{ render_messages(risultato_age.notes, risultato_age.warnings) }}
+      {{ render_sources(risultato_age.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_occ = results.get('prestazione_occasionale') %}
+    {% call tool_section('prestazione_occasionale', 'Ricevuta prestazione occasionale', 'bi-file-earmark-check', 'Ritenuta 20%, bollo oltre 77,47 euro e netto percepito.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('prestazione_occasionale', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Compenso lordo</label><input type="number" step="0.01" min="0" name="occ_compenso" class="form-control" value="{{ form_state.occ_compenso }}"></div>
+        <div class="col-md-3"><label class="form-label">Rimborsi spese</label><input type="number" step="0.01" min="0" name="occ_rimborsi" class="form-control" value="{{ form_state.occ_rimborsi }}"></div>
+        <div class="col-md-5"><label class="form-label">Rimborsi = anticipazioni documentate in nome e per conto</label><select name="occ_anticipazioni" class="form-select"><option value="0" {{ 'selected' if form_state.occ_anticipazioni != '1' }}>No (rimborsi in base ritenuta)</option><option value="1" {{ 'selected' if form_state.occ_anticipazioni == '1' }}>S&igrave; (esclusi ex R.M. 49/E/2013)</option></select></div>
+        <div class="col-md-4"><label class="form-label">Committente sostituto d'imposta</label><select name="occ_sostituto" class="form-select"><option value="1" {{ 'selected' if form_state.occ_sostituto != '0' }}>S&igrave; (impresa/professionista)</option><option value="0" {{ 'selected' if form_state.occ_sostituto == '0' }}>No (privato)</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-file-earmark-check me-2"></i>Calcola la ricevuta</button></div>
+      </form>
+      {% if risultato_occ %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Netto percepito', risultato_occ.netto_percepito|euro) }}
+        {{ metric_box('Ritenuta 20%', risultato_occ.ritenuta_acconto|euro) }}
+        {{ metric_box('Bollo', risultato_occ.bollo|euro) }}
+        {{ metric_box('Lordo complessivo', risultato_occ.lordo|euro, 'compenso + rimborsi') }}
+      </div>
+      {{ render_messages(risultato_occ.notes, risultato_occ.warnings) }}
+      {{ render_sources(risultato_occ.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

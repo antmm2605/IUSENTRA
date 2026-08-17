@@ -236,7 +236,91 @@ def _utility_form(entry_id: str) -> list[dict]:
         return [{"name": "utility_minuti", "label": "Minuti", "type": "number", "step": "1"}]
     if entry_id in {"verifica_partita_iva", "verifica_iban", "calcolo_codice_fiscale", "decodifica_codice_fiscale"}:
         return [{"name": "utility_codice", "label": "Valore da verificare", "type": "text"}]
+    if entry_id == "variazione_media_fatturato":
+        return [
+            {
+                "name": "utility_valori",
+                "label": "Importi per periodo (separati da ;)",
+                "type": "text",
+            }
+        ]
+    if entry_id == "calcolo_ora_inizio_fine_attivita":
+        return [
+            {"name": "utility_ora_inizio", "label": "Ora di inizio (HH:MM)", "type": "text"},
+            {"name": "utility_ora_fine", "label": "Ora di fine (HH:MM)", "type": "text"},
+            {"name": "utility_pausa", "label": "Pausa (minuti)", "type": "number", "step": "1"},
+        ]
+    if entry_id == "calcolatore_per_frazioni":
+        return [
+            {"name": "utility_frazione_a", "label": "Prima frazione (es. 3/4)", "type": "text"},
+            {
+                "name": "utility_operazione",
+                "label": "Operazione",
+                "type": "select",
+                "options": [
+                    {"value": "+", "label": "Somma"},
+                    {"value": "-", "label": "Differenza"},
+                    {"value": "*", "label": "Prodotto"},
+                    {"value": "/", "label": "Divisione"},
+                ],
+            },
+            {"name": "utility_frazione_b", "label": "Seconda frazione (es. 1/6)", "type": "text"},
+        ]
+    if entry_id == "conversione_unita_di_misura":
+        return [
+            {"name": "utility_valore", "label": "Valore", "type": "number", "step": "0.0001"},
+            {
+                "name": "utility_conversione",
+                "label": "Conversione",
+                "type": "select",
+                "options": [{"value": chiave, "label": voce["label"]} for chiave, voce in _CONVERSIONI.items()],
+            },
+        ]
     return [{"name": "utility_query", "label": "Richiesta operativa", "type": "text"}]
+
+
+# Fattori di conversione esatti per definizione delle unita' (SI e catastali).
+_CONVERSIONI: Dict[str, Dict[str, Any]] = {
+    "mq_ettari": {"label": "Metri quadrati → ettari", "fattore": 0.0001, "unita": "ha"},
+    "ettari_mq": {"label": "Ettari → metri quadrati", "fattore": 10_000.0, "unita": "m²"},
+    "mq_are": {"label": "Metri quadrati → are", "fattore": 0.01, "unita": "a"},
+    "are_mq": {"label": "Are → metri quadrati", "fattore": 100.0, "unita": "m²"},
+    "km_miglia": {"label": "Chilometri → miglia terrestri", "fattore": 1 / 1.609344, "unita": "mi"},
+    "miglia_km": {"label": "Miglia terrestri → chilometri", "fattore": 1.609344, "unita": "km"},
+    "kg_libbre": {"label": "Chilogrammi → libbre", "fattore": 1 / 0.45359237, "unita": "lb"},
+    "libbre_kg": {"label": "Libbre → chilogrammi", "fattore": 0.45359237, "unita": "kg"},
+    "litri_galloni": {"label": "Litri → galloni US", "fattore": 1 / 3.785411784, "unita": "gal"},
+    "galloni_litri": {"label": "Galloni US → litri", "fattore": 3.785411784, "unita": "l"},
+}
+
+
+def _pasqua(anno: int) -> date:
+    """Domenica di Pasqua col metodo di Gauss (calendario gregoriano)."""
+
+    a, b, c = anno % 19, anno // 100, anno % 100
+    d, e = b // 4, b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    mese = (h + l - 7 * m + 114) // 31
+    giorno = ((h + l - 7 * m + 114) % 31) + 1
+    return date(anno, mese, giorno)
+
+
+def _festivita_nazionali(anno: int) -> set[date]:
+    """Festività nazionali italiane (L. 260/1949 e successive)."""
+
+    pasqua = _pasqua(anno)
+    return {
+        date(anno, 1, 1), date(anno, 1, 6), pasqua,
+        date.fromordinal(pasqua.toordinal() + 1),  # lunedì dell'Angelo
+        date(anno, 4, 25), date(anno, 5, 1), date(anno, 6, 2),
+        date(anno, 8, 15), date(anno, 11, 1), date(anno, 12, 8),
+        date(anno, 12, 25), date(anno, 12, 26),
+    }
 
 
 def _parse_date(raw: Any) -> Optional[date]:
@@ -310,8 +394,32 @@ def _utility_result(entry: Mapping[str, Any], form: Mapping[str, Any]) -> Dict[s
                 _metric("Giorni", str(delta)),
             ]
             if entry_id == "calcolo_giorni_lavorativi":
-                lavorativi = sum(1 for offset in range(delta + 1) if (data_inizio.fromordinal(data_inizio.toordinal() + offset)).weekday() < 5)
-                metrics.append(_metric("Giorni lavorativi", str(lavorativi)))
+                festivi = set()
+                for anno in range(data_inizio.year, data_fine.year + 1):
+                    festivi |= _festivita_nazionali(anno)
+                lavorativi = 0
+                solo_feriali = 0
+                for offset in range(delta + 1):
+                    giorno = date.fromordinal(data_inizio.toordinal() + offset)
+                    if giorno.weekday() < 5:
+                        solo_feriali += 1
+                        if giorno not in festivi:
+                            lavorativi += 1
+                metrics.append(_metric("Giorni lavorativi", str(lavorativi), "escluse le festività nazionali"))
+                metrics.append(_metric("Solo lun-ven", str(solo_feriali)))
+                notes.append(
+                    "Escluse le festività nazionali (incl. Pasqua e lunedì dell'Angelo); "
+                    "eventuali patroni locali non sono considerati."
+                )
+            if entry_id == "calcolo_eta_anagrafica":
+                anni = data_fine.year - data_inizio.year
+                mesi = data_fine.month - data_inizio.month
+                if (data_fine.month, data_fine.day) < (data_inizio.month, data_inizio.day):
+                    anni -= 1
+                if data_fine.day < data_inizio.day:
+                    mesi -= 1
+                mesi = mesi % 12
+                metrics.append(_metric("Età", f"{anni} anni e {mesi} mesi"))
         else:
             notes.append("Inserisci entrambe le date in formato valido.")
     elif entry_id == "conversione_minuti_in_centesimi":
@@ -332,6 +440,88 @@ def _utility_result(entry: Mapping[str, Any], form: Mapping[str, Any]) -> Dict[s
             _metric("Valore", codice or "n/d"),
             _metric("Esito", "Formalmente valido" if _validate_iban(codice) else "Non valido"),
         ]
+    elif entry_id == "variazione_media_fatturato":
+        grezzi = [v.strip() for v in _clean_text(form.get("utility_valori")).split(";") if v.strip()]
+        valori = [_safe_float(v) for v in grezzi]
+        if len(valori) < 2 or any(v <= 0 for v in valori):
+            notes.append("Inserisci almeno due importi positivi separati da punto e virgola (es. 50000; 62000; 58000).")
+        else:
+            variazioni = [(valori[i] / valori[i - 1] - 1) * 100 for i in range(1, len(valori))]
+            media = sum(variazioni) / len(variazioni)
+            metrics = [
+                _metric("Periodi", str(len(valori))),
+                _metric("Variazione media", f"{media:+.2f}%".replace(".", ",")),
+                _metric("Complessiva", f"{(valori[-1] / valori[0] - 1) * 100:+.2f}%".replace(".", ",")),
+            ]
+            notes.append(
+                "Media aritmetica delle variazioni percentuali tra periodi consecutivi; "
+                "la variazione complessiva confronta primo e ultimo periodo."
+            )
+    elif entry_id == "calcolo_ora_inizio_fine_attivita":
+        def _parse_ora(raw: Any) -> Optional[int]:
+            testo = _clean_text(raw).replace(".", ":")
+            parti = testo.split(":")
+            try:
+                ore, minuti = int(parti[0]), int(parti[1]) if len(parti) > 1 else 0
+            except (ValueError, IndexError):
+                return None
+            if 0 <= ore < 24 and 0 <= minuti < 60:
+                return ore * 60 + minuti
+            return None
+
+        inizio = _parse_ora(form.get("utility_ora_inizio"))
+        fine = _parse_ora(form.get("utility_ora_fine"))
+        pausa = max(int(_safe_float(form.get("utility_pausa"))), 0)
+        if inizio is None or fine is None:
+            notes.append("Inserisci le ore nel formato HH:MM (es. 09:30).")
+        else:
+            durata = fine - inizio if fine >= inizio else fine + 24 * 60 - inizio
+            netta = max(durata - pausa, 0)
+            metrics = [
+                _metric("Durata lorda", f"{durata // 60}h {durata % 60:02d}m"),
+                _metric("Pausa", f"{pausa} min"),
+                _metric("Durata netta", f"{netta // 60}h {netta % 60:02d}m"),
+                _metric("Ore centesimali", f"{netta / 60:.2f}".replace(".", ",")),
+            ]
+            if fine < inizio:
+                notes.append("Ora di fine precedente all'inizio: calcolo a cavallo di mezzanotte.")
+    elif entry_id == "calcolatore_per_frazioni":
+        from fractions import Fraction
+
+        def _parse_frazione(raw: Any) -> Optional[Fraction]:
+            testo = _clean_text(raw).replace(",", ".").replace(" ", "")
+            try:
+                return Fraction(testo)
+            except (ValueError, ZeroDivisionError):
+                return None
+
+        fa = _parse_frazione(form.get("utility_frazione_a"))
+        fb = _parse_frazione(form.get("utility_frazione_b"))
+        op = _clean_text(form.get("utility_operazione")) or "+"
+        if fa is None or fb is None:
+            notes.append("Inserisci frazioni nel formato numeratore/denominatore (es. 3/4) o numeri decimali.")
+        elif op == "/" and fb == 0:
+            notes.append("Divisione per zero non ammessa.")
+        else:
+            esito = {"+": fa + fb, "-": fa - fb, "*": fa * fb, "/": fa / fb if fb else Fraction(0)}[op]
+            metrics = [
+                _metric("Operazione", f"{fa} {op} {fb}"),
+                _metric("Risultato", str(esito)),
+                _metric("Decimale", f"{float(esito):.6g}".replace(".", ",")),
+            ]
+    elif entry_id == "conversione_unita_di_misura":
+        valore = _safe_float(form.get("utility_valore"))
+        chiave = _clean_text(form.get("utility_conversione")) or "mq_ettari"
+        voce_conv = _CONVERSIONI.get(chiave)
+        if voce_conv is None:
+            notes.append("Conversione non riconosciuta.")
+        else:
+            metrics = [
+                _metric("Valore", f"{valore:g}".replace(".", ",")),
+                _metric("Conversione", str(voce_conv["label"])),
+                _metric("Risultato", f"{valore * voce_conv['fattore']:.6g} {voce_conv['unita']}".replace(".", ",")),
+            ]
+            notes.append("Fattori di conversione esatti per definizione delle unità.")
     else:
         query = _clean_text(form.get("utility_query"))
         metrics = [

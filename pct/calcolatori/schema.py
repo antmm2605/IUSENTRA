@@ -872,6 +872,112 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             ),
         ],
     },
+    "irpef": {
+        "azione": "Calcola IRPEF lorda",
+        "campi": [
+            _numero("irpef_reddito", "Reddito imponibile"),
+            _scelta("irpef_anno", "Anno d'imposta", [("2026", "2026"), ("2025", "2025"), ("2024", "2024")]),
+        ],
+    },
+    "acconto_imposte": {
+        "azione": "Calcola acconto",
+        "campi": [
+            _numero("acc_rigo_differenza", "Rigo differenza (imposta anno precedente)"),
+            _scelta("acc_imposta", "Imposta", [("irpef", "IRPEF"), ("cedolare", "Cedolare secca")]),
+            _si_no("acc_isa", "Soggetto ISA o forfettario", aiuto="Due rate del 50% ex art. 58 D.L. 124/2019."),
+        ],
+    },
+    "rateazione_imposte": {
+        "azione": "Genera il piano",
+        "campi": [
+            _numero("rate_importo", "Importo da rateizzare"),
+            _intero("rate_numero", "Numero di rate", minimo=2, massimo=7),
+        ],
+    },
+    "detrazioni_familiari": {
+        "azione": "Calcola le detrazioni",
+        "campi": [
+            _numero("detfam_reddito", "Reddito complessivo"),
+            _si_no("detfam_coniuge", "Coniuge a carico"),
+            _intero("detfam_figli", "Figli a carico 21-30 anni", massimo=15, aiuto="Sotto i 21 anni opera l'assegno unico, non la detrazione."),
+            _intero("detfam_figli_totali", "Figli a carico totali (anche under 21)", massimo=20, aiuto="Serve solo per la soglia di degressione (+15.000 per figlio oltre il primo); se vuoto usa i figli 21-30."),
+            _intero("detfam_altri", "Ascendenti conviventi a carico", massimo=10),
+        ],
+    },
+    "detrazioni_reddito": {
+        "azione": "Calcola la detrazione",
+        "campi": [
+            _numero("detred_reddito", "Reddito complessivo"),
+            _scelta(
+                "detred_tipo",
+                "Tipo di reddito",
+                [
+                    ("dipendente", "Lavoro dipendente"),
+                    ("pensione", "Pensione"),
+                    ("assegno_coniuge", "Assegno periodico dal coniuge"),
+                    ("altri_redditi", "Autonomo, assimilati e altri redditi"),
+                ],
+            ),
+            _si_no("detred_determinato", "Contratto a tempo determinato", aiuto="Rileva solo per il minimo del lavoro dipendente."),
+            _numero("detred_reddito_dipendente", "Reddito di solo lavoro dipendente", aiuto="Per somma integrativa L. 207/2024: se vuoto usa il reddito complessivo."),
+        ],
+    },
+    "detrazione_canone": {
+        "azione": "Calcola la detrazione",
+        "campi": [
+            _numero("detcan_reddito", "Reddito complessivo"),
+            _scelta(
+                "detcan_tipo",
+                "Tipologia",
+                [
+                    ("ordinario", "Contratto ordinario"),
+                    ("concordato", "Canone concordato 3+2"),
+                    ("giovani", "Giovani 20-31 anni (primi 4 anni)"),
+                    ("trasferimento_lavoro", "Lavoratore trasferito"),
+                ],
+            ),
+            _numero("detcan_canone", "Canone annuo", aiuto="Serve solo per la detrazione giovani (20% del canone fino a 2.000 euro)."),
+        ],
+    },
+    "regime_forfettario": {
+        "azione": "Calcola l'imposta",
+        "campi": [
+            _numero("forf_ricavi", "Ricavi o compensi incassati"),
+            _scelta(
+                "forf_gruppo",
+                "Gruppo ATECO",
+                [
+                    ("professionali", "Attività professionali e sanitarie — 78%"),
+                    ("altri_servizi", "Altre attività economiche — 67%"),
+                    ("intermediari", "Intermediari del commercio — 62%"),
+                    ("ambulante_altri", "Ambulanti altri prodotti — 54%"),
+                    ("commercio", "Commercio ingrosso e dettaglio — 40%"),
+                    ("alimentari", "Industrie alimentari e bevande — 40%"),
+                    ("ambulante_alimentari", "Ambulanti alimentari — 40%"),
+                    ("alloggio_ristorazione", "Alloggio e ristorazione — 40%"),
+                    ("costruzioni", "Costruzioni e immobiliari — 86%"),
+                ],
+            ),
+            _numero("forf_contributi", "Contributi previdenziali versati"),
+            _si_no("forf_startup", "Nuova attività (primi 5 anni)", aiuto="Aliquota 5% alle condizioni dell'art. 1, c. 65, L. 190/2014."),
+        ],
+    },
+    "fattura_agente": {
+        "azione": "Calcola la fattura",
+        "campi": [
+            _numero("age_provvigioni", "Provvigioni imponibili"),
+            _si_no("age_collaboratori", "Avvalimento continuativo di collaboratori", aiuto="Riduce la base della ritenuta dal 50% al 20% delle provvigioni. Aliquota fissa al primo scaglione IRPEF (23%) per legge."),
+        ],
+    },
+    "prestazione_occasionale": {
+        "azione": "Calcola la ricevuta",
+        "campi": [
+            _numero("occ_compenso", "Compenso lordo"),
+            _numero("occ_rimborsi", "Rimborsi spese"),
+            _si_no("occ_anticipazioni", "Rimborsi = anticipazioni documentate in nome e per conto", aiuto="Solo in questo caso i rimborsi restano fuori dalla base della ritenuta (R.M. 49/E/2013)."),
+            _si_no("occ_sostituto", "Committente sostituto d'imposta", aiuto="Se impresa o professionista: ritenuta 20%; se privato: nessuna ritenuta."),
+        ],
+    },
 }
 
 

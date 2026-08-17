@@ -683,6 +683,36 @@ for _slug_l2b, _override_l2b in _LOTTO2B_DEEP_LINKS.items():
     ITEM_OVERRIDES[_slug_l2b] = {**ITEM_OVERRIDES.get(_slug_l2b, {}), **_override_l2b}
 
 
+# Lotto 2B-2: blocco fiscale IRPEF (pct/calcolatori/fiscale_*), regimi e
+# utility con pannello di calcolo reale sulla scheda in /applicazioni.
+# Curatore fallimentare, delegato vendite e diritti di copia restano
+# esclusi finche' i D.M. tariffari non sono versionati in docs/specs.
+_LOTTO2B2_DEEP_LINKS: Dict[str, Dict[str, Any]] = {
+    "calcolo_irpef": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "irpef"}, "cta_label": "Apri IRPEF"},
+    "calcolo_acconto_irpef": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "acconto_imposte"}, "cta_label": "Apri acconto"},
+    "acconto_cedolare_secca": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "acconto_imposte"}, "cta_label": "Apri acconto cedolare"},
+    "rateizzazione_imposte": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "rateazione_imposte"}, "cta_label": "Apri rateazione"},
+    "detrazione_coniuge_a_carico": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_familiari"}, "cta_label": "Apri detrazioni familiari"},
+    "detrazione_figli_a_carico": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_familiari"}, "cta_label": "Apri detrazioni familiari"},
+    "detrazione_figli_21_anni": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_familiari"}, "cta_label": "Apri detrazioni familiari"},
+    "detrazione_altri_familiari": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_familiari"}, "cta_label": "Apri detrazioni familiari"},
+    "detrazione_lavoro_dipendente": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_reddito"}, "cta_label": "Apri detrazioni reddito"},
+    "detrazione_pensione": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_reddito"}, "cta_label": "Apri detrazioni reddito"},
+    "detrazione_assegno_coniuge": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_reddito"}, "cta_label": "Apri detrazioni reddito"},
+    "detrazione_altri_redditi": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazioni_reddito"}, "cta_label": "Apri detrazioni reddito"},
+    "detrazione_canone": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "detrazione_canone"}, "cta_label": "Apri detrazione canone"},
+    "regime_forfettario": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "regime_forfettario"}, "cta_label": "Apri forfettario"},
+    "calcolo_fattura_enasarco": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "fattura_agente"}, "cta_label": "Apri fattura agente"},
+    "ricevuta_prestazione_occasionale": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "prestazione_occasionale"}, "cta_label": "Apri prestazione occasionale"},
+    "variazione_media_fatturato": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "variazione_media_fatturato"}, "cta_label": "Apri variazione media"},
+    "calcolo_ora_inizio_fine_attivita": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "calcolo_ora_inizio_fine_attivita"}, "cta_label": "Apri calcolo orario"},
+    "calcolatore_per_frazioni": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "calcolatore_per_frazioni"}, "cta_label": "Apri frazioni"},
+    "conversione_unita_di_misura": {"status": "operativa", "endpoint": "applicazioni.dettaglio", "params": {"app_id": "conversione_unita_di_misura"}, "cta_label": "Apri conversioni"},
+}
+for _slug_l2b2, _override_l2b2 in _LOTTO2B2_DEEP_LINKS.items():
+    ITEM_OVERRIDES[_slug_l2b2] = {**ITEM_OVERRIDES.get(_slug_l2b2, {}), **_override_l2b2}
+
+
 def _default_summary(section_title: str, title: str) -> str:
     return (
         f"{title}: voce del catalogo {section_title.lower()} con percorso operativo, "

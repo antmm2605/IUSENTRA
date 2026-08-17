@@ -17,6 +17,9 @@ from pct.calcolatori import (
     compravendita_imposte as calc_compravendita,
     crediti_lavoro as calc_crediti_lavoro,
     danno_parentale as calc_danno_parentale,
+    fiscale_detrazioni as calc_fiscale_detrazioni,
+    fiscale_irpef as calc_fiscale_irpef,
+    fiscale_regimi as calc_fiscale_regimi,
     grado_parentela as calc_grado_parentela,
     impugnazioni as calc_impugnazioni,
     interessi_acconti as calc_interessi_acconti,
@@ -214,6 +217,15 @@ class GestioneStrumentiLegali:
             {"id": "imposte_compravendita", "title": "Imposte compravendita", "subtitle": "Registro, ipocatastali e IVA su acquisto abitazioni, con prezzo-valore e prima casa.", "icon": "bi-house-add", "categoria": "Immobili"},
             {"id": "riparto_spese", "title": "Riparto spese e utenze", "subtitle": "Ripartizione per millesimi (art. 1123 c.c.), persone o giorni con quadratura al centesimo.", "icon": "bi-people", "categoria": "Immobili"},
             {"id": "categorie_catastali", "title": "Categorie catastali", "subtitle": "Catalogo delle categorie A-F con le descrizioni ufficiali dell'Agenzia delle Entrate.", "icon": "bi-card-list", "categoria": "Immobili"},
+            {"id": "irpef", "title": "IRPEF lorda a scaglioni", "subtitle": "Scaglioni versionati per anno d'imposta (art. 11 TUIR) con aliquota media e marginale.", "icon": "bi-cash-stack", "categoria": "Fiscale"},
+            {"id": "acconto_imposte", "title": "Acconto IRPEF e cedolare", "subtitle": "Metodo storico con soglie 51,65/257,52 e rate 40-60 o 50-50 per soggetti ISA.", "icon": "bi-calendar2-check", "categoria": "Fiscale"},
+            {"id": "rateazione_imposte", "title": "Rateazione imposte", "subtitle": "Piano rate mensili ex art. 20 D.Lgs. 241/1997 con interessi 0,33% mensile.", "icon": "bi-list-ol", "categoria": "Fiscale"},
+            {"id": "detrazioni_familiari", "title": "Detrazioni familiari a carico", "subtitle": "Coniuge, figli 21-30 anni e ascendenti conviventi (art. 12 TUIR, post assegno unico).", "icon": "bi-people", "categoria": "Fiscale"},
+            {"id": "detrazioni_reddito", "title": "Detrazioni per tipo di reddito", "subtitle": "Lavoro dipendente, pensione, assegno dal coniuge e altri redditi (art. 13 TUIR, misure cuneo L. 207/2024).", "icon": "bi-person-badge", "categoria": "Fiscale"},
+            {"id": "detrazione_canone", "title": "Detrazione canoni di locazione", "subtitle": "Abitazione principale: ordinario, concordato, giovani e trasferiti (art. 16 TUIR).", "icon": "bi-house-check", "categoria": "Fiscale"},
+            {"id": "regime_forfettario", "title": "Regime forfettario", "subtitle": "Coefficienti di redditivita' allegato 4 L. 190/2014, imposta sostitutiva 15% o 5%.", "icon": "bi-percent", "categoria": "Fiscale"},
+            {"id": "fattura_agente", "title": "Fattura agente con Enasarco", "subtitle": "Ritenuta sul 50% o 20% delle provvigioni (art. 25-bis D.P.R. 600/1973) e quota Enasarco 8,5%.", "icon": "bi-receipt-cutoff", "categoria": "Professione"},
+            {"id": "prestazione_occasionale", "title": "Ricevuta prestazione occasionale", "subtitle": "Ritenuta 20%, bollo oltre 77,47 euro e netto percepito, con avvisi su abitualita'.", "icon": "bi-file-earmark-check", "categoria": "Professione"},
         ]
 
     def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -623,6 +635,44 @@ class GestioneStrumentiLegali:
             "rip_quote": "",
             # Categorie catastali
             "catcat_gruppo": "TUTTI",
+            # IRPEF
+            "irpef_reddito": "",
+            "irpef_anno": "2026",
+            # Acconto imposte
+            "acc_rigo_differenza": "",
+            "acc_imposta": "irpef",
+            "acc_isa": "0",
+            # Rateazione
+            "rate_importo": "",
+            "rate_numero": "6",
+            # Detrazioni familiari
+            "detfam_reddito": "",
+            "detfam_coniuge": "0",
+            "detfam_figli": "0",
+            "detfam_figli_totali": "",
+            "detfam_altri": "0",
+            # Detrazioni per tipo di reddito
+            "detred_reddito": "",
+            "detred_tipo": "dipendente",
+            "detred_determinato": "0",
+            "detred_reddito_dipendente": "",
+            # Detrazione canone
+            "detcan_reddito": "",
+            "detcan_tipo": "ordinario",
+            "detcan_canone": "",
+            # Regime forfettario
+            "forf_ricavi": "",
+            "forf_gruppo": "professionali",
+            "forf_contributi": "0",
+            "forf_startup": "0",
+            # Fattura agente
+            "age_provvigioni": "",
+            "age_collaboratori": "0",
+            # Prestazione occasionale
+            "occ_compenso": "",
+            "occ_rimborsi": "0",
+            "occ_anticipazioni": "0",
+            "occ_sostituto": "1",
         }
         if posted:
             for key in defaults:
@@ -1487,6 +1537,33 @@ class GestioneStrumentiLegali:
 
     def tabella_categorie_catastali(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_catastale.tabella_categorie(payload)
+
+    def calcola_irpef_lorda(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_irpef.calcola_irpef(payload)
+
+    def calcola_acconto_imposte(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_irpef.calcola_acconto(payload)
+
+    def calcola_rateazione_imposte(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_irpef.calcola_rateazione(payload)
+
+    def calcola_detrazioni_familiari(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_detrazioni.calcola_familiari(payload)
+
+    def calcola_detrazioni_reddito(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_detrazioni.calcola_tipo_reddito(payload)
+
+    def calcola_detrazione_canone(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_detrazioni.calcola_canone(payload)
+
+    def calcola_regime_forfettario(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_regimi.calcola_forfettario(payload)
+
+    def calcola_fattura_agente(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_regimi.calcola_fattura_agente(payload)
+
+    def calcola_prestazione_occasionale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_fiscale_regimi.calcola_prestazione_occasionale(payload)
 
     def calcola_quote_riserva(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_quote_riserva.calcola(payload)

@@ -66,6 +66,15 @@ TOOL_METHODS = {
     "imposte_compravendita": "calcola_imposte_compravendita",
     "riparto_spese": "calcola_riparto_spese",
     "categorie_catastali": "tabella_categorie_catastali",
+    "irpef": "calcola_irpef_lorda",
+    "acconto_imposte": "calcola_acconto_imposte",
+    "rateazione_imposte": "calcola_rateazione_imposte",
+    "detrazioni_familiari": "calcola_detrazioni_familiari",
+    "detrazioni_reddito": "calcola_detrazioni_reddito",
+    "detrazione_canone": "calcola_detrazione_canone",
+    "regime_forfettario": "calcola_regime_forfettario",
+    "fattura_agente": "calcola_fattura_agente",
+    "prestazione_occasionale": "calcola_prestazione_occasionale",
 }
 
 
@@ -529,6 +538,60 @@ def api_riparto_spese():
 @_richiedi_login
 def api_categorie_catastali():
     return _json_result("tabella_categorie_catastali")
+
+
+@strumenti_legali.route("/api/irpef", methods=["POST"])
+@_richiedi_login
+def api_irpef():
+    return _json_result("calcola_irpef_lorda")
+
+
+@strumenti_legali.route("/api/acconto-imposte", methods=["POST"])
+@_richiedi_login
+def api_acconto_imposte():
+    return _json_result("calcola_acconto_imposte")
+
+
+@strumenti_legali.route("/api/rateazione-imposte", methods=["POST"])
+@_richiedi_login
+def api_rateazione_imposte():
+    return _json_result("calcola_rateazione_imposte")
+
+
+@strumenti_legali.route("/api/detrazioni-familiari", methods=["POST"])
+@_richiedi_login
+def api_detrazioni_familiari():
+    return _json_result("calcola_detrazioni_familiari")
+
+
+@strumenti_legali.route("/api/detrazioni-reddito", methods=["POST"])
+@_richiedi_login
+def api_detrazioni_reddito():
+    return _json_result("calcola_detrazioni_reddito")
+
+
+@strumenti_legali.route("/api/detrazione-canone", methods=["POST"])
+@_richiedi_login
+def api_detrazione_canone():
+    return _json_result("calcola_detrazione_canone")
+
+
+@strumenti_legali.route("/api/regime-forfettario", methods=["POST"])
+@_richiedi_login
+def api_regime_forfettario():
+    return _json_result("calcola_regime_forfettario")
+
+
+@strumenti_legali.route("/api/fattura-agente", methods=["POST"])
+@_richiedi_login
+def api_fattura_agente():
+    return _json_result("calcola_fattura_agente")
+
+
+@strumenti_legali.route("/api/prestazione-occasionale", methods=["POST"])
+@_richiedi_login
+def api_prestazione_occasionale():
+    return _json_result("calcola_prestazione_occasionale")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

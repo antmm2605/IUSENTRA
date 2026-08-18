@@ -1008,7 +1008,7 @@ assertContains(preventiviPage, 'updatePreventivoStatus', 'PreventiviPage aggiorn
 assertContains(preventiviPage, 'CodiceOggettoPstSearch', 'PreventiviPage seleziona codice oggetto PST con ricerca rapida')
 assertContains(preventiviData, 'codice_oggetto_pst', 'payload preventivi/conferimenti porta codice oggetto PST')
 assertContains(preventiviBridge, 'codice_oggetto_pst_entry', 'bridge preventivi valida codice oggetto da catalogo')
-assertContains(preventiviPage, 'Percorso di recupero', 'PreventiviPage confina il fallback in sezione governata')
+assertNotContains(preventiviPage, 'Percorso di recupero', 'PreventiviPage non espone il fallback tecnico nella UI')
 assertContains(preventiviData, 'apiPostJson<CreatePreventivoResult>', 'preventiviData usa apiPostJson per nuovo preventivo')
 assertContains(preventiviData, 'apiPostJson<CreateConferimentoResult>', 'preventiviData usa apiPostJson per nuovo conferimento')
 assertContains(preventiviData, 'apiPostJson<PreventivoMutationResult>', 'preventiviData usa apiPostJson per azioni archivio preventivi')

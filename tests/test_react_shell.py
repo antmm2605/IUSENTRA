@@ -990,6 +990,23 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "prefers-reduced-motion" in css
 
 
+def test_react_telematico_due_colonne_e_testi_visibili_in_italiano():
+    page_source = Path("frontend/src/components/TelematicoPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/telematicoData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/TelematicoPage.css").read_text(encoding="utf-8")
+
+    assert "grid-template-columns:repeat(2,minmax(0,1fr));" in css
+    assert "grid-row:span 2" not in css
+    assert "grid-column:span 2;grid-row:auto" not in css
+    assert "<small>attività</small>" in page_source
+    assert "item.documentsCount === 1 ? 'documento' : 'documenti'" in page_source
+    assert "no scraping" not in page_source.lower()
+    assert "warning predeposito" not in page_source.lower()
+    assert "displayTelematicLabel" in data_source
+    assert "'Import completato'" in data_source
+    assert "'Verifica manuale richiesta'" in data_source
+
+
 def test_react_fascicolo_non_mostra_un_falso_not_found_durante_il_caricamento():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 

@@ -223,11 +223,11 @@ function CaseRow({ item }:{item:TelematicoCase}) {
       </span>
       <span className="iu-tel-case__meta">
         <b>{item.documentsCount}</b>
-        <small>documenti</small>
+        <small>{item.documentsCount === 1 ? 'documento' : 'documenti'}</small>
       </span>
       <span className="iu-tel-case__meta">
         <b>{item.openTasks}</b>
-        <small>task</small>
+        <small>attività</small>
       </span>
       <Badge tone={item.tone}>{item.statusText}</Badge>
     </a>
@@ -252,7 +252,7 @@ function QualityGrid({ data }:{data:TelematicoPageData}) {
   const checks = [
     { icon: <ShieldCheck size={17}/>, label: 'Canali autorizzati', text: 'PST, PDP, PAT e PTT restano su portali ufficiali, Local Signer o import di file autorizzati.' },
     { icon: <Database size={17}/>, label: 'Repository unico', text: 'Documenti, eventi, udienze, comunicazioni e istanze finiscono nel fascicolo interno.' },
-    { icon: <ClipboardCheck size={17}/>, label: 'Predisposto deposito', text: `${data.summary.blocked} blocchi e ${data.summary.warnings} warning vengono esposti prima della firma.` },
+    { icon: <ClipboardCheck size={17}/>, label: 'Predisposto deposito', text: `${data.summary.blocked} blocchi e ${data.summary.warnings} avvisi vengono esposti prima della firma.` },
     { icon: <Sparkles size={17}/>, label: 'Lex contestuale', text: 'Lex legge contesto telematico, RG, portale, esiti, documenti censiti e prossima azione.' },
   ]
   return (
@@ -348,7 +348,6 @@ export function TelematicoPage() {
           <h1>Centro Servizi Telematici</h1>
           <p>PST/PolisWeb, PDP Penale, PAT/SIGA e PTT/SIGIT in una regia operativa: accessi, acquisizioni, fascicoli importati, controlli e prossime attività.</p>
           <div className="iu-tel-hero__chips">
-            <Badge tone="primary">no scraping</Badge>
             <Badge tone="success">Local Signer</Badge>
             <Badge tone="warning">import autorizzati</Badge>
             <Badge tone="purple">Lex AI</Badge>
@@ -377,7 +376,7 @@ export function TelematicoPage() {
         <StatCard icon={<Building2 size={19}/>} label="PST / PDP" value={data.summary.pst + data.summary.pdp} note="ministero giustizia" tone="info"/>
         <StatCard icon={<FileCheck2 size={19}/>} label="PAT / SIGA" value={data.summary.pat} note="amministrativo" tone="success"/>
         <StatCard icon={<FileText size={19}/>} label="PTT / SIGIT" value={data.summary.ptt} note="tributario" tone="warning"/>
-        <StatCard icon={<AlertTriangle size={19}/>} label="Da presidiare" value={data.summary.attentionNeeded + data.summary.blocked} note="warning, blocchi e import" tone={data.summary.attentionNeeded || data.summary.blocked ? 'danger' : 'success'}/>
+        <StatCard icon={<AlertTriangle size={19}/>} label="Da presidiare" value={data.summary.attentionNeeded + data.summary.blocked} note="avvisi, blocchi e import" tone={data.summary.attentionNeeded || data.summary.blocked ? 'danger' : 'success'}/>
       </section>
 
       <section className="iu-tel-section-head">
@@ -404,7 +403,7 @@ export function TelematicoPage() {
 
       <section className="iu-tel-command-grid">
         <div className="iu-tel-command-main">
-          <Panel title="Regia telematica operativa" subtitle="Esiti, import incompleti, warning e predeposito" icon={<ShieldCheck size={17}/>} count={priorityItems.length}>
+          <Panel title="Regia telematica operativa" subtitle="Esiti, import incompleti, avvisi e predeposito" icon={<ShieldCheck size={17}/>} count={priorityItems.length}>
             {priorityItems.length ? (
               <div className="iu-tel-priority-list">
                 {priorityItems.map((item) => (
@@ -474,7 +473,7 @@ export function TelematicoPage() {
       <FloatingLex
         context="telematico"
         title="Lex AI Telematico"
-        body="Posso aiutarti a leggere esiti, RG, documenti importati, warning predeposito e prossima azione sui canali PST, PDP, PAT e PTT."
+        body="Posso aiutarti a leggere esiti, RG, documenti importati, avvisi predeposito e prossima azione sui canali PST, PDP, PAT e PTT."
         primaryHref={data.actions.lexHref}
         primaryLabel="Apri Lex telematico"
         secondaryHref={data.actions.checklistHref}

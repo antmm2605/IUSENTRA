@@ -339,11 +339,11 @@
 }
 .iu-tel-command-grid{
   display:grid;
-  grid-template-columns:2fr 1fr 1fr;
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:16px;
 }
 .iu-tel-command-main{
-  grid-row:span 2;
+  grid-row:auto;
 }
 .iu-tel-priority-list,
 .iu-tel-control-list,
@@ -496,7 +496,7 @@
   .iu-tel-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .iu-tel-channel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-tel-command-grid{grid-template-columns:1fr 1fr}
-  .iu-tel-command-main{grid-column:span 2;grid-row:auto}
+  .iu-tel-command-main{grid-column:auto;grid-row:auto}
   .iu-tel-quality-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:1180px){

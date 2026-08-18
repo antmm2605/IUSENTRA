@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Banknote, Calculator, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Banknote, Calculator, ExternalLink, Maximize2, Minimize2, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -143,6 +143,7 @@ export function CompensiForensiPage() {
   const [phase, setPhase] = useState('')
   const [value, setValue] = useState('0')
   const [complexity, setComplexity] = useState('media')
+  const [fullscreen, setFullscreen] = useState(false)
 
   function load() {
     setLoading(true)
@@ -164,6 +165,11 @@ export function CompensiForensiPage() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    document.body.classList.toggle('iu-comp-fullscreen', fullscreen)
+    return () => document.body.classList.remove('iu-comp-fullscreen')
+  }, [fullscreen])
 
   const filteredProceedings = useMemo(() => {
     if (!area) return data.parameters.proceedings
@@ -217,7 +223,7 @@ export function CompensiForensiPage() {
         </>
       }
     >
-      <div className="iu-comp-page iu-od-stack">
+      <div className={`iu-comp-page iu-od-stack${fullscreen ? ' iu-comp-page--fullscreen' : ''}`}>
         {calculating ? <LoadingState title="Calcolo compensi" message="Elaborazione del risultato in corso." /> : null}
         {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta in corso.</div> : null}
         {success ? <div className="iu-comp-state iu-comp-state--success" role="status">{success}</div> : null}
@@ -233,6 +239,16 @@ export function CompensiForensiPage() {
             </p>
           </div>
           <div className="iu-comp-actions">
+            <Button
+              type="button"
+              tone="neutral"
+              onClick={() => setFullscreen((current) => !current)}
+              aria-pressed={fullscreen}
+              title={fullscreen ? 'Esci da tutto schermo' : 'Apri a tutto schermo'}
+            >
+              {fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
+              {fullscreen ? 'Riduci' : 'Tutto schermo'}
+            </Button>
             {data.actions.links.map((action) => (
               <ButtonLink
                 key={action.id}
@@ -276,7 +292,7 @@ export function CompensiForensiPage() {
                 <input type="number" min="0" value={value} onChange={(event) => setValue(event.target.value)} />
               </label>
               <label>
-                <span>Complessita</span>
+                <span>Complessità</span>
                 <select value={complexity} onChange={(event) => setComplexity(event.target.value)}>
                   {data.parameters.complexities.map((item) => (
                     <option value={item.value} key={item.value}>{item.label}</option>

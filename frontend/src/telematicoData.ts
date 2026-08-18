@@ -125,7 +125,7 @@ const channelDefaults: Record<TelematicoChannelId, Omit<TelematicoChannel, 'case
     id: 'pdp',
     label: 'PDP Penale',
     title: 'PDP Penale',
-    description: 'Workflow penale, esiti, documenti collegati e controllo manual review.',
+    description: 'Flusso penale, esiti, documenti collegati e verifica manuale.',
     tone: 'danger',
     homeHref: '/pdp',
     importHref: '/portali/pdp/acquisizione',
@@ -230,6 +230,16 @@ function display(value: unknown, fallback = ''): string {
   return sanitizeDisplayText(text(value, fallback))
 }
 
+function displayTelematicLabel(value: unknown, fallback = ''): string {
+  return display(value, fallback)
+    .replace(/import completed/gi, 'Import completato')
+    .replace(/manual review required/gi, 'Verifica manuale richiesta')
+    .replace(/manual review/gi, 'verifica manuale')
+    .replace(/\s*\/\s*fallback\b/gi, '')
+    .replace(/\bwarning\b/gi, 'avviso')
+    .trim()
+}
+
 function number(value: unknown): number {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -304,7 +314,7 @@ function normaliseChannel(value: unknown, index: number): TelematicoChannel {
     title: display(item.title, defaults.title),
     description: display(item.description, defaults.description),
     tone: tone(item.tone, defaults.tone),
-    statusText: display(item.statusText ?? item.status_text, 'Da configurare'),
+    statusText: displayTelematicLabel(item.statusText ?? item.status_text, 'Da configurare'),
     environmentLabel: display(item.environmentLabel ?? item.environment_label, ''),
     cases: number(item.cases ?? item.totale),
     importCompleted: number(item.importCompleted ?? item.import_completed),
@@ -333,7 +343,7 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
     title: display(item.title, 'Pratica telematica'),
     subtitle: display(item.subtitle, "Fascicolo collegato all'archivio telematico"),
     subject: display(item.subject ?? item.oggetto),
-    statusText: display(item.statusText ?? item.status_text, 'Da verificare'),
+    statusText: displayTelematicLabel(item.statusText ?? item.status_text, 'Da verificare'),
     documentsCount: number(item.documentsCount ?? item.documents_count ?? item.documents),
     openTasks: number(item.openTasks ?? item.open_tasks ?? item.task_aperti),
     syncedAt: text(item.syncedAt ?? item.synced_at ?? item.last_sync_at),
@@ -348,12 +358,12 @@ function normaliseEvent(value: unknown, index: number): TelematicoEvent {
   return {
     id: text(item.id, `event-${index}`),
     portal: optionalChannelId(item.portal ?? item.portale ?? item.service_code),
-    title: display(item.title, 'Attivita telematica'),
+    title: display(item.title, 'Attività telematica'),
     subtitle: display(item.subtitle ?? item.description, ''),
     timestamp: text(item.timestamp ?? item.created_at ?? item.time),
     href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'primary'),
-    badge: display(item.badge, ''),
+    badge: displayTelematicLabel(item.badge, ''),
   }
 }
 
@@ -366,7 +376,7 @@ function normaliseControlItem(value: unknown, index: number, fallbackBadge: stri
     subtitle: display(item.subtitle ?? item.description, ''),
     href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, fallbackBadge === 'bloccato' ? 'danger' : 'warning'),
-    badge: display(item.badge, fallbackBadge),
+    badge: displayTelematicLabel(item.badge, fallbackBadge),
   }
 }
 

@@ -5,6 +5,10 @@ import {
   CheckCircle2,
   ChevronDown,
   Loader2,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -366,29 +370,47 @@ function Accordion({
   )
 }
 
-function Hero({ mode, onMode, backHref }: { mode: WizardMode; onMode: (mode: WizardMode) => void; backHref: string }) {
+function Hero({
+  mode,
+  onMode,
+  backHref,
+  summaryVisible,
+  fullscreen,
+  onToggleSummary,
+  onToggleFullscreen,
+}: {
+  mode: WizardMode
+  onMode: (mode: WizardMode) => void
+  backHref: string
+  summaryVisible: boolean
+  fullscreen: boolean
+  onToggleSummary: () => void
+  onToggleFullscreen: () => void
+}) {
   return (
     <section className="iu-pwiz-hero" aria-labelledby="preventivo-guidato-title">
       <div className="iu-pwiz-hero__mark" aria-hidden="true">W</div>
       <div className="iu-pwiz-hero__copy">
-        <span>CONSOLE GUIDATA</span>
+        <span>NUOVO PREVENTIVO</span>
         <h1 id="preventivo-guidato-title">Preventivo guidato</h1>
-        <p>Nuovo cliente, tipologia pratica, motore normativo e bozza iniziale in un unico flusso, con meno rumore visivo e più spazio al lavoro reale.</p>
+        <p>Compila cliente, pratica, compensi e condizioni in un unico percorso.</p>
       </div>
       <div className="iu-pwiz-hero__actions">
-        <div className="iu-pwiz-mode" role="group" aria-label="Modalità  wizard">
+        <div className="iu-pwiz-mode" role="group" aria-label="Modalità wizard">
           <button type="button" className={mode === 'guidato' ? 'is-active' : ''} onClick={() => onMode('guidato')}>Guidato</button>
           <button type="button" className={mode === 'avanzato' ? 'is-active' : ''} onClick={() => onMode('avanzato')}>Avanzato</button>
         </div>
-        <a className="iu-pwiz-back" href={backHref}><ArrowLeft size={16} aria-hidden="true" /> Torna ai preventivi</a>
-        <div className="iu-pwiz-flow" aria-label="Flusso professionale">
-          <strong>Flusso professionale</strong>
-          <span>cliente</span>
-          <span>tariffario</span>
-          <span>bozza</span>
-          <span>conferimento</span>
-          <small>stato locale sicuro</small>
+        <div className="iu-pwiz-view-actions">
+          <button className="iu-pwiz-view-button" type="button" aria-pressed={!summaryVisible} onClick={onToggleSummary}>
+            {summaryVisible ? <PanelRightClose size={17} aria-hidden="true" /> : <PanelRightOpen size={17} aria-hidden="true" />}
+            {summaryVisible ? 'Nascondi riepilogo' : 'Mostra riepilogo'}
+          </button>
+          <button className="iu-pwiz-view-button" type="button" aria-pressed={fullscreen} onClick={onToggleFullscreen}>
+            {fullscreen ? <Minimize2 size={17} aria-hidden="true" /> : <Maximize2 size={17} aria-hidden="true" />}
+            {fullscreen ? 'Vista normale' : 'Tutto schermo'}
+          </button>
         </div>
+        <a className="iu-pwiz-back" href={backHref}><ArrowLeft size={16} aria-hidden="true" /> Torna ai preventivi</a>
       </div>
     </section>
   )
@@ -509,13 +531,12 @@ function Sidebar({
   const refs = practice?.normative_references.length ? practice.normative_references : []
   const checklist = practice?.checklist_iniziale || []
   return (
-    <aside className="iu-pwiz-sidebar" aria-label="Riepilogo intelligente">
+    <aside className="iu-pwiz-sidebar" aria-label="Riepilogo preventivo">
       <div className="iu-pwiz-side-card">
         <header>
-          <span>RIEPILOGO INTELLIGENTE</span>
-          <em>sticky a sinistra</em>
+          <span>RIEPILOGO PREVENTIVO</span>
         </header>
-        <h2>Vista compatta del preventivo</h2>
+        <h2>Dati essenziali</h2>
         <Tags values={[
           practice?.area || '',
           practice?.motore_label || '',
@@ -610,7 +631,7 @@ function Sidebar({
             <div><dt>CPA 4%</dt><dd>{calculation.economic.cpa_label}</dd></div>
             <div><dt>IVA 22%</dt><dd>{calculation.economic.iva_label}</dd></div>
             <div><dt>Anticipazioni art. 15</dt><dd>{calculation.economic.anticipazioni_label}</dd></div>
-            <div className="is-total"><dt>Totale teorico fattura</dt><dd>{calculation.economic.totale_label}</dd></div>
+            <div className="is-total"><dt>Totale preventivo</dt><dd>{calculation.economic.totale_label}</dd></div>
           </dl>
         ) : null}
       </div>
@@ -630,6 +651,8 @@ export function PreventivoWizardPage() {
   const [busyCalc, setBusyCalc] = useState(false)
   const [busyCreate, setBusyCreate] = useState(false)
   const [cancelArmed, setCancelArmed] = useState(false)
+  const [summaryVisible, setSummaryVisible] = useState(true)
+  const [fullscreen, setFullscreen] = useState(false)
 
   const [customerId, setCustomerId] = useState('')
   const [caseId, setCaseId] = useState('')
@@ -1107,6 +1130,17 @@ export function PreventivoWizardPage() {
     }))
   }
 
+  useEffect(() => {
+    document.body.classList.toggle('iu-pwiz-fullscreen', fullscreen)
+    const closeFullscreen = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullscreen(false)
+    }
+    document.addEventListener('keydown', closeFullscreen)
+    return () => {
+      document.body.classList.remove('iu-pwiz-fullscreen')
+      document.removeEventListener('keydown', closeFullscreen)
+    }
+  }, [fullscreen])
   if (loading) {
     return <LoadingState title="Caricamento preventivo guidato" message="Recupero clienti, fascicoli, catalogo, tassonomia e presidi tariffari." />
   }
@@ -1117,8 +1151,16 @@ export function PreventivoWizardPage() {
   const compactClass = compactCards ? 'is-compact' : ''
 
   return (
-    <main className="iu-content iu-pwiz-page">
-      <Hero mode={mode} onMode={updateMode} backHref={data.actions.back || '/preventivi'} />
+    <main className={['iu-content iu-pwiz-page', fullscreen ? 'is-fullscreen' : '', summaryVisible ? '' : 'is-summary-hidden'].filter(Boolean).join(' ')}>
+      <Hero
+        mode={mode}
+        onMode={updateMode}
+        backHref={data.actions.back || '/preventivi'}
+        summaryVisible={summaryVisible}
+        fullscreen={fullscreen}
+        onToggleSummary={() => setSummaryVisible((visible) => !visible)}
+        onToggleFullscreen={() => setFullscreen((active) => !active)}
+      />
       <StepRail />
       <StatusMessages warnings={warnings} message={message} />
       <div className="iu-pwiz-layout">
@@ -1442,14 +1484,14 @@ export function PreventivoWizardPage() {
             <Accordion id="clausola" title="Clausola per la risoluzione delle controversie" description="Nasce nel preventivo, resta modificabile e viene trasferita nel conferimento di incarico." open={open.clausola} onToggle={() => toggleOpen('clausola')}>
               <div className="iu-pwiz-clause-grid">
                 <div>
-                  <SwitchRow id="clause-enabled" checked={clause.attiva} label="Includi clausola per la risoluzione delle controversie" help="Il testo proposto potrà  essere adattato prima del conferimento di incarico." onChange={(checked) => setClause((current) => ({ ...current, attiva: checked }))} />
+                  <SwitchRow id="clause-enabled" checked={clause.attiva} label="Includi clausola per la risoluzione delle controversie" help="Il testo proposto potrà essere adattato prima del conferimento di incarico." onChange={(checked) => setClause((current) => ({ ...current, attiva: checked }))} />
                   <SelectInput id="clause-model" label="Modello clausola" value={clause.modello} onChange={(value) => {
                     const model = data.options.clauseModels.find((item) => item.id === value)
                     setClause((current) => ({ ...current, modello: value, fonte: model?.source || '', testo: model?.default_text || current.testo }))
                   }}>
                     {data.options.clauseModels.map((model) => <option value={model.id} key={model.id}>{model.label}</option>)}
                   </SelectInput>
-                  <SwitchRow id="clause-trattativa" checked={clause.trattativa_individuale} label="Trattativa individuale documentabile sulla clausola già  svolta" onChange={(checked) => setClause((current) => ({ ...current, trattativa_individuale: checked }))} />
+                  <SwitchRow id="clause-trattativa" checked={clause.trattativa_individuale} label="Trattativa individuale documentabile sulla clausola già svolta" onChange={(checked) => setClause((current) => ({ ...current, trattativa_individuale: checked }))} />
                   <Field id="clause-text" label="Testo da adattare" error={errors.clauseText}>
                     <textarea id="clause-text" className="iu-pwiz-textarea" rows={8} value={clause.testo} onChange={(event) => setClause((current) => ({ ...current, testo: event.target.value }))} />
                   </Field>
@@ -1458,7 +1500,7 @@ export function PreventivoWizardPage() {
                 </div>
                 <aside className="iu-pwiz-clause-warning">
                   <strong>{data.options.clauseModels.find((item) => item.id === clause.modello)?.label || 'Tutela cliente / consumatore'}</strong>
-                  <em>Trattativa individuale documentabile sulla clausola già  svolta</em>
+                  <em>Trattativa individuale documentabile sulla clausola già svolta</em>
                   <p>Da usare con particolare attenzione se il cliente opera come consumatore: la fonte richiede una trattativa seria, effettiva e individuale.</p>
                 </aside>
               </div>
@@ -1477,7 +1519,7 @@ export function PreventivoWizardPage() {
             </Accordion>
           </StepCard>
         </div>
-        <Sidebar practice={selectedPractice} client={selectedClient} calculation={calculation} data={data} open={open} onToggle={toggleOpen} />
+        {summaryVisible ? <Sidebar practice={selectedPractice} client={selectedClient} calculation={calculation} data={data} open={open} onToggle={toggleOpen} /> : null}
       </div>
       <div className="iu-pwiz-footer" role="region" aria-label="Azioni preventivo guidato">
         <div className="iu-pwiz-footer-total">

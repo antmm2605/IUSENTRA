@@ -646,9 +646,9 @@
 
 .iu-pwiz-money-grid > div {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.45rem;
-  align-items: baseline;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
+  align-content: start;
   min-width: 0;
   padding: 0.62rem 0.68rem;
   border: 1px solid #d4e2f4;
@@ -664,6 +664,7 @@
 }
 
 .iu-pwiz-money-grid strong {
+  display: block;
   color: #1067eb;
   font-size: 0.92rem;
   font-weight: 900;
@@ -2170,5 +2171,313 @@
 
   .iu-pwiz-action-label-short {
     display: inline;
+  }
+}
+
+/* Preventivo guidato: area di lavoro leggibile e viste governate. */
+.iu-pwiz-page {
+  background: #f5f7fb;
+}
+
+.iu-pwiz-hero {
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+}
+
+.iu-pwiz-hero__mark {
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 8px;
+}
+
+.iu-pwiz-hero h1 {
+  font-size: 1.75rem;
+  letter-spacing: 0;
+}
+
+.iu-pwiz-hero p {
+  max-width: 62ch;
+  font-size: 0.92rem;
+}
+
+.iu-pwiz-hero__actions {
+  gap: 0.55rem;
+}
+
+.iu-pwiz-view-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.iu-pwiz-view-button {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 1px solid #cbdced;
+  border-radius: 9px;
+  background: #fff;
+  color: #17335f;
+  padding: 0.56rem 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.iu-pwiz-view-button:hover,
+.iu-pwiz-view-button:focus-visible,
+.iu-pwiz-view-button[aria-pressed='true'] {
+  border-color: #7faef0;
+  background: #edf5ff;
+  color: #0f58bd;
+}
+
+.iu-pwiz-field,
+.iu-pwiz-grid > *,
+.iu-pwiz-clause-grid > div,
+.iu-pwiz-accordion > button > span {
+  min-width: 0;
+}
+
+.iu-pwiz-switch {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
+  gap: 0.18rem 0.55rem;
+  align-items: start;
+}
+
+.iu-pwiz-switch > input {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0.15rem 0 0;
+}
+
+.iu-pwiz-switch > span {
+  display: none;
+}
+
+.iu-pwiz-switch > strong {
+  grid-column: 2;
+  grid-row: 1;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.iu-pwiz-switch > small {
+  grid-column: 2;
+  grid-row: 2;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.iu-pwiz-accordion > button {
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.iu-pwiz-accordion > button > span:first-child {
+  display: grid;
+  gap: 0.2rem;
+  align-items: start;
+}
+
+.iu-pwiz-accordion > button > span:last-child {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.iu-pwiz-accordion > button small {
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.iu-pwiz-clause-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+}
+
+.iu-pwiz-clause-warning {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.72fr) minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  max-width: none;
+}
+
+.iu-pwiz-clause-warning strong,
+.iu-pwiz-clause-warning em,
+.iu-pwiz-clause-warning p {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.iu-pwiz-clause-warning p {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+
+.iu-pwiz-page.is-summary-hidden .iu-pwiz-layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-areas: 'main' !important;
+}
+
+body.iu-pwiz-fullscreen {
+  overflow: hidden;
+}
+
+.iu-pwiz-page.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  width: 100vw;
+  max-width: none;
+  overflow: auto;
+  padding: 1rem 1.25rem 8.5rem;
+  background: #f5f7fb;
+}
+
+.iu-pwiz-page.is-fullscreen .iu-pwiz-footer {
+  right: 1rem;
+  left: 1rem;
+}
+
+@media (min-width: 1181px) {
+  .iusentra-route-preset--active .iu-pwiz-layout.iusentra-route-grid[data-iusentra-layout-has-rail='true'],
+  .iusentra-route-preset--active .iu-pwiz-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 20rem) !important;
+    grid-template-areas: 'main sidebar' !important;
+    gap: 1rem;
+  }
+
+  .iu-pwiz-sidebar {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (max-width: 1180px) {
+  .iu-pwiz-layout,
+  .iusentra-route-preset--active .iu-pwiz-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      'main'
+      'sidebar' !important;
+  }
+
+  .iu-pwiz-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  .iu-pwiz-hero__actions,
+  .iu-pwiz-view-actions {
+    width: 100%;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .iu-pwiz-clause-warning {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .iu-pwiz-clause-warning p {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .iu-pwiz-page.is-fullscreen {
+    padding: 0.7rem 0.7rem 9rem;
+  }
+
+  .iu-pwiz-view-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iu-pwiz-view-button {
+    width: 100%;
+    padding-inline: 0.55rem;
+  }
+}
+/* Preventivo guidato: correzione definitiva della superficie operativa. */
+.iu-pwiz-layout,
+.iu-pwiz-main,
+.iu-pwiz-sidebar,
+.iu-pwiz-step,
+.iu-pwiz-step__body {
+  min-width: 0;
+}
+
+.iu-pwiz-view-actions {
+  flex-wrap: nowrap;
+}
+
+.iu-pwiz-side-card {
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(22, 44, 78, 0.06);
+}
+
+.iu-pwiz-side-card h2,
+.iu-pwiz-side-card h3,
+.iu-pwiz-side-card p,
+.iu-pwiz-tags span,
+.iu-pwiz-step__head > span:not(.iu-pwiz-step__number) strong,
+.iu-pwiz-step__head > span:not(.iu-pwiz-step__number) small,
+.iu-pwiz-field label,
+.iu-pwiz-field strong {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+@media (min-width: 1181px) {
+  .iusentra-route-preset--active .iu-pwiz-layout.iusentra-route-grid[data-iusentra-layout-has-rail='true'],
+  .iusentra-route-preset--active .iu-pwiz-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 19rem) !important;
+    grid-template-areas: 'main sidebar' !important;
+    gap: 1rem;
+  }
+
+  .iu-pwiz-sidebar {
+    position: sticky;
+    top: 5.25rem;
+    max-height: calc(100vh - 6.25rem);
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1360px) {
+  .iusentra-route-preset--active .iu-pwiz-layout.iusentra-route-grid[data-iusentra-layout-has-rail='true'],
+  .iusentra-route-preset--active .iu-pwiz-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(16.5rem, 17.5rem) !important;
+    gap: 0.85rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .iu-pwiz-view-actions {
+    flex-wrap: wrap;
   }
 }

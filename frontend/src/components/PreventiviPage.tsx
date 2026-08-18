@@ -37,7 +37,7 @@ import {
   type PreventivoVoiceInput,
 } from '../preventiviData'
 import { codiceOggettoPstSource } from '../data/praticheCollegateCatalog'
-import { displaySourceLabel, displayWritesLabel, sanitizeDisplayText } from '../displayText'
+import { sanitizeDisplayText } from '../displayText'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -201,35 +201,6 @@ function errorsToRows(errors: Record<string, string>): string[] {
     .filter(Boolean)
 }
 
-function WarningPanel({ data }: { data: PreventiviPageData }) {
-  if (!data.warnings.length) return null
-  return (
-    <Panel title="Avvisi mandato">
-      <div className="iu-prev-warnings">
-        {data.warnings.map((warning) => (
-          <div className="iu-prev-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
-            <span>{warning.message}</span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function ContractPanel({ data }: { data: PreventiviPageData }) {
-  return (
-    <Panel title="Presidio dati" subtitle="Scritture tracciate con fonte governata nei servizi di studio.">
-      <div className="iu-prev-contract">
-        <span>Origine: {displaySourceLabel(data.source || '')}</span>
-        <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Azioni: {displayWritesLabel(data.contracts.writes || '')}</span>
-        <span>Operativa: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
-      </div>
-    </Panel>
-  )
-}
 
 function StatusMessage({
   status,
@@ -286,20 +257,6 @@ function StatusMessage({
   )
 }
 
-function TechnicalRollback({ href }: { href: string }) {
-  return (
-    <section className="iu-prev-rollback" aria-label="Percorso di recupero">
-      <div>
-        <strong>Percorso di recupero</strong>
-        <span>Disponibile per assistenza e confronto con il template storico, non come flusso principale.</span>
-      </div>
-      <ButtonLink href={href} tone="warning">
-        <ExternalLink size={15} />
-        Percorso di recupero
-      </ButtonLink>
-    </section>
-  )
-}
 
 function MetricGrid({ data }: { data: PreventiviPageData }) {
   if (!data.metrics.length) return null
@@ -481,7 +438,6 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           message="Inserisci o sincronizza un cliente prima di creare un preventivo."
           action={<ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink>}
         />
-        <TechnicalRollback href="/preventivi/nuovo?_legacy=1" />
       </Panel>
     )
   }
@@ -522,7 +478,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           <span>Oggetto</span>
           <input type="text" required value={formState.oggetto} onChange={(event) => setFormState((current) => ({ ...current, oggetto: event.currentTarget.value }))} placeholder="Oggetto del mandato o della prestazione" />
         </label>
-        <div className="iu-prev-form-grid">
+        <div className="iu-prev-form-grid iu-prev-form-grid--parameters">
           <label className="iu-prev-field">
             <span>Tipo compenso</span>
             <input type="text" value={formState.tipo_compenso} onChange={(event) => setFormState((current) => ({ ...current, tipo_compenso: event.currentTarget.value }))} placeholder="Fisso, a tempo, per fasi" />
@@ -544,7 +500,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
             <input type="number" min="0" step="0.01" value={formState.valore_controversia} onChange={(event) => setFormState((current) => ({ ...current, valore_controversia: event.currentTarget.value }))} />
           </label>
           <label className="iu-prev-field">
-            <span>Complessita</span>
+            <span>Complessità</span>
             <input type="text" value={formState.complessita} onChange={(event) => setFormState((current) => ({ ...current, complessita: event.currentTarget.value }))} placeholder="Bassa, media, alta" />
           </label>
         </div>
@@ -572,7 +528,6 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           </div>
         ) : null}
       </form>
-      <TechnicalRollback href="/preventivi/nuovo?_legacy=1" />
     </Panel>
   )
 }
@@ -638,7 +593,6 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
           message="Inserisci o sincronizza un cliente prima di creare un conferimento."
           action={<ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink>}
         />
-        <TechnicalRollback href="/preventivi/conferimento/nuovo?_legacy=1" />
       </Panel>
     )
   }
@@ -688,7 +642,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
           <span>Oggetto incarico</span>
           <input type="text" required value={formState.oggetto} onChange={(event) => setFormState((current) => ({ ...current, oggetto: event.currentTarget.value }))} placeholder="Oggetto del conferimento" />
         </label>
-        <div className="iu-prev-form-grid">
+        <div className="iu-prev-form-grid iu-prev-form-grid--conferimento">
           <label className="iu-prev-field">
             <span>Avvocato referente</span>
             <input type="text" required value={formState.avvocato_referente} onChange={(event) => setFormState((current) => ({ ...current, avvocato_referente: event.currentTarget.value }))} />
@@ -758,7 +712,6 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
           </div>
         ) : null}
       </form>
-      <TechnicalRollback href="/preventivi/conferimento/nuovo?_legacy=1" />
     </Panel>
   )
 }
@@ -1115,50 +1068,15 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
   )
 }
 
-function SectionSummary({ data }: { data: PreventiviPageData }) {
-  const sections = data.sections.filter((section) => section.items.length)
-  if (!sections.length) return null
-  return (
-    <section className="iu-prev-grid" aria-label="Stati e funzioni conservate">
-      {sections.map((section) => (
-        <Panel title={section.title} subtitle={section.emptyMessage} key={section.id}>
-          <div className="iu-prev-section-list">
-            {section.items.map((item) => (
-              <div className="iu-prev-section-item" key={item.id}>
-                <span>{item.label}</span>
-                <strong>{displayValue(item.value)}</strong>
-                {item.note ? <small>{item.note}</small> : null}
-                <Badge tone={item.tone}>{item.tone}</Badge>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      ))}
-    </section>
-  )
-}
 
 function ArchiveView({ data, onReload }: { data: PreventiviPageData; onReload: (data: PreventiviPageData) => void }) {
   return (
     <>
-      <section className="iu-prev-banner">
-        <div>
-          <FileText size={22} />
-          <strong>Archivio preventivi operativo</strong>
-          <span>Elenco, indicatori, dettaglio sintetico e stato preventivo sono tracciati; documenti e percorsi avanzati restano governati.</span>
-        </div>
-        <ButtonLink href="/preventivi/wizard" tone="primary"><BriefcaseBusiness size={16} />Preventivo guidato</ButtonLink>
-      </section>
       <MetricGrid data={data} />
-      <WarningPanel data={data} />
       <RecordsPanel data={data} onReload={onReload} />
-      <SectionSummary data={data} />
-      <ContractPanel data={data} />
-      <TechnicalRollback href="/preventivi?_legacy=1" />
     </>
   )
 }
-
 function FormActions({ mode }: { mode: PageMode }) {
   return (
     <div className="iu-prev-actions">
@@ -1304,17 +1222,9 @@ export function PreventiviPage() {
       ) : null}
       {!loading && !loadError && hasData ? (
         mode === 'new-preventivo' ? (
-          <>
-            <WarningPanel data={data} />
-            <NewPreventivoForm data={data} />
-            <ContractPanel data={data} />
-          </>
+          <NewPreventivoForm data={data} />
         ) : mode === 'new-conferimento' ? (
-          <>
-            <WarningPanel data={data} />
-            <NewConferimentoForm data={data} />
-            <ContractPanel data={data} />
-          </>
+          <NewConferimentoForm data={data} />
         ) : mode === 'detail-conferimento' && conferimentoDetail ? (
           <ConferimentoDetailView
             detail={conferimentoDetail}

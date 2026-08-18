@@ -139,6 +139,57 @@ def test_preventivi_archivio_collega_preventivo_guidato():
     assert "Preventivo guidato" in source
 
 
+def test_preventivi_archivio_e_form_mostrano_solo_contenuti_operativi():
+    source = Path("frontend/src/components/PreventiviPage.tsx").read_text(encoding="utf-8")
+    styles = Path("frontend/src/components/PreventiviPage.css").read_text(encoding="utf-8")
+
+    for technical_copy in (
+        "Archivio preventivi operativo",
+        "Avvisi mandato",
+        "Presidio dati",
+        "Percorso di recupero",
+        "Stati preventivo",
+        "Stati conferimento",
+    ):
+        assert technical_copy not in source
+
+    assert 'className="iu-prev-form-grid iu-prev-form-grid--parameters"' in source
+    assert 'className="iu-prev-form-grid iu-prev-form-grid--conferimento"' in source
+    assert ".iu-prev-form-grid--parameters > :nth-child(3)" in styles
+    assert ".iu-prev-form-grid--conferimento > :nth-child(7)" in styles
+    assert ".iu-prev-records {\n  grid-template-columns: minmax(0, 1fr);" in styles
+
+
+def test_compensi_forensi_layout_spaziato_e_fullscreen():
+    source = Path("frontend/src/components/CompensiForensiPage.tsx").read_text(encoding="utf-8")
+    styles = Path("frontend/src/components/CompensiForensiPage.css").read_text(encoding="utf-8")
+
+    assert "document.body.classList.toggle('iu-comp-fullscreen', fullscreen)" in source
+    assert "Apri a tutto schermo" in source
+    assert "iu-comp-page--fullscreen" in source
+    assert ".iu-comp-form > label" in styles
+    assert "grid-column: span 4;" in styles
+    assert "column-gap: var(--iu-od-space-5);" in styles
+    assert ".iu-comp-metrics .iu-kpi-card" in styles
+
+
+def test_preventivo_wizard_react_layout_operativo_e_fullscreen_governati():
+    source = Path("frontend/src/components/PreventivoWizardPage.tsx").read_text(encoding="utf-8")
+    styles = Path("frontend/src/components/PreventivoWizardPage.css").read_text(encoding="utf-8")
+
+    assert source.count("document.body.classList.toggle('iu-pwiz-fullscreen', fullscreen)") == 1
+    assert "Nascondi riepilogo" in source
+    assert "Tutto schermo" in source
+    assert source.index('<div className="iu-pwiz-main">') < source.index("summaryVisible ? <Sidebar")
+    assert "grid-template-areas: 'main sidebar' !important" in styles
+    assert "minmax(17rem, 19rem)" in styles
+    assert "overflow-wrap: anywhere" not in styles
+    assert "word-break: normal" in styles
+    assert "Totale teorico fattura" not in source
+    assert "Totale preventivo" in source
+    assert ".iu-pwiz-money-grid > div" in styles
+    assert "grid-template-columns: minmax(0, 1fr);" in styles
+
 def test_preventivo_wizard_react_e_fallback_legacy_smoke(tmp_path: Path):
     _app_obj, client = _logged_client(tmp_path)
 

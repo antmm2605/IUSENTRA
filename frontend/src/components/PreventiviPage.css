@@ -53,7 +53,7 @@
 }
 
 .iu-prev-records {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .iu-prev-actions {
@@ -203,6 +203,31 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--iu-space-4);
+}
+
+.iu-prev-form-grid--parameters,
+.iu-prev-form-grid--conferimento {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+}
+
+.iu-prev-form-grid--parameters > :nth-child(1),
+.iu-prev-form-grid--parameters > :nth-child(2),
+.iu-prev-form-grid--parameters > :nth-child(4),
+.iu-prev-form-grid--parameters > :nth-child(5) {
+  grid-column: span 2;
+}
+
+.iu-prev-form-grid--parameters > :nth-child(3) {
+  grid-column: span 4;
+}
+
+.iu-prev-form-grid--conferimento > :nth-child(-n + 6) {
+  grid-column: span 3;
+}
+
+.iu-prev-form-grid--conferimento > :nth-child(7) {
+  grid-column: span 6;
 }
 
 .iu-prev-field {
@@ -420,7 +445,6 @@
 @media (max-width: 1180px) {
   .iu-prev-kpis,
   .iu-prev-grid,
-  .iu-prev-records,
   .iu-prev-contract {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -458,6 +482,11 @@
 
   .iu-prev-banner span {
     grid-column: auto;
+  }
+
+  .iu-prev-form-grid--parameters > *,
+  .iu-prev-form-grid--conferimento > * {
+    grid-column: 1 / -1;
   }
 
   .iu-prev-actions {

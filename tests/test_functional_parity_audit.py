@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
+from scripts import audit_studio_telematico_menu_tree as menu_audit
 from web.services.react_studio_module_bridge import _build_strumenti_operativi
 
 
@@ -130,3 +132,34 @@ def test_messaggi_pubblici_non_citano_il_prodotto_sorgente():
     assert "oggetto Studio Telematico" not in importer
     assert "titolo originario" in importer
     assert "oggetto originario" in importer
+
+
+def test_regex_audit_menu_usano_stringhe_csharp_lineari():
+    vulnerable_fragment = r"(?:\\.|[^\"])*"
+    regexes = (
+        menu_audit.WINFORMS_TEXT_RE,
+        menu_audit.ACCESSIBLE_NAME_RE,
+        menu_audit.TOOLTIP_RE,
+        menu_audit.CAPTION_RE,
+        menu_audit.CONTAINER_TEXT_RE,
+        menu_audit.FILTER_LABEL_RE,
+    )
+
+    for regex in regexes:
+        assert vulnerable_fragment not in regex.pattern
+        assert r'[^\"\\]' in regex.pattern
+
+    hostile_caption = r"\!" * 5_000
+    cases = (
+        (menu_audit.WINFORMS_TEXT_RE, f'this.A.Text="{hostile_caption}";'),
+        (menu_audit.ACCESSIBLE_NAME_RE, f'this.A.AccessibleName="{hostile_caption}";'),
+        (menu_audit.TOOLTIP_RE, f'A.SetToolTip(this.A,"{hostile_caption}");'),
+        (menu_audit.CAPTION_RE, f'A.SharedPropsInternal.Caption="{hostile_caption}";'),
+        (menu_audit.CONTAINER_TEXT_RE, f'ribbonGroupA.Text="{hostile_caption}";'),
+        (menu_audit.FILTER_LABEL_RE, f'FilterLabel="{hostile_caption}"'),
+    )
+
+    started = time.perf_counter()
+    for regex, payload in cases:
+        assert regex.search(payload)
+    assert time.perf_counter() - started < 2.0

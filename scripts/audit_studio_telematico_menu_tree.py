@@ -38,7 +38,7 @@ WINFORMS_TOOL_DECLARATION_RE = re.compile(
     r"(?P<kind>ToolStripMenuItem|ContextMenuStrip|MenuStrip|ToolStrip|ToolStripDropDownButton|ToolStripButton)\s*\("
 )
 WINFORMS_TEXT_RE = re.compile(
-    r"this\.(?P<variable>[A-Za-z_][A-Za-z0-9_]*)\.Text\s*=\s*\"(?P<caption>(?:\\.|[^\"])*)\";"
+    r"this\.(?P<variable>[A-Za-z_][A-Za-z0-9_]*)\.Text\s*=\s*\"(?P<caption>(?:\\.|[^\"\\])*)\";"
 )
 INTERACTIVE_EVENT_RE = re.compile(
     r"(?:this\.)?(?P<variable>[A-Za-z_][A-Za-z0-9_]*)\."
@@ -48,11 +48,11 @@ INTERACTIVE_EVENT_RE = re.compile(
 )
 ACCESSIBLE_NAME_RE = re.compile(
     r"this\.(?P<variable>[A-Za-z_][A-Za-z0-9_]*)\.AccessibleName\s*=\s*"
-    r"\"(?P<caption>(?:\\.|[^\"])*)\";"
+    r"\"(?P<caption>(?:\\.|[^\"\\])*)\";"
 )
 TOOLTIP_RE = re.compile(
     r"(?:this\.)?[A-Za-z_][A-Za-z0-9_]*\.SetToolTip\(this\."
-    r"(?P<variable>[A-Za-z_][A-Za-z0-9_]*),\s*\"(?P<caption>(?:\\.|[^\"])*)\"\);"
+    r"(?P<variable>[A-Za-z_][A-Za-z0-9_]*),\s*\"(?P<caption>(?:\\.|[^\"\\])*)\"\);"
 )
 WINFORMS_CHILDREN_RE = re.compile(
     r"this\.(?P<parent>[A-Za-z_][A-Za-z0-9_]*)\."
@@ -66,10 +66,10 @@ RIBBON_GROUP_DECLARATION_RE = re.compile(
     r"new\s+(?:Infragistics\.Win\.UltraWinToolbars\.)?RibbonGroup\(\"(?P<key>[^\"]*)\"\)",
 )
 CAPTION_RE = re.compile(
-    r"(?P<variable>[A-Za-z_][A-Za-z0-9_]*)\.SharedPropsInternal\.Caption\s*=\s*\"(?P<caption>(?:\\.|[^\"])*)\";"
+    r"(?P<variable>[A-Za-z_][A-Za-z0-9_]*)\.SharedPropsInternal\.Caption\s*=\s*\"(?P<caption>(?:\\.|[^\"\\])*)\";"
 )
 CONTAINER_TEXT_RE = re.compile(
-    r"(?P<variable>(?:ultraToolbar|ribbonGroup)[A-Za-z0-9_]*)\.Text\s*=\s*\"(?P<caption>(?:\\.|[^\"])*)\";"
+    r"(?P<variable>(?:ultraToolbar|ribbonGroup)[A-Za-z0-9_]*)\.Text\s*=\s*\"(?P<caption>(?:\\.|[^\"\\])*)\";"
 )
 MANAGER_TOOLBARS_RE = re.compile(
     r"this\.(?P<manager>[A-Za-z_][A-Za-z0-9_]*)\.Toolbars\.AddRange\("
@@ -82,7 +82,7 @@ FILTER_METHOD_RE = re.compile(
     r"(?=\n\s*private void |\Z)",
     re.DOTALL,
 )
-FILTER_LABEL_RE = re.compile(r"FilterLabel\s*=\s*\"(?P<label>(?:\\.|[^\"])*)\"")
+FILTER_LABEL_RE = re.compile(r"FilterLabel\s*=\s*\"(?P<label>(?:\\.|[^\"\\])*)\"")
 FILTER_FIELD_RE = re.compile(
     r"SharedProps\.Tag\s*=\s*\"\(?\s*(?P<field>[A-Za-z_][A-Za-z0-9_]*)"
 )

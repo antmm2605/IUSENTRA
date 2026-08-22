@@ -41,7 +41,7 @@ jobs:
       - run: ${{ matrix.command }}
 
   storybook-checks:
-    name: Storybook: pagine e accessibilità
+    name: "Storybook: pagine e accessibilità"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

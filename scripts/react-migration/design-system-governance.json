@@ -28,6 +28,7 @@
     "frontend/src/components/CrmPage.css",
     "frontend/src/components/DocumentEditorPage.css",
     "frontend/src/components/DocumentiAIPage.css",
+    "frontend/src/components/DocumentToolsPage.css",
     "frontend/src/components/EditorProfessionalePage.css",
     "frontend/src/components/EmailPecPage.css",
     "frontend/src/components/FascicoliPage.css",
@@ -90,6 +91,13 @@
   ],
   "allowedInlineStyles": [
     {
+      "file": "frontend/src/components/AnagraficaClientiPage.tsx",
+      "snippets": [
+        "style={{ left: state.x, top: state.y }}"
+      ],
+      "reason": "Pannello rapido cliente: il popover deve seguire le coordinate del click reale."
+    },
+    {
       "file": "frontend/src/App.tsx",
       "snippets": [
         "conic-gradient(var(--iu-blue-600)",
@@ -130,6 +138,7 @@
     {
       "file": "frontend/src/components/FascicoliPage.tsx",
       "snippets": [
+        "style={{ left: position.x, top: position.y, maxHeight: maxPanelHeight }}",
         "style={{ left: position.x, top: position.y }}"
       ],
       "reason": "Menu contestuale fascicolo: il popover deve seguire le coordinate del click reale restando clamped nel viewport."

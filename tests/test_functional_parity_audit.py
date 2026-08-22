@@ -48,13 +48,16 @@ def test_audit_comandi_distingue_mappatura_e_prova_reale():
         (ROOT / "artifacts/react-migration/audit-parita-funzionale-comandi.json").read_text(encoding="utf-8")
     )
 
-    assert audit["schema_version"] == 2
+    assert audit["schema_version"] == 3
     assert audit["counts"]["functional_entries"] == 1428
+    assert audit["counts"]["unique_source_actions"] == 1015
+    assert audit["counts"]["duplicate_source_paths"] == 413
     assert len(audit["entries"]) == 1428
     assert len({row["id"] for row in audit["entries"]}) == 1428
-    assert audit["counts"]["mapped_entries"] > 0
+    assert len({row["canonical_id"] for row in audit["entries"]}) == 1015
+    assert audit["counts"]["mapped_entries"] == audit["counts"]["functional_entries"]
     assert audit["counts"]["verified_entries"] > 0
-    assert audit["counts"]["unmapped_entries"] > 0
+    assert audit["counts"]["unmapped_entries"] == 0
     assert all(row["status"] != "verificata" or row["real_proof"] for row in audit["entries"])
     assert all(row["status"] != "presente_da_provare" or all(check["ok"] for check in row["code_checks"]) for row in audit["entries"])
     verified_capabilities = {row["capability_id"] for row in audit["entries"] if row["status"] == "verificata"}

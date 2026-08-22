@@ -39,6 +39,17 @@ ESITI_RT: dict[str, str] = {
 _TOLLERANZA_EURO = 0.005
 
 
+def format_importo_euro_it(importo: float | int | str | None) -> str:
+    """Formatta un importo per testi visibili all'utente."""
+
+    try:
+        valore = float(importo or 0)
+    except (TypeError, ValueError):
+        valore = 0.0
+    testo = f"{valore:,.2f}".replace(",", "§").replace(".", ",").replace("§", ".")
+    return f"€ {testo}"
+
+
 @dataclass
 class RicevutaTelematica:
     """RT pagoPA di giustizia normalizzata (schema PagamentiTelematiciGiustizia)."""
@@ -203,13 +214,13 @@ def verifica_rt_per_deposito(
                     "title": f"Ricevuta {filename}: pagamento non provato",
                     "detail": (
                         f"La ricevuta telematica riporta esito '{rt.esito_label}' e importo "
-                        f"{rt.importo_totale:.2f} EUR: non prova un pagamento eseguito. "
-                        "Confermando, l'invio procede sotto responsabilita' professionale."
+                        f"{format_importo_euro_it(rt.importo_totale)}: non prova un pagamento eseguito. "
+                        "Confermando, l'invio procede sotto responsabilità professionale."
                     ),
                     "source": fonte,
                     "suggested_action": (
                         "Completa il pagamento su pagoPA/PST e scarica la RT con esito positivo, "
-                        "oppure conferma e procedi se il pagamento e' provato altrimenti."
+                        "oppure conferma e procedi se il pagamento è provato altrimenti."
                     ),
                 }
             )
@@ -221,7 +232,7 @@ def verifica_rt_per_deposito(
                     "title": f"Ricevuta {filename}: allegato probabilmente errato",
                     "detail": (
                         f"Il deposito non dichiara un contributo pagato (esenzione o prenotazione "
-                        f"a debito, D.P.R. 115/2002) ma e' allegata una ricevuta telematica con "
+                        f"a debito, D.P.R. 115/2002) ma è allegata una ricevuta telematica con "
                         f"esito '{rt.esito_label}'."
                     ),
                     "source": fonte,
@@ -239,8 +250,8 @@ def verifica_rt_per_deposito(
                     "level": "WARN",
                     "title": f"Ricevuta {filename}: importo diverso dal contributo dichiarato",
                     "detail": (
-                        f"La RT prova {rt.importo_totale:.2f} EUR ma il DatiAtto dichiara "
-                        f"{float(importo_atteso):.2f} EUR di contributo unificato. Con pagamento "
+                        f"La RT prova {format_importo_euro_it(rt.importo_totale)} ma il DatiAtto dichiara "
+                        f"{format_importo_euro_it(importo_atteso)} di contributo unificato. Con pagamento "
                         "frazionato vanno allegate tutte le ricevute (vademecum PST)."
                     ),
                     "source": fonte,
@@ -279,10 +290,10 @@ def riepilogo_rt_allegate(
                 {
                     "code": "RT-DUPLICATA",
                     "level": "WARN",
-                    "title": f"Ricevuta {filename}: IUV gia' presente in busta",
+                    "title": f"Ricevuta {filename}: IUV già presente in busta",
                     "detail": (
-                        f"Lo IUV {rt.iuv} compare in piu' ricevute allegate: la stessa "
-                        "ricevuta non puo' provare due versamenti."
+                        f"Lo IUV {rt.iuv} compare in più ricevute allegate: la stessa "
+                        "ricevuta non può provare due versamenti."
                     ),
                     "source": "Vademecum pagamenti PST (stati DISPONIBILE/USATO)",
                     "suggested_action": "Rimuovi il duplicato o allega la ricevuta corretta.",
@@ -310,8 +321,8 @@ def riepilogo_rt_allegate(
                     "level": "WARN",
                     "title": "Ricevute telematiche: totale diverso dal contributo dichiarato",
                     "detail": (
-                        f"Le RT allegate provano {totale:.2f} EUR complessivi ma il DatiAtto "
-                        f"dichiara {float(importo_atteso):.2f} EUR di contributo unificato."
+                        f"Le RT allegate provano {format_importo_euro_it(totale)} complessivi ma il DatiAtto "
+                        f"dichiara {format_importo_euro_it(importo_atteso)} di contributo unificato."
                     ),
                     "source": "Schema PagamentiTelematiciGiustizia (pagoPA) + vademecum pagamenti PST",
                     "suggested_action": (

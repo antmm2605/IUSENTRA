@@ -402,6 +402,7 @@ export const studioModules: StudioModuleConfig[] = [
     ],
     cards: [
       { title: 'Catalogo funzioni', body: 'Cerca nel catalogo completo per nome, argomento o area di lavoro.', href: '/strumenti-operativi#catalogo-funzioni', action: 'Apri catalogo', icon: 'search', tone: 'primary', meta: 'Tutte le funzioni' },
+      { title: 'Prepara documenti', body: "Unisci PDF, crea archivi ZIP e prepara documenti multipagina mantenendo l'ordine scelto.", href: '/strumenti-documentali', action: 'Apri strumenti', icon: 'file', tone: 'success', meta: 'Documenti' },
       { title: 'Timesheet', body: 'Registra attività e genera parcelle dalle ore lavorate.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Tempo' },
       { title: 'Esporta dati', body: 'Scarica i dati economici dello studio per controlli e analisi.', href: '/export/fatturazione.csv', action: 'Esporta', icon: 'download', tone: 'success', meta: 'Dati economici' },
       { title: 'Condivisioni', body: 'Gestisci cartelle condivise e accesso documentale dei clienti.', href: '/cartelle-condivise', action: 'Apri condivisioni', icon: 'folder', tone: 'warning', meta: 'Clienti' },

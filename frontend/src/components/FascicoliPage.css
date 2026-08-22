@@ -2478,7 +2478,7 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-rg-candidates li span{font-size:11.5px;font-weight:700;color:var(--iu-slate-500)}
 .iu-fas-rg-candidates li em{font-size:11px;font-style:normal;color:var(--iu-slate-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iu-fas-rg-candidates li button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:9px;border:1px solid rgba(22,163,74,.35);background:rgba(22,163,74,.1);color:#166534;font-size:12px;font-weight:900;cursor:pointer;flex:0 0 auto}
-.iu-fas-quick-panel{position:fixed;z-index:1080;width:300px;background:white;border:1px solid var(--iu-border);border-radius:14px;box-shadow:0 18px 44px rgba(15,23,42,.22);padding:6px;display:grid;gap:1px;animation:iu-fas-quick-in .12s ease-out}
+.iu-fas-quick-panel{position:fixed;z-index:1080;width:300px;max-height:calc(100vh - 16px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:white;border:1px solid var(--iu-border);border-radius:14px;box-shadow:0 18px 44px rgba(15,23,42,.22);padding:6px;display:grid;gap:1px;animation:iu-fas-quick-in .12s ease-out}
 @keyframes iu-fas-quick-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .iu-fas-quick-panel header{display:grid;gap:1px;padding:8px 12px 9px;border-bottom:1px solid var(--iu-border);margin-bottom:3px}
 .iu-fas-quick-panel header strong{font-size:13.5px;font-weight:900;color:#111827}

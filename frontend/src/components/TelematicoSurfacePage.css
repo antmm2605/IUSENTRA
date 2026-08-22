@@ -1597,8 +1597,8 @@
 }
 .iu-tel-offices>header{
   display:grid;
-  grid-template-columns:minmax(220px,1fr) minmax(260px,420px) 190px;
-  align-items:end;
+  grid-template-columns:1fr;
+  align-items:start;
   gap:12px;
 }
 .iu-tel-offices h2{
@@ -1613,6 +1613,12 @@
   line-height:1.35;
 }
 .iu-tel-offices>header span{color:var(--iu-slate-500)}
+.iu-tel-offices__tools{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) minmax(190px,240px);
+  gap:12px;
+  width:100%;
+}
 .iu-tel-offices label{
   min-height:42px;
   display:flex;
@@ -2546,6 +2552,7 @@
   .iu-tel-tribunali-side,
   .iu-tel-surface-bottom,
   .iu-tel-offices>header,
+  .iu-tel-offices__tools,
   .iu-pat-overview,
   .iu-pat-guides,
   .iu-pat-prefill-card dl,

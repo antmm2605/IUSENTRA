@@ -1073,6 +1073,8 @@ def test_react_clienti_page_collegata_nav_api_e_lex():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/AnagraficaClientiPage.tsx").read_text(encoding="utf-8")
     data_source = Path("frontend/src/clientiData.ts").read_text(encoding="utf-8")
+    cartella_data_source = Path("frontend/src/clientiCartellaData.ts").read_text(encoding="utf-8")
+    portal_source = Path("frontend/src/components/ClientPortalPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/AnagraficaClientiPage.css").read_text(encoding="utf-8")
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
@@ -1089,11 +1091,31 @@ def test_react_clienti_page_collegata_nav_api_e_lex():
     assert "Senza recapiti" in page_source
     assert "Privacy" in page_source
     assert "Documenti scaduti" in page_source
+    assert "ClienteQuickPanel" in page_source
+    assert "onContextMenu={(event) => onOpenQuickPanel(event, item)}" in page_source
+    assert "getCartellaClientePage(item.id)" in page_source
+    assert "Fascicoli cliente" in page_source
+    assert "Visualizza fascicoli cliente" in page_source
+    assert "Portale clienti" in page_source
+    assert "/app/portale-clienti?id_cliente=" in page_source
+    assert "/preventivi/nuovo?id_cliente=" in page_source
+    assert "navigator.clipboard.writeText" in page_source
+    assert "/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella" in cartella_data_source
+    assert "initialStudioPortalClientId" in portal_source
+    assert "id_cliente" in portal_source
     assert "IUSENTRA_LEX_CONTEXT" in floating_lex
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
     assert ".iu-clienti-page" in css
     assert ".iu-cli-table" in css
+    assert ".iu-cli-quick-panel" in css
+    assert ".iu-cli-quick-panel__matters" in css
+    assert "width:min(430px, calc(100vw - 24px))" in css
+    assert "max-height:min(660px, calc(100dvh - 24px))" in css
+    assert "overflow:hidden" in css
+    assert "-webkit-line-clamp:2" in css
+    assert "grid-template-columns:repeat(2, minmax(170px, 1fr))" in css
+    assert "grid-column:1 / -1" in css
     assert "@media(max-width:760px)" in css
 
 
@@ -7693,6 +7715,34 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'" in page_source
     assert "const PAGOPA_PROXY_NEW_PAYMENT_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp'" in page_source
     assert "const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'" in page_source
+    assert "PAGOPA_GIUSTIZIA_URL" not in page_source
+    assert "function quickPanelRegistroPortaleHref" in page_source
+    assert "function quickPanelPstProfile" in page_source
+    assert "query.set('fascicolo_id', item.id)" in page_source
+    assert "query.set('mode', 'update_existing')" in page_source
+    assert "query.set('numero', String(item.rgNumber))" in page_source
+    assert "query.set('ufficio', item.court)" in page_source
+    assert "query.set('schema', profile.schema)" in page_source
+    assert "query.set('tabella_ministeriale', profile.tabellaMinisteriale)" in page_source
+    assert "query.set('servizio_pst_preferito', profile.servizioPstPreferito)" in page_source
+    assert "query.set('registro_portale', profile.registroPortale)" in page_source
+    assert "query.set('auto_pst_test', '1')" in page_source
+    assert "return `/portali/pst/acquisizione${suffix ? `?${suffix}` : ''}#wizard-acquisizione`" in page_source
+    assert "const registroPortaleHref = quickPanelRegistroPortaleHref(item)" in page_source
+    assert "const pagoPaHref = quickPanelFascicoloActionHref(item, 'pagopa', 'nuovo')" in page_source
+    assert "const depositoSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'deposito')" in page_source
+    assert "const notificationSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'notifica')" in page_source
+    assert "href={registroPortaleHref}" in page_source
+    assert "href={pagoPaHref}" in page_source
+    assert "href={depositoSelectionHref}" in page_source
+    assert "href={notificationSelectionHref}" in page_source
+    assert "quickPanelPoliswebHref" not in page_source
+    assert "href={poliswebHref}" not in page_source
+    assert "params.get('selezione_documenti')" in page_source
+    assert "setDocumentFlowMode(requested)" in page_source
+    assert "window.history.replaceState(null, '', nextUrl)" in page_source
+    assert "selezione_documenti=deposito" not in page_source
+    assert "notifiche-legali?id_fascicolo=${encodeURIComponent(item.id)}&fase=notifica#notifica" not in page_source
     assert "function EmbeddedRecordModal" in page_source
     assert "function RecordOverlayButton" in page_source
     assert "function PagoPaActionButton" in page_source
@@ -7710,6 +7760,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Apri fuori" in page_source
     assert Path("frontend/public/pagopa-removebg-preview.png").exists()
     assert ".iu-fas-pagopa-button" in css
+    assert ".iu-fas-quick-panel{position:fixed" in css
+    assert "max-height:calc(100vh - 16px)" in css
+    assert "overscroll-behavior:contain" in css
     assert ".iu-fas-embedded-modal" in css
     assert ".iu-fas-embedded-modal--fullscreen" in css
     assert ".iu-fas-pagopa-prefill" in css

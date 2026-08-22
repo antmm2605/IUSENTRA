@@ -10,6 +10,7 @@ from __future__ import annotations
 from pct.busta import Allegato, BustaTelematica, DatiBusta
 from pct.pagamenti_giustizia import (
     e_ricevuta_telematica,
+    format_importo_euro_it,
     parse_rt,
     riepilogo_rt_allegate,
     verifica_rt_per_deposito,
@@ -62,6 +63,11 @@ def test_parse_rt_eseguita_estrae_campi_ministeriali():
     assert "Contributo unificato" in rt.causale
 
 
+def test_format_importo_rt_visibile_in_italiano():
+    assert format_importo_euro_it(1234.5) == "€ 1.234,50"
+    assert format_importo_euro_it("237.00") == "€ 237,00"
+
+
 def test_parse_rt_non_eseguita():
     rt = parse_rt(_rt_xml(esito="1", importo="0.00"))
     assert rt is not None
@@ -106,6 +112,8 @@ def test_esito_negativo_avvisa_senza_bloccare():
     issues = verifica_rt_per_deposito(rt, importo_atteso=237.0)
     assert any(i["code"] == "RT-ESITO-NEGATIVO" and i["level"] == "WARN" for i in issues)
     assert not any(i["level"] == "BLOCK" for i in issues)
+    assert "€ 0,00" in issues[0]["detail"]
+    assert "EUR" not in issues[0]["detail"]
 
 
 def test_deposito_esente_rt_negativa_segnala_allegato_errato():
@@ -123,6 +131,9 @@ def test_importo_difforme_avvisa_ma_non_blocca():
     issues = verifica_rt_per_deposito(rt, importo_atteso=237.0)
     assert [i["code"] for i in issues] == ["RT-IMPORTO-DIFFORME"]
     assert issues[0]["level"] == "WARN"
+    assert "€ 98,00" in issues[0]["detail"]
+    assert "€ 237,00" in issues[0]["detail"]
+    assert "EUR" not in issues[0]["detail"]
 
 
 def test_importo_coincidente_nessun_avviso():

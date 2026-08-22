@@ -1715,13 +1715,15 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
 
 function RowActions({ item, archive = false, onDeleted, onError, className = '' }:{item:FascicoloRow; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; className?:string}) {
   const deleteHref = item.deleteHref || `/fascicoli/${encodeURIComponent(item.id)}/elimina`
+  const depositoSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'deposito')
+  const notificationSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'notifica')
   return (
     <div className={`iu-fas-actions ${className}`.trim()} aria-label={`Azioni fascicolo ${item.ref}`}>
       <a href={item.href} aria-label="Apri fascicolo" title="Apri"><Eye size={15}/></a>
       {item.relataStatusLabel ? <a href={relataListHref(item)} aria-label={`Apri Relata notifica ${item.ref}`} title="Relata notifica"><FileSignature size={15}/></a> : null}
       {!archive ? <a href={item.editHref} aria-label="Modifica fascicolo" title="Modifica"><PencilLine size={15}/></a> : null}
-      {!archive ? <a href={`/fascicoli/${encodeURIComponent(item.id)}/deposito/prepara`} aria-label={`Deposito telematico fascicolo ${item.ref}`} title="Deposito telematico"><UploadCloud size={15}/></a> : null}
-      {!archive ? <a href={`/notifiche-legali?id_fascicolo=${encodeURIComponent(item.id)}&fase=notifica#notifica`} aria-label={`Notifica in proprio fascicolo ${item.ref}`} title="Notifica in proprio"><Send size={15}/></a> : null}
+      {!archive ? <a href={depositoSelectionHref} aria-label={`Deposito telematico fascicolo ${item.ref}`} title="Deposito telematico"><UploadCloud size={15}/></a> : null}
+      {!archive ? <a href={notificationSelectionHref} aria-label={`Notifica in proprio fascicolo ${item.ref}`} title="Notifica in proprio"><Send size={15}/></a> : null}
       <a href={item.exportPdfHref} aria-label="Esporta PDF fascicolo" title="PDF"><FileDown size={15}/></a>
       {archive && item.archive?.zipAvailable ? <a href={item.archiveZipHref} aria-label="Scarica ZIP archivio" title="ZIP"><FileArchive size={15}/></a> : null}
       <PostAction action={deleteHref} tone="danger" confirm={`Eliminare definitivamente il fascicolo ${item.ref}?`} confirmTitle="Elimina fascicolo" onDone={(message) => onDeleted?.(item.id, message)} onError={onError} title="Elimina fascicolo" ariaLabel={`Elimina fascicolo ${item.ref}`}><Trash2 size={15}/></PostAction>
@@ -2222,11 +2224,90 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
   )
 }
 
-// URL ufficiale pagamenti pagoPA di giustizia (vademecum PST versionato):
-// il pagamento avviene sul portale autenticato, mai dal gestionale.
-const PAGOPA_GIUSTIZIA_URL = 'https://servizipst.giustizia.it/PST/it/pagopa.wp'
-
 type QuickPanelState = { item: FascicoloRow; x: number; y: number }
+
+type QuickPanelPstProfile = {
+  schema: string
+  tabellaMinisteriale: string
+  servizioPstPreferito: string
+  registroPortale: string
+}
+
+function quickPanelPstProfile(item: FascicoloRow): QuickPanelPstProfile {
+  const raw = normaliseText([
+    item.register,
+    item.type,
+    item.procedureType,
+    item.section,
+    item.sectionRole,
+    item.court,
+    item.title,
+    item.object,
+    item.subtitle,
+  ].join(' '))
+  if (raw.includes('cass') && raw.includes('penal')) {
+    return { schema: 'cassazione penale', tabellaMinisteriale: 'JPW_CASSPE', servizioPstPreferito: 'JPW_CASSPE', registroPortale: 'CASSPE' }
+  }
+  if (raw.includes('cass') && raw.includes('civil')) {
+    return { schema: 'cassazione civile', tabellaMinisteriale: 'JPW_CASSCI', servizioPstPreferito: 'JPW_CASSCI', registroPortale: 'CASSCI' }
+  }
+  if (raw.includes('lavor') || raw.includes('previd') || raw.includes('assistenz') || raw.includes('sicid_lavoro') || raw.includes('jpw_sil') || raw.includes('retribuz')) {
+    return { schema: 'lavoro', tabellaMinisteriale: 'SICID_LAVORO', servizioPstPreferito: raw.includes('silp') ? 'JPW_SILP_DISTR' : 'JPW_SIL_DISTR', registroPortale: 'LAV' }
+  }
+  if (raw.includes('volontar') || raw.includes('sivg')) {
+    return { schema: 'volontaria', tabellaMinisteriale: 'SICID_VOLONTARIA_GIURISDIZIONE', servizioPstPreferito: 'JPW_SIVG', registroPortale: 'VG' }
+  }
+  if (raw.includes('simin')) {
+    return { schema: 'minori', tabellaMinisteriale: 'SICID_SIMIN', servizioPstPreferito: 'JPW_SIMIN', registroPortale: 'MIN' }
+  }
+  if (raw.includes('minor') || raw.includes('minoren') || raw.includes('sicid_minori') || raw.includes('jpw_min')) {
+    return { schema: 'minori', tabellaMinisteriale: 'SICID_MINORI', servizioPstPreferito: 'JPW_MIN', registroPortale: 'MIN' }
+  }
+  if (raw.includes('falliment') || raw.includes('concors')) {
+    return { schema: 'procedure concorsuali', tabellaMinisteriale: 'SIECIC_PROCEDURE_CONCORSUALI', servizioPstPreferito: 'JPW_SIECIC', registroPortale: 'FALL' }
+  }
+  if (raw.includes('immobil') || raw.includes('pignor')) {
+    return { schema: 'esecuzioni immobiliari', tabellaMinisteriale: 'SIECIC_ESECUZIONI_IMMOBILIARI', servizioPstPreferito: 'JPW_SIECIC', registroPortale: 'ESIM' }
+  }
+  if (raw.includes('mobil') || raw.includes('esecuz') || raw.includes('siecic')) {
+    const registro = raw.includes('siecic') && !raw.includes('esecuz') ? 'SIECIC' : 'ESM'
+    return { schema: 'esecuzioni mobiliari', tabellaMinisteriale: 'SIECIC_ESECUZIONI_MOBILIARI', servizioPstPreferito: 'JPW_SIECIC', registroPortale: registro }
+  }
+  if (raw.includes('giudice di pace') || raw.includes('sigp') || raw.includes('gdp')) {
+    return { schema: 'giudice di pace', tabellaMinisteriale: 'SIGP_GIUDICE_DI_PACE', servizioPstPreferito: 'JPW_SIGP', registroPortale: 'GDP' }
+  }
+  return { schema: 'civile', tabellaMinisteriale: 'SICID_CONTENZIOSO_CIVILE', servizioPstPreferito: 'JPW_SICID', registroPortale: 'CC' }
+}
+
+function quickPanelRegistroPortaleHref(item: FascicoloRow): string {
+  const query = new URLSearchParams()
+  const hasRg = !item.rgMissing && Boolean(item.rgNumber) && Boolean(item.rgYear)
+  const hasOffice = Boolean(item.court && item.court !== 'n.d.' && item.court !== 'Ufficio non impostato')
+  const profile = quickPanelPstProfile(item)
+  query.set('fascicolo_id', item.id)
+  query.set('mode', 'update_existing')
+  if (hasRg) {
+    query.set('numero', String(item.rgNumber))
+    query.set('anno', String(item.rgYear))
+  }
+  if (hasOffice) query.set('ufficio', item.court)
+  if (item.client && item.client !== 'n.d.') query.set('assistito', item.client)
+  if (item.counterparty && item.counterparty !== 'n.d.') query.set('controparte', item.counterparty)
+  if (item.title && item.title !== 'n.d.') query.set('oggetto', item.title)
+  query.set('schema', profile.schema)
+  query.set('tabella_ministeriale', profile.tabellaMinisteriale)
+  query.set('servizio_pst_preferito', profile.servizioPstPreferito)
+  query.set('registro_portale', profile.registroPortale)
+  if (hasRg && hasOffice) query.set('auto_pst_test', '1')
+  const suffix = query.toString()
+  return `/portali/pst/acquisizione${suffix ? `?${suffix}` : ''}#wizard-acquisizione`
+}
+
+function quickPanelFascicoloActionHref(item: FascicoloRow, key: string, value: string): string {
+  const [base, hash = ''] = item.href.split('#')
+  const separator = base.includes('?') ? '&' : '?'
+  return `${base}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}${hash ? `#${hash}` : ''}`
+}
 
 function fascicoloGroupLabel(item: FascicoloRow, mode: FascicoliGroupMode): string {
   if (mode === 'gruppo') return item.groupName || 'Senza gruppo'
@@ -2265,11 +2346,18 @@ function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown) }
   }, [onClose])
   // Il pannello resta nel viewport anche vicino ai bordi.
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768
   const width = 300
+  const maxPanelHeight = Math.min(560, Math.max(280, viewportHeight - 16))
   const position = {
-    x: Math.max(8, Math.min(state.x, window.innerWidth - width - 8)),
-    y: Math.max(8, Math.min(state.y, window.innerHeight - 420)),
+    x: Math.max(8, Math.min(state.x, viewportWidth - width - 8)),
+    y: Math.max(8, Math.min(state.y, viewportHeight - maxPanelHeight - 8)),
   }
+  const registroPortaleHref = quickPanelRegistroPortaleHref(item)
+  const pagoPaHref = quickPanelFascicoloActionHref(item, 'pagopa', 'nuovo')
+  const depositoSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'deposito')
+  const notificationSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'notifica')
   const pecQuery = !item.rgMissing && item.rg && item.rg !== 'n.d.' ? item.rg : item.client
   const generaProforma = async () => {
     setBusy(true); setMessage('Generazione proforma...')
@@ -2304,20 +2392,20 @@ function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:
     } catch { setMessage('Copia non disponibile in questo browser.') }
   }
   return (
-    <div className="iu-fas-quick-panel" ref={panelRef} role="menu" aria-label={`Pannello rapido ${item.ref}`} data-iusentra-quick-panel style={{ left: position.x, top: position.y }}>
+    <div className="iu-fas-quick-panel" ref={panelRef} role="menu" aria-label={`Pannello rapido ${item.ref}`} data-iusentra-quick-panel style={{ left: position.x, top: position.y, maxHeight: maxPanelHeight }}>
       <header>
         <strong>{item.ref}</strong>
         <span>{item.client}</span>
       </header>
       <a role="menuitem" href={item.href}><Eye size={15}/> Apri fascicolo</a>
-      <a role="menuitem" href="/polisweb"><Landmark size={15}/> Registro su portale servizi</a>
+      <a role="menuitem" href={registroPortaleHref}><Landmark size={15}/> Registro su portale servizi</a>
       <a role="menuitem" href={`/strumenti-legali/?tool=contributo_unificato&id_fascicolo=${encodeURIComponent(item.id)}`}><Calculator size={15}/> Calcola contributo unificato</a>
-      <a role="menuitem" href={PAGOPA_GIUSTIZIA_URL} target="_blank" rel="noopener noreferrer"><Euro size={15}/> Paga contributo su pagoPA</a>
+      <a role="menuitem" href={pagoPaHref}><Euro size={15}/> Paga contributo su pagoPA</a>
       <button role="menuitem" type="button" disabled={busy} onClick={() => fileRef.current?.click()}><FileCheck2 size={15}/> Carica ricevuta pagamento (RT)</button>
       <input ref={fileRef} type="file" accept=".xml,.p7m" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) caricaRicevuta(file); event.target.value = '' }}/>
       <button role="menuitem" type="button" disabled={busy} onClick={generaProforma}><Euro size={15}/> Genera fattura proforma</button>
-      <a role="menuitem" href={`/fascicoli/${encodeURIComponent(item.id)}/deposito/prepara`}><UploadCloud size={15}/> Deposito telematico</a>
-      <a role="menuitem" href={`/notifiche-legali?id_fascicolo=${encodeURIComponent(item.id)}&fase=notifica#notifica`}><Send size={15}/> Notifica in proprio</a>
+      <a role="menuitem" href={depositoSelectionHref}><UploadCloud size={15}/> Deposito telematico</a>
+      <a role="menuitem" href={notificationSelectionHref}><Send size={15}/> Notifica in proprio</a>
       <a role="menuitem" href={`/email/?q=${encodeURIComponent(pecQuery)}`}><Mail size={15}/> PEC del fascicolo</a>
       <button role="menuitem" type="button" onClick={copiaRiferimento}><Copy size={15}/> Copia riferimento</button>
       {message ? <p className="iu-fas-quick-panel__msg" role="status">{message}</p> : null}
@@ -4332,12 +4420,26 @@ type CtuIncarico = {
   actions: { proponiScadenze: string }
 }
 
+function addDaysToIsoDate(base: string, days: string): string {
+  const cleanBase = String(base || '').slice(0, 10)
+  const amount = Number(days)
+  if (!cleanBase || !Number.isFinite(amount) || amount < 0) return ''
+  const parts = cleanBase.split('-').map((part) => Number(part))
+  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return ''
+  const [year, month, day] = parts
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (Number.isNaN(date.getTime())) return ''
+  date.setUTCDate(date.getUTCDate() + Math.trunc(amount))
+  return date.toISOString().slice(0, 10)
+}
+
 function CtuSection({ fascicoloId }:{fascicoloId:string}) {
   const [incarichi, setIncarichi] = useState<CtuIncarico[]>([])
   const [message, setMessage] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [form, setForm] = useState({ ruoloStudio: 'PARTE', nomeCtu: '', dataNomina: '', termineBozza: '', termineOsservazioni: '', termineDeposito: '' })
+  const [ctuCalc, setCtuCalc] = useState({ decorrenza: '', giorniBozza: '', giorniOsservazioni: '', giorniDeposito: '' })
   const load = () => {
     fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/ctu`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
       .then((response) => response.ok ? response.json() : { incarichi: [] })
@@ -4357,6 +4459,27 @@ function CtuSection({ fascicoloId }:{fascicoloId:string}) {
       setMessage(payload.message || (response.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
       if (payload.ok) { setFormOpen(false); load() }
     } catch { setMessage('Operazione non riuscita.') } finally { setBusy(false) }
+  }
+  const applyCtuTermini = () => {
+    const decorrenza = ctuCalc.decorrenza || form.dataNomina
+    if (!decorrenza) {
+      setMessage('Indica la decorrenza riportata nell’ordinanza prima di applicare i termini.')
+      return
+    }
+    const next = { ...form }
+    const bozza = addDaysToIsoDate(decorrenza, ctuCalc.giorniBozza)
+    const osservazioni = addDaysToIsoDate(decorrenza, ctuCalc.giorniOsservazioni)
+    const deposito = addDaysToIsoDate(decorrenza, ctuCalc.giorniDeposito)
+    let applicati = 0
+    if (bozza) { next.termineBozza = bozza; applicati += 1 }
+    if (osservazioni) { next.termineOsservazioni = osservazioni; applicati += 1 }
+    if (deposito) { next.termineDeposito = deposito; applicati += 1 }
+    if (!applicati) {
+      setMessage('Inserisci almeno un termine in giorni indicato nell’ordinanza.')
+      return
+    }
+    setForm(next)
+    setMessage('Date CTU calcolate dai termini dell’ordinanza e pronte per la verifica.')
   }
   return (
     <div className="iu-fas-ctu">
@@ -4395,11 +4518,23 @@ function CtuSection({ fascicoloId }:{fascicoloId:string}) {
           <label><span>Termine bozza (art. 195)</span><input type="date" value={form.termineBozza} onChange={(e) => setForm({ ...form, termineBozza: e.target.value })}/></label>
           <label><span>Termine osservazioni</span><input type="date" value={form.termineOsservazioni} onChange={(e) => setForm({ ...form, termineOsservazioni: e.target.value })}/></label>
           <label><span>Termine deposito</span><input type="date" value={form.termineDeposito} onChange={(e) => setForm({ ...form, termineDeposito: e.target.value })}/></label>
+          <section className="iu-fas-ctu__calc" aria-label="Calcolo assistito dall’ordinanza">
+            <header>
+              <strong>Calcolo assistito dall’ordinanza</strong>
+              <span>Usa solo decorrenza e giorni indicati dal giudice.</span>
+            </header>
+            <label><span>Decorrenza indicata</span><input type="date" value={ctuCalc.decorrenza} onChange={(e) => setCtuCalc({ ...ctuCalc, decorrenza: e.target.value })}/></label>
+            <label><span>Giorni bozza</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniBozza} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniBozza: e.target.value })}/></label>
+            <label><span>Giorni osservazioni</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniOsservazioni} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniOsservazioni: e.target.value })}/></label>
+            <label><span>Giorni deposito</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniDeposito} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniDeposito: e.target.value })}/></label>
+            <button type="button" onClick={applyCtuTermini}>Applica date</button>
+            <p>I termini non sono standard: vanno copiati dall’ordinanza. Le date calcolate restano modificabili prima del salvataggio.</p>
+          </section>
           <div className="iu-fas-ctu__form-actions">
             <button type="button" disabled={busy || !form.nomeCtu.trim()} onClick={() => post(`/fascicoli/${encodeURIComponent(fascicoloId)}/ctu/nuovo`, form)}>Registra incarico</button>
             <button type="button" className="iu-fas-ctu__cancel" onClick={() => setFormOpen(false)}>Annulla</button>
           </div>
-          <p className="iu-fas-ctu__note">Le date vengono dall'ordinanza del giudice: il software non le calcola (art. 195 c.3 c.p.c.).</p>
+          <p className="iu-fas-ctu__note">L’ordinanza fissa i termini ex art. 195 c.3 c.p.c.: IUSENTRA calcola solo le date ricavabili dai giorni o dalle date indicati nell’ordinanza.</p>
         </div>
       ) : (
         <button type="button" className="iu-fas-ctu__add" onClick={() => setFormOpen(true)}><Gavel size={15}/> Nuovo incarico CTU</button>
@@ -8410,7 +8545,19 @@ function DetailPage({ id }:{id:string}) {
   const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
   const pagoPaEmbeddedHref = `${PAGOPA_PROXY_NEW_PAYMENT_URL}?iusentra_fascicolo=${encodedId}`
-  const openPagoPaModal = () => setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
+  const openPagoPaModal = useCallback(() => {
+    setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
+  }, [pagoPaEmbeddedHref])
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('pagopa') !== 'nuovo') return
+    openPagoPaModal()
+    params.delete('pagopa')
+    const nextQuery = params.toString()
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`
+    window.history.replaceState(null, '', nextUrl)
+  }, [openPagoPaModal])
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
@@ -8471,6 +8618,21 @@ function DetailPage({ id }:{id:string}) {
     setDocumentFlowMode(mode)
     if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
   }
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const requested = params.get('selezione_documenti')
+    if (requested !== 'deposito' && requested !== 'notifica') return
+
+    setContextMenu(null)
+    setDocumentFlowMode(requested)
+    if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
+
+    params.delete('selezione_documenti')
+    const nextQuery = params.toString()
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`
+    window.history.replaceState(null, '', nextUrl)
+  }, [id, lazyStatus.documenti])
   const openSectionFromContext = (sectionId: string, lazySection?: FascicoloDetailSection) => {
     setContextMenu(null)
     if (lazySection) loadLazySection(lazySection)

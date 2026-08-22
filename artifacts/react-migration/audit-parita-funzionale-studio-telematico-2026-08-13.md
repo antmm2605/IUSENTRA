@@ -37,3 +37,29 @@
 ## Limite dichiarativo
 
 Le verifiche sopra certificano soltanto le aree e le matrici nominate. Non costituiscono una dichiarazione generica di identità dell'intero prodotto: ogni ulteriore flusso viene considerato equivalente solo dopo confronto documentale, guardrail automatici e prova materiale sulla copia reale dell'utente.
+## Aggiornamento del 17/08/2026
+
+### Inventario e contratti
+
+- L'inventario decompilato resta la fonte comparativa: 1.428 percorsi funzionali, 1.015 azioni uniche e 413 ricorrenze conservate come prova.
+- Tutti i 1.428 percorsi dispongono ora di un contratto esplicito verso route, componente, API o comportamento locale IUSENTRA; le voci senza contratto sono zero.
+- La matrice non promuove automaticamente la mappatura a equivalenza: 30 percorsi hanno prova materiale registrata, 1.032 sono presenti da provare e 366 restano parziali.
+- I gruppi parziali principali sono i comandi avanzati dell'editor e del menu generale; restano inoltre espliciti ricampionamento immagini e scheda immigrazione. Non sono dichiarati conformi.
+
+### Strumenti documentali aggiunti
+
+- Nuova superficie React `/strumenti-documentali` per unire PDF, creare archivi ZIP e produrre PDF multipagina con ordinamento e rotazione.
+- Gli originali non vengono modificati. L'elaborazione avviene in memoria; il salvataggio nel fascicolo richiede un comando esplicito ed è tenant-aware.
+- L'acquisizione scanner parte esclusivamente dal PC Windows in uso tramite Local Signer, endpoint loopback `/scanner/acquire`; nessun contenuto dello scanner viene acquisito dal server.
+- Il Local Signer è stato aggiornato alla versione `1.6.114`; il PIN e i dati dei dispositivi di firma restano fuori da questo flusso.
+
+### Verifiche automatiche
+
+- `python -m pytest tests/test_document_tools.py tests/test_local_signer.py tests/test_functional_parity_audit.py tests/test_notiziario_react.py -q`
+- `npm run typecheck`
+- Rigenerazione di `audit-parita-funzionale-comandi.json` e `audit-parita-funzionale-comandi.md`.
+- Controlli coperti: ordine e pagine PDF, rotazione, nomi ZIP, limiti upload, route API, distribuzione Local Signer, acquisizione WIA simulata e guardrail zero voci non mappate.
+
+### Prova reale
+
+La prova automatica non sostituisce il collaudo materiale. La nuova superficie, i download, il salvataggio nel fascicolo e l'apertura del selettore WIA devono essere cliccati sulla copia reale `http://127.0.0.1:8080`. L'acquisizione completa richiede uno scanner Windows realmente collegato. Fino a tale prova queste funzioni restano presenti da provare e non vengono dichiarate verificate.

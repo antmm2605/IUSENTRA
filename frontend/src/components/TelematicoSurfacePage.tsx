@@ -1699,10 +1699,12 @@ function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
           <h2>Tribunali e indirizzi PEC</h2>
           <p>{certificateSummary.present} certificati associati su {certificateSummary.required} uffici con protezione deposito.</p>
         </div>
-        <label><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca ufficio, PEC o distretto..."/></label>
-        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtra tipo ufficio">
-          {types.map((type) => <option value={type} key={type}>{type === 'tutti' ? 'Tutti i tipi' : type}</option>)}
-        </select>
+        <div className="iu-tel-offices__tools" aria-label="Filtri elenco uffici">
+          <label><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca ufficio, PEC o distretto..."/></label>
+          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtra tipo ufficio">
+            {types.map((type) => <option value={type} key={type}>{type === 'tutti' ? 'Tutti i tipi' : type}</option>)}
+          </select>
+        </div>
       </header>
       <div className="iu-tel-office-list">
         {offices.map((office) => (

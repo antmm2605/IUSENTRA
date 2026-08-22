@@ -32,22 +32,6 @@ function formatValue(value: string | number): string {
   return value
 }
 
-function WarningPanel({ data }: { data: StudioPageData }) {
-  if (!data.warnings.length) return null
-  return (
-    <Panel title="Avvisi">
-      <div className="iu-studio-warnings">
-        {data.warnings.map((warning) => (
-          <div className="iu-studio-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">Avviso</Badge>
-            <span>{warning.message}</span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
 function ModuleList({ modules, legacy = false }: { modules: Array<OperationalModule | LegacyModule>; legacy?: boolean }) {
   if (!modules.length) return <EmptyState title={legacy ? 'Nessun modulo protetto' : 'Nessun modulo operativo disponibile'} />
   return (
@@ -67,18 +51,6 @@ function ModuleList({ modules, legacy = false }: { modules: Array<OperationalMod
         </article>
       ))}
     </div>
-  )
-}
-
-function ContractPanel({ data }: { data: StudioPageData }) {
-  return (
-    <Panel title="Presidio dati" subtitle="Consultazione operativa con impostazioni sensibili protette.">
-      <div className="iu-studio-contract">
-        <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Consultazione: {data.contracts.operational ? 'attiva' : 'non disponibile'}</span>
-        <span>Impostazioni sensibili: protette</span>
-      </div>
-    </Panel>
   )
 }
 
@@ -163,7 +135,6 @@ export function StudioPage() {
             <strong>Impostazioni sensibili presidiate</strong>
             <span>PEC, firma digitale, calendari, pagamenti e telematico restano nei percorsi protetti.</span>
           </section>
-          <WarningPanel data={data} />
           <section className="iu-studio-kpis" aria-label="Indicatori studio">
             {data.metrics.map((metric) => (
               <KpiCard
@@ -207,7 +178,6 @@ export function StudioPage() {
               ))}
             </div>
           </Panel>
-          <ContractPanel data={data} />
         </>
       ) : null}
     </Page>

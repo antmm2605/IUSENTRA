@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
   AlertTriangle,
   BadgeCheck,
   BriefcaseBusiness,
+  CalendarPlus,
   CheckCircle2,
+  Copy,
   Download,
   Eye,
   FileText,
@@ -22,6 +24,7 @@ import {
   Trash2,
   UserPlus,
   UsersRound,
+  X,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
@@ -38,6 +41,7 @@ import {
   type ClienteTipo,
   type ClientiPageData,
 } from '../clientiData'
+import { getCartellaClientePage, type CartellaClienteMatter } from '../clientiCartellaData'
 import './AnagraficaClientiPage.css'
 
 type SortKey = 'nome' | 'recenti' | 'pratiche' | 'completezza'
@@ -126,6 +130,63 @@ function sortRows(rows: ClienteRow[], sort: SortKey): ClienteRow[] {
   return copy.sort((a, b) => a.name.localeCompare(b.name, 'it'))
 }
 
+type ClienteQuickPanelState = {
+  item: ClienteRow
+  x: number
+  y: number
+}
+
+type ClienteQuickPanelMatters = {
+  loading: boolean
+  itemId: string
+  matters: CartellaClienteMatter[]
+  message: string
+}
+
+function placeQuickPanel(event: MouseEvent<HTMLElement>): Pick<ClienteQuickPanelState, 'x' | 'y'> {
+  const padding = 12
+  const panelWidth = 430
+  const panelHeight = 660
+  return {
+    x: Math.max(padding, Math.min(event.clientX, window.innerWidth - panelWidth - padding)),
+    y: Math.max(padding, Math.min(event.clientY, window.innerHeight - panelHeight - padding)),
+  }
+}
+
+function clientePortalHref(item: ClienteRow): string {
+  return `/app/portale-clienti?id_cliente=${encodeURIComponent(item.id)}`
+}
+
+function clienteNuovoFascicoloHref(item: ClienteRow): string {
+  return `/fascicoli/nuovo?id_cliente=${encodeURIComponent(item.id)}`
+}
+
+function clienteNuovoPreventivoHref(item: ClienteRow): string {
+  return `/preventivi/nuovo?id_cliente=${encodeURIComponent(item.id)}`
+}
+
+function clienteNuovoMessaggioHref(item: ClienteRow): string {
+  return `/messaggi/nuovo?id_cliente=${encodeURIComponent(item.id)}&canale=EMAIL&from_cliente=${encodeURIComponent(item.id)}`
+}
+
+function clienteNuovaScadenzaHref(item: ClienteRow): string {
+  return `/scadenze/nuova?id_cliente=${encodeURIComponent(item.id)}&from_cliente=${encodeURIComponent(item.id)}`
+}
+
+function clienteFatturaHref(item: ClienteRow): string {
+  return `/fatturazione/nuova?id_cliente=${encodeURIComponent(item.id)}`
+}
+
+function buildClienteContactText(item: ClienteRow): string {
+  return [
+    item.name,
+    item.fiscalId ? `C.F. / P.IVA: ${item.fiscalId}` : '',
+    item.pec ? `PEC: ${item.pec}` : '',
+    item.email ? `Email: ${item.email}` : '',
+    item.phone ? `Telefono: ${item.phone}` : '',
+  ].filter(Boolean).join('\n')
+}
+
 function RowActions({
   item,
   deleting,
@@ -147,6 +208,143 @@ function RowActions({
   )
 }
 
+function ClienteQuickPanel({
+  state,
+  onClose,
+  onDelete,
+}:{
+  state: ClienteQuickPanelState
+  onClose: () => void
+  onDelete: (item: ClienteRow) => void
+}) {
+  const { item } = state
+  const [copied, setCopied] = useState(false)
+  const [matterState, setMatterState] = useState<ClienteQuickPanelMatters>({
+    loading: false,
+    itemId: item.id,
+    matters: [],
+    message: '',
+  })
+
+  useEffect(() => {
+    setCopied(false)
+    let active = true
+    const hasDeclaredMatters = item.matters > 0 || item.activeMatters > 0
+    if (!hasDeclaredMatters) {
+      setMatterState({ loading: false, itemId: item.id, matters: [], message: 'Nessun fascicolo collegato visibile.' })
+      return () => {
+        active = false
+      }
+    }
+
+    setMatterState({ loading: true, itemId: item.id, matters: [], message: 'Carico i fascicoli collegati...' })
+    getCartellaClientePage(item.id)
+      .then((payload) => {
+        if (!active) return
+        const matters = [...payload.matters.active, ...payload.matters.archived]
+        setMatterState({
+          loading: false,
+          itemId: item.id,
+          matters,
+          message: matters.length ? '' : 'Nessun fascicolo collegato visibile.',
+        })
+      })
+      .catch(() => {
+        if (!active) return
+        setMatterState({
+          loading: false,
+          itemId: item.id,
+          matters: [],
+          message: 'Cartella cliente non disponibile in questo momento.',
+        })
+      })
+
+    return () => {
+      active = false
+    }
+  }, [item.id, item.matters, item.activeMatters])
+
+  const copyContacts = () => {
+    const text = buildClienteContactText(item)
+    if (!text || !navigator.clipboard?.writeText) {
+      setCopied(false)
+      return
+    }
+    void navigator.clipboard.writeText(text).then(() => setCopied(true)).catch(() => setCopied(false))
+  }
+
+  const matters = matterState.itemId === item.id ? matterState.matters : []
+  const matterMessage = matterState.itemId === item.id ? matterState.message : ''
+
+  return (
+    <aside
+      className="iu-cli-quick-panel"
+      role="dialog"
+      aria-label={`Pannello rapido cliente ${item.name}`}
+      style={{ left: state.x, top: state.y }}
+      onClick={(event) => event.stopPropagation()}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <header className="iu-cli-quick-panel__header">
+        <div>
+          <strong>{item.name}</strong>
+          <span>{item.subtitle || item.fiscalId || formatClienteType(item.type)}</span>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Chiudi pannello rapido">
+          <X size={16}/>
+        </button>
+      </header>
+
+      <div className="iu-cli-quick-panel__meta">
+        <Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge>
+        <span>{item.matters === 1 ? '1 fascicolo' : `${item.matters} fascicoli`}</span>
+        {item.pec ? <span>PEC presente</span> : <span>PEC da completare</span>}
+      </div>
+
+      <div className="iu-cli-quick-panel__contacts">
+        {item.fiscalId ? <span>C.F. / P.IVA: {item.fiscalId}</span> : null}
+        {item.phone ? <span><Phone size={13}/> {item.phone}</span> : null}
+        {item.email ? <span><Mail size={13}/> {item.email}</span> : null}
+        {item.pec ? <span><ShieldCheck size={13}/> {item.pec}</span> : null}
+      </div>
+
+      <section className="iu-cli-quick-panel__section" aria-label="Fascicoli del cliente">
+        <div className="iu-cli-quick-panel__section-title">
+          <strong>Fascicoli cliente</strong>
+          <a href={item.folderHref}>Cartella completa</a>
+        </div>
+        {matterState.loading ? <small>{matterMessage}</small> : null}
+        {!matterState.loading && matters.length ? (
+          <div className="iu-cli-quick-panel__matters">
+            {matters.slice(0, 8).map((matter) => (
+              <a key={matter.id} href={matter.href || `/fascicoli/${encodeURIComponent(matter.id)}`}>
+                <strong>{matter.title}</strong>
+                <span>{matter.subtitle || matter.counterparty || 'Fascicolo cliente'}</span>
+                <small>{matter.documents} documenti · {matter.activities} attività</small>
+              </a>
+            ))}
+          </div>
+        ) : null}
+        {!matterState.loading && !matters.length ? <small>{matterMessage}</small> : null}
+      </section>
+
+      <nav className="iu-cli-quick-panel__actions" aria-label="Azioni rapide cliente">
+        <a href={item.href}><Eye size={15}/> Apri scheda cliente</a>
+        <a href={item.editHref}><PencilLine size={15}/> Modifica anagrafica</a>
+        <a href={item.folderHref}><FolderOpen size={15}/> Visualizza fascicoli cliente</a>
+        <a href={clientePortalHref(item)}><UsersRound size={15}/> Portale clienti</a>
+        <a href={clienteNuovoFascicoloHref(item)}><BriefcaseBusiness size={15}/> Nuovo fascicolo</a>
+        <a href={clienteNuovoPreventivoHref(item)}><FileText size={15}/> Nuovo preventivo</a>
+        <a href={clienteNuovoMessaggioHref(item)}><Mail size={15}/> Nuovo messaggio</a>
+        <a href={clienteNuovaScadenzaHref(item)}><CalendarPlus size={15}/> Nuova scadenza</a>
+        <a href={clienteFatturaHref(item)}><FileText size={15}/> Nuova fattura</a>
+        <button type="button" onClick={copyContacts}><Copy size={15}/> {copied ? 'Contatti copiati' : 'Copia contatti'}</button>
+        <button type="button" className="iu-cli-quick-panel__danger" onClick={() => onDelete(item)}><Trash2 size={15}/> Elimina cliente</button>
+      </nav>
+    </aside>
+  )
+}
+
 function ContactBlock({ item }:{item: ClienteRow}) {
   if (hasNoContacts(item)) return <span className="iu-cli-muted">-</span>
   return (
@@ -164,15 +362,17 @@ function ClienteMobileCard({
   onToggle,
   deleting,
   onDelete,
+  onOpenQuickPanel,
 }:{
   item: ClienteRow
   checked: boolean
   onToggle: () => void
   deleting: boolean
   onDelete: (item: ClienteRow) => void
+  onOpenQuickPanel: (event: MouseEvent<HTMLElement>, item: ClienteRow) => void
 }) {
   return (
-    <article className="iu-cli-mobile-card">
+    <article className="iu-cli-mobile-card" onContextMenu={(event) => onOpenQuickPanel(event, item)}>
       <header>
         <label><input type="checkbox" checked={checked} onChange={onToggle}/><span>{item.name}</span></label>
         <Badge tone={item.tone}>{formatClienteStatus(item.status)}</Badge>
@@ -202,6 +402,7 @@ function ClientiTable({
   onToggleAll,
   deletingIds,
   onDelete,
+  onOpenQuickPanel,
 }:{
   items: ClienteRow[]
   selected: Set<string>
@@ -209,6 +410,7 @@ function ClientiTable({
   onToggleAll: () => void
   deletingIds: Set<string>
   onDelete: (item: ClienteRow) => void
+  onOpenQuickPanel: (event: MouseEvent<HTMLElement>, item: ClienteRow) => void
 }) {
   const tableCardRef = useRef<HTMLElement>(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -303,7 +505,7 @@ function ClientiTable({
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id}>
+              <tr key={item.id} className="iu-cli-client-row" onContextMenu={(event) => onOpenQuickPanel(event, item)}>
                 <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.name}`}/></td>
                 <td className="iu-cli-title-cell">
                   <a href={item.href}>{item.name}</a>
@@ -330,6 +532,7 @@ function ClientiTable({
             onToggle={() => onToggle(item.id)}
             deleting={deletingIds.has(item.id)}
             onDelete={onDelete}
+            onOpenQuickPanel={onOpenQuickPanel}
             key={item.id}
           />
         ))}
@@ -405,6 +608,7 @@ export function AnagraficaClientiPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
+  const [quickPanel, setQuickPanel] = useState<ClienteQuickPanelState | null>(null)
 
   const refresh = () => {
     setLoading(true)
@@ -454,7 +658,31 @@ export function AnagraficaClientiPage() {
     })
   }
 
+  useEffect(() => {
+    if (!quickPanel) return undefined
+    const closePanel = () => setQuickPanel(null)
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePanel()
+    }
+    window.addEventListener('click', closePanel)
+    window.addEventListener('resize', closePanel)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('click', closePanel)
+      window.removeEventListener('resize', closePanel)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [quickPanel])
+
+  const openQuickPanel = (event: MouseEvent<HTMLElement>, item: ClienteRow) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const position = placeQuickPanel(event)
+    setQuickPanel({ item, ...position })
+  }
+
   const handleDelete = async (item: ClienteRow) => {
+    setQuickPanel(null)
     if (!window.confirm(`Eliminare il cliente "${item.name}"?`)) return
     setError('')
     setFeedback('')
@@ -570,10 +798,19 @@ export function AnagraficaClientiPage() {
             onToggleAll={toggleAll}
             deletingIds={deletingIds}
             onDelete={handleDelete}
+            onOpenQuickPanel={openQuickPanel}
           />
         </div>
         <InsightPanel data={data} visible={visible}/>
       </section>
+
+      {quickPanel ? (
+        <ClienteQuickPanel
+          state={quickPanel}
+          onClose={() => setQuickPanel(null)}
+          onDelete={handleDelete}
+        />
+      ) : null}
 
       <section className="iu-cli-lower-grid">
         <Panel title="Qualità dati anagrafici" subtitle="Informazioni da tenere pulite prima di incarico, atto e fattura" icon={<BadgeCheck size={17}/>}>

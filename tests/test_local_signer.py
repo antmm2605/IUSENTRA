@@ -9286,3 +9286,61 @@ def test_local_signer_espone_endpoint_certificato_ufficio_pst():
     assert "POST /pst/certificato-ufficio" in source
     assert 'elif path == "/pst/certificato-ufficio":' in source
     assert "CatalogoServizi" in source
+
+
+def test_scanner_locale_rifiuta_host_non_windows(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+
+    with pytest.raises(RuntimeError, match="PC Windows"):
+        module._acquisisci_pagina_scanner_windows()
+
+
+def test_scanner_locale_restituisce_la_pagina_acquisita(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    def _run(command, **kwargs):
+        captured["command"] = command
+        script = command[-1]
+        match = module.re.search(r"\$output = '([^']+)'", script)
+        assert match
+        Path(match.group(1)).write_bytes(b"\xff\xd8pagina-scanner\xff\xd9")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module.subprocess, "run", _run)
+
+    result = module._acquisisci_pagina_scanner_windows(timeout=45)
+
+    assert result["ok"] is True
+    assert result["mime_type"] == "image/jpeg"
+    assert result["filename"].startswith("scansione-")
+    assert module.base64.b64decode(result["content_base64"]) == b"\xff\xd8pagina-scanner\xff\xd9"
+    assert "-Sta" in captured["command"]
+
+
+def test_handler_scanner_locale_espone_endpoint_e_risposta(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {"timeout": 60}
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(
+        module,
+        "_acquisisci_pagina_scanner_windows",
+        lambda timeout=120: {"ok": True, "content_base64": "cGFn", "timeout": timeout},
+    )
+
+    module._Handler._scanner_acquire(_FakeHandler())
+
+    source = (Path(__file__).resolve().parents[1] / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    assert captured["status"] == 200
+    assert captured["payload"]["timeout"] == 60
+    assert 'elif path == "/scanner/acquire":' in source

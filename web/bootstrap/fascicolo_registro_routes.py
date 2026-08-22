@@ -9,10 +9,30 @@ nessun download autonomo, verifiche fail-closed.
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from flask import Flask, g, jsonify, request
+
+
+_ROME_TZ = ZoneInfo("Europe/Rome")
+
+
+def _format_rt_data_it(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "n.d."
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(_ROME_TZ)
+    if parsed.hour == parsed.minute == parsed.second == parsed.microsecond == 0:
+        return parsed.strftime("%d/%m/%Y")
+    return parsed.strftime("%d/%m/%Y %H:%M")
 
 
 def register_fascicolo_registro_routes(
@@ -96,7 +116,7 @@ def register_fascicolo_registro_routes(
         documenti del fascicolo con l'esito in nota.
         """
         from pct.fascicoli import TipoDocumento
-        from pct.pagamenti_giustizia import parse_rt
+        from pct.pagamenti_giustizia import format_importo_euro_it, parse_rt
 
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("fascicoli.scrivi"):
@@ -112,7 +132,7 @@ def register_fascicolo_registro_routes(
         if not nome.casefold().endswith((".xml", ".xml.p7m")):
             return jsonify({
                 "ok": False,
-                "message": "La ricevuta telematica e' il file RT in formato XML (anche firmato .p7m) scaricato dal portale pagamenti.",
+                "message": "La ricevuta telematica è il file RT in formato XML (anche firmato .p7m) scaricato dal portale pagamenti.",
             }), 400
         contenuto = upload.read()
         if len(contenuto) > 2 * 1024 * 1024:
@@ -124,11 +144,13 @@ def register_fascicolo_registro_routes(
         if rt is None:
             return jsonify({
                 "ok": False,
-                "message": "Il file non e' una Ricevuta Telematica pagoPA valida (schema PagamentiTelematiciGiustizia).",
+                "message": "Il file non è una Ricevuta Telematica PagoPA valida (schema PagamentiTelematiciGiustizia).",
             }), 400
+        importo_rt = format_importo_euro_it(rt.importo_totale)
+        data_rt = _format_rt_data_it(rt.data_ricevuta)
         nota = (
-            f"Ricevuta telematica pagoPA — esito: {rt.esito_label}; importo {rt.importo_totale:.2f} EUR; "
-            f"IUV {rt.iuv or 'n.d.'}; data {rt.data_ricevuta or 'n.d.'}"
+            f"Ricevuta telematica PagoPA - esito: {rt.esito_label}; importo {importo_rt}; "
+            f"IUV {rt.iuv or 'n.d.'}; data {data_rt}"
         )
         try:
             documento = gestore.aggiungi_documento(
@@ -146,11 +168,11 @@ def register_fascicolo_registro_routes(
             "pagamenti.ricevuta_rt",
             "fascicolo",
             id_fasc,
-            dettagli=f"{nome}: {rt.esito_label}, {rt.importo_totale:.2f} EUR, IUV {rt.iuv or 'n.d.'}",
+            dettagli=f"{nome}: {rt.esito_label}, {importo_rt}, IUV {rt.iuv or 'n.d.'}",
         )
         message = (
             f"Ricevuta verificata e archiviata nel fascicolo: {rt.esito_label}, "
-            f"{rt.importo_totale:.2f} EUR (IUV {rt.iuv or 'n.d.'})."
+            f"{importo_rt} (IUV {rt.iuv or 'n.d.'})."
         )
         if not rt.pagamento_eseguito:
             message += " Attenzione: la ricevuta non prova un pagamento eseguito."

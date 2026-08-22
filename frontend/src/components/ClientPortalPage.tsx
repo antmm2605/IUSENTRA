@@ -72,6 +72,10 @@ function numberValue(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function initialStudioPortalClientId(): string {
+  return text(new URLSearchParams(window.location.search).get('id_cliente'))
+}
+
 function rowId(row: PortalRow | undefined): string {
   return text(row?.id)
 }
@@ -202,13 +206,22 @@ function ClientPortalStudio() {
   const load = async () => {
     setLoading(true)
     const data = await loadStudioClientPortal()
+    const requestedClientId = initialStudioPortalClientId()
+    const requestedClient = data.clientOptions.find((item) => text(item.id) === requestedClientId)
+    const preferredClientId = text(requestedClient?.id) || text(data.clientOptions[0]?.id)
+    const preferredMatterOption =
+      data.matterOptions.find((item) => !preferredClientId || text(item.clientId) === preferredClientId) ||
+      data.matterOptions[0]
+    const preferredMatter =
+      data.matters.find((matter) => !preferredClientId || text(matter.client_id) === preferredClientId) ||
+      data.matters[0]
     setPayload(data)
     setSettingsDays(numberValue(data.settings?.inviteExpiresDays) || 14)
-    setSelectedMatterId((current) => current || rowId(data.matters[0]))
+    setSelectedMatterId((current) => current || rowId(preferredMatter) || rowId(data.matters[0]))
     setInviteForm((current) => ({
       ...current,
-      clientId: current.clientId || text(data.clientOptions[0]?.id),
-      matterId: current.matterId || text(data.matterOptions[0]?.id),
+      clientId: current.clientId || preferredClientId,
+      matterId: current.matterId || text(preferredMatterOption?.id),
     }))
     setLoading(false)
   }

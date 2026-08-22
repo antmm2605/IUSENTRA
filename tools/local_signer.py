@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.113
+IUSENTRA Local Signer - v1.6.114
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -28,6 +28,7 @@ API:
     POST /ai/embed               → embeddings locali inoltrati a Ollama
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
+    POST /scanner/acquire        → acquisisce una pagina dallo scanner Windows locale
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
     POST /pst/certificato-ufficio → scarica il .cer pubblico PST dell'ufficio
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
@@ -120,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.113"
+VERSION = "1.6.114"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -201,6 +202,74 @@ logging.basicConfig(
     format="%(asctime)s [LocalSigner] %(levelname)s %(message)s",
     datefmt="%H:%M:%S",
 )
+
+def _acquisisci_pagina_scanner_windows(timeout: int = 120) -> dict[str, Any]:
+    """Acquisisce una pagina via WIA sul PC locale e restituisce il JPEG in base64."""
+    if sys.platform != "win32":
+        raise RuntimeError("L'acquisizione da scanner è disponibile sul PC Windows in uso.")
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="iusentra-local-scan-"))
+    source_path = temp_dir / "acquisizione.bmp"
+    output_path = temp_dir / "acquisizione.jpg"
+    ps_script = f"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+$dialog = New-Object -ComObject WIA.CommonDialog
+$image = $dialog.ShowAcquireImage()
+if ($null -eq $image) {{
+  throw 'Acquisizione annullata o scanner non disponibile.'
+}}
+$source = {_powershell_single_quote(str(source_path))}
+$output = {_powershell_single_quote(str(output_path))}
+$image.SaveFile($source)
+$bitmap = [System.Drawing.Image]::FromFile($source)
+try {{
+  $bitmap.Save($output, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+}} finally {{
+  $bitmap.Dispose()
+}}
+"""
+    try:
+        try:
+            completed = subprocess.run(
+                [
+                    "powershell.exe",
+                    "-Sta",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    ps_script,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=max(int(timeout), 30),
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError("PowerShell non è disponibile su questo PC.") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("Tempo scaduto durante l'acquisizione dallo scanner.") from exc
+
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout or "").strip()
+            raise RuntimeError(detail or "Scanner non disponibile o acquisizione annullata.")
+        if not output_path.is_file():
+            raise RuntimeError("Lo scanner non ha restituito alcuna pagina.")
+
+        content = output_path.read_bytes()
+        if not content:
+            raise RuntimeError("La pagina acquisita è vuota.")
+        return {
+            "ok": True,
+            "filename": f"scansione-{datetime.now().strftime('%Y%m%d-%H%M%S')}.jpg",
+            "mime_type": "image/jpeg",
+            "bytes": len(content),
+            "content_base64": base64.b64encode(content).decode("ascii"),
+        }
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
 log = logging.getLogger("local_signer")
 
 
@@ -12672,6 +12741,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/ptt/documenti",
             "/pec/smtp/test",
             "/pec/send",
+            "/scanner/acquire",
             "/portal-assistant/session/start",
         }:
             log.info("HTTP POST %s", path)
@@ -12695,6 +12765,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._firma()
         elif path == "/firma-batch":
             self._firma_batch()
+        elif path == "/scanner/acquire":
+            self._scanner_acquire()
         elif path == "/pec/ipa":
             self._pec_ipa()
         elif path == "/pst/reginde":
@@ -12755,6 +12827,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "Not found"}, 404)
 
     # ── Handlers ────────────────────────────────────────────────────────────────
+
+
+    def _scanner_acquire(self):
+        try:
+            payload = self._read_json()
+            timeout = int(payload.get("timeout") or 120) if isinstance(payload, dict) else 120
+            self._send_json(_acquisisci_pagina_scanner_windows(timeout=max(30, min(timeout, 300))))
+        except Exception as exc:
+            log.warning("Acquisizione scanner non completata: %s", exc)
+            self._send_json({"ok": False, "errore": str(exc)}, 400)
 
     def _local_signer_update(self):
         try:

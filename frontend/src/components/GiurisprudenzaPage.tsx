@@ -11,6 +11,8 @@ import {
   Filter,
   Landmark,
   Link2,
+  Maximize2,
+  Minimize2,
   Save,
   Search,
   ShieldCheck,
@@ -39,6 +41,22 @@ import {
   type LegalSection,
 } from '../giurisprudenzaData'
 import './GiurisprudenzaPage.css'
+
+const INTERNAL_FULLSCREEN_BODY_CLASS = 'iusentra-ui-fullscreen-open'
+const GIURISPRUDENZA_FULLSCREEN_CLASS = 'iu-legal-fullscreen-mode'
+
+function toggleGiurisprudenzaFullscreen() {
+  const target = document.querySelector<HTMLElement>('main.iu-content') || document.documentElement
+  const nextActive = !target.classList.contains(GIURISPRUDENZA_FULLSCREEN_CLASS)
+  target.classList.toggle(GIURISPRUDENZA_FULLSCREEN_CLASS, nextActive)
+  document.body.classList.toggle(INTERNAL_FULLSCREEN_BODY_CLASS, nextActive)
+  return nextActive
+}
+
+function clearGiurisprudenzaFullscreen() {
+  document.querySelector<HTMLElement>(`main.iu-content.${GIURISPRUDENZA_FULLSCREEN_CLASS}`)?.classList.remove(GIURISPRUDENZA_FULLSCREEN_CLASS)
+  document.body.classList.remove(INTERNAL_FULLSCREEN_BODY_CLASS)
+}
 
 function ContractStrip({ data }: { data: GiurisprudenzaPageData }) {
   const citations = data.sections
@@ -80,7 +98,6 @@ function Metrics({ metrics }: { metrics: LegalMetric[] }) {
           label={metric.label}
           value={metric.value || 0}
           note={metric.note}
-          badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Stato'}</Badge>}
           href={giurisprudenzaMetricHref(metric)}
           area="ricerca"
           actionLabel="Apri"
@@ -290,10 +307,7 @@ function Filters({
   return (
     <section className="iu-legal-filters iu-od-source-card" aria-label="Filtri archivio giurisprudenza">
       <header className="iu-legal-filters__header">
-        <div>
-          <h2>Ricerca e lettura</h2>
-          <p>Filtra l'archivio e seleziona una scheda per leggere fonte, massima e uso professionale.</p>
-        </div>
+        <h2>Ricerca e lettura</h2>
         {hasFilters ? <Button type="button" tone="neutral" onClick={onReset}>Azzera filtri</Button> : null}
       </header>
       <div className="iu-legal-filter-grid">
@@ -832,6 +846,7 @@ function GiurisprudenzaArchivePage() {
   const [source, setSource] = useState(initialParams.get('fonte') || '')
   const [verification, setVerification] = useState(initialParams.get('status') || '')
   const [selectedId, setSelectedId] = useState(initialParams.get('scheda') || '')
+  const [fullscreenOpen, setFullscreenOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -846,6 +861,7 @@ function GiurisprudenzaArchivePage() {
       active = false
     }
   }, [])
+  useEffect(() => () => clearGiurisprudenzaFullscreen(), [])
 
   const areas = useMemo(() => [...new Set(data.records.map((record) => record.area).filter(Boolean))].sort(), [data.records])
   const grades = useMemo(() => [...new Set(data.records.map((record) => record.grade).filter(Boolean))].sort(), [data.records])
@@ -892,9 +908,18 @@ function GiurisprudenzaArchivePage() {
     <Page
       title="Archivio Giurisprudenza"
       subtitle="Banca dati interna di sentenze e provvedimenti in una pagina unica di ricerca e lettura."
-      actions={<ButtonLink href="/ricerca-legale" tone="primary">Ricerca legale</ButtonLink>}
+      actions={(
+        <>
+          <Button type="button" tone="neutral" aria-pressed={fullscreenOpen} onClick={() => setFullscreenOpen(toggleGiurisprudenzaFullscreen())}>
+            {fullscreenOpen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
+            {fullscreenOpen ? 'Riduci' : 'Tutto schermo'}
+          </Button>
+          <ButtonLink href="/ricerca-legale" tone="primary">Ricerca legale</ButtonLink>
+        </>
+      )}
     >
       <div className="iu-legal-page">
+        <Metrics metrics={data.metrics} />
         <ContractStrip data={data} />
         <WarningList data={data} />
         <div id="filtri-giurisprudenza" />
@@ -945,7 +970,6 @@ function GiurisprudenzaArchivePage() {
           </div>
           <RecordDetail record={selectedRecord} />
         </div>
-        <Metrics metrics={data.metrics} />
         <div id="presidio-lex">
           <KnowledgeStatusPanel data={data} />
         </div>

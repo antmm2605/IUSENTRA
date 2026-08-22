@@ -18,6 +18,8 @@ import {
   ListChecks,
   Mail,
   MessageCircle,
+  Maximize2,
+  Minimize2,
   Newspaper,
   Search,
   SearchCheck,
@@ -40,6 +42,21 @@ import {
 } from '../legalIntelligenceData'
 import './LegalIntelligencePage.css'
 type LegalIntelligenceView = 'dashboard' | 'news' | 'mediazione' | 'ricerca-legale'
+const INTERNAL_FULLSCREEN_BODY_CLASS = 'iusentra-ui-fullscreen-open'
+const LEGAL_INTELLIGENCE_FULLSCREEN_CLASS = 'iu-li-fullscreen-mode'
+
+function togglePageFullscreen(selector: string, className: string) {
+  const target = document.querySelector<HTMLElement>(selector) || document.documentElement
+  const nextActive = !target.classList.contains(className)
+  target.classList.toggle(className, nextActive)
+  document.body.classList.toggle(INTERNAL_FULLSCREEN_BODY_CLASS, nextActive)
+  return nextActive
+}
+
+function clearPageFullscreen(className: string) {
+  document.querySelector<HTMLElement>(`main.iu-content.${className}`)?.classList.remove(className)
+  document.body.classList.remove(INTERNAL_FULLSCREEN_BODY_CLASS)
+}
 const quickQueries: Record<LegalIntelligenceView, string[]> = {
   dashboard: ['mediazione obbligatoria', 'Cassazione prescrizione', 'credito imposta', 'usura bancaria'],
   news: ['mediazione', 'processo civile', 'tributario', 'diritto del lavoro'],
@@ -57,7 +74,7 @@ function currentView(): LegalIntelligenceView {
   return 'dashboard'
 }
 function pageTitle(view: LegalIntelligenceView) {
-  if (view === 'news') return 'News Legali'
+  if (view === 'news') return 'Aggiornamenti legali'
   if (view === 'mediazione') return 'Registro Mediazione'
   if (view === 'ricerca-legale') return 'Ricerca Legale'
   return 'Osservatorio Legale'
@@ -66,7 +83,7 @@ function pageSubtitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'Aggiornamenti giuridici con fonte, contesto e uso operativo in studio.'
   if (view === 'mediazione') return 'Registri ministeriali e dati di mediazione letti dentro una scheda professionale.'
   if (view === 'ricerca-legale') return 'Ricerca su archivio giuridico, fonti ufficiali e schede contestualizzate.'
-  return 'Archivio fonti, news e registri con contesto leggibile prima di aprire la fonte originale.'
+  return 'Archivio fonti, aggiornamenti e registri con contesto leggibile prima di aprire la fonte originale.'
 }
 function initialQuery() {
   return new URLSearchParams(window.location.search).get('q') || ''
@@ -150,6 +167,22 @@ function recordIcon(record: LegalIntelligenceRecord) {
   if (kind.includes('normativa')) return <BookOpen size={17} aria-hidden="true" />
   return <FileSearch size={17} aria-hidden="true" />
 }
+function cleanVisibleLabel(value?: string) {
+  return (value || '')
+    .replace(/^db\s+/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\bnews\b/gi, 'aggiornamenti')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+function recordKindLabel(record: LegalIntelligenceRecord) {
+  const kind = record.kind.toLocaleLowerCase('it-IT')
+  if (kind.includes('mediazione')) return 'Mediazione'
+  if (kind.includes('normativa')) return 'Normativa'
+  if (kind.includes('giurisprudenza') || kind.includes('sentenza')) return 'Giurisprudenza'
+  if (kind.includes('news') || kind.includes('notizia') || kind.includes('aggiornamento')) return 'Aggiornamento'
+  return cleanVisibleLabel(record.kind) || 'Scheda'
+}
 function WarningList({ data }: { data: LegalIntelligencePageData }) {
   if (!data.warnings.length) return null
   return (
@@ -163,10 +196,10 @@ function WarningList({ data }: { data: LegalIntelligencePageData }) {
   )
 }
 function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
-  const items: Array<{ view: LegalIntelligenceView; label: string; description: string; href: string; icon: React.ReactNode }> = [
-    { view: 'ricerca-legale', label: 'Ricerca', description: 'Norme, giurisprudenza e fonti', href: '/ricerca-legale', icon: <Search size={18} aria-hidden="true" /> },
-    { view: 'news', label: 'News legali', description: 'Aggiornamenti e novità', href: '/ricerca-legale/news', icon: <Newspaper size={18} aria-hidden="true" /> },
-    { view: 'mediazione', label: 'Mediazione', description: 'Registro organismi', href: '/ricerca-legale/mediazione', icon: <Landmark size={18} aria-hidden="true" /> },
+  const items: Array<{ view: LegalIntelligenceView; label: string; href: string; icon: React.ReactNode }> = [
+    { view: 'ricerca-legale', label: 'Ricerca', href: '/ricerca-legale', icon: <Search size={18} aria-hidden="true" /> },
+    { view: 'news', label: 'Aggiornamenti', href: '/ricerca-legale/news', icon: <Newspaper size={18} aria-hidden="true" /> },
+    { view: 'mediazione', label: 'Mediazione', href: '/ricerca-legale/mediazione', icon: <Landmark size={18} aria-hidden="true" /> },
   ]
   return (
     <nav className="iu-li-tabs" aria-label="Sezioni ricerca legale">
@@ -179,7 +212,6 @@ function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
         >
           <span className="iu-li-tab-card__icon">{item.icon}</span>
           <strong>{item.label}</strong>
-          <span>{item.description}</span>
         </a>
       ))}
     </nav>
@@ -410,11 +442,11 @@ function DataAccessPanel({
     } : null,
     news ? {
       id: 'news',
-      label: 'News disponibili',
+      label: 'Aggiornamenti disponibili',
       value: formatMetricValue(news.value),
       note: 'Elenco consultabile con schede e fonte',
       href: '/ricerca-legale/news',
-      action: 'Vedi news',
+      action: 'Vedi aggiornamenti',
     } : null,
     review ? {
       id: 'review',
@@ -502,7 +534,7 @@ function RecordCard({
 }) {
   const metaItems = [
     ['Fonte', record.sourceLabel],
-    ['Tipo fonte', record.sourceKind],
+    ['Tipo fonte', cleanVisibleLabel(record.sourceKind)],
     ['Data', formatDate(record.date)],
     ['Area', record.area],
     ['Materia', record.branch],
@@ -518,7 +550,7 @@ function RecordCard({
     <article className={selected ? 'iu-li-record iu-li-record--selected iu-od-source-card' : 'iu-li-record iu-od-source-card'}>
       <header className="iu-li-record__header">
         <div className="iu-li-record__title">
-          <span className="iu-od-source-badge">{recordIcon(record)}{record.kind}</span>
+          <span className="iu-od-source-badge">{recordIcon(record)}{recordKindLabel(record)}</span>
           <h3>{record.title}</h3>
           {record.sourceExcerpt ? <p>{record.sourceExcerpt}</p> : null}
         </div>
@@ -581,7 +613,7 @@ function RecordDetail({
   const isMediazioneRecord = record.kind.toLocaleLowerCase('it-IT').includes('mediazione')
   const sourceMeta = [
     ['Fonte', record.sourceLabel || 'Non indicata'],
-    ['Tipo', record.sourceKind || 'Non indicato'],
+    ['Tipo', cleanVisibleLabel(record.sourceKind) || 'Non indicato'],
     ['Data', formatDate(record.date) || 'Non indicata'],
     ['Area', record.area || record.branch || 'Non indicata'],
     ...(isMediazioneRecord ? [
@@ -596,7 +628,7 @@ function RecordDetail({
   return (
     <aside className="iu-li-detail iu-od-source-card" aria-label="Contesto fonte">
       <div className="iu-li-detail__intro">
-        <span className="iu-od-source-badge">{recordIcon(record)}{record.kind}</span>
+        <span className="iu-od-source-badge">{recordIcon(record)}{recordKindLabel(record)}</span>
         <h2>{record.title}</h2>
         <p>{contextSummary || 'Scheda disponibile con provenienza, controlli e fonte collegata.'}</p>
       </div>
@@ -737,11 +769,12 @@ function RecordFilters({
 }) {
   const isSearch = view === 'ricerca-legale'
   const showSelectFilters = view !== 'mediazione'
-  const hasActiveFilters = Boolean(kind || source || area || state || scope || quality || (isSearch ? submittedQuery : query))
+  const hasSelectFilters = Boolean(kind || source || area || state || scope || quality)
+  const hasActiveFilters = Boolean(hasSelectFilters || (isSearch ? submittedQuery : query))
   return (
     <section className="iu-li-filters iu-od-source-card" aria-label={isSearch ? 'Ricerca fonti legali' : 'Filtro schede'}>
       <form
-        className="iu-li-search-form"
+        className={hasActiveFilters ? 'iu-li-search-form iu-li-search-form--with-reset' : 'iu-li-search-form'}
         onSubmit={(event) => {
           event.preventDefault()
           onSubmit()
@@ -774,55 +807,61 @@ function RecordFilters({
         ) : null}
       </form>
       {showSelectFilters ? (
-        <div className="iu-li-filter-grid" aria-label="Filtri schede">
-          <label>
-            <span><Filter size={14} aria-hidden="true" /> Ambito</span>
-            <select value={scope} onChange={(event) => onScope(event.target.value)}>
-              <option value="">Tutti</option>
-              <option value="giurisprudenza">Giurisprudenza e Cassazione</option>
-              <option value="normativa">Normativa</option>
-              <option value="news">News e aggiornamenti</option>
-              <option value="mediazione">Mediazione</option>
-            </select>
-          </label>
-          <label>
-            <span>Fonte</span>
-            <select value={source} onChange={(event) => onSource(event.target.value)}>
-              <option value="">Tutte</option>
-              {sources.map((option) => <option value={option} key={option}>{option}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Materia</span>
-            <select value={area} onChange={(event) => onArea(event.target.value)}>
-              <option value="">Tutte</option>
-              {areas.map((option) => <option value={option} key={option}>{option}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Qualità</span>
-            <select value={quality} onChange={(event) => onQuality(event.target.value)}>
-              <option value="">Tutte</option>
-              <option value="ufficiale">Solo fonti ufficiali</option>
-              <option value="letta">Letta in IUSENTRA</option>
-              <option value="link">Con fonte apribile</option>
-            </select>
-          </label>
-          <label>
-            <span>Tipo documento</span>
-            <select value={kind} onChange={(event) => onKind(event.target.value)}>
-              <option value="">Tutti</option>
-              {kinds.map((option) => <option value={option} key={option}>{option}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Stato</span>
-            <select value={state} onChange={(event) => onState(event.target.value)}>
-              <option value="">Tutti</option>
-              {states.map((option) => <option value={option} key={option}>{option}</option>)}
-            </select>
-          </label>
-        </div>
+        <details className="iu-li-advanced-filters" open={hasSelectFilters || undefined}>
+          <summary>
+            <Filter size={14} aria-hidden="true" />
+            Filtri avanzati
+          </summary>
+          <div className="iu-li-filter-grid" aria-label="Filtri schede">
+            <label>
+              <span>Ambito</span>
+              <select value={scope} onChange={(event) => onScope(event.target.value)}>
+                <option value="">Tutti</option>
+                <option value="giurisprudenza">Giurisprudenza e Cassazione</option>
+                <option value="normativa">Normativa</option>
+                <option value="news">Aggiornamenti</option>
+                <option value="mediazione">Mediazione</option>
+              </select>
+            </label>
+            <label>
+              <span>Fonte</span>
+              <select value={source} onChange={(event) => onSource(event.target.value)}>
+                <option value="">Tutte</option>
+                {sources.map((option) => <option value={option} key={option}>{cleanVisibleLabel(option) || option}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Materia</span>
+              <select value={area} onChange={(event) => onArea(event.target.value)}>
+                <option value="">Tutte</option>
+                {areas.map((option) => <option value={option} key={option}>{option}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Qualità</span>
+              <select value={quality} onChange={(event) => onQuality(event.target.value)}>
+                <option value="">Tutte</option>
+                <option value="ufficiale">Solo fonti ufficiali</option>
+                <option value="letta">Letta in IUSENTRA</option>
+                <option value="link">Con fonte apribile</option>
+              </select>
+            </label>
+            <label>
+              <span>Tipo documento</span>
+              <select value={kind} onChange={(event) => onKind(event.target.value)}>
+                <option value="">Tutti</option>
+                {kinds.map((option) => <option value={option} key={option}>{cleanVisibleLabel(option) || option}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Stato</span>
+              <select value={state} onChange={(event) => onState(event.target.value)}>
+                <option value="">Tutti</option>
+                {states.map((option) => <option value={option} key={option}>{option}</option>)}
+              </select>
+            </label>
+          </div>
+        </details>
       ) : null}
       <div className="iu-li-quick-row" aria-label="Ricerche guidate">
         {quickQueries[view].map((item) => (
@@ -1139,10 +1178,11 @@ export function LegalIntelligencePage() {
   const [mediazioneType, setMediazioneType] = useState('')
   const [mediazioneTerritory, setMediazioneTerritory] = useState('')
   const [mediazioneContact, setMediazioneContact] = useState('')
+  const [fullscreenOpen, setFullscreenOpen] = useState(false)
   useEffect(() => {
     let active = true
     setLoading(true)
-    loadPage(view, submittedQuery)
+    loadPage(view, '')
       .then((payload) => {
         if (active) setData(payload)
       })
@@ -1152,8 +1192,9 @@ export function LegalIntelligencePage() {
     return () => {
       active = false
     }
-  }, [view, submittedQuery])
-  const localFilter = view === 'ricerca-legale' ? '' : query
+  }, [view])
+  useEffect(() => () => clearPageFullscreen(LEGAL_INTELLIGENCE_FULLSCREEN_CLASS), [])
+  const localFilter = view === 'ricerca-legale' ? submittedQuery : query
   const locallyVisibleRecords = useMemo(() => data.records.filter((record) => includesText([
     record.title,
     record.subtitle,
@@ -1216,7 +1257,7 @@ export function LegalIntelligencePage() {
   }, [mediazioneRegistryRecords, mediazioneContact, mediazioneSection, mediazioneStatus, mediazioneTerritory, mediazioneType, view])
   // Rete di sicurezza lato client: oltre questa soglia il rendering integrale
   // dell'inventario (950+ schede) fa cadere la pagina; il totale resta visibile
-  // nell'intestazione e la ricerca interroga comunque l'intero archivio.
+  // nell'intestazione e la ricerca filtra comunque l'intero archivio caricato.
   const visibleRecords = (view === 'mediazione'
     ? [...mediazioneOfficialRecords, ...filteredMediazioneRegistryRecords]
     : filteredLegalRecords
@@ -1301,7 +1342,10 @@ export function LegalIntelligencePage() {
     if (recordQuality) params.set('qualita', recordQuality)
     params.set('scheda', record.id)
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
-    window.requestAnimationFrame(() => document.querySelector('.iu-li-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    const shouldScrollToDetail = view === 'mediazione' || window.matchMedia('(max-width: 1179px)').matches
+    if (shouldScrollToDetail) {
+      window.requestAnimationFrame(() => document.querySelector('.iu-li-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    }
   }
   if (loading) {
     return <LoadingState title={`Caricamento ${pageTitle(view)}`} message="Recupero delle informazioni reali." />
@@ -1313,12 +1357,21 @@ export function LegalIntelligencePage() {
       actions={(
         <>
           {view !== 'ricerca-legale' ? <ButtonLink href="/ricerca-legale" tone="primary">Nuova ricerca</ButtonLink> : null}
-          <ButtonLink href="/lex-operativo" tone="neutral"><MessageCircle size={16} aria-hidden="true" />Lex Chat AI</ButtonLink>
+          <ButtonLink href="/lex-operativo" tone="neutral"><MessageCircle size={16} aria-hidden="true" />Assistente Lex</ButtonLink>
           <ButtonLink href="/giurisprudenza" tone="neutral"><Archive size={16} aria-hidden="true" />Archivio giurisprudenza</ButtonLink>
+          <Button
+            type="button"
+            tone="neutral"
+            aria-pressed={fullscreenOpen}
+            onClick={() => setFullscreenOpen(togglePageFullscreen('main.iu-content', LEGAL_INTELLIGENCE_FULLSCREEN_CLASS))}
+          >
+            {fullscreenOpen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
+            {fullscreenOpen ? 'Riduci' : 'Tutto schermo'}
+          </Button>
         </>
       )}
     >
-      <div className="iu-li-page">
+      <div className={`iu-li-page iu-li-page--${view}`}>
         <WarningList data={data} />
         <NavigationTabs view={view} />
         {view !== 'mediazione' ? (

@@ -1982,6 +1982,7 @@ assertContains(reactShell, '<script type="module" src="{{ js_file }}?v={{ app_ve
 assertContains(reactShellBlueprint, 'def _inline_react_entry_code', 'backend prepara entry react inline dalla build Vite')
 assertContains(reactShellBlueprint, ".replace('from\"./'", 'backend riscrive import statici relativi dell entry inline')
 assertContains(reactShellBlueprint, ".replace('import(\"./'", 'backend riscrive import dinamici relativi dell entry inline')
+assertContains(reactShellBlueprint, '.replace("import(`./"', 'backend riscrive anche import dinamici Vite con template literal')
 assertContains(viteConfig, 'modulePreload', 'config Vite presidia il preload del bootstrap React')
 assertContains(viteConfig, 'modulePreload: false', 'entry React senza helper modulepreload prima del bootstrap')
 assertContains(viteConfig, 'cssCodeSplit: true', 'build React separa il CSS per rispettare il budget degli asset')

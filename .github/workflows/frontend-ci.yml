@@ -30,7 +30,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11.1.2
+          version: 11.22.0
           run_install: false
       - uses: actions/setup-node@v5
         with:
@@ -40,19 +40,44 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.command }}
 
+  storybook-checks:
+    name: Storybook: pagine e accessibilità
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+          run_install: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium for Storybook
+        run: pnpm --filter @iusentra/studio exec playwright install --with-deps chromium
+      - name: Test stories and accessibility
+        run: pnpm --filter @iusentra/studio test:storybook
+      - name: Build static Storybook
+        run: pnpm --filter @iusentra/studio build-storybook
+
   frontend:
     name: Frontend React CI
     runs-on: ubuntu-latest
     needs:
       - frontend-checks
+      - storybook-checks
     if: always()
     timeout-minutes: 5
 
     steps:
       - name: Check frontend shards
         run: |
-          if [ "${{ needs['frontend-checks'].result }}" != "success" ]; then
-            echo "Uno o piu' shard frontend non sono verdi."
+          if [ "${{ needs['frontend-checks'].result }}" != "success" ] || [ "${{ needs['storybook-checks'].result }}" != "success" ]; then
+            echo "Uno o più gate frontend, incluso Storybook, non sono verdi."
             exit 1
           fi
-          echo "Tutti gli shard frontend sono verdi."
+          echo "Tutti i gate frontend, incluso Storybook, sono verdi."

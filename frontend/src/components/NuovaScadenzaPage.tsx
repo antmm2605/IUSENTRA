@@ -664,7 +664,7 @@ export function NuovaScadenzaPage() {
 
             <div className="iu-deadline-form-grid">
               <Field label="Preset processuale" icon={<ListChecks size={16} />}>
-                <select name="preset" value={form.preset} onChange={(event) => applyPreset(event.currentTarget.value)}>
+                <select name="preset" aria-label="Preset processuale" value={form.preset} onChange={(event) => applyPreset(event.currentTarget.value)}>
                   <option value="">Nessun preset rapido</option>
                   {presets.map((preset) => (
                     <option key={preset.key} value={preset.key}>{displayText(preset.label)}</option>
@@ -675,7 +675,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Profilo termine" icon={<BookOpen size={16} />}>
                 <select
-                  name="deadline_profile_code"
+                  name="deadline_profile_code" aria-label="Profilo termine"
                   value={form.deadline_profile_code}
                   onChange={(event) => {
                     update('deadline_profile_code', event.currentTarget.value)
@@ -692,7 +692,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Evento origine" required icon={<Clock3 size={16} />}>
                 <input
-                  name="source_event_at"
+                  name="source_event_at" aria-label="Data e ora evento origine"
                   type="datetime-local"
                   value={form.source_event_at}
                   onChange={(event) => {
@@ -705,7 +705,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Anticipo operativo" icon={<Bell size={16} />}>
                 <input
-                  name="operational_lead_business_days"
+                  name="operational_lead_business_days" aria-label="Anticipo operativo in giorni lavorativi"
                   type="number"
                   min="0"
                   max="30"
@@ -764,7 +764,7 @@ export function NuovaScadenzaPage() {
               <Field label="Ufficio giudiziario" icon={<Search size={16} />} wide>
                 <input
                   ref={officeInputRef}
-                  name="judicial_office_id"
+                  name="judicial_office_id" aria-label="Ufficio giudiziario"
                   value={form.judicial_office_id || officeQuery}
                   onChange={(event) => {
                     setOfficeQuery(event.currentTarget.value)
@@ -777,7 +777,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Patrono ufficio" icon={<BadgeCheck size={16} />}>
                 <input
-                  name="office_patron_name"
+                  name="office_patron_name" aria-label="Patrono ufficio"
                   value={form.office_patron_name}
                   onChange={(event) => {
                     update('office_patron_name', event.currentTarget.value)
@@ -789,7 +789,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Giorno" icon={<CalendarCheck size={16} />}>
                 <input
-                  name="office_patron_day"
+                  name="office_patron_day" aria-label="Giorno patrono"
                   type="number"
                   min="1"
                   max="31"
@@ -803,7 +803,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Mese" icon={<CalendarCheck size={16} />}>
                 <input
-                  name="office_patron_month"
+                  name="office_patron_month" aria-label="Mese patrono"
                   type="number"
                   min="1"
                   max="12"
@@ -817,7 +817,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Modalità ufficio" icon={<Building2 size={16} />}>
                 <select
-                  name="office_operating_mode"
+                  name="office_operating_mode" aria-label="Modalità ufficio"
                   value={form.office_operating_mode}
                   onChange={(event) => {
                     update('office_operating_mode', event.currentTarget.value)
@@ -830,7 +830,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Fonte ufficio / avviso" icon={<ExternalLink size={16} />} wide>
                 <input
-                  name="office_source_url"
+                  name="office_source_url" aria-label="Fonte o avviso ufficio"
                   value={form.office_source_url}
                   onChange={(event) => update('office_source_url', event.currentTarget.value)}
                   placeholder="https://..."
@@ -839,7 +839,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Ultima verifica" icon={<ShieldCheck size={16} />}>
                 <input
-                  name="office_verified_at"
+                  name="office_verified_at" aria-label="Data ultima verifica"
                   type="date"
                   value={form.office_verified_at}
                   onChange={(event) => update('office_verified_at', event.currentTarget.value)}
@@ -864,7 +864,7 @@ export function NuovaScadenzaPage() {
               <Field label="Titolo" required icon={<FileText size={16} />} wide>
                 <div className="iu-deadline-titleline">
                   <input
-                    name="titolo"
+                    name="titolo" aria-label="Titolo scadenza"
                     value={form.titolo}
                     onChange={(event) => update('titolo', event.currentTarget.value)}
                     placeholder="es. Deposito memoria art. 171-ter n. 1"
@@ -876,7 +876,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Tipo" required icon={<Info size={16} />}>
                 <select
-                  name="tipo"
+                  name="tipo" aria-label="Tipo scadenza"
                   value={form.tipo}
                   onChange={(event) => update('tipo', event.currentTarget.value as DeadlineType)}
                   required
@@ -887,7 +887,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Data scadenza manuale" icon={<CalendarDays size={16} />}>
                 <input
-                  name="data_scadenza"
+                  name="data_scadenza" aria-label="Data scadenza manuale"
                   type="date"
                   value={form.data_scadenza}
                   onChange={(event) => {
@@ -900,7 +900,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Data decorrenza" icon={<CalendarDays size={16} />}>
                 <input
-                  name="data_decorrenza"
+                  name="data_decorrenza" aria-label="Data decorrenza"
                   type="date"
                   value={form.data_decorrenza}
                   onChange={(event) => update('data_decorrenza', event.currentTarget.value)}
@@ -922,14 +922,14 @@ export function NuovaScadenzaPage() {
               </div>
 
               <Field label="Fascicolo" icon={<Building2 size={16} />}>
-                <select name="id_fascicolo" value={form.id_fascicolo} onChange={(event) => update('id_fascicolo', event.currentTarget.value)}>
+                <select name="id_fascicolo" aria-label="Fascicolo" value={form.id_fascicolo} onChange={(event) => update('id_fascicolo', event.currentTarget.value)}>
                   <option value="">Nessun fascicolo</option>
                   {matters.map((item) => <option key={item.id || item.value || item.label} value={item.id || item.value}>{displayText(item.label)}</option>)}
                 </select>
               </Field>
 
               <Field label="Responsabile" icon={<UserRound size={16} />}>
-                <select name="id_utente" value={form.id_utente} onChange={(event) => update('id_utente', event.currentTarget.value)}>
+                <select name="id_utente" aria-label="Responsabile" value={form.id_utente} onChange={(event) => update('id_utente', event.currentTarget.value)}>
                   <option value="">Nessun responsabile</option>
                   {users.map((item) => <option key={item.id || item.value || item.label} value={item.id || item.value}>{displayText(item.label)}</option>)}
                 </select>
@@ -937,7 +937,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Descrizione" icon={<FileText size={16} />} wide>
                 <textarea
-                  name="descrizione"
+                  name="descrizione" aria-label="Descrizione scadenza"
                   value={form.descrizione}
                   onChange={(event) => update('descrizione', event.currentTarget.value)}
                   placeholder="Contesto operativo, atto da predisporre, fonte del termine..."
@@ -946,7 +946,7 @@ export function NuovaScadenzaPage() {
 
               <Field label="Note" icon={<Info size={16} />} wide>
                 <textarea
-                  name="note"
+                  name="note" aria-label="Note scadenza"
                   value={form.note}
                   onChange={(event) => update('note', event.currentTarget.value)}
                   placeholder="Annotazioni interne, verifiche, contatti o passaggi da eseguire..."

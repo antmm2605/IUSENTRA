@@ -240,7 +240,7 @@ export function SitoStudioRedazioneAiPage() {
       {loading ? <LoadingState title="Caricamento redazione" message="Lettura bozze, articoli e controlli dello studio." /> : null}
       {!loading && error ? <EmptyState title="Redazione non disponibile" message={error} /> : null}
       {!loading && !error ? (
-        <main className="iu-site-ai-page">
+        <section className="iu-site-ai-page" aria-label="Redazione assistita del sito">
           <section className="iu-site-ai-stats" aria-label="Riepilogo redazione">
             <StatCard label="Lavori" value={data.summary.jobs} note="bozze preparate" />
             <StatCard label="Articoli" value={data.summary.articles} note="nel sito studio" />
@@ -299,7 +299,7 @@ export function SitoStudioRedazioneAiPage() {
               </div>
             ) : <EmptyState title="Nessun articolo" message="Le bozze create compariranno qui per revisione, immagine e pubblicazione." />}
           </section>
-        </main>
+        </section>
       ) : null}
     </Page>
   )

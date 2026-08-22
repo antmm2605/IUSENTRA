@@ -3440,7 +3440,7 @@ function FascicoliListPage() {
   const deadlineAlertHeading = 'Scadenze entro 7 giorni'
 
   return (
-    <main className="iu-content iu-fascicoli-page">
+    <div className="iu-content iu-fascicoli-page">
       <IusentraPageShell className="iu-fas-preset-shell">
         <section className="iu-fas-hero">
           <div>
@@ -3571,7 +3571,7 @@ function FascicoliListPage() {
       </IusentraPageShell>
 
       <FloatingLex context="fascicoli" title="Lex AI fascicoli" body="Posso sintetizzare un fascicolo, evidenziare scadenze senza prossima azione, preparare una lista documenti e suggerire il percorso prima di deposito, udienza o archiviazione." primaryHref="#lex" primaryLabel="Apri Lex fascicoli" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca fascicoli" />
-    </main>
+    </div>
   )
 }
 

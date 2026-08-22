@@ -1,4 +1,4 @@
-﻿.nlp-shell {
+.nlp-shell {
   min-width: 0;
 }
 .nlp-section-nav {
@@ -104,6 +104,7 @@
 .nlp-table .ius-data-table-shell, .nlp-table [data-slot='table-container'] { overflow-x: visible; }
 .nlp-table table { width: 100%; min-width: 0; table-layout: fixed; }
 .nlp-table th, .nlp-table td { white-space: normal; overflow-wrap: anywhere; }
+.nlp-table th { color: var(--iu-text); }
 .nlp-table th:nth-child(1), .nlp-table td:nth-child(1) { width: 30%; }
 .nlp-table th:nth-child(2), .nlp-table td:nth-child(2) { width: 28%; }
 .nlp-table th:nth-child(3), .nlp-table td:nth-child(3) { width: 42%; }

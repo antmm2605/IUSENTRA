@@ -1,0 +1,1 @@
+function e(){return typeof document>`u`?``:document.querySelector(`meta[name="csrf-token"]`)?.content||``}function t(){let t=e();return t?{"X-CSRF-Token":t}:{}}export{t};

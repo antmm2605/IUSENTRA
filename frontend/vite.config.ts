@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import { pruneReactAssets } from './vite/pruneReactAssets'
+import tailwindcss from '@tailwindcss/vite'
+import { pruneReactAssets } from './vite/pruneReactAssets.ts'
 
 function sanitizeGeneratedText(): Plugin {
   const mojibakePattern = new RegExp(
@@ -48,7 +49,7 @@ function enforceBundleBudget(maxBytes = 500_000): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), sanitizeGeneratedText(), enforceBundleBudget(), pruneReactAssets()],
+  plugins: [tailwindcss(), react(), sanitizeGeneratedText(), enforceBundleBudget(), pruneReactAssets()],
   base: '/static/react/',
   resolve: {
     alias: {

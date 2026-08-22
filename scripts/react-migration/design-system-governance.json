@@ -83,6 +83,7 @@
     "frontend/src/index.css",
     "frontend/src/shell/shell.css",
     "frontend/src/styles/iusentra-design-system.css",
+    "frontend/src/stories/storybook.css",
     "frontend/src/theme/impeccable-open-design.css",
     "frontend/src/theme/layout.css",
     "frontend/src/theme/legal-ui.css",

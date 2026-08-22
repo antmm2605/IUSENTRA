@@ -551,14 +551,29 @@
 .iu-mail-row{
   width:100%;
   display:grid;
-  grid-template-columns:22px 42px minmax(0,1fr);
+  grid-template-columns:22px minmax(0,1fr);
   gap:10px;
   padding:10px;
   border:1px solid transparent;
   border-radius:14px;
   background:transparent;
+}
+.iu-mail-row__open{
+  min-width:0;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  gap:10px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:inherit;
   text-align:left;
   cursor:pointer;
+}
+.iu-mail-row__open:focus-visible{
+  outline:3px solid rgba(37,99,235,.32);
+  outline-offset:3px;
+  border-radius:10px;
 }
 .iu-mail-row__check{
   display:grid;
@@ -568,7 +583,8 @@
   width:16px;
   height:16px;
 }
-.iu-mail-row:hover{
+.iu-mail-row:hover,
+.iu-mail-row:focus-within{
   background:rgba(37,99,235,.04);
 }
 .iu-mail-row.is-selected{
@@ -2152,7 +2168,8 @@
   .iu-mail-list{padding:6px}
   .iu-mail-list-select-all,.iu-mail-bulkbar{flex-wrap:wrap;padding:10px 11px}
   .iu-mail-bulkbar button{width:100%}
-  .iu-mail-row{grid-template-columns:22px 34px minmax(0,1fr);padding:8px;border-radius:12px}
+  .iu-mail-row{grid-template-columns:22px minmax(0,1fr);padding:8px;border-radius:12px}
+  .iu-mail-row__open{grid-template-columns:34px minmax(0,1fr)}
   .iu-mail-avatar{width:34px;height:34px;font-size:10px}
   .iu-mail-preview-card{min-height:auto;padding:12px}
   .iu-mail-preview-card>header{display:grid;gap:8px}

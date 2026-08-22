@@ -266,7 +266,7 @@ export function PrimaNotaPage() {
         <div className="iu-pn-table-wrap">
           <table aria-label="Registro cronologico">
             <thead>
-              <tr><th>Data</th><th>Tipo</th><th>Importo</th><th>Categoria</th><th>Controparte / causale</th><th>Metodo</th><th></th></tr>
+              <tr><th>Data</th><th>Tipo</th><th>Importo</th><th>Categoria</th><th>Controparte / causale</th><th>Metodo</th><th><span className="sr-only">Azioni</span></th></tr>
             </thead>
             <tbody>
               {data.movimenti.length ? data.movimenti.map((movimento) => (

@@ -335,7 +335,7 @@ export function EditorProfessionalePage() {
                       {row.notes ? <small>{row.notes}</small> : null}
                     </td>
                     <td data-label="Fascicolo">
-                      <a href={row.actions.matter}>{row.matterRef}</a>
+                      {row.actions.matter ? <a href={row.actions.matter}>{row.matterRef}</a> : <span>{row.matterRef}</span>}
                       <span>{row.matterTitle}</span>
                       {row.matterArchived ? <Badge tone="neutral">Archiviato</Badge> : null}
                     </td>

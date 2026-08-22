@@ -1811,9 +1811,9 @@ export function NuovoClientePage() {
 
       <StatsStrip data={data}/>
 
-      <div className="iu-cln-tabs" role="tablist" aria-label="Scelta anagrafica">
-        <button type="button" className={tab === 'cliente' ? 'is-active' : ''} onClick={() => setTab('cliente')} disabled={data.mode === 'edit_subject'}><UserPlus size={17}/>{data.mode === 'edit' ? 'Cliente' : 'Nuovo Cliente'}</button>
-        <button type="button" className={tab === 'soggetto' ? 'is-active' : ''} onClick={() => setTab('soggetto')} disabled={data.mode === 'edit'}><UsersRound size={17}/>{data.mode === 'edit_subject' ? 'Soggetto' : 'Nuovo Soggetto'}</button>
+      <div className="iu-cln-tabs" role="group" aria-label="Scelta anagrafica">
+        <button type="button" className={tab === 'cliente' ? 'is-active' : ''} aria-pressed={tab === 'cliente'} onClick={() => setTab('cliente')} disabled={data.mode === 'edit_subject'}><UserPlus size={17}/>{data.mode === 'edit' ? 'Cliente' : 'Nuovo Cliente'}</button>
+        <button type="button" className={tab === 'soggetto' ? 'is-active' : ''} aria-pressed={tab === 'soggetto'} onClick={() => setTab('soggetto')} disabled={data.mode === 'edit'}><UsersRound size={17}/>{data.mode === 'edit_subject' ? 'Soggetto' : 'Nuovo Soggetto'}</button>
         <span>{loading ? 'Caricamento dati...' : 'Salvataggio sicuro attivo'}</span>
       </div>
 

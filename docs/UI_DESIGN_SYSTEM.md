@@ -71,6 +71,7 @@ Il gate legge `scripts/react-migration/design-system-governance.json` e applica 
 - Nessun nuovo inline style React può entrare senza file, snippet e ragione operativa.
 - Gli accenti laterali spessi, i testi gradiente e i blur decorativi sono vietati sulle superfici operative.
 - `backdrop-filter` resta ammesso solo nei punti sticky o nel builder già dichiarati nella policy.
+- `frontend/src/stories/storybook.css` è l'unico canvas di documentazione Storybook: usa soltanto token esistenti, non viene caricato dal runtime prodotto ed è registrato nell'allowlist per rendere verificabile la sua funzione.
 - Il report automatico viene scritto in `artifacts/react-migration/design-system-governance-report.md` e non deve essere sostituito da note manuali.
 
 ## Token colore

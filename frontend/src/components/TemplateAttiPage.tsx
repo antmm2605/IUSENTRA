@@ -618,13 +618,13 @@ function fieldForPlaceholder(fields: TemplateCompilerField[], token: string) {
 
 function ContractStrip({ data }: { data: TemplateAttiPageData }) {
   return (
-    <aside className="iu-doc-contract iu-od-surface">
+    <section className="iu-doc-contract iu-od-surface" aria-label="Garanzie del catalogo atti">
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>Catalogo atti collegato ai dati dello studio</span>
       </div>
-    </aside>
+    </section>
   )
 }
 

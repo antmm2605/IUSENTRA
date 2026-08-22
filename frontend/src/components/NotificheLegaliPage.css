@@ -216,7 +216,7 @@
 }
 
 .iu-legal-field small {
-  color: var(--iu-slate-500, #64748b);
+  color: var(--iu-slate-600, #475569);
   font-size: .78rem;
 }
 

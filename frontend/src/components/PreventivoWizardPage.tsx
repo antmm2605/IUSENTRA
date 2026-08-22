@@ -321,7 +321,8 @@ function StepCard({
   const contentId = `preventivo-wizard-step-${id}`
   return (
     <section className="iu-pwiz-step">
-      <button className="iu-pwiz-step__head" type="button" onClick={onToggle} aria-expanded={open} aria-controls={contentId}>
+      <h2 className="iu-pwiz-step__title">
+        <button className="iu-pwiz-step__head" type="button" onClick={onToggle} aria-expanded={open} aria-controls={contentId}>
         <span className="iu-pwiz-step__number">{number}</span>
         <span>
           <strong>{title}</strong>
@@ -329,7 +330,8 @@ function StepCard({
         </span>
         <em>{label}</em>
         <ChevronDown size={18} aria-hidden="true" />
-      </button>
+        </button>
+      </h2>
       {open ? <div className="iu-pwiz-step__body" id={contentId}>{children}</div> : null}
     </section>
   )

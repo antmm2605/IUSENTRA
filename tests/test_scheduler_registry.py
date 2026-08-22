@@ -268,6 +268,19 @@ def test_scheduler_registry_ignora_running_arrivato_dopo_esito_terminale(tmp_pat
     assert runs[0]["status"] == "completed"
 
 
+def test_scheduler_registry_indicizza_la_riconciliazione_degli_eventi(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    with repo.connect() as conn:
+        indexes = {
+            str(row["name"])
+            for row in conn.execute("PRAGMA index_list('scheduled_job_runs')").fetchall()
+        }
+
+    assert {
+        "idx_scheduled_job_runs_reconciliation_running",
+        "idx_scheduled_job_runs_reconciliation_terminal",
+    } <= indexes
+
 def test_scheduler_registry_migra_0530_solo_se_orario_di_sistema(tmp_path: Path):
     repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
     repo.upsert_default_jobs({})

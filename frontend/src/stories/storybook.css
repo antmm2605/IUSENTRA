@@ -1,0 +1,18 @@
+.ius-storybook-component-canvas {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 2rem;
+  background: var(--iu-slate-50, #f8fafc);
+}
+
+.ius-storybook-page-canvas {
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: var(--iu-slate-50, #f8fafc);
+}
+
+.ius-storybook-page-canvas .iu-shell,
+.ius-storybook-page-canvas .iu-content,
+.ius-storybook-page-canvas main {
+  min-height: 100vh;
+}

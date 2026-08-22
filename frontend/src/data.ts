@@ -99,14 +99,55 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
+function asTone(value: unknown, fallback: Tone = 'neutral'): Tone {
+  return value === 'primary' || value === 'info' || value === 'success' || value === 'warning' || value === 'danger' || value === 'purple' || value === 'orange' || value === 'neutral'
+    ? value
+    : fallback
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  const normalized = String(value ?? '').trim()
+  return normalized || undefined
+}
+
 function asRows(value: unknown): Row[] {
-  if (Array.isArray(value)) return value as Row[]
-  if (isRecord(value) && Array.isArray(value.items)) return value.items as Row[]
-  return []
+  const rows = Array.isArray(value) ? value : isRecord(value) && Array.isArray(value.items) ? value.items : []
+  return rows.flatMap((entry, index): Row[] => {
+    if (!isRecord(entry)) return []
+    const title = asOptionalString(entry.title ?? entry.subject ?? entry.label)
+    // Un record incompleto non deve far cadere la pagina: resta comunque
+    // riconoscibile nella lista e permette al dato successivo di essere letto.
+    return [{
+      id: asOptionalString(entry.id ?? entry.key) ?? `riga-${index}`,
+      title: title ?? 'Elemento operativo senza titolo',
+      subtitle: String(entry.subtitle ?? entry.description ?? ''),
+      time: asOptionalString(entry.time ?? entry.datetime ?? entry.date),
+      avatar: asOptionalString(entry.avatar),
+      unread: entry.unread === true || entry.unread === 1,
+      badge: asOptionalString(entry.badge),
+      tone: asTone(entry.tone),
+      href: asOptionalString(entry.href ?? entry.url),
+    }]
+  })
 }
 
 function asMetrics(payload: Record<string, unknown>): Metric[] {
-  if (Array.isArray(payload.metrics) && payload.metrics.length) return payload.metrics as Metric[]
+  if (Array.isArray(payload.metrics) && payload.metrics.length) {
+    const metrics = payload.metrics.flatMap((entry, index): Metric[] => {
+      if (!isRecord(entry)) return []
+      const fallback = emptyMetrics.find((metric) => metric.id === entry.id) ?? emptyMetrics[index] ?? emptyMetrics[0]
+      return [{
+        id: asOptionalString(entry.id) ?? fallback.id,
+        label: asOptionalString(entry.label) ?? fallback.label,
+        value: typeof entry.value === 'string' || typeof entry.value === 'number' ? entry.value : fallback.value,
+        tag: asOptionalString(entry.tag),
+        tone: asTone(entry.tone, fallback.tone),
+        href: asOptionalString(entry.href) ?? fallback.href,
+        actionLabel: asOptionalString(entry.actionLabel ?? entry.action_label) ?? fallback.actionLabel,
+      }]
+    })
+    if (metrics.length) return metrics
+  }
   const stats = isRecord(payload.stats) ? payload.stats : {}
   return emptyMetrics.map((metric) => {
     const value =
@@ -122,10 +163,16 @@ function asMetrics(payload: Record<string, unknown>): Metric[] {
 
 function asCompletion(value: unknown) {
   if (!isRecord(value)) return emptyDashboard.completion
+  const items = Array.isArray(value.items)
+    ? value.items.flatMap((entry): Array<{label:string; count:number}> => isRecord(entry) ? [{
+        label: asOptionalString(entry.label) ?? 'Dato da completare',
+        count: asNumber(entry.count),
+      }] : [])
+    : emptyDashboard.completion.items
   return {
-    percent: Number(value.percent ?? emptyDashboard.completion.percent),
-    totalMissing: Number(value.totalMissing ?? value.total_missing ?? emptyDashboard.completion.totalMissing),
-    items: Array.isArray(value.items) ? value.items as Array<{label:string; count:number}> : emptyDashboard.completion.items
+    percent: asNumber(value.percent ?? emptyDashboard.completion.percent),
+    totalMissing: asNumber(value.totalMissing ?? value.total_missing ?? emptyDashboard.completion.totalMissing),
+    items: items.length ? items : emptyDashboard.completion.items,
   }
 }
 
@@ -154,8 +201,30 @@ function asDossiers(payload: Record<string, unknown>): Dossier[] {
       'Avviare una ricerca giurisprudenziale collegata all’oggetto della pratica.'
     ],
     href: row.href || '/fascicoli',
-    tone: row.tone || 'neutral',
+    tone: asTone(row.tone),
   }))
+}
+
+function asDeadlineDistribution(value: unknown): DashboardData['deadlines'] {
+  if (!Array.isArray(value)) return emptyDashboard.deadlines
+  const deadlines = value.flatMap((entry): DashboardData['deadlines'] => isRecord(entry) ? [{
+    label: asOptionalString(entry.label) ?? 'Scadenze non classificate',
+    count: asNumber(entry.count),
+    percent: asNumber(entry.percent),
+    tone: asTone(entry.tone),
+  }] : [])
+  return deadlines.length ? deadlines : emptyDashboard.deadlines
+}
+
+function asEconomic(value: unknown): DashboardData['economic'] {
+  if (!Array.isArray(value)) return emptyDashboard.economic
+  const rows = value.flatMap((entry): DashboardData['economic'] => isRecord(entry) ? [{
+    label: asOptionalString(entry.label) ?? 'Voce economica',
+    value: String(entry.value ?? '€ 0,00'),
+    note: asOptionalString(entry.note),
+    delta: asOptionalString(entry.delta),
+  }] : [])
+  return rows.length ? rows : emptyDashboard.economic
 }
 
 function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardData, 'dossiers'|'sources'>): Source[] {
@@ -238,11 +307,11 @@ export async function getDashboard(options: { refresh?: boolean } = {}): Promise
       completion: asCompletion(payload.incomplete_registry),
       engagements: asRows(payload.missing_engagements),
       matters: asRows(payload.high_priority_matters),
-      deadlines: Array.isArray(payload.deadline_distribution) ? payload.deadline_distribution as DashboardData['deadlines'] : emptyDashboard.deadlines,
-      economic: Array.isArray(payload.economic) ? payload.economic as DashboardData['economic'] : emptyDashboard.economic,
+      deadlines: asDeadlineDistribution(payload.deadline_distribution),
+      economic: asEconomic(payload.economic),
       notificationPresidia: asRows(payload.notification_presidia),
       billingWork: asRows(payload.billing_work),
-      lex: Array.isArray(payload.lex_suggestions) ? payload.lex_suggestions as string[] : emptyDashboard.lex
+      lex: asStringList(payload.lex_suggestions),
     }
     return {
       ...dashboard,

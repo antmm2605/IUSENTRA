@@ -158,7 +158,7 @@
 .iu-editor-pro-table td span,.iu-editor-pro-table td small{margin-top:3px;color:var(--iu-slate-500);font-size:11px;font-weight:700;line-height:1.35}
 .iu-editor-pro-table td small{white-space:normal}
 .iu-editor-pro-table td>a:not([aria-label]){display:block;overflow:hidden;color:var(--iu-blue-700);font-weight:900;text-overflow:ellipsis;white-space:nowrap}
-.iu-editor-pro-table td .iu-badge{width:max-content;max-width:100%;margin-top:2px}
+.iu-editor-pro-table td .iu-badge{width:max-content;max-width:100%;margin-top:2px}.iu-editor-pro-table td .iu-badge--primary,.iu-editor-pro-table td .iu-badge--info{color:var(--iu-blue-700)}
 .iu-editor-pro-table .is-select{text-align:center;vertical-align:middle}
 .iu-editor-pro-table input[type="checkbox"]{width:16px;height:16px;margin:0;accent-color:var(--iu-blue-700)}
 .iu-editor-pro-table td.is-actions{vertical-align:middle;text-align:right;white-space:nowrap}

@@ -277,6 +277,9 @@ def _inline_react_entry_code(file_name: str) -> str:
         .replace("from'./", "from'/static/react/assets/")
         .replace('import("./', 'import("/static/react/assets/')
         .replace("import('./", "import('/static/react/assets/")
+        # Vite 8 può emettere import differiti con template literal; senza
+        # questa riscrittura l'entry inline li risolve dalla route corrente.
+        .replace("import(`./", "import(`/static/react/assets/")
         .replace("</script", "<\\/script")
     )
     _INLINE_ENTRY_CACHE[str(asset_path)] = (stat.st_mtime_ns, rewritten)

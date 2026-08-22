@@ -411,9 +411,9 @@ export function SoggettiPage() {
 
       <section className="iu-sogg-toolbar">
         <label className="iu-sogg-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Cerca soggetto, ruolo, CF, PEC o fascicolo..."/></label>
-        <label><Filter size={15}/><select value={typeFilter} onChange={(event) => setTypeFilter(event.currentTarget.value as SoggettoTipo)}>{data.facets.types.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.count})</option>)}</select></label>
-        <label><BriefcaseBusiness size={15}/><select value={roleFilter} onChange={(event) => setRoleFilter(event.currentTarget.value)}>{data.facets.roles.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.count})</option>)}</select></label>
-        <label><BadgeCheck size={15}/><select value={sort} onChange={(event) => setSort(event.currentTarget.value as SortKey)}>{Object.entries(sortLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+        <label><Filter size={15}/><select aria-label="Filtra per tipo soggetto" value={typeFilter} onChange={(event) => setTypeFilter(event.currentTarget.value as SoggettoTipo)}>{data.facets.types.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.count})</option>)}</select></label>
+        <label><BriefcaseBusiness size={15}/><select aria-label="Filtra per ruolo" value={roleFilter} onChange={(event) => setRoleFilter(event.currentTarget.value)}>{data.facets.roles.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.count})</option>)}</select></label>
+        <label><BadgeCheck size={15}/><select aria-label="Ordina soggetti" value={sort} onChange={(event) => setSort(event.currentTarget.value as SortKey)}>{Object.entries(sortLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
         <button className={qualityOnly ? 'is-active' : ''} type="button" onClick={() => setQualityOnly((value) => !value)}>Solo da completare</button>
       </section>
 

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, join, relative, resolve } from 'node:path'
 import vm from 'node:vm'
-import ts from 'typescript'
+// TypeScript 7 espone il compilatore ma non l'API AST: questo gate conserva
+// l'analisi strutturale tramite il bridge ufficiale TypeScript 6.
+import ts from '@typescript/typescript6'
 
 const frontendRoot = resolve(import.meta.dirname, '..')
 const featureRoot = resolve(frontendRoot, 'src/features/notifiche-legali')

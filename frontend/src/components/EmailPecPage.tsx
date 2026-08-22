@@ -1039,9 +1039,9 @@ function writeMailboxSelection(mode: MailboxMode, folder: EmailFolder, id: strin
 
 function FolderTabs({ data, folder, onChange, ariaLabel }: { data: EmailPecPageData; folder: EmailFolder; onChange: (folder: EmailFolder) => void; ariaLabel: string }) {
   return (
-    <div className="iu-mail-folders" role="tablist" aria-label={ariaLabel}>
+    <div className="iu-mail-folders" role="group" aria-label={ariaLabel}>
       {data.facets.folders.map((facet) => (
-        <button className={folder === facet.value ? 'is-active' : ''} type="button" onClick={() => onChange(facet.value)} key={facet.value}>
+        <button className={folder === facet.value ? 'is-active' : ''} type="button" aria-pressed={folder === facet.value} onClick={() => onChange(facet.value)} key={facet.value}>
           {folderIcon(facet.value)}
           <span>{facet.label}</span>
           <b>{facet.count}</b>
@@ -1070,11 +1070,12 @@ function EmailListRow({
 }) {
   const person = rowPerson(item)
   return (
-    <button className={`iu-mail-row ${selected ? 'is-selected' : ''} ${item.unread ? 'is-unread' : ''}`} type="button" onClick={onSelect}>
+    <div className={`iu-mail-row ${selected ? 'is-selected' : ''} ${item.unread ? 'is-unread' : ''}`}>
       <span className="iu-mail-row__check" onClick={(event) => event.stopPropagation()}>
         <input type="checkbox" checked={checked} disabled={item.auditOnly} onChange={onToggleChecked} aria-label={`Seleziona ${item.subject || person}`} />
       </span>
-      <span className="iu-mail-avatar">{initials(person, fallbackInitials)}</span>
+      <button className="iu-mail-row__open" type="button" onClick={onSelect} aria-label={`Apri ${item.subject || person}`}>
+        <span className="iu-mail-avatar">{initials(person, fallbackInitials)}</span>
       <span className="iu-mail-main">
         <span className="iu-mail-row__top">
           <strong>{person}</strong>
@@ -1089,8 +1090,9 @@ function EmailListRow({
           {includeTelematic ? <PecAuditBadges audit={item.pecAudit} /> : null}
           {item.attachmentCount ? <em><Paperclip size={12} /> {item.attachmentCount}</em> : null}
         </span>
-      </span>
-    </button>
+        </span>
+      </button>
+    </div>
   )
 }
 

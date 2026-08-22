@@ -301,7 +301,7 @@ export function PrivacyRegistroPage() {
         </label>
         <label>
           <Filter size={16}/>
-          <select value={status} onChange={(event) => setStatus(event.currentTarget.value as StatusFilter)}>
+          <select aria-label="Filtra per stato" value={status} onChange={(event) => setStatus(event.currentTarget.value as StatusFilter)}>
             {data.facets.status.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
           </select>
         </label>

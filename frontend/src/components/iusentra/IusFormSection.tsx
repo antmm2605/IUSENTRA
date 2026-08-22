@@ -34,7 +34,7 @@ export function IusFormSection({
           area={area}
           icon={icon}
           tone={tone}
-          level={3}
+          level={2}
           sequence={false}
         />
         <div className="ius-form-section__fields">{children}</div>

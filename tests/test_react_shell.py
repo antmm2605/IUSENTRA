@@ -211,6 +211,24 @@ def test_profilo_e_import_agenda_sono_route_react_operativa(tmp_path: Path):
     assert "AgendaImportPage" in app_source
 
 
+def test_react_inline_entry_riscrive_import_dinamico_con_template_literal(tmp_path: Path, monkeypatch):
+    from web.blueprints import react_shell as react_shell_module
+
+    react_root = tmp_path / "react"
+    asset_path = react_root / "assets" / "index.js"
+    asset_path.parent.mkdir(parents=True)
+    asset_path.write_text(
+        "const voice = () => import(`./StudioVoiceAssistant-BbtyoJW0.js`)",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(react_shell_module, "_react_static_dir", lambda: react_root)
+    react_shell_module._INLINE_ENTRY_CACHE.clear()
+
+    rewritten = react_shell_module._inline_react_entry_code("assets/index.js")
+
+    assert "import(`/static/react/assets/StudioVoiceAssistant-BbtyoJW0.js`)" in rewritten
+
+
 def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     template = Path("web/templates/react_shell.html").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
@@ -234,6 +252,7 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     assert "def _inline_react_entry_code" in shell_source
     assert 'from"./' in shell_source
     assert 'import("./' in shell_source
+    assert 'import(`./' in shell_source
     assert "def _global_manifest_css" in shell_source
     assert 'manifest.get("style.css")' in shell_source
     assert "body.react-shell-page .iu-shell" in css
@@ -286,7 +305,7 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "onCloseMobile" in source
     assert "onNavigate={onCloseMobile}" in source
     assert "mobileOpen ? 'Chiudi menu'" in source
-    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' }" in source
+    assert "{ label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' }" in source
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in source
     assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
@@ -1279,7 +1298,7 @@ def test_react_regia_operativa_e_pagina_separata_non_in_panorama():
 
     assert "/workspace-intelligente" in app_source
     assert "isRegiaPage?<RegiaOperativaPage" in app_source
-    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
+    assert "{ label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
     assert "Agenda da presidiare" in app_source
     assert "Centro operativo di oggi" not in app_source
 
@@ -4256,7 +4275,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
 
     expected_visible_labels = (
         "Panoramica",
-        "Regia Operativa",
+        "Controllo Studio",
         "Ricerca Studio",
         "Recenti",
         "Calendario",
@@ -4347,7 +4366,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
 
     first_block_routes = {
         "Panoramica": "/",
-        "Regia Operativa": "/workspace-intelligente",
+        "Controllo Studio": "/workspace-intelligente",
         "Ricerca Studio": "/global-search",
         "Recenti": f"/fascicoli/{fascicolo.id}",
         "Calendario": "/agenda",
@@ -4439,7 +4458,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
 
         for label, path in {
             "Panoramica": "/api/v1/ui/dashboard",
-            "Regia Operativa": "/api/v1/ui/dashboard?refresh=1",
+            "Controllo Studio": "/api/v1/ui/dashboard?refresh=1",
             "Agenda": "/api/v1/ui/agenda",
             "Fascicoli": "/api/v1/ui/fascicoli",
             "Nuovo Fascicolo": "/api/v1/ui/fascicoli/nuovo",

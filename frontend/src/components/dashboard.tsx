@@ -54,7 +54,7 @@ export function Panel({
         <div>
           {icon}
           <span>
-            <strong>{title}</strong>
+            <h2>{title}</h2>
             {subtitle ? <small>{subtitle}</small> : null}
           </span>
         </div>

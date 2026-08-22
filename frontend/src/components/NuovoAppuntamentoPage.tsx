@@ -821,7 +821,7 @@ export function NuovoAppuntamentoPage() {
 
               <Field label="Tipo" required icon={<Info size={16} />}>
                 <select
-                  name="tipo"
+                  name="tipo" aria-label="Tipo appuntamento"
                   value={form.tipo}
                   onChange={(event) => applyTypePreset(event.currentTarget.value as AppointmentType)}
                   required
@@ -834,7 +834,7 @@ export function NuovoAppuntamentoPage() {
 
               <Field label="Data" required icon={<CalendarDays size={16} />}>
                 <input
-                  name="data"
+                  name="data" aria-label="Data appuntamento"
                   type="date"
                   value={form.data}
                   onChange={(event) => update('data', event.currentTarget.value)}
@@ -844,7 +844,7 @@ export function NuovoAppuntamentoPage() {
 
               <Field label="Ora" required icon={<Clock3 size={16} />}>
                 <input
-                  name="ora"
+                  name="ora" aria-label="Ora appuntamento"
                   type="time"
                   value={form.ora}
                   onChange={(event) => update('ora', event.currentTarget.value)}
@@ -854,7 +854,7 @@ export function NuovoAppuntamentoPage() {
 
               <Field label="Durata (minuti)" icon={<Clock3 size={16} />}>
                 <input
-                  name="durata"
+                  name="durata" aria-label="Durata in minuti"
                   type="number"
                   min="5"
                   step="5"
@@ -865,7 +865,7 @@ export function NuovoAppuntamentoPage() {
 
               <Field label="Promemoria (min prima)" icon={<Bell size={16} />}>
                 <input
-                  name="reminder"
+                  name="reminder" aria-label="Promemoria in minuti"
                   type="number"
                   min="0"
                   value={form.reminder}

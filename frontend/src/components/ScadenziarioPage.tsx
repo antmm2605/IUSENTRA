@@ -1336,8 +1336,8 @@ export function ScadenziarioPage() {
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
         <label className="iu-scad-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca per titolo, descrizione, fascicolo, ufficio..."/></label>
         <div className="iu-scad-toolbar__filters">
-          <label className="iu-scad-select"><Filter size={16}/><select value={type} onChange={(event) => setType(event.target.value)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
-          <label className="iu-scad-select"><ShieldCheck size={16}/><select value={priority} onChange={(event) => setPriority(event.target.value)}>{data.facets.priorities.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
+          <label className="iu-scad-select"><Filter size={16}/><select aria-label="Filtra per tipo" value={type} onChange={(event) => setType(event.target.value)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
+          <label className="iu-scad-select"><ShieldCheck size={16}/><select aria-label="Filtra per priorità" value={priority} onChange={(event) => setPriority(event.target.value)}>{data.facets.priorities.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label}{facet.count ? ` (${facet.count})` : ''}</option>)}</select></label>
         </div>
         <div className="iu-scad-toolbar__actions">
           <button className="iu-scad-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16}/> Filtri</button>

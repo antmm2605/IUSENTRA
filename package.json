@@ -2,7 +2,7 @@
   "name": "iusentra-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.1.2",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "dev": "pnpm --filter @iusentra/studio dev",
     "test": "turbo run test",

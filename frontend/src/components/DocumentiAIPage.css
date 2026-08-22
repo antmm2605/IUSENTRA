@@ -32,7 +32,7 @@
 .iu-docai-list span,
 .iu-docai-detail small,
 .iu-docai-kv dd {
-  color: var(--iu-muted, #65758b);
+  color: var(--iu-slate-600, #475569);
 }
 
 .iu-docai-header > div:first-child > span,
@@ -91,7 +91,7 @@
 
 .iu-docai-forensic p {
   margin: 0;
-  color: var(--iu-muted, #65758b);
+  color: var(--iu-slate-600, #475569);
 }
 
 .iu-docai-forensic__actions {
@@ -133,7 +133,7 @@
 
 .iu-docai-forensic__list span,
 .iu-docai-forensic__detail small {
-  color: var(--iu-muted, #65758b);
+  color: var(--iu-slate-600, #475569);
 }
 
 .iu-docai-forensic__detail {
@@ -169,7 +169,7 @@
 }
 
 .iu-docai-tree small {
-  color: var(--iu-muted, #65758b);
+  color: var(--iu-slate-600, #475569);
 }
 
 .iu-docai-ocr-review {
@@ -198,7 +198,7 @@
 }
 
 .iu-docai-ocr-review > header span {
-  color: var(--iu-muted, #65758b);
+  color: var(--iu-slate-600, #475569);
   font-size: .82rem;
   font-weight: 700;
 }
@@ -260,7 +260,7 @@
 .iu-docai-upload small {
   display: block;
   margin-top: .35rem;
-  color: var(--iu-muted, #65758b);
+  color: var(--iu-slate-600, #475569);
 }
 
 .iu-docai-message {

@@ -929,7 +929,7 @@ export function AgendaPage() {
           </label>
           <label className="iu-ag-filter">
             <Filter size={16}/>
-            <select value={kind} onChange={(event) => setKind(event.target.value as AgendaKind)}>
+            <select aria-label="Tipo di evento" value={kind} onChange={(event) => setKind(event.target.value as AgendaKind)}>
               {(Object.keys(kindLabels) as AgendaKind[]).map((item) => <option value={item} key={item}>{kindLabels[item]}</option>)}
             </select>
           </label>

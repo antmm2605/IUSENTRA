@@ -1,4 +1,4 @@
-#  version: 2.278.63
+#  version: 2.278.64
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -29,6 +29,8 @@ WORKDIR /build
 # Crea un venv isolato -> tutto finisce in /venv
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
+# Mantiene riproducibile il toolchain del builder e rimuove gli avvisi di aggiornamento.
+RUN python -m pip install --no-cache-dir --disable-pip-version-check "pip==26.2.1"
 
 # Layer cache: ricalcola solo se cambiano manifest o requirements
 COPY setup.py .
@@ -93,7 +95,8 @@ RUN corepack enable \
     && corepack prepare pnpm@11.1.2 --activate \
     && pnpm config set fetch-retries 5 \
     && pnpm config set fetch-timeout 600000 \
-    && pnpm install --frozen-lockfile --prod
+    # Lo stage compila Vite: include gli strumenti di build, senza portarli nel runtime.
+    && pnpm install --frozen-lockfile --prod=false
 
 # Sorgenti del frontend + alias che puntano fuori da frontend/
 COPY packages ./packages
@@ -118,7 +121,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.278.63" \
+      org.opencontainers.image.version="2.278.64" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

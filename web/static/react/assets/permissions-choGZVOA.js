@@ -1,1 +1,0 @@
-function n(){const e=document.getElementById("iusentra-react-bootstrap");if(!e?.textContent)return new Set;try{const t=JSON.parse(e.textContent);return new Set(Array.isArray(t.permissions)?t.permissions:[])}catch{return new Set}}function r(e){return n().has(e)}export{r as c};

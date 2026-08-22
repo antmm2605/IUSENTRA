@@ -679,6 +679,14 @@ class SchedulerRegistryRepository:
                     ON scheduled_job_runs(job_id, id DESC);
                 CREATE INDEX IF NOT EXISTS idx_scheduled_job_runs_status
                     ON scheduled_job_runs(status, id ASC);
+                CREATE INDEX IF NOT EXISTS idx_scheduled_job_runs_reconciliation_running
+                    ON scheduled_job_runs(job_id, scheduled_at, id)
+                    WHERE origin = 'scheduler' AND status = 'running' AND scheduled_at <> '';
+                CREATE INDEX IF NOT EXISTS idx_scheduled_job_runs_reconciliation_terminal
+                    ON scheduled_job_runs(job_id, scheduled_at, id)
+                    WHERE origin = 'scheduler'
+                      AND status IN ('completed', 'failed', 'missed', 'cancelled')
+                      AND scheduled_at <> '';
                 """
             )
 
@@ -784,20 +792,19 @@ class SchedulerRegistryRepository:
             # idempotente degli audit già scritti con quell'ordine inverso.
             conn.execute(
                 """
-                DELETE FROM scheduled_job_runs
-                WHERE id IN (
-                    SELECT stale.id
-                    FROM scheduled_job_runs AS stale
-                    JOIN scheduled_job_runs AS terminal
-                      ON terminal.job_id = stale.job_id
-                     AND terminal.origin = 'scheduler'
-                     AND terminal.scheduled_at = stale.scheduled_at
-                     AND terminal.status IN ('completed', 'failed', 'missed', 'cancelled')
-                     AND terminal.id < stale.id
-                    WHERE stale.origin = 'scheduler'
-                      AND stale.status = 'running'
-                      AND stale.scheduled_at <> ''
-                )
+                DELETE FROM scheduled_job_runs AS stale
+                WHERE stale.origin = 'scheduler'
+                  AND stale.status = 'running'
+                  AND stale.scheduled_at <> ''
+                  AND EXISTS (
+                      SELECT 1
+                      FROM scheduled_job_runs AS terminal
+                      WHERE terminal.job_id = stale.job_id
+                        AND terminal.origin = 'scheduler'
+                        AND terminal.scheduled_at = stale.scheduled_at
+                        AND terminal.status IN ('completed', 'failed', 'missed', 'cancelled')
+                        AND terminal.id < stale.id
+                  )
                 """
             )
             for template in legal_source_scheduler_templates(config):

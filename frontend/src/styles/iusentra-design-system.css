@@ -6,7 +6,7 @@
   --ius-surface: #ffffff;
   --ius-surface-warm: #fbfaf7;
   --ius-border: rgba(15, 23, 42, 0.1);
-  --ius-muted: #64748b;
+  --ius-muted: #475569;
   --ius-text: #111827;
   --ius-ring: rgba(201, 154, 46, 0.38);
   --ius-shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
@@ -19,7 +19,7 @@
   --iusentra-border: #e2e8f0;
   --iusentra-border-soft: rgba(15, 23, 42, 0.09);
   --iusentra-text: #111827;
-  --iusentra-text-muted: #64748b;
+  --iusentra-text-muted: #475569;
   --iusentra-primary: #1e3a8a;
   --iusentra-primary-active: #1d4ed8;
   --iusentra-accent: #b08968;
@@ -423,7 +423,7 @@
   border: 1px solid var(--ius-border);
   border-radius: 12px;
   background: var(--ius-surface);
-  color: var(--iu-blue-600, #2563eb);
+  color: #1e40af;
   box-shadow: var(--ius-shadow-soft);
 }
 
@@ -439,22 +439,22 @@
 }
 
 .ius-tone-primary {
-  color: var(--iu-blue-600, #2563eb);
+  color: #1e40af;
   background: rgba(37, 99, 235, 0.08);
 }
 
 .ius-tone-success {
-  color: #047857;
+  color: #065f46;
   background: rgba(16, 185, 129, 0.1);
 }
 
 .ius-tone-warning {
-  color: #a16207;
+  color: #92400e;
   background: rgba(245, 158, 11, 0.13);
 }
 
 .ius-tone-danger {
-  color: #dc2626;
+  color: #b91c1c;
   background: rgba(239, 68, 68, 0.1);
 }
 
@@ -552,7 +552,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--iu-blue-600, #2563eb);
+  color: #1e40af;
   font-size: 12px;
   font-style: normal;
   font-weight: 800;
@@ -643,7 +643,7 @@
 .ius-feedback-state > svg {
   width: 28px;
   height: 28px;
-  color: var(--iu-blue-600, #2563eb);
+  color: #1e40af;
 }
 
 .ius-error-state > svg {
@@ -651,7 +651,7 @@
 }
 
 .ius-success-state > svg {
-  color: #047857;
+  color: #065f46;
 }
 
 .ius-feedback-state h2,
@@ -801,7 +801,7 @@
 }
 
 .ius-wizard-stepper__marker {
-  color: var(--iu-blue-600, #2563eb);
+  color: #1e40af;
 }
 
 .ius-compliance-panel {
@@ -2064,3 +2064,8 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
   }
 }
+
+.ius-status-badge.ius-tone-primary { color: #1e40af; background: #eef3fd; }
+.ius-status-badge.ius-tone-success { color: #065f46; background: #e7f8f2; }
+.ius-status-badge.ius-tone-warning { color: #92400e; background: #fef2df; }
+.ius-status-badge.ius-tone-danger { color: #b91c1c; background: #f7e8ea; }

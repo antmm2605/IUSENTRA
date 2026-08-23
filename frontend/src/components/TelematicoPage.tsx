@@ -31,6 +31,7 @@ import {
   type TelematicoPageData,
 } from '../telematicoData'
 import type { Tone } from '../data'
+import { formatDateTimeIt } from '../formatting'
 import './TelematicoPage.css'
 
 const portalIcon: Record<TelematicoChannelId, ReactNode> = {
@@ -146,7 +147,7 @@ function ChannelCard({
         <div><dt>Import completi</dt><dd>{channel.importCompleted}</dd></div>
         <div><dt>Da presidiare</dt><dd>{channel.attentionNeeded}</dd></div>
       </dl>
-      <small className="iu-tel-channel__sync">{channel.lastSyncAt ? `Ultimo allineamento: ${channel.lastSyncAt}` : channel.environmentLabel || 'Nessun allineamento ancora registrato.'}</small>
+      <small className="iu-tel-channel__sync">{channel.lastSyncAt ? `Ultimo allineamento: ${formatDateTimeIt(channel.lastSyncAt, 'Data da verificare')}` : channel.environmentLabel || 'Nessun allineamento ancora registrato.'}</small>
       <footer>
         {channel.quickActions.slice(0, 3).map((action, index) => (
           <a className={index === 0 ? 'is-primary' : ''} href={action.href} onClick={(event) => onAction(event, channel, index)} key={`${channel.id}-${action.label}`}>
@@ -241,7 +242,7 @@ function EventCard({ item }:{item:TelematicoEvent}) {
       <div>
         <strong>{item.title}</strong>
         <small>{item.subtitle}</small>
-        <time>{item.timestamp}</time>
+        <time>{formatDateTimeIt(item.timestamp, 'Data da verificare')}</time>
       </div>
       {item.badge ? <Badge tone={item.tone}>{item.badge}</Badge> : <ArrowRight size={15}/>}
     </a>
@@ -265,6 +266,78 @@ function QualityGrid({ data }:{data:TelematicoPageData}) {
         </article>
       ))}
     </div>
+  )
+}
+
+function TruthRegistryPanel({ data }:{data:TelematicoPageData}) {
+  const { truthRegistry } = data
+  return (
+    <Panel title="Registro operatività verificata" subtitle="Cosa IUSENTRA può fare, con prova, requisiti e limiti espliciti" icon={<ShieldCheck size={17}/>} count={truthRegistry.summary.total}>
+      {truthRegistry.entries.length ? (
+        <div className="iu-tel-truth-list">
+          {truthRegistry.entries.map((entry) => (
+            <article className="iu-tel-truth-row" key={entry.id}>
+              <header>
+                <div>
+                  {entry.area ? <span>{entry.area}</span> : null}
+                  <strong>{entry.label}</strong>
+                </div>
+                <Badge tone={entry.platformTone}>{entry.platformLabel}</Badge>
+              </header>
+              <p>{entry.proof}</p>
+              <dl>
+                <div><dt>Ambito</dt><dd>{entry.scope}</dd></div>
+                <div><dt>Per lo studio</dt><dd>{entry.studioRequirement}</dd></div>
+                <div><dt>Limite</dt><dd>{entry.limit}</dd></div>
+              </dl>
+              <footer>
+                <Badge tone={entry.sourceTone}>{entry.sourceLabel}</Badge>
+                <small>Ultimo controllo: {formatDateTimeIt(entry.lastCheck, 'Non disponibile')}</small>
+              </footer>
+              {entry.references.length ? (
+                <div className="iu-tel-truth-references">
+                  <span>Riferimenti ufficiali</span>
+                  {entry.references.map((reference) => (
+                    reference.href ? (
+                      <a href={reference.href} key={reference.id} target="_blank" rel="noreferrer"><span>{reference.label}</span><Badge tone={reference.statusTone}>{reference.statusLabel}</Badge></a>
+                    ) : <span className="iu-tel-truth-reference--missing" key={reference.id}>{reference.label}: {reference.statusLabel}</span>
+                  ))}
+                </div>
+              ) : <small className="iu-tel-truth-reference--missing">Riferimento ufficiale non ancora censito: il flusso non viene promosso oltre il suo perimetro.</small>}
+            </article>
+          ))}
+        </div>
+      ) : <p className="iu-empty">Il registro viene popolato dal catalogo telematico dello studio.</p>}
+    </Panel>
+  )
+}
+
+function SentinelPanel({ data }:{data:TelematicoPageData}) {
+  const { sentinel } = data
+  const summaryTone: Tone = sentinel.summary.blocked ? 'danger' : sentinel.summary.attention ? 'warning' : 'success'
+  return (
+    <Panel title="Sentinella Telematica" subtitle="Variazioni e anomalie delle fonti ufficiali, tradotte nel loro impatto operativo" icon={<AlertTriangle size={17}/>} count={sentinel.alerts.length}>
+      <div className="iu-tel-sentinel-status">
+        <Badge tone={summaryTone}>{sentinel.statusLabel}</Badge>
+        <span>{sentinel.summary.healthy} fonti presidiate su {sentinel.summary.monitored} controllate</span>
+      </div>
+      <p className="iu-tel-sentinel-flow">Ciclo automatico: rilevazione, recupero dalla fonte ufficiale, confronto con l’evidenza precedente, valutazione dell’impatto e apertura del presidio.</p>
+      {sentinel.alerts.length ? (
+        <div className="iu-tel-sentinel-list">
+          {sentinel.alerts.map((alert) => (
+            <a className={`iu-tel-sentinel-alert iu-tel-sentinel-alert--${alert.tone}`} href={alert.href} key={alert.id} target={alert.href.startsWith('http') ? '_blank' : undefined} rel={alert.href.startsWith('http') ? 'noreferrer' : undefined}>
+              <AlertTriangle size={16}/>
+              <div>
+                <strong>{alert.title} · {alert.sourceLabel}</strong>
+                <span>{alert.detail}</span>
+                {alert.affected.length ? <small>Flussi interessati: {alert.affected.join(' · ')}</small> : null}
+              </div>
+              <ArrowRight size={15}/>
+            </a>
+          ))}
+        </div>
+      ) : <p className="iu-empty">Nessuna variazione aperta: i controlli attivi non segnalano impatti da valutare.</p>}
+    </Panel>
   )
 }
 
@@ -377,6 +450,10 @@ export function TelematicoPage() {
         <StatCard icon={<FileCheck2 size={19}/>} label="PAT / SIGA" value={data.summary.pat} note="amministrativo" tone="success"/>
         <StatCard icon={<FileText size={19}/>} label="PTT / SIGIT" value={data.summary.ptt} note="tributario" tone="warning"/>
         <StatCard icon={<AlertTriangle size={19}/>} label="Da presidiare" value={data.summary.attentionNeeded + data.summary.blocked} note="avvisi, blocchi e import" tone={data.summary.attentionNeeded || data.summary.blocked ? 'danger' : 'success'}/>
+      </section>
+      <section className="iu-tel-trust-grid" aria-label="Operatività verificata e fonti ufficiali">
+        <TruthRegistryPanel data={data}/>
+        <SentinelPanel data={data}/>
       </section>
 
       <section className="iu-tel-section-head">

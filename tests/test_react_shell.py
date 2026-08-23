@@ -1021,6 +1021,8 @@ def test_react_telematico_due_colonne_e_testi_visibili_in_italiano():
     assert "item.documentsCount === 1 ? 'documento' : 'documenti'" in page_source
     assert "no scraping" not in page_source.lower()
     assert "warning predeposito" not in page_source.lower()
+    assert "formatDateTimeIt" in page_source
+    assert "formatItalianDateTime" not in page_source
     assert "displayTelematicLabel" in data_source
     assert "'Import completato'" in data_source
     assert "'Verifica manuale richiesta'" in data_source
@@ -1562,6 +1564,8 @@ def test_react_telematico_bridge_payload_minimo(tmp_path: Path):
     assert {card["id"] for card in payload["channels"]} == {"pst", "pdp", "pat", "ptt"}
     assert "summary" in payload
     assert "controlTower" in payload
+    assert payload["truthRegistry"]["entries"]
+    assert "sentinel" in payload
     notice_text = " ".join(
         f"{item.get('title', '')} {item.get('body', '')}"
         for item in payload.get("notices", [])

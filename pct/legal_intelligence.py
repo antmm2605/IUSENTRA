@@ -833,6 +833,14 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
 }
 
 
+def official_telematic_source_ids() -> tuple[str, ...]:
+    """Restituisce tutte le fonti ufficiali usate dai flussi telematici."""
+
+    return tuple(
+        source_id for source_id, source in FONTI_UFFICIALI.items()
+        if source.motore == "procedurale_telematico"
+    )
+
 MOTORI_LEGALI: Dict[str, MotoreLegale] = {
     "fonti_ufficiali": MotoreLegale(
         id="fonti_ufficiali",

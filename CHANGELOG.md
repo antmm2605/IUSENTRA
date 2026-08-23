@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.65 - 2026-08-23
+
+- Introdotti Capability Truth Registry e Sentinella Telematica: le capability distinguono prova, prerequisiti e limiti; il catalogo delle fonti ufficiali PST viene monitorato dinamicamente e ogni variazione o indisponibilità apre un presidio collegato ai flussi interessati.
+- Introdotto Guardiano Scadenze: una coda di rischio React segnala termini prossimi o scaduti, perentorietà, fonte/prova insufficiente, titolare o fascicolo mancanti e azione successiva, senza ricalcolare né alterare scadenze processuali.
+- Le fonti visibili usano URL istituzionali PST e Normattiva; in assenza di acquisizione o monitoraggio il sistema non dichiara lo stato presidiato.
+
 ## 2.278.64 - 2026-08-22
 
 - Aggiornato il toolchain di build a `pip 26.2.1`, in modo esplicito e riproducibile nel builder Docker e nell'ambiente locale.

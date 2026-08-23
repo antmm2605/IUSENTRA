@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import quote
 
+from pct.guardiano_scadenze import build_guardiano_scadenze_payload
 from pct.scadenziario import (
     OFFICE_MODE_LABELS,
     PRESET_TERMINI,
@@ -1776,6 +1777,7 @@ def build_react_scadenziario_payload(
         )
         for item in filtered
     ]
+    guardian = build_guardiano_scadenze_payload(all_items)
     if query.get("q"):
         rows = [row for row in rows if _row_matches_query(row, str(query["q"]))]
     overdue_preview = []
@@ -1847,6 +1849,7 @@ def build_react_scadenziario_payload(
         "query": query,
         "summary": summary,
         "items": rows,
+        "guardian": guardian,
         "draftProposals": draft_proposals,
         "overduePreview": overdue_preview,
         "nextItems": next_items,

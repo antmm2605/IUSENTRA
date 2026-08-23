@@ -49,6 +49,7 @@ import {
   type DeadlineCalculatorTemplate,
   type PdfDeadlinePreview,
   type ScadenziarioActionCard,
+  type DeadlineGuardian,
   type ScadenziarioDraftProposal,
   type ScadenziarioPageData,
   type ScadenziarioPriority,
@@ -273,6 +274,46 @@ function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:Scad
           </article>
         ))}
       </div>
+    </section>
+  )
+}
+
+function guardianDueLabel(item: DeadlineGuardian['items'][number]): string {
+  if (item.days === null) return 'Data da verificare'
+  if (item.days < 0) return `Oltre la data prevista da ${Math.abs(item.days)} ${Math.abs(item.days) === 1 ? 'giorno' : 'giorni'}`
+  if (item.days === 0) return 'Prevista oggi'
+  return `Tra ${item.days} ${item.days === 1 ? 'giorno' : 'giorni'}`
+}
+
+function GuardianPanel({ guardian }:{guardian:DeadlineGuardian}) {
+  const total = guardian.summary.total
+  const tone: DeadlineGuardian['items'][number]['tone'] = guardian.summary.critical ? 'danger' : guardian.summary.high ? 'warning' : total ? 'info' : 'success'
+  return (
+    <section className="iu-scad-guardian" aria-label="Guardiano Scadenze">
+      <header>
+        <div>
+          <span><ShieldCheck size={16}/> Guardiano Scadenze</span>
+          <strong>{total ? `${total} elementi richiedono un presidio preventivo` : 'Nessun rischio aperto nel perimetro attivo'}</strong>
+        </div>
+        <Badge tone={tone}>{guardian.summary.critical ? `${guardian.summary.critical} critici` : guardian.summary.high ? `${guardian.summary.high} ad alto rischio` : total ? 'Da presidiare' : 'Presidiato'}</Badge>
+      </header>
+      <p>Il Guardiano non inventa né ricalcola termini: evidenzia rischi nei dati registrati e porta all’azione correttiva.</p>
+      {guardian.items.length ? (
+        <div className="iu-scad-guardian__list">
+          {guardian.items.map((item) => (
+            <a href={item.href} key={item.id}>
+              <div>
+                <strong>{item.title}</strong>
+                <span>{formatItalianDate(item.date) || 'Data da verificare'} · {guardianDueLabel(item)}</span>
+              </div>
+              <div>
+                <Badge tone={item.tone}>{item.label}</Badge>
+                <small><b>{item.primaryReason}</b>{item.nextAction}</small>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : <p className="iu-empty">{guardian.message}</p>}
     </section>
   )
 }
@@ -1330,6 +1371,7 @@ export function ScadenziarioPage() {
         <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
         <StatCard icon={<Archive size={19}/>} label="Da PEC" value={data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
       </section>
+      <GuardianPanel guardian={data.guardian}/>
 
       <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal}/>
 

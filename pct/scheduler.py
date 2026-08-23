@@ -644,7 +644,8 @@ def start_scheduler(app):
 
     @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=15), id="legal_monitor_pst")
     def _legal_monitor_pst():
-        _run_legal_monitor(["pst_giustizia"], "pst")
+        from pct.legal_intelligence import official_telematic_source_ids
+        _run_legal_monitor(list(official_telematic_source_ids()), "telematico")
 
     @scheduler.scheduled_job(CronTrigger(hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():

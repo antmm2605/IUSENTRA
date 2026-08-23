@@ -9,6 +9,10 @@ from typing import Any
 
 from flask import url_for
 
+from pct.telematico_truth_registry import (
+    build_capability_truth_registry,
+    build_telematico_sentinel,
+)
 from web.services.telematico_control_tower import build_telematico_control_tower
 
 PORTALS = ("pst", "pdp", "pat", "ptt")
@@ -1246,6 +1250,7 @@ def build_react_telematico_payload(
     get_telematico: Callable[[], Any],
     get_fascicoli: Callable[[], Any],
     build_access_status_payload: Callable[[str], dict[str, Any]],
+    get_legal_intelligence: Callable[[], Any] | None = None,
     prepare_dashboard: Callable[[], dict[str, int]] | None = None,
     dashboard_warning_message: Callable[[Exception], str] | None = None,
     logger: Any | None = None,
@@ -1333,6 +1338,22 @@ def build_react_telematico_payload(
         for portal in PORTALS
     }
     channels = [_build_channel(portal, stats, access_payloads[portal]) for portal in PORTALS]
+    telematico_repository = _safe(
+        "telematico_truth_repository",
+        lambda: get_legal_intelligence().telematico_repository_payload() if callable(get_legal_intelligence) else {},
+        {},
+        logger,
+    )
+    truth_registry = build_capability_truth_registry(
+        list(telematico_repository.get("capabilities") or []),
+        list(telematico_repository.get("monitoring") or []),
+        list(telematico_repository.get("sources") or []),
+    )
+    sentinel = build_telematico_sentinel(
+        truth_registry,
+        list(telematico_repository.get("monitoring") or []),
+        list(telematico_repository.get("sources") or []),
+    )
     control_payload = _control_tower_payload(control_tower, fascicoli_index)
     summary_raw = dict(control_tower.get("summary") or {})
     summary = {
@@ -1361,6 +1382,8 @@ def build_react_telematico_payload(
         "recentCases": [_case_row(dict(row or {}), index, fascicoli_index) for index, row in enumerate(recent_cases)],
         "recentEvents": [_event_row(dict(row or {}), index, fascicoli_index) for index, row in enumerate(list(recent_events) + list(control_tower.get("recent_events") or []))][:14],
         "controlTower": control_payload,
+        "truthRegistry": truth_registry,
+        "sentinel": sentinel,
         "notices": notices,
         "actions": {
             "checklistHref": _safe_url("checklist_deposito", "/deposito/checklist"),

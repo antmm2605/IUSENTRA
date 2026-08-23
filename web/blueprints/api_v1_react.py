@@ -6062,6 +6062,7 @@ def telematico_react_dashboard():
             get_telematico=_telematico_loader(),
             get_fascicoli=get_fascicoli,
             build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
+            get_legal_intelligence=get_legal_intelligence,
             prepare_dashboard=_telematico_runtime_func("backfill_telematico_from_existing_fascicoli"),
             dashboard_warning_message=_telematico_runtime_func("telematico_dashboard_warning_message"),
             logger=current_app.logger,

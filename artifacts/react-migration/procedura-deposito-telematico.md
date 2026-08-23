@@ -1,5 +1,19 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 23/08/2026 - Registro capacità e Sentinella fonti ufficiali
+
+Perimetro: Centro Servizi Telematici React e relativo catalogo fonti. La generazione della busta, la firma, il certificato PST, l’invio PEC e le ricevute non sono stati modificati.
+
+- Il Capability Truth Registry separa prontezza della piattaforma, prerequisiti dello studio, prova disponibile, limiti e fonti del singolo canale; nessuna voce condizionata o assistita viene presentata come deposito pronto.
+- La Sentinella collega le fonti ufficiali ai flussi PCT, confronta le acquisizioni e mostra una variazione, un errore o un’acquisizione mancante come presidio da risolvere.
+- Il catalogo telematico usa le fonti istituzionali PST: Documentazione, servizi web, specifiche tecniche D.M. 44/2011, download XSD/WSDL. La fonte normativa generale è Normattiva quando una regola la richiede.
+- Il job di monitoraggio ricava in modo dinamico tutte le fonti classificate procedurale telematico: non resta limitato a una sola pagina PST.
+- Una fonte non pubblica, con credenziali richieste o non acquisibile non viene surrogata con dati inventati: la UI espone il canale ufficiale e il presidio necessario, senza dichiararla presidiata.
+
+Fonti: [PST Documentazione](https://pst.giustizia.it/PST/it/documentation.page), [servizi web](https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571), [specifiche D.M. 44/2011](https://pst.giustizia.it/PST/resources/cms/documents/SPECIFICHE_TECNICHE_DM_44_2011REV_04.01.24.pdf), [download PST](https://pst.giustizia.it/PST/it/download.page), [Normattiva c.p.c.](https://www.normattiva.it/eli/id/1940/10/28/040U1443/CONSOLIDATED/20240814).
+
+Guardrail eseguiti: compilazione Python mirata, 19 test dedicati/integrati e typecheck React. La prova materiale su Docker locale 127.0.0.1:8080 e il deploy devono essere registrati dopo la campagna di accettazione.
+
 ## Aggiornamento 2026-08-05 - Email PEC, profilo processuale e collegamento soggetti al fascicolo
 
 Perimetro: pagina React Email PEC, profilo processuale generato dal controllo PEC, form React di modifica fascicolo e form React `Nuovo soggetto`.
@@ -5992,3 +6006,15 @@ Stato: visualizzazione e navigazione dell'elenco verificate materialmente sulla 
 - Nessun dato è stato salvato e nessuna operazione esterna è stata eseguita.
 
 Stato: ricerca e presentazione degli uffici verificate materialmente sulla copia locale reale.
+
+## Aggiornamento 23/08/2026 - Registro capability e sentinella fonti
+
+Perimetro: Centro Servizi Telematici React e Scadenziario React. Nessuna PEC, firma, busta o deposito è stato generato o inviato.
+
+- Il Registro operatività verificata espone capability, prerequisiti di studio, limiti e URL ufficiali PST, senza presentare un canale assistito come deposito concluso.
+- La Sentinella acquisisce le fonti telematiche dal catalogo ufficiale, confronta le evidenze e apre un presidio se non esiste monitoraggio o emergono variazioni.
+- Prova materiale eseguita in Chrome sulla copia Docker reale `http://localhost:8080`: 10 capability mostrate, 9 fonti monitorate su 9 e collegamento PST verificato verso la documentazione istituzionale.
+- Corretto il formato visibile degli ultimi controlli e della cronologia: data e ora sono `gg/mm/aaaa HH:mm`, fuso Europe/Rome, senza timestamp ISO raw.
+- Il Guardiano Scadenze ha mostrato dati reali dello studio con 12 presidi preventivi e 3 critici, indicando scadenze oltre data prevista e fonti evento mancanti senza ricalcolare termini di legge.
+
+Stato: prova visiva locale completata; i soli invii telematici restano esclusivamente sul PC locale dell’avvocato tramite Local Signer secondo il flusso già governato.

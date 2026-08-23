@@ -71,6 +71,70 @@ export type TelematicoControlTower = {
   predeposito: TelematicoControlItem[]
 }
 
+export type TelematicoTruthSourceReference = {
+  id: string
+  label: string
+  href: string
+  status: string
+  statusLabel: string
+  statusTone: Tone
+  lastCheck: string
+}
+
+export type TelematicoTruthEntry = {
+  id: string
+  label: string
+  area: string
+  platformStatus: string
+  platformLabel: string
+  platformTone: Tone
+  proof: string
+  scope: string
+  studioRequirement: string
+  limit: string
+  sourceStatus: string
+  sourceLabel: string
+  sourceTone: Tone
+  lastCheck: string
+  references: TelematicoTruthSourceReference[]
+}
+
+export type TelematicoTruthRegistry = {
+  entries: TelematicoTruthEntry[]
+  summary: {
+    total: number
+    ready: number
+    conditional: number
+    assisted: number
+    toValidate: number
+    sourceAttention: number
+  }
+}
+
+export type TelematicoSentinelAlert = {
+  id: string
+  tone: Tone
+  title: string
+  sourceLabel: string
+  detail: string
+  affected: string[]
+  lastCheck: string
+  href: string
+}
+
+export type TelematicoSentinel = {
+  status: string
+  statusLabel: string
+  summary: {
+    monitored: number
+    healthy: number
+    changes: number
+    attention: number
+    blocked: number
+  }
+  alerts: TelematicoSentinelAlert[]
+}
+
 export type TelematicoSummary = {
   total: number
   pst: number
@@ -98,6 +162,8 @@ export type TelematicoPageData = {
   recentCases: TelematicoCase[]
   recentEvents: TelematicoEvent[]
   controlTower: TelematicoControlTower
+  truthRegistry: TelematicoTruthRegistry
+  sentinel: TelematicoSentinel
   notices: Array<{ tone: Tone; title: string; body: string }>
   actions: {
     checklistHref: string
@@ -198,6 +264,16 @@ export const emptyTelematicoPage: TelematicoPageData = {
     warnings: [],
     blockedCases: [],
     predeposito: [],
+  },
+  truthRegistry: {
+    entries: [],
+    summary: { total: 0, ready: 0, conditional: 0, assisted: 0, toValidate: 0, sourceAttention: 0 },
+  },
+  sentinel: {
+    status: 'presidiata',
+    statusLabel: 'Nessuna variazione aperta',
+    summary: { monitored: 0, healthy: 0, changes: 0, attention: 0, blocked: 0 },
+    alerts: [],
   },
   notices: [],
   actions: {
@@ -380,6 +456,53 @@ function normaliseControlItem(value: unknown, index: number, fallbackBadge: stri
   }
 }
 
+function normaliseTruthRegistry(value: unknown): TelematicoTruthRegistry {
+  const raw = isRecord(value) ? value : {}
+  const summary = isRecord(raw.summary) ? raw.summary : {}
+  return {
+    entries: asList(raw.entries).map((value, index) => {
+      const entry = isRecord(value) ? value : {}
+      return {
+        id: text(entry.id, `truth-${index}`), label: display(entry.label, 'Funzione telematica'), area: display(entry.area),
+        platformStatus: text(entry.platformStatus ?? entry.platform_status, 'da_validare'), platformLabel: display(entry.platformLabel ?? entry.platform_label, 'Da verificare'),
+        platformTone: tone(entry.platformTone ?? entry.platform_tone, 'warning'), proof: display(entry.proof), scope: display(entry.scope),
+        studioRequirement: display(entry.studioRequirement ?? entry.studio_requirement), limit: display(entry.limit),
+        sourceStatus: text(entry.sourceStatus ?? entry.source_status, 'non_monitorata'), sourceLabel: display(entry.sourceLabel ?? entry.source_label, 'Fonte da presidiare'),
+        sourceTone: tone(entry.sourceTone ?? entry.source_tone, 'warning'), lastCheck: text(entry.lastCheck ?? entry.last_check),
+        references: asList(entry.references).map((value, refIndex) => {
+          const reference = isRecord(value) ? value : {}
+          return {
+            id: text(reference.id, `${text(entry.id, `truth-${index}`)}-source-${refIndex}`), label: display(reference.label, 'Fonte ufficiale'),
+            href: canonicalHref(reference.href), status: text(reference.status, 'non_censita'),
+            statusLabel: display(reference.statusLabel ?? reference.status_label, 'Fonte da recuperare'), statusTone: tone(reference.statusTone ?? reference.status_tone, 'warning'), lastCheck: text(reference.lastCheck ?? reference.last_check),
+          }
+        }),
+      }
+    }),
+    summary: {
+      total: number(summary.total), ready: number(summary.ready ?? summary.pronta), conditional: number(summary.conditional ?? summary.condizionata),
+      assisted: number(summary.assisted ?? summary.assistita), toValidate: number(summary.toValidate ?? summary.da_validare), sourceAttention: number(summary.sourceAttention ?? summary.source_attention),
+    },
+  }
+}
+
+function normaliseSentinel(value: unknown): TelematicoSentinel {
+  const raw = isRecord(value) ? value : {}
+  const summary = isRecord(raw.summary) ? raw.summary : {}
+  return {
+    status: text(raw.status, 'presidiata'), statusLabel: display(raw.statusLabel ?? raw.status_label, 'Nessuna variazione aperta'),
+    summary: { monitored: number(summary.monitored), healthy: number(summary.healthy), changes: number(summary.changes), attention: number(summary.attention), blocked: number(summary.blocked) },
+    alerts: asList(raw.alerts).map((value, index) => {
+      const alert = isRecord(value) ? value : {}
+      return {
+        id: text(alert.id, `sentinel-${index}`), tone: tone(alert.tone, 'warning'), title: display(alert.title, 'Variazione da verificare'),
+        sourceLabel: display(alert.sourceLabel ?? alert.source_label, 'Fonte ufficiale'), detail: display(alert.detail),
+        affected: textArray(alert.affected), lastCheck: text(alert.lastCheck ?? alert.last_check), href: canonicalHref(alert.href, '/telematico'),
+      }
+    }),
+  }
+}
+
 function normaliseSummary(payload: Record<string, unknown>, channels: TelematicoChannel[], controlTower: TelematicoControlTower): TelematicoSummary {
   const raw = isRecord(payload.summary) ? payload.summary : {}
   const byId = Object.fromEntries(channels.map((channel) => [channel.id, channel.cases])) as Record<TelematicoChannelId, number>
@@ -412,6 +535,8 @@ function normalisePayload(payload: unknown): TelematicoPageData {
     blockedCases: asList(rawControl.blockedCases ?? rawControl.blocked_cases).map((item, index) => normaliseControlItem(item, index, 'bloccato')),
     predeposito: asList(rawControl.predeposito).map((item, index) => normaliseControlItem(item, index, 'predeposito')),
   }
+  const truthRegistry = normaliseTruthRegistry(payload.truthRegistry ?? payload.truth_registry)
+  const sentinel = normaliseSentinel(payload.sentinel)
   const actions = isRecord(payload.actions) ? payload.actions : {}
   const contracts = isRecord(payload.contracts) ? payload.contracts : {}
   return {
@@ -428,6 +553,8 @@ function normalisePayload(payload: unknown): TelematicoPageData {
     recentCases: asList(payload.recentCases ?? payload.recent_cases).map(normaliseCase),
     recentEvents: asList(payload.recentEvents ?? payload.recent_events).map(normaliseEvent),
     controlTower,
+    truthRegistry,
+    sentinel,
     notices: Array.isArray(payload.notices) ? payload.notices.map((notice) => {
       const item = isRecord(notice) ? notice : {}
       return { tone: tone(item.tone, 'warning'), title: display(item.title, 'Avviso operativo'), body: display(item.body) }

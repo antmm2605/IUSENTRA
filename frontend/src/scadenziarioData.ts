@@ -41,6 +41,45 @@ export type ScadenziarioSummary = {
   peremptory: number
 }
 
+export type DeadlineGuardianReason = {
+  code: string
+  label: string
+  weight: number
+  action: string
+}
+
+export type DeadlineGuardianItem = {
+  id: string
+  title: string
+  date: string
+  days: number | null
+  peremptory: boolean
+  fascicoloId: string
+  ownerAssigned: boolean
+  score: number
+  band: string
+  label: string
+  tone: Tone
+  primaryReason: string
+  nextAction: string
+  reasons: DeadlineGuardianReason[]
+  href: string
+}
+
+export type DeadlineGuardian = {
+  referenceDate: string
+  summary: {
+    total: number
+    critical: number
+    high: number
+    medium: number
+    unassigned: number
+    sourceReview: number
+  }
+  items: DeadlineGuardianItem[]
+  message: string
+}
+
 export type ScadenziarioRow = {
   id: string
   date: string
@@ -220,6 +259,7 @@ export type ScadenziarioPageData = {
   }
   summary: ScadenziarioSummary
   items: ScadenziarioRow[]
+  guardian: DeadlineGuardian
   draftProposals: ScadenziarioDraftProposal[]
   overduePreview: ScadenziarioRow[]
   nextItems: ScadenziarioRow[]
@@ -346,6 +386,12 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     peremptory: 0,
   },
   items: [],
+  guardian: {
+    referenceDate: '',
+    summary: { total: 0, critical: 0, high: 0, medium: 0, unassigned: 0, sourceReview: 0 },
+    items: [],
+    message: 'Il Guardiano valuta le scadenze aperte dello studio.',
+  },
   draftProposals: [],
   overduePreview: [],
   nextItems: [],
@@ -628,6 +674,32 @@ function normalizeSummary(value: unknown): ScadenziarioSummary {
   }
 }
 
+function normalizeGuardian(value: unknown): DeadlineGuardian {
+  const payload = isRecord(value) ? value : {}
+  const summary = isRecord(payload.summary) ? payload.summary : {}
+  return {
+    referenceDate: asString(payload.referenceDate ?? payload.reference_date),
+    summary: {
+      total: asNumber(summary.total), critical: asNumber(summary.critical), high: asNumber(summary.high), medium: asNumber(summary.medium), unassigned: asNumber(summary.unassigned), sourceReview: asNumber(summary.sourceReview ?? summary.source_review),
+    },
+    items: asArray(payload.items).map((value, index) => {
+      const item = isRecord(value) ? value : {}
+      return {
+        id: asString(item.id, `guardian-${index}`), title: asString(item.title, 'Scadenza senza titolo'), date: asString(item.date), days: item.days === null || item.days === undefined ? null : asNumber(item.days),
+        peremptory: asBoolean(item.peremptory), fascicoloId: asString(item.fascicoloId ?? item.fascicolo_id), ownerAssigned: asBoolean(item.ownerAssigned ?? item.owner_assigned),
+        score: asNumber(item.score), band: asString(item.band, 'medio'), label: asString(item.label, 'Da presidiare'), tone: asString(item.tone, 'info') as Tone,
+        primaryReason: asString(item.primaryReason ?? item.primary_reason), nextAction: asString(item.nextAction ?? item.next_action),
+        reasons: asArray(item.reasons).map((value) => {
+          const reason = isRecord(value) ? value : {}
+          return { code: asString(reason.code), label: asString(reason.label), weight: asNumber(reason.weight), action: asString(reason.action) }
+        }),
+        href: asString(item.href, '/scadenziario'),
+      }
+    }),
+    message: asString(payload.message, emptyScadenziarioPage.guardian.message),
+  }
+}
+
 function normalizeCard(value: unknown, index = 0): ScadenziarioActionCard | null {
   if (!isRecord(value)) return null
   const action = isRecord(value.action) ? value.action : {}
@@ -802,6 +874,7 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
       },
       summary: normalizeSummary(payload.summary),
       items: asArray(payload.items).map(normalizeRow),
+      guardian: normalizeGuardian(payload.guardian),
       draftProposals: asArray(payload.draftProposals).map((raw) => {
         const item = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
         return {

@@ -309,8 +309,8 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   padding: 11px;
-  border-left: 3px solid rgba(37, 99, 235, .32);
-  border-radius: 0 10px 10px 0;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
   background: var(--iu-surface-muted);
 }
 

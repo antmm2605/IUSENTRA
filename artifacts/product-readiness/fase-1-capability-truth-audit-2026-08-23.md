@@ -81,3 +81,17 @@ Nessuna regressione di soglia è emersa. Il log locale conserva un avviso preesi
 ## Vincoli residui prima della fase successiva
 
 La Fase 2 non può iniziare finché non risultano verificati: commit della release, entrambi i branch remoti allo stesso SHA, deploy Hetzner sullo SHA, singolo container `iusentra-app` healthy, endpoint pubblico `https://app.iusentra.it/api/pronto` coerente e pulizia cache Docker/snapshot remoti.
+
+## Correzione del gate CI e nuova accettazione locale
+
+Il commit iniziale `6c1bbba250c9b68b06342abfc7e42937ef91ecfc` ha rilevato un difetto reale di coerenza grafica nel job **Frontend React contratti**: `AmministrazionePage.css:312` usava un accento laterale pagina-specifico vietato dal design system. Non è stato aggirato alcun gate. La card delle evidenze ora usa il bordo condiviso `1px solid var(--iu-border)` e raggio uniforme `10px`, senza modificare dati, API, permessi o regole P0.
+
+Controlli ripetuti dopo la correzione:
+
+- `pnpm --filter @iusentra/studio test`: PASS — contratti React, governance design system, copertura UI e Storybook;
+- `npm --prefix frontend run typecheck` e `npm --prefix frontend run build`: PASS;
+- ricostruzione Docker reale senza cache dell'app (`551,2 s`) e ricreazione di `iusentra-app`, `iusentra-ocr`, `iusentra-scheduler`: tutti healthy; `/api/pronto` ha restituito `ok`, `Europe/Rome`, versione `2.278.67`;
+- browser reale integrato su `127.0.0.1:8080`: apertura e chiusura materiale del primo dettaglio con click, hover verificato, focus tastiera visibile, scroll completo desktop fino a `Chiusura fascicolo`, ripetizione tablet `768×1024` e mobile `390×844`; 17 dettagli e nessun overflow orizzontale in ogni viewport. Il browser è stato ripristinato a desktop, in cima alla pagina e senza dettagli aperti;
+- prestazioni reali a caldo (`performance_smoke --strict --repeat 5`): avvio mediano `1597,26 ms`, login `9,55 ms`, health `0,81 ms`, metriche runtime `87,34 ms`; HTTP 200 per tutte le cinque rilevazioni. L'avvio resta inferiore alla baseline Fase 0 (`1894,72 ms`) di `297,46 ms`; nessuna soglia stretta ha segnalato regressioni.
+
+La nuova pubblicazione resta bloccata finché i gate GitHub e il deploy Hetzner del commit correttivo non saranno verdi e verificati sullo SHA esatto.

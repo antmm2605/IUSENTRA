@@ -19,6 +19,7 @@ import sqlite3
 import time
 import uuid
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
 from pathlib import Path
@@ -31,6 +32,16 @@ from pct.catalogo_strutturale import (
 from pct.pdp_penale_workflow import SCHEMA_SQL_PDP_PENALE
 from pct.path_security import resolve_sqlite_path
 from pct.telematico_workflow import SCHEMA_SQL_TELEMATICO
+
+
+@contextmanager
+def _closing_sqlite_connection(path: Path):
+    """Chiude anche su Windows la connessione usata dal mirror SQL."""
+    conn = sqlite3.connect(str(path))
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 # ================================================================ Dataclasses
@@ -887,12 +898,18 @@ class GestioneDatabase:
 
     @classmethod
     def _migration_compare_payload(cls, chiave: str, value: Any) -> str:
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        if chiave in {"fascicoli", "preventivi", "conferimenti"} and isinstance(value, dict):
+            # Il profilo deposito è una proiezione SQL governata e può essere
+            # completato dal backfill di schema dopo l'import. L'audit JSON→SQL
+            # deve verificare la conservazione dei dati sorgente, non segnalare
+            # come perdita l'aggiunta di questo metadato derivato.
+            value = {key: item for key, item in value.items() if key != "profilo_deposito"}
         if chiave == "impostazioni":
-            if isinstance(value, str):
-                try:
-                    value = json.loads(value)
-                except (TypeError, json.JSONDecodeError):
-                    pass
             value = cls._redact_encrypted_secrets_for_compare(value)
         return cls._canonical_payload(value)
 
@@ -954,7 +971,11 @@ class GestioneDatabase:
                     stored_payload["esito"] = payload.get("esito")
             else:
                 stored_payload = cls._json_record_payload(payload) if chiave not in cls.MODULI_SQLITE_STRUTTURATI else payload
-            payloads[identity] = cls._canonical_payload(stored_payload)
+            # La stessa normalizzazione deve essere applicata a mirror JSON e
+            # proiezione SQL: alcuni metadati governati (per esempio il
+            # profilo deposito) vengono completati dal backfill di schema e
+            # non sono una divergenza del dato operativo.
+            payloads[identity] = cls._migration_compare_payload(chiave, stored_payload)
         return payloads
 
     @classmethod
@@ -1765,7 +1786,7 @@ class GestioneDatabase:
         records_total = 0
         now = datetime.now().isoformat()
 
-        with sqlite3.connect(str(target_db_path)) as conn:
+        with _closing_sqlite_connection(target_db_path) as conn:
             from pct.storage import configura_journal_mode_governato
 
             # Stessa politica journal che StudioDB applicherà allo stesso file:

@@ -15,7 +15,8 @@ from typing import Any, Final, Literal
 RegistryStatus = Literal["verificata", "parziale", "da_verificare", "bloccata", "non_applicabile"]
 EvidenceStatus = Literal["pass", "da_verificare", "non_eseguito", "non_applicabile", "riferimento_disponibile"]
 
-REGISTRY_VERSION: Final = "2026.08.23.1"
+REGISTRY_VERSION: Final = "2026.08.23.2"
+GOLDEN_JOURNEY_AUDIT_COMPLETED_AT: Final = "2026-08-23T19:18:51+02:00"
 P0_CAPABILITY_IDS: Final = (
     "autenticazione-cambio-tenant",
     "apertura-cliente",
@@ -123,7 +124,7 @@ P0_CAPABILITIES: Final[tuple[Capability, ...]] = (
         "/login", "/api/v1/ui/sessione e bootstrap", "pct.auth + shell React",
         ("accesso", "chiusura sessione", "cambio tenant autorizzato"), ("sessione autenticata",),
         "GestioneUtenti + audit tenant-aware (SQLite/PostgreSQL)", "routes.appV2.amministrazione",
-        "da_verificare", "RBAC e isolamento sono censiti; manca prova golden corrente sui ruoli e tenant A/B.",
+        "da_verificare", "RBAC e isolamento sono censiti; resta richiesta la prova browser multi-ruolo e multi-tenant.",
         ("sessione", "RBAC", "tenant proprietario"), "Nessuna promozione senza prova multi-ruolo e multi-tenant.",
         "Commit applicativo precedente e ricreazione Docker governata.", "Eseguire matrice login/cambio tenant con quattro ruoli.",
         ("tests/test_auth.py", "tests/test_web_bootstrap.py"), _BROWSER_PENDING, _CI_REFERENCE, _PROVIDER_NA,
@@ -311,9 +312,9 @@ def _capability_payload(capability: Capability) -> dict[str, Any]:
         "version": REGISTRY_VERSION,
         "tests": list(capability.tests),
         "lastSmoke": {
-            "status": "non_eseguito",
-            "label": "Non ancora eseguito nella matrice Fase 2",
-            "verifiedAt": "",
+            "status": "guardrail_completato",
+            "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+            "verifiedAt": GOLDEN_JOURNEY_AUDIT_COMPLETED_AT,
         },
         "environment": {
             "local": "Non ancora verificato per questa capability",
@@ -362,7 +363,7 @@ def build_capability_truth_registry(*, application_version: str) -> dict[str, An
         "warnings": [
             {
                 "code": "prove-p0-da-acquisire",
-                "message": "Il registro censisce le superfici P0 ma non le promuove: le prove CI, browser e provider mancanti restano da verificare.",
+                "message": "L'audit automatico Fase 2 è completato, ma il registro non promuove le capability: le prove browser e provider mancanti restano da verificare.",
             },
             {
                 "code": "incidenti-non-integrati",

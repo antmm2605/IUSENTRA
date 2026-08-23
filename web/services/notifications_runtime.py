@@ -733,11 +733,16 @@ def _unlinked_pec_items(paths: Mapping[str, Any], *, limit: int = UNLINKED_PEC_M
     if db_path is None or not Path(db_path).exists():
         return []
     righe: list[Any] = []
+    conn: sqlite3.Connection | None = None
     try:
-        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5) as conn:
-            conn.row_factory = sqlite3.Row
-            righe = conn.execute(
-                """
+        # ``sqlite3.Connection`` non chiude il file all'uscita dal ``with``:
+        # su Windows il descrittore residuo impediva la rotazione/rimozione
+        # governata del PEC_AUDIT_DB. La lettura è strettamente read-only, ma
+        # deve comunque rilasciare sempre il handle.
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
+        conn.row_factory = sqlite3.Row
+        righe = conn.execute(
+            """
                 SELECT m.id, m.metadata_json, m.received_at, l.seeds_json, l.status AS link_status
                 FROM pec_messages m
                 JOIN (
@@ -751,13 +756,16 @@ def _unlinked_pec_items(paths: Mapping[str, Any], *, limit: int = UNLINKED_PEC_M
                 ORDER BY m.received_at DESC
                 LIMIT ?
                 """,
-                (max(1, int(limit or UNLINKED_PEC_MAX_ITEMS)),),
-            ).fetchall()
+            (max(1, int(limit or UNLINKED_PEC_MAX_ITEMS)),),
+        ).fetchall()
     except sqlite3.Error as exc:
         # Un errore qui significa che le PEC non collegate restano invisibili:
         # va detto, non ingoiato.
         if has_app_context():
             current_app.logger.warning("PEC non collegate non leggibili da %s: %s", db_path, exc)
+    finally:
+        if conn is not None:
+            conn.close()
         return []
 
     voci: list[dict[str, Any]] = []
@@ -1136,22 +1144,16 @@ def materialize_notification_relata_presidio_for_paths(
     from web.services.react_fascicoli_bridge import _notification_relata
 
     database_config = database or paths.get("_TENANT_DATABASE_CONFIG")
+    # In PostgreSQL la repository notifiche non può ricadere su SQLite/JSON:
+    # il controllo deve precedere qualsiasi lettura o aggiornamento di proiezioni.
+    notification_repository_settings(paths, database=database_config)
     # Senza backend il presidio leggerebbe zero fascicoli e riporterebbe un
     # "nessuna notifica da fare" indistinguibile dal lavoro svolto: il guasto
     # va dichiarato, non nascosto dietro un conteggio a zero.
     if _core_backend_for_paths(paths, database_config) is None:
-        return {
-            "ok": False,
-            "tenant": _notification_text(tenant_label, "default"),
-            "source_of_truth": "core backend fascicoli tenant-aware",
-            "error": "archivio fascicoli non raggiungibile (studio.db o database dello studio non disponibile)",
-            "total_db": 0,
-            "scanned": 0,
-            "items": 0,
-            "to_notify": 0,
-            "recipients": 0,
-            "errors": 1,
-        }
+        raise NotificationRuntimeUnavailable(
+            "Archivio fascicoli tenant-aware non disponibile per il presidio notifiche."
+        )
     total, archived, rows = _notification_fascicolo_rows(paths, database_config)
     legacy_items: list[dict[str, Any]] = []
     status_counts: dict[str, int] = {}

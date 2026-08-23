@@ -1,6 +1,6 @@
 # Capability Truth Registry — P0
 
-Versione registro: `2026.08.23.1`. Fonte autorevole: catalogo Python versionato.
+Versione registro: `2026.08.23.2`. Fonte autorevole: catalogo Python versionato.
 
 Questo documento non attesta che una capability sia completa. Una prova non eseguita resta visibile come tale.
 
@@ -8,30 +8,30 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 
 | Capability | Stato | Owner | Route | API | Storage | Ultimo smoke |
 | --- | --- | --- | --- | --- | --- | --- |
-| Autenticazione e cambio tenant | Da verificare | Identità e sicurezza | /login | /api/v1/ui/sessione e bootstrap | GestioneUtenti + audit tenant-aware (SQLite/PostgreSQL) | Non ancora eseguito nella matrice Fase 2 |
-| Apertura cliente | Da verificare | Anagrafiche | /clienti | /api/v1/ui/clienti | GestioneClienti tenant-aware; SQLite/PostgreSQL con mirror governato | Non ancora eseguito nella matrice Fase 2 |
-| Controllo conflitto | Da verificare | Anagrafiche e fascicoli | /ricerca-studio | /api/v1/ui/ricerca-studio | Repository clienti/fascicoli tenant-aware | Non ancora eseguito nella matrice Fase 2 |
-| Preventivo | Da verificare | Commerciale | /preventivi | /api/v1/ui/preventivi | Repository preventivi tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Mandato e conferimento | Da verificare | Commerciale | /preventivi/conferimento/nuovo | /api/v1/ui/preventivi/conferimento/nuovo | Repository conferimenti tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Fascicolo | Da verificare | Fascicoli | /fascicoli | /api/v1/ui/fascicoli | GestioneFascicoli + filesystem tenant-aware; metadati SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Attività operative | Da verificare | Regia Operativa | /regia-operativa | /api/v1/ui/regia-operativa | Repository operativi tenant-aware | Non ancora eseguito nella matrice Fase 2 |
-| Documento e lettore interno | Da verificare | Documenti | /documenti | /api/v1/ui/documenti | Filesystem documentale tenant-aware + metadati fascicolo | Non ancora eseguito nella matrice Fase 2 |
-| PEC | Da verificare | Comunicazioni | /email | /api/v1/ui/email | Repository PEC tenant-aware; credenziali solo sul PC locale | Non ancora eseguito nella matrice Fase 2 |
-| Scadenza e termini | Da verificare | Programmazione | /scadenziario | /api/v1/ui/scadenziario | GestioneScadenziario tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Deposito telematico | Da verificare | Telematico | /fascicoli/:id/deposito/prepara | /api/v1/ui/fascicoli/:id/depositi/* | Fascicolo tenant-aware + repository deposito/audit | Non ancora eseguito nella matrice Fase 2 |
-| Ricevute telematiche | Da verificare | Telematico | /telematico | /api/v1/ui/fascicoli/:id/depositi/:depositoId/timeline | Repository deposito/audit tenant-aware | Non ancora eseguito nella matrice Fase 2 |
-| Fattura | Da verificare | Economico | /fatturazione | /api/v1/ui/fatturazione | Repository parcelle tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Pagamento e incasso | Da verificare | Economico | /incassi-pagamenti | /api/v1/ui/incassi-pagamenti | Repository pagamenti tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Portale cliente | Da verificare | Portale | /app/portale-clienti | /api/v1/ui/client-portal/dashboard | Repository portale tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Audit | Da verificare | Sicurezza | /audit | /api/v1/ui/audit | audit_log tenant-aware; SQLite/PostgreSQL | Non ancora eseguito nella matrice Fase 2 |
-| Chiusura fascicolo | Da verificare | Fascicoli | /fascicoli/:id | /api/v1/ui/fascicoli/:id | GestioneFascicoli tenant-aware; filesystem + SQLite/PostgreSQL metadati | Non ancora eseguito nella matrice Fase 2 |
+| Autenticazione e cambio tenant | Da verificare | Identità e sicurezza | /login | /api/v1/ui/sessione e bootstrap | GestioneUtenti + audit tenant-aware (SQLite/PostgreSQL) | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Apertura cliente | Da verificare | Anagrafiche | /clienti | /api/v1/ui/clienti | GestioneClienti tenant-aware; SQLite/PostgreSQL con mirror governato | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Controllo conflitto | Da verificare | Anagrafiche e fascicoli | /ricerca-studio | /api/v1/ui/ricerca-studio | Repository clienti/fascicoli tenant-aware | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Preventivo | Da verificare | Commerciale | /preventivi | /api/v1/ui/preventivi | Repository preventivi tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Mandato e conferimento | Da verificare | Commerciale | /preventivi/conferimento/nuovo | /api/v1/ui/preventivi/conferimento/nuovo | Repository conferimenti tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Fascicolo | Da verificare | Fascicoli | /fascicoli | /api/v1/ui/fascicoli | GestioneFascicoli + filesystem tenant-aware; metadati SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Attività operative | Da verificare | Regia Operativa | /regia-operativa | /api/v1/ui/regia-operativa | Repository operativi tenant-aware | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Documento e lettore interno | Da verificare | Documenti | /documenti | /api/v1/ui/documenti | Filesystem documentale tenant-aware + metadati fascicolo | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| PEC | Da verificare | Comunicazioni | /email | /api/v1/ui/email | Repository PEC tenant-aware; credenziali solo sul PC locale | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Scadenza e termini | Da verificare | Programmazione | /scadenziario | /api/v1/ui/scadenziario | GestioneScadenziario tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Deposito telematico | Da verificare | Telematico | /fascicoli/:id/deposito/prepara | /api/v1/ui/fascicoli/:id/depositi/* | Fascicolo tenant-aware + repository deposito/audit | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Ricevute telematiche | Da verificare | Telematico | /telematico | /api/v1/ui/fascicoli/:id/depositi/:depositoId/timeline | Repository deposito/audit tenant-aware | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Fattura | Da verificare | Economico | /fatturazione | /api/v1/ui/fatturazione | Repository parcelle tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Pagamento e incasso | Da verificare | Economico | /incassi-pagamenti | /api/v1/ui/incassi-pagamenti | Repository pagamenti tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Portale cliente | Da verificare | Portale | /app/portale-clienti | /api/v1/ui/client-portal/dashboard | Repository portale tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Audit | Da verificare | Sicurezza | /audit | /api/v1/ui/audit | audit_log tenant-aware; SQLite/PostgreSQL | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
+| Chiusura fascicolo | Da verificare | Fascicoli | /fascicoli/:id | /api/v1/ui/fascicoli/:id | GestioneFascicoli tenant-aware; filesystem + SQLite/PostgreSQL metadati | Audit automatico Fase 2 completato: prova browser e provider ancora richiesta |
 
 ## Autenticazione e cambio tenant
 
 | Campo | Valore |
 | --- | --- |
-| Stato | Da verificare — RBAC e isolamento sono censiti; manca prova golden corrente sui ruoli e tenant A/B. |
-| Versione | 2026.08.23.1 |
+| Stato | Da verificare — RBAC e isolamento sono censiti; resta richiesta la prova browser multi-ruolo e multi-tenant. |
+| Versione | 2026.08.23.2 |
 | Owner | Identità e sicurezza |
 | Feature flag | routes.appV2.amministrazione |
 | Route | /login |
@@ -60,7 +60,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Superficie React censita; manca prova reale per ruoli e tenant separati. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Anagrafiche |
 | Feature flag | routes.appV2.clienti |
 | Route | /clienti |
@@ -89,7 +89,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Il percorso e il perimetro dati sono censiti; il criterio di conflitto richiede prova e fixture dedicate. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Anagrafiche e fascicoli |
 | Feature flag | Nessun flag dedicato censito |
 | Route | /ricerca-studio |
@@ -118,7 +118,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La superficie React e le API sono censite; serve E2E con dati sintetici e ruoli. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Commerciale |
 | Feature flag | routes.appV2.preventivi |
 | Route | /preventivi |
@@ -147,7 +147,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Il percorso è censito; firma, dati obbligatori e passaggio a fascicolo attendono prova integrata. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Commerciale |
 | Feature flag | routes.appV2.preventivi |
 | Route | /preventivi/conferimento/nuovo |
@@ -176,7 +176,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La UI React è censita; fixture e verifica di apertura multi-ruolo sono previste nella Fase 2. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Fascicoli |
 | Feature flag | routes.appV2.fascicoli |
 | Route | /fascicoli |
@@ -205,7 +205,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Le attività sono censite come superficie React; serve prova delle azioni collegate e dello stato vuoto. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Regia Operativa |
 | Feature flag | routes.appV2.regiaOperativa |
 | Route | /regia-operativa |
@@ -234,7 +234,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Il lettore interno è requisito primario; la matrice PDF/ZIP/XML/EML/DOCX/P7M deve essere provata realmente. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Documenti |
 | Feature flag | routes.appV2.documenti |
 | Route | /documenti |
@@ -263,7 +263,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La UI è censita; l'invio operativo deve restare locale e richiede tenant sintetico/canary non distruttivo. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Comunicazioni |
 | Feature flag | routes.appV2.email |
 | Route | /email |
@@ -292,7 +292,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La correzione Fase 0 è provata; il journey P0 completo con ruoli, date e collegamenti resta da eseguire. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Programmazione |
 | Feature flag | routes.appV2.scadenziario |
 | Route | /scadenziario |
@@ -321,7 +321,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Non è dichiarato completo: requisiti ministeriali, firma multipla, ricevute e invio locale richiedono prove reali. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Telematico |
 | Feature flag | Nessun flag dedicato censito |
 | Route | /fascicoli/:id/deposito/prepara |
@@ -350,7 +350,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La persistenza e la timeline sono censite; servono fixture e prova reale del ciclo ricevuta. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Telematico |
 | Feature flag | Nessun flag dedicato censito |
 | Route | /telematico |
@@ -379,7 +379,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La superficie React e le API sono censite; emissione, firma e canali esterni attendono prove per ruoli. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Economico |
 | Feature flag | routes.appV2.fatturazione |
 | Route | /fatturazione |
@@ -408,7 +408,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Il percorso è censito; riconciliazione, permessi e collegamento documento vanno provati con dati sintetici. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Economico |
 | Feature flag | routes.appV2.incassiPagamenti |
 | Route | /incassi-pagamenti |
@@ -437,7 +437,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Il contratto React è censito; inviti, token hashati e isolamento richiedono prova end-to-end dedicata. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Portale |
 | Feature flag | routes.appV2.clientPortal |
 | Route | /app/portale-clienti |
@@ -466,7 +466,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — La superficie è censita; occorre acquisire una prova che ogni P0 scriva l'evento atteso senza dati sensibili. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Sicurezza |
 | Feature flag | routes.appV2.audit |
 | Route | /audit |
@@ -495,7 +495,7 @@ Questo documento non attesta che una capability sia completa. Una prova non eseg
 | Campo | Valore |
 | --- | --- |
 | Stato | Da verificare — Il percorso è registrato, ma requisiti di chiusura, allegati e audit devono essere provati senza perdere dati. |
-| Versione | 2026.08.23.1 |
+| Versione | 2026.08.23.2 |
 | Owner | Fascicoli |
 | Feature flag | routes.appV2.fascicoli |
 | Route | /fascicoli/:id |

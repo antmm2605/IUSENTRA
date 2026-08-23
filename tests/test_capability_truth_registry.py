@@ -36,7 +36,9 @@ def test_capability_truth_registry_non_promuove_prove_mancanti_e_referenza_file_
         }
         assert required.issubset(capability)
         assert capability["status"] != "verificata"
-        assert capability["lastSmoke"]["status"] == "non_eseguito"
+        assert capability["lastSmoke"]["status"] == "guardrail_completato"
+        assert "prova browser e provider ancora richiesta" in capability["lastSmoke"]["label"]
+        assert capability["lastSmoke"]["verifiedAt"] == "2026-08-23T19:18:51+02:00"
         assert {evidence["kind"] for evidence in capability["evidence"]} == {"ci", "browser", "provider"}
         assert all(evidence["status"] != "pass" for evidence in capability["evidence"])
         assert all((REPO_ROOT / test_ref).is_file() for test_ref in capability["tests"])

@@ -1,6 +1,6 @@
 # Changelog Capability Truth Registry
 
-## 2026.08.23.1 — 23/08/2026
+## 2026.08.23.2 — 23/08/2026
 
 - Censite 17 capability P0 richieste.
 - Capability verificate: 0; da verificare: 17.

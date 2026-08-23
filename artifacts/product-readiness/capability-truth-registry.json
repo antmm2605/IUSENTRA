@@ -46,9 +46,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Nessuna promozione senza prova multi-ruolo e multi-tenant.",
       "module": "Autenticazione e cambio tenant",
@@ -66,14 +66,14 @@
       "route": "/login",
       "status": "da_verificare",
       "statusLabel": "Da verificare",
-      "statusNote": "RBAC e isolamento sono censiti; manca prova golden corrente sui ruoli e tenant A/B.",
+      "statusNote": "RBAC e isolamento sono censiti; resta richiesta la prova browser multi-ruolo e multi-tenant.",
       "statusTone": "warning",
       "storage": "GestioneUtenti + audit tenant-aware (SQLite/PostgreSQL)",
       "tests": [
         "tests/test_auth.py",
         "tests/test_web_bootstrap.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/clienti",
@@ -119,9 +119,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Dati e permessi devono restare del tenant corrente.",
       "module": "Apertura cliente",
@@ -145,7 +145,7 @@
       "tests": [
         "tests/test_web_bootstrap.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/ricerca-studio",
@@ -192,9 +192,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Non sostituisce la valutazione professionale del conflitto.",
       "module": "Controllo conflitto",
@@ -218,7 +218,7 @@
       "tests": [
         "tests/test_global_search.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/preventivi",
@@ -265,9 +265,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Importi, calcolo e audit vanno provati dal backend canonico.",
       "module": "Preventivo",
@@ -293,7 +293,7 @@
       "tests": [
         "tests/test_preventivi_wizard.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/preventivi/conferimento/nuovo",
@@ -340,9 +340,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Non certifica la validità giuridica del mandato senza verifica dei requisiti.",
       "module": "Mandato e conferimento",
@@ -367,7 +367,7 @@
       "tests": [
         "tests/test_preventivi_conferimento_route.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/fascicoli",
@@ -414,9 +414,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Il lettore e gli allegati richiedono prove formato per formato.",
       "module": "Fascicolo",
@@ -443,7 +443,7 @@
         "tests/test_fascicoli.py",
         "tests/test_web_bootstrap.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/regia-operativa",
@@ -490,9 +490,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Il registro non inferisce la completezza delle singole attività.",
       "module": "Attività operative",
@@ -516,7 +516,7 @@
       "tests": [
         "tests/test_regia_ui_react.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/documenti",
@@ -563,9 +563,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Nessun formato non supportato deve aprire un fallback esterno silenzioso.",
       "module": "Documento e lettore interno",
@@ -589,7 +589,7 @@
       "tests": [
         "tests/test_signed_attachment_preview.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/email",
@@ -636,9 +636,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Il server non invia PEC operative; nessuna prova provider è registrata in Fase 1.",
       "module": "PEC",
@@ -664,7 +664,7 @@
       "tests": [
         "tests/test_email_client.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/scadenziario",
@@ -711,9 +711,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Date e orari visibili devono restare Europe/Rome; nessuna data raw in UI.",
       "module": "Scadenza e termini",
@@ -740,7 +740,7 @@
         "tests/test_scadenziario.py",
         "tests/test_react_scadenziario_additions.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/fascicoli/:id/depositi/*",
@@ -788,9 +788,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Assenza di requisito ministeriale blocca solo il deposito valido con messaggio esplicito.",
       "module": "Deposito telematico",
@@ -819,7 +819,7 @@
         "tests/test_deposito.py",
         "tests/test_deposito_guidato.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/fascicoli/:id/depositi/:depositoId/timeline",
@@ -866,9 +866,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Una ricevuta non può essere registrata come esito reale senza fonte verificabile.",
       "module": "Ricevute telematiche",
@@ -895,7 +895,7 @@
         "tests/test_deposito_guidato.py",
         "tests/test_regia_deposito_receipts.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/fatturazione",
@@ -943,9 +943,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Importi visibili devono restare in formato euro italiano.",
       "module": "Fattura",
@@ -971,7 +971,7 @@
       "tests": [
         "tests/test_fatturazione.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/incassi-pagamenti",
@@ -1017,9 +1017,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Nessun esito provider è dichiarato senza prova corrente.",
       "module": "Pagamento e incasso",
@@ -1044,7 +1044,7 @@
       "tests": [
         "tests/test_portale_economici.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/client-portal/dashboard",
@@ -1091,9 +1091,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Token e dati personali non sono esposti dal registro.",
       "module": "Portale cliente",
@@ -1121,7 +1121,7 @@
         "tests/test_client_portal_api.py",
         "tests/test_client_portal_access.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/audit",
@@ -1167,9 +1167,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "Il registro non sostituisce gli eventi audit del tenant.",
       "module": "Audit",
@@ -1194,7 +1194,7 @@
       "tests": [
         "tests/test_audit_routes.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     },
     {
       "api": "/api/v1/ui/fascicoli/:id",
@@ -1242,9 +1242,9 @@
         "status": "non_integrato"
       },
       "lastSmoke": {
-        "label": "Non ancora eseguito nella matrice Fase 2",
-        "status": "non_eseguito",
-        "verifiedAt": ""
+        "label": "Audit automatico Fase 2 completato: prova browser e provider ancora richiesta",
+        "status": "guardrail_completato",
+        "verifiedAt": "2026-08-23T19:18:51+02:00"
       },
       "limitations": "La chiusura non può mascherare dati, ricevute o obblighi ancora aperti.",
       "module": "Chiusura fascicolo",
@@ -1270,7 +1270,7 @@
         "tests/test_fascicoli.py",
         "tests/test_fascicoli_pagination.py"
       ],
-      "version": "2026.08.23.1"
+      "version": "2026.08.23.2"
     }
   ],
   "contracts": {
@@ -1288,7 +1288,7 @@
     "tone": "primary"
   },
   "ok": true,
-  "registryVersion": "2026.08.23.1",
+  "registryVersion": "2026.08.23.2",
   "scope": "P0 — registro di prontezza; non sostituisce il collaudo operativo",
   "summary": {
     "blocked": 0,
@@ -1300,7 +1300,7 @@
   "warnings": [
     {
       "code": "prove-p0-da-acquisire",
-      "message": "Il registro censisce le superfici P0 ma non le promuove: le prove CI, browser e provider mancanti restano da verificare."
+      "message": "L'audit automatico Fase 2 è completato, ma il registro non promuove le capability: le prove browser e provider mancanti restano da verificare."
     },
     {
       "code": "incidenti-non-integrati",

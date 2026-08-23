@@ -222,6 +222,29 @@ def test_profili_namespace_sicid_correnti_coincidono_con_studio_telematico():
     assert DATIATTO_ATTI_NS_BY_GENERATOR_CLASS["Parte"] == MINISTERIAL_ATTI_V7_NS
 
 
+def test_dati_atto_ricorso_normalizza_anagrafica_v6_nello_schema_v7(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="110001",
+        tipo_atto="RICORSO",
+        atto_principale=tmp_pdf,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(atti=MINISTERIAL_ATTI_NS),
+        datiatto_generator_class="IntroduttiviSicid",
+        datiatto_root_name="Ricorso",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+    anagrafica = root.xpath("./*[local-name()='AnagraficaProcedimento']")[0]
+
+    assert etree.QName(anagrafica).namespace == MINISTERIAL_ATTI_V7_NS
+    assert MINISTERIAL_ATTI_NS not in {
+        etree.QName(node).namespace for node in anagrafica.iter() if isinstance(node.tag, str)
+    }
+
+
 def test_validatore_rifiuta_schema_storico_quando_il_catalogo_richiede_v7():
     from pct.datiatto_xsd import validate_datiatto_xml
 

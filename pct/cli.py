@@ -54,6 +54,11 @@ from .auth import (
 from .fatturazione import GestioneFatturazione
 from .pagamenti import GestionePagamenti
 from .preventivi import GestionePreventivi
+from .golden_journeys import (
+    build_golden_journey_payload,
+    rollback_synthetic_workspace,
+    run_golden_journeys,
+)
 from .golden_paths import build_golden_path_payload, run_golden_path_suites
 from .legal_update_pipeline import DEFAULT_SOURCE_ROWS, build_legal_update_pipeline
 from .storage_migration_full import attach_migration_rollback_context
@@ -3278,6 +3283,38 @@ def cmd_golden_path(should_run, report_dir):
 
     payload = build_golden_path_payload(base_dir=report_dir)
     click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+@cli.command("golden-journey")
+@click.option(
+    "--workspace",
+    default=lambda: os.getenv("IUSENTRA_GOLDEN_JOURNEY_WORKSPACE", "./data/golden-journeys"),
+    show_default="IUSENTRA_GOLDEN_JOURNEY_WORKSPACE o ./data/golden-journeys",
+    help="Root dedicata alle fixture sintetiche dei golden journey.",
+)
+@click.option("--run-id", default="", help="Identificativo opzionale della run sintetica.")
+@click.option("--rollback", is_flag=True, default=False, help="Rimuove esclusivamente la run sintetica indicata.")
+@click.option("--run/--no-run", "should_run", default=True, show_default=True)
+def cmd_golden_journey(workspace, run_id, rollback, should_run):
+    """Esegue i 15 golden journey su fixture isolate o ne mostra il catalogo."""
+    if rollback:
+        if not run_id:
+            raise click.ClickException("Il rollback richiede --run-id.")
+        click.echo(json.dumps(rollback_synthetic_workspace(workspace_dir=workspace, run_id=run_id), ensure_ascii=False, indent=2))
+        return
+    if should_run:
+        report = run_golden_journeys(workspace_dir=workspace, cwd=str(Path.cwd()), run_id=run_id)
+        payload = build_golden_journey_payload(workspace_dir=workspace, report_payload=report)
+        payload["report_path"] = report["report_path"]
+        payload["fixture_run_id"] = report["fixture"]["run_id"]
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        if not report["success"]:
+            raise click.ClickException(
+                "Una o più golden journey non hanno superato il controllo; "
+                f"consultare {report['report_path']}."
+            )
+        return
+    click.echo(json.dumps(build_golden_journey_payload(workspace_dir=workspace), ensure_ascii=False, indent=2))
 
 
 cli.add_command(cmd_crash_test_operativo)

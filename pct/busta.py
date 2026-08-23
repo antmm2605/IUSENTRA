@@ -3020,7 +3020,19 @@ class BustaTelematica:
             raise ValueError("AnagraficaProcedimento ministeriale non leggibile.") from exc
         if etree.QName(node).localname != "AnagraficaProcedimento":
             raise ValueError("AnagraficaProcedimento ministeriale non valido.")
-        return node
+        source_namespace = str(etree.QName(node).namespace or "")
+        expected_namespace = self._datiatto_atti_namespace()
+        if source_namespace == expected_namespace:
+            return node
+        if source_namespace != MINISTERIAL_ATTI_NS or expected_namespace != MINISTERIAL_ATTI_V7_NS:
+            raise ValueError(
+                "AnagraficaProcedimento ministeriale incompatibile con lo schema DatiAtto selezionato."
+            )
+        normalized = deepcopy(node)
+        for element in normalized.iter():
+            if isinstance(element.tag, str) and etree.QName(element).namespace == MINISTERIAL_ATTI_NS:
+                element.tag = f"{{{MINISTERIAL_ATTI_V7_NS}}}{etree.QName(element).localname}"
+        return normalized
 
     def _crea_xml_dati_atto_ministeriale(self, document_parts: list[_DocumentoBusta]) -> bytes:
         main_part = next((part for part in document_parts if part.is_main), None)

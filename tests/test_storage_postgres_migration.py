@@ -9,6 +9,7 @@ import sys
 from click.testing import CliRunner
 
 from pct.cli import cli
+from pct.database import GestioneDatabase
 from pct.legal_update_pipeline import build_legal_update_pipeline
 from pct.legal_update_repository import (
     LegalUpdateDbConfig,
@@ -24,6 +25,27 @@ from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 def _write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def test_confronto_migrazione_ignora_solo_profilo_deposito_derivato_su_ambe_le_fonti():
+    source = {
+        "F-1": {
+            "id": "F-1",
+            "titolo": "Fascicolo controllato",
+            "profilo_deposito": {"stato": "bozza"},
+        }
+    }
+    projected_sql_payload = {
+        "id": "F-1",
+        "titolo": "Fascicolo controllato",
+        "profilo_deposito": {"stato": "pronto", "indice_verificato": True},
+    }
+
+    source_payloads = GestioneDatabase._source_payloads_for_module("fascicoli", source)
+
+    assert source_payloads["F-1"] == GestioneDatabase._migration_compare_payload(
+        "fascicoli", projected_sql_payload
+    )
 
 
 def _normativa_html() -> str:

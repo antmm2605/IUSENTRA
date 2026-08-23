@@ -192,7 +192,7 @@ function ProductReadinessView({ data, loading, error }: { data: ProductReadiness
           <section className="iu-readiness-kpis" aria-label="Riepilogo capability P0">
             <KpiCard label="Flussi P0" value={formatValue(data.summary.total)} note="Superfici censite" badge={<Badge tone="primary">P0</Badge>} />
             <KpiCard label="Verificate" value={formatValue(data.summary.verified)} note="Con prova corrente registrata" badge={<Badge tone="success">prove</Badge>} />
-            <KpiCard label="Da verificare" value={formatValue(data.summary.pending)} note="Da provare nelle golden journeys" badge={<Badge tone="warning">aperte</Badge>} />
+            <KpiCard label="Da verificare" value={formatValue(data.summary.pending)} note="Prove browser e provider ancora richieste" badge={<Badge tone="warning">aperte</Badge>} />
             <KpiCard label="Bloccate" value={formatValue(data.summary.blocked)} note="Requisiti che impediscono il flusso" badge={<Badge tone="danger">blocchi</Badge>} />
           </section>
           <Panel title="Contratto del registro" subtitle={`Registro ${data.registryVersion || 'non disponibile'} · applicazione ${data.applicationVersion || 'non disponibile'}`}>

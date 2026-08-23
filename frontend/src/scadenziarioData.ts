@@ -124,6 +124,7 @@ export type ScadenziarioRow = {
   hearingMode: string
   hearingModeSource: string
   hearingTime: string
+  hearingTimeVerificationRequired: boolean
   remoteHearingDetected: boolean
   remoteHearingMode: string
   remoteHearingUrl: string
@@ -578,6 +579,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     hearingMode: asString(item.hearingMode),
     hearingModeSource: asString(item.hearingModeSource),
     hearingTime: asString(item.hearingTime),
+    hearingTimeVerificationRequired: asBoolean(item.hearingTimeVerificationRequired),
     remoteHearingDetected: asBoolean(item.remoteHearingDetected),
     remoteHearingMode: asString(item.remoteHearingMode),
     remoteHearingUrl: asString(item.remoteHearingUrl),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from pathlib import Path
 from time import monotonic
 from typing import Any
 
@@ -61,6 +62,7 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         "providers": {},
         "product": {
             "audit_events": 0,
+            "audit_events_status": "unavailable",
             "authorization_surfaces": 0,
             "capabilities": [],
         },
@@ -123,16 +125,23 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
             build_authorization_model_payload,
             build_observability_capabilities_payload,
         )
-        from web.services.admin_surfaces_shared import get_auth_manager
 
-        auth_stats = get_auth_manager().statistiche()
         auth_model = build_authorization_model_payload()
+        audit_events = 0
+        audit_events_status = "deferred_until_sql_ready"
+        if _product_stats_sql_ready(runtime_app):
+            from web.services.admin_surfaces_shared import get_auth_manager
+
+            auth_stats = get_auth_manager().statistiche()
+            audit_events = int(auth_stats.get("totale_eventi_audit", 0) or 0)
+            audit_events_status = "current_sql"
         capabilities = build_observability_capabilities_payload(
-            audit_events=int(auth_stats.get("totale_eventi_audit", 0) or 0),
+            audit_events=audit_events,
             runtime_ok=bool(payload.get("ok")),
         )
         payload["product"] = {
-            "audit_events": int(auth_stats.get("totale_eventi_audit", 0) or 0),
+            "audit_events": audit_events,
+            "audit_events_status": audit_events_status,
             "authorization_surfaces": int(auth_model["summary"]["surfaces_total"]),
             "capabilities": capabilities["rows"],
         }
@@ -140,6 +149,7 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         # Best effort: la diagnostica runtime deve restare disponibile anche senza la superficie prodotto.
         payload["product"] = payload.get("product") or {
             "audit_events": 0,
+            "audit_events_status": "unavailable",
             "authorization_surfaces": 0,
             "capabilities": [],
         }
@@ -181,6 +191,20 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
     payload["providers"] = _public_provider_payload(payload.get("providers") or {})
 
     return payload
+
+
+def _product_stats_sql_ready(app: Flask) -> bool:
+    """Evita che la diagnostica avvii migrazioni SQL durante il primo paint."""
+
+    try:
+        from web.services.storage_runtime import get_request_storage_runtime
+
+        profile = get_request_storage_runtime(str(app.config.get("CLIENTI_DB") or ""))
+        if str(profile.effective_mode).upper() == "POSTGRESQL":
+            return True
+        return bool(profile.uses_sqlite and Path(profile.studio_db_path).exists())
+    except Exception:
+        return False
 
 
 _RESERVED_PROVIDER_DETAIL = "Dettaglio tecnico disponibile nei log operativi riservati."

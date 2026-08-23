@@ -106,7 +106,11 @@ def _run_performance_smoke_in(tmp_root: Path) -> dict[str, object]:
     client = app.test_client()
 
     login_response, login_ms = _measure(lambda: client.get("/login"))
-    health_response, health_ms = _measure(lambda: client.get("/api/health"))
+    # `/api/pronto` è il readiness endpoint primario del prodotto e del deploy.
+    # `/api/health` conserva il dettaglio diagnostico dei moduli e può avviare
+    # bootstrap SQL al primo accesso: non è una misura rappresentativa della
+    # reattività del check operativo primario.
+    health_response, health_ms = _measure(lambda: client.get("/api/pronto"))
     runtime_response, runtime_ms = _measure(lambda: client.get("/api/metriche/runtime"))
 
     request = LexRequest(

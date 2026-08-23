@@ -325,6 +325,7 @@ function DeadlineFlags({ item }:{item:ScadenziarioRow}) {
       {item.advanced ? <Badge tone="purple">Calcolo</Badge> : null}
       {item.operative ? <Badge tone="info">Operativa</Badge> : null}
       {item.hearingMode ? <Badge tone="info">{item.hearingMode}{item.hearingTime ? `, ore ${item.hearingTime}` : ''}</Badge> : null}
+      {item.hearingTimeVerificationRequired ? <Badge tone="warning">Orario da verificare</Badge> : null}
       {item.traceCount ? <em>{item.traceCount} step</em> : null}
     </span>
   )
@@ -1458,6 +1459,7 @@ export function ScadenziarioPage() {
               {focusedRow.officeLabel ? <div><dt>Ufficio</dt><dd>{focusedRow.officeLabel}</dd></div> : null}
               {focusedRow.hearingMode ? <div><dt>Modalità udienza</dt><dd>{focusedRow.hearingMode}</dd></div> : null}
               {focusedRow.hearingTime ? <div><dt>Orario udienza</dt><dd>{focusedRow.hearingTime}</dd></div> : null}
+              {focusedRow.hearingTimeVerificationRequired ? <div><dt>Verifica orario</dt><dd>Il valore letto dalla fonte non è un orario valido. Apri la fonte e registra l'orario corretto.</dd></div> : null}
               {focusedRow.hearingModeSource ? <div><dt>Fonte modalità</dt><dd>{focusedRow.hearingModeSource}</dd></div> : null}
               {focusedRow.remoteHearingSource ? <div><dt>Allegato udienza</dt><dd>{focusedRow.remoteHearingSource}</dd></div> : null}
               {focusedRow.remoteHearingPlatform ? <div><dt>Piattaforma</dt><dd>{focusedRow.remoteHearingPlatform}</dd></div> : null}

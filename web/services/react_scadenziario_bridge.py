@@ -910,17 +910,33 @@ def _is_remote_hearing_ui_url(url: str, context: str = "") -> bool:
         return False
 
 
+def _normalise_hearing_time(value: Any) -> tuple[str, bool]:
+    """Restituisce solo un orario italiano valido, senza ripubblicare dati corrotti."""
+
+    text = str(value or "").strip()
+    invalid_found = False
+    for match in re.finditer(r"(?<!\d)(\d{1,2})[:.](\d{2})(?!\d)", text):
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return f"{hour:02d}:{minute:02d}", invalid_found
+        invalid_found = True
+    return "", invalid_found
+
+
 def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
     note = str(getattr(scadenza, "note", "") or "")
     hearing_mode = str(getattr(scadenza, "hearing_mode", "") or "").strip()
     hearing_source = str(getattr(scadenza, "hearing_mode_source", "") or "").strip()
-    hearing_time = str(getattr(scadenza, "hearing_time", "") or "").strip()
+    hearing_time, hearing_time_invalid = _normalise_hearing_time(getattr(scadenza, "hearing_time", ""))
     url = str(getattr(scadenza, "remote_hearing_url", "") or "").strip()
     source = str(getattr(scadenza, "remote_hearing_source", "") or "").strip()
     if url and not _is_remote_hearing_ui_url(url, source or note):
         url = ""
     mode = str(getattr(scadenza, "remote_hearing_mode", "") or "").strip()
-    time_value = str(getattr(scadenza, "remote_hearing_time", "") or "").strip()
+    time_value, remote_hearing_time_invalid = _normalise_hearing_time(
+        getattr(scadenza, "remote_hearing_time", "")
+    )
     access_info = str(getattr(scadenza, "remote_hearing_access_info", "") or "").strip()
     platform = str(getattr(scadenza, "remote_hearing_platform", "") or "").strip()
     pdf_required = bool(getattr(scadenza, "remote_hearing_pdf_required", False))
@@ -946,10 +962,14 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
         hearing_source = match.group(1).strip() if match else ""
     if not hearing_time:
         match = re.search(r"Orario udienza:\s*([^\n]+)", note, flags=re.I)
-        hearing_time = match.group(1).strip() if match else ""
+        if match:
+            hearing_time, invalid_from_note = _normalise_hearing_time(match.group(1))
+            hearing_time_invalid = hearing_time_invalid or invalid_from_note
     if not time_value:
         match = re.search(r"Orario collegamento:\s*([^\n]+)", note, flags=re.I)
-        time_value = match.group(1).strip() if match else ""
+        if match:
+            time_value, invalid_from_note = _normalise_hearing_time(match.group(1))
+            remote_hearing_time_invalid = remote_hearing_time_invalid or invalid_from_note
     if not access_info:
         match = re.search(r"Istruzioni accesso udienza:\s*([^\n]+)", note, flags=re.I)
         access_info = match.group(1).strip() if match else ""
@@ -978,6 +998,7 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
         "hearingMode": _short_text(hearing_mode_label, 100),
         "hearingModeSource": _short_text(hearing_source, 140),
         "hearingTime": _short_text(hearing_time, 80),
+        "hearingTimeVerificationRequired": bool(hearing_time_invalid or remote_hearing_time_invalid),
         "remoteHearingDetected": bool(detected or url or pdf_required),
         "remoteHearingMode": _short_text(mode, 80),
         "remoteHearingUrl": url,

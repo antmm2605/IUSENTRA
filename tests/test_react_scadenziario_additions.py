@@ -1079,6 +1079,32 @@ def test_react_scadenziario_bridge_espone_modalita_udienza_in_presenza(tmp_path:
     assert row["remoteHearingDetected"] is False
 
 
+def test_react_scadenziario_bridge_non_pubblica_orari_udienza_non_validi(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Udienza con orario da verificare",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=20)).isoformat(),
+            hearing_mode="note_scritte",
+            hearing_time="29:10",
+            remote_hearing_detected=True,
+            remote_hearing_time="29/10/2026 ore 29:10",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["hearingTime"] == ""
+    assert row["remoteHearingTime"] == ""
+    assert row["hearingTimeVerificationRequired"] is True
+    assert "29:10" not in json.dumps(row)
+
+
 def test_react_scadenziario_bridge_nasconde_testi_tecnici_da_pec(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

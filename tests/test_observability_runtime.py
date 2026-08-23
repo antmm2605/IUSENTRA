@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from pct.runtime_resilience import clear_runtime_circuit_breakers
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
+from web.services.observability_runtime import _product_stats_sql_ready
 
 
 def _cfg_web_superadmin(tmp_path):
@@ -36,6 +39,35 @@ def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     assert payload["storage"]["default_mode"] == "SQLITE"
     assert payload["summary"]["status"] in {"ok", "degraded"}
     assert isinstance(payload["alerts"], list)
+
+
+def test_runtime_metrics_non_avvia_bootstrap_sql_solo_per_telemetria(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        response = client.get("/api/metriche/runtime")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["product"]["audit_events"] == 0
+    assert payload["product"]["audit_events_status"] == "deferred_until_sql_ready"
+    assert not (tmp_path / "studio.db").exists()
+
+
+def test_runtime_metrics_legge_statistiche_su_postgresql_senza_attendere_file_sqlite(tmp_path, monkeypatch):
+    app = create_app(_cfg_web(tmp_path))
+    profile = SimpleNamespace(
+        effective_mode="POSTGRESQL",
+        uses_sqlite=False,
+        studio_db_path=str(tmp_path / "studio.db"),
+    )
+    monkeypatch.setattr(
+        "web.services.storage_runtime.get_request_storage_runtime",
+        lambda _clienti_db: profile,
+    )
+
+    assert _product_stats_sql_ready(app) is True
 
 
 def test_runtime_metrics_endpoint_governa_gemini_embedding_non_pronto(tmp_path, monkeypatch):

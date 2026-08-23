@@ -1,6 +1,6 @@
 # Programma strategico di implementazione IUSENTRA
 
-**Stato:** Fasi 0–2 rilasciate nei commit `a08a8e2340279c5caa6b0c52561bc2bae91577a4`, `6c1bbba25f`, `9b0f0ab39f`, `9d3207bce`, `be26ffbca`, `9a3549c4f` e `790517da1`; la Fase 3 ha superato implementazione, prova reale locale e 15/15 golden journey ed è in chiusura con commit, CI e deploy Hetzner. Le Fasi 4–14 restano vincolate alla chiusura formale della Fase 3.
+**Stato:** Fasi 0–3 rilasciate. La Fase 3 è sui commit `a2246776c` e `a03146542`, ha superato prova reale locale, 15/15 golden journey, CI completa e deploy Hetzner verificato. Le Fasi 4–14 seguono in ordine, con la Fase 4 ora sbloccata.
 **Redatto il:** 23/08/2026 10:52 Europe/Rome
 **Branch e baseline di riferimento:** `Codex/legal-electronic-filing-kIxcV` — baseline `68ab5ea3a483d46d0d70ab2a386a6ebf9afd959b`; Fase 0 rilasciata `a08a8e2340279c5caa6b0c52561bc2bae91577a4`
 **Input integrale analizzato:** `C:\Users\antmm\.codex\attachments\f388a497-f14b-4d2a-87b1-a5bfe01a8eff\pasted-text.txt`

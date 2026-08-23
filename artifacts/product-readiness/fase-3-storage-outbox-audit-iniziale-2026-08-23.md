@@ -1,6 +1,6 @@
 # Fase 3 — Storage e outbox: audit iniziale
 
-**Stato:** implementazione, guardrail, prova materiale locale e 15 golden journey sul sorgente finale completati; CI, push gemello e deploy Hetzner da registrare prima della chiusura della fase.
+**Stato:** completata e rilasciata. Implementazione, guardrail, prova materiale locale, 15 golden journey, CI completa, push gemello e deploy Hetzner sono verificati.
 
 ## Obiettivo e confini
 
@@ -80,3 +80,9 @@ La prima ricostruzione dopo l'introduzione della vista ha mostrato conteggi prov
 ## Correzione gate remoto
 
 Il primo passaggio CI del commit Fase 3 ha bloccato `Lint + syntax` non per un difetto della route, ma perché l'artefatto generato `docs/backend-endpoint-security-map.md` non era stato rigenerato dopo l'aggiunta dell'endpoint protetto. Il generatore `scripts/react-migration/generate_backend_security_map.py` è stato eseguito, il controllo `--check` è ora verde e sono stati rieseguiti i test di sicurezza backend insieme ai test della nuova console e dell'outbox. Il commit correttivo viene sottoposto nuovamente a Docker locale, CI completa e deploy prima della chiusura formale.
+
+## Rilascio verificato
+
+Il sorgente Fase 3 è nei commit `a2246776c7fd47dd6d2f1b73f9a23a26caff2a50` e `a031465421a7f11d249b2a134d2e4fe815d75e8c`, identici sui branch `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`. Il report automatico `artifacts/ci/current-sha-required-gates.md` attesta esito **OK** sullo SHA correttivo: lint, CodeQL, test frontend, coverage 12/12, shard Pytest, Local Signer/PKCS#11, supply-chain e branch protection sono superati.
+
+La copia Docker locale è stata ricreata dopo il correttivo e ha risposto il 24/08/2026 alle `01:10` Europe/Rome con `ok=true`, versione `2.278.71`; il container applicativo locale è `iusentra-app`, healthy. Il workflow Hetzner ha concluso con successo il deploy del medesimo SHA. La verifica SSH diretta ha confermato `/opt/iusentra/repo` su `a031465421a7f11d249b2a134d2e4fe815d75e8c`, un unico container applicativo `iusentra-app`, running e healthy; `https://app.iusentra.it/api/pronto` ha restituito `ok=true`, `Europe/Rome` e versione `2.278.71` il 24/08/2026 alle `01:13`. La cache Docker rigenerabile è stata ripulita (`0B` residui) e `/opt/iusentra/tmp-backup-snapshot` non risulta presente.

@@ -1,589 +1,589 @@
 {
   "repo": "antmm2605/IUSENTRA",
-  "sha": "979ea618ccea67c7925dc0aa6b20fef2e714962d",
+  "sha": "a031465421a7f11d249b2a134d2e4fe815d75e8c",
   "event": "push",
-  "generated_at": "2026-08-13T15:03:51.033286+00:00",
+  "generated_at": "2026-08-23T23:09:17.890016+00:00",
   "checks": [
     {
       "name": "Lint + syntax",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94485586128"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274160677"
     },
     {
       "name": "Governance repo",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487303596"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274693325"
     },
     {
       "name": "Smoke test Flask",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636756"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773886"
     },
     {
       "name": "Smoke scheduler worker",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487464450"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773854"
     },
     {
       "name": "Pytest core",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94491622370"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97275991139"
     },
     {
       "name": "E2E smoke",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636790"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773884"
     },
     {
       "name": "Local Signer e PKCS#11",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94489740114"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97275669892"
     },
     {
       "name": "Frontend React contratti",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711548790/job/94485575496"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014311/job/97274160980"
     },
     {
       "name": "Frontend React typecheck",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551809/job/94485585317"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014311/job/97274160914"
     },
     {
       "name": "Frontend React build",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551809/job/94485585344"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014311/job/97274160960"
     },
     {
       "name": "Frontend React CI",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551809/job/94485917368"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014311/job/97274400667"
     },
     {
       "name": "quality-gates",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551872/job/94485585914"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008058/job/97274145259"
     },
     {
       "name": "Targeted tests",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551872/job/94486595133"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008058/job/97274380117"
     },
     {
       "name": "Analyze (python)",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552036/job/94485586438"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014209/job/97274160522"
     },
     {
       "name": "Audit dipendenze Python",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711548929/job/94485576381"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014229/job/97274160778"
     },
     {
       "name": "Audit dipendenze frontend",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551545/job/94485584425"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014229/job/97274160840"
     },
     {
       "name": "Generate SBOM",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711548929/job/94485576429"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014229/job/97274160604"
     },
     {
       "name": "Coverage moduli critici parte 1/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636865"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774001"
     },
     {
       "name": "Coverage moduli critici parte 2/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487464818"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773993"
     },
     {
       "name": "Coverage moduli critici parte 3/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636854"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774049"
     },
     {
       "name": "Coverage moduli critici parte 4/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636850"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773974"
     },
     {
       "name": "Coverage moduli critici parte 5/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637001"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773983"
     },
     {
       "name": "Coverage moduli critici parte 6/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487464762"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774080"
     },
     {
       "name": "Coverage moduli critici parte 7/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636881"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774003"
     },
     {
       "name": "Coverage moduli critici parte 8/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637045"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773988"
     },
     {
       "name": "Coverage moduli critici parte 9/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636978"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774016"
     },
     {
       "name": "Coverage moduli critici parte 10/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637024"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774008"
     },
     {
       "name": "Coverage moduli critici parte 11/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636913"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774074"
     },
     {
       "name": "Coverage moduli critici parte 12/12",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636879"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774089"
     },
     {
       "name": "Targeted tests parte 1/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551872/job/94486009067"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008058/job/97274278293"
     },
     {
       "name": "Targeted tests parte 2/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551872/job/94486009176"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008058/job/97274278290"
     },
     {
       "name": "Targeted tests parte 3/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711551872/job/94486009178"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008058/job/97274278335"
     },
     {
       "name": "Pytest core fase 1/10",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637887"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774289"
     },
     {
       "name": "Pytest core fase 2/10",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637719"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774282"
     },
     {
       "name": "Pytest core fase 3/10",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487465564"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774269"
     },
     {
       "name": "Pytest core fase 4/10",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637799"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774261"
     },
     {
       "name": "Pytest core fase 10/10",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638054"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774406"
     },
     {
       "name": "Pytest core fase 5/10 parte 1/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637685"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774307"
     },
     {
       "name": "Pytest core fase 5/10 parte 2/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637793"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774258"
     },
     {
       "name": "Pytest core fase 5/10 parte 3/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638135"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774369"
     },
     {
       "name": "Pytest core fase 5/10 parte 4/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637900"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774260"
     },
     {
       "name": "Pytest core fase 5/10 parte 5/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487465249"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774306"
     },
     {
       "name": "Pytest core fase 5/10 parte 6/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637868"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774279"
     },
     {
       "name": "Pytest core fase 6/10 parte 1/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638002"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774303"
     },
     {
       "name": "Pytest core fase 6/10 parte 2/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637929"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774363"
     },
     {
       "name": "Pytest core fase 6/10 parte 3/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638000"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008213/job/97274630046"
     },
     {
       "name": "Pytest core fase 6/10 parte 4/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637919"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774354"
     },
     {
       "name": "Pytest core fase 6/10 parte 5/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487465678"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774267"
     },
     {
       "name": "Pytest core fase 6/10 parte 6/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637846"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774408"
     },
     {
       "name": "Pytest core fase 6/10 parte 7/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637944"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774333"
     },
     {
       "name": "Pytest core fase 6/10 parte 8/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637924"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774349"
     },
     {
       "name": "Pytest core fase 6/10 parte 9/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637876"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774331"
     },
     {
       "name": "Pytest core fase 6/10 parte 10/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637834"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008213/job/97274630112"
     },
     {
       "name": "Pytest core fase 6/10 parte 11/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638167"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774301"
     },
     {
       "name": "Pytest core fase 6/10 parte 12/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637927"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774415"
     },
     {
       "name": "Pytest core fase 6/10 parte 13/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638018"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774298"
     },
     {
       "name": "Pytest core fase 6/10 parte 14/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637984"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774297"
     },
     {
       "name": "Pytest core fase 6/10 parte 15/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487465609"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774314"
     },
     {
       "name": "Pytest core fase 6/10 parte 16/16",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638159"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774434"
     },
     {
       "name": "Pytest core fase 7/10 observability parte 1/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638220"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672008213/job/97274630069"
     },
     {
       "name": "Pytest core fase 7/10 observability parte 2/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638172"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774353"
     },
     {
       "name": "Pytest core fase 7/10 observability parte 3/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638276"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774344"
     },
     {
       "name": "Pytest core fase 8/10 OCR parte 1/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638050"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774364"
     },
     {
       "name": "Pytest core fase 8/10 OCR parte 2/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638212"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774398"
     },
     {
       "name": "Pytest core fase 8/10 OCR parte 3/3",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638185"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774366"
     },
     {
       "name": "Pytest core fase 9/10 parte 1/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638179"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774393"
     },
     {
       "name": "Pytest core fase 9/10 parte 2/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638151"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774360"
     },
     {
       "name": "Pytest core fase 9/10 parte 3/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638137"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774441"
     },
     {
       "name": "Pytest core fase 9/10 parte 4/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637996"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774361"
     },
     {
       "name": "Pytest core fase 9/10 parte 5/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487638114"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774390"
     },
     {
       "name": "Pytest core fase 9/10 parte 6/6",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487465651"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774384"
     },
     {
       "name": "Local Signer e PKCS#11 (macos-latest) parte 1/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637148"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774065"
     },
     {
       "name": "Local Signer e PKCS#11 (macos-latest) parte 2/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636908"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774066"
     },
     {
       "name": "Local Signer e PKCS#11 (macos-latest) parte 3/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637100"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774070"
     },
     {
       "name": "Local Signer e PKCS#11 (macos-latest) parte 4/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637003"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774045"
     },
     {
       "name": "Local Signer e PKCS#11 (ubuntu-latest) parte 1/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637038"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774002"
     },
     {
       "name": "Local Signer e PKCS#11 (ubuntu-latest) parte 2/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636935"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274773998"
     },
     {
       "name": "Local Signer e PKCS#11 (ubuntu-latest) parte 3/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487464797"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774071"
     },
     {
       "name": "Local Signer e PKCS#11 (ubuntu-latest) parte 4/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711552023/job/94487464771"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774101"
     },
     {
       "name": "Local Signer e PKCS#11 (windows-latest) parte 1/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637093"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774063"
     },
     {
       "name": "Local Signer e PKCS#11 (windows-latest) parte 2/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636929"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774010"
     },
     {
       "name": "Local Signer e PKCS#11 (windows-latest) parte 3/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487637042"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774055"
     },
     {
       "name": "Local Signer e PKCS#11 (windows-latest) parte 4/4",
       "status": "completed",
       "conclusion": "success",
       "state": "ok",
-      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/31711549009/job/94487636907"
+      "url": "https://github.com/antmm2605/IUSENTRA/actions/runs/32672014245/job/97274774041"
     }
   ],
   "statuses": [
@@ -592,7 +592,7 @@
       "status": "failure",
       "conclusion": "failure",
       "state": "ignored",
-      "url": "https://vercel.com/antmm2605-4193s-projects/antmm2605-hacs/FNQYwMXCKUbFBxXzJBMgd2XyRHk3"
+      "url": "https://vercel.com/antmm2605-4193s-projects/antmm2605-hacs/ACv3c9jgeVeDgBfS9nx1fWHTfpKm"
     }
   ],
   "branches": [

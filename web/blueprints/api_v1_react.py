@@ -289,6 +289,8 @@ from web.services.react_impostazioni_calendar import (
 from web.services.react_amministrazione_bridge import (
     build_react_amministrazione_error_payload,
     build_react_amministrazione_payload,
+    build_product_readiness_error_payload,
+    build_product_readiness_payload,
 )
 from web.services.react_fatturazione_bridge import (
     build_fatturazione_runtime_config,
@@ -11207,6 +11209,27 @@ def amministrazione_page():
         return jsonify(
             build_react_amministrazione_error_payload(
                 "Amministrazione non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/amministrazione/prontezza-prodotto")
+@_richiedi_auth
+def amministrazione_product_readiness():
+    """Registro P0 read-only: nessun dato tenant, segreto o controllo provider."""
+
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_product_readiness_error_payload("Sessione utente richiesta.")), 403
+    if not _session_user_can("utenti.leggi"):
+        return jsonify(build_product_readiness_error_payload("Permesso utenti.leggi richiesto.")), 403
+    try:
+        return jsonify(build_product_readiness_payload(current_user=utente))
+    except Exception as exc:
+        current_app.logger.exception("Errore Product Readiness React bridge: %s", exc)
+        return jsonify(
+            build_product_readiness_error_payload(
+                "Registro di prontezza non disponibile dal runtime corrente."
             )
         ), 200
 

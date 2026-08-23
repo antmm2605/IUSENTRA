@@ -1,6 +1,6 @@
 # Fase 0 — Baseline governata e contratto anti-regressione
 
-**Stato:** verifiche locali complete — commit, push e rilascio remoto in corso
+**Stato:** rilasciata — commit, push gemello e deploy Hetzner verificati sul commit `a08a8e2340279c5caa6b0c52561bc2bae91577a4`
 **Data:** 23/08/2026 — Europe/Rome
 **Baseline di codice:** `68ab5ea3a483d46d0d70ab2a386a6ebf9afd959b` (`feat: aggiunge presidi telematici e scadenze`)
 **Release candidata:** `2.278.66`

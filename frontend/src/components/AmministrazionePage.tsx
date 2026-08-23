@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, CircleAlert, ClipboardCheck, Database, ExternalLink, FlaskConical, MonitorCheck, ShieldAlert, ShieldCheck } from 'lucide-react'
 import {
   emptyAmministrazionePage,
   getAmministrazionePage,
   type AmministrazionePageData,
 } from '../amministrazioneData'
+import {
+  emptyProductReadinessPage,
+  getProductReadinessPage,
+  type ProductReadinessCapability,
+  type ProductReadinessPageData,
+} from '../productReadinessData'
 import { buttonTone, type LegacyModule, type OperationalModule } from '../studioData'
 import { Badge } from '../ui/Badge'
 import { ButtonLink } from '../ui/Button'
@@ -14,6 +20,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { displaySourceLabel, displayWritesLabel } from '../displayText'
+import { formatDateTimeIt } from '../formatting'
 import './AmministrazionePage.css'
 
 function formatValue(value: string | number): string {
@@ -89,7 +96,7 @@ function ContractPanel({ data }: { data: AmministrazionePageData }) {
     <Panel title="Qualita dati" subtitle="Informazioni operative, impostazioni sensibili protette.">
       <div className="iu-adminhub-contract">
         <span>Origine: {displaySourceLabel(data.source || '')}</span>
-        <span>Generato: {data.generated_at || 'non disponibile'}</span>
+        <span>Generato: {formatDateTimeIt(data.generated_at, 'Non disponibile')}</span>
         <span>Azioni: {displayWritesLabel(data.contracts.writes || '')}</span>
         <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
         <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
@@ -98,21 +105,142 @@ function ContractPanel({ data }: { data: AmministrazionePageData }) {
   )
 }
 
+function EvidenceIcon({ kind }: { kind: string }) {
+  if (kind === 'ci') return <FlaskConical size={15} aria-hidden="true" />
+  if (kind === 'browser') return <MonitorCheck size={15} aria-hidden="true" />
+  return <ShieldCheck size={15} aria-hidden="true" />
+}
+
+function CapabilityDetail({ capability }: { capability: ProductReadinessCapability }) {
+  return (
+    <details className="iu-readiness-capability">
+      <summary>
+        <span className="iu-readiness-capability__main">
+          <strong>{capability.module}</strong>
+          <small>{capability.owner} · {capability.lastSmoke.label}</small>
+        </span>
+        <Badge tone={capability.statusTone}>{capability.statusLabel}</Badge>
+      </summary>
+      <div className="iu-readiness-capability__body">
+        <p className="iu-readiness-capability__note">{capability.statusNote}</p>
+        <dl className="iu-readiness-capability__facts">
+          <div><dt>Versione regole</dt><dd>{capability.version || 'Non disponibile'}</dd></div>
+          <div><dt>Feature flag</dt><dd>{capability.featureFlag || 'Nessun flag dedicato censito'}</dd></div>
+          <div><dt>Route</dt><dd><code>{capability.route || 'Da definire'}</code></dd></div>
+          <div><dt>API</dt><dd><code>{capability.api || 'Da definire'}</code></dd></div>
+          <div><dt>Backend</dt><dd>{capability.backend || 'Da verificare'}</dd></div>
+          <div><dt>Storage</dt><dd>{capability.storage || 'Da verificare'}</dd></div>
+          <div><dt>Permessi</dt><dd>{capability.permissions.join(', ') || 'Da definire'}</dd></div>
+          <div><dt>Operazioni</dt><dd>{capability.operations.join(', ') || 'Da definire'}</dd></div>
+          <div><dt>Locale</dt><dd>{capability.environment.local}</dd></div>
+          <div><dt>Produzione</dt><dd>{capability.environment.production}</dd></div>
+          <div><dt>Dipendenze</dt><dd>{capability.dependencies.join(', ') || 'Nessuna'}</dd></div>
+          <div><dt>Incidenti</dt><dd>{capability.incidents.label}</dd></div>
+        </dl>
+        <section className="iu-readiness-evidence" aria-label={`Prove ${capability.module}`}>
+          {capability.evidence.map((evidence) => (
+            <article key={`${capability.id}-${evidence.kind}`}>
+              <EvidenceIcon kind={evidence.kind} />
+              <div>
+                <span>{evidence.label}</span>
+                <strong>{evidence.status}</strong>
+                {evidence.reference ? <small>{evidence.reference}</small> : null}
+                {evidence.lastVerified ? <small>Verificata: {formatDateTimeIt(evidence.lastVerified, 'Non disponibile')}</small> : null}
+                {evidence.note ? <small>{evidence.note}</small> : null}
+              </div>
+            </article>
+          ))}
+        </section>
+        <div className="iu-readiness-capability__closing">
+          <p><strong>Limitazione:</strong> {capability.limitations}</p>
+          <p><strong>Rollback:</strong> {capability.rollback}</p>
+          <p><strong>Prossima azione:</strong> {capability.nextAction}</p>
+          <p><strong>Test associati:</strong> {capability.tests.join(', ') || 'Da censire'}</p>
+        </div>
+      </div>
+    </details>
+  )
+}
+
+function ProductReadinessView({ data, loading, error }: { data: ProductReadinessPageData; loading: boolean; error: string }) {
+  const hasData = data.capabilities.length > 0
+  return (
+    <Page
+      title="Prontezza prodotto"
+      subtitle="Registro P0 generato: mostra prove reali, prove mancanti e prossime azioni senza dichiarazioni promozionali."
+      actions={<ButtonLink href="/amministrazione" tone="neutral"><ArrowLeft size={15} />Torna ad amministrazione</ButtonLink>}
+    >
+      {loading ? <LoadingState title="Caricamento prontezza prodotto" message="Lettura del catalogo di rilascio in corso." /> : null}
+      {!loading && error ? <EmptyState title="Registro di prontezza non disponibile" message={error} action={<ButtonLink href="/amministrazione" tone="primary">Torna ad amministrazione</ButtonLink>} /> : null}
+      {!loading && !error && !hasData ? <EmptyState title="Nessuna capability P0 disponibile" message="Il catalogo non ha restituito superfici verificabili." action={<ButtonLink href="/amministrazione" tone="primary">Torna ad amministrazione</ButtonLink>} /> : null}
+      {!loading && !error && hasData ? (
+        <>
+          <section className="iu-readiness-banner" aria-label="Regola di verità del registro">
+            <CircleAlert size={20} aria-hidden="true" />
+            <div>
+              <strong>{data.scope}</strong>
+              <span>Una prova assente resta “da verificare”: il registro non converte il codice o un test esistente in una certificazione operativa.</span>
+            </div>
+          </section>
+          {data.warnings.length ? (
+            <Panel title="Avvisi di verità" subtitle="Condizioni che impediscono una dichiarazione di completezza">
+              <div className="iu-adminhub-warnings">
+                {data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">{warning.code}</Badge><span>{warning.message}</span></div>)}
+              </div>
+            </Panel>
+          ) : null}
+          <section className="iu-readiness-kpis" aria-label="Riepilogo capability P0">
+            <KpiCard label="Flussi P0" value={formatValue(data.summary.total)} note="Superfici censite" badge={<Badge tone="primary">P0</Badge>} />
+            <KpiCard label="Verificate" value={formatValue(data.summary.verified)} note="Con prova corrente registrata" badge={<Badge tone="success">prove</Badge>} />
+            <KpiCard label="Da verificare" value={formatValue(data.summary.pending)} note="Da provare nelle golden journeys" badge={<Badge tone="warning">aperte</Badge>} />
+            <KpiCard label="Bloccate" value={formatValue(data.summary.blocked)} note="Requisiti che impediscono il flusso" badge={<Badge tone="danger">blocchi</Badge>} />
+          </section>
+          <Panel title="Contratto del registro" subtitle={`Registro ${data.registryVersion || 'non disponibile'} · applicazione ${data.applicationVersion || 'non disponibile'}`}>
+            <div className="iu-readiness-contract">
+              <span><Database size={15} aria-hidden="true" />Fonte: {data.contracts.sourceOfTruth || 'Non disponibile'}</span>
+              <span><ClipboardCheck size={15} aria-hidden="true" />Scritture: {data.contracts.writes || 'none'}</span>
+              <span><ShieldCheck size={15} aria-hidden="true" />Provider: {data.contracts.providerCalls ? 'contattati' : 'non contattati'}</span>
+              <span>Generato: {formatDateTimeIt(data.generatedAt, 'Non disponibile')}</span>
+            </div>
+          </Panel>
+          <Panel title="Capability P0" subtitle="Apri una riga per route, API, dati, prove, limiti e rollback.">
+            <div className="iu-readiness-capabilities">
+              {data.capabilities.map((capability) => <CapabilityDetail capability={capability} key={capability.id} />)}
+            </div>
+          </Panel>
+        </>
+      ) : null}
+    </Page>
+  )
+}
+
 export function AmministrazionePage() {
   const [data, setData] = useState<AmministrazionePageData>(emptyAmministrazionePage)
+  const [readiness, setReadiness] = useState<ProductReadinessPageData>(emptyProductReadinessPage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const readinessSelected = new URLSearchParams(window.location.search).get('tab') === 'prontezza-prodotto'
 
   useEffect(() => {
     let active = true
-    getAmministrazionePage()
+    setLoading(true)
+    setError('')
+    const request = readinessSelected ? getProductReadinessPage() : getAmministrazionePage()
+    request
       .then((payload) => {
         if (!active) return
-        setData(payload)
-        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Pagina amministrazione non disponibile.')
+        if (readinessSelected) {
+          const readinessPayload = payload as ProductReadinessPageData
+          setReadiness(readinessPayload)
+          setError(readinessPayload.ok ? '' : readinessPayload.warnings[0]?.message || 'Registro di prontezza non disponibile.')
+          return
+        }
+        const administrationPayload = payload as AmministrazionePageData
+        setData(administrationPayload)
+        setError(administrationPayload.ok ? '' : administrationPayload.warnings[0]?.message || 'Pagina amministrazione non disponibile.')
       })
       .catch(() => {
-        if (active) setError('Pagina amministrazione non disponibile.')
+        if (active) setError(readinessSelected ? 'Registro di prontezza non disponibile.' : 'Pagina amministrazione non disponibile.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -120,12 +248,14 @@ export function AmministrazionePage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [readinessSelected])
 
   const hasData = useMemo(
     () => data.metrics.length > 0 || data.operational_routes.length > 0 || data.sections.some((section) => section.items.length > 0),
     [data],
   )
+
+  if (readinessSelected) return <ProductReadinessView data={readiness} loading={loading} error={error} />
 
   return (
     <Page

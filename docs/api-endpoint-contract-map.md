@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 325.
+- Endpoint React API contrattualizzati: 326.
 - Endpoint P0/P1 contrattualizzati: 280.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 310.
+- Endpoint con provider verification auth-error: 311.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -22,6 +22,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Agenda | `/api/v1/ui/agenda/importa` | `GET` | Agenda | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Agenda | `/api/v1/ui/agenda/nuovo/defaults` | `GET` | Agenda | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/amministrazione` | `GET` | Amministrazione (/app/amministrazione) | P2 | complete | auth-error | `sessione/API tenant-aware` | `routes.appV2.admin.home` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/amministrazione/prontezza-prodotto` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Registro attivita | `/api/v1/ui/audit` | `GET` | Registro attivita | P0 | verified | success+auth-error | `audit.leggi` | `n/a` | current_tenant | verified |
 | Registro attivita | `/api/v1/ui/audit/{id_evento}` | `GET` | Registro attivita | P0 | complete | auth-error | `audit.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Backup | `/api/v1/ui/backup` | `GET` | Backup | P0 | complete | auth-error | `backup.leggi/esegui` | `n/a` | current_tenant | complete-auth-error |

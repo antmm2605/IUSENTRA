@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,6 @@ _TECHNICAL_MARKERS = (
     "stack trace",
     "exception",
     "errno",
-    "sqlite",
     "sqlalchemy",
     "werkzeug",
     "site-packages",
@@ -22,6 +22,10 @@ _TECHNICAL_MARKERS = (
     "/home/",
     "\\users\\",
     "c:\\",
+)
+
+_TECHNICAL_PATTERNS = (
+    re.compile(r"\bsqlite(?:3)?(?:\s+(?:error|database|exception)|[.:])", re.IGNORECASE),
 )
 
 _SENSITIVE_KEYS = {
@@ -47,7 +51,9 @@ _BASE64_PAYLOAD_KEYS = {
 
 def _looks_technical(value: str) -> bool:
     lowered = value.lower()
-    return any(marker in lowered for marker in _TECHNICAL_MARKERS)
+    return any(marker in lowered for marker in _TECHNICAL_MARKERS) or any(
+        pattern.search(value) for pattern in _TECHNICAL_PATTERNS
+    )
 
 
 def redact_exception_details(value: Any) -> Any:

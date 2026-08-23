@@ -6,7 +6,12 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from pct import __version__
 from pct.auth import PERMESSI, TUTTI_PERMESSI, RuoloUtente
+from pct.capability_truth_registry import (
+    build_capability_truth_registry,
+    build_product_readiness_navigation,
+)
 
 
 def _iso_now() -> str:
@@ -77,6 +82,16 @@ def _action(action_id: str, label: str, href: str, tone: str = "neutral") -> dic
     return {"id": action_id, "label": label, "href": href, "method": "GET", "tone": tone}
 
 
+def _readiness_action() -> dict[str, Any]:
+    navigation = build_product_readiness_navigation()
+    return _action(
+        navigation["id"],
+        navigation["label"],
+        navigation["href"],
+        navigation["tone"],
+    )
+
+
 def _contracts() -> dict[str, Any]:
     return {
         "mock_fallback": False,
@@ -86,6 +101,17 @@ def _contracts() -> dict[str, Any]:
         "sensitive_settings": "legacy_protected",
         "secrets_exposed": False,
         "legacy_contract": "artifacts/react-migration/legacy-contracts/amministrazione.json",
+    }
+
+
+def _readiness_contracts() -> dict[str, Any]:
+    return {
+        "writes": "none",
+        "sourceOfTruth": "catalogo Python versionato",
+        "tenantScope": "nessun dato tenant nel payload",
+        "providerCalls": False,
+        "runtimeScans": False,
+        "secretsExposed": False,
     }
 
 
@@ -247,6 +273,7 @@ def build_react_amministrazione_payload(
             *_permission_sections(),
         ],
         "actions": [
+            _readiness_action(),
             _action("utenti", "Apri utenti", "/utenti", "primary"),
             _action("profili", "Apri profili", "/profili", "primary"),
             _action("audit", "Apri audit", "/audit", "neutral"),
@@ -260,6 +287,35 @@ def build_react_amministrazione_payload(
             "username": _text(getattr(current_user, "username", "")),
             "role": _enum(getattr(current_user, "ruolo", "")),
         },
+    }
+
+
+def build_product_readiness_payload(*, current_user: Any) -> dict[str, Any]:
+    """Payload read-only della prontezza prodotto per l'area React studio."""
+
+    payload = build_capability_truth_registry(application_version=__version__)
+    payload["contracts"] = _readiness_contracts()
+    payload["currentUser"] = {
+        "id": _text(getattr(current_user, "id", "")),
+        "username": _text(getattr(current_user, "username", "")),
+        "role": _enum(getattr(current_user, "ruolo", "")),
+    }
+    return payload
+
+
+def build_product_readiness_error_payload(message: str = "Prontezza prodotto non disponibile.") -> dict[str, Any]:
+    return {
+        "ok": False,
+        "generatedAt": "",
+        "registryVersion": "",
+        "applicationVersion": __version__,
+        "scope": "P0 — registro di prontezza",
+        "contracts": _readiness_contracts(),
+        "summary": {"total": 0, "verified": 0, "partial": 0, "pending": 0, "blocked": 0},
+        "capabilities": [],
+        "navigation": build_product_readiness_navigation(),
+        "warnings": [{"code": "prontezza_prodotto_errore_controllato", "message": message}],
+        "currentUser": {},
     }
 
 

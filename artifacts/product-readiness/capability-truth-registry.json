@@ -1,0 +1,1310 @@
+{
+  "applicationVersion": "catalogo",
+  "capabilities": [
+    {
+      "api": "/api/v1/ui/sessione e bootstrap",
+      "backend": "pct.auth + shell React",
+      "dependencies": [
+        "sessione",
+        "RBAC",
+        "tenant proprietario"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.amministrazione",
+      "id": "autenticazione-cambio-tenant",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Nessuna promozione senza prova multi-ruolo e multi-tenant.",
+      "module": "Autenticazione e cambio tenant",
+      "nextAction": "Eseguire matrice login/cambio tenant con quattro ruoli.",
+      "operations": [
+        "accesso",
+        "chiusura sessione",
+        "cambio tenant autorizzato"
+      ],
+      "owner": "Identità e sicurezza",
+      "permissions": [
+        "sessione autenticata"
+      ],
+      "rollback": "Commit applicativo precedente e ricreazione Docker governata.",
+      "route": "/login",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "RBAC e isolamento sono censiti; manca prova golden corrente sui ruoli e tenant A/B.",
+      "statusTone": "warning",
+      "storage": "GestioneUtenti + audit tenant-aware (SQLite/PostgreSQL)",
+      "tests": [
+        "tests/test_auth.py",
+        "tests/test_web_bootstrap.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/clienti",
+      "backend": "web.services.react_clienti_bridge",
+      "dependencies": [
+        "anagrafiche",
+        "fascicoli"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.clienti",
+      "id": "apertura-cliente",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Dati e permessi devono restare del tenant corrente.",
+      "module": "Apertura cliente",
+      "nextAction": "Golden journey apertura cliente e controllo isolamento.",
+      "operations": [
+        "ricerca",
+        "apertura scheda",
+        "consultazione cartella"
+      ],
+      "owner": "Anagrafiche",
+      "permissions": [
+        "clienti.leggi"
+      ],
+      "rollback": "Commit applicativo precedente e ricreazione Docker governata.",
+      "route": "/clienti",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Superficie React censita; manca prova reale per ruoli e tenant separati.",
+      "statusTone": "warning",
+      "storage": "GestioneClienti tenant-aware; SQLite/PostgreSQL con mirror governato",
+      "tests": [
+        "tests/test_web_bootstrap.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/ricerca-studio",
+      "backend": "Ricerca Studio e repository tenant-aware",
+      "dependencies": [
+        "ricerca studio",
+        "anagrafiche",
+        "fascicoli"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "Nessun flag dedicato censito",
+      "id": "conflitto",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Non sostituisce la valutazione professionale del conflitto.",
+      "module": "Controllo conflitto",
+      "nextAction": "Definire fixture conflitto positiva, negativa e cross-tenant.",
+      "operations": [
+        "ricerca nominativi",
+        "segnalazione potenziale conflitto"
+      ],
+      "owner": "Anagrafiche e fascicoli",
+      "permissions": [
+        "clienti.leggi",
+        "fascicoli.leggi"
+      ],
+      "rollback": "Commit applicativo precedente e ripristino dei dati di fixture.",
+      "route": "/ricerca-studio",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Il percorso e il perimetro dati sono censiti; il criterio di conflitto richiede prova e fixture dedicate.",
+      "statusTone": "warning",
+      "storage": "Repository clienti/fascicoli tenant-aware",
+      "tests": [
+        "tests/test_global_search.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/preventivi",
+      "backend": "web.services.react_preventivi_bridge",
+      "dependencies": [
+        "compensi forensi",
+        "clienti",
+        "fascicoli"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.preventivi",
+      "id": "preventivo",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Importi, calcolo e audit vanno provati dal backend canonico.",
+      "module": "Preventivo",
+      "nextAction": "Golden journey preventivo da cliente a fascicolo.",
+      "operations": [
+        "creazione",
+        "calcolo",
+        "stato",
+        "apertura fascicolo"
+      ],
+      "owner": "Commerciale",
+      "permissions": [
+        "preventivi.leggi",
+        "preventivi.scrivi"
+      ],
+      "rollback": "Commit applicativo precedente e rollback stato documentato.",
+      "route": "/preventivi",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La superficie React e le API sono censite; serve E2E con dati sintetici e ruoli.",
+      "statusTone": "warning",
+      "storage": "Repository preventivi tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_preventivi_wizard.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/preventivi/conferimento/nuovo",
+      "backend": "Bridge preventivi/conferimenti",
+      "dependencies": [
+        "preventivi",
+        "fascicoli",
+        "audit"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.preventivi",
+      "id": "mandato",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Non certifica la validità giuridica del mandato senza verifica dei requisiti.",
+      "module": "Mandato e conferimento",
+      "nextAction": "Golden journey conferimento con controllo audit e permessi.",
+      "operations": [
+        "creazione conferimento",
+        "stato",
+        "apertura fascicolo"
+      ],
+      "owner": "Commerciale",
+      "permissions": [
+        "preventivi.leggi",
+        "preventivi.scrivi"
+      ],
+      "rollback": "Commit applicativo precedente e rollback stato documentato.",
+      "route": "/preventivi/conferimento/nuovo",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Il percorso è censito; firma, dati obbligatori e passaggio a fascicolo attendono prova integrata.",
+      "statusTone": "warning",
+      "storage": "Repository conferimenti tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_preventivi_conferimento_route.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/fascicoli",
+      "backend": "web.services.react_fascicoli_bridge",
+      "dependencies": [
+        "clienti",
+        "documenti",
+        "deposito"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.fascicoli",
+      "id": "fascicolo",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Il lettore e gli allegati richiedono prove formato per formato.",
+      "module": "Fascicolo",
+      "nextAction": "Golden journey fascicolo nuovo/aperto con tenant A/B.",
+      "operations": [
+        "lista",
+        "creazione",
+        "apertura workspace",
+        "archivio"
+      ],
+      "owner": "Fascicoli",
+      "permissions": [
+        "fascicoli.leggi",
+        "fascicoli.scrivi"
+      ],
+      "rollback": "Commit applicativo precedente; nessuna cancellazione dei dati tenant.",
+      "route": "/fascicoli",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La UI React è censita; fixture e verifica di apertura multi-ruolo sono previste nella Fase 2.",
+      "statusTone": "warning",
+      "storage": "GestioneFascicoli + filesystem tenant-aware; metadati SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_fascicoli.py",
+        "tests/test_web_bootstrap.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/regia-operativa",
+      "backend": "Bridge Regia Operativa",
+      "dependencies": [
+        "agenda",
+        "scadenziario",
+        "fascicoli"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.regiaOperativa",
+      "id": "attivita",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Il registro non inferisce la completezza delle singole attività.",
+      "module": "Attività operative",
+      "nextAction": "Golden journey attività da apertura a contesto collegato.",
+      "operations": [
+        "lettura attività",
+        "prioritizzazione",
+        "apertura contesto"
+      ],
+      "owner": "Regia Operativa",
+      "permissions": [
+        "fascicoli.leggi"
+      ],
+      "rollback": "Commit applicativo precedente e ricreazione Docker governata.",
+      "route": "/regia-operativa",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Le attività sono censite come superficie React; serve prova delle azioni collegate e dello stato vuoto.",
+      "statusTone": "warning",
+      "storage": "Repository operativi tenant-aware",
+      "tests": [
+        "tests/test_regia_ui_react.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/documenti",
+      "backend": "Bridge documenti e preview tenant-aware",
+      "dependencies": [
+        "fascicoli",
+        "PEC",
+        "preview firmata"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.documenti",
+      "id": "documento",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Nessun formato non supportato deve aprire un fallback esterno silenzioso.",
+      "module": "Documento e lettore interno",
+      "nextAction": "Golden journey lettore con almeno PDF, ZIP e un formato non PDF.",
+      "operations": [
+        "elenco",
+        "preview interna",
+        "download autorizzato"
+      ],
+      "owner": "Documenti",
+      "permissions": [
+        "documenti.leggi"
+      ],
+      "rollback": "Commit applicativo precedente, senza toccare volumi documentali.",
+      "route": "/documenti",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Il lettore interno è requisito primario; la matrice PDF/ZIP/XML/EML/DOCX/P7M deve essere provata realmente.",
+      "statusTone": "warning",
+      "storage": "Filesystem documentale tenant-aware + metadati fascicolo",
+      "tests": [
+        "tests/test_signed_attachment_preview.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/email",
+      "backend": "web.services.react_email_bridge + Local Signer",
+      "dependencies": [
+        "Local Signer",
+        "casella PEC",
+        "lettore documenti"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Verifica provider non ancora registrata",
+          "lastVerified": "",
+          "note": "",
+          "reference": "Fase 2 — tenant sintetico e canary non distruttivo",
+          "status": "da_verificare"
+        }
+      ],
+      "featureFlag": "routes.appV2.email",
+      "id": "pec",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Il server non invia PEC operative; nessuna prova provider è registrata in Fase 1.",
+      "module": "PEC",
+      "nextAction": "Golden journey PEC con sandbox o canary non distruttivo.",
+      "operations": [
+        "lettura",
+        "preview",
+        "preparazione invio locale",
+        "ricevute"
+      ],
+      "owner": "Comunicazioni",
+      "permissions": [
+        "pec.leggi",
+        "pec.scrivi"
+      ],
+      "rollback": "Commit precedente e mantenimento dei dati/credenziali locali.",
+      "route": "/email",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La UI è censita; l'invio operativo deve restare locale e richiede tenant sintetico/canary non distruttivo.",
+      "statusTone": "warning",
+      "storage": "Repository PEC tenant-aware; credenziali solo sul PC locale",
+      "tests": [
+        "tests/test_email_client.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/scadenziario",
+      "backend": "web.services.react_scadenziario_bridge",
+      "dependencies": [
+        "agenda",
+        "fascicoli",
+        "calendario"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.scadenziario",
+      "id": "scadenza",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Date e orari visibili devono restare Europe/Rome; nessuna data raw in UI.",
+      "module": "Scadenza e termini",
+      "nextAction": "Golden journey scadenza, calcolo e collegamento fascicolo.",
+      "operations": [
+        "lista",
+        "creazione",
+        "calcolo",
+        "promemoria"
+      ],
+      "owner": "Programmazione",
+      "permissions": [
+        "scadenze.leggi",
+        "scadenze.scrivi"
+      ],
+      "rollback": "Commit applicativo precedente e ricreazione Docker governata.",
+      "route": "/scadenziario",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La correzione Fase 0 è provata; il journey P0 completo con ruoli, date e collegamenti resta da eseguire.",
+      "statusTone": "warning",
+      "storage": "GestioneScadenziario tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_scadenziario.py",
+        "tests/test_react_scadenziario_additions.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/fascicoli/:id/depositi/*",
+      "backend": "Bridge fascicoli/deposito + Local Signer",
+      "dependencies": [
+        "Local Signer",
+        "PEC locale",
+        "PST/portale",
+        "fascicoli"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Verifica provider non ancora registrata",
+          "lastVerified": "",
+          "note": "",
+          "reference": "Fase 2 — tenant sintetico e canary non distruttivo",
+          "status": "da_verificare"
+        }
+      ],
+      "featureFlag": "Nessun flag dedicato censito",
+      "id": "deposito",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Assenza di requisito ministeriale blocca solo il deposito valido con messaggio esplicito.",
+      "module": "Deposito telematico",
+      "nextAction": "Prova senza invio, firma multipla reale e canary conforme.",
+      "operations": [
+        "classificazione",
+        "indice",
+        "firma",
+        "preparazione busta",
+        "invio locale"
+      ],
+      "owner": "Telematico",
+      "permissions": [
+        "fascicoli.leggi",
+        "fascicoli.scrivi",
+        "pec.scrivi"
+      ],
+      "rollback": "Commit precedente; nessun invio server-side e nessuna cancellazione delle prove.",
+      "route": "/fascicoli/:id/deposito/prepara",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Non è dichiarato completo: requisiti ministeriali, firma multipla, ricevute e invio locale richiedono prove reali.",
+      "statusTone": "warning",
+      "storage": "Fascicolo tenant-aware + repository deposito/audit",
+      "tests": [
+        "tests/test_deposito.py",
+        "tests/test_deposito_guidato.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/fascicoli/:id/depositi/:depositoId/timeline",
+      "backend": "Repository deposito e bridge fascicoli",
+      "dependencies": [
+        "deposito",
+        "PEC",
+        "lettore documenti"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Verifica provider non ancora registrata",
+          "lastVerified": "",
+          "note": "",
+          "reference": "Fase 2 — tenant sintetico e canary non distruttivo",
+          "status": "da_verificare"
+        }
+      ],
+      "featureFlag": "Nessun flag dedicato censito",
+      "id": "ricevute",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Una ricevuta non può essere registrata come esito reale senza fonte verificabile.",
+      "module": "Ricevute telematiche",
+      "nextAction": "Golden journey importazione e lettura ricevuta controllata.",
+      "operations": [
+        "importazione",
+        "timeline",
+        "evidence pack",
+        "consultazione"
+      ],
+      "owner": "Telematico",
+      "permissions": [
+        "fascicoli.leggi",
+        "fascicoli.scrivi"
+      ],
+      "rollback": "Commit precedente e conservazione delle evidenze del fascicolo.",
+      "route": "/telematico",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La persistenza e la timeline sono censite; servono fixture e prova reale del ciclo ricevuta.",
+      "statusTone": "warning",
+      "storage": "Repository deposito/audit tenant-aware",
+      "tests": [
+        "tests/test_deposito_guidato.py",
+        "tests/test_regia_deposito_receipts.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/fatturazione",
+      "backend": "web.services.react_fatturazione_bridge",
+      "dependencies": [
+        "clienti",
+        "pagamenti",
+        "SdI",
+        "PEC locale"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Verifica provider non ancora registrata",
+          "lastVerified": "",
+          "note": "",
+          "reference": "Fase 2 — tenant sintetico e canary non distruttivo",
+          "status": "da_verificare"
+        }
+      ],
+      "featureFlag": "routes.appV2.fatturazione",
+      "id": "fattura",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Importi visibili devono restare in formato euro italiano.",
+      "module": "Fattura",
+      "nextAction": "Golden journey fattura con calcolo, permessi e prova non distruttiva.",
+      "operations": [
+        "creazione",
+        "calcolo backend",
+        "stato",
+        "preparazione XML"
+      ],
+      "owner": "Economico",
+      "permissions": [
+        "fatturazione.leggi",
+        "fatturazione.scrivi"
+      ],
+      "rollback": "Commit precedente e rollback stato senza eliminare documenti fiscali.",
+      "route": "/fatturazione",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La superficie React e le API sono censite; emissione, firma e canali esterni attendono prove per ruoli.",
+      "statusTone": "warning",
+      "storage": "Repository parcelle tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_fatturazione.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/incassi-pagamenti",
+      "backend": "web.services.react_incassi_pagamenti_bridge",
+      "dependencies": [
+        "fatturazione",
+        "provider pagamento"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Verifica provider non ancora registrata",
+          "lastVerified": "",
+          "note": "",
+          "reference": "Fase 2 — tenant sintetico e canary non distruttivo",
+          "status": "da_verificare"
+        }
+      ],
+      "featureFlag": "routes.appV2.incassiPagamenti",
+      "id": "pagamento",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Nessun esito provider è dichiarato senza prova corrente.",
+      "module": "Pagamento e incasso",
+      "nextAction": "Golden journey incasso, collegamento e lettura saldo.",
+      "operations": [
+        "registrazione incasso",
+        "stato",
+        "collegamento fattura"
+      ],
+      "owner": "Economico",
+      "permissions": [
+        "fatturazione.leggi",
+        "fatturazione.scrivi"
+      ],
+      "rollback": "Commit precedente e rollback di stato auditato.",
+      "route": "/incassi-pagamenti",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Il percorso è censito; riconciliazione, permessi e collegamento documento vanno provati con dati sintetici.",
+      "statusTone": "warning",
+      "storage": "Repository pagamenti tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_portale_economici.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/client-portal/dashboard",
+      "backend": "web.services.react_client_portal_bridge",
+      "dependencies": [
+        "identità",
+        "documenti",
+        "fascicoli"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.clientPortal",
+      "id": "portale",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Token e dati personali non sono esposti dal registro.",
+      "module": "Portale cliente",
+      "nextAction": "Golden journey invito, accesso e isolamento tenant.",
+      "operations": [
+        "dashboard studio",
+        "inviti",
+        "chat",
+        "documenti",
+        "appuntamenti"
+      ],
+      "owner": "Portale",
+      "permissions": [
+        "portale_clienti.leggi",
+        "portale_clienti.scrivi"
+      ],
+      "rollback": "Commit precedente; i token non vengono rigenerati dal rollback del registro.",
+      "route": "/app/portale-clienti",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Il contratto React è censito; inviti, token hashati e isolamento richiedono prova end-to-end dedicata.",
+      "statusTone": "warning",
+      "storage": "Repository portale tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_client_portal_api.py",
+        "tests/test_client_portal_access.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/audit",
+      "backend": "web.services.react_audit_bridge",
+      "dependencies": [
+        "RBAC",
+        "tutti i flussi P0"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.audit",
+      "id": "audit",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "Il registro non sostituisce gli eventi audit del tenant.",
+      "module": "Audit",
+      "nextAction": "Matrice audit P0 con verifica redazione e permessi.",
+      "operations": [
+        "lista",
+        "filtro",
+        "dettaglio redatto",
+        "export autorizzato"
+      ],
+      "owner": "Sicurezza",
+      "permissions": [
+        "audit.leggi"
+      ],
+      "rollback": "Commit precedente e conservazione immutabile degli eventi audit.",
+      "route": "/audit",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "La superficie è censita; occorre acquisire una prova che ogni P0 scriva l'evento atteso senza dati sensibili.",
+      "statusTone": "warning",
+      "storage": "audit_log tenant-aware; SQLite/PostgreSQL",
+      "tests": [
+        "tests/test_audit_routes.py"
+      ],
+      "version": "2026.08.23.1"
+    },
+    {
+      "api": "/api/v1/ui/fascicoli/:id",
+      "backend": "Bridge fascicoli e repository stato",
+      "dependencies": [
+        "fascicoli",
+        "documenti",
+        "audit",
+        "fatturazione"
+      ],
+      "environment": {
+        "local": "Non ancora verificato per questa capability",
+        "production": "Non ancora verificato per questa capability"
+      },
+      "evidence": [
+        {
+          "kind": "ci",
+          "label": "Test associati censiti; esito corrente da registrare",
+          "lastVerified": "",
+          "note": "Il registro non trasforma un file di test in un PASS senza esecuzione corrente.",
+          "reference": "Inventario test della capability",
+          "status": "riferimento_disponibile"
+        },
+        {
+          "kind": "browser",
+          "label": "Prova browser non ancora registrata",
+          "lastVerified": "",
+          "note": "La presenza della UI non equivale a una prova reale sulla copia locale.",
+          "reference": "Fase 2 — golden journeys",
+          "status": "non_eseguito"
+        },
+        {
+          "kind": "provider",
+          "label": "Nessun provider esterno necessario",
+          "lastVerified": "",
+          "note": "",
+          "reference": "",
+          "status": "non_applicabile"
+        }
+      ],
+      "featureFlag": "routes.appV2.fascicoli",
+      "id": "chiusura-fascicolo",
+      "incidents": {
+        "label": "Nessun feed incidenti collegato al registro",
+        "status": "non_integrato"
+      },
+      "lastSmoke": {
+        "label": "Non ancora eseguito nella matrice Fase 2",
+        "status": "non_eseguito",
+        "verifiedAt": ""
+      },
+      "limitations": "La chiusura non può mascherare dati, ricevute o obblighi ancora aperti.",
+      "module": "Chiusura fascicolo",
+      "nextAction": "Golden journey requisiti, chiusura, storico e controllo accessi.",
+      "operations": [
+        "verifica requisiti",
+        "archiviazione",
+        "consultazione storico"
+      ],
+      "owner": "Fascicoli",
+      "permissions": [
+        "fascicoli.leggi",
+        "fascicoli.scrivi"
+      ],
+      "rollback": "Commit precedente e ripristino stato senza rimuovere documenti tenant.",
+      "route": "/fascicoli/:id",
+      "status": "da_verificare",
+      "statusLabel": "Da verificare",
+      "statusNote": "Il percorso è registrato, ma requisiti di chiusura, allegati e audit devono essere provati senza perdere dati.",
+      "statusTone": "warning",
+      "storage": "GestioneFascicoli tenant-aware; filesystem + SQLite/PostgreSQL metadati",
+      "tests": [
+        "tests/test_fascicoli.py",
+        "tests/test_fascicoli_pagination.py"
+      ],
+      "version": "2026.08.23.1"
+    }
+  ],
+  "contracts": {
+    "providerCalls": false,
+    "runtimeScans": false,
+    "secretsExposed": false,
+    "sourceOfTruth": "catalogo Python versionato",
+    "tenantScope": "nessun dato tenant nel payload",
+    "writes": "none"
+  },
+  "navigation": {
+    "href": "/amministrazione?tab=prontezza-prodotto",
+    "id": "product-readiness",
+    "label": "Apri prontezza prodotto",
+    "tone": "primary"
+  },
+  "ok": true,
+  "registryVersion": "2026.08.23.1",
+  "scope": "P0 — registro di prontezza; non sostituisce il collaudo operativo",
+  "summary": {
+    "blocked": 0,
+    "partial": 0,
+    "pending": 17,
+    "total": 17,
+    "verified": 0
+  },
+  "warnings": [
+    {
+      "code": "prove-p0-da-acquisire",
+      "message": "Il registro censisce le superfici P0 ma non le promuove: le prove CI, browser e provider mancanti restano da verificare."
+    },
+    {
+      "code": "incidenti-non-integrati",
+      "message": "Il feed degli incidenti non è ancora collegato: l'assenza di una riga non equivale all'assenza di incidenti."
+    }
+  ]
+}

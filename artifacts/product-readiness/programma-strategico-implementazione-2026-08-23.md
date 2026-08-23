@@ -1,8 +1,8 @@
 # Programma strategico di implementazione IUSENTRA
 
-**Stato:** Fase 0 verificata localmente — commit, push e deploy Hetzner in corso; Fasi 1–14 bloccate fino al rilascio della Fase 0
+**Stato:** Fase 0 rilasciata sul commit `a08a8e2340279c5caa6b0c52561bc2bae91577a4`; Fase 1 è pronta al rilascio della release `2.278.67`. Le Fasi 2–14 restano bloccate fino alla verifica locale e Hetzner dello stesso commit Fase 1.
 **Redatto il:** 23/08/2026 10:52 Europe/Rome
-**Branch e baseline di riferimento:** `Codex/legal-electronic-filing-kIxcV` — `68ab5ea3a483d46d0d70ab2a386a6ebf9afd959b`
+**Branch e baseline di riferimento:** `Codex/legal-electronic-filing-kIxcV` — baseline `68ab5ea3a483d46d0d70ab2a386a6ebf9afd959b`; Fase 0 rilasciata `a08a8e2340279c5caa6b0c52561bc2bae91577a4`
 **Input integrale analizzato:** `C:\Users\antmm\.codex\attachments\f388a497-f14b-4d2a-87b1-a5bfe01a8eff\pasted-text.txt`
 **SHA-256 dell'input:** `72475D1C62D516EB431736926A2EA384D7EC2C616E1C41FEEFEDC7E9C3313B8F`
 
@@ -180,4 +180,4 @@ Per ogni scelta normativa, telematica, AI, privacy, conservazione, firma, PEC o 
 
 ## 9. Decisione operativa immediata
 
-Questo documento costituisce il registro di lavoro richiesto. Con l'autorizzazione dell'utente è stata eseguita la **Fase 0 — Baseline governata**: nessuna nuova area di prodotto è stata introdotta; sono stati corretti esclusivamente un orario non valido pubblicato dalla UI e un bootstrap diagnostico improprio. Il relativo audit locale è nel file `fase-0-baseline-2026-08-23.md`; la Fase 1 resta bloccata fino a commit, push gemello e deploy Hetzner verificato sullo stesso commit.
+Questo documento costituisce il registro di lavoro richiesto. La **Fase 0 — Baseline governata** è stata rilasciata sul commit `a08a8e2340279c5caa6b0c52561bc2bae91577a4`: nessuna nuova area di prodotto è stata introdotta; sono stati corretti esclusivamente un orario non valido pubblicato dalla UI e un bootstrap diagnostico improprio. Il relativo audit è nel file `fase-0-baseline-2026-08-23.md`. La **Fase 1 — Registro di verità delle capability** ha completato l'implementazione e l'accettazione locale descritta in `fase-1-capability-truth-audit-2026-08-23.md`; la Fase 2 resta bloccata fino a commit, push gemello e deploy Hetzner della release `2.278.67` sullo stesso commit.

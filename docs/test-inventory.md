@@ -6,21 +6,21 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 589.
+- File pytest censiti: 591.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 86 |
+| API contract | 88 |
 | Backend | 73 |
 | E2E | 9 |
 | Frontend static gate | 1 |
 | Frontend/UI | 185 |
 | RBAC | 58 |
-| Security | 39 |
+| Security | 38 |
 | Smoke CLI | 6 |
-| Tenant isolation | 139 |
+| Tenant isolation | 140 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 63 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 174 |
+| 09-misc | Test non classificati dalle fasi principali | 176 |
 
 ## Suite CI aggiuntive
 
@@ -94,6 +94,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Auth/RBAC | RBAC | tests/test_profili.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | API contract | tests/test_advanced_ai_runtime.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_assistente_followup.py | file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_capability_truth_registry.py | tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_ci_cd_gates_phase11.py | 401 anonimo, tenant, feature flag, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_client_signature_providers.py | tenant, file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_daily_plan_service.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -406,6 +407,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | API contract | lex/tests/unit/test_guida_pratica_source.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_guida_pratica_set33_import.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_impostazioni_pec_local_signer_react.py | feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Frontend React | API contract | tests/test_product_readiness_react_api.py | 401 anonimo, 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_condivisioni.py | 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_crm_bridge.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_preventivo_wizard_console.py | 401 anonimo, feature flag, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -596,7 +598,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Security | API contract | tests/test_backend_security_phase5.py | 401 anonimo, tenant, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Security | API contract | tests/test_cache_security.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Security | Security | tests/test_security_headers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Security | Security | tests/test_security_redaction.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_uffici_giudiziari_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_upload_security.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_web_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -604,6 +605,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Security | Tenant isolation | tests/test_document_intelligence_security.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Tenant isolation | tests/test_lex_workflow_agents_security.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Tenant isolation | tests/test_procedure_completion_security.py | 403/RBAC, tenant, feature flag, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Security | Tenant isolation | tests/test_security_redaction.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Smoke | Smoke CLI | scripts/smoke_app_v2_all.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_app_v2_pages.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_app_v2_routing.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |

@@ -36,6 +36,33 @@ export type AdminHubSection = {
   emptyMessage: string
 }
 
+export type DataConsistencyTable = {
+  table: string
+  count: number | null
+  reason: string
+}
+
+export type DataConsistencyDomain = {
+  id: string
+  label: string
+  repository: string
+  tables: DataConsistencyTable[]
+  records: number | null
+  status: 'PRESIDIATO' | 'NON_LEGGIBILE'
+  jsonRole: string
+}
+
+export type DataConsistencyPageData = {
+  ok: boolean
+  generatedAt: string
+  sourceOfTruth: string
+  tenantScope: string
+  contracts: { writes: string; jsonScanned: boolean; fallbackUsed: boolean; sourceOfTruth: string }
+  domains: DataConsistencyDomain[]
+  outbox: { pending: number; processed: number; failed: number; total: number; readable: boolean; reason: string }
+  warnings: WarningItem[]
+}
+
 export type AmministrazionePageData = {
   ok: boolean
   source: string
@@ -78,6 +105,17 @@ export const emptyAmministrazionePage: AmministrazionePageData = {
   metrics: [],
   sections: [],
   actions: [],
+  warnings: [],
+}
+
+export const emptyDataConsistencyPage: DataConsistencyPageData = {
+  ok: false,
+  generatedAt: '',
+  sourceOfTruth: 'sql',
+  tenantScope: '',
+  contracts: { writes: 'none', jsonScanned: false, fallbackUsed: false, sourceOfTruth: 'sql' },
+  domains: [],
+  outbox: { pending: 0, processed: 0, failed: 0, total: 0, readable: false, reason: '' },
   warnings: [],
 }
 
@@ -184,6 +222,53 @@ function normaliseWarning(raw: unknown): WarningItem {
   }
 }
 
+function numberOrNull(raw: unknown): number | null {
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
+}
+
+function normaliseDataConsistency(raw: unknown): DataConsistencyPageData {
+  const page = asRecord(sanitizePayload(raw))
+  const contracts = asRecord(page.contracts)
+  const outbox = asRecord(page.outbox)
+  return {
+    ok: bool(page.ok),
+    generatedAt: text(page.generatedAt),
+    sourceOfTruth: text(page.sourceOfTruth, 'sql'),
+    tenantScope: display(page.tenantScope, 'studio corrente'),
+    contracts: {
+      writes: display(contracts.writes, 'none'),
+      jsonScanned: bool(contracts.json_scanned),
+      fallbackUsed: bool(contracts.fallback_used),
+      sourceOfTruth: text(contracts.source_of_truth, 'sql'),
+    },
+    domains: list(page.domains).map((rawDomain) => {
+      const domain = asRecord(rawDomain)
+      const status = text(domain.status).toUpperCase() === 'PRESIDIATO' ? 'PRESIDIATO' : 'NON_LEGGIBILE'
+      return {
+        id: text(domain.id) || 'dominio',
+        label: display(domain.label, 'Dominio'),
+        repository: text(domain.repository),
+        tables: list(domain.tables).map((rawTable) => {
+          const table = asRecord(rawTable)
+          return { table: text(table.table), count: numberOrNull(table.count), reason: display(table.reason) }
+        }),
+        records: numberOrNull(domain.records),
+        status,
+        jsonRole: display(domain.json_role, 'mirror o bootstrap controllato'),
+      }
+    }),
+    outbox: {
+      pending: numberOrNull(outbox.pending) ?? 0,
+      processed: numberOrNull(outbox.processed) ?? 0,
+      failed: numberOrNull(outbox.failed) ?? 0,
+      total: numberOrNull(outbox.total) ?? 0,
+      readable: bool(outbox.readable),
+      reason: display(outbox.reason),
+    },
+    warnings: list(page.warnings).map(normaliseWarning),
+  }
+}
+
 function normaliseSecurity(raw: unknown): SecuritySummary {
   const item = asRecord(raw)
   return {
@@ -225,4 +310,9 @@ function normalisePage(raw: unknown): AmministrazionePageData {
 export async function getAmministrazionePage(): Promise<AmministrazionePageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/amministrazione', emptyAmministrazionePage)
   return normalisePage(payload)
+}
+
+export async function getDataConsistencyPage(): Promise<DataConsistencyPageData> {
+  const payload = await apiJson<unknown>('/api/v1/ui/amministrazione/consistenza-dati', emptyDataConsistencyPage)
+  return normaliseDataConsistency(payload)
 }

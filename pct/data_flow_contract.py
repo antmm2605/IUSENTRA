@@ -324,11 +324,15 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
             ("Database", "/admin/database"),
             ("Registro GDPR", "/privacy/registro"),
         ),
-        api_routes=("/api/v1/ui/amministrazione", "/api/v1/ui/admin/database"),
+        api_routes=(
+            "/api/v1/ui/amministrazione",
+            "/api/v1/ui/amministrazione/consistenza-dati",
+            "/api/v1/ui/admin/database",
+        ),
         tenant_path_keys=("AUTH_DB", "AUDIT_DB", "PRIVACY_DB", "STUDIO_DB"),
         json_modules=("utenti", "audit", "privacy"),
-        sqlite_tables=("utenti", "audit_log", "privacy_trattamenti"),
-        postgres_tables=("utenti", "audit_log", "privacy_trattamenti"),
+        sqlite_tables=("utenti", "audit_log", "privacy_trattamenti", "transactional_outbox"),
+        postgres_tables=("utenti", "audit_log", "privacy_trattamenti", "transactional_outbox"),
     ),
     "topbar": DataFlowArea(
         label="Topbar operativa",

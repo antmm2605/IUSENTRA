@@ -579,6 +579,36 @@ def _copy_moduli_json_records(sqlite_backend, target_backend) -> None:
     target_backend.salva_tabella("moduli_json_records", list(rows), _insert)
 
 
+def _copy_transactional_outbox(sqlite_backend, target_backend) -> None:
+    """Trasferisce gli eventi pendenti senza rigenerarli o cambiarne la chiave."""
+
+    rows = sqlite_backend.conn.execute("SELECT * FROM transactional_outbox").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO transactional_outbox
+            (id, tenant_id, aggregate_type, aggregate_id, aggregate_version, event_type,
+             idempotency_key, actor_id, correlation_id, causation_id, payload_json, status,
+             attempts, available_at, created_at, processed_at, last_error)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""), raw.get("tenant_id", ""), raw.get("aggregate_type", ""),
+                raw.get("aggregate_id", ""), int(raw.get("aggregate_version") or 1),
+                raw.get("event_type", ""), raw.get("idempotency_key", ""),
+                raw.get("actor_id", "sistema"),
+                raw.get("correlation_id", ""), raw.get("causation_id", ""),
+                raw.get("payload_json", "{}"), raw.get("status", "PENDING"),
+                int(raw.get("attempts") or 0), raw.get("available_at", ""),
+                raw.get("created_at", ""), raw.get("processed_at"), raw.get("last_error"),
+            ),
+        )
+
+    target_backend.salva_tabella("transactional_outbox", list(rows), _insert)
+
+
 def _json_record_count(path: str) -> int:
     file_path = Path(str(path or "").strip())
     if not file_path.exists() or file_path.suffix.lower() != ".json":
@@ -924,6 +954,7 @@ def _copy_core_state_to_target(
 
     _copy_moduli_dati(sqlite_backend, target_backend)
     _copy_moduli_json_records(sqlite_backend, target_backend)
+    _copy_transactional_outbox(sqlite_backend, target_backend)
 
 
 def migrate_core_storage_to_postgres(

@@ -534,6 +534,31 @@ CREATE INDEX IF NOT EXISTS idx_audit_utente     ON audit_log(id_utente);
 CREATE INDEX IF NOT EXISTS idx_audit_azione     ON audit_log(azione);
 CREATE INDEX IF NOT EXISTS idx_audit_esito      ON audit_log(esito);
 
+-- ---- Outbox transazionale tenant-aware
+CREATE TABLE IF NOT EXISTS transactional_outbox (
+    id                TEXT PRIMARY KEY,
+    tenant_id         TEXT NOT NULL,
+    aggregate_type    TEXT NOT NULL,
+    aggregate_id      TEXT NOT NULL,
+    aggregate_version INTEGER NOT NULL,
+    event_type        TEXT NOT NULL,
+    idempotency_key   TEXT NOT NULL UNIQUE,
+    actor_id          TEXT NOT NULL,
+    correlation_id    TEXT NOT NULL,
+    causation_id      TEXT,
+    payload_json      TEXT NOT NULL DEFAULT '{}',
+    status            TEXT NOT NULL DEFAULT 'PENDING',
+    attempts          INTEGER NOT NULL DEFAULT 0,
+    available_at      TEXT NOT NULL,
+    created_at        TEXT NOT NULL,
+    processed_at      TEXT,
+    last_error        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_transactional_outbox_pending
+    ON transactional_outbox(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_transactional_outbox_tenant_aggregate
+    ON transactional_outbox(tenant_id, aggregate_type, aggregate_id);
+
 -- ---- Registro moduli dati
 CREATE TABLE IF NOT EXISTS moduli_dati (
     nome              TEXT PRIMARY KEY,

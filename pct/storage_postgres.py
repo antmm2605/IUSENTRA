@@ -432,6 +432,26 @@ CREATE TABLE IF NOT EXISTS backup_records (
     dati_json TEXT DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS transactional_outbox (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    aggregate_type TEXT NOT NULL,
+    aggregate_id TEXT NOT NULL,
+    aggregate_version INTEGER NOT NULL,
+    event_type TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    actor_id TEXT NOT NULL,
+    correlation_id TEXT NOT NULL,
+    causation_id TEXT,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    available_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    processed_at TEXT,
+    last_error TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_clienti_cf ON clienti(codice_fiscale);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_cliente ON fascicoli(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_stato ON fascicoli(stato);
@@ -473,10 +493,31 @@ CREATE INDEX IF NOT EXISTS idx_notifiche_tipo ON notifiche_log(tipo);
 CREATE INDEX IF NOT EXISTS idx_backup_timestamp ON backup_records(timestamp);
 CREATE INDEX IF NOT EXISTS idx_backup_stato ON backup_records(stato);
 CREATE INDEX IF NOT EXISTS idx_backup_tipo ON backup_records(tipo);
+CREATE INDEX IF NOT EXISTS idx_transactional_outbox_pending ON transactional_outbox(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_transactional_outbox_tenant_aggregate ON transactional_outbox(tenant_id, aggregate_type, aggregate_id);
 """
 
 
 CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "transactional_outbox": (
+        "id",
+        "tenant_id",
+        "aggregate_type",
+        "aggregate_id",
+        "aggregate_version",
+        "event_type",
+        "idempotency_key",
+        "actor_id",
+        "correlation_id",
+        "causation_id",
+        "payload_json",
+        "status",
+        "attempts",
+        "available_at",
+        "created_at",
+        "processed_at",
+        "last_error",
+    ),
     "clienti": (
         "id",
         "tipo",
@@ -1000,6 +1041,7 @@ class PostgresStudioDB:
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS massimale_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS soglia_preapprovazione_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
+                    "ALTER TABLE transactional_outbox ADD COLUMN IF NOT EXISTS actor_id TEXT NOT NULL DEFAULT 'sistema'",
                     "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS tenant_slug TEXT DEFAULT ''",
                     "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS dati_json TEXT DEFAULT '{}'",
                 ):

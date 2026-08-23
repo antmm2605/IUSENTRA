@@ -292,6 +292,10 @@ from web.services.react_amministrazione_bridge import (
     build_product_readiness_error_payload,
     build_product_readiness_payload,
 )
+from web.services.react_data_consistency_bridge import (
+    build_data_consistency_error_payload,
+    build_data_consistency_payload,
+)
 from web.services.react_fatturazione_bridge import (
     build_fatturazione_runtime_config,
     build_react_fatturazione_detail_payload,
@@ -11230,6 +11234,39 @@ def amministrazione_product_readiness():
         return jsonify(
             build_product_readiness_error_payload(
                 "Registro di prontezza non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/amministrazione/consistenza-dati")
+@_richiedi_auth
+def amministrazione_data_consistency():
+    """Centro read-only: legge esclusivamente il backend SQL del tenant."""
+
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_data_consistency_error_payload("Sessione utente richiesta.")), 403
+    if not _session_user_can("admin.configura"):
+        return jsonify(build_data_consistency_error_payload("Permesso admin.configura richiesto.")), 403
+    try:
+        anchor = tenant_data_path("CLIENTI_DB", "./clienti/anagrafica.json", require_tenant=True)
+        if not anchor:
+            raise RuntimeError("Archivio tenant non configurato.")
+        backend = get_request_studio_db(anchor)
+        if backend is None:
+            raise RuntimeError("Backend SQL del tenant non disponibile.")
+        tenant = getattr(g, "tenant", None)
+        return jsonify(
+            build_data_consistency_payload(
+                studio_db=backend,
+                tenant_slug=str(getattr(tenant, "slug", "") or ""),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Data Consistency Center: %s", exc)
+        return jsonify(
+            build_data_consistency_error_payload(
+                "Coerenza dati non disponibile dal backend SQL del tenant."
             )
         ), 200
 

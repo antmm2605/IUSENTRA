@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, CircleAlert, ClipboardCheck, Database, ExternalLink, FlaskConical, MonitorCheck, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, CircleAlert, ClipboardCheck, Database, ExternalLink, FlaskConical, MonitorCheck, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
 import {
+  emptyDataConsistencyPage,
   emptyAmministrazionePage,
+  getDataConsistencyPage,
   getAmministrazionePage,
+  type DataConsistencyPageData,
   type AmministrazionePageData,
 } from '../amministrazioneData'
 import {
@@ -13,7 +16,7 @@ import {
 } from '../productReadinessData'
 import { buttonTone, type LegacyModule, type OperationalModule } from '../studioData'
 import { Badge } from '../ui/Badge'
-import { ButtonLink } from '../ui/Button'
+import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
@@ -214,14 +217,95 @@ function ProductReadinessView({ data, loading, error }: { data: ProductReadiness
   )
 }
 
+function DataConsistencyView({ data, loading, error, onRefresh }: { data: DataConsistencyPageData; loading: boolean; error: string; onRefresh: () => void }) {
+  const readableDomains = data.domains.filter((domain) => domain.status === 'PRESIDIATO').length
+  return (
+    <Page
+      title="Coerenza dati"
+      subtitle="Controllo in sola lettura del backend SQL del tenant, senza scansioni dei mirror JSON."
+      actions={
+        <>
+          <Button tone="neutral" onClick={onRefresh} disabled={loading}><RefreshCw size={15} />Aggiorna controllo</Button>
+          <ButtonLink href="/amministrazione" tone="neutral"><ArrowLeft size={15} />Torna ad amministrazione</ButtonLink>
+        </>
+      }
+    >
+      {loading ? <LoadingState title="Controllo coerenza dati" message="Lettura del backend SQL del tenant in corso." /> : null}
+      {!loading && error ? <EmptyState title="Coerenza dati non disponibile" message={error} action={<ButtonLink href="/amministrazione" tone="primary">Torna ad amministrazione</ButtonLink>} /> : null}
+      {!loading && !error ? (
+        <>
+          <section className="iu-consistency-banner" aria-label="Regola di verità della coerenza dati">
+            <Database size={20} aria-hidden="true" />
+            <div>
+              <strong>Fonte operativa: {displaySourceLabel(data.sourceOfTruth)}</strong>
+              <span>Tenant: {data.tenantScope || 'studio corrente'} · I mirror JSON non sono stati letti né usati come fallback.</span>
+            </div>
+          </section>
+          {data.warnings.length ? <Panel title="Anomalie da presidiare"><div className="iu-adminhub-warnings">{data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">{warning.code}</Badge><span>{warning.message}</span></div>)}</div></Panel> : null}
+          <section className="iu-readiness-kpis" aria-label="Riepilogo coerenza dati">
+            <KpiCard label="Domini leggibili" value={formatValue(readableDomains)} note={`${data.domains.length} domini P0 censiti`} badge={<Badge tone={data.ok ? 'success' : 'warning'}>{data.ok ? 'presidiati' : 'attenzione'}</Badge>} />
+            <KpiCard label="Eventi in attesa" value={formatValue(data.outbox.pending)} note="Outbox transazionale, nessun invio automatico" badge={<Badge tone="info">outbox</Badge>} />
+            <KpiCard label="Eventi completati" value={formatValue(data.outbox.processed)} note="Consegne interne registrate" badge={<Badge tone="success">esiti</Badge>} />
+            <KpiCard label="Eventi con errore" value={formatValue(data.outbox.failed)} note="Da analizzare prima di qualsiasi ritentativo" badge={<Badge tone={data.outbox.failed ? 'danger' : 'neutral'}>{data.outbox.failed ? 'blocco' : 'nessuno'}</Badge>} />
+          </section>
+          <Panel title="Contratto di controllo" subtitle={`Generato: ${formatDateTimeIt(data.generatedAt, 'Non disponibile')}`}>
+            <div className="iu-readiness-contract">
+              <span><ClipboardCheck size={15} aria-hidden="true" />Scritture: {displayWritesLabel(data.contracts.writes)}</span>
+              <span><ShieldCheck size={15} aria-hidden="true" />Fallback JSON: {data.contracts.fallbackUsed ? 'rilevato' : 'assente'}</span>
+              <span><Database size={15} aria-hidden="true" />Scansione JSON: {data.contracts.jsonScanned ? 'rilevata' : 'assente'}</span>
+              <span>Eventi totali: {formatValue(data.outbox.total)}</span>
+            </div>
+          </Panel>
+          <Panel title="Domini P0" subtitle="Apri una riga per repository, tabelle SQL e conteggi aggregati.">
+            <div className="iu-consistency-domains">
+              {data.domains.map((domain) => (
+                <details className="iu-consistency-domain" key={domain.id}>
+                  <summary>
+                    <span><strong>{domain.label}</strong><small>{domain.repository}</small></span>
+                    <span className="iu-consistency-domain__summary"><strong>{domain.records === null ? 'Non leggibile' : formatValue(domain.records)}</strong><Badge tone={domain.status === 'PRESIDIATO' ? 'success' : 'danger'}>{domain.status === 'PRESIDIATO' ? 'presidiato' : 'non leggibile'}</Badge></span>
+                  </summary>
+                  <div className="iu-consistency-domain__body">
+                    <p>JSON: {domain.jsonRole}.</p>
+                    <div className="iu-consistency-tables">
+                      {domain.tables.map((table) => <div key={table.table}><code>{table.table}</code><strong>{table.count === null ? 'Non leggibile' : formatValue(table.count)}</strong>{table.reason ? <small>{table.reason}</small> : null}</div>)}
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </Panel>
+        </>
+      ) : null}
+    </Page>
+  )
+}
+
 export function AmministrazionePage() {
   const [data, setData] = useState<AmministrazionePageData>(emptyAmministrazionePage)
   const [readiness, setReadiness] = useState<ProductReadinessPageData>(emptyProductReadinessPage)
+  const [consistency, setConsistency] = useState<DataConsistencyPageData>(emptyDataConsistencyPage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const readinessSelected = new URLSearchParams(window.location.search).get('tab') === 'prontezza-prodotto'
+  const consistencySelected = new URLSearchParams(window.location.search).get('tab') === 'consistenza-dati'
+
+  const refreshConsistency = useCallback(() => {
+    setLoading(true)
+    setError('')
+    getDataConsistencyPage()
+      .then((payload) => {
+        setConsistency(payload)
+        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Coerenza dati non disponibile.')
+      })
+      .catch(() => setError('Coerenza dati non disponibile.'))
+      .finally(() => setLoading(false))
+  }, [])
 
   useEffect(() => {
+    if (consistencySelected) {
+      refreshConsistency()
+      return
+    }
     let active = true
     setLoading(true)
     setError('')
@@ -248,7 +332,7 @@ export function AmministrazionePage() {
     return () => {
       active = false
     }
-  }, [readinessSelected])
+  }, [consistencySelected, readinessSelected, refreshConsistency])
 
   const hasData = useMemo(
     () => data.metrics.length > 0 || data.operational_routes.length > 0 || data.sections.some((section) => section.items.length > 0),
@@ -256,6 +340,7 @@ export function AmministrazionePage() {
   )
 
   if (readinessSelected) return <ProductReadinessView data={readiness} loading={loading} error={error} />
+  if (consistencySelected) return <DataConsistencyView data={consistency} loading={loading} error={error} onRefresh={refreshConsistency} />
 
   return (
     <Page

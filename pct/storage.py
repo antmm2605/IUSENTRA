@@ -341,6 +341,7 @@ class StudioDB:
         ("fascicoli", "profilo_deposito_json", "TEXT DEFAULT '{}'"),
         ("preventivi_records", "profilo_deposito_json", "TEXT NOT NULL DEFAULT '{}'"),
         ("conferimenti_records", "profilo_deposito_json", "TEXT NOT NULL DEFAULT '{}'"),
+        ("transactional_outbox", "actor_id", "TEXT NOT NULL DEFAULT 'sistema'"),
     )
 
     def _schema_gia_pronto_su_connessione(self, conn: sqlite3.Connection) -> bool:
@@ -352,6 +353,7 @@ class StudioDB:
             "moduli_dati",
             "moduli_json_records",
             "settings_config",
+            "transactional_outbox",
         }
         tables = {
             str(row[0])
@@ -415,6 +417,8 @@ class StudioDB:
             conn = self._connect()
             self._local._conn = conn
         conn.executescript(_schema_sql())
+        from pct.transactional_outbox import ensure_outbox_schema
+        ensure_outbox_schema(conn)
         # Upgrade: aggiungi dati_json dove mancante
         for table in self._UPGRADE_ADD_DATI_JSON:
             try:

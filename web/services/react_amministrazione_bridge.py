@@ -173,6 +173,16 @@ def build_react_amministrazione_payload(
         ),
         _module("backup", "Backup", "/backup", "governance", "Controllo backup disponibile nello stesso ambiente operativo."),
     ]
+    if _can(current_user, "admin.configura"):
+        operational_routes.append(
+            _module(
+                "consistenza-dati",
+                "Coerenza dati",
+                "/amministrazione?tab=consistenza-dati",
+                "governance",
+                "Lettura SQL dei domini P0, outbox e anomalie senza usare mirror JSON.",
+            )
+        )
     legacy_routes = [
         _legacy("impostazioni", "Impostazioni", "/impostazioni", "impostazioni sensibili", "Configurazioni riservate gestite nel percorso dedicato."),
         _legacy("impostazioni-studio", "Impostazioni studio", "/impostazioni-studio", "impostazioni sensibili", "Parametri studio e canali restano protetti."),
@@ -274,6 +284,11 @@ def build_react_amministrazione_payload(
         ],
         "actions": [
             _readiness_action(),
+            *(
+                [_action("consistenza-dati", "Apri coerenza dati", "/amministrazione?tab=consistenza-dati", "neutral")]
+                if _can(current_user, "admin.configura")
+                else []
+            ),
             _action("utenti", "Apri utenti", "/utenti", "primary"),
             _action("profili", "Apri profili", "/profili", "primary"),
             _action("audit", "Apri audit", "/audit", "neutral"),

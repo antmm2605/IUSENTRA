@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.71 - 2026-08-23
+
+- Introdotto il Data Consistency Center in Amministrazione: il controllo legge esclusivamente i conteggi aggregati SQL del tenant corrente, dichiara esplicitamente la fonte operativa e non usa i mirror JSON come fallback.
+- Introdotto lo schema outbox transazionale con parità SQLite/PostgreSQL: tenant, attore, aggregate, versione, chiave di idempotenza e correlazioni sono registrati nella stessa transazione della mutazione; nessun invio PEC, firma, deposito o pagamento parte dal server.
+- Aggiunti guardrail per idempotenza, rollback atomico, migrazione SQLite/PostgreSQL, riconciliazione SQL e autorizzazione `admin.configura`; la vista è leggibile anche su desktop, tablet e mobile.
+
 ## 2.278.65 - 2026-08-23
 
 - Introdotti Capability Truth Registry e Sentinella Telematica: le capability distinguono prova, prerequisiti e limiti; il catalogo delle fonti ufficiali PST viene monitorato dinamicamente e ogni variazione o indisponibilità apre un presidio collegato ai flussi interessati.

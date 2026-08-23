@@ -76,3 +76,7 @@ Durante la prima prova mobile un badge di stato poteva sovrapporsi al nome inter
 ## Correzione rilevata nella prova reale
 
 La prima ricostruzione dopo l'introduzione della vista ha mostrato conteggi provenienti dall'archivio derivato dalla configurazione globale, non dal path `CLIENTI_DB` del tenant attivo. Il problema non era grafico: avrebbe potuto rendere il controllo SQL ambiguo in una sessione multi-tenant. La route ora risolve l'ancora con `tenant_data_path(..., require_tenant=True)` prima di ottenere il backend; `tests/test_data_consistency_react_api.py` prepara e autentica un tenant reale. Dopo la seconda ricostruzione Docker senza cache, la vista ha mostrato i conteggi SQL del tenant corrente indicati sopra. La correzione è coperta dai 40 test finali Storage/RBAC/React, dalla prova browser reale e dai 15 golden journey release superati.
+
+## Correzione gate remoto
+
+Il primo passaggio CI del commit Fase 3 ha bloccato `Lint + syntax` non per un difetto della route, ma perché l'artefatto generato `docs/backend-endpoint-security-map.md` non era stato rigenerato dopo l'aggiunta dell'endpoint protetto. Il generatore `scripts/react-migration/generate_backend_security_map.py` è stato eseguito, il controllo `--check` è ora verde e sono stati rieseguiti i test di sicurezza backend insieme ai test della nuova console e dell'outbox. Il commit correttivo viene sottoposto nuovamente a Docker locale, CI completa e deploy prima della chiusura formale.

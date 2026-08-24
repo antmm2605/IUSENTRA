@@ -113,6 +113,7 @@ import {
   type FascicoloActivity,
   type FascicoloAuditTrail,
   type FascicoloDeadline,
+  type FascicoloDocumentPresidioAction,
   type FascicoloDetailData,
   type FascicoloDeposit,
   type FascicoloDepositCatalog,
@@ -5319,6 +5320,7 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
 function initialDetailIncludesFromHash(): FascicoloDetailSection[] {
   if (typeof window === 'undefined') return []
   const section = lazySectionForDetailHash(currentDetailHashSectionId())
+  if (section === 'scadenze') return ['scadenze', 'documenti']
   return section ? [section] : []
 }
 
@@ -8800,7 +8802,20 @@ function DeadlineRow({ deadline }:{deadline:FascicoloDeadline}) {
   return <a className="iu-fas-deadline-row" href={deadline.href}><Badge tone={deadline.tone}>{deadline.priority || deadline.type || 'termine'}</Badge><strong>{deadline.title}</strong><span>{deadline.date}{deadline.peremptory ? ' · perentorio' : ''}</span></a>
 }
 
-function DocumentPresidioPanel({ data, onOpenDocuments, onDone, onError }:{data:FascicoloDetailData; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+function documentPresidioDeadlineHref(action: FascicoloDocumentPresidioAction, fascicoloId: string): string {
+  const params = new URLSearchParams({
+    id_fascicolo: fascicoloId,
+    titolo: action.title,
+    data_scadenza: action.dateIso,
+    tipo: normaliseText(action.type).includes('udienza') ? 'UDIENZA' : 'ALTRO',
+    descrizione: action.description,
+    note: `Proposta dal presidio documentale. Fonte: ${visibleDocumentSource(action.source)}.`,
+  })
+  if (action.peremptory) params.set('perentorio', '1')
+  return `/scadenziario/nuova?${params.toString()}`
+}
+
+function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, onDone, onError }:{data:FascicoloDetailData; fascicoloId:string; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const presidio = data.documentPresidio
   const actions = presidio.actions || []
   const next = presidio.nextAction || actions[0]
@@ -8816,19 +8831,31 @@ function DocumentPresidioPanel({ data, onOpenDocuments, onDone, onError }:{data:
       </header>
       {actions.length ? (
         <div className="iu-fas-presidio-actions">
-          {actions.slice(0, 6).map((action) => (
-            <article key={action.id}>
-              <Badge tone={action.tone}>{action.date || 'Data da confermare'}</Badge>
-              <strong>{action.title}</strong>
-              <span>{action.description}</span>
-              <small>
-                {visibleDocumentSource(action.source)}
-                {action.peremptory ? ' · termine perentorio' : ''}
-                {action.requiresCommunicationDate ? ' · serve data comunicazione' : ''}
-              </small>
-              <a className="iu-fas-inline-link" href="#documenti" onClick={onOpenDocuments}><FileText size={14}/> Apri documento e verifica</a>
-            </article>
-          ))}
+          {actions.slice(0, 6).map((action) => {
+            const sourceDocument = data.documents.find((document) => document.id === action.documentId)
+            const canPrepareDeadline = Boolean(action.dateIso) && !action.requiresCommunicationDate
+            return (
+              <article key={action.id}>
+                <Badge tone={action.tone}>{action.date || 'Data da confermare'}</Badge>
+                <strong>{action.title}</strong>
+                <span>{action.description}</span>
+                <small>
+                  {visibleDocumentSource(action.source)}
+                  {action.peremptory ? ' · termine perentorio' : ''}
+                  {action.requiresCommunicationDate ? ' · serve data comunicazione' : ''}
+                </small>
+                <div className="iu-fas-presidio-action-links">
+                  {sourceDocument?.actions.preview ? (
+                    <button type="button" className="iu-fas-inline-link" onClick={() => onPreview({ name: sourceDocument.name, url: sourceDocument.actions.preview, downloadUrl: sourceDocument.actions.download })}><Eye size={14}/> Apri fonte</button>
+                  ) : (
+                    <a className="iu-fas-inline-link" href="#documenti" onClick={onOpenDocuments}><FolderOpen size={14}/> Cerca la fonte</a>
+                  )}
+                  {canPrepareDeadline ? <a className="iu-fas-inline-link" href={documentPresidioDeadlineHref(action, fascicoloId)}><CalendarDays size={14}/> Prepara scadenza</a> : null}
+                </div>
+                {action.requiresCommunicationDate ? <p className="iu-fas-presidio-action-note">La data di comunicazione non è stata letta: apri la fonte e registrala prima di predisporre il termine.</p> : null}
+              </article>
+            )
+          })}
         </div>
       ) : <p className="iu-empty">{presidio.summary}</p>}
       {presidio.warnings.length ? (
@@ -9354,10 +9381,10 @@ function DetailPage({ id }:{id:string}) {
             <p className="iu-fas-section-intro">Le acquisizioni da PolisWeb/PST, le sincronizzazioni e i download ufficiali sono tracciati qui: non sono attività processuali e non alterano lo stato della pratica.</p>
             <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento eventi tecnici...</p> : null}{data.technicalEvents.map((activity) => <ActivityRow activity={activity} key={`technical-${activity.id}`} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.technicalEvents.length ? <p className="iu-empty">Nessuna acquisizione o sincronizzazione tecnica registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per leggere gli eventi tecnici del fascicolo.</p> : null}</div>
           </DetailSection>
-          <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => loadLazySection('scadenze')}>
+          <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => { loadLazySection('scadenze'); loadLazySection('documenti') }}>
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
             {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
-          <DocumentPresidioPanel data={data} onOpenDocuments={openSection('documenti', 'documenti')} onDone={refreshDocuments} onError={failDetail}/>
+          <DocumentPresidioPanel data={data} fascicoloId={f.id} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} onDone={refreshDocuments} onError={failDetail}/>
             <div className="iu-fas-two-cols"><div><h3>Scadenze</h3>{data.deadlines.map((deadline) => <DeadlineRow deadline={deadline} key={deadline.id}/>)}{lazyStatus.scadenze === 'loaded' && !data.deadlines.length ? <p className="iu-empty">Nessuna scadenza collegata.</p> : null}<a className="iu-fas-inline-link" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuova scadenza</a></div><div><h3>Agenda</h3>{data.appointments.map((app) => <a className="iu-fas-deadline-row" href={app.href} key={app.id}><Badge tone={app.tone}>{app.type || 'agenda'}</Badge><strong>{app.title}</strong><span>{app.date} {app.time} {app.place}</span></a>)}{lazyStatus.scadenze === 'loaded' && !data.appointments.length ? <p className="iu-empty">Nessun appuntamento trovato.</p> : null}<a className="iu-fas-inline-link" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo appuntamento</a></div></div>
           </DetailSection>
           <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal + notificationRelataCount} defaultOpen={activeHashSection === 'cancelleria' || activeHashSection === 'comunicazioni-notifica' || activeHashSection === 'relata-notifica' || notificationRelata.releaseDetected || !['monitoraggio', 'nessuna_notifica'].includes(notificationRelata.status)} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>

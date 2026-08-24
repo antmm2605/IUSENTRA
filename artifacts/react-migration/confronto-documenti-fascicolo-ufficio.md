@@ -672,3 +672,18 @@ La modifica non altera deposito, firma, notifica, catalogazione, dati SQL o
 connettori PST/PolisWeb. È stata provata nella copia Docker reale
 `http://127.0.0.1:8080`, fascicolo `DC5BF1DB`, con consultazione visiva della
 cronologia e senza alcuna mutazione di eventi o documenti.
+
+## Aggiornamento 24/08/2026 — udienze e scadenze derivate dal contenuto
+
+Nel **Presidio documenti fascicolo** della sezione **Udienze e scadenze** ogni
+proposta con una data leggibile espone ora la fonte reale nel lettore interno e
+un collegamento che apre il modulo React di nuova scadenza già compilato. Il
+collegamento non registra alcuna scadenza: l'avvocato verifica il documento e
+conferma solo dal salvataggio esplicito del modulo. Per proposte dipendenti
+dalla data di comunicazione resta invece visibile il vincolo, senza calcolo
+fittizio.
+
+La prova materiale sulla copia Docker `http://127.0.0.1:8080`, fascicolo
+`DC5BF1DB`, ha aperto la fonte PDF interna e poi il modulo Scadenziario con
+data, tipo, fascicolo, descrizione e nota della fonte precompilati. Nessun
+evento o scadenza è stato creato durante il collaudo.

@@ -7192,6 +7192,13 @@ def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
         "documentPresidio: section === 'scadenze' || section === 'documenti' ? "
         "payload.documentPresidio : current.documentPresidio"
     ) in source
+    assert "function documentPresidioDeadlineHref" in source
+    assert "Apri fonte" in source
+    assert "Prepara scadenza" in source
+    assert "La data di comunicazione non è stata letta" in source
+    assert "fascicoloId={f.id}" in source
+    assert "if (section === 'scadenze') return ['scadenze', 'documenti']" in source
+    assert "loadLazySection('scadenze'); loadLazySection('documenti')" in source
 
 
 def test_react_fascicolo_lex_indexing_non_mostra_status_tecnici_o_date_brevi():

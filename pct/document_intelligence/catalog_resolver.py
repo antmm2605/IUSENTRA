@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Iterable
 
-from pct.fascicolo_document_catalog import classify_fascicolo_document
+from pct.fascicolo_document_catalog import DocumentCatalogClassification, classify_fascicolo_document
 from pct.template_atti_legal_sources import REGISTRY_VERSION, TEMPLATE_ATTI_LEGAL_SOURCES
 
 from .models import (
@@ -25,7 +25,7 @@ from .models import (
 )
 
 
-RESOLVER_VERSION = "2026.08.24.catalogo-fascicolo.v3"
+RESOLVER_VERSION = "2026.08.24.catalogo-fascicolo.v6"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -38,7 +38,7 @@ PROFILE_SOURCES: dict[str, tuple[str, ...]] = {
     "CIV-PROC": ("normattiva_cpc", "normattiva_l_247_2012_ordinamento_forense", "cnf_codice_deontologico_forense", "pst_specifiche_tecniche_pct"),
     "CIV-GDP": ("normattiva_cpc", "normattiva_d_lgs_150_2011_riti", "pst_specifiche_tecniche_pct", "corte_cassazione_sentenzeweb"),
     "LOC": ("normattiva_legge_392_1978_locazioni", "normattiva_legge_431_1998_locazioni_abitative", "agenzia_entrate_rli_locazioni"),
-    "RCD": ("normattiva_codice_civile", "normattiva_codice_strada_285_1992", "normattiva_codice_assicurazioni_209_2005", "ivass_arbitro_assicurativo"),
+    "RCD": ("normattiva_codice_civile", "normattiva_cpc", "normattiva_codice_strada_285_1992", "normattiva_codice_assicurazioni_209_2005", "normattiva_dl_132_2014_negoziazione"),
     "ADR": ("normattiva_d_lgs_28_2010_mediazione", "normattiva_dm_150_2023_mediazione", "giustizia_registro_mediazione_dm_150_2023", "normattiva_dl_132_2014_negoziazione"),
     "PAT": ("normattiva_cpa", "giustizia_amministrativa_pat", "giustizia_amministrativa_dpcs_2025_pat", "giustizia_amministrativa_ricerche_decisioni"),
     "CONC": ("normattiva_codice_crisi_14_2019", "normattiva_d_lgs_136_2024_correttivo_crisi", "pst_portale_vendite_pubbliche_specifiche_concorsuali", "snapshot:pvp-specifiche-2024-v1.2"),
@@ -120,6 +120,17 @@ FAMILY_PROFILE_BY_CONTEXT = {
     (_normalise(area), _normalise(branch), _normalise(subfamily)): profile
     for area, branch, subfamily, profile in FAMILY_PROFILE_ROWS
 }
+# I profili inferiti dal corpus non alterano la matrice dei modelli: la
+# matrice resta il contratto completo delle 47 famiglie, mentre queste sono
+# sottofamiglie documentali più specifiche, usate solo dopo due evidenze
+# indipendenti nel fascicolo e mai al posto di dati strutturati dell'avvocato.
+INFERRED_PROFILE_CONTEXT_ALIASES = {
+    (
+        _normalise("Diritto civile"),
+        _normalise("Responsabilità civile e danni"),
+        _normalise("Risarcimento danni da circolazione stradale"),
+    ): "RCD",
+}
 _SOURCE_INDEX = {str(row.get("id") or ""): dict(row) for row in TEMPLATE_ATTI_LEGAL_SOURCES}
 
 
@@ -144,6 +155,66 @@ class CatalogResolution:
     candidates: list[DocumentCatalogCandidate]
     evidence: list[DocumentCatalogEvidence]
     review: DocumentCatalogReview | None
+
+
+def _unindexed_content_classification(current: DocumentCatalogClassification) -> DocumentCatalogClassification:
+    """Non attribuisce natura o deposito dal solo nome del file.
+
+    Il tipo storico resta consultabile, ma senza testo SQL il documento deve
+    passare dalla revisione: il nome è un metadato, non una prova di contenuto.
+    """
+
+    return DocumentCatalogClassification(
+        role="da_verificare",
+        label="Contenuto da indicizzare",
+        section="da-verificare",
+        confidence=0,
+        evidence="contenuto non disponibile nel repository SQL; il nome del file non è usato per catalogare",
+        tipo_documento=current.tipo_documento,
+        deposit_role="allegato",
+        deposit_candidate=False,
+    )
+
+
+def _insufficient_content_classification(current: DocumentCatalogClassification) -> DocumentCatalogClassification:
+    """Conserva il testo indicizzato, ma non trasforma il nome in una prova.
+
+    Un PDF può contenere intestazione dell'ufficio o formule comuni senza
+    rivelare la propria natura processuale. In quel caso la classificazione
+    originata dal solo nome file non è un esito automatico utilizzabile né
+    può renderlo candidato alla busta.
+    """
+
+    return DocumentCatalogClassification(
+        role="da_verificare",
+        label="Contenuto da verificare",
+        section="da-verificare",
+        confidence=50,
+        evidence="testo indicizzato privo di riferimenti sufficienti; il nome del file non è usato per catalogare",
+        tipo_documento=current.tipo_documento,
+        deposit_role="fuori_busta",
+        deposit_candidate=False,
+    )
+
+
+def _classify_indexed_content(extracted_text: str) -> DocumentCatalogClassification:
+    """Esegue la classificazione senza nome, tipo o metadati del portale.
+
+    Il catalogo SQL deve dimostrare che la proposta deriva dal testo estratto:
+    questo oggetto vuoto impedisce al classificatore storico di usare
+    accidentalmente file name, tipo dichiarato o altri metadati come prova.
+    """
+
+    return classify_fascicolo_document(
+        SimpleNamespace(
+            nome="", nome_originale="", nome_portale="", percorso="", tipo="",
+            classificazione_portale="", tipo_atto_portale="", servizio_portale="",
+            mittente_portale="", note="", tags=[],
+        ),
+        filename="",
+        extracted_text=extracted_text,
+        tipo="",
+    )
 
 
 def profile_source_rows(profile_id: str) -> list[dict[str, Any]]:
@@ -186,7 +257,13 @@ def resolve_profile(context: dict[str, Any]) -> tuple[str | None, str]:
     subfamily = str(context.get("sottobranca") or context.get("subfamily") or "")
     exact = FAMILY_PROFILE_BY_CONTEXT.get((_normalise(area), _normalise(branch), _normalise(subfamily)))
     if exact:
-        return exact, "profilo del fascicolo corrisponde alla matrice area/branca/sottofamiglia"
+        reason = str(context.get("_profile_inference_reason") or "").strip()
+        return exact, reason or "profilo del fascicolo corrisponde alla matrice area/branca/sottofamiglia"
+
+    inferred = INFERRED_PROFILE_CONTEXT_ALIASES.get((_normalise(area), _normalise(branch), _normalise(subfamily)))
+    if inferred:
+        reason = str(context.get("_profile_inference_reason") or "").strip()
+        return inferred, reason or "sottofamiglia documentale verificabile del fascicolo"
 
     channel = _normalise(context.get("canale") or context.get("canale_operativo") or context.get("source"))
     if channel in {"pat", "siga"}:
@@ -196,6 +273,71 @@ def resolve_profile(context: dict[str, Any]) -> tuple[str | None, str]:
     if channel in {"pdp", "ppt", "penale"}:
         return "PEN", "canale penale del fascicolo"
     return None, "mancano area, branca e sottofamiglia verificabili del fascicolo"
+
+
+def infer_fascicolo_context_from_document_corpus(
+    context: dict[str, Any] | None,
+    documents: Iterable[dict[str, Any]],
+) -> dict[str, Any]:
+    """Integra un profilo assente soltanto quando il corpus è concordante.
+
+    L'inferenza non legge file o nomi locali: riceve esclusivamente il testo
+    già estratto nel repository SQL per i documenti esplicitamente associati
+    al fascicolo. Non sovrascrive mai area, branca o sottofamiglia compilate.
+    """
+
+    inferred = dict(context or {})
+    profile_id, _ = resolve_profile(inferred)
+    if profile_id:
+        return inferred
+    structured_values = (
+        inferred.get("area") or inferred.get("area_pratica"),
+        inferred.get("branca") or inferred.get("branch"),
+        inferred.get("sottobranca") or inferred.get("subfamily"),
+    )
+    if any(str(value or "").strip() for value in structured_values):
+        return inferred
+
+    matches: list[tuple[str, str]] = []
+    seen_documents: set[str] = set()
+    for position, document in enumerate(documents, start=1):
+        text = _normalise(document.get("text"))
+        if not text:
+            continue
+        has_damage_claim = bool(re.search(r"\brisarcimento (?:dei )?danni?\b", text))
+        has_road_claim = bool(
+            re.search(
+                r"\b(sinistro stradale|circolazione stradale|rc auto|responsabilita civile auto)\b",
+                text,
+            )
+        )
+        if not (has_damage_claim and has_road_claim):
+            continue
+        document_id = str(document.get("document_id") or document.get("id") or "").strip()
+        filename = str(document.get("filename") or document.get("name") or "Documento indicizzato").strip()
+        dedupe_key = document_id or f"{filename}:{position}"
+        if dedupe_key in seen_documents:
+            continue
+        seen_documents.add(dedupe_key)
+        matches.append((document_id, filename))
+
+    # Un solo documento può essere mal classficato o estratto in modo
+    # incompleto: la materia viene proposta solo con conferma indipendente.
+    if len(matches) < 2:
+        return inferred
+
+    evidence_names = [filename for _, filename in matches[:5]]
+    inferred.update({
+        "area": "Diritto civile",
+        "branca": "Responsabilità civile e danni",
+        "sottobranca": "Risarcimento danni da circolazione stradale",
+        "_profile_inference_reason": (
+            "profilo inferito dal contenuto concordante di "
+            f"{len(matches)} documenti indicizzati: risarcimento danni da sinistro stradale"
+        ),
+        "_profile_evidence_documents": evidence_names,
+    })
+    return inferred
 
 
 def resolve_document_catalog(
@@ -225,19 +367,34 @@ def resolve_document_catalog(
         note=metadata.get("note", ""),
         tags=metadata.get("tags", []),
     )
-    classification = classify_fascicolo_document(
+    metadata_classification = classify_fascicolo_document(
         synthetic_document,
         filename=filename,
         extracted_text=extracted_text,
         tipo=metadata.get("tipo_documento", ""),
     )
+    has_extracted_text = bool(str(extracted_text or "").strip())
+    if not has_extracted_text:
+        classification = _unindexed_content_classification(metadata_classification)
+    else:
+        content_classification = _classify_indexed_content(extracted_text)
+        classification = (
+            content_classification
+            if content_classification.role != "da_verificare" and content_classification.confidence >= 75
+            else _insufficient_content_classification(metadata_classification)
+        )
     source_rows = profile_source_rows(profile_id) if profile_id else []
     has_manual_browser_evidence = any(row["source_type"] == "browser_evidence" for row in source_rows)
     source_state = "manual_browser_evidence" if has_manual_browser_evidence else "verified_snapshot"
     confidence = int(classification.confidence)
     status = "proposed"
     review_reason = ""
-    if not profile_id:
+    if not has_extracted_text:
+        status = "review_required"
+        source_state = "review_required"
+        confidence = 0
+        review_reason = "Il contenuto del documento non è ancora indicizzato nel repository SQL: non viene catalogato dal nome del file."
+    elif not profile_id:
         status = "review_required"
         source_state = "review_required"
         confidence = min(confidence, 55)
@@ -268,7 +425,17 @@ def resolve_document_catalog(
             weight=45 if profile_id else 0, content_sha256=None, created_at=now,
         ),
     ]
-    if str(extracted_text or "").strip():
+    inferred_reason = str(context.get("_profile_inference_reason") or "").strip()
+    inferred_documents = context.get("_profile_evidence_documents")
+    if inferred_reason:
+        names = inferred_documents if isinstance(inferred_documents, list) else []
+        evidence.append(DocumentCatalogEvidence(
+            id=new_id("catalog-evidence"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            assignment_id="", evidence_type="extracted_text", locator="contenuto indicizzato concordante del fascicolo",
+            excerpt=f"{inferred_reason}. Documenti: {', '.join(str(name) for name in names[:5])}"[:240],
+            weight=70, content_sha256=None, created_at=now,
+        ))
+    if has_extracted_text:
         evidence.append(DocumentCatalogEvidence(
             id=new_id("catalog-evidence"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
             assignment_id="", evidence_type="extracted_text", locator="testo estratto SQL",
@@ -318,6 +485,7 @@ def assert_full_family_matrix(rows: Iterable[dict[str, Any]]) -> list[tuple[str,
 
 __all__ = [
     "CatalogResolution", "FAMILY_PROFILE_BY_CONTEXT", "FAMILY_PROFILE_ROWS", "PROFILE_SOURCES",
-    "REGISTRY_VERSION", "RESOLVER_VERSION", "assert_full_family_matrix", "profile_source_rows",
+    "INFERRED_PROFILE_CONTEXT_ALIASES", "REGISTRY_VERSION", "RESOLVER_VERSION", "assert_full_family_matrix",
+    "infer_fascicolo_context_from_document_corpus", "profile_source_rows",
     "resolve_document_catalog", "resolve_profile",
 ]

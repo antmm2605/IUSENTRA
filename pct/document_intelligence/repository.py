@@ -177,6 +177,7 @@ class DocumentAIRepository:
             self._ensure_sqlite_file_type_constraint(conn)
             conn.executescript(self._migration_sql("20260505_documenti_ai.sql"))
             conn.executescript(self._catalog_migration_sql())
+            self._ensure_sqlite_catalog_assignment_source_state_schema(conn)
             self._ensure_sqlite_catalog_review_history_schema(conn)
             conn.commit()
         elif self._backend == "postgresql":
@@ -311,6 +312,106 @@ class DocumentAIRepository:
                 """
                 CREATE INDEX IF NOT EXISTS idx_document_catalog_reviews_tenant_fascicolo_state
                 ON document_catalog_reviews (tenant_id, fascicolo_id, state, created_at)
+                """
+            )
+            conn.execute("COMMIT")
+        except Exception:
+            if conn.in_transaction:
+                conn.execute("ROLLBACK")
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys=ON")
+
+    def _ensure_sqlite_catalog_assignment_source_state_schema(self, conn: sqlite3.Connection) -> None:
+        """Aggiorna il vincolo SQLite senza perdere catalogo, prove o revisioni.
+
+        SQLite non permette di modificare un CHECK esistente. Le installazioni
+        precedenti non conoscono ``manual_override``: ricreiamo quindi soltanto
+        la tabella padre e copiamo ogni colonna, mantenendo le tabelle figlie
+        (candidati, evidenze e revisioni) collegate allo stesso identificativo.
+        """
+
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'document_catalog_assignments'"
+        ).fetchone()
+        create_sql = str(row[0] if row else "").casefold().replace("\n", " ")
+        if "'manual_override'" in create_sql:
+            return
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")
+        try:
+            conn.execute("BEGIN")
+            conn.execute(
+                """
+                CREATE TABLE document_catalog_assignments__source_state_migration (
+                    id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    fascicolo_id TEXT NOT NULL,
+                    document_id TEXT NOT NULL,
+                    document_ai_id TEXT,
+                    document_version_id TEXT,
+                    document_sha256 TEXT NOT NULL,
+                    profile_id TEXT,
+                    legal_area TEXT,
+                    legal_branch TEXT,
+                    legal_subfamily TEXT,
+                    jurisdiction TEXT,
+                    rite TEXT,
+                    proceeding_phase TEXT,
+                    document_nature TEXT NOT NULL,
+                    document_label TEXT NOT NULL,
+                    document_section TEXT NOT NULL,
+                    deposit_role TEXT NOT NULL,
+                    deposit_candidate INTEGER NOT NULL DEFAULT 0 CHECK (deposit_candidate IN (0, 1)),
+                    status TEXT NOT NULL CHECK (status IN ('proposed', 'confirmed', 'review_required', 'superseded', 'rejected')),
+                    confidence INTEGER NOT NULL CHECK (confidence BETWEEN 0 AND 100),
+                    source_state TEXT NOT NULL CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'manual_override', 'review_required')),
+                    resolver_version TEXT NOT NULL,
+                    rule_set_id TEXT,
+                    reason TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    created_by TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_by TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    confirmed_at TEXT,
+                    FOREIGN KEY (rule_set_id) REFERENCES document_catalog_rule_sets(id) ON DELETE SET NULL,
+                    UNIQUE (tenant_id, fascicolo_id, document_id, document_sha256, resolver_version)
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO document_catalog_assignments__source_state_migration (
+                    id, tenant_id, fascicolo_id, document_id, document_ai_id, document_version_id, document_sha256,
+                    profile_id, legal_area, legal_branch, legal_subfamily, jurisdiction, rite, proceeding_phase,
+                    document_nature, document_label, document_section, deposit_role, deposit_candidate, status,
+                    confidence, source_state, resolver_version, rule_set_id, reason, metadata_json, created_by,
+                    created_at, updated_by, updated_at, confirmed_at
+                )
+                SELECT
+                    id, tenant_id, fascicolo_id, document_id, document_ai_id, document_version_id, document_sha256,
+                    profile_id, legal_area, legal_branch, legal_subfamily, jurisdiction, rite, proceeding_phase,
+                    document_nature, document_label, document_section, deposit_role, deposit_candidate, status,
+                    confidence, source_state, resolver_version, rule_set_id, reason, metadata_json, created_by,
+                    created_at, updated_by, updated_at, confirmed_at
+                FROM document_catalog_assignments
+                """
+            )
+            conn.execute("DROP TABLE document_catalog_assignments")
+            conn.execute(
+                "ALTER TABLE document_catalog_assignments__source_state_migration RENAME TO document_catalog_assignments"
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_catalog_assignments_fascicolo_active
+                ON document_catalog_assignments (tenant_id, fascicolo_id, status, updated_at)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_catalog_assignments_document
+                ON document_catalog_assignments (tenant_id, fascicolo_id, document_id, updated_at)
                 """
             )
             conn.execute("COMMIT")
@@ -1212,6 +1313,83 @@ class DocumentAIRepository:
             WHERE assignment_id = ? AND state = 'open'
             """,
             (actor, note, now, assignment.id),
+        )
+        self._commit()
+        return self.get_catalog_assignment(tenant_id, fascicolo_id, document_id)
+
+    def override_catalog_assignment(
+        self,
+        *,
+        tenant_id: str,
+        fascicolo_id: str,
+        document_id: str,
+        actor: str,
+        document_label: str,
+        document_section: str,
+        document_nature: str,
+        deposit_role: str,
+        deposit_candidate: bool,
+        note: str = "",
+    ) -> DocumentCatalogAssignment | None:
+        """Conferma una correzione professionale senza perdere evidenze SQL.
+
+        Il catalogo rimane la fonte di verità: questa operazione modifica il
+        record tenant-aware esistente e conserva candidati/evidenze prodotti
+        dalla pipeline. Non esiste un override solo grafico o JSON.
+        """
+
+        self._require_catalog_sql()
+        clean_label = str(document_label or "").strip()
+        clean_note = str(note or "").strip()
+        allowed_sections = {
+            "atti", "provvedimenti", "procure", "notifiche", "comunicazioni",
+            "contratti", "pagamenti", "allegati", "da-verificare",
+        }
+        allowed_natures = {
+            "atto_principale", "atto_processuale", "provvedimento", "procura", "notifica",
+            "comunicazione", "contratto", "economico", "allegato", "da_verificare",
+        }
+        allowed_deposit_roles = {
+            "atto_principale", "procura", "allegato", "prova_notifica",
+            "contributo_unificato", "fuori_busta",
+        }
+        if not clean_label or len(clean_label) > 160:
+            raise DocumentAIValidationError("Indica una denominazione del documento di massimo 160 caratteri.")
+        if document_section not in allowed_sections:
+            raise DocumentAIValidationError("Sezione del catalogo non valida.")
+        if document_nature not in allowed_natures:
+            raise DocumentAIValidationError("Natura documentale non valida.")
+        if deposit_role not in allowed_deposit_roles:
+            raise DocumentAIValidationError("Ruolo deposito non valido.")
+        if len(clean_note) > 2000:
+            raise DocumentAIValidationError("Nota di classificazione troppo lunga.")
+        assignment = self.get_catalog_assignment(tenant_id, fascicolo_id, document_id)
+        if not assignment:
+            return None
+        now = utc_now()
+        reason = "Classificazione corretta e confermata manualmente dall’avvocato."
+        if clean_note:
+            reason = f"{reason} Nota: {clean_note}"
+        self._conn().execute(
+            """
+            UPDATE document_catalog_assignments
+            SET document_label = ?, document_section = ?, document_nature = ?, deposit_role = ?,
+                deposit_candidate = ?, status = 'confirmed', source_state = 'manual_override',
+                reason = ?, updated_by = ?, updated_at = ?, confirmed_at = ?
+            WHERE id = ? AND tenant_id = ? AND fascicolo_id = ?
+            """,
+            (
+                clean_label, document_section, document_nature, deposit_role, bool(deposit_candidate),
+                reason, actor, now, now, assignment.id, tenant_id, fascicolo_id,
+            ),
+        )
+        self._conn().execute(
+            """
+            UPDATE document_catalog_reviews
+            SET state = 'resolved', resolved_by = ?, resolution_note = ?, resolved_at = ?
+            WHERE assignment_id = ? AND state = 'open'
+            """,
+            (actor, clean_note, now, assignment.id),
         )
         self._commit()
         return self.get_catalog_assignment(tenant_id, fascicolo_id, document_id)

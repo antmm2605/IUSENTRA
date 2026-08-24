@@ -129,7 +129,7 @@ def preview_unavailable_html(nome_documento: str, scarica_url: str) -> tuple[str
         f'<h1>{escaped_name}</h1>'
         '<p>Anteprima non disponibile per questo formato.<br>'
         "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{escaped_download}">Scarica documento</a>'
+        f'<a href="{escaped_download}" download>Scarica documento</a>'
         "</main></body></html>"
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
@@ -161,7 +161,7 @@ def preview_eml_html(
         '<div class="toolbar">'
         f"<div><strong>{escape(nome_documento)}</strong><div class=\"meta\">Messaggio EML originale"
         f"{' - ' + str(count) + ' allegati' if count else ''}</div></div>"
-        f'<a href="{escape(scarica_url, quote=True)}">Scarica EML</a>'
+        f'<a href="{escape(scarica_url, quote=True)}" download>Scarica EML</a>'
         "</div>"
         f'<section class="card">{html_body}</section>'
         "</main></body></html>"
@@ -199,7 +199,7 @@ def preview_text_html(
         "</style></head><body><main class=\"wrap\">"
         '<div class="toolbar">'
         f"<div><strong>{escape(nome_documento)}</strong><div class=\"meta\">Documento TXT leggibile nel fascicolo</div></div>"
-        f'<a href="{escape(scarica_url, quote=True)}">Scarica TXT</a>'
+        f'<a href="{escape(scarica_url, quote=True)}" download>Scarica TXT</a>'
         "</div>"
         f'<section class="card"><h1>Documento di testo</h1>{body}</section>'
         "</main></body></html>"
@@ -226,7 +226,7 @@ def preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
         '<h1>Impossibile visualizzare il documento</h1>'
         '<p>Si è verificato un errore durante il caricamento.<br>'
         "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{escaped_download}">Scarica documento</a>'
+        f'<a href="{escaped_download}" download>Scarica documento</a>'
         "</main></body></html>"
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
@@ -309,6 +309,7 @@ def pdf_mobile_preview_html(
         ".reader-toolbar a{color:#1d4ed8}.reader-toolbar button:disabled{opacity:.42;cursor:not-allowed}"
         ".reader-toolbar a:focus-visible,.reader-toolbar button:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px;border-color:#2563eb}"
         ".reader-toolbar__zoom{min-width:54px;color:#334155;font-variant-numeric:tabular-nums;text-align:center}"
+        ".reader-download-status{grid-column:1/-1;min-height:0;color:#475569;font-size:11px;font-weight:760;line-height:1.3;overflow-wrap:anywhere}"
         ".pages{--zoom:1;min-width:0;width:100%;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;scrollbar-gutter:stable}"
         ".page{width:calc(100% * var(--zoom));min-width:0;max-width:none;margin:0;display:grid;gap:6px;justify-self:start}"
         ".page figcaption{color:#475569;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}"
@@ -325,8 +326,10 @@ def pdf_mobile_preview_html(
         '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
         '<output class="reader-toolbar__zoom" data-zoom-value aria-live="polite">100%</output>'
         '<button type="button" data-zoom-in title="Ingrandisci" aria-label="Ingrandisci documento">+</button>'
-        f'<a href="{escaped_download}" title="Scarica documento">Scarica</a>'
-        "</nav></header>"
+        f'<a href="{escaped_download}" download data-document-download title="Scarica documento">Scarica</a>'
+        "</nav>"
+        '<span class="reader-download-status" data-download-status aria-live="polite"></span>'
+        "</header>"
         f'<section class="pages" data-document-pages>{pages}</section>'
         f'</main><script src="{viewer_script}" defer></script></body></html>'
     )

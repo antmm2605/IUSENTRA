@@ -560,3 +560,101 @@ Dopo la ricostruzione finale del container locale `iusentra-app`, healthy su
 porta 8080, la medesima prova con click reale è stata ripetuta: aggiornamento
 abilitato a fine richiesta, tipo dell'attestazione invariato e lettore P7M
 aperto/richiuso senza uscire da IUSENTRA.
+
+## Aggiornamento 24/08/2026 — controllo contributo, catalogo SQL e cronologia
+
+L'accorpamento della presentazione non rimuove i resolver. In particolare il
+**contributo unificato** resta una voce autonoma del riepilogo economico del
+fascicolo: stato, importo, nota e documento fonte provengono dal resolver
+economico; il Presidio del fascicolo ne mostra una sola card con il collegamento ai
+documenti/evidenze da verificare. Non esiste una sostituzione con una variabile
+grafica né un'affermazione generica di pagamento o esenzione.
+
+La correzione del catalogo documentale è ora una procedura completa e
+tenant-aware:
+
+- il pannello React invia una richiesta autenticata alla rotta
+  `POST /api/v1/ui/fascicoli/{id}/documenti-ai/{documento}/catalogazione-documentale/sovrascrivi`;
+- il servizio verifica il fascicolo del tenant, aggiorna la stessa assegnazione
+  SQL e registra l'evento `document_catalog.overridden` senza riversare la nota
+  libera nell'audit tecnico;
+- lo stato `manual_override` identifica la decisione professionale distinta da
+  evidenza automatica o da semplice metadato del portale;
+- la migrazione SQLite ricrea esclusivamente il vincolo `source_state` delle
+  installazioni precedenti, copiando tutte le colonne e mantenendo candidati,
+  evidenze e revisioni; la migrazione PostgreSQL aggiorna il vincolo omologo;
+- la visualizzazione React espone quattro stati non ambigui: catalogato dal
+  contenuto, confermato manualmente, metadati del portale senza contenuto,
+  oppure documento da indicizzare. Il nome file non diventa una classificazione
+  dal contenuto.
+
+Anche la cronologia è stata corretta: acquisizioni PST/PolisWeb e download
+Local Signer vanno in `Eventi tecnici e acquisizioni`; non sono più presentati
+come attività processuali in attesa. Le udienze e le iscrizioni a ruolo importate
+rimangono invece nella cronologia processuale come eventi registrati, non
+modificabili come se fossero bozze dell'avvocato.
+
+Guardrail automatici già eseguiti in questa tranche:
+
+- repository: correzione SQL, conservazione di candidati/evidenze e conferma
+  manuale;
+- migrazione SQLite di un catalogo già esistente;
+- API autenticata con payload completo della correzione;
+- payload React: documento locale non indicizzato e documento PST privo di
+  contenuto non vengono classificati dal nome;
+- separazione di attività processuali, udienze importate ed eventi tecnici.
+
+La prova di accettazione finale resta **aperta**: richiede ricostruzione della
+copia Docker locale, click materiali sulle card e sulle azioni di catalogo,
+scroll completo, hover/focus, desktop/tablet/mobile e verifica del comportamento
+con dati controllati in `http://127.0.0.1:8080` prima di commit, push e deploy.
+
+La superficie è denominata **Presidio del fascicolo**. L'ancora precedente
+`#cabina-regia` resta disponibile soltanto per compatibilità con link e percorsi
+esistenti: risolve e apre il medesimo Presidio, senza creare un secondo pannello.
+
+## Aggiornamento 24/08/2026 — anteprima prima della scelta per deposito e notifica
+
+Perimetro: finestra React di selezione dei documenti del fascicolo, condivisa
+da **Prepara deposito telematico** e **Prepara notifica**. Non sono state
+modificate la selezione dei candidati, la firma, l’indice, la busta, il
+destinatario, il trasporto PEC o la logica di invio.
+
+- Ogni documento disponibile localmente espone il comando esplicito
+  **Visualizza** accanto alla casella di selezione; il comando apre il lettore
+  interno IUSENTRA e conserva aperta la finestra di scelta.
+- Il lettore viene portato sopra il selettore con uno stacking context
+  dedicato; chiudendolo si ritorna allo stesso elenco e alle stesse selezioni.
+  Un documento non disponibile localmente espone invece il motivo, senza
+  simulare un’anteprima.
+- Prova materiale eseguita sulla copia Docker reale
+  `http://127.0.0.1:8080`, fascicolo `DC5BF1DB`: nel deposito è stato aperto
+  `decretoLiquidazioneCTU.pdf`, verificato nel lettore interno e quindi
+  selezionato; la UI ha mostrato `1 documenti selezionati` e il riepilogo del
+  file. Nella notifica è stato ripetuto il flusso su
+  `depositoMinutaSentenzaSemplificata.pdf`, con lettura interna, chiusura e
+  selezione mantenuta.
+- I test React mirati, il typecheck TypeScript e `git diff --check` sono
+  passati prima della ricostruzione. Il container locale `iusentra-app` è
+  stato ricreato ed è healthy su porta 8080.
+## Aggiornamento 24/08/2026 — richiesta scadenze nel profilo PST
+
+Il payload QBuilder per ProfiloFascicolo mantiene il parametro scadTermini con valore 1. È la richiesta primaria che include nel profilo i termini e le scadenze restituiti dal PST: non è corretto disattivarla e poi dedurre che il fascicolo non abbia scadenze. Durante il collaudo della Fase 4 è stata trovata una sola asserzione di test ancora ferma al valore storico 0; è stata aggiornata al contratto effettivo senza modificare connettore, dati, richieste PST o risultati operativi.
+
+La UI continua a presentare esclusivamente termini leggibili e verificabili; un mancato riscontro del PST o del contenuto indicizzato resta un esito da presidiare, non un termine inventato.
+
+## Aggiornamento 24/08/2026 — lettore interno dalla scelta deposito/notifica
+
+Il lettore unico è stato provato nuovamente nella copia Docker reale
+`http://127.0.0.1:8080`, fascicolo `DC5BF1DB`, partendo dal selettore
+**Prepara deposito telematico**. Il click materiale su `Visualizza` del
+`decretoLiquidazioneCTU.pdf` ha aperto il PDF reale nel lettore IUSENTRA sopra
+il selettore, mantenendo il contesto del fascicolo. Il successivo click su
+`Scarica` ha mostrato l'esito osservabile `Download avviato` con il nome del
+file, senza `Failed to fetch`.
+
+Lo stesso selettore è stato aperto per **Prepara notifica** e presenta i
+documenti reali con il medesimo comando di anteprima; nessuna notifica,
+deposito, firma o trasmissione PEC è stata avviata durante la prova. La prova
+copre il lettore interno e l'azione di download locale; non sostituisce i
+collaudi successivi della firma, della busta o dell'invio dal PC dell'avvocato.

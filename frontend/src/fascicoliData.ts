@@ -363,9 +363,13 @@ export type FascicoloDocument = {
   catalogSection: string
   catalogConfidence: number
   catalogEvidence: string
+  catalogMethod: 'contenuto' | 'manuale' | 'da_indicizzare' | 'metadati_portale' | string
+  catalogStatus: string
+  catalogSourceState: string
   depositRole: string
   depositCandidate?: boolean
   actions: {
+    acquire: string
     preview: string
     download: string
     edit: string
@@ -390,6 +394,13 @@ export type FascicoloActivity = {
   lawyer: string
   documentId: string
   depositId: string
+  sourceDocumentId?: string
+  sourceDocumentHref?: string
+  sourceDocumentDownloadHref?: string
+  sourceDocumentLabel?: string
+  sourceExcerpt?: string
+  sourceIsDerived?: boolean
+  readOnly?: boolean
   hearingTime?: string
   remoteHearingDetected?: boolean
   remoteHearingMode?: string
@@ -976,6 +987,7 @@ export type FascicoloDetailData = {
   profile: KeyValue[]
   documents: FascicoloDocument[]
   activities: FascicoloActivity[]
+  technicalEvents: FascicoloActivity[]
   deadlines: FascicoloDeadline[]
   appointments: FascicoloAppointment[]
   documentPresidio: FascicoloDocumentPresidio
@@ -1313,8 +1325,8 @@ export const emptyRegiaOperativa: RegiaOperativaData = {
 }
 
 export const emptyNotificationRelata: FascicoloNotificationRelata = {
-  status: 'monitoraggio',
-  statusLabel: 'Monitoraggio attivo',
+  status: 'nessuna_notifica',
+  statusLabel: 'Nessuna notifica in lavorazione',
   tone: 'neutral',
   releaseDetected: false,
   notificationAlreadySent: false,
@@ -1338,7 +1350,7 @@ export const emptyNotificationRelata: FascicoloNotificationRelata = {
   depositHref: '/notifiche-legali#deposito',
   primaryHref: '/portali/pst/acquisizione?focus=documenti',
   primaryLabel: 'Verifica portale',
-  systemNotification: 'Monitoraggio relata notifica attivo.',
+  systemNotification: 'Nessuna notifica, relata o prova collegata da completare nel fascicolo.',
   releasedDocuments: [],
   documents: [],
   steps: [],
@@ -1439,7 +1451,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
-  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, operationalPresidio: emptyOperationalPresidio, deposits: [], requests: [], parties: [], history: [],
+  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], technicalEvents: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, operationalPresidio: emptyOperationalPresidio, deposits: [], requests: [], parties: [], history: [],
   economics: [], sentenzeEconomiche: null, workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
   depositCatalog: emptyDepositCatalog,
@@ -2386,14 +2398,18 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         catalogSection: text(row.catalogSection ?? row.catalog_section),
         catalogConfidence: number(row.catalogConfidence ?? row.catalog_confidence),
         catalogEvidence: text(row.catalogEvidence ?? row.catalog_evidence),
+        catalogMethod: text(row.catalogMethod ?? row.catalog_method),
+        catalogStatus: text(row.catalogStatus ?? row.catalog_status),
+        catalogSourceState: text(row.catalogSourceState ?? row.catalog_source_state),
         depositRole: text(row.depositRole ?? row.deposit_role),
         depositCandidate: row.depositCandidate === undefined && row.deposit_candidate === undefined ? undefined : bool(row.depositCandidate ?? row.deposit_candidate),
         actions: {
-          preview: text(actions.preview), download: text(actions.download), edit: text(actions.edit), sign: text(actions.sign), pdfa: text(actions.pdfa), attest: text(actions.attest), metadata: text(actions.metadata), rename: text(actions.rename), delete: text(actions.delete),
+          acquire: text(actions.acquire), preview: text(actions.preview), download: text(actions.download), edit: text(actions.edit), sign: text(actions.sign), pdfa: text(actions.pdfa), attest: text(actions.attest), metadata: text(actions.metadata), rename: text(actions.rename), delete: text(actions.delete),
         },
       }
     }),
     activities: asArray(payload.activities).map(normalizeActivity),
+    technicalEvents: asArray(payload.technicalEvents ?? payload.technical_events).map(normalizeActivity),
     deadlines: asArray(payload.deadlines).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
       return { id: text(row.id, `scad-${index}`), title: text(row.title ?? row.titolo, 'Scadenza'), date: text(row.date ?? row.data, 'n.d.'), dateIso: text(row.dateIso ?? row.data_scadenza), type: text(row.type ?? row.tipo), priority: text(row.priority ?? row.priorita), status: text(row.status ?? row.stato), peremptory: bool(row.peremptory ?? row.perentorio), notes: text(row.notes ?? row.note), href: text(row.href, '/scadenziario'), tone: text(row.tone, 'warning') as Tone }
@@ -2744,6 +2760,13 @@ function normalizeActivity(entry: unknown, index: number): FascicoloActivity {
     lawyer: text(row.lawyer ?? row.avvocato),
     documentId: text(row.documentId ?? row.id_documento),
     depositId: text(row.depositId ?? row.id_deposito_pct),
+    sourceDocumentId: text(row.sourceDocumentId ?? row.source_document_id),
+    sourceDocumentHref: text(row.sourceDocumentHref ?? row.source_document_href),
+    sourceDocumentDownloadHref: text(row.sourceDocumentDownloadHref ?? row.source_document_download_href),
+    sourceDocumentLabel: text(row.sourceDocumentLabel ?? row.source_document_label),
+    sourceExcerpt: text(row.sourceExcerpt ?? row.source_excerpt),
+    sourceIsDerived: bool(row.sourceIsDerived ?? row.source_is_derived),
+    readOnly: bool(row.readOnly ?? row.read_only),
     hearingTime: text(row.hearingTime ?? row.hearing_time),
     remoteHearingDetected: bool(row.remoteHearingDetected ?? row.remote_hearing_detected),
     remoteHearingMode: text(row.remoteHearingMode ?? row.remote_hearing_mode),

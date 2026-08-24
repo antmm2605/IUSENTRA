@@ -48,11 +48,11 @@ def test_deposito_resolver_non_si_ferma_a_pec_profilo_senza_codice():
     assert "codice ufficio" in payload["message"]
 
 
-def test_ui_react_espone_regia_operativa_e_payload_reale():
+def test_ui_react_espone_presidio_fascicolo_e_payload_reale():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     assert "RegiaOperativaSection" in source
-    assert "Regia Operativa" in source
+    assert "Presidio del fascicolo" in source
     assert "Deposito non disponibile" not in source
     assert "RegiaActionCard" in source
     assert "preventivoHref" in source
@@ -76,6 +76,32 @@ def test_ui_mostra_dati_regia_senza_placeholder_operativi():
     assert "ACQUISITO" in regia
     assert "Checklist non ancora generata" not in regia
     assert "Nessuno slot documentale generato" not in regia
+
+
+def test_comandi_presidio_restano_azioni_testuali_accessibili():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert "Verifica operativa" in source
+    assert "Prepara deposito" in source
+    assert "Riesegui lettura documentale" in source
+    assert "Apri tutti i documenti" in source
+    assert ".iu-fas-regia__grid .iu-fas-regia__actions .iu-fas-post" in css
+    assert "flex:1 1 158px" in css
+    assert ".iu-fas-presidio-controls" in css
+    assert ".iu-fas-presidio-controls .iu-fas-post" in css
+    assert "width:auto" in css
+
+
+def test_catalogo_espone_una_ricatalogazione_sql_subito_disponibile():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    panel = source[source.index("function CatalogazioneDocumentalePanel"):source.index("function RowActions")]
+
+    assert panel.count("Aggiorna catalogazione") == 1
+    assert "iu-fas-catalog__header-actions" in panel
+    assert "Riesegui la catalogazione sul contenuto SQL corrente" in panel
+    assert ".iu-fas-catalog__header-actions button" in css
 
 
 def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
@@ -729,7 +755,52 @@ def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():
     assert "const suggestedIds = useMemo(() => sortedDocuments" in source
     assert "const selectedDocuments = sortedDocuments.filter" in source
     assert "Documenti ordinati dal più recente" in source
+    assert "onPreview: (doc: FascicoloDocument) => void" in source
+    assert "Visualizza ' + doc.name + ' prima di selezionarlo" in source
+    assert "onPreview={(doc) => setPreviewDoc({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}" in source
+    assert "overDocumentFlow={Boolean(documentFlowMode)}" in source
     assert ".iu-fas-document-flow-modal" in css
+    assert ".iu-fas-document-flow-row__preview" in css
+    assert ".iu-fas-preview-modal--over-document-flow{z-index:1130}" in css
+
+
+def test_azioni_rapide_elenco_fascicoli_hanno_etichetta_e_target_tattile():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    actions = source[source.index("function RowActions"):source.index("function StatusEditCell")]
+
+    for label in ("Apri", "Modifica", "Deposito", "Notifica", "PDF", "Elimina"):
+        assert f"<span>{label}</span>" in actions
+    assert "min-width:44px;min-height:44px" in css
+    assert ".iu-fas-title-actions{display:flex!important" in css
+    assert "flex:0 0 auto!important;width:max-content!important" in css
+    assert "white-space:nowrap" in css
+
+
+def test_catalogazione_documentale_espone_visualizza_con_etichetta_esplicita():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    panel = source[source.index("function CatalogazioneDocumentalePanel"):source.index("function RowActions")]
+
+    assert '<Eye size={15}/> Visualizza' in panel
+    assert 'aria-label={`Apri ${document.name} nel lettore interno`}' in panel
+
+
+def test_navigazione_fascicolo_si_adatta_senza_troncare_sezioni_desktop():
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert ".iu-fas-section-nav{position:sticky;top:76px;z-index:12;display:flex;flex-wrap:wrap;gap:8px;overflow:visible" in css
+    assert ".iu-fas-section-nav a:focus-visible" in css
+    assert ".iu-fas-section-nav{flex-wrap:nowrap;overflow-x:auto;border-radius:12px" in css
+
+
+def test_comando_pagopa_mostra_unicona_vettoriale_affidabile():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    button = source[source.index("function PagoPaActionButton"):source.index("function RecordOverlayButton")]
+
+    assert '<Landmark size={16} aria-hidden="true"/>' in button
+    assert "PAGOPA_LOGO_URL" not in button
+    assert ".iu-fas-pagopa-button>svg" in css
 
 
 def test_ui_fascicolo_menu_contestuale_azioni_reali():
@@ -789,7 +860,7 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Riepilogo controllo" in source
     assert "Proforma da preparare" in source
     assert "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma." in source
-    assert "Presidio operativo aggiornato" in source
+    assert "Controlli prioritari" in source
     assert "remainingActions.slice(0, 5)" in source
     assert "Ricevuta pagoPA" in source
     assert "Parcella da emettere" in source
@@ -825,3 +896,46 @@ def test_ui_deposito_accetta_documenti_preselezionati_da_query_fascicolo():
     assert "explicitDocumentSelection" in source
     assert "fascicoloDocumentMatchesSelectionTokens(doc, requestedDocumentSelectionTokens)" in source
     assert "Scelta dal fascicolo" in source
+
+
+def test_presidio_traduce_stati_tecnici_e_ordina_i_controlli_economici():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert "function regiaOperationalStateLabel" in source
+    assert "BLOCCATO_DA_ERRORI: 'Bloccato da requisiti mancanti'" in source
+    assert "WF_SIGP_GDP: 'SIGP — Giudice di Pace'" in source
+    assert "DA_COMPLETARE: 'Da completare'" in source
+    assert "{regiaChecklistStatusLabel(itemStatus)}" in source
+    assert "{regiaOperationalStateLabel(h.operationalState)}" in source
+    assert "regiaWorkflowLabel(h.workflow)" in source
+    assert ".iu-fas-regia__sentenze{display:grid" in css
+    assert ".iu-fas-regia__sentenze>div{display:grid" in css
+    assert ".iu-fas-regia__sentenze>div>span{display:grid;grid-template-columns:minmax(0,1fr)" in css
+    assert ".iu-fas-regia__sentenze>a{width:fit-content" in css
+    assert ".iu-fas-regia-list article{display:grid;grid-template-columns:minmax(0,1fr)" in css
+
+
+def test_attivita_react_rende_apribile_la_fonte_documentale_nel_lettore_interno():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    routes = Path("web/bootstrap/fascicoli_core_routes.py").read_text(encoding="utf-8")
+
+    assert "sourceDocumentHref?: string" in data_source
+    assert "sourceIsDerived?: boolean" in data_source
+    assert "readOnly?: boolean" in data_source
+    assert 'aria-label="Fonte documentale dell\'informazione"' in source
+    assert "Fonte dell'informazione" in source
+    assert "Passaggio letto:" in source
+    assert "Apri fonte" in source
+    assert "onPreview={setPreviewDoc}" in source
+    assert "downloadUrl: activity.sourceDocumentDownloadHref || ''" in source
+    assert "const readOnlySystemEvent = Boolean(activity.readOnly || activity.sourceIsDerived)" in source
+    assert "!readOnlySystemEvent && activity.updateAction" in source
+    assert "!readOnlySystemEvent && activity.deleteAction" in source
+    assert ".iu-fas-activity-source{display:flex" in css
+    assert ".iu-fas-activity-source button:focus-visible" in css
+    assert "def _attivita_derivata_da_documento" in routes
+    assert "senza alterarne lo stato" in routes
+    assert "la fonte e l'evento restano nel fascicolo" in routes

@@ -51,6 +51,36 @@ def test_sentenza_ocr_non_resta_atto_giudiziario_principale():
     assert should_apply_catalog_type(TipoDocumento.ATTO_GIUDIZIARIO, classification) is True
 
 
+def test_decreto_liquidazione_ctu_non_diventa_allegato_sigp_depositabile():
+    classification = classify_fascicolo_document(
+        filename="decretoGenerico.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text=(
+            "UFFICIO DEL GIUDICE DI PACE DI PALMI. DECRETO. "
+            "Il Giudice liquida il compenso spettante al CTU per la consulenza tecnica d'ufficio."
+        ),
+    )
+
+    assert classification.role == "decreto_liquidazione_ctu"
+    assert classification.label == "Decreto di liquidazione CTU"
+    assert classification.section == "provvedimenti"
+    assert classification.deposit_role == "fuori_busta"
+    assert classification.deposit_candidate is False
+
+
+def test_sigp_generico_restante_richiede_verifica_e_non_simula_un_allegato():
+    classification = classify_fascicolo_document(
+        filename="documento.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="UFFICIO DEL GIUDICE DI PACE - SIGP. Documento disponibile nel fascicolo.",
+    )
+
+    assert classification.role == "atto_giudiziario_da_verificare"
+    assert classification.section == "da-verificare"
+    assert classification.deposit_role == "fuori_busta"
+    assert classification.deposit_candidate is False
+
+
 def test_attestazione_conformita_prevale_su_falso_positivo_ocr_sentenza():
     classification = classify_fascicolo_document(
         filename="Attestazione_di_conformita_1025_2026.pdf",
@@ -195,7 +225,7 @@ def test_provvedimento_cassazione_generico_classificato_da_ocr():
     assert classification.label == "Cassazione civile"
 
 
-def test_giudice_pace_sigp_da_ocr():
+def test_opposizione_sanzione_giudice_pace_da_ocr():
     classification = classify_fascicolo_document(
         filename="documento.pdf",
         tipo=TipoDocumento.ATTO_GIUDIZIARIO,
@@ -205,8 +235,9 @@ def test_giudice_pace_sigp_da_ocr():
         ),
     )
 
-    assert classification.role == "giudice_pace_sigp"
-    assert classification.label == "Giudice di Pace / SIGP"
+    assert classification.role == "opposizione_sanzione_amministrativa"
+    assert classification.label == "Opposizione a sanzione amministrativa"
+    assert classification.deposit_role == "atto_principale"
 
 
 def test_volontaria_giurisdizione_e_minori_hanno_classi_dedicate():

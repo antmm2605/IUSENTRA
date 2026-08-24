@@ -34,7 +34,12 @@ DOCUMENT_CATALOG_ASSIGNMENT_STATUSES = (
     "rejected",
 )
 DOCUMENT_CATALOG_JOB_STATUSES = ("queued", "processing", "completed", "review_required", "error")
-DOCUMENT_CATALOG_SOURCE_STATES = ("verified_snapshot", "manual_browser_evidence", "review_required")
+DOCUMENT_CATALOG_SOURCE_STATES = (
+    "verified_snapshot",
+    "manual_browser_evidence",
+    "manual_override",
+    "review_required",
+)
 
 
 def utc_now() -> str:

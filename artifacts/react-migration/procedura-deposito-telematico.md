@@ -1,5 +1,13 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 24/08/2026 — selezione verificabile dei documenti
+
+Prima di scegliere i documenti per il deposito, l’avvocato può ora aprire
+ciascun file nel lettore interno IUSENTRA con **Visualizza**. La verifica non
+modifica il perimetro selezionato né avvia firma, generazione della busta,
+indice o invio. La stessa UI viene usata dalla notifica per evitare che venga
+scelto un allegato basandosi soltanto sul nome.
+
 ## Aggiornamento 23/08/2026 - Registro capacità e Sentinella fonti ufficiali
 
 Perimetro: Centro Servizi Telematici React e relativo catalogo fonti. La generazione della busta, la firma, il certificato PST, l’invio PEC e le ricevute non sono stati modificati.

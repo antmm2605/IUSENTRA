@@ -144,7 +144,9 @@ def test_polisweb_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
         assert 'name="numeroRuolo"' not in xml
         assert 'name="subpro"' not in xml
     assert '<value name="fascPrecedente" type="boolean">0</value>' in profilo_xml
-    assert '<value name="scadTermini" type="boolean">0</value>' in profilo_xml
+    # ProfiloFascicolo deve richiedere anche le scadenze: il presidio non può
+    # dichiarare assenza di termini se il PST non è stato interrogato per essi.
+    assert '<value name="scadTermini" type="boolean">1</value>' in profilo_xml
 
 
 def test_api_portale_acquisizione_analyze_usa_alias_fascicolo_locale_per_update(tmp_path: Path):
@@ -3300,6 +3302,8 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
     assert 'data-zoom-out' in html
     assert 'data-zoom-reset' in html
     assert 'data-zoom-in' in html
+    assert 'data-document-download' in html
+    assert 'data-download-status' in html
     assert 'data-document-pages' in html
     assert "touch-action:pan-x pan-y" in html
     assert "overflow:auto" in html
@@ -3403,6 +3407,9 @@ def test_lettore_mobile_pdf_presidia_zoom_pinch_e_limiti():
     assert "event.preventDefault()" in script
     assert "pages.scrollLeft" in script
     assert "pages.scrollTop" in script
+    assert "downloadLink?.addEventListener('click'" in script
+    assert "window.parent.postMessage" in script
+    assert "iusentra.document.download" in script
 
 
 def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path):

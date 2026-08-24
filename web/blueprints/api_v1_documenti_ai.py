@@ -22,6 +22,7 @@ from web.services.document_intelligence_runtime import (
     document_ai_tenant_id,
     document_ai_user_context,
     fascicoli_db_path,
+    override_document_catalog_assignment,
     resolve_document_catalog_assignment,
 )
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -257,6 +258,31 @@ def revisione_catalogazione_documentale(fascicolo_id: str, documento_id: str):
             note=note,
         )
         return jsonify({"mock_fallback": False, "assignment": assignment, "message": "Revisione della catalogazione registrata nel fascicolo."})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/documenti-ai/<documento_id>/catalogazione-documentale/sovrascrivi")
+@_richiedi_auth
+def sovrascrivi_catalogazione_documentale(fascicolo_id: str, documento_id: str):
+    try:
+        raw = request.get_json(silent=True)
+        payload = raw if isinstance(raw, dict) else request.form.to_dict(flat=True)
+        assignment = override_document_catalog_assignment(
+            fascicolo_id,
+            documento_id,
+            document_label=str(payload.get("document_label") or "").strip(),
+            document_section=str(payload.get("document_section") or "").strip(),
+            document_nature=str(payload.get("document_nature") or "").strip(),
+            deposit_role=str(payload.get("deposit_role") or "").strip(),
+            deposit_candidate=str(payload.get("deposit_candidate") or "").strip().lower() in {"1", "true", "si", "on"},
+            note=str(payload.get("note") or "").strip(),
+        )
+        return jsonify({
+            "mock_fallback": False,
+            "assignment": assignment,
+            "message": "Catalogazione corretta e confermata nel fascicolo.",
+        })
     except Exception as exc:
         return _handle_error(exc)
 

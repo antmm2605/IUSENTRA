@@ -430,7 +430,8 @@ def analyze_fascicolo_document_texts(
 ) -> dict[str, Any]:
     today = today or date.today()
     metadata_by_document = metadata_by_document or {}
-    actions: list[dict[str, Any]] = []
+    procedural_actions: list[dict[str, Any]] = []
+    review_actions: list[dict[str, Any]] = []
     warnings: list[str] = []
     sources: list[dict[str, str]] = []
     for document_id, raw_text in (texts_by_document or {}).items():
@@ -439,19 +440,38 @@ def analyze_fascicolo_document_texts(
             continue
         metadata = metadata_by_document.get(document_id) or {}
         source = _document_source(metadata, document_id)
-        if not _contains_fascicolo_references(text, fascicolo):
-            warnings.append(f"{source}: documento ignorato perché non contiene riferimenti sufficienti al fascicolo.")
-            continue
+        # Il testo proviene già da un documento associato a questo fascicolo. La
+        # mancanza di R.G./parti nel testo non autorizza a scartarlo: impedisce
+        # solo di trasformare automaticamente una data in termine processuale.
         sources.append({"documentId": document_id, "name": source})
+        if not _contains_fascicolo_references(text, fascicolo):
+            review_actions.append(
+                _make_action(
+                    action_type="verifica_collegamento_documento",
+                    title="Verificare il documento collegato al fascicolo",
+                    due=None,
+                    source=source,
+                    document_id=document_id,
+                    tone="warning",
+                    priority="important",
+                    description=(
+                        "Il file è collegato a questo fascicolo, ma il testo estratto non riporta "
+                        "R.G. o parti sufficienti. Apri il documento e conferma se contiene un "
+                        "termine, una data di udienza o un provvedimento da registrare."
+                    ),
+                )
+            )
+            warnings.append(f"{source}: collegamento da verificare, nessun termine è stato escluso automaticamente.")
+            continue
         for analyzer in (_analyze_127_ter, _analyze_127_bis):
             found, local_warnings = analyzer(text, source=source, document_id=document_id)
-            actions.extend(found)
+            procedural_actions.extend(found)
             warnings.extend(local_warnings)
-        actions.extend(_analyze_generic_procedural_text(text, source=source, document_id=document_id))
+        procedural_actions.extend(_analyze_generic_procedural_text(text, source=source, document_id=document_id))
 
     deduped: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
-    for action in actions:
+    for action in [*procedural_actions, *review_actions]:
         key = (_text(action.get("type")), _text(action.get("dateIso")), _compact_key(action.get("source")))
         if key in seen:
             continue
@@ -470,13 +490,21 @@ def analyze_fascicolo_document_texts(
         if (parsed := _parse_date(item.get("dateIso"))) and parsed >= today
     ]
     next_action = upcoming[0] if upcoming else (deduped[0] if deduped else None)
-    status = "presidiato" if deduped else ("da_verificare" if sources or warnings else "non_disponibile")
+    procedural_count = sum(1 for action in deduped if _text(action.get("type")) != "verifica_collegamento_documento")
+    review_count = len(deduped) - procedural_count
+    status = "presidiato" if procedural_count else ("da_verificare" if sources or warnings else "non_disponibile")
     tone = "success" if status == "presidiato" else ("warning" if status == "da_verificare" else "neutral")
-    summary = (
-        f"{len(deduped)} adempimenti letti dai documenti del fascicolo."
-        if deduped
-        else "Nessun termine processuale leggibile dai documenti indicizzati del fascicolo."
-    )
+    if procedural_count:
+        summary = f"{procedural_count} adempimenti letti dai documenti del fascicolo."
+        if review_count:
+            summary += f" {review_count} documenti collegati richiedono una verifica manuale prima di escludere ulteriori termini."
+    elif review_count:
+        summary = (
+            f"{review_count} documenti collegati al fascicolo richiedono verifica: il testo indicizzato "
+            "non riporta R.G. o parti sufficienti. Nessun termine è escluso finché l'avvocato non conferma il contenuto."
+        )
+    else:
+        summary = "Nessun termine processuale leggibile nei documenti indicizzati del fascicolo."
     return {
         "status": status,
         "tone": tone,

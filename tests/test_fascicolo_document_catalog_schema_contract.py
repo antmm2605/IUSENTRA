@@ -45,3 +45,4 @@ def test_catalog_schema_sqlite_e_postgresql_hanno_stesso_contratto_operativo():
         assert "FOREIGN KEY (assignment_id)" in schema or "assignment_id TEXT NOT NULL REFERENCES" in schema
         assert "status IN ('proposed', 'confirmed', 'review_required', 'superseded', 'rejected')" in schema
         assert "status IN ('queued', 'processing', 'completed', 'review_required', 'error')" in schema
+        assert "source_state IN ('verified_snapshot', 'manual_browser_evidence', 'manual_override', 'review_required')" in schema

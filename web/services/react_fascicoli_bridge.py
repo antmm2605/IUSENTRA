@@ -409,8 +409,8 @@ def _audit_trail_placeholder() -> dict[str, Any]:
 
 def _empty_notification_relata() -> dict[str, Any]:
     return {
-        "status": "monitoraggio",
-        "statusLabel": "Monitoraggio attivo",
+        "status": "nessuna_notifica",
+        "statusLabel": "Nessuna notifica in lavorazione",
         "tone": "neutral",
         "releaseDetected": False,
         "pendingPortalDocuments": 0,
@@ -424,7 +424,7 @@ def _empty_notification_relata() -> dict[str, Any]:
         "depositHref": "/notifiche-legali#deposito",
         "primaryHref": "/portali/pst/acquisizione?focus=documenti",
         "primaryLabel": "Verifica portale",
-        "systemNotification": "Apri la sezione Relata notifica per caricare il presidio.",
+        "systemNotification": "Nessuna notifica, relata o prova collegata da completare nel fascicolo.",
         "releasedDocuments": [],
         "documents": [],
         "steps": [],
@@ -752,6 +752,101 @@ def _short(value: Any, limit: int = 120) -> str:
     if len(text) <= limit:
         return text
     return text[: max(0, limit - 1)].rstrip() + "..."
+
+
+_ACTIVITY_DOCUMENT_SOURCE_MARKER_RE = re.compile(
+    r"\b(?:PEC_DOCUMENT_PRESIDIO|PEC_AUDIT):docpresidio:([^:\s]+):([^:\s]+):[^\s]+",
+    re.IGNORECASE,
+)
+
+
+def _activity_labeled_source_value(text: str, label: str, *, limit: int) -> str:
+    match = re.search(
+        rf"\b{re.escape(label)}\s*:\s*(.*?)(?=\s+(?:Contesto letto|Modalità udienza|Fonte modalità udienza|Orario udienza|Attività per l'avvocato|PEC_DOCUMENT_PRESIDIO|PEC_AUDIT)\s*:|$)",
+        text,
+        re.IGNORECASE,
+    )
+    return _short(match.group(1).strip(" -:;."), limit) if match else ""
+
+
+def _activity_source_document_payload(fascicolo_id: str, activity: Any) -> dict[str, Any]:
+    """Espone la prova documentale di ogni evento derivato dal fascicolo.
+
+    Il marcatore è tecnico e resta nei dati storici/audit; la UI riceve solo
+    identificativo, nome, estratto e link del lettore interno tenant-aware.
+    """
+
+    raw = "\n".join(
+        _text(getattr(activity, field, ""))
+        for field in ("descrizione", "note", "remote_hearing_source")
+        if _text(getattr(activity, field, ""))
+    )
+    source_fascicolo_id = ""
+    source_document_id = ""
+    source_is_derived = False
+    for match in _ACTIVITY_DOCUMENT_SOURCE_MARKER_RE.finditer(raw):
+        candidate_fascicolo_id = _text(match.group(1))
+        candidate_document_id = _text(match.group(2))
+        if not candidate_document_id:
+            continue
+        if candidate_fascicolo_id and fascicolo_id and candidate_fascicolo_id != fascicolo_id:
+            continue
+        source_fascicolo_id = candidate_fascicolo_id or fascicolo_id
+        source_document_id = candidate_document_id
+        source_is_derived = True
+        break
+    if not source_document_id:
+        source_document_id = _text(getattr(activity, "id_documento", ""))
+        source_fascicolo_id = fascicolo_id
+    if not source_fascicolo_id or not source_document_id:
+        return {
+            "sourceDocumentId": "",
+            "sourceDocumentHref": "",
+            "sourceDocumentDownloadHref": "",
+            "sourceDocumentLabel": "",
+            "sourceExcerpt": "",
+            "sourceIsDerived": False,
+        }
+    source_label = (
+        _activity_labeled_source_value(raw, "Fonte documentale", limit=160)
+        or _activity_labeled_source_value(raw, "Fonte modalità udienza", limit=160)
+        or "Documento indicizzato del fascicolo"
+    )
+    source_excerpt = _activity_labeled_source_value(raw, "Contesto letto", limit=620)
+    source_base = (
+        f"/fascicoli/{quote(source_fascicolo_id, safe='')}/documenti/"
+        f"{quote(source_document_id, safe='')}"
+    )
+    return {
+        "sourceDocumentId": source_document_id,
+        "sourceDocumentHref": f"{source_base}/visualizza",
+        "sourceDocumentDownloadHref": f"{source_base}/scarica",
+        "sourceDocumentLabel": source_label,
+        "sourceExcerpt": source_excerpt,
+        "sourceIsDerived": source_is_derived,
+    }
+
+
+def _activity_notes_for_user(value: Any) -> str:
+    text = _text(value)
+    text = _ACTIVITY_DOCUMENT_SOURCE_MARKER_RE.sub("", text)
+    return _short(text, 900)
+
+
+def _activity_is_system_observation(activity: Any) -> bool:
+    """Riconosce gli eventi storici/importati che non sono attività manuali."""
+
+    title = _clean_key(getattr(activity, "titolo", ""))
+    description = _clean_key(getattr(activity, "descrizione", ""))
+    return title in {"udienza rilevata", "termine rilevato"} or any(
+        marker in description
+        for marker in (
+            "rilevata dal payload autorizzato",
+            "rilevata da pec",
+            "documento indicizzato del fascicolo",
+            "importata automaticamente da polisweb",
+        )
+    )
 
 
 def _technical_filename(value: Any) -> bool:
@@ -4995,10 +5090,33 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
         else _document_ai_texts_for_fascicolo(fascicolo, documents=deadline_documents)
     )
     if not texts:
+        candidate_sources = [
+            {
+                "documentId": _document_id(document),
+                "name": _document_display_name(document),
+            }
+            for document in deadline_documents[:8]
+            if _document_id(document)
+        ]
+        if candidate_sources:
+            return {
+                "status": "non_disponibile",
+                "tone": "warning",
+                "summary": (
+                    f"Lettura documentale non completata: {len(candidate_sources)} documenti potenzialmente processuali "
+                    "non hanno testo indicizzato. Riesegui la lettura documentale prima di escludere termini o udienze."
+                ),
+                "nextAction": None,
+                "actions": [],
+                "warnings": [
+                    "Il controllo non può concludere che non esistano termini finché i documenti collegati non sono leggibili."
+                ],
+                "sources": candidate_sources,
+            }
         return {
-            "status": "aggiornato",
-            "tone": "success",
-            "summary": "Documenti controllati: non risultano ulteriori decreti, udienze o termini processuali da presidiare.",
+            "status": "non_disponibile",
+            "tone": "neutral",
+            "summary": "Non risultano documenti processuali candidati per questo fascicolo. Carica o acquisisci gli atti prima di concludere il controllo.",
             "nextAction": None,
             "actions": [],
             "warnings": [],
@@ -6768,8 +6886,8 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         primary_href = prepare_href
         primary_label = "Apri notifica"
     else:
-        status = "monitoraggio"
-        status_label = "Monitoraggio attivo"
+        status = "nessuna_notifica"
+        status_label = "Nessuna notifica in lavorazione"
         tone = "neutral"
         primary_href = prepare_href
         primary_label = "Apri notifica"
@@ -7015,6 +7133,39 @@ def _saved_document_catalog_by_id(fascicolo: Any) -> dict[str, DocumentCatalogCl
     return by_id
 
 
+def _sql_document_catalog_by_id(fascicolo: Any) -> dict[str, Any]:
+    """Legge esclusivamente il catalogo SQL corrente, senza avviare pipeline.
+
+    Il dettaglio React non deve mai far passare un'etichetta ricavata dal nome
+    del file come se fosse una lettura. La pipeline è esplicita e la pagina
+    visualizza qui solo il suo esito persistito per il tenant proprietario.
+    """
+
+    if not has_app_context():
+        return {}
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not fid:
+        return {}
+    try:
+        from web.services.document_intelligence_runtime import (
+            build_document_ai_service,
+            document_ai_tenant_id,
+        )
+
+        assignments = build_document_ai_service().repository.list_catalog_assignments(
+            document_ai_tenant_id(),
+            fid,
+        )
+    except Exception:
+        return {}
+    by_document: dict[str, Any] = {}
+    for assignment in assignments:
+        document_id = _text(getattr(assignment, "document_id", ""))
+        if document_id and document_id not in by_document:
+            by_document[document_id] = assignment
+    return by_document
+
+
 def _document_catalog_from_saved_type(doc: Any) -> DocumentCatalogClassification:
     try:
         current_type = getattr(doc, "tipo", TipoDocumento.ALTRO)
@@ -7164,6 +7315,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
 
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
     saved_catalog = _saved_document_catalog_by_id(fascicolo)
+    sql_catalog = _sql_document_catalog_by_id(fascicolo)
 
     display_name_counters: Counter[str] = Counter()
     for doc in local_documents:
@@ -7185,8 +7337,37 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
         signature_state = _signature_state(doc, name, technical_name)
         signed = bool(signature_state["signed"])
         raw_type = _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " ")
-        catalog = saved_catalog.get(did) or _document_catalog_from_saved_type(doc)
-        display_type = catalog.label if catalog.confidence >= 70 else raw_type
+        operational_catalog = saved_catalog.get(did) or _document_catalog_from_saved_type(doc)
+        assignment = sql_catalog.get(did)
+        display_type = raw_type
+        catalog_method = "contenuto"
+        catalog_status = ""
+        catalog_source_state = ""
+        if assignment is not None:
+            catalog_role = _text(getattr(assignment, "document_nature", "")) or operational_catalog.role
+            catalog_label = _text(getattr(assignment, "document_label", ""))
+            catalog_section = _text(getattr(assignment, "document_section", "")) or operational_catalog.section
+            catalog_confidence = int(getattr(assignment, "confidence", 0) or 0)
+            catalog_evidence = _text(getattr(assignment, "reason", ""))
+            deposit_role = _text(getattr(assignment, "deposit_role", "")) or operational_catalog.deposit_role
+            deposit_candidate = bool(getattr(assignment, "deposit_candidate", False))
+            catalog_status = _text(getattr(assignment, "status", ""))
+            catalog_source_state = _text(getattr(assignment, "source_state", ""))
+            if catalog_source_state == "manual_override":
+                catalog_method = "manuale"
+        else:
+            # Il tipo già salvato serve solo a ordinare il fascicolo: non è una
+            # classificazione dal contenuto e non viene mostrato come tale.
+            catalog_role = operational_catalog.role
+            catalog_label = ""
+            catalog_section = operational_catalog.section
+            catalog_confidence = 0
+            catalog_evidence = "Nessuna classificazione dal contenuto disponibile: indicizza il documento prima di usarlo come esito catalografico."
+            deposit_role = operational_catalog.deposit_role
+            deposit_candidate = False
+            catalog_method = "da_indicizzare"
+            catalog_status = "waiting_for_content"
+            catalog_source_state = ""
         if did:
             local_doc_ids.add(did)
         for ref in (
@@ -7233,13 +7414,16 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "portalMessageId": _text(getattr(doc, "msg_id_portale", "")),
                 "portalDepositId": _text(getattr(doc, "id_deposito_esterno", "")),
                 "portalParentId": _text(getattr(doc, "id_documento_padre_portale", "")),
-                "catalogRole": catalog.role,
-                "catalogLabel": catalog.label,
-                "catalogSection": catalog.section,
-                "catalogConfidence": catalog.confidence,
-                "catalogEvidence": catalog.evidence,
-                "depositRole": catalog.deposit_role,
-                "depositCandidate": catalog.deposit_candidate,
+                "catalogRole": catalog_role,
+                "catalogLabel": catalog_label,
+                "catalogSection": catalog_section,
+                "catalogConfidence": catalog_confidence,
+                "catalogEvidence": catalog_evidence,
+                "catalogMethod": catalog_method,
+                "catalogStatus": catalog_status,
+                "catalogSourceState": catalog_source_state,
+                "depositRole": deposit_role,
+                "depositCandidate": deposit_candidate,
                 "actions": {
                     "preview": f"/fascicoli/{fid}/documenti/{did}/visualizza",
                     "download": f"/fascicoli/{fid}/documenti/{did}/scarica",
@@ -7287,16 +7471,12 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             source = _text(getattr(dep, "fonte_portale", "")) or _text(getattr(dep, "servizio_portale", ""), "Portale")
             actions = _empty_actions()
             actions["acquire"] = _portal_acquisition_href(row, dep, source)
-            portal_catalog = classify_fascicolo_document(
-                filename=name,
-                tipo=_text(row.get("tipo") or row.get("tipo_atto"), ""),
-            )
             out.append(
                 {
                     "_sortAt": _parse_datetime(row.get("data_deposito") or row.get("data_documento")),
                     "id": f"portale-{dep_id or 'deposito'}-{index}",
                     "name": name,
-                    "type": portal_catalog.label if portal_catalog.confidence >= 70 else _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
+                    "type": _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
                     "rawType": _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
                     "size": _bytes_label(row.get("dimensione_bytes", 0)),
                     "uploadedAt": "",
@@ -7318,13 +7498,16 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                     "portalMessageId": _text(row.get("msg_id")),
                     "portalDepositId": _text(row.get("id_deposito") or getattr(dep, "id_deposito_esterno", "")),
                     "portalParentId": _text(row.get("id_documento_padre") or row.get("parent_id_documento")),
-                    "catalogRole": portal_catalog.role,
-                    "catalogLabel": portal_catalog.label,
-                    "catalogSection": portal_catalog.section,
-                    "catalogConfidence": portal_catalog.confidence,
-                    "catalogEvidence": portal_catalog.evidence,
-                    "depositRole": portal_catalog.deposit_role,
-                    "depositCandidate": portal_catalog.deposit_candidate,
+                    "catalogRole": "da_verificare",
+                    "catalogLabel": "",
+                    "catalogSection": "da-verificare",
+                    "catalogConfidence": 0,
+                    "catalogEvidence": "Metadati del portale disponibili; il contenuto non è ancora nel fascicolo e non è stato letto.",
+                    "catalogMethod": "metadati_portale",
+                    "catalogStatus": "waiting_for_acquisition",
+                    "catalogSourceState": "",
+                    "depositRole": "allegato",
+                    "depositCandidate": False,
                     "actions": actions,
                 }
             )
@@ -7358,6 +7541,23 @@ def _activity_is_portal_noise(att: Any) -> bool:
         tipo in _PORTAL_ACTIVITY_TYPES_HIDDEN_FROM_TIMELINE
         or "deposito da portale" in title
         or "documenti censiti da" in description
+    )
+
+
+def _activity_is_technical_acquisition(att: Any) -> bool:
+    """Riconosce acquisizioni/sincronizzazioni che non sono atti processuali."""
+
+    tipo = _enum_value(getattr(att, "tipo", "")).upper()
+    title = _clean_key(getattr(att, "titolo", ""))
+    description = _clean_key(getattr(att, "descrizione", ""))
+    technical_markers = (
+        "acquisizione file ufficiali",
+        "download ufficiale completo via local signer",
+        "acquisiti localmente da polisweb / pst",
+        "acquisizione guidata da polisweb",
+    )
+    return tipo in {"CONSULTAZIONE", "SINCRONIZZAZIONE", "IMPORTAZIONE"} and any(
+        marker in f"{title} {description}" for marker in technical_markers
     )
 
 
@@ -7415,7 +7615,7 @@ def _visible_activity_records(fascicolo: Any) -> list[Any]:
         tipo = _enum_value(getattr(att, "tipo", "")).upper()
         if tipo in _ACTIVITY_TYPES_WITH_DEDICATED_SECTIONS:
             continue
-        if _activity_is_portal_noise(att):
+        if _activity_is_portal_noise(att) or _activity_is_technical_acquisition(att):
             continue
         key = _activity_group_key(att)
         previous = selected.get(key)
@@ -7423,6 +7623,18 @@ def _visible_activity_records(fascicolo: Any) -> list[Any]:
             selected[key] = att
     return sorted(
         selected.values(),
+        key=lambda att: (_text(getattr(att, "data", "")), _text(getattr(att, "creato_il", ""))),
+        reverse=True,
+    )
+
+
+def _technical_activity_records(fascicolo: Any) -> list[Any]:
+    records = [
+        att for att in (getattr(fascicolo, "attivita", []) or [])
+        if _activity_is_technical_acquisition(att)
+    ]
+    return sorted(
+        records,
         key=lambda att: (_text(getattr(att, "data", "")), _text(getattr(att, "creato_il", ""))),
         reverse=True,
     )
@@ -7536,12 +7748,27 @@ def _fascicolo_role_number(fascicolo: Any) -> str:
     return numero
 
 
-def _activities(fascicolo: Any) -> list[dict[str, Any]]:
+def _activities(
+    fascicolo: Any,
+    *,
+    records: Iterable[Any] | None = None,
+    technical: bool = False,
+) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
-    for att in _visible_activity_records(fascicolo):
+    for att in records if records is not None else _visible_activity_records(fascicolo):
         aid = _text(getattr(att, "id", ""))
+        source_document = _activity_source_document_payload(fid, att)
         result = _enum_value(getattr(att, "esito", "IN_ATTESA"))
+        type_value = _enum_value(getattr(att, "tipo", "ALTRO"))
+        portal_imported = type_value.upper() in {"UDIENZA", "ISCRIZIONE_A_RUOLO"} and any(
+            marker in _clean_key(f"{getattr(att, 'titolo', '')} {getattr(att, 'descrizione', '')}")
+            for marker in ("importata da polisweb", "sincronizzata da polisweb", "importato da pst")
+        )
+        system_observation = _activity_is_system_observation(att)
+        read_only = bool(technical or portal_imported or source_document["sourceIsDerived"] or system_observation)
+        if technical or portal_imported:
+            result = "REGISTRATO"
         remote_url = _text(getattr(att, "remote_hearing_url", ""))
         remote_verified = bool(getattr(att, "remote_hearing_verified", False))
         if remote_url:
@@ -7561,13 +7788,13 @@ def _activities(fascicolo: Any) -> list[dict[str, Any]]:
         out.append(
             {
                 "id": aid,
-                "type": _enum_value(getattr(att, "tipo", "ALTRO")).replace("_", " "),
+                "type": type_value.replace("_", " "),
                 "title": _short(getattr(att, "titolo", ""), 120) or "Attivita",
                 "date": _date_label(getattr(att, "data", "")),
                 "description": _short(_italian_dates_in_text(getattr(att, "descrizione", "")), 1200),
                 "result": result.replace("_", " "),
                 "place": _text(getattr(att, "luogo", "")),
-                "notes": _short(_italian_dates_in_text(getattr(att, "note", "")), 900),
+                "notes": _italian_dates_in_text(_activity_notes_for_user(getattr(att, "note", ""))),
                 "lawyer": _text(getattr(att, "avvocato", "")),
                 "documentId": _text(getattr(att, "id_documento", "")),
                 "depositId": _text(getattr(att, "id_deposito_pct", "")),
@@ -7588,8 +7815,10 @@ def _activities(fascicolo: Any) -> list[dict[str, Any]]:
                     900,
                 ),
                 "remoteHearingSource": _text(getattr(att, "remote_hearing_source", "")),
-                "updateAction": f"/fascicoli/{fid}/attivita/{aid}/esito",
-                "deleteAction": f"/fascicoli/{fid}/attivita/{aid}/elimina",
+                **source_document,
+                "readOnly": read_only,
+                "updateAction": "" if read_only else f"/fascicoli/{fid}/attivita/{aid}/esito",
+                "deleteAction": "" if read_only else f"/fascicoli/{fid}/attivita/{aid}/elimina",
                 "tone": _activity_tone(result),
             }
         )
@@ -8168,8 +8397,14 @@ def build_react_fascicolo_detail_payload(
     parcelle = _safe("parcelle", lambda: get_fatturazione().per_fascicolo(fid), [])
     timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(fid), [])
     visible_activity_records = _visible_activity_records(fascicolo)
+    technical_activity_records = _technical_activity_records(fascicolo)
     visible_activities = _activities(fascicolo) if load_activities else []
     activities = visible_activities if load_activities else []
+    technical_events = _activities(
+        fascicolo,
+        records=technical_activity_records,
+        technical=True,
+    ) if load_activities else []
     visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     requests = visible_requests if load_activities else []
     visible_deposits = _deposits(fascicolo)
@@ -8180,12 +8415,13 @@ def build_react_fascicolo_detail_payload(
         int(notification_relata.get("relataDocuments") or 0),
         int(notification_relata.get("signedRelataDocuments") or 0),
         int(notification_relata.get("proofDocuments") or 0),
-        1 if _text(notification_relata.get("status")) != "monitoraggio" else 0,
+        1 if _text(notification_relata.get("status")) not in {"monitoraggio", "nessuna_notifica"} else 0,
     )
     quick_counts = {
         "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
         "attivita": len(visible_activity_records),
+        "eventi_tecnici": len(technical_activity_records),
         "udienze_scadenze": len(scadenze) + len(apps),
         "comunicazioni": len(visible_deposits) + notification_communication_count,
         "istanze": len(visible_requests),
@@ -8241,16 +8477,27 @@ def build_react_fascicolo_detail_payload(
         }
     )
     quick_counts["presidio_documenti"] = len(document_presidio.get("actions") or [])
-    duplicate_group = _safe(
-        "duplicate_group",
-        lambda: _duplicate_group_for_fascicolo(fascicoli_repo.tutti(), fascicolo),
-        None,
-    )
-    related_duplicate_rows = _safe(
-        "related_duplicate_rows",
-        lambda: _related_duplicate_fascicoli(fascicoli_repo.tutti(), fascicolo),
-        [],
-    )
+    fascicoli_scope: list[Any] = []
+    duplicate_check_reason = ""
+    try:
+        fascicoli_scope = list(fascicoli_repo.tutti())
+    except Exception:
+        duplicate_check_reason = "L'archivio fascicoli non è stato letto: riprova il controllo prima di attestare l'assenza di doppioni."
+    duplicate_key = normalise_practice_duplicate_key(fascicolo)
+    if not duplicate_check_reason and not duplicate_key:
+        duplicate_check_reason = "Cliente e numero R.G. devono essere completi per confrontare il fascicolo con l'archivio dello studio."
+    if not duplicate_check_reason and not fascicoli_scope:
+        duplicate_check_reason = "L'archivio fascicoli non ha restituito pratiche confrontabili: aggiorna l'archivio e ripeti il controllo."
+    duplicate_check_ready = not duplicate_check_reason
+    duplicate_group = None
+    related_duplicate_rows: list[Any] = []
+    if duplicate_check_ready:
+        try:
+            duplicate_group = _duplicate_group_for_fascicolo(fascicoli_scope, fascicolo)
+            related_duplicate_rows = _related_duplicate_fascicoli(fascicoli_scope, fascicolo)
+        except Exception:
+            duplicate_check_ready = False
+            duplicate_check_reason = "Il confronto con l'archivio fascicoli non è terminato: riprova il controllo prima di attestare l'assenza di doppioni."
     payment_summary_detail = payment_summary_for_fascicolo_fast(
         fascicolo,
         related_fascicoli=related_duplicate_rows,
@@ -8319,6 +8566,9 @@ def build_react_fascicolo_detail_payload(
         payment_summary=payment_summary_detail,
         deposits=visible_deposits if load_deposits or include_all or not include else [],
         duplicate_group=duplicate_group,
+        duplicate_scope_count=len(fascicoli_scope),
+        duplicate_check_ready=duplicate_check_ready,
+        duplicate_check_reason=duplicate_check_reason,
         sentenze_economiche=sentenze_economiche,
     )
     quick_counts["presidio_operativo"] = len(operational_presidio.get("actions") or [])
@@ -8379,6 +8629,7 @@ def build_react_fascicolo_detail_payload(
         "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
         "documents": _documents(fascicolo, gestore_fascicoli=fascicoli_repo) if load_documents else [],
         "activities": activities,
+        "technicalEvents": technical_events,
         "deadlines": _deadlines(scadenze) if load_deadlines else [],
         "appointments": _appointments(apps) if load_deadlines else [],
         "documentPresidio": document_presidio,

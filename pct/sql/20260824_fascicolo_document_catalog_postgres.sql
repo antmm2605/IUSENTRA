@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS document_catalog_assignments (
     deposit_candidate BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL CHECK (status IN ('proposed', 'confirmed', 'review_required', 'superseded', 'rejected')),
     confidence INTEGER NOT NULL CHECK (confidence BETWEEN 0 AND 100),
-    source_state TEXT NOT NULL CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'review_required')),
+    source_state TEXT NOT NULL CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'manual_override', 'review_required')),
     resolver_version TEXT NOT NULL,
     rule_set_id TEXT REFERENCES document_catalog_rule_sets(id) ON DELETE SET NULL,
     reason TEXT NOT NULL,
@@ -148,3 +148,11 @@ CREATE INDEX IF NOT EXISTS idx_document_catalog_reviews_tenant_fascicolo_state
 -- revisioni storiche multiple della medesima assegnazione.
 ALTER TABLE document_catalog_reviews
     DROP CONSTRAINT IF EXISTS document_catalog_reviews_assignment_id_state_key;
+
+-- Le classificazioni corrette dall'avvocato sono una fonte distinta dalle
+-- evidenze automatiche: il vincolo deve valere anche sui database già creati.
+ALTER TABLE document_catalog_assignments
+    DROP CONSTRAINT IF EXISTS document_catalog_assignments_source_state_check;
+ALTER TABLE document_catalog_assignments
+    ADD CONSTRAINT document_catalog_assignments_source_state_check
+    CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'manual_override', 'review_required'));

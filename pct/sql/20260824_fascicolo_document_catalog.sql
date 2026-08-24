@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS document_catalog_assignments (
     deposit_candidate INTEGER NOT NULL DEFAULT 0 CHECK (deposit_candidate IN (0, 1)),
     status TEXT NOT NULL CHECK (status IN ('proposed', 'confirmed', 'review_required', 'superseded', 'rejected')),
     confidence INTEGER NOT NULL CHECK (confidence BETWEEN 0 AND 100),
-    source_state TEXT NOT NULL CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'review_required')),
+    source_state TEXT NOT NULL CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'manual_override', 'review_required')),
     resolver_version TEXT NOT NULL,
     rule_set_id TEXT,
     reason TEXT NOT NULL,

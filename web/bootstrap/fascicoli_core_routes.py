@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+import re
 from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
@@ -21,6 +22,19 @@ from web.services.telematico_document_catalog import sync_official_catalog_on_fa
 
 def _richiede_vista_classica() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+
+
+def _attivita_derivata_da_documento(attivita: Any) -> bool:
+    """Impedisce di alterare dal pannello generico una rilevazione automatica."""
+
+    context = "\n".join(
+        str(getattr(attivita, field, "") or "")
+        for field in ("note", "descrizione", "remote_hearing_source")
+    )
+    title = re.sub(r"\s+", " ", str(getattr(attivita, "titolo", "") or "")).strip().lower()
+    return title in {"udienza rilevata", "termine rilevato"} or bool(
+        re.search(r"\b(?:PEC_DOCUMENT_PRESIDIO|PEC_AUDIT):docpresidio:", context, re.IGNORECASE)
+    )
 
 
 def register_fascicoli_core_routes(
@@ -246,6 +260,10 @@ def register_fascicoli_core_routes(
     @app.route("/fascicoli/<id_fasc>/attivita/<id_att>/esito", methods=["POST"])
     def aggiorna_esito_attivita(id_fasc: str, id_att: str):
         try:
+            fascicolo = get_fascicoli().get(id_fasc)
+            attivita = next((item for item in getattr(fascicolo, "attivita", []) if item.id == id_att), None)
+            if _attivita_derivata_da_documento(attivita):
+                raise ValueError("L'attività è una rilevazione documentale: consulta la fonte senza alterarne lo stato.")
             get_fascicoli().aggiorna_attivita(
                 id_fasc,
                 id_att,
@@ -260,6 +278,10 @@ def register_fascicoli_core_routes(
     @app.route("/fascicoli/<id_fasc>/attivita/<id_att>/elimina", methods=["POST"])
     def elimina_attivita_fascicolo(id_fasc: str, id_att: str):
         try:
+            fascicolo = get_fascicoli().get(id_fasc)
+            attivita = next((item for item in getattr(fascicolo, "attivita", []) if item.id == id_att), None)
+            if _attivita_derivata_da_documento(attivita):
+                raise ValueError("L'attività è una rilevazione documentale: la fonte e l'evento restano nel fascicolo.")
             get_fascicoli().rimuovi_attivita(id_fasc, id_att)
             flash("Attivita' rimossa dal fascicolo.", "success")
         except (ValueError, KeyError) as exc:

@@ -360,13 +360,111 @@ def classify_fascicolo_document(
             deposit_candidate=True,
         )
 
+    # I documenti dell'ufficio non diventano automaticamente allegati di
+    # deposito soltanto perché provengono dal Giudice di Pace/SIGP. Prima
+    # della regola generica riconosciamo il loro contenuto processuale.
+    if (
+        _contains(full_text, r"\bdecreto\b")
+        and _contains(full_text, r"\b(liquida|liquidazione|liquidare)\b")
+        and _contains(full_text, r"\b(ctu|consulenza\s+tecnica)\b")
+    ):
+        return _result(
+            role="decreto_liquidazione_ctu",
+            label="Decreto di liquidazione CTU",
+            section="provvedimenti",
+            confidence=98,
+            evidence="OCR: decreto di liquidazione con CTU/consulenza tecnica",
+            tipo_documento=TipoDocumento.DECRETO,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+        )
+
+    if _contains(full_text, r"\bordinanza\b") and _contains(full_text, r"\b(udienza|il\s+giudice|dispone|fissa)\b"):
+        return _result(
+            role="ordinanza_ufficio",
+            label="Ordinanza dell'ufficio giudiziario",
+            section="provvedimenti",
+            confidence=95,
+            evidence="OCR: ordinanza con disposizione dell'ufficio/udienza",
+            tipo_documento=TipoDocumento.ORDINANZA,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+        )
+
+    if (
+        _contains(full_text, r"\bverbale\b")
+        and _contains(full_text, r"\b(operazioni\s+peritali|attivita\s+peritali)\b")
+    ) or (
+        _contains(full_text, r"\bverbale\b")
+        and _contains(full_text, r"\b(ufficio\s+del\s+giudice|tribunale|cancelleria)\b")
+        and _contains(full_text, r"\budienza\b")
+    ):
+        label = "Verbale operazioni peritali" if _contains(full_text, r"\b(operazioni\s+peritali|attivita\s+peritali)\b") else "Verbale d'udienza"
+        return _result(
+            role="verbale_ufficio",
+            label=label,
+            section="provvedimenti",
+            confidence=94,
+            evidence="OCR: verbale dell'ufficio giudiziario",
+            tipo_documento=TipoDocumento.VERBALE,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+        )
+
+    if _contains(full_text, r"\b(inizio|avvio)\s+(?:delle\s+)?attivita\s+peritali\b"):
+        return _result(
+            role="comunicazione_avvio_operazioni_peritali",
+            label="Comunicazione avvio operazioni peritali",
+            section="comunicazioni",
+            confidence=94,
+            evidence="OCR: avvio attività peritali",
+            tipo_documento=TipoDocumento.COMUNICAZIONE,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+        )
+
+    if _contains(full_text, r"\b(nomina|designazione)\s+(?:del\s+)?ctp\b"):
+        return _result(
+            role="nomina_ctp",
+            label="Nomina di CTP",
+            section="allegati",
+            confidence=93,
+            evidence="OCR: nomina/designazione CTP",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="allegato",
+            deposit_candidate=True,
+        )
+
+    if _contains(full_text, r"\b(relazione\s+peritale|perizia\s+(?:del|di)\s+ctu)\b"):
+        return _result(
+            role="relazione_peritale_ctu",
+            label="Relazione peritale CTU",
+            section="allegati",
+            confidence=92,
+            evidence="OCR: relazione/perizia CTU",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="allegato",
+            deposit_candidate=True,
+        )
+
+    if _contains(full_text, r"\bopposizione\s+a\s+sanzione\s+amministrativa\b"):
+        return _result(
+            role="opposizione_sanzione_amministrativa",
+            label="Opposizione a sanzione amministrativa",
+            section="atti",
+            confidence=94,
+            evidence="OCR: opposizione a sanzione amministrativa",
+            tipo_documento=TipoDocumento.RICORSO,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+        )
+
     for rule_code, role, label, section, tipo_doc, deposit_role, confidence in (
         ("udienza_127_ter", "termine_note_scritte", "Note scritte / sostituzione udienza", "udienze", TipoDocumento.DECRETO, "allegato", 94),
         ("udienza_127_bis", "udienza_remota", "Udienza da remoto / audiovisiva", "udienze", TipoDocumento.DECRETO, "allegato", 94),
         ("decreto_fissazione_udienza", "decreto_udienza", "Decreto fissazione udienza", "udienze", TipoDocumento.DECRETO, "allegato", 93),
         ("memorie_171_ter", "termini_memorie", "Termini memorie pre-udienza", "udienze", TipoDocumento.DECRETO, "allegato", 91),
         ("rito_lavoro_415_420", "rito_lavoro", "Rito lavoro / udienza discussione", "udienze", TipoDocumento.DECRETO, "allegato", 88),
-        ("giudice_pace_sigp", "giudice_pace_sigp", "Giudice di Pace / SIGP", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
         ("famiglia_minori_ascolto", "famiglia_minori", "Famiglia/minori e ascolto", "udienze", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
         ("decreto_ingiuntivo_opposizione", "decreto_ingiuntivo", "Decreto ingiuntivo / opposizione", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 90),
         ("sfratto_convalida", "sfratto_convalida", "Sfratto / convalida", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 90),
@@ -529,6 +627,18 @@ def classify_fascicolo_document(
             deposit_candidate=True,
         )
 
+    if _contains(head_text[:2500], r"\b(ricorso\s+(?:introduttivo|principale)|atto\s+di\s+ricorso)\b"):
+        return _result(
+            role="atto_principale",
+            label="Ricorso - atto principale",
+            section="atti",
+            confidence=96,
+            evidence="OCR iniziale: ricorso introduttivo",
+            tipo_documento=TipoDocumento.RICORSO,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+        )
+
     if _contains(name_text, r"\b(procura|mandato)\b") or _contains(
         head_text[:2500],
         r"\b(procura\s+alle\s+liti|mandato\s+alle\s+liti|delega\s+alle\s+liti)\b",
@@ -622,7 +732,7 @@ def classify_fascicolo_document(
             deposit_candidate=True,
         )
 
-    if _contains(full_text, r"\b(comparsa|memoria|istanza|appello|reclamo|opposizione|deduzioni|note\s+scritte|conclusionale|replica)\b"):
+    if _contains(full_text, r"\b(comparsa|memoria|istanza|appello|reclamo|opposizione|deduzioni|note\s+scritte|note\s+(?:per|di)\s+(?:l(?:a)?\s+)?udienza|conclusionale|replica)\b"):
         tipo_doc = TipoDocumento.MEMORIA
         if _contains(full_text, r"\bcomparsa\b"):
             tipo_doc = TipoDocumento.COMPARSA
@@ -631,7 +741,7 @@ def classify_fascicolo_document(
             label="Atto difensivo",
             section="atti",
             confidence=86,
-            evidence="nome o OCR: memoria/comparsa/istanza",
+            evidence="OCR: memoria/comparsa/istanza o note d'udienza",
             tipo_documento=tipo_doc,
             deposit_role="atto_principale",
             deposit_candidate=True,
@@ -657,6 +767,18 @@ def classify_fascicolo_document(
             confidence=84,
             evidence="nome o OCR: parcella/fattura/nota spese",
             tipo_documento=TipoDocumento.PARCELLA,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+        )
+
+    if has_presidio_rule(full_text, "giudice_pace_sigp"):
+        return _result(
+            role="atto_giudiziario_da_verificare",
+            label="Atto giudiziario del Giudice di Pace da verificare",
+            section="da-verificare",
+            confidence=50,
+            evidence="OCR: ufficio Giudice di Pace/SIGP senza natura documentale sufficiente",
+            tipo_documento=TipoDocumento.ATTO_GIUDIZIARIO,
             deposit_role="fuori_busta",
             deposit_candidate=False,
         )

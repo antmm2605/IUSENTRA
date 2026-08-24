@@ -139,6 +139,7 @@ def _document_sector(document_presidio: dict[str, Any], *, fid: str, today: date
     for index, item in enumerate(list(document_presidio.get("actions") or [])[:8]):
         priority = "P1"
         due = _parse_date(item.get("dateIso"))
+        is_connection_review = _text(item.get("type")) == "verifica_collegamento_documento"
         if bool(item.get("peremptory")) or _text(item.get("priority")) == "urgent":
             priority = "P0"
         elif bool(item.get("requiresCommunicationDate")):
@@ -153,23 +154,34 @@ def _document_sector(document_presidio: dict[str, Any], *, fid: str, today: date
                 due=item.get("dateIso"),
                 priority=priority,
                 tone=tone,
-                href=f"/fascicoli/{fid}#udienze" if fid else "#udienze",
+                href=f"/fascicoli/{fid}#{'documenti' if is_connection_review else 'udienze'}" if fid else ("#documenti" if is_connection_review else "#udienze"),
                 source=_text(item.get("source"), "Documento fascicolo"),
-                legal_basis="127-bis / 127-ter c.p.c." if "127" in _text(item.get("type")) else "Documento del fascicolo",
-                blocking=priority == "P0",
+                legal_basis="Verifica del documento collegato" if is_connection_review else ("127-bis / 127-ter c.p.c." if "127" in _text(item.get("type")) else "Documento del fascicolo"),
+                blocking=priority == "P0" and not is_connection_review,
                 evidence=_text(item.get("source"), "Documento fascicolo"),
             )
         )
         if bool(item.get("requiresCommunicationDate")):
             actions[-1]["blocking"] = True
-    if actions:
+    if actions and all(_text(item.get("type")) == "verifica_collegamento_documento" for item in (document_presidio.get("actions") or [])[:8]):
+        status = "da_verificare"
+        tone = "warning"
+        label = f"{len(actions)} {'documento' if len(actions) == 1 else 'documenti'} da verificare"
+    elif actions:
         status = "presidiato"
         tone = "danger" if any(action["priority"] == "P0" for action in actions) else "warning"
         label = f"{len(actions)} azioni da presidiare"
     else:
         status = _text(document_presidio.get("status"), "non_disponibile")
         tone = _text(document_presidio.get("tone"), "neutral")
-        label = "Da leggere" if status in {"lazy_non_caricato", "non_disponibile"} else "Presidio attivo"
+        source_count = len([item for item in (document_presidio.get("sources") or []) if isinstance(item, dict)])
+        label = (
+            "Documenti da leggere"
+            if status in {"lazy_non_caricato", "non_disponibile"}
+            else "Nessun termine rilevato"
+            if source_count
+            else "Nessun documento procedurale da analizzare"
+        )
     evidence = [_text(item.get("name")) for item in (document_presidio.get("sources") or []) if isinstance(item, dict)]
     evidence.extend(_text(item) for item in (document_presidio.get("warnings") or []))
     return _sector(
@@ -271,14 +283,43 @@ def _pec_sector(
                 "L'invio operativo resta dal PC locale dello studio, senza SMTP server-side?",
             ],
         )
+    if not deposits:
+        action = _action(
+            sector="pec",
+            action_id="verifica-comunicazioni-pec",
+            title="Verificare comunicazioni PEC e ricevute",
+            reason="Nel fascicolo non risultano ancora comunicazioni PEC o esiti di deposito collegati a una prova verificabile. Apri Comunicazioni / Cancelleria e associa gli elementi pertinenti prima di considerare controllate le decorrenze.",
+            priority="P2",
+            tone="warning",
+            href=f"/fascicoli/{fid}#cancelleria" if fid else "#cancelleria",
+            source="Comunicazioni e cancelleria del fascicolo",
+            legal_basis="Presidio PEC e termini del fascicolo",
+            blocking=False,
+        )
+        return _sector(
+            sector_id="pec",
+            label="Presidio PEC",
+            status="da_verificare",
+            status_label="Verifica PEC necessaria",
+            tone="warning",
+            summary="Non sono disponibili nel fascicolo prove PEC o esiti deposito sufficienti per attestare il controllo delle comunicazioni.",
+            href=action["href"],
+            actions=[action],
+            questions=[
+                "Esiste una PEC di cancelleria non ancora associata a questo fascicolo?",
+                "La prossima scadenza deriva da PEC, da documento o da inserimento manuale?",
+                "Ci sono ricevute o esiti PCT da acquisire prima di chiudere il controllo?",
+            ],
+        )
     return _sector(
         sector_id="pec",
         label="Presidio PEC",
-        status="monitoraggio",
-        status_label="Monitoraggio attivo",
-        tone="neutral",
-        summary="Nessuna anomalia PEC caricata nel fascicolo; le decorrenze restano collegate alle comunicazioni acquisite.",
+        status="controllato",
+        status_label="Nessuna anomalia negli esiti letti",
+        tone="success",
+        summary=f"Controllati {len(deposits)} esiti o comunicazioni collegati al fascicolo: non risultano rifiuti, errori o termini PEC aperti.",
         href=f"/fascicoli/{fid}#cancelleria" if fid else "#cancelleria",
+        evidence=[_text(dep.get("message") or dep.get("pec") or dep.get("source")) for dep in deposits[:4] if isinstance(dep, dict)],
         questions=[
             "Esiste una PEC di cancelleria non ancora associata a questo fascicolo?",
             "La prossima scadenza deriva da PEC, da documento o da inserimento manuale?",
@@ -290,10 +331,10 @@ def _pec_sector(
 def _relata_sector(notification_relata: dict[str, Any], *, fid: str) -> dict[str, Any]:
     status = _text(notification_relata.get("status"), "monitoraggio")
     tone = _text(notification_relata.get("tone"), "neutral")
-    status_label = _text(notification_relata.get("statusLabel"), "Monitoraggio attivo")
+    status_label = _text(notification_relata.get("statusLabel"), "Nessuna notifica in lavorazione")
     primary_href = _text(notification_relata.get("primaryHref") or notification_relata.get("prepareHref"))
     actions: list[dict[str, Any]] = []
-    if status not in {"monitoraggio", "prova_depositata", "storico_gestito"}:
+    if status not in {"monitoraggio", "nessuna_notifica", "prova_depositata", "storico_gestito"}:
         priority = "P1" if status in {"da_acquisire", "ricevute_da_completare"} else "P2"
         actions.append(
             _action(
@@ -325,7 +366,7 @@ def _relata_sector(notification_relata: dict[str, Any], *, fid: str) -> dict[str
         status=status,
         status_label=status_label,
         tone=tone,
-        summary=_text(notification_relata.get("systemNotification"), "Relata e prova notifica in monitoraggio."),
+        summary=_text(notification_relata.get("systemNotification"), "Nessuna notifica o prova da presidiare nel fascicolo."),
         href=primary_href or (f"/fascicoli/{fid}#relata-notifica" if fid else "#relata-notifica"),
         actions=actions,
         evidence=evidence,
@@ -423,7 +464,13 @@ def _economico_sector(
         sector_id="economico",
         label="Presidio economico",
         status=stato,
-        status_label=_text(payment_summary.get("statoLabel"), "Non previsto"),
+        status_label=(
+            f"{len(actions)} controllo economico aperto"
+            if len(actions) == 1
+            else f"{len(actions)} controlli economici aperti"
+            if actions
+            else _text(payment_summary.get("statoLabel"), "Non previsto")
+        ),
         tone=tone,
         summary=(
             f"Registrato {payment_summary.get('totaleRegistratoLabel') or format_euro_it(0)}; "
@@ -443,15 +490,50 @@ def _economico_sector(
     )
 
 
-def _duplicates_sector(duplicate_group: dict[str, Any] | None, *, fid: str) -> dict[str, Any]:
+def _duplicates_sector(
+    duplicate_group: dict[str, Any] | None,
+    *,
+    fid: str,
+    scope_count: int = 0,
+    check_ready: bool = True,
+    check_reason: str = "",
+) -> dict[str, Any]:
+    if not check_ready:
+        action = _action(
+            sector="doppioni",
+            action_id="completa-dati-doppioni",
+            title="Completare i dati per il controllo doppioni",
+            reason=_text(check_reason, "Servono cliente e numero R.G. oppure la lettura dell'archivio fascicoli per verificare l'eventuale presenza di pratiche duplicate."),
+            priority="P2",
+            tone="warning",
+            href=f"/fascicoli/{fid}#profilo" if fid else "/fascicoli",
+            source="Dati fascicolo e archivio dello studio",
+            legal_basis="Controllo qualità dati pratica",
+            blocking=False,
+        )
+        return _sector(
+            sector_id="doppioni",
+            label="Controllo doppioni",
+            status="da_verificare",
+            status_label="Controllo doppioni non eseguibile",
+            tone="warning",
+            summary=_text(check_reason, "Il controllo richiede dati identificativi e archivio fascicoli disponibili."),
+            href=action["href"],
+            actions=[action],
+            questions=[
+                "Cliente e R.G. sono completi e riferiti alla stessa pratica?",
+                "L'archivio fascicoli dello studio è disponibile per il confronto?",
+            ],
+        )
     if not duplicate_group:
+        scope_label = f"{max(1, int(scope_count or 0))} fascicoli disponibili nello studio"
         return _sector(
             sector_id="doppioni",
             label="Controllo doppioni",
             status="ok",
-            status_label="Nessun doppione rilevato",
+            status_label="Controllo doppioni completato",
             tone="success",
-            summary="Cliente e numero di ruolo non risultano duplicati nel perimetro fascicoli caricato.",
+            summary=f"Confrontati cliente e R.G. con {scope_label}: non risultano altre pratiche con la stessa chiave.",
             href=f"/fascicoli/{fid}" if fid else "/fascicoli",
             questions=[
                 "Cliente e RG identificano una sola pratica operativa?",
@@ -498,6 +580,9 @@ def build_fascicolo_operational_presidio(
     payment_summary: dict[str, Any],
     deposits: list[dict[str, Any]] | None = None,
     duplicate_group: dict[str, Any] | None = None,
+    duplicate_scope_count: int = 0,
+    duplicate_check_ready: bool = True,
+    duplicate_check_reason: str = "",
     sentenze_economiche: dict[str, Any] | None = None,
     today: date | None = None,
 ) -> dict[str, Any]:
@@ -510,7 +595,13 @@ def build_fascicolo_operational_presidio(
         document_sector,
         _relata_sector(notification_relata or {}, fid=fid),
         _economico_sector(payment_summary or {}, sentenze_economiche, fid=fid),
-        _duplicates_sector(duplicate_group, fid=fid),
+        _duplicates_sector(
+            duplicate_group,
+            fid=fid,
+            scope_count=duplicate_scope_count,
+            check_ready=duplicate_check_ready,
+            check_reason=duplicate_check_reason,
+        ),
     ]
     actions = _sort_actions(
         (action for sector in sectors for action in sector.get("actions", [])),

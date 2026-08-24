@@ -9,7 +9,9 @@ from .catalog_resolver import (
     REGISTRY_VERSION,
     RESOLVER_VERSION,
     PROFILE_SOURCES,
+    infer_fascicolo_context_from_document_corpus,
     profile_source_rows,
+    resolve_profile,
     resolve_document_catalog,
 )
 from .models import DocumentCatalogAssignment, new_id, utc_now
@@ -146,6 +148,31 @@ class FascicoloDocumentCatalogPipeline:
             for review in self.repository.list_catalog_reviews(tenant_id, fid)
         }
         context = _fascicolo_context(fascicolo)
+        extracted_by_record_id: dict[str, str] = {}
+        profile_id, _ = resolve_profile(context)
+        if not profile_id:
+            corpus: list[dict[str, str]] = []
+            for source in document_sources:
+                record = records_by_sha.get(str(source.sha256 or ""))
+                if record is None:
+                    continue
+                record_id = str(getattr(record, "id", "") or "")
+                if not record_id:
+                    continue
+                extracted = self.repository.get_extracted_text(
+                    tenant_id,
+                    fid,
+                    record_id,
+                    str(getattr(record, "current_version_id", "") or "") or None,
+                )
+                text = str(getattr(extracted, "text", "") or "")
+                extracted_by_record_id[record_id] = text
+                corpus.append({
+                    "document_id": str(source.source_id or source.metadata.get("documento_id") or ""),
+                    "filename": source.filename,
+                    "text": text,
+                })
+            context = infer_fascicolo_context_from_document_corpus(context, corpus)
         for source in document_sources:
             document_id = str(source.source_id or source.metadata.get("documento_id") or "").strip()
             if not document_id:
@@ -156,6 +183,12 @@ class FascicoloDocumentCatalogPipeline:
                 result.waiting_for_index += 1
                 continue
             existing = existing_assignments.get((document_id, str(source.sha256 or "")))
+            if existing and str(existing.source_state or "") == "manual_override":
+                # La correzione dell'avvocato è prevalente anche dopo un
+                # aggiornamento del resolver: il nuovo motore non può
+                # sovrascrivere un esito umano già tracciato nel fascicolo.
+                result.skipped_current += 1
+                continue
             if existing and existing.resolver_version == RESOLVER_VERSION and not retry:
                 # Una revisione aperta è già la risposta governata per il
                 # documento: non la rigeneriamo e non rieseguiamo estrazione
@@ -190,6 +223,7 @@ class FascicoloDocumentCatalogPipeline:
                 rule_set_id=rule_set_id,
                 job_id=str(job["id"]),
                 result=result,
+                extracted_text=extracted_by_record_id.get(str(getattr(record, "id", "") or "")),
             )
         return result
     def _process_source(
@@ -204,14 +238,18 @@ class FascicoloDocumentCatalogPipeline:
         rule_set_id: str,
         job_id: str,
         result: CatalogPipelineResult,
+        extracted_text: str | None = None,
     ) -> None:
         self.repository.mark_catalog_job(tenant_id=tenant_id, job_id=job_id, status="processing")
         document_id = str(source.source_id or source.metadata.get("documento_id") or "").strip()
         try:
-            extracted = self.repository.get_extracted_text(
-                tenant_id, fascicolo_id, str(getattr(record, "id", "") or ""), str(getattr(record, "current_version_id", "") or "") or None
-            )
-            text = str(getattr(extracted, "text", "") or "")
+            if extracted_text is None:
+                extracted = self.repository.get_extracted_text(
+                    tenant_id, fascicolo_id, str(getattr(record, "id", "") or ""), str(getattr(record, "current_version_id", "") or "") or None
+                )
+                text = str(getattr(extracted, "text", "") or "")
+            else:
+                text = extracted_text
             resolution = resolve_document_catalog(
                 tenant_id=tenant_id,
                 fascicolo_id=fascicolo_id,
@@ -241,6 +279,8 @@ class FascicoloDocumentCatalogPipeline:
                     "source_type": source.source_type,
                     "document_ai_status": str(getattr(record, "status", "") or ""),
                     "legal_source_count": len(profile_source_rows(resolution.profile_id or "")),
+                    "profile_inferred_from_content": bool(context.get("_profile_inference_reason")),
+                    "profile_inference_documents": list(context.get("_profile_evidence_documents") or [])[:5],
                 },
                 created_by=actor, created_at=now, updated_by=actor, updated_at=now,
             )

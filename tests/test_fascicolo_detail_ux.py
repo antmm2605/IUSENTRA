@@ -126,6 +126,10 @@ def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo
     assert react_payload["fascicolo"]["title"] == "RG 1025/2024"
     assert react_payload["documents"] == []
     assert react_documents_payload["documents"][0]["name"] == "atto.pdf"
+    assert react_documents_payload["documents"][0]["catalogMethod"] == "da_indicizzare"
+    assert react_documents_payload["documents"][0]["catalogLabel"] == ""
+    assert react_documents_payload["documents"][0]["catalogConfidence"] == 0
+    assert "Nessuna classificazione dal contenuto" in react_documents_payload["documents"][0]["catalogEvidence"]
     assert react_payload["activities"] == []
 
 
@@ -509,3 +513,7 @@ def test_catalogo_portale_non_viene_contato_come_documento_acquisito(fascicolo_u
     assert react_payload["documents"][0]["name"] == "VerbaleUdienza_32970605.pdf"
     assert react_payload["documents"][0]["statusLabel"] == "Da acquisire"
     assert react_payload["documents"][0]["portalDate"] == "25/04/2026"
+    assert react_payload["documents"][0]["catalogMethod"] == "metadati_portale"
+    assert react_payload["documents"][0]["catalogLabel"] == ""
+    assert react_payload["documents"][0]["catalogConfidence"] == 0
+    assert "contenuto non è ancora nel fascicolo" in react_payload["documents"][0]["catalogEvidence"]

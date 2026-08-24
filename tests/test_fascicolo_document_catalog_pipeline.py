@@ -1,4 +1,6 @@
 from types import SimpleNamespace
+import sqlite3
+from pathlib import Path
 
 from pct.document_intelligence import (
     DocumentAIPageText,
@@ -21,31 +23,43 @@ from pct.document_intelligence.sources import DocumentAISource
 from pct.template_atti_catalogo import build_builtin_templates
 
 
-def _ready_source(repo: DocumentAIRepository, *, tenant_id: str, fascicolo_id: str, document_id: str, filename: str, sha256: str):
+def _ready_source(
+    repo: DocumentAIRepository,
+    *,
+    tenant_id: str,
+    fascicolo_id: str,
+    document_id: str,
+    filename: str,
+    sha256: str,
+    text: str = "RICORSO introduttivo con conclusioni e procura alle liti.",
+    tipo_documento: str = "RICORSO",
+):
     now = utc_now()
+    document_ai_id = f"docai-{document_id.casefold()}"
+    version_id = f"version-{document_id.casefold()}"
     record = DocumentAIRecord(
-        id="docai-1", tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+        id=document_ai_id, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
         original_filename=filename, safe_filename=filename, file_type="pdf", mime_type="application/pdf",
-        size_bytes=128, sha256=sha256, status="ready", current_version_id="version-1", page_count=1,
+        size_bytes=128, sha256=sha256, status="ready", current_version_id=version_id, page_count=1,
         created_by="test", created_at=now, updated_at=now,
     )
     repo.create_document(record)
     repo.create_version(DocumentAIVersion(
-        id="version-1", tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id=record.id,
+        id=version_id, tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id=record.id,
         version_number=1, source="upload", storage_path="tenant/fascicolo/documento.pdf",
         extracted_text_path=None, pdf_preview_path=None, sha256=sha256, created_by="test", created_at=now,
     ))
     repo.save_extracted_text(DocumentAIText(
-        document_id=record.id, version_id="version-1", tenant_id=tenant_id, fascicolo_id=fascicolo_id,
-        text="RICORSO introduttivo con conclusioni e procura alle liti.",
-        pages=[DocumentAIPageText(page_number=1, text="RICORSO introduttivo")],
+        document_id=record.id, version_id=version_id, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+        text=text,
+        pages=[DocumentAIPageText(page_number=1, text=text)],
         extraction_engine="test", created_at=now,
     ))
     return DocumentAISource(
         tenant_id=tenant_id, fascicolo_id=fascicolo_id, source_id=document_id,
         source_type="documenti_fascicolo", filename=filename, safe_filename=filename,
         file_type="pdf", mime_type="application/pdf", size_bytes=128, sha256=sha256,
-        updated_at=now, metadata={"documento_id": document_id, "tipo_documento": "RICORSO"},
+        updated_at=now, metadata={"documento_id": document_id, "tipo_documento": tipo_documento},
         content_bytes=b"%PDF-test",
     )
 
@@ -127,6 +141,123 @@ def test_pipeline_catalogo_sql_persistente_e_revisionabile(tmp_path):
     assert {"document_catalog_assignments", "document_catalog_jobs", "document_catalog_evidence", "document_catalog_reviews"} <= table_names
 
 
+def test_correzione_catalogo_avvocato_rimane_sql_e_conserva_evidenze(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-CORREZIONE"
+    source = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-CORREZIONE",
+        filename="ricorso-introduttivo.pdf",
+        sha256="c" * 64,
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Tribunale di Roma",
+        tipo_procedimento="Ordinario",
+        canale_operativo="PCT",
+        source="PST",
+        profilo_deposito={
+            "area": "Civile",
+            "branca": "Civile ordinario",
+            "sottobranca": "Introduttivi e difensivi",
+            "rito": "Ordinario",
+            "canale_telematico": "PCT",
+        },
+    )
+    FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id,
+        fascicolo=fascicolo,
+        sources=[source],
+        actor="operatore",
+        process=True,
+    )
+    before = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-CORREZIONE")
+    assert before is not None
+    evidence_before = repo.list_catalog_evidence(before.id)
+    candidates_before = repo.list_catalog_candidates(before.id)
+
+    corrected = repo.override_catalog_assignment(
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-CORREZIONE",
+        actor="avvocato",
+        document_label="Comparsa di costituzione e risposta",
+        document_section="atti",
+        document_nature="atto_processuale",
+        deposit_role="atto_principale",
+        deposit_candidate=True,
+        note="Verificato sul contenuto del documento.",
+    )
+
+    assert corrected is not None
+    assert corrected.id == before.id
+    assert corrected.status == "confirmed"
+    assert corrected.source_state == "manual_override"
+    assert corrected.document_label == "Comparsa di costituzione e risposta"
+    assert corrected.document_section == "atti"
+    assert corrected.document_nature == "atto_processuale"
+    assert corrected.deposit_role == "atto_principale"
+    assert corrected.deposit_candidate is True
+    assert len(repo.list_catalog_evidence(corrected.id)) == len(evidence_before)
+    assert len(repo.list_catalog_candidates(corrected.id)) == len(candidates_before)
+
+
+def test_migrazione_sqlite_catalogo_esistente_ammette_correzione_manuale(tmp_path):
+    database = tmp_path / "studio-esistente.db"
+    legacy_schema = (
+        (Path(__file__).resolve().parents[1] / "pct" / "sql" / "20260824_fascicolo_document_catalog.sql")
+        .read_text(encoding="utf-8")
+        .replace(", 'manual_override'", "")
+    )
+    legacy = sqlite3.connect(database)
+    legacy.executescript(legacy_schema)
+    legacy.execute(
+        """
+        INSERT INTO document_catalog_assignments (
+            id, tenant_id, fascicolo_id, document_id, document_sha256,
+            document_nature, document_label, document_section, deposit_role,
+            status, confidence, source_state, resolver_version, reason,
+            created_by, created_at, updated_by, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "assignment-esistente", "studio-test", "FASC-ESISTENTE", "DOC-ESISTENTE", "d" * 64,
+            "allegato", "Allegato", "allegati", "allegato", "proposed", 60,
+            "verified_snapshot", "resolver-test", "Catalogazione precedente.",
+            "operatore", "2026-08-24T10:00:00+00:00", "operatore", "2026-08-24T10:00:00+00:00",
+        ),
+    )
+    legacy.commit()
+    legacy.close()
+
+    repo = DocumentAIRepository.from_sqlite_db(database)
+    migrated = repo.get_catalog_assignment("studio-test", "FASC-ESISTENTE", "DOC-ESISTENTE")
+    assert migrated is not None
+    assert migrated.document_label == "Allegato"
+    create_sql = repo.structured_db.conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'document_catalog_assignments'"
+    ).fetchone()[0]
+    assert "manual_override" in create_sql
+
+    corrected = repo.override_catalog_assignment(
+        tenant_id="studio-test",
+        fascicolo_id="FASC-ESISTENTE",
+        document_id="DOC-ESISTENTE",
+        actor="avvocato",
+        document_label="Procura alle liti",
+        document_section="procure",
+        document_nature="procura",
+        deposit_role="procura",
+        deposit_candidate=True,
+    )
+    assert corrected is not None
+    assert corrected.source_state == "manual_override"
+
+
 def test_pipeline_iniziale_usa_un_solo_commit_sql(tmp_path):
     repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
     tenant_id = "studio-test"
@@ -181,6 +312,182 @@ def test_pipeline_non_classifica_in_silenzio_senza_profilo_fascicolo(tmp_path):
     assert assignment.status == "review_required"
     assert assignment.source_state == "review_required"
     assert repo.list_catalog_reviews(tenant_id, fascicolo_id)[0].reason_code == "missing_fascicolo_profile"
+
+
+def test_pipeline_inferisce_rcd_da_due_documenti_concordanti(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-RCD"
+    decree = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-DECRETO",
+        filename="decretoGenerico.pdf",
+        sha256="1" * 64,
+        tipo_documento="ATTO_GIUDIZIARIO",
+        text=(
+            "UFFICIO DEL GIUDICE DI PACE DI PALMI. DECRETO. "
+            "Nella causa per risarcimento danni da sinistro stradale, il Giudice liquida il compenso del CTU."
+        ),
+    )
+    notes = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-NOTE",
+        filename="note-udienza.pdf",
+        sha256="2" * 64,
+        tipo_documento="MEMORIA",
+        text=(
+            "Oggetto: risarcimento danni sinistro stradale. "
+            "Si depositano note per l'udienza nel procedimento davanti al Giudice di Pace."
+        ),
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id, area_pratica="", tribunale="Giudice di Pace di Palmi",
+        tipo_procedimento="", canale_operativo="SIGP", source="PST", profilo_deposito={},
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id, fascicolo=fascicolo, sources=[decree, notes], actor="operatore", process=True,
+    )
+
+    assert result.processed == 2
+    assert result.proposed == 2
+    decree_assignment = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-DECRETO")
+    notes_assignment = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-NOTE")
+    assert decree_assignment is not None
+    assert notes_assignment is not None
+    for assignment in (decree_assignment, notes_assignment):
+        assert assignment.profile_id == "RCD"
+        assert assignment.legal_area == "Diritto civile"
+        assert assignment.legal_branch == "Responsabilità civile e danni"
+        assert assignment.legal_subfamily == "Risarcimento danni da circolazione stradale"
+        assert assignment.status == "proposed"
+        assert len([item for item in repo.list_catalog_evidence(assignment.id) if item.evidence_type == "legal_source"]) >= 5
+        assert any(item.locator == "contenuto indicizzato concordante del fascicolo" for item in repo.list_catalog_evidence(assignment.id))
+    assert decree_assignment.document_label == "Decreto di liquidazione CTU"
+    assert decree_assignment.deposit_candidate is False
+
+
+def test_pipeline_non_cataloga_dal_nome_senza_contenuto_sql(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-CONTENUTO-MANCANTE"
+    source = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-DECRETO-SENZA-OCR",
+        filename="decretoGenerico.pdf",
+        sha256="8" * 64,
+        tipo_documento="ATTO_GIUDIZIARIO",
+        text="",
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Giudice di Pace di Palmi",
+        tipo_procedimento="Ordinario",
+        canale_operativo="SIGP",
+        source="PST",
+        profilo_deposito={
+            "area": "Diritto civile",
+            "branca": "Responsabilità civile e danni",
+            "sottobranca": "Risarcimento danni da circolazione stradale",
+        },
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id, fascicolo=fascicolo, sources=[source], actor="operatore", process=True,
+    )
+
+    assignment = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-DECRETO-SENZA-OCR")
+    assert result.review_required == 1
+    assert assignment is not None
+    assert assignment.status == "review_required"
+    assert assignment.source_state == "review_required"
+    assert assignment.document_label == "Contenuto da indicizzare"
+    assert assignment.document_nature == "da_verificare"
+    assert assignment.deposit_candidate is False
+    assert "nome del file non è usato per catalogare" in assignment.reason
+
+
+def test_pipeline_non_usa_nome_file_quando_il_testo_non_basta_a_definire_l_atto(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-CONTENUTO-INSUFFICIENTE"
+    source = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-DECRETO-GENERICO",
+        filename="decretoGenerico.pdf",
+        sha256="a" * 64,
+        tipo_documento="ATTO_GIUDIZIARIO",
+        text="UFFICIO DEL GIUDICE DI PACE DI PALMI. Documento acquisito nel fascicolo.",
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Giudice di Pace di Palmi",
+        tipo_procedimento="Ordinario",
+        canale_operativo="SIGP",
+        source="PST",
+        profilo_deposito={
+            "area": "Diritto civile",
+            "branca": "Responsabilità civile e danni",
+            "sottobranca": "Risarcimento danni da circolazione stradale",
+        },
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id, fascicolo=fascicolo, sources=[source], actor="operatore", process=True,
+    )
+
+    assignment = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-DECRETO-GENERICO")
+    assert result.review_required == 1
+    assert assignment is not None
+    assert assignment.status == "review_required"
+    assert assignment.document_label == "Contenuto da verificare"
+    assert assignment.document_nature == "da_verificare"
+    assert assignment.deposit_role == "fuori_busta"
+    assert assignment.deposit_candidate is False
+    assert "nome del file non è usato per catalogare" in assignment.reason
+
+
+def test_pipeline_non_sovrascrive_correzione_manuale_neppure_con_retry(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-MANUALE"
+    source = _ready_source(
+        repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id="DOC-MANUALE",
+        filename="ricorso-manuale.pdf", sha256="9" * 64,
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id, area_pratica="Civile", tribunale="Tribunale di Roma",
+        tipo_procedimento="Ordinario", canale_operativo="PCT", source="PST",
+        profilo_deposito={"area": "Civile", "branca": "Civile ordinario", "sottobranca": "Introduttivi e difensivi"},
+    )
+    pipeline = FascicoloDocumentCatalogPipeline(repo)
+    pipeline.run(tenant_id=tenant_id, fascicolo=fascicolo, sources=[source], actor="operatore", process=True)
+    repo.override_catalog_assignment(
+        tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id="DOC-MANUALE", actor="avvocato",
+        document_label="Atto corretto dall'avvocato", document_section="atti", document_nature="atto_processuale",
+        deposit_role="atto_principale", deposit_candidate=True,
+    )
+
+    result = pipeline.run(
+        tenant_id=tenant_id, fascicolo=fascicolo, sources=[source], actor="operatore", process=True, retry=True,
+    )
+
+    assignment = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-MANUALE")
+    assert result.processed == 0
+    assert result.skipped_current == 1
+    assert assignment is not None
+    assert assignment.source_state == "manual_override"
+    assert assignment.document_label == "Atto corretto dall'avvocato"
 
 
 def test_pipeline_conserva_lo_storico_di_revisioni_ripetute(tmp_path):

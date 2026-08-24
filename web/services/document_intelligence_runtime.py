@@ -215,6 +215,54 @@ def resolve_document_catalog_assignment(
     return _catalog_assignment_payload(repository, assignment)
 
 
+def override_document_catalog_assignment(
+    fascicolo_id: str,
+    document_id: str,
+    *,
+    document_label: str,
+    document_section: str,
+    document_nature: str,
+    deposit_role: str,
+    deposit_candidate: bool,
+    note: str = "",
+    user_context: object | None = None,
+) -> dict[str, Any]:
+    """Registra la correzione dell'avvocato nel catalogo SQL del fascicolo."""
+
+    assert_document_ai_fascicolo_current_tenant(fascicolo_id)
+    tenant_id = document_ai_tenant_id()
+    context = user_context if user_context is not None else document_ai_user_context()
+    actor = str((context or {}).get("user_id") or "catalogazione-documentale") if isinstance(context, dict) else "catalogazione-documentale"
+    repository = build_document_ai_service().repository
+    assignment = repository.override_catalog_assignment(
+        tenant_id=tenant_id,
+        fascicolo_id=str(fascicolo_id),
+        document_id=str(document_id),
+        actor=actor,
+        document_label=document_label,
+        document_section=document_section,
+        document_nature=document_nature,
+        deposit_role=deposit_role,
+        deposit_candidate=bool(deposit_candidate),
+        note=note,
+    )
+    if assignment is None:
+        raise DocumentAINotFound("Catalogazione del documento non trovata")
+    repository.append_audit_event({
+        "id": f"catalog-override-{assignment.id}-{assignment.updated_at}", "tenant_id": tenant_id,
+        "fascicolo_id": str(fascicolo_id), "document_id": str(document_id),
+        "version_id": assignment.document_version_id, "user_id": actor,
+        "event_type": "document_catalog.overridden", "timestamp": assignment.updated_at,
+        "sha256": assignment.document_sha256, "filename": str(assignment.metadata.get("filename") or ""),
+        "status": "confirmed",
+        "payload": {
+            "fields": ["document_label", "document_section", "document_nature", "deposit_role", "deposit_candidate"],
+            "note_length": len(str(note or "")),
+        },
+    })
+    return _catalog_assignment_payload(repository, assignment)
+
+
 def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: Any) -> dict[str, Any]:
     if assignment is None:
         return {}
@@ -781,6 +829,7 @@ __all__ = [
     "document_ai_user_context",
     "fascicoli_db_path",
     "assert_document_ai_fascicolo_current_tenant",
+    "override_document_catalog_assignment",
     "resolve_document_catalog_assignment",
     "apply_sentenza_automation_for_document_text",
 ]

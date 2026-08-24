@@ -6457,8 +6457,129 @@ function RegiaActionCard({ label, value, note, href, tone = 'neutral' }:{label:s
   )
 }
 
+type ProceduralProfileCandidate = {
+  code: string
+  name: string
+  area: string
+  channel: string
+  registry: string
+  confidence: string
+  reason: string
+  source: string
+}
+
+function formatProceduralConfidence(value: string): string {
+  const numeric = Number(value.trim().replace('%', '').replace(',', '.'))
+  if (!Number.isFinite(numeric) || numeric <= 0) return 'da verificare'
+  return `${Math.round((numeric > 1 ? numeric / 100 : numeric) * 100)}%`
+}
+
+function proceduralProfileCandidates(regia: FascicoloDetailData['regia']): ProceduralProfileCandidate[] {
+  const profile = regia.profile
+  const rows = [
+    profile.candidate,
+    ...(Array.isArray(profile.alternatives) ? profile.alternatives : []),
+  ].filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
+  const seen = new Set<string>()
+  return rows.flatMap((row) => {
+    const code = recordText(row, 'code') || recordText(row, 'procedureCode') || recordText(row, 'procedure_code')
+    if (!code || seen.has(code)) return []
+    seen.add(code)
+    const confidence = formatProceduralConfidence(recordText(row, 'confidence') || recordText(profile, 'confidence'))
+    return [{
+      code,
+      name: recordText(row, 'name') || recordText(row, 'practiceType') || code,
+      area: recordText(row, 'area'),
+      channel: recordText(row, 'channel'),
+      registry: recordText(row, 'registry'),
+      confidence,
+      reason: recordText(row, 'reason') || recordText(profile, 'reason') || 'Proposta del resolver procedurale.',
+      source: recordText(row, 'source') || recordText(profile, 'source') || 'Catalogo procedurale IUSENTRA',
+    }]
+  })
+}
+
+function ProceduralProfileConfirmation({ data, onDone, onError }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const regia = data.regia
+  const candidates = proceduralProfileCandidates(regia)
+  const action = recordText(regia.actions, 'applyProfile')
+  const resolverReason = recordText(regia.profile, 'reason') || 'Il sistema non ha applicato alcun profilo in autonomia.'
+  return (
+    <div className="iu-fas-regia iu-fas-regia--profile-review">
+      <header className="iu-fas-regia__header">
+        <div>
+          <Badge tone="warning">Conferma necessaria</Badge>
+          <h3>Profilo procedurale da confermare</h3>
+          <p>Il sistema ha preparato una proposta, ma non crea requisiti, checklist o azioni finché l’avvocato non la conferma.</p>
+        </div>
+      </header>
+      <section className="iu-fas-regia__profile-source" aria-label="Origine della proposta procedurale">
+        <strong>Come è stata prodotta la proposta</strong>
+        <p>{resolverReason}</p>
+        <small>La conferma salva il profilo scelto e registra l’azione nel fascicolo. Nessun termine, deposito o notifica viene creato da questa scelta.</small>
+      </section>
+      <div className="iu-fas-regia__profile-candidates">
+        {candidates.map((candidate) => (
+          <article key={candidate.code}>
+            <Badge tone="info">Confidenza {candidate.confidence}</Badge>
+            <strong>{candidate.name}</strong>
+            <span>{[candidate.area, candidate.channel, candidate.registry].filter(Boolean).join(' · ') || 'Canale e registro da verificare'}</span>
+            <small>{candidate.reason}</small>
+            <small className="iu-fas-regia__profile-source-label">Fonte del profilo: {candidate.source}</small>
+            <JsonPostForm
+              action={action}
+              className="iu-fas-regia__profile-confirm"
+              onDone={onDone}
+              onError={onError}
+            >
+              <input type="hidden" name="profile_code" value={candidate.code}/>
+              <input type="hidden" name="reason" value={`Conferma esplicita dell’avvocato del profilo ${candidate.code}.`}/>
+              <button type="submit"><CheckCircle2 size={15}/> Conferma profilo</button>
+            </JsonPostForm>
+          </article>
+        ))}
+        {!candidates.length ? <p className="iu-empty">Nessun profilo candidato è disponibile. Completa i dati di procedimento o seleziona una procedura dal catalogo prima di creare controlli.</p> : null}
+      </div>
+    </div>
+  )
+}
+
 function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData; returnHref:string}) {
   const fascicolo = data.fascicolo
+  const qualityDestination = (label:string) => {
+    const normalized = label.trim().toLowerCase()
+    if (normalized === 'dati principali') return '#profilo'
+    if (normalized === 'cliente') return data.client?.href || '#cliente'
+    if (normalized === 'parti') return '#soggetti'
+    if (normalized === 'documenti') return '#documenti'
+    if (normalized === 'scadenze') return '#udienze'
+    if (normalized === 'sync portale') return '#documenti'
+    return '#presidio-conformita'
+  }
+  const qualityActionLabel = (label:string) => {
+    const normalized = label.trim().toLowerCase()
+    if (normalized === 'dati principali') return 'Apri dati principali e modifica il fascicolo'
+    if (normalized === 'cliente') return 'Apri cliente e dati anagrafici'
+    if (normalized === 'parti') return 'Apri soggetti e parti per la verifica'
+    if (normalized === 'documenti') return 'Apri documenti e atti del fascicolo'
+    if (normalized === 'scadenze') return 'Apri udienze e scadenze'
+    if (normalized === 'sync portale') return 'Apri documenti acquisiti dal portale'
+    return 'Apri il controllo di conformità'
+  }
+  const openQualityDestination = (event:MouseEvent<HTMLAnchorElement>, destination:string) => {
+    // Per le sezioni del fascicolo non basta cambiare hash: il pannello può
+    // essere chiuso. Lo apriamo, lo portiamo nel contesto visibile e lasciamo
+    // il focus alla sua summary per la prosecuzione da tastiera.
+    if (!destination.startsWith('#')) return
+    event.preventDefault()
+    const sectionId = destination.slice(1)
+    openDetailSectionById(sectionId)
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(sectionId)
+      const summary = target?.querySelector('summary')
+      if (summary instanceof HTMLElement) summary.focus({ preventScroll: true })
+    })
+  }
   return (
     <section id="presidio-conformita" className="iu-fas-regia__quality" aria-labelledby="presidio-conformita-title">
       <span id="conformita" className="iu-fas-anchor-alias" aria-hidden="true"/>
@@ -6469,7 +6590,10 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
         </div>
         <Badge tone={data.quality.some((item) => !item.ok) ? 'warning' : 'success'}>{data.quality.some((item) => !item.ok) ? 'Da verificare' : 'Controlli attivi'}</Badge>
       </header>
-      <div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div>
+      <div className="iu-fas-quality-list">{data.quality.map((item) => {
+        const destination = qualityDestination(item.label)
+        return <a key={item.label} className="iu-fas-quality-list__item" href={destination} onClick={(event) => openQualityDestination(event, destination)} aria-label={qualityActionLabel(item.label)} title={qualityActionLabel(item.label)}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></a>
+      })}</div>
       <JsonPostForm className={`iu-fas-compliance-toggle ${fascicolo.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={fascicolo.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={returnHref}>
         <input type="hidden" name="enabled" value={fascicolo.complianceControlsEnabled ? '0' : '1'}/>
         <input type="hidden" name="next" value={returnHref}/>
@@ -6481,6 +6605,15 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
 
 function RegiaOperativaSection({ data, onDone, onError, onOpen, returnHref, loading = false }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; returnHref:string; loading?:boolean}) {
   const regia = data.regia
+  if (regia.page_state === 'profilo_da_confermare') {
+    return (
+      <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={proceduralProfileCandidates(regia).length} onOpen={onOpen}>
+        <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
+        <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
+        {loading ? <p className="iu-empty">Caricamento Presidio del fascicolo...</p> : <ProceduralProfileConfirmation data={data} onDone={onDone} onError={onError}/>}
+      </DetailSection>
+    )
+  }
   const h = regia.header
   const economics = regia.economics
   const deposit = regia.deposit
@@ -9014,11 +9147,13 @@ function SentenzeEconomicheSection({
 function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, loading = false, defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; loading?:boolean; defaultOpen?:boolean}) {
   const hasEvents = audit.events.length > 0
   const effectiveBundleHref = audit.enabled && hasEvents ? (audit.actions.bundle || bundleHref) : ''
+  const operationalOnly = audit.status === 'operational'
   return (
     <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} defaultOpen={defaultOpen} onOpen={onOpen}>
       {loading ? <p className="iu-empty">Caricamento audit...</p> : null}
       {hasEvents ? (
         <>
+          {audit.message ? <p className="iu-fas-audit-context"><Badge tone={operationalOnly ? 'info' : 'neutral'}>{operationalOnly ? 'Registro operativo' : 'Presidio probatorio'}</Badge>{audit.message}</p> : null}
           <div className="iu-fas-audit-summary">
             <span><Badge tone={audit.summary.signed === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
             <span><Badge tone={audit.summary.worm === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
@@ -9042,19 +9177,19 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, loading
       ) : null}
       <div className="iu-fas-audit-list">
         {audit.events.map((event) => (
-          <article className="iu-fas-audit-row" key={event.eventId}>
+          <article className={`iu-fas-audit-row${event.operational ? ' is-operational' : ''}`} key={event.eventId}>
             <div>
               <Badge tone={event.tone}>{event.kindLabel}</Badge>
               <time>{formatAuditDate(event.eventTsUtc)}</time>
             </div>
             <div>
-              <strong>{event.eventHashShort || event.eventHash || 'impronta non disponibile'}</strong>
-              <span>{event.prevEventHash ? 'Concatenato al precedente evento' : 'Primo evento del fascicolo'}</span>
+              <strong>{event.message || event.eventHashShort || event.eventHash || 'Evento registrato'}</strong>
+              <span>{event.reason || (event.prevEventHash ? 'Concatenato al precedente evento' : event.operational ? 'Tracciato nel registro operativo del fascicolo' : 'Primo evento del fascicolo')}</span>
             </div>
             <div className="iu-fas-audit-badges">
-              {event.signed ? <Badge tone="success">Firmato</Badge> : <Badge tone="warning">Firma da verificare</Badge>}
-              {event.worm ? <Badge tone="success">WORM</Badge> : <Badge tone="warning">Conservazione da verificare</Badge>}
-              {event.inSnapshot ? <Badge tone="success">In snapshot</Badge> : <Badge tone="neutral">Snapshot in attesa</Badge>}
+              {event.operational ? <Badge tone="info">Operativo</Badge> : event.signed ? <Badge tone="success">Firmato</Badge> : <Badge tone="warning">Firma da verificare</Badge>}
+              {!event.operational ? (event.worm ? <Badge tone="success">WORM</Badge> : <Badge tone="warning">Conservazione da verificare</Badge>) : null}
+              {!event.operational ? (event.inSnapshot ? <Badge tone="success">In snapshot</Badge> : <Badge tone="neutral">Snapshot in attesa</Badge>) : null}
               {event.tsaVerified ? <Badge tone="success">TSA verificata</Badge> : null}
             </div>
             <div className="iu-fas-actions iu-fas-actions--wrap">
@@ -9335,7 +9470,7 @@ function DetailPage({ id }:{id:string}) {
         <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
           <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} returnHref={detailReturnHref} loading={lazyStatus.regia === 'loading'}/>
-          <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
+          <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>
@@ -9457,7 +9592,7 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
           <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} count={0}><CtuSection fascicoloId={f.id}/></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
-          <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
+          <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>
         </div>

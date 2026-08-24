@@ -313,18 +313,12 @@ def ensure_profile_for_fascicolo(
             return profile, {"profile": profile.to_dict(), "confidence": 1.0, "reason": "profilo gia' applicato", "alternatives": [], "needs_manual_confirmation": False}
     profile_from_deposit = _profile_from_deposit_profile(fascicolo)
     if profile_from_deposit:
-        repository.apply_profile(
-            _text(getattr(fascicolo, "id", "")),
-            profile_from_deposit,
-            actor=actor,
-            reason="profilo deposito SQL",
-        )
         return profile_from_deposit, {
             "profile": profile_from_deposit.to_dict(),
             "confidence": 0.93,
             "reason": "profilo deposito SQL",
             "alternatives": [],
-            "needs_manual_confirmation": False,
+            "needs_manual_confirmation": True,
         }
     resolver = resolve_practice_profile(
         preventivo=preventivo,
@@ -332,8 +326,12 @@ def ensure_profile_for_fascicolo(
         fascicolo=fascicolo,
         manual_code=manual_code,
     )
+    # La consultazione del fascicolo non deve cambiare il profilo procedurale.
+    # Il resolver propone una classificazione spiegabile; l'applicazione,
+    # l'eventuale rigenerazione della checklist e l'audit avvengono soltanto
+    # dopo il comando esplicito dell'avvocato su ``applica-profilo``.
     if resolver.profile:
-        repository.apply_profile(_text(getattr(fascicolo, "id", "")), resolver.profile, actor=actor, reason=resolver.reason)
+        resolver.needs_manual_confirmation = True
     return resolver.profile, resolver.to_dict()
 
 
@@ -531,6 +529,38 @@ def build_regia_payload(
             "profile": resolver_payload,
             "message": "Profilo pratica non determinato. Seleziona manualmente il profilo operativo.",
             "actions": {"applyProfile": f"/api/v1/ui/fascicoli/{fascicolo_id}/regia/applica-profilo"},
+        }
+    if resolver_payload.get("needs_manual_confirmation", False):
+        return {
+            "source": "repository reale",
+            "mock_fallback": False,
+            "page_state": "profilo_da_confermare",
+            "header": {
+                "title": _text(getattr(fascicolo, "titolo", "")),
+                "practiceType": profile.name,
+                "area": profile.area,
+                "channel": _channel_display_label(profile, _deposit_delivery_policy(profile)),
+                "channelCode": profile.channel,
+                "registry": profile.registry,
+                "workflow": profile.workflow_code,
+                "operationalState": "PROFILO_DA_CONFERMARE",
+                "completion": 0,
+                "nextAction": "Verifica la proposta procedurale e confermala prima di creare requisiti, controlli o azioni operative.",
+            },
+            "profile": {
+                **resolver_payload,
+                "candidate": profile.to_dict(),
+            },
+            "economics": {},
+            "checklist": [],
+            "documentSlots": [],
+            "validation": {"status": "PROFILO_DA_CONFERMARE", "ready": False, "lastCheck": "", "blockers": [], "warnings": [], "results": []},
+            "deposit": {},
+            "timeline": [],
+            "evidencePack": {},
+            "actions": {
+                "applyProfile": f"/api/v1/ui/fascicoli/{fascicolo_id}/regia/applica-profilo",
+            },
         }
     readiness = run_predeposit_check(
         repository,

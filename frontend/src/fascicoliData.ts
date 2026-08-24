@@ -562,6 +562,9 @@ export type FascicoloAuditEvent = {
   tsaVerified: boolean
   tone: Tone
   proofHref: string
+  message?: string
+  reason?: string
+  operational?: boolean
 }
 
 export type FascicoloAuditTrail = {

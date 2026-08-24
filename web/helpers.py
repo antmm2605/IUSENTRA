@@ -95,7 +95,13 @@ def get_fascicoli() -> GestioneFascicoli:
 
 
 def get_practice_engine() -> PracticeEngineRepository:
-    return PracticeEngineRepository(_cfg("PRACTICE_ENGINE_DB"))
+    return PracticeEngineRepository(
+        _cfg("PRACTICE_ENGINE_DB"),
+        # Il mirror del motore vive sotto fascicoli/practice_engine, ma il
+        # dominio operativo deve condividere il database canonico del tenant.
+        # Derivarlo dal mirror creerebbe uno studio.db parallelo nel modulo.
+        studio_db=_studio_db("FASCICOLI_DB"),
+    )
 
 
 def get_scadenziario() -> GestioneScadenziario:

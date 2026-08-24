@@ -1126,6 +1126,14 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-regia__header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border:1px solid rgba(37,99,235,.16);border-radius:16px;background:linear-gradient(135deg,#fff,#f8fbff)}
 .iu-fas-regia__header h3{margin:8px 0 4px;color:#0f172a;font-size:18px;font-weight:950;letter-spacing:0}
 .iu-fas-regia__header p{margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:740;line-height:1.4}
+.iu-fas-regia--profile-review{padding:14px;border:1px solid rgba(245,158,11,.3);border-radius:18px;background:linear-gradient(145deg,#fffdf7,#fff)}
+.iu-fas-regia__profile-source{display:grid;gap:6px;padding:12px 13px;border:1px solid rgba(37,99,235,.18);border-radius:14px;background:#f8fbff}
+.iu-fas-regia__profile-source strong{color:#0f172a;font-size:13px;font-weight:950}.iu-fas-regia__profile-source p,.iu-fas-regia__profile-source small{margin:0;color:var(--iu-slate-600);font-size:12px;font-weight:760;line-height:1.42}
+.iu-fas-regia__profile-source small{color:var(--iu-slate-500)}
+.iu-fas-regia__profile-candidates{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:10px}
+.iu-fas-regia__profile-candidates article{display:grid;align-content:start;justify-items:start;gap:7px;min-width:0;padding:13px;border:1px solid var(--iu-border);border-radius:14px;background:#fff;box-shadow:var(--iu-shadow-sm)}
+.iu-fas-regia__profile-candidates article .iu-badge{max-width:100%}.iu-fas-regia__profile-candidates article strong{color:#0f172a;font-size:14px;font-weight:950;line-height:1.26;overflow-wrap:anywhere}.iu-fas-regia__profile-candidates article>span,.iu-fas-regia__profile-candidates article>small{color:var(--iu-slate-600);font-size:12px;font-weight:760;line-height:1.36;overflow-wrap:anywhere}.iu-fas-regia__profile-source-label{color:var(--iu-slate-500)!important}
+.iu-fas-regia__profile-confirm{width:100%;margin-top:2px}.iu-fas-regia__profile-confirm button{width:100%;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid rgba(37,99,235,.32);border-radius:10px;background:#fff;color:var(--iu-blue-700);padding:8px 11px;font-size:12px;font-weight:950;line-height:1.2;cursor:pointer;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease}.iu-fas-regia__profile-confirm button:hover{border-color:rgba(37,99,235,.52);background:#eff6ff;box-shadow:0 7px 16px rgba(37,99,235,.12)}.iu-fas-regia__profile-confirm button:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}.iu-fas-regia__profile-confirm button:disabled{cursor:wait;opacity:.62}
 .iu-fas-regia__progress{width:104px;height:104px;display:grid;place-items:center;text-align:center;border:1px solid rgba(37,99,235,.18);border-radius:50%;background:#fff;color:var(--iu-blue-700);box-shadow:var(--iu-shadow-sm)}
 .iu-fas-regia__progress strong{display:block;font-size:24px;font-weight:950;line-height:1}
 .iu-fas-regia__progress span{display:block;color:var(--iu-slate-500);font-size:11px;font-weight:850}
@@ -1602,10 +1610,12 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-lex-indexing footer{grid-column:1/-1;align-items:center}
 .iu-fas-lex-indexing .iu-fas-post{width:auto;min-width:max-content;white-space:nowrap}
 .iu-fas-quality-list{gap:0;overflow:hidden;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
-.iu-fas-quality-list>span{min-height:42px;display:grid;grid-template-columns:38px minmax(0,1fr);grid-template-areas:"state title" "state value";align-items:center;gap:1px 9px;padding:7px 10px;border:0;border-bottom:1px solid rgba(15,23,42,.07);border-radius:0;background:#fff}
-.iu-fas-quality-list>span:last-child{border-bottom:0}
-.iu-fas-quality-list>span:hover{background:rgba(37,99,235,.035)}
-.iu-fas-quality-list .ius-status-badge{grid-area:state!important;width:30px!important;min-width:30px!important;height:22px!important;min-height:22px!important;justify-self:start!important;align-self:center!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border:0!important;border-radius:999px!important;background:rgba(16,185,129,.10);font-size:9px!important;font-weight:950!important;letter-spacing:.02em;white-space:nowrap!important}
+.iu-fas-quality-list>span,.iu-fas-quality-list>.iu-fas-quality-list__item{min-height:42px;display:grid;grid-template-columns:max-content minmax(0,1fr);grid-template-areas:"state title" "state value";align-items:center;gap:1px 9px;padding:7px 10px;border:0;border-bottom:1px solid rgba(15,23,42,.07);border-radius:0;background:#fff}
+.iu-fas-quality-list>.iu-fas-quality-list__item{color:inherit;text-decoration:none;cursor:pointer}
+.iu-fas-quality-list>span:last-child,.iu-fas-quality-list>.iu-fas-quality-list__item:last-child{border-bottom:0}
+.iu-fas-quality-list>span:hover,.iu-fas-quality-list>.iu-fas-quality-list__item:hover{background:rgba(37,99,235,.035)}
+.iu-fas-quality-list>.iu-fas-quality-list__item:focus-visible{position:relative;z-index:1;outline:3px solid rgba(37,99,235,.34);outline-offset:-3px;background:rgba(37,99,235,.06)}
+.iu-fas-quality-list .ius-status-badge{grid-area:state!important;width:max-content!important;min-width:0!important;height:22px!important;min-height:22px!important;justify-self:start!important;align-self:center!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0 8px!important;border:0!important;border-radius:999px!important;background:rgba(16,185,129,.10);font-size:10px!important;font-weight:950!important;letter-spacing:.02em;white-space:nowrap!important}
 .iu-fas-quality-list .ius-tone-warning{background:rgba(245,158,11,.13)!important;color:#a16207!important}
 .iu-fas-quality-list .ius-tone-danger{background:rgba(239,68,68,.10)!important;color:#dc2626!important}
 .iu-fas-quality-list .ius-tone-info,.iu-fas-quality-list .ius-tone-primary{background:rgba(37,99,235,.09)!important;color:var(--iu-blue-700)!important}
@@ -1614,6 +1624,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-quality-list small{grid-area:value;margin-top:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
 .iu-fas-compliance-toggle button{min-height:52px;padding:8px 10px;border-radius:12px}
 .iu-fas-audit-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.iu-fas-audit-context{display:flex;align-items:flex-start;gap:8px;margin:0 0 10px;padding:9px 10px;border:1px solid rgba(37,99,235,.18);border-radius:11px;background:rgba(239,246,255,.6);color:var(--iu-slate-700);font-size:12px;font-weight:760;line-height:1.4}.iu-fas-audit-context .ius-status-badge{flex:0 0 auto}
 .iu-fas-audit-summary span{min-height:56px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
 .iu-fas-audit-summary strong{font-size:12px;color:#111827}
 .iu-fas-audit-actions{display:flex;justify-content:flex-end;margin-bottom:10px}
@@ -1623,6 +1634,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-audit-row>div:first-child{display:grid;gap:5px;justify-items:start}
 .iu-fas-audit-row time{color:var(--iu-slate-500);font-size:11px;font-weight:850}
 .iu-fas-audit-row strong{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#111827;word-break:break-all}
+.iu-fas-audit-row.is-operational strong{font-family:inherit;font-size:13px;font-weight:900;line-height:1.35;word-break:normal;overflow-wrap:anywhere}
 .iu-fas-audit-row span{display:block;margin-top:3px;color:var(--iu-slate-500);font-size:12px;font-weight:760}
 .iu-fas-audit-badges{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
 .iu-fas-audit-row .iu-fas-actions{justify-content:flex-end}
@@ -1644,8 +1656,8 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   .iu-fas-activity-actions{grid-column:auto}
   .iu-fas-mini-form--activity{width:100%}
   .iu-fas-mini-form--activity select{flex:1;width:auto}
-  .iu-fas-quality-list>span{grid-template-columns:36px minmax(0,1fr)}
-  .iu-fas-quality-list .ius-status-badge{width:28px!important;min-width:28px!important}
+  .iu-fas-quality-list>span{grid-template-columns:max-content minmax(0,1fr)}
+  .iu-fas-quality-list .ius-status-badge{width:max-content!important;min-width:0!important}
   .iu-fas-lex-indexing dl{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-fas-audit-summary{grid-template-columns:1fr}
   .iu-fas-audit-actions{display:grid}

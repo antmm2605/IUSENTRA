@@ -8442,11 +8442,11 @@ def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: P
     assert profile["Cliente"] == "Spagnolo Sara (da collegare in anagrafica)"
     assert payload["fascicolo"]["codiceOggettoPst"] == "222050 - Retribuzione"
     assert profile["Codice oggetto"] == "222050 - Retribuzione"
+    assert payload["regia"]["page_state"] == "profilo_da_confermare"
     assert payload["regia"]["header"]["channel"] == "PCT lavoro / SICID"
     assert payload["regia"]["header"]["channelCode"] == "PCT_LAVORO"
-    assert payload["regia"]["profile"]["code"] == "PROC_LAV_RETRIB_001"
-    assert payload["regia"]["profile"]["needsManualConfirmation"] is False
-    assert payload["regia"]["deposit"]["deliveryPolicy"]["officialChannel"] == "PCT lavoro / SICID"
+    assert payload["regia"]["profile"]["candidate"]["code"] == "PROC_LAV_RETRIB_001"
+    assert payload["regia"]["profile"]["needs_manual_confirmation"] is True
     assert [doc["name"] for doc in documents[:2]] == ["Provvedimento - sentenza", "Atto giudiziario"]
     imported_documents = [doc for doc in documents if doc["id"] in {documents[0]["id"], documents[1]["id"]}]
     assert all(not doc["name"].startswith("202603") for doc in imported_documents)
@@ -9876,6 +9876,11 @@ def test_react_fascicolo_relata_notifica_monitorata_in_ui_e_payload():
     assert "NotificationRelataMonitor" in page_source
     assert "relataListHref" in page_source
     assert "openDetailSectionById(sectionId)" in page_source
+    assert "openQualityDestination" in page_source
+    assert "summary.focus({ preventScroll: true })" in page_source
+    assert "if (normalized === 'cliente') return data.client?.href || '#cliente'" in page_source
+    assert "Modifica dati fascicolo" in page_source
+    assert "Collega un cliente al fascicolo" in page_source
     assert "notificationRelata" in data_source
     assert "relataStatusLabel" in data_source
     assert '"notificationRelata": notification_relata' in bridge_source

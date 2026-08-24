@@ -1469,6 +1469,11 @@ def _regia_context(id_fasc: str) -> dict[str, Any]:
         conferimento=conferimenti[0] if conferimenti else None,
         actor=_actor_label(),
     )
+    # Una proposta del resolver non abilita azioni procedurali o la creazione
+    # di slot: tali scritture sono consentite soltanto dopo la conferma
+    # esplicita e auditabile del profilo dal comando ``applica-profilo``.
+    if resolver_payload.get("needs_manual_confirmation", False):
+        profile = None
     return {
         "gf": gf,
         "repo": repo,
@@ -8854,6 +8859,8 @@ def fascicolo_regia_link_slot(id_fasc: str, slot_key: str):
     ctx = _regia_context(id_fasc)
     if "error" in ctx:
         return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima di collegare documenti ai requisiti.", "mock_fallback": False}), 409
     payload = _request_payload()
     document_id = str(payload.get("document_id") or payload.get("documentId") or "").strip()
     if not document_id:
@@ -9010,6 +9017,8 @@ def fascicolo_regia_validate_slot(id_fasc: str, slot_key: str):
     ctx = _regia_context(id_fasc)
     if "error" in ctx:
         return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima di validare un requisito documentale.", "mock_fallback": False}), 409
     slot = ctx["repo"].get_slot(id_fasc, slot_key)
     if not slot:
         return jsonify({"errore": "Slot documentale non trovato.", "mock_fallback": False}), 404
@@ -9087,6 +9096,8 @@ def fascicolo_regia_deposito_invia(id_fasc: str):
     ctx = _regia_context(id_fasc)
     if "error" in ctx:
         return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima dell'invio del deposito.", "mock_fallback": False}), 409
     payload = _request_payload()
     session_id = str(payload.get("deposito_id") or payload.get("depositoId") or payload.get("session_id") or "").strip()
     if not session_id:
@@ -9127,6 +9138,8 @@ def fascicolo_regia_importa_ricevuta(id_fasc: str, deposito_id: str):
     ctx = _regia_context(id_fasc)
     if "error" in ctx:
         return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima di registrare ricevute di deposito.", "mock_fallback": False}), 409
     payload = _request_payload()
     original_bytes = None
     original_name = "ricevuta.json"

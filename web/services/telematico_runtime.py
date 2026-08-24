@@ -171,6 +171,7 @@ def build_telematico_runtime(
     get_clienti,
     get_soggetti,
     get_scadenziario,
+    get_studio_db,
     audit,
     sync_pubblica,
     normalizza_nome_match_portale,
@@ -4217,7 +4218,12 @@ def build_telematico_runtime(
     def _practice_engine_repo():
         from pct.practice_engine import PracticeEngineRepository
 
-        return PracticeEngineRepository(str(_cfg_data_path("PRACTICE_ENGINE_DB")))
+        return PracticeEngineRepository(
+            str(_cfg_data_path("PRACTICE_ENGINE_DB")),
+            # Le operazioni di deposito devono leggere lo stesso dominio SQL
+            # del presidio fascicolo, non un database annidato nel mirror.
+            studio_db=get_studio_db("FASCICOLI_DB"),
+        )
 
     def _deposito_precheck_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         portale_norm = _require_assisted_portal(portale)

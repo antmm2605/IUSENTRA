@@ -6026,3 +6026,10 @@ Perimetro: Centro Servizi Telematici React e Scadenziario React. Nessuna PEC, fi
 - Il Guardiano Scadenze ha mostrato dati reali dello studio con 12 presidi preventivi e 3 critici, indicando scadenze oltre data prevista e fonti evento mancanti senza ricalcolare termini di legge.
 
 Stato: prova visiva locale completata; i soli invii telematici restano esclusivamente sul PC locale dell’avvocato tramite Local Signer secondo il flusso già governato.
+## Presidio fascicolo — controlli di conformità e registro operativo SQL (24/08/2026)
+
+- Le righe di **Conformità e qualità** sono azioni del fascicolo: aprono ed espandono `#profilo`, `#cliente`, `#soggetti`, `#documenti` o `#udienze`; il focus viene trasferito al pannello aperto.
+- Il pannello del profilo offre `Modifica dati fascicolo`; il pannello Cliente espone l'apertura/modifica dell'anagrafica, oppure `Collega un cliente al fascicolo` quando l'assistito manca.
+- Il Practice Engine usa `studio.db` del tenant come fonte di verità. Il JSON sotto `fascicoli/practice_engine` è solo mirror/import storico controllato. L'import normalizza gli identificativi legacy di profilo riusati da fascicoli diversi e riallinea i relativi requisiti, slot, checklist e sessioni prima della scrittura SQL.
+- Lo storico `PROFILE_APPLIED` è mostrato nell'Audit come **Registro operativo**, distinto dalle prove WORM/firma/conservazione; non viene presentato come evidenza probatoria.
+- Prova locale eseguita su `http://127.0.0.1:8080/fascicoli/474DC848`: click reale su Dati principali, Parti, Documenti, Scadenze e Cliente; ogni click ha cambiato l'ancora corretta, aperto il pannello e reso disponibile la relativa correzione. Audit visualizzato: 1 evento `Profilo procedurale confermato`, con data/ora Europe/Rome. I badge `OK`/`Verifica` sono risultati leggibili senza testo tagliato.

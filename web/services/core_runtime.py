@@ -848,7 +848,12 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_practice_engine"):
             from pct.practice_engine import PracticeEngineRepository
 
-            g._practice_engine = PracticeEngineRepository(_cfg_data_path("PRACTICE_ENGINE_DB"))
+            g._practice_engine = PracticeEngineRepository(
+                _cfg_data_path("PRACTICE_ENGINE_DB"),
+                # PRACTICE_ENGINE_DB è soltanto il mirror tenant-aware: la
+                # fonte di verità SQL è sempre lo studio.db del fascicolo.
+                studio_db=get_studio_db("FASCICOLI_DB"),
+            )
         return g._practice_engine
 
     def get_pdp_penale() -> PDPPenaleWorkflowRepository:

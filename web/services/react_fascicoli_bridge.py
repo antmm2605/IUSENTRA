@@ -281,6 +281,8 @@ def _short_hash(value: str) -> str:
 def _audit_kind_label(kind: str) -> str:
     labels = {
         "ACT_GENERATED": "Atto generato",
+        "PROFILE_APPLIED": "Profilo procedurale confermato",
+        "DOCUMENT_SLOT_LINKED": "Documento collegato al requisito",
         "PEC_SENT": "PEC inviata",
         "PEC_RECEIPT_ACQUIRED": "Ricevuta PEC acquisita",
         "DEPOSIT_ATTEMPT": "Tentativo deposito",
@@ -378,14 +380,69 @@ def _audit_trail(fid: str) -> dict[str, Any]:
         "status": "ready",
         "message": "",
         "events": events,
-        "summary": {
-            "total": len(events),
-            "signed": sum(1 for item in events if item["signed"]),
-            "worm": sum(1 for item in events if item["worm"]),
-            "snapshotted": sum(1 for item in events if item["inSnapshot"]),
-            "tsaVerified": sum(1 for item in events if item["tsaVerified"]),
-        },
+        "summary": _audit_summary(events),
         "actions": {"bundle": f"/registro/bundle/fascicolo/{quote(fid)}"},
+    }
+
+
+def _audit_summary(events: Iterable[dict[str, Any]]) -> dict[str, int]:
+    rows = list(events)
+    return {
+        "total": len(rows),
+        "signed": sum(1 for item in rows if item.get("signed")),
+        "worm": sum(1 for item in rows if item.get("worm")),
+        "snapshotted": sum(1 for item in rows if item.get("inSnapshot")),
+        "tsaVerified": sum(1 for item in rows if item.get("tsaVerified")),
+    }
+
+
+def _merge_practice_audit(payload: dict[str, Any], rows: Iterable[Any]) -> dict[str, Any]:
+    """Aggiunge lo storico SQL operativo senza spacciarlo per prova WORM."""
+    operational_events: list[dict[str, Any]] = []
+    for row in rows or []:
+        event_id = _text(getattr(row, "id", ""))
+        kind = _text(getattr(row, "event_type", ""))
+        operational_events.append(
+            {
+                "eventId": f"practice:{event_id}" if event_id else f"practice:{len(operational_events)}",
+                "kind": kind,
+                "kindLabel": _audit_kind_label(kind),
+                "eventTsUtc": _text(getattr(row, "created_at", "")),
+                "eventHash": "",
+                "eventHashShort": "",
+                "prevEventHash": "",
+                "signed": False,
+                "signatureAlg": "",
+                "worm": False,
+                "snapshotId": "",
+                "inSnapshot": False,
+                "tsaVerified": False,
+                "tone": _audit_kind_tone(kind),
+                "proofHref": "",
+                "message": _text(getattr(row, "message", "")),
+                "reason": _text(getattr(row, "reason", "")),
+                "operational": True,
+            }
+        )
+    if not operational_events:
+        return payload
+    legal_events = list(payload.get("events") or [])
+    events = sorted(
+        [*legal_events, *operational_events],
+        key=lambda item: (_text(item.get("eventTsUtc")), _text(item.get("eventId"))),
+        reverse=True,
+    )
+    if legal_events:
+        return {**payload, "events": events, "summary": _audit_summary(events)}
+    return {
+        **payload,
+        "enabled": True,
+        "available": True,
+        "status": "operational",
+        "message": "Registro operativo del fascicolo: le conferme e i collegamenti sono tracciati. Firma, conservazione immutabile e bundle restano separati finché il presidio probatorio non è configurato.",
+        "events": events,
+        "summary": _audit_summary(events),
+        "actions": {"bundle": ""},
     }
 
 
@@ -8427,7 +8484,15 @@ def build_react_fascicolo_detail_payload(
         "istanze": len(visible_requests),
         "relata_notifica": relata_count,
     }
-    audit_trail = _audit_trail(fid) if load_audit else _audit_trail_placeholder()
+    practice_audit = _safe(
+        "practice_audit",
+        lambda: get_practice_engine().list_audit(fid),
+        [],
+    ) if load_audit and get_practice_engine else []
+    audit_trail = _merge_practice_audit(
+        _audit_trail(fid) if load_audit else _audit_trail_placeholder(),
+        practice_audit,
+    )
     audit_bundle_action = _text((audit_trail.get("actions") or {}).get("bundle"))
     quick_counts["audit"] = int((audit_trail.get("summary") or {}).get("total") or 0)
     lex_indexing = _safe(

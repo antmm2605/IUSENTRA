@@ -102,6 +102,7 @@ def build_application_runtime_bundle(
         get_clienti=core["get_clienti"],
         get_soggetti=core["get_soggetti"],
         get_scadenziario=core["get_scadenziario"],
+        get_studio_db=core["get_studio_db"],
         audit=core["audit"],
         sync_pubblica=core["sync_pubblica"],
         normalizza_nome_match_portale=fascicoli["normalizza_nome_match_portale"],

@@ -414,7 +414,10 @@ def apri_fascicolo_automatico(
         checklist=checklist,
         practice_label=prefill.get("oggetto") or prefill.get("titolo") or "",
     )
-    pe_repo = PracticeEngineRepository.from_fascicoli_db(str(gf.db_path))
+    pe_repo = PracticeEngineRepository.from_fascicoli_db(
+        str(gf.db_path),
+        studio_db=getattr(gf, "_studio_db", None),
+    )
     practice_engine_profile, _resolver = ensure_profile_for_fascicolo(
         pe_repo,
         fascicolo=gf.get(fasc.id) or fasc,

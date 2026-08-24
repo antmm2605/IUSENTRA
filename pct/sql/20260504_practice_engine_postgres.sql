@@ -171,3 +171,17 @@ CREATE TABLE IF NOT EXISTS evidence_packs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_evidence_packs_deposit ON evidence_packs(deposit_session_id);
+
+CREATE TABLE IF NOT EXISTS practice_audit_events (
+    id TEXT PRIMARY KEY,
+    fascicolo_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    actor TEXT,
+    message TEXT,
+    reason TEXT,
+    payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_practice_audit_events_fascicolo
+    ON practice_audit_events(fascicolo_id, created_at);

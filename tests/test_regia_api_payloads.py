@@ -84,12 +84,31 @@ def _app_with_fascicolo(tmp_path: Path):
     return app, gf, fascicolo
 
 
+def _conferma_profilo_regia(app, client, fascicolo):
+    prima = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers={"X-API-Key": "regia-test-key"})
+    assert prima.status_code == 200
+    proposta = prima.get_json()
+    assert proposta["page_state"] == "profilo_da_confermare"
+    assert proposta["profile"]["candidate"]["code"] == "PROC_LIC_IMP_001"
+    with app.app_context():
+        assert app.extensions["core_runtime"]["get_practice_engine"]().get_profile_snapshot(fascicolo.id) is None
+
+    conferma = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/regia/applica-profilo",
+        json={"profile_code": "PROC_LIC_IMP_001", "reason": "Conferma esplicita di test del profilo procedurale."},
+        headers={"X-API-Key": "regia-test-key"},
+    )
+    assert conferma.status_code == 200
+    assert conferma.get_json()["ok"] is True
+    with app.app_context():
+        assert app.extensions["core_runtime"]["get_practice_engine"]().get_profile_snapshot(fascicolo.id)["code"] == "PROC_LIC_IMP_001"
+    return conferma.get_json()["regia"]
+
+
 def test_api_regia_payload_completo_e_mock_false(tmp_path):
     app, _gf, fascicolo = _app_with_fascicolo(tmp_path)
     client = app.test_client()
-    response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers={"X-API-Key": "regia-test-key"})
-    assert response.status_code == 200
-    payload = response.get_json()
+    payload = _conferma_profilo_regia(app, client, fascicolo)
     assert payload["mock_fallback"] is False
     assert payload["source"] == "repository reale"
     assert payload["header"]["title"] == "Regia API"
@@ -115,6 +134,7 @@ def test_api_regia_payload_completo_e_mock_false(tmp_path):
 def test_api_regia_economia_espone_link_operativi(tmp_path):
     app, _gf, fascicolo = _app_with_fascicolo(tmp_path)
     client = app.test_client()
+    _conferma_profilo_regia(app, client, fascicolo)
     response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers={"X-API-Key": "regia-test-key"})
     assert response.status_code == 200
     economics = response.get_json()["economics"]
@@ -133,6 +153,7 @@ def test_api_slot_predeposito_deposito_ricevuta_evidence_pack(tmp_path):
     procura = gf.aggiungi_documento(fascicolo.id, "procura.pdf", TipoDocumento.PROCURA, pdfa_bytes(), firmato=True)
     client = app.test_client()
     headers = {"X-API-Key": "regia-test-key"}
+    _conferma_profilo_regia(app, client, fascicolo)
 
     link = client.post(
         f"/api/v1/ui/fascicoli/{fascicolo.id}/document-slots/ATTO_PRINCIPALE/link",
@@ -167,6 +188,21 @@ def test_api_slot_predeposito_deposito_ricevuta_evidence_pack(tmp_path):
     assert evidence.mimetype == "application/zip"
 
 
+def test_api_regia_blocca_requisiti_prima_della_conferma_profilo(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    documento = gf.aggiungi_documento(fascicolo.id, "atto.pdf", TipoDocumento.ATTO_GIUDIZIARIO, pdfa_bytes(), firmato=True)
+    response = app.test_client().post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/document-slots/ATTO_PRINCIPALE/link",
+        json={"document_id": documento.id},
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 409
+    assert response.get_json()["errore"] == "Profilo pratica da confermare prima di collegare documenti ai requisiti."
+    with app.app_context():
+        assert app.extensions["core_runtime"]["get_practice_engine"]().get_profile_snapshot(fascicolo.id) is None
+
+
 def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     atto = gf.aggiungi_documento(fascicolo.id, "ricorso lavoro.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
@@ -175,6 +211,7 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     fuori = gf.aggiungi_documento(fascicolo.id, "comunicazione cancelleria.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)
     client = app.test_client()
     headers = {"X-API-Key": "regia-test-key"}
+    _conferma_profilo_regia(app, client, fascicolo)
 
     response = client.post(
         f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",

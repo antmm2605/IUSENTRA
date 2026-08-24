@@ -84,6 +84,69 @@ def test_document_ai_api_stato_indicizzazione_lex(tmp_path: Path):
     assert payload["lex_indexing"]["warnings"] == []
 
 
+def test_catalogazione_documentale_sql_api_esegue_pipeline_e_revisione(tmp_path: Path, monkeypatch):
+    _patch_extraction(monkeypatch, "RICORSO introduttivo con conclusioni e istanza di fissazione.")
+    app = create_app({**_cfg_web(tmp_path), "STORAGE_MODE_DEFAULT": "SQLITE"})
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo("Fascicolo catalogazione SQL", TipoFascicolo.CIVILE, nome_cliente="Cliente Test")
+    fascicoli.aggiorna(
+        fascicolo.id,
+        profilo_deposito={
+            "area": "Civile",
+            "branca": "Civile ordinario",
+            "sottobranca": "Introduttivi e difensivi",
+            "rito": "Ordinario",
+            "canale_telematico": "PCT",
+        },
+    )
+    document = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "ricorso-introduttivo.pdf",
+        TipoDocumento.RICORSO,
+        b"%PDF-1.4\nricorso introduttivo\n%%EOF",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        initial = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/catalogazione-documentale")
+        updated = client.post(f"/api/v1/ui/fascicoli/{fascicolo.id}/catalogazione-documentale/aggiorna")
+        reviewed = client.post(
+            f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti-ai/{document.id}/catalogazione-documentale/revisione",
+            json={"status": "confirmed"},
+        )
+        from web.blueprints import api_v1_documenti_ai as documenti_ai_api
+        original_lex_indexing = documenti_ai_api.build_lex_indexing_summary_payload
+        lex_process_flags: list[bool] = []
+
+        def track_lex_indexing(*args, **kwargs):
+            lex_process_flags.append(bool(kwargs.get("process")))
+            return original_lex_indexing(*args, **kwargs)
+
+        monkeypatch.setattr(documenti_ai_api, "build_lex_indexing_summary_payload", track_lex_indexing)
+        repeated = client.post(f"/api/v1/ui/fascicoli/{fascicolo.id}/catalogazione-documentale/aggiorna")
+
+    assert initial.status_code == 200
+    assert initial.get_json()["summary"]["waiting_for_index"] == 1
+    assert updated.status_code == 200
+    updated_payload = updated.get_json()
+    assert updated_payload["run"]["processed"] == 1
+    assignment = updated_payload["documents"][0]["assignment"]
+    assert assignment["profile_id"] == "CIV-PCT"
+    assert assignment["status"] == "proposed"
+    assert assignment["document_id"] == document.id
+    assert reviewed.status_code == 200
+    assert reviewed.get_json()["assignment"]["status"] == "confirmed"
+    assert repeated.status_code == 200
+    assert repeated.get_json()["summary"]["total"] == 1
+    assert lex_process_flags == []
+    assert repeated.get_json()["lex_indexing"]["ready"] == 1
+
+
 def test_document_ai_api_indicizza_file_anomalo_gia_acquisito_con_best_effort(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id = _crea_fascicolo(app)

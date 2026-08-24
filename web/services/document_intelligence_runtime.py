@@ -8,6 +8,8 @@ from typing import Any
 from flask import current_app, g, has_app_context, has_request_context, session
 
 from pct.document_intelligence import DocumentAIRepository, DocumentAIService, LexIndexingSummary
+from pct.document_intelligence.catalog_pipeline import FascicoloDocumentCatalogPipeline
+from pct.document_intelligence.catalog_resolver import REGISTRY_VERSION, RESOLVER_VERSION
 from pct.document_intelligence.security import DocumentAINotFound
 from pct.document_intelligence.sources import DocumentAISource, collect_fascicolo_document_sources
 from pct.fascicolo_sentenza_economica import (
@@ -120,6 +122,141 @@ def assert_document_ai_fascicolo_current_tenant(fascicolo_id: str) -> None:
     fascicolo = get_fascicoli().get(value)
     if not fascicolo:
         raise DocumentAINotFound("Documento o fascicolo non trovato")
+
+
+def build_document_catalog_payload(
+    fascicolo_id: str,
+    *,
+    process: bool = False,
+    retry: bool = False,
+    user_context: object | None = None,
+) -> dict[str, Any]:
+    """Restituisce il catalogo SQL del fascicolo, con eventuale elaborazione esplicita.
+
+    La lettura normale non avvia OCR né ricerca fonti: il pulsante React può
+    richiedere l'elaborazione solo dopo che Document AI ha indicizzato i file.
+    """
+
+    assert_document_ai_fascicolo_current_tenant(fascicolo_id)
+    tenant_id = document_ai_tenant_id()
+    context = user_context if user_context is not None else document_ai_user_context()
+    service = build_document_ai_service()
+    fascicolo = get_fascicoli().get(str(fascicolo_id or "").strip())
+    if not fascicolo:
+        raise DocumentAINotFound("Documento o fascicolo non trovato")
+    sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id)
+    actor = str((context or {}).get("user_id") or "catalogazione-documentale") if isinstance(context, dict) else "catalogazione-documentale"
+    pipeline = FascicoloDocumentCatalogPipeline(service.repository)
+    run = pipeline.run(
+        tenant_id=tenant_id,
+        fascicolo=fascicolo,
+        sources=sources,
+        actor=actor,
+        process=process,
+        retry=retry,
+    )
+    assignments = service.repository.list_catalog_assignments(tenant_id, str(fascicolo_id))
+    by_document = {assignment.document_id: assignment for assignment in assignments}
+    documents: list[dict[str, Any]] = []
+    for source in sources:
+        document_id = str(source.source_id or source.metadata.get("documento_id") or "")
+        assignment = by_document.get(document_id)
+        documents.append({
+            "document_id": document_id,
+            "filename": source.filename,
+            "supported": bool(source.supported),
+            "sha256": source.sha256,
+            "indexed": bool(assignment),
+            "assignment": _catalog_assignment_payload(service.repository, assignment) if assignment else None,
+        })
+    summary = service.repository.catalog_summary(tenant_id, str(fascicolo_id))
+    summary["waiting_for_index"] = run.waiting_for_index
+    summary["source_documents"] = len(sources)
+    return {
+        "fascicolo_id": str(fascicolo_id),
+        "resolver_version": RESOLVER_VERSION,
+        "registry_version": REGISTRY_VERSION,
+        "summary": summary,
+        "run": run.to_dict(),
+        "documents": documents,
+    }
+
+
+def resolve_document_catalog_assignment(
+    fascicolo_id: str,
+    document_id: str,
+    *,
+    status: str,
+    note: str = "",
+    user_context: object | None = None,
+) -> dict[str, Any]:
+    assert_document_ai_fascicolo_current_tenant(fascicolo_id)
+    tenant_id = document_ai_tenant_id()
+    context = user_context if user_context is not None else document_ai_user_context()
+    actor = str((context or {}).get("user_id") or "catalogazione-documentale") if isinstance(context, dict) else "catalogazione-documentale"
+    repository = build_document_ai_service().repository
+    assignment = repository.resolve_catalog_assignment(
+        tenant_id=tenant_id,
+        fascicolo_id=str(fascicolo_id),
+        document_id=str(document_id),
+        actor=actor,
+        status=status,
+        note=note,
+    )
+    if assignment is None:
+        raise DocumentAINotFound("Catalogazione del documento non trovata")
+    repository.append_audit_event({
+        "id": f"catalog-review-{assignment.id}", "tenant_id": tenant_id, "fascicolo_id": str(fascicolo_id),
+        "document_id": str(document_id), "version_id": assignment.document_version_id,
+        "user_id": actor, "event_type": "document_catalog.reviewed", "timestamp": assignment.updated_at,
+        "sha256": assignment.document_sha256, "filename": str(assignment.metadata.get("filename") or ""),
+        "status": status, "payload": {"note_length": len(str(note or ""))},
+    })
+    return _catalog_assignment_payload(repository, assignment)
+
+
+def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: Any) -> dict[str, Any]:
+    if assignment is None:
+        return {}
+    return {
+        "id": assignment.id,
+        "document_id": assignment.document_id,
+        "document_sha256": assignment.document_sha256,
+        "profile_id": assignment.profile_id,
+        "legal_area": assignment.legal_area,
+        "legal_branch": assignment.legal_branch,
+        "legal_subfamily": assignment.legal_subfamily,
+        "document_nature": assignment.document_nature,
+        "document_label": assignment.document_label,
+        "document_section": assignment.document_section,
+        "deposit_role": assignment.deposit_role,
+        "deposit_candidate": bool(assignment.deposit_candidate),
+        "status": assignment.status,
+        "confidence": int(assignment.confidence),
+        "source_state": assignment.source_state,
+        "resolver_version": assignment.resolver_version,
+        "reason": assignment.reason,
+        "updated_at": assignment.updated_at,
+        "confirmed_at": assignment.confirmed_at,
+        "candidates": [
+            {
+                "profile_id": item.profile_id,
+                "document_label": item.document_label,
+                "confidence": int(item.confidence),
+                "reason": item.reason,
+            }
+            for item in repository.list_catalog_candidates(assignment.id)
+        ],
+        "evidence": [
+            {
+                "type": item.evidence_type,
+                "locator": item.locator,
+                "excerpt": item.excerpt,
+                "weight": int(item.weight),
+            }
+            for item in repository.list_catalog_evidence(assignment.id)
+        ],
+    }
 
 
 def build_lex_indexing_summary_payload(
@@ -637,11 +774,13 @@ def _sentenza_vector_text(
 
 __all__ = [
     "build_document_ai_service",
+    "build_document_catalog_payload",
     "build_lex_indexing_summary_payload",
     "collect_document_ai_sources_for_fascicolo",
     "document_ai_tenant_id",
     "document_ai_user_context",
     "fascicoli_db_path",
     "assert_document_ai_fascicolo_current_tenant",
+    "resolve_document_catalog_assignment",
     "apply_sentenza_automation_for_document_text",
 ]

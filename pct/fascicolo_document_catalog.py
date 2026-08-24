@@ -485,6 +485,18 @@ def classify_fascicolo_document(
             deposit_candidate=False,
         )
 
+    if _contains(name_text, r"\battestazione(?:\s+di)?\s+conformita\b"):
+        return _result(
+            role="attestazione_conformita",
+            label="Attestazione di conformità",
+            section="allegati",
+            confidence=97,
+            evidence="nome file: attestazione di conformità",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="allegato",
+            deposit_candidate=True,
+        )
+
     if _has_contributo_context(full_text) or _contains(full_text, r"\b(marca\s+da\s+bollo|bollo\s+digitale|diritti\s+di\s+cancelleria)\b"):
         label = "Contributo unificato / pagamento"
         if _contains(full_text, r"\b(esente|esenzione|non\s+dovuto|prenotazione\s+a\s+debito)\b"):
@@ -1027,12 +1039,14 @@ def document_ai_texts_for_catalog(
     fascicoli_db_path: str | Path | None = None,
     structured_db: Any = None,
     storage_root: str | Path | None = None,
-    allow_extracted_files_fallback: bool = True,
+    allow_extracted_files_fallback: bool = False,
     extracted_rows_by_fascicolo: Mapping[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, str]:
     """Restituisce testo OCR indicizzato per id documento fascicolo.
 
     Il match usa ID locale quando coincide, poi SHA-256, poi nome normalizzato.
+    La scansione ricorsiva dei file estratti è disattivata nel runtime: può
+    essere richiesta esplicitamente solo da uno script di audit/riparazione.
     """
 
     fid = _text(fascicolo_id)

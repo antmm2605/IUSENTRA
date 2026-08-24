@@ -1713,6 +1713,213 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
   )
 }
 
+type CatalogAssignmentView = {
+  id: string
+  document_id: string
+  profile_id: string
+  document_nature: string
+  document_label: string
+  document_section: string
+  deposit_role: string
+  deposit_candidate: boolean
+  status: 'proposed' | 'confirmed' | 'review_required' | 'superseded' | 'rejected' | string
+  confidence: number
+  source_state: 'verified_snapshot' | 'manual_browser_evidence' | 'review_required' | string
+  reason: string
+  updated_at: string
+  confirmed_at: string | null
+  evidence: Array<{ type: string; locator: string; excerpt: string; weight: number }>
+}
+
+type CatalogDocumentView = {
+  document_id: string
+  filename: string
+  supported: boolean
+  indexed: boolean
+  assignment: CatalogAssignmentView | null
+}
+
+type CatalogPayload = {
+  summary: { total: number; proposed: number; confirmed: number; review_required: number; errors: number; waiting_for_index: number; source_documents: number }
+  run: { processed: number; proposed: number; review_required: number; waiting_for_index: number; errors: string[] }
+  documents: CatalogDocumentView[]
+}
+
+function catalogTone(status: string): FascicoloRow['tone'] {
+  if (status === 'confirmed') return 'success'
+  if (status === 'review_required') return 'warning'
+  if (status === 'proposed') return 'info'
+  return 'neutral'
+}
+
+function catalogStatusLabel(status: string): string {
+  if (status === 'confirmed') return 'Confermato'
+  if (status === 'review_required') return 'Da verificare'
+  if (status === 'proposed') return 'Proposto'
+  if (status === 'rejected') return 'Respinto'
+  return 'In attesa'
+}
+
+function catalogSourceLabel(state: string): string {
+  if (state === 'verified_snapshot') return 'Fonti ufficiali versionate'
+  if (state === 'manual_browser_evidence') return 'Fonte istituzionale verificata nel browser'
+  return 'Fonti da riesaminare'
+}
+
+function CatalogazioneDocumentalePanel({
+  fascicoloId,
+  enabled,
+  documents,
+  onPreview,
+  onDone,
+  onError,
+}: {
+  fascicoloId: string
+  enabled: boolean
+  documents: FascicoloDocument[]
+  onPreview: (preview: PreviewDocument) => void
+  onDone: (message?: string) => void
+  onError: (message: string) => void
+}) {
+  const [payload, setPayload] = useState<CatalogPayload | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
+  const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
+
+  const load = useCallback(async () => {
+    if (!fascicoloId) return
+    setLoading(true)
+    setError('')
+    try {
+      const response = await fetch(endpoint, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string }
+      if (!response.ok) throw new Error(next.detail || next.error || 'Catalogazione documentale non disponibile.')
+      setPayload(next)
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Catalogazione documentale non disponibile.'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }, [endpoint, fascicoloId])
+
+  useEffect(() => {
+    if (enabled) void load()
+  }, [enabled, load])
+
+  const update = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(`${endpoint}/aggiorna`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({}),
+      })
+      const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string }
+      if (!response.ok) throw new Error(next.detail || next.error || 'Aggiornamento della catalogazione non completato.')
+      setPayload(next)
+      const processed = Number(next.run?.processed || 0)
+      onDone(processed ? `Catalogazione aggiornata: ${processed} documenti elaborati.` : 'Indice e catalogazione aggiornati.')
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Aggiornamento della catalogazione non completato.'
+      setError(message)
+      onError(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const confirm = async (documentId: string, status: 'confirmed' | 'review_required') => {
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(
+        `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/documenti-ai/${encodeURIComponent(documentId)}/catalogazione-documentale/revisione`,
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+          body: JSON.stringify({ status }),
+        },
+      )
+      const next = await response.json().catch(() => ({})) as { assignment?: CatalogAssignmentView; detail?: string; error?: string; message?: string }
+      if (!response.ok || !next.assignment) throw new Error(next.detail || next.error || 'Revisione della catalogazione non registrata.')
+      setPayload((current) => current ? {
+        ...current,
+        documents: current.documents.map((item) => item.document_id === documentId ? { ...item, assignment: next.assignment || item.assignment } : item),
+      } : current)
+      onDone(next.message || 'Revisione della catalogazione registrata nel fascicolo.')
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Revisione della catalogazione non registrata.'
+      setError(message)
+      onError(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!enabled) return <p className="iu-empty">Apri la sezione documenti per leggere il catalogo SQL del fascicolo.</p>
+  const summary = payload?.summary
+  return (
+    <section className="iu-fas-catalog" aria-label="Catalogazione documentale del fascicolo">
+      <header>
+        <div>
+          <span><FolderSearch2 size={16}/> Catalogazione documentale</span>
+          <strong>Ogni esito resta collegato al fascicolo, al documento, alle evidenze e alle fonti.</strong>
+          <p>Il resolver propone solo classificazioni con contesto sufficiente; le altre restano esplicitamente da verificare.</p>
+        </div>
+        <Badge tone={summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
+      </header>
+      <dl>
+        <div><dt>Documenti</dt><dd>{summary?.source_documents ?? 0}</dd></div>
+        <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
+        <div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
+        <div><dt>Confermati</dt><dd>{summary?.confirmed ?? 0}</dd></div>
+        <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
+        <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
+      </dl>
+      {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> Lettura catalogo SQL in corso…</p> : null}
+      {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
+      {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
+      <div className="iu-fas-catalog__list">
+        {(payload?.documents || []).map((item) => {
+          const assignment = item.assignment
+          const document = documentsById.get(item.document_id)
+          return (
+            <article key={item.document_id || item.filename} className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
+              <FileText size={17}/>
+              <div className="iu-fas-catalog__copy">
+                <strong>{item.filename || 'Documento del fascicolo'}</strong>
+                {assignment ? <span>{assignment.document_label} · {assignment.profile_id || 'Profilo da definire'} · confidenza {assignment.confidence}%</span> : <span>{item.supported ? 'In attesa dell’indice Document AI' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
+                {assignment ? <small>{assignment.reason}</small> : null}
+                {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
+              </div>
+              <div className="iu-fas-catalog__badges">
+                <Badge tone={catalogTone(assignment?.status || 'waiting')}>{catalogStatusLabel(assignment?.status || 'waiting')}</Badge>
+                {assignment?.deposit_candidate ? <Badge tone="primary">Valuta per deposito</Badge> : null}
+              </div>
+              <div className="iu-fas-catalog__actions">
+                {document?.actions.preview ? <button type="button" title="Apri nel lettore interno" aria-label={`Apri ${document.name} nel lettore interno`} onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={15}/></button> : null}
+                {assignment?.status === 'review_required' ? <button type="button" disabled={busy} onClick={() => void confirm(item.document_id, 'confirmed')}><CheckCircle2 size={14}/> Conferma</button> : null}
+                {assignment?.status === 'proposed' ? <button type="button" disabled={busy} onClick={() => void confirm(item.document_id, 'confirmed')}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+      {!loading && payload && !payload.documents.length ? <p className="iu-empty">Nessun documento disponibile per la catalogazione nel fascicolo.</p> : null}
+      <footer>
+        <span>La lettura non scarica fonti esterne e non modifica il documento originale.</span>
+        <button type="button" disabled={busy} onClick={() => void update()}><RefreshCw className={busy ? 'iu-spin' : ''} size={15}/> {busy ? 'Indicizzazione e catalogazione…' : 'Aggiorna catalogazione'}</button>
+      </footer>
+    </section>
+  )
+}
+
 function RowActions({ item, archive = false, onDeleted, onError, className = '' }:{item:FascicoloRow; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; className?:string}) {
   const deleteHref = item.deleteHref || `/fascicoli/${encodeURIComponent(item.id)}/elimina`
   const depositoSelectionHref = quickPanelFascicoloActionHref(item, 'selezione_documenti', 'deposito')
@@ -8805,6 +9012,14 @@ function DetailPage({ id }:{id:string}) {
             </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
+            <CatalogazioneDocumentalePanel
+              fascicoloId={f.id || id}
+              enabled={lazyStatus.documenti === 'loaded'}
+              documents={data.documents}
+              onPreview={setPreviewDoc}
+              onDone={refreshDetail}
+              onError={failDetail}
+            />
             <div className="iu-fas-doc-section-list">
               {lazyStatus.documenti === 'loading' ? <p className="iu-empty">Caricamento documenti...</p> : null}
               {documentSections.map((section) => (

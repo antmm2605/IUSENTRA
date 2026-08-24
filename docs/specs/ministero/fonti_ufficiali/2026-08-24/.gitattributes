@@ -1,0 +1,3 @@
+# Gli snapshot HTML sono fonti testuali archiviate: l'indice Git le conserva
+# sempre con terminatori LF, senza alterare PDF o altri allegati binari.
+*.html text eol=lf

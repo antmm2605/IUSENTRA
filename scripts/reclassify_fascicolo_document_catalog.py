@@ -91,6 +91,10 @@ def run_reclassification(
                 documents=documents,
                 fascicoli_db_path=tenant.root / "fascicoli" / "fascicoli.json",
                 structured_db=getattr(fascicoli, "_studio_db", None),
+                # Questo è uno script nominato di audit/riparazione, non il
+                # runtime del fascicolo: può consultare lo storico estratto
+                # per correggere il catalogo e ne produce il report.
+                allow_extracted_files_fallback=True,
             )
             updates: list[dict[str, Any]] = []
             for doc in documents:

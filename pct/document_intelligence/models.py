@@ -26,6 +26,15 @@ DOCUMENT_AI_SOURCES = (
     "user_reject",
     "import",
 )
+DOCUMENT_CATALOG_ASSIGNMENT_STATUSES = (
+    "proposed",
+    "confirmed",
+    "review_required",
+    "superseded",
+    "rejected",
+)
+DOCUMENT_CATALOG_JOB_STATUSES = ("queued", "processing", "completed", "review_required", "error")
+DOCUMENT_CATALOG_SOURCE_STATES = ("verified_snapshot", "manual_browser_evidence", "review_required")
 
 
 def utc_now() -> str:
@@ -160,3 +169,84 @@ class LexIndexingSummary(SerializableDataclass):
     not_indexed: int = 0
     archived: int = 0
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class DocumentCatalogAssignment(SerializableDataclass):
+    id: str
+    tenant_id: str
+    fascicolo_id: str
+    document_id: str
+    document_ai_id: str | None
+    document_version_id: str | None
+    document_sha256: str
+    profile_id: str | None
+    legal_area: str | None
+    legal_branch: str | None
+    legal_subfamily: str | None
+    jurisdiction: str | None
+    rite: str | None
+    proceeding_phase: str | None
+    document_nature: str
+    document_label: str
+    document_section: str
+    deposit_role: str
+    deposit_candidate: bool
+    status: str
+    confidence: int
+    source_state: str
+    resolver_version: str
+    rule_set_id: str | None
+    reason: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_by: str = ""
+    created_at: str = ""
+    updated_by: str = ""
+    updated_at: str = ""
+    confirmed_at: str | None = None
+
+
+@dataclass(slots=True)
+class DocumentCatalogCandidate(SerializableDataclass):
+    id: str
+    tenant_id: str
+    fascicolo_id: str
+    assignment_id: str
+    rank_number: int
+    profile_id: str | None
+    document_nature: str
+    document_label: str
+    document_section: str
+    deposit_role: str
+    confidence: int
+    reason: str
+    created_at: str
+
+
+@dataclass(slots=True)
+class DocumentCatalogEvidence(SerializableDataclass):
+    id: str
+    tenant_id: str
+    fascicolo_id: str
+    assignment_id: str
+    evidence_type: str
+    locator: str
+    excerpt: str
+    weight: int
+    content_sha256: str | None
+    created_at: str
+
+
+@dataclass(slots=True)
+class DocumentCatalogReview(SerializableDataclass):
+    id: str
+    tenant_id: str
+    fascicolo_id: str
+    assignment_id: str
+    state: str
+    reason_code: str
+    reason: str
+    resolved_by: str | None
+    resolution_note: str | None
+    created_at: str
+    resolved_at: str | None

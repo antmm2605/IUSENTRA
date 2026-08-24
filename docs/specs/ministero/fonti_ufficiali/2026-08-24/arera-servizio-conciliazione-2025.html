@@ -1,0 +1,3587 @@
+<!DOCTYPE html>
+<html lang="it-it">
+<head>
+    <meta charset="utf-8">
+
+<!--
+    Arera
+
+    This website is powered by TYPO3 - inspiring people to share!
+    TYPO3 is a free open source Content Management Framework initially created by Kasper Skaarhoj and licensed under GNU/GPL.
+    TYPO3 is copyright 1998-2026 of Kasper Skaarhoj. Extensions are copyright of their respective owners.
+    Information and contribution at https://typo3.org/
+-->
+
+<link rel="icon" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/Favicon/favicon-32x32.png" type="image/png">
+<title>Arera: Servizio Conciliazione </title>
+<meta name="generator" content="TYPO3 CMS">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta property="og:image" content="https://www.arera.it/_assets/2d539c0a1ba8044f67050262bc07f671/Images/arera-social-cover.jpg">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.arera.it/_assets/2d539c0a1ba8044f67050262bc07f671/Images/arera-social-cover.jpg">
+<meta name="charset" content="utf-8">
+
+
+<link rel="stylesheet" href="/typo3temp/assets/css/9465dbf8fa6d8ac0dc87b5660643a62d.css?1786314260" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/css/bootstrap-italia.min.css?1786313655" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/fonts/fontawesome-free/css/all.min.css?1786313658" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Stylesheets/custom-font.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Stylesheets/custom-style.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Stylesheets/custom-ale.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/jQuery/jquery-ui.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/splide-4.1.3/dist/css/splide.min.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Stylesheets/override-contents.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Stylesheets/fix-contents.css?1786313663" media="all">
+<link rel="stylesheet" href="/_assets/9a17675547f903767ad3fa28f7d3ebce/Stylesheets/modellocomop.css?1786313671" media="all">
+<link rel="stylesheet" href="/_assets/acf89df1afb334a4ed38b0ef8665bca9/Stylesheets/modellocomstampa.css?1786313671" media="all">
+<link rel="stylesheet" href="/_assets/94163844c1fb5b63b9c5d8fd5d04c1ae/Stylesheets/modelloatto.css?1786313670" media="all">
+<link rel="stylesheet" href="/_assets/4ca8c63e7096d640f31a50fffb635988/Stylesheets/modelloscheda.css?1786313671" media="all">
+<link rel="stylesheet" href="/_assets/6db32972e5923bc5c375caf476379102/Stylesheets/boxchisiamo.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/56c397f5dc2ec6062302f46a79d87ca5/Stylesheets/boxdisezione.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/60e17f649c458ce0912c3727a7c6c714/Stylesheets/boxguidaperconoscere.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/dbfb03a027d306d9aa3bd19eb967b3f6/Stylesheets/boxpage.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/ede0fcd5210a1ea61085937fb8686bd9/Stylesheets/carosello.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/43f5e2969c9192b0f819c9f993204543/Stylesheets/consulta.css?1786313670" media="all">
+<link rel="stylesheet" href="/_assets/fa098261eb656604ccc07d71b70982f6/Stylesheets/fasciabonus.css?1786313670" media="all">
+<link rel="stylesheet" href="/_assets/16143f5927f48c7eacbdf106fd9d3e5d/Stylesheets/bottonelinkgenerico.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/2401ac606a848af4048de136a4a86111/Stylesheets/boxconsumatore.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/9a303bbed17c159adf7e6b32d2c06268/Stylesheets/modelloeventi.css?1786313671" media="all">
+<link rel="stylesheet" href="/_assets/f3b02b75f5470da9b14f5db1b84f4431/Stylesheets/modellorifnormativi.css?1786313671" media="all">
+<link rel="stylesheet" href="/_assets/cd67856b6ced4b7f88bea642822ac7e0/Stylesheets/modellobandoconcorso.css?1786313670" media="all">
+<link rel="stylesheet" href="/_assets/8c58a69f66c347cbbf91a07ba4b244b2/Stylesheets/modellobandogara.css?1786313671" media="all">
+<link rel="stylesheet" href="/_assets/6ff54f7b7a73978aba24af8716307a73/Stylesheets/stampagrafici.css?1786313672" media="all">
+<link rel="stylesheet" href="/_assets/59bd649494bcc6027733f1f91339dc3b/Stylesheets/stampaargomenti.css?1786313672" media="all">
+<link rel="stylesheet" href="/_assets/ace5d898df31977df562bca5e4aead68/Themes/bootstrap4-modal/cookieman-theme.min.css?1786313974" media="all">
+<link rel="stylesheet" href="/_assets/f703da9f8eabaa322444a32f5d1e716a/Stylesheets/listacontenuti.css?1786313670" media="all">
+<link rel="stylesheet" href="/_assets/bf880123e62fcb33e29ad6e186236996/Stylesheets/boxlistalink.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/b8810b5d041905a48a5c34804faef78c/Stylesheets/buttonanchor.css?1786313664" media="all">
+<link rel="stylesheet" href="/_assets/920969da963ea0dbd558e6fc2795ae2f/Stylesheets/stampafigli.css?1786313672" media="all">
+<link rel="stylesheet" href="/_assets/6345f306846ef0d9a67be37918ccdf5f/Stylesheets/stamparelazioni.css?1786313672" media="all">
+<link rel="stylesheet" href="/_assets/7b7204f6abfcea9464c836a2dc5240a5/Stylesheets/tornaindietro.css?1786313672" media="all">
+<link href="/_assets/dbfb03a027d306d9aa3bd19eb967b3f6/Stylesheets/boxpage.css?1786313664" rel="stylesheet" >
+<link href="/_assets/a4350bfad4e8f249ab0fda9ca8d6707f/Stylesheets/Accordion.css?1786313654" rel="stylesheet" >
+
+
+
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/Javascripts/feather.js?1786313662"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/Javascripts/script-analytics-italia.js?1786313662"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/jQuery/external/jquery/jquery.js?1786313663"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/jQuery/jquery-ui.js?1786313663"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/Javascripts/libR.min.js?1786313662"></script>
+
+<script>
+/*formengine-fix*/
+window.addEventListener("load", function() {
+                if (typeof TYPO3 !== "undefined" && TYPO3.FormEngine) {
+                    console.log("FormEngine loaded OK");
+                }
+            });
+
+
+</script>
+
+
+
+
+
+
+
+
+
+<link rel="apple-touch-icon" sizes="180x180" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/Favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/Favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/Favicon/favicon-16x16.png">
+<link rel="manifest" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/Favicon/site.webmanifest">
+<link rel="mask-icon" href="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/Favicon/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#2b5797">
+<meta name="theme-color" content="#ffffff">
+<link rel="canonical" href="https://www.arera.it/consumatori/conciliazione/servizio-conciliazione-domande-e-risposte">
+
+</head>
+<body>
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- Header -->
+
+
+
+
+
+<header class="it-header-wrapper it-shadow" data-bs-toggle="sticky">
+
+  <div class="it-top-colori-fascia-sticky--desktop">
+    <hr class="hr-orange col-4 m-0">
+    <hr class="hr-blue col-4 m-0">
+    <hr class="hr-green col-4 m-0">
+  </div>
+  <div class="it-nav-wrapper it-top-nav-wrapper-mobile-sticky">
+    <div class="it-header-center-wrapper theme-light it-header-center-wrapper-custom">
+      <div class="container">
+        <div class="it-header-slim-wrapper theme-light">
+          <div class="row">
+            <div class="col-12 p-0">
+              <div class="it-header-slim-wrapper-content">
+                <div class="col-12 d-flex flex-row-reverse">
+                  <div class="it-header-slim-right-zone mt-2">
+                    <div class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" aria-label="seleziona la lingua: corrente ITA" href="#" data-bs-toggle="dropdown" aria-expanded="false" class="text-bluearera">
+                        <span class="text-bluearera fw-400 m-0">
+
+
+                               ITA
+
+
+
+
+                        </span>
+                        <svg class="icon icon-xs m-0">
+                          <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use>
+                        </svg>
+                      </a>
+                      <div class="dropdown-menu">
+                        <div class="row">
+                          <div class="col-12">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+
+
+
+
+                                          <li>
+                                            <a class="dropdown-item list-item  lang-current"
+                                              href="/consumatori"
+                                              ><span>ITA</span></a
+                                            >
+                                          </li>
+
+
+
+
+
+                                          <li>
+                                            <a class="dropdown-item list-item lang-inactive "
+                                              href="/en"
+                                              ><span>ENG</span></a
+                                            >
+                                          </li>
+
+
+
+
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                    <div class="it-right-zone">
+                      <div class="it-socials d-flex align-items-center">
+
+                            <span class="d-none d-md-block seguicisu-header">Seguici su:</span>
+
+                        <ul class="list-unstyled d-flex">
+
+                            <li class="mt-3 mx-2">
+                              <a href="https://twitter.com/arera_it" target="_blank" aria-label="Vai al profilo X - Apertura in nuova scheda - Collegamento a sito esterno" class="text-bluearera">
+                                <i class="fa-brands fa-x-twitter icon-custom"></i>
+                                <span class="sr-only">
+                                  X
+                                </span>
+                              </a>
+                            </li>
+
+                            <li class="mt-3 mx-2">
+                              <a href="https://www.linkedin.com/company/arera/" target="_blank" aria-label="Vai al profilo Linkedin - Apertura in nuova scheda - Collegamento a sito esterno" class="text-bluearera">
+                                <i class="fa-brands fa-linkedin-in icon-custom"></i>
+                                <span class="sr-only">
+                                  Linkedin
+                                </span>
+                              </a>
+                            </li>
+
+                            <li class="mt-3 mx-2">
+                              <a href="https://www.youtube.com/c/ARERAautoritaregolazioneenergiaretiambiente" target="_blank" aria-label="Vai al profilo Youtube - Apertura in nuova scheda - Collegamento a sito esterno" class="text-bluearera">
+                                <i class="fa-brands fa-youtube icon-custom"></i>
+                                <span class="sr-only">
+                                  Youtube
+                                </span>
+                              </a>
+                            </li>
+
+                            <li class="mt-3 mx-2">
+                              <a href="https://www.facebook.com/arera.autorita/ " target="_blank" aria-label="Vai al profilo Facebook - Apertura in nuova scheda - Collegamento a sito esterno" class="text-bluearera">
+                                <i class="fa-brands fa-facebook-f icon-custom"></i>
+                                <span class="sr-only">
+                                  Facebook
+                                </span>
+                              </a>
+                            </li>
+
+                            <li class="mt-3 mx-2">
+                              <a href="https://www.instagram.com/arera.autorita/" target="_blank" aria-label="Vai al profilo Instagram - Apertura in nuova scheda - Collegamento a sito esterno" class="text-bluearera">
+                                <i class="fa-brands fa-square-instagram icon-custom"></i>
+                                <span class="sr-only">
+                                  Instagram
+                                </span>
+                              </a>
+                            </li>
+
+                        </ul>
+                      </div>
+                    </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="it-nav-wrapper it-nav-wrapper-mobile-sticky">
+    <div class="colori-fascia-sticky">
+      <hr class="hr-orange col-4 m-0">
+      <hr class="hr-blue col-4 m-0">
+      <hr class="hr-green col-4 m-0">
+    </div>
+    <div class="it-header-center-wrapper theme-light it-header-center-wrapper-custom">
+      <div class="container">
+        <div class="row">
+          <div class="col-12 p-0">
+            <div class="it-header-center-content-wrapper it-header-center-content-wrapper-mobile">
+              <button class="custom-navbar-toggler p-0" type="button" aria-controls="nav4" aria-expanded="false"
+                aria-label="Mostra/Nascondi la navigazione" data-bs-toggle="navbarcollapsible" data-bs-target="#nav4">
+                <!-- <svg class="icon bg-override arera-burger">
+                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-burger">
+                  </use>
+                </svg> -->
+                <i data-feather="menu" stroke-width="2.5" class="text-bluearera"></i>
+              </button>
+              <div class="it-brand-wrapper">
+                <a href="/">
+                  <img src="/fileadmin/user_upload/logo/arera-original-logo.svg" alt="Homepage Arera" class="img-fluid" />
+                </a>
+              </div>
+              <div id="container-search-header" class="it-search-wrapper it-search-wrapper--mobile">
+                <a id="search-header" class="search-link search-link-custom rounded-icon mobile-search-icon-lente" aria-label="Cerca nel sito" href="#"
+                data-toggle="modal" data-target="#modalSearchFullScreen" onclick="Cercahomepage()">
+                <img src="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/icons8-ricerca-mobile.svg?1786313662" alt="icona ricerca"/>
+                     <!-- <svg class="icon">
+                  </svg>
+               <i data-feather="search" stroke-width="2.5" class="text-bluearera"></i> -->
+                </a>
+              </div>
+
+                <div class="it-right-zone arera-operatori-non-stiky">
+                  <div class="dropdown text-center d-flex">
+                    <div class="chip chip-simple chip-lg chip-lg-custom-header btn btn-dropdown dropdown-toggle" tabindex="0" type="button" role="button" id="dropdownMenuOperatoriNoSticky" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <span class="chip-label chip-label-custom-areaope mt-2" for="AreaOperatori">Area Operatori</span>
+                      <svg class="icon-expand icon icon-sm icon-primary"><use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use></svg>
+                    </div>
+                    <div class="dropdownMenuOperatori dropdown-menu area-operatori" aria-labelledby="dropdownMenuOperatoriNoSticky">
+                      <div class="link-list-wrapper">
+                        <ul class="link-list container dropdownMenuOperatoriList">
+                          <p class="container title-select-operatori">CONTENUTI PER SETTORI</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                <li class="d-flex align-items-center">
+                                  <!-- <svg class="icon icon-custom-headerhp">
+                                    <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                  </svg> -->
+                                  <a title="Elettricità" class="list-item list-item-custom" href="/operatore-elettricita">Elettricità
+                                  </a>
+                                </li>
+
+
+
+
+                                <li class="d-flex align-items-center">
+                                  <!-- <svg class="icon icon-custom-headerhp">
+                                    <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                  </svg> -->
+                                  <a title="Gas" class="list-item list-item-custom" href="/area-operatori/gas">Gas
+                                  </a>
+                                </li>
+
+
+
+
+                                <li class="d-flex align-items-center">
+                                  <!-- <svg class="icon icon-custom-headerhp">
+                                    <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                  </svg> -->
+                                  <a title="Acqua" class="list-item list-item-custom" href="/area-operatori/acqua">Acqua
+                                  </a>
+                                </li>
+
+
+
+
+                                <li class="d-flex align-items-center">
+                                  <!-- <svg class="icon icon-custom-headerhp">
+                                    <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                  </svg> -->
+                                  <a title="Rifiuti" class="list-item list-item-custom" href="/area-operatori/rifiuti">Rifiuti
+                                  </a>
+                                </li>
+
+
+
+
+                                <li class="d-flex align-items-center">
+                                  <!-- <svg class="icon icon-custom-headerhp">
+                                    <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                  </svg> -->
+                                  <a title="Teleriscaldamento" class="list-item list-item-custom" href="/area-operatori/teleriscaldamento">Teleriscaldamento
+                                  </a>
+                                </li>
+
+                                  <div class="container d-flex flex-column">
+                                    <hr>
+                                    <a class="btn btn-primary btn-custom-headerhp btn-primary-custom" target="_blank"
+                                    href="https://auth.arera.it/shibboleth-ds/areraDS/index.html?entityID=https%3A%2F%2Frd.arera.it%2F**&return=https%3A%2F%2Fauth.arera.it%2Fcasshib%2Fshib%2Fraccdati%2FShibboleth.sso%2FLogin%3FSAMLDS%3D1%26target%3Dhttps%253A%252F%252Fauth.arera.it%252Fcasshib%252Fshib%252Fraccdati%252Flogin%253Fservice%253Dhttps%25253A%25252F%25252Frd.arera.it%25252Fraccolte-dati%25252Fj_spring_cas_security_check%25253Bjsessionid%25253DC70115EA4E9C2C09E410F212B40DDDAB">
+                                      <span>ACCESSO RACCOLTE DATI</span>
+                                    </a>
+                                  </div>
+
+
+
+
+                        </ul>
+                      </div>
+                    </div>
+                    <div id="form-ricerca-comparsa-desktop" class="form-group form-group-custom-header d-none">
+                    <input class="form-control" aria-label="form-ricerca-comparsa-desktop1" placeholder="Cerca in Arera..." type="text">
+                  </div>
+                  <div id="container-search-header-desktop" class="it-search-wrapper">
+                    <a id="search-header-desktop" class="search-link rounded-icon button-bluearera" aria-label="Cerca nel sito" href="#"
+                      data-toggle="modal" data-target="#modalSearchFullScreen" onclick="Cercahomepage()">
+                      <img
+                        src="/_assets/2d539c0a1ba8044f67050262bc07f671/Images/icons8-ricerca.svg?1786313662"
+                        alt="icona ricerca custom"/>
+                    </a>
+                  </div>
+                  <!-- <div id="container-search-header-desktop" class="it-search-wrapper">
+                    <a id="search-header-desktop" class="search-link rounded-icon button-bluearera" aria-label="Cerca nel sito" href="#"
+                      data-toggle="modal" data-target="#modalSearchFullScreen" onclick="Cercahomepage()">
+                      <i data-feather="search" stroke-width="2.5" class="icona-search-header-feather"></i>
+                    </a>
+                  </div> -->
+                  </div>
+                </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<div class="it-header-slim-wrapper shadow-sticky-informazioni header-sticky-homepage p-0">
+  <div class="colori-fascia-sticky">
+    <hr class="hr-orange col-4 m-0">
+    <hr class="hr-blue col-4 m-0">
+    <hr class="hr-green col-4 m-0">
+</div>
+
+
+  <div class="arera-operatori-stiky arera-operatori-stiky--desktop">
+
+    <div class="container it-right-zone  d-flex align-items-center justify-content-end">
+      <div class="dropdown text-center arera-operatori-stiky">
+        <div class="chip chip-simple chip-lg chip-lg-custom-header btn btn-dropdown dropdown-toggle" tabindex="0" type="button" id="dropdownMenuOperatoriSticky" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span class="chip-label chip-label-custom-areaope mt-2" for="AreaOperatori">Area Operatori</span>
+          <svg class="icon-expand icon icon-sm icon-primary"><use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use></svg>
+        </div>
+        <div class="dropdownMenuOperatori dropdown-menu" aria-labelledby="dropdownMenuOperatoriSticky">
+          <div class="link-list-wrapper">
+            <ul class="link-list container dropdownMenuOperatoriList">
+              <p class="container title-select-operatori ms-1">CONTENUTI PER SETTORI</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Elettricità" class="list-item list-item-custom" href="/operatore-elettricita">Elettricità
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Gas" class="list-item list-item-custom" href="/area-operatori/gas">Gas
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Acqua" class="list-item list-item-custom" href="/area-operatori/acqua">Acqua
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Rifiuti" class="list-item list-item-custom" href="/area-operatori/rifiuti">Rifiuti
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Teleriscaldamento" class="list-item list-item-custom" href="/area-operatori/teleriscaldamento">Teleriscaldamento
+                      </a>
+                    </li>
+
+                      <div class="container d-flex flex-column">
+                        <hr>
+                        <a class="btn btn-primary btn-custom-headerhp btn-primary-custom" target="_blank"
+                        href="https://auth.arera.it/shibboleth-ds/areraDS/index.html?entityID=https%3A%2F%2Frd.arera.it%2F**&return=https%3A%2F%2Fauth.arera.it%2Fcasshib%2Fshib%2Fraccdati%2FShibboleth.sso%2FLogin%3FSAMLDS%3D1%26target%3Dhttps%253A%252F%252Fauth.arera.it%252Fcasshib%252Fshib%252Fraccdati%252Flogin%253Fservice%253Dhttps%25253A%25252F%25252Frd.arera.it%25252Fraccolte-dati%25252Fj_spring_cas_security_check%25253Bjsessionid%25253DC70115EA4E9C2C09E410F212B40DDDAB">
+                          <span>ACCESSO RACCOLTE DATI</span>
+                        </a>
+                      </div>
+
+
+
+
+            </ul>
+          </div>
+        </div>
+        <div id="form-ricerca-comparsa" class="form-group form-group-custom-header d-none">
+          <input class="form-control" aria-label="form-ricerca-comparsa-default" placeholder="Cerca in Arera..." type="text">
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="it-header-navbar-wrapper theme-light-desk box-shadow-header altezza-custom-header align-items-center d-flex">
+    <div class="container p-0 h-100">
+      <div class="row dimenzione-testo-header-homepage h-100 w-100">
+        <div class="col-12 p-0">
+          <!--start nav-->
+          <nav class="navbar navbar-expand-lg has-megamenu p-0 altezza-custom-header" aria-label="Navigazione principale">
+            <div class="navbar-collapsable navbar-custom-header h-100" id="nav4" style="display: none;">
+              <div class="overlay" style="display: none;"></div>
+              <div class="close-div close-div-custom">
+                <button class="btn close-menu" type="button">
+                  <span class="visually-hidden">Nascondi la navigazione</span>
+                  <svg class="icon icon-custom">
+                    <use
+                      href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-close-big">
+                    </use>
+                  </svg>
+                </button>
+              </div>
+              <div class="menu-wrapper h-100">
+                <ul class="navbar-nav navbar-secondary">
+
+                  <!--COLONNA SINISTRA-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <li class="nav-item dropdown megamenu d-lg-flex justify-content-center">
+
+
+
+
+                    <a aria-label="Per il consumatore" class="nav-link bottom padding-navlink-header dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false" id="mainNavDropdownC1">
+                      <span class="fw-bold-600 dimenzione-testo-header-homepage">Per il consumatore</span>
+                      <svg class="icon icon-sm">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use>
+                      </svg>
+                    </a>
+                    <div class="dropdown-menu headerhp dropdown-menu-custom" role="region" aria-labelledby="mainNavDropdownC1">
+                      <div class="row h-100 pt-3">
+                        <div class="col-12 col-lg-4 p-0">
+                          <div class="description-content description-custom h-100 d-flex flex-column  p-3 p-lg-0" tabindex="0">
+                            <h3 class="dropdown-title-custom mt-3">ARERA per il consumatore</h3>
+                            <p class="text-dark text-headerhp flex-grow-1 mt-3">Scopri le informazioni e gli strumenti che ARERA mette a disposizione dei consumatori</p>
+
+
+
+                              <a class="btn btn-primary btn-custom-headerhp btn-primary-custom custom-scopri-di-piu py-3" href="/consumatori">
+                                              <span class="custom-scopri-di-piu">SCOPRI DI PI&Ugrave;</span>
+                              </a>
+
+
+                          </div>
+                        </div>
+
+
+
+                              <!--Inizio COLONNA -->
+
+
+                                  <div class="col-12 col-lg-4">
+                                    <div class="link-list-wrapper">
+                                      <ul class="link-list">
+                                        <li class="no-style-type">
+                                          <div class="link-list-heading p-0 link-list-heading-border mt-0 mt-lg-5">
+
+
+
+                                                <h3 class="section-title-custom link-list-heading-border senza-icona m-0 title-header-custom-column">Naviga per settore</h3>
+
+
+
+
+                                          </div>
+                                        </li>
+                                        <hr class="hr-header-dropdown">
+
+
+
+                                          <li class="no-style-type">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+                                                  <div class="icon-settore-container">
+                                                    <img title="icon" alt="icon" class="icon-settore-custom" src="/fileadmin/icone/icons/elettricita.svg" width="15" height="24" />
+                                                  </div>
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              " title="Elettricità" href="/per-il-consumatore/elettricita">
+
+                                                <span class="ms-2 text-bluearera fw-400">Elettricità</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="no-style-type">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+                                                  <div class="icon-settore-container">
+                                                    <img title="icon" alt="icon" class="icon-settore-custom" src="/fileadmin/icone/icons/gas.svg" width="20" height="24" />
+                                                  </div>
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              " title="Gas" href="/per-il-consumatore/gas">
+
+                                                <span class="ms-2 text-bluearera fw-400">Gas</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="no-style-type">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+                                                  <div class="icon-settore-container">
+                                                    <img title="icon" alt="icon" class="icon-settore-custom" src="/fileadmin/user_upload/icons/Acqua.svg" width="17" height="25" />
+                                                  </div>
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              " title="Acqua" href="/per-il-consumatore/acqua">
+
+                                                <span class="ms-2 text-bluearera fw-400">Acqua</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="no-style-type">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+                                                  <div class="icon-settore-container">
+                                                    <img title="icon" alt="icon" class="icon-settore-custom" src="/fileadmin/icone/icons/rifiuti.svg" width="25" height="24" />
+                                                  </div>
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              " title="Rifiuti" href="/per-il-consumatore/rifiuti">
+
+                                                <span class="ms-2 text-bluearera fw-400">Rifiuti</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="no-style-type">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+                                                  <div class="icon-settore-container">
+                                                    <img title="icon" alt="icon" class="icon-settore-custom" src="/fileadmin/icone/icons/teleriscaldamento.svg" width="27" height="24" />
+                                                  </div>
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              " title="Teleriscaldamento" href="/per-il-consumatore/teleriscaldamento">
+
+                                                <span class="ms-2 text-bluearera fw-400">Teleriscaldamento</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                                    </ul>
+                                  </div>
+                                </div>
+
+                                  <div class="col-12 col-lg-4">
+                                    <div class="link-list-wrapper">
+                                      <ul class="link-list">
+                                        <li class="no-style-type">
+                                          <div class="link-list-heading p-0 link-list-heading-border mt-0 mt-lg-5">
+
+
+
+                                                <h3 class="section-title-custom link-list-heading-border senza-icona m-0 title-header-custom-column">Vedi anche</h3>
+
+
+
+
+                                          </div>
+                                        </li>
+                                        <hr class="hr-header-dropdown">
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Bonus sociali" href="/consumatori/bonus-sociale">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Bonus sociali</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Offerte Placet" href="/consumatori/offerte-standard-per-i-clienti-finali-placet">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Offerte Placet</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Ricerca operatori" href="/area-operatori/ricerca-operatori">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Ricerca operatori</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                                    </ul>
+                                  </div>
+                                </div>
+
+
+
+
+
+                      </div>
+                    </div>
+
+
+
+        </li>
+
+          <!--FINE DUE COLONNE-->
+
+
+
+
+
+
+
+          <li class="nav-item dropdown megamenu d-lg-flex justify-content-center">
+
+
+
+
+                    <a aria-label="Guide e strumenti" class="nav-link padding-navlink-header dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false" id="mainNavDropdownC2448">
+                      <span class="fw-bold-600 dimenzione-testo-header-homepage">Guide e strumenti</span>
+                      <svg class="icon icon-sm">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use>
+                      </svg>
+                    </a>
+                    <div class="dropdown-menu headerhp dropdown-menu-custom" role="region" aria-labelledby="mainNavDropdownC2448">
+                      <div class="row h-100 pt-3">
+                        <div class="col-12 col-lg-4 p-0">
+                          <div class="description-content description-custom h-100 d-flex flex-column  p-3 p-lg-0" tabindex="0">
+                            <h3 class="dropdown-title-custom mt-3">Guide e strumenti</h3>
+                            <p class="text-dark text-headerhp flex-grow-1 mt-3">Tutti gli strumenti, le informazioni e l&#039;assistenza di ARERA per i consumatori</p>
+
+
+                          </div>
+                        </div>
+
+
+
+                              <!--Inizio COLONNA -->
+
+
+                                  <div class="col-12 col-lg-4">
+                                    <div class="link-list-wrapper">
+                                      <ul class="link-list">
+                                        <li class="no-style-type">
+                                          <div class="link-list-heading p-0 link-list-heading-border mt-0 mt-lg-5">
+
+
+
+                                                <h3 class="section-title-custom link-list-heading-border senza-icona m-0 title-header-custom-column">Guide per conoscere</h3>
+
+
+
+
+                                          </div>
+                                        </li>
+                                        <hr class="hr-header-dropdown">
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Fine tutela elettricità" href="/consumatori/fine-tutela-ele">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Fine tutela elettricità</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Fine tutela gas" href="/consumatori/fine-tutela-gas-cosa-fare">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Fine tutela gas</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Bonus sociali" href="/consumatori/bonus-sociale">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Bonus sociali</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Atlante per il consumatore" href="/atlante-per-il-consumatore">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Atlante per il consumatore</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                                    </ul>
+                                  </div>
+                                </div>
+
+                                  <div class="col-12 col-lg-4">
+                                    <div class="link-list-wrapper">
+                                      <ul class="link-list">
+                                        <li class="no-style-type">
+                                          <div class="link-list-heading p-0 link-list-heading-border mt-0 mt-lg-5">
+
+
+
+                                                <h3 class="section-title-custom link-list-heading-border senza-icona m-0 title-header-custom-column">Strumenti</h3>
+
+
+
+
+                                          </div>
+                                        </li>
+                                        <hr class="hr-header-dropdown">
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Sportello per il consumatore" href="https://www.sportelloperilconsumatore.it/">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Sportello per il consumatore</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Il portale offerte" href="https://www.ilportaleofferte.it/portaleOfferte/">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Il portale offerte</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Il portale consumi" href="https://www.consumienergia.it/portaleConsumi/">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Il portale consumi</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li class="">
+                                            <div class="d-flex  align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="dropdown-item list-item p-0 colonne-item
+                                              d-flex align-items-center" title="Servizio conciliazione" href="/consumatori/conciliazione">
+
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+
+                                                <span class="ms-2 text-bluearera fw-400">Servizio conciliazione</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                                    </ul>
+                                  </div>
+                                </div>
+
+
+
+
+
+                      </div>
+                    </div>
+
+
+
+        </li>
+
+          <!--FINE DUE COLONNE-->
+
+
+
+
+
+                  <!--FINE COLONNA SINISTRA-->
+
+
+
+                </ul>
+
+
+                <ul class="navbar-nav navbar-secondary navbar-secondary-custom">
+
+                  <!--COLONNA DESTRA -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <li class="nav-item dropdown megamenu d-lg-flex justify-content-center">
+
+
+
+
+                    <a aria-label="Chi siamo" class="nav-link padding-navlink-header dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false" id="mainNavDropdownC241252">
+                      <span class="fw-400 dimenzione-testo-header-homepage text-bluearera">Chi siamo</span>
+                      <svg class="icon icon-sm">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use>
+                      </svg>
+                    </a>
+
+
+
+            <div class="dropdown-menu headerhp dropdown-menu-custom" role="region" aria-labelledby="mainNavDropdownC31252">
+              <div class="row h-100">
+                <div class="col-12 col-lg-4 p-0">
+                  <div class="description-content description-custom h-100 d-flex flex-column  p-3 p-lg-0" tabindex="0">
+                    <h3 class="dropdown-title-custom mt-3 text-bluearera">Chi siamo</h3>
+                    <p class="text-dark text-headerhp flex-grow-1 mt-3">ARERA è l&#039;Autorità di Regolazione per Energia Reti e Ambiente</p>
+
+
+                      </div>
+                </div>
+
+
+
+                      <!--Inizio COLONNA -->
+
+
+                          <div class="col-12 col-lg-4 ">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+                                <li class="no-style-type"></li>
+                                  <div class="link-list-heading p-0 link-list-heading-border mb-0">
+
+
+
+                                        <div class="d-flex align-items-center justify-content-between dropdown-item linkmenublu p-0 list-item ">
+                                          <h3 class="section-title-custom link-list-heading-border link-list-heading-border--custom senza-icona m-0 pt-04em">Autorità</h3>
+                                        </div>
+
+
+
+
+                                  </div>
+                                </li>
+                                <hr class="hr-header-dropdown">
+                                <!-- INIZIO DUE COLONNE -->
+
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Chi siamo" href="/chi-siamo">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Chi siamo</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Quadro strategico" href="/quadro-strategico">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Quadro strategico</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Riunioni del collegio" href="/autorita/riunioni-del-collegio">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Riunioni del collegio</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Incontri del collegio" href="/autorita/incontri-del-collegio">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Incontri del collegio</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                            </ul>
+                          </div>
+                        </div>
+
+                          <div class="col-12 col-lg-4 ">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+                                <li class="no-style-type"></li>
+                                  <div class="link-list-heading p-0 link-list-heading-border mb-0">
+
+
+
+                                        <div class="d-flex align-items-center justify-content-between dropdown-item linkmenublu p-0 list-item ">
+                                          <h3 class="section-title-custom link-list-heading-border link-list-heading-border--custom senza-icona m-0 pt-04em">Vedi anche</h3>
+                                        </div>
+
+
+
+
+                                  </div>
+                                </li>
+                                <hr class="hr-header-dropdown">
+                                <!-- INIZIO DUE COLONNE -->
+
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Riferimenti normativi" href="/autorita/riferimenti-normativi">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Riferimenti normativi</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                            </ul>
+                          </div>
+                        </div>
+
+
+
+
+
+              </div>
+            </div>
+          </li>
+
+          <!--FINE DUE COLONNE-->
+
+
+
+
+
+
+
+          <li class="nav-item dropdown megamenu d-lg-flex justify-content-center">
+
+
+
+
+                    <a aria-label="Atti e documenti" class="nav-link padding-navlink-header dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false" id="mainNavDropdownC2466">
+                      <span class="fw-400 dimenzione-testo-header-homepage text-bluearera">Atti e documenti</span>
+                      <svg class="icon icon-sm">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use>
+                      </svg>
+                    </a>
+
+
+
+            <div class="dropdown-menu headerhp dropdown-menu-custom" role="region" aria-labelledby="mainNavDropdownC366">
+              <div class="row h-100">
+                <div class="col-12 col-lg-4 p-0">
+                  <div class="description-content description-custom h-100 d-flex flex-column  p-3 p-lg-0" tabindex="0">
+                    <h3 class="dropdown-title-custom mt-3 text-bluearera">Atti e documenti</h3>
+                    <p class="text-dark text-headerhp flex-grow-1 mt-3">Consulta tutte le pubblicazioni dell&#039;Autorità.</p>
+
+
+                      </div>
+                </div>
+
+
+
+                      <!--Inizio COLONNA -->
+
+
+                          <div class="col-12 col-lg-4 col-menulinklayout">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+                                <li class="no-style-type"></li>
+                                  <div class="link-list-heading p-0 link-list-heading-border mb-0">
+
+
+
+
+                                        <a class="d-flex align-items-center justify-content-between dropdown-item linkmenublu p-0 list-item " title="Atti e provvedimenti" href="/atti-e-provvedimenti">
+
+
+                                              <h3 class="section-title-custom link-list-heading-border colonna-title mt-0 mt-lg-5 p-0 p-lg-3 text-bluearera">  Atti e provvedimenti    </h3>
+
+                                              <i data-feather="arrow-right-circle" width="30" height="30" stroke-width="2" class="col-1 justify-content-end mt-2 mb-2 icona-freccia-bluesvg-header"></i>
+
+                                      </a>
+
+
+
+
+
+                                  </div>
+                                </li>
+                                <hr class="hr-header-dropdown">
+                                <!-- INIZIO DUE COLONNE -->
+
+
+                                      <div class="d-flex flex-column-printitemmenu">
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Delibere" href="/atti-e-provvedimenti?ADMCMD_prev=LIVE&amp;anno=&amp;numero=&amp;tipologia=Delibera&amp;keyword=&amp;settore=&amp;orderby=">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Delibere</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Memorie" href="/atti-e-provvedimenti?ADMCMD_prev=LIVE&amp;anno=&amp;numero=&amp;tipologia=Memoria&amp;keyword=&amp;settore=&amp;orderby=">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Memorie</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Consultazioni" href="/atti-e-provvedimenti?ADMCMD_prev=LIVE&amp;anno=&amp;numero=&amp;tipologia=Consultazione&amp;keyword=&amp;settore=&amp;orderby=">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Consultazioni</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Pareri" href="/atti-e-provvedimenti?ADMCMD_prev=LIVE&amp;anno=&amp;numero=&amp;tipologia=Parere&amp;keyword=&amp;settore=&amp;orderby=">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Pareri</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Determine" href="/atti-e-provvedimenti?ADMCMD_prev=LIVE&amp;anno=&amp;numero=&amp;tipologia=Determina&amp;keyword=&amp;settore=&amp;orderby=">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Determine</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Segnalazioni" href="/atti-e-provvedimenti?ADMCMD_prev=LIVE&amp;anno=&amp;numero=&amp;tipologia=Segnalazione&amp;keyword=&amp;settore=&amp;orderby=">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Segnalazioni</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Testi integrati" href="/area-operatori/testi-integrati">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Testi integrati</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                          <li class="col-lg-6 col-12 p-0">
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Impegni e Sanzioni" href="/impegni-e-sanzioni">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Impegni e Sanzioni</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+                                      </div>
+
+
+
+                            </ul>
+                          </div>
+                        </div>
+
+                          <div class="col-12 col-lg-4 ">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+                                <li class="no-style-type"></li>
+                                  <div class="link-list-heading p-0 link-list-heading-border mb-0">
+
+
+
+                                        <div class="d-flex align-items-center justify-content-between dropdown-item linkmenublu p-0 list-item ">
+                                          <h3 class="section-title-custom link-list-heading-border link-list-heading-border--custom senza-icona m-0 pt-04em">Documenti</h3>
+                                        </div>
+
+
+
+
+                                  </div>
+                                </li>
+                                <hr class="hr-header-dropdown">
+                                <!-- INIZIO DUE COLONNE -->
+
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Relazione annuale" href="/chi-siamo/relazione-annuale/relazione-annuale-2026">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Relazione annuale</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Rapporti e relazioni" href="/rapporti-e-relazioni">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Rapporti e relazioni</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Schede tecniche" href="/schede-tecniche">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Schede tecniche</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                            </ul>
+                          </div>
+                        </div>
+
+
+
+
+
+              </div>
+            </div>
+          </li>
+
+          <!--FINE DUE COLONNE-->
+
+
+
+
+
+
+
+          <li class="nav-item dropdown megamenu d-lg-flex justify-content-center">
+
+
+
+
+                    <a aria-label="Comunicazione" class="nav-link padding-navlink-header dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false" id="mainNavDropdownC2463">
+                      <span class="fw-400 dimenzione-testo-header-homepage text-bluearera">Comunicazione</span>
+                      <svg class="icon icon-sm">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use>
+                      </svg>
+                    </a>
+
+
+
+            <div class="dropdown-menu headerhp dropdown-menu-custom" role="region" aria-labelledby="mainNavDropdownC363">
+              <div class="row h-100">
+                <div class="col-12 col-lg-4 p-0">
+                  <div class="description-content description-custom h-100 d-flex flex-column  p-3 p-lg-0" tabindex="0">
+                    <h3 class="dropdown-title-custom mt-3 text-bluearera">Comunicazione</h3>
+                    <p class="text-dark text-headerhp flex-grow-1 mt-3">Resta aggiornato sulle attività dell&#039;Autorità</p>
+
+
+                      </div>
+                </div>
+
+
+
+                      <!--Inizio COLONNA -->
+
+
+                          <div class="col-12 col-lg-4 ">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+                                <li class="no-style-type"></li>
+                                  <div class="link-list-heading p-0 link-list-heading-border mb-0">
+
+
+
+                                        <div class="d-flex align-items-center justify-content-between dropdown-item linkmenublu p-0 list-item ">
+                                          <h3 class="section-title-custom link-list-heading-border link-list-heading-border--custom senza-icona m-0 pt-04em">Informati</h3>
+                                        </div>
+
+
+
+
+                                  </div>
+                                </li>
+                                <hr class="hr-header-dropdown">
+                                <!-- INIZIO DUE COLONNE -->
+
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Comunicati stampa" href="/comunicati-stampa">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Comunicati stampa</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Eventi" href="/eventi">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Eventi</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                            </ul>
+                          </div>
+                        </div>
+
+                          <div class="col-12 col-lg-4 ">
+                            <div class="link-list-wrapper">
+                              <ul class="link-list">
+                                <li class="no-style-type"></li>
+                                  <div class="link-list-heading p-0 link-list-heading-border mb-0">
+
+
+
+                                        <div class="d-flex align-items-center justify-content-between dropdown-item linkmenublu p-0 list-item ">
+                                          <h3 class="section-title-custom link-list-heading-border link-list-heading-border--custom senza-icona m-0 pt-04em">Vedi anche</h3>
+                                        </div>
+
+
+
+
+                                  </div>
+                                </li>
+                                <hr class="hr-header-dropdown">
+                                <!-- INIZIO DUE COLONNE -->
+
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Patrocinio e utilizzo del logo" href="/concessione-di-patrocinio-e-utilizzo-del-logo">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Patrocinio e utilizzo del logo</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Partecipazione ai Comitati scientifici" href="/comunicazione-e-stampa/vedi-anche/partecipazione-ai-comitati-scientifici">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Partecipazione ai Comitati scientifici</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+                                          <li>
+                                            <div class="d-flex align-items-center">
+
+
+
+
+
+
+                                              <a class="px-0 d-flex align-items-center" title="Gallery" href="/gallery">
+                                                <!-- <svg class="icon icon-custom-headerhp">
+                                                  <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                </svg> -->
+                                                <span class="subitemmenu-title text-bluearera fw-400">Gallery</span>
+                                              </a>
+
+
+                                            </div>
+                                          </li>
+
+
+
+
+
+                            </ul>
+                          </div>
+                        </div>
+
+
+
+
+
+              </div>
+            </div>
+          </li>
+
+          <!--FINE DUE COLONNE-->
+
+
+
+
+
+
+
+          <!--CASO DEFAULT -->
+
+                  <!--LINK DIRETTO  -->
+                  <li class="nav-item dropdown megamenu d-lg-flex justify-content-center">
+                      <a class="nav-link padding-navlink-header dropdown-toggle " title="Dati e statistiche" href="/dati-e-statistiche">
+                          <span class="dimenzione-testo-header-homepage">Dati e statistiche</span>
+                      </a>
+
+                  </li>
+
+
+
+
+
+
+
+                  <!--FINE COLONNA DESTRA -->
+
+                </ul>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+  <div class="arera-operatori-stiky arera-operatori-stiky--mobile">
+
+    <div class="container it-right-zone  d-flex align-items-center justify-content-end">
+      <div class="dropdown text-center arera-operatori-stiky">
+        <div class="chip chip-simple chip-lg chip-lg-custom-header btn btn-dropdown dropdown-toggle" tabindex="0" type="button" id="dropdownMenuOperatoriMobile" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span class="chip-label chip-label-custom-areaope mt-2" for="AreaOperatori">Area Operatori</span>
+          <svg class="icon-expand icon icon-sm icon-primary"><use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-expand"></use></svg>
+        </div>
+        <div class="dropdownMenuOperatori dropdown-menu" aria-labelledby="dropdownMenuOperatoriMobile">
+          <div class="container link-list-wrapper">
+            <ul class="link-list container dropdownMenuOperatoriList">
+              <p class="container title-select-operatori">CONTENUTI PER SETTORI</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Elettricità" class="list-item list-item-custom" href="/operatore-elettricita">Elettricità
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Gas" class="list-item list-item-custom" href="/area-operatori/gas">Gas
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Acqua" class="list-item list-item-custom" href="/area-operatori/acqua">Acqua
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Rifiuti" class="list-item list-item-custom" href="/area-operatori/rifiuti">Rifiuti
+                      </a>
+                    </li>
+
+
+
+
+                    <li class="d-flex align-items-center">
+                      <!-- <svg class="icon icon-custom-headerhp">
+                        <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                      </svg> -->
+                      <a title="Teleriscaldamento" class="list-item list-item-custom" href="/area-operatori/teleriscaldamento">Teleriscaldamento
+                      </a>
+                    </li>
+
+                      <div class="container d-flex flex-column">
+                        <hr>
+                        <a class="btn btn-primary btn-custom-headerhp btn-primary-custom" target="_blank"
+                        href="https://auth.arera.it/shibboleth-ds/areraDS/index.html?entityID=https%3A%2F%2Frd.arera.it%2F**&return=https%3A%2F%2Fauth.arera.it%2Fcasshib%2Fshib%2Fraccdati%2FShibboleth.sso%2FLogin%3FSAMLDS%3D1%26target%3Dhttps%253A%252F%252Fauth.arera.it%252Fcasshib%252Fshib%252Fraccdati%252Flogin%253Fservice%253Dhttps%25253A%25252F%25252Frd.arera.it%25252Fraccolte-dati%25252Fj_spring_cas_security_check%25253Bjsessionid%25253DC70115EA4E9C2C09E410F212B40DDDAB">
+                          <span>ACCESSO RACCOLTE DATI</span>
+                        </a>
+                      </div>
+
+
+
+
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</header>
+<div  class="modal google-search-modal-up modal-custom-header sfs-modal fade show" tabindex="-1" role="dialog" id="modalSearchFullScreen"
+    aria-modal="true" aria-labelledby="cercanelSito">
+    <div class="modal-dialog modal-dialog-w-100" role="document">
+        <div class="modal-content">
+            <div class="container-modal-search container">
+                <!-- Header -->
+                <div class="row container-modal-search-title">
+                    <div class="col-12 d-flex justify-content-between align-items-center">
+                        <h2 class="h1 text-secondary" id="cercanelSito">Cerca nel sito</h2>
+                        <button id="ButtonCloseModalSearch" class="close btn" type="button" data-dismiss="modal"
+                            aria-label="Chiudi finestra di ricerca">
+                            <svg class="icon icon-lg">
+                                <use
+                                    xlink:href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-close-big">
+                                </use>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="row">
+                    <div class="col-12">
+                        <form class="" method="get" id="form_rl_search" name="form_rl_search" action="javascript:void(0)">
+                            <div class="autocomplete-wrapper-big">
+
+                                <fieldset class="searchbox">
+                                    <div class="form-group">
+                                    <label for="form_rl_search_keyword" class="visually-hidden active input-text-lg">Che cosa stai cercando?</label>
+                                    <input type="text" id="form_rl_search_keyword" name="keyword" value=""
+                                        placeholder="Digita qui la tua ricerca" class="d-inline border form-control form-control-lg">
+                                        <button type="submit" aria-label="Avvia la ricerca" id="button-search-form-2" class="btn btn-primary">
+                                            <svg class="icon-fix">
+                                                <use
+                                                    xlink:href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-search">
+                                                </use>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </fieldset>
+
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+
+
+                <div id="autocompleteFilters" class="row pb-5 pt-2 d-none">
+                    <div class="col-12 sfs-modal-tags-container">
+                        <div class="custom-checkbox-search">
+                            <input name="cerca_sezione" type="radio" id="search_pagine"
+                                data-urlsubmit='/ricerca-google' data-keyword="keys"
+                                checked value="pagine">
+                            <label for="search_pagine">Cerca nel sito</label>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+        <div id="tornaindietrogenerico" class="it-header-sticky dettaglio-torna-indietro" data-bs-toggle="sticky">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="it-header-slim-wrapper-content d-flex justify-content-between align-items-center" role="contentinfo">
+                    <a id="gobackbutton" aria-label="premere per tornare indietro" title="Torna indietro" class="arrow-back-up" href="/consumatori/conciliazione"><i data-feather="arrow-left"></i> Indietro</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <main class="main-due-colonne first-section">
+    <!-- Header Pagina con briciole -->
+
+
+
+
+
+<section id="prima-fascia-headerCompleta" class="pb-1">
+    <div class="container pt-2">
+      <div>
+        <div class="container px-0 pt-2">
+
+<section class="page-header-slim it-dark headerbreadcrumb">
+    <div class="container p-0">
+        <nav class="breadcrumb-container" aria-label="Percorso di navigazione">
+            <div class="d-flex justify-content-between align-items-center">
+            <ol id="Breadcrumb" class="breadcrumb ml-0 mb-auto pl-0 dark align-items-center">
+
+                  <li class="breadcrumb-item">
+                    <a class="fascia-breadcrumbsimple-linkpagina dimesione-testo-breadcrumb" href="/" title="Vai alla pagina: Home">Home</a>
+                    <span class="separator">/</span>
+                  </li>
+
+
+
+
+
+
+
+                                    <li class="breadcrumb-item">
+
+
+
+
+
+
+                                    </li>
+
+
+
+
+
+                                    <li class="breadcrumb-item">
+
+
+
+
+
+
+
+
+                                                <a class="fascia-breadcrumbsimple-linkpagina dimesione-testo-breadcrumb" title="Arera per il consumatore" href="/consumatori">
+                                                  Arera per il consumatore <span class="separator">/</span>
+                                                </a>
+
+
+
+
+
+                                    </li>
+
+
+
+
+
+                                    <li class="breadcrumb-item">
+
+
+
+
+
+
+
+
+                                                <a class="fascia-breadcrumbsimple-linkpagina dimesione-testo-breadcrumb" title="Il Servizio Conciliazione" href="/consumatori/conciliazione">
+                                                  Il Servizio Conciliazione <span class="separator">/</span>
+                                                </a>
+
+
+
+
+
+                                    </li>
+
+
+
+
+                                    <li id="last-child" class="breadcrumb-item active font-weight-bold dimesione-testo-breadcrumb">Servizio Conciliazione</li>
+
+
+
+
+            </ol>
+            <div class="d-flex align-self-center">
+                <div class="dropdown">
+                    <button type="button" class="btn btn-share-hero btn-dropdown text-white ms-auto" aria-expanded="false" data-bs-toggle="dropdown" data-focus-mouse="false">
+                      <span class="testo-blue-fascia-consumatore padding-condividi-consumatore dimesione-testo-breadcrumb p-0">Condividi</span>
+                      <i data-feather="share-2" class="icona-condividi-2"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                      <div class="link-list-wrapper">
+                        <ul class="link-list share-button d-flex align-items-center">
+                          <li>
+                            <a id="pulsante-da-premere" value="Copia negli appunti"
+                               aria-current="page" class="cursor-poiter list-item right-icon dropdown-item d-flex justify-content-between align-items-center  active">
+                              <svg role="img" class="icon icon-sm icon-bluearera">
+                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-copy"></use>
+                              </svg>
+                            </a>
+                          </li>
+                          <li>
+                            <a id="twittercondividi"
+                              class="list-item right-icon dropdown-item d-flex justify-content-between cursor-poiter align-items-center" aria-label="Condividi su Twitter (si apre in una nuova finestra)"
+                              target="_blank" rel="noreferrer">
+                              <div class="custom-icon-x-twitter-share">
+                                <i class="fa-brands fa-x-twitter icon-custom text-bluearera"></i>
+                              </div>
+                            </a>
+                          </li>
+                          <li>
+                            <a id="linkedincondividi" href="https://www.linkedin.com/sharing/share-offsite/?url=https://www.arera.it/"
+                              class="list-item right-icon dropdown-item d-flex justify-content-between align-items-center"
+                              aria-label="Condividi su LinkedIn (si apre in una nuova finestra)" target="_blank" rel="noreferrer">
+                              <svg role="img" class="icon icon-sm icon-bluearera">
+                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-linkedin"></use>
+                              </svg>
+                            </a>
+                          </li>
+                          <li>
+                            <a id="facebookcondividi"
+                              class="list-item right-icon dropdown-item d-flex justify-content-between align-items-center"
+                              aria-label="Condividi su LinkedIn (si apre in una nuova finestra)" target="_blank" rel="noreferrer">
+                              <svg role="img" class="icon icon-sm icon-bluearera">
+                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-facebook"></use>
+                              </svg>
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+            </div>
+            </div>
+        </nav>
+    </div>
+</section>
+        </div>
+      </div>
+      <div class="mt-3">
+
+          <b><p class="text-uppercase titolo-pagina-padre mb-0">Per il consumatore</p></b>
+
+      </div>
+
+      <div class="mb-4 mt-0 d-flex justify-content-between">
+        <h1 id="titolo-principale-pagina">Servizio Conciliazione</h2>
+
+
+
+      </div>
+    </div>
+  </section>
+
+        <section>
+
+
+
+            <a id="c5748"></a>
+
+
+                <div class="frame-space-before-small"></div>
+
+
+
+
+
+
+
+
+    <div class="container-fluid">
+        <div class="container">
+
+
+
+
+
+
+
+
+        </div>
+    </div>
+
+
+
+
+            <div class="container  ">
+
+                    <div class="ce-textpic ce-center ce-above">
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                <div class="ce-bodytext" tabindex="0">
+
+                                    <p> </p>
+<p><a href="/fileadmin/allegati/consumatori/conciliazione/eng_010125v.pdf">English version</a></p>
+                                </div>
+
+
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <a id="c5746"></a>
+
+
+                <div class="frame-space-before-small"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div class="container">
+      <div class="accordion" id="accordionExample905237055Ha">
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1537142771b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1537142771b" aria-expanded="false" aria-controls="collapse1537142771b">
+                  Cos'è il Servizio Conciliazione?
+                </button>
+              </h2>
+              <div id="collapse1537142771b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1537142771b">
+                <div class="accordion-body">
+                  <p>Il Servizio Conciliazione di ARERA è uno strumento gratuito di tutela dei clienti finali di dei settori regolati dall'Autorità, che ha lo scopo di agevolare la risoluzione delle controversie insorte con l'operatore di energia (venditore e/o distributore), il gestore idrico, il gestore dei rifiuti urbani o l'operatore del telecalore, facendo incontrare le parti via web o in call conference alla presenza di un conciliatore in veste di facilitatore. <br>In base a quanto previsto dalla delibera <a href="/atti-e-provvedimenti/dettaglio/16/209-16" target="_blank">209/2016/E/com</a> (Testo Integrato Conciliazione - TICO), che attua l'articolo 2, comma 24, lettera b), della <a href="http://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1995-11-14;481!vig=" target="_blank" rel="noreferrer noopener">Legge 481/95</a> e l'articolo 141, comma 6, lettera c), del <a href="http://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-06;206!vig=" target="_blank" rel="noreferrer noopener">Codice del consumo</a>, dinanzi al Servizio Conciliazione è possibile svolgere il tentativo obbligatorio di conciliazione necessario per l'accesso alla giustizia ordinaria, cioè tentare di risolvere bonariamente la controversia prima di andare in giudizio. Il tentativo di conciliazione è obbligatorio per i clienti o utenti di tutti i settori regolati, ad eccezione del settore dei rifiuti urbani, per il quale il tentativo e' facoltativo e alternativo al reclamo di seconda istanza allo Sportello, sulla base di una disciplina transitoria. </p>
+<p> </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading860799044b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse860799044b" aria-expanded="false" aria-controls="collapse860799044b">
+                  Cosa può fare il conciliatore?
+                </button>
+              </h2>
+              <div id="collapse860799044b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading860799044b">
+                <div class="accordion-body">
+                  <ul><li>Il conciliatore, fornito dal Servizio Conciliazione, è esperto in materia di mediazione ed è specificamente formato sui settori regolati dall'Autorità.<br>Non decide la controversia, ma aiuta le parti a raggiungere un accordo per risolvere la problematica. Se le parti lo richiedono concordemente, il conciliatore può anche formulare una proposta di soluzione, che le parti sono libere di accettare o rifiutare. Il conciliatore, inoltre, qualora le parti rilevino l'esistenza di danni gravi e irreparabili, su richiesta concorde delle medesime, può suggerire loro le misure più idonee a garantire l'immediata tutela del cliente/utente finale. </li></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1455702500b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1455702500b" aria-expanded="false" aria-controls="collapse1455702500b">
+                  Chi può attivare la procedura?
+                </button>
+              </h2>
+              <div id="collapse1455702500b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1455702500b">
+                <div class="accordion-body">
+                  <p>Possono attivare il Servizio Conciliazione:</p><ul><li>per il settore elettrico: tutti i clienti domestici e i clienti non domestici connessi in bassa tensione (BT)  e media tensione (MT);</li><li>per il settore gas: tutti i clienti domestici e i clienti non domestici, sia di gas naturale che di gas diversi da gas naturale distribuiti a mezzo di reti urbane, connessi in bassa pressione (BP);</li><li>per il settore idrico: l'utente finale, ossia la persona fisica o giuridica che abbia stipulato o che intenda stipulare un contratto di fornitura per uso proprio di uno o più servizi del SII (l'insieme dei servizi pubblici di acquedotto, fognatura e depurazione, ovvero ciascuno dei suddetti singoli servizi);</li><li>per il settore del telecalore: l'utente finale, ossia la persona fisica o giuridica che abbia stipulato o che intenda stipulare un contratto di fornitura per uso proprio di uno o più servizi del telecalore (il servizio relativo ad una qualsiasi delle attività di distribuzione, di misura e di vendita di energia termica a mezzo di reti, o anche relativo a più di una di queste attività), con esclusione degli utenti con una potenza contrattualizzata o convenzionale superiore a 350 kW o dei richiedenti un allacciamento con potenza superiore al medesimo valore.</li><li>per il settore dei rifiuti urbani: l'utente finale, ossia la persona fisica o giuridica che è o sara' intestataria del documento di riscossione.</li></ul><p>Le utenze condominiali sono a tutti gli effetti equiparate alle utenze finali.</p>
+<p>In caso di cliente dual fuel (fornitura congiunta di energia elettrica e gas), è sufficiente rientrare in una delle tipologie indicate sopra per i settori energetici.</p>
+<p>Il Servizio Conciliazione non è attivabile dai clienti multisito per i settori energetici con almeno un punto di prelievo/riconsegna non connesso in BT, MT o BP.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1273685850b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1273685850b" aria-expanded="false" aria-controls="collapse1273685850b">
+                  Il prosumer può attivare la procedura?
+                </button>
+              </h2>
+              <div id="collapse1273685850b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1273685850b">
+                <div class="accordion-body">
+                  <ul><li><p>Sì. Il prosumer (soggetto che è al contempo consumatore e produttore di energia elettrica) può attivare il Servizio Conciliazione per le controversie insorte con il venditore o il distributore di energia elettrica o il GSE.<br>Alle procedure attivate dal prosumer si applicano le disposizioni del TICO valide per i clienti finali. È dunque possibile consultare le FAQ presenti in questa sezione "Domande e risposte".<br>Anche per il prosumer, dinanzi al Servizio Conciliazione è possibile svolgere il tentativo obbligatorio di conciliazione necessario per l'accesso alla giustizia ordinaria, come previsto dalla delibera 209/2016/E/com (Testo Integrato Conciliazione - TICO).</p><p>Per le controversie insorte in qualità di produttore nei confronti di un gestore di rete, è fatta salva la possibilità per il prosumer di attivare, anche a seguito di tentativo di conciliazione presso il Servizio concluso con esito negativo, la procedura giustiziale di reclamo presso l'Autorità ai sensi della delibera <a href="/atti-e-provvedimenti/dettaglio/12/188-12">188/2012/E/com</a>.</p></li></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1591605236b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1591605236b" aria-expanded="false" aria-controls="collapse1591605236b">
+                  Le configurazioni di autoconsumo diffuso possono attivare la procedura?
+                </button>
+              </h2>
+              <div id="collapse1591605236b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1591605236b">
+                <div class="accordion-body">
+                  <p>Sì. Possono attivare il Servizio Conciliazione, per mezzo del referente o altro delegato, anche le configurazioni di autoconsumo diffuso, ossia le entità collettive che autoconsumano energia elettrica in modo diffuso, quali i condomini e le comunità energetiche, sia di cittadini che di energia rinnovabile, portatrici di interessi autonomi e distinti rispetto a quelli dei relativi componenti. La procedura è attivabile per le controversie tipiche di tali entità e afferenti all’autoconsumo nei confronti dei distributori e del GSE.<br>Alle procedure attivate dalle configurazioni di autoconsumo diffuso si applicano le disposizioni del TICO valide per i clienti finali, fatto salvo quanto specificato di seguito. È dunque possibile consultare le FAQ presenti in questa sezione "Domande e risposte". <br>Per le controversie delle configurazioni di autoconsumo diffuso non è operativo il tentativo obbligatorio di conciliazione e il verbale di accordo ha efficacia transattiva ai sensi dell’articolo 1965 del  Codice civile.<br> </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading451035872b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse451035872b" aria-expanded="false" aria-controls="collapse451035872b">
+                  Quando si può attivare la procedura?
+                </button>
+              </h2>
+              <div id="collapse451035872b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading451035872b">
+                <div class="accordion-body">
+                  <p>E' possibile presentare la domanda di conciliazione al Servizio Conciliazione dopo aver presentato reclamo scritto al proprio operatore/gestore e aver ricevuto una risposta scritta ritenuta insoddisfacente o siano decorsi 40 giorni dall'invio del reclamo (50 giorni per il settore idrico, 60 giorni per il settore dei rifiuti urbani). E' anche possibile attivare il Servizio in presenza di un rinvio in conciliazione disposto in sede giudiziale. Non è possibile presentare domanda di conciliazione quando, per la stessa controversia:</p><ul><li>sia già stato avviato o concluso un tentativo di conciliazione;</li><li>il Servizio Conciliazione abbia archiviato la domanda per rinuncia o mancata comparizione dell'attivante all'incontro. Tuttavia, nel caso di decesso del cliente/utente finale, qualora non sia prodotta adeguata documentazione per la continuazione della procedura (delega degli eredi e attestazione di numero, identità e qualifica degli stessi), l'archiviazione che ne consegue permette la riproposizione della domanda da parte dei soggetti legittimati;</li><li>per il settore dei rifiuti urbani, sia pendente un reclamo di seconda istanza presso lo Sportello per il consumatore Energia e Ambiente, ricevuto dallo stesso in data pari o antecedente alla data di presentazione della domanda di conciliazione, ovvero qualora sia stata fornita una risposta dallo Sportello, salvo che in tale risposta vi sia il rinvio ad altra procedura.</li></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading247307681b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse247307681b" aria-expanded="false" aria-controls="collapse247307681b">
+                  Come si attiva la procedura?
+                </button>
+              </h2>
+              <div id="collapse247307681b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading247307681b">
+                <div class="accordion-body">
+                  <p>Il cliente/utente finale attiva la procedura del Servizio Conciliazione registrandosi alla piattaforma on line, compilando la maschera e allegando i documenti richiesti. Se non risultano allegati tutti i documenti, la Segreteria del Servizio Conciliazione comunica al cliente/utente finale di integrare la propria domanda entro 7 giorni. Se il cliente/utente non provvede all'integrazione nel termine indicato, non sarà possibile attivare il Servizio Conciliazione (la domanda incompleta e non integrata sarà infatti archiviata). Nel caso in cui non utilizzi la modalità telematica, neppure per mezzo dell'ausilio di un'Associazione o di altro delegato, il cliente/utente finale domestico, che agisce in prima persona, può presentare la domanda con una modalità alternativa (es. e-mail o posta) ferma restando la gestione on line della procedura.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading801690024b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse801690024b" aria-expanded="false" aria-controls="collapse801690024b">
+                  È possibile attivare una conciliazione per qualsiasi controversia?
+                </button>
+              </h2>
+              <div id="collapse801690024b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading801690024b">
+                <div class="accordion-body">
+                  <p>Sì, ad eccezione delle controversie:</p><ul><li>relative ai soli profili tributari e fiscali;</li><li>oggetto di procedure SMART Help o in tema di bonus sociale idrico o rifiuti, fatti salvi eventuali profili risarcitori;</li><li>che il cliente/utente non potrebbe eventualmente presentare in giudizio perché è intervenuta la prescrizione;</li><li>per le quali sono state promosse azioni inibitorie, azioni di classe e altre azioni a tutela degli interessi collettivi dei consumatori e degli utenti attivate da Associazioni dei Consumatori;</li><li>afferenti alla qualità dell'acqua.</li></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading489355805b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse489355805b" aria-expanded="false" aria-controls="collapse489355805b">
+                  Quanto costa attivare la procedura?
+                </button>
+              </h2>
+              <div id="collapse489355805b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading489355805b">
+                <div class="accordion-body">
+                  <p>La procedura è gratuita. Qualora ci si avvalga di un delegato, è il cliente/utente che, scegliendo il delegato, concorda le eventuali condizioni economiche per le sue prestazioni.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading480147021b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse480147021b" aria-expanded="false" aria-controls="collapse480147021b">
+                  Il cliente/utente deve partecipare alla procedura personalmente o può delegare qualcuno?
+                </button>
+              </h2>
+              <div id="collapse480147021b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading480147021b">
+                <div class="accordion-body">
+                  <p>Il cliente/utente finale può partecipare direttamente alla conciliazione oppure può farsi rappresentare da un proprio delegato, anche appartenente ad una <a href="http://www.tuttoconsumatori.org/" target="_blank" rel="noreferrer">Associazione dei consumatori</a> o ad una Associazione di categoria, che possa sottoscrivere l'accordo di definizione della controversia per suo conto, mediante una delega a trattare e chiudere la controversia stessa (delega a conciliare e transigere).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading2142974850b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2142974850b" aria-expanded="false" aria-controls="collapse2142974850b">
+                  L'operatore/gestore partecipa sempre?
+                </button>
+              </h2>
+              <div id="collapse2142974850b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading2142974850b">
+                <div class="accordion-body">
+                  <p><br>Tutti gli operatori di energia elettrica e gas (venditori e distributori), i gestori del servizio idrico integrato e gli operatori del telecalore sono tenuti a partecipare al tentativo di conciliazione.<br>Il GSE è tenuto a partecipare alle procedure per le materie oggetto di regolazione dell’Autorità.</p>
+<p>La partecipazione dei gestori nel settore dei rifiuti urbani è facoltativa sulla base di una disciplina transitoria. Il gestore comunica la partecipazione entro 5 giorni antecedenti alla data dell'incontro; nel caso di dichiarazione esplicita di non voler partecipare alla procedura o in mancanza di conferma della partecipazione, la procedura è archiviata.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading172973437b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse172973437b" aria-expanded="false" aria-controls="collapse172973437b">
+                  Può partecipare con il venditore di energia o il gestore del servizio di acquedotto anche un altro esercente?
+                </button>
+              </h2>
+              <div id="collapse172973437b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading172973437b">
+                <div class="accordion-body">
+                  <p>Sì, a determinate condizioni.<br>Nei settori energetici, il venditore, almeno 10 giorni prima del primo incontro (5 giorni in caso di disciplina abbreviata) o nel corso del primo incontro conciliativo, può richiedere che venga chiamato in conciliazione il distributore quando la discussione riguardi dati tecnici e qualora sia ritenuto necessario ai fini della corretta ed efficace trattazione della controversia. Anche in questi casi, l'Autorità ha previsto che il distributore convocato abbia l'obbligo di partecipare alla procedura.<br>Anche il GSE, per le controversie azionate dal prosumer, può richiedere, come il venditore, l'intervento del distributore.<br>Nel settore idrico, il gestore del servizio acquedotto, entro i medesimi termini validi per i settori energetici, può richiedere al Servizio Conciliazione, qualora sia ritenuto necessario ai fini della corretta ed efficace trattazione della controversia, la convocazione del gestore del servizio fognatura e/o del gestore del servizio depurazione, se diversi dal gestore del servizio acquedotto, in qualità di ausilio tecnico. Anche tali gestori sono tenuti a partecipare alla procedura.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading485442943b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse485442943b" aria-expanded="false" aria-controls="collapse485442943b">
+                  Quando si svolge il primo incontro valido per il tentativo?
+                </button>
+              </h2>
+              <div id="collapse485442943b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading485442943b">
+                <div class="accordion-body">
+                  <p>Il primo incontro dinanzi al Servizio Conciliazione si deve svolgere entro 40 giorni dalla presentazione della domanda completa, ma non prima di 10 giorni dalla comunicazione di avvio della procedura alle parti. Ciascuna parte e il distributore quale ausilio tecnico possono chiedere un solo rinvio dell'incontro, presentando richiesta motivata al Servizio Conciliazione entro 2 giorni antecedenti alla data del primo incontro, con contestuale comunicazione di una successiva data di disponibilità non oltre 10 giorni dalla precedente.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading358700722b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse358700722b" aria-expanded="false" aria-controls="collapse358700722b">
+                  E' possibile ritirarsi dalla procedura?
+                </button>
+              </h2>
+              <div id="collapse358700722b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading358700722b">
+                <div class="accordion-body">
+                  <p>Il cliente/utente può decidere di ritirarsi, ossia rinunciare all'esperimento della procedura di conciliazione, inviando in qualsiasi momento tempestiva comunicazione al Servizio Conciliazione.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading402064885b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse402064885b" aria-expanded="false" aria-controls="collapse402064885b">
+                  Cosa succede nei casi di sospensione della fornitura?
+                </button>
+              </h2>
+              <div id="collapse402064885b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading402064885b">
+                <div class="accordion-body">
+                  <p>Nel caso in cui il cliente/utente finale documenti nella domanda di conciliazione la sospensione della fornitura per una fattura tempestivamente contestata con il reclamo, l'incontro per lo svolgimento del tentativo di conciliazione deve svolgersi nel termine di 15 giorni dalla domanda completa, ma non prima di 5 giorni dalla comunicazione di avvio della procedura alle parti (termini dimezzati). In tali casi, non è possibile richiedere il rinvio del primo incontro.<br>Questi termini abbreviati trovano applicazione anche nel caso in cui il cliente/utente alleghi la comunicazione di costituzione in mora nella quale sia indicato il termine decorso il quale, in costanza di mora, sarà inviata al distributore la richiesta di sospensione della fornitura previa, nei casi applicabili, l'eventuale riduzione della potenza disponibile o sia indicata la data a partire dalla quale il gestore potrà effettuare l'eventuale limitazione, sospensione o disattivazione della fornitura, per una fattura tempestivamente contesta con il reclamo.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading698219647b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse698219647b" aria-expanded="false" aria-controls="collapse698219647b">
+                  Quanto può durare la procedura?
+                </button>
+              </h2>
+              <div id="collapse698219647b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading698219647b">
+                <div class="accordion-body">
+                  <p>La procedura si conclude in un termine massimo di 90 giorni solari dalla presentazione della domanda di conciliazione completa. Il Servizio Conciliazione può disporre una proroga di 60 giorni al massimo, anche su richiesta del conciliatore nei casi di controversia complessa oppure su richiesta congiunta e motivata delle parti.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1111383793b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1111383793b" aria-expanded="false" aria-controls="collapse1111383793b">
+                  Qual è la durata media della procedura di fronte al Servizio?
+                </button>
+              </h2>
+              <div id="collapse1111383793b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1111383793b">
+                <div class="accordion-body">
+                  <p>Le procedure si concludono in media in un mese e mezzo (dalla presentazione della domanda completa).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1371125467b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1371125467b" aria-expanded="false" aria-controls="collapse1371125467b">
+                  Quali sono gli esiti della procedura?
+                </button>
+              </h2>
+              <div id="collapse1371125467b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1371125467b">
+                <div class="accordion-body">
+                  <p>Se le parti trovano una soluzione per la controversia, sottoscrivono un verbale di accordo che ha valore di titolo esecutivo, ossia può esser fatto valere dalle parti dinanzi al giudice competente in caso di mancato rispetto dei contenuti. Anche il distributore o il gestore del servizio fognatura e/o del gestore del servizio depurazione  convocato quale ausilio tecnico, in accordo con la parte attivante, ha facoltà di sottoscrivere l'accordo assumendo specifici obblighi.<br>Nel settore dei rifiuti urbani, sulla base di una disciplina transitoria, il verbale di accordo ha valore transattivo ai sensi dell'articolo 1965 del Codice civile. Nel caso in cui non si raggiunga un accordo o qualora l'operatore/gestore, pur obbligato, non partecipi all'incontro, il conciliatore redige un verbale con cui indica che il tentativo ha avuto esito negativo. In questi casi, il tentativo di conciliazione, quale condizione di procedibilità dell'azione giudiziale, si considera esperito e il cliente/utente potrà rivolgersi eventualmente al giudice per risolvere la controversia.</p>
+<p>Se il cliente/utente non si presenta all'incontro, la domanda è archiviata e il tentativo non si considera svolto.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading2059548207b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2059548207b" aria-expanded="false" aria-controls="collapse2059548207b">
+                  Come si svolgono gli incontri?
+                </button>
+              </h2>
+              <div id="collapse2059548207b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading2059548207b">
+                <div class="accordion-body">
+                  <p>Gli incontri tra le parti e il conciliatore avvengono in "stanze virtuali" (chat room o video-conferenza) mediante pc (desktop o notebook) o dispositivi mobili (smartphone o tablet).<br>In alternativa, secondo la valutazione del conciliatore e delle parti, l'incontro può svolgersi tramite l'utilizzo di altri mezzi di comunicazione a distanza (es.call conference, ossia attraverso l'utilizzo del telefono, fisso o cellulare).<br>Se la conciliazione ha esito positivo, le parti sottoscrivono il verbale di accordo con firma digitale in proprio possesso o, in alternativa, utilizzando una firma elettronica qualificata rilasciata alle Parti gratuitamente dal Servizio Conciliazione in modalità one-shot al cliente/utente dotato di SPID e/o CIE mediante l'apposita funzionalità denominata "Abilita firma con SPID/CIE", oppure a seguito di una procedura di identificazione la cui esecuzione si svolge esclusivamente in stanza virtuale.<br>Il procedimento di conciliazione è riservato e tutto ciò che viene dichiarato nel corso dell'incontro non può essere divulgato, video/audio registrato, verbalizzato o ascoltato da soggetti terzi.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="accordion accordion-background-active">
+            <div class="accordion-item">
+              <h2 class="accordion-header " id="heading1602689238b">
+                <button class="accordion-button bottone-accordion-qs collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1602689238b" aria-expanded="false" aria-controls="collapse1602689238b">
+                  Quali strumenti occorrono per attivare la procedura del Servizio Conciliazione?
+                </button>
+              </h2>
+              <div id="collapse1602689238b" class="accordion-collapse collapse" data-bs-parent="#accordionExample905237055Ha" role="region" aria-labelledby="heading1602689238b">
+                <div class="accordion-body">
+                  <p>Per presentare la domanda di conciliazione, si può utilizzare in alternativa un PC (desktop o notebook) o un dispositivo mobile, anche tramite APP "Servizio Conciliazione", dotati di sistema Windows, Mac OS, iOS e Android. <br>Il dispositivo in uso deve essere dotato di un programma di scrittura, nonché di un programma di conversione di file in PDF o di lettore di immagini e deve essere collegato ad uno scanner (non necessario in caso di utilizzo di dispositivo mobile dotato di fotocamera) e ad una stampante. <br>In tale fase, non è richiesta una connessione internet performante (vi è soltanto una trasmissione di dati). <br>Per lo svolgimento dell'incontro in stanza virtuale mediante PC (desktop o notebook), è necessario disporre di un processore con almeno CPU Intel I5 o equivalente, di un sistema operativo Windows o Mac OS, di microfono, dispositivi audio (es: casse), videocamera e connessione ADSL stabile; browser consigliato Google Chrome. <br>Per lo svolgimento dell'incontro in stanza virtuale mediante dispositivo mobile (smartphone o tablet), è necessario essere in possesso di un sistema operativo Android (browser consigliato Google Chrome ≥ v.85- 86) o iOS (Safari ≥ v.13.1.2 - 14.0), assicurando altresì una connessione stabile.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <a id="c5747"></a>
+
+
+                <div class="frame-space-before-small"></div>
+
+
+
+
+
+
+
+
+    <div class="container-fluid">
+        <div class="container">
+
+
+
+
+
+
+
+
+        </div>
+    </div>
+
+
+
+
+            <div class="container  ">
+
+                    <div class="ce-textpic ce-center ce-above">
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                <div class="ce-bodytext" tabindex="0">
+
+                                    <p><strong>Per accedere al servizio e per maggiori informazioni:</strong></p>
+<h3><a href="https://www.sportelloperilconsumatore.it/risoluzione-controversie/servizio-conciliazione-gen" target="_blank" rel="noreferrer"><strong>conciliazione.arera.it</strong></a></h3>
+<p> </p>
+<p> </p>
+<p> </p>
+<p>Ultimo aggiornamento: 01 10 2025</p>
+                                </div>
+
+
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <a id="c5750"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <section id="documenti-collegati" class="font-roboto p-3 p-lg-5 mt-5">
+
+                <div id="documentiCollegati" class="container ">
+                    <h3 class="testo-documenti-collegati-relazioni pb-3 mt-0 mb-0">Documenti collegati</h3>
+
+
+
+
+                        <div class="d-flex mb-3 mt-4 row documenti-collegati">
+
+
+                                    <div class="col-lg-3 d-flex align-items-baseline">
+                                        <h5 class="mb-0 font-roboto">Atti:</h5>
+                                    </div>
+
+
+
+
+
+
+
+
+
+
+                            <div class="col-lg-9 row">
+
+
+                                        <div class="col-6">
+                                            <div class="d-flex padding-paragrafi-atti">
+                                                <div class="d-flex align-items-center">
+
+                                                            <svg class="icon icona-blue icona-consulta-custom">
+                                                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                            </svg>
+                                                            <a href="/atti-e-provvedimenti/dettaglio/24/371-24">
+                                                                <h4 class="text-docallegati">371/2024/R/com</h4>
+                                                            </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+                                        <div class="col-6">
+                                            <div class="d-flex padding-paragrafi-atti">
+                                                <div class="d-flex align-items-center">
+
+                                                            <svg class="icon icona-blue icona-consulta-custom">
+                                                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                            </svg>
+                                                            <a href="/atti-e-provvedimenti/dettaglio/16/209-16">
+                                                                <h4 class="text-docallegati">209/2016/E/com</h4>
+                                                            </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+                                        <div class="col-6">
+                                            <div class="d-flex padding-paragrafi-atti">
+                                                <div class="d-flex align-items-center">
+
+                                                            <svg class="icon icona-blue icona-consulta-custom">
+                                                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                            </svg>
+                                                            <a href="/atti-e-provvedimenti/dettaglio/13/093-13">
+                                                                <h4 class="text-docallegati">93/2013/E/com</h4>
+                                                            </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+                                        <div class="col-6">
+                                            <div class="d-flex padding-paragrafi-atti">
+                                                <div class="d-flex align-items-center">
+
+                                                            <svg class="icon icona-blue icona-consulta-custom">
+                                                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                            </svg>
+                                                            <a href="/atti-e-provvedimenti/dettaglio/12/475-12">
+                                                                <h4 class="text-docallegati">475/2012/E/com</h4>
+                                                            </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+                                        <div class="col-6">
+                                            <div class="d-flex padding-paragrafi-atti">
+                                                <div class="d-flex align-items-center">
+
+                                                            <svg class="icon icona-blue icona-consulta-custom">
+                                                                <use href="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/svg/sprites.svg#it-arrow-right-triangle"></use>
+                                                            </svg>
+                                                            <a href="/atti-e-provvedimenti/dettaglio/12/260-12">
+                                                                <h4 class="text-docallegati">260/2012/E/com</h4>
+                                                            </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+                            </div>
+                        </div>
+
+
+
+
+
+
+
+                    <!-- COMUNICATI STAMPA --><!-- COMUNICATI STAMPA --><!-- COMUNICATI STAMPA -->
+
+
+                    <!-- SCHEDE TECNICHE --><!-- SCHEDE TECNICHE --><!-- SCHEDE TECNICHE --><!-- SCHEDE TECNICHE -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </div>
+
+            </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <a id="c5749"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="container mt-3">
+
+    <div class="d-flex align-items-center">
+      <div class="tags-container m-0">
+
+          <div class="chip chip-primary chip-tag-custom chip-lg chip-simple">
+              <a class="no-text-decoration" href="/cerca/risultati-ricerca?tx_kesearch_pi1[filter_3]=conciliazione">
+                <span class="chip-label testo-blueargomenti">conciliazione</span>
+              </a>
+            </div>
+
+      </div>
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </section>
+
+    <section class="container-fluid container-due-colonne">
+        <div class="container">
+            <div class="row row-no-margin">
+
+                <!-- Colonna sinistra -->
+                <aside role="complementary" aria-labelledby="contenuti" class="col-md-12 col-lg-4 sidebar pe-lg-5">
+
+                </aside>
+
+                <!-- Colonna destra -->
+                <div id="contenuti" class="col-md-12 col-lg-4 col-lg-8 page-content-box pt-lg-2">
+
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Riga inferiore -->
+
+    <!-- Footer -->
+
+    <footer class="it-footer">
+      <div class="it-footer-main it-footer-main-custom">
+        <div class="container">
+          <section class="mt-3">
+            <div class="row">
+              <div class="col-lg-6 col-md-6 col-12 pb-2">
+                <h2 class="title-footer font-roboto">
+                  <a href="#" title="Vai alla pagina: Amministrazione"
+                    >CONTATTI</a
+                  >
+                </h2>
+                <div class="link-list-wrapper footer-contatti">
+                  <ul><li>Sede legale: Piazza Cavour 5 - 20121&nbsp;- Milano</li><li>C.F.: 97190020152</li><li>E-mail:&nbsp; &nbsp;<a href="mailto:info@arera.it">info@arera.it</a></li><li>Pec:&nbsp; &nbsp;<a href="mailto:protocollo@pec.arera.it">protocollo@pec.arera.it</a></li><li>Numero verde consumatori: <strong>800.166.654</strong>&nbsp;</li></ul><p>&nbsp;</p><ul><li><a href="/amministrazione-trasparente/organizzazione/contatti-telefonici-e-caselle-di-posta">Altri contatti</a></li><li><a href="/iscriviti-alla-newsletter">Iscrizione alla newsletter</a></li></ul><p>&nbsp;</p>
+                </div>
+              </div>
+              <div class="col-lg-3 col-md-3 col-12 pb-2">
+                <h2 class="title-footer font-roboto">
+                  <a href="#" title="Vai alla pagina: QUICKLINKS">QUICKLINKS</a>
+                </h2>
+                <div class="link-list-wrapper">
+                  <ul><li><a class="list-item" href="/stampa-bandi-concorso" title="Bandi di concorso">Bandi di concorso</a></li><li><a class="list-item" href="/stampa-bandi-gara" title="Bandi di gara">Bandi di gara</a></li></ul>
+                </div>
+              </div>
+              <div class="col-lg-3 col-md-3 col-12 pb-2">
+                <h2 class="title-footer font-roboto">
+                  <a href="#" title="Vai alla pagina: TRASPARENZA E SEGNALAZIONI">TRASPARENZA E SEGNALAZIONI</a>
+                </h2>
+                <div class="link-list-wrapper">
+                  <ul><li><a class="list-item" href="/amministrazione-trasparente/disposizioni-generali" title="Amministrazione trasparente">Amministrazione trasparente</a></li><li><a class="list-item" href="/whistleblowing" title="Whistleblowing">Whistleblowing</a></li></ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="it-footer-small-prints clearfix clearfix-custom">
+        <div class="container">
+          <ul
+            class="it-footer-small-prints-list list-inline mb-0 d-md-flex justify-content-between"
+          >
+
+
+                <li class="list-inline-item">
+                  <a class="text-decoration-underline" href="/termini-e-condizioni-uso-del-sito" title="Termini d&#039;uso">Termini d&#039;uso</a>
+                </li>
+
+                <li class="list-inline-item">
+                  <a class="text-decoration-underline" href="/social-media-policy" title="Social Media Policy">Social Media Policy</a>
+                </li>
+
+                <li class="list-inline-item">
+                  <a class="text-decoration-underline" href="/cookies-policy" title="Cookies Policy">Cookies Policy</a>
+                </li>
+
+                <li class="list-inline-item">
+                  <a class="text-decoration-underline" href="/privacy-policy" title="Privacy Policy">Privacy Policy</a>
+                </li>
+
+                <li class="list-inline-item">
+                  <a class="text-decoration-underline" href="/accessibilita" title="Accessibilità">Accessibilità</a>
+                </li>
+
+
+            <li class="list-inline-item">
+              <a class="text-decoration-underline" href="javascript:void(0)" id="footerMOdalCookie"
+                title="Gestione Cookies">Gestione Cookies</a></li>
+            </li>
+
+              <li class="list-inline-item-last">
+                <span class="text-white">Seguici su:</span>
+
+                  <a href="https://twitter.com/arera_it" target="_blank" aria-label="Vai al profilo X - Apertura in nuova scheda - Collegamento a sito esterno" class="mx-1">
+                    <i class="fa-brands fa-x-twitter fa-lg icon-custom"></i>
+                    <span class="sr-only">
+                      X
+                    </span>
+                  </a>
+
+                  <a href="https://www.linkedin.com/company/arera/" target="_blank" aria-label="Vai al profilo Linkedin - Apertura in nuova scheda - Collegamento a sito esterno" class="mx-1">
+                    <i class="fa-brands fa-linkedin-in fa-lg icon-custom"></i>
+                    <span class="sr-only">
+                      Linkedin
+                    </span>
+                  </a>
+
+                  <a href="https://www.youtube.com/c/ARERAautoritaregolazioneenergiaretiambiente" target="_blank" aria-label="Vai al profilo Youtube - Apertura in nuova scheda - Collegamento a sito esterno" class="mx-1">
+                    <i class="fa-brands fa-youtube fa-lg icon-custom"></i>
+                    <span class="sr-only">
+                      Youtube
+                    </span>
+                  </a>
+
+                  <a href="https://www.facebook.com/arera.autorita/ " target="_blank" aria-label="Vai al profilo Facebook - Apertura in nuova scheda - Collegamento a sito esterno" class="mx-1">
+                    <i class="fa-brands fa-facebook-f fa-lg icon-custom"></i>
+                    <span class="sr-only">
+                      Facebook
+                    </span>
+                  </a>
+
+                  <a href="https://www.instagram.com/arera.autorita/" target="_blank" aria-label="Vai al profilo Instagram - Apertura in nuova scheda - Collegamento a sito esterno" class="mx-1">
+                    <i class="fa-brands fa-square-instagram fa-lg icon-custom"></i>
+                    <span class="sr-only">
+                      Instagram
+                    </span>
+                  </a>
+
+              </li>
+
+          </ul>
+        </div>
+      </div>
+    </footer>
+
+
+
+
+</main>
+
+
+
+
+
+
+
+<div id="cookieman-modal"
+     data-cookieman-showonce="1"
+     data-cookieman-settings="{&quot;cookie&quot;:{&quot;cookieLifetimeDays&quot;:&quot;&quot;,&quot;domain&quot;:&quot;&quot;,&quot;sameSite&quot;:&quot;Lax&quot;},&quot;groups&quot;:{&quot;mandatory&quot;:{&quot;preselected&quot;:true,&quot;disabled&quot;:true,&quot;trackingObjects&quot;:[&quot;CookieConsent&quot;,&quot;fe_typo_user&quot;]},&quot;external&quot;:{&quot;respectDnt&quot;:true,&quot;showDntMessage&quot;:true,&quot;trackingObjects&quot;:[&quot;Youtube&quot;,&quot;Flourish&quot;]}},&quot;trackingObjects&quot;:{&quot;Bandichoosedview&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Bandichoosedview loaded\&quot;);\u003C\/script\u003E\n           &quot;,&quot;show&quot;:{&quot;bandichoosedview&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;provider.website&quot;}}},&quot;Flourish&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Flourish loaded\&quot;);\u003C\/script\u003E\n            \u003Cscript src=\&quot;https:\/\/public.flourish.studio\/resources\/embed.js\&quot;\u003E\u003C\/script\u003E\n            \u003Cscript src=\&quot; https:\/\/public.tableau.com\/javascripts\/api\/viz_v1.js\&quot;\u003E\u003C\/script\u003E\n            \u003Cscript\u003E\n            jQuery(document).ready(function()\n            {\n                   \n           \n                var toHeight = 0; \n                var windowWidth = jQuery( window ).width();\n                  \n                if ( windowWidth \u003E 800 ) \n                {   var toHeight =995;  } \n                else if ( windowWidth \u003E 500 ) \n                { var toHeight =995; } \n                else \n                { var toHeight =1055;\n                }   \n                \n         \n                \n                setTimeout(function()\n                {\n                     jQuery(\&quot;.tableauPlaceholder\&quot;).height(toHeight);\n                     jQuery(\&quot;.tableauPlaceholder\&quot;).find(\&quot;iframe\&quot;).height(toHeight);\n                          jQuery(\&quot;.tableauPlaceholder\&quot;).css(\&quot;overflow\&quot;,\&quot;auto\&quot;);\n  \n               \n                }, 3000);\n       \n\n\n\n            })\n       \n     \n            \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;Flourish&quot;:{&quot;duration&quot;:&quot;sessione&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Flourish&quot;}}},&quot;Instagram&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Instagram loaded\&quot;);\u003C\/script\u003E\n\n            \u003Cscript\u003E\n                jQuery(document).ready(function()\n                {\n                    if (jQuery(\&quot;.instagram-media\&quot;).length) \n                    {\n                        console.log(\&quot;instagram Script loaded\&quot;);\n                        var instagram_script = document.createElement(&#039;script&#039;);\n\n                        instagram_script.setAttribute(&#039;src&#039;,&#039;\/\/www.instagram.com\/embed.js&#039;);\n                        document.head.appendChild(instagram_script);\n                    }\n\n                });\n\n            \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;Instagram&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Instagram&quot;}}},&quot;Openstreetmap&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Openstreetmap loaded\&quot;);\u003C\/script\u003E\n            \u003Cscript\u003E\n                jQuery(document).ready(function()\n                {\n                    if (jQuery(\&quot;#mapleaflet\&quot;).length) \n                    {\n\n                        var latitudine = jQuery(\&quot;#mapleaflet\&quot;).attr(\&quot;data-latitudine\&quot;);\n                        var longitudine = jQuery(\&quot;#mapleaflet\&quot;).attr(\&quot;data-longitudine\&quot;);\n                        var indirizzo = jQuery(\&quot;#mapleaflet\&quot;).attr(\&quot;data-indirizzo\&quot;);\n                        var zoom = jQuery(\&quot;#mapleaflet\&quot;).attr(\&quot;data-zoom\&quot;);\n                        \n                        var mymap=L.map(\&quot;mapleaflet\&quot;).setView([latitudine,longitudine],zoom);\n                        mymap.scrollWheelZoom.disable();\n                        L.tileLayer(\&quot;https:\/\/{s}.basemaps.cartocdn.com\/light_all\/{z}\/{x}\/{y}{r}.png\&quot;,{attribution:&#039;&amp;copy; \u003Ca href=\&quot;https:\/\/www.openstreetmap.org\/copyright\&quot;\u003EOpenStreetMap\u003C\/a\u003E contributors &amp;copy; \u003Ca href=\&quot;https:\/\/carto.com\/attributions\&quot;\u003ECARTO\u003C\/a\u003E&#039;,subdomains:\&quot;abcd\&quot;,maxZoom:19}).addTo(mymap);\n                        \n                        \/\/var icon=L.divIcon({className:\&quot;map-marker \&quot;,iconSize:null,html:&#039;\u003Cdiv class=\&quot;icon\&quot;\u003E\u003C\/div\u003E&#039;});\n                        \/\/L.marker([45.4883554,9.1941298],{icon:icon}).addTo(mymap);\n                        \n                        L.marker([latitudine,longitudine]).addTo(mymap);                        \n                    }\n                });\n             \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;Openstreetmap&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Openstreetmap&quot;}}},&quot;Selezionichoosedview&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Selezionichoosedview loaded\&quot;);\u003C\/script\u003E\n           &quot;,&quot;show&quot;:{&quot;selezionichoosedview&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;provider.website&quot;}}},&quot;Tableau&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Tableau loaded\&quot;);\u003C\/script\u003E\n            \u003Cscript\u003E\n             $(document).ready(function()\n             {\n                    console.log(\&quot;Tableau STARTED\&quot;);\n\n                    var tableaus = $(&#039;body&#039;).find(\&quot;.tableauPlaceholder\&quot;);\n                    $(tableaus).each(function( index,element ) {\n                        \n                        var id = $(this).attr(\&quot;id\&quot;);\n\n                        var divElement = document.getElementById(id); \n                        var vizElement = divElement.getElementsByTagName(&#039;object&#039;)[0]; \n                        vizElement.style.width = &#039;764px&#039;; vizElement.style.height = &#039;882px&#039;; \n                        var scriptElement = document.createElement(&#039;script&#039;); \n                        scriptElement.src = &#039;https:\/\/public.tableau.com\/javascripts\/api\/viz_v1.js&#039;; \n                        vizElement.parentNode.insertBefore(scriptElement, vizElement);  \n                        \n                    });\n                    \n                                        \n             });\n             \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;tableau_locale&quot;:{&quot;duration&quot;:&quot;Sessione&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Tableau&quot;},&quot;tableau_public_negotiated_locale&quot;:{&quot;duration&quot;:&quot;Sessione&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Tableau&quot;}}},&quot;Twitter&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Twitter loaded\&quot;);\u003C\/script\u003E\n\n            \u003Cscript\u003E\n                jQuery(document).ready(function()\n                {\n                    if (jQuery(\&quot;.twitter-tweet\&quot;).length) \n                    {\n                        console.log(\&quot;Twitter Script loaded\&quot;);\n                        var twitter_script = document.createElement(&#039;script&#039;);\n\n                        twitter_script.setAttribute(&#039;src&#039;,&#039;https:\/\/platform.twitter.com\/widgets.js&#039;);\n                        twitter_script.setAttribute(&#039;async&#039;,&#039;true&#039;);\n                        twitter_script.setAttribute(&#039;charset&#039;,&#039;utf-8&#039;);\n                        document.head.appendChild(twitter_script);\n                    }\n\n                });\n\n            \u003C\/script\u003E\n   &quot;,&quot;show&quot;:{&quot;Twitter&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Twitter&quot;}}},&quot;Youtube&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003Econsole.log(\&quot;Youtube loaded\&quot;);\u003C\/script\u003E\n            \u003Cscript\u003E\n             $(document).ready(function()\n             {\n                    var videos = $(\&quot;.video-youtube\&quot;);\n                    var size = $(\&quot;#video-youtube\&quot;)\n\n                    $(videos).each(function( index ) {\n                        var linkyoutube = $( this ).attr(\&quot;href\&quot;);\n                        var youtubeid = $( this ).attr(\&quot;data-youtubeid\&quot;);\n                        var heightyoutube = $( size ).attr(\&quot;height\&quot;);\n                        if(heightyoutube == undefined){\n                            var heightyoutube = 315\n                        }\n                        var widthyoutube = $( size ).attr(\&quot;width\&quot;);\n                        if(widthyoutube == undefined){\n                            var widthyoutube = 560\n                        }\n                        $(this).after(&#039;\u003Cdiv class=\&quot;embed-responsive embed-responsive-16by9\&quot;\u003E\u003Ciframe height=\&quot;&#039;+heightyoutube+&#039;\&quot; width=\&quot;&#039;+widthyoutube+&#039;\&quot; class=\&quot;video-iframe-youtube embed-responsive-item\&quot; src=\&quot;https:\/\/www.youtube.com\/embed\/&#039;+youtubeid+&#039;\&quot; title=\&quot;YouTube video player\&quot; frameborder=\&quot;0\&quot; allow=\&quot;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\&quot; allowfullscreen\u003E\u003C\/iframe\u003E\u003C\/div\u003E&#039;);\n                        $(this).addClass(\&quot;d-none\&quot;);\n                    });\n             });\n             \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;YSC&quot;:{&quot;duration&quot;:&quot;sessione&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;YouTube&quot;},&quot;CONSENT&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;month&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;YouTube&quot;}}},&quot;Bing&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;Bing\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;MUID&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Bing&quot;},&quot;MUIDB&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Bing&quot;}}},&quot;CookieConsent&quot;:{&quot;show&quot;:{&quot;CookieConsent&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Website&quot;}}},&quot;etracker&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003E\n                _etracker.enableCookies()\n            \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;cntcookie&quot;:{&quot;duration&quot;:&quot;4&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;GS3_v&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;_et_coid&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oi_v2&quot;:{&quot;duration&quot;:&quot;50&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oip&quot;:{&quot;duration&quot;:&quot;50&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_allow_cookies&quot;:{&quot;duration&quot;:&quot;16&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;isSdEnabled&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;day&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_ctst&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_sdc&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_pdc&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_ecl&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_scroll_depth&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;targetingAPISession&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;_et_coid--localstorage&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oi_v2--localstorage&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oip--localstorage&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;}}},&quot;FacebookPixel&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;FacebookPixel\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;_fbp&quot;:{&quot;duration&quot;:&quot;28&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;facebook&quot;},&quot;facebookPixel&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;pixel&quot;,&quot;provider&quot;:&quot;facebook&quot;}}},&quot;fe_typo_user&quot;:{&quot;show&quot;:{&quot;fe_typo_user&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Website&quot;}}},&quot;GoogleAds&quot;:{&quot;inject&quot;:&quot;&quot;,&quot;show&quot;:{&quot;__eoi&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;NID&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__gads&quot;:{&quot;duration&quot;:&quot;13&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;pm_sess&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;pm_sess_NNN&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^pm_sess_&quot;},&quot;aboutads_sessNNN&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^aboutads_sess_&quot;},&quot;FPAU&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;ANID&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;AID&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;TAID&quot;:{&quot;duration&quot;:&quot;14&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gcl_au&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;RUL&quot;:{&quot;duration&quot;:&quot;12&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;FPGCLAW&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;FPGCLGB&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gcl_gb&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gac_gb_--wpid--&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_gac_gb_&quot;},&quot;_gcl_aw&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;1P_JAR&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;Conversion&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;YSC&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;VISITOR_INFO1_LIVE&quot;:{&quot;duration&quot;:&quot;180&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;VISITOR_INFO1_LIVE__k&quot;:{&quot;duration&quot;:&quot;180&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;VISITOR_INFO1_LIVE__default&quot;:{&quot;duration&quot;:&quot;180&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;}}},&quot;GoogleAnalytics&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;GoogleAnalytics\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;DSID&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;weeks&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;test_cookie&quot;:{&quot;duration&quot;:&quot;15&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;IDE&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;FPLC&quot;:{&quot;duration&quot;:&quot;20&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;FPID&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;GA_OPT_OUT&quot;:{&quot;duration&quot;:&quot;7&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__utma&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__utmb&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__utmc&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__utmt&quot;:{&quot;duration&quot;:&quot;10&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__utmz&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;__utmv&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_ga&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gat&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;minute&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gat_--custom-name--&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;minute&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gid&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_ga_--container-id--&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_ga_&quot;},&quot;_dc_gtm_--property-id--&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;minute&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_dc_gtm_UA\\-\\d+\\-\\d+$&quot;},&quot;_gaexp&quot;:{&quot;duration&quot;:&quot;93&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gaexp_rc&quot;:{&quot;duration&quot;:&quot;10&quot;,&quot;durationUnit&quot;:&quot;seconds&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_opt_awcid&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_opt_awmid&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_opt_awgid&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_opt_awkid&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_opt_utmc&quot;:{&quot;duration&quot;:&quot;24&quot;,&quot;durationUnit&quot;:&quot;hours&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gac_--property-id--&quot;:{&quot;duration&quot;:&quot;90&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_gac_&quot;},&quot;AMP_TOKEN&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;}}},&quot;GoogleMaps&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;GoogleMaps\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;GoogleMaps&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Google&quot;}}},&quot;GoogleTagManager&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;GoogleTagManager\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;_dc_gtm_--property-id--&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;minute&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_dc_gtm_UA\\-\\d+\\-\\d+$&quot;}}},&quot;Matomo&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;Matomo\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;_pk_id&quot;:{&quot;duration&quot;:&quot;13&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_id\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_ref&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_ref\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_ses&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_ses\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_cvar&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_cvar\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_hsr&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_hsr\\.\\d+\\.[a-fA-F0-9]+$&quot;}}},&quot;MicrosoftForms&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;MicrosoftForms\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;__RequestVerificationToken&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;AADNonce.forms&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;DcLcid&quot;:{&quot;duration&quot;:&quot;3&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;MSFPC&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;MUID&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Microsoft&quot;}}},&quot;MicrosoftStream&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;MicrosoftStream\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;MicrosoftStream&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;Signature_Api&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;Authorization_Api&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;RedirectToThinEmbed&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;UserSession_Api&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;wfeSessionId&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;}}},&quot;Slideshare&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;Slideshare\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;UID&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;},&quot;UIDR&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;},&quot;bcookie&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;},&quot;lang&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;}}},&quot;Vimeo&quot;:{&quot;show&quot;:{&quot;__cf_bm&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;OptanonAlertBoxClosed&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;OptanonConsent&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;player&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;vuid&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;_abexps&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;continuous_play_v3&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;}}},&quot;YouTube&quot;:{&quot;inject&quot;:&quot;                \u003Cscript data-what=\&quot;YouTube\&quot; src=\&quot;\/_assets\/ace5d898df31977df562bca5e4aead68\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;YouTube&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;YouTube&quot;}}}}}"
+     class="modal fade" tabindex="-1" role="dialog"
+><div class="modal-dialog modal-lg modal-dialog-centered" role="document"><div class="modal-content"><div class="h5 modal-header" id="cookieman-modal-title">
+                Informazioni sui cookies
+            </div><div class="modal-body"><p>
+                    Questo sito web utilizza cookie. Questi hanno due funzioni: da un lato garantiscono le funzionalità di base per questo sito web, dall'altro, salvando e analizzando i dati utente anonimizzati, ci permettono di migliorare i nostri contenuti per te. Puoi ritirare il tuo consenso all'utilizzo di questi cookie in qualsiasi momento. Trova ulteriori informazioni sui cookie visitando la pagina <a href="/cookies-policy"
+    >Cookies Policy</a></p><button class="btn btn-secondary btn-sm float-right collapsed pr-5"
+                        type="button" data-toggle="collapse"
+                        data-target="#cookieman-settings" aria-expanded="false" aria-controls="cookieman-settings">
+                    Opzioni
+                </button><div class="clearfix"></div><div class="collapse" id="cookieman-settings"><form data-cookieman-form class="mt-3"
+                          data-cookieman-dnt-enabled="You already opted out of user tracking via your &lt;a target=&quot;_blank&quot; rel=&quot;noopener&quot; href=&quot;https://en.wikipedia.org/wiki/Do_Not_Track&quot;&gt;browser&#039;s Do-not-track function&lt;/a&gt;. We accept that. You can affect this via your browser&#039;s settings."
+                    ><div id="cookieman-acco" class="accordion"><div class="card"><div class="card-header" id="cookieman-acco-h-mandatory"><a href="" class="collapsed" data-toggle="collapse"
+                                           data-target="#cookieman-acco-mandatory" role="button"
+                                           aria-expanded="false" aria-controls="cookieman-acco-mandatory">
+                                            Obbligatorio
+                                        </a></div><div id="cookieman-acco-mandatory" class="collapse card-body"
+                                         aria-labelledby="cookieman-acco-h-mandatory"
+                                         data-parent="#cookieman-acco"><div class="alert alert-primary"><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="mandatory" name="mandatory"
+                                                       checked="checked"
+                                                disabled="disabled"
+                                                ><label class="form-check-label" for="mandatory">
+                                                    accetto
+                                                </label></div></div><p>
+                                            Questi cookie sono necessari per il buon funzionamento del nostro sito web.
+                                        </p><div class="table-responsive"><table class="table table-hover table-sm"><thead><tr><th scope="col">Nome</th><th scope="col">Scopo</th><th scope="col">Durata</th><th scope="col">Tipo</th><th scope="col">Fornitore</th></tr></thead><tbody><tr><td>
+                CookieConsent
+            </td><td>
+                Salva il tuo consenso all&#039;utilizzo dei cookie
+            </td><td>
+                1
+                anno
+            </td><td>
+                HTML
+            </td><td>
+
+                    Website
+
+            </td></tr><tr><td>
+                fe_typo_user
+            </td><td>
+                Assegna il tuo browser a una sessione sul server.
+            </td><td>
+
+                sessione
+            </td><td>
+                HTTP
+            </td><td>
+
+                    Website
+
+            </td></tr></tbody></table></div></div></div><div class="card"><div class="card-header" id="cookieman-acco-h-external"><a href="" class="collapsed" data-toggle="collapse"
+                                           data-target="#cookieman-acco-external" role="button"
+                                           aria-expanded="false" aria-controls="cookieman-acco-external">
+                                            Contenuti esterni
+                                        </a></div><div id="cookieman-acco-external" class="collapse card-body"
+                                         aria-labelledby="cookieman-acco-h-external"
+                                         data-parent="#cookieman-acco"><div class="mb-3" data-cookieman-dnt></div><div class="alert alert-primary"><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="external" name="external"
+
+
+                                                ><label class="form-check-label" for="external">
+                                                    accetto
+                                                </label></div></div><p>
+                                            Con l&#039;aiuto di questi cookie ci sforziamo di migliorare la nostra offerta per i nostri utenti. Mediante la fornitura di contenuti video o altri contenuti utili come le mappe per migliorare l&#039;esperienza dell&#039;utente.
+                                        </p><div class="table-responsive"><table class="table table-hover table-sm"><thead><tr><th scope="col">Nome</th><th scope="col">Scopo</th><th scope="col">Durata</th><th scope="col">Tipo</th><th scope="col">Fornitore</th></tr></thead><tbody><tr><td>
+                YSC
+            </td><td>
+                Visualizzazione video youtube
+            </td><td>
+                sessione
+                nessuna
+            </td><td>
+                Connessione
+            </td><td>
+
+                    YouTube
+
+            </td></tr><tr><td>
+                CONSENT
+            </td><td>
+                Visualizzazione video youtube
+            </td><td>
+                1
+                mese
+            </td><td>
+                Connessione
+            </td><td>
+
+                    YouTube
+
+            </td></tr><tr><td>
+                Flourish
+            </td><td>
+                Visualizzazione dati statistici Flourish
+            </td><td>
+                sessione
+                nessuna
+            </td><td>
+                Connessione
+            </td><td>
+
+                    Flourish
+
+            </td></tr></tbody></table></div></div></div></div></form></div></div><div class="modal-footer"><div class="btn-group" role="group"><button
+                        data-cookieman-accept-none data-cookieman-save
+                        class="btn btn-primary"
+                    >
+                        Rifiuta
+                    </button><button
+                        data-cookieman-save
+                        class="btn btn-default" style="display: none"
+                    >
+                        Salva
+                    </button><button
+                        data-cookieman-accept-all data-cookieman-save
+                        class="btn btn-primary"
+                    >
+                        Accetta
+                    </button></div></div></div></div></div>
+
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/Javascripts/starter.js?1786313662"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/bootstrap-italia/js/bootstrap-italia.bundle.min.js?1786313655"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/splide-4.1.3/dist/js/splide.min.js?1786313663"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/Javascripts/feather-starter.js?1786313662"></script>
+<script src="/_assets/2d539c0a1ba8044f67050262bc07f671/Javascripts/tooltip.js?1786313662"></script>
+<script src="/_assets/9a17675547f903767ad3fa28f7d3ebce/Javascripts/modellocomop.js?1786313671"></script>
+<script src="/_assets/acf89df1afb334a4ed38b0ef8665bca9/Javascripts/modellocomstampa.js?1786313671"></script>
+<script src="/_assets/94163844c1fb5b63b9c5d8fd5d04c1ae/Javascripts/modelloatto.js?1786313670"></script>
+<script src="/_assets/4ca8c63e7096d640f31a50fffb635988/Javascripts/stampascheda.js?1786313671"></script>
+<script src="/_assets/6db32972e5923bc5c375caf476379102/Javascripts/boxchisiamo.js?1786313664"></script>
+<script src="/_assets/56c397f5dc2ec6062302f46a79d87ca5/Javascripts/boxdisezione.js?1786313664"></script>
+<script src="/_assets/60e17f649c458ce0912c3727a7c6c714/Javascripts/boxguidaperconoscere.js?1786313664"></script>
+<script src="/_assets/dbfb03a027d306d9aa3bd19eb967b3f6/Javascripts/boxpage.js?1786313664"></script>
+<script src="/_assets/ede0fcd5210a1ea61085937fb8686bd9/Javascripts/carosello.js?1786313664"></script>
+<script src="/_assets/43f5e2969c9192b0f819c9f993204543/Javascripts/consulta.js?1786313670"></script>
+<script src="/_assets/fa098261eb656604ccc07d71b70982f6/Javascripts/fasciabonus.js?1786313670"></script>
+<script src="/_assets/16143f5927f48c7eacbdf106fd9d3e5d/Javascripts/bottonelinkgenerico.js?1786313664"></script>
+<script src="/_assets/2401ac606a848af4048de136a4a86111/Javascripts/boxconsumatore.js?1786313664"></script>
+<script src="/_assets/9a303bbed17c159adf7e6b32d2c06268/Javascripts/modelloeventi.js?1786313671"></script>
+<script src="/_assets/f3b02b75f5470da9b14f5db1b84f4431/Javascripts/modellorifnormativi.js?1786313671"></script>
+<script src="/_assets/cd67856b6ced4b7f88bea642822ac7e0/Javascripts/stampabandiconcorso.js?1786313670"></script>
+<script src="/_assets/8c58a69f66c347cbbf91a07ba4b244b2/Javascripts/modellobandogara.js?1786313670"></script>
+<script src="/_assets/6ff54f7b7a73978aba24af8716307a73/Javascripts/stampagrafici.js?1786313672"></script>
+<script src="/_assets/59bd649494bcc6027733f1f91339dc3b/Javascripts/stampaargomenti.js?1786313672"></script>
+<script src="/_assets/ace5d898df31977df562bca5e4aead68/Js/js.cookie.min.js?1786313974"></script>
+<script src="/_assets/ace5d898df31977df562bca5e4aead68/Js/cookieman.min.js?1786313974"></script>
+<script src="/_assets/ace5d898df31977df562bca5e4aead68/Themes/bootstrap4-modal/cookieman-theme.min.js?1786313974"></script>
+<script src="/_assets/ace5d898df31977df562bca5e4aead68/Js/cookieman-init.min.js?1786313974"></script>
+<script src="/_assets/f703da9f8eabaa322444a32f5d1e716a/Javascripts/listacontenuti.js?1786313670"></script>
+<script src="/_assets/bf880123e62fcb33e29ad6e186236996/Javascripts/boxlistalink.js?1786313664"></script>
+<script src="/_assets/b8810b5d041905a48a5c34804faef78c/Javascripts/buttonanchor.js?1786313664"></script>
+<script src="/_assets/920969da963ea0dbd558e6fc2795ae2f/Javascripts/stampafigli.js?1786313672"></script>
+<script src="/_assets/6345f306846ef0d9a67be37918ccdf5f/Javascripts/stamparelazioni.js?1786313672"></script>
+<script src="/_assets/7b7204f6abfcea9464c836a2dc5240a5/Javascripts/tornaindietro.js?1786313672"></script>
+<script src="/_assets/a4350bfad4e8f249ab0fda9ca8d6707f/JavaScripts/Accordion.js"></script>
+
+
+</body>
+</html>

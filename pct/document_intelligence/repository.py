@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import json
 import sqlite3
 from pathlib import Path
@@ -10,12 +11,17 @@ from typing import Any
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 from .models import (
+    DocumentCatalogAssignment,
+    DocumentCatalogCandidate,
+    DocumentCatalogEvidence,
+    DocumentCatalogReview,
     DocumentAIPageText,
     DocumentAIRecord,
     DocumentAISearchResult,
     DocumentAIText,
     DocumentAIVersion,
     dataclass_from_dict,
+    new_id,
     utc_now,
 )
 from .security import DocumentAIValidationError, safe_join_under_root
@@ -24,6 +30,8 @@ from .security import DocumentAIValidationError, safe_join_under_root
 STORE_KEYS = ("documents", "versions", "texts", "audit_events")
 SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai.sql"
 POSTGRES_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai_postgres.sql"
+SQLITE_SCHEMA_DOCUMENT_CATALOG = Path(__file__).resolve().parents[1] / "sql" / "20260824_fascicolo_document_catalog.sql"
+POSTGRES_SCHEMA_DOCUMENT_CATALOG = Path(__file__).resolve().parents[1] / "sql" / "20260824_fascicolo_document_catalog_postgres.sql"
 SQL_DOCUMENT_AI_FILE_TYPES = (
     "pdf",
     "docx",
@@ -91,6 +99,8 @@ class DocumentAIRepository:
         self.storage_root.mkdir(parents=True, exist_ok=True)
         self.json_path.parent.mkdir(parents=True, exist_ok=True)
         self._backend = self._detect_backend(structured_db)
+        self._catalog_commit_batch_depth = 0
+        self._catalog_commit_batch_requested = False
         if self._backend:
             self._ensure_sql_schema()
         self._data = self._load_json()
@@ -156,18 +166,25 @@ class DocumentAIRepository:
             return POSTGRES_SCHEMA_DOCUMENTI_AI.read_text(encoding="utf-8")
         return SQLITE_SCHEMA_DOCUMENTI_AI.read_text(encoding="utf-8")
 
+    def _catalog_migration_sql(self) -> str:
+        schema = POSTGRES_SCHEMA_DOCUMENT_CATALOG if self._backend == "postgresql" else SQLITE_SCHEMA_DOCUMENT_CATALOG
+        return schema.read_text(encoding="utf-8")
+
     def _ensure_sql_schema(self) -> None:
         if self._backend == "sqlite":
             conn = self.structured_db.conn
             conn.executescript(self._migration_sql("20260505_documenti_ai.sql"))
             self._ensure_sqlite_file_type_constraint(conn)
             conn.executescript(self._migration_sql("20260505_documenti_ai.sql"))
+            conn.executescript(self._catalog_migration_sql())
+            self._ensure_sqlite_catalog_review_history_schema(conn)
             conn.commit()
         elif self._backend == "postgresql":
             raw_conn = getattr(self.structured_db, "raw_conn", None)
             if raw_conn is not None:
                 with raw_conn.cursor() as cur:
                     cur.execute(self._migration_sql("20260505_documenti_ai_postgres.sql"))
+                    cur.execute(self._catalog_migration_sql())
                 raw_conn.commit()
                 return
             connection = getattr(self.structured_db, "connection", None)
@@ -175,6 +192,7 @@ class DocumentAIRepository:
                 return
             conn = connection()
             conn.executescript(self._migration_sql("20260505_documenti_ai_postgres.sql"))
+            conn.executescript(self._catalog_migration_sql())
             conn.commit()
 
     def _ensure_sqlite_file_type_constraint(self, conn: sqlite3.Connection) -> None:
@@ -239,6 +257,70 @@ class DocumentAIRepository:
         finally:
             conn.execute("PRAGMA foreign_keys=ON")
 
+    def _ensure_sqlite_catalog_review_history_schema(self, conn: sqlite3.Connection) -> None:
+        """Rimuove il vecchio vincolo che impediva lo storico delle revisioni.
+
+        Le prime build della catalogazione usavano per errore
+        ``UNIQUE(assignment_id, state)``. Una seconda revisione risolta dello
+        stesso documento non può quindi essere scartata: ricreiamo soltanto la
+        tabella figlia, copiando tutti i record e mantenendo il vincolo FK.
+        """
+
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'document_catalog_reviews'"
+        ).fetchone()
+        create_sql = str(row[0] if row else "").upper().replace("\n", " ")
+        if "UNIQUE (ASSIGNMENT_ID, STATE)" not in create_sql:
+            return
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")
+        try:
+            conn.execute("BEGIN")
+            conn.execute(
+                """
+                CREATE TABLE document_catalog_reviews__history_migration (
+                    id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    fascicolo_id TEXT NOT NULL,
+                    assignment_id TEXT NOT NULL,
+                    state TEXT NOT NULL CHECK (state IN ('open', 'resolved', 'dismissed')),
+                    reason_code TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    resolved_by TEXT,
+                    resolution_note TEXT,
+                    created_at TEXT NOT NULL,
+                    resolved_at TEXT,
+                    FOREIGN KEY (assignment_id) REFERENCES document_catalog_assignments(id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO document_catalog_reviews__history_migration (
+                    id, tenant_id, fascicolo_id, assignment_id, state, reason_code,
+                    reason, resolved_by, resolution_note, created_at, resolved_at
+                )
+                SELECT id, tenant_id, fascicolo_id, assignment_id, state, reason_code,
+                       reason, resolved_by, resolution_note, created_at, resolved_at
+                FROM document_catalog_reviews
+                """
+            )
+            conn.execute("DROP TABLE document_catalog_reviews")
+            conn.execute("ALTER TABLE document_catalog_reviews__history_migration RENAME TO document_catalog_reviews")
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_catalog_reviews_tenant_fascicolo_state
+                ON document_catalog_reviews (tenant_id, fascicolo_id, state, created_at)
+                """
+            )
+            conn.execute("COMMIT")
+        except Exception:
+            if conn.in_transaction:
+                conn.execute("ROLLBACK")
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys=ON")
+
     def _empty(self) -> dict[str, Any]:
         return {key: [] for key in STORE_KEYS}
 
@@ -275,6 +357,9 @@ class DocumentAIRepository:
         return self.structured_db.conn
 
     def _commit(self) -> None:
+        if self._catalog_commit_batch_depth:
+            self._catalog_commit_batch_requested = True
+            return
         if self._backend == "postgresql":
             raw_conn = getattr(self.structured_db, "raw_conn", None)
             if raw_conn is not None:
@@ -283,6 +368,37 @@ class DocumentAIRepository:
                 self._conn().commit()
         else:
             self._conn().commit()
+
+    @contextmanager
+    def catalog_write_batch(self):
+        """Raggruppa i commit del catalogo in una transazione SQL.
+
+        Un fascicolo può avere molte fonti, evidenze e documenti: il batch
+        conserva le singole scritture e l'audit, ma evita che ciascuna apra un
+        fsync separato. Le letture idempotenti non richiedono alcun commit.
+        """
+
+        if not self._backend:
+            yield
+            return
+        outermost = self._catalog_commit_batch_depth == 0
+        if outermost:
+            self._catalog_commit_batch_requested = False
+        self._catalog_commit_batch_depth += 1
+        try:
+            yield
+        except Exception:
+            self._catalog_commit_batch_depth -= 1
+            if outermost:
+                self._catalog_commit_batch_requested = False
+                raw_conn = getattr(self.structured_db, "raw_conn", None)
+                (raw_conn or self._conn()).rollback()
+            raise
+        else:
+            self._catalog_commit_batch_depth -= 1
+            if outermost and self._catalog_commit_batch_requested:
+                self._catalog_commit_batch_requested = False
+                self._commit()
 
     def _dict_row(self, row: Any) -> dict[str, Any]:
         return dict(row) if isinstance(row, sqlite3.Row) else dict(row or {})
@@ -666,6 +782,476 @@ class DocumentAIRepository:
         last = sorted(events, key=lambda item: item.get("timestamp", ""), reverse=True)[0]
         return {"last_event": last.get("event_type"), "last_event_at": last.get("timestamp")}
 
+    # Catalogazione documentale: queste operazioni richiedono SQL. Il mirror JSON
+    # di Document AI non può diventare fonte di verità per decisioni sul fascicolo.
+    def _require_catalog_sql(self) -> None:
+        if not self._backend:
+            raise DocumentAIValidationError(
+                "Catalogazione non disponibile: l'archivio SQL dello studio deve essere attivo."
+            )
+
+    def ensure_catalog_rule_set(
+        self,
+        *,
+        tenant_id: str,
+        resolver_version: str,
+        registry_version: str,
+        description: str,
+    ) -> str:
+        self._require_catalog_sql()
+        conn = self._conn()
+        row = conn.execute(
+            """
+            SELECT id FROM document_catalog_rule_sets
+            WHERE tenant_id = ? AND resolver_version = ? AND registry_version = ?
+            """,
+            (tenant_id, resolver_version, registry_version),
+        ).fetchone()
+        if row:
+            return str(self._dict_row(row).get("id") or "")
+        rule_set_id = new_id("catalog-rules")
+        conn.execute(
+            """
+            INSERT INTO document_catalog_rule_sets (
+                id, resolver_version, registry_version, tenant_id, description, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (rule_set_id, resolver_version, registry_version, tenant_id, description, utc_now()),
+        )
+        self._commit()
+        return rule_set_id
+
+    def upsert_catalog_source_snapshot(
+        self,
+        *,
+        tenant_id: str,
+        rule_set_id: str,
+        profile_id: str,
+        source_id: str,
+        official_url: str,
+        verification_status: str,
+        snapshot_sha256: str | None,
+        last_verified_at: str | None,
+        source_metadata: dict[str, Any] | None = None,
+    ) -> None:
+        self._require_catalog_sql()
+        conn = self._conn()
+        now = utc_now()
+        row = conn.execute(
+            """
+            SELECT * FROM document_catalog_source_snapshots
+            WHERE tenant_id = ? AND rule_set_id = ? AND profile_id = ? AND source_id = ?
+            """,
+            (tenant_id, rule_set_id, profile_id, source_id),
+        ).fetchone()
+        metadata_json = json.dumps(dict(source_metadata or {}), ensure_ascii=False)
+        if row:
+            existing = self._dict_row(row)
+            # Il catalogo delle fonti è versionato: quando lo snapshot è già
+            # identico, non tocchiamo la riga né apriamo una transazione di
+            # scrittura. In particolare, la lettura/apertura del fascicolo e
+            # il refresh idempotente non devono generare decine di commit SQL.
+            if (
+                str(existing.get("official_url") or "") == official_url
+                and str(existing.get("verification_status") or "") == verification_status
+                and (existing.get("snapshot_sha256") or None) == (snapshot_sha256 or None)
+                and (existing.get("last_verified_at") or None) == (last_verified_at or None)
+                and str(existing.get("source_metadata_json") or "") == metadata_json
+            ):
+                return
+            conn.execute(
+                """
+                UPDATE document_catalog_source_snapshots
+                SET official_url = ?, verification_status = ?, snapshot_sha256 = ?,
+                    last_verified_at = ?, source_metadata_json = ?, updated_at = ?
+                WHERE id = ? AND tenant_id = ?
+                """,
+                (
+                    official_url,
+                    verification_status,
+                    snapshot_sha256,
+                    last_verified_at,
+                    metadata_json,
+                    now,
+                    self._dict_row(row).get("id"),
+                    tenant_id,
+                ),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO document_catalog_source_snapshots (
+                    id, tenant_id, rule_set_id, profile_id, source_id, official_url,
+                    verification_status, snapshot_sha256, last_verified_at,
+                    source_metadata_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    new_id("catalog-source"), tenant_id, rule_set_id, profile_id, source_id,
+                    official_url, verification_status, snapshot_sha256, last_verified_at,
+                    metadata_json, now, now,
+                ),
+            )
+        self._commit()
+
+    def list_catalog_source_snapshots(
+        self,
+        tenant_id: str,
+        rule_set_id: str,
+    ) -> list[dict[str, Any]]:
+        """Legge l'inventario delle fonti con una sola query SQL.
+
+        Il resolver usa questo metodo per riconoscere uno snapshot già
+        corrente prima di invocare l'upsert; l'apertura di un fascicolo non
+        deve trasformarsi in una sequenza di query una-per-fonte.
+        """
+
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            """
+            SELECT * FROM document_catalog_source_snapshots
+            WHERE tenant_id = ? AND rule_set_id = ?
+            """,
+            (tenant_id, rule_set_id),
+        ).fetchall()
+        return [self._dict_row(row) for row in rows]
+
+    def queue_catalog_job(
+        self,
+        *,
+        tenant_id: str,
+        fascicolo_id: str,
+        document_id: str,
+        document_ai_id: str | None,
+        document_version_id: str | None,
+        document_sha256: str,
+        resolver_version: str,
+        requested_by: str,
+        retry: bool = False,
+    ) -> dict[str, Any]:
+        self._require_catalog_sql()
+        conn = self._conn()
+        now = utc_now()
+        row = conn.execute(
+            """
+            SELECT * FROM document_catalog_jobs
+            WHERE tenant_id = ? AND fascicolo_id = ? AND document_id = ?
+              AND document_sha256 = ? AND resolver_version = ?
+            """,
+            (tenant_id, fascicolo_id, document_id, document_sha256, resolver_version),
+        ).fetchone()
+        if row:
+            existing = self._dict_row(row)
+            status = str(existing.get("status") or "")
+            if retry and status in {"error", "review_required"}:
+                conn.execute(
+                    """
+                    UPDATE document_catalog_jobs
+                    SET status = 'queued', error_code = NULL, error_message = NULL,
+                        requested_by = ?, requested_at = ?, updated_at = ?
+                    WHERE id = ? AND tenant_id = ?
+                    """,
+                    (requested_by, now, now, existing.get("id"), tenant_id),
+                )
+                self._commit()
+                existing.update({"status": "queued", "updated_at": now})
+            return existing
+        job_id = new_id("catalog-job")
+        conn.execute(
+            """
+            INSERT INTO document_catalog_jobs (
+                id, tenant_id, fascicolo_id, document_id, document_ai_id, document_version_id,
+                document_sha256, resolver_version, status, requested_by, requested_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)
+            """,
+            (
+                job_id, tenant_id, fascicolo_id, document_id, document_ai_id, document_version_id,
+                document_sha256, resolver_version, requested_by, now, now,
+            ),
+        )
+        self._commit()
+        return {"id": job_id, "status": "queued", "attempt_count": 0, "updated_at": now}
+
+    def mark_catalog_job(
+        self,
+        *,
+        tenant_id: str,
+        job_id: str,
+        status: str,
+        error_code: str | None = None,
+        error_message: str | None = None,
+    ) -> None:
+        self._require_catalog_sql()
+        if status not in {"queued", "processing", "completed", "review_required", "error"}:
+            raise DocumentAIValidationError("Stato job di catalogazione non valido.")
+        now = utc_now()
+        started_at = now if status == "processing" else None
+        completed_at = now if status in {"completed", "review_required", "error"} else None
+        self._conn().execute(
+            """
+            UPDATE document_catalog_jobs
+            SET status = ?, attempt_count = CASE WHEN ? = 'processing' THEN attempt_count + 1 ELSE attempt_count END,
+                error_code = ?, error_message = ?, started_at = COALESCE(?, started_at),
+                completed_at = ?, updated_at = ?
+            WHERE id = ? AND tenant_id = ?
+            """,
+            (status, status, error_code, error_message, started_at, completed_at, now, job_id, tenant_id),
+        )
+        self._commit()
+
+    def get_catalog_assignment(
+        self,
+        tenant_id: str,
+        fascicolo_id: str,
+        document_id: str,
+        *,
+        document_sha256: str | None = None,
+    ) -> DocumentCatalogAssignment | None:
+        self._require_catalog_sql()
+        where = ["tenant_id = ?", "fascicolo_id = ?", "document_id = ?"]
+        params: list[Any] = [tenant_id, fascicolo_id, document_id]
+        if document_sha256:
+            where.append("document_sha256 = ?")
+            params.append(document_sha256)
+        row = self._conn().execute(
+            f"SELECT * FROM document_catalog_assignments WHERE {' AND '.join(where)} ORDER BY updated_at DESC LIMIT 1",
+            tuple(params),
+        ).fetchone()
+        return self._catalog_assignment_from_row(row)
+
+    def list_catalog_assignments(
+        self,
+        tenant_id: str,
+        fascicolo_id: str,
+        *,
+        include_superseded: bool = False,
+    ) -> list[DocumentCatalogAssignment]:
+        self._require_catalog_sql()
+        sql = "SELECT * FROM document_catalog_assignments WHERE tenant_id = ? AND fascicolo_id = ?"
+        if not include_superseded:
+            sql += " AND status NOT IN ('superseded', 'rejected')"
+        sql += " ORDER BY updated_at DESC, document_label ASC"
+        rows = self._conn().execute(sql, (tenant_id, fascicolo_id)).fetchall()
+        return [assignment for row in rows if (assignment := self._catalog_assignment_from_row(row)) is not None]
+
+    def save_catalog_assignment(
+        self,
+        assignment: DocumentCatalogAssignment,
+        *,
+        candidates: list[DocumentCatalogCandidate] | None = None,
+        evidence: list[DocumentCatalogEvidence] | None = None,
+        review: DocumentCatalogReview | None = None,
+    ) -> DocumentCatalogAssignment:
+        self._require_catalog_sql()
+        current = self.get_catalog_assignment(
+            assignment.tenant_id,
+            assignment.fascicolo_id,
+            assignment.document_id,
+            document_sha256=assignment.document_sha256,
+        )
+        conn = self._conn()
+        now = assignment.updated_at or utc_now()
+        assignment.id = current.id if current else assignment.id or new_id("catalog-assignment")
+        assignment.created_at = current.created_at if current else assignment.created_at or now
+        assignment.created_by = current.created_by if current else assignment.created_by or assignment.updated_by or "catalog-pipeline"
+        assignment.updated_at = now
+        assignment.updated_by = assignment.updated_by or "catalog-pipeline"
+        metadata_json = json.dumps(dict(assignment.metadata or {}), ensure_ascii=False)
+        if current:
+            conn.execute(
+                """
+                UPDATE document_catalog_assignments SET
+                    document_ai_id = ?, document_version_id = ?, profile_id = ?, legal_area = ?, legal_branch = ?,
+                    legal_subfamily = ?, jurisdiction = ?, rite = ?, proceeding_phase = ?, document_nature = ?,
+                    document_label = ?, document_section = ?, deposit_role = ?, deposit_candidate = ?, status = ?,
+                    confidence = ?, source_state = ?, resolver_version = ?, rule_set_id = ?, reason = ?,
+                    metadata_json = ?, updated_by = ?, updated_at = ?, confirmed_at = ?
+                WHERE id = ? AND tenant_id = ? AND fascicolo_id = ?
+                """,
+                (
+                    assignment.document_ai_id, assignment.document_version_id, assignment.profile_id, assignment.legal_area,
+                    assignment.legal_branch, assignment.legal_subfamily, assignment.jurisdiction, assignment.rite,
+                    assignment.proceeding_phase, assignment.document_nature, assignment.document_label,
+                    assignment.document_section, assignment.deposit_role, bool(assignment.deposit_candidate), assignment.status,
+                    int(assignment.confidence), assignment.source_state, assignment.resolver_version, assignment.rule_set_id,
+                    assignment.reason, metadata_json, assignment.updated_by, assignment.updated_at, assignment.confirmed_at,
+                    assignment.id, assignment.tenant_id, assignment.fascicolo_id,
+                ),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO document_catalog_assignments (
+                    id, tenant_id, fascicolo_id, document_id, document_ai_id, document_version_id, document_sha256,
+                    profile_id, legal_area, legal_branch, legal_subfamily, jurisdiction, rite, proceeding_phase,
+                    document_nature, document_label, document_section, deposit_role, deposit_candidate, status,
+                    confidence, source_state, resolver_version, rule_set_id, reason, metadata_json, created_by,
+                    created_at, updated_by, updated_at, confirmed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    assignment.id, assignment.tenant_id, assignment.fascicolo_id, assignment.document_id,
+                    assignment.document_ai_id, assignment.document_version_id, assignment.document_sha256,
+                    assignment.profile_id, assignment.legal_area, assignment.legal_branch, assignment.legal_subfamily,
+                    assignment.jurisdiction, assignment.rite, assignment.proceeding_phase, assignment.document_nature,
+                    assignment.document_label, assignment.document_section, assignment.deposit_role,
+                    bool(assignment.deposit_candidate), assignment.status, int(assignment.confidence), assignment.source_state,
+                    assignment.resolver_version, assignment.rule_set_id, assignment.reason, metadata_json,
+                    assignment.created_by, assignment.created_at, assignment.updated_by, assignment.updated_at,
+                    assignment.confirmed_at,
+                ),
+            )
+        conn.execute("DELETE FROM document_catalog_candidates WHERE assignment_id = ?", (assignment.id,))
+        conn.execute("DELETE FROM document_catalog_evidence WHERE assignment_id = ?", (assignment.id,))
+        for candidate in candidates or []:
+            conn.execute(
+                """
+                INSERT INTO document_catalog_candidates (
+                    id, tenant_id, fascicolo_id, assignment_id, rank_number, profile_id, document_nature,
+                    document_label, document_section, deposit_role, confidence, reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    candidate.id or new_id("catalog-candidate"), assignment.tenant_id, assignment.fascicolo_id,
+                    assignment.id, int(candidate.rank_number), candidate.profile_id, candidate.document_nature,
+                    candidate.document_label, candidate.document_section, candidate.deposit_role, int(candidate.confidence),
+                    candidate.reason, candidate.created_at or now,
+                ),
+            )
+        for item in evidence or []:
+            conn.execute(
+                """
+                INSERT INTO document_catalog_evidence (
+                    id, tenant_id, fascicolo_id, assignment_id, evidence_type, locator, excerpt,
+                    weight, content_sha256, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    item.id or new_id("catalog-evidence"), assignment.tenant_id, assignment.fascicolo_id,
+                    assignment.id, item.evidence_type, item.locator, item.excerpt, int(item.weight),
+                    item.content_sha256, item.created_at or now,
+                ),
+            )
+        if review:
+            conn.execute("DELETE FROM document_catalog_reviews WHERE assignment_id = ? AND state = 'open'", (assignment.id,))
+            conn.execute(
+                """
+                INSERT INTO document_catalog_reviews (
+                    id, tenant_id, fascicolo_id, assignment_id, state, reason_code, reason,
+                    resolved_by, resolution_note, created_at, resolved_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    review.id or new_id("catalog-review"), assignment.tenant_id, assignment.fascicolo_id,
+                    assignment.id, review.state, review.reason_code, review.reason, review.resolved_by,
+                    review.resolution_note, review.created_at or now, review.resolved_at,
+                ),
+            )
+        self._commit()
+        return assignment
+
+    def list_catalog_candidates(self, assignment_id: str) -> list[DocumentCatalogCandidate]:
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            "SELECT * FROM document_catalog_candidates WHERE assignment_id = ? ORDER BY rank_number ASC", (assignment_id,)
+        ).fetchall()
+        return [dataclass_from_dict(DocumentCatalogCandidate, self._dict_row(row)) for row in rows]
+
+    def list_catalog_evidence(self, assignment_id: str) -> list[DocumentCatalogEvidence]:
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            "SELECT * FROM document_catalog_evidence WHERE assignment_id = ? ORDER BY weight DESC, created_at ASC", (assignment_id,)
+        ).fetchall()
+        return [dataclass_from_dict(DocumentCatalogEvidence, self._dict_row(row)) for row in rows]
+
+    def list_catalog_reviews(
+        self,
+        tenant_id: str,
+        fascicolo_id: str,
+        *,
+        include_resolved: bool = False,
+    ) -> list[DocumentCatalogReview]:
+        self._require_catalog_sql()
+        sql = "SELECT * FROM document_catalog_reviews WHERE tenant_id = ? AND fascicolo_id = ?"
+        if not include_resolved:
+            sql += " AND state = 'open'"
+        sql += " ORDER BY created_at ASC"
+        rows = self._conn().execute(sql, (tenant_id, fascicolo_id)).fetchall()
+        return [dataclass_from_dict(DocumentCatalogReview, self._dict_row(row)) for row in rows]
+
+    def resolve_catalog_assignment(
+        self,
+        *,
+        tenant_id: str,
+        fascicolo_id: str,
+        document_id: str,
+        actor: str,
+        status: str,
+        note: str = "",
+    ) -> DocumentCatalogAssignment | None:
+        self._require_catalog_sql()
+        if status not in {"confirmed", "rejected", "review_required"}:
+            raise DocumentAIValidationError("Esito di revisione catalogo non valido.")
+        assignment = self.get_catalog_assignment(tenant_id, fascicolo_id, document_id)
+        if not assignment:
+            return None
+        now = utc_now()
+        confirmed_at = now if status == "confirmed" else assignment.confirmed_at
+        self._conn().execute(
+            """
+            UPDATE document_catalog_assignments
+            SET status = ?, updated_by = ?, updated_at = ?, confirmed_at = ?
+            WHERE id = ? AND tenant_id = ? AND fascicolo_id = ?
+            """,
+            (status, actor, now, confirmed_at, assignment.id, tenant_id, fascicolo_id),
+        )
+        self._conn().execute(
+            """
+            UPDATE document_catalog_reviews
+            SET state = 'resolved', resolved_by = ?, resolution_note = ?, resolved_at = ?
+            WHERE assignment_id = ? AND state = 'open'
+            """,
+            (actor, note, now, assignment.id),
+        )
+        self._commit()
+        return self.get_catalog_assignment(tenant_id, fascicolo_id, document_id)
+
+    def catalog_summary(self, tenant_id: str, fascicolo_id: str) -> dict[str, int]:
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            """
+            SELECT status, COUNT(*) AS total FROM document_catalog_assignments
+            WHERE tenant_id = ? AND fascicolo_id = ?
+            GROUP BY status
+            """,
+            (tenant_id, fascicolo_id),
+        ).fetchall()
+        out = {"total": 0, "proposed": 0, "confirmed": 0, "review_required": 0, "errors": 0}
+        for row in rows:
+            payload = self._dict_row(row)
+            key = str(payload.get("status") or "")
+            count = int(payload.get("total") or 0)
+            out["total"] += count
+            if key in out:
+                out[key] = count
+        job_error = self._conn().execute(
+            """
+            SELECT COUNT(*) AS total FROM document_catalog_jobs
+            WHERE tenant_id = ? AND fascicolo_id = ? AND status = 'error'
+            """,
+            (tenant_id, fascicolo_id),
+        ).fetchone()
+        out["errors"] = int(self._dict_row(job_error).get("total") or 0) if job_error else 0
+        return out
+
+    def _catalog_assignment_from_row(self, row: Any) -> DocumentCatalogAssignment | None:
+        if not row:
+            return None
+        payload = self._dict_row(row)
+        payload["metadata"] = _dict_from_json(payload.pop("metadata_json", "{}"))
+        payload["deposit_candidate"] = bool(payload.get("deposit_candidate"))
+        return dataclass_from_dict(DocumentCatalogAssignment, payload)
+
     def write_blob(self, relative_path: str, content: bytes) -> str:
         target = safe_join_under_root(self.storage_root, relative_path)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -743,6 +1329,15 @@ def _list_from_json(raw: Any) -> list[str]:
     if not isinstance(raw, list):
         return []
     return [str(item) for item in raw]
+
+
+def _dict_from_json(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            raw = {}
+    return dict(raw) if isinstance(raw, dict) else {}
 
 
 def _count_sql(conn: Any, sql: str, params: list[Any]) -> int:

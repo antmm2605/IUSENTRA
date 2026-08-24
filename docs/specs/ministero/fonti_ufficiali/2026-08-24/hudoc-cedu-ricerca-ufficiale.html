@@ -1,0 +1,353 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <meta http-equiv="Content-Security-Policy" content="default-src *.coe.int; script-src *.coe.int https://code.jquery.com http://www.google-analytics.com 'nonce-2726c7f26d' 'unsafe-eval'; style-src *.coe.int *.cloudflare.com 'unsafe-inline'; img-src *.coe.int http://www.google-analytics.com https://stats.g.doubleclick.net data:; font-src *.coe.int *.cloudflare.com data:; connect-src *.coe.int http://www.google-analytics.com https://stats.g.doubleclick.net;">
+    <title>HUDOC - European Court of Human Rights</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="description" content="The HUDOC database provides access to the case-law of the Court (Grand Chamber, Chamber and Committee judgments and decisions, communicated cases, advisory opinions and legal summaries from the Case-Law Information Note), the European Commission of Human Rights (decisions and reports) and the Committee of Ministers (resolutions)">
+    <meta name="author" content="ECHR">
+    <link rel="icon" type="image/vnd.microsoft.icon" href="/images/Icons/ECHRfavicon.ico" />
+    <link rel="shortcut icon" type="image/vnd.microsoft.icon" href="/images/Icons/ECHRfavicon.ico" />
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" media="screen" type="text/css" href="/css/screen.css?v=1775044138827">
+    <link rel="stylesheet" media="print" type="text/css" href="/css/print.css?v=1775044138827">
+    <link rel="stylesheet" media="screen,print" type="text/css" href="shared/override.css?v=1775044138827">
+
+    <script src="/javascript/jquery-1.12.4.min.js" type="text/javascript" instruction="ignore"></script>
+    <script src="/javascript/jquery-ui-1.12.1.custom.min.js" type="text/javascript" instruction="ignore"></script>
+    <script src="/javascript/openidconnect.js" type="text/javascript" instruction="ignore"></script>
+    <!-- Old versions for jquery v1.7 and jquery-ui v1.11.4 -->
+    <!-- <script src="/javascript/jquery-1.7.min.js" type="text/javascript" instruction="ignore"></script> -->
+    <!-- <script src="/javascript/jquery-ui.min.js" type="text/javascript" instruction="ignore"></script> -->
+    <script instruction="" nonce="2726c7f26d">
+        const GLOBAL_IS_USE_OPEN_ID = 'false';
+    const GLOBAL_CLIENT_ID_OPEN_ID = '78710005-61a2-4687-b86d-811886d314d1';
+    const GLOBAL_DOMAIN_OPEN_ID = 'https://login.microsoftonline.com/2f84cee8-e7b1-4f91-9e73-424b70144f98/';
+    const GLOBAL_SCOPE_OPEN_ID = '';
+        const GLOBAL_URL_ODATA = '';
+        const GLOBAL_URL_CONVERSION = '';
+        const GLOBAL_URL_TRANSFORM = '';
+        const GLOBAL_URL_QUERY = '';
+        const GLOBAL_URL_SPELLING = '';
+        const GLOBAL_URL_MANAGEMENT = '';
+        const GLOBAL_URL_JSONWS = '';
+    </script>
+    <script type="text/javascript" instruction="ignore" nonce="2726c7f26d">		var siteinfo = {			isMain: true,			siteInstitution: "echr",			siteLanguage: "eng"		}; 	</script>	<script src="shared/compiled.js?v=1775044138827" type="text/javascript" instruction="ignore"></script>
+
+</head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div class="adminInclude">
+
+</div>
+<body class="site_echreng language_eng">
+    <div class="guideLine xAxis"></div>
+    <div class="guideLine yAxis"></div>
+
+    <div class="skipLinksListContainer">
+        <div id="mainSkipLinksPlaceholder" class="skipLinksList"></div>
+        <div id="navigatorSkipLinksPlaceholder" class="skipLinksList"></div>
+    </div>
+
+    <div id="backgroundgradient"></div>
+
+    <!-- Notification ================================================== -->
+    <div id="notification"></div>
+    <!-- End of Notification ================================================== -->
+
+    <!--disable cookie part-->
+    <div id="CookieMessage"></div>
+    <!--end disable cookie part-->
+
+    <!--disable feature part-->
+    <div id="FeatureMessage"></div>
+    <!--end disable feature part-->
+
+    <!-- Heading ================================================== -->
+    <div id="heading">
+        <div class="container heading-container">
+            <div id="banner"></div>
+            <div id="keywordsearch"></div>
+        </div>
+    </div>
+    <!-- End of Heading ================================================== -->
+
+    <!-- Footer ================================================== -->
+    <div id="footerBar">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-16">
+                    <div id="sociallinks"></div>
+                    <div id="footer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Footer ================================================== -->
+
+    <div id="refiners-backdrop"></div>
+
+    <!-- Main Content ================================================== -->
+    <div id="main-content" class="container">
+        <!-- Inner Content ================================================== -->
+        <div id="inner-content" class="container">
+
+            <div class="row">
+                <!-- Refiners (left side) ================================================== -->
+                <div class="col-md-3 refiners-container">
+                    <!-- Narrow Your Search -->
+                    <div id="close-filters-button" onclick="$('.refiners-container').toggleClass('opened');$('#refiners-backdrop').toggleClass('show');">
+                        <i class="glyphicon glyphicon-remove"></i>
+                    </div>
+                    <div class="refinements-container-to-scroll">
+                        <div id="refinement-heading-narrowyoursearch" class="refinements-heading refinements-narrowyoursearch-bar"></div>
+                        <!-- Refinements Section -->
+                        <div id="refinements-section">
+
+                            <!-- Document Collection -->
+                            <div id="refinement-heading-documentcollection" class="refinements-heading refinements-heading-fullbar"></div>
+                            <div id="refinement-documentcollection"></div>
+
+                            <div class="container empty"></div>
+
+                            <!-- More Hudoc Sites -->
+                            <div id="refinement-heading-hudocsites" class="refinements-heading refinements-heading-fullbar"></div>
+                            <div id="refinement-morehudocsites">
+                                    <div class="refinements-block">
+                                            <div id="refinement-morehudocsites-row1" class="refinement-double">
+                                                <div id="refinement-morehudocsites-row1-left" class="refinement-half">
+                                                    <div class="empty"></div>
+                                                </div>
+                                                <div id="refinement-morehudocsites-row1-right" class="refinement-half">
+                                                    <div class="empty"></div>
+                                                </div>
+                                            </div>
+                                    </div>
+                            </div>
+
+                            <!-- Filters -->
+                            <div id="refinement-heading-filters" class="refinements-heading refinements-heading-fullbar"></div>
+                            <div id="refinement-filters">
+                                <div class="refinements-block">
+                                    <div id="refinement-filters-row1" class="refinement-double">
+                                        <div id="refinement-filters-row1-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row1-right" class="refinement-half">
+                                            <div class="container empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row2" class="refinement-double">
+                                        <div id="refinement-filters-row2-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row2-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row3" class="refinement-double">
+                                        <div id="refinement-filters-row3-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row3-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row4" class="refinement-double">
+                                        <div id="refinement-filters-row4-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row4-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row5" class="refinement-double">
+                                        <div id="refinement-filters-row5-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row5-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row6" class="refinement-double">
+                                        <div id="refinement-filters-row6-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row6-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row7" class="refinement-double">
+                                        <div id="refinement-filters-row7-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row7-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-filters-row8" class="refinement-double">
+                                        <div id="refinement-filters-row8-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-filters-row8-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End of Filters -->
+
+                            <div class="container empty"></div>
+
+                            <!-- Keywords -->
+                            <div id="refinement-heading-keywords" class="refinements-heading refinements-heading-fullbar"></div>
+                            <div id="refinement-kpthesaurus"></div>
+
+                            <!-- Concepts -->
+                            <div id="refinement-heading-concepts" class="refinements-heading refinements-heading-fullbar"></div>
+                            <div id="refinement-concepts"></div>
+
+                            <!-- More Filters -->
+                            <div id="refinement-heading-morefilters" class="refinements-heading refinements-heading-fullbar"></div>
+                            <div id="refinement-morefilters">
+                                <div class="refinements-block">
+                                    <div id="refinement-morefilters-row1" class="refinement-double">
+                                        <div id="refinement-morefilters-row1-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row1-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row2" class="refinement-double">
+                                        <div id="refinement-morefilters-row2-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row2-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row3" class="refinement-double">
+                                        <div id="refinement-morefilters-row3-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row3-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row4" class="refinement-double">
+                                        <div id="refinement-morefilters-row4-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row4-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row5" class="refinement-double">
+                                        <div id="refinement-morefilters-row5-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row5-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row6" class="refinement-double">
+                                        <div id="refinement-morefilters-row6-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row6-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row7" class="refinement-double">
+                                        <div id="refinement-morefilters-row7-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row7-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                    <div id="refinement-morefilters-row8" class="refinement-double">
+                                        <div id="refinement-morefilters-row8-left" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                        <div id="refinement-morefilters-row8-right" class="refinement-half">
+                                            <div class="empty"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End of More Filters -->
+
+                            <div class="container empty"></div>
+
+
+                        </div>
+                        <!-- End of Refinements Section -->
+                    </div>
+
+                </div>
+                <!-- End of Refiners (left side) ================================================== -->
+
+
+                <!-- Results (right side) ================================================== -->
+                <div class="col-md-9 results-container"  >
+
+                    <!-- Advanced Search ================================================== -->
+                    <div id="advancedsearch"></div>
+                    <!-- End of Advanced Search ================================================== -->
+
+
+                    <!-- Results Heading Bar ================================================== -->
+                    <div id="results-headingbar">
+                        <span id="results-count"></span>
+                        <span id="sortby"></span>	<!-- sortby is dead, now inside the resultcountview template -->
+                    </div>
+                    <!-- End of Results Heading Bar ================================================== -->
+
+
+                    <!-- Criteria ================================================== -->
+                    <div id="criteria"></div>
+                    <!-- End of Criteria ================================================== -->
+
+
+                    <!-- Results QuerySuggestion (Query Suggestion, etc.) ================================================== -->
+                    <div id="query-suggestions"></div>
+                    <!-- End of Spelling Suggestion ================================================== -->
+
+
+                    <!-- Result Status (Spelling Suggestion, etc.) ================================================== -->
+                    <div id="spelling"></div>
+                    <!-- End of Spelling Suggestion ================================================== -->
+
+
+                    <!-- Results - List ================================================== -->
+                    <div id="results-list"></div>
+                    <!-- End of Results - List ================================================== -->
+
+                </div>
+                <!-- End of Results (right side) ================================================== -->
+
+            </div>
+
+        </div>
+        <!-- End of Inner Content ================================================== -->
+
+        <div class="container">
+            <div id="bottom-logos">
+                <div id="echr-logo" class="echr-img-agreedechrlogocombinationsi-coe-a4-echr-coe-black-a4"></div>
+            </div>
+        </div>
+
+    </div>
+    <!-- End of Main Content ================================================== -->
+
+
+<div class="adminPopup">   	     </div></body></html>

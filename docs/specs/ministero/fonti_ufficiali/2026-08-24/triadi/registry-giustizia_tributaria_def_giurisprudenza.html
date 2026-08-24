@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentazione Economica e Finanziaria - Guida al servizio</title>
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- NEW STYLE -->
+    <link rel="icon" href="stylesheet_3.0/img/favicon.ico">
+    <link rel="stylesheet" type="text/css" media="screen and (min-width: 768px)" href="stylesheet_3.0/css/web/w_screen.css">
+    <link rel="stylesheet" type="text/css" media="print" href="stylesheet_3.0/css/web/w_print.css">
+    <link rel="stylesheet" type="text/css" media="screen and (max-width: 767px)" href="stylesheet_3.0/css/mob/m_screen.css">
+    <!--<link rel="stylesheet" type="text/css" media="print and (max-width: 767px)" href="stylesheet_3.0/css/mob/m_print.css">-->
+    <!--[if IE 7]><link rel="stylesheet" media="all and (min-width: 768px)" type="text/css" href="stylesheet_3.0/css/web/w_ie7.css"><![endif]-->
+    <!--[if IE 8]><link rel="stylesheet" media="screen" type="text/css" href="stylesheet_3.0/css/web/w_screen.css"><link rel="stylesheet" media="screen" type="text/css" href="stylesheet_3.0/css/web/w_ie8.css"><![endif]-->
+    <!--[if IE 9]><link rel="stylesheet" media="all and (min-width: 768px)" type="text/css" href="stylesheet_3.0/css/web/w_ie9.css"><![endif]-->
+    <!--[if gte IE 9]><link rel="stylesheet" media="all and (min-width: 768px)" type="text/css" href="stylesheet_3.0/css/web/w_ie1x.css"><![endif]-->
+    <!--[if IE 7]><link rel="stylesheet" media="all and (max-width: 767px)" type="text/css" href="stylesheet_3.0/css/mob/m_ie7.css"><![endif]-->
+
+    <!--[if IE 9]><link rel="stylesheet" media="all and (max-width: 767px)" type="text/css" href="stylesheet_3.0/css/mob/m_ie9.css"><![endif]-->
+    <!--[if gte IE 9]><link rel="stylesheet" media="all and (max-width: 767px)" type="text/css" href="stylesheet_3.0/css/mob/m_ie1x.css"><![endif]-->
+    <script type="text/javascript" src="stylesheet_3.0/js/jquery.js"></script>
+    <script type="text/javascript" src="stylesheet_3.0/js/jquery-migrate.js"></script>
+    <!--[if lt IE 9]><script type="text/javascript" src="stylesheet_3.0/js/html5shiv.js"></script><![endif]-->
+    <!--[if lt IE 9]>
+        <script type="text/javascript" src="stylesheet_3.0/js/css3-mediaqueries.js"></script>
+        <link rel="stylesheet" type="text/css" href="stylesheet_3.0/css/web/w_responsive.css">
+        <link rel="stylesheet" type="text/css" href="stylesheet_3.0/css/mob/m_responsive.css">
+    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheet_3.0/js/select2/select2.css">
+    <script type="text/javascript" src="stylesheet_3.0/js/select2/select2.min.js"></script>
+    <script type="text/javascript" src="stylesheet_3.0/js/select2/select2_locale_it.js"></script>
+    <script type="text/javascript" src="script/util.jsp"></script>
+    <script type="text/javascript">
+        $(function(){
+            // caricamento script responsive
+            if($(window).width() >= 768){//desktop
+                //alert("$(window).width() >= 768")
+                  $.getScript("stylesheet_3.0/js/web/w_script.js", function(){});
+                  $("nav").removeClass("web"); // fa apparire il menu principale
+                  if ($.browser.msie) {
+                      if ( parseInt($.browser.version, 10) === 7){
+                          //alert('IE7');
+                          $.getScript("stylesheet_3.0/js/web/w_ie7.js", function(){});
+                      }else if (parseInt($.browser.version, 10) === 8) {
+                          //alert('IE8');
+                          $.getScript("stylesheet_3.0/js/web/w_ie8.js", function(){});
+                      }
+                }
+            }else{
+                //alert("$(window).width() < 768")
+                $.getScript("stylesheet_3.0/js/mob/m_script.js", function(){});
+                if ($.browser.msie) {
+                      if ( parseInt($.browser.version, 10) === 7){
+                          //alert('IE7');
+                          $.getScript("stylesheet_3.0/js/mob/m_ie7.js", function(){});
+                      }else if (parseInt($.browser.version, 10) === 8) {
+                          //alert('IE8');
+                          $.getScript("stylesheet_3.0/js/mob/m_ie8.js", function(){});
+                      }
+                }
+                $("nav").addClass("web"); // fa scomparire il menu principale
+            }
+            // focus menu
+            $(".corrente").removeClass("corrente");
+            $("#menu_area_utente").addClass("corrente");
+            $("#link_gs").addClass("corrente");
+        });
+    </script>
+</head>
+
+<body>
+
+
+<!-- TESTATA E MENU -->
+
+
+
+<header role="banner">
+
+    <div class="skiplink"><a href="#corpo" accesskey="0">Contenuti della pagina</a> | <a href="#menu-principale">Menu principale</a></div>
+
+    <div id="testata-bg" class="web"></div>
+
+    <div id="testata">
+    <div class="contenitore">
+        <div class="logo-def web">
+            <a href="start.do"><img src="./stylesheet_3.0/img/logo-def_2.png" alt="Torna alla home page" width="708" height="100"></a>
+        </div><!--.logo-def-->
+        <div class="logo-def mob">
+            <a href="start.do"><img src="./stylesheet_3.0/img/logo-def.png" alt="Torna alla home page" width="708" height="100"></a>
+        </div><!--.logo-def-->
+        <div class="logo-ssef web">
+            <a title="Dipartimento delle Finanze [link a sito esterno]" href="http://www.finanze.gov.it">
+                <img src="./stylesheet_3.0/img/logo-df.png" alt="Dipartimento delle Finanze Sito esterno" width="215" height="77" class="logo-mef">
+            </a>
+        </div><!--.logo-ssef-->
+    </div><!--.contenitore-->
+    <div class="menu-servizio web">
+        <div class="contenitore">
+        <h1 class="skipheader">Menu di servizio</h1>
+        <ul>
+        <li><a href="start.do">Home</a></li>
+        <li><a href="./chiSiamo.jsp">Chi siamo</a></li>
+        <!-- <li><a href="http://www.cerdef.it/site.php?page=20070220171621567">Scrivi a...</a></li>-->
+        <li><a href="./scriviA.jsp">Scrivi a...</a></li>
+        <li><a href="./Guida.jsp">Guida</a></li>
+
+
+            <li class="web"><a href="areaRiservata.do">Area riservata</a></li>
+
+
+        <li><a href="./RssIntro.jsp"><img src="./stylesheet_3.0/img/ico-rss.png" alt="RSS" title="RSS" width="22" height="22"></a></li>
+        </ul>
+        </div><!--.contenitore-->
+        </div><!--.menu-servizio-->
+    </div><!--#testata-->
+
+
+    <nav role="navigation" class="web">
+        <div class="contenitore">
+        <div id="menu-principale">
+        <h1 class="skipheader">Menu principale</h1>
+        <ul>
+            <li id="menu_normativa">
+                <a href="callRicAvanzataNormativa.do?js_enabled=1&amp;reset=y" title="Ricerca avanzata di Normativa">Normativa</a>
+            </li>
+            <li id="menu_prassi">
+                <a href="callRicAvanzataPrassi.do?js_enabled=1&amp;reset=y" title="Ricerca avanzata di Prassi">Prassi</a>
+            </li>
+            <li id="menu_giurisprudenza">
+                <a href="callRicAvanzataGiurisprudenza.do?js_enabled=1&amp;reset=y" title="Ricerca avanzata di Giurisprudenza">Giurisprudenza</a>
+            </li>
+            <li id="menu_collezioni">
+                <a href="documentiRilevanti.do?js_enabled=1&amp;agenzia=COL" title="Ricerca nelle Collezioni">Collezioni</a>
+            </li>
+            <li id="menu_area_utente">
+                <a href="RicercheMemorizzate.jsp?js_enabled=1" title="Area utente">Area utente</a>
+            </li>
+        </ul>
+
+        <div class="clear"></div>
+        </div><!--#menu-principale-->
+        </div><!--.contenitore-->
+    </nav>
+
+</header>
+
+
+
+<!-- CORPO -->
+<div class="contenitore ie7">
+
+<div id="corpo" role="main" class="rientra">
+
+<!-- BRADCRUMBS -->
+<div id="menu-navigazione">
+
+<p>Ti trovi in:
+    <a style="text-decoration: underline" href="start.do">Home</a> -
+    <script type="text/javascript">
+        document.write('<a style="text-decoration: underline" href="./RicercheMemorizzate.jsp?js_enabled=1">Area utente</a>');
+    </script>
+    <noscript>
+        <a style="text-decoration: underline" href="./RicercheMemorizzate.jsp?js_enabled=0">Area utente</a>
+    </noscript>
+    - <strong>Guida al servizio</strong>
+</p>
+</div><!--#menu-navigazione-->
+
+<h1 class="principale">Guida al servizio</h1>
+
+<div id="principale">
+<div class="spalla-sx">
+
+<div class="rilievo">
+<div id="contenuto_comunicazioni">
+
+<p class="h2" id="indice"><strong>Indice</strong></p>
+<ol class="counter padd">
+  <li class="counter"><a href="#_Toc1" title="Vai alla premessa della guida">Premessa</a></li>
+  <li class="counter"><a href="#_Toc2" title="Vai alla guida sui contenuti della banca dati">Contenuti della banca dati</a></li>
+  <li class="counter"><a href="#_Toc3" title="Vai alla guida sulla home page">Home page</a></li>
+  <li class="counter"><a href="#_Toc4" title="Vai alla guida sulla ricerca semplice">Ricerca semplice</a></li>
+  <li class="counter"><a href="#_Toc5" title="Vai alla guida sulla ricerca con operatori logici">Ricerca con operatori logici</a></li>
+  <li class="counter"><a href="#_Toc6" title="Vai alla guida sulla ricerca avanzata di normativa, prassi e giurisprudenza">Ricerca avanzata - Normativa, Prassi, Giurisprudenza</a></li>
+  <li class="counter"><a href="#_Toc7" title="Vai alla guida sui risultati della ricerca">Risultati della ricerca</a></li>
+  <li class="counter"><a href="#_Toc8" title="Vai alla guida sul sommario">Sommario</a></li>
+  <li class="counter"><a href="#_Toc9" title="Vai alla guida sul dettaglio del documento">Dettaglio documento</a></li>
+  <li class="counter"><a href="#_Toc10" title="Vai alla guida sulle funzionalit&agrave; accessorie">Funzionalit&agrave; accessorie</a>
+      <ol class="counter">
+          <li class="counter"><a href="#_Toc10_1" title="Vai alla guida su come raffinare una ricerca">Raffina ricerca</a></li>
+         <li class="counter"><a href="#_Toc10_2" title="Vai alla guida su come memorizzare una ricerca">Memorizza ricerca</a></li>
+          <li class="counter"><a href="#_Toc10_3" title="Vai alla guida su come salvare l'intero provvedimento">Salva intero provvedimento</a></li>
+          <li class="counter"><a href="#_Toc10_4" title="Vai alla guida su come salvare l'intero documento">Salva intero documento</a></li>
+          <li class="counter"><a href="#_Toc10_5" title="Vai alla guida sul documento in formato pdf">Documento in formato pdf</a></li>
+          <li class="counter"><a href="#_Toc10_6" title="Vai alla guida sul salvataggio del testo">Salva testo</a></li>
+      </ol>
+  </li>
+  <li class="counter"><a href="#_Toc11" title="Vai alla guida sulle collezioni">Collezioni</a></li>
+  <li class="counter"><a href="#_Toc12" title="Vai alla guida sull'area utente">Area utente</a>
+  <ol class="counter">
+           <li class="counter"><a href="#_Toc12_1" title="Vai alla guida sulle ricerche memorizzate">Ricerche memorizzate</a></li>
+        <li class="counter"><a href="#_Toc12_2" title="Vai alla guida sulla ricerca classificazioni">Ricerca classificazioni</a></li>
+        <li class="counter"><a href="#_Toc12_3" title="Vai alla guida sull'area riservata">Area riservata</a></li>
+  </ol>
+  </li>
+  <li class="counter"><a href="#_Toc13" title="Vai alla guida sulla versione mobile">Versione mobile</a>
+      <ol class="counter">
+          <li class="counter"><a href="#_Toc13_1" title="Vai alla guida sull'home page della versione mobile">Home page</a></li>
+         <li class="counter"><a href="#_Toc13_2" title="Vai alla guida sui risultati della ricerca della versione mobile">Risultati della ricerca</a></li>
+          <li class="counter"><a href="#_Toc13_3" title="Vai alla guida sul sommario della versione mobile">Sommario</a></li>
+          <li class="counter"><a href="#_Toc13_4" title="Vai alla guida sul dettaglio documento della versione mobile">Dettaglio documento</a></li>
+      </ol>
+  </li>
+</ol>
+
+<br>
+
+<!-- TOC_1 -->
+<p class="h2 titolo1" id="_Toc1" >
+    <strong>1. Premessa</strong>
+</p>
+<p>
+    In applicazione di quanto previsto dallo Statuto del contribuente, che impegna ad assumere tutte le possibili iniziative per agevolare i contribuenti nella conoscenza delle norme in campo tributario (articolo 5, commi 1 e 2, della legge del 27 luglio 2000 n. 212), il servizio di Documentazione economica e finanziaria rappresenta la banca dati di eccellenza dell&#39;Amministrazione finanziaria (AF), finalizzata a rendere disponibile gratuitamente, in tempo reale e h24, tutta la materia in ambito economico-finanziario e fiscale.
+</p>
+<p>
+    Per rispondere alla diffusione sempre pi&ugrave; capillare di smartphone e tablet e alla crescente esigenza di poter accedere al sito da qualunque luogo ci si trovi tramite dispositivi diversi dal computer, il servizio &egrave; stato realizzato con tecniche Responsive Web Design (RWD) che consente all&#39;interfaccia di adattarsi automaticamente a diverse risoluzioni riducendo al minimo la necessit&agrave; di ridimensionamento e scorrimento orizzontale (web responsive).
+</p>
+<p>
+    Al fine di rendere agevole la navigazione, nella <a href="#_Toc11">versione mobile</a>, le modalit&agrave; di ricerca si presentano in maniera un p&oacute; diversa rispetto alla versione desktop poich&egrave; sono stati nascosti o riposizionati alcuni elementi come sar&agrave; chiarito nel relativo paragrafo della presente guida, al quale si rimanda.
+</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_2 -->
+<p class="h2 titolo1" id="_Toc2" >
+    <strong>2. Contenuti della banca dati</strong>
+</p>
+<p>Il servizio di Documentazione economica e finanziaria mette a disposizione degli utenti una banca dati che contiene:</p>
+<p class="toc-bullet">la normativa nazionale, regionale e comunitaria, in materia economico-finanziaria e fiscale, a partire dal 1972 nonch&egrave; quella pregressa, se ancora vigente; ogni provvedimento &egrave; riportato in tutte le eventuali diverse versioni, cos&igrave; come modificate nel tempo, con l&#39;indicazione dei relativi periodi di vigenza;</p>
+<p class="toc-bullet">la prassi amministrativa costituita dalle circolari e risoluzioni ufficiali emesse dalle Agenzie fiscali e dal Dipartimento delle finanze, dalle circolari e risoluzioni emesse dall&#39;ex Ministero delle finanze emanate dopo la riforma del 1972, dalle circolari emesse da altri enti o amministrazioni pubbliche (Ministero dell&#39;economia e delle finanze, Ministero della funzione pubblica, ...) a contenuto economico-fiscale pubblicate nella Gazzetta ufficiale, dai comunicati stampa emessi dall&#39;Agenzia delle entrate;</p>
+<p class="toc-bullet">la giurisprudenza italiana e dell&#39;Unione europea in materia economico-finanziaria e fiscale.</p>
+<p>I documenti sono inseriti nella banca dati con il testo ufficiale.</p>
+<p>A ciascun documento sono associate:</p>
+<p class="toc-bullet">una sintesi del testo per i documenti di prassi o la massima per i documenti di giurisprudenza (in particolare, le massime della Suprema Corte di Cassazione sono tratte dal CED della Cassazione);</p>
+<p class="toc-bullet">la materia fiscale a cui fa riferimento;</p>
+<p class="toc-bullet">una o pi&ugrave; voci di classificazione: argomenti predefiniti dall&#39;AF nell&#39;ambito di ciascuna materia fiscale.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_3 -->
+<p class="h2 titolo1" id="_Toc3" >
+    <strong>3. Home page</strong>
+</p>
+<p>L&#39;home page del servizio presenta alcuni elementi fissi, di cornice alla sezione dei contenuti, che sono sempre presenti, anche nelle pagine interne del sito:</p>
+<p class="toc-bullet"><strong>testata</strong> che identifica il sito con il logo e la denominazione;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_logo.png" alt="logo" ></p>
+<p class="toc-bullet"><strong>menu di servizio</strong>, in alto a destra,</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_menu_servizio.png" alt="menu di servizio" ></p>
+<p class="margine2">che racchiude le seguenti voci:</p>
+<ul>
+    <li class="margine2"><strong>home</strong> - d&agrave; la possibilit&agrave; di ritornare alla home page da qualunque pagina;</li>
+    <li class="margine2"><strong>chi siamo</strong> - pagina di presentazione del CeRDEF e del sito;</li>
+    <li class="margine2"><strong>scrivi a...</strong> - casella di posta elettronica specifica che consente all&#39;utente di inviare richieste sul reperimento dei documenti in banca dati;</li>
+    <li class="margine2"><strong>guida</strong> al servizio;</li>
+    <li class="margine2"><strong>area riservata</strong>;</li>
+    <li class="margine2"><strong>RSS</strong>;</li>
+</ul>
+<p class="toc-bullet"><strong>menu principale</strong></p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_menu_principale.png" alt="menu principale" ></p>
+<p class="margine2">con le voci:</p>
+<ul>
+    <li class="margine2"><strong>normativa</strong> - ricerca avanzata di leggi, decreti, etc;</li>
+    <li class="margine2"><strong>prassi</strong> - ricerca avanzata di circolari, risoluzioni, etc;</li>
+    <li class="margine2"><strong>giurisprudenza</strong> - ricerca avanzata di sentenze, ordinanze, etc, corredate di massima redazionale;</li>
+    <li class="margine2"><strong>collezioni</strong> - ricerca dei documenti appartenenti ad una determinata categoria;</li>
+    <li class="margine2"><strong>area utente</strong> - ricerche memorizzate, ricerca delle voci di classificazione, area riservata, guida al servizio;</li>
+</ul>
+<p class="toc-bullet"><strong>footer</strong></p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_footer.png" alt="footer" ></p>
+<p class="margine2">che riporta voci di utilit&agrave; generale.</p>
+<p>La <strong>sezione dei contenuti</strong> &agrave; strutturata su due colonne:</p>
+
+<p class="toc-bullet">nella colonna di sinistra sono riportati:</p>
+<ul>
+    <li class="margine2">la form di <strong>Ricerca semplice</strong> di cui si parler&agrave; nel successivo <a href="#_Toc4">paragrafo 4</a>;</li>
+    <li class="margine2">la sezione dei documenti <strong>In primo piano</strong> - con relativo RSS - che espone i documenti pi&ugrave; rilevanti e presenta un menu suddiviso per macrotipologia (normativa, prassi, giurisprudenza);</li>
+    <p  class="immagine margine2"><img src="stylesheet_3.0/img/guida/guida_in_primo_piano.png" alt="in primo piano" ></p>
+    <li class="margine2">la sezione dei <strong>Documenti recenti</strong> suddivisi per documenti pubblicati nell&#39;ultima settimana e nell&#39;ultimo mese;</li>
+    <p class="immagine margine2"><img src="stylesheet_3.0/img/guida/guida_documenti_recenti.png" alt="documenti recenti" ></p>
+</ul>
+
+<p class="toc-bullet">nella colonna di destra sono presenti:</p>
+<ul>
+    <li class="margine2">un breve testo di <strong>presentazione del sito</strong>;</li>
+    <li class="margine2">la sezione <strong>Comunicazioni agli utenti</strong> che contiene avvisi per gli utenti del sito;</li>
+    <li class="margine2">la sezione <strong>Siti di interesse</strong> con i link ai siti di pertinenza del Dipartimento delle finanze (portale di Giustizia tributaria e portale del Federalismo fiscale).</li>
+</ul>
+
+
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<!-- TOC_4 -->
+<p class="h2 titolo1" id="_Toc4" >
+    <strong>4. Ricerca semplice</strong>
+</p>
+<p>
+    La ricerca semplice - presente in home page - consente di impostare una ricerca con dati minimi: l&#39;utente pu&ograve;
+     effettuare un&#39;interrogazione su tutta la banca dati indicando l&#39;anno e/o il numero e/o le parole contenute nel documento ricercato.
+</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_semplice_form.png" alt="form ricerca semplice" ></p>
+<p>
+    Il campo <strong>Criterio</strong> presenta un menu a tendina dove sono elencate le diverse modalit&agrave; di ricerca possibili nel caso di utilizzo delle parole:
+</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_semplice_criterio.png" alt="criterio ricerca" ></p>
+    <p class="toc-bullet no-padding"><strong>tutte le parole</strong> - il sistema ricerca i documenti che contengono tutti i termini inseriti;</p>
+    <p class="toc-bullet no-padding"><strong>almeno una parola</strong> - il sistema ricerca i documenti che contengono almeno uno dei termini inseriti;</p>
+    <p class="toc-bullet no-padding"><strong>frase esatta</strong> - il sistema ricerca la frase esatta;</p>
+    <p class="toc-bullet no-padding"><strong>parole adiacenti</strong> - il sistema ricerca i documenti che contengono i termini inseriti vicini tra loro in un intorno di massimo 5 parole;</p>
+    <p class="toc-bullet no-padding"><strong>ricerca con operatori logici</strong> - questa opzione consente l&#39;utilizzo degli operatori logici (AND, OR, NOT) e loro combinazioni secondo le regole che saranno dettagliate nel successivo <a href="#_Toc5">paragrafo 5</a>.</p>
+
+
+<p>L&#39;utente pu&ograve; scegliere il tipo di <strong>ordinamento del risultato</strong> della ricerca:</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_semplice_ordina.png" alt="ordinamento ricerca" ></p>
+<p class="toc-bullet no-padding">per <strong>Data</strong> - &egrave; l&#39;ordinamento predefinito, il sistema recupera i documenti e li presenta in ordine temporale decrescente (dal pi&ugrave; recente);</p>
+<p class="toc-bullet no-padding">per <strong>Rilevanza</strong> - il criterio di ordinamento dipende dal prodotto di gestione documentale che, in base ad algoritmi propri, assegna un peso ai singoli documenti trovati e li prospetta in ordine di rilevanza decrescente (dal pi&ugrave; rilevante).</p>
+<p>Nei documenti restituiti a fronte di una ricerca per parole, i termini inseriti vengono <strong>evidenziati</strong> in tutte le parti testuali dove risultano presenti (titolo, testo, sintesi, etc). A tal proposito, al fine di facilitare l&#39;utente anche dal punto di vista visivo, vengono utilizzati <strong>cinque colori</strong> - giallo, verde, viola, azzurro, rosa - in questo preciso ordine di visualizzazione. La <strong>gerarchia dei colori</strong> riflette la <strong>posizione</strong> di inserimento dei termini nel campo Parole: la parola inserita per prima sar&agrave; evidenziata in giallo, la seconda in verde, la terza in viola, la quarta in azzurro, la quinta in rosa, riprendendo dal giallo nell&#39;ipotesi che siano utilizzati pi&ugrave; di cinque termini.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_semplice_colori.png" alt="form ricerca semplice" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<!-- TOC_5 -->
+<p class="h2 titolo1" id="_Toc5" >
+    <strong>5. Ricerca con operatori logici</strong>
+</p>
+<p>Questa  tipologia di ricerca &egrave; rivolta all&#39;utente pi&ugrave; esperto e consente l&#39;utilizzo degli operatori logici (AND, OR, NOT) e loro combinazioni.</p>
+<p>Va premesso che, nella costruzione delle diverse combinazioni, possono essere usati solo alcuni caratteri speciali - parentesi tonde () e doppi apici &quot; &quot; - mentre quelli di seguito elencati, se inseriti nel campo Parole, saranno bloccati dal sistema ai fini della prevenzione dagli attacchi informatici:</p>
+<p>\ / ; : * ? &#39; + - = ^ ~ < > | $ % & @ # [ ] { }</p>
+<p>Si tratta di una tipologia di ricerca pi&ugrave; complessa che implica regole ben precise nell&#39;impostazione a seconda del risultato che si vuole ottenere:</p>
+<p class="toc-bullet">operatori <strong>AND</strong> e <strong>OR</strong></p>
+<ul>
+<li class="margine2"><p><strong>parola1 and parola2</strong> - con questa sintassi vengono ricercati anche i singolari, i plurali e le forme flesse allargate delle parole inserite.</p>
+<p class="margine2"><p>Ad esempio, se si ricerca <strong>marca and bollo</strong> il sistema restituir&agrave; i documenti che contengono marca, marche, marchi, bollo, bolli, bollata, bollati, francobollo, etc</p></li>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_and_1.png" alt="ricerca libera operatori and e or" ></p>
+<li class="margine2"><p><strong>&quot;parola1&quot; and &quot;parola2&quot;</strong> - se si vuole che la ricerca venga effettuata utilizzando i termini esatti, le parole vanno inserite tra apici.</p>
+<p class="margine2"><p>Riprendendo l&#39;esempio precedente, se si imposta la ricerca con <strong>&quot;marca&quot; and &quot;bollo&quot;</strong> il risultato sar&agrave; limitato ai termini inseriti.</p></li>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_and_2.png" alt="ricerca libera operatori and e or" ></p>
+<p class="toc-bullet">operatore <strong>NOT</strong> - con questo operatore, a differenza degli altri, le parole vengono ricercate nella forma esatta in cui sono inserite.</p>
+<p>Ad esempio, <strong>&quot;trasporto&quot; and &quot;merce&quot; not confine</strong> d&agrave; un risultato diverso da <strong>&quot;trasporto&quot; and &quot;merce&quot; not confini</strong>:</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_not_1.png" alt="ricerca libera operatore not" ></p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_not_2.png" alt="ricerca libera operatore not" ></p>
+<p class="margine2"><p>Se si vuole che siano esclusi anche i documenti che contengono <strong>confini</strong> la query dovr&agrave; essere impostata con <strong>&quot;confini&quot; and &quot;merce&quot; not (confine or confini)</strong>.</p>
+<p>Queste stesse regole devono essere applicate anche quando si imposta la ricerca con <strong>frasi</strong>.</p>
+<p>Ad esempio, se si scrive <strong>&quot;riscossione coattiva&quot; and pene pecuniarie</strong> il sistema restituir&agrave; i documenti che contengono la frase esatta riscossione coattiva e le parole pene, pena, pecuniarie, pecuniaria, etc</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_frasi_1.png" alt="ricerca libera combinazione frasi e operatori" ></p>
+<p>Ma se si vogliono i documenti che contengono entrambe le espressioni esatte la ricerca andr&agrave; impostata con <strong>&quot;riscossione coattiva&quot; and &quot;pene pecuniarie&quot;</strong>.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_frasi_2.png" alt="ricerca libera combinazione frasi e operatori" ></p>
+<p>Oppure, se si vuole che il risultato contempli sia <strong>pene pecuniarie</strong> che <strong>pena pecuniaria</strong> si dovr&agrave; impostare la ricerca con <strong>&quot;riscossione coattiva&quot; and (&quot;pene pecuniarie&quot; or &quot;pena pecuniaria&quot;)</strong>.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_libera_frasi_3.png" alt="ricerca libera combinazione frasi e operatori" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<!-- TOC_6 -->
+<p class="h2 titolo1" id="_Toc6" >
+    <strong>6. Ricerca avanzata - Normativa, Prassi, Giurisprudenza</strong>
+</p>
+<p>La ricerca avanzata &egrave; pensata per chi abbia maggior dimestichezza con la materia e consente all&#39;utente un tipo di interrogazione della banca dati pi&ugrave; complesso e specifico per il tipo di macrotipologia selezionato.</p>
+<p>Dal menu principale si seleziona il tab relativo alla macrotipologia di interesse: Normativa, Prassi, Giurisprudenza.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_menu_principale.png" alt="parole ricerca avanzata" ></p>
+<p>La pagina presenta pi&ugrave; sezioni alle quali si accede cliccando sul <img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_piu.png" alt="accordion" > a sinistra della <strong>label</strong>, tranne per la sezione della ricerca per parole che viene presentata aperta di default:</p>
+
+<p class="toc-bullet no-padding"><strong>Parole</strong> - si effettua una ricerca testuale con i termini inseriti nel campo Parole in base all&#39;opzione selezionata tra quelle presenti nel menu a tendina del campo <strong>Criterio</strong>. Valgono le stesse modalit� gi� viste per la <a href="#_Toc4" >ricerca semplice</a> e la <a href="#_Toc5" >ricerca con operatori logici</a> a cui si rimanda.</p>
+
+<p class="margine2"><p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_ricerca_libera.png" alt="parole ricerca avanzata" ></p>
+<p class="margine2">&Egrave; prevista, inoltre, la possibilit� di restringere l&#39;ambito di ricerca ai titoli dei documenti inserendo il check <strong>Limita la ricerca alle sole epigrafi</strong>.</p>
+<p class="margine2"><p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_parole.png" alt="parole ricerca avanzata" ></p>
+<p class="toc-bullet no-padding"><strong>Estremi</strong> - si esegue una ricerca puntuale sulla base dei dati inseriti;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_estremi.png" alt="estremi ricerca avanzata" ></p>
+<p class="toc-bullet no-padding"><strong>Autorit&agrave; emanante</strong> - si limita la ricerca ai documenti emessi da un determinato ente o gruppo di enti (denominazione o competenza);</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_autorita_denominazione.png" alt="denominazione ricerca avanzata" ></p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_autorita_competenza.png" alt="competenza ricerca avanzata" ></p>
+<p class="toc-bullet no-padding"><strong>Gazzetta ufficiale</strong> (solo per la ricerca avanzata di normativa) - si effettua la ricerca dei documenti in base ai dati di pubblicazione (numero della Gazzetta ufficiale, data o intervallo di date);</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_gazzetta.png" alt="gazzetta ricerca avanzata" ></p>
+<p class="toc-bullet no-padding"><strong>Argomento</strong> - i ricercano i documenti che trattano una determinata materia o, una volta scelta la materia, la voce di classificazione selezionata dal menu a tendina.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_argomento.png" alt="argomento ricerca avanzata" ></p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_classificazione.png" alt="classificazione ricerca avanzata" ></p>
+
+<p>Nessun parametro &egrave; obbligatorio, purch&egrave; almeno uno sia impostato.</p>
+<p>Le sezioni possono essere impostate anche con <strong>dati parziali</strong>.</p>
+<p>Nell&#39;ipotesi in cui l&#39;utente inserisca pi&ugrave; informazioni, anche in <strong>diverse sezioni</strong>, il sistema effettua la ricerca combinando i dati tra loro secondo la funzione <strong>AND</strong>.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_7 -->
+<p class="h2 titolo1" id="_Toc7" >
+    <strong>7. Risultati della ricerca</strong>
+</p>
+<p>
+La pagina dei risultati della ricerca semplice riporta, in alto, il totale complessivo dei documenti trovati ed eventualmente il &ldquo;forse cercavi&rdquo;.
+</p>
+<p>
+&Egrave; organizzata su tre colonne:
+</p>
+
+<p class="toc-bullet no-padding">a sinistra &egrave; presente un menu - <strong>Filtra per</strong> - che consente di navigare tra i risultati di normativa, prassi e giurisprudenza, per i quali sono riportati i totali parziali;</p>
+<p class="toc-bullet no-padding">al centro &egrave; visualizzato l&#39;<strong>elenco dei documenti</strong> risultato della ricerca;</p>
+<p class="toc-bullet no-padding">a destra sono presenti le <strong>funzionalit&agrave; accessorie</strong> che racchiudono le seguenti voci::</p>
+    <li class="margine2">Riepilogo dati inseriti;</li>
+    <li class="margine2">Raffina ricerca;</li>
+    <li class="margine2">Memorizza ricerca;</li>
+    <li class="margine2">Associa a collezione (solo in caso di utente registrato).</li>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_risultati_ricerca.png" alt="risultato ricerca" ></p>
+
+<p>
+La pagina del risultato della ricerca avanzata &egrave;, invece, su due colonne: elenco dei documenti e funzionalit&agrave; accessorie.
+</p>
+<p>
+La selezione di uno dei risultati della ricerca porta alle pagine di sommario e di dettaglio del documento, nel caso della normativa, o direttamente alla pagina di dettaglio del documento, nel caso di prassi e giurisprudenza.
+</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_8 -->
+<p class="h2 titolo1" id="_Toc8" >
+    <strong>8. Sommario</strong>
+</p>
+<p>
+Il sommario (elenco degli articoli di un atto) &egrave; il risultato di una ricerca puntuale per estremi identificativi di un atto o della selezione di un provvedimento dall&#39;elenco dei documenti.
+</p>
+<p>
+La struttura della pagina di sommario &egrave; su due colonne:
+</p>
+
+<p class="toc-bullet no-padding">a sinistra, nella colonna <strong>Provvedimento</strong>, &egrave; visualizzata la lista degli articoli che compongono l&#39;atto (alberatura dell&#39;atto);</p>
+<p class="toc-bullet no-padding">al centro - colonna contenuto del <strong>Sommario</strong> - &egrave; riportato l&#39;elenco degli articoli dettagliato, con l&#39;indicazione del titolo, della data di vigenza nonch&egrave; della presenza e del numero di testi previgenti.</p>
+<p>In alto a destra, &egrave; presente la funzionalit&agrave; accessoria <strong>Salva intero provvedimento</strong> che consente di salvare sul proprio pc tutto l&#39;atto o una selezione di articoli in formato pdf.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_sommario.png" alt="sommario" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_9 -->
+<p class="h2 titolo1" id="_Toc9" >
+    <strong>9. Dettaglio documento</strong>
+</p>
+<p>La pagina di dettaglio, cui si arriva selezionando l&#39;articolo di interesse dall&#39;albero o dalla lista della pagina di sommario, ha una struttura a tre colonne ed &egrave; cos&igrave; composta:
+<p class="toc-bullet no-padding">a sinistra, nella colonna <strong>Provvedimento</strong>, &egrave; visualizzata la lista degli articoli che compongono l&#39;atto (alberatura dell&#39;atto);</p>
+<p class="toc-bullet no-padding">al centro, &egrave; riportata una struttura a <strong>tab</strong> con due sezioni:</p>
+
+    <li class="margine2"><strong>Testo</strong> - per la normativa, contiene il testo dell&#39;articolo nella versione vigente o previgente scelta dall&#39;utente; per prassi e giurisprudenza, presenta il testo del documento;</li>
+    <li class="margine2"><strong>Documenti citati</strong> - contiene la lista dei documenti citati nel testo visualizzato.</li>
+
+<p class="margine2">In questa colonna, in alto a destra, sono presenti le funzionalit&agrave; accessorie:</p>
+
+    <li class="margine2">all&#39;esterno del contenitore, <strong>Salva provvedimento in pdf/Salva intero documento</strong> che consente di salvare sul proprio pc, in formato pdf, tutto l&#39;atto o una selezione di articoli, per la normativa, o il documento visualizzato, per la prassi e la giurisprudenza;</li>
+    <li class="margine2">all&#39;interno del tab Testo:</li>
+        <ul >
+            <li class="margine2"><strong>Documento in formato pdf</strong> che permette di visualizzare/salvare l&#39;eventuale documento in formato pdf allegato all&#39;articolo/documento che si sta visualizzando;</li>
+            <li class="margine2"><strong>Salva testo</strong> con cui &egrave; possibile salvare l&#39;articolo/documento come lo si sta visualizzando, comprensivo dell&#39;eventuale allegato in pdf;</li>
+        </ul>
+
+<p class="toc-bullet no-padding">a destra &egrave; presente:</p>
+
+    <li class="margine2">la sezione dei <strong>Documenti collegati</strong> con i link per ricercare la normativa, prassi o giurisprudenza collegata al documento che si sta visualizzando: selezionando il link di interesse si ottiene l&#39;elenco dei documenti che richiamano il documento visualizzato;</li>
+    <li class="margine2">solo per la normativa, la sezione <strong>Versioni</strong> che riporta tutte le versioni dell&#39;articolo che si sta consultando; la versione selezionata &egrave; quella che viene visualizzata nella sezione centrale.</li>
+
+<p>Nel caso di documenti pregressi con testi non &quot;liquidi&quot;, con formattazione fissa, &egrave; possibile che la visualizzazione non sia ottimale e che vada a sovrapporsi all&#39;elenco delle versioni.</p>
+<p>In questo caso, per dare maggiore spazio al testo, &egrave; possibile chiudere la colonna di sinistra  cliccando sulla freccia in alto,  posizionata a destra di Provvedimento.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_chiudi_colonna_sx_1.png" alt="chiudi sommario"></p>
+<p>Dopo la chiusura della colonna il testo apparir&agrave; cos&igrave;:</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_chiudi_colonna_sx_2.png" alt="sommario chiuso"></p>
+<p>Per riattivare la colonna basta cliccare di nuovo sulla freccia.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_10 -->
+<p class="h2 titolo1" id="_Toc10" >
+    <strong>10. Funzionalit&agrave; accessorie</strong>
+</p>
+<p>
+Le funzionalit&agrave; accessorie sono presenti nelle pagine risultato della ricerca (elenco documenti, elenco articoli di un atto, dettaglio documento). Sono pertinenti al contesto in cui si trovano e consentono di:
+</p>
+<p class="toc-bullet no-padding">raffinare la ricerca;</p>
+<p class="toc-bullet no-padding">memorizzare la ricerca;</p>
+<p class="toc-bullet">salvare un documento in formato pdf.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc10_1" >
+10.1. Raffina ricerca
+</p>
+<p>Raffina ricerca consente di restringere il risultato integrando i criteri di ricerca impostati.</p>
+<p>La pagina ripropone la maschera di partenza con i dati inseriti dall&#39;utente con, in pi&ugrave;, due sezioni - <strong>Ulteriori criteri di ricerca</strong> e <strong>Argomento</strong> - che danno la possibilit&agrave; di inserire altri dati utili per circoscrivere l&#39;ambito della ricerca:</p>
+<p class="toc-bullet no-padding">numero del provvedimento;</p>
+<p class="toc-bullet no-padding">data di emissione (l&#39;utente pu&ograve; indicare la data completa, un intervallo di date, il mese e l&#39;anno o anche soltanto l&#39;anno);</p>
+<p class="toc-bullet no-padding">materia fiscale di riferimento da selezionare dal menu a tendina.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc10_2" >
+10.2. Memorizza ricerca
+</p>
+<p>L&#39;utente pu&ograve; memorizzare la ricerca effettuata che sar&agrave; salvata nell&#39;<a href="#_Toc10">area utente</a> dove potr&agrave; poi rieseguirla o eliminarla.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_memorizza_ricerca.png" alt="memorizza ricerca" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc10_3" >
+10.3. Salva intero provvedimento
+</p>
+<p>Questa funzione &egrave; presente nella pagina di sommario e in quella di dettaglio articolo e consente all&#39;utente di salvare sul proprio pc, in formato pdf, tutto l&#39;atto o una selezione di articoli dell&#39;atto stesso.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc10_4" >
+10.4. Salva intero documento
+</p>
+<p>Questa funzione &egrave; presente nella pagina di dettaglio dei documenti di prassi e giurisprudenza (o, per la prassi, anche nella pagina elenco se il documento &egrave; diviso in parti) e consente all&#39;utente di salvare il documento stesso sul proprio pc, in formato pdf.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc10_5" >
+10.5. Documento in formato pdf
+</p>
+<p>Permette di visualizzare/salvare, in formato pdf, l&#39;eventuale documento <strong>allegato</strong> all&#39;articolo/documento che si sta visualizzando.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc10_6" >
+10.6. Salva testo
+</p>
+<p>Consente di salvare l&#39;articolo/documento come lo si sta visualizzando, comprensivo dell&#39;eventuale allegato in pdf.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_11 -->
+<p class="h2 titolo1" id="_Toc11" >
+    <strong>11. Collezioni</strong>
+</p>
+<p>Le collezioni sono insiemi di documenti che trattano un determinato argomento.</p>
+<p>Da questa pagina, &egrave; possibile ricercare i documenti appartenenti a una specifica categoria selezionando una delle collezioni presenti nel menu a tendina.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_collezioni.png" alt="ricerca collezioni" ></p>
+<p>All&#39;interno della collezione, l&#39;utente pu&ograve; restringere il campo di ricerca indicando le parole contenute nel testo e selezionando le modalit&agrave; di ricerca nel campo Criterio secondo le stesse indicazioni viste per la <a href="#_Toc4" >ricerca semplice</a>, a cui si rimanda.</p>
+<p>&Egrave; presente, inoltre, una sezione <strong>Estremi</strong> dove l&#39;utente pu&ograve; inserire il numero e/o il periodo di emissione dei documenti di interesse.</p>
+<p>Nell&#39;ipotesi in cui l&#39;utente inserisca pi&ugrave; informazioni, anche in <strong>diverse sezioni</strong>, il sistema effettua la ricerca combinando i dati tra loro secondo la funzione <strong>AND</strong>.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_collezioni2.png" alt="estremi ricerca collezioni" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_12 -->
+<p class="h2 titolo1" id="_Toc12" >
+    <strong>12. Area utente</strong>
+</p>
+<p>L&#39;area utente &egrave; strutturata su due colonne:</p>
+<p class="toc-bullet no-padding">a sinistra, presenta un menu con le seguenti voci:</p>
+
+<li class="margine2">Ricerche memorizzata;</li>
+<li class="margine2">Ricerca classificazioni;</li>
+<li class="margine2">Area riservata;</li>
+<li class="margine2">Guida al servizio;</li>
+
+<p class="toc-bullet">al centro, la colonna dei contenuti.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc12_1" >
+12.1. Ricerche memorizzate
+</p>
+<p>Da <strong>Ricerca memorizzata</strong> l&#39;utente pu&ograve; rieseguire o eliminare le ricerche precedentemente salvate tramite <a href="#_Toc10_2">Memorizza ricerca</a>.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerche_memorizzate.png" alt="ricerche memorizzate" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc12_2" >
+12.2. Ricerca classificazioni
+</p>
+<p><strong>Ricerca classificazioni</strong> presenta due modalit&agrave;:</p>
+<p class="toc-bullet no-padding"><strong>Ricerca per descrittore</strong> - consente di ricercare le voci di classificazione collegate alle parole inserite;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_descrittore.png" alt="ricerca descrittore" ></p>
+<p class="toc-bullet no-padding"><strong>Ricerca per Materia Fiscale</strong> - consente di ricercare tutte le voci relative a una determinata materia fiscale.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_materia.png" alt="ricerca materia" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc12_3" >
+12.3. Area riservata
+</p>
+<p>L&#39;Area riservata consente la consultazione delle sentenze emesse dalla Commissioni tributarie, non ancora massimate. Possono accedere a questa sezione solo gli utenti abilitati.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_area_riservata.png" alt="area riservata" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+
+<!-- TOC_13 -->
+<p class="h2 titolo1" id="_Toc13" >
+    <strong>13. Versione mobile</strong>
+</p>
+<p>
+Nella versione desktop le pagine di ricerca avanzata sono molto complesse e prevedono diversi criteri in base ai quali l&#39;utente pu&ograve; cercare un documento. Su smartphone, una modalit&agrave; di ricerca cos&igrave; articolata risulterebbe poco usabile considerando le dimensioni pi&ugrave; limitate del device.
+Come &egrave; stato anticipato nella <a href="#_Toc1">premessa</a>, la versione mobile deriva dalla semplificazione e riorganizzazione dei contenuti: alcuni elementi
+sono stati nascosti, altri riposizionati al fine di rendere pi&ugrave; agevole la navigazione compatibilmente con il mezzo di accesso.
+</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc13_1" >
+13.1. Home page
+</p>
+<p>L&#39;home page, nella versione mobile, rappresenta il fulcro del sito in quanto unico punto di innesco delle ricerche e si presenta cos&igrave; strutturata:</p>
+<p class="toc-bullet no-padding"><strong>testata</strong>;</p>
+<p class="toc-bullet no-padding"><strong>menu di servizio</strong> - &egrave; raggiungibile cliccando sull&#39;icona posizionata a destra della testata;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_menu_mobile.png" alt="menu mobile" ></p>
+<p class="toc-bullet no-padding">form di <strong>Ricerca</strong> (sostituisce il menu principale della versione desktop) - richiede la selezione del canale di ricerca (normativa, prassi, giurisprudenza) e prevede l&#39;immissione dei criteri di base previsti per la <a href="#_Toc4" >ricerca semplice</a> con l&#39;integrazione del tipo e numero articolo, per la normativa, e dell&#39;autorit&agrave; emanante, per la prassi e la giurisprudenza;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_ricerca_mobile.png" alt="ricerca mobile" ></p>
+<p class="toc-bullet no-padding">sezione dei <strong>Documenti in primo piano</strong>; - cliccando su <img src="stylesheet_3.0/img/guida/guida_ricerca_avanzata_piu.png" alt="accordion"> si accede all&#39;elenco dei documenti rilevanti di normativa, prassi e giurisprudenza;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_rilevanti_mobile.png" alt="rilevanti mobile" ></p>
+<p class="toc-bullet no-padding">sezione dei <strong>Documenti recenti</strong>; - presenta due link per accedere all&#39;elenco dei documenti pubblicati nell&#39;ultima settimana/mese;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_recenti_mobile.png" alt="recenti mobile" ></p>
+<p class="toc-bullet no-padding">sezione <strong>Comunicazioni agli utenti</strong>;</p>
+<p class="toc-bullet no-padding">sezione <strong>Siti di interesse</strong>;</p>
+<p class="toc-bullet no-padding"><strong>footer</strong>.</p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc13_2" >
+13.2. Risultati della ricerca
+</p>
+<p>La pagina dei risultati della ricerca riporta il totale dei risultati trovati per il canale di ricerca impostato dall&#39;utente, il &ldquo;forse cercavi&rdquo;  se presente, seguito dall&#39;elenco dei documenti selezionabili.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_risultato_ricerca_mobile.png" alt="risultato ricerca mobile" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc13_3" >
+13.3. Sommario
+</p>
+<p>Il sommario (elenco degli articoli di un atto) &egrave; il risultato di una ricerca puntuale per estremi identificativi di un atto o della selezione di un provvedimento dall&#39;elenco dei documenti. La pagina - che nella versione desktop &egrave; su due colonne - nella versione mobile si presenta cos&igrave; strutturata:</p>
+<p class="toc-bullet no-padding">dati identificativi dell&#39;atto;</p>
+<p class="toc-bullet no-padding"><strong>Visualizza indice</strong> - l&#39;alberatura dell&#39;atto, che sul desktop era riportata nella colonna di sinistra, &egrave; contenuta in una lista posta sotto gli estremi identificativi dell&#39;atto selezionato e mostrata chiusa;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_sommario_mobile.png" alt="sommario mobile" ></p>
+<p class="margine1">Cliccando sul link viene presentato l&#39;elenco degli articoli dell&#39;atto dove &egrave; possibile selezionare l&#39;articolo di interesse. In alternativa allo scorrimento verticale dell&#39;elenco, l&#39;utente pu&ograve; digitare il numero dell&#39;articolo cercato nel campo di ricerca posto in alto, come primo elemento della pagina;</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_sommario2_mobile.png" alt="articoli sommario mobile" ></p>
+<p class="toc-bullet no-padding"><strong>Salva intero provvedimento</strong> - consente all&#39;utente di salvare sul proprio device, in formato pdf, tutto l&#39;atto o una selezione di articoli dell&#39;atto stesso;</p>
+<p class="toc-bullet no-padding">contenuto del sommario - la voce <strong>Sommario</strong> &egrave; seguita dall&#39;elenco dettagliato degli articoli dove, per ogni articolo &egrave; riportato il titolo, la data di vigenza pi&ugrave; recente, la presenza e il numero di versioni previgenti.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_sommario3_mobile.png" alt="dettaglio sommario mobile" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+<p class="subsection" id="_Toc13_4" >
+13.4. Dettaglio documento
+</p>
+<p>Per la normativa, la pagina di dettaglio - cui si arriva selezionando l&#39;articolo di interesse dall&#39;albero o dalla pagina di sommario - presenta i dati identificativi dell&#39;atto, il titolo dell&#39;articolo selezionato e la lista delle versioni in ordine temporale decrescente (da quella pi&ugrave; recente).</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_dettaglio_mobile.png" alt="dettaglio mobile" ></p>
+<p>Selezionando la versione di interesse (la prima se si vuole quella corrente), si accede al testo dell&#39;articolo.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_dettaglio2_mobile.png" alt="voce di interesse mobile" ></p>
+<p>In questa pagina sono presenti ulteriori elementi di dettaglio:</p>
+<p class="toc-bullet no-padding">dati identificativi dell&#39;atto;</p>
+<p class="toc-bullet no-padding"><strong>Visualizza indice</strong> che consente di ritornare all&#39;elenco degli articoli dell&#39;atto;</p>
+<p class="toc-bullet no-padding">funzionalit&agrave; accessorie:</p>
+
+<li class="margine2"><strong>Vai alle versioni</strong> che porta direttamente all&#39;elenco di tutte le versioni dell&#39;articolo (presente nella parte inferiore della pagina), saltando il testo;</li>
+<li class="margine2"><strong>Salva intero provvedimento;</strong></li>
+<li class="margine2"><strong>Documento in formato pdf;</strong></li>
+<li class="margine2"><strong>Salva testo;</strong></li>
+
+<p class="toc-bullet no-padding">dati del provvedimento di modifica;</p>
+<p class="toc-bullet no-padding">eventuali note redazionali;</p>
+<p class="toc-bullet no-padding">link per navigare tra gli articoli dell&#39;atto (posizionati sotto il testo).</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_dettaglio3_mobile.png" alt="paginazione mobile" ></p>
+<p>Per i documenti di prassi e giurisprudenza, la pagina di dettaglio del documento visualizza i dati del documento selezionato (titolo e sintesi per la prassi, intitolazione e massima per la giurisprudenza) e il testo. Con il link <strong>Salva intero documento</strong> l&#39;utente pu&ograve; salvare sul proprio dispositivo il documento visualizzato.</p>
+<p class="immagine"><img src="stylesheet_3.0/img/guida/guida_dettaglio4_mobile.png" alt="salva intero documento mobile" ></p>
+<p>
+    <a href="#indice" class="torna">Torna all&#39;indice</a>
+</p>
+<br>
+</div>
+
+</div><!--.rilievo-->
+</div><!--.spalla-sx-->
+<aside role="complementary">
+<div id="spalla-sx">
+<div class="toggle">
+<div class="titolo">
+<h1>Area utente</h1>
+</div><!--.titolo-->
+<div class="contenuto">
+<div class="menu">
+<ul>
+<li>
+    <script type="text/javascript">
+         document.write('<a id="link_rm" href="./RicercheMemorizzate.jsp?js_enabled=1">Ricerca memorizzata</a>');
+    </script>
+    <noscript>
+         <a id="link_rm" href="./RicercheMemorizzate.jsp?js_enabled=0">Ricerca memorizzata</a>
+    </noscript>
+</li>
+<li>
+    <script type="text/javascript">
+         document.write('<a id="link_rc" href="callRicClassificazioni.do?js_enabled=1">Ricerca classificazioni</a>');
+    </script>
+    <noscript>
+        <a id="link_rc" href="callRicClassificazioni.do?js_enabled=0">Ricerca classificazioni</a>
+    </noscript>
+</li>
+</ul>
+<div class="hr"></div>
+<ul>
+    <li class="web"><a id="link_ar" href="areaRiservata.do">Area riservata</a></li>
+    <li><a id="link_gs" href="./Guida.jsp">Guida al servizio</a></li>
+
+</ul>
+</div><!--.menu-->
+</div><!--.contenuto-->
+</div><!--.toggle-->
+
+</div><!--#spalla-sx-->
+</aside>
+</div><!--#principale-->
+<div class="clear"></div>
+</div><!--#corpo-->
+</div><!--.contenitore-->
+<div class="clear"></div>
+
+<!-- FOOTER -->
+
+
+
+
+<footer role="contentinfo">
+<div id="footer">
+    <div class="contenitore">
+    <h1 class="skipheader">Pi&egrave; di pagina</h1>
+    <ul>
+        <li><a target="_dichiarazioneAccessilitaAgid" title="Dichiarazione di accessibilit&agrave; [link a sito esterno, apre una nuova finestra]" href="https://form.agid.gov.it/view/d2541de0-956c-11f0-8e98-83c59d87f31b">Dichiarazione di accessibilit&agrave;</a>
+
+        <li><a href="./privacy.jsp">Privacy</a></li>
+        <li><a href="./linkUtili.jsp">Link utili</a></li>
+        <li><a href="./noteLegali.jsp">Note legali</a></li>
+    </ul>
+    </div><!--.contenitore-->
+    <div class="clear"></div>
+    </div><!--#footer-->
+</footer>
+
+<!-- Matomo DEF - Documentazione Economica e Finanziaria -->
+
+    <!-- Matomo - DEF - Documentazione Economica e Finanziaria -->
+    <script type="text/javascript">
+      var _paq = window._paq || [];
+      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+      _paq.push(["setDocumentTitle", document.domain + "/" + document.title]);
+      _paq.push(["setCookieDomain", "*.def.finanze.it"]);
+      _paq.push(["setDomains", ["*.def.finanze.it","*.def.giustiziatributaria.gov.it"]]);
+      _paq.push(['trackPageView']);
+      _paq.push(['enableLinkTracking']);
+      (function() {
+        var u="https://aaws-aanalytics.sogei.it/piwik/";
+        _paq.push(['setTrackerUrl', u+'matomo.php']);
+        _paq.push(['setSiteId', '31']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+      })();
+    </script>
+    <noscript><p><img src="https://aaws-aanalytics.sogei.it/piwik/matomo.php?idsite=31&amp;rec=1" style="border:0;" alt="" /></p></noscript>
+    <!-- End Matomo Code -->
+
+
+</body>
+
+</html>

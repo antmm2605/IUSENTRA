@@ -1,0 +1,597 @@
+<!-- com_content -> article --><!DOCTYPE html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"><![endif]-->
+<!--[if IE 7]><html class="no-js lt-ie9 lt-ie8"><![endif]-->
+<!--[if IE 8]><html class="no-js lt-ie9"><![endif]-->
+<!--[if gt IE 8]><!--><html class="no-js"  lang="it-it" ><!--<![endif]-->
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="https://uibm.mise.gov.it/index.php/it/i-servizi/assistenza-deposito-telmatico" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="author" content="Fabrizio Lattari" />
+    <meta name="description" content="Ufficio Italiano Brevetti e Marchi" />
+    <title>Deposito domanda online</title>
+    <link href="/templates/frontend/favicon.ico" rel="shortcut icon" type="image/vnd.microsoft.icon" />
+    <link href="https://uibm.mise.gov.it/index.php/it/component/search/?Itemid=2105&amp;format=opensearch" rel="search" title="Vai UIBM" type="application/opensearchdescription+xml" />
+    <link href="/media/system/css/modal.css?d0fda586dd241df0a001770ad218099f" rel="stylesheet" type="text/css" />
+    <link href="/media/com_attachments/css/attachments_hide.css" rel="stylesheet" type="text/css" />
+    <link href="/media/com_attachments/css/attachments_list.css" rel="stylesheet" type="text/css" />
+    <link href="/templates/frontend/css/styles.css" rel="stylesheet" type="text/css" />
+    <script type="application/json" class="joomla-script-options new">{"csrf.token":"a8692e1f661432c7f95fbeb2b685f941","system.paths":{"root":"","base":""}}</script>
+    <script src="/media/system/js/mootools-core.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/system/js/core.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/system/js/mootools-more.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/system/js/modal.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/jui/js/jquery.min.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/jui/js/jquery-noconflict.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/jui/js/jquery-migrate.min.js?d0fda586dd241df0a001770ad218099f" type="text/javascript"></script>
+    <script src="/media/com_attachments/js/attachments_refresh.js" type="text/javascript"></script>
+    <script src="/templates/frontend/js/vendor/modernizr-2.6.2.min.js" type="text/javascript"></script>
+    <script src="/templates/frontend/js/vendor/respond.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+
+        jQuery(function($) {
+            SqueezeBox.initialize({});
+            initSqueezeBox();
+            $(document).on('subform-row-add', initSqueezeBox);
+
+            function initSqueezeBox(event, container)
+            {
+                SqueezeBox.assign($(container || document).find('a.modal').get(), {
+                    parse: 'rel'
+                });
+            }
+        });
+
+        window.jModalClose = function () {
+            SqueezeBox.close();
+        };
+
+        // Add extra modal close functionality for tinyMCE-based editors
+        document.onreadystatechange = function () {
+            if (document.readyState == 'interactive' && typeof tinyMCE != 'undefined' && tinyMCE)
+            {
+                if (typeof window.jModalClose_no_tinyMCE === 'undefined')
+                {
+                    window.jModalClose_no_tinyMCE = typeof(jModalClose) == 'function'  ?  jModalClose  :  false;
+
+                    jModalClose = function () {
+                        if (window.jModalClose_no_tinyMCE) window.jModalClose_no_tinyMCE.apply(this, arguments);
+                        tinyMCE.activeEditor.windowManager.close();
+                    };
+                }
+
+                if (typeof window.SqueezeBoxClose_no_tinyMCE === 'undefined')
+                {
+                    if (typeof(SqueezeBox) == 'undefined')  SqueezeBox = {};
+                    window.SqueezeBoxClose_no_tinyMCE = typeof(SqueezeBox.close) == 'function'  ?  SqueezeBox.close  :  false;
+
+                    SqueezeBox.close = function () {
+                        if (window.SqueezeBoxClose_no_tinyMCE)  window.SqueezeBoxClose_no_tinyMCE.apply(this, arguments);
+                        tinyMCE.activeEditor.windowManager.close();
+                    };
+                }
+            }
+        };
+
+    </script>
+
+    <link rel="stylesheet" href="/templates/frontend/fontawesome/css/brands.css">
+    <link rel="stylesheet" href="/templates/frontend/fontawesome/css/fontawesome.css" -->
+    <link href="https://fonts.googleapis.com/css?family=Titillium+Web:400,200,200italic,300,300italic,400italic,600,600italic,700,700italic,900" rel="stylesheet" type="text/css">
+
+    <!-- aggiunto DGROSIB-DIV5: per risolvere la sovrapposizione della casella di ricerca con barra tricolore-->
+    <style>.sub_nav ul li {font-size: 0.88em !important; font-weight: 600;}</style>
+
+    <script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//analytics.mise.gov.it/";
+    _paq.push(['setTrackerUrl', u+'piwik.php']);
+    _paq.push(['setSiteId', '19']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+
+</head>
+
+<body class="site assistenza-deposito-telmatico ">
+
+    <div class="body_wrapper push_container clearfix" id="page_top">
+        <p id="skip-link">
+            <a href="#main" class="element_invisible element_focusable">Vai al Contenuto</a>
+            <a href="#footer" class="element_invisible element_focusable">Raggiungi il piè di pagina</a>
+        </p>
+        <div id="system-message-container">
+    </div>
+
+        <header class="header_container">
+            <div class="main_nav_container container-fullwidth">
+
+
+<div class=""  >
+        <div class="burger_wrapper">
+<div class="burger_container"><a class="toggle-menu menu-left push-body" href="#"> <span class="bar"> </span> <span class="bar"> </span> <span class="bar"> </span> </a></div>
+<!-- /burger_container --></div>
+<!-- /burger_wrapper --></div>
+
+
+                                <!-- Menu -->
+                <nav class="cbp-spmenu cbp-spmenu-vertical cbp-spmenu-left">
+
+                    <div class="">
+
+                        <ul class=" nav nav-burger navmenu">
+
+                        <li class="item-1569"><a href="/index.php/it/direzione-generale-per-la-proprieta-industriale-ufficio-italiano-brevetti-e-marchi" >DIREZIONE GENERALE PER LA PROPRIETA' INDUSTRIALE- UIBM</a></li><li class="item-2207"><a href="/index.php/it/direzione-generale-per-la-proprieta-industriale-ufficio-italiano-brevetti-e-marchi-2" >ORGANIZZAZIONE</a></li><li class="item-1865 has-submenu"><a href="/index.php/it/deposito-titoli" >DIRITTI DI PROPRIETA' INDUSTRIALE <span tabindex='0' aria-label='Espandi il menu - DIRITTI DI PROPRIETA' INDUSTRIALE ' title='Espandi il menu - DIRITTI DI PROPRIETA' INDUSTRIALE '></span></a><ul><li class="item-1866"><a href="/index.php/it/deposito-titoli/deposito-telematico" >Presenta la domanda on-line</a></li><li class="item-1867"><a href="/index.php/it/deposito-titoli/modulistica-per-il-deposito-cartaceo" >Altre modalità di presentazione</a></li></ul></li><li class="item-2823"><a href="https://servizionline.uibm.gov.it/deposito-online-new/pubblica/popup-supporto.html" >CONTATTACI PER ASSISTENZA</a></li><li class="item-2852"><a href="https://uibm.mise.gov.it/index.php/it/i-servizi" >SERVIZI AL PUBBLICO</a></li><li class="item-2855"><a href="https://uibm.mise.gov.it/index.php/it/frequently-asked-questions-faq" >FAQ</a></li><li class="item-1868"><a href="/index.php/it/normativa-pi" >NORMATIVA </a></li><li class="item-2854"><a href="https://uibm.mise.gov.it/index.php/it/comunicazione-ed-eventi" >COMUNICAZIONE</a></li><li class="item-2853"><a href="https://rapporti-uibm.mise.gov.it/index.php/ita/" >RAPPORTO ATTIVITA'</a></li>
+                        </ul><!-- /navgoco -->
+
+                    </div><!-- /cbp-menu-wrapper -->
+
+                </nav><!-- /nav cbp-spmenu -->
+                <!-- End Menu -->
+
+                                <!-- Menu Related -->
+                <nav class="mobile-header-menu cbp-spmenu cbp-spmenu-vertical cbp-spmenu-right">
+                    <span class="icon icon-icon-close cbp-close" aria-hidden="true"></span>
+                    <div class="cbp-menu-wrapper clearfix">
+                                     <!-- Menu -->
+                <ul class="nav navmenu">
+
+                    <li class="item-1743"><a href="/index.php/it/i-servizi/la-sala-pubblico" >Sala Pubblico</a></li><li class="item-2105 current"><a href="/index.php/it/i-servizi/assistenza-deposito-telmatico" >Deposito domanda online</a></li><li class="item-2104"><a href="/index.php/it/i-servizi/l-esperto-risponde" >L'esperto risponde</a></li><li class="item-1806"><a href="/index.php/it/i-servizi/rilascio-copie" >Rilascio copie</a></li><li class="item-1809"><a href="/index.php/it/i-servizi/consultazione-del-patrimonio-documentale" >Consultazione Patrimonio Documentale</a></li><li class="item-2103"><a href="/index.php/it/i-servizi/deposito-estero" >Autorizzazione al Deposito Estero</a></li><li class="item-2075"><a href="/index.php/it/linea-diretta-anticontraffazione" >Linea Diretta Anticontraffazione</a></li><li class="item-1746"><a href="/index.php/it/lotta-alla-contraffazione/servizi-per-imprese-e-consumatori/sportello-tecnologie-anticontraffazione" >Sportello Tecnologie Anticontraffazione </a></li><li class="item-1748"><a href="/index.php/it/i-servizi/sportello-cina-russia-e-brasile" >Sportello Cina Russia e Brasile  </a></li><li class="item-1793"><a href="/index.php/it/i-servizi/tavolo-imprese" >Tavolo Imprese</a></li><li class="item-1744"><a href="/index.php/it/i-servizi/prediagnosi-in-materia-di-pi-pi-uibm" >Estratti semestrali Banca Dati</a></li><li class="item-2780"><a href="/index.php/it/i-servizi/contact-center" >Contact Center</a></li>				</ul>
+                <!-- End Menu -->
+
+                    </div>
+                </nav> <!-- /nav cbp-spmenu -->
+                <!-- End Menu Related -->
+                                <div class="top_nav clearfix">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-lg-8 col-lg-offset-1 col-md-8 col-md-offset-0 col-sm-8 col-sm-offset-0 col-xs-8 col-xs-offset-0">
+                                <p><a title="" href="http://www.governo.it"><strong>Governo Italiano</strong></a></p>
+                            </div>
+                            <!-- /col-md-8 -->
+                            <div class="col-lg-3 col-md-4 col-sm-4 col-xs-4 text-right">
+                                <div class="lang-switch">
+     <a href="/index.php/it/i-servizi/assistenza-deposito-telmatico" class="selected" title="sito del Ministero in lingua italiana">
+     IT	 </a>
+     |	 <a href="/index.php/en/i-servizi/assistenza-deposito-telmatico"  title="Ministry of Economic Development in English language">
+     EN	 </a>
+     </div>
+                            </div>
+                        </div><!-- /row -->
+                    </div><!-- /container -->
+                </div><!-- /top_nav -->
+
+
+
+                <div class="main_nav clearfix">
+                    <div class="container">
+                        <div class="row">
+                <!--
+                            DGROSIB-DIV5
+                            <div class="col-md-8 col-sm-9 col-xs-12">
+                -->
+                            <div class="col-md-7 col-sm-9 col-xs-12">
+                                <div class="logo_container clearfix">
+                                    <div class="logo_wrapper clearfix">
+                                        <a href="https://uibm.mise.gov.it" title=""><img src="/templates/frontend/img/logo.svg" class="logo" alt="vai al sito del Ministero dello Sviluppo Economico"></a>
+                                    </div>
+                                    <div class="logo_text clearfix">
+                                        <h1><strong>Ministero delle Imprese</strong> e del Made in Italy</h1>
+                                    </div>
+                                </div><!-- /logo_container -->
+                                <div id="sb-search" class="sb-search">
+                                    <form action="https://uibm.mise.gov.it/index.php/ricerca" method="post">
+                                        <label for="search" class="outscreen">cerca</label>
+                                        <input class="sb-search-input" placeholder="Cerca" type="text" name="searchword" id="search" tabindex="-1" title="Cerca">
+                                        <input class="sb-search-submit" type="submit" value="h" tabindex="-1">
+                                        <span class="sb-icon-search"></span>
+                                        <input type="hidden" name="task" value="search" />
+                                    </form>
+                                </div>
+
+                            </div><!-- /col-md-8 -->
+
+                <!--
+                            DGROSIB-DIV5
+                            <div class="col-md-4 col-sm-3 col-xs-12 hidden-xs">
+                -->
+                <div class="col-md-5 col-sm-3 col-xs-12 hidden-xs">
+                                <div class="nav_tools clearfix">
+
+
+        <h3 class="nav_social clearfix">Ufficio Italiano Brevetti e Marchi</h3>
+<!-- /nav_social -->
+                                    <div class="nav_search clearfix">
+    <form action="https://uibm.mise.gov.it/index.php/ricerca" method="post">
+        <label for="mod-search-searchword" class="outscreen">Cerca...</label>
+        <input class="form-control"
+                type="text"
+                name="searchword"
+                id="mod-search-searchword"
+                placeholder="Cerca..."
+                maxlength="200"
+                title="Cerca">
+        <input type="submit" value="h" title="Vai">
+        <input type="hidden" name="task" value="search" />
+        <input type="hidden" name="Itemid" value="2105" />
+      </form>
+</div><!-- /nav_search -->
+
+                                </div><!-- /nav_tools -->
+                            </div><!-- /col-md-4 -->
+                        </div><!-- /row -->
+                    </div><!-- /container -->
+                </div><!-- /main_nav -->
+
+                <div class="flag_container clearfix">
+                    <div class="green clearfix"></div>
+                    <div class="white clearfix"></div>
+                    <div class="red clearfix"></div>
+                </div><!-- /flag_container -->
+
+
+    <div class="sub_nav clearfix">
+                <!--?php echo "<{$htmlMarkUp} class='outscreen'>{$module->title}</{$htmlMarkUp}>";?-->
+        <ul>
+        <li><a class="comunicazione selected" href="/index.php/it/i-servizi" >SERVIZI AL PUBBLICO</a></li><li><a class="impresa" href="/index.php/it/normativa-pi" >NORMATIVA </a></li><li><a  href="/index.php/it/comunicazione-ed-eventi" >COMUNICAZIONE</a></li><li><a  href="/index.php/it/qualifiche-professionali-estere" >QUALIFICHE PROFESSIONALI ESTERE</a></li><li><a  href="/index.php/it/frequently-asked-questions-faq" >FAQ</a></li><li><a  href="https://servizionline.uibm.gov.it/deposito-online-new/pubblica/popup-supporto.html" >CONTATTACI PER ASSISTENZA</a></li><li><a  href="https://rapporti-uibm.mise.gov.it/index.php/ita/" >RAPPORTO ATTIVITA' UIBM</a></li>		</ul>
+        </div>
+                                     <div class="section section_grey section-nav clearfix">
+    <div class="row">
+        <div class="col-xs-6">
+            <div class="share_buttons_left reveal-content clearfix">
+                    <div class="share_buttons_container clearfix">
+        <a href="http://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" title="Condividi su Facebook">
+            <span class="icon icon-facebook"></span>
+            <span class="share-text">Condividi su Facebook</span>
+        </a>
+        <a href="http://www.twitter.com/share?text=Deposito domanda online&url=https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" title="Condividi su Twitter">
+            <span class="icon icon-twitter"></span>
+            <span class="share-text">Condividi su Twitter</span>
+        </a>
+        <a href="https://plus.google.com/share?url=Deposito domanda online%20https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" title="Condividi su Google Plus">
+            <span class="icon icon-google-plus"></span>
+            <span class="share-text">Condividi su Google Plus</span>
+        </a>
+        <a class="hidden-lg hidden-md" href="whatsapp://send?text=Deposito domanda online%20https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" data-action="share/whatsapp/share" title="Condividi su Whatsapp" tabindex="-1">
+            <span class="icon icon-whatsapp" aria-hidden="true"></span>
+            <span class="share-text">Condividi su Whatsapp</span>
+        </a>
+    </div><!-- /share_buttons_container -->
+                <a href="#" title="Condividi sui social network" class="share_buttons_trigger reveal-trigger" tabindex="-1">
+                    <span class="icon icon-sharethis" aria-hidden="true"></span>
+                    <span class="share-text">Condividi sui social network</span>
+                </a>
+                <span>Condividi</span>
+            </div><!-- /share_buttons -->
+        </div>
+        <div class="col-xs-6 text-right">
+            <div class="reveal_container section-menu-container clearfix">
+                <a class="toggle-menu-related menu-right push-body" href="#"><p>Naviga</p> <span class="icon icon-icon-related" aria-hidden="true"></span></a>
+            </div>
+        </div>
+    </div>
+</div>
+                                            </div><!-- /main_nav_container -->
+        </header>
+
+        <main class="main_container" id="main">
+
+    <div class="breadcrumbs-wrapper section_white">
+        <div class="container breadcrumbs">
+            <div class="row">
+                <div class="col-md-12">
+                    <div id="breadcrumb" class="hidden-xs clearfix">
+                        <div id="breadcrumb-inside" class="clearfix">
+                            <div>
+            <a href='/index.php/it/' title='Home'>Home</a><a href='/index.php/it/i-servizi' title='SERVIZI AL PUBBLICO'>SERVIZI AL PUBBLICO</a><span class='current' title='Deposito domanda online'>Deposito domanda online</span>						    </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!-- /.breadcrumbs-wrapper -->
+<!--div class="breadcrumbs">
+
+    </div-->
+
+
+<div class="section section_white landing-section clearfix">
+    <div class="container-smaller">
+
+<div class="row">
+    <div class="col-md-7 col-sm-12">
+        <div class="content">
+        <meta itemprop="inLanguage" content="it-IT" />
+                                            <h1 class="title_large">
+                    Deposito domanda online			    </h1>
+
+
+
+                                                                                                             <p>Il deposito telematico delle domande di brevetto industriale per invenzioni e modelli di utilità, delle domande di registrazione di disegni e modelli e di marchi di impresa, delle istanze connesse a dette domande e dei rinnovi dei marchi può essere effettuato esclusivamente attraverso il portale di servizi on line <span style="font-size: 12pt;"><strong><a href="https://servizionline.uibm.gov.it/">https://servizionline.uibm.gov.it</a>.</strong></span></p>
+<p> </p>
+<p><strong>Portale di servizi on line</strong><strong>:  </strong></p>
+<ul>
+<li><strong><a href="https://servizionline.uibm.gov.it/">https://servizionline.uibm.gov.it</a></strong></li>
+</ul>
+<ul>
+<li><strong>Contatti per l'assistenza tecnica al Deposito Telematico: </strong>
+<ul>
+<li>Servizi informativi<strong>: </strong><a href="mailto:hd1.deposito@mise.gov.it">hd1.deposito@mise.gov.it</a></li>
+<li><a href="https://servizionline.uibm.gov.it/deposito-online-new/pubblica/popup-supporto.html"><strong>Chat</strong></a> assistenza tecnica portale deposito telematico</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><strong>Per saperne di più su come depositare apri il link:</strong> <a href="/index.php/it/deposito-titoli">Deposito Titoli di Proprietà Industriale</a></li>
+</ul>
+<ul>
+<li><strong>Prima di depositare</strong>, verifica se è disponibile un voucher EUIPO per il rimborso delle spese di deposito dei titoli di proprietà industriale: 
+<ul>
+<li style="text-align: justify;"><a href="https://euipo.europa.eu/ohimportal/online-services/sme-fund?mtm_campaign=ip-it">https://euipo.europa.eu/ohimportal/online-services/sme-fund?mtm_campaign=ip-it</a></li>
+</ul>
+</li>
+</ul><div class="attachmentsContainer">
+
+<div class="attachmentsList" id="attachmentsList_com_content_default_2036213"></div>
+
+</div>
+                            <hr />
+                    <div class="ufficio-competente">
+                        <span class="h4">Ufficio competente</span>
+                        <ul class="uffici-competenti">
+
+                            <li>
+                                <a href="/index.php/it/component/organigram/?view=structure&amp;id=579"
+                                    title="Divisione III - Servizi per l’utenza">Divisione III - Servizi per l’utenza</a>
+                            </li>
+                                                </ul>
+                    </div>
+
+
+
+        <div class="user-feedback-wrapper">
+            <hr />
+                        <div class="user-feedback-out"></div>
+        </div> <!-- /.user-feedback-wrapper -->
+
+        </div> <!-- /.content -->
+    </div>
+    <div class="col-md-4 col-md-offset-1">
+        <aside class="sidebar">
+            <div class="block block-italia-share-block"></div>
+            <div class="content">
+
+<div class="share_buttons hidden-xs hidden-sm reveal-content clearfix">
+        <div class="share_buttons_container clearfix">
+        <a href="http://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" title="Condividi su Facebook">
+            <span class="icon icon-facebook"></span>
+            <span class="share-text">Condividi su Facebook</span>
+        </a>
+        <a href="http://www.twitter.com/share?text=Deposito domanda online&url=https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" title="Condividi su Twitter">
+            <span class="icon icon-twitter"></span>
+            <span class="share-text">Condividi su Twitter</span>
+        </a>
+        <a href="https://plus.google.com/share?url=Deposito domanda online%20https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" title="Condividi su Google Plus">
+            <span class="icon icon-google-plus"></span>
+            <span class="share-text">Condividi su Google Plus</span>
+        </a>
+        <a class="hidden-lg hidden-md" href="whatsapp://send?text=Deposito domanda online%20https%3A%2F%2Fuibm.mise.gov.it%2Findex.php%2Fit%2Fi-servizi%2Fassistenza-deposito-telmatico" data-action="share/whatsapp/share" title="Condividi su Whatsapp" tabindex="-1">
+            <span class="icon icon-whatsapp" aria-hidden="true"></span>
+            <span class="share-text">Condividi su Whatsapp</span>
+        </a>
+    </div><!-- /share_buttons_container -->
+    <span>Condividi</span>
+    <a href="#" title="Condividi sui social network" class="share_buttons_trigger reveal-trigger" tabindex="-1">
+        <span class="icon icon-sharethis" aria-hidden="true"></span>
+        <span class="share-text">Condividi sui social network</span>
+    </a>
+</div><!-- /share_buttons -->  			</div>
+            <div class="clearfix"></div>
+                            <!-- Menu -->
+                <ul class="nav navmenu">
+
+                    <li class="item-1743"><a href="/index.php/it/i-servizi/la-sala-pubblico" >Sala Pubblico</a></li><li class="item-2105 current"><a href="/index.php/it/i-servizi/assistenza-deposito-telmatico" >Deposito domanda online</a></li><li class="item-2104"><a href="/index.php/it/i-servizi/l-esperto-risponde" >L'esperto risponde</a></li><li class="item-1806"><a href="/index.php/it/i-servizi/rilascio-copie" >Rilascio copie</a></li><li class="item-1809"><a href="/index.php/it/i-servizi/consultazione-del-patrimonio-documentale" >Consultazione Patrimonio Documentale</a></li><li class="item-2103"><a href="/index.php/it/i-servizi/deposito-estero" >Autorizzazione al Deposito Estero</a></li><li class="item-2075"><a href="/index.php/it/linea-diretta-anticontraffazione" >Linea Diretta Anticontraffazione</a></li><li class="item-1746"><a href="/index.php/it/lotta-alla-contraffazione/servizi-per-imprese-e-consumatori/sportello-tecnologie-anticontraffazione" >Sportello Tecnologie Anticontraffazione </a></li><li class="item-1748"><a href="/index.php/it/i-servizi/sportello-cina-russia-e-brasile" >Sportello Cina Russia e Brasile  </a></li><li class="item-1793"><a href="/index.php/it/i-servizi/tavolo-imprese" >Tavolo Imprese</a></li><li class="item-1744"><a href="/index.php/it/i-servizi/prediagnosi-in-materia-di-pi-pi-uibm" >Estratti semestrali Banca Dati</a></li><li class="item-2780"><a href="/index.php/it/i-servizi/contact-center" >Contact Center</a></li>				</ul>
+                <!-- End Menu -->
+
+        </aside>
+    </div>
+</div> <!-- /.row -->
+
+    </div><!-- /container-smaller -->
+</div>        </main>
+        <div class="section section_footer_wrapper section_grey_darker clearfix">
+            <footer class="footer_container container" id="footer">
+                <div class="row title_row">
+                    <div class="col-md-12">
+                        <div class="logo_container clearfix">
+                            <div class="logo_wrapper clearfix">
+                                <a href="https://www.mise.gov.it" title=""><img src="/templates/frontend/img/logo.svg" class="logo" alt="vai al sito del Ministero dello Sviluppo Economico"></a>
+                            </div>
+                            <div class="logo_text clearfix">
+                                <h2><strong>Ministero delle Imprese</strong> e del Made in Italy</h2>
+                            </div>
+                        </div><!-- /logo_container -->
+                    </div><!-- /col-md-12 -->
+                </div><!-- /row -->
+                <div class="row">
+
+
+<div class=""  >
+        <div class="col-md-9">
+<div class="row title_row">
+<div class="col-md-12">
+<div class="row title_row">
+<div class="col-md-12">
+<h3>Contatti</h3>
+</div>
+<div class="row">
+<div class="col-md-4">
+<div class="box_text_footer clearfix">
+<h3>Indirizzo</h3>
+<ul>
+<li>Via delle Quattro Fontane, 22</li>
+<li>00184 Roma<br /><br /></li>
+</ul>
+</div>
+</div>
+<div class="col-md-4">
+<div class="box_text_footer clearfix">
+<h3>Assistenza Tecnica Deposito Telematico</h3>
+<ul>
+<li><img src="/images/IconeFooter/mailicon.png" alt="" width="47" height="27" />Mail: <a href="mailto:hd1.deposito@mise.gov.it">hd1.deposito@mise.gov.it</a>&nbsp;</li>
+<li>(Sarà fornito un riscontro alle richieste pervenute solo se tali richieste provengono da caselle di <strong>posta elettronica NON certificata</strong>)</li>
+<li>&nbsp;&nbsp;<img src="/images/IconeFooter/chat_dots_icon_160290.png" alt="" width="30" height="30" />&nbsp; <a href="https://servizionline.uibm.gov.it/deposito-online-new/pubblica/popup-supporto.html">Chat</a>&nbsp;</li>
+<li><strong>Lunedì-Venerdì, esclusi i festivi dalle ore 9.00 alle ore 13.00 </strong>e dalle<strong>&nbsp;14.00 alle 18.00</strong></li>
+</ul>
+</div>
+</div>
+<div class="col-md-4">
+<div class="box_text_footer clearfix">
+<h3>Contact Center UIBM</h3>
+<ul>
+<li><img src="/images/IconeFooter/mailicon.png" alt="" width="47" height="27" />Mail: <a href="mailto:contactcenteruibm@mise.gov.it">contactcenteruibm@mise.gov.it</a></li>
+<li>(Sarà fornito un riscontro alle richieste pervenute solo se tali richieste provengono da caselle di <strong>posta elettronica NON certificata</strong>)</li>
+<li>&nbsp;&nbsp;<img src="/images/IconeFooter/chat_dots_icon_160290.png" alt="" width="30" height="30" />&nbsp;<a href="https://servizionline.uibm.gov.it/deposito-online-new/pubblica/popup-supporto.html">Chat</a></li>
+<li><strong>Lunedì-Venerdì, esclusi i festivi dalle ore 9.00 alle ore 17.00</strong></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+
+
+<div class=""  >
+        <div class="col-md-3">
+<div class="row title_row">
+<div class="col-md-12">
+<h3>Seguici su</h3>
+<div class="box_text box_text_footer box_text_footer_social clearfix">
+<div class="footer_social clearfix"><a href="https://www.linkedin.com/company/13037701/" title="linkedin"><span class="icon fab fa-linkedin"> </span></a> <a href="https://www.youtube.com/@UIBMchannel" title="youtube"><span class="icon icon-youtube"> </span></a></div>
+</div>
+<!-- /col-md-12 --></div>
+<!-- /row --></div>
+<!-- /col-md-3 --></div></div>
+
+                </div><!-- /row -->
+                <div class="row">
+                    <div class="col-md-3" >
+
+    <div class="box_text_footer">
+            <h4>LA DIREZIONE</h4>            <ul>
+                            <li>
+                    <a href="/index.php/it/direzione-generale-per-la-proprieta-industriale-ufficio-italiano-brevetti-e-marchi-2" > Chi siamo</a>
+                </li>
+                            <li>
+                    <a href="/index.php/it/agenda" > Agenda</a>
+                </li>
+                            <li>
+                    <a href="/index.php/it/i-partner" > I Partner</a>
+                </li>
+                    </ul>
+    </div>
+</div><div class="col-md-3" >
+
+    <div class="box_text_footer">
+            <h4>STRUMENTI</h4>            <ul>
+                            <li>
+                    <a href="/index.php/it/assistenza-deposito-telematico" > Assistenza Deposito Telematico</a>
+                </li>
+                            <li>
+                    <a href="/index.php/it/sala-pubblico" > Sala Pubblico</a>
+                </li>
+                            <li>
+                    <a href="/index.php/it/l-esperto-risponde" > L'esperto risponde</a>
+                </li>
+                    </ul>
+    </div>
+</div><div class="col-md-3" >
+
+    <div class="box_text_footer">
+            <h4>OPPORTUNITA'</h4>            <ul>
+                            <li>
+                    <a href="/index.php/it/amministrazione-trasparente-mise" > Accessibilità e Usabilità</a>
+                </li>
+                            <li>
+                    <a href="https://www.mise.gov.it/index.php/it/privacy-sito" > Privacy</a>
+                </li>
+                            <li>
+                    <a href="http://www.mise.gov.it/index.php/it/amministrazione-trasparente" > Amministrazione trasparente</a>
+                </li>
+                            <li>
+                    <a href="https://www.dati.gov.it/" > Open Data</a>
+                </li>
+                    </ul>
+    </div>
+</div>
+                </div><!-- /row -->
+                <div class="row">
+
+
+<div class=""  >
+        <div class="col-md-12">
+<p>&nbsp;</p>
+<ul class="footer_links clearfix">
+<li><a href="https://www.mise.gov.it/index.php/it/privacy-sito" rel="alternate">Privacy</a></li>
+<li><a title="" href="/index.php/it/mappa-sito">Mappa del sito</a></li>
+<li><a href="/index.php/it/frequently-asked-questions-faq">FAQ</a></li>
+<li><a href="/attachments/category/226/programmazione_biennale.pdf">Programmazione biennale</a></li>
+<li>P.IVA 80230390587</li>
+</ul>
+<a class="rss_feed" title="Feed RSS" href="/index.php/it/rss"><span class="icon-rss-two"></span></a></div>
+<!-- /col-md-12 --></div>
+
+                </div><!-- /row -->
+            </footer>
+        <a class="scrollto_top" href="#page_top"><span class="icon icon-icon-top" aria-hidden="true"></span></a>
+        </div>
+    </div>
+
+    <!-- Cookie policy alert -->
+    <div class="alert alert-default cookie-directive">
+        Il sito usa cookie per offrire un servizio migliore. Proseguendo la navigazione accetti di riceverli.        <br />
+        <a class="btn-info btn-sm" href="https://www.mise.gov.it/index.php/privacy-sito">Per saperne di più</a>
+        <a class="btn-info btn-sm ok-cookie" href="#">Ok, ho capito</a>
+    </div>
+    <script src="/templates/frontend/js/scripts.js"></script>
+    <script src="/templates/frontend/js/vendor/moment-2.8.3.js"></script>
+    <script src="/templates/frontend/js/vendor/underscore.js"></script>
+    <script src="/templates/frontend/js/vendor/datepicker.min.js"></script>
+    <script type="text/javascript">
+<!--//--><![CDATA[//><!--
+moment.locale("it", {months : "Gennaio_Febbraio_Marzo_Aprile_Maggio_Giugno_Luglio_Agosto_Settembre_Ottobre_Novembre_Dicembre".split("_")});
+$(function () {
+    $("#startDate").datetimepicker({
+        inline: true,
+        keepOpen: true,
+        locale: "it",
+        format: "YYYY-MM-DD 00:00:00"
+    });
+    $("#endDate").datetimepicker({
+        inline: true,
+        keepOpen: true,
+        locale: "it",
+        format: "YYYY-MM-DD 23:59:59"
+    });
+    $("#startDate").on("dp.change", function (e) {
+        $("#endDate").data("DateTimePicker").minDate(e.date);
+    });
+    $("#endDate").on("dp.change", function (e) {
+        $("#startDate").data("DateTimePicker").maxDate(e.date);
+    });
+});
+//--><!]]>
+</script>
+
+    <!-- script src="/gallery.js"></script -->
+
+</body>
+
+</html>

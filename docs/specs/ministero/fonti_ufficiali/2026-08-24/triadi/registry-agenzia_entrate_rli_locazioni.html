@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agenzia delle Entrate - Rli Web</title>
+        <!-- Matomo -->
+        <script type="text/javascript">
+            var url = "https://aews-analyticsval.sogei.it/piwik/";
+            var siteId = '33'
+            if (window.location.hostname.indexOf("apptel.") != -1) {
+                url = "https://etws-analytics.sogei.it/piwik/";
+                var siteId = '4'
+            }
+            var _paq = window._paq = window._paq || [];
+            /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+            _paq.push(['trackPageView']);
+            _paq.push(['enableLinkTracking']);
+            (function () {
+                var u = url;
+                _paq.push(['setTrackerUrl', u + 'matomo.php']);
+                _paq.push(['setSiteId', siteId]);
+                var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+                g.type = 'text/javascript'; g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+            })();
+        </script>
+        <!-- End Matomo Code -->
+<link href="/RliWeb/dist/css/vendors.196909dcad068834e156.css" rel="stylesheet"><link href="/RliWeb/dist/css/app.b06805c674c5044a6194.css" rel="stylesheet"></head>
+
+<body>
+    <div id="root"></div>
+<script type="text/javascript" src="/RliWeb/dist/js/vendors.bundle.f1728383aae825c718d8.js"></script><script type="text/javascript" src="/RliWeb/dist/js/app.bundle.ee9184340eb0f5379953.js"></script></body>
+
+</html>

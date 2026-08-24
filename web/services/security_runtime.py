@@ -35,6 +35,8 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_documenti_ai.cerca_documento_ai",
     "api_v1_documenti_ai.aggiorna_indice_lex",
     "api_v1_documenti_ai.riprova_errori_indice_lex",
+    "api_v1_documenti_ai.aggiorna_catalogazione_documentale_fascicolo",
+    "api_v1_documenti_ai.revisione_catalogazione_documentale",
     "api_v1_editor_ai.editor_ai_genera",
     "api_v1_editor_ai.editor_ai_proponi_modifiche",
     "api_v1_editor_ai.editor_ai_accetta_modifica",

@@ -17,10 +17,12 @@ from pct.document_intelligence.security import (
 from web.services.document_intelligence_runtime import (
     apply_sentenza_automation_for_document_text,
     build_document_ai_service,
+    build_document_catalog_payload,
     build_lex_indexing_summary_payload,
     document_ai_tenant_id,
     document_ai_user_context,
     fascicoli_db_path,
+    resolve_document_catalog_assignment,
 )
 from web.services.tenant_api_auth import api_key_valid_for_request
 
@@ -173,6 +175,88 @@ def riprova_errori_indice_lex(fascicolo_id: str):
     try:
         summary = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=True)
         return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.get("/fascicoli/<fascicolo_id>/catalogazione-documentale")
+@_richiedi_auth
+def catalogazione_documentale_fascicolo(fascicolo_id: str):
+    try:
+        payload = build_document_catalog_payload(fascicolo_id, process=False)
+        return jsonify({"mock_fallback": False, **payload})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/catalogazione-documentale/aggiorna")
+@_richiedi_auth
+def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
+    try:
+        raw = request.get_json(silent=True)
+        payload = raw if isinstance(raw, dict) else request.form.to_dict(flat=True)
+        retry = str(payload.get("retry") or "").strip().lower() in {"1", "true", "si"}
+        # La GET React resta leggera. Prima dell'estrazione controlliamo il
+        # catalogo SQL: se ogni hash corrente è già catalogato non riapriamo
+        # PDF/P7M né rieseguiamo OCR, ma rieseguiamo solo il resolver
+        # versionato. Questo rende il pulsante idempotente e reattivo.
+        pre_catalog = build_document_catalog_payload(fascicolo_id, process=False)
+        missing_current_assignment = any(
+            bool(item.get("supported"))
+            and (
+                not isinstance(item.get("assignment"), dict)
+                or str((item.get("assignment") or {}).get("document_sha256") or "")
+                != str(item.get("sha256") or "")
+            )
+            for item in list(pre_catalog.get("documents") or [])
+        )
+        if retry or missing_current_assignment:
+            lex_indexing = build_lex_indexing_summary_payload(
+                fascicolo_id,
+                process=True,
+                retry_errors=retry,
+            )
+        else:
+            # Tutti i documenti supportati hanno già un record Document AI e
+            # una catalogazione SQL con la stessa impronta. Il bottone deve
+            # quindi restituire subito lo stato corrente, senza riaprire la
+            # pipeline di indicizzazione né automazioni estranee al refresh.
+            supported = [item for item in list(pre_catalog.get("documents") or []) if item.get("supported")]
+            lex_indexing = {
+                "total_documents": len(supported),
+                "ready": len(supported),
+                "queued": 0,
+                "indexing": 0,
+                "errors": 0,
+                "stale": 0,
+                "not_indexed": 0,
+                "archived": 0,
+                "status": "ready",
+                "warnings": [],
+            }
+        catalog = build_document_catalog_payload(fascicolo_id, process=True, retry=retry)
+        return jsonify({"mock_fallback": False, "lex_indexing": _serialize_lex_indexing(lex_indexing), **catalog})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/documenti-ai/<documento_id>/catalogazione-documentale/revisione")
+@_richiedi_auth
+def revisione_catalogazione_documentale(fascicolo_id: str, documento_id: str):
+    try:
+        raw = request.get_json(silent=True)
+        payload = raw if isinstance(raw, dict) else request.form.to_dict(flat=True)
+        status = str(payload.get("status") or "").strip().lower()
+        note = str(payload.get("note") or "").strip()
+        if len(note) > 2000:
+            raise DocumentAIValidationError("Nota di revisione troppo lunga.")
+        assignment = resolve_document_catalog_assignment(
+            fascicolo_id,
+            documento_id,
+            status=status,
+            note=note,
+        )
+        return jsonify({"mock_fallback": False, "assignment": assignment, "message": "Revisione della catalogazione registrata nel fascicolo."})
     except Exception as exc:
         return _handle_error(exc)
 

@@ -51,6 +51,18 @@ def test_sentenza_ocr_non_resta_atto_giudiziario_principale():
     assert should_apply_catalog_type(TipoDocumento.ATTO_GIUDIZIARIO, classification) is True
 
 
+def test_attestazione_conformita_prevale_su_falso_positivo_ocr_sentenza():
+    classification = classify_fascicolo_document(
+        filename="Attestazione_di_conformita_1025_2026.pdf",
+        extracted_text="La sentenza è stata estratta dal fascicolo informatico.",
+    )
+
+    assert classification.role == "attestazione_conformita"
+    assert classification.label == "Attestazione di conformità"
+    assert classification.tipo_documento == TipoDocumento.ALLEGATO
+    assert classification.deposit_role == "allegato"
+
+
 def test_contributo_pagopa_non_diventa_atto_principale():
     classification = classify_fascicolo_document(
         filename="atto.pdf",

@@ -1782,7 +1782,7 @@ def _document_ai_texts_for_fascicolo(fascicolo: Any, documents: Iterable[Any] | 
                 fascicoli_db_path=fascicoli_db_path,
                 structured_db=structured_db,
                 storage_root=storage_root,
-                allow_extracted_files_fallback=True,
+                allow_extracted_files_fallback=False,
             ),
             {},
     )

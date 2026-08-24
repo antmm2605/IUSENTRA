@@ -1,5 +1,58 @@
 # Confronto documenti del fascicolo d'ufficio
 
+## Aggiornamento 24/08/2026 — catalogazione per fonti autoritative
+
+È aperta la progettazione Fase 4 per una catalogazione documentale completa,
+non basata sul solo nome del file. Il dossier
+`artifacts/react-migration/catalogazione-documentale-fascicoli-analisi-2026-08-24.md`
+definisce famiglie, riti, fasi, tipi, formati, gerarchia delle fonti e criteri
+di prova.
+
+Le classificazioni provenienti da PST/PolisWeb/PAT/PTT/PDP sono metadati di
+fonte e prevalgono sulle inferenze locali deboli. Ogni nuova regola deve
+indicare una fonte ufficiale, versione, ambito, evidenze e stato di revisione;
+un conflitto non è risolto automaticamente ma portato in revisione. ZIP, EML
+e P7M mantengono sempre relazione padre/figlio e l'originale resta disponibile
+nel lettore interno.
+
+### Aggiornamento 24/08/2026 — fonti non acquisibili dal job
+
+La validità della fonte non coincide con un codice HTTP positivo. Durante
+l'audit, gli endpoint PTT che restituivano PDF di errore, URL EUR-Lex
+reindirizzati alla Gazzetta del giorno e una vecchia pagina ACF di manutenzione
+sono stati esclusi dalla selezione. Le sostituzioni utilizzabili sono annotate
+in `audit-copertura-famiglie-e-sottofamiglie-2026-08-24.md` e nel manifest delle
+fonti ufficiali con impronta.
+
+Il portale normativo ACF richiede invece browser reale: è stato verificato
+materialmente nella pagina Consob che espone normativa UE, nazionale, delibera
+22721/2023 e regolamento consolidato. La sua prova è conservata come
+`browser:acf-normativa-2026`; il job non deve interrogarlo né mascherare un
+fallimento. Se la verifica browser non conferma più quel contenuto, i documenti
+ACF del fascicolo passano a revisione umana e nessun tipo viene attribuito in
+modo silenzioso.
+
+### Aggiornamento 24/08/2026 — profili di canale e stati non confondibili
+
+Le specifiche DGSIA 2024, PAT 2025/2026 e Tribunale Online per la volontaria
+giurisdizione sono state acquisite con URL e impronta nel manifest
+`docs/specs/ministero/fonti_ufficiali/2026-08-24/README.md`. La conseguenza
+operativa per il confronto d'ufficio è precisa:
+
+1. atto principale, allegato, XML tecnico, busta, ricevuta e stato di deposito
+   restano record correlati ma distinti;
+2. i limiti dimensionali e i formati ammessi dipendono dal canale di origine:
+   per esempio Formweb PAT ha il proprio profilo, che non modifica i limiti
+   dell'import ordinario dello studio;
+3. lo stato di portale — compresi `In attivazione`, `Attivo`, `Chiuso`,
+   `Annullato` della volontaria giurisdizione e gli stati PDP — è una prova di
+   trasmissione o lavorazione, non la classificazione giuridica del documento;
+4. `atto.enc`, ricevute e file tecnici restano disponibili nel pacchetto e
+   nell'audit, ma non devono essere presentati come atto professionale o
+   provvedimento al posto del contenuto a cui si riferiscono;
+5. qualunque incongruenza fra tipo ufficiale, contenuto estratto e metadati
+   locali crea una revisione esplicita, mai una riclassificazione silenziosa.
+
 ## Aggiornamento 2026-07-26 - Ingresso rapido Apri Portale Servizi dal menu contestuale
 
 Nel dettaglio fascicolo React il tasto destro apre un pannello di azioni rapide. La voce `Apri Portale Servizi` non crea un percorso alternativo: porta alla sezione `Documenti e atti`, carica `OfficeDocumentsPanel` se necessario e richiama lo stesso comando `openAssistedPortal()` già usato dal pannello del fascicolo d'ufficio.
@@ -454,3 +507,56 @@ Regola aggiornata:
 - il click errato su `Conferma notifica` deve prima rieseguire questa verifica, evitando duplicazioni operative.
 
 Caso guida: Calabrò Daniela, fascicolo `FB586324`, R.G. `3571/2025`, originale PST `SentenzaDefinitiva_35815989.pdf`, copia PEC `21295227s.pdf.zip`.
+
+### Aggiornamento 24/08/2026 — catalogazione strutturata ancorata al fascicolo
+
+La nuova catalogazione non introduce un archivio concorrente: ogni assegnazione,
+candidato, evidenza, revisione e job porta `tenant_id` e `fascicolo_id` e resta
+consultabile dal pannello Documenti del fascicolo. Il documento originale resta
+nel lettore interno; il catalogo conserva soltanto decisione, provenienza,
+motivazione, fonti, hash e stato di revisione.
+
+L'aggiornamento è esplicito e a richiesta dell'avvocato. L'apertura del
+fascicolo legge solo il catalogo SQL già disponibile e non avvia scansioni
+ricorsive, OCR o chiamate verso fonti esterne. Se il profilo processuale non è
+completo o la prova è insufficiente, il documento è marcato `Da rivedere` e non
+viene trattato come classificazione certa. La conferma dell'avvocato è
+registrata nello storico, senza eliminare le decisioni anteriori.
+
+La prova materiale locale della UI e del flusso di revisione resta da registrare
+in questo dossier dopo l'esecuzione sulla copia Docker reale `127.0.0.1:8080`.
+
+### Chiusura prova locale 24/08/2026 — catalogo SQL e lettore interno
+
+La prova è stata eseguita sulla copia Docker reale già autenticata
+`http://127.0.0.1:8080`, nel fascicolo di prova `DD242366`. L'inventario di 14
+documenti è rimasto interamente ancorato al fascicolo: tutte le assegnazioni,
+evidenze e revisioni sono SQL tenant-aware; non è stato letto un JSON come fonte
+di verità né avviata una scansione ricorsiva runtime.
+
+Risultato osservato: in assenza di area, branca e sottofamiglia verificabili,
+tutti i documenti sono esposti con revisione richiesta. È il comportamento
+corretto, non un errore: una conferma automatica avrebbe trasformato una
+proposta tecnica in certezza giuridica fittizia. Il caso
+`Attestazione_di_conformita_1025_2026.pdf` è stato riclassificato usando il
+nome verificabile e viene mostrato come `Attestazione di conformità` con
+profilo da definire, anziché come sentenza per effetto di OCR ambiguo.
+
+Con click reale sono stati provati aggiornamento, apertura e chiusura del
+`Decreto_28162803.pdf.p7m` nel lettore interno. Nel reader sono comparsi
+download e controlli di adattamento/zoom; hover e focus da tastiera del
+controllo di apertura hanno conservato etichetta, contrasto e outline. Lo
+scroll ha raggiunto sia il fondo sia l'inizio del pannello e, alla larghezza
+reale disponibile di 891 px, non è risultato overflow orizzontale.
+
+La replica PostgreSQL del contratto SQL è stata verificata contro PostgreSQL 16
+effimero con migrazioni, scritture batch e snapshot fonti; l'ambiente di prova è
+stato rimosso. I test mirati coprono idempotenza per hash/versione, storico
+revisioni, assenza di estrazioni ripetute e mancata ri-esecuzione del processo
+Lex per un aggiornamento invariato. La pagina resta quindi orientata al
+fascicolo, senza duplicare il documento originale o uscire dal lettore interno.
+
+Dopo la ricostruzione finale del container locale `iusentra-app`, healthy su
+porta 8080, la medesima prova con click reale è stata ripetuta: aggiornamento
+abilitato a fine richiesta, tipo dell'attestazione invariato e lettore P7M
+aperto/richiuso senza uscire da IUSENTRA.

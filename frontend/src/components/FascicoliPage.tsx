@@ -8715,11 +8715,20 @@ function renderActivityText(value: string): ReactNode {
   })
 }
 
+function activityTypeLabel(value: string): string {
+  const text = normaliseText(value).replaceAll('_', ' ')
+  return text ? `${text.slice(0, 1).toLocaleUpperCase('it-IT')}${text.slice(1).toLocaleLowerCase('it-IT')}` : 'Evento'
+}
+
 function ActivityRow({ activity, onPreview }:{activity:FascicoloActivity; onPreview?:(preview:PreviewDocument)=>void}) {
   const resultText = normaliseText(activity.result)
-  const readOnlySystemEvent = Boolean(activity.readOnly || activity.sourceIsDerived)
+  const sourceDerived = Boolean(activity.sourceIsDerived)
+  const readOnlySystemEvent = Boolean(activity.readOnly || sourceDerived)
+  const typeLabel = activityTypeLabel(activity.type)
+  const displayTitle = sourceDerived ? `${typeLabel} rilevata dal documento` : activity.title
+  const displayDescription = sourceDerived ? '' : activity.description
   const badgeText = readOnlySystemEvent
-    ? (activity.type || 'Evento estratto')
+    ? (sourceDerived ? 'Rilevazione' : activity.type || 'Evento estratto')
     : !resultText || /non applicabile/.test(resultText)
     ? (activity.type || 'Evento')
     : depositStatusLabel(activity.result)
@@ -8737,9 +8746,11 @@ function ActivityRow({ activity, onPreview }:{activity:FascicoloActivity; onPrev
     <article className="iu-fas-activity-row">
       <div className="iu-fas-activity-date"><Badge tone={activity.tone}>{badgeText}</Badge><time>{activity.date || 'n.d.'}</time></div>
       <div className="iu-fas-activity-main">
-        <strong>{activity.title}</strong>
+        <strong>{displayTitle}</strong>
+        {sourceDerived ? <span className="iu-fas-activity-derived">Rilevazione dal contenuto: consulta la fonte prima di agire.</span> : null}
         {metaLine ? <span>{metaLine}</span> : null}
-        {activity.description ? <p>{renderActivityText(activity.description)}</p> : null}
+        {sourceDerived ? <p className="iu-fas-activity-derived-summary">Informazione estratta dal contenuto indicizzato: il passaggio verificabile è riportato nella fonte qui sotto.</p> : null}
+        {displayDescription ? <p>{renderActivityText(displayDescription)}</p> : null}
         {activity.notes ? <em>{renderActivityText(activity.notes)}</em> : null}
         {activity.sourceDocumentHref ? (
           <section className="iu-fas-activity-source" aria-label="Fonte documentale dell'informazione">

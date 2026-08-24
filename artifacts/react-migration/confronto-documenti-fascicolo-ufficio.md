@@ -658,3 +658,17 @@ documenti reali con il medesimo comando di anteprima; nessuna notifica,
 deposito, firma o trasmissione PEC è stata avviata durante la prova. La prova
 copre il lettore interno e l'azione di download locale; non sostituisce i
 collaudi successivi della firma, della busta o dell'invio dal PC dell'avvocato.
+
+## Aggiornamento 24/08/2026 — cronologia derivata dal contenuto
+
+Le attività che derivano dal contenuto indicizzato di un documento non sono
+azioni pendenti dello studio. Nella superficie React la riga è pertanto
+esplicitamente in sola lettura: mostra tipo, titolo `… rilevata dal documento`,
+fonte apribile e passaggio letto, senza selettore di esito, `Salva` o
+`Elimina`. Il modulo separato di inserimento manuale conserva invece gli stati
+gestibili perché rappresenta attività create dall'avvocato.
+
+La modifica non altera deposito, firma, notifica, catalogazione, dati SQL o
+connettori PST/PolisWeb. È stata provata nella copia Docker reale
+`http://127.0.0.1:8080`, fascicolo `DC5BF1DB`, con consultazione visiva della
+cronologia e senza alcuna mutazione di eventi o documenti.

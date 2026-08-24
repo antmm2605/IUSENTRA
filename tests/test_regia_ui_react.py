@@ -931,10 +931,16 @@ def test_attivita_react_rende_apribile_la_fonte_documentale_nel_lettore_interno(
     assert "Apri fonte" in source
     assert "onPreview={setPreviewDoc}" in source
     assert "downloadUrl: activity.sourceDocumentDownloadHref || ''" in source
-    assert "const readOnlySystemEvent = Boolean(activity.readOnly || activity.sourceIsDerived)" in source
+    assert "Rilevazione dal contenuto: consulta la fonte prima di agire." in source
+    assert "Informazione estratta dal contenuto indicizzato: il passaggio verificabile è riportato nella fonte qui sotto." in source
+    assert "const displayTitle = sourceDerived ? `${typeLabel} rilevata dal documento` : activity.title" in source
+    assert "const displayDescription = sourceDerived ? '' : activity.description" in source
+    assert "const readOnlySystemEvent = Boolean(activity.readOnly || sourceDerived)" in source
     assert "!readOnlySystemEvent && activity.updateAction" in source
     assert "!readOnlySystemEvent && activity.deleteAction" in source
     assert ".iu-fas-activity-source{display:flex" in css
+    assert ".iu-fas-activity-main .iu-fas-activity-derived{display:inline-flex" in css
+    assert ".iu-fas-activity-main .iu-fas-activity-derived-summary{margin-top:6px" in css
     assert ".iu-fas-activity-source button:focus-visible" in css
     assert "def _attivita_derivata_da_documento" in routes
     assert "senza alterarne lo stato" in routes

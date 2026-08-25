@@ -133,6 +133,54 @@ def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo
     assert react_payload["activities"] == []
 
 
+def test_consultazione_e_download_documento_producono_riscontri_audit_con_fonte(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "decreto-fonte.pdf",
+        TipoDocumento.DECRETO,
+        b"%PDF-1.4\ncontenuto controllato\n",
+        caricato_da="avvocato",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza")
+        download = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/scarica")
+        audit_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/audit")
+
+    assert preview.status_code == 200
+    assert download.status_code == 200
+    assert audit_response.status_code == 200
+    audit_payload = audit_response.get_json()["auditTrail"]
+    assert audit_payload["status"] == "operational"
+    events = audit_payload["events"]
+    assert [event["kind"] for event in events[:2]] == ["DOC_DOWNLOADED", "DOC_VIEWED"]
+    for event in events[:2]:
+        assert event["sourceDocumentId"] == doc.id
+        assert event["sourceDocumentLabel"] == "decreto-fonte.pdf"
+        assert event["sourceDocumentHref"].endswith(f"/documenti/{doc.id}/visualizza?viewer=mobile")
+        assert event["sourceDocumentDownloadHref"].endswith(f"/documenti/{doc.id}/scarica")
+
+
+def test_lettore_react_avvia_download_nativo_sulla_route_interna():
+    source = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
+    download_helper = source.split("function downloadDocumentFile", 1)[1].split("function isInternalDocumentDownload", 1)[0]
+
+    assert "anchor.href = href" in download_helper
+    assert "anchor.download = filename" in download_helper
+    assert "fetch(downloadUrl" not in download_helper
+    assert "URL.createObjectURL" not in download_helper
+
+
 def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):
     from web.app import create_app
 

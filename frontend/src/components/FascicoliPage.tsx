@@ -5425,32 +5425,19 @@ function mobilePreviewUrl(url: string): string {
   }
 }
 
-function downloadFilenameFromResponse(response: Response, fallbackName: string): string {
-  const disposition = response.headers.get('content-disposition') || ''
-  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
-  const quotedMatch = disposition.match(/filename="([^"]+)"/i)
-  const plainMatch = disposition.match(/filename=([^;]+)/i)
-  const rawName = utf8Match ? decodeURIComponent(utf8Match[1]) : (quotedMatch?.[1] || plainMatch?.[1] || fallbackName)
-  return rawName.replace(/[\\/:*?"<>|]/g, '_').trim() || fallbackName
-}
-
-async function downloadDocumentFile(downloadUrl: string, fallbackName: string): Promise<string> {
-  const response = await fetch(downloadUrl, { credentials: 'same-origin', headers: { Accept: 'application/octet-stream' } })
-  if (!response.ok) throw new Error(`Download non riuscito: il server ha risposto ${response.status}.`)
-  const contentType = (response.headers.get('content-type') || '').toLowerCase()
-  if (contentType.includes('text/html')) throw new Error('Download non riuscito: il server non ha restituito il file richiesto.')
-  const payload = await response.blob()
-  if (!payload.size) throw new Error('Download non riuscito: il file restituito è vuoto.')
-  const objectUrl = URL.createObjectURL(payload)
+function downloadDocumentFile(downloadUrl: string, fallbackName: string): string {
+  const href = downloadUrl.trim()
+  if (!href) throw new Error('Download non disponibile: manca il collegamento al documento.')
+  const filename = fallbackName.replace(/[\\/:*?"<>|]/g, '_').trim() || 'documento'
   const anchor = document.createElement('a')
-  const filename = downloadFilenameFromResponse(response, fallbackName)
-  anchor.href = objectUrl
+  // Il browser usa direttamente la route interna autorizzata: il lettore non
+  // dipende da fetch/blob e il download conserva il nome dato dal server.
+  anchor.href = href
   anchor.download = filename
   anchor.style.display = 'none'
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
   return filename
 }
 
@@ -9148,7 +9135,7 @@ function OperationalPresidioPanel({ data, onOpenSector }:{data:FascicoloDetailDa
 
 function formatAuditDate(value: string) {
   if (!value) return 'n.d.'
-  return formatDateTimeIt(value, value, { includeTimezone: true })
+  return formatDateTimeIt(value, value)
 }
 
 function copyAuditHash(value: string) {
@@ -9205,22 +9192,24 @@ function SentenzeEconomicheSection({
   )
 }
 
-function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, loading = false, defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; loading?:boolean; defaultOpen?:boolean}) {
+function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPreview, loading = false, defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onPreview:(preview:PreviewDocument)=>void; loading?:boolean; defaultOpen?:boolean}) {
   const hasEvents = audit.events.length > 0
   const effectiveBundleHref = audit.enabled && hasEvents ? (audit.actions.bundle || bundleHref) : ''
-  const operationalOnly = audit.status === 'operational'
+  const legalEvents = audit.events.filter((event) => !event.operational)
+  const hasLegalEvidence = legalEvents.length > 0
+  const operationalOnly = !hasLegalEvidence && audit.status === 'operational'
   return (
     <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} defaultOpen={defaultOpen} onOpen={onOpen}>
       {loading ? <p className="iu-empty">Caricamento audit...</p> : null}
       {hasEvents ? (
         <>
           {audit.message ? <p className="iu-fas-audit-context"><Badge tone={operationalOnly ? 'info' : 'neutral'}>{operationalOnly ? 'Registro operativo' : 'Presidio probatorio'}</Badge>{audit.message}</p> : null}
-          <div className="iu-fas-audit-summary">
-            <span><Badge tone={audit.summary.signed === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
-            <span><Badge tone={audit.summary.worm === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
+          {hasLegalEvidence ? <div className="iu-fas-audit-summary">
+            <span><Badge tone={audit.summary.signed === legalEvents.length && legalEvents.length ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
+            <span><Badge tone={audit.summary.worm === legalEvents.length && legalEvents.length ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
             <span><Badge tone={audit.summary.snapshotted ? 'success' : 'neutral'}>{audit.summary.snapshotted}</Badge><strong>In snapshot</strong></span>
             <span><Badge tone={audit.summary.tsaVerified ? 'success' : 'neutral'}>{audit.summary.tsaVerified}</Badge><strong>TSA verificata</strong></span>
-          </div>
+          </div> : null}
           <div className="iu-fas-audit-actions">
             {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica bundle fascicolo</a> : null}
           </div>
@@ -9228,8 +9217,8 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, loading
       ) : !loading ? (
         <div className="iu-fas-empty-action">
           <Badge tone={audit.enabled ? 'warning' : 'neutral'}>{audit.enabled ? 'Nessuna evidenza' : 'Da configurare'}</Badge>
-          <strong>{audit.enabled ? 'Nessun evento probatorio registrato per questo fascicolo.' : 'Presidio probatorio non attivo per questo studio.'}</strong>
-          <p>{audit.message || (audit.enabled ? 'Le evidenze audit nascono quando il fascicolo registra consultazioni, download, depositi, ricevute o pacchetti probatori.' : 'Attivare il presidio audit prima di usare il bundle come prova operativa.')}</p>
+          <strong>{audit.enabled ? 'Nessun riscontro operativo o probatorio registrato per questo fascicolo.' : 'Presidio probatorio non attivo per questo studio.'}</strong>
+          <p>{audit.message || (audit.enabled ? 'Le consultazioni e i download compaiono qui dopo l’azione; firme, ricevute e pacchetti probatori restano tracciati separatamente.' : 'Attivare il presidio audit prima di usare il bundle come prova operativa.')}</p>
           <div>
             <a href="#documenti" onClick={onOpenDocuments}><FileText size={14}/> Apri documenti e registra una verifica</a>
             {audit.enabled ? <span>Il bundle si abilita dopo il primo evento registrato.</span> : null}
@@ -9255,7 +9244,8 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, loading
             </div>
             <div className="iu-fas-actions iu-fas-actions--wrap">
               {event.eventHash ? <button type="button" title="Copia impronta completa" onClick={() => copyAuditHash(event.eventHash)}><Copy size={15}/></button> : null}
-              {event.proofHref ? <a href={event.proofHref} title="Scarica prova"><Download size={15}/></a> : null}
+              {event.sourceDocumentHref ? <button type="button" className="iu-fas-inline-link" onClick={() => onPreview({ name: event.sourceDocumentLabel || 'Documento del fascicolo', url: event.sourceDocumentHref || '', downloadUrl: event.sourceDocumentDownloadHref || '' })}><Eye size={14}/> Apri documento</button> : null}
+              {event.proofHref ? <a href={event.proofHref} title="Scarica prova"><Download size={15}/> Apri riscontro</a> : null}
             </div>
           </article>
         ))}
@@ -9644,7 +9634,7 @@ function DetailPage({ id }:{id:string}) {
             </div>
           </DetailSection>
           <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong><span>{item.from} → {item.to}</span><p>{item.notes}</p></article>)}{!data.history.length ? <div className="iu-fas-empty-action"><Badge tone="neutral">Nessun evento</Badge><strong>Nessun avanzamento registrato.</strong><p>Registra l'attività o una scadenza effettiva: lo storico del fascicolo verrà aggiornato con data, autore ed esito.</p><div><a href="#attivita" onClick={openSection('attivita', 'attivita')}><ListChecks size={14}/> Registra attività processuale</a><a href="#udienze" onClick={openSection('udienze', 'scadenze')}><CalendarDays size={14}/> Registra udienza o termine</a></div></div> : null}</div></DetailSection>
-          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} onOpenDocuments={openSection('documenti', 'documenti')} loading={lazyStatus.audit === 'loading'} defaultOpen={activeHashSection === 'audit'}/>
+          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} loading={lazyStatus.audit === 'loading'} defaultOpen={activeHashSection === 'audit'}/>
         </div>
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>} defaultOpen={activeHashSection === 'gestione'}>

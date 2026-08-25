@@ -1640,6 +1640,9 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-audit-badges{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
 .iu-fas-audit-row .iu-fas-actions{justify-content:flex-end}
 .iu-fas-audit-row .iu-fas-actions button,.iu-fas-audit-row .iu-fas-actions a{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:var(--iu-slate-700)}
+.iu-fas-audit-row .iu-fas-actions button.iu-fas-inline-link{width:auto;min-height:32px;height:32px;display:inline-flex;gap:6px;padding:0 10px;color:var(--iu-blue-700);font-size:11px;font-weight:900;white-space:nowrap;cursor:pointer}
+.iu-fas-audit-row .iu-fas-actions button.iu-fas-inline-link:hover{border-color:rgba(37,99,235,.45);background:rgba(239,246,255,.82)}
+.iu-fas-audit-row .iu-fas-actions button.iu-fas-inline-link:focus-visible{outline:3px solid rgba(37,99,235,.25);outline-offset:2px}
 @media(max-width:900px){
   .iu-fas-add-activity{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-fas-add-activity textarea{grid-column:1/-1}

@@ -396,12 +396,26 @@ def _audit_summary(events: Iterable[dict[str, Any]]) -> dict[str, int]:
     }
 
 
-def _merge_practice_audit(payload: dict[str, Any], rows: Iterable[Any]) -> dict[str, Any]:
+def _merge_practice_audit(
+    fascicolo_id: str,
+    audit_payload: dict[str, Any],
+    rows: Iterable[Any],
+) -> dict[str, Any]:
     """Aggiunge lo storico SQL operativo senza spacciarlo per prova WORM."""
     operational_events: list[dict[str, Any]] = []
     for row in rows or []:
         event_id = _text(getattr(row, "id", ""))
         kind = _text(getattr(row, "event_type", ""))
+        raw_event_payload = getattr(row, "payload", {})
+        event_payload = raw_event_payload if isinstance(raw_event_payload, dict) else {}
+        document_id = _text(event_payload.get("document_id"))
+        document_name = _text(event_payload.get("document_name"))
+        source_href = ""
+        source_download_href = ""
+        if document_id:
+            document_base = f"/fascicoli/{quote(fascicolo_id)}/documenti/{quote(document_id)}"
+            source_href = f"{document_base}/visualizza?viewer=mobile"
+            source_download_href = f"{document_base}/scarica"
         operational_events.append(
             {
                 "eventId": f"practice:{event_id}" if event_id else f"practice:{len(operational_events)}",
@@ -422,20 +436,32 @@ def _merge_practice_audit(payload: dict[str, Any], rows: Iterable[Any]) -> dict[
                 "message": _text(getattr(row, "message", "")),
                 "reason": _text(getattr(row, "reason", "")),
                 "operational": True,
+                "sourceDocumentId": document_id,
+                "sourceDocumentLabel": document_name,
+                "sourceDocumentHref": source_href,
+                "sourceDocumentDownloadHref": source_download_href,
             }
         )
     if not operational_events:
-        return payload
-    legal_events = list(payload.get("events") or [])
+        return audit_payload
+    legal_events = list(audit_payload.get("events") or [])
     events = sorted(
         [*legal_events, *operational_events],
         key=lambda item: (_text(item.get("eventTsUtc")), _text(item.get("eventId"))),
         reverse=True,
     )
     if legal_events:
-        return {**payload, "events": events, "summary": _audit_summary(events)}
+        legal_summary = _audit_summary(legal_events)
+        return {
+            **audit_payload,
+            "events": events,
+            "summary": {
+                **legal_summary,
+                "total": len(events),
+            },
+        }
     return {
-        **payload,
+        **audit_payload,
         "enabled": True,
         "available": True,
         "status": "operational",
@@ -8491,12 +8517,17 @@ def build_react_fascicolo_detail_payload(
         "istanze": len(visible_requests),
         "relata_notifica": relata_count,
     }
-    practice_audit = _safe(
-        "practice_audit",
-        lambda: get_practice_engine().list_audit(fid),
-        [],
-    ) if load_audit and get_practice_engine else []
+    practice_audit: list[Any] = []
+    if load_audit and get_practice_engine:
+        try:
+            practice_audit = list(get_practice_engine().list_audit(fid) or [])
+        except Exception:
+            current_app.logger.exception(
+                "Audit operativo del fascicolo non leggibile per %s",
+                fid,
+            )
     audit_trail = _merge_practice_audit(
+        fid,
         _audit_trail(fid) if load_audit else _audit_trail_placeholder(),
         practice_audit,
     )

@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DtKHYBe2.js";export{e as ImpostazioniPage};

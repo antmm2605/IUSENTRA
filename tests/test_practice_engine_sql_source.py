@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from pct.practice_engine import PracticeEngineRepository, get_profile
 from web.services.react_fascicoli_bridge import _merge_practice_audit
@@ -146,6 +147,7 @@ def test_practice_audit_is_visible_as_operational_not_probatory_evidence(tmp_pat
     repository.apply_profile("FASCICOLO-AUDIT", profile, actor="avv.test", reason="Conferma esplicita")
 
     merged = _merge_practice_audit(
+        "FASCICOLO-AUDIT",
         {
             "enabled": False,
             "available": False,
@@ -162,3 +164,42 @@ def test_practice_audit_is_visible_as_operational_not_probatory_evidence(tmp_pat
     assert merged["summary"]["total"] == 1
     assert merged["events"][0]["kindLabel"] == "Profilo procedurale confermato"
     assert merged["events"][0]["operational"] is True
+
+
+def test_practice_audit_document_source_preserves_legal_summary():
+    merged = _merge_practice_audit(
+        "FASCICOLO-FONTE",
+        {
+            "enabled": True,
+            "available": True,
+            "status": "ready",
+            "message": "",
+            "events": [
+                {
+                    "eventId": "worm:1",
+                    "signed": True,
+                    "worm": True,
+                    "inSnapshot": True,
+                    "tsaVerified": True,
+                }
+            ],
+            "summary": {"total": 1, "signed": 1, "worm": 1, "snapshotted": 1, "tsaVerified": 1},
+            "actions": {"bundle": "/registro/bundle/fascicolo/FASCICOLO-FONTE"},
+        },
+        [
+            SimpleNamespace(
+                id="operativo-1",
+                event_type="DOC_VIEWED",
+                created_at="2026-08-25T08:00:00Z",
+                message="Documento consultato: decreto.pdf",
+                reason="",
+                payload={"document_id": "DOC-1", "document_name": "decreto.pdf"},
+            )
+        ],
+    )
+
+    assert merged["status"] == "ready"
+    assert merged["summary"] == {"total": 2, "signed": 1, "worm": 1, "snapshotted": 1, "tsaVerified": 1}
+    operational = next(event for event in merged["events"] if event["operational"])
+    assert operational["sourceDocumentHref"] == "/fascicoli/FASCICOLO-FONTE/documenti/DOC-1/visualizza?viewer=mobile"
+    assert operational["sourceDocumentDownloadHref"] == "/fascicoli/FASCICOLO-FONTE/documenti/DOC-1/scarica"

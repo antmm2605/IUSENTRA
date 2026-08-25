@@ -47,6 +47,7 @@ def register_fascicoli_surfaces(
         app,
         get_fascicoli=core["get_fascicoli"],
         get_indice=core["get_indice"],
+        get_practice_engine=core["get_practice_engine"],
         audit=core["audit"],
         salva_documento_fascicolo=fascicoli["salva_documento_fascicolo"],
         portale_ufficiale_label=fascicoli["portale_ufficiale_label"],

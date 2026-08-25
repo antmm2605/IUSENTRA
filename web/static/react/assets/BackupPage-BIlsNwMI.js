@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-_Fkk3ib3.js";import{t}from"./ImpostazioniPage-DRMeCQrr.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

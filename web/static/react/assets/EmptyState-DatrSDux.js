@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-_Fkk3ib3.js";import{C as t}from"./iusentra-B5Xp17F6.js";/* empty css           */var n=e();function r({title:e,message:r,action:i}){return(0,n.jsx)(t,{title:e,message:r,action:i,className:`iu-empty-state`})}export{r as t};

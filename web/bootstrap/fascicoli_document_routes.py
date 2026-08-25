@@ -36,6 +36,7 @@ def register_fascicoli_document_routes(
     *,
     get_fascicoli: Callable[[], Any],
     get_indice: Callable[[], Any],
+    get_practice_engine: Callable[[], Any],
     audit: Callable[..., None],
     salva_documento_fascicolo: Callable[..., Any],
     portale_ufficiale_label: Callable[[Any], str],
@@ -54,6 +55,45 @@ def register_fascicoli_document_routes(
     applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
+    def _record_document_operational_audit(
+        *,
+        fascicolo_id: str,
+        document_id: str,
+        documento: Any,
+        event_type: str,
+    ) -> None:
+        """Registra un riscontro SQL di consultazione senza fingere prova WORM."""
+        try:
+            utente = getattr(g, "utente_corrente", None)
+            actor = str(
+                getattr(utente, "username", "")
+                or getattr(utente, "id", "")
+                or ""
+            ).strip()
+            nome = str(getattr(documento, "nome", "") or "Documento del fascicolo").strip()
+            action = "download" if event_type == "DOC_DOWNLOADED" else "view"
+            label = "Documento scaricato" if action == "download" else "Documento consultato"
+            get_practice_engine().audit(
+                str(fascicolo_id or ""),
+                event_type,
+                actor=actor,
+                message=f"{label}: {nome}",
+                payload={
+                    "document_id": str(document_id or ""),
+                    "document_name": nome,
+                    "source_action": action,
+                },
+            )
+        except Exception as exc:
+            # Il documento già autorizzato deve restare fruibile anche se il
+            # solo registro operativo è temporaneamente indisponibile.
+            app.logger.warning(
+                "Audit operativo documento non registrato %s/%s: %s",
+                fascicolo_id,
+                document_id,
+                exc,
+            )
+
     def _indicizza_documento_lex(
         *,
         id_fasc: str,
@@ -410,6 +450,12 @@ def register_fascicoli_document_routes(
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
             download_name = nome_documento_operativo(documento, percorso, data)
+            _record_document_operational_audit(
+                fascicolo_id=id_fasc,
+                document_id=id_doc,
+                documento=documento,
+                event_type="DOC_DOWNLOADED",
+            )
             audit("fascicoli.documento.scarica", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
             return send_file(io.BytesIO(data), as_attachment=True, download_name=download_name)
         except Exception as exc:
@@ -427,6 +473,12 @@ def register_fascicoli_document_routes(
             data = decrypt_doc(percorso.read_bytes())
             operational_name = nome_documento_operativo(documento, percorso, data)
             if payload_bool(request.args.get("download"), False):
+                _record_document_operational_audit(
+                    fascicolo_id=id_fasc,
+                    document_id=id_doc,
+                    documento=documento,
+                    event_type="DOC_DOWNLOADED",
+                )
                 audit(
                     "fascicoli.documento.scarica",
                     "fascicolo",
@@ -451,6 +503,12 @@ def register_fascicoli_document_routes(
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
                 if preview_document.unavailable_reason:
                     return preview_unavailable_html(operational_name, scarica_url)
+                _record_document_operational_audit(
+                    fascicolo_id=id_fasc,
+                    document_id=id_doc,
+                    documento=documento,
+                    event_type="DOC_VIEWED",
+                )
                 audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {documento.nome}")
                 return send_file(
                     io.BytesIO(preview_document.data),
@@ -490,6 +548,13 @@ def register_fascicoli_document_routes(
                 audit=audit,
             )
             if mobile_response is not None:
+                if not request.args.get("page"):
+                    _record_document_operational_audit(
+                        fascicolo_id=id_fasc,
+                        document_id=id_doc,
+                        documento=documento,
+                        event_type="DOC_VIEWED",
+                    )
                 return mobile_response
 
             preview = mime_preview_documento(preview_name, preview_payload)
@@ -524,7 +589,20 @@ def register_fascicoli_document_routes(
                     audit=audit,
                 )
                 if mobile_response is not None:
+                    if not request.args.get("page"):
+                        _record_document_operational_audit(
+                            fascicolo_id=id_fasc,
+                            document_id=id_doc,
+                            documento=documento,
+                            event_type="DOC_VIEWED",
+                        )
                     return mobile_response
+            _record_document_operational_audit(
+                fascicolo_id=id_fasc,
+                document_id=id_doc,
+                documento=documento,
+                event_type="DOC_VIEWED",
+            )
             audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
             return send_file(
                 io.BytesIO(preview_payload),

@@ -565,6 +565,10 @@ export type FascicoloAuditEvent = {
   message?: string
   reason?: string
   operational?: boolean
+  sourceDocumentId?: string
+  sourceDocumentLabel?: string
+  sourceDocumentHref?: string
+  sourceDocumentDownloadHref?: string
 }
 
 export type FascicoloAuditTrail = {
@@ -2056,6 +2060,13 @@ function normalizeAuditTrail(value: unknown): FascicoloAuditTrail {
         tsaVerified: bool(row.tsaVerified ?? row.tsa_verified),
         tone: text(row.tone, 'primary') as Tone,
         proofHref: text(row.proofHref ?? row.proof_href),
+        message: text(row.message),
+        reason: text(row.reason),
+        operational: bool(row.operational),
+        sourceDocumentId: text(row.sourceDocumentId ?? row.source_document_id),
+        sourceDocumentLabel: text(row.sourceDocumentLabel ?? row.source_document_label),
+        sourceDocumentHref: text(row.sourceDocumentHref ?? row.source_document_href),
+        sourceDocumentDownloadHref: text(row.sourceDocumentDownloadHref ?? row.source_document_download_href),
       }
     }),
     summary: {

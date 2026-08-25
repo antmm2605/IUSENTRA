@@ -5,7 +5,7 @@ import type { SettingsPayload } from '../types'
 export function SettingsSummary({ data }: { data: SettingsPayload }) {
   const configured = data.sections.filter((section) => section.tone === 'success').length
   return (
-    <aside className="iu-settings-summary" aria-label="Riepilogo impostazioni">
+    <aside id="settings-summary" className="iu-settings-summary" aria-label="Riepilogo impostazioni">
       <header>
         <ShieldCheck />
         <div>

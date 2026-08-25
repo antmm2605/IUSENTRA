@@ -4,7 +4,8 @@ IUSENTRA Local Signer — Build cross-platform da Linux/macOS/Windows.
 
 Genera in tools/dist/:
   - SetupLocalSigner-<versione>.exe        Windows piccolo con builder IExpress storico
-  - InstallaLocalSigner-<versione>.command macOS  online  (download dal server)
+  - IUSENTRA-LocalSigner-<versione>.dmg     macOS (generato nativamente su macOS)
+  - InstallaLocalSigner-<versione>.command  macOS, ripiego online controllato
   - InstallaLocalSigner-<versione>.run     Linux  online  (download dal server)
   - LocalSigner-<versione>.txt             release note
 
@@ -46,6 +47,7 @@ LOCAL_SIGNER_MOD_DIR = REPO_DIR / "local_signer_mod"
 VISIBLE_SIGNATURE_PY = REPO_DIR / "visible_signature.py"
 IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
 WINDOWS_NATIVE_BUILDER = TOOLS_DIR / "build_local_signer_windows_exe.ps1"
+MACOS_DMG_BUILDER = TOOLS_DIR / "build_local_signer_macos_dmg.sh"
 
 BASE_URL_DEFAULT  = "https://app.iusentra.it"
 DOWNLOAD_PAGE     = f"{BASE_URL_DEFAULT}/impostazioni?tab=firma"
@@ -351,6 +353,26 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici-pst-pubblici" -o "$D
     """)
 
 
+def build_macos_dmg(version: str, command_path: Path) -> Path | None:
+    """Crea il DMG Finder soltanto su macOS, dove hdiutil e' disponibile."""
+    if sys.platform != "darwin":
+        return None
+    if not MACOS_DMG_BUILDER.exists():
+        raise FileNotFoundError(f"Builder DMG macOS non trovato: {MACOS_DMG_BUILDER}")
+    if not command_path.exists():
+        raise FileNotFoundError(f"Installer macOS non trovato: {command_path}")
+
+    dmg_path = DIST_DIR / f"IUSENTRA-LocalSigner-{version}.dmg"
+    subprocess.run(
+        ["/bin/bash", str(MACOS_DMG_BUILDER), version, str(command_path), str(dmg_path)],
+        cwd=str(REPO_DIR),
+        check=True,
+    )
+    if not dmg_path.exists() or dmg_path.stat().st_size == 0:
+        raise RuntimeError(f"Build DMG completata senza generare {dmg_path}")
+    return dmg_path
+
+
 def build_linux_run(version: str, base_url: str) -> str:
     allowed_origins = ",".join(sorted({
         "http://127.0.0.1:8080",
@@ -429,7 +451,7 @@ def build_release_note(version: str) -> str:
         f"IUSENTRA Local Signer\n"
         f"Versione: {version}\n"
         f"Generato: {now}\n"
-        f"Piattaforme: Windows (EXE piccolo IExpress), macOS (.command), Linux (.run)\n"
+        f"Piattaforme: Windows (EXE IExpress), macOS (.dmg quando generato su Mac; .command di ripiego), Linux (.run)\n"
         f"Ponte PEC locale: test SMTP e invio dal PC dello studio\n"
         f"Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT\n"
         f"Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali\n"
@@ -514,11 +536,15 @@ def main() -> None:
     print(f"  Output:   {DIST_DIR}")
     print()
 
-    # macOS
+    # macOS: il .command e' sempre mantenuto nel DMG come installatore leggibile
+    # e serve da ripiego quando il rilascio viene prodotto fuori da macOS.
     mac_path = DIST_DIR / f"InstallaLocalSigner-{version}.command"
     mac_path.write_text(build_macos_command(version, base_url), encoding="utf-8")
     mac_path.chmod(0o755)
     print(f"  [OK] macOS   : {mac_path.name}")
+    dmg_path = build_macos_dmg(version, mac_path)
+    if dmg_path is not None:
+        print(f"  [OK] macOS   : {dmg_path.name}  ({dmg_path.stat().st_size // 1024}KB)")
 
     # Linux
     linux_path = DIST_DIR / f"InstallaLocalSigner-{version}.run"

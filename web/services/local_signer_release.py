@@ -23,11 +23,12 @@ def latest_local_signer_release() -> dict[str, str]:
     match = re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
     version = match.group(1) if match else "n.d."
 
+    macos_dmg = tools_dir / "dist" / f"IUSENTRA-LocalSigner-{version}.dmg"
     return {
         "version": version,
         "browser_url": LOCAL_SIGNER_BROWSER_URL,
         "download_page": "/impostazioni?tab=firma",
         "windows_filename": f"SetupLocalSigner-{version}.exe",
-        "macos_filename": f"InstallaLocalSigner-{version}.command",
+        "macos_filename": macos_dmg.name if macos_dmg.exists() else f"InstallaLocalSigner-{version}.command",
         "linux_filename": f"InstallaLocalSigner-{version}.run",
     }

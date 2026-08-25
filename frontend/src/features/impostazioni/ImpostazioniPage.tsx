@@ -1,4 +1,5 @@
-import { AlertTriangle, RefreshCw, Settings2 } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, MonitorCheck, RefreshCw, Settings2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -30,6 +31,7 @@ function SectionBadge({ section }: { section: SettingsSection }) {
 
 export function ImpostazioniPage() {
   const settings = useImpostazioni()
+  const [summaryVisible, setSummaryVisible] = useState(true)
   const canUpdate = settings.data.permissions.can_update
   const rawValues = rawPayloadForSection(settings.data, settings.activeSection)
 
@@ -40,10 +42,22 @@ export function ImpostazioniPage() {
       icon={Settings2}
       tone="primary"
       actions={
-        <Button type="button" variant="outline" onClick={settings.load}>
-          <RefreshCw data-icon="inline-start" />
-          Aggiorna
-        </Button>
+        <div className="iu-settings-page__actions">
+          <Button
+            type="button"
+            variant="outline"
+            aria-pressed={!summaryVisible}
+            aria-controls="settings-summary"
+            onClick={() => setSummaryVisible((visible) => !visible)}
+          >
+            <MonitorCheck data-icon="inline-start" />
+            {summaryVisible ? 'Schermo intero' : 'Mostra riepilogo'}
+          </Button>
+          <Button type="button" variant="outline" onClick={settings.load}>
+            <RefreshCw data-icon="inline-start" />
+            Aggiorna
+          </Button>
+        </div>
       }
       className="iu-settings-page"
     >
@@ -56,7 +70,7 @@ export function ImpostazioniPage() {
       ) : null}
 
       {!settings.loading && settings.data.ok ? (
-        <div className="iu-settings-layout">
+        <div className={`iu-settings-layout${summaryVisible ? '' : ' iu-settings-layout--wide'}`}>
           <section className="iu-settings-main">
             {settings.message ? (
               <Alert className="iu-settings-alert is-success">
@@ -160,7 +174,7 @@ export function ImpostazioniPage() {
             </Tabs>
           </section>
 
-          <SettingsSummary data={settings.data} />
+          {summaryVisible ? <SettingsSummary data={settings.data} /> : null}
         </div>
       ) : null}
 

@@ -40,6 +40,14 @@ import {
 } from '../telematicoSurfacesData'
 import type { Tone } from '../data'
 import { formatDateTimeIt } from '../formatting'
+import {
+  PST_EVENT_CLASSIFICATIONS,
+  PST_ROLE_OPTIONS,
+  pstAutomaticSchemasForOffice,
+  pstRegistryOptionForSchema,
+  resolvedPstDocumentMode,
+  uniquePstValues,
+} from '../features/telematico/pstImportParity'
 import './TelematicoSurfacePage.css'
 
 const iconMap: Record<string, LucideIcon> = {
@@ -115,6 +123,7 @@ type AcquisitionQuery = {
   tabellaMinisteriale: string
   servizioPstPreferito: string
   registroPortale: string
+  ruoloPolisweb: string
 }
 
 type AcquisitionFile = {
@@ -593,6 +602,31 @@ function writeStoredRecord(key: string, value: JsonRecord | null) {
   }
 }
 
+const PST_SILENT_RETRY_QUERY_PARAMS = [
+  'oggetto',
+  'materia',
+  'registro',
+  'schema',
+  'tabella',
+  'tabella_ministeriale',
+  'servizio_pst',
+  'servizio_pst_preferito',
+  'registro_portale',
+  'quick_filter',
+  'auto_pst_test',
+]
+
+function silentPstRetryHref(value: string): string {
+  try {
+    const url = new URL(value, window.location.origin)
+    if (url.pathname !== '/portali/pst/acquisizione') return value
+    PST_SILENT_RETRY_QUERY_PARAMS.forEach((key) => url.searchParams.delete(key))
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return value
+  }
+}
+
 function normaliseAcquisitionHistoryEvent(value: unknown): AcquisitionHistoryEvent | null {
   const row = asRecord(value)
   const href = asText(row.href)
@@ -604,7 +638,7 @@ function normaliseAcquisitionHistoryEvent(value: unknown): AcquisitionHistoryEve
     title,
     subtitle: asText(row.subtitle),
     timestamp: asText(row.timestamp),
-    href,
+    href: silentPstRetryHref(href),
     tone: asText(row.tone, 'warning') as Tone,
     badge: asText(row.badge, 'Riprova'),
     local: row.local !== false,
@@ -656,19 +690,23 @@ function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: 
   add('ufficio_codice', query.ufficioCodice)
   add('numero', query.numero)
   add('anno', query.anno)
-  add('oggetto', query.oggetto)
-  add('materia', query.materia)
-  add('registro', query.registro)
-  add('schema', query.schema)
-  add('tabella_ministeriale', query.tabellaMinisteriale)
-  add('servizio_pst_preferito', query.servizioPstPreferito)
-  add('registro_portale', query.registroPortale)
+  if (portal === 'pst') {
+    add('ruolo_polisweb', query.ruoloPolisweb)
+    add('assistito', query.assistito)
+    add('controparte', query.controparte)
+    add('cf', query.cf)
+  } else {
+    add('oggetto', query.oggetto)
+    add('materia', query.materia)
+    add('registro', query.registro)
+    add('schema', query.schema)
+    add('tabella_ministeriale', query.tabellaMinisteriale)
+    add('servizio_pst_preferito', query.servizioPstPreferito)
+    add('registro_portale', query.registroPortale)
+  }
   if (mapping.target_fascicolo_id) {
     params.set('fascicolo_id', mapping.target_fascicolo_id)
     params.set('mode', mapping.mode === 'create_new' ? 'update_existing' : mapping.mode)
-  }
-  if (portal === 'pst' && query.numero && query.anno && (query.ufficio || query.ufficioCodice)) {
-    params.set('auto_pst_test', '1')
   }
   const queryString = params.toString()
   return `/portali/${encodeURIComponent(portal)}/acquisizione${queryString ? `?${queryString}` : ''}#wizard-acquisizione`
@@ -1113,13 +1151,14 @@ function acquisitionInitialQuery(): AcquisitionQuery {
     assistito: asText(params.get('assistito')),
     controparte: asText(params.get('controparte')),
     cf: asText(params.get('cf') || params.get('codice_fiscale')),
-    oggetto: asText(params.get('oggetto') || materia || documento),
+    oggetto: asText(params.get('oggetto') || documento),
     materia: asText(materia || cached.materia),
     registro: asText(registro || cached.registro),
     schema,
     tabellaMinisteriale: asText(params.get('tabella_ministeriale') || profile.tabella_ministeriale || cached.tabella_ministeriale),
     servizioPstPreferito: asText(params.get('servizio_pst_preferito') || params.get('servizio_pst') || profile.servizio_pst_preferito || cached.servizio_pst_preferito),
     registroPortale: asText(params.get('registro_portale') || profile.registro_portale || cached.registro_portale),
+    ruoloPolisweb: asText(params.get('ruolo_polisweb') || params.get('ruolo'), 'AVV').toUpperCase(),
   }
 }
 
@@ -1191,6 +1230,21 @@ function ministerialHintsFromQuery(query: AcquisitionQuery): JsonRecord {
     tabella_ministeriale: asText(query.tabellaMinisteriale || profile.tabella_ministeriale),
     servizio_pst_preferito: asText(query.servizioPstPreferito || profile.servizio_pst_preferito),
     registro_portale: asText(query.registroPortale || profile.registro_portale),
+    ruolo_polisweb: asText(query.ruoloPolisweb, 'AVV').toUpperCase(),
+  }
+}
+
+function queryWithMinisterialSchema(query: AcquisitionQuery, schemaValue: string): AcquisitionQuery {
+  const profile = ministerialProfileFromSchema(schemaValue)
+  if (!Object.keys(profile).length) return query
+  return {
+    ...query,
+    schema: asText(profile.schema || schemaValue),
+    registro: asText(profile.registro || schemaValue || query.registro),
+    materia: asText(profile.materia || schemaValue || query.materia),
+    tabellaMinisteriale: asText(profile.tabella_ministeriale),
+    servizioPstPreferito: asText(profile.servizio_pst_preferito),
+    registroPortale: asText(profile.registro_portale),
   }
 }
 
@@ -3031,6 +3085,7 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     registro_portale: registroPortale,
     tipo_registro: asText(row.tipo_registro || registroPortale),
     tabella_ministeriale: asText(row.tabella_ministeriale),
+    ruolo_polisweb: asText(row.ruolo_polisweb || query.ruoloPolisweb, 'AVV').toUpperCase(),
     fascicolo_locale_id: asText(row.fascicolo_locale_id || localMatch.id),
     local_match: localMatch,
     already_present: Boolean(row.already_present || row.fascicolo_locale_id || localMatch.id),
@@ -3261,24 +3316,142 @@ function previewPartyCountLabel(preview: JsonRecord, parties: string[]): string 
 }
 
 function previewEvents(preview: JsonRecord): JsonRecord[] {
-  const rows = [
-    ...asList(preview.eventi).map(asRecord),
-    ...asList(preview.udienze).map(asRecord),
-    ...asList(preview.comunicazioni).map(asRecord),
-    ...asList(preview.istanze).map(asRecord),
-    ...asList(preview.depositi_telematici).map(asRecord),
+  const groups: Array<[string, unknown[]]> = [
+    ['eventi', asList(preview.eventi)],
+    ['udienze', asList(preview.udienze)],
+    ['comunicazioni', asList(preview.comunicazioni)],
+    ['istanze', asList(preview.istanze)],
+    ['depositi_telematici', asList(preview.depositi_telematici)],
   ]
-  const seen = new Set<string>()
-  return rows.filter((row) => {
-    const key = [
-      asText(row.label || row.tipo || row.tipo_atto || row.oggetto),
-      asText(row.data || row.data_evento || row.data_udienza || row.data_deposito),
-      asText(row.id || row.evento_uid || row.udienza_uid),
-    ].join('|')
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
+  const rows: JsonRecord[] = groups.flatMap(([source, values]) => values.map((value, index) => {
+    const row: JsonRecord = {
+      ...asRecord(value),
+      __pst_event_source: source,
+      __pst_event_index: index,
+    }
+    return row
+  }))
+  // Lo storico PST può esporre righe con lo stesso titolo/data in sezioni diverse.
+  // Non vanno collassate: l'avvocato deve poter decidere e classificare ogni riga.
+  return rows
+}
+
+function pstEventSelectionKey(row: JsonRecord): string {
+  return [
+    asText(row.__pst_event_source, 'eventi'),
+    asText(row.id || row.evento_uid || row.udienza_uid),
+    asText(row.label || row.tipo || row.tipo_atto || row.oggetto),
+    asText(row.data || row.data_evento || row.data_udienza || row.data_deposito),
+    asText(row.__pst_event_index),
+  ].join('::')
+}
+
+function filterPreviewForSelectedEvents(
+  preview: JsonRecord,
+  selectedEventKeys: string[],
+  classifications: Readonly<Record<string, string>>,
+): JsonRecord {
+  if (!selectedEventKeys.length) {
+    return {
+      ...preview,
+      identity: { ...asRecord(preview.identity), data_udienza: '' },
+      eventi: [],
+      udienze: [],
+      comunicazioni: [],
+      istanze: [],
+      depositi_telematici: [],
+      counts: { ...asRecord(preview.counts), eventi: 0, udienze: 0, comunicazioni: 0, istanze: 0, esiti: 0 },
+    }
+  }
+  const selected = new Set(selectedEventKeys)
+  const next: JsonRecord = { ...preview }
+  const countKeys = ['eventi', 'udienze', 'comunicazioni', 'istanze', 'depositi_telematici'] as const
+  countKeys.forEach((source) => {
+    next[source] = asList(preview[source]).map(asRecord).flatMap((row, index) => {
+      const key = pstEventSelectionKey({ ...row, __pst_event_source: source, __pst_event_index: index })
+      if (!selected.has(key)) return []
+      const classification = asText(classifications[key])
+      return [{
+        ...row,
+        ...(classification ? { classificazione_importazione: classification } : {}),
+      }]
+    })
   })
+  const counts = { ...asRecord(preview.counts) }
+  counts.eventi = asList(next.eventi).length
+  counts.udienze = asList(next.udienze).length
+  counts.comunicazioni = asList(next.comunicazioni).length
+  counts.istanze = asList(next.istanze).length
+  counts.esiti = asList(next.depositi_telematici).length
+  next.counts = counts
+  const selectedHearing = [
+    ...asList(next.udienze),
+    ...asList(next.eventi).filter((row) => asText(asRecord(row).classificazione_importazione) === 'Udienza'),
+  ].map(asRecord).find((row) => {
+    const classification = asText(row.classificazione_importazione)
+    return !classification || classification === 'Udienza'
+  })
+  next.identity = {
+    ...asRecord(preview.identity),
+    data_udienza: selectedHearing
+      ? asText(selectedHearing.data || selectedHearing.data_udienza || selectedHearing.data_evento)
+      : '',
+  }
+  return next
+}
+
+function previewPartyName(row: JsonRecord): string {
+  return asText(row.nome || row.denominazione || row.ragione_sociale || row.descrizione)
+}
+
+function pstPartySelectionKey(row: JsonRecord, index: number): string {
+  return [
+    normaliseSearch(previewPartyName(row)),
+    asText(row.codice_fiscale || row.cf || row.codice),
+    normaliseSearch(asText(row.tipo || row.ruolo)),
+    String(index),
+  ].join('::')
+}
+
+function pstPreviewParties(preview: JsonRecord, selection: JsonRecord | null): JsonRecord[] {
+  const payload = asRecord(selection?.payload)
+  const detailed = [
+    ...asList(preview.parti_dettaglio).map(asRecord),
+    ...asList(payload.parti_dettaglio).map(asRecord),
+  ].filter((row) => previewPartyName(row))
+  const seen = new Set(detailed.map((row) => `${normaliseSearch(previewPartyName(row))}|${asText(row.codice_fiscale || row.cf)}`))
+  const simple = [
+    ...asList(preview.parti),
+    ...asList(preview.controparti),
+    ...asList(selection?.parti),
+    ...asList(selection?.controparti),
+  ].flatMap((value) => {
+    const name = asText(value)
+    const key = normaliseSearch(name)
+    if (!name || seen.has(`${key}|`)) return []
+    seen.add(`${key}|`)
+    return [{ nome: name }]
+  })
+  return [...detailed, ...simple]
+}
+
+function selectionWithSelectedPstParties(selection: JsonRecord, selectedParties: JsonRecord[]): JsonRecord {
+  const payload = asRecord(selection.payload)
+  const originalParti = new Set(asList(selection.parti).map((item) => normaliseSearch(asText(item))))
+  const originalControparti = new Set(asList(selection.controparti).map((item) => normaliseSearch(asText(item))))
+  const details = selectedParties.map((row) => ({ ...row }))
+  const names = details.map(previewPartyName).filter(Boolean)
+  const parti = names.filter((name) => originalParti.has(normaliseSearch(name)))
+  const controparti = names.filter((name) => originalControparti.has(normaliseSearch(name)))
+  const isCounterparty = (name: string) => /convenuto|resistente|controparte/i.test(
+    asText(details.find((row) => previewPartyName(row) === name)?.tipo),
+  )
+  return {
+    ...selection,
+    parti: parti.length ? parti : names.filter((name) => !isCounterparty(name)),
+    controparti: controparti.length ? controparti : names.filter(isCounterparty),
+    payload: { ...payload, parti: names, parti_dettaglio: details },
+  }
 }
 
 function previewDocumentTitle(row: JsonRecord, index: number): string {
@@ -3482,7 +3655,10 @@ function filterPreviewForSelectedDocuments(preview: JsonRecord, selectedDocument
   const allDocuments = pstPreviewDocuments(preview)
   if (!allDocuments.length || selectedDocuments.length >= allDocuments.length) return preview
   const selected = selectedDocuments.map(asRecord)
-  const documenti = allDocuments.filter((doc) => selected.some((candidate) => pstDocumentsMatch(doc, candidate)))
+  const documenti = allDocuments.flatMap((doc) => {
+    const selectedDocument = selected.find((candidate) => pstDocumentsMatch(doc, candidate))
+    return selectedDocument ? [selectedDocument] : []
+  })
   const depositi: JsonRecord[] = []
   asList(preview.depositi).map(asRecord).forEach((deposito) => {
     const depositoDocumenti = asList(deposito.documenti)
@@ -3528,6 +3704,8 @@ function pstDownloadDocumentPayload(item: JsonRecord, original: boolean): JsonRe
     parent_nome: asText(item.parent_nome),
     is_allegato: Boolean(item.is_allegato),
     original,
+    original_documento_portale: original,
+    modalita_documento_portale: original ? 'originale' : 'copia',
   }
 }
 
@@ -3752,6 +3930,13 @@ function AcquisitionWizard({
   const [analysis, setAnalysis] = useState<JsonRecord>({})
   const [files, setFiles] = useState<AcquisitionFile[]>([])
   const [selectedDocumentKeys, setSelectedDocumentKeys] = useState<string[]>([])
+  const [documentDownloadModes, setDocumentDownloadModes] = useState<Record<string, 'originale' | 'copia'>>({})
+  const [selectedPartyKeys, setSelectedPartyKeys] = useState<string[]>([])
+  const [partyClassifications, setPartyClassifications] = useState<Record<string, string>>({})
+  const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([])
+  const [eventClassifications, setEventClassifications] = useState<Record<string, string>>({})
+  const [selectedPstOfficeCodes, setSelectedPstOfficeCodes] = useState<string[]>([])
+  const [isAcquisitionFullscreen, setIsAcquisitionFullscreen] = useState(false)
   const [importResult, setImportResult] = useState<JsonRecord>({})
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     active: false,
@@ -3820,11 +4005,21 @@ function AcquisitionWizard({
     return rows
   }, [data.recentCases, initialTargetFascicoloId, selection])
   const previewDocuments = useMemo(() => pstPreviewDocuments(preview), [preview])
+  const previewPartyRows = useMemo(() => pstPreviewParties(preview, selection?.raw || null), [preview, selection])
+  const previewTimelineRows = useMemo(() => previewEvents(preview), [preview])
   const structuredHearingLabel = useMemo(() => previewStructuredHearingLabel(preview), [preview])
   const deadlineSourceDocuments = useMemo(() => previewDeadlineSourceDocuments(preview), [preview])
   const previewDocumentKeys = useMemo(
     () => previewDocuments.map((doc, index) => pstDocumentSelectionKey(doc, index)),
     [previewDocuments],
+  )
+  const previewPartyKeys = useMemo(
+    () => previewPartyRows.map((party, index) => pstPartySelectionKey(party, index)),
+    [previewPartyRows],
+  )
+  const previewEventKeys = useMemo(
+    () => previewTimelineRows.map(pstEventSelectionKey),
+    [previewTimelineRows],
   )
   const targetedPreviewDocumentKeys = useMemo(() => {
     if (!targetDocument.singleDocument) return []
@@ -3864,10 +4059,50 @@ function AcquisitionWizard({
       return previewDocumentKeys
     })
   }, [previewDocumentKeySignature, targetDocument.singleDocument, targetedPreviewDocumentKeySignature])
+  const previewPartyKeySignature = previewPartyKeys.join('\u001f')
+  useEffect(() => {
+    setSelectedPartyKeys((current) => {
+      if (!previewPartyKeys.length) return current.length ? [] : current
+      const kept = current.filter((key) => previewPartyKeys.includes(key))
+      return kept.length ? kept : previewPartyKeys
+    })
+  }, [previewPartyKeySignature])
+  const previewEventKeySignature = previewEventKeys.join('\u001f')
+  useEffect(() => {
+    setSelectedEventKeys((current) => {
+      if (!previewEventKeys.length) return current.length ? [] : current
+      const kept = current.filter((key) => previewEventKeys.includes(key))
+      return kept.length ? kept : previewEventKeys
+    })
+  }, [previewEventKeySignature])
   const selectedDocumentKeySet = useMemo(() => new Set(selectedDocumentKeys), [selectedDocumentKeys])
+  const selectedPartyKeySet = useMemo(() => new Set(selectedPartyKeys), [selectedPartyKeys])
+  const selectedEventKeySet = useMemo(() => new Set(selectedEventKeys), [selectedEventKeys])
   const selectedPreviewDocuments = useMemo(
     () => previewDocuments.filter((doc, index) => selectedDocumentKeySet.has(pstDocumentSelectionKey(doc, index))),
     [previewDocuments, selectedDocumentKeySet],
+  )
+  const selectedPreviewDocumentsForImport = useMemo(
+    () => previewDocuments.flatMap((doc, index) => {
+      const key = pstDocumentSelectionKey(doc, index)
+      if (!selectedDocumentKeySet.has(key)) return []
+      const mode = resolvedPstDocumentMode(documentDownloadModes, key, options.scarica_originale_portale)
+      return [{
+        ...doc,
+        modalita_documento_portale: mode,
+        original_documento_portale: mode === 'originale',
+      }]
+    }),
+    [documentDownloadModes, options.scarica_originale_portale, previewDocuments, selectedDocumentKeySet],
+  )
+  const selectedPreviewParties = useMemo(
+    () => previewPartyRows.flatMap((party, index) => {
+      const key = pstPartySelectionKey(party, index)
+      if (!selectedPartyKeySet.has(key)) return []
+      const classification = asText(partyClassifications[key])
+      return [{ ...party, ...(classification ? { tipo: classification } : {}) }]
+    }),
+    [partyClassifications, previewPartyRows, selectedPartyKeySet],
   )
   const downloadedPstDocumentCount = useMemo(
     () => files.filter((file) => (
@@ -4422,12 +4657,23 @@ function AcquisitionWizard({
   const selectedOfficeMatches = (office: OfficeRow) => officeMatchesCode(office, asText(query.ufficioCodice))
 
   const selectOffice = (office: OfficeRow) => {
+    const officeCode = office.codice || office.codiceMinistero
     setQuery((current) => ({
       ...current,
       ufficio: office.nome,
-      ufficioCodice: office.codice || office.codiceMinistero,
+      ufficioCodice: officeCode,
       ufficioNome: office.nome,
     }))
+    if (portal === 'pst' && officeCode) {
+      setSelectedPstOfficeCodes((current) => {
+        const next = uniquePstValues([...current, officeCode])
+        if (next.length > 20) {
+          setMessage('Puoi selezionare fino a 20 uffici PST nella stessa ricerca.')
+          return current
+        }
+        return next
+      })
+    }
   }
 
   const resolvedOfficeCode = () => {
@@ -4443,6 +4689,54 @@ function AcquisitionWizard({
         || normaliseSearch(office.codiceMinistero) === typed
     })
     return exact?.codice || exact?.codiceMinistero || query.ufficio
+  }
+
+  const selectedPstOffices = useMemo(() => {
+    const fallback = resolvedOfficeCode()
+    const codes = uniquePstValues([...selectedPstOfficeCodes, fallback]).slice(0, 20)
+    return codes.map((code) => {
+      const office = data.offices.find((item) => officeMatchesCode(item, code))
+      return {
+        codice: office?.codice || office?.codiceMinistero || code,
+        nome: office?.nome || (code === fallback ? query.ufficioNome || query.ufficio : code),
+      }
+    }).filter((office) => asText(office.codice))
+  }, [data.offices, query.ufficio, query.ufficioCodice, query.ufficioNome, selectedPstOfficeCodes])
+
+  const automaticPstSchemas = useMemo(() => {
+    const explicit = pstRegistryOptionForSchema(asText(ministerialProfileFromSchema([
+      query.schema,
+      query.registro,
+      query.materia,
+      query.tabellaMinisteriale,
+      query.servizioPstPreferito,
+      query.registroPortale,
+      pstSchemaHint.schema,
+      pstSchemaHint.registro,
+      pstSchemaHint.materia,
+      pstSchemaHint.tabella_ministeriale,
+      pstSchemaHint.servizio_pst_preferito,
+    ].filter(Boolean).join(' ')).schema))
+    if (explicit) return [explicit.schema]
+    const compatible = uniquePstValues(selectedPstOffices.flatMap((selectedOffice) => {
+      const office = data.offices.find((candidate) => officeMatchesCode(candidate, selectedOffice.codice))
+      return office ? pstAutomaticSchemasForOffice(office.tipo, office.servizi) : []
+    }))
+    return compatible
+  }, [data.offices, pstSchemaHint, query.materia, query.registro, query.registroPortale, query.schema, query.servizioPstPreferito, query.tabellaMinisteriale, selectedPstOffices])
+
+  const selectedPstSearchSchemas = useMemo(() => {
+    if (automaticPstSchemas.length) return automaticPstSchemas
+    const inferred = ministerialSchemaFromQuery(query)
+    return inferred ? [inferred] : ['']
+  }, [automaticPstSchemas, query])
+
+  const removePstOffice = (officeCode: string) => {
+    invalidateImportCheck()
+    setSelectedPstOfficeCodes((current) => current.filter((code) => normaliseSearch(code) !== normaliseSearch(officeCode)))
+    if (normaliseSearch(resolvedOfficeCode()) === normaliseSearch(officeCode)) {
+      setQuery((current) => ({ ...current, ufficio: '', ufficioCodice: '', ufficioNome: '' }))
+    }
   }
 
   const currentLocalSignerDiagnosticContext = (event: string, extra: JsonRecord = {}): JsonRecord => ({
@@ -4552,7 +4846,6 @@ function AcquisitionWizard({
               schema: asText(hintedProfile.schema || hint.schema),
               registro: asText(hintedProfile.registro || hint.registro || current.registro),
               materia: asText(hintedProfile.materia || hint.materia || current.materia),
-              oggetto: asText(current.oggetto || hintedProfile.materia || hint.materia),
               tabellaMinisteriale: asText(hint.tabella_ministeriale || hintedProfile.tabella_ministeriale),
               servizioPstPreferito: asText(hint.servizio_pst_preferito || hintedProfile.servizio_pst_preferito),
               registroPortale: asText(hint.registro_portale || hintedProfile.registro_portale),
@@ -4573,12 +4866,17 @@ function AcquisitionWizard({
     }
   }, [initialTargetFascicoloId, pstSchemaHintCheckedKey, pstSchemaLookupKey, query.anno, query.numero, query.ufficio, query.ufficioCodice])
 
-  const canUsePstSearchSnapshot = () => Boolean(
+  const canUsePstSearchSnapshot = (searchQuery: AcquisitionQuery = query, tribunale = resolvedOfficeCode()) => Boolean(
     portal === 'pst'
-    && asText(resolvedOfficeCode())
-    && asText(query.numero)
-    && asText(query.anno)
-    && !officeLooksLikeSigp(),
+    && asText(tribunale)
+    && asText(searchQuery.numero)
+    && asText(searchQuery.anno)
+    && !/giudice\s+di\s+pace|\bgp\b/i.test([
+      asText(searchQuery.schema),
+      asText(searchQuery.materia),
+      asText(searchQuery.servizioPstPreferito),
+      asText(searchQuery.ufficio),
+    ].join(' ')),
   )
 
   const searchPayload = () => ({
@@ -4607,6 +4905,11 @@ function AcquisitionWizard({
     setPreview({})
     setFiles([])
     setSelectedDocumentKeys([])
+    setDocumentDownloadModes({})
+    setSelectedPartyKeys([])
+    setPartyClassifications({})
+    setSelectedEventKeys([])
+    setEventClassifications({})
     invalidateImportCheck()
     let precheckedPstCert: PstCertificate | null = null
     if (portalUsesOfficialAssistant) {
@@ -4700,6 +5003,7 @@ function AcquisitionWizard({
     let pstCertForDiagnostic: PstCertificate | null = null
     let pstCfForDiagnostic = ''
     let pstCfSourceForDiagnostic = ''
+    let pstSearchFailures: string[] = []
     const progressStartedAt = Date.now()
     let progressHeartbeat: number | null = null
     if (portal === 'pst') {
@@ -4722,118 +5026,132 @@ function AcquisitionWizard({
           current: 'Controllo collegamento Local Signer dal browser',
         }))
         await requireLocalSignerBrowserBridge()
-        const tribunale = resolvedOfficeCode()
-        let signerPayload: JsonRecord | null = null
-        let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()
-        setImportProgress((current) => ({
-          ...current,
-          current: 'Certificato confermato; lettura dati dal portale ufficiale',
-          completed: Math.max(current.completed, 1),
-        }))
-        pstCertForDiagnostic = cert
-        pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
-        pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
-        let session = activePstSessionFor(tribunale, cert)
-        const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))
         if (!pstHasSearchCriteria()) {
           throw new Error("Indica numero e anno, un anno per vedere l'elenco fascicoli, oppure almeno una parte o un codice fiscale per interrogare il PST.")
         }
-        if (canUsePstSearchSnapshot()) {
+        const searchTargets = selectedPstOffices.flatMap((office) => selectedPstSearchSchemas.map((schema) => ({ office, schema })))
+        if (!searchTargets.length) throw new Error('Seleziona almeno un ufficio giudiziario PST.')
+        const collectedRows: AcquisitionResult[] = []
+        for (const [targetIndex, target] of searchTargets.entries()) {
+          const tribunale = asText(target.office.codice)
+          const searchQuery = target.schema ? queryWithMinisterialSchema(query, target.schema) : query
+          let signerPayload: JsonRecord | null = null
           try {
-            signerPayload = await localSignerJson('/pst/ricerca-snapshot', {
-              tribunale,
-              numero_rg: query.numero,
-              anno_rg: query.anno,
-              nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
-              cf_parte: exactPstSearch ? '' : query.cf,
-              oggetto: query.oggetto,
-              ...ministerialHintsFromQuery(query),
-              ufficio_nome: query.ufficioNome || query.ufficio,
-              cf_avvocato: pstCfForDiagnostic,
-              cert_thumbprint: cert.thumbprint || null,
-              cert_key: cert.thumbprint || '',
-              operation_id: operationId,
-              purpose: 'view',
-              pst_session_id: session?.sessionId || '',
-              include_full_snapshot: !targetDocument.singleDocument,
-            }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
-          } catch (error: unknown) {
-            const message = asText(error instanceof Error ? error.message : error)
-            if (!/not found/i.test(message)) throw error
-          }
-        }
-        if (!signerPayload) {
-          cert = precheckedPstCert || await requirePstCertificateBeforeSearch()
-          setImportProgress((current) => ({
-            ...current,
-            current: 'Uso il percorso di ricerca alternativo del PST',
-            completed: Math.max(current.completed, 1),
-          }))
-          pstCertForDiagnostic = cert
-          pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
-          pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
-          session = activePstSessionFor(tribunale, cert)
-          signerPayload = await localSignerJson('/pst/ricerca', {
-            tribunale,
-            numero_rg: query.numero,
-            anno_rg: query.anno,
-            nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
-            cf_parte: exactPstSearch ? '' : query.cf,
-            oggetto: query.oggetto,
-            ...ministerialHintsFromQuery(query),
-            cf_avvocato: pstCfForDiagnostic,
-            cert_thumbprint: cert.thumbprint || null,
-            cert_key: cert.thumbprint || '',
-            operation_id: operationId,
-            purpose: 'view',
-            pst_session_id: session?.sessionId || '',
-          }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
-        }
-        setImportProgress((current) => ({
-          ...current,
-          current: 'Dati fascicolo ricevuti; preparo la lista documenti',
-          completed: Math.max(current.completed, 3),
-        }))
-        const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
-        if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
-        pstSignerPayload = signerPayload
-        const snapshot = asRecord(signerPayload.snapshot)
-        const signerRows = asList(signerPayload.fascicoli || signerPayload.results)
-        const snapshotFascicolo = asRecord(snapshot.fascicolo)
-        const snapshotDocumenti = asList(snapshot.documenti || snapshot.catalogo || snapshot.documents)
-        const signerDocumenti = asList(signerPayload.documenti || signerPayload.documents || signerPayload.catalogo)
-        const searchDocumenti = snapshotDocumenti.length ? snapshotDocumenti : signerDocumenti
-        const sourceRows = signerRows.length
-          ? signerRows
-          : (Object.keys(snapshotFascicolo).length || searchDocumenti.length ? [snapshotFascicolo] : [])
-        const completeSearchSnapshot = Boolean(
-          signerPayload.full_snapshot
-          || signerPayload.master_detail
-          || snapshot.full_snapshot
-          || snapshot.master_detail
-          || (
-            Object.keys(snapshotFascicolo).length
-            && searchDocumenti.length
-            && (
-              Object.prototype.hasOwnProperty.call(snapshot, 'eventi')
-              || Object.prototype.hasOwnProperty.call(snapshot, 'events')
+            let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()
+            setImportProgress((current) => ({
+              ...current,
+              current: `Ricerca ${targetIndex + 1}/${searchTargets.length}: ${target.office.nome || tribunale}${target.schema ? ` — ${target.schema}` : ''}`,
+              completed: Math.max(current.completed, 1),
+              total: Math.max(current.total, searchTargets.length + 3),
+            }))
+            pstCertForDiagnostic = cert
+            pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
+            pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
+            let session = activePstSessionFor(tribunale, cert)
+            const exactPstSearch = Boolean(asText(searchQuery.numero) && asText(searchQuery.anno))
+            if (canUsePstSearchSnapshot(searchQuery, tribunale)) {
+              try {
+                signerPayload = await localSignerJson('/pst/ricerca-snapshot', {
+                  tribunale,
+                  numero_rg: searchQuery.numero,
+                  anno_rg: searchQuery.anno,
+                  nome_parte: exactPstSearch ? '' : (searchQuery.assistito || searchQuery.controparte),
+                  cf_parte: exactPstSearch ? '' : searchQuery.cf,
+                  oggetto: searchQuery.oggetto,
+                  ...ministerialHintsFromQuery(searchQuery),
+                  ufficio_nome: target.office.nome || searchQuery.ufficioNome || searchQuery.ufficio,
+                  cf_avvocato: pstCfForDiagnostic,
+                  cert_thumbprint: cert.thumbprint || null,
+                  cert_key: cert.thumbprint || '',
+                  operation_id: operationId ? `${operationId}-${targetIndex + 1}-snapshot` : '',
+                  purpose: 'view',
+                  pst_session_id: session?.sessionId || '',
+                  include_full_snapshot: !targetDocument.singleDocument,
+                }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
+              } catch (error: unknown) {
+                const message = asText(error instanceof Error ? error.message : error)
+                if (!/not found/i.test(message)) throw error
+              }
+            }
+            if (!signerPayload) {
+              cert = precheckedPstCert || await requirePstCertificateBeforeSearch()
+              pstCertForDiagnostic = cert
+              pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
+              pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
+              session = activePstSessionFor(tribunale, cert)
+              signerPayload = await localSignerJson('/pst/ricerca', {
+                tribunale,
+                numero_rg: searchQuery.numero,
+                anno_rg: searchQuery.anno,
+                nome_parte: exactPstSearch ? '' : (searchQuery.assistito || searchQuery.controparte),
+                cf_parte: exactPstSearch ? '' : searchQuery.cf,
+                oggetto: searchQuery.oggetto,
+                ...ministerialHintsFromQuery(searchQuery),
+                cf_avvocato: pstCfForDiagnostic,
+                cert_thumbprint: cert.thumbprint || null,
+                cert_key: cert.thumbprint || '',
+                operation_id: operationId ? `${operationId}-${targetIndex + 1}-search` : '',
+                purpose: 'view',
+                pst_session_id: session?.sessionId || '',
+              }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
+            }
+            const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+            if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+            pstSignerPayload = signerPayload
+            const snapshot = asRecord(signerPayload.snapshot)
+            const signerRows = asList(signerPayload.fascicoli || signerPayload.results)
+            const snapshotFascicolo = asRecord(snapshot.fascicolo)
+            const snapshotDocumenti = asList(snapshot.documenti || snapshot.catalogo || snapshot.documents)
+            const signerDocumenti = asList(signerPayload.documenti || signerPayload.documents || signerPayload.catalogo)
+            const searchDocumenti = snapshotDocumenti.length ? snapshotDocumenti : signerDocumenti
+            const sourceRows = signerRows.length
+              ? signerRows
+              : (Object.keys(snapshotFascicolo).length || searchDocumenti.length ? [snapshotFascicolo] : [])
+            const completeSearchSnapshot = Boolean(
+              signerPayload.full_snapshot
+              || signerPayload.master_detail
+              || snapshot.full_snapshot
+              || snapshot.master_detail
+              || (
+                Object.keys(snapshotFascicolo).length
+                && searchDocumenti.length
+                && (
+                  Object.prototype.hasOwnProperty.call(snapshot, 'eventi')
+                  || Object.prototype.hasOwnProperty.call(snapshot, 'events')
+                )
+              )
             )
-          )
-        )
-        rows = sourceRows.map((row, index) => {
-          const item = normalisePstAcquisitionResult(row, index, query, tribunale)
-          return {
-            ...item,
-            raw: {
-              ...item.raw,
-              ...(Object.keys(snapshot).length ? { snapshot } : {}),
-              ...(searchDocumenti.length ? { documenti: searchDocumenti } : {}),
-              full_snapshot: completeSearchSnapshot,
-              master_detail: completeSearchSnapshot,
-              pst_view_session: pstSessionForServer(nextSession, cert),
-              pst_session: pstSessionForServer(nextSession, cert),
-            },
+            collectedRows.push(...sourceRows.map((row, index) => {
+              const item = normalisePstAcquisitionResult(row, index, searchQuery, tribunale)
+              return {
+                ...item,
+                raw: {
+                  ...item.raw,
+                  ...(Object.keys(snapshot).length ? { snapshot } : {}),
+                  ...(searchDocumenti.length ? { documenti: searchDocumenti } : {}),
+                  full_snapshot: completeSearchSnapshot,
+                  master_detail: completeSearchSnapshot,
+                  pst_view_session: pstSessionForServer(nextSession, cert),
+                  pst_session: pstSessionForServer(nextSession, cert),
+                },
+              }
+            }))
+          } catch (error: unknown) {
+            const detail = asText(error instanceof Error ? error.message : error, 'ricerca non completata')
+            pstSearchFailures.push(`${target.office.nome || tribunale}${target.schema ? ` — ${target.schema}` : ''}: ${detail}`)
           }
+        }
+        if (!collectedRows.length && pstSearchFailures.length) {
+          throw new Error(pstSearchFailures.join(' | '))
+        }
+        const seenResults = new Set<string>()
+        rows = collectedRows.filter((item) => {
+          const key = asText(item.raw.external_id || item.id)
+          if (!key || !seenResults.has(key)) {
+            seenResults.add(key)
+            return true
+          }
+          return false
         })
       } else {
         const payload = await portalJson(portal, 'search', searchPayload())
@@ -4868,7 +5186,9 @@ function AcquisitionWizard({
       setSelection(firstResult)
       applyAutomaticDestination(firstResult)
       setStep(2)
-      setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
+      setMessage(rows.length
+        ? `${rows.length} risultati trovati.${pstSearchFailures.length ? ` ${pstSearchFailures.length} ricerca${pstSearchFailures.length === 1 ? '' : 'he'} non ha prodotto risultati: controlla gli avvisi.` : ''}`
+        : 'Nessun fascicolo trovato con questi filtri.')
       setImportProgress((current) => ({
         ...current,
         active: false,
@@ -4876,6 +5196,7 @@ function AcquisitionWizard({
         current: rows.length ? 'Seleziona il fascicolo da visualizzare' : 'Nessun fascicolo trovato con questi filtri',
         completed: current.total || 4,
         total: current.total || 4,
+        failures: pstSearchFailures.length ? pstSearchFailures : current.failures,
       }))
       if (!rows.length) {
         recordAcquisitionHistory('empty', 'Fascicolo non scaricato dal portale', 'Nessun fascicolo trovato con questi filtri.')
@@ -4970,6 +5291,11 @@ function AcquisitionWizard({
     setPreview({})
     setFiles([])
     setSelectedDocumentKeys([])
+    setDocumentDownloadModes({})
+    setSelectedPartyKeys([])
+    setPartyClassifications({})
+    setSelectedEventKeys([])
+    setEventClassifications({})
     invalidateImportCheck()
     setBusy('preview')
     try {
@@ -5156,11 +5482,21 @@ function AcquisitionWizard({
     }
     setBusy('analysis')
     try {
-      const previewForAnalysis = portal === 'pst' && options.importa_documenti && selectedPreviewDocuments.length
-        ? filterPreviewForSelectedDocuments(preview, selectedPreviewDocuments)
+      let previewForAnalysis = portal === 'pst' && options.importa_documenti && selectedPreviewDocumentsForImport.length
+        ? filterPreviewForSelectedDocuments(preview, selectedPreviewDocumentsForImport)
         : preview
+      if (portal === 'pst') {
+        previewForAnalysis = filterPreviewForSelectedEvents(
+          previewForAnalysis,
+          options.importa_eventi ? selectedEventKeys : [],
+          eventClassifications,
+        )
+      }
+      const selectionForAnalysis = portal === 'pst' && options.importa_parti
+        ? selectionWithSelectedPstParties(selection.raw, selectedPreviewParties)
+        : selection.raw
       const payload = await portalJson(portal, 'analyze', {
-        selection: selection.raw,
+        selection: selectionForAnalysis,
         preview: previewForAnalysis,
         options,
         mapping,
@@ -5229,13 +5565,67 @@ function AcquisitionWizard({
     setOptions((current) => ({ ...current, importa_documenti: false }))
   }
 
+  const updatePreviewDocumentMode = (doc: JsonRecord, index: number, mode: 'originale' | 'copia') => {
+    invalidateImportCheck()
+    const documentKey = pstDocumentSelectionKey(doc, index)
+    const previousMode = resolvedPstDocumentMode(documentDownloadModes, documentKey, options.scarica_originale_portale)
+    setDocumentDownloadModes((current) => ({ ...current, [documentKey]: mode }))
+    if (previousMode !== mode && files.some((file) => !file.payload_json && pstDocumentsMatch(acquisitionFilePstRecord(file), doc))) {
+      setFiles((current) => current.filter((file) => file.payload_json || !pstDocumentsMatch(acquisitionFilePstRecord(file), doc)))
+      setMessage('Modalità documento aggiornata: il file verrà scaricato nuovamente prima dell’importazione.')
+    }
+  }
+
+  const togglePreviewParty = (party: JsonRecord, index: number, checked: boolean) => {
+    invalidateImportCheck()
+    const key = pstPartySelectionKey(party, index)
+    setSelectedPartyKeys((current) => {
+      const next = new Set(current)
+      if (checked) next.add(key)
+      else next.delete(key)
+      const values = Array.from(next)
+      setOptions((currentOptions) => ({ ...currentOptions, importa_parti: values.length > 0 }))
+      return values
+    })
+  }
+
+  const updatePreviewPartyClassification = (party: JsonRecord, index: number, classification: string) => {
+    invalidateImportCheck()
+    const key = pstPartySelectionKey(party, index)
+    setPartyClassifications((current) => ({ ...current, [key]: classification }))
+  }
+
+  const togglePreviewEvent = (event: JsonRecord, checked: boolean) => {
+    invalidateImportCheck()
+    const key = pstEventSelectionKey(event)
+    setSelectedEventKeys((current) => {
+      const next = new Set(current)
+      if (checked) next.add(key)
+      else next.delete(key)
+      const values = Array.from(next)
+      setOptions((currentOptions) => ({ ...currentOptions, importa_eventi: values.length > 0 }))
+      return values
+    })
+  }
+
+  const updatePreviewEventClassification = (event: JsonRecord, classification: string) => {
+    invalidateImportCheck()
+    const key = pstEventSelectionKey(event)
+    setEventClassifications((current) => ({ ...current, [key]: classification }))
+  }
+
   const executeDownloadPstDocumentsFromSigner = async (
     documentsToDownload: JsonRecord[],
     activeSelection: JsonRecord = selection?.raw || {},
     operationId = '',
   ): Promise<PstDownloadResult> => {
     const documenti = documentsToDownload
-      .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
+      .map((item) => {
+        const previewIndex = previewDocuments.findIndex((candidate) => pstDocumentsMatch(candidate, item))
+        const documentKey = previewIndex >= 0 ? pstDocumentSelectionKey(previewDocuments[previewIndex], previewIndex) : ''
+        const mode = resolvedPstDocumentMode(documentDownloadModes, documentKey, options.scarica_originale_portale)
+        return pstDownloadDocumentPayload(item, mode === 'originale')
+      })
       .filter((item) => pstDocumentIdentifierValues(item).length)
     if (!documenti.length) {
       throw new Error('Nessun documento selezionato contiene identificativi PST scaricabili.')
@@ -5380,7 +5770,7 @@ function AcquisitionWizard({
       )
     }
     const payloadJson = authorisedPayload(activeFiles)
-    const selectedDocsForImport = portal === 'pst' && options.importa_documenti ? selectedPreviewDocuments : []
+    const selectedDocsForImport = portal === 'pst' && options.importa_documenti ? selectedPreviewDocumentsForImport : []
     if (targetDocument.singleDocument && selectedDocsForImport.length !== 1) {
       setMessage('Importazione bloccata: il presidio richiede un solo provvedimento originale del portale.')
       setStep(4)
@@ -5428,6 +5818,16 @@ function AcquisitionWizard({
       let activePreview = preview
       if (selectedDocsForImport.length) {
         activePreview = filterPreviewForSelectedDocuments(preview, selectedDocsForImport)
+      }
+      if (portal === 'pst') {
+        activePreview = filterPreviewForSelectedEvents(
+          activePreview,
+          options.importa_eventi ? selectedEventKeys : [],
+          eventClassifications,
+        )
+        if (options.importa_parti) {
+          activeSelection = selectionWithSelectedPstParties(activeSelection, selectedPreviewParties)
+        }
       }
       if (!payloadJson && portal === 'pst' && options.importa_documenti) {
         const documentsToDownload = selectedDocsForImport.length ? selectedDocsForImport : pstPreviewDocuments(preview)
@@ -5803,6 +6203,16 @@ function AcquisitionWizard({
             </button>
           ) : null}
           {official && !portalUsesOfficialAssistant ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
+          <button
+            type="button"
+            className="iu-tel-acquisition__fullscreen-toggle"
+            aria-controls="acquisition-workspace"
+            aria-pressed={isAcquisitionFullscreen}
+            onClick={() => setIsAcquisitionFullscreen((current) => !current)}
+          >
+            <MonitorCheck size={14}/>
+            {isAcquisitionFullscreen ? 'Mostra riepilogo' : 'Schermo intero'}
+          </button>
         </aside>
       </header>
 
@@ -5844,7 +6254,7 @@ function AcquisitionWizard({
         </div>
       ) : null}
 
-      <div className="iu-tel-acquisition__grid">
+      <div className={`iu-tel-acquisition__grid${isAcquisitionFullscreen ? ' is-fullscreen' : ''}`} id="acquisition-workspace">
         <div className="iu-tel-acquisition__main">
           {step === 1 ? (
             <Panel
@@ -5968,10 +6378,31 @@ function AcquisitionWizard({
                       <span>Nessun ufficio trovato nel catalogo importato. Prova con comune, distretto, codice o tipo ufficio.</span>
                     )}
                   </div>
+                  {portal === 'pst' && selectedPstOffices.length ? (
+                    <div className="iu-tel-acq-selected-offices" aria-label="Uffici PST selezionati">
+                      <strong>Uffici nella ricerca ({selectedPstOffices.length}/20)</strong>
+                      <span>Le richieste sono eseguite una alla volta con il medesimo certificato PST.</span>
+                      <div>
+                        {selectedPstOffices.map((office) => (
+                          <button type="button" key={office.codice} onClick={() => removePstOffice(office.codice)}>
+                            {office.nome || office.codice} <span aria-hidden="true">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </label>
-                <label><span>Numero</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder="Es. 466"/></label>
-                <label><span>Anno</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
-                <label>
+                <label><span>{portal === 'pst' ? 'Numero R.G.' : 'Numero'}</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder={portal === 'pst' ? 'Es. 466' : 'Es. 466'}/></label>
+                <label><span>{portal === 'pst' ? 'Anno R.G.' : 'Anno'}</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
+                {portal === 'pst' ? (
+                  <label>
+                    <span>Ruolo nel PolisWeb</span>
+                    <select value={query.ruoloPolisweb} onChange={(event) => updateQuery('ruoloPolisweb', event.currentTarget.value)}>
+                      {PST_ROLE_OPTIONS.map((role) => <option key={role.code} value={role.code}>{role.label}</option>)}
+                    </select>
+                  </label>
+                ) : (
+                  <label>
                   <span>{isPatAcquisition ? 'Tipologia deposito PAT' : 'Tabella ministeriale'}</span>
                   <select
                     value={ministerialSchemaFromQuery(query)}
@@ -6006,35 +6437,32 @@ function AcquisitionWizard({
                       </>
                     )}
                   </select>
-                </label>
+                  </label>
+                )}
                 <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Ricorrente, istante o richiedente' : 'Cliente, imputato, ricorrente...'}/></label>
                 <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Amministrazione resistente o controinteressato' : 'Controparte, resistente, parte offesa...'}/></label>
                 <label><span>CF / P.IVA</span><input value={query.cf} onChange={(event) => updateQuery('cf', event.currentTarget.value)} placeholder="Codice fiscale o partita IVA"/></label>
-                <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Materia amministrativa, oggetto ricorso o istanza' : 'Oggetto, materia, reato, rito...'}/></label>
+                {portal !== 'pst' ? <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Materia amministrativa, oggetto ricorso o istanza' : 'Oggetto, materia, reato, rito...'}/></label> : null}
               </div>
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : (pstHasYearSearch() ? 'Cerca fascicoli' : 'Cerca fascicolo')}</button>
                 <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={() => runPreview()}><FileText size={15}/> Carica anteprima</button>
                 {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(isPatAcquisition ? 3 : 4)}><ArrowRight size={15}/> {isPatAcquisition ? 'Vai al rientro ricevute' : 'Vai ai file raccolti'}</button> : null}
               </div>
-              {portal === 'pst' && asText(pstSchemaHint.schema || pstSchemaHint.servizio_pst_preferito || query.servizioPstPreferito) ? (
-                <div className="iu-tel-local-signer-inline">
-                  <CheckCircle2 size={16}/>
-                  <span>
-                    Tabella ministeriale applicata automaticamente:
-                    {' '}
-                    <strong>{asText(query.materia || pstSchemaHint.materia || query.schema)}</strong>
-                  </span>
-                </div>
-              ) : null}
               <div className="iu-tel-acq-results">
-                {results.map((result) => (
+                {results.map((result) => {
+                  return (
                   <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => {
                     setSelection(result)
                     applyAutomaticDestination(result)
                     setPreview({})
                     setFiles([])
                     setSelectedDocumentKeys([])
+                    setDocumentDownloadModes({})
+                    setSelectedPartyKeys([])
+                    setPartyClassifications({})
+                    setSelectedEventKeys([])
+                    setEventClassifications({})
                     invalidateImportCheck()
                     if (portal === 'pst' && pstHasYearSearch()) void runPreview(result)
                   }} key={result.id}>
@@ -6044,7 +6472,8 @@ function AcquisitionWizard({
                       ? 'Già presente - verrà aggiornato'
                       : `${result.badge}${result.meta ? ` - ${result.meta}` : ''}`}</em>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </Panel>
           ) : null}
@@ -6214,14 +6643,99 @@ function AcquisitionWizard({
                   <span>{isPatAcquisition ? 'Imposta come archiviare ricevute, riepilogo e file ufficiali SIGA.' : 'Imposta come conservare i file scaricati dal portale.'}</span>
                 </header>
                 <div className="iu-tel-acq-switches iu-tel-acq-switches--compact">
-                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'File ufficiale SIGA' : 'Originale portale'}</strong><small>{targetDocument.singleDocument ? 'Obbligatorio per la relata: viene acquisita la copia ministeriale nativa.' : isPatAcquisition ? 'Conserva il file prodotto dal portale quando rappresenta prova del deposito.' : 'Usa il file originale solo quando serve la copia ministeriale nativa.'}</small></span></label>
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'File ufficiale SIGA' : 'Duplicato informatico'}</strong><small>{targetDocument.singleDocument ? 'Obbligatorio per la relata: viene acquisito il duplicato ministeriale nativo.' : isPatAcquisition ? 'Conserva il file prodotto dal portale quando rappresenta prova del deposito.' : 'Usalo soltanto quando serve il duplicato ministeriale originale.'}</small></span></label>
                   <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Cartella PAT ordinata' : 'Struttura originale'}</strong><small>{targetDocument.singleDocument ? 'Esclusa: viene registrato soltanto il file ministeriale originale.' : isPatAcquisition ? 'Mantieni ricevute, moduli, allegati e comunicazioni in una struttura riconoscibile.' : 'Mantieni cartelle e gruppi del PST per buste, allegati e ricevute.'}</small></span></label>
                 </div>
               </section>
               {!structuredHearingLabel && deadlineSourceDocuments.length && options.importa_scadenze ? (
                 <p className="iu-tel-acq-note">Scadenziario: manca la data ministeriale, quindi verranno usati i documenti fonte selezionati per estrarre termine o udienza dopo lo scarico.</p>
               ) : null}
-              {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
+              {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. Imposta la modalità su ogni documento: la scelta è salvata nel fascicolo accanto al file acquisito.</p> : null}
+              {portal === 'pst' && previewPartyRows.length ? (
+                <section className="iu-tel-acq-fieldset">
+                  <header>
+                    <strong>Parti da importare: {selectedPreviewParties.length}/{previewPartyRows.length}</strong>
+                    <span>Ogni soggetto mantiene la propria tipologia; puoi correggerla prima della registrazione nel fascicolo.</span>
+                  </header>
+                  <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
+                    {previewPartyRows.map((party, index) => {
+                      const partyKey = pstPartySelectionKey(party, index)
+                      const selected = options.importa_parti && selectedPartyKeySet.has(partyKey)
+                      const classifications = uniquePstValues([
+                        asText(partyClassifications[partyKey]),
+                        asText(party.tipo || party.ruolo),
+                        'Parte',
+                        'Assistito',
+                        'Controparte',
+                        'Difensore',
+                        'Terzo',
+                      ])
+                      const currentClassification = asText(partyClassifications[partyKey] || party.tipo || party.ruolo, 'Parte')
+                      return (
+                        <article className={selected ? 'is-selected' : 'is-excluded'} key={`${partyKey}-select`}>
+                          <label className="iu-tel-acq-doc-check">
+                            <input type="checkbox" checked={selected} onChange={(event) => togglePreviewParty(party, index, event.currentTarget.checked)} aria-label={`Seleziona ${previewPartyName(party)}`}/>
+                            <BadgeCheck size={15}/>
+                          </label>
+                          <div>
+                            <strong>{previewPartyName(party)}</strong>
+                            <small>{asText(party.codice_fiscale || party.cf) || 'Codice fiscale non esposto dal PST'}</small>
+                          </div>
+                          <label className="iu-tel-acq-item-mode">
+                            <span>Tipologia</span>
+                            <select value={currentClassification} onChange={(event) => updatePreviewPartyClassification(party, index, event.currentTarget.value)} aria-label={`Tipologia di ${previewPartyName(party)}`}>
+                              {classifications.map((classification) => <option value={classification} key={classification}>{classification}</option>)}
+                            </select>
+                          </label>
+                          <Badge tone={selected ? 'success' : 'neutral'}>{selected ? 'Da importare' : 'Esclusa'}</Badge>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </section>
+              ) : null}
+              {portal === 'pst' && previewTimelineRows.length ? (
+                <section className="iu-tel-acq-fieldset">
+                  <header>
+                    <strong>Eventi da importare: {previewTimelineRows.filter((row) => selectedEventKeySet.has(pstEventSelectionKey(row))).length}/{previewTimelineRows.length}</strong>
+                    <span>Classifica ogni riga prima dell'importazione: udienze, termini e provvedimenti sono gestiti con regole diverse.</span>
+                  </header>
+                  <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
+                    {previewTimelineRows.map((timelineEvent) => {
+                      const eventKey = pstEventSelectionKey(timelineEvent)
+                      const selected = options.importa_eventi && selectedEventKeySet.has(eventKey)
+                      const classifications = uniquePstValues([
+                        asText(eventClassifications[eventKey]),
+                        asText(timelineEvent.classificazione_importazione || timelineEvent.tipo || timelineEvent.tipo_atto),
+                        ...PST_EVENT_CLASSIFICATIONS,
+                      ])
+                      const currentClassification = asText(
+                        eventClassifications[eventKey] || timelineEvent.classificazione_importazione || timelineEvent.tipo || timelineEvent.tipo_atto,
+                        'Evento',
+                      )
+                      return (
+                        <article className={selected ? 'is-selected' : 'is-excluded'} key={`${eventKey}-select`}>
+                          <label className="iu-tel-acq-doc-check">
+                            <input type="checkbox" checked={selected} onChange={(event) => togglePreviewEvent(timelineEvent, event.currentTarget.checked)} aria-label={`Seleziona ${asText(timelineEvent.label || timelineEvent.tipo || timelineEvent.oggetto, 'evento')}`}/>
+                            <Clock3 size={15}/>
+                          </label>
+                          <div>
+                            <strong>{asText(timelineEvent.label || timelineEvent.tipo || timelineEvent.tipo_atto || timelineEvent.oggetto, 'Evento PST')}</strong>
+                            <small>{italianDate(timelineEvent.data || timelineEvent.data_evento || timelineEvent.data_udienza || timelineEvent.data_deposito)}</small>
+                          </div>
+                          <label className="iu-tel-acq-item-mode">
+                            <span>Classificazione</span>
+                            <select value={currentClassification} onChange={(event) => updatePreviewEventClassification(timelineEvent, event.currentTarget.value)} aria-label="Classificazione evento PST">
+                              {classifications.map((classification) => <option value={classification} key={classification}>{classification}</option>)}
+                            </select>
+                          </label>
+                          <Badge tone={selected ? 'success' : 'neutral'}>{selected ? 'Da importare' : 'Escluso'}</Badge>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </section>
+              ) : null}
               {previewDocuments.length ? (
                 <>
                   <div className="iu-tel-acq-selection-toolbar">
@@ -6265,6 +6779,20 @@ function AcquisitionWizard({
                             <strong>{previewDocumentTitle(doc, index)}</strong>
                             <small>{previewDocumentMeta(doc) || 'Pronto per lo scaricamento dal PST'}</small>
                           </div>
+                          {portal === 'pst' ? (
+                            <label className="iu-tel-acq-item-mode">
+                              <span>Modalità</span>
+                              <select
+                                value={resolvedPstDocumentMode(documentDownloadModes, documentKey, options.scarica_originale_portale)}
+                                disabled={targetDocument.singleDocument}
+                                onChange={(event) => updatePreviewDocumentMode(doc, index, event.currentTarget.value as 'originale' | 'copia')}
+                                aria-label={`Modalità di scarico per ${previewDocumentTitle(doc, index)}`}
+                              >
+                                <option value="copia">Copia informatica</option>
+                                <option value="originale">Duplicato informatico</option>
+                              </select>
+                            </label>
+                          ) : null}
                           <Badge tone={downloaded ? 'primary' : selected ? 'success' : 'neutral'}>
                             {downloaded ? 'Scaricato' : selected ? 'Da scaricare' : 'Escluso'}
                           </Badge>
@@ -6432,7 +6960,7 @@ function AcquisitionWizard({
           ) : null}
         </div>
 
-        <aside className="iu-tel-acquisition__side">
+        <aside className="iu-tel-acquisition__side" hidden={isAcquisitionFullscreen}>
           <Panel title="Riepilogo sempre visibile" icon={<BadgeCheck size={17}/>} count={selection ? '1' : '0'}>
             <div className="iu-tel-acq-summary">
               <span><strong>Portale</strong>{portalLabel(portal)}</span>

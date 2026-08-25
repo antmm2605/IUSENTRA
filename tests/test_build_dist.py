@@ -81,6 +81,7 @@ def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch,
         lambda version: (_ for _ in ()).throw(AssertionError("builder nativo non deve partire di default")),
     )
     monkeypatch.setattr(build_dist, "build_macos_command", lambda version, base_url: "# mac\n")
+    monkeypatch.setattr(build_dist, "build_macos_dmg", lambda version, command: None)
     monkeypatch.setattr(build_dist, "build_linux_run", lambda version, base_url: "# linux\n")
     monkeypatch.setattr(build_dist, "build_windows_ps1", lambda version: "# ps1\n")
     monkeypatch.setattr(build_dist, "write_windows_support_files", lambda dist: [])
@@ -90,6 +91,39 @@ def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch,
 
     assert (dist_dir / f"SetupLocalSigner-{versione}.exe").read_bytes() == b"MZiexpress-storico-piccolo"
     assert (dist_dir / "SetupLocalSigner.exe").read_bytes() == b"MZiexpress-storico-piccolo"
+
+
+def test_build_macos_dmg_usa_builder_nativo_solo_su_macos(monkeypatch, tmp_path):
+    command = tmp_path / "InstallaLocalSigner-1.6.32.command"
+    command.write_text("#!/bin/bash\n", encoding="utf-8")
+    builder = tmp_path / "build_local_signer_macos_dmg.sh"
+    builder.write_text("#!/bin/bash\n", encoding="utf-8")
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+
+    monkeypatch.setattr(build_dist, "DIST_DIR", dist_dir)
+    monkeypatch.setattr(build_dist, "MACOS_DMG_BUILDER", builder)
+    monkeypatch.setattr(build_dist.sys, "platform", "darwin")
+
+    def fake_run(command_line, cwd, check):
+        assert command_line[0] == "/bin/bash"
+        assert command_line[1] == str(builder)
+        assert command_line[2] == "1.6.32"
+        assert command_line[3] == str(command)
+        assert check is True
+        Path(command_line[4]).write_bytes(b"koly")
+
+    monkeypatch.setattr(build_dist.subprocess, "run", fake_run)
+    output = build_dist.build_macos_dmg("1.6.32", command)
+
+    assert output == dist_dir / "IUSENTRA-LocalSigner-1.6.32.dmg"
+    assert output.read_bytes() == b"koly"
+
+
+def test_build_macos_dmg_non_prova_a_creare_immagini_fuori_da_macos(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_dist.sys, "platform", "win32")
+
+    assert build_dist.build_macos_dmg("1.6.32", tmp_path / "installer.command") is None
 
 
 def test_build_windows_ps1_include_versione_e_script_originale():

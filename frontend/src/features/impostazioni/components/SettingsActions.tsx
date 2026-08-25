@@ -576,6 +576,8 @@ export function SettingsActions({
     const warningActive = Boolean(firmaSettings.certificato_avviso_login) || (visibleDaysNumber !== null && visibleDaysNumber <= 20)
     const publishedSignerVersion = asText(data.local_signer.version)
     const publishedWindowsFilename = asText(data.local_signer.windows_filename)
+    const publishedMacosFilename = asText(data.local_signer.macos_filename)
+    const publishedLinuxFilename = asText(data.local_signer.linux_filename)
 
     const runLocalSignerCheck = async () => {
       setCertificateMessage('')
@@ -643,10 +645,36 @@ export function SettingsActions({
               Installa o aggiorna su Windows
             </a>
           </Button>
+          <Button type="button" variant="outline" asChild>
+            <a
+              href={data.local_signer.downloads.macos}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={publishedSignerVersion
+                ? `Installa o aggiorna IUSENTRA Local Signer per macOS, versione ${publishedSignerVersion}`
+                : 'Installa o aggiorna IUSENTRA Local Signer per macOS'}
+            >
+              <Download data-icon="inline-start" />
+              Installa o aggiorna su macOS
+            </a>
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <a
+              href={data.local_signer.downloads.linux}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={publishedSignerVersion
+                ? `Installa o aggiorna IUSENTRA Local Signer per Linux, versione ${publishedSignerVersion}`
+                : 'Installa o aggiorna IUSENTRA Local Signer per Linux'}
+            >
+              <Download data-icon="inline-start" />
+              Installa o aggiorna su Linux
+            </a>
+          </Button>
         </div>
         <p className="iu-settings-local-signer__download-note">
           {publishedSignerVersion
-            ? `Il pulsante scarica il pacchetto ufficiale corrente, versione ${publishedSignerVersion}${publishedWindowsFilename ? ` (${publishedWindowsFilename})` : ''}.`
+            ? `Pacchetti ufficiali ${publishedSignerVersion}: Windows${publishedWindowsFilename ? ` (${publishedWindowsFilename})` : ''}, macOS${publishedMacosFilename ? ` (${publishedMacosFilename})` : ''}, Linux${publishedLinuxFilename ? ` (${publishedLinuxFilename})` : ''}.`
             : 'Il pulsante scarica il pacchetto ufficiale corrente pubblicato da IUSENTRA.'}
         </p>
         {certificateMessage ? (

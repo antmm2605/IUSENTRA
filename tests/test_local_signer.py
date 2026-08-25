@@ -975,6 +975,9 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "FlashWindowEx" in source
     assert "CREATE_NO_WINDOW" in source
     assert "STARTF_USESHOWWINDOW" in source
+    assert "if user32.IsWindow(hwnd):" in source
+    assert "if not user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):" not in source
+    assert "possono creare il prompt PIN come finestra" in source
     assert "result = _run_process_with_pin_foreground(" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
@@ -1686,6 +1689,17 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
     )
 
 
+def test_build_macos_dmg_contiene_installatore_e_presidio_notarizzazione():
+    root = Path(__file__).resolve().parents[1]
+    builder = (root / "tools" / "build_local_signer_macos_dmg.sh").read_text(encoding="utf-8")
+
+    assert "hdiutil create" in builder
+    assert "InstallaLocalSigner" not in builder  # Il nome e' passato dal build versionato.
+    assert "IUSENTRA_MACOS_CODESIGN_IDENTITY" in builder
+    assert "IUSENTRA_MACOS_NOTARY_PROFILE" in builder
+    assert "xcrun notarytool submit" in builder
+
+
 def test_local_signer_security_contract_allineato_a_moduli_distribuiti():
     root = Path(__file__).resolve().parents[1]
     local_signer_tree = ast.parse((root / "tools" / "local_signer.py").read_text(encoding="utf-8"))
@@ -2327,6 +2341,8 @@ def test_metadata_impostazioni_windows_pubblica_solo_exe():
     assert meta["windows_script_filename"] == meta["windows_filename"]
     assert meta["windows_installer_filename"] == meta["windows_filename"]
     assert not meta["windows_script_filename"].endswith(".ps1")
+    assert meta["macos_filename"].endswith((".dmg", ".command"))
+    assert meta["linux_filename"].endswith(".run")
 
 
 def test_ai_status_bridge_locale_restituisce_snapshot():

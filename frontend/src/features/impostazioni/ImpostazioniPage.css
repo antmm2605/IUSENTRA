@@ -2,11 +2,22 @@
   color: var(--ius-text);
 }
 
+.iu-settings-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .iu-settings-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   gap: 18px;
   align-items: start;
+}
+
+.iu-settings-layout--wide {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .iu-settings-main {
@@ -766,6 +777,15 @@
 }
 
 @media (max-width: 760px) {
+  .iu-settings-page__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .iu-settings-page__actions > * {
+    flex: 1 1 180px;
+  }
+
   .iu-settings-tabs__list {
     flex-wrap: nowrap;
     overflow-x: auto;

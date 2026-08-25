@@ -6687,7 +6687,12 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
 
 
 def _windows_visible_top_level_window_handles() -> set[int]:
-    """Fotografa le finestre gia' aperte prima di avviare l'operazione protetta."""
+    """Fotografa tutte le finestre top-level gia' aperte prima dell'operazione.
+
+    Alcuni CSP espongono il dialogo PIN dapprima come finestra non visibile. La
+    fotografia deve quindi includere anche quelle nascoste, altrimenti il pump
+    potrebbe scambiare per nuovo un prompt di un'altra operazione.
+    """
     if sys.platform != "win32":
         return set()
     try:
@@ -6700,7 +6705,7 @@ def _windows_visible_top_level_window_handles() -> set[int]:
 
         @EnumWindowsProc
         def _enum_window(hwnd, _lparam):
-            if user32.IsWindowVisible(hwnd) or user32.IsIconic(hwnd):
+            if user32.IsWindow(hwnd):
                 handles.add(int(hwnd))
             return True
 
@@ -6792,8 +6797,6 @@ def _windows_try_foreground_pin_prompt_once(
         def _enum_window(hwnd, _lparam):
             if int(hwnd) in excluded:
                 return True
-            if not user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
-                return True
             title = _window_text(hwnd)
             class_name = _class_name(hwnd)
             process_name = _process_name(hwnd)
@@ -6803,6 +6806,9 @@ def _windows_try_foreground_pin_prompt_once(
                 child_text = _child_text(hwnd)
                 score = _windows_pin_prompt_candidate_score(title, class_name, child_text, process_name)
             if score:
+                # Bit4id e altri CSP possono creare il prompt PIN come finestra
+                # top-level ancora invisibile. Esso non deve restare in barra:
+                # _windows_force_foreground_window lo mostra e lo rende attivo.
                 matched.append((score, hwnd))
                 if owned_handles is not None:
                     owned_handles.add(int(hwnd))

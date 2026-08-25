@@ -748,6 +748,9 @@ def build_telematico_runtime(
                     "id_documento_padre": str(item.get("id_documento_padre") or item.get("parent_id_documento") or "").strip(),
                     "parent_nome": str(item.get("parent_nome") or "").strip(),
                     "is_allegato": bool(item.get("is_allegato")),
+                    "modalita_documento_portale": str(item.get("modalita_documento_portale") or "").strip().lower(),
+                    "original_documento_portale": item.get("original_documento_portale"),
+                    "classificazione_importazione": str(item.get("classificazione_importazione") or "").strip(),
                 }
             )
         rows.sort(
@@ -1506,6 +1509,16 @@ def build_telematico_runtime(
             merged["id_documento_padre"] = str(item.get("id_documento_padre") or match.get("id_documento_padre") or match.get("parent_id_documento") or "").strip()
             merged["parent_nome"] = str(item.get("parent_nome") or match.get("parent_nome") or "").strip()
             merged["is_allegato"] = bool(item.get("is_allegato") or match.get("is_allegato"))
+            # La scelta della riga nell'anteprima è autoritativa per la
+            # conservazione nel fascicolo: il Local Signer può restituire
+            # metadati tecnici senza ripetere la modalità scelta dall'utente.
+            for field_name in (
+                "modalita_documento_portale",
+                "original_documento_portale",
+                "classificazione_importazione",
+            ):
+                if field_name in match:
+                    merged[field_name] = match[field_name]
             prefer_preview_date = not _portale_document_identifier_values(item)
             merged["data_documento"] = str(
                 (
@@ -1547,9 +1560,9 @@ def build_telematico_runtime(
             row = dict(item)
             modalita = str(row.get("modalita_documento_portale") or "").strip().lower()
             if modalita not in {"originale", "copia"}:
-                row["modalita_documento_portale"] = modalita_default
-            if row.get("original_documento_portale") is None:
-                row["original_documento_portale"] = bool(original)
+                modalita = modalita_default
+            row["modalita_documento_portale"] = modalita
+            row["original_documento_portale"] = modalita == "originale"
             patched.append(row)
         return patched
 
@@ -2588,10 +2601,11 @@ def build_telematico_runtime(
 
         if options.get("importa_eventi", True):
             for event in list(preview.get("eventi") or []):
-                tipo_text = _clean(event.get("tipo"))
+                classification = _clean(event.get("classificazione_importazione"))
+                tipo_text = classification or _clean(event.get("tipo"))
                 titolo = _clean(event.get("label") or event.get("descrizione")) or "Evento da portale"
-                tipo_attivita = _activity_type(tipo_text, titolo)
-                if tipo_attivita == TipoAttivita.UDIENZA and preview.get("udienze"):
+                tipo_attivita = _activity_type(tipo_text, "" if classification else titolo)
+                if not classification and tipo_attivita == TipoAttivita.UDIENZA and preview.get("udienze"):
                     continue
                 _add_activity(
                     tipo_attivita,
@@ -2606,14 +2620,16 @@ def build_telematico_runtime(
                 data_udienza = _date_value(udienza.get("data") or udienza.get("data_udienza"))
                 if not data_udienza:
                     continue
+                classification = _clean(udienza.get("classificazione_importazione"))
                 ora = _clean(udienza.get("ora"))
                 titolo = _clean(udienza.get("label") or udienza.get("tipo")) or "Udienza da portale"
                 descrizione = _clean(udienza.get("descrizione"))
                 if ora:
                     descrizione = " ".join(part for part in (descrizione, f"Ora: {ora}") if part)
-                if _add_activity(TipoAttivita.UDIENZA, data_udienza, titolo, descrizione):
+                tipo_attivita = _activity_type(classification or "Udienza", "" if classification else titolo)
+                if _add_activity(tipo_attivita, data_udienza, titolo, descrizione):
                     pass
-                if options.get("importa_scadenze", False):
+                if options.get("importa_scadenze", False) and tipo_attivita == TipoAttivita.UDIENZA:
                     if not _data_portale_scadenziario_utilizzabile(data_udienza):
                         created["scadenze_scartate"] += 1
                         continue
@@ -2635,6 +2651,15 @@ def build_telematico_runtime(
         if options.get("importa_esiti_telematici", True):
             for row in list(preview.get("comunicazioni") or []):
                 title = _clean(row.get("oggetto") or row.get("tipo")) or "Comunicazione di cancelleria"
+                classification = _clean(row.get("classificazione_importazione"))
+                if classification:
+                    _add_activity(
+                        _activity_type(classification, ""),
+                        _clean(row.get("data")),
+                        title,
+                        _clean(row.get("stato")),
+                    )
+                    continue
                 title_hash = hashlib.sha1(title.encode("utf-8", errors="ignore")).hexdigest()[:12]
                 ext_id = _clean(row.get("id")) or f"COM:{_date_value(row.get('data'))}:{title_hash}"
                 gf.sincronizza_deposito_portale(
@@ -2656,6 +2681,15 @@ def build_telematico_runtime(
         if options.get("importa_cronologia_depositi", True):
             for row in list(preview.get("istanze") or []):
                 title = _clean(row.get("oggetto") or row.get("tipo")) or "Istanza"
+                classification = _clean(row.get("classificazione_importazione"))
+                if classification:
+                    _add_activity(
+                        _activity_type(classification, ""),
+                        _clean(row.get("data")),
+                        title,
+                        _clean(row.get("stato")),
+                    )
+                    continue
                 title_hash = hashlib.sha1(title.encode("utf-8", errors="ignore")).hexdigest()[:12]
                 ext_id = _clean(row.get("id")) or f"IST:{_date_value(row.get('data'))}:{title_hash}"
                 gf.sincronizza_deposito_portale(
@@ -2675,6 +2709,15 @@ def build_telematico_runtime(
                 created["istanze"] += 1
             for row in list(preview.get("depositi_telematici") or []):
                 title = _clean(row.get("tipo_atto")) or "Deposito telematico"
+                classification = _clean(row.get("classificazione_importazione"))
+                if classification:
+                    _add_activity(
+                        _activity_type(classification, ""),
+                        _clean(row.get("data")),
+                        title,
+                        _clean(row.get("messaggio") or row.get("stato")),
+                    )
+                    continue
                 title_hash = hashlib.sha1(title.encode("utf-8", errors="ignore")).hexdigest()[:12]
                 ext_id = _clean(row.get("id")) or f"DEP:{_date_value(row.get('data'))}:{title_hash}"
                 gf.sincronizza_deposito_portale(
@@ -3468,6 +3511,18 @@ def build_telematico_runtime(
 
         fasc = gf.get(id_fasc)
         documenti_importati_count = int(import_result.get("documenti_importati", 0) or 0)
+        modalita_documenti_importati = {
+            str(row.get("modalita_documento_portale") or "").strip().lower()
+            for row in list(import_result.get("documenti") or [])
+            if str(row.get("modalita_documento_portale") or "").strip().lower() in {"originale", "copia"}
+        }
+        modalita_documento_portale = (
+            next(iter(modalita_documenti_importati))
+            if len(modalita_documenti_importati) == 1
+            else "mista"
+            if modalita_documenti_importati
+            else "originale" if scarica_originale_portale else "copia"
+        )
         documenti_da_acquisire = max(documenti_attesi - documenti_importati_count, 0)
         if portale == "pst" and importa_file_portale:
             document_report = dict(document_report)
@@ -3544,7 +3599,7 @@ def build_telematico_runtime(
                 "depositi_telematici_generati": structured_result["depositi"],
                 "conflitti_risolti": len(analysis["warnings"]),
                 "lotto_generico": str(import_result.get("lotto_generico") or ""),
-                "modalita_documento_portale": "originale" if scarica_originale_portale else "copia",
+                "modalita_documento_portale": modalita_documento_portale,
                 "catalogo_solo_metadati": bool(importa_file_portale and documenti_attesi > 0 and not files),
                 "download_parziale_portale": bool(partial_pst_existing_update),
                 "albero_originale_salvato": bool(albero_originale_salvato),
@@ -4935,8 +4990,15 @@ def build_telematico_runtime(
     def _local_signer_windows_offline_ps1_path() -> Path:
         return _local_signer_dist_dir() / _local_signer_windows_offline_ps1_name()
 
-    def _local_signer_macos_name() -> str:
+    def _local_signer_macos_command_name() -> str:
         return f"InstallaLocalSigner-{_local_signer_version()}.command"
+
+    def _local_signer_macos_dmg_name() -> str:
+        return f"IUSENTRA-LocalSigner-{_local_signer_version()}.dmg"
+
+    def _local_signer_macos_name() -> str:
+        dmg = _local_signer_dist_dir() / _local_signer_macos_dmg_name()
+        return dmg.name if dmg.exists() else _local_signer_macos_command_name()
 
     def _local_signer_linux_name() -> str:
         return f"InstallaLocalSigner-{_local_signer_version()}.run"
@@ -4977,10 +5039,13 @@ def build_telematico_runtime(
         return Path(__file__).resolve().parents[2] / "pct" / "data" / "uffici_pst_pubblici.json"
 
     def _local_signer_macos_installer_path() -> Path:
-        preferred = _local_signer_dist_dir() / _local_signer_macos_name()
+        preferred = _local_signer_dist_dir() / _local_signer_macos_dmg_name()
+        command = _local_signer_dist_dir() / _local_signer_macos_command_name()
         legacy = _local_signer_dist_dir() / "InstallaLocalSigner.command"
         if preferred.exists():
             return preferred
+        if command.exists():
+            return command
         return legacy
 
     def _local_signer_linux_installer_path() -> Path:

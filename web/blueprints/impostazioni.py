@@ -151,6 +151,7 @@ def _safe_local_ai_status_payload(snapshot):
             for key in ("role", "kind", "name", "model_name", "install_state", "size_bytes", "context_window")
             if item.get(key) not in (None, "")
         })
+    macos_dmg = dist_dir / f"IUSENTRA-LocalSigner-{version}.dmg"
     return {
         "settings": settings_view,
         "runtime": runtime_view,
@@ -219,6 +220,7 @@ def _local_signer_meta() -> dict[str, str]:
 
     match = _re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
     version = match.group(1) if match else "n.d."
+    macos_dmg = dist_dir / f"IUSENTRA-LocalSigner-{version}.dmg"
 
     # Determina il filename Windows mostrato in UI.
     # L'eseguibile .exe e' l'unico pacchetto Windows proposto all'utente.
@@ -237,7 +239,7 @@ def _local_signer_meta() -> dict[str, str]:
         "windows_tipo": windows_tipo,
         "windows_script_filename": windows_filename,
         "windows_installer_filename": windows_filename,
-        "macos_filename": f"InstallaLocalSigner-{version}.command",
+        "macos_filename": macos_dmg.name if macos_dmg.exists() else f"InstallaLocalSigner-{version}.command",
         "linux_filename": f"InstallaLocalSigner-{version}.run",
         "python_filename": f"local_signer-{version}.py",
     }

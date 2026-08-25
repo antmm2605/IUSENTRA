@@ -1,7 +1,7 @@
 IUSENTRA Local Signer
 Versione: 1.6.114
-Generato: 2026-08-17 14:57 UTC
-Piattaforme: Windows (EXE piccolo IExpress), macOS (.command), Linux (.run)
+Generato: 2026-08-25 19:53 UTC
+Piattaforme: Windows (EXE IExpress), macOS (.dmg quando generato su Mac; .command di ripiego), Linux (.run)
 Ponte PEC locale: test SMTP e invio dal PC dello studio
 Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT
 Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali

@@ -5804,7 +5804,21 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
                             "mittente": "cancelleria@tribunale.giustiziapec.it",
                             "id_deposito": "BUSTA-PST-001",
                             "id_cat": "CAT-001",
-                        }
+                            "modalita_documento_portale": "copia",
+                            "original_documento_portale": False,
+                        },
+                        {
+                            "id_documento": "DOC-ORDINANZA-2",
+                            "nome": "Ordinanza_29740537.pdf",
+                            "tipo": "ORDINANZA",
+                            "tipo_atto": "Ordinanza",
+                            "data_deposito": "2025-01-22",
+                            "mittente": "cancelleria@tribunale.giustiziapec.it",
+                            "id_deposito": "BUSTA-PST-002",
+                            "id_cat": "CAT-002",
+                            "modalita_documento_portale": "originale",
+                            "original_documento_portale": True,
+                        },
                     ],
                     "depositi": [
                         {
@@ -5824,16 +5838,36 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
                                     "id_cat": "CAT-001",
                                 }
                             ],
-                        }
+                        },
+                        {
+                            "id_deposito": "BUSTA-PST-002",
+                            "tipo_atto": "Ordinanza",
+                            "data_deposito": "2025-01-22",
+                            "mittente": "cancelleria@tribunale.giustiziapec.it",
+                            "documenti": [
+                                {
+                                    "id_documento": "DOC-ORDINANZA-2",
+                                    "nome": "Ordinanza_29740537.pdf",
+                                    "tipo": "ORDINANZA",
+                                    "tipo_atto": "Ordinanza",
+                                    "data_deposito": "2025-01-22",
+                                    "mittente": "cancelleria@tribunale.giustiziapec.it",
+                                    "id_deposito": "BUSTA-PST-002",
+                                    "id_cat": "CAT-002",
+                                    "modalita_documento_portale": "originale",
+                                    "original_documento_portale": True,
+                                }
+                            ],
+                        },
                     ],
                     "counts": {
                         "parti": 2,
                         "difensori": 0,
                         "eventi": 0,
                         "udienze": 0,
-                        "documenti": 1,
+                        "documenti": 2,
                         "provvedimenti": 0,
-                        "depositi": 1,
+                        "depositi": 2,
                         "esiti": 0,
                     },
                 },
@@ -5875,6 +5909,22 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
                         "tipo_atto": "VerbaleUdienza",
                         "tipo": "VERBALE",
                         "id_cat": "CAT-001",
+                        "modalita_documento_portale": "originale",
+                        "original_documento_portale": True,
+                    },
+                    {
+                        "nome": "Ordinanza_29740537.pdf",
+                        "contenuto_b64": base64.b64encode(b"fake-ordinanza").decode("ascii"),
+                        "content_type": "application/pdf",
+                        "data_documento": "2025-01-22",
+                        "origine": "pst:JPW_SICID:DOC-ORDINANZA-2",
+                        "id_deposito_esterno": "BUSTA-PST-002",
+                        "id_documento_portale": "DOC-ORDINANZA-2",
+                        "tipo_atto": "Ordinanza",
+                        "tipo": "ORDINANZA",
+                        "id_cat": "CAT-002",
+                        "modalita_documento_portale": "copia",
+                        "original_documento_portale": False,
                     }
                 ],
             },
@@ -5888,11 +5938,11 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     assert data["fascicolo_url"] == f"/fascicoli/{fascicolo.id}"
     assert data["documenti_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
     assert data["result"]["redirect_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
-    assert data["result"]["summary"]["documenti"] == 1
+    assert data["result"]["summary"]["documenti"] == 2
     assert data["result"]["summary"]["redirect_url"] == f"/fascicoli/{fascicolo.id}#sezione-documenti-fascicolo"
     assert data["result"]["summary"]["fascicolo_url"] == f"/fascicoli/{fascicolo.id}"
     assert data["result"]["summary"]["albero_originale_salvato"] is True
-    assert data["result"]["summary"]["modalita_documento_portale"] == "copia"
+    assert data["result"]["summary"]["modalita_documento_portale"] == "mista"
 
     gestione_fascicoli_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -5903,11 +5953,12 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     assert fascicolo_reload is not None
     assert fascicolo_reload.stato == StatoFascicolo.DEFINITO
     assert fascicolo_reload.source_snapshot["portale"] == "PST"
-    assert fascicolo_reload.source_snapshot["counts"]["documenti"] == 1
+    assert fascicolo_reload.source_snapshot["counts"]["documenti"] == 2
     assert fascicolo_reload.source_snapshot["parti"] == ["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"]
-    assert len(fascicolo_reload.documenti) == 1
-    assert len(fascicolo_reload.depositi_pct) == 1
-    doc = fascicolo_reload.documenti[0]
+    assert len(fascicolo_reload.documenti) == 2
+    assert len(fascicolo_reload.depositi_pct) == 2
+    doc = next(item for item in fascicolo_reload.documenti if item.id_documento_portale == "DOC-VERBALE-1")
+    ordinanza = next(item for item in fascicolo_reload.documenti if item.id_documento_portale == "DOC-ORDINANZA-2")
     assert doc.nome.endswith(".p7m")
     assert doc.firmato is True
     assert doc.tipo == TipoDocumento.VERBALE
@@ -5918,7 +5969,11 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     assert "VerbaleUdienza" in doc.tags
     assert "VerbaleUdienza" in doc.tags
     assert re.search(r"Importato da PolisWeb / PST il \d{2}/\d{2}/\d{4}", doc.note or "")
-    assert fascicolo_reload.depositi_pct[0].documenti_ids == [doc.id]
+    assert "Originale firmato" in ordinanza.tags
+    assert "Copia di consultazione" not in ordinanza.tags
+    depositi_by_external_id = {item.id_deposito_esterno: item for item in fascicolo_reload.depositi_pct}
+    assert depositi_by_external_id["BUSTA-PST-001"].documenti_ids == [doc.id]
+    assert depositi_by_external_id["BUSTA-PST-002"].documenti_ids == [ordinanza.id]
 
     albero_root = Path(cfg["PST_IMPORT_DIR"]) / "_alberi_originali" / fascicolo.id
     assert albero_root.exists()
@@ -5932,6 +5987,139 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
         and str(row.get("portale") or "").strip() == "PST"
         for row in import_rows
     )
+
+
+def test_api_portale_acquisizione_import_pst_rispetta_classificazione_per_singola_riga(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    ).crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "024116:1084:2026:RG",
+                    "numero": "1084",
+                    "anno": 2026,
+                    "ufficio_codice": "024116",
+                    "ufficio_nome": "Tribunale di Vicenza",
+                    "procedimento": "CIVILE",
+                    "parti": ["MARCHETTI LUCIA"],
+                    "payload": {
+                        "numero_rg": "1084",
+                        "anno_rg": 2026,
+                        "codice_ufficio": "024116",
+                        "nome_ufficio": "Tribunale di Vicenza",
+                        "parti_dettaglio": [{"nome": "MARCHETTI LUCIA", "tipo": "Assistito"}],
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "1084",
+                        "anno": 2026,
+                        "ufficio_nome": "Tribunale di Vicenza",
+                        "ufficio_codice": "024116",
+                        "procedimento": "CIVILE",
+                        "data_udienza": "",
+                    },
+                    "parti": ["MARCHETTI LUCIA"],
+                    "parti_dettaglio": [{"nome": "MARCHETTI LUCIA", "tipo": "Assistito"}],
+                    "eventi": [
+                        {
+                            "label": "Provvedimento selezionato",
+                            "data": "2026-10-10",
+                            "tipo": "evento",
+                            "classificazione_importazione": "Provvedimento",
+                        }
+                    ],
+                    "udienze": [
+                        {
+                            "label": "Rinvio selezionato",
+                            "data": "2026-10-11",
+                            "tipo": "udienza",
+                            "classificazione_importazione": "Rinvio",
+                        }
+                    ],
+                    "comunicazioni": [
+                        {
+                            "id": "COM-1084",
+                            "oggetto": "Termine selezionato",
+                            "data": "2026-10-12",
+                            "classificazione_importazione": "Termine/scadenza",
+                        }
+                    ],
+                    "istanze": [
+                        {
+                            "id": "IST-1084",
+                            "oggetto": "Comunicazione selezionata",
+                            "data": "2026-10-13",
+                            "classificazione_importazione": "Comunicazione",
+                        }
+                    ],
+                    "depositi_telematici": [
+                        {
+                            "id": "DEP-1084",
+                            "tipo_atto": "Deposito selezionato",
+                            "data": "2026-10-14",
+                            "classificazione_importazione": "Evento",
+                        }
+                    ],
+                    "documenti": [],
+                    "depositi": [],
+                    "counts": {"parti": 1, "eventi": 1, "udienze": 1, "comunicazioni": 1, "istanze": 1, "esiti": 1, "documenti": 0, "depositi": 0},
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_documenti": False,
+                    "importa_provvedimenti": False,
+                    "importa_eventi": True,
+                    "importa_udienze": True,
+                    "importa_scadenze": False,
+                    "importa_esiti_telematici": True,
+                    "importa_cronologia_depositi": True,
+                },
+                "mapping": {"mode": "create_new", "procedimento": "CIVILE", "materia": "Civile", "grado": "Primo grado"},
+                # Un file locale non viene importato perché l'opzione documenti è disattivata;
+                # segnala però al runtime che il canale PST è quello locale, mai il client remoto.
+                "downloaded_files": [
+                    {
+                        "nome": "traccia-canale-locale.txt",
+                        "contenuto_b64": base64.b64encode(b"canale locale di test").decode("ascii"),
+                    }
+                ],
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    fascicolo = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(data["id_fascicolo"])
+    assert fascicolo is not None
+    activities = {activity.titolo: activity.tipo for activity in fascicolo.attivita}
+    assert activities["Provvedimento selezionato"] == TipoAttivita.PROVVEDIMENTO
+    assert activities["Rinvio selezionato"] == TipoAttivita.RINVIO
+    assert activities["Termine selezionato"] == TipoAttivita.TERMINE_SCADENZA
+    assert activities["Comunicazione selezionata"] == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+    assert activities["Deposito selezionato"] == TipoAttivita.ALTRO
+    assert all(activity.tipo != TipoAttivita.UDIENZA for activity in fascicolo.attivita)
 
 
 def test_api_portale_acquisizione_import_pst_blocca_catalogo_senza_file(tmp_path):

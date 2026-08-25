@@ -280,11 +280,12 @@ def register_telematico_local_signer_routes(
         try:
             installer_path = local_signer_macos_installer_path()
             if installer_path.exists():
+                is_dmg = installer_path.suffix.lower() == ".dmg"
                 return send_file(
                     installer_path,
                     as_attachment=True,
                     download_name=local_signer_macos_name(),
-                    mimetype="text/plain; charset=utf-8",
+                    mimetype="application/x-apple-diskimage" if is_dmg else "text/plain; charset=utf-8",
                 )
             return Response(
                 render_local_signer_macos_command(get_base_url()),

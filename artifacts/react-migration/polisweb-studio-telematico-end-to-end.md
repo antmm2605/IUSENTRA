@@ -538,14 +538,14 @@ Questi punti vanno chiusi prima di dichiarare la ricerca/import PolisWeb complet
 
 ## Stato implementazione 02/07/2026
 
-Confronto eseguito su tre fonti: sorgenti decompilati Studio Telematico (`PCT.cs`, `Common.cs`, `WizardImportaPraticheDaPolisWeb.cs`), cataloghi locali `ListaUfficiGiudiziari.xml`/`QC_Uffici.xml` e fonte ufficiale PST `Documentazione servizi web esposti v1.69`, pubblicata nella pagina PST con ultimo aggiornamento `12/02/2026`.
+Confronto eseguito in modalità clean-room su comportamenti osservabili del prodotto di riferimento, cataloghi locali `ListaUfficiGiudiziari.xml`/`QC_Uffici.xml` e fonte ufficiale PST `Documentazione servizi web esposti v1.69`, pubblicata nella pagina PST con ultimo aggiornamento `12/02/2026`. Nessun sorgente, componente, algoritmo o testo proprietario è stato trascritto o riutilizzato.
 
 Aggiornamenti applicati in IUSENTRA:
 
 - `pct/polisWeb.py` ora ha una matrice registro/servizio per `CC`, `LAV`, `VG`, `MIN`, `ESM`, `ESIM`, `FALL`, `GP/GDP`, `CASSCI`, `CASSPE`; la ricerca non dipende più solo da ufficio/numero/anno generici.
 - Le chiamate QBuilder scelgono il metodo in base al registro: `RicercaInformazioniFascicoloPerTipo` per SICID/Lavoro/VG/Minorenni/Giudice di Pace con numero, `RicercaInformazioniFascicoloPerNumero` per SIECIC esplicito, `RicercaInformazioniFascicoloPerRMO` per Giudice di Pace annuale, chiamate Cassazione dedicate per civile/penale.
 - `web/services/telematico_runtime.py` inoltra registro, servizio PST, ruolo, subprocedimento, `idDfa`, `urn` e `target_path` dal pannello React al client reale, e per PST/PolisWeb non crea più il client in modalità demo.
-- `frontend/src/components/TelematicoSurfacePage.tsx` mostra macroaree professionali compatte e invia payload tecnici distinti per `ESM`, `ESIM`, `FALL`, `GDP`, `CASSCI`, `CASSPE`, senza riferimenti visibili a Studio Telematico, QuickOrganizer, JPW o dettagli interni.
+- `frontend/src/components/TelematicoSurfacePage.tsx` mantiene la matrice di compatibilità dentro il flusso IUSENTRA e invia il profilo tecnico dedotto, senza riferimenti visibili a prodotti terzi o dettagli interni.
 - `tools/local_signer.py` preserva il percorso generico SIECIC già testato; quando il registro è esplicito (`ESM`, `ESIM`, `FALL`) usa i campi ministeriali completi `registro`, `idRuoloJPW`, `idDfa` per ricerca, profilo, documenti e sezioni fascicolo.
 - Il download intero fascicolo resta un lotto unico tramite `/pst/download-documenti-batch`, così la sessione/certificato web viene riusata e il PIN non viene richiesto documento per documento.
 - Correzione specifica dal confronto Studio Telematico: per SIECIC `estraiProfiloDocumento` continua a usare `idDoc`, ma `downloadDocumento` usa `idCat`. Se il profilo risolve `idCat`, il lotto scarica con quello; se un singolo profilo fallisce, il lotto resta batch e usa il miglior identificativo disponibile senza passare al download singolo.
@@ -599,3 +599,81 @@ Regola operativa aggiunta: `NUMEROPRATICA`/numero interno IUSENTRA non può mai 
 - Test import: fascicolo, parti, storico, documenti, agenda e scadenze salvati nel tenant.
 - Verifica reale su `127.0.0.1:8080` con browser visibile per pannello ricerca/import.
 - Report deve indicare cosa è stato visto nella UI reale; se non eseguito, scrivere `non verificato su macchina reale`.
+
+## Riallineamento clean-room 25/08/2026
+
+Questa tranche è stata riesaminata senza trascrivere, copiare o derivare codice proprietario da Studio Telematico/QuickOrganizer. Il riferimento installato è stato usato esclusivamente per ricavare requisiti osservabili del flusso; la soluzione IUSENTRA usa componenti, modelli e test propri e continua a usare solo il Local Signer autorizzato per le operazioni PST.
+
+| Comportamento osservabile di riferimento | Implementazione IUSENTRA verificata in codice | Presidio |
+| --- | --- | --- |
+| Uffici selezionabili separatamente, con limite di venti | Selezione cumulativa di uffici PST; ricerca seriale per ogni combinazione per evitare conflitti di sessione | `TelematicoSurfacePage.tsx` |
+| Registro determinato per ogni ricerca | Deduzione interna sulle dieci tabelle: civile, lavoro, volontaria, minori, esecuzioni mobiliari/immobiliari, concorsuali, Giudice di Pace, Cassazione civile e penale | `pstImportParity.ts`, matrice `pct/polisWeb.py` |
+| Ruolo PolisWeb esplicito | Ruoli `AVV`, `DEL`, `AUS`, `CTU`, `CUR`, `PARTE`, `CUS`, `NOT`, `TUT` inviati con ogni profilo di ricerca dedotto | UI React e payload Local Signer |
+| Parti e storico selezionabili e tipizzati riga per riga | Le righe non sono accorpate tra sezioni PST; la selezione e la tipologia raggiungono l'import e producono attività coerenti | preview filtrata e `_sync_portale_structured_sections` |
+| Atto principale/allegati con identificativi distinti | Mantiene `idDocumento`, `idCat`, padre/allegato e usa il percorso master/detail esistente | Local Signer e `pct/polisWeb.py` |
+| Scarico singolo o lotto con scelta per file | Ogni documento porta la propria scelta `copia`/`originale` sino al Local Signer e all'import; in UI le etichette sono `Copia informatica` e `Duplicato informatico` | batch PST, tag e audit del fascicolo |
+| Errore di una riga senza annullare il lotto | Lo scarico resta best-effort, con fallimenti nominativi e documenti riusciti disponibili per la successiva importazione | Local Signer e report di avanzamento |
+| Documento realmente selezionato nel fascicolo interno | Filtro su identificativi PST, merge dei metadati dell'anteprima, hash/deduplica, deposito collegato e tag di modalità | repository fascicoli, SQLite/PostgreSQL tramite repository corrente |
+
+Correzioni introdotte nel presente riesame:
+
+- i metadati `modalita_documento_portale`, `original_documento_portale` e `classificazione_importazione` non vengono più persi durante la normalizzazione del catalogo;
+- il riepilogo segnala `mista` quando un lotto contiene sia copie sia duplicati, senza rappresentare la scelta come globale;
+- una classificazione esplicita dell'avvocato prevale sul testo del titolo dell'evento; un evento classificato genericamente non diventa un deposito solo perché il titolo contiene la parola “deposito”;
+- una data udienza non selezionata non crea più un'attività o una scadenza implicita;
+- le opzioni `Copia informatica` e `Duplicato informatico` sono disponibili per ogni singola riga del catalogo.
+
+Guardrail automatici aggiunti/aggiornati:
+
+- `test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero` verifica un lotto misto, il collegamento di entrambi i file ai rispettivi depositi e i tag effettivi `Copia di consultazione`/`Originale firmato`;
+- `test_api_portale_acquisizione_import_pst_rispetta_classificazione_per_singola_riga` verifica che provvedimento, rinvio, termine, comunicazione ed evento generico mantengano la classificazione selezionata.
+
+Stato della prova reale del caso richiesto `RG 1084/2026`, Tribunale di Vicenza: è stata avviata una consultazione reale dalla copia Docker locale `http://127.0.0.1:8080/portali/pst/acquisizione`. Il certificato locale è stato riconosciuto e il PST è stato interrogato con ufficio, R.G., anno e ruolo, senza compilare oggetto/materia; prima dell'esito, il provider del certificato ha aperto il dialogo PIN Windows senza portarlo correttamente in primo piano. Non è stato inserito o registrato alcun PIN dall'applicazione, non sono stati scaricati documenti e non è stato importato nulla nel fascicolo. La prova resta aperta e controllerà, in due operazioni distinte, consultazione e scarico, oltre a singolo, lotto, copia, duplicato e risultato nel fascicolo.
+
+### Matrice interna per tutte le dieci tabelle
+
+La superficie React non mostra più un selettore di tabelle né i dettagli della deduzione: usa internamente una matrice clean-room per scegliere in modo silenzioso la consultazione compatibile. Non sono riportati codici o implementazioni proprietarie; la tabella seguente documenta soltanto le regole funzionali IUSENTRA per sviluppo, audit e test.
+
+| Tabella interna | Ricerca esatta | Ricerca annuale | Dopo la scelta del fascicolo |
+| --- | --- | --- | --- |
+| Civile ordinario | numero R.G. e anno R.G. | elenco per anno | profilo, parti, storico e documenti |
+| Lavoro e previdenza | numero R.G. e anno R.G. | elenco per anno | profilo, parti, storico e documenti |
+| Volontaria giurisdizione | numero R.G. e anno R.G. | elenco per anno | profilo, parti, storico e documenti |
+| Minorenni | numero R.G. e anno R.G. | elenco per anno | profilo, parti, storico e documenti |
+| Esecuzioni mobiliari | numero e anno della procedura | elenco per anno | profilo, parti dell'esecuzione, storico e documenti; identificativo strutturale se esposto |
+| Esecuzioni immobiliari | numero e anno della procedura | elenco per anno | profilo, parti dell'esecuzione, storico e documenti; identificativo strutturale se esposto |
+| Procedure concorsuali | numero e anno della procedura | elenco per anno | profilo, parti della procedura, storico e documenti; identificativo strutturale se esposto |
+| Giudice di Pace | numero R.G. e anno R.G. | elenco senza numero | profilo, parti, storico e documenti |
+| Cassazione civile | numero ricorso e anno deposito | intervallo dei depositi dell'anno | profilo del ricorso, storico e documenti |
+| Cassazione penale | numero ricorso e anno ricorso | elenco per anno | profilo del ricorso, storico e documenti |
+
+L'avvocato usa soltanto ufficio, numero R.G., anno R.G. e ruolo: `Oggetto / materia` non viene proposto per PST e nessuna combinazione tabella/registro viene visualizzata. La regola è coperta dal guardrail React `test_react_superfici_telematiche_collegate_nav_api_css`; la prova con dati ministeriali reali rimane da eseguire sul caso autorizzato.
+
+### Selezione automatica e vista ampia
+
+- Appena vengono indicati ufficio, R.G. e anno, IUSENTRA determina in modo silenzioso la o le tabelle PST compatibili con i servizi pubblicati dall'ufficio. Se il fascicolo locale riconosciuto espone già una tabella, quella ha precedenza. La matrice resta nel codice e nell'audit tecnico, ma non è esposta all'avvocato e non richiede una selezione manuale.
+- Per PolisWeb, `Oggetto / materia` non è un criterio di ricerca e non compare nel modulo. I campi visibili restano ufficio, numero R.G., anno R.G., ruolo e gli eventuali filtri per parte o codice fiscale.
+- Il comando `Schermo intero` del wizard chiude il pannello laterale di riepilogo e allarga l'area operativa. `Mostra riepilogo` ripristina subito il pannello senza perdere ricerca, selezioni o anteprima. Non usa l'API browser fullscreen e non modifica dati del fascicolo.
+
+### Prompt PIN Windows in primo piano
+
+Il Local Signer non riusa componenti o codice di Studio Telematico. Usa il provider già installato del certificato e le API standard Windows. Durante una richiesta PST, fotografa tutte le finestre top-level esistenti e cerca anche i nuovi dialoghi inizialmente nascosti creati dai CSP, compresi Bit4id e provider equivalenti; il pump li ripristina e porta davanti alla finestra IUSENTRA. Questo evita che il dialogo PIN resti solo nella barra delle applicazioni, senza acquisire, memorizzare o trasmettere il PIN.
+
+### Distribuzione Local Signer: Windows, macOS e Linux
+
+- Windows: `SetupLocalSigner-<versione>.exe`, creato con IExpress nativo e distribuito dalla pagina Firma.
+- Linux: `InstallaLocalSigner-<versione>.run`, avvia l'installazione locale e registra il servizio utente `systemd`.
+- macOS: il rilascio macOS nativo produce `IUSENTRA-LocalSigner-<versione>.dmg`, contenente l'installer `.command` e istruzioni Finder. Se il rilascio è preparato fuori da macOS, il server espone correttamente il solo `.command` invece di dichiarare disponibile un DMG inesistente.
+
+Il builder DMG usa `hdiutil` ed esegue firma e notarizzazione soltanto quando il runner macOS di rilascio dispone dell'identità Developer ID e del profilo Apple configurati fuori dal repository. Senza tali credenziali il DMG può essere generato per collaudo, ma la distribuzione macOS con Gatekeeper non è ancora verificata e non va considerata rilasciata.
+
+### Verifica reale UI 25/08/2026
+
+La copia Docker locale `http://127.0.0.1:8080` è stata ricostruita e il container `iusentra-app` era healthy; `/api/pronto` ha risposto `ok=true` alle `22:11` Europe/Rome. Nel browser integrato reale sono state osservate le seguenti azioni:
+
+- in `/impostazioni`, `Schermo intero` chiude realmente il pannello laterale `Presidio configurazione`, allarga il modulo e cambia l'etichetta in `Mostra riepilogo`; il secondo click ripristina lo stesso pannello, con sezione e dati invariati;
+- in `/portali/pst/acquisizione`, `Schermo intero` chiude il riepilogo del wizard e `Mostra riepilogo` lo riapre senza cambiare i dati del flusso;
+- il modulo PST espone ufficio, numero R.G., anno R.G., ruolo e filtri eventuali per parte/codice fiscale; non espone selettore delle dieci tabelle né `Oggetto / materia`;
+- i retry storici del caso Vicenza mantengono esclusivamente ufficio, codice ufficio, numero e anno, senza parametri tecnici di schema, tabella, registro o materia.
+
+La consultazione e lo scarico reale del fascicolo restano aperti: richiedono la conferma immediata dell'avvocato prima di trasmettere i dati identificativi al PST e l'inserimento manuale del PIN nella finestra nativa del provider quando essa è stata portata in primo piano. Nessun PIN è acquisito, registrato o inviato da IUSENTRA.

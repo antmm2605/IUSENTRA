@@ -457,6 +457,9 @@
   opacity:.58;
   cursor:not-allowed;
 }
+.iu-tel-acquisition__fullscreen-toggle[aria-pressed="true"]{
+  color:var(--iu-blue-800);
+}
 .iu-tel-acquisition__steps{
   display:grid;
   grid-template-columns:repeat(7,minmax(0,1fr));
@@ -574,6 +577,9 @@
   grid-template-columns:minmax(0,1fr) 320px;
   gap:16px;
   align-items:start;
+}
+.iu-tel-acquisition__grid.is-fullscreen{
+  grid-template-columns:minmax(0,1fr);
 }
 .iu-tel-acquisition__main{
   display:grid;
@@ -951,6 +957,45 @@
   color:var(--iu-slate-500);
   font-weight:700;
 }
+.iu-tel-acq-selected-offices{
+  margin-top:10px;
+  border:1px solid rgba(37,99,235,.22);
+  border-radius:12px;
+  background:rgba(239,246,255,.66);
+  padding:10px;
+  display:grid;
+  gap:7px;
+}
+.iu-tel-acq-selected-offices strong{
+  color:var(--iu-slate-950);
+  font-size:12px;
+  font-weight:950;
+}
+.iu-tel-acq-selected-offices>span{
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:700;
+}
+.iu-tel-acq-selected-offices>div{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.iu-tel-acq-selected-offices button{
+  min-height:30px;
+  border:1px solid rgba(37,99,235,.26);
+  border-radius:999px;
+  background:#fff;
+  color:var(--iu-blue-800);
+  padding:5px 9px;
+  font-size:12px;
+  font-weight:850;
+}
+.iu-tel-acq-selected-offices button:hover,
+.iu-tel-acq-selected-offices button:focus-visible{
+  border-color:var(--iu-blue-600);
+  background:var(--iu-blue-50);
+}
 .iu-tel-acq-form__wide{
   grid-column:span 3;
 }
@@ -1184,6 +1229,9 @@
   background:#fff;
   padding:9px 10px;
 }
+.iu-tel-acq-documents--selection article{
+  grid-template-columns:auto minmax(0,1fr) minmax(145px,.55fr) auto;
+}
 .iu-tel-acq-documents article.is-selected{
   border-color:rgba(34,197,94,.35);
   background:#f7fef9;
@@ -1222,6 +1270,34 @@
   font-size:12px;
   font-weight:750;
   overflow-wrap:anywhere;
+}
+.iu-tel-acq-item-mode{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+.iu-tel-acq-item-mode>span{
+  color:var(--iu-slate-500);
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.iu-tel-acq-item-mode select{
+  width:100%;
+  min-height:32px;
+  border:1px solid var(--iu-border);
+  border-radius:9px;
+  background:#fff;
+  color:var(--iu-slate-800);
+  padding:0 8px;
+  font-size:12px;
+  font-weight:750;
+}
+.iu-tel-acq-item-mode select:focus-visible,
+.iu-tel-acq-registry-selection input:focus-visible{
+  outline:3px solid rgba(37,99,235,.22);
+  outline-offset:1px;
 }
 .iu-tel-acq-timeline{
   display:grid;

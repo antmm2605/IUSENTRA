@@ -1599,6 +1599,7 @@ def test_react_telematico_bridge_payload_minimo(tmp_path: Path):
 def test_react_superfici_telematiche_collegate_nav_api_css():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    pst_parity_source = Path("frontend/src/features/telematico/pstImportParity.ts").read_text(encoding="utf-8")
     data_source = Path("frontend/src/telematicoSurfacesData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
@@ -1655,6 +1656,34 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "downloaded_files" in page_source
     assert "Local Signer" in page_source
     assert "Default PST: copia di consultazione" in page_source
+    assert "selectedPstOfficeCodes" in page_source
+    assert "selectedPstSearchSchemas" in page_source
+    assert "ruoloPolisweb" in page_source
+    assert "isAcquisitionFullscreen" in page_source
+    assert "Schermo intero" in page_source
+    assert "Mostra riepilogo" in page_source
+    assert "iu-tel-acquisition__grid.is-fullscreen" in css
+    assert "updatePreviewDocumentMode" in page_source
+    assert "selectedPreviewDocumentsForImport" in page_source
+    assert "il file verrà scaricato nuovamente" in page_source
+    assert "updatePreviewPartyClassification" in page_source
+    assert "updatePreviewEventClassification" in page_source
+    assert "Copia informatica" in page_source
+    assert "Duplicato informatico" in page_source
+    assert "PST_REGISTRY_OPTIONS" in pst_parity_source
+    assert "PST_ROLE_OPTIONS" in pst_parity_source
+    assert "pstRegistryOptionForSchema" in pst_parity_source
+    assert "pstAutomaticSchemasForOffice" in pst_parity_source
+    assert "automaticPstSchemas" in page_source
+    assert "PST_REGISTRY_OPTIONS.map" not in page_source
+    assert "Tabelle selezionate automaticamente" not in page_source
+    assert "Ripristina selezione automatica" not in page_source
+    assert "Tabella ministeriale applicata automaticamente" not in page_source
+    assert "portal !== 'pst' ? <label className=\"iu-tel-acq-form__wide\"><span>Oggetto / materia</span>" in page_source
+    assert "numeroLabel" in pst_parity_source
+    assert "annoLabel" in pst_parity_source
+    for registry in ("civile", "lavoro", "volontaria", "minori", "esecuzioni mobiliari", "esecuzioni immobiliari", "procedure concorsuali", "giudice di pace", "cassazione civile", "cassazione penale"):
+        assert registry in pst_parity_source
     assert 'id="checklist-operativa"' in page_source
     assert 'id="operazione-attiva"' in page_source
     assert "navigateAction" in page_source
@@ -3271,6 +3300,16 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     assert "Eye, EyeOff" in form
     assert "Mostra valore inserito" in form
     assert "SettingsSummary" in page
+    assert "const [summaryVisible, setSummaryVisible] = useState(true)" in page
+    assert "Schermo intero" in page
+    assert "Mostra riepilogo" in page
+    assert "aria-controls=\"settings-summary\"" in page
+    assert "summaryVisible ? <SettingsSummary data={settings.data} /> : null" in page
+    assert "iu-settings-layout--wide" in page
+    assert "requestFullscreen" not in page
+    assert 'id="settings-summary"' in summary
+    assert ".iu-settings-layout--wide" in styles
+    assert ".iu-settings-page__actions" in styles
     assert "checkLocalSigner" in actions
     assert "Certificato memorizzato" in actions
     assert "saveSignatureCertificateStatus" in actions
@@ -3652,8 +3691,12 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "readCachedPstMinisterialProfile" in source
     assert "rememberPstMinisterialProfile(next, 'fascicolo-locale')" in source
     assert "rememberPstMinisterialProfile(next, 'manual')" in source
-    assert "add('tabella_ministeriale', query.tabellaMinisteriale)" in source
-    assert "add('servizio_pst_preferito', query.servizioPstPreferito)" in source
+    retry_block = source[source.index("function acquisitionRetryHref"):source.index("function pstMinisterialProfileCacheKey")]
+    assert "if (portal === 'pst')" in retry_block
+    assert "add('ruolo_polisweb', query.ruoloPolisweb)" in retry_block
+    assert "add('assistito', query.assistito)" in retry_block
+    assert "add('cf', query.cf)" in retry_block
+    assert "params.set('auto_pst_test'" not in retry_block
     assert "value={ministerialSchemaFromQuery(query)}" in source
     run_search_block = source[source.index("const executeSearch = async"):source.index("const runSearch = async")]
     assert "requirePstCertificateBeforeSearch()" in run_search_block
@@ -3667,7 +3710,7 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "Nessun passaggio avviato" in page_source
     assert "progress.active ? <progress" in page_source
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
-    assert "ufficioCodice: office.codice || office.codiceMinistero" in page_source
+    assert "const officeCode = office.codice || office.codiceMinistero" in page_source
     assert "fromExistingCode?.codice || explicitOfficeCode" in page_source
     assert "Il catalogo uffici non è ancora pronto" in page_source
     assert "if ((query.ufficio || query.ufficioCodice) && !data.offices.length) return" in page_source
@@ -3680,7 +3723,8 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "requestLocalSignerInstallerDownload" not in page_source
     assert "portalJson('pst', 'local-matches'" in page_source
     assert "Già presente - verrà aggiornato" in page_source
-    assert "auto_pst_test" in page_source
+    assert "PST_SILENT_RETRY_QUERY_PARAMS" in page_source
+    assert "function silentPstRetryHref" in page_source
     assert "exact?.codice || exact?.codiceMinistero || query.ufficio" in page_source
     assert "office.codiceMinistero || office.codice" not in page_source
     assert "Step 5 - Fascicolo IUSENTRA" in page_source
@@ -3696,36 +3740,27 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "previewParties.slice(0, 8)" not in page_source
     assert "recordAcquisitionHistory('empty'" in page_source
     assert "recordAcquisitionHistory('failed'" in page_source
-    assert "auto_pst_test" in page_source
-    assert "add('cf'" not in page_source
+    assert "silentPstRetryHref(href)" in page_source
 
 
-def test_pst_acquisizione_badge_tabella_non_mostra_codici_tecnici():
+def test_pst_acquisizione_deduce_le_tabelle_senza_mostrarle_nella_ui():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
-    badge_block = source[
-        source.index("Tabella ministeriale applicata automaticamente:"):
-        source.index("<div className=\"iu-tel-acq-results\">")
-    ]
 
-    assert "Studio Telematico" not in badge_block
-    assert "QuickOrganizer" not in badge_block
-    assert "servizio_pst_preferito" not in badge_block
-    assert "query.servizioPstPreferito" not in badge_block
-    assert "JPW_" not in badge_block
+    assert "selectedPstSearchSchemas" in source
+    assert "pstAutomaticSchemasForOffice" in source
+    assert "PST_REGISTRY_OPTIONS.map" not in source
+    assert "Tabelle selezionate automaticamente" not in source
+    assert "Tabella ministeriale applicata automaticamente:" not in source
     assert "officeSuggestionDetails(office)" in source
     assert "officeTypeLabel(type)" in source
     assert "office.codiceMinistero, office.servizioPst" not in source
 
 
-def test_pst_acquisizione_badge_preferisce_la_materia_selezionata_al_hint_storico():
+def test_pst_acquisizione_pulisce_i_link_storici_e_non_chiede_materia():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
-    badge_block = source[
-        source.index("Tabella ministeriale applicata automaticamente:"):
-        source.index("<div className=\"iu-tel-acq-results\">")
-    ]
 
-    assert "query.materia || pstSchemaHint.materia || query.schema" in badge_block
-    assert "pstSchemaHint.materia || query.materia" not in badge_block
+    assert "PST_SILENT_RETRY_QUERY_PARAMS.forEach((key) => url.searchParams.delete(key))" in source
+    assert "portal !== 'pst' ? <label className=\"iu-tel-acq-form__wide\"><span>Oggetto / materia</span>" in source
 
 
 def test_pst_catalogo_acquisizione_non_apre_i_certificati_del_deposito(monkeypatch):

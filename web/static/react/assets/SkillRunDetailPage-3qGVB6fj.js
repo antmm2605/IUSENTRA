@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-BSn1U57X.js";import{t}from"./LegalSkillsReviewPage-D9-yYp9Q.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as SkillRunDetailPage};

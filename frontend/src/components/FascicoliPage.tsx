@@ -6693,11 +6693,11 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
   )
 }
 
-function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, loading = false, auditStatus = 'idle' }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; loading?:boolean; auditStatus?:LazySectionStatus}) {
+function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, defaultOpen = false, loading = false, auditStatus = 'idle' }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; defaultOpen?:boolean; loading?:boolean; auditStatus?:LazySectionStatus}) {
   const regia = data.regia
   if (regia.page_state === 'profilo_da_confermare') {
     return (
-      <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={proceduralProfileCandidates(regia).length} onOpen={onOpen}>
+      <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={proceduralProfileCandidates(regia).length} defaultOpen={defaultOpen} onOpen={onOpen}>
         <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
         <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
         {loading ? <p className="iu-empty">Caricamento Presidio del fascicolo...</p> : <ProceduralProfileConfirmation data={data} onDone={onDone} onError={onError}/>}
@@ -6737,10 +6737,23 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
   const statusTone: FascicoloRow['tone'] = regia.validation.ready ? 'success' : regia.validation.blockers.length ? 'danger' : 'warning'
   const operational = data.operationalPresidio
   const operationalNext = operational.nextAction || operational.actions[0]
+  const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)
+  const operationalCardNote = operationalNext
+    ? [
+        operationalNext.title,
+        operationalSource
+          ? `Fonte: ${operationalSource}`
+          : 'Apri il controllo prioritario',
+      ].join(' · ')
+    : operational.summary || 'Apri i controlli del fascicolo'
   const nextDeadline = data.deadlines[0] || data.appointments[0]
   const notification = data.notificationRelata
   const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
   const contributoUnificato = data.fascicolo.paymentSummary.items.contributo_unificato
+  const contributoSource = visibleDocumentSource(contributoUnificato.documentoFonte)
+  const contributoNote = contributoSource
+    ? `Fonte: ${contributoSource}. Apri il presidio economico per verificare importo, ricevuta o esenzione.`
+    : 'Apri il presidio economico per verificare ricevuta, esenzione o pagamento.'
   const auditValue = auditStatus === 'loaded'
     ? data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze` : 'Nessuna evidenza'
     : auditStatus === 'loading'
@@ -6761,7 +6774,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
       ? 'warning'
       : 'neutral'
   return (
-    <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length + operational.actions.length} onOpen={onOpen}>
+    <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length + operational.actions.length} defaultOpen={defaultOpen} onOpen={onOpen}>
       <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
       <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
       {loading ? <p className="iu-empty">Caricamento Presidio del fascicolo...</p> : null}
@@ -6785,7 +6798,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
         <section className="iu-fas-regia__priorities" aria-label="Controlli prioritari del fascicolo">
           <h4>Controlli prioritari</h4>
           <div className="iu-fas-regia-action-list">
-            <RegiaActionCard label="Presìdi del fascicolo" value={operational.statusLabel || 'Da verificare'} note={operationalNext?.reason || operational.summary || 'Apri i controlli del fascicolo'} href={operationalNext?.href || '#presidio-conformita'} tone={operational.tone}/>
+            <RegiaActionCard label="Presìdi del fascicolo" value={operational.statusLabel || 'Da verificare'} note={operationalCardNote} href={operationalNext?.href || '#presidio-conformita'} tone={operational.tone}/>
             <RegiaActionCard label="Conformità e qualità" value={data.quality.some((item) => !item.ok) ? `${data.quality.filter((item) => !item.ok).length} verifiche` : 'Controlli attivi'} note="Esiti, qualità dei dati e comando di attivazione nello stesso presidio." href="#presidio-conformita" tone={data.quality.some((item) => !item.ok) ? 'warning' : 'success'}/>
             <RegiaActionCard label="Comunicazioni, PEC e notifica" value={notification.statusLabel || 'Da verificare'} note={notification.systemNotification || 'Controlla relata, ricevute e prova di notifica'} href="#comunicazioni-notifica" tone={notification.tone}/>
             <RegiaActionCard label="Udienze e scadenze" value={nextDeadline?.date || 'Nessun evento aperto'} note={nextDeadline?.title || 'Registra o verifica i termini della pratica'} href="#udienze" tone={nextDeadline ? nextDeadline.tone : 'neutral'}/>
@@ -6803,7 +6816,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
               <RegiaActionCard label="Conferimento firmato" value={recordBool(economics, 'conferimentoSigned') ? 'Si' : 'No'} note={recordBool(economics, 'conferimentoSigned') ? 'Apri conferimento' : 'Apri il conferimento'} href={conferimentoHref} tone={recordBool(economics, 'conferimentoSigned') ? 'success' : 'warning'}/>
               <RegiaActionCard label="Avviso / parcella" value={recordBool(economics, 'proformaIssued') ? 'Emesso' : 'Non emesso'} note={recordBool(economics, 'proformaIssued') ? 'Apri documento economico' : 'Crea la parcella'} href={proformaHref} tone={recordBool(economics, 'proformaIssued') ? 'success' : 'warning'}/>
               <RegiaActionCard label="Pagamento" value={recordBool(economics, 'paymentRegistered') ? 'Registrato' : 'Da registrare'} note={recordBool(economics, 'paymentRegistered') ? 'Apri incassi' : 'Registra incasso'} href={paymentHref} tone={recordBool(economics, 'paymentRegistered') ? 'success' : 'warning'}/>
-              <RegiaActionButton label="Contributo unificato" value={contributoUnificato.statusLabel || 'Da verificare'} note={contributoUnificato.note || contributoUnificato.documentoFonte || 'Apri il presidio economico per verificare ricevuta, esenzione o pagamento.'} onClick={onOpenEconomicControl} tone={contributoUnificato.tone}/>
+              <RegiaActionButton label="Contributo unificato" value={contributoUnificato.statusLabel || 'Da verificare'} note={contributoNote} onClick={onOpenEconomicControl} tone={contributoUnificato.tone}/>
               <RegiaActionButton label="Provvedimenti economici" value={sentenzeCount ? `${sentenzeCount} controlli` : 'Nessun controllo aperto'} note="Liquidazioni, spese, distrazioni e contributo unificato sono letti nello stesso presidio." onClick={onOpenEconomicControl} tone={sentenzeCount ? 'warning' : 'neutral'}/>
             </div>
             <ul className="iu-fas-regia__facts">
@@ -9557,6 +9570,7 @@ function DetailPage({ id }:{id:string}) {
             onOpenEconomicControl={() => setEconomicControlOpen(true)}
             onCalculateContribution={() => setContributoModalOpen(true)}
             returnHref={detailReturnHref}
+            defaultOpen={activeHashSection === 'presidio-fascicolo' || activeHashSection === 'cabina-regia' || activeHashSection === 'regia-operativa'}
             loading={lazyStatus.regia === 'loading'}
             auditStatus={lazyStatus.audit}
           />

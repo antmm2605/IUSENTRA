@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-BSn1U57X.js";import{t}from"./LegalSkillsReviewPage-zcVKuYTp.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as ReviewerQueuePage};

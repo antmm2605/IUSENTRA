@@ -930,6 +930,24 @@ def test_presidio_traduce_stati_tecnici_e_ordina_i_controlli_economici():
     assert ".iu-fas-regia-list article{display:grid;grid-template-columns:minmax(0,1fr)" in css
 
 
+def test_presidio_prioritario_mostra_azione_e_fonte_e_si_apre_dal_collegamento_diretto():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    regia = source[source.index("function RegiaOperativaSection"):source.index("function relataStatusDisplayLabel")]
+
+    assert "defaultOpen?:boolean" in regia
+    assert regia.count("defaultOpen={defaultOpen}") == 2
+    assert "const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)" in regia
+    assert "operationalNext.title" in regia
+    assert "Fonte: ${operationalSource}" in regia
+    assert "note={operationalCardNote}" in regia
+    assert "note={operationalNext?.reason" not in regia
+    assert "const contributoSource = visibleDocumentSource(contributoUnificato.documentoFonte)" in regia
+    assert "const contributoNote = contributoSource" in regia
+    assert "note={contributoNote}" in regia
+    assert "note={contributoUnificato.note" not in regia
+    assert "defaultOpen={activeHashSection === 'presidio-fascicolo' || activeHashSection === 'cabina-regia' || activeHashSection === 'regia-operativa'}" in source
+
+
 def test_attivita_react_rende_apribile_la_fonte_documentale_nel_lettore_interno():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")

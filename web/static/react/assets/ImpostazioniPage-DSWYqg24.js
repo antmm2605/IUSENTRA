@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CSi3uPwC.js";export{e as ImpostazioniPage};

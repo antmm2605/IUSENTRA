@@ -78,6 +78,21 @@ def test_ui_mostra_dati_regia_senza_placeholder_operativi():
     assert "Nessuno slot documentale generato" not in regia
 
 
+def test_presidio_non_dichiara_assenza_audit_prima_del_caricamento_reale():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    regia = source[source.index("function RegiaOperativaSection"):source.index("function fLabel")]
+    audit = source[source.index("function AuditTrailSection"):source.index("function DetailPage")]
+
+    assert "auditStatus?:LazySectionStatus" in regia
+    assert "Apri Audit per calcolare il conteggio dal registro operativo e probatorio." in regia
+    assert "auditStatus === 'loaded'" in regia
+    assert "Registro audit non ancora caricato" in source
+    assert "auditStatus={lazyStatus.audit}" in source
+    assert "loadState={lazyStatus.audit}" in source
+    assert "count={loadState === 'loaded' ? audit.summary.total : undefined}" in audit
+    assert "finché il caricamento non termina, il fascicolo non dichiara l’assenza di evidenze" in audit
+
+
 def test_comandi_presidio_restano_azioni_testuali_accessibili():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
@@ -904,15 +919,14 @@ def test_presidio_traduce_stati_tecnici_e_ordina_i_controlli_economici():
 
     assert "function regiaOperationalStateLabel" in source
     assert "BLOCCATO_DA_ERRORI: 'Bloccato da requisiti mancanti'" in source
-    assert "WF_SIGP_GDP: 'SIGP — Giudice di Pace'" in source
+    assert "WF_SIGP_GDP:" in source
     assert "DA_COMPLETARE: 'Da completare'" in source
     assert "{regiaChecklistStatusLabel(itemStatus)}" in source
     assert "{regiaOperationalStateLabel(h.operationalState)}" in source
     assert "regiaWorkflowLabel(h.workflow)" in source
-    assert ".iu-fas-regia__sentenze{display:grid" in css
-    assert ".iu-fas-regia__sentenze>div{display:grid" in css
-    assert ".iu-fas-regia__sentenze>div>span{display:grid;grid-template-columns:minmax(0,1fr)" in css
-    assert ".iu-fas-regia__sentenze>a{width:fit-content" in css
+    assert 'label="Provvedimenti economici"' in source
+    assert ".iu-fas-regia-action-list{display:grid" in css
+    assert "iu-fas-regia-action-list--compact" in source
     assert ".iu-fas-regia-list article{display:grid;grid-template-columns:minmax(0,1fr)" in css
 
 

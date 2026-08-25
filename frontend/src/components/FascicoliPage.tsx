@@ -6693,7 +6693,7 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
   )
 }
 
-function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, loading = false }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; loading?:boolean}) {
+function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, loading = false, auditStatus = 'idle' }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; loading?:boolean; auditStatus?:LazySectionStatus}) {
   const regia = data.regia
   if (regia.page_state === 'profilo_da_confermare') {
     return (
@@ -6741,6 +6741,25 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
   const notification = data.notificationRelata
   const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
   const contributoUnificato = data.fascicolo.paymentSummary.items.contributo_unificato
+  const auditValue = auditStatus === 'loaded'
+    ? data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze` : 'Nessuna evidenza'
+    : auditStatus === 'loading'
+      ? 'Caricamento…'
+      : auditStatus === 'error'
+        ? 'Da riprovare'
+        : 'Da caricare'
+  const auditNote = auditStatus === 'loaded'
+    ? data.auditTrail.summary.total ? 'Apri le prove registrate' : 'Le prove nascono da consultazioni, depositi e ricevute'
+    : auditStatus === 'loading'
+      ? 'Lettura del registro audit in corso.'
+      : auditStatus === 'error'
+        ? 'Il registro audit non è stato caricato: aprilo di nuovo per riprovare.'
+        : 'Apri Audit per calcolare il conteggio dal registro operativo e probatorio.'
+  const auditTone: FascicoloRow['tone'] = auditStatus === 'loaded' && data.auditTrail.summary.total
+    ? 'success'
+    : auditStatus === 'error'
+      ? 'warning'
+      : 'neutral'
   return (
     <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length + operational.actions.length} onOpen={onOpen}>
       <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
@@ -6770,7 +6789,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
             <RegiaActionCard label="Conformità e qualità" value={data.quality.some((item) => !item.ok) ? `${data.quality.filter((item) => !item.ok).length} verifiche` : 'Controlli attivi'} note="Esiti, qualità dei dati e comando di attivazione nello stesso presidio." href="#presidio-conformita" tone={data.quality.some((item) => !item.ok) ? 'warning' : 'success'}/>
             <RegiaActionCard label="Comunicazioni, PEC e notifica" value={notification.statusLabel || 'Da verificare'} note={notification.systemNotification || 'Controlla relata, ricevute e prova di notifica'} href="#comunicazioni-notifica" tone={notification.tone}/>
             <RegiaActionCard label="Udienze e scadenze" value={nextDeadline?.date || 'Nessun evento aperto'} note={nextDeadline?.title || 'Registra o verifica i termini della pratica'} href="#udienze" tone={nextDeadline ? nextDeadline.tone : 'neutral'}/>
-            <RegiaActionCard label="Audit del fascicolo" value={data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze` : 'Nessuna evidenza'} note={data.auditTrail.summary.total ? 'Apri le prove registrate' : 'Le prove nascono da consultazioni, depositi e ricevute'} href="#audit" tone={data.auditTrail.summary.total ? 'success' : 'neutral'}/>
+            <RegiaActionCard label="Audit del fascicolo" value={auditValue} note={auditNote} href="#audit" tone={auditTone}/>
           </div>
         </section>
         <FascicoloCompliancePanel data={data} returnHref={returnHref}/>
@@ -9189,14 +9208,14 @@ function sentenzeEconomicheCount(data: FascicoloSentenzeEconomiche | null) {
   return Math.max(data.worklist.length, data.totals.sentenze_lette ? 1 : 0)
 }
 
-function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPreview, loading = false, defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onPreview:(preview:PreviewDocument)=>void; loading?:boolean; defaultOpen?:boolean}) {
+function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPreview, loading = false, loadState = 'idle', defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onPreview:(preview:PreviewDocument)=>void; loading?:boolean; loadState?:LazySectionStatus; defaultOpen?:boolean}) {
   const hasEvents = audit.events.length > 0
   const effectiveBundleHref = audit.enabled && hasEvents ? (audit.actions.bundle || bundleHref) : ''
   const legalEvents = audit.events.filter((event) => !event.operational)
   const hasLegalEvidence = legalEvents.length > 0
   const operationalOnly = !hasLegalEvidence && audit.status === 'operational'
   return (
-    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} defaultOpen={defaultOpen} onOpen={onOpen}>
+    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={loadState === 'loaded' ? audit.summary.total : undefined} defaultOpen={defaultOpen} onOpen={onOpen}>
       {loading ? <p className="iu-empty">Caricamento audit...</p> : null}
       {hasEvents ? (
         <>
@@ -9211,7 +9230,13 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPrevi
             {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica bundle fascicolo</a> : null}
           </div>
         </>
-      ) : !loading ? (
+      ) : loadState === 'error' ? (
+        <div className="iu-fas-empty-action">
+          <Badge tone="warning">Registro non caricato</Badge>
+          <strong>Il registro audit non è disponibile in questo momento.</strong>
+          <p>Riapri Audit per riprovare: finché il caricamento non termina, il fascicolo non dichiara l’assenza di evidenze.</p>
+        </div>
+      ) : loadState === 'loaded' && !loading ? (
         <div className="iu-fas-empty-action">
           <Badge tone={audit.enabled ? 'warning' : 'neutral'}>{audit.enabled ? 'Nessuna evidenza' : 'Da configurare'}</Badge>
           <strong>{audit.enabled ? 'Nessun riscontro operativo o probatorio registrato per questo fascicolo.' : 'Presidio probatorio non attivo per questo studio.'}</strong>
@@ -9334,6 +9359,13 @@ function DetailPage({ id }:{id:string}) {
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
   const displayedCommunicationTotal = communicationTotal || data.quickCounts.comunicazioni || 0
   const operationalPresidio = data.operationalPresidio
+  const auditNavigation = lazyStatus.audit === 'loaded'
+    ? { value: String(data.auditTrail.summary.total), label: data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze audit registrate` : 'Nessuna evidenza audit registrata' }
+    : lazyStatus.audit === 'loading'
+      ? { value: '…', label: 'Caricamento registro audit' }
+      : lazyStatus.audit === 'error'
+        ? { value: '!', label: 'Registro audit da ricaricare' }
+        : { value: '—', label: 'Registro audit non ancora caricato' }
   const loadLazySection = (section: FascicoloDetailSection) => {
     if (lazyStatus[section] === 'loaded' || lazyStatus[section] === 'loading') return
     setLazyStatus((current) => ({ ...current, [section]: 'loading' }))
@@ -9510,7 +9542,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -9526,6 +9558,7 @@ function DetailPage({ id }:{id:string}) {
             onCalculateContribution={() => setContributoModalOpen(true)}
             returnHref={detailReturnHref}
             loading={lazyStatus.regia === 'loading'}
+            auditStatus={lazyStatus.audit}
           />
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
@@ -9640,7 +9673,7 @@ function DetailPage({ id }:{id:string}) {
             </div>
           </DetailSection>
           <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong><span>{item.from} → {item.to}</span><p>{item.notes}</p></article>)}{!data.history.length ? <div className="iu-fas-empty-action"><Badge tone="neutral">Nessun evento</Badge><strong>Nessun avanzamento registrato.</strong><p>Registra l'attività o una scadenza effettiva: lo storico del fascicolo verrà aggiornato con data, autore ed esito.</p><div><a href="#attivita" onClick={openSection('attivita', 'attivita')}><ListChecks size={14}/> Registra attività processuale</a><a href="#udienze" onClick={openSection('udienze', 'scadenze')}><CalendarDays size={14}/> Registra udienza o termine</a></div></div> : null}</div></DetailSection>
-          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} loading={lazyStatus.audit === 'loading'} defaultOpen={activeHashSection === 'audit'}/>
+          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} loading={lazyStatus.audit === 'loading'} loadState={lazyStatus.audit} defaultOpen={activeHashSection === 'audit'}/>
         </div>
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>} defaultOpen={activeHashSection === 'gestione'}>

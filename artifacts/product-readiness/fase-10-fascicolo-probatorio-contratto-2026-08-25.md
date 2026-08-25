@@ -95,5 +95,9 @@ al Presidio del fascicolo: ne alimenta il controllo `Audit del fascicolo`.
 
 ## Stato di rilascio
 
-La fase resta aperta fino a commit, push dei branch gemelli, deploy Hetzner,
-verifica del container applicativo unico e readiness pubblica.
+Rilasciata il 25/08/2026 con i commit `8ccd7479a` e `4f4780e42`, pubblicati
+sia sul branch Codex sia sul branch gemello. Hetzner è stato aggiornato allo
+stesso commit: un solo container applicativo `iusentra-app` risulta healthy e
+la readiness pubblica `https://app.iusentra.it/api/pronto` risponde
+correttamente. La cache di build del deploy e l'eventuale snapshot temporaneo
+sono stati rimossi senza toccare i dati applicativi.

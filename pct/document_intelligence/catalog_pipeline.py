@@ -199,6 +199,12 @@ class FascicoloDocumentCatalogPipeline:
                 if existing.status != "review_required" or has_open_review:
                     result.skipped_current += 1
                     continue
+            # La lettura del catalogo è un'operazione strettamente read-only:
+            # non deve creare code che nessun worker consumerà, né far
+            # apparire un aggiornamento inesistente. Il job SQL nasce solo dal
+            # comando esplicito che richiede anche l'elaborazione.
+            if not process:
+                continue
             job = self.repository.queue_catalog_job(
                 tenant_id=tenant_id,
                 fascicolo_id=fid,
@@ -211,8 +217,6 @@ class FascicoloDocumentCatalogPipeline:
                 retry=retry,
             )
             result.queued += 1
-            if not process:
-                continue
             self._process_source(
                 tenant_id=tenant_id,
                 fascicolo_id=fid,

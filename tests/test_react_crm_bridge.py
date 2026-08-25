@@ -76,3 +76,23 @@ def test_payload_non_espone_contatto_protetto_a_utente_non_autorizzato(tmp_path)
     card = next(column for column in visible["columns"] if column["stato"] == "NUOVO")["leads"][0]
     assert card["barrieraRiservatezza"]["attiva"] is True
     assert card["barrieraRiservatezza"]["utentiAutorizzati"] == ["avv.autorizzato", "avv.responsabile"]
+
+
+def test_payload_non_espone_fixture_tecnica_qa_ma_mantiene_i_contatti_reali(tmp_path):
+    crm = GestioneCrmIntake(db_path=str(tmp_path / "leads.json"))
+    crm.nuovo(
+        denominazione="QA Persistenza Fase 8",
+        email="qa.persistenza@example.test",
+        fonte="passaparola",
+    )
+    crm.nuovo(
+        denominazione="Studio Qualità Fase Due S.r.l.",
+        email="segreteria@studioqualita.it",
+        fonte="sito_studio",
+    )
+
+    payload = build_react_crm_payload(get_crm=lambda: crm)
+    leads = [lead for column in payload["columns"] for lead in column["leads"]]
+
+    assert payload["summary"]["totale"] == 1
+    assert [lead["denominazione"] for lead in leads] == ["Studio Qualità Fase Due S.r.l."]

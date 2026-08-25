@@ -9,7 +9,11 @@ def test_documenti_ai_non_compare_nella_navigazione_standard_fascicolo():
     assert "DocumentiAIPage" not in fascicoli
     assert 'id="documenti-ai"' not in fascicoli
     assert 'href="#documenti-ai"' not in fascicoli
-    assert "/documenti-ai" not in fascicoli
+    # L'API interna del catalogo può contenere il segmento ``documenti-ai``;
+    # ciò che non deve ricomparire è una pagina/navigazione autonoma nascosta
+    # rispetto ai Documenti del fascicolo.
+    assert 'href="/documenti-ai' not in fascicoli
+    assert "navigate('/documenti-ai" not in fascicoli
 
 
 def test_indicizzazione_lex_integrata_nei_documenti_fascicolo():

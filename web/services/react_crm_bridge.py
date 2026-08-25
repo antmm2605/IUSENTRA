@@ -63,6 +63,27 @@ def _text(value: Any, fallback: str = "") -> str:
     return cleaned or fallback
 
 
+def _is_internal_quality_fixture(lead: Any) -> bool:
+    """Esclude dalla UI di studio i soli record tecnici di collaudo.
+
+    I record QA creati per verifiche di persistenza non sono contatti dello
+    studio: non devono comparire nella pipeline, né alterarne i contatori.
+    Il riconoscimento è volutamente stretto (prefisso ``QA``, riferimento a
+    una fase e dominio RFC riservato ``example.test``), così un normale
+    nominativo o una pratica contenente la parola "qualità" resta visibile.
+    Il record rimane invece tracciabile nell'archivio tecnico per chi effettua
+    manutenzione autorizzata.
+    """
+
+    denominazione = _text(getattr(lead, "denominazione", "")).casefold()
+    email = _text(getattr(lead, "email", "")).casefold()
+    return (
+        denominazione.startswith("qa ")
+        and "fase" in denominazione
+        and email.endswith("@example.test")
+    )
+
+
 def _aml_payload(lead: Any, get_antiriciclaggio: Callable[[], Any] | None) -> dict[str, Any]:
     lead_id = _text(getattr(lead, "id", ""))
     base = {
@@ -230,7 +251,10 @@ def build_react_crm_payload(
         stato: [
             lead
             for lead in pipeline.get(stato, [])
-            if crm.accesso_lead_consentito(_text(getattr(lead, "id", "")), operatore=operatore)
+            if (
+                not _is_internal_quality_fixture(lead)
+                and crm.accesso_lead_consentito(_text(getattr(lead, "id", "")), operatore=operatore)
+            )
         ]
         for stato in STATI_LEAD
     }

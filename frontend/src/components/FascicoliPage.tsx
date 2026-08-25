@@ -26,6 +26,7 @@ import {
   FileCheck2,
   FileDown,
   FileSignature,
+  FileSearch2,
   FileText,
   Fingerprint,
   Filter,
@@ -1730,10 +1731,52 @@ type CatalogAssignmentView = {
   confidence: number
   source_state: 'verified_snapshot' | 'manual_browser_evidence' | 'review_required' | string
   reason: string
+  legal_area?: string
+  legal_branch?: string
+  legal_subfamily?: string
   updated_at: string
   confirmed_at: string | null
   candidates: Array<{ profile_id: string; document_label: string; document_section: string; document_nature: string; deposit_role: string; confidence: number; reason: string }>
   evidence: Array<{ type: string; locator: string; excerpt: string; weight: number }>
+}
+
+function catalogProfileLabel(assignment: CatalogAssignmentView): string {
+  return assignment.legal_subfamily || assignment.legal_branch || assignment.legal_area || 'Profilo da definire'
+}
+
+function catalogEvidenceTitle(type: string): string {
+  if (type === 'document_identity') return 'Identità letta dal contenuto'
+  if (type === 'extracted_text') return 'Testo indicizzato'
+  if (type === 'procedural_signal') return 'Segnalazione procedurale'
+  if (type === 'legal_source') return 'Fonte ufficiale del profilo'
+  if (type === 'fascicolo_context') return 'Contesto del fascicolo'
+  return 'Origine e metadati'
+}
+
+function CatalogEvidenceDisclosure({
+  assignment,
+  document,
+  onPreview,
+}: {
+  assignment: CatalogAssignmentView
+  document?: FascicoloDocument
+  onPreview: (preview: PreviewDocument) => void
+}) {
+  const identityEvidence = assignment.evidence.filter((entry) => entry.type === 'document_identity' || entry.type === 'extracted_text')
+  const proceduralEvidence = assignment.evidence.filter((entry) => entry.type === 'procedural_signal')
+  const sources = assignment.evidence.filter((entry) => entry.type === 'legal_source')
+  return (
+    <section className="iu-fas-catalog__evidence" aria-label={`Prova della catalogazione ${assignment.document_label}`}>
+      <div>
+        <strong>Prova e fonti della catalogazione</strong>
+        <span>La proposta nasce dal contenuto indicizzato; le segnalazioni processuali restano distinte dall'identità del documento.</span>
+      </div>
+      {identityEvidence.length ? <ul>{identityEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{catalogEvidenceTitle(entry.type)}</b><span>{entry.excerpt}</span></li>)}</ul> : null}
+      {proceduralEvidence.length ? <div className="iu-fas-catalog__signals"><strong>Segnalazioni procedurali</strong><ul>{proceduralEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{entry.excerpt}</b></li>)}</ul></div> : null}
+      {sources.length ? <div className="iu-fas-catalog__sources"><strong>Fonti ufficiali del profilo</strong><ul>{sources.map((entry, index) => <li key={`${entry.locator}-${index}`}>{entry.excerpt || 'Fonte ufficiale versionata nel catalogo.'}</li>)}</ul></div> : null}
+      {document?.actions.preview ? <button type="button" title="Apri il documento sorgente nel lettore interno" onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={14}/> Apri la prova nel lettore</button> : null}
+    </section>
+  )
 }
 
 type CatalogDocumentView = {
@@ -1781,6 +1824,21 @@ type CatalogOverrideDraft = {
   note: string
 }
 
+const MANUAL_CATALOG_NATURES = new Set([
+  'atto_principale', 'atto_processuale', 'provvedimento', 'procura', 'notifica',
+  'comunicazione', 'contratto', 'economico', 'allegato', 'da_verificare',
+])
+
+function catalogNatureForManualCorrection(value: string): CatalogOverrideDraft['document_nature'] {
+  const normalized = String(value || '').trim()
+  if (MANUAL_CATALOG_NATURES.has(normalized)) return normalized
+  if (['relata', 'prova_notifica', 'attestazione_conformita'].includes(normalized)) return 'notifica'
+  if (['contributo_unificato', 'gratuito_patrocinio', 'liquidazione_spese_giustizia', 'economia_fascicolo'].includes(normalized)) return 'economico'
+  if (['relazione_peritale_ctu', 'nomina_ctp'].includes(normalized)) return 'allegato'
+  if (['provvedimento', 'decreto_liquidazione_ctu', 'ordinanza_ufficio'].includes(normalized)) return 'provvedimento'
+  return 'atto_processuale'
+}
+
 function CatalogCorrectionForm({
   assignment,
   busy,
@@ -1795,7 +1853,7 @@ function CatalogCorrectionForm({
   const [draft, setDraft] = useState<CatalogOverrideDraft>({
     document_label: assignment.document_label,
     document_section: assignment.document_section || 'da-verificare',
-    document_nature: assignment.document_nature || 'da_verificare',
+    document_nature: catalogNatureForManualCorrection(assignment.document_nature),
     deposit_role: assignment.deposit_role || 'allegato',
     deposit_candidate: Boolean(assignment.deposit_candidate),
     note: '',
@@ -1834,6 +1892,7 @@ function CatalogazioneDocumentalePanel({
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [editingDocumentId, setEditingDocumentId] = useState('')
+  const [evidenceDocumentId, setEvidenceDocumentId] = useState('')
   const [error, setError] = useState('')
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
@@ -1977,7 +2036,7 @@ function CatalogazioneDocumentalePanel({
               <FileText size={17}/>
               <div className="iu-fas-catalog__copy">
                 <strong>{item.filename || 'Documento del fascicolo'}</strong>
-                {assignment ? <span>{assignment.document_label} · {assignment.profile_id || 'Profilo da definire'}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{item.supported ? 'In attesa dell’indice Document AI: nessuna classificazione dal contenuto è ancora disponibile.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
+                {assignment ? <span>{assignment.document_label} · {catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{item.supported ? 'In attesa dell’indice Document AI: nessuna classificazione dal contenuto è ancora disponibile.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
                 {assignment ? <small>{assignment.reason}</small> : null}
                 {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
               </div>
@@ -1989,8 +2048,10 @@ function CatalogazioneDocumentalePanel({
                 {document?.actions.preview ? <button type="button" title="Apri nel lettore interno" aria-label={`Apri ${document.name} nel lettore interno`} onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={15}/> Visualizza</button> : null}
                 {assignment?.status === 'review_required' ? <button type="button" disabled={busy} onClick={() => void confirm(item.document_id, 'confirmed')}><CheckCircle2 size={14}/> Conferma</button> : null}
                 {assignment?.status === 'proposed' ? <button type="button" disabled={busy} onClick={() => void confirm(item.document_id, 'confirmed')}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
+                {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id)}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
                 {assignment ? <button type="button" disabled={busy} onClick={() => setEditingDocumentId((current) => current === item.document_id ? '' : item.document_id)}><PencilLine size={14}/> Correggi catalogo</button> : null}
               </div>
+              {assignment && evidenceDocumentId === item.document_id ? <CatalogEvidenceDisclosure assignment={assignment} document={document} onPreview={onPreview} /> : null}
               {assignment && editingDocumentId === item.document_id ? <CatalogCorrectionForm assignment={assignment} busy={busy} onSubmit={(draft) => void override(item.document_id, draft)} onCancel={() => setEditingDocumentId('')} /> : null}
             </article>
           )

@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS document_catalog_evidence (
     tenant_id TEXT NOT NULL,
     fascicolo_id TEXT NOT NULL,
     assignment_id TEXT NOT NULL REFERENCES document_catalog_assignments(id) ON DELETE CASCADE,
-    evidence_type TEXT NOT NULL CHECK (evidence_type IN ('fascicolo_context', 'portal_metadata', 'document_metadata', 'extracted_text', 'legal_source', 'manual_confirmation')),
+    evidence_type TEXT NOT NULL CHECK (evidence_type IN ('fascicolo_context', 'portal_metadata', 'document_metadata', 'extracted_text', 'document_identity', 'procedural_signal', 'legal_source', 'manual_confirmation')),
     locator TEXT NOT NULL,
     excerpt TEXT NOT NULL DEFAULT '',
     weight INTEGER NOT NULL CHECK (weight BETWEEN 0 AND 100),
@@ -156,3 +156,11 @@ ALTER TABLE document_catalog_assignments
 ALTER TABLE document_catalog_assignments
     ADD CONSTRAINT document_catalog_assignments_source_state_check
     CHECK (source_state IN ('verified_snapshot', 'manual_browser_evidence', 'manual_override', 'review_required'));
+
+-- Le evidenze di identità e di presidio sono distinte: sulle installazioni
+-- esistenti il vincolo precedente deve essere allargato senza toccare dati.
+ALTER TABLE document_catalog_evidence
+    DROP CONSTRAINT IF EXISTS document_catalog_evidence_evidence_type_check;
+ALTER TABLE document_catalog_evidence
+    ADD CONSTRAINT document_catalog_evidence_evidence_type_check
+    CHECK (evidence_type IN ('fascicolo_context', 'portal_metadata', 'document_metadata', 'extracted_text', 'document_identity', 'procedural_signal', 'legal_source', 'manual_confirmation'));

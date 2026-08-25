@@ -50,3 +50,32 @@ def test_documenti_ai_upload_accetta_txt_ed_eml():
     assert ".txt" in upload
     assert ".eml" in upload
     assert "TXT, EML" in upload
+
+
+def test_catalogo_fascicolo_mostra_prova_del_contenuto_e_mantiene_il_lettore_interno():
+    fascicoli = (FRONTEND / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "function CatalogEvidenceDisclosure" in fascicoli
+    assert "Prova e fonti della catalogazione" in fascicoli
+    assert "Segnalazioni procedurali" in fascicoli
+    assert "Fonti ufficiali del profilo" in fascicoli
+    assert "Apri la prova nel lettore" in fascicoli
+    assert "catalogProfileLabel(assignment)" in fascicoli
+    assert "assignment.profile_id}" not in fascicoli
+
+
+def test_correzione_catalogo_normalizza_la_natura_automatica_in_un_valore_salvabile():
+    fascicoli = (FRONTEND / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "catalogNatureForManualCorrection" in fascicoli
+    assert "document_nature: catalogNatureForManualCorrection(assignment.document_nature)" in fascicoli
+    assert "return 'atto_processuale'" in fascicoli
+
+
+def test_catalogo_fascicolo_non_comprime_il_titolo_per_fare_spazio_alle_azioni():
+    styles = (FRONTEND / "components" / "FascicoliPage.css").read_text(encoding="utf-8")
+    catalog_row_rule = styles.split(".iu-fas-catalog__row{", 1)[1].split("}", 1)[0]
+
+    assert ".iu-fas-catalog__row{display:grid;grid-template-columns:24px minmax(0,1fr)" in styles
+    assert ".iu-fas-catalog__badges,.iu-fas-catalog__actions{grid-column:2;" in styles
+    assert "auto auto" not in catalog_row_rule

@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Iterable
 
+from pct.fascicoli import TipoDocumento
 from pct.fascicolo_document_catalog import DocumentCatalogClassification, classify_fascicolo_document
+from pct.presidio_processuale_ruleset import presidio_rule_hits
 from pct.template_atti_legal_sources import REGISTRY_VERSION, TEMPLATE_ATTI_LEGAL_SOURCES
 
 from .models import (
@@ -25,7 +27,9 @@ from .models import (
 )
 
 
-RESOLVER_VERSION = "2026.08.24.catalogo-fascicolo.v6"
+# Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
+# le prove automatiche precedenti senza toccare le correzioni manuali.
+RESOLVER_VERSION = "2026.08.25.catalogo-fascicolo.v14"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -157,6 +161,19 @@ class CatalogResolution:
     review: DocumentCatalogReview | None
 
 
+@dataclass(frozen=True, slots=True)
+class ContentIdentity:
+    """Identità forte ricavata dal documento, distinta dal presidio.
+
+    L'estratto è deliberatamente breve: serve a rendere comprensibile la
+    proposta nell'interfaccia, mentre il contenuto completo resta nel lettore
+    interno tenant-aware.
+    """
+
+    classification: DocumentCatalogClassification
+    excerpt: str
+
+
 def _unindexed_content_classification(current: DocumentCatalogClassification) -> DocumentCatalogClassification:
     """Non attribuisce natura o deposito dal solo nome del file.
 
@@ -197,6 +214,299 @@ def _insufficient_content_classification(current: DocumentCatalogClassification)
     )
 
 
+def _procedural_only_content_classification(current: DocumentCatalogClassification) -> DocumentCatalogClassification:
+    """Blocca l'equivoco fra un presidio rilevato e il tipo del file.
+
+    Il ruleset processuale può leggere una CTU, un rinvio o un riferimento a
+    un rito nel corpo di qualsiasi atto. Senza una formula che identifichi il
+    documento, quel segnale diventa una prova separata e il catalogo apre una
+    revisione: non è lecito promuoverlo a natura documentale.
+    """
+
+    return DocumentCatalogClassification(
+        role="da_verificare",
+        label="Contenuto da verificare",
+        section="da-verificare",
+        confidence=50,
+        evidence=(
+            "segnalazione processuale rilevata nel testo, ma senza una formula "
+            "identificativa del documento; è richiesta verifica"
+        ),
+        tipo_documento=current.tipo_documento,
+        deposit_role="fuori_busta",
+        deposit_candidate=False,
+    )
+
+
+def _content_excerpt(text: str, pattern: str) -> str:
+    """Restituisce una prova breve, leggibile e minimizzata del contenuto."""
+
+    compact = re.sub(r"\s+", " ", str(text or "").replace("\ufffd", "")).strip()
+    if not compact:
+        return "Contenuto indicizzato disponibile nel repository SQL."
+    match = re.search(pattern, compact, flags=re.IGNORECASE)
+    if match is None:
+        return "Formula identificativa non disponibile nell'estratto indicizzato."
+    # La prova visibile deve essere sufficiente a spiegare l'inferenza ma non
+    # replicare un brano dell'atto: la fonte completa resta apribile nel nostro
+    # lettore, mentre qui esponiamo solo la formula classificante. In questo
+    # modo non anticipiamo nominativi, codici fiscali, indirizzi o altri dati
+    # personali presenti nelle righe successive dell'OCR.
+    formula = re.sub(r"\s+", " ", match.group(0)).strip(" .;:-")
+    return f"Formula rilevata nel testo indicizzato: {formula}."
+
+
+def _content_identity(
+    extracted_text: str,
+) -> ContentIdentity | None:
+    """Riconosce solo identità documentali espresse dal singolo contenuto.
+
+    Le regole di presidio possono indicare una scadenza, un rito o un richiamo
+    alla CTU. Non sono, però, una prova dell'identità del file: una memoria che
+    cita una CTU resta una memoria e una sentenza che liquida spese resta una
+    sentenza. Questo strato precede l'adattatore storico, senza modificarne i
+    comportamenti nelle altre superfici applicative.
+    """
+
+    raw = str(extracted_text or "").strip()
+    if not raw:
+        return None
+    head = _normalise(raw[:12000])
+
+    def result(
+        *,
+        role: str,
+        label: str,
+        section: str,
+        confidence: int,
+        evidence: str,
+        tipo_documento: TipoDocumento,
+        deposit_role: str,
+        deposit_candidate: bool,
+        excerpt_pattern: str,
+    ) -> ContentIdentity:
+        return ContentIdentity(
+            classification=DocumentCatalogClassification(
+                role=role,
+                label=label,
+                section=section,
+                confidence=confidence,
+                evidence=evidence,
+                tipo_documento=tipo_documento,
+                deposit_role=deposit_role,
+                deposit_candidate=deposit_candidate,
+            ),
+            excerpt=_content_excerpt(raw, excerpt_pattern),
+        )
+
+    # Il dispositivo della sentenza è prova più forte di qualunque riferimento
+    # economico o tecnico contenuto nella motivazione.
+    if "in nome del popolo italiano" in head and re.search(r"\bsentenza\b", head):
+        return result(
+            role="provvedimento",
+            label="Sentenza",
+            section="provvedimenti",
+            confidence=99,
+            evidence="testo iniziale: dispositivo di sentenza",
+            tipo_documento=TipoDocumento.SENTENZA,
+            deposit_role="allegato",
+            deposit_candidate=True,
+            excerpt_pattern=r"\bin\s+nome\s+del\s+popolo\s+italiano\b|\bsentenza\b",
+        )
+
+    # L'intestazione identifica il provvedimento dell'ufficio; i richiami a
+    # CTU, note scritte o termini nel dispositivo restano segnali separati.
+    if re.search(r"\bdecreto\s+di\s+fissazione\s+(?:dell(?:['\u2019]|\s+)?)?udienza\b", head):
+        return result(
+            role="provvedimento",
+            label="Decreto di fissazione udienza",
+            section="provvedimenti",
+            confidence=98,
+            evidence="testo iniziale: decreto di fissazione udienza",
+            tipo_documento=TipoDocumento.DECRETO,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+            excerpt_pattern=r"\bdecreto\s+di\s+fissazione\s+(?:dell(?:['\u2019]|\s+)?)?udienza\b",
+        )
+
+    if re.search(r"\bmemoria\s+(?:conclusion\w*|conclusiv\w*)\b", head):
+        return result(
+            role="atto_difensivo",
+            label="Memoria conclusionale",
+            section="atti",
+            confidence=98,
+            evidence="testo iniziale: memoria conclusionale",
+            tipo_documento=TipoDocumento.MEMORIA,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+            excerpt_pattern=r"\bmemoria\s+(?:conclusion\w*|conclusiv\w*)\b",
+        )
+
+    # Nei modelli giudiziari è comune anche la formulazione «note per la
+    # trattazione scritta». La particella non può far ricadere l'atto nelle
+    # sole segnalazioni CTU eventualmente richiamate nel merito.
+    if re.search(r"\bnote\s+(?:di\s+|per\s+(?:la\s+)?)?trattazione\s+scritt\w*\b", head):
+        return result(
+            role="atto_difensivo",
+            label="Note di trattazione scritta",
+            section="atti",
+            confidence=97,
+            evidence="testo iniziale: note di trattazione scritta",
+            tipo_documento=TipoDocumento.MEMORIA,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+            excerpt_pattern=r"\bnote\s+(?:di\s+|per\s+(?:la\s+)?)?trattazione\s+scritt\w*\b",
+        )
+
+    # L'OCR restituisce spesso l'intestazione al plurale ("conclusionali")
+    # oppure un refuso di scansione ("cocnlusive"). La seconda formula
+    # ricorre anche nel corpo delle note: entrambe sono prove del documento,
+    # non del presidio CTU che può esservi richiamato.
+    if re.search(r"\bnote\s+(?:conclusiv\w*|conclusional\w*|cocnlusiv\w*)\b", head):
+        return result(
+            role="atto_difensivo",
+            label="Note conclusionali",
+            section="atti",
+            confidence=96,
+            evidence="testo iniziale: note conclusionali",
+            tipo_documento=TipoDocumento.MEMORIA,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+            excerpt_pattern=r"\bnote\s+(?:conclusiv\w*|conclusional\w*|cocnlusiv\w*)\b",
+        )
+
+    # Le istanze di sostituzione dell'udienza e le note di deposito sono atti
+    # autonomi: la menzione di CTU, CTP o di una scadenza nel loro corpo non
+    # ne altera l'identità documentale.
+    if re.search(
+        r"\bistanza\s+per\s+la\s+sostituzione\s+dell(?:['\u2019]|\s+)?udienza\b|"
+        r"\brichiesta\s+sostituzione\s+dell(?:['\u2019]|\s+)?udienza\b",
+        head,
+    ):
+        return result(
+            role="atto_difensivo",
+            label="Istanza di trattazione scritta",
+            section="atti",
+            confidence=97,
+            evidence="testo iniziale: istanza di sostituzione dell'udienza con note scritte",
+            tipo_documento=TipoDocumento.ATTO_GIUDIZIARIO,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+            excerpt_pattern=(
+                r"\bistanza\s+per\s+la\s+sostituzione\s+dell(?:['\u2019]|\s+)?udienza\b|"
+                r"\brichiesta\s+sostituzione\s+dell(?:['\u2019]|\s+)?udienza\b"
+            ),
+        )
+
+    if re.search(r"\bnota\s+di\s+deposito\b", head):
+        return result(
+            role="deposito",
+            label="Nota di deposito",
+            section="atti",
+            confidence=97,
+            evidence="testo iniziale: nota di deposito",
+            tipo_documento=TipoDocumento.DEPOSITO_PCT,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+            excerpt_pattern=r"\bnota\s+di\s+deposito\b",
+        )
+
+    if re.search(r"\bistanze\s+e\s+conclusioni\b", head):
+        return result(
+            role="atto_difensivo",
+            label="Istanze e conclusioni",
+            section="atti",
+            confidence=92,
+            evidence="testo iniziale: istanze e conclusioni",
+            tipo_documento=TipoDocumento.ATTO_GIUDIZIARIO,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+            excerpt_pattern=r"\bistanze\s+e\s+conclusioni\b",
+        )
+
+    if re.search(r"\bnotificazion[ei]\s+di\s+cancelleria\b|\bcomunicazione\s+di\s+cancelleria\b", head):
+        return result(
+            role="comunicazione",
+            label="Comunicazione di cancelleria",
+            section="comunicazioni",
+            confidence=97,
+            evidence="testo iniziale: notificazione/comunicazione di cancelleria",
+            tipo_documento=TipoDocumento.COMUNICAZIONE,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+            excerpt_pattern=r"\b(?:notificazion[ei]|comunicazione)\s+di\s+cancelleria\b",
+        )
+
+    if (
+        re.search(r"\baccett\w*\s+(?:l\s+)?incarico\b", head)
+        and re.search(r"\bgiur\w*\b", head)
+        and re.search(r"\b(?:ctu|consulente\s+tecnico)\b", head)
+    ):
+        return result(
+            role="atto_ufficio",
+            label="Accettazione incarico e giuramento CTU",
+            section="allegati",
+            confidence=96,
+            evidence="testo iniziale: accettazione incarico e giuramento del CTU",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+            excerpt_pattern=r"\baccett\w*\s+(?:l\s+)?incarico\b|\bgiur\w*\b",
+        )
+
+    if re.search(r"\b(?:bozza\s+di\s+)?perizia\s+tecnic\w*\b", head) and re.search(r"\b(?:ctu|consulenza\s+tecnica)\b", head):
+        return result(
+            role="relazione_peritale_ctu",
+            label="Bozza di perizia tecnica CTU" if "bozza" in head else "Perizia tecnica CTU",
+            section="allegati",
+            confidence=95,
+            evidence="testo iniziale: perizia tecnica CTU",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="allegato",
+            deposit_candidate=True,
+            excerpt_pattern=r"\b(?:bozza\s+di\s+)?perizia\s+tecnic\w*\b",
+        )
+
+    if re.search(r"\bverbale\b", head) and re.search(r"\budienza\b", head):
+        return result(
+            role="verbale_ufficio",
+            label="Verbale d'udienza",
+            section="provvedimenti",
+            confidence=94,
+            evidence="testo iniziale: verbale d'udienza",
+            tipo_documento=TipoDocumento.VERBALE,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+            excerpt_pattern=r"\bverbale\b",
+        )
+
+    return None
+
+
+def _procedural_signal_evidence(extracted_text: str) -> list[DocumentCatalogEvidence]:
+    """Traduce il presidio in segnali separati, senza alterare l'identità."""
+
+    evidence: list[DocumentCatalogEvidence] = []
+    seen: set[str] = set()
+    for hit in presidio_rule_hits(extracted_text):
+        code = str(hit.get("code") or "").strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        legal_basis = [str(item) for item in list(hit.get("legalBasis") or []) if str(item).strip()]
+        detail = str(hit.get("label") or "Segnalazione processuale").strip()
+        if legal_basis:
+            detail = f"{detail}. Riferimento: {', '.join(legal_basis[:3])}"
+        evidence.append(DocumentCatalogEvidence(
+            id=new_id("catalog-evidence"), tenant_id="", fascicolo_id="", assignment_id="",
+            evidence_type="procedural_signal", locator=code, excerpt=detail[:240], weight=30,
+            content_sha256=None, created_at="",
+        ))
+        if len(evidence) == 6:
+            break
+    return evidence
+
+
 def _classify_indexed_content(extracted_text: str) -> DocumentCatalogClassification:
     """Esegue la classificazione senza nome, tipo o metadati del portale.
 
@@ -205,6 +515,9 @@ def _classify_indexed_content(extracted_text: str) -> DocumentCatalogClassificat
     accidentalmente file name, tipo dichiarato o altri metadati come prova.
     """
 
+    identity = _content_identity(extracted_text)
+    if identity is not None:
+        return identity.classification
     return classify_fascicolo_document(
         SimpleNamespace(
             nome="", nome_originale="", nome_portale="", percorso="", tipo="",
@@ -228,6 +541,7 @@ def profile_source_rows(profile_id: str) -> list[dict[str, Any]]:
                 "last_verified_at": "2026-08-24",
                 "snapshot_sha256": "",
                 "source_type": "snapshot",
+                "label": "Snapshot ufficiale versionato",
             })
         elif source_id.startswith("browser:"):
             rows.append({
@@ -237,9 +551,18 @@ def profile_source_rows(profile_id: str) -> list[dict[str, Any]]:
                 "last_verified_at": "2026-08-24",
                 "snapshot_sha256": "",
                 "source_type": "browser_evidence",
+                "label": "Evidenza istituzionale ACF Consob",
             })
         else:
             source = _SOURCE_INDEX.get(source_id, {})
+            source_label = " — ".join(
+                item for item in (
+                    str(source.get("title") or "").strip(),
+                    str(source.get("source_title") or "").strip(),
+                    str(source.get("article") or "").strip(),
+                )
+                if item
+            )
             rows.append({
                 "id": source_id,
                 "official_url": str(source.get("official_url") or ""),
@@ -247,6 +570,7 @@ def profile_source_rows(profile_id: str) -> list[dict[str, Any]]:
                 "last_verified_at": str(source.get("last_verified_at") or ""),
                 "snapshot_sha256": "",
                 "source_type": str(source.get("source_type") or "normativa"),
+                "label": source_label or "Fonte normativa ufficiale",
             })
     return rows
 
@@ -374,13 +698,17 @@ def resolve_document_catalog(
         tipo=metadata.get("tipo_documento", ""),
     )
     has_extracted_text = bool(str(extracted_text or "").strip())
+    identity = _content_identity(extracted_text) if has_extracted_text else None
     if not has_extracted_text:
         classification = _unindexed_content_classification(metadata_classification)
     else:
-        content_classification = _classify_indexed_content(extracted_text)
+        content_classification = identity.classification if identity is not None else _classify_indexed_content(extracted_text)
+        procedural_only = identity is None and str(content_classification.evidence or "").startswith("nome o OCR: regola presidio ")
+        if procedural_only:
+            content_classification = _procedural_only_content_classification(content_classification)
         classification = (
             content_classification
-            if content_classification.role != "da_verificare" and content_classification.confidence >= 75
+            if procedural_only or (content_classification.role != "da_verificare" and content_classification.confidence >= 75)
             else _insufficient_content_classification(metadata_classification)
         )
     source_rows = profile_source_rows(profile_id) if profile_id else []
@@ -401,6 +729,7 @@ def resolve_document_catalog(
         review_reason = "Profilo giuridico del fascicolo non determinabile dai dati strutturati."
     elif confidence < 75 or classification.role == "da_verificare":
         status = "review_required"
+        source_state = "review_required"
         confidence = min(confidence, 69)
         review_reason = "Le evidenze del documento non consentono una catalogazione automatica affidabile."
 
@@ -438,15 +767,24 @@ def resolve_document_catalog(
     if has_extracted_text:
         evidence.append(DocumentCatalogEvidence(
             id=new_id("catalog-evidence"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
-            assignment_id="", evidence_type="extracted_text", locator="testo estratto SQL",
-            excerpt="Testo estratto disponibile e valutato dal resolver; il contenuto resta nel lettore interno.",
-            weight=40, content_sha256=document_sha256 or None, created_at=now,
+            assignment_id="", evidence_type="document_identity" if identity is not None else "extracted_text",
+            locator="intestazione e contenuto indicizzato" if identity is not None else "testo estratto SQL",
+            excerpt=identity.excerpt if identity is not None else "Testo estratto disponibile e valutato dal resolver; il contenuto resta nel lettore interno.",
+            weight=100 if identity is not None else 40, content_sha256=document_sha256 or None, created_at=now,
         ))
+        for signal in _procedural_signal_evidence(extracted_text):
+            signal.tenant_id = tenant_id
+            signal.fascicolo_id = fascicolo_id
+            signal.content_sha256 = document_sha256 or None
+            signal.created_at = now
+            evidence.append(signal)
     for row in source_rows:
+        source_label = str(row.get("label") or "Fonte ufficiale").strip()
+        source_status = str(row.get("verification_status") or "fonte da verificare").strip()
         evidence.append(DocumentCatalogEvidence(
             id=new_id("catalog-evidence"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
             assignment_id="", evidence_type="legal_source", locator=row["id"],
-            excerpt=str(row["verification_status"])[:240], weight=20,
+            excerpt=f"{source_label} — {source_status}"[:240], weight=20,
             content_sha256=str(row.get("snapshot_sha256") or "") or None, created_at=now,
         ))
     review = None

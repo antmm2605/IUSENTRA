@@ -178,6 +178,7 @@ class DocumentAIRepository:
             conn.executescript(self._migration_sql("20260505_documenti_ai.sql"))
             conn.executescript(self._catalog_migration_sql())
             self._ensure_sqlite_catalog_assignment_source_state_schema(conn)
+            self._ensure_sqlite_catalog_evidence_type_schema(conn)
             self._ensure_sqlite_catalog_review_history_schema(conn)
             conn.commit()
         elif self._backend == "postgresql":
@@ -412,6 +413,73 @@ class DocumentAIRepository:
                 """
                 CREATE INDEX IF NOT EXISTS idx_document_catalog_assignments_document
                 ON document_catalog_assignments (tenant_id, fascicolo_id, document_id, updated_at)
+                """
+            )
+            conn.execute("COMMIT")
+        except Exception:
+            if conn.in_transaction:
+                conn.execute("ROLLBACK")
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys=ON")
+
+    def _ensure_sqlite_catalog_evidence_type_schema(self, conn: sqlite3.Connection) -> None:
+        """Aggiorna le evidenze del catalogo senza perdere la catena di prova.
+
+        L'identità letta dal contenuto e una segnalazione processuale sono assi
+        diversi. SQLite richiede la ricostruzione della sola tabella figlia per
+        estendere il CHECK nelle installazioni create con il contratto iniziale.
+        """
+
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'document_catalog_evidence'"
+        ).fetchone()
+        create_sql = str(row[0] if row else "").casefold().replace("\n", " ")
+        if "'document_identity'" in create_sql and "'procedural_signal'" in create_sql:
+            return
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")
+        try:
+            conn.execute("BEGIN")
+            conn.execute(
+                """
+                CREATE TABLE document_catalog_evidence__identity_migration (
+                    id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    fascicolo_id TEXT NOT NULL,
+                    assignment_id TEXT NOT NULL,
+                    evidence_type TEXT NOT NULL CHECK (evidence_type IN (
+                        'fascicolo_context', 'portal_metadata', 'document_metadata', 'extracted_text',
+                        'document_identity', 'procedural_signal', 'legal_source', 'manual_confirmation'
+                    )),
+                    locator TEXT NOT NULL,
+                    excerpt TEXT NOT NULL DEFAULT '',
+                    weight INTEGER NOT NULL CHECK (weight BETWEEN 0 AND 100),
+                    content_sha256 TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (assignment_id) REFERENCES document_catalog_assignments(id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO document_catalog_evidence__identity_migration (
+                    id, tenant_id, fascicolo_id, assignment_id, evidence_type, locator, excerpt,
+                    weight, content_sha256, created_at
+                )
+                SELECT id, tenant_id, fascicolo_id, assignment_id, evidence_type, locator, excerpt,
+                       weight, content_sha256, created_at
+                FROM document_catalog_evidence
+                """
+            )
+            conn.execute("DROP TABLE document_catalog_evidence")
+            conn.execute(
+                "ALTER TABLE document_catalog_evidence__identity_migration RENAME TO document_catalog_evidence"
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_catalog_evidence_assignment
+                ON document_catalog_evidence (assignment_id, evidence_type)
                 """
             )
             conn.execute("COMMIT")

@@ -19,6 +19,7 @@ from pct.document_intelligence.catalog_resolver import (
     assert_full_family_matrix,
     profile_source_rows,
 )
+import pct.document_intelligence.catalog_resolver as catalog_resolver
 from pct.document_intelligence.sources import DocumentAISource
 from pct.template_atti_catalogo import build_builtin_templates
 
@@ -457,6 +458,152 @@ def test_pipeline_non_usa_nome_file_quando_il_testo_non_basta_a_definire_l_atto(
     assert "nome del file non è usato per catalogare" in assignment.reason
 
 
+def test_pipeline_riconosce_note_per_la_trattazione_anche_se_citano_ctu(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-NOTE-TRATTAZIONE"
+    source = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-NOTE-CTU",
+        filename="documento-generico.pdf",
+        sha256="e" * 64,
+        tipo_documento="MEMORIA",
+        text=(
+            "TRIBUNALE ORDINARIO. Note per la trattazione scritta. "
+            "La consulenza tecnica d'ufficio ha concluso la propria perizia."
+        ),
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Tribunale di Roma",
+        tipo_procedimento="Ordinario",
+        canale_operativo="PCT",
+        source="PST",
+        profilo_deposito={
+            "area": "Civile",
+            "branca": "Civile ordinario",
+            "sottobranca": "Introduttivi e difensivi",
+        },
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id, fascicolo=fascicolo, sources=[source], actor="operatore", process=True,
+    )
+
+    assignment = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-NOTE-CTU")
+    assert result.proposed == 1
+    assert assignment is not None
+    assert assignment.document_label == "Note di trattazione scritta"
+    assert assignment.document_nature == "atto_difensivo"
+    evidence = repo.list_catalog_evidence(assignment.id)
+    assert any(item.evidence_type == "document_identity" for item in evidence)
+
+
+def test_pipeline_riconosce_identita_dal_contenuto_per_istanze_depositi_e_decreti(tmp_path):
+    """Le formule nel testo prevalgono su file generici e richiami CTU."""
+
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-IDENTITA-ATTI"
+    sources = [
+        _ready_source(
+            repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            document_id="DOC-ISTANZA", filename="documento-1.pdf", sha256="f" * 64,
+            text=(
+                "GIUDICE DI PACE. ISTANZA PER LA SOSTITUZIONE DELL'UDIENZA "
+                "IN PRESENZA CON IL DEPOSITO DI NOTE SCRITTE. Si richiama la CTU."
+            ),
+        ),
+        _ready_source(
+            repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            document_id="DOC-DEPOSITO", filename="documento-2.pdf", sha256="g" * 64,
+            text="GIUDICE DI PACE. NOTA DI DEPOSITO. Si deposita l'atto di nomina del CTP.",
+        ),
+        _ready_source(
+            repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            document_id="DOC-DECRETO-UDIENZA", filename="documento-3.pdf", sha256="h" * 64,
+            text=(
+                "DECRETO DI FISSAZIONE UDIENZA. Il giudice rinvia la causa "
+                "per l'esame della CTU."
+            ),
+        ),
+        _ready_source(
+            repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            document_id="DOC-ISTANZE-CONCLUSIONI", filename="documento-4.pdf", sha256="i" * 64,
+            text="ISTANZE E CONCLUSIONI. Risposta al primo quesito tecnico.",
+        ),
+    ]
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Giudice di Pace",
+        tipo_procedimento="Ordinario",
+        canale_operativo="PCT",
+        source="PST",
+        profilo_deposito={"area": "Civile", "branca": "Civile ordinario", "sottobranca": "Introduttivi e difensivi"},
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id, fascicolo=fascicolo, sources=sources, actor="operatore", process=True,
+    )
+
+    assert result.proposed == 4
+    assignments = {
+        source.source_id: repo.get_catalog_assignment(tenant_id, fascicolo_id, source.source_id)
+        for source in sources
+    }
+    assert assignments["DOC-ISTANZA"].document_label == "Istanza di trattazione scritta"  # type: ignore[union-attr]
+    assert assignments["DOC-ISTANZA"].document_nature == "atto_difensivo"  # type: ignore[union-attr]
+    assert assignments["DOC-DEPOSITO"].document_label == "Nota di deposito"  # type: ignore[union-attr]
+    assert assignments["DOC-DEPOSITO"].deposit_candidate is False  # type: ignore[union-attr]
+    assert assignments["DOC-DECRETO-UDIENZA"].document_label == "Decreto di fissazione udienza"  # type: ignore[union-attr]
+    assert assignments["DOC-DECRETO-UDIENZA"].deposit_candidate is False  # type: ignore[union-attr]
+    assert assignments["DOC-ISTANZE-CONCLUSIONI"].document_label == "Istanze e conclusioni"  # type: ignore[union-attr]
+    for assignment in assignments.values():
+        assert assignment is not None
+        evidence = repo.list_catalog_evidence(assignment.id)
+        assert any(item.evidence_type == "document_identity" for item in evidence)
+
+
+def test_resolver_non_promuove_un_solo_presidio_a_identita_documentale(monkeypatch):
+    procedural_result = catalog_resolver.DocumentCatalogClassification(
+        role="atp_ctu",
+        label="ATP previdenziale / CTU",
+        section="udienze",
+        confidence=88,
+        evidence="nome o OCR: regola presidio atp_previdenziale_ctu",
+        tipo_documento=catalog_resolver.TipoDocumento.ALLEGATO,
+        deposit_role="allegato",
+        deposit_candidate=True,
+    )
+    monkeypatch.setattr(catalog_resolver, "_classify_indexed_content", lambda _text: procedural_result)
+
+    resolution = catalog_resolver.resolve_document_catalog(
+        tenant_id="studio-test",
+        fascicolo_id="FASC-PRESIDIO",
+        document_id="DOC-PRESIDIO",
+        document_sha256="p" * 64,
+        filename="documento-generico.pdf",
+        extracted_text="Il fascicolo richiama un controllo CTU senza intestazione dell'atto.",
+        document_metadata={},
+        fascicolo_context={
+            "area": "Civile",
+            "branca": "Civile ordinario",
+            "sottobranca": "Introduttivi e difensivi",
+        },
+    )
+
+    assert resolution.status == "review_required"
+    assert resolution.source_state == "review_required"
+    assert resolution.document_label == "Contenuto da verificare"
+    assert resolution.document_nature == "da_verificare"
+    assert resolution.deposit_candidate is False
+    assert "segnalazione processuale" in resolution.reason
+
+
 def test_pipeline_non_sovrascrive_correzione_manuale_neppure_con_retry(tmp_path):
     repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
     tenant_id = "studio-test"
@@ -605,3 +752,191 @@ def test_migrazione_sqlite_conserva_revisione_storica_da_vecchio_vincolo(tmp_pat
     conn.commit()
 
     assert len(repo.list_catalog_reviews(tenant_id, fascicolo_id, include_resolved=True)) == 2
+
+
+def test_migrazione_sqlite_estende_evidenze_identita_e_presidio(tmp_path):
+    database = tmp_path / "studio-evidenze-esistente.db"
+    schema_path = Path(__file__).resolve().parents[1] / "pct" / "sql" / "20260824_fascicolo_document_catalog.sql"
+    legacy_schema = schema_path.read_text(encoding="utf-8").replace(
+        ", 'document_identity', 'procedural_signal'", ""
+    )
+    legacy = sqlite3.connect(database)
+    legacy.executescript(legacy_schema)
+    legacy.commit()
+    legacy.close()
+
+    repo = DocumentAIRepository.from_sqlite_db(database)
+    create_sql = repo.structured_db.conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'document_catalog_evidence'"
+    ).fetchone()[0]
+
+    assert "document_identity" in create_sql
+    assert "procedural_signal" in create_sql
+
+
+def test_pipeline_separa_identita_documentale_e_segnali_di_presidio(tmp_path):
+    """Un richiamo CTU non può trasformare memorie o sentenze in ATP/decreto."""
+
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-test"
+    fascicolo_id = "FASC-IDENTITA"
+    sources = [
+        _ready_source(
+            repo,
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            document_id="DOC-MEMORIA",
+            filename="documento-1.pdf",
+            sha256="1" * 64,
+            tipo_documento="ATTO_GIUDIZIARIO",
+            text="MEMORIA CONCLUSIONALE. La parte richiama la relazione del CTU e chiede il rigetto della domanda.",
+        ),
+        _ready_source(
+            repo,
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            document_id="DOC-SENTENZA",
+            filename="documento-2.pdf",
+            sha256="2" * 64,
+            tipo_documento="ATTO_GIUDIZIARIO",
+            text=(
+                "REPUBBLICA ITALIANA. IN NOME DEL POPOLO ITALIANO. SENTENZA. "
+                "Il giudice liquida il compenso della CTU nelle spese di lite."
+            ),
+        ),
+        _ready_source(
+            repo,
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            document_id="DOC-NOTE",
+            filename="documento-3.pdf",
+            sha256="3" * 64,
+            tipo_documento="ATTO_GIUDIZIARIO",
+            text="NOTE DI TRATTAZIONE SCRITTA IN SOSTITUZIONE DELL'UDIENZA ex art. 127-ter c.p.c.",
+        ),
+        _ready_source(
+            repo,
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            document_id="DOC-NOTE-CONCLUSIVE",
+            filename="documento-3bis.pdf",
+            sha256="6" * 64,
+            tipo_documento="ATTO_GIUDIZIARIO",
+            text=(
+                "\ufffdNote cocnlusive. R.G. 466/2023. Mario Rossi, c.f. RSSMRA80A01H501U, "
+                "rappresentato dall'avv. Bianchi. Le note conclusionali richiamano la relazione del CTU."
+            ),
+        ),
+        _ready_source(
+            repo,
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            document_id="DOC-CANCELLERIA",
+            filename="documento-4.pdf",
+            sha256="4" * 64,
+            tipo_documento="ATTO_GIUDIZIARIO",
+            text="NOTIFICAZIONE DI CANCELLERIA. Si comunica il deposito della relazione del CTU.",
+        ),
+        _ready_source(
+            repo,
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            document_id="DOC-CTU",
+            filename="documento-5.pdf",
+            sha256="5" * 64,
+            tipo_documento="ATTO_GIUDIZIARIO",
+            text="Il consulente tecnico d'ufficio accetta l'incarico e giura di bene e fedelmente adempiere.",
+        ),
+    ]
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Tribunale di Roma",
+        tipo_procedimento="Ordinario",
+        canale_operativo="PCT",
+        source="PST",
+        profilo_deposito={
+            "area": "Civile",
+            "branca": "Civile ordinario",
+            "sottobranca": "Introduttivi e difensivi",
+            "rito": "Ordinario",
+            "canale_telematico": "PCT",
+        },
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id,
+        fascicolo=fascicolo,
+        sources=sources,
+        actor="operatore",
+        process=True,
+    )
+
+    assert result.processed == len(sources)
+    assignments = {
+        document_id: repo.get_catalog_assignment(tenant_id, fascicolo_id, document_id)
+        for document_id in ("DOC-MEMORIA", "DOC-SENTENZA", "DOC-NOTE", "DOC-NOTE-CONCLUSIVE", "DOC-CANCELLERIA", "DOC-CTU")
+    }
+    assert assignments["DOC-MEMORIA"].document_label == "Memoria conclusionale"  # type: ignore[union-attr]
+    assert assignments["DOC-SENTENZA"].document_label == "Sentenza"  # type: ignore[union-attr]
+    assert assignments["DOC-NOTE"].document_label == "Note di trattazione scritta"  # type: ignore[union-attr]
+    assert assignments["DOC-NOTE-CONCLUSIVE"].document_label == "Note conclusionali"  # type: ignore[union-attr]
+    assert assignments["DOC-CANCELLERIA"].document_label == "Comunicazione di cancelleria"  # type: ignore[union-attr]
+    assert assignments["DOC-CTU"].document_label == "Accettazione incarico e giuramento CTU"  # type: ignore[union-attr]
+    assert assignments["DOC-MEMORIA"].document_nature != "atp_ctu"  # type: ignore[union-attr]
+    assert assignments["DOC-SENTENZA"].document_nature == "provvedimento"  # type: ignore[union-attr]
+    assert assignments["DOC-SENTENZA"].document_label != "Decreto di liquidazione CTU"  # type: ignore[union-attr]
+    assert assignments["DOC-NOTE"].document_nature == "atto_difensivo"  # type: ignore[union-attr]
+    assert assignments["DOC-CANCELLERIA"].document_nature == "comunicazione"  # type: ignore[union-attr]
+    for assignment in assignments.values():
+        assert assignment is not None
+        evidence = repo.list_catalog_evidence(assignment.id)
+        assert any(item.evidence_type == "document_identity" for item in evidence)
+    memoria_evidence = repo.list_catalog_evidence(assignments["DOC-MEMORIA"].id)  # type: ignore[union-attr]
+    assert any(item.evidence_type == "procedural_signal" and item.locator == "atp_previdenziale_ctu" for item in memoria_evidence)
+    note_evidence = repo.list_catalog_evidence(assignments["DOC-NOTE-CONCLUSIVE"].id)  # type: ignore[union-attr]
+    assert all("\ufffd" not in item.excerpt for item in note_evidence)
+    assert all("RSSMRA80A01H501U" not in item.excerpt and "Mario Rossi" not in item.excerpt for item in note_evidence)
+    assert any(item.evidence_type == "legal_source" and "fonte ufficiale" in item.excerpt for item in note_evidence)
+
+
+def test_lettura_catalogo_non_crea_job_senza_elaborazione(tmp_path):
+    """La GET del catalogo non deve lasciare job queued privi di consumer."""
+
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-read-only"
+    fascicolo_id = "FASC-READ-ONLY"
+    source = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-READ-ONLY",
+        filename="memoria.pdf",
+        sha256="7" * 64,
+        tipo_documento="ATTO_GIUDIZIARIO",
+        text="MEMORIA CONCLUSIVA."
+    )
+    fascicolo = SimpleNamespace(
+        id=fascicolo_id,
+        area_pratica="Civile",
+        tribunale="Tribunale di Roma",
+        tipo_procedimento="Ordinario",
+        canale_operativo="PCT",
+        source="PST",
+        profilo_deposito={},
+    )
+
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id,
+        fascicolo=fascicolo,
+        sources=[source],
+        actor="operatore",
+        process=False,
+    )
+
+    assert result.queued == 0
+    jobs = repo.structured_db.conn.execute(
+        "SELECT COUNT(*) FROM document_catalog_jobs WHERE tenant_id = ? AND fascicolo_id = ?",
+        (tenant_id, fascicolo_id),
+    ).fetchone()[0]
+    assert jobs == 0

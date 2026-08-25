@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.278.77 - 25/08/2026
+
+- Catalogo fascicolo: le identità “Istanza di trattazione scritta”, “Nota di deposito”, “Istanze e conclusioni” e “Decreto di fissazione udienza” sono ora riconosciute esclusivamente dal testo indicizzato, con segnali CTU e termini mantenuti separati.
+- Catalogo fascicolo: decreti e note di deposito riconosciuti non vengono proposti automaticamente per una nuova busta telematica.
+- CRM: i record tecnici QA con dominio di collaudo non compaiono nella pipeline, nei contatori o nelle schede destinate allo studio; i contatti reali restano invariati.
+
+## 2.278.76 - 25/08/2026
+
+- Fascicoli: una regola processuale isolata non assegna più una natura al documento; il segnale resta visibile nella prova, mentre l'atto privo di formula identificativa passa a revisione esplicita senza candidatura al deposito.
+
+## 2.278.75 - 25/08/2026
+
+- Fascicoli: riconosciuta anche la formula «note per la trattazione scritta»; il richiamo alla CTU resta una segnalazione procedurale separata e non può trasformare una memoria nel tipo sbagliato.
+- Fascicoli: la correzione manuale normalizza sempre la natura proposta nel valore ammesso dall'API, evitando un rifiuto invisibile al momento della conferma.
+- Fascicoli: le azioni del catalogo restano sotto il riepilogo del documento, così i titoli e le prove non vengono compressi o spezzati verticalmente.
+
+## 2.278.74 - 25/08/2026
+
+- Fascicoli: la catalogazione documentale distingue l'identità letta dal contenuto dalle segnalazioni procedurali; una memoria, sentenza o comunicazione non viene più trasformata in un atto diverso per un richiamo alla CTU o a un presidio.
+- Fascicoli: la prova della catalogazione mostra estratto, segnalazioni e fonti del profilo e apre la sorgente nel lettore interno; il profilo è espresso con etichette leggibili, non con codici tecnici.
+- Persistenza: le nuove prove sono governate con parità SQLite/PostgreSQL e con migrazione conservativa delle evidenze esistenti.
+
 ## 2.278.72 - 25/08/2026
 
 - CRM: acquisizione incarichi con linguaggio professionale, struttura leggibile e senza record tecnici di collaudo.

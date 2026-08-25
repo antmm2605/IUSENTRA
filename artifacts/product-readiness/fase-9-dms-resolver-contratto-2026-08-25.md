@@ -1,9 +1,7 @@
 # Fase 9 — Contratto DMS, comunicazioni e catalogazione dal contenuto
 
-- Stato: implementazione applicata e verificata sul fascicolo controllato per
-  contenuto, prova, lettore interno, correzione manuale e resa responsive.
-  Restano i gate di test completi, commit, distribuzione e verifica della
-  stessa release su Hetzner.
+- Stato: rilasciata e verificata sul fascicolo controllato per contenuto,
+  prova, lettore interno, correzione manuale, resa responsive e distribuzione.
 - Data: 25/08/2026, Europa/Roma.
 - Oggetto: rendere il documento un oggetto operativo del fascicolo, con identità leggibile, prova, versioni, collegamenti e revisione professionale.
 - Fonte di verità: SQLite locale e PostgreSQL produzione, con parità di schema; i JSON restano mirror rigenerabili.
@@ -133,12 +131,16 @@ udienza, CTU, rito o contributo restano separati come segnali procedurali.
   tastiera su **Correggi catalogo** mantengono contrasto, testo e contorno
   visibili.
 
-## Gate ancora necessari prima della chiusura della fase
+## Chiusura della fase
 
-- Rebuild senza cache della copia Docker locale e `GET /api/pronto` su
-  `127.0.0.1:8080`.
-- Test mirati Python/React, parità SQLite/PostgreSQL, performance del refresh,
-  commit, push dei due branch, deploy Hetzner e verifica dell'unico
-  `iusentra-app` healthy sullo stesso commit.
-
-Finché queste prove non sono eseguite, la Fase 9 resta aperta.
+- La copia Docker locale è stata ricreata e `GET /api/pronto` su
+  `127.0.0.1:8080` ha risposto `ok=true`, versione `2.278.77`.
+- I test mirati Python, TypeScript e build React, la parità SQLite/PostgreSQL
+  e il controllo di performance del refresh sono stati eseguiti senza
+  regressioni rilevate nel perimetro della fase.
+- Il commit `6d24244d2f76d1f3b366dacbdf449cc6da135aeb` è stato pubblicato sui
+  branch gemelli e distribuito su Hetzner. Il repository remoto è sullo stesso
+  commit, esiste un solo container applicativo denominato `iusentra-app` ed è
+  `healthy`; `https://app.iusentra.it/api/pronto` ha risposto `ok=true`,
+  versione `2.278.77`. La cache Docker rigenerabile è stata ripulita e non è
+  presente alcuno snapshot temporaneo residuo.

@@ -1,6 +1,6 @@
 # Fase 9 — Audit di implementazione DMS, 25/08/2026
 
-- Stato: fase aperta fino ai gate finali di test, commit e distribuzione.
+- Stato: rilasciata su locale e Hetzner, con prove registrate.
 - Ambito: fascicolo `DC5BF1DB`, copia locale reale `http://127.0.0.1:8080`.
 - Fonte di verità: SQLite tenant-aware; schema PostgreSQL aggiornato in parità.
 
@@ -72,8 +72,15 @@ conferme manuali dell'avvocato.
 - rebuild della copia Docker locale, applicazione `2.278.77` healthy su
   `http://127.0.0.1:8080/api/pronto`.
 
-## Gate residui
+## Chiusura e rilascio
 
-- verifica prestazionale finale sul build corrente;
-- commit, push dei due branch gemelli, deploy Hetzner, controllo del singolo
-  contenitore `iusentra-app`, health pubblico e igiene della cache Docker;
+- Il tempo di risposta locale di `/api/pronto` è stato campionato cinque volte
+  sul build corrente; media osservata `27 ms`, senza degrado percettibile nel
+  caricamento della superficie coinvolta.
+- Il commit `6d24244d2f76d1f3b366dacbdf449cc6da135aeb` è stato inviato ai due
+  branch di rilascio e distribuito su Hetzner.
+- Il controllo SSH ha verificato il repository remoto sullo stesso SHA, un
+  solo container applicativo con nome esatto `iusentra-app` e stato `healthy`.
+  La readiness pubblica ha risposto `ok=true`, timezone `Europe/Rome` e
+  versione `2.278.77`. La cache di build Docker è stata ripulita e lo snapshot
+  temporaneo `/opt/iusentra/tmp-backup-snapshot` risulta assente.

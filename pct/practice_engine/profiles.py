@@ -26,8 +26,6 @@ PEC_ONLY_CHANNELS = {"PEC_ONLY", "PEC", "STRAGIUDIZIALE_PEC"}
 DEFAULT_BLOCKING_VALIDATORS = [
     "cliente_presente",
     "cliente_cf_valido",
-    "cliente_email_presente",
-    "avvocato_referente_presente",
     "ufficio_giudiziario_presente",
     "registro_presente",
 ]
@@ -36,6 +34,15 @@ DEFAULT_ECONOMIC_VALIDATORS = [
     "preventivo_accettato",
     "conferimento_firmato",
     "pagamento_acconto_registrato",
+]
+
+# Dati commerciali e organizzativi sono utili alla gestione del rapporto con
+# il cliente, ma non costituiscono requisiti tecnici per creare o inviare una
+# busta. Restano quindi visibili nel Presidio come avvisi azionabili.
+DEFAULT_WARNING_VALIDATORS = [
+    "cliente_email_presente",
+    "avvocato_referente_presente",
+    *DEFAULT_ECONOMIC_VALIDATORS,
 ]
 
 DEFAULT_DEPOSIT_VALIDATORS = [
@@ -211,7 +218,7 @@ def build_profile_from_procedure(procedure: LegalOperationalProcedure) -> Practi
     registry = str(getattr(procedure, "registry_code", "") or "").strip().upper()
     depositable = channel in DEPOSITABLE_CHANNELS
     blocking = list(DEFAULT_BLOCKING_VALIDATORS)
-    warnings = list(DEFAULT_ECONOMIC_VALIDATORS)
+    warnings = list(DEFAULT_WARNING_VALIDATORS)
     if depositable:
         blocking.extend(DEFAULT_DEPOSIT_VALIDATORS)
     if channel in PEC_ONLY_CHANNELS:
@@ -289,7 +296,7 @@ def _supplemental_profiles() -> list[PracticeProfile]:
             {"slot_key": "RICEVUTE_DEPOSITO", "label": "Ricevute ed esiti deposito", "type": SlotType.RICEVUTA.value, "required": False, "blocking": False, "validators": ["ricevuta_finale_presente"], "sort_order": 5},
         ],
         blocking_validators=DEFAULT_BLOCKING_VALIDATORS + DEFAULT_DEPOSIT_VALIDATORS,
-        warning_validators=DEFAULT_ECONOMIC_VALIDATORS,
+        warning_validators=DEFAULT_WARNING_VALIDATORS,
         depositable=True,
         requires_human_review=True,
         requires_registry_enrollment=True,
@@ -324,7 +331,7 @@ def _supplemental_profiles() -> list[PracticeProfile]:
             {"slot_key": "ESITO_SIGP", "label": "Esito SIGP", "type": SlotType.ESITO_PORTALE.value, "required": False, "blocking": False, "validators": ["ricevuta_finale_presente"], "sort_order": 3},
         ],
         blocking_validators=DEFAULT_BLOCKING_VALIDATORS + DEFAULT_DEPOSIT_VALIDATORS + ["schema_xsd_presente"],
-        warning_validators=DEFAULT_ECONOMIC_VALIDATORS,
+        warning_validators=DEFAULT_WARNING_VALIDATORS,
         depositable=True,
         requires_human_review=True,
         requires_registry_enrollment=True,

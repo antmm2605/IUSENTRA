@@ -3156,7 +3156,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                     {economic ? <strong>{item.paymentSummary.statoLabel}</strong> : <span><CalendarDays size={14}/>{item.nextDeadline || 'n.d.'}</span>}
                     <span><FileText size={14}/>{item.documents}</span>
                   </div>
-                  <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/>
+                  <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError} className="iu-fas-row-actions"/>
                   {economic ? (
                     <div className="iu-fas-collection-economic">
                       <div className="iu-fas-economic-summary-grid">

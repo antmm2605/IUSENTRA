@@ -14,6 +14,10 @@ import {
   Info,
   LockKeyhole,
   Mail,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
   PencilLine,
   PlusCircle,
   RefreshCw,
@@ -1748,6 +1752,8 @@ export function NotificheLegaliPage() {
   const [data, setData] = useState<NotificheLegaliData>(emptyNotificheLegaliData)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<TabKey>('notifica')
+  const [sidePanelOpen, setSidePanelOpen] = useState(true)
+  const [noticeFullscreen, setNoticeFullscreen] = useState(false)
   const [result, setResult] = useState<LegalWorkflowResult>(emptyResult)
   const [working, setWorking] = useState(false)
   const resultPanelRef = useRef<HTMLDivElement | null>(null)
@@ -1777,6 +1783,19 @@ export function NotificheLegaliPage() {
   const [pecVerificationMessage, setPecVerificationMessage] = useState('')
   const [publicRegisterConsultedAt, setPublicRegisterConsultedAt] = useState<Record<string, string>>({})
   const [publicRegisterConfirmationWorking, setPublicRegisterConfirmationWorking] = useState(false)
+
+  useEffect(() => {
+    document.body.classList.toggle('iusentra-ui-fullscreen-open', noticeFullscreen)
+    return () => document.body.classList.remove('iusentra-ui-fullscreen-open')
+  }, [noticeFullscreen])
+
+  useEffect(() => {
+    const leaveFullscreenOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && noticeFullscreen) setNoticeFullscreen(false)
+    }
+    window.addEventListener('keydown', leaveFullscreenOnEscape)
+    return () => window.removeEventListener('keydown', leaveFullscreenOnEscape)
+  }, [noticeFullscreen])
 
   const [notifica, setNotifica] = useState({
     template_id: 'relata_pec_base_l53',
@@ -1835,6 +1854,7 @@ export function NotificheLegaliPage() {
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
   const [recipientSearch, setRecipientSearch] = useState('')
+  const [recipientRegisterFilter, setRecipientRegisterFilter] = useState('')
   const [regindeRecipients, setRegindeRecipients] = useState<LegalRecipientSuggestion[]>([])
   const [registroPpaaRecipients, setRegistroPpaaRecipients] = useState<LegalRecipientSuggestion[]>([])
   const [manualRecipientSuggestions, setManualRecipientSuggestions] = useState<LegalRecipientSuggestion[]>([])
@@ -2018,9 +2038,13 @@ export function NotificheLegaliPage() {
     [data.precompilazione.pratiche, practiceDetailsById, selectedPracticeId],
   )
   const practiceRecipientSuggestions = selectedPractice?.destinatari || []
+  const normalizedRecipientRegisterFilter = normalizePecSource(recipientRegisterFilter)
+  const selectedRecipientSearchRegister = data.registriPec.find((item) => item.value === normalizedRecipientRegisterFilter)
+  const searchesReginde = !normalizedRecipientRegisterFilter || normalizedRecipientRegisterFilter === 'reginde'
+  const searchesRegistroPpaa = !normalizedRecipientRegisterFilter || ['registro_ppaa', 'ipa'].includes(normalizedRecipientRegisterFilter)
   useEffect(() => {
     const query = recipientSearch.trim()
-    if (query.length < 3 || !data.azioni.regindeSearch) {
+    if (query.length < 3 || !searchesReginde || !data.azioni.regindeSearch) {
       setRegindeRecipients([])
       setRegindeSearchMessage('')
       setRegindeSearchLoading(false)
@@ -2047,10 +2071,10 @@ export function NotificheLegaliPage() {
       active = false
       window.clearTimeout(timer)
     }
-  }, [data.azioni.regindeSearch, recipientSearch])
+  }, [data.azioni.regindeSearch, recipientSearch, searchesReginde])
   useEffect(() => {
     const query = recipientSearch.trim()
-    if (query.length < 3 || !data.azioni.registroPpaaSearch) {
+    if (query.length < 3 || !searchesRegistroPpaa || !data.azioni.registroPpaaSearch) {
       setRegistroPpaaRecipients([])
       setRegistroPpaaSearchMessage('')
       setRegistroPpaaSearchLoading(false)
@@ -2077,7 +2101,7 @@ export function NotificheLegaliPage() {
       active = false
       window.clearTimeout(timer)
     }
-  }, [data.azioni.registroPpaaSearch, recipientSearch])
+  }, [data.azioni.registroPpaaSearch, recipientSearch, searchesRegistroPpaa])
   const recipientSuggestions = useMemo(() => {
     const seen = new Set<string>()
     const registrySearchActive = recipientSearch.trim().length >= 3
@@ -2097,9 +2121,14 @@ export function NotificheLegaliPage() {
   )
   const visibleRecipientSuggestions = useMemo(() => {
     const query = practiceSearchText(recipientSearch)
-    if (!query) return recipientSuggestions
     const tokens = query.split(' ').filter(Boolean)
     return recipientSuggestions.filter((item) => {
+      const source = normalizePecSource(item.fontePecSuggerita)
+      const sourceMatches = !normalizedRecipientRegisterFilter
+        || source === normalizedRecipientRegisterFilter
+        || (normalizedRecipientRegisterFilter === 'registro_ppaa' && source === 'ipa')
+      if (!sourceMatches) return false
+      if (!tokens.length) return true
       const search = practiceSearchText([
         item.label,
         item.nome,
@@ -2112,7 +2141,14 @@ export function NotificheLegaliPage() {
       ].join(' '))
       return tokens.every((token) => search.includes(token))
     })
-  }, [recipientSearch, recipientSuggestions])
+  }, [normalizedRecipientRegisterFilter, recipientSearch, recipientSuggestions])
+  const recipientSearchHint = selectedRecipientSearchRegister
+    ? ['reginde', 'registro_ppaa', 'ipa'].includes(normalizedRecipientRegisterFilter)
+      ? `Ricerca nei dati locali di ${selectedRecipientSearchRegister.label}; vengono mostrati solo indirizzi associati a questa fonte.`
+      : `Risultati filtrati per ${selectedRecipientSearchRegister.label}; le fonti senza indice locale restano consultabili nel percorso ufficiale guidato.`
+    : selectedPractice
+      ? 'I destinatari della pratica restano in evidenza; la ricerca include ReGIndE e Registro PP.AA. locali.'
+      : 'Cerca in ReGIndE, Registro PP.AA. e indirizzi disponibili.'
   const suggestedUnepOffice = useMemo(
     () => selectedPractice ? suggestUnepOffice(selectedPractice.procedimento.ufficio, data.ufficiUnep) : null,
     [data.ufficiUnep, selectedPractice],
@@ -4267,7 +4303,7 @@ export function NotificheLegaliPage() {
     setAttestationFileMessage('')
   }
   return (
-    <main className="iu-content iu-legal-notice-page">
+    <main className={`iu-content iu-legal-notice-page ${noticeFullscreen ? 'iu-legal-notice-page--fullscreen' : ''}`.trim()}>
       <section className="iu-legal-hero">
         <div>
           <span className="iu-legal-eyebrow"><Scale size={16} /> Notifiche e comunicazioni</span>
@@ -4324,10 +4360,37 @@ export function NotificheLegaliPage() {
         <small><LockKeyhole size={14} /> Invio reale su conferma: la trasmissione PEC parte dal PC dell'avvocato.</small>
       </section>
 
-      <section className="iu-legal-layout">
+      <section className={`iu-legal-layout ${sidePanelOpen ? '' : 'iu-legal-layout--side-closed'}`.trim()}>
         <div className="iu-legal-form-column">
           {tab === 'notifica' ? (
-            <Panel title="Relata e attestazione" subtitle="Creazione notifica L. 53/1994" icon={<FileSignature size={17} />}>
+            <Panel
+              title="Relata e attestazione"
+              subtitle="Creazione notifica L. 53/1994"
+              icon={<FileSignature size={17} />}
+              action={(
+                <div className="iu-legal-workspace-actions" aria-label="Vista di lavoro della relata">
+                  <button
+                    type="button"
+                    aria-controls="notifiche-legali-colonna-laterale"
+                    aria-expanded={sidePanelOpen}
+                    title={sidePanelOpen ? 'Chiudi pannello laterale' : 'Apri pannello laterale'}
+                    onClick={() => setSidePanelOpen((current) => !current)}
+                  >
+                    {sidePanelOpen ? <PanelRightClose size={15} aria-hidden="true" /> : <PanelRightOpen size={15} aria-hidden="true" />}
+                    <span>{sidePanelOpen ? 'Chiudi laterale' : 'Apri laterale'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={noticeFullscreen}
+                    title={noticeFullscreen ? 'Esci dalla vista a tutto schermo' : 'Apri la vista a tutto schermo'}
+                    onClick={() => setNoticeFullscreen((current) => !current)}
+                  >
+                    {noticeFullscreen ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
+                    <span>{noticeFullscreen ? 'Riduci' : 'Tutto schermo'}</span>
+                  </button>
+                </div>
+              )}
+            >
               <div className="iu-legal-auto-box">
                 <div className="iu-legal-auto-box__title">
                   <WandSparkles size={17} />
@@ -4345,30 +4408,6 @@ export function NotificheLegaliPage() {
                     hint="Cerca e scegli una pratica per compilare assistito, procedimento, destinatari e documenti già presenti."
                     onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
                   />
-                  <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? "Puoi aggiungere più destinatari alla notifica corrente." : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
-                    <select
-                      value=""
-                      onChange={(event) => {
-                        const recipient = recipientSuggestions.find((item) => item.id === event.currentTarget.value)
-                        if (recipient) applyRecipient(recipient)
-                      }}
-                    >
-                      <option value="">Aggiungi destinatario</option>
-                      {recipientSuggestions.map((item) => (
-                        <option value={item.id} key={`${item.id}-${item.ruolo}`}>
-                          {selectedRecipientIds.includes(item.id) ? '✓ ' : ''}{item.label}{item.pec ? ` - ${item.pec}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Cerca indirizzo o soggetto" hint={selectedPractice ? 'I destinatari della pratica restano in evidenza; la ricerca include ReGIndE e Registro PP.AA. locali.' : 'Cerca in ReGIndE, Registro PP.AA. e indirizzi disponibili.'}>
-                    <input
-                      type="search"
-                      value={recipientSearch}
-                      onChange={(event) => setRecipientSearch(event.currentTarget.value)}
-                      placeholder="Nome, PEC, parte, registro o ufficio"
-                    />
-                  </Field>
                   <div className="iu-legal-manual-recipient iu-legal-field--wide">
                     <header>
                       <div>
@@ -4428,6 +4467,43 @@ export function NotificheLegaliPage() {
                       </label>
                     </div>
                   </div>
+                  <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? "Puoi aggiungere più destinatari alla notifica corrente." : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
+                    <select
+                      value=""
+                      onChange={(event) => {
+                        const recipient = recipientSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (recipient) applyRecipient(recipient)
+                      }}
+                    >
+                      <option value="">Aggiungi destinatario</option>
+                      {recipientSuggestions.map((item) => (
+                        <option value={item.id} key={`${item.id}-${item.ruolo}`}>
+                          {selectedRecipientIds.includes(item.id) ? '✓ ' : ''}{item.label}{item.pec ? ` - ${item.pec}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Elenco pubblico PEC" hint="Filtra i destinatari e la ricerca per la fonte selezionata.">
+                    <select
+                      value={recipientRegisterFilter}
+                      onChange={(event) => {
+                        const source = normalizePecSource(event.currentTarget.value)
+                        setRecipientRegisterFilter(source)
+                        if (source) setManualRecipientDraft((current) => ({ ...current, fontePec: source }))
+                      }}
+                    >
+                      <option value="">Tutti gli elenchi</option>
+                      {data.registriPec.map((item) => <option value={item.value} key={`recipient-filter-${item.value}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field wide label="Cerca indirizzo o soggetto" hint={recipientSearchHint}>
+                    <input
+                      type="search"
+                      value={recipientSearch}
+                      onChange={(event) => setRecipientSearch(event.currentTarget.value)}
+                      placeholder="Nome, PEC, parte, registro o ufficio"
+                    />
+                  </Field>
                   {visibleRecipientSuggestions.length ? (
                     <div className="iu-legal-recipient-picker iu-legal-field--wide" aria-label="Destinatari suggeriti">
                       {visibleRecipientSuggestions.map((item) => {
@@ -5511,7 +5587,8 @@ export function NotificheLegaliPage() {
           ) : null}
         </div>
 
-        <aside className="iu-legal-side">
+        {sidePanelOpen ? (
+        <aside id="notifiche-legali-colonna-laterale" className="iu-legal-side">
           {tab !== 'notifica' && guidedAutomationSteps.length ? (
             <Panel title="Passaggi automatici" subtitle={automationSubtitle} icon={<ClipboardCheck size={17} />}>
               <div className="iu-legal-automation-list">
@@ -5595,6 +5672,7 @@ export function NotificheLegaliPage() {
             </div>
           </Panel>
         </aside>
+        ) : null}
       </section>
 
       {documentPreview ? (

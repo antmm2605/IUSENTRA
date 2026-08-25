@@ -146,7 +146,11 @@ def controparte_cf_valido_se_presente(ctx: ValidationContext) -> ValidationResul
 def avvocato_referente_presente(ctx: ValidationContext) -> ValidationResult:
     if _text(getattr(ctx.fascicolo, "avvocato", "")) or _text(getattr(ctx.conferimento, "avvocato_referente", "")):
         return _ok("avvocato_referente_presente", "Avvocato referente presente.")
-    return _block("avvocato_referente_presente", "Impossibile procedere: manca l'avvocato referente.", "Indica il referente nel fascicolo o nel conferimento.")
+    return _warning(
+        "avvocato_referente_presente",
+        "Avviso operativo: avvocato referente non indicato.",
+        "Indica il referente prima della firma o dell'invio, se richiesto dall'organizzazione dello studio.",
+    )
 
 
 def codice_fiscale_avvocato_presente(ctx: ValidationContext) -> ValidationResult:
@@ -218,21 +222,33 @@ def preventivo_accettato(ctx: ValidationContext) -> ValidationResult:
     stato = _enum_value(getattr(ctx.preventivo, "stato", "")).upper()
     if stato in {"ACCETTATO", "CONVERTITO"} or _text(getattr(ctx.preventivo, "accettato_il", "")):
         return _ok("preventivo_accettato", "Preventivo accettato.")
-    return _block("preventivo_accettato", "Impossibile aprire il fascicolo: preventivo non accettato.", "Registra l'accettazione oppure usa un override motivato e auditato.")
+    return _warning(
+        "preventivo_accettato",
+        "Avviso economico: preventivo non ancora accettato.",
+        "Registra l'accettazione quando prevista dal rapporto con il cliente.",
+    )
 
 
 def conferimento_firmato(ctx: ValidationContext) -> ValidationResult:
     if bool(getattr(ctx.conferimento, "firma_cliente_eseguita", False)) or _text(getattr(ctx.conferimento, "firma_cliente_il", "")):
         return _ok("conferimento_firmato", "Conferimento firmato.")
-    return _block("conferimento_firmato", "Impossibile aprire il fascicolo: conferimento non firmato.", "Acquisisci la firma del cliente oppure registra un override motivato.")
+    return _warning(
+        "conferimento_firmato",
+        "Avviso economico: conferimento non ancora firmato.",
+        "Acquisisci la firma del cliente quando prevista dal rapporto professionale.",
+    )
 
 
 def pagamento_acconto_registrato(ctx: ValidationContext) -> ValidationResult:
     if _paid_parcelles(ctx.parcelle):
         return _ok("pagamento_acconto_registrato", "Pagamento o acconto registrato.")
     if any(getattr(event, "event_type", "") == "ECONOMIC_OVERRIDE" for event in ctx.audit_events):
-        return _warning("pagamento_acconto_registrato", "Apertura consentita con override economico auditato.", "Verifica l'incasso appena possibile.")
-    return _block("pagamento_acconto_registrato", "Impossibile aprire il fascicolo: manca pagamento o acconto.", "Registra l'incasso oppure inserisci un override professionale motivato.")
+        return _warning("pagamento_acconto_registrato", "Avviso economico auditato: pagamento o acconto da verificare.", "Verifica l'incasso appena possibile.")
+    return _warning(
+        "pagamento_acconto_registrato",
+        "Avviso economico: pagamento o acconto non registrato.",
+        "Registra l'incasso quando previsto dal rapporto con il cliente.",
+    )
 
 
 def fattura_emessa(ctx: ValidationContext) -> ValidationResult:

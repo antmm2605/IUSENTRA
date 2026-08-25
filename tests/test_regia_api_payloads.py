@@ -131,6 +131,31 @@ def test_api_regia_payload_completo_e_mock_false(tmp_path):
     assert any("Atto.enc" in action and "AES256" in action for action in delivery["guidedNextActions"])
 
 
+def test_api_predeposito_non_blocca_dati_commerciali_o_referente(tmp_path):
+    app, _gf, fascicolo = _app_with_fascicolo(tmp_path)
+    client = app.test_client()
+    _conferma_profilo_regia(app, client, fascicolo)
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/predeposito/check",
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    blocker_keys = {item["key"] for item in payload["blockers"]}
+    warning_keys = {item["key"] for item in payload["warnings"]}
+    commercial_or_organizational = {
+        "avvocato_referente_presente",
+        "preventivo_accettato",
+        "conferimento_firmato",
+        "pagamento_acconto_registrato",
+    }
+
+    assert commercial_or_organizational.isdisjoint(blocker_keys)
+    assert {"preventivo_accettato", "conferimento_firmato", "pagamento_acconto_registrato"}.issubset(warning_keys)
+
+
 def test_api_regia_economia_espone_link_operativi(tmp_path):
     app, _gf, fascicolo = _app_with_fascicolo(tmp_path)
     client = app.test_client()

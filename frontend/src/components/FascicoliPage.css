@@ -2972,6 +2972,34 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-title-actions a span,
 .iu-fas-title-actions button span,
 .iu-fas-title-actions .iu-fas-post span{display:inline}
+
+/* Viste compatta e a schede: ogni azione conserva icona e testo. Le vecchie
+   celle da 34px erano pensate per icone sole e facevano sovrapporre le etichette. */
+.iu-fas-card-grid .iu-fas-row-actions,
+.iu-fas-compact-list .iu-fas-row-actions{display:grid!important;width:100%;min-width:0;gap:6px;align-items:stretch}
+.iu-fas-card-grid .iu-fas-row-actions{grid-template-columns:repeat(auto-fit,minmax(62px,1fr));grid-column:2}
+.iu-fas-compact-list .iu-fas-collection-item{grid-template-columns:24px minmax(0,1fr) auto}
+.iu-fas-compact-list .iu-fas-row-actions{grid-column:2/-1;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));padding-top:2px;border-top:1px solid #e2e8f0}
+.iu-fas-card-grid .iu-fas-row-actions>a,
+.iu-fas-card-grid .iu-fas-row-actions>button,
+.iu-fas-card-grid .iu-fas-row-actions>.iu-fas-post,
+.iu-fas-compact-list .iu-fas-row-actions>a,
+.iu-fas-compact-list .iu-fas-row-actions>button,
+.iu-fas-compact-list .iu-fas-row-actions>.iu-fas-post{width:100%!important;min-width:0!important;height:auto!important;min-height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;place-items:initial!important;gap:5px;padding:5px 4px!important;border-radius:9px;font-size:10.5px;font-weight:850;line-height:1.15;text-align:center}
+.iu-fas-card-grid .iu-fas-row-actions>a,
+.iu-fas-card-grid .iu-fas-row-actions>button,
+.iu-fas-card-grid .iu-fas-row-actions>.iu-fas-post{flex-direction:column}
+.iu-fas-compact-list .iu-fas-row-actions>a,
+.iu-fas-compact-list .iu-fas-row-actions>button,
+.iu-fas-compact-list .iu-fas-row-actions>.iu-fas-post{flex-direction:row;min-height:40px!important;padding:5px 8px!important}
+.iu-fas-card-grid .iu-fas-row-actions span,
+.iu-fas-compact-list .iu-fas-row-actions span{display:block;min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+.iu-fas-card-grid .iu-fas-row-actions svg,
+.iu-fas-compact-list .iu-fas-row-actions svg{flex:0 0 auto}
+.iu-fas-card-grid .iu-fas-row-actions>a:focus-visible,
+.iu-fas-card-grid .iu-fas-row-actions>button:focus-visible,
+.iu-fas-compact-list .iu-fas-row-actions>a:focus-visible,
+.iu-fas-compact-list .iu-fas-row-actions>button:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
 .iu-fas-office-docs {
   margin-bottom: 12px;
   border: 1px solid #c9dbf8;

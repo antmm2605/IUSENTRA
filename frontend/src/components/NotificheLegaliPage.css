@@ -127,6 +127,67 @@
   align-items: start;
 }
 
+.iu-legal-layout--side-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.iu-legal-workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iu-legal-workspace-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid rgba(31, 93, 153, .28);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--iu-blue-700, #173a67);
+  font-size: .75rem;
+  font-weight: 820;
+  padding: 0 9px;
+  cursor: pointer;
+}
+
+.iu-legal-workspace-actions button:hover,
+.iu-legal-workspace-actions button:focus-visible,
+.iu-legal-workspace-actions button[aria-pressed='true'] {
+  border-color: rgba(31, 93, 153, .6);
+  background: rgba(219, 234, 254, .7);
+  color: var(--iu-navy-900, #0b1b35);
+  outline: none;
+}
+
+body.iusentra-ui-fullscreen-open {
+  overflow: hidden;
+}
+
+main.iu-content.iu-legal-notice-page--fullscreen {
+  background: var(--iu-bg-app, #f6f8fc);
+  height: 100vh;
+  inset: 0;
+  max-width: none;
+  overflow: auto;
+  padding: clamp(12px, 1.8vw, 24px);
+  position: fixed;
+  width: 100vw;
+  z-index: 3000;
+}
+
+main.iu-content.iu-legal-notice-page--fullscreen .iu-legal-hero {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+main.iu-content.iu-legal-notice-page--fullscreen .iu-legal-side {
+  position: static;
+}
+
 .iu-legal-form-column,
 .iu-legal-side {
   display: flex;
@@ -2883,12 +2944,31 @@
 }
 
 @media (max-width: 760px) {
+  .iu-legal-notice-page .iu-panel:has(.iu-legal-workspace-actions) > header {
+    align-items: stretch;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+  }
+
+  .iu-legal-notice-page .iu-panel:has(.iu-legal-workspace-actions) > header > div:first-child {
+    width: 100%;
+  }
+
   .iu-legal-hero {
     padding: 18px;
   }
 
   .iu-legal-hero h1 {
     font-size: 1.36rem;
+  }
+
+  .iu-legal-workspace-actions {
+    width: 100%;
+  }
+
+  .iu-legal-workspace-actions button {
+    flex: 1 1 0;
+    padding: 0 7px;
   }
 
   .iu-legal-flows,

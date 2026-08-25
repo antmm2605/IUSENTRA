@@ -4387,6 +4387,21 @@ def test_ui_notifiche_legali_pec_manuale_e_rimozione_documenti_relata():
     assert 'className="iu-legal-manual-recipient iu-legal-field--wide"' in page
     assert "Inserimento manuale destinatario" in page
     assert "Aggiungi destinatario manuale" in page
+    assert page.index('className="iu-legal-manual-recipient iu-legal-field--wide"') < page.index('label="Aggiungi destinatario suggerito"')
+    assert 'const [recipientRegisterFilter, setRecipientRegisterFilter]' in page
+    assert 'label="Elenco pubblico PEC" hint="Filtra i destinatari e la ricerca per la fonte selezionata."' in page
+    assert "normalizedRecipientRegisterFilter" in page
+    assert "sourceMatches" in page
+    assert "searchesReginde" in page
+    assert "searchesRegistroPpaa" in page
+    assert "const [sidePanelOpen, setSidePanelOpen] = useState(true)" in page
+    assert "const [noticeFullscreen, setNoticeFullscreen] = useState(false)" in page
+    assert "Chiudi pannello laterale" in page
+    assert "Apri pannello laterale" in page
+    assert "Tutto schermo" in page
+    assert "iu-legal-layout--side-closed" in page
+    assert "id=\"notifiche-legali-colonna-laterale\"" in page
+    assert "iusentra-ui-fullscreen-open" in page
     assert "changeManualRecipientDraft('pec'" in page
     assert "ruoloPratica: 'Inserito manualmente'" in page
     assert "item.ruoloPratica === 'Inserito manualmente' ? item.id" in page

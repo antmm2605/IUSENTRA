@@ -15,17 +15,30 @@ def _ctx(tmp_path):
     return gf, repo, fascicolo, profile, cliente
 
 
-def test_anagrafici_ed_economici_bloccano_quando_mancano(tmp_path):
+def test_solo_requisiti_tecnici_bloccano_il_deposito(tmp_path):
     gf, repo, fascicolo, profile, _cliente = _ctx(tmp_path)
     ctx = ValidationContext(fascicolo=fascicolo, cliente=None, profile=profile, slots=repo.list_slots(fascicolo.id), fascicoli_manager=gf)
     assert run_validator("cliente_presente", ctx).status == ValidatorStatus.OK.value
     ctx.cliente = SimpleNamespace(codice_fiscale="ERRATO", email="")
     assert run_validator("cliente_cf_valido", ctx).status == ValidatorStatus.BLOCK.value
-    assert run_validator("conferimento_firmato", ctx).status == ValidatorStatus.BLOCK.value
-    assert run_validator("pagamento_acconto_registrato", ctx).status == ValidatorStatus.BLOCK.value
+    assert run_validator("avvocato_referente_presente", ctx).status == ValidatorStatus.WARNING.value
+    assert run_validator("preventivo_accettato", ctx).status == ValidatorStatus.WARNING.value
+    assert run_validator("conferimento_firmato", ctx).status == ValidatorStatus.WARNING.value
+    assert run_validator("pagamento_acconto_registrato", ctx).status == ValidatorStatus.WARNING.value
     repo.audit(fascicolo.id, "ECONOMIC_OVERRIDE", reason="urgenza cautelare")
     ctx.audit_events = repo.list_audit(fascicolo.id)
     assert run_validator("pagamento_acconto_registrato", ctx).status == ValidatorStatus.WARNING.value
+
+
+def test_predeposito_non_annovera_rapporto_commerciale_e_referente_tra_i_blocchi(tmp_path):
+    gf, repo, fascicolo, profile, cliente = _ctx(tmp_path)
+
+    readiness = run_predeposit_check(repo, fascicolo=fascicolo, profile=profile, cliente=cliente, fascicoli_manager=gf)
+    blocker_keys = {item.key for item in readiness["blockers"]}
+    warning_keys = {item.key for item in readiness["warnings"]}
+
+    assert {"avvocato_referente_presente", "preventivo_accettato", "conferimento_firmato", "pagamento_acconto_registrato"}.isdisjoint(blocker_keys)
+    assert {"avvocato_referente_presente", "preventivo_accettato", "conferimento_firmato", "pagamento_acconto_registrato"}.issubset(warning_keys)
 
 
 def test_documenti_obbligatori_pdfa_firma_e_dimensione(tmp_path):

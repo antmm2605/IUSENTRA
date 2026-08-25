@@ -266,7 +266,17 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["CRM_DB"] = cfg.get(
         "CRM_DB",
-        os.getenv("PCT_CRM_DB", "./crm/leads.json"),
+        os.getenv(
+            "PCT_CRM_DB",
+            _runtime_data_default("crm", "leads.json", fallback="./crm/leads.json"),
+        ),
+    )
+    app.config["ANTIRICICLAGGIO_DB"] = cfg.get(
+        "ANTIRICICLAGGIO_DB",
+        os.getenv(
+            "PCT_ANTIRICICLAGGIO_DB",
+            _runtime_data_default("antiriciclaggio", "verifiche.json", fallback="./antiriciclaggio/verifiche.json"),
+        ),
     )
     app.config["CTU_DB"] = cfg.get(
         "CTU_DB",
@@ -721,6 +731,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "timesheet": _cfg_data_path("TIMESHEET_DB"),
             "time_tracking": _cfg_data_path("TIME_TRACKING_DB"),
             "crm": _cfg_data_path("CRM_DB"),
+            "antiriciclaggio": _cfg_data_path("ANTIRICICLAGGIO_DB"),
             "ctu": _cfg_data_path("CTU_DB"),
             "prima_nota": _cfg_data_path("PRIMA_NOTA_DB"),
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
@@ -1008,8 +1019,29 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_crm_intake"):
             from pct.crm_intake import GestioneCrmIntake
 
-            g._crm_intake = GestioneCrmIntake(db_path=_cfg_data_path("CRM_DB"))
+            tenant_slug = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_slug:
+                tenant_slug = str(getattr(getattr(g, "tenant", None), "slug", "") or "").strip().lower()
+            g._crm_intake = GestioneCrmIntake(
+                db_path=_cfg_data_path("CRM_DB"),
+                studio_db=get_studio_db("CRM_DB"),
+                tenant_id=tenant_slug or "studio-locale",
+            )
         return g._crm_intake
+
+    def get_antiriciclaggio():
+        if not hasattr(g, "_antiriciclaggio"):
+            from pct.antiriciclaggio import GestioneAntiriciclaggio
+
+            tenant_slug = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_slug:
+                tenant_slug = str(getattr(getattr(g, "tenant", None), "slug", "") or "").strip().lower()
+            g._antiriciclaggio = GestioneAntiriciclaggio(
+                db_path=_cfg_data_path("ANTIRICICLAGGIO_DB"),
+                studio_db=get_studio_db("ANTIRICICLAGGIO_DB"),
+                tenant_id=tenant_slug or "studio-locale",
+            )
+        return g._antiriciclaggio
 
     def get_ctu():
         if not hasattr(g, "_ctu"):
@@ -1335,6 +1367,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_scadenziario": get_scadenziario,
         "get_timesheet": get_timesheet,
         "get_crm": get_crm,
+        "get_antiriciclaggio": get_antiriciclaggio,
         "get_ctu": get_ctu,
         "get_prima_nota": get_prima_nota,
         "get_preventivi": get_preventivi,

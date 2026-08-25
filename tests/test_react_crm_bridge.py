@@ -28,6 +28,7 @@ def test_payload_colonne_e_statistiche(tmp_path):
     assert payload["summary"]["totale"] == 3
     assert payload["summary"]["tassoConversione"] == 0.5
     assert payload["contracts"]["mock_fallback"] is False
+    assert payload["sourceOfTruth"] == "sqlite"
 
 
 def test_scheda_lead_completa(tmp_path):
@@ -41,6 +42,7 @@ def test_scheda_lead_completa(tmp_path):
     assert nuovo["conflitto"]["label"] == "Nessun riscontro"
     assert nuovo["actions"]["stato"].endswith("/stato")
     assert nuovo["actions"]["verificaConflitti"].endswith("/verifica-conflitti")
+    assert nuovo["actions"]["aggiorna"].endswith("/aggiorna")
 
 
 def test_lead_non_verificato_segnalato(tmp_path):
@@ -51,3 +53,26 @@ def test_lead_non_verificato_segnalato(tmp_path):
     assert lead["conflitto"]["verificato"] is False
     assert lead["conflitto"]["label"] == "Verifica da eseguire"
     assert "art" in payload["fonteDeontologica"] or "CDF" in payload["fonteDeontologica"]
+
+
+def test_payload_non_espone_contatto_protetto_a_utente_non_autorizzato(tmp_path):
+    crm = GestioneCrmIntake(db_path=str(tmp_path / "leads.json"))
+    lead = crm.nuovo(denominazione="Contatto protetto")
+    crm.crea_barriera_riservatezza(
+        lead.id,
+        motivazione="Trattativa riservata.",
+        utenti_autorizzati=["avv.autorizzato"],
+        operatore="avv.responsabile",
+    )
+
+    hidden = build_react_crm_payload(get_crm=lambda: crm, operatore="avv.estraneo")
+    visible = build_react_crm_payload(
+        get_crm=lambda: crm,
+        operatore="avv.autorizzato",
+        utenti_autorizzabili=[{"username": "avv.autorizzato", "label": "Avv. Autorizzato"}],
+    )
+
+    assert hidden["summary"]["totale"] == 0
+    card = next(column for column in visible["columns"] if column["stato"] == "NUOVO")["leads"][0]
+    assert card["barrieraRiservatezza"]["attiva"] is True
+    assert card["barrieraRiservatezza"]["utentiAutorizzati"] == ["avv.autorizzato", "avv.responsabile"]

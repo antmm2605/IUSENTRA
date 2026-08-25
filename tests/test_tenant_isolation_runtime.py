@@ -15,6 +15,7 @@ from web.services.tenant_isolation_runtime import (
     assert_tenant_data_path,
     ensure_private_tenant_context,
 )
+from web.services.storage_runtime import _derive_studio_db_path
 
 
 def _app(tmp_path: Path, *, multi_tenant: bool = False):
@@ -139,6 +140,34 @@ def test_assert_tenant_data_path_blocks_path_outside_tenant_root(tmp_path: Path)
     assert excinfo.value.status_code == 403
     assert str(outside) not in message
     assert str(tmp_path) not in message
+
+
+def test_crm_usa_percorso_tenant_e_rientra_nel_perimetro_isolato(tmp_path: Path):
+    """Il CRM non deve mai tornare al filesystem dell'immagine applicativa."""
+
+    app = _app(tmp_path, multi_tenant=True)
+    studio, paths = _tenant(app, "Studio CRM", "studio-crm", "studio-crm-key")
+
+    crm_path = Path(paths["CRM_DB"])
+    assert crm_path == tmp_path / "tenants" / "studio-crm" / "crm" / "leads.json"
+    aml_path = Path(paths["ANTIRICICLAGGIO_DB"])
+    assert aml_path == tmp_path / "tenants" / "studio-crm" / "antiriciclaggio" / "verifiche.json"
+
+    with app.test_request_context("/crm"):
+        g.multi_tenant_enabled = True
+        g.tenant = studio
+        g.tenant_context_slug = "studio-crm"
+        g.data_paths = paths
+
+        assert_tenant_data_path(crm_path, key="CRM_DB") == str(crm_path)
+        assert_tenant_data_path(aml_path, key="ANTIRICICLAGGIO_DB") == str(aml_path)
+
+    assert _derive_studio_db_path(str(crm_path)) == str(
+        tmp_path / "tenants" / "studio-crm" / "studio.db"
+    )
+    assert _derive_studio_db_path(str(aml_path)) == str(
+        tmp_path / "tenants" / "studio-crm" / "studio.db"
+    )
 
 
 def test_api_react_key_validation_is_tenant_aware(tmp_path: Path):

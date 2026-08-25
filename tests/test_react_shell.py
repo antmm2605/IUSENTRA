@@ -211,6 +211,27 @@ def test_profilo_e_import_agenda_sono_route_react_operativa(tmp_path: Path):
     assert "AgendaImportPage" in app_source
 
 
+def test_crm_e_montato_nella_shell_react_e_offre_correzione_contatto(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        page = client.get("/crm")
+        payload = client.get("/api/v1/ui/crm")
+
+    assert page.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in page.get_data(as_text=True)
+    assert payload.status_code == 200
+    assert payload.get_json()["sourceOfTruth"] == "sqlite"
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    crm_source = Path("frontend/src/components/CrmPage.tsx").read_text(encoding="utf-8")
+    assert "const CrmPage" in app_source and "isCrmPage?<CrmPage/>" in app_source
+    assert "Acquisizione e apertura incarichi" in crm_source
+    assert "Acquisizione dello studio" in crm_source
+    assert "Correggi dati" in crm_source and "aggiorna" in crm_source
+
+
 def test_react_inline_entry_riscrive_import_dinamico_con_template_literal(tmp_path: Path, monkeypatch):
     from web.blueprints import react_shell as react_shell_module
 
@@ -7625,8 +7646,8 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Proforma da preparare" in page_source
     assert "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma." in page_source
     assert "remainingActions.slice(0, 5)" in page_source
-    assert "Presidio operativo aggiornato" in page_source
-    assert "Sintesi fascicolo" in page_source
+    assert "Presidio del fascicolo" in page_source
+    assert "Controlli prioritari" in page_source
     assert "prossimaAzione" not in page_source
     assert "EconomicTotalSummary" not in page_source
     assert "Totale registrato" not in page_source
@@ -7651,25 +7672,24 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "<details ref={detailsRef} id={id} open={actualOpen}" in page_source
     assert "onToggle={(event) =>" in page_source
     assert 'className="iu-fas-detail-section" open' not in page_source
-    assert "Quadro intelligente" in page_source
-    assert "Quadro intelligente AI" in page_source
-    assert "<a href={quadroHref}><Gauge size={15}/> Quadro completo</a>" in page_source
-    assert 'className="iu-fas-ai-actions"' in page_source
-    assert 'href="#uffici-competenti"' in page_source
+    assert "Quadro fascicolo" in page_source
+    assert "Presidio fascicolo" in page_source
+    assert '<Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button>' in page_source
+    assert 'secondaryHref={quadroHref}' in page_source
     assert 'id="uffici-competenti" title="Uffici giudiziari per Comune"' in page_source
     assert "FascicoloUfficiCompetentiPanel" in page_source
     assert "splitOfficeComuneQuery" in page_source
     assert "normaliseStudioRuntimeResult" in page_source
     assert "/api/v1/ui/strumenti-legali/uffici_competenti" in page_source
-    assert '<a href="#documenti"><FileText size={15}/> Documenti e atti</a>' in page_source
+    assert '<a href="#documenti">Documenti e atti <b>' in page_source
     assert 'id="documenti" title="Documenti e atti"' in page_source
     assert 'id="editor-professionale" title="Editor professionale e compilatore atti"' not in page_source
     assert "_fatturapa_item" in bridge
     assert "FatturaPA / SDI" in bridge
     assert "Agenzia Entrate" in bridge
-    assert '<a href="#documenti"><FileText size={15}/> Documenti e atti</a>' in page_source
-    assert "<a href={compilerHref}><ClipboardCheck size={15}/> Compilatore atti</a>" in page_source
-    assert '<a href="#documenti"><BrainCircuit size={15}/> Indice Lex</a>' in page_source
+    assert '<DetailSection id="documenti" title="Documenti e atti"' in page_source
+    assert 'label="Compilatore atti"' in page_source
+    assert "LexIndexingPanel" in page_source
     assert "editorWorkspaceHref" not in page_source
     assert "<a href={editorWorkspaceHref}><PencilLine size={15}/> Editor professionale</a>" not in page_source
     assert "<span>Analisi Lex AI</span>" not in page_source
@@ -7689,16 +7709,16 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert 'title="Elimina fascicolo"' in page_source
     assert "handleFascicoloDeleted" in page_source
     assert "onDeleted={handleFascicoloDeleted}" in page_source
-    assert "Anteprima interna" in page_source
-    assert 'title="Firma digitale"' in page_source
-    assert 'title="Modifica documento"' in page_source
+    assert "Apri nel lettore interno" in page_source
+    assert 'title="Apri la firma digitale del documento"' in page_source
+    assert 'title="Apri l’editor del documento"' in page_source
     assert "onPreview={setPreviewDoc}" in page_source
     assert "onDone={refreshDetail}" in page_source
     assert "'X-Requested-With': 'XMLHttpRequest'" in page_source
     assert "/template-atti/catalogo?id_fascicolo=" in page_source
     assert "Dati aggiornati - ${data.source}" not in page_source
     assert 'title="Soggetti e parti"' in page_source
-    assert 'title="Comunicazioni / Cancelleria"' in page_source
+    assert 'title="Comunicazioni, PEC e notifica"' in page_source
     assert 'title="Servizi telematici"' in page_source
     assert "FascicoloGuardrailsPanel" in page_source
     assert "data.guardrails" in page_source
@@ -7710,7 +7730,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "PDP_PENALE" in bridge
     assert "PAT_AMMINISTRATIVO" in bridge
     assert "PTT_TRIBUTARIO" in bridge
-    assert "label=\"Attività\"" in page_source
+    assert 'title="Attività processuali"' in page_source
     assert "Conformità" in page_source
     assert "fascicolo-top" in page_source
     assert "iu-fas-compliance-toggle" in page_source
@@ -7824,7 +7844,7 @@ def test_react_fascicoli_detail_nav_lessico_e_referente_studio_presidiati():
     assert "_next_hearing_value" in bridge
     assert "_closure_date_value" in bridge
     assert 'className="iu-fas-detail-section" open' not in page_source
-    assert "Quadro intelligente" in page_source
+    assert "Presidio del fascicolo" in page_source
     assert ".iu-fas-action-stack .iu-fas-post" in css
     assert ".iu-fas-smart-board" in css
 
@@ -8619,7 +8639,7 @@ def test_react_fascicoli_attivita_udienza_remota_preserva_link_cliccabile():
     assert link in payload[0]["description"]
     page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
-    assert "renderActivityText(activity.description)" in page_source
+    assert "renderActivityText(displayDescription)" in page_source
     assert 'target="_blank"' in page_source
     assert 'rel="noopener noreferrer"' in page_source
     assert ".iu-fas-activity-main .iu-fas-inline-link" in css
@@ -9974,7 +9994,10 @@ def test_asset_route_react_non_condividono_liste_mutabili(tmp_path: Path):
 def _url_react_effettivamente_richiesti(html: str, assets_dir: Path) -> set[str]:
     """URL che il browser richiede davvero: import dinamici dell'entry e import statici dei chunk."""
 
-    visti = set(re.findall(r'import\("(/static/react/assets/[^"]+)"', html))
+    # Vite 8 emette alcuni import differiti con template literal: entrambi i
+    # formati producono una richiesta reale del browser e devono concorrere
+    # al controllo dei modulepreload.
+    visti = set(re.findall(r'import\((?:"|`)(/static/react/assets/[^"`]+)(?:"|`)', html))
     frontiera = list(visti)
     while frontiera:
         corrente = frontiera.pop()
@@ -9982,8 +10005,8 @@ def _url_react_effettivamente_richiesti(html: str, assets_dir: Path) -> set[str]
         if not file_chunk.exists():
             continue
         codice = file_chunk.read_text(encoding="utf-8", errors="replace")
-        riferimenti = set(re.findall(r'from"\./([^"]+)"', codice))
-        riferimenti |= set(re.findall(r'import\("\./([^"]+)"', codice))
+        riferimenti = set(re.findall(r'from(?:"|`)\./([^"`]+)(?:"|`)', codice))
+        riferimenti |= set(re.findall(r'import\((?:"|`)\./([^"`]+)(?:"|`)', codice))
         for rel in riferimenti:
             nuovo = "/static/react/assets/" + rel
             if nuovo not in visti:

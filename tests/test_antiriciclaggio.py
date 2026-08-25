@@ -157,3 +157,49 @@ def test_persistenza_round_trip(tmp_path):
     assert riletta.titolare_effettivo.nome == "Verdi Anna"
     assert riletta.in_ambito is True
     assert len(riletta.indici) == len(griglia_indici_default())
+
+
+def test_sql_e_fonte_operativa_e_il_json_e_solo_mirror(tmp_path):
+    percorso = tmp_path / "antiriciclaggio" / "verifiche.json"
+    gestione = GestioneAntiriciclaggio(db_path=str(percorso), tenant_id="tenant-qa")
+    verifica = gestione.nuova(cliente_id="C10", lead_id="L10", prestazione="gestione_denaro")
+
+    assert gestione.source_of_truth == "sqlite"
+    assert gestione.per_lead("L10")[0].id == verifica.id
+    assert percorso.exists()
+    stored = gestione.studio_db.conn.execute(
+        "SELECT cliente_id, lead_id, stato FROM aml_verifications WHERE id = ?", (verifica.id,)
+    ).fetchone()
+    assert stored["cliente_id"] == "C10"
+    assert stored["lead_id"] == "L10"
+    assert stored["stato"] == StatoVerifica.BOZZA.value
+
+
+def test_screening_richiede_prova_per_esito_non_disponibile(gestione):
+    verifica = gestione.nuova(cliente_id="C11", prestazione="gestione_denaro")
+    with pytest.raises(ValueError, match="hash dello snapshot"):
+        gestione.registra_evidenza_screening(
+            verifica.id,
+            provider_key="eu-consolidated-list",
+            source_url="https://finance.ec.europa.eu/",
+            outcome="NESSUN_RISCONTRO",
+        )
+
+
+def test_screening_e_audit_sono_persistiti(gestione):
+    verifica = gestione.nuova(cliente_id="C12", prestazione="gestione_denaro")
+    evidence = gestione.registra_evidenza_screening(
+        verifica.id,
+        provider_key="eu-consolidated-list",
+        source_url="https://finance.ec.europa.eu/",
+        source_version="2026-01-09",
+        snapshot_hash="sha256:qa",
+        subject_label="Cliente QA",
+        outcome="NON_DISPONIBILE",
+        checked_by="avv.rossi",
+        note="Fonte non disponibile: nessun esito conclusivo registrato.",
+    )
+
+    assert evidence["outcome"] == "NON_DISPONIBILE"
+    assert gestione.evidenze_screening(verifica.id)[0]["source_version"] == "2026-01-09"
+    assert any(item["event_type"] == "AML_SCREENING_RECORDED" for item in gestione.audit(verifica.id))

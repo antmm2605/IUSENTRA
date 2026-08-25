@@ -7396,7 +7396,10 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
         raw_type = _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " ")
         operational_catalog = saved_catalog.get(did) or _document_catalog_from_saved_type(doc)
         assignment = sql_catalog.get(did)
-        display_type = raw_type
+        # Il tipo è visibile all'avvocato: non esporre il valore tecnico
+        # dell'enum. La catalogazione dal contenuto, quando disponibile,
+        # resta riportata separatamente con evidenza e confidenza.
+        display_type = _document_type_label(getattr(doc, "tipo", ""))
         catalog_method = "contenuto"
         catalog_status = ""
         catalog_source_state = ""
@@ -7425,6 +7428,10 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             catalog_method = "da_indicizzare"
             catalog_status = "waiting_for_content"
             catalog_source_state = ""
+        if _enum_value(getattr(doc, "tipo", "")).upper() == "COMUNICAZIONE" and "email-iniziali" in {
+            _text(tag).casefold() for tag in (getattr(doc, "tags", []) or [])
+        }:
+            display_type = "Comunicazione / ricevuta"
         if did:
             local_doc_ids.add(did)
         for ref in (

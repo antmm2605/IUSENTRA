@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.72 - 25/08/2026
+
+- CRM: acquisizione incarichi con linguaggio professionale, struttura leggibile e senza record tecnici di collaudo.
+- Intake: barriere informative persistenti, autorizzazioni esplicite, audit, outbox e controllo accessi per lead protetti.
+- Fascicoli: etichette documentali leggibili nel catalogo e nel lettore interno, senza enum tecnici esposti.
+
 ## 2.278.71 - 2026-08-23
 
 - Introdotto il Data Consistency Center in Amministrazione: il controllo legge esclusivamente i conteggi aggregati SQL del tenant corrente, dichiara esplicitamente la fonte operativa e non usa i mirror JSON come fallback.

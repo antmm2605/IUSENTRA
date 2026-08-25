@@ -1593,6 +1593,8 @@ class GestioneTenant:
             "SCADENZIARIO_DB":   f"{base}/scadenziario/scadenze.json",
             "TIMESHEET_DB":      f"{base}/timesheet/entries.json",
             "TIME_TRACKING_DB":   f"{base}/timesheet/time_tracking.json",
+            "CRM_DB":            f"{base}/crm/leads.json",
+            "ANTIRICICLAGGIO_DB": f"{base}/antiriciclaggio/verifiche.json",
             "SEARCH_INDEX":      f"{base}/search/index.db",
             "PRIVACY_DB":        f"{base}/privacy/registro.json",
             "PORTALE_DB":        f"{base}/portale/portali.json",

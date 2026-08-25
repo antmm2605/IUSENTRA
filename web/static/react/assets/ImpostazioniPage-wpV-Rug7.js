@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DRMeCQrr.js";export{e as ImpostazioniPage};

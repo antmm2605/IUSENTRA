@@ -7,6 +7,44 @@ export type CrmRiscontro = {
   ruolo: string
 }
 
+export type CrmConflictClearance = {
+  richiesta: boolean
+  decisione: string
+  convertibile: boolean
+  label: string
+}
+
+export type CrmEthicalWall = {
+  id: string
+  attiva: boolean
+  gestibile: boolean
+  titolo: string
+  motivazione: string
+  label: string
+  utentiAutorizzati: string[]
+}
+
+export type CrmAml = {
+  available: boolean
+  id: string
+  status: string
+  label: string
+  inScope: boolean
+  suggestedLevel: string
+  selectedLevel: string
+  renewalAt: string
+  sourceOfTruth: string
+  clientePep: boolean
+  paeseAltoRischio: boolean
+  prestazione: string
+  descrizionePrestazione: string
+  scopoNatura: string
+  titolareEffettivo: { nome: string; codiceFiscale: string; criterio: string; note: string }
+  note: string
+  screening: { outcome: string; checkedAt: string; sourceUrl: string; sourceVersion: string; snapshotHash: string; matches: number }
+  actions: { avvia: string; aggiorna: string; conferma: string; screening: string }
+}
+
 export type CrmLead = {
   id: string
   denominazione: string
@@ -30,11 +68,19 @@ export type CrmLead = {
     label: string
     tone: CrmTone
     riscontri: CrmRiscontro[]
+    clearance: CrmConflictClearance
   }
+  barrieraRiservatezza: CrmEthicalWall
+  antiriciclaggio: CrmAml
   actions: {
     stato: string
     verificaConflitti: string
+    aggiorna: string
     converti: string
+    decisioneConflitto: string
+    creaBarrieraRiservatezza: string
+    aggiornaBarrieraRiservatezza: string
+    revocaBarrieraRiservatezza: string
   }
 }
 
@@ -48,6 +94,7 @@ export type CrmColumn = {
 
 export type CrmData = {
   source: string
+  sourceOfTruth: string
   generatedAt: string
   columns: CrmColumn[]
   summary: {
@@ -61,6 +108,9 @@ export type CrmData = {
   options: {
     fonti: Array<{ value: string; label: string }>
     stati: Array<{ value: string; label: string; tone: CrmTone }>
+    prestazioniAml: Array<{ value: string; label: string }>
+    livelliAml: Array<{ value: string; label: string }>
+    utentiAutorizzabili: Array<{ username: string; label: string }>
   }
   actions: {
     nuovo: string
@@ -68,6 +118,7 @@ export type CrmData = {
     preventivi: string
   }
   fonteDeontologica: string
+  accesso: { operatore: string }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -88,6 +139,12 @@ function tone(value: unknown): CrmTone {
 function leadFrom(value: unknown): CrmLead | null {
   if (!isRecord(value) || !text(value.id)) return null
   const conflitto = isRecord(value.conflitto) ? value.conflitto : {}
+  const clearance = isRecord(conflitto.clearance) ? conflitto.clearance : {}
+  const aml = isRecord(value.antiriciclaggio) ? value.antiriciclaggio : {}
+  const barriera = isRecord(value.barrieraRiservatezza) ? value.barrieraRiservatezza : {}
+  const amlActions = isRecord(aml.actions) ? aml.actions : {}
+  const screening = isRecord(aml.screening) ? aml.screening : {}
+  const titolare = isRecord(aml.titolareEffettivo) ? aml.titolareEffettivo : {}
   const actions = isRecord(value.actions) ? value.actions : {}
   return {
     id: text(value.id),
@@ -121,23 +178,84 @@ function leadFrom(value: unknown): CrmLead | null {
             } : null)
             .filter((r): r is CrmRiscontro => Boolean(r))
         : [],
+      clearance: {
+        richiesta: Boolean(clearance.richiesta),
+        decisione: text(clearance.decisione),
+        convertibile: Boolean(clearance.convertibile),
+        label: text(clearance.label),
+      },
+    },
+    barrieraRiservatezza: {
+      id: text(barriera.id),
+      attiva: Boolean(barriera.attiva),
+      gestibile: Boolean(barriera.gestibile),
+      titolo: text(barriera.titolo),
+      motivazione: text(barriera.motivazione),
+      label: text(barriera.label, 'Nessuna barriera informativa attiva'),
+      utentiAutorizzati: Array.isArray(barriera.utentiAutorizzati)
+        ? barriera.utentiAutorizzati.map((item) => text(item)).filter(Boolean)
+        : [],
+    },
+    antiriciclaggio: {
+      available: Boolean(aml.available),
+      id: text(aml.id),
+      status: text(aml.status, 'NON_AVVIATA'),
+      label: text(aml.label, 'Non avviata'),
+      inScope: aml.inScope === undefined ? true : Boolean(aml.inScope),
+      suggestedLevel: text(aml.suggestedLevel),
+      selectedLevel: text(aml.selectedLevel),
+      renewalAt: text(aml.renewalAt),
+      sourceOfTruth: text(aml.sourceOfTruth),
+      clientePep: Boolean(aml.clientePep),
+      paeseAltoRischio: Boolean(aml.paeseAltoRischio),
+      prestazione: text(aml.prestazione),
+      descrizionePrestazione: text(aml.descrizionePrestazione),
+      scopoNatura: text(aml.scopoNatura),
+      titolareEffettivo: {
+        nome: text(titolare.nome),
+        codiceFiscale: text(titolare.codice_fiscale ?? titolare.codiceFiscale),
+        criterio: text(titolare.criterio),
+        note: text(titolare.note),
+      },
+      note: text(aml.note),
+      screening: {
+        outcome: text(screening.outcome),
+        checkedAt: text(screening.checkedAt),
+        sourceUrl: text(screening.sourceUrl),
+        sourceVersion: text(screening.sourceVersion),
+        snapshotHash: text(screening.snapshotHash),
+        matches: Number(screening.matches) || 0,
+      },
+      actions: {
+        avvia: text(amlActions.avvia),
+        aggiorna: text(amlActions.aggiorna),
+        conferma: text(amlActions.conferma),
+        screening: text(amlActions.screening),
+      },
     },
     actions: {
       stato: text(actions.stato),
       verificaConflitti: text(actions.verificaConflitti),
+      aggiorna: text(actions.aggiorna),
       converti: text(actions.converti),
+      decisioneConflitto: text(actions.decisioneConflitto),
+      creaBarrieraRiservatezza: text(actions.creaBarrieraRiservatezza),
+      aggiornaBarrieraRiservatezza: text(actions.aggiornaBarrieraRiservatezza),
+      revocaBarrieraRiservatezza: text(actions.revocaBarrieraRiservatezza),
     },
   }
 }
 
 export const emptyCrmData: CrmData = {
   source: 'vuoto',
+  sourceOfTruth: '',
   generatedAt: '',
   columns: [],
   summary: { totale: 0, aperti: 0, vinti: 0, persi: 0, tassoConversione: 0, perFonte: [] },
-  options: { fonti: [], stati: [] },
+  options: { fonti: [], stati: [], prestazioniAml: [], livelliAml: [], utentiAutorizzabili: [] },
   actions: { nuovo: '/crm/lead/nuovo', clienti: '/clienti', preventivi: '/preventivi/nuovo' },
   fonteDeontologica: '',
+  accesso: { operatore: '' },
 }
 
 export async function getCrmPage(): Promise<CrmData> {
@@ -151,8 +269,10 @@ export async function getCrmPage(): Promise<CrmData> {
     const summary = isRecord(payload.summary) ? payload.summary : {}
     const options = isRecord(payload.options) ? payload.options : {}
     const actions = isRecord(payload.actions) ? payload.actions : {}
+    const accesso = isRecord(payload.accesso) ? payload.accesso : {}
     return {
       source: text(payload.source, 'repository_reali'),
+      sourceOfTruth: text(payload.sourceOfTruth),
       generatedAt: text(payload.generatedAt),
       columns: Array.isArray(payload.columns)
         ? payload.columns
@@ -186,6 +306,15 @@ export async function getCrmPage(): Promise<CrmData> {
         stati: Array.isArray(options.stati)
           ? options.stati.map((s) => isRecord(s) ? { value: text(s.value), label: text(s.label), tone: tone(s.tone) } : null).filter((s): s is { value: string; label: string; tone: CrmTone } => Boolean(s))
           : [],
+        prestazioniAml: Array.isArray(options.prestazioniAml)
+          ? options.prestazioniAml.map((item) => isRecord(item) ? { value: text(item.value), label: text(item.label) } : null).filter((item): item is { value: string; label: string } => Boolean(item && item.value))
+          : [],
+        livelliAml: Array.isArray(options.livelliAml)
+          ? options.livelliAml.map((item) => isRecord(item) ? { value: text(item.value), label: text(item.label) } : null).filter((item): item is { value: string; label: string } => Boolean(item && item.value))
+          : [],
+        utentiAutorizzabili: Array.isArray(options.utentiAutorizzabili)
+          ? options.utentiAutorizzabili.map((item) => isRecord(item) ? { username: text(item.username), label: text(item.label, text(item.username)) } : null).filter((item): item is { username: string; label: string } => Boolean(item && item.username))
+          : [],
       },
       actions: {
         nuovo: text(actions.nuovo, '/crm/lead/nuovo'),
@@ -193,6 +322,7 @@ export async function getCrmPage(): Promise<CrmData> {
         preventivi: text(actions.preventivi, '/preventivi/nuovo'),
       },
       fonteDeontologica: text(payload.fonteDeontologica),
+      accesso: { operatore: text(accesso.operatore) },
     }
   } catch {
     return emptyCrmData

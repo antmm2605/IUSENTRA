@@ -16,6 +16,7 @@ from pct.crm_intake import (
     STATI_LEAD,
     verifica_conflitto_interessi,
 )
+from pct.storage import StudioDB
 
 
 class _Repo:
@@ -146,6 +147,27 @@ def test_verifica_conflitti_salvata_sul_lead(crm):
     assert riletto.conflitto_esito["livello"] == esito["livello"] == "potenziale_conflitto"
 
 
+def test_riscontro_conflitto_richiede_clearance_motivata_prima_della_conversione(crm):
+    lead = crm.nuovo(denominazione="Alfa S.r.l.", partita_iva="01234567890")
+    crm.verifica_conflitti(lead.id, get_soggetti=lambda: _Repo([_controparte()]))
+
+    with pytest.raises(ValueError, match="decisione professionale"):
+        crm.converti_in_cliente(lead.id, crea_cliente=lambda dati: {"id": "CL-9"})
+    with pytest.raises(ValueError, match="motivazione"):
+        crm.registra_decisione_conflitto(
+            lead.id, decisione="CLEARANCE_CONCESSA", motivazione="", operatore="avv.rossi"
+        )
+
+    clearance = crm.registra_decisione_conflitto(
+        lead.id,
+        decisione="CLEARANCE_CONCESSA",
+        motivazione="Verificata l'assenza di posizioni contrapposte nel nuovo incarico.",
+        operatore="avv.rossi",
+    )
+    assert clearance["convertibile"] is True
+    assert crm.converti_in_cliente(lead.id, crea_cliente=lambda dati: {"id": "CL-9"}).cliente_id == "CL-9"
+
+
 def test_statistiche_e_tasso_conversione(crm):
     a = crm.nuovo(denominazione="A", fonte="passaparola")
     b = crm.nuovo(denominazione="B", fonte="sito_studio")
@@ -165,3 +187,150 @@ def test_persistenza_round_trip(tmp_path):
     lead = primo.nuovo(denominazione="Bianchi Luca", materia="famiglia")
     secondo = GestioneCrmIntake(db_path=percorso)
     assert secondo.get(lead.id).materia == "famiglia"
+
+
+def test_correzione_lead_azzera_verifica_e_registra_audit(crm):
+    lead = crm.nuovo(denominazione="Bianchi Luca", codice_fiscale="NON_VALIDO")
+    crm.verifica_conflitti(lead.id)
+
+    corretto = crm.aggiorna(
+        lead.id,
+        denominazione="Bianchi Luca Corretto",
+        codice_fiscale="RSSMRA80A01F205X",
+        materia="recupero crediti",
+    )
+
+    assert corretto.denominazione == "Bianchi Luca Corretto"
+    assert corretto.conflitto_verificato is False
+    assert corretto.conflitto_esito == {}
+    audit = crm.studio_db.conn.execute(
+        "SELECT event_type, payload_json FROM intake_compliance_audit WHERE lead_id = ? ORDER BY creato_il DESC",
+        (lead.id,),
+    ).fetchall()
+    assert any(row[0] == "LEAD_DATA_UPDATED" and "verifica_conflitti_da_ripetere" in row[1] for row in audit)
+
+
+def test_correzione_non_modifica_cliente_gia_convertito(crm):
+    lead = crm.nuovo(denominazione="Bianchi Luca")
+    crm.verifica_conflitti(lead.id)
+    crm.converti_in_cliente(lead.id, crea_cliente=lambda dati: {"id": "CL-9"})
+
+    with pytest.raises(ValueError, match="anagrafica cliente"):
+        crm.aggiorna(lead.id, denominazione="Dato non allineato")
+
+
+def test_sql_e_entity_graph_sono_fonte_operativa_e_json_solo_mirror(tmp_path):
+    mirror = tmp_path / "crm" / "leads.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    crm = GestioneCrmIntake(
+        db_path=str(mirror),
+        studio_db=studio_db,
+        tenant_id="tenant-test",
+    )
+    lead = crm.nuovo(denominazione="Alfa S.r.l.", partita_iva="01234567890")
+    crm.verifica_conflitti(lead.id, get_soggetti=lambda: _Repo([_controparte()]))
+    crm.registra_decisione_conflitto(
+        lead.id,
+        decisione="CLEARANCE_CONCESSA",
+        motivazione="Caso controllato: nessuna posizione contrapposta nel nuovo incarico.",
+        operatore="avv.qa",
+    )
+    crm.converti_in_cliente(lead.id, crea_cliente=lambda dati: {"id": "CL-9"})
+
+    assert crm.source_of_truth == "sqlite"
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM crm_leads").fetchone()[0] == 1
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM entity_nodes").fetchone()[0] == 2
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM entity_relationships").fetchone()[0] == 1
+    assessment = studio_db.conn.execute(
+        "SELECT status FROM intake_compliance_assessments WHERE lead_id = ?", (lead.id,)
+    ).fetchone()
+    assert assessment[0] == "POTENZIALE_CONFLITTO"
+    assert studio_db.conn.execute(
+        "SELECT COUNT(*) FROM transactional_outbox WHERE aggregate_id = ?", (lead.id,)
+    ).fetchone()[0] == 3
+    assert mirror.exists()
+
+
+def test_recupera_archivio_crm_scoped_precedente_nel_db_canonico(tmp_path):
+    mirror = tmp_path / "crm" / "leads.json"
+    legacy_db = StudioDB.get(str(tmp_path / "crm" / "studio.db"))
+    legacy = GestioneCrmIntake(db_path=str(mirror), studio_db=legacy_db)
+    lead = legacy.nuovo(denominazione="Recupero CRM", partita_iva="12345678903")
+    legacy.verifica_conflitti(lead.id)
+
+    canonical_db = StudioDB.get(str(tmp_path / "studio.db"))
+    restored = GestioneCrmIntake(db_path=str(mirror), studio_db=canonical_db)
+
+    assert restored.get(lead.id) is not None
+    assert canonical_db.conn.execute("SELECT COUNT(*) FROM crm_leads").fetchone()[0] == 1
+    assert canonical_db.conn.execute(
+        "SELECT COUNT(*) FROM intake_compliance_audit WHERE lead_id = ?", (lead.id,)
+    ).fetchone()[0] == 1
+    assert canonical_db.conn.execute(
+        "SELECT COUNT(*) FROM transactional_outbox WHERE aggregate_id = ?", (lead.id,)
+    ).fetchone()[0] == 2
+
+
+def test_archivio_crm_scoped_migrato_non_reimporta_record_rimossi(tmp_path):
+    mirror = tmp_path / "crm" / "leads.json"
+    legacy_db = StudioDB.get(str(tmp_path / "crm" / "studio.db"))
+    legacy = GestioneCrmIntake(db_path=str(mirror), studio_db=legacy_db)
+    lead = legacy.nuovo(denominazione="Dato di collaudo da rimuovere")
+
+    canonical_db = StudioDB.get(str(tmp_path / "studio.db"))
+    GestioneCrmIntake(db_path=str(mirror), studio_db=canonical_db)
+    assert canonical_db.conn.execute("SELECT COUNT(*) FROM crm_leads").fetchone()[0] == 1
+
+    canonical_db.conn.execute("DELETE FROM crm_leads WHERE id = ?", (lead.id,))
+    canonical_db.conn.commit()
+    mirror.write_text("{}", encoding="utf-8")
+
+    reloaded = GestioneCrmIntake(db_path=str(mirror), studio_db=canonical_db)
+    assert reloaded.get(lead.id) is None
+    assert canonical_db.conn.execute("SELECT COUNT(*) FROM crm_leads").fetchone()[0] == 0
+    assert canonical_db.conn.execute(
+        "SELECT COUNT(*) FROM crm_runtime_migrations WHERE migration_key = ?",
+        ("crm_scoped_sqlite_to_root_v1",),
+    ).fetchone()[0] == 1
+
+
+def test_barriera_informativa_segrega_accessi_e_registra_audit_outbox(crm):
+    lead = crm.nuovo(denominazione="Trattativa riservata")
+
+    stato = crm.crea_barriera_riservatezza(
+        lead.id,
+        motivazione="Trattativa riservata con potenziale conflitto interno.",
+        utenti_autorizzati=["avv.collaboratore"],
+        operatore="avv.responsabile",
+    )
+
+    assert stato["attiva"] is True
+    assert stato["accesso_consentito"] is True
+    assert set(stato["utenti_autorizzati"]) == {"avv.responsabile", "avv.collaboratore"}
+    assert crm.accesso_lead_consentito(lead.id, operatore="avv.collaboratore") is True
+    assert crm.accesso_lead_consentito(lead.id, operatore="avv.estraneo") is False
+    with pytest.raises(PermissionError, match="responsabile"):
+        crm.aggiorna_barriera_riservatezza(
+            lead.id,
+            motivazione="Tentativo non autorizzato.",
+            utenti_autorizzati=["avv.estraneo"],
+            operatore="avv.collaboratore",
+        )
+
+    audit = crm.studio_db.conn.execute(
+        "SELECT event_type, payload_json FROM ethical_wall_audit WHERE lead_id = ?",
+        (lead.id,),
+    ).fetchall()
+    assert audit[0][0] == "CRM_ETHICAL_WALL_CREATED"
+    assert "potenziale conflitto" in audit[0][1]
+    assert crm.studio_db.conn.execute(
+        "SELECT COUNT(*) FROM transactional_outbox WHERE aggregate_type = 'ethical_wall'"
+    ).fetchone()[0] == 1
+
+    revoked = crm.revoca_barriera_riservatezza(
+        lead.id,
+        motivazione="Conclusa la trattativa riservata.",
+        operatore="avv.responsabile",
+    )
+    assert revoked["attiva"] is False
+    assert crm.accesso_lead_consentito(lead.id, operatore="avv.estraneo") is True

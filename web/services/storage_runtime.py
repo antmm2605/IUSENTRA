@@ -21,10 +21,12 @@ from pct.tenant import DbMode, normalize_db_mode
 
 _ROOT_LEVEL_JSON_ANCHORS = {
     "agenda",
+    "antiriciclaggio",
     "auth",
     "calendar",
     "clienti",
     "config",
+    "crm",
     "email",
     "fascicoli",
     "fatturazione",

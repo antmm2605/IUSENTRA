@@ -1893,6 +1893,7 @@ function CatalogazioneDocumentalePanel({
   const [busy, setBusy] = useState(false)
   const [editingDocumentId, setEditingDocumentId] = useState('')
   const [evidenceDocumentId, setEvidenceDocumentId] = useState('')
+  const [reviewedEvidenceDocumentIds, setReviewedEvidenceDocumentIds] = useState<Set<string>>(() => new Set())
   const [error, setError] = useState('')
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
@@ -1942,7 +1943,7 @@ function CatalogazioneDocumentalePanel({
     }
   }
 
-  const confirm = async (documentId: string, status: 'confirmed' | 'review_required') => {
+  const confirm = async (documentId: string, status: 'confirmed' | 'review_required', evidenceAcknowledged = false) => {
     setBusy(true)
     setError('')
     try {
@@ -1952,7 +1953,7 @@ function CatalogazioneDocumentalePanel({
           method: 'POST',
           credentials: 'same-origin',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-          body: JSON.stringify({ status }),
+          body: JSON.stringify({ status, evidence_acknowledged: evidenceAcknowledged }),
         },
       )
       const next = await response.json().catch(() => ({})) as { assignment?: CatalogAssignmentView; detail?: string; error?: string; message?: string }
@@ -2031,6 +2032,9 @@ function CatalogazioneDocumentalePanel({
         {(payload?.documents || []).map((item) => {
           const assignment = item.assignment
           const document = documentsById.get(item.document_id)
+          const needsConfirmation = assignment?.status === 'review_required' || assignment?.status === 'proposed'
+          const hasEvidence = Boolean(assignment?.evidence?.length)
+          const evidenceReviewed = reviewedEvidenceDocumentIds.has(item.document_id)
           return (
             <article key={item.document_id || item.filename} className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
               <FileText size={17}/>
@@ -2039,6 +2043,8 @@ function CatalogazioneDocumentalePanel({
                 {assignment ? <span>{assignment.document_label} · {catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{item.supported ? 'In attesa dell’indice Document AI: nessuna classificazione dal contenuto è ancora disponibile.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
                 {assignment ? <small>{assignment.reason}</small> : null}
                 {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
+                {needsConfirmation && hasEvidence && !evidenceReviewed ? <small className="iu-fas-catalog__review-hint">Prima apri “Prova e fonti”: la conferma registra anche l’avvenuta lettura delle evidenze.</small> : null}
+                {needsConfirmation && !hasEvidence ? <small className="iu-fas-catalog__review-hint">Manca una prova dal contenuto: correggi il catalogo manualmente oppure aggiorna l’indice.</small> : null}
               </div>
               <div className="iu-fas-catalog__badges">
                 <Badge tone={catalogTone(assignment?.status || 'waiting')}>{catalogStatusLabel(assignment?.status || 'waiting')}</Badge>
@@ -2046,9 +2052,9 @@ function CatalogazioneDocumentalePanel({
               </div>
               <div className="iu-fas-catalog__actions">
                 {document?.actions.preview ? <button type="button" title="Apri nel lettore interno" aria-label={`Apri ${document.name} nel lettore interno`} onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={15}/> Visualizza</button> : null}
-                {assignment?.status === 'review_required' ? <button type="button" disabled={busy} onClick={() => void confirm(item.document_id, 'confirmed')}><CheckCircle2 size={14}/> Conferma</button> : null}
-                {assignment?.status === 'proposed' ? <button type="button" disabled={busy} onClick={() => void confirm(item.document_id, 'confirmed')}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
-                {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id)}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
+                {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => { setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id); setReviewedEvidenceDocumentIds((current) => new Set(current).add(item.document_id)) }}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
+                {assignment?.status === 'review_required' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la catalogazione dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma</button> : null}
+                {assignment?.status === 'proposed' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la proposta dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
                 {assignment ? <button type="button" disabled={busy} onClick={() => setEditingDocumentId((current) => current === item.document_id ? '' : item.document_id)}><PencilLine size={14}/> Correggi catalogo</button> : null}
               </div>
               {assignment && evidenceDocumentId === item.document_id ? <CatalogEvidenceDisclosure assignment={assignment} document={document} onPreview={onPreview} /> : null}

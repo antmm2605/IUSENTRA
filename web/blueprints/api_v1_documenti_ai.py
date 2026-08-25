@@ -155,7 +155,9 @@ def lista_documenti_ai(fascicolo_id: str):
 def stato_indicizzazione_lex(fascicolo_id: str):
     try:
         summary = build_lex_indexing_summary_payload(fascicolo_id, process=False)
-        return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
+        return jsonify(
+            {"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)}
+        )
     except Exception as exc:
         return _handle_error(exc)
 
@@ -165,7 +167,9 @@ def stato_indicizzazione_lex(fascicolo_id: str):
 def aggiorna_indice_lex(fascicolo_id: str):
     try:
         summary = build_lex_indexing_summary_payload(fascicolo_id, process=True)
-        return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
+        return jsonify(
+            {"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)}
+        )
     except Exception as exc:
         return _handle_error(exc)
 
@@ -175,7 +179,9 @@ def aggiorna_indice_lex(fascicolo_id: str):
 def riprova_errori_indice_lex(fascicolo_id: str):
     try:
         summary = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=True)
-        return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
+        return jsonify(
+            {"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)}
+        )
     except Exception as exc:
         return _handle_error(exc)
 
@@ -206,8 +212,7 @@ def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
             bool(item.get("supported"))
             and (
                 not isinstance(item.get("assignment"), dict)
-                or str((item.get("assignment") or {}).get("document_sha256") or "")
-                != str(item.get("sha256") or "")
+                or str((item.get("assignment") or {}).get("document_sha256") or "") != str(item.get("sha256") or "")
             )
             for item in list(pre_catalog.get("documents") or [])
         )
@@ -249,6 +254,9 @@ def revisione_catalogazione_documentale(fascicolo_id: str, documento_id: str):
         payload = raw if isinstance(raw, dict) else request.form.to_dict(flat=True)
         status = str(payload.get("status") or "").strip().lower()
         note = str(payload.get("note") or "").strip()
+        evidence_acknowledged = payload.get("evidence_acknowledged") is True or str(
+            payload.get("evidence_acknowledged") or ""
+        ).strip().lower() in {"1", "true", "si", "sì", "on"}
         if len(note) > 2000:
             raise DocumentAIValidationError("Nota di revisione troppo lunga.")
         assignment = resolve_document_catalog_assignment(
@@ -256,8 +264,15 @@ def revisione_catalogazione_documentale(fascicolo_id: str, documento_id: str):
             documento_id,
             status=status,
             note=note,
+            evidence_acknowledged=evidence_acknowledged,
         )
-        return jsonify({"mock_fallback": False, "assignment": assignment, "message": "Revisione della catalogazione registrata nel fascicolo."})
+        return jsonify(
+            {
+                "mock_fallback": False,
+                "assignment": assignment,
+                "message": "Revisione della catalogazione registrata nel fascicolo.",
+            }
+        )
     except Exception as exc:
         return _handle_error(exc)
 
@@ -278,11 +293,13 @@ def sovrascrivi_catalogazione_documentale(fascicolo_id: str, documento_id: str):
             deposit_candidate=str(payload.get("deposit_candidate") or "").strip().lower() in {"1", "true", "si", "on"},
             note=str(payload.get("note") or "").strip(),
         )
-        return jsonify({
-            "mock_fallback": False,
-            "assignment": assignment,
-            "message": "Catalogazione corretta e confermata nel fascicolo.",
-        })
+        return jsonify(
+            {
+                "mock_fallback": False,
+                "assignment": assignment,
+                "message": "Catalogazione corretta e confermata nel fascicolo.",
+            }
+        )
     except Exception as exc:
         return _handle_error(exc)
 

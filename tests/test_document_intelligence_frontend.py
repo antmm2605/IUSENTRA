@@ -64,6 +64,16 @@ def test_catalogo_fascicolo_mostra_prova_del_contenuto_e_mantiene_il_lettore_int
     assert "assignment.profile_id}" not in fascicoli
 
 
+def test_catalogo_fascicolo_richiede_la_lettura_della_prova_prima_della_conferma():
+    fascicoli = (FRONTEND / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "reviewedEvidenceDocumentIds" in fascicoli
+    assert "Prima apri “Prova e fonti”" in fascicoli
+    assert "evidence_acknowledged: evidenceAcknowledged" in fascicoli
+    assert "disabled={busy || !evidenceReviewed}" in fascicoli
+    assert "confirm(item.document_id, 'confirmed', true)" in fascicoli
+
+
 def test_correzione_catalogo_normalizza_la_natura_automatica_in_un_valore_salvabile():
     fascicoli = (FRONTEND / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
 

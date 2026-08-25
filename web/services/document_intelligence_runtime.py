@@ -10,7 +10,7 @@ from flask import current_app, g, has_app_context, has_request_context, session
 from pct.document_intelligence import DocumentAIRepository, DocumentAIService, LexIndexingSummary
 from pct.document_intelligence.catalog_pipeline import FascicoloDocumentCatalogPipeline
 from pct.document_intelligence.catalog_resolver import REGISTRY_VERSION, RESOLVER_VERSION
-from pct.document_intelligence.security import DocumentAINotFound
+from pct.document_intelligence.security import DocumentAINotFound, DocumentAIValidationError
 from pct.document_intelligence.sources import DocumentAISource, collect_fascicolo_document_sources
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
@@ -145,7 +145,11 @@ def build_document_catalog_payload(
     if not fascicolo:
         raise DocumentAINotFound("Documento o fascicolo non trovato")
     sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id)
-    actor = str((context or {}).get("user_id") or "catalogazione-documentale") if isinstance(context, dict) else "catalogazione-documentale"
+    actor = (
+        str((context or {}).get("user_id") or "catalogazione-documentale")
+        if isinstance(context, dict)
+        else "catalogazione-documentale"
+    )
     pipeline = FascicoloDocumentCatalogPipeline(service.repository)
     run = pipeline.run(
         tenant_id=tenant_id,
@@ -161,14 +165,16 @@ def build_document_catalog_payload(
     for source in sources:
         document_id = str(source.source_id or source.metadata.get("documento_id") or "")
         assignment = by_document.get(document_id)
-        documents.append({
-            "document_id": document_id,
-            "filename": source.filename,
-            "supported": bool(source.supported),
-            "sha256": source.sha256,
-            "indexed": bool(assignment),
-            "assignment": _catalog_assignment_payload(service.repository, assignment) if assignment else None,
-        })
+        documents.append(
+            {
+                "document_id": document_id,
+                "filename": source.filename,
+                "supported": bool(source.supported),
+                "sha256": source.sha256,
+                "indexed": bool(assignment),
+                "assignment": _catalog_assignment_payload(service.repository, assignment) if assignment else None,
+            }
+        )
     summary = service.repository.catalog_summary(tenant_id, str(fascicolo_id))
     summary["waiting_for_index"] = run.waiting_for_index
     summary["source_documents"] = len(sources)
@@ -188,13 +194,28 @@ def resolve_document_catalog_assignment(
     *,
     status: str,
     note: str = "",
+    evidence_acknowledged: bool = False,
     user_context: object | None = None,
 ) -> dict[str, Any]:
     assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
-    actor = str((context or {}).get("user_id") or "catalogazione-documentale") if isinstance(context, dict) else "catalogazione-documentale"
+    actor = (
+        str((context or {}).get("user_id") or "catalogazione-documentale")
+        if isinstance(context, dict)
+        else "catalogazione-documentale"
+    )
     repository = build_document_ai_service().repository
+    current_assignment = repository.get_catalog_assignment(tenant_id, str(fascicolo_id), str(document_id))
+    if current_assignment is None:
+        raise DocumentAINotFound("Catalogazione del documento non trovata")
+    evidence = repository.list_catalog_evidence(current_assignment.id)
+    if status == "confirmed" and not evidence:
+        raise DocumentAIValidationError(
+            "Non è possibile confermare: manca una prova letta dal contenuto. Correggi il catalogo manualmente oppure aggiorna l’indice."
+        )
+    if status == "confirmed" and not evidence_acknowledged:
+        raise DocumentAIValidationError("Apri “Prova e fonti” e attesta la lettura prima di confermare.")
     assignment = repository.resolve_catalog_assignment(
         tenant_id=tenant_id,
         fascicolo_id=str(fascicolo_id),
@@ -205,13 +226,27 @@ def resolve_document_catalog_assignment(
     )
     if assignment is None:
         raise DocumentAINotFound("Catalogazione del documento non trovata")
-    repository.append_audit_event({
-        "id": f"catalog-review-{assignment.id}", "tenant_id": tenant_id, "fascicolo_id": str(fascicolo_id),
-        "document_id": str(document_id), "version_id": assignment.document_version_id,
-        "user_id": actor, "event_type": "document_catalog.reviewed", "timestamp": assignment.updated_at,
-        "sha256": assignment.document_sha256, "filename": str(assignment.metadata.get("filename") or ""),
-        "status": status, "payload": {"note_length": len(str(note or ""))},
-    })
+    repository.append_audit_event(
+        {
+            "id": f"catalog-review-{assignment.id}",
+            "tenant_id": tenant_id,
+            "fascicolo_id": str(fascicolo_id),
+            "document_id": str(document_id),
+            "version_id": assignment.document_version_id,
+            "user_id": actor,
+            "event_type": "document_catalog.reviewed",
+            "timestamp": assignment.updated_at,
+            "sha256": assignment.document_sha256,
+            "filename": str(assignment.metadata.get("filename") or ""),
+            "status": status,
+            "payload": {
+                "note_length": len(str(note or "")),
+                "evidence_acknowledged": bool(evidence_acknowledged) if status == "confirmed" else False,
+                "evidence_count": len(evidence),
+                "evidence_types": sorted({str(item.evidence_type or "") for item in evidence if item.evidence_type}),
+            },
+        }
+    )
     return _catalog_assignment_payload(repository, assignment)
 
 
@@ -232,7 +267,11 @@ def override_document_catalog_assignment(
     assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
-    actor = str((context or {}).get("user_id") or "catalogazione-documentale") if isinstance(context, dict) else "catalogazione-documentale"
+    actor = (
+        str((context or {}).get("user_id") or "catalogazione-documentale")
+        if isinstance(context, dict)
+        else "catalogazione-documentale"
+    )
     repository = build_document_ai_service().repository
     assignment = repository.override_catalog_assignment(
         tenant_id=tenant_id,
@@ -248,18 +287,31 @@ def override_document_catalog_assignment(
     )
     if assignment is None:
         raise DocumentAINotFound("Catalogazione del documento non trovata")
-    repository.append_audit_event({
-        "id": f"catalog-override-{assignment.id}-{assignment.updated_at}", "tenant_id": tenant_id,
-        "fascicolo_id": str(fascicolo_id), "document_id": str(document_id),
-        "version_id": assignment.document_version_id, "user_id": actor,
-        "event_type": "document_catalog.overridden", "timestamp": assignment.updated_at,
-        "sha256": assignment.document_sha256, "filename": str(assignment.metadata.get("filename") or ""),
-        "status": "confirmed",
-        "payload": {
-            "fields": ["document_label", "document_section", "document_nature", "deposit_role", "deposit_candidate"],
-            "note_length": len(str(note or "")),
-        },
-    })
+    repository.append_audit_event(
+        {
+            "id": f"catalog-override-{assignment.id}-{assignment.updated_at}",
+            "tenant_id": tenant_id,
+            "fascicolo_id": str(fascicolo_id),
+            "document_id": str(document_id),
+            "version_id": assignment.document_version_id,
+            "user_id": actor,
+            "event_type": "document_catalog.overridden",
+            "timestamp": assignment.updated_at,
+            "sha256": assignment.document_sha256,
+            "filename": str(assignment.metadata.get("filename") or ""),
+            "status": "confirmed",
+            "payload": {
+                "fields": [
+                    "document_label",
+                    "document_section",
+                    "document_nature",
+                    "deposit_role",
+                    "deposit_candidate",
+                ],
+                "note_length": len(str(note or "")),
+            },
+        }
+    )
     return _catalog_assignment_payload(repository, assignment)
 
 
@@ -328,13 +380,15 @@ def build_lex_indexing_summary_payload(
             retry_errors=retry_errors,
         )
         payload = result.summary.to_dict()
-        payload.update(_apply_ready_document_automations(
-            service=service,
-            tenant_id=tenant_id,
-            fascicolo_id=fascicolo_id,
-            sources=sources,
-            user_context=context,
-        ))
+        payload.update(
+            _apply_ready_document_automations(
+                service=service,
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id,
+                sources=sources,
+                user_context=context,
+            )
+        )
         return payload
     summary: LexIndexingSummary = service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context)
     if _lex_summary_needs_automatic_processing(summary, sources):
@@ -346,22 +400,26 @@ def build_lex_indexing_summary_payload(
             retry_errors=True,
         )
         payload = result.summary.to_dict()
-        payload.update(_apply_ready_document_automations(
+        payload.update(
+            _apply_ready_document_automations(
+                service=service,
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id,
+                sources=sources,
+                user_context=context,
+            )
+        )
+        return payload
+    payload = summary.to_dict()
+    payload.update(
+        _apply_ready_document_automations(
             service=service,
             tenant_id=tenant_id,
             fascicolo_id=fascicolo_id,
             sources=sources,
             user_context=context,
-        ))
-        return payload
-    payload = summary.to_dict()
-    payload.update(_apply_ready_document_automations(
-        service=service,
-        tenant_id=tenant_id,
-        fascicolo_id=fascicolo_id,
-        sources=sources,
-        user_context=context,
-    ))
+        )
+    )
     return payload
 
 
@@ -370,10 +428,7 @@ def _lex_summary_needs_automatic_processing(summary: LexIndexingSummary, sources
         return True
     if not summary.errors:
         return False
-    return any(
-        source.supported and str(source.filename or "").lower().endswith(".p7m")
-        for source in sources
-    )
+    return any(source.supported and str(source.filename or "").lower().endswith(".p7m") for source in sources)
 
 
 def apply_sentenza_automation_for_document_text(
@@ -405,10 +460,14 @@ def apply_sentenza_automation_for_document_text(
     vector_result: dict[str, Any] = {}
     context = outcome.changes.get("context") if isinstance(outcome.changes, dict) else None
     context_ok = not isinstance(context, dict) or bool(context.get("ok"))
-    if outcome.extraction.found and context_ok and not _sentenza_vector_index_ok(
-        fascicoli_repository=fascicoli,
-        fascicolo_id=fascicolo_id,
-        document_key=document_key,
+    if (
+        outcome.extraction.found
+        and context_ok
+        and not _sentenza_vector_index_ok(
+            fascicoli_repository=fascicoli,
+            fascicolo_id=fascicolo_id,
+            document_key=document_key,
+        )
     ):
         vector_result = _feed_sentenza_vector_index(
             fascicoli_repository=fascicoli,
@@ -488,7 +547,9 @@ def _apply_sentenza_automations_for_ready_documents(
             if result.get("applied") or result.get("vector_index"):
                 applied.append(result)
         except Exception as exc:
-            current_app.logger.exception("Automazione sentenza Lex non riuscita per documento %s", getattr(record, "id", ""))
+            current_app.logger.exception(
+                "Automazione sentenza Lex non riuscita per documento %s", getattr(record, "id", "")
+            )
             applied.append(
                 {
                     "applied": False,
@@ -653,7 +714,9 @@ def _feed_sentenza_vector_index(
         fascicolo = fascicoli_repository.get(fascicolo_id)
         extraction = outcome.extraction
         document_key = _document_key(metadata)
-        source_id = f"{tenant_id}:{fascicolo_id}:{document_key or metadata.get('sha256') or metadata.get('document_id')}"
+        source_id = (
+            f"{tenant_id}:{fascicolo_id}:{document_key or metadata.get('sha256') or metadata.get('document_id')}"
+        )
         title = _sentenza_vector_title(extraction, fascicolo)
         vector_metadata = {
             "tenant_id": tenant_id,

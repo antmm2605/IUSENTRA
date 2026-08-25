@@ -2278,6 +2278,21 @@ function MissingRgBadge({ item, compact = false }:{item:FascicoloRow; compact?:b
   )
 }
 
+function hasEconomicEvidence(row:FascicoloRow): boolean {
+  const analysis = row.paymentSummary.analysis
+  const proforma = row.paymentSummary.proformaPresidio
+  const hasSource = economicPaymentKinds.some((kind) => {
+    const payment = row.paymentSummary.items[kind]
+    return Boolean(visibleDocumentSource(payment.documentoFonte || payment.origine))
+  })
+  const analysisVisible = Boolean(
+    analysis.status
+    && analysis.status !== 'aggiornato'
+    && !(analysis.status === 'aggiornato_provvisorio' && hasSource)
+  )
+  return hasSource || analysisVisible || Boolean(proforma.message && proforma.status !== 'non_applicabile')
+}
+
 function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
   const analysis = row.paymentSummary.analysis
   const proforma = row.paymentSummary.proformaPresidio
@@ -3083,7 +3098,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                       <>
                         <td><span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span><MissingRgBadge item={item} compact/></span></td>
                         <td className="iu-fas-economic-client-cell">
-                          <span className="iu-fas-economic-client">
+                          <div className="iu-fas-economic-client">
                             <strong>{item.client}</strong>
                             <DuplicatePracticeBadge item={item}/>
                             <button
@@ -3096,7 +3111,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                               <Edit3 size={14}/>
                               <span>{economicEditorOpen ? 'Chiudi modifica' : 'Modifica controllo economico'}</span>
                             </button>
-                          </span>
+                          </div>
                         </td>
                         <td>{item.nextDeadline || 'n.d.'}</td>
                         <td>{statusCell(item)}</td>
@@ -3106,11 +3121,17 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                               <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
                             ))}
                           </div>
-                          <EconomicEvidenceStrip row={item}/>
                         </td>
                       </>
                     ) : activeColumns.map((column) => renderOperationalCell(item, column))}
                   </tr>
+                  {economic && hasEconomicEvidence(item) ? (
+                    <tr className="iu-fas-economic-evidence-row">
+                      <td aria-hidden="true"/>
+                      <td colSpan={4}><EconomicEvidenceStrip row={item}/></td>
+                      <td aria-hidden="true"/>
+                    </tr>
+                  ) : null}
                   {economicEditorOpen ? (
                     <tr className="iu-fas-economic-editor-row">
                       <td colSpan={6}>

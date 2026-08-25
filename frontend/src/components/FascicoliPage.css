@@ -111,9 +111,13 @@
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-ref a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:950}
 .iu-fas-economic-ref>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:730}
-.iu-fas-table--economic td.iu-fas-economic-client-cell>span{margin-top:0;color:#0f172a;font-size:13px;font-weight:800}
+.iu-fas-table--economic td.iu-fas-economic-client-cell>.iu-fas-economic-client{margin-top:0;color:#0f172a;font-size:13px;font-weight:800}
 .iu-fas-economic-client{display:grid!important;gap:8px;align-content:start;min-width:0}
 .iu-fas-economic-client strong{min-width:0;overflow-wrap:anywhere;color:#0f172a;font-size:13px;font-weight:900;line-height:1.22}
+.iu-fas-table--economic tbody tr.iu-fas-economic-evidence-row>td{padding:0 8px 8px;border-top:0;background:#fff}
+.iu-fas-table--economic tbody tr.iu-fas-economic-evidence-row>td:first-child{padding-inline:0}
+.iu-fas-table--economic tbody tr.iu-fas-economic-evidence-row>td:last-child{padding-inline:0}
+.iu-fas-table--economic .iu-fas-economic-evidence-row .iu-fas-economic-evidence{margin:0;padding:9px 10px}
 .iu-fas-title-cell{min-width:0}
 .iu-fas-title-cell a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:950}
 .iu-fas-title-cell span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2977,7 +2981,7 @@ body.iu-fascicoli-table-expanded{
    celle da 34px erano pensate per icone sole e facevano sovrapporre le etichette. */
 .iu-fas-card-grid .iu-fas-row-actions,
 .iu-fas-compact-list .iu-fas-row-actions{display:grid!important;width:100%;min-width:0;gap:6px;align-items:stretch}
-.iu-fas-card-grid .iu-fas-row-actions{grid-template-columns:repeat(auto-fit,minmax(62px,1fr));grid-column:2}
+.iu-fas-card-grid .iu-fas-row-actions{grid-template-columns:repeat(auto-fit,minmax(56px,1fr));grid-column:2}
 .iu-fas-compact-list .iu-fas-collection-item{grid-template-columns:24px minmax(0,1fr) auto}
 .iu-fas-compact-list .iu-fas-row-actions{grid-column:2/-1;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));padding-top:2px;border-top:1px solid #e2e8f0}
 .iu-fas-card-grid .iu-fas-row-actions>a,
@@ -2989,6 +2993,9 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-card-grid .iu-fas-row-actions>a,
 .iu-fas-card-grid .iu-fas-row-actions>button,
 .iu-fas-card-grid .iu-fas-row-actions>.iu-fas-post{flex-direction:column}
+.iu-fas-card-grid .iu-fas-row-actions>a>svg,
+.iu-fas-card-grid .iu-fas-row-actions>button>svg,
+.iu-fas-card-grid .iu-fas-row-actions>.iu-fas-post>svg{align-self:center!important;justify-self:center!important;margin-left:auto!important;margin-right:auto!important}
 .iu-fas-compact-list .iu-fas-row-actions>a,
 .iu-fas-compact-list .iu-fas-row-actions>button,
 .iu-fas-compact-list .iu-fas-row-actions>.iu-fas-post{flex-direction:row;min-height:40px!important;padding:5px 8px!important}

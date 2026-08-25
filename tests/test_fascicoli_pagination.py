@@ -1534,4 +1534,8 @@ def test_viste_compatta_e_schede_mantengono_i_dati_economici():
     assert "economicPaymentKinds.map((kind) =>" in component
     assert "<EconomicPaymentSummary payment={item.paymentSummary.items[kind]}" in component
     assert "<EconomicEvidenceStrip row={item}/>" in component
+    assert '<tr className="iu-fas-economic-evidence-row">' in component
+    assert '<td aria-hidden="true"/>' in component
+    assert '<td colSpan={4}><EconomicEvidenceStrip row={item}/></td>' in component
+    assert ".iu-fas-economic-evidence-row .iu-fas-economic-evidence" in styles
     assert ".iu-fas-card-grid .iu-fas-collection-economic>.iu-fas-economic-summary-grid" in styles

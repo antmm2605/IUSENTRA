@@ -792,8 +792,9 @@ def test_azioni_rapide_elenco_fascicoli_hanno_etichetta_e_target_tattile():
     assert "white-space:nowrap" in css
     assert 'className="iu-fas-row-actions"' in source
     assert ".iu-fas-compact-list .iu-fas-row-actions{grid-column:2/-1" in css
-    assert "grid-template-columns:repeat(auto-fit,minmax(62px,1fr))" in css
+    assert "grid-template-columns:repeat(auto-fit,minmax(56px,1fr))" in css
     assert "grid-template-columns:repeat(auto-fit,minmax(104px,1fr))" in css
+    assert "align-self:center!important;justify-self:center!important;margin-left:auto!important;margin-right:auto!important" in css
 
 
 def test_catalogazione_documentale_espone_visualizza_con_etichetta_esplicita():

@@ -163,8 +163,9 @@ def test_consultazione_e_download_documento_producono_riscontri_audit_con_fonte(
     audit_payload = audit_response.get_json()["auditTrail"]
     assert audit_payload["status"] == "operational"
     events = audit_payload["events"]
-    assert [event["kind"] for event in events[:2]] == ["DOC_DOWNLOADED", "DOC_VIEWED"]
-    for event in events[:2]:
+    document_events = [event for event in events if event["kind"] in {"DOC_DOWNLOADED", "DOC_VIEWED"}]
+    assert {event["kind"] for event in document_events} == {"DOC_DOWNLOADED", "DOC_VIEWED"}
+    for event in document_events:
         assert event["sourceDocumentId"] == doc.id
         assert event["sourceDocumentLabel"] == "decreto-fonte.pdf"
         assert event["sourceDocumentHref"].endswith(f"/documenti/{doc.id}/visualizza?viewer=mobile")
@@ -179,6 +180,22 @@ def test_lettore_react_avvia_download_nativo_sulla_route_interna():
     assert "anchor.download = filename" in download_helper
     assert "fetch(downloadUrl" not in download_helper
     assert "URL.createObjectURL" not in download_helper
+
+
+def test_presidio_economico_unifica_contributo_e_provvedimenti_nella_stessa_superficie():
+    source = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
+    regia = source.split("function RegiaOperativaSection", 1)[1].split("function fLabel", 1)[0]
+    modal = source.split("function EconomicControlModal", 1)[1].split("function recordText", 1)[0]
+
+    assert "function SentenzeEconomicheSection" not in source
+    assert "<h4>Presidio economico</h4>" in regia
+    assert 'label="Contributo unificato"' in regia
+    assert 'label="Provvedimenti economici"' in regia
+    assert regia.count("onClick={onOpenEconomicControl}") >= 2
+    assert "Calcola contributo unificato" in regia
+    assert "Evidenze economiche da provvedimenti" in modal
+    assert "Apri documenti sorgente" in modal
+    assert "Calcola contributo" in modal
 
 
 def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):

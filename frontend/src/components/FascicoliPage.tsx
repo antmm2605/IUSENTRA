@@ -6275,6 +6275,8 @@ function EconomicControlModal({
   onPaymentSaved,
   onError,
   onOpenPagoPa,
+  onOpenDocuments,
+  onCalculateContribution,
 }:{
   open: boolean
   data: FascicoloDetailData
@@ -6283,6 +6285,8 @@ function EconomicControlModal({
   onPaymentSaved: (id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string) => void
   onError: (message:string) => void
   onOpenPagoPa: () => void
+  onOpenDocuments: () => void
+  onCalculateContribution: () => void
 }) {
   const [editing, setEditing] = useState(false)
   useEffect(() => {
@@ -6363,7 +6367,7 @@ function EconomicControlModal({
       <div className="iu-fas-economic-control-modal__box">
         <header>
           <div>
-            <span><WalletCards size={15}/> Controllo economico fascicolo</span>
+            <span><WalletCards size={15}/> Presidio economico del fascicolo</span>
             <strong>{f.ref || f.rg || f.id}</strong>
             <small>{[f.title, data.client?.name || f.client].filter(Boolean).join(' · ')}</small>
           </div>
@@ -6406,6 +6410,26 @@ function EconomicControlModal({
                 </article>
               ))}
             </section>
+            <section className="iu-fas-economic-control-modal__sentenze" aria-label="Evidenze economiche da provvedimenti">
+              <header>
+                <div>
+                  <Badge tone={data.sentenzeEconomiche?.kpi.tone || 'neutral'}>{data.sentenzeEconomiche?.kpi.label || 'Provvedimenti economici'}</Badge>
+                  <strong>{data.sentenzeEconomiche?.kpi.value || 'Nessuna evidenza economica letta'}</strong>
+                  <small>{data.sentenzeEconomiche ? `${data.sentenzeEconomiche.totals.sentenze_lette} provvedimenti letti · ${data.sentenzeEconomiche.totals.da_verificare} verifiche aperte` : 'Il controllo si alimenta solo da provvedimenti acquisiti e indicizzati nel fascicolo.'}</small>
+                </div>
+                <button type="button" onClick={onOpenDocuments}><FileText size={15}/> Apri documenti sorgente</button>
+              </header>
+              {data.sentenzeEconomiche?.worklist.length ? (
+                <div>
+                  {data.sentenzeEconomiche.worklist.map((item) => (
+                    <article key={`${item.label}-${item.value}-${item.hint}`}>
+                      <div><span>{item.label}</span><strong>{item.value}</strong><small>{item.hint}</small></div>
+                      <Badge tone={item.tone}>{item.label.includes('verificare') ? 'Verifica' : 'Rilevato'}</Badge>
+                    </article>
+                  ))}
+                </div>
+              ) : <p>Nessun importo o avviso viene inventato: qui compariranno soltanto gli esiti estratti da una fonte documentale del fascicolo.</p>}
+            </section>
             <aside className="iu-fas-economic-control-modal__presidio" aria-label="Presidio economico">
               <Badge tone={summary.tone}>{summary.statoLabel}</Badge>
               <strong>{proformaStatus}</strong>
@@ -6418,6 +6442,7 @@ function EconomicControlModal({
           </>
         )}
         <footer>
+          <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo</button>
           <button type="button" onClick={onOpenPagoPa}><Euro size={15}/> PagoPA nuovo pagamento</button>
           <a href={importHref}><UploadCloud size={15}/> Import pratiche</a>
         </footer>
@@ -6502,6 +6527,17 @@ function RegiaActionCard({ label, value, note, href, tone = 'neutral' }:{label:s
       <small>{note}</small>
       <ChevronRight size={16} aria-hidden="true"/>
     </a>
+  )
+}
+
+function RegiaActionButton({ label, value, note, onClick, tone = 'neutral' }:{label:string; value:string; note:string; onClick:()=>void; tone?:FascicoloRow['tone']}) {
+  return (
+    <button className={`iu-fas-regia-action iu-fas-regia-action--${tone}`} type="button" onClick={onClick}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{note}</small>
+      <ChevronRight size={16} aria-hidden="true"/>
+    </button>
   )
 }
 
@@ -6651,7 +6687,7 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
   )
 }
 
-function RegiaOperativaSection({ data, onDone, onError, onOpen, returnHref, loading = false }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; returnHref:string; loading?:boolean}) {
+function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, loading = false }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; loading?:boolean}) {
   const regia = data.regia
   if (regia.page_state === 'profilo_da_confermare') {
     return (
@@ -6736,27 +6772,26 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, returnHref, load
           <article id="economia">
             <span id="workflow" className="iu-fas-anchor-alias" aria-hidden="true"/>
             <span id="sentenze-economiche" className="iu-fas-anchor-alias" aria-hidden="true"/>
-            <h4>Incarico, economia e incassi</h4>
+            <h4>Presidio economico</h4>
             <div className="iu-fas-regia-action-list">
               <RegiaActionCard label="Preventivo accettato" value={recordBool(economics, 'preventivoAccepted') ? 'Si' : 'No'} note={recordBool(economics, 'preventivoAccepted') ? 'Apri preventivo' : 'Apri per accettare o creare'} href={preventivoHref} tone={recordBool(economics, 'preventivoAccepted') ? 'success' : 'warning'}/>
               <RegiaActionCard label="Conferimento firmato" value={recordBool(economics, 'conferimentoSigned') ? 'Si' : 'No'} note={recordBool(economics, 'conferimentoSigned') ? 'Apri conferimento' : 'Apri il conferimento'} href={conferimentoHref} tone={recordBool(economics, 'conferimentoSigned') ? 'success' : 'warning'}/>
               <RegiaActionCard label="Avviso / parcella" value={recordBool(economics, 'proformaIssued') ? 'Emesso' : 'Non emesso'} note={recordBool(economics, 'proformaIssued') ? 'Apri documento economico' : 'Crea la parcella'} href={proformaHref} tone={recordBool(economics, 'proformaIssued') ? 'success' : 'warning'}/>
               <RegiaActionCard label="Pagamento" value={recordBool(economics, 'paymentRegistered') ? 'Registrato' : 'Da registrare'} note={recordBool(economics, 'paymentRegistered') ? 'Apri incassi' : 'Registra incasso'} href={paymentHref} tone={recordBool(economics, 'paymentRegistered') ? 'success' : 'warning'}/>
-              <RegiaActionCard label="Contributo unificato" value={contributoUnificato.statusLabel || 'Da verificare'} note={contributoUnificato.note || contributoUnificato.documentoFonte || 'Il controllo usa le evidenze lette nei documenti del fascicolo.'} href="#documenti" tone={contributoUnificato.tone}/>
-              <RegiaActionCard label="Sentenze e provvedimenti" value={sentenzeCount ? `${sentenzeCount} controlli` : 'Nessun controllo aperto'} note="Liquidazioni, spese, distrazioni e contributo unificato dai provvedimenti letti." href="#documenti" tone={sentenzeCount ? 'warning' : 'neutral'}/>
+              <RegiaActionButton label="Contributo unificato" value={contributoUnificato.statusLabel || 'Da verificare'} note={contributoUnificato.note || contributoUnificato.documentoFonte || 'Apri il presidio economico per verificare ricevuta, esenzione o pagamento.'} onClick={onOpenEconomicControl} tone={contributoUnificato.tone}/>
+              <RegiaActionButton label="Provvedimenti economici" value={sentenzeCount ? `${sentenzeCount} controlli` : 'Nessun controllo aperto'} note="Liquidazioni, spese, distrazioni e contributo unificato sono letti nello stesso presidio." onClick={onOpenEconomicControl} tone={sentenzeCount ? 'warning' : 'neutral'}/>
             </div>
             <ul className="iu-fas-regia__facts">
               <li><span>Compenso pattuito</span><strong>{recordText(economics, 'agreedFee', '€ 0,00')}</strong></li>
               <li><span>Spese vive / anticipazioni</span><strong>{recordText(economics, 'expenses', '€ 0,00')}</strong></li>
             </ul>
+            <div className="iu-fas-regia__actions" aria-label="Azioni presidio economico">
+              <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
+              <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo unificato</button>
+            </div>
             <div className="iu-fas-regia-action-list iu-fas-regia-action-list--compact">
               {data.economics.filter((item) => ['valore', 'controllo_pagamenti', 'fatturapa', 'tempo'].includes(item.id)).map((item) => <RegiaActionCard key={item.id} label={item.label} value={item.value} note={item.note} href={item.href || '#presidio-fascicolo'} tone={item.tone}/>) }
             </div>
-            <section className="iu-fas-regia__sentenze" aria-label="Controllo economico di sentenze e provvedimenti">
-              <header><Badge tone={data.sentenzeEconomiche?.kpi.tone || 'neutral'}>{data.sentenzeEconomiche?.kpi.label || 'Sentenze e provvedimenti'}</Badge><strong>{data.sentenzeEconomiche?.kpi.value || 'Nessun controllo aperto'}</strong></header>
-              {data.sentenzeEconomiche?.worklist.length ? <div>{data.sentenzeEconomiche.worklist.map((item) => <span key={`${item.label}-${item.value}-${item.hint}`}><Badge tone={item.tone}>{item.label}</Badge><b>{item.value}</b><small>{item.hint}</small></span>)}</div> : <p>Quando un provvedimento acquisito e indicizzato contiene liquidazioni, spese, distrazioni o contributo unificato, il controllo economico comparirà qui.</p>}
-              <a href="#documenti"><FileText size={14}/> Apri e leggi i provvedimenti</a>
-            </section>
             {Array.isArray(economics.overrides) && economics.overrides.length ? <p className="iu-fas-regia__warn">Variazione economica presente e registrata.</p> : null}
           </article>
           <article>
@@ -9148,50 +9183,6 @@ function sentenzeEconomicheCount(data: FascicoloSentenzeEconomiche | null) {
   return Math.max(data.worklist.length, data.totals.sentenze_lette ? 1 : 0)
 }
 
-function SentenzeEconomicheSection({
-  data,
-  onOpenDocuments,
-  onOpenEconomia,
-  defaultOpen = false,
-}:{
-  data: FascicoloSentenzeEconomiche | null
-  onOpenDocuments: (event: MouseEvent<HTMLAnchorElement>) => void
-  onOpenEconomia: (event: MouseEvent<HTMLAnchorElement>) => void
-  defaultOpen?: boolean
-}) {
-  const count = sentenzeEconomicheCount(data)
-  return (
-    <DetailSection id="sentenze-economiche" title="Sentenze: controllo economico" icon={<WalletCards size={17}/>} count={count} defaultOpen={defaultOpen}>
-      {data && data.worklist.length ? (
-        <div className="iu-fas-side-cards iu-fas-sentenze-economiche">
-          <article>
-            <Badge tone={data.kpi.tone}>{data.kpi.label || 'Controllo economico'}</Badge>
-            <strong>{data.kpi.value || 'Evidenze lette'}</strong>
-            <span>{data.totals.sentenze_lette} sentenze lette, {data.totals.da_verificare} verifiche economiche aperte</span>
-          </article>
-          {data.worklist.map((item) => (
-            <article key={`${item.label}-${item.value}-${item.hint}`}>
-              <Badge tone={item.tone}>{item.label}</Badge>
-              <strong>{item.value}</strong>
-              <span>{item.hint}</span>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="iu-fas-empty-action">
-          <Badge tone="warning">Da alimentare</Badge>
-          <strong>Nessuna sentenza economica letta per questo fascicolo.</strong>
-          <p>Serve una sentenza o un provvedimento conclusivo classificato nel fascicolo: quando il documento contiene liquidazione, distrazione, contributo o spese, il controllo economico viene popolato qui.</p>
-          <div>
-            <a href="#documenti" onClick={onOpenDocuments}><FileText size={14}/> Apri documenti</a>
-            <a href="#economia" onClick={onOpenEconomia}><WalletCards size={14}/> Contesto economico</a>
-          </div>
-        </div>
-      )}
-    </DetailSection>
-  )
-}
-
 function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPreview, loading = false, defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; onOpenDocuments:(event: MouseEvent<HTMLAnchorElement>)=>void; onPreview:(preview:PreviewDocument)=>void; loading?:boolean; defaultOpen?:boolean}) {
   const hasEvents = audit.events.length > 0
   const effectiveBundleHref = audit.enabled && hasEvents ? (audit.actions.bundle || bundleHref) : ''
@@ -9520,7 +9511,16 @@ function DetailPage({ id }:{id:string}) {
         </aside>
         <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
-          <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} returnHref={detailReturnHref} loading={lazyStatus.regia === 'loading'}/>
+          <RegiaOperativaSection
+            data={data}
+            onDone={refreshDetail}
+            onError={failDetail}
+            onOpen={() => loadLazySection('regia')}
+            onOpenEconomicControl={() => setEconomicControlOpen(true)}
+            onCalculateContribution={() => setContributoModalOpen(true)}
+            returnHref={detailReturnHref}
+            loading={lazyStatus.regia === 'loading'}
+          />
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
@@ -9714,6 +9714,15 @@ function DetailPage({ id }:{id:string}) {
         onOpenPagoPa={() => {
           setEconomicControlOpen(false)
           openPagoPaModal()
+        }}
+        onOpenDocuments={() => {
+          setEconomicControlOpen(false)
+          loadLazySection('documenti')
+          openDetailSectionById('documenti')
+        }}
+        onCalculateContribution={() => {
+          setEconomicControlOpen(false)
+          setContributoModalOpen(true)
         }}
       />
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>

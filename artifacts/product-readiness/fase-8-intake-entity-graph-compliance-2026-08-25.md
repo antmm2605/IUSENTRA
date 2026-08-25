@@ -2,7 +2,7 @@
 
 Data: 25/08/2026 (Europe/Rome)
 Ambiente di accettazione locale: `http://127.0.0.1:8080`
-Stato: implementazione e prove locali documentate, rilascio remoto da eseguire sul commit della fase.
+Stato: rilasciata su locale e Hetzner, con prove documentate.
 
 ## Risultato operativo
 
@@ -67,6 +67,8 @@ Non sono stati inviati PEC, depositi, notifiche o comunicazioni reali durante qu
 - `tests/test_crm_routes.py`
 - `tests/test_react_crm_bridge.py`
 
-## Chiusura della fase
+## Rilascio e verifica Hetzner
 
-Restano parte della chiusura il commit dei file elencati, il push dei due branch gemelli, il deploy Hetzner sullo stesso commit e la verifica del container applicativo unico e dell'health endpoint pubblico. La fase successiva non viene dichiarata avviata come consegnata finché questi passaggi non sono registrati.
+Il commit `a0eb158324515026fe09fdf61fa8e29b16cf0e0d` è stato pubblicato sui branch `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`, quindi distribuito sul server Hetzner. La verifica SSH ha confermato il repository sullo stesso SHA, un solo container applicativo denominato `iusentra-app`, stato `healthy`, snapshot temporaneo assente e cache build non recuperabile (`Reclaimable: 0B`).
+
+`https://app.iusentra.it/api/pronto` ha risposto con `ok=true`, timezone `Europe/Rome` e versione `2.278.72` alle 03:53 del 25/08/2026. La fase successiva può essere affrontata soltanto mantenendo queste prove come vincolo anti-regressione.

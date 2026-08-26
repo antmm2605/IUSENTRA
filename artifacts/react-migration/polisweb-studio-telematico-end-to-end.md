@@ -91,47 +91,54 @@ riconducibile ai file selezionati.
 
 ## Prove eseguite il 26/08/2026
 
-- Typecheck React: superato.
-- Test mirati del resolver locale, delle dieci tabelle e della ricerca PST:
-  superati.
-- Controlli del lotto Local Signer e della finestra PIN: superati come
-  guardrail tecnico.
-- Copia Docker locale ricostruita; `http://127.0.0.1:8080/api/pronto` ha
-  risposto correttamente e il servizio applicativo locale è healthy.
-- La prova precedente di scarico batch ha registrato i documenti selezionati
-  nel fascicolo con un solo PIN per il lotto.
-- La prova precedente di ricerca ha dato esito vuoto perché la UI non
-  applicava il profilo locale già dedotto. La correzione ora collega il
-  resolver alla richiesta e disabilita temporaneamente il tasto finché la
-  deduzione locale non è terminata.
-- In una prova reale successiva, avviata dall'utente e con PIN digitato solo
-  nel dialogo nativo, il flusso ha raggiunto il fascicolo interno senza timeout.
-  I log aggregati hanno mostrato una sola nuova ricerca-snapshot e nessun job
-  aggiuntivo di visualizzazione. La selezione documentale è rimasta disponibile
-  per l'importazione nel fascicolo scelto.
-- È stato aggiunto il progresso del lotto documento per documento: documento
-  corrente, contatore elaborati/totale, barra accessibile, avvisi e stato
-  finale. Il controllo automatico verifica che ogni risposta del batch pubblichi
-  il proprio avanzamento e che il percorso non richiami il download singolo.
-- Nell'ultima prova reale l'utente ha completato la consultazione e lo scarico
-  del lotto senza messaggi di timeout o di errore nella UI. Il registro di
-  importazione ha rilevato 30 file attesi, ricevuti e decodificati, senza file
-  vuoti o scartati. Il fascicolo ha però mostrato 29 righe: la causa era la
-  deduplicazione per solo nome/tipo descritta sopra. La correzione è coperta
-  dal test `test_documenti_portale_con_identificativi_distinti_e_stesso_nome_restano_distinti`.
+- Guardrail superati: typecheck React, controlli del resolver locale e delle
+  dieci tabelle, download batch Local Signer, progresso per risposta e
+  deduplicazione di documenti con stesso nome ma identificativi PST distinti.
+- Copia Docker locale ricostruita e riavviata; `http://127.0.0.1:8080/api/pronto`
+  ha risposto correttamente con applicazione healthy. Nella UI reale sono stati
+  verificati il wizard, i sette passi, l'assenza del selettore delle tabelle e
+  l'assenza del campo oggetto/materia per la ricerca esatta.
+- In una consultazione reale autorizzata, con PIN digitato esclusivamente
+  dall'utente nel dialogo nativo, il resolver ha scelto in modo silenzioso una
+  sola tabella, ha restituito anteprima, parti, eventi e 30 documenti. Tutti i
+  documenti erano selezionati in modalità copia prima dell'avvio del lotto.
+- Il lotto ha usato un'unica operazione autenticata, pubblicando avanzamento
+  documento per documento. Il PST ha restituito un errore HTTP 502 per un solo
+  documento; gli altri 29 sono stati importati nel fascicolo e il conteggio
+  locale è rimasto coerente con i file realmente ricevuti. IUSENTRA non ha
+  creato file vuoti, duplicati o sostituzioni.
+- Il tentativo successivo di ripresa su uno storico precedente, privo
+  dell'identificativo ufficiale del documento fallito, ha dimostrato un difetto:
+  la UI poteva preselezionare un candidato non dimostrato. Il PST non ha
+  completato tale richiesta entro il limite di 300 secondi. Il dettaglio è
+  stato conservato solo come diagnosi del canale esterno, senza modificare i
+  documenti già registrati.
+
+## Correzione della ripresa mirata
+
+Ogni nuovo errore di download persiste ora, nel registro locale della
+procedura, il tipo di ripresa, la modalità copia/originale e gli identificativi
+ministeriali del solo documento non ricevuto. Il collegamento di ripresa passa
+un identificativo del registro, non il nome del file. Dopo una nuova
+anteprima, IUSENTRA seleziona esclusivamente un documento con corrispondenza
+univoca di identificativo ufficiale; una corrispondenza per nome, data o tipo
+non è sufficiente.
+
+Se uno storico precedente non contiene l'identificativo o se il documento non
+è più presente nell'anteprima, la ripresa non preseleziona alcun documento e
+la UI lo dichiara esplicitamente. L'avvocato può verificare e scegliere
+manualmente, ma il software non sostituisce mai il documento. I log locali
+disponibili sono stati esaminati solo in forma aggregata: non contengono
+l'identificativo necessario per riparare in sicurezza il vecchio storico.
 
 ## Verifica reale ancora richiesta
 
-La prima ricerca successiva alla correzione è stata autorizzata e inviata il
-26/08/2026. Si è chiusa prima della risposta del fascicolo con mancata
-conferma del certificato/PIN, senza timeout, senza risultati e senza modifiche
-al fascicolo. Non è stato avviato alcun secondo tentativo automatico.
-
-Resta da effettuare una nuova prova reale del lotto dopo l'aggiornamento,
-per confermare nella UI che il numero di righe nel fascicolo coincide con il
-numero di documenti selezionati. L'avvocato inserisce manualmente il PIN nel
-dialogo nativo visualizzato in primo piano; vanno osservati e registrati senza
-dati personali: numero processi curl, numero richieste PIN, stato del dialogo
-in primo piano, avanzamento progressivo, esito del lotto, numero di documenti
-selezionati e importati, modalità copia/originale e assenza di download
-singoli o job di visualizzazione aggiuntivi.
+La correzione è stata ricostruita nella copia locale ed è coperta dai
+guardrail `test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito`,
+dal typecheck e dai test batch. Resta aperta la prova reale di una nuova
+ripresa generata dopo questa versione: il PST deve restituire l'anteprima e
+consentire il download del solo documento registrato. Non viene avviato alcun
+nuovo tentativo automatico né alcun invio del PIN da IUSENTRA; l'avvocato lo
+digita nel dialogo nativo. La verifica conclusiva deve osservare: una sola
+richiesta batch, il dialogo PIN in primo piano, selezione esatta, modalità
+copia/originale preservata, avanzamento, esito e conteggio del fascicolo.

@@ -278,6 +278,7 @@ type PstSession = {
 type PstDownloadResult = {
   files: AcquisitionFile[]
   failures: string[]
+  failedDocuments: JsonRecord[]
   selection: JsonRecord
 }
 
@@ -292,6 +293,8 @@ type ImportProgress = {
 
 type AcquisitionHistoryEvent = TelematicoSurfaceData['recentEvents'][number] & {
   local?: boolean
+  retryDocuments?: JsonRecord[]
+  retryScope?: 'search' | 'documents'
 }
 
 const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert.v2'
@@ -627,21 +630,43 @@ function silentPstRetryHref(value: string): string {
   }
 }
 
+function acquisitionRetryHrefWithId(value: string, retryId: string): string {
+  try {
+    const url = new URL(value, window.location.origin)
+    if (url.pathname !== '/portali/pst/acquisizione' || !asText(retryId)) return value
+    url.searchParams.set('retry_id', retryId)
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return value
+  }
+}
+
 function normaliseAcquisitionHistoryEvent(value: unknown): AcquisitionHistoryEvent | null {
   const row = asRecord(value)
   const href = asText(row.href)
   const title = asText(row.title)
   if (!href || !title) return null
+  const id = asText(row.id, `local-acq-${Date.now()}`)
+  const retryScope = asText(row.retryScope || row.retry_scope).toLowerCase() === 'documents'
+    || /\b(?:scaric|document)/i.test(title)
+    ? 'documents'
+    : 'search'
+  const retryDocuments = asList(row.retryDocuments || row.retry_documents)
+    .map(asRecord)
+    .filter((item) => pstDocumentIdentifierValues(item).length > 0)
+  const silentHref = silentPstRetryHref(href)
   return {
-    id: asText(row.id, `local-acq-${Date.now()}`),
+    id,
     portal: asText(row.portal || 'pst') as AcquisitionHistoryEvent['portal'],
     title,
     subtitle: asText(row.subtitle),
     timestamp: asText(row.timestamp),
-    href: silentPstRetryHref(href),
+    href: retryScope === 'documents' ? acquisitionRetryHrefWithId(silentHref, id) : silentHref,
     tone: asText(row.tone, 'warning') as Tone,
     badge: asText(row.badge, 'Riprova'),
     local: row.local !== false,
+    retryDocuments,
+    retryScope,
   }
 }
 
@@ -680,7 +705,7 @@ function writeAcquisitionHistory(items: AcquisitionHistoryEvent[]) {
   }
 }
 
-function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: AcquisitionMapping): string {
+function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: AcquisitionMapping, retryId = ''): string {
   const params = new URLSearchParams()
   const add = (key: string, value: string) => {
     const clean = asText(value)
@@ -708,8 +733,24 @@ function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: 
     params.set('fascicolo_id', mapping.target_fascicolo_id)
     params.set('mode', mapping.mode === 'create_new' ? 'update_existing' : mapping.mode)
   }
+  add('retry_id', retryId)
   const queryString = params.toString()
   return `/portali/${encodeURIComponent(portal)}/acquisizione${queryString ? `?${queryString}` : ''}#wizard-acquisizione`
+}
+
+function acquisitionRetryContextFromLocation(): { requested: boolean; scope: 'search' | 'documents'; documents: JsonRecord[] } {
+  try {
+    const retryId = asText(new URLSearchParams(window.location.search).get('retry_id'))
+    if (!retryId) return { requested: false, scope: 'search', documents: [] }
+    const event = readAcquisitionHistory().find((item) => item.id === retryId)
+    return {
+      requested: true,
+      scope: event?.retryScope === 'documents' ? 'documents' : 'search',
+      documents: event?.retryDocuments || [],
+    }
+  } catch {
+    return { requested: false, scope: 'search', documents: [] }
+  }
 }
 
 function pstMinisterialProfileCacheKey(values: {
@@ -3636,6 +3677,12 @@ function pstDocumentsMatch(left: JsonRecord, right: JsonRecord): boolean {
     && (!leftDate || !rightDate || leftDate === rightDate)
 }
 
+function pstDocumentsShareIdentifier(left: JsonRecord, right: JsonRecord): boolean {
+  const leftIds = new Set(pstDocumentIdentifierValues(left))
+  const rightIds = pstDocumentIdentifierValues(right)
+  return leftIds.size > 0 && rightIds.some((id) => leftIds.has(id))
+}
+
 function acquisitionFilePstRecord(file: AcquisitionFile): JsonRecord {
   return {
     nome: file.nome,
@@ -3961,6 +4008,9 @@ function AcquisitionWizard({
   const [files, setFiles] = useState<AcquisitionFile[]>([])
   const [selectedDocumentKeys, setSelectedDocumentKeys] = useState<string[]>([])
   const [documentDownloadModes, setDocumentDownloadModes] = useState<Record<string, 'originale' | 'copia'>>({})
+  const retryContext = useMemo(() => acquisitionRetryContextFromLocation(), [])
+  const retryDocuments = retryContext.documents
+  const isDocumentRetry = retryContext.requested && retryContext.scope === 'documents'
   const [selectedPartyKeys, setSelectedPartyKeys] = useState<string[]>([])
   const [partyClassifications, setPartyClassifications] = useState<Record<string, string>>({})
   const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([])
@@ -4015,6 +4065,7 @@ function AcquisitionWizard({
   const autoPstTestStartedRef = useRef(false)
   const pstSearchOperationRef = useRef<Promise<void> | null>(null)
   const pstDownloadOperationRef = useRef<Promise<PstDownloadResult> | null>(null)
+  const pendingPstFailedDocumentsRef = useRef<JsonRecord[]>([])
   const autoMatchedTargetRef = useRef('')
   const mappingTargetOptions = useMemo(() => {
     const rows: Array<{ id: string; title: string }> = []
@@ -4075,11 +4126,25 @@ function AcquisitionWizard({
       return matches ? [pstDocumentSelectionKey(doc, index)] : []
     })
   }, [previewDocuments, targetDocument.documento, targetDocument.hash, targetDocument.idDocumento, targetDocument.singleDocument, targetDocument.tipoDocumento])
+  const retryPreviewDocumentKeys = useMemo(() => {
+    if (!retryDocuments.length) return []
+    const keys = retryDocuments.flatMap((retryDocument) => {
+      const matches = previewDocuments.flatMap((document, index) => (
+        pstDocumentsShareIdentifier(document, retryDocument)
+          ? [pstDocumentSelectionKey(document, index)]
+          : []
+      ))
+      return matches.length === 1 ? matches : []
+    })
+    return [...new Set(keys)]
+  }, [previewDocuments, retryDocuments])
   const previewDocumentKeySignature = previewDocumentKeys.join('\u001f')
   const targetedPreviewDocumentKeySignature = targetedPreviewDocumentKeys.join('\u001f')
+  const retryPreviewDocumentKeySignature = retryPreviewDocumentKeys.join('\u001f')
   useEffect(() => {
     setSelectedDocumentKeys((current) => {
       if (!previewDocumentKeys.length) return current.length ? [] : current
+      if (isDocumentRetry) return retryPreviewDocumentKeys
       const available = new Set(previewDocumentKeys)
       const kept = current.filter((key) => available.has(key))
       if (kept.length) return kept
@@ -4088,7 +4153,28 @@ function AcquisitionWizard({
       }
       return previewDocumentKeys
     })
-  }, [previewDocumentKeySignature, targetDocument.singleDocument, targetedPreviewDocumentKeySignature])
+  }, [isDocumentRetry, previewDocumentKeySignature, retryPreviewDocumentKeySignature, targetDocument.singleDocument, targetedPreviewDocumentKeySignature])
+  useEffect(() => {
+    if (!isDocumentRetry || !retryPreviewDocumentKeys.length) return
+    setDocumentDownloadModes((current) => {
+      let changed = false
+      const next = { ...current }
+      previewDocuments.forEach((document, index) => {
+        const retryDocument = retryDocuments.find((item) => pstDocumentsShareIdentifier(document, item))
+        if (!retryDocument) return
+        const key = pstDocumentSelectionKey(document, index)
+        const mode = asText(retryDocument.modalita_documento_portale) === 'originale'
+          || retryDocument.original_documento_portale === true
+          ? 'originale'
+          : 'copia'
+        if (next[key] !== mode) {
+          next[key] = mode
+          changed = true
+        }
+      })
+      return changed ? next : current
+    })
+  }, [isDocumentRetry, previewDocuments, retryDocuments, retryPreviewDocumentKeySignature])
   const previewPartyKeySignature = previewPartyKeys.join('\u001f')
   useEffect(() => {
     setSelectedPartyKeys((current) => {
@@ -4838,12 +4924,22 @@ function AcquisitionWizard({
     kind: 'empty' | 'failed' | 'warning',
     title: string,
     reason: unknown,
+    retryDocuments: JsonRecord[] = [],
+    retryScope: 'search' | 'documents' = 'search',
   ) => {
     const friendlyReason = friendlyAcquisitionReason(reason)
-    const retryHref = acquisitionRetryHref(portal, query, mapping)
     const timestamp = new Date().toISOString()
+    const id = `local-${portal}-${kind}-${Date.now()}`
+    const retryRows = retryDocuments
+      .map(asRecord)
+      .filter((item) => pstDocumentIdentifierValues(item).length > 0)
+      .map((item) => pstDownloadDocumentPayload(
+        item,
+        asText(item.modalita_documento_portale) === 'originale' || item.original_documento_portale === true,
+      ))
+    const retryHref = acquisitionRetryHref(portal, query, mapping, retryRows.length ? id : '')
     pushAcquisitionHistoryEvent({
-      id: `local-${portal}-${kind}-${Date.now()}`,
+      id,
       portal: portal as AcquisitionHistoryEvent['portal'],
       title,
       subtitle: acquisitionHistorySubtitle(query, friendlyReason),
@@ -4852,6 +4948,8 @@ function AcquisitionWizard({
       tone: kind === 'failed' ? 'danger' : 'warning',
       badge: kind === 'failed' ? 'Non scaricato' : 'Riprova',
       local: true,
+      retryDocuments: retryRows,
+      retryScope,
     })
   }
 
@@ -4958,6 +5056,7 @@ function AcquisitionWizard({
     setFiles([])
     setSelectedDocumentKeys([])
     setDocumentDownloadModes({})
+    pendingPstFailedDocumentsRef.current = []
     setSelectedPartyKeys([])
     setPartyClassifications({})
     setSelectedEventKeys([])
@@ -5726,6 +5825,15 @@ function AcquisitionWizard({
     const signerFiles = signerFilesToAcquisitionFiles(signerRows, options.scarica_originale_portale)
     const failures = asList(signerPayload.failures).map(asRecord)
     const failureMessages = failures.map(formatDownloadFailure)
+    const failedDocuments = failures.reduce<JsonRecord[]>((items, failure) => {
+      const matched = documenti.find((document) => pstDocumentsShareIdentifier(document, failure))
+      const candidate = matched || (documenti.length === 1 ? documenti[0] : null)
+      if (!candidate) return items
+      const candidateKey = pstDocumentIdentifierValues(candidate).join('|')
+      return candidateKey && !items.some((item) => pstDocumentIdentifierValues(item).join('|') === candidateKey)
+        ? [...items, candidate]
+        : items
+    }, [])
     setImportProgress({
       active: true,
       phase: signerFiles.length ? 'Documenti ricevuti dal PST' : 'Scaricamento non completato',
@@ -5734,12 +5842,10 @@ function AcquisitionWizard({
       total: asNumber(signerPayload.documenti_richiesti) || documenti.length,
       failures: failureMessages,
     })
-    if (!signerFiles.length) {
-      throw new Error(asText(failures[0]?.errore || failures[0]?.message, 'Nessun documento scaricato dal portale ufficiale.'))
-    }
     return {
       files: signerFiles,
       failures: failureMessages,
+      failedDocuments,
       selection: {
         ...activeSelection,
         pst_session: pstSessionForServer(nextSession, cert),
@@ -5785,6 +5891,13 @@ function AcquisitionWizard({
     setBusy('download')
     try {
       const downloaded = await downloadPstDocumentsFromSigner(docsToDownload)
+      pendingPstFailedDocumentsRef.current = downloaded.failedDocuments
+      if (!downloaded.files.length) {
+        const failureReason = downloaded.failures[0] || 'Nessun documento è stato ricevuto dal portale ufficiale.'
+        setMessage('Scaricamento non completato: il documento resta disponibile per una ripresa mirata.')
+        recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', failureReason, downloaded.failedDocuments, 'documents')
+        return
+      }
       const merged = mergeAcquisitionFiles(files, downloaded.files)
       setFiles(merged)
       setSelection((current) => current ? { ...current, raw: downloaded.selection } : current)
@@ -5798,16 +5911,17 @@ function AcquisitionWizard({
       }))
       setMessage(`${downloaded.files.length} documenti PST scaricati e pronti per l'importazione.`)
       if (downloaded.failures.length) {
-        recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloaded.failures.join(' | '))
+        recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloaded.failures.join(' | '), downloaded.failedDocuments, 'documents')
       } else if (Object.keys(analysis).length && !issueRows(analysis, 'blockers').length) {
         setMessage(`${downloaded.files.length} documenti PST ricevuti. Registro e apro il fascicolo.`)
         await runImport(merged)
       }
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
+      pendingPstFailedDocumentsRef.current = []
       const errorMessage = asText(error instanceof Error ? error.message : error, 'Scaricamento documenti non completato.')
       setMessage(errorMessage)
-      recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage)
+      recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage, [], 'documents')
       setImportProgress((current) => ({
         ...current,
         active: false,
@@ -5958,7 +6072,9 @@ function AcquisitionWizard({
       setStep(7)
       const importRedirectHref = importResultRedirectHref(payload)
       if (downloadFailureMessages.length) {
-        recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloadFailureMessages.join(' | '))
+        if (!pendingPstFailedDocumentsRef.current.length) {
+          recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloadFailureMessages.join(' | '), [], 'documents')
+        }
       }
       if (importRedirectHref) {
         setMessage(downloadFailureMessages.length
@@ -6821,6 +6937,15 @@ function AcquisitionWizard({
                       </>
                     ) : null}
                   </div>
+                  {isDocumentRetry ? (
+                    <p className="iu-tel-acq-note">
+                      {retryDocuments.length && retryPreviewDocumentKeys.length === retryDocuments.length
+                        ? 'Ripresa mirata: è selezionato soltanto il documento che non è stato ricevuto dal PST.'
+                        : retryPreviewDocumentKeys.length
+                          ? 'Ripresa parziale: sono selezionati soltanto i documenti identificati con certezza; nessun altro documento verrà sostituito automaticamente.'
+                          : 'Ripresa mirata bloccata: manca l’identificativo ufficiale o il documento non è più presente nell’anteprima. Non verrà sostituito automaticamente.'}
+                    </p>
+                  ) : null}
                   <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
                     {previewDocuments.map((doc, index) => {
                       const documentKey = pstDocumentSelectionKey(doc, index)

@@ -3812,6 +3812,25 @@ def test_pst_acquisizione_pulisce_i_link_storici_e_non_chiede_materia():
     assert "portal !== 'pst' ? <label className=\"iu-tel-acq-form__wide\"><span>Oggetto / materia</span>" in source
 
 
+def test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+
+    assert "retryDocuments?: JsonRecord[]" in source
+    assert "retryScope?: 'search' | 'documents'" in source
+    assert "function acquisitionRetryContextFromLocation" in source
+    assert "function acquisitionRetryHrefWithId" in source
+    assert "add('retry_id', retryId)" in source
+    assert "const retryPreviewDocumentKeys" in source
+    assert "function pstDocumentsShareIdentifier" in source
+    assert "return matches.length === 1 ? matches : []" in source
+    assert "if (isDocumentRetry) return retryPreviewDocumentKeys" in source
+    assert "Ripresa mirata: è selezionato soltanto il documento" in source
+    assert "Non verrà sostituito automaticamente" in source
+    assert "failedDocuments: JsonRecord[]" in source
+    assert "pendingPstFailedDocumentsRef.current = downloaded.failedDocuments" in source
+    assert "recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloaded.failures.join(' | '), downloaded.failedDocuments, 'documents')" in source
+
+
 def test_pst_catalogo_acquisizione_non_apre_i_certificati_del_deposito(monkeypatch):
     from pct import uffici_giudiziari
     from web.services import react_telematico_bridge as bridge

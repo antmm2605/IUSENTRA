@@ -2393,7 +2393,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "localSignerPstFascicoloSnapshotJob" in source
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" in source
     assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
-    assert "localSignerJson('/pst/download-documenti-batch'" in source
+    assert "localSignerPstDownloadBatchJob" in source
+    assert "localSignerJson('/pst/download-documenti-batch-job'" in source
     assert "localSignerJson('/portal-assistant/session/start'" in source
     assert "{official && !portalUsesOfficialAssistant ?" in source
     assert "'/pst/download-documento'" not in source
@@ -3680,6 +3681,34 @@ def test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro(tmp_path: Path
     assert minori["hint"]["tabella_ministeriale"] == "SICID_MINORI"
 
 
+def test_pst_acquisizione_copre_tutte_le_dieci_tabelle_silenziose():
+    from web.blueprints.api_v1_react import (
+        _PST_REACT_SCHEMA_BY_SERVICE,
+        _pst_react_apply_siecic_schema,
+    )
+
+    # La scelta automatica parte dal fascicolo locale e deve coprire tutte le
+    # tabelle del wizard senza esporre un selettore all'avvocato.
+    expected = {
+        "JPW_SICID": ("civile", "SICID_CONTENZIOSO_CIVILE"),
+        "JPW_SIL_DISTR": ("lavoro", "SICID_LAVORO"),
+        "JPW_SIVG": ("volontaria", "SICID_VOLONTARIA_GIURISDIZIONE"),
+        "JPW_MIN": ("minori", "SICID_MINORI"),
+        "JPW_SIGP": ("giudice di pace", "SIGP_GIUDICE_DI_PACE"),
+        "JPW_CASSCI": ("cassazione civile", "JPW_CASSCI"),
+        "JPW_CASSPE": ("cassazione penale", "JPW_CASSPE"),
+    }
+    for service, (schema, tabella) in expected.items():
+        hint = _PST_REACT_SCHEMA_BY_SERVICE[service]
+        assert hint["schema"] == schema
+        assert hint["tabella_ministeriale"] == tabella
+
+    siecic = _PST_REACT_SCHEMA_BY_SERVICE["JPW_SIECIC"]
+    assert _pst_react_apply_siecic_schema(dict(siecic), "esecuzione mobiliare")["tabella_ministeriale"] == "SIECIC_ESECUZIONI_MOBILIARI"
+    assert _pst_react_apply_siecic_schema(dict(siecic), "esecuzione immobiliare")["tabella_ministeriale"] == "SIECIC_ESECUZIONI_IMMOBILIARI"
+    assert _pst_react_apply_siecic_schema(dict(siecic), "procedura concorsuale")["tabella_ministeriale"] == "SIECIC_PROCEDURE_CONCORSUALI"
+
+
 def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
     page_source = source
@@ -3688,9 +3717,17 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "checkLocalSigner(false, { silent: true" in source
     assert "REACT_PST_MINISTERIAL_PROFILE_KEY" in source
     assert "LOCAL_SIGNER_PST_CERT_PREFLIGHT_TIMEOUT_MS = 3_500" in source
-    assert "readCachedPstMinisterialProfile" in source
-    assert "rememberPstMinisterialProfile(next, 'fascicolo-locale')" in source
+    assert "readCachedPstMinisterialProfile" not in source
+    assert "rememberPstMinisterialProfile(next, 'fascicolo-locale')" not in source
     assert "rememberPstMinisterialProfile(next, 'manual')" in source
+    initial_query_block = source[source.index("function acquisitionInitialQuery"):source.index("function acquisitionTargetDocument")]
+    assert "cached.servizio_pst_preferito" not in initial_query_block
+    schema_hint_block = source[source.index("fetch(`/api/v1/ui/telematico/pst/schema-hint?"):source.index("const canUsePstSearchSnapshot")]
+    assert "setQuery((current)" not in schema_hint_block
+    selected_schema_block = source[source.index("const selectedPstSearchSchemas"):source.index("const removePstOffice")]
+    assert "const resolvedHint" in selected_schema_block
+    assert "return resolvedHint ? [resolvedHint] : ['']" in selected_schema_block
+    assert "Non usiamo cache generiche" in selected_schema_block
     retry_block = source[source.index("function acquisitionRetryHref"):source.index("function pstMinisterialProfileCacheKey")]
     assert "if (portal === 'pst')" in retry_block
     assert "add('ruolo_polisweb', query.ruoloPolisweb)" in retry_block
@@ -3703,12 +3740,21 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "ensurePstCertificate()" not in run_search_block
     assert run_search_block.index("precheckedPstCert = await requirePstCertificateBeforeSearch()") < run_search_block.index("updateLocalSignerAutomatically()")
     assert "let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()" in run_search_block
+    assert "search_only: false" in run_search_block
+    assert "include_full_snapshot: true" in run_search_block
+    assert "single_interactive_batch: true" in run_search_block
+    assert "if (pstSchemaHintPending)" in run_search_block
+    assert "Attendo la selezione automatica della tabella ministeriale" in run_search_block
+    assert "portal === 'pst' && selectedPstOffices.length ? null" in source
     assert "if (!checkedSigner && precheckedPstCert)" in run_search_block
     assert "checkLocalSigner(true)" in run_search_block
     assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" not in run_search_block
     assert "Ricerca PST non avviata" in source
     assert "Nessun passaggio avviato" in page_source
     assert "progress.active ? <progress" in page_source
+    assert "documenti elaborati" in page_source
+    assert "localSignerPstDownloadBatchJob" in page_source
+    assert "localSignerJson('/pst/download-documenti-batch-job'" in page_source
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
     assert "const officeCode = office.codice || office.codiceMinistero" in page_source
     assert "fromExistingCode?.codice || explicitOfficeCode" in page_source
@@ -3754,6 +3800,9 @@ def test_pst_acquisizione_deduce_le_tabelle_senza_mostrarle_nella_ui():
     assert "officeSuggestionDetails(office)" in source
     assert "officeTypeLabel(type)" in source
     assert "office.codiceMinistero, office.servizioPst" not in source
+    selected_schema_block = source[source.index("const selectedPstSearchSchemas"):source.index("const removePstOffice")]
+    assert "pstSchemaHint.servizio_pst_preferito" in selected_schema_block
+    assert "return resolvedHint ? [resolvedHint] : ['']" in selected_schema_block
 
 
 def test_pst_acquisizione_pulisce_i_link_storici_e_non_chiede_materia():

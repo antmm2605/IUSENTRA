@@ -2078,6 +2078,7 @@ def build_fascicoli_runtime(
         fonte = _portale_ufficiale_label(fasc)
         u = g.utente_corrente
         documenti_creati: list[dict] = []
+        documenti_esistenti_ids = {str(doc.id) for doc in fasc.documenti}
 
         def _portal_key_pairs_from_item(item: dict) -> set[str]:
             payload = dict(item or {})
@@ -2171,7 +2172,16 @@ def build_fascicoli_runtime(
                 id_repeatto_portale=str(item.get("id_repeatto") or "").strip(),
                 msg_id_portale=str(item.get("msg_id") or "").strip(),
             )
-            documenti_creati.append({"doc": doc, "item": item, "riusato": False})
+            documenti_creati.append(
+                {
+                    "doc": doc,
+                    "item": item,
+                    # La persistenza può riusare un record già presente; il
+                    # report deve esporlo correttamente invece di segnalarlo
+                    # come una nuova acquisizione.
+                    "riusato": str(doc.id) in documenti_esistenti_ids,
+                }
+            )
             for key in _portal_key_pairs_from_document(doc) | portal_keys:
                 documenti_per_chiave_portale.setdefault(key, doc)
             if nome_norm:
@@ -2355,9 +2365,14 @@ def build_fascicoli_runtime(
         )
         _sync.pubblica("modifica", "fascicoli", fasc.id, utente=u.username if u else "")
 
+        documenti_riusati = sum(1 for entry in documenti_creati if entry.get("riusato"))
+        documenti_nuovi = len(documenti_creati) - documenti_riusati
         return {
             "fonte": fonte,
             "documenti_importati": len(documenti_creati),
+            "documenti_registrati": len(documenti_creati),
+            "documenti_nuovi": documenti_nuovi,
+            "documenti_riusati": documenti_riusati,
             "documenti": [
                 {
                     "fascicolo_document_id": entry["doc"].id,

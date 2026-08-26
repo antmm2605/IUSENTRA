@@ -725,22 +725,6 @@ function pstMinisterialProfileCacheKey(values: {
   return [office, numero, anno].join('|')
 }
 
-function readCachedPstMinisterialProfile(values: {
-  ufficio?: string
-  ufficioCodice?: string
-  numero?: string
-  anno?: string
-}): JsonRecord {
-  try {
-    const key = pstMinisterialProfileCacheKey(values)
-    if (!key) return {}
-    const records = asRecord(JSON.parse(window.localStorage?.getItem(REACT_PST_MINISTERIAL_PROFILE_KEY) || '{}'))
-    return asRecord(records[key])
-  } catch {
-    return {}
-  }
-}
-
 function appInternalHref(value: unknown): string {
   const raw = asText(value)
   if (!raw) return ''
@@ -1119,12 +1103,6 @@ function ministerialProfileFromSchema(value: unknown): JsonRecord {
 function acquisitionInitialQuery(): AcquisitionQuery {
   const params = new URLSearchParams(window.location.search)
   const documento = asText(params.get('documento') || params.get('documento_portale'))
-  const cached = readCachedPstMinisterialProfile({
-    ufficio: asText(params.get('ufficio')),
-    ufficioCodice: asText(params.get('ufficio_codice')),
-    numero: asText(params.get('numero')),
-    anno: asText(params.get('anno')),
-  })
   const rawSchema = asText(params.get('schema') || params.get('tabella') || params.get('tabella_ministeriale') || params.get('quick_filter'))
   const profile = ministerialProfileFromSchema(
     [
@@ -1133,10 +1111,6 @@ function acquisitionInitialQuery(): AcquisitionQuery {
       params.get('registro_portale'),
       params.get('tabella_ministeriale'),
       rawSchema,
-      cached.servizio_pst_preferito,
-      cached.tabella_ministeriale,
-      cached.registro_portale,
-      cached.schema,
     ].filter(Boolean).join(' '),
   )
   const schema = asText(profile.schema || rawSchema)
@@ -1152,12 +1126,12 @@ function acquisitionInitialQuery(): AcquisitionQuery {
     controparte: asText(params.get('controparte')),
     cf: asText(params.get('cf') || params.get('codice_fiscale')),
     oggetto: asText(params.get('oggetto') || documento),
-    materia: asText(materia || cached.materia),
-    registro: asText(registro || cached.registro),
+    materia,
+    registro,
     schema,
-    tabellaMinisteriale: asText(params.get('tabella_ministeriale') || profile.tabella_ministeriale || cached.tabella_ministeriale),
-    servizioPstPreferito: asText(params.get('servizio_pst_preferito') || params.get('servizio_pst') || profile.servizio_pst_preferito || cached.servizio_pst_preferito),
-    registroPortale: asText(params.get('registro_portale') || profile.registro_portale || cached.registro_portale),
+    tabellaMinisteriale: asText(params.get('tabella_ministeriale') || profile.tabella_ministeriale),
+    servizioPstPreferito: asText(params.get('servizio_pst_preferito') || params.get('servizio_pst') || profile.servizio_pst_preferito),
+    registroPortale: asText(params.get('registro_portale') || profile.registro_portale),
     ruoloPolisweb: asText(params.get('ruolo_polisweb') || params.get('ruolo'), 'AVV').toUpperCase(),
   }
 }
@@ -1669,8 +1643,9 @@ function AcquisitionProgressView({ progress }: { progress: ImportProgress }) {
   if (!(progress.active || progress.phase || progress.failures.length)) return null
   const phase = progress.phase || (progress.active ? 'Operazione in corso' : 'Operazione non avviata')
   const current = progress.current || (progress.active ? 'Preparazione dati' : 'Controllo fermo')
+  const documentDownload = /scaricamento documenti dal pst|documenti ricevuti|scaricamento non completato/i.test(phase)
   const summary = progress.total
-    ? `${progress.completed}/${progress.total} passaggi`
+    ? `${progress.completed}/${progress.total} ${documentDownload ? 'documenti elaborati' : 'passaggi'}`
     : progress.active
       ? 'Operazione in corso'
       : 'Nessun passaggio avviato'
@@ -1681,7 +1656,7 @@ function AcquisitionProgressView({ progress }: { progress: ImportProgress }) {
         <span>{current}</span>
         <small>{summary}</small>
       </div>
-      {progress.active ? <progress value={progress.total ? progress.completed : undefined} max={progress.total || undefined}/> : null}
+      {progress.active ? <progress aria-label={documentDownload ? 'Avanzamento scaricamento documenti PST' : 'Avanzamento acquisizione'} value={progress.total ? progress.completed : undefined} max={progress.total || undefined}/> : null}
       {progress.failures.length ? (
         <ul>
           {progress.failures.slice(0, 5).map((failure) => <li key={failure}>{failure}</li>)}
@@ -3185,6 +3160,36 @@ function pstPreviewDocumentContentKey(row: JsonRecord, index: number): string {
   return [title, date, type, sender, deposit, parent, role].filter(Boolean).join('::')
 }
 
+function pstPreviewDocumentPresentationKey(row: JsonRecord, index: number): string {
+  const title = normaliseSearch(rawPreviewDocumentTitle(row) || previewDocumentTitle(row, index))
+  const date = asText(row.data_documento || row.data_deposito || row.data)
+  const type = normaliseSearch(asText(row.tipo_atto || row.tipo))
+  const sender = normaliseSearch(asText(row.mittente || row.depositante))
+  // Il PST può ripetere lo stesso catalogo in risposta alla ricerca e nel
+  // dettaglio del fascicolo, attribuendogli identificativi di contenitore
+  // diversi. Un file con gli stessi metadati esposti va mostrato e scaricato
+  // una sola volta: l'identificativo migliore viene mantenuto sotto.
+  return title && date && type ? [title, date, type, sender].join('::') : ''
+}
+
+function mergePstPreviewDocumentRows(current: JsonRecord, incoming: JsonRecord): JsonRecord {
+  const merged: JsonRecord = { ...current }
+  Object.entries(incoming).forEach(([key, value]) => {
+    const existing = merged[key]
+    if (existing === undefined || existing === null || existing === '' || (Array.isArray(existing) && !existing.length)) {
+      merged[key] = value
+    }
+  })
+  const candidates = uniquePstValues([
+    ...asList(current.id_documento_candidates).map((value) => asText(value)),
+    ...pstDocumentIdentifierValues(current),
+    ...asList(incoming.id_documento_candidates).map((value) => asText(value)),
+    ...pstDocumentIdentifierValues(incoming),
+  ])
+  if (candidates.length) merged.id_documento_candidates = candidates
+  return merged
+}
+
 function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
   const flatten = (rows: JsonRecord[], parent?: JsonRecord): JsonRecord[] => rows.flatMap((row) => {
     const current = parent && !asText(row.parent_id_documento || row.id_documento_padre)
@@ -3211,6 +3216,7 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
   const mergedRows: JsonRecord[] = []
   const seenIdentity = new Set<string>()
   const seenContent = new Set<string>()
+  const presentationIndex = new Map<string, number>()
   const appendRows = (rows: JsonRecord[]) => {
     for (const row of rows) {
       const ids = pstDocumentIdentifierValues(row).join('|')
@@ -3221,9 +3227,16 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
         asText(row.id_deposito || row.id_deposito_esterno || row.id_deposito_pct),
       ].filter(Boolean).join('::')
       const contentKey = pstPreviewDocumentContentKey(row, mergedRows.length)
+      const presentationKey = pstPreviewDocumentPresentationKey(row, mergedRows.length)
+      const duplicateIndex = presentationKey ? presentationIndex.get(presentationKey) : undefined
+      if (duplicateIndex !== undefined) {
+        mergedRows[duplicateIndex] = mergePstPreviewDocumentRows(mergedRows[duplicateIndex], row)
+        continue
+      }
       if ((identityKey && seenIdentity.has(identityKey)) || (contentKey && seenContent.has(contentKey))) continue
       if (identityKey) seenIdentity.add(identityKey)
       if (contentKey) seenContent.add(contentKey)
+      if (presentationKey) presentationIndex.set(presentationKey, mergedRows.length)
       mergedRows.push(row)
     }
   }
@@ -3401,7 +3414,7 @@ function filterPreviewForSelectedEvents(
 }
 
 function previewPartyName(row: JsonRecord): string {
-  return asText(row.nome || row.denominazione || row.ragione_sociale || row.descrizione)
+  return asText(row.nome || row.denominazione || row.ragione_sociale || row.descrizione || previewPersonName(row))
 }
 
 function pstPartySelectionKey(row: JsonRecord, index: number): string {
@@ -3415,11 +3428,28 @@ function pstPartySelectionKey(row: JsonRecord, index: number): string {
 
 function pstPreviewParties(preview: JsonRecord, selection: JsonRecord | null): JsonRecord[] {
   const payload = asRecord(selection?.payload)
-  const detailed = [
+  const detailRows = [
     ...asList(preview.parti_dettaglio).map(asRecord),
     ...asList(payload.parti_dettaglio).map(asRecord),
   ].filter((row) => previewPartyName(row))
-  const seen = new Set(detailed.map((row) => `${normaliseSearch(previewPartyName(row))}|${asText(row.codice_fiscale || row.cf)}`))
+  const detailed: JsonRecord[] = []
+  const detailedIndexByName = new Map<string, number>()
+  const detailedIndexByFiscalCode = new Map<string, number>()
+  for (const row of detailRows) {
+    const nameKey = normaliseSearch(previewPartyName(row))
+    const fiscalCode = normaliseSearch(asText(row.codice_fiscale || row.cf || row.codice))
+    const indexedByFiscalCode = fiscalCode ? detailedIndexByFiscalCode.get(fiscalCode) : undefined
+    const duplicateIndex = indexedByFiscalCode ?? detailedIndexByName.get(nameKey)
+    if (duplicateIndex !== undefined) {
+      detailed[duplicateIndex] = { ...row, ...detailed[duplicateIndex] }
+      continue
+    }
+    const index = detailed.length
+    detailed.push(row)
+    if (nameKey) detailedIndexByName.set(nameKey, index)
+    if (fiscalCode) detailedIndexByFiscalCode.set(fiscalCode, index)
+  }
+  const seenNames = new Set(detailed.map((row) => normaliseSearch(previewPartyName(row))).filter(Boolean))
   const simple = [
     ...asList(preview.parti),
     ...asList(preview.controparti),
@@ -3428,8 +3458,8 @@ function pstPreviewParties(preview: JsonRecord, selection: JsonRecord | null): J
   ].flatMap((value) => {
     const name = asText(value)
     const key = normaliseSearch(name)
-    if (!name || seen.has(`${key}|`)) return []
-    seen.add(`${key}|`)
+    if (!name || seenNames.has(key)) return []
+    seenNames.add(key)
     return [{ nome: name }]
   })
   return [...detailed, ...simple]
@@ -4385,6 +4415,42 @@ function AcquisitionWizard({
     throw new Error('Visualizzazione PST ancora in attesa: il portale ufficiale non ha completato la scheda entro il tempo massimo. Riprova dalla stessa schermata mantenendo inserito il token.')
   }
 
+  const localSignerPstDownloadBatchJob = async (body: JsonRecord, timeoutMs = LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS): Promise<JsonRecord> => {
+    const startedAt = Date.now()
+    let jobPayload = await localSignerJson('/pst/download-documenti-batch-job', body, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
+    const jobId = asText(jobPayload.job_id)
+    if (!jobId) throw new Error('Local Signer non ha avviato il lotto documentale PST.')
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const status = asText(jobPayload.status)
+      const phase = asText(jobPayload.phase, 'Scaricamento documenti dal PST')
+      const current = asText(jobPayload.current, 'Ricevo il documento dal PST')
+      const total = Math.max(0, asNumber(jobPayload.total))
+      const completed = Math.max(0, Math.min(total || Number.MAX_SAFE_INTEGER, asNumber(jobPayload.completed)))
+      const failedDocuments = Math.max(0, asNumber(jobPayload.failed_documents))
+      setImportProgress((progress) => ({
+        ...progress,
+        active: status !== 'completed' && status !== 'failed',
+        phase,
+        current: failedDocuments ? `${current} · ${failedDocuments} con avviso` : current,
+        completed: Math.max(progress.completed, completed),
+        total: total || progress.total,
+        failures: progress.failures,
+      }))
+      if (status === 'completed') {
+        const result = asRecord(jobPayload.result)
+        if (result.ok === false) throw new Error(asText(result.errore || result.error, 'Scaricamento documenti non completato dal Local Signer.'))
+        return result
+      }
+      if (status === 'failed') {
+        throw new Error(asText(jobPayload.errore || jobPayload.error, 'Scaricamento documenti non completato dal Local Signer.'))
+      }
+      await localSignerDelay(650)
+      jobPayload = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, {}, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
+    }
+    throw new Error('Scaricamento dal PST ancora in attesa: il portale ufficiale non ha completato il lotto entro il tempo massimo. L’operazione è stata annullata senza avviare un secondo PIN; riprova dalla stessa schermata.')
+  }
+
   const requireLocalSignerBrowserBridge = async () => {
     try {
       await localSignerJson('/ping?light=1', undefined, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
@@ -4726,10 +4792,22 @@ function AcquisitionWizard({
   }, [data.offices, pstSchemaHint, query.materia, query.registro, query.registroPortale, query.schema, query.servizioPstPreferito, query.tabellaMinisteriale, selectedPstOffices])
 
   const selectedPstSearchSchemas = useMemo(() => {
-    if (automaticPstSchemas.length) return automaticPstSchemas
-    const inferred = ministerialSchemaFromQuery(query)
-    return inferred ? [inferred] : ['']
-  }, [automaticPstSchemas, query])
+    // Le tabelle restano invisibili all'avvocato. Prima della richiesta
+    // autenticata, un eventuale fascicolo locale con lo stesso ufficio/RG/anno
+    // determina una sola tabella esatta. Non usiamo cache generiche né
+    // facciamo tentativi PST successivi su registri diversi.
+    const explicit = ministerialSchemaFromQuery(query)
+    if (explicit) return [explicit]
+    const resolvedHint = asText(ministerialProfileFromSchema([
+      pstSchemaHint.schema,
+      pstSchemaHint.registro,
+      pstSchemaHint.materia,
+      pstSchemaHint.tabella_ministeriale,
+      pstSchemaHint.servizio_pst_preferito,
+      pstSchemaHint.registro_portale,
+    ].filter(Boolean).join(' ')).schema)
+    return resolvedHint ? [resolvedHint] : ['']
+  }, [pstSchemaHint, query])
 
   const removePstOffice = (officeCode: string) => {
     invalidateImportCheck()
@@ -4828,32 +4906,6 @@ function AcquisitionWizard({
         if (cancelled) return
         const hint = asRecord(asRecord(payload).hint)
         setPstSchemaHint(hint)
-        const hintedProfile = ministerialProfileFromSchema(
-          [
-            hint.servizio_pst_preferito,
-            hint.tabella_ministeriale,
-            hint.registro_portale,
-            hint.schema,
-            hint.registro,
-            hint.materia,
-          ].filter(Boolean).join(' '),
-        )
-        if (asText(hintedProfile.schema || hint.schema)) {
-          setQuery((current) => {
-            if (asText(current.schema || current.tabellaMinisteriale || current.servizioPstPreferito)) return current
-            const next = {
-              ...current,
-              schema: asText(hintedProfile.schema || hint.schema),
-              registro: asText(hintedProfile.registro || hint.registro || current.registro),
-              materia: asText(hintedProfile.materia || hint.materia || current.materia),
-              tabellaMinisteriale: asText(hint.tabella_ministeriale || hintedProfile.tabella_ministeriale),
-              servizioPstPreferito: asText(hint.servizio_pst_preferito || hintedProfile.servizio_pst_preferito),
-              registroPortale: asText(hint.registro_portale || hintedProfile.registro_portale),
-            }
-            rememberPstMinisterialProfile(next, 'fascicolo-locale')
-            return next
-          })
-        }
       })
       .catch(() => {
         if (!cancelled) setPstSchemaHint({})
@@ -4923,6 +4975,11 @@ function AcquisitionWizard({
       return
     }
     if (portal === 'pst') {
+      if (pstSchemaHintPending) {
+        setStep(2)
+        setMessage('Attendo la selezione automatica della tabella ministeriale dal fascicolo locale.')
+        return
+      }
       setStep(1)
       setMessage('Controllo certificato PST sul PC: senza certificato la ricerca fascicolo non parte.')
       try {
@@ -5066,7 +5123,12 @@ function AcquisitionWizard({
                   operation_id: operationId ? `${operationId}-${targetIndex + 1}-snapshot` : '',
                   purpose: 'view',
                   pst_session_id: session?.sessionId || '',
-                  include_full_snapshot: !targetDocument.singleDocument,
+                  // Un solo lotto curl autenticato acquisisce dati, catalogo e
+                  // sezioni del fascicolo. L'anteprima usa il risultato già
+                  // ricevuto e non apre un secondo PIN o un job nascosto.
+                  search_only: false,
+                  include_full_snapshot: true,
+                  single_interactive_batch: true,
                 }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
               } catch (error: unknown) {
                 const message = asText(error instanceof Error ? error.message : error)
@@ -5642,7 +5704,7 @@ function AcquisitionWizard({
     const tribunale = asText(activeSelection.ufficio_codice || resolvedOfficeCode())
     const cert = await ensurePstCertificate()
     const session = activePstSessionFor(tribunale, cert)
-    const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
+    const signerPayload = await localSignerPstDownloadBatchJob({
       tribunale,
       cf_avvocato: pstAttorneyFiscalCode(cert),
       cert_thumbprint: cert.thumbprint || null,
@@ -5668,7 +5730,7 @@ function AcquisitionWizard({
       active: true,
       phase: signerFiles.length ? 'Documenti ricevuti dal PST' : 'Scaricamento non completato',
       current: signerFiles.length ? asText(signerFiles[signerFiles.length - 1]?.nome || firstName) : firstName,
-      completed: signerFiles.length,
+      completed: Math.max(signerFiles.length + failureMessages.length, 0),
       total: asNumber(signerPayload.documenti_richiesti) || documenti.length,
       failures: failureMessages,
     })
@@ -5730,7 +5792,7 @@ function AcquisitionWizard({
         ...current,
         active: false,
         phase: downloaded.failures.length ? 'Documenti ricevuti con avvisi' : 'Documenti ricevuti',
-        completed: downloaded.files.length,
+        completed: Math.max(current.completed, downloaded.files.length + downloaded.failures.length),
         total: current.total || docsToDownload.length,
         failures: downloaded.failures,
       }))
@@ -6374,7 +6436,7 @@ function AcquisitionWizard({
                           <small>{officeSuggestionDetails(office)}</small>
                         </button>
                       ))
-                    ) : (
+                    ) : portal === 'pst' && selectedPstOffices.length ? null : (
                       <span>Nessun ufficio trovato nel catalogo importato. Prova con comune, distretto, codice o tipo ufficio.</span>
                     )}
                   </div>
@@ -6445,7 +6507,7 @@ function AcquisitionWizard({
                 {portal !== 'pst' ? <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder={isPatAcquisition ? 'Materia amministrativa, oggetto ricorso o istanza' : 'Oggetto, materia, reato, rito...'}/></label> : null}
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : (pstHasYearSearch() ? 'Cerca fascicoli' : 'Cerca fascicolo')}</button>
+                <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported) || (portal === 'pst' && pstSchemaHintPending)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : (pstHasYearSearch() ? 'Cerca fascicoli' : 'Cerca fascicolo')}</button>
                 <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={() => runPreview()}><FileText size={15}/> Carica anteprima</button>
                 {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(isPatAcquisition ? 3 : 4)}><ArrowRight size={15}/> {isPatAcquisition ? 'Vai al rientro ricevute' : 'Vai ai file raccolti'}</button> : null}
               </div>

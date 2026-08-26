@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.114
+IUSENTRA Local Signer - v1.6.116
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -78,7 +78,7 @@ from html.parser import HTMLParser
 from datetime import UTC, date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 from urllib.parse import parse_qs, unquote_plus, urlencode, urljoin, urlparse
 from urllib.request import Request, urlopen
 
@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.114"
+VERSION = "1.6.116"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -6574,7 +6574,6 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
         sw_show = 5
         sw_restore = 9
         hwnd_topmost = -1
-        hwnd_notopmost = -2
         swp_nomove = 0x0002
         swp_nosize = 0x0001
         swp_showwindow = 0x0040
@@ -6671,8 +6670,11 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
                 except Exception:
                     pass
 
-            if set_window_pos:
-                set_window_pos(hwnd, hwnd_notopmost, 0, 0, 0, 0, swp_flags)
+            # Il provider può creare il dialogo sulla taskbar senza consegnargli
+            # il focus. Manteniamolo topmost finché il curl governato resta in
+            # vita: rimuoverlo subito lo faceva ricadere dietro IUSENTRA prima
+            # che l'utente potesse digitare il PIN. Alla chiusura del prompt la
+            # sua z-order viene rimossa naturalmente da Windows.
             return foreground_ok
         finally:
             if attach_thread_input:
@@ -6795,8 +6797,19 @@ def _windows_try_foreground_pin_prompt_once(
 
         @EnumWindowsProc
         def _enum_window(hwnd, _lparam):
-            if int(hwnd) in excluded:
-                return True
+            # Alcuni provider riutilizzano per il secondo PIN lo stesso HWND
+            # creato durante la visualizzazione. Se è rimasto minimizzato o
+            # invisibile, non va escluso solo perché era presente prima del
+            # nuovo curl: è proprio il dialogo di scarico da riportare davanti.
+            # Una finestra preesistente già visibile resta invece fuori dal
+            # pump, così non si sottrae il focus ad altri programmi.
+            preexisting = int(hwnd) in excluded
+            if preexisting:
+                try:
+                    if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
+                        return True
+                except Exception:
+                    return True
             title = _window_text(hwnd)
             class_name = _class_name(hwnd)
             process_name = _process_name(hwnd)
@@ -7011,10 +7024,38 @@ def _cleanup_managed_processes() -> None:
         _finish_managed_process(entry, terminate=True)
 
 
-def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+def _run_process_with_pin_foreground(
+    cmd: list[str],
+    *,
+    reclaim_existing_pin_prompt: bool = False,
+    **kwargs: Any,
+) -> subprocess.CompletedProcess:
+    progress_callback = kwargs.pop("progress_callback", None)
     run_kwargs = _windows_hidden_subprocess_kwargs(kwargs)
     if sys.platform != "win32":
-        return subprocess.run(cmd, **run_kwargs)
+        if not callable(progress_callback):
+            return subprocess.run(cmd, **run_kwargs)
+        stop_event = threading.Event()
+
+        def _pump_progress_non_windows() -> None:
+            while not stop_event.is_set():
+                try:
+                    progress_callback()
+                except Exception:
+                    log.debug("Monitor avanzamento curl PST non disponibile", exc_info=True)
+                stop_event.wait(0.35)
+
+        progress_worker = threading.Thread(
+            target=_pump_progress_non_windows,
+            name="iusentra-pst-download-progress",
+            daemon=True,
+        )
+        progress_worker.start()
+        try:
+            return subprocess.run(cmd, **run_kwargs)
+        finally:
+            stop_event.set()
+            progress_worker.join(timeout=0.5)
 
     try:
         pump_seconds = float(run_kwargs.get("timeout") or PST_SOAP_MAX_TIME + 10)
@@ -7036,9 +7077,15 @@ def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subproces
         run_kwargs["stderr"] = subprocess.PIPE
 
     existing_windows = _windows_visible_top_level_window_handles()
+    # Durante una seconda autenticazione TLS alcuni CSP riutilizzano la stessa
+    # finestra PIN: Windows la può dichiarare visibile pur lasciandola soltanto
+    # nella taskbar. Per le sole richieste PST governate la finestra candidata
+    # deve quindi essere ripresa dal pump, non esclusa dalla fotografia iniziale.
+    prompt_excluded_windows = set() if reclaim_existing_pin_prompt else existing_windows
     owned_windows: set[int] = set()
     stop_event = threading.Event()
     worker: Optional[threading.Thread] = None
+    progress_worker: Optional[threading.Thread] = None
     process: Any = None
     try:
         process = subprocess.Popen(cmd, **run_kwargs)
@@ -7046,11 +7093,26 @@ def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subproces
         _register_managed_process(process, job_handle, owned_windows)
         worker = threading.Thread(
             target=_windows_pin_prompt_foreground_pump,
-            args=(stop_event, pump_seconds, existing_windows, owned_windows),
+            args=(stop_event, pump_seconds, prompt_excluded_windows, owned_windows),
             name="iusentra-pin-foreground",
             daemon=True,
         )
         worker.start()
+        if callable(progress_callback):
+            def _pump_progress() -> None:
+                while not stop_event.is_set():
+                    try:
+                        progress_callback()
+                    except Exception:
+                        log.debug("Monitor avanzamento curl PST non disponibile", exc_info=True)
+                    stop_event.wait(0.35)
+
+            progress_worker = threading.Thread(
+                target=_pump_progress,
+                name="iusentra-pst-download-progress",
+                daemon=True,
+            )
+            progress_worker.start()
         try:
             stdout, stderr = process.communicate(input=input_payload, timeout=timeout_seconds)
         except subprocess.TimeoutExpired as exc:
@@ -7069,6 +7131,8 @@ def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subproces
         return completed
     finally:
         stop_event.set()
+        if progress_worker is not None:
+            progress_worker.join(timeout=0.5)
         if worker is not None:
             worker.join(timeout=0.5)
         if process is not None:
@@ -7083,6 +7147,10 @@ def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.C
     except (TypeError, ValueError):
         timeout_seconds = float(PST_INTERACTIVE_CURL_MAX_TIME)
     kwargs["timeout"] = min(timeout_seconds, float(PST_INTERACTIVE_CURL_MAX_TIME))
+    # Curl è usato per i flussi PST con il lock interattivo esclusivo: se il
+    # provider riusa il dialogo PIN della vista iniziale, il pump può riprenderlo
+    # anche quando Windows lo lascia dietro alla finestra dell'applicazione.
+    kwargs["reclaim_existing_pin_prompt"] = True
 
     if not _pst_interactive_curl_lock.acquire(blocking=False):
         raise RuntimeError(
@@ -7675,6 +7743,7 @@ def _soap_call_curl_batch_raw_best_effort(
     requests: list[dict],
     cert_thumbprint: Optional[str] = None,
     pkcs11_uri: Optional[str] = None,
+    progress_callback: Optional[Callable[[int], None]] = None,
 ) -> list[dict]:
     """
     Variante best-effort del batch curl:
@@ -7709,12 +7778,15 @@ def _soap_call_curl_batch_raw_best_effort(
                     "status_code": _http_status_from_headers(headers_text),
                     "error": f"Il PST ha restituito una SOAP Fault: {fault}",
                 }]
-            return [{
+            result = [{
                 "body_bytes": body_bytes,
                 "headers_text": headers_text,
                 "status_code": _http_status_from_headers(headers_text),
                 "error": "",
             }]
+            if callable(progress_callback):
+                progress_callback(0)
+            return result
         except Exception as e:
             return [{
                 "body_bytes": b"",
@@ -7808,11 +7880,39 @@ def _soap_call_curl_batch_raw_best_effort(
             cfg_file = f.name
         tmp_files.append(cfg_file)
 
+        completed_transfer_indexes: set[int] = set()
+
+        def _report_completed_transfer(index: int) -> None:
+            if index in completed_transfer_indexes or not callable(progress_callback):
+                return
+            completed_transfer_indexes.add(index)
+            try:
+                progress_callback(index)
+            except Exception:
+                log.debug("Aggiornamento avanzamento lotto PST non disponibile", exc_info=True)
+
+        def _report_completed_transfers_while_running() -> None:
+            # Curl elabora le sezioni del file config in ordine. Quando la
+            # risposta N+1 ha iniziato a scrivere gli header, la risposta N e'
+            # gia' terminata: e' un segnale materiale, non una stima temporale.
+            for index in range(max(0, len(transfers) - 1)):
+                next_headers = Path(transfers[index + 1]["hdr_file"])
+                try:
+                    if next_headers.exists() and next_headers.stat().st_size:
+                        _report_completed_transfer(index)
+                except OSError:
+                    continue
+
+        # Una ricerca automatica deve provare ogni canale compatibile. Con
+        # --fail-early curl si fermava al primo timeout o fault e non arrivava
+        # alle tabelle successive, nonostante questa funzione sia best-effort.
         result = _run_curl_with_pin_foreground(
-            [_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file],
+            [_curl_command(), "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
+            progress_callback=_report_completed_transfers_while_running if callable(progress_callback) else None,
         )
+        _report_completed_transfers_while_running()
         batch_error = ""
         if result.returncode != 0:
             batch_error = _curl_errore_leggibile(
@@ -7861,6 +7961,14 @@ def _soap_call_curl_batch_raw_best_effort(
                 "status_code": status,
                 "error": error,
             })
+        for index, transfer in enumerate(transfers):
+            headers_path = Path(transfer["hdr_file"])
+            response_path = Path(transfer["resp_file"])
+            try:
+                if headers_path.exists() and (headers_path.stat().st_size or response_path.exists()):
+                    _report_completed_transfer(index)
+            except OSError:
+                continue
         return results
     finally:
         for fp in tmp_files:
@@ -8132,6 +8240,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
     allow_cert_retry: bool = True,
+    progress_callback: Optional[Callable[[int], None]] = None,
 ) -> list[dict]:
     """
     Variante session-aware best-effort del batch PST:
@@ -8152,6 +8261,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
             cookie_results = _soap_call_curl_batch_raw_best_effort(
                 effective_requests,
                 cert_thumbprint=None,
+                progress_callback=None,
             )
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
@@ -8204,6 +8314,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     cert_results = _soap_call_curl_batch_raw_best_effort(
         effective_requests,
         cert_thumbprint=cert_thumbprint,
+        progress_callback=progress_callback,
     )
     final_blocking_error = _pst_best_effort_batch_blocking_error(cert_results)
     if final_blocking_error and _pst_auth_failure_requires_fresh_session(final_blocking_error):
@@ -11640,6 +11751,37 @@ def _parse_pst_structured_sections_xml(xml_by_service: dict[str, str]) -> dict[s
     return sezioni
 
 
+def _pst_qbuilder_section_service_names(base_url: str) -> list[str]:
+    """Restituisce le sezioni leggibili con i parametri già noti del fascicolo."""
+    if _pst_servizio_cassazione_civile(base_url):
+        return [
+            "QC_ProvvedimentiImpugnati",
+            "QC_PartiRicorso",
+            "QC_DifensoriRicorso",
+            "QC_ElencoMemorie",
+            "QC_UdienzeRicorso",
+            "QC_EsitoRicorso",
+            "QC_Controricorso",
+            "QC_SentenzeRicorso",
+        ]
+    if _pst_servizio_cassazione_penale(base_url):
+        return [
+            "QP_ProvvedimentiImpugnati",
+            "QP_PartiDifensori",
+            "QP_UdienzeRicorso",
+            "QP_EsitoRicorso",
+            "QP_ElencoRestituzioni",
+            "QP_SentenzeRicorso",
+        ]
+    return [
+        "StoricoFascicolo",
+        "RicercaScadenze",
+        "ComunicazioneCancelleria",
+        "DettaglioComunicazione",
+        "DettaglioIstanze",
+    ]
+
+
 def _pst_carica_sezioni_fascicolo_qbuilder(
     *,
     base_url: str,
@@ -11660,34 +11802,7 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
 ) -> dict[str, list[dict]]:
     if not _pst_namespace_qbuilder(base_url):
         return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": [], "parti": [], "difensori": []}
-    if _pst_servizio_cassazione_civile(base_url):
-        servizi = [
-            "QC_ProvvedimentiImpugnati",
-            "QC_PartiRicorso",
-            "QC_DifensoriRicorso",
-            "QC_ElencoMemorie",
-            "QC_UdienzeRicorso",
-            "QC_EsitoRicorso",
-            "QC_Controricorso",
-            "QC_SentenzeRicorso",
-        ]
-    elif _pst_servizio_cassazione_penale(base_url):
-        servizi = [
-            "QP_ProvvedimentiImpugnati",
-            "QP_PartiDifensori",
-            "QP_UdienzeRicorso",
-            "QP_EsitoRicorso",
-            "QP_ElencoRestituzioni",
-            "QP_SentenzeRicorso",
-        ]
-    else:
-        servizi = [
-            "StoricoFascicolo",
-            "RicercaScadenze",
-            "ComunicazioneCancelleria",
-            "DettaglioComunicazione",
-            "DettaglioIstanze",
-        ]
+    servizi = _pst_qbuilder_section_service_names(base_url)
     requests: list[dict] = []
     names: list[str] = []
     extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
@@ -11883,6 +11998,7 @@ def _pst_download_documenti_batch_payloads(
     do_preflight: bool = True,
     cookie_file: Optional[str] = None,
     original: bool = False,
+    progress_callback: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> dict:
     """
     Scarica N documenti PST con UN SOLO processo curl per l'intero batch.
@@ -11904,6 +12020,19 @@ def _pst_download_documenti_batch_payloads(
         _tmp_cookie = _ensure_cookie_file()
         cookie_file = _tmp_cookie
 
+    def _report_progress(*, completed: int, current: str) -> None:
+        if not callable(progress_callback):
+            return
+        try:
+            progress_callback({
+                "phase": "Scaricamento documenti dal PST",
+                "current": current,
+                "completed": max(0, min(int(completed), documenti_richiesti)),
+                "total": documenti_richiesti,
+            })
+        except Exception:
+            log.debug("Aggiornamento avanzamento documenti PST non disponibile", exc_info=True)
+
     try:
         if do_preflight:
             preflight = _pst_preflight_auth_curl(
@@ -11924,7 +12053,14 @@ def _pst_download_documenti_batch_payloads(
         )
         url_documenti = _pst_url_documenti(base_url)
         download_cookie_file = _pst_download_cookie_file(base_url, cookie_file)
-        prefer_cookie_only = _pst_download_can_use_cookie_only(base_url, download_cookie_file)
+        # Il download di un lotto deve restare una sola invocazione curl
+        # autenticata con il certificato. Un tentativo iniziale cookie-only,
+        # seguito dal retry mTLS quando il PST lo rifiuta, produrrebbe infatti
+        # un secondo processo curl e una seconda richiesta non richiesta.
+        # I cookie restano allegati alla medesima invocazione certificata per
+        # conservare la sessione, ma non sono mai un percorso alternativo per
+        # il lotto documentale.
+        prefer_cookie_only = False
         usa_wasp = bool(policy.get("x_wasp_user")) or _pst_servizio_sicid_family(base_url) or servizio == "JPW_SIECIC"
         extra_base = [f"X-WASP-User: {cf_avvocato}"] if (usa_wasp and cf_avvocato) else []
 
@@ -11963,6 +12099,10 @@ def _pst_download_documenti_batch_payloads(
                     in direct_keys
                 )
             ]
+            _report_progress(
+                completed=len(files) + len(failures),
+                current="Verifico i documenti ricevuti dal PST",
+            )
 
         # ── Fase 1: risolvi id_cat e metadati mancanti per SICID/SIECIC ──
         # Un solo processo curl per tutti i profili da recuperare.
@@ -12176,6 +12316,31 @@ def _pst_download_documenti_batch_payloads(
                 "documenti_richiesti": documenti_richiesti, "documenti_scaricati": len(files),
             }
 
+        completed_before_download = len(files) + len(failures)
+        first_name = str(dl_meta[0].get("nome_documento") or dl_meta[0].get("id_documento") or "documento selezionato").strip()
+        _report_progress(
+            completed=completed_before_download,
+            current=f"Documento {completed_before_download + 1} di {documenti_richiesti}: {first_name}",
+        )
+
+        def _on_download_transfer_complete(transfer_index: int) -> None:
+            completed = completed_before_download + transfer_index + 1
+            next_meta = dl_meta[transfer_index + 1] if transfer_index + 1 < len(dl_meta) else None
+            if next_meta is not None:
+                next_name = str(next_meta.get("nome_documento") or next_meta.get("id_documento") or "documento selezionato").strip()
+                current = (
+                    f"Documento {completed} di {documenti_richiesti} ricevuto. "
+                    f"Scarico documento {completed + 1} di {documenti_richiesti}: {next_name}"
+                )
+            else:
+                current = f"Documento {completed} di {documenti_richiesti} ricevuto. Verifico il lotto."
+            _report_progress(completed=completed, current=current)
+
+        def _on_batch_transfer_complete(transfer_index: int) -> None:
+            if transfer_index < len(warmup_reqs):
+                return
+            _on_download_transfer_complete(transfer_index - len(warmup_reqs))
+
         # ── Fase 3: UN SOLO processo curl per tutti i download ──
         try:
             warmup_reqs: list[dict] = []
@@ -12223,6 +12388,7 @@ def _pst_download_documenti_batch_payloads(
                 cert_thumbprint=cert_thumbprint,
                 cookie_file=download_cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
+                progress_callback=_on_batch_transfer_complete if callable(progress_callback) else None,
             )
             if warmup_reqs:
                 batch_result_items = batch_result_items[len(warmup_reqs):]
@@ -12440,6 +12606,9 @@ def _pst_async_job_response(job: dict[str, Any]) -> dict[str, Any]:
         "updated_at": job.get("updated_at", ""),
         "elapsed_seconds": round(max(0.0, time.time() - started), 1),
     }
+    for key in ("completed", "total", "failed_documents"):
+        if key in job:
+            response[key] = job[key]
     if job.get("error"):
         response["errore"] = job.get("error", "")
     if job.get("status") == "completed":
@@ -12518,6 +12687,102 @@ def _pst_start_fascicolo_snapshot_job(payload: dict[str, Any]) -> dict[str, Any]
         target=_pst_run_fascicolo_snapshot_job,
         args=(job_id, payload),
         name=f"iusentra-pst-fascicolo-{job_id[:8]}",
+        daemon=True,
+    )
+    thread.start()
+    return _pst_async_job_response(job)
+
+
+def _pst_run_download_documenti_batch_job(job_id: str, payload: dict[str, Any]) -> None:
+    try:
+        documents = payload.get("documents") or payload.get("documenti") or []
+        total = len(documents) if isinstance(documents, list) else 0
+        _pst_update_async_job(
+            job_id,
+            status="running",
+            phase="Scaricamento documenti dal PST",
+            current="Preparo il lotto documentale",
+            completed=0,
+            total=total,
+            failed_documents=0,
+        )
+
+        def _on_progress(event: dict[str, Any]) -> None:
+            _pst_update_async_job(
+                job_id,
+                status="running",
+                phase=str(event.get("phase") or "Scaricamento documenti dal PST"),
+                current=str(event.get("current") or "Ricevo il documento dal PST"),
+                completed=max(0, int(event.get("completed") or 0)),
+                total=max(0, int(event.get("total") or total)),
+            )
+
+        job_payload = dict(payload)
+        job_payload["_pst_progress_callback"] = _on_progress
+        shim = _PstSnapshotJobShim(job_payload)
+        _Handler._pst_download_documenti_batch(shim)  # type: ignore[name-defined]
+        response = shim.response or {"ok": False, "errore": "Risposta vuota dal Local Signer."}
+        if shim.status >= 400 or response.get("ok") is False:
+            _pst_update_async_job(
+                job_id,
+                status="failed",
+                phase="Scaricamento non completato",
+                current="Il PST non ha completato il lotto documentale",
+                error=str(response.get("errore") or response.get("error") or "Errore sconosciuto."),
+                result=response,
+            )
+            return
+        requested = int(response.get("documenti_richiesti") or total or 0)
+        received = len(response.get("files") or []) if isinstance(response.get("files"), list) else 0
+        failed = len(response.get("failures") or []) if isinstance(response.get("failures"), list) else 0
+        _pst_update_async_job(
+            job_id,
+            status="completed",
+            phase="Documenti ricevuti dal PST" if received else "Scaricamento non completato",
+            current="Lotto documentale ricevuto, verifico i file prima dell'importazione",
+            completed=min(requested, max(received + failed, requested if requested and not failed else 0)),
+            total=requested,
+            failed_documents=failed,
+            result=response,
+        )
+    except Exception as exc:
+        log.error("Errore job PST download documenti: %s", exc)
+        _pst_update_async_job(
+            job_id,
+            status="failed",
+            phase="Scaricamento non completato",
+            current="Il Local Signer ha interrotto il lotto documentale",
+            error=str(exc),
+        )
+
+
+def _pst_start_download_documenti_batch_job(payload: dict[str, Any]) -> dict[str, Any]:
+    _cleanup_pst_async_jobs()
+    documents = payload.get("documents") or payload.get("documenti") or []
+    total = len(documents) if isinstance(documents, list) else 0
+    job_id = secrets.token_urlsafe(18)
+    now = datetime.now().isoformat(timespec="seconds")
+    job = {
+        "job_id": job_id,
+        "status": "queued",
+        "phase": "Scaricamento documenti dal PST",
+        "current": "Preparo il lotto documentale",
+        "started_at": now,
+        "updated_at": now,
+        "started_monotonic": time.time(),
+        "updated_monotonic": time.time(),
+        "completed": 0,
+        "total": total,
+        "failed_documents": 0,
+        "result": None,
+        "error": "",
+    }
+    with _pst_async_job_lock:
+        _pst_async_job_cache[job_id] = job
+    thread = threading.Thread(
+        target=_pst_run_download_documenti_batch_job,
+        args=(job_id, dict(payload)),
+        name=f"iusentra-pst-download-{job_id[:8]}",
         daemon=True,
     )
     thread.start()
@@ -12739,6 +13004,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/pst/fascicolo-snapshot",
             "/pst/fascicolo-snapshot-job",
             "/pst/download-documenti-batch",
+            "/pst/download-documenti-batch-job",
             "/pdp/ricerca",
             "/pdp/documenti",
             "/pat/ricerca",
@@ -12791,6 +13057,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_fascicolo_snapshot()
         elif path == "/pst/fascicolo-snapshot-job":
             self._pst_fascicolo_snapshot_job()
+        elif path == "/pst/download-documenti-batch-job":
+            self._pst_download_documenti_batch_job()
         elif re.fullmatch(r"/pst/jobs/[^/]+", path):
             # POST forza il preflight CORS/PNA nei browser HTTPS moderni.
             # Il GET resta disponibile per retrocompatibilita'.
@@ -13394,6 +13662,11 @@ class _Handler(BaseHTTPRequestHandler):
         """
         data = self._read_json()
         self._send_json(_pst_start_fascicolo_snapshot_job(data))
+
+    def _pst_download_documenti_batch_job(self):
+        """Avvia il lotto PST e pubblica avanzamenti reali per documento."""
+        data = self._read_json()
+        self._send_json(_pst_start_download_documenti_batch_job(data))
 
     def _pst_job_status(self, path: str):
         match = re.fullmatch(r"/pst/jobs/([^/]+)", path)
@@ -14049,6 +14322,12 @@ class _Handler(BaseHTTPRequestHandler):
         data = self._read_json()
         tribunale = str(data.get("tribunale") or data.get("codice_ufficio") or "").strip()
         numero_rg = str(data.get("numero_rg") or "").strip()
+        search_only = bool(data.get("search_only"))
+        include_full_snapshot = bool(data.get("include_full_snapshot"))
+        # Il wizard può richiedere un solo curl autenticato: ricerca, profilo,
+        # catalogo e sezioni note vengono composti nello stesso batch, senza
+        # preflight o job di visualizzazione successivi.
+        single_interactive_batch = bool(data.get("single_interactive_batch"))
         try:
             anno_rg = int(data.get("anno_rg") or 0)
         except (TypeError, ValueError):
@@ -14142,7 +14421,10 @@ class _Handler(BaseHTTPRequestHandler):
                 id_ruolo_jpw=id_ruolo_jpw,
                 registro_portale=registro_portale,
             )
-            soap_documenti = _soap_documenti_body(
+            # La ricerca non diventa un'anteprima implicita: nella prima fase
+            # viene interrogato solo il fascicolo. Il catalogo, lo storico e
+            # il profilo sono caricati nello Step 3 sulla riga selezionata.
+            soap_documenti = "" if search_only else _soap_documenti_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
                 numero_rg=numero_rg,
@@ -14154,15 +14436,17 @@ class _Handler(BaseHTTPRequestHandler):
                 id_dfa=id_dfa,
                 id_fascicolo=str(data.get("id_fascicolo") or "").strip(),
             )
-            soap_profilo = _soap_profilo_fascicolo_body(
-                base_url=base_url,
-                codice_ufficio=codice_pst,
-                numero_rg=numero_rg,
-                anno_rg=anno_rg,
-                sub_procedimento=sub_procedimento,
-                id_ruolo_jpw=id_ruolo_jpw,
-                registro_portale=registro_portale,
-                id_dfa=id_dfa,
+            soap_profilo = (
+                "" if search_only else _soap_profilo_fascicolo_body(
+                    base_url=base_url,
+                    codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                    sub_procedimento=sub_procedimento,
+                    id_ruolo_jpw=id_ruolo_jpw,
+                    registro_portale=registro_portale,
+                    id_dfa=id_dfa,
+                )
             ) if _pst_namespace_qbuilder(base_url) else ""
 
             with _pst_session_lock_for(session_entry):
@@ -14214,8 +14498,34 @@ class _Handler(BaseHTTPRequestHandler):
                         "cookie_file": cookie_file,
                         "servizio_logico": _pst_servizio_proxy(base_url),
                     })
+                section_batch_indexes: dict[str, int] = {}
+                if single_interactive_batch and include_full_snapshot and _pst_namespace_qbuilder(base_url):
+                    for servizio_sezione in _pst_qbuilder_section_service_names(base_url):
+                        soap_sezione = _soap_qbuilder_fascicolo_section_body(
+                            base_url,
+                            codice_pst,
+                            numero_rg,
+                            anno_rg,
+                            servizio_sezione,
+                            sub_procedimento=sub_procedimento,
+                            id_ruolo_jpw=id_ruolo_jpw,
+                            registro_portale=registro_portale,
+                            id_dfa=id_dfa,
+                            id_fascicolo=str(data.get("id_fascicolo") or "").strip(),
+                        )
+                        if not soap_sezione:
+                            continue
+                        section_batch_indexes[servizio_sezione] = len(batch_requests)
+                        batch_requests.append({
+                            "url": url_ricerca,
+                            "soap_body": soap_sezione,
+                            "extra_headers": extra_headers,
+                            "soap_action": "",
+                            "cookie_file": cookie_file,
+                            "servizio_logico": _pst_servizio_proxy(base_url),
+                        })
                 fallback_batches = []
-                if _pst_namespace_qbuilder(base_url):
+                if _pst_namespace_qbuilder(base_url) and not single_interactive_batch:
                     fallback_targets: list[tuple[str, str]] = []
                     for codice_alternativo in _pst_codici_ufficio_ricerca_esatta(codice_pst, tribunale)[1:]:
                         fallback_targets.append((base_url, codice_alternativo))
@@ -14244,7 +14554,7 @@ class _Handler(BaseHTTPRequestHandler):
                         fallback_url_ricerca = _pst_url_ricerca(fallback_http_base_url)
                         fallback_url_documenti = _pst_url_documenti(fallback_http_base_url)
                         fallback_extra_headers = [f"X-WASP-User: {cf_avvocato}"]
-                        fallback_soap_profilo = _soap_profilo_fascicolo_body(
+                        fallback_soap_profilo = "" if search_only else _soap_profilo_fascicolo_body(
                             base_url=fallback_base_url,
                             codice_ufficio=fallback_codice,
                             numero_rg=numero_rg,
@@ -14293,7 +14603,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 "cookie_file": cookie_file,
                                 "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                             })
-                        fallback_soap_documenti = _soap_documenti_body(
+                        fallback_soap_documenti = "" if search_only else _soap_documenti_body(
                             base_url=fallback_base_url,
                             codice_ufficio=fallback_codice,
                             numero_rg=numero_rg,
@@ -14315,7 +14625,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 "cookie_file": cookie_file,
                                 "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                             })
-                        if _pst_servizio_sigp(fallback_base_url):
+                        if not search_only and _pst_servizio_sigp(fallback_base_url):
                             fallback_info["sigp_atti_index"] = len(batch_requests)
                             batch_requests.append({
                                 "url": fallback_url_documenti,
@@ -14550,8 +14860,20 @@ class _Handler(BaseHTTPRequestHandler):
                         _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
             sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
-            include_full_snapshot = bool(data.get("include_full_snapshot"))
-            if _pst_namespace_qbuilder(base_url) and include_full_snapshot:
+            if single_interactive_batch and section_batch_indexes:
+                xml_by_service: dict[str, str] = {}
+                for servizio_sezione, result_index in section_batch_indexes.items():
+                    if result_index >= len(batch_result_items):
+                        continue
+                    result = batch_result_items[result_index]
+                    if not isinstance(result, dict) or result.get("error"):
+                        continue
+                    xml_sezione = (result.get("body_bytes") or b"").decode("utf-8", "replace")
+                    if not _estrai_fault_soap(xml_sezione):
+                        xml_by_service[servizio_sezione] = xml_sezione
+                if xml_by_service:
+                    sezioni_pst = _parse_pst_structured_sections_xml(xml_by_service)
+            if _pst_namespace_qbuilder(base_url) and include_full_snapshot and not single_interactive_batch:
                 web_info = {} if _pst_servizio_cassazione(base_url) else _pst_carica_infofascicolo_web(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
@@ -15715,6 +16037,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         data = self._read_json()
+        progress_callback = data.get("_pst_progress_callback") if isinstance(data, dict) else None
         tribunale = (
             str(data.get("tribunale") or data.get("codice_ufficio") or "").strip()
         )
@@ -15794,20 +16117,23 @@ class _Handler(BaseHTTPRequestHandler):
                 # Contratto anti-regressione: il batch è l'unica chiamata
                 # autenticata della fase download. Il client non può riattivare
                 # un warm-up/preflight che produrrebbe una seconda finestra PIN.
-                esito = _pst_download_documenti_batch_payloads(
-                    base_url=base_url,
-                    codice_ufficio=codice_pst,
-                    cert_thumbprint=cert_thumbprint,
-                    cf_avvocato=cf_avvocato,
-                    documenti=documenti,
-                    do_preflight=False,
-                    cookie_file="",
-                    original=(
+                batch_kwargs: dict[str, Any] = {
+                    "base_url": base_url,
+                    "codice_ufficio": codice_pst,
+                    "cert_thumbprint": cert_thumbprint,
+                    "cf_avvocato": cf_avvocato,
+                    "documenti": documenti,
+                    "do_preflight": False,
+                    "cookie_file": "",
+                    "original": (
                         data.get("original", False)
                         if isinstance(data.get("original", False), bool)
                         else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
                     ),
-                )
+                }
+                if callable(progress_callback):
+                    batch_kwargs["progress_callback"] = progress_callback
+                esito = _pst_download_documenti_batch_payloads(**batch_kwargs)
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],

@@ -1895,6 +1895,7 @@ function CatalogazioneDocumentalePanel({
   const [evidenceDocumentId, setEvidenceDocumentId] = useState('')
   const [reviewedEvidenceDocumentIds, setReviewedEvidenceDocumentIds] = useState<Set<string>>(() => new Set())
   const [error, setError] = useState('')
+  const [catalogOpen, setCatalogOpen] = useState(true)
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
 
@@ -2005,7 +2006,7 @@ function CatalogazioneDocumentalePanel({
   if (!enabled) return <p className="iu-empty">Apri la sezione documenti per leggere il catalogo SQL del fascicolo.</p>
   const summary = payload?.summary
   return (
-    <section id="catalogazione-documentale" className="iu-fas-catalog" aria-label="Catalogazione documentale del fascicolo">
+    <section id="catalogazione-documentale" className={`iu-fas-catalog ${catalogOpen ? 'is-expanded' : 'is-collapsed'}`} aria-label="Catalogazione documentale del fascicolo">
       <header>
         <div>
           <span><FolderSearch2 size={16}/> Catalogazione documentale</span>
@@ -2015,58 +2016,71 @@ function CatalogazioneDocumentalePanel({
         <div className="iu-fas-catalog__header-actions">
           <Badge tone={summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
           <button type="button" disabled={busy} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw className={busy ? 'iu-spin' : ''} size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
+          <button
+            type="button"
+            className="iu-fas-catalog__toggle"
+            aria-controls="catalogazione-documentale-contenuto"
+            aria-expanded={catalogOpen}
+            onClick={() => setCatalogOpen((current) => !current)}
+            title={catalogOpen ? 'Chiudi pannello catalogazione' : 'Apri pannello catalogazione'}
+            aria-label={catalogOpen ? 'Chiudi pannello catalogazione' : 'Apri pannello catalogazione'}
+          >
+            {catalogOpen ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}
+          </button>
         </div>
       </header>
-      <dl>
-        <div><dt>Documenti</dt><dd>{summary?.source_documents ?? 0}</dd></div>
-        <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
-        <div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
-        <div><dt>Confermati</dt><dd>{summary?.confirmed ?? 0}</dd></div>
-        <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
-        <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
-      </dl>
-      {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> Lettura catalogo SQL in corso…</p> : null}
-      {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
-      {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
-      <div className="iu-fas-catalog__list">
-        {(payload?.documents || []).map((item) => {
-          const assignment = item.assignment
-          const document = documentsById.get(item.document_id)
-          const needsConfirmation = assignment?.status === 'review_required' || assignment?.status === 'proposed'
-          const hasEvidence = Boolean(assignment?.evidence?.length)
-          const evidenceReviewed = reviewedEvidenceDocumentIds.has(item.document_id)
-          return (
-            <article key={item.document_id || item.filename} className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
-              <FileText size={17}/>
-              <div className="iu-fas-catalog__copy">
-                <strong>{item.filename || 'Documento del fascicolo'}</strong>
-                {assignment ? <span>{assignment.document_label} · {catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{item.supported ? 'In attesa dell’indice Document AI: nessuna classificazione dal contenuto è ancora disponibile.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
-                {assignment ? <small>{assignment.reason}</small> : null}
-                {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
-                {needsConfirmation && hasEvidence && !evidenceReviewed ? <small className="iu-fas-catalog__review-hint">Prima apri “Prova e fonti”: la conferma registra anche l’avvenuta lettura delle evidenze.</small> : null}
-                {needsConfirmation && !hasEvidence ? <small className="iu-fas-catalog__review-hint">Manca una prova dal contenuto: correggi il catalogo manualmente oppure aggiorna l’indice.</small> : null}
-              </div>
-              <div className="iu-fas-catalog__badges">
-                <Badge tone={catalogTone(assignment?.status || 'waiting')}>{catalogStatusLabel(assignment?.status || 'waiting')}</Badge>
-                {assignment?.deposit_candidate ? <Badge tone="primary">Valuta per deposito</Badge> : null}
-              </div>
-              <div className="iu-fas-catalog__actions">
-                {document?.actions.preview ? <button type="button" title="Apri nel lettore interno" aria-label={`Apri ${document.name} nel lettore interno`} onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={15}/> Visualizza</button> : null}
-                {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => { setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id); setReviewedEvidenceDocumentIds((current) => new Set(current).add(item.document_id)) }}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
-                {assignment?.status === 'review_required' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la catalogazione dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma</button> : null}
-                {assignment?.status === 'proposed' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la proposta dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
-                {assignment ? <button type="button" disabled={busy} onClick={() => setEditingDocumentId((current) => current === item.document_id ? '' : item.document_id)}><PencilLine size={14}/> Correggi catalogo</button> : null}
-              </div>
-              {assignment && evidenceDocumentId === item.document_id ? <CatalogEvidenceDisclosure assignment={assignment} document={document} onPreview={onPreview} /> : null}
-              {assignment && editingDocumentId === item.document_id ? <CatalogCorrectionForm assignment={assignment} busy={busy} onSubmit={(draft) => void override(item.document_id, draft)} onCancel={() => setEditingDocumentId('')} /> : null}
-            </article>
-          )
-        })}
-      </div>
-      {!loading && payload && !payload.documents.length ? <p className="iu-empty">Nessun documento disponibile per la catalogazione nel fascicolo.</p> : null}
-      <footer>
-        <span>La lettura non scarica fonti esterne e non modifica il documento originale.</span>
-      </footer>
+      {catalogOpen ? <div id="catalogazione-documentale-contenuto" className="iu-fas-catalog__content">
+        <dl>
+          <div><dt>Documenti</dt><dd>{summary?.source_documents ?? 0}</dd></div>
+          <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
+          <div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
+          <div><dt>Confermati</dt><dd>{summary?.confirmed ?? 0}</dd></div>
+          <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
+          <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
+        </dl>
+        {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> Lettura catalogo SQL in corso…</p> : null}
+        {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
+        {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
+        <div className="iu-fas-catalog__list">
+          {(payload?.documents || []).map((item) => {
+            const assignment = item.assignment
+            const document = documentsById.get(item.document_id)
+            const needsConfirmation = assignment?.status === 'review_required' || assignment?.status === 'proposed'
+            const hasEvidence = Boolean(assignment?.evidence?.length)
+            const evidenceReviewed = reviewedEvidenceDocumentIds.has(item.document_id)
+            return (
+              <article key={item.document_id || item.filename} className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
+                <FileText size={17}/>
+                <div className="iu-fas-catalog__copy">
+                  <strong>{item.filename || 'Documento del fascicolo'}</strong>
+                  {assignment ? <span>{assignment.document_label} · {catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{item.supported ? 'In attesa dell’indice Document AI: nessuna classificazione dal contenuto è ancora disponibile.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
+                  {assignment ? <small>{assignment.reason}</small> : null}
+                  {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
+                  {needsConfirmation && hasEvidence && !evidenceReviewed ? <small className="iu-fas-catalog__review-hint">Prima apri “Prova e fonti”: la conferma registra anche l’avvenuta lettura delle evidenze.</small> : null}
+                  {needsConfirmation && !hasEvidence ? <small className="iu-fas-catalog__review-hint">Manca una prova dal contenuto: correggi il catalogo manualmente oppure aggiorna l’indice.</small> : null}
+                </div>
+                <div className="iu-fas-catalog__badges">
+                  <Badge tone={catalogTone(assignment?.status || 'waiting')}>{catalogStatusLabel(assignment?.status || 'waiting')}</Badge>
+                  {assignment?.deposit_candidate ? <Badge tone="primary">Valuta per deposito</Badge> : null}
+                </div>
+                <div className="iu-fas-catalog__actions">
+                  {document?.actions.preview ? <button type="button" title="Apri nel lettore interno" aria-label={`Apri ${document.name} nel lettore interno`} onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={15}/> Visualizza</button> : null}
+                  {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => { setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id); setReviewedEvidenceDocumentIds((current) => new Set(current).add(item.document_id)) }}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
+                  {assignment?.status === 'review_required' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la catalogazione dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma</button> : null}
+                  {assignment?.status === 'proposed' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la proposta dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
+                  {assignment ? <button type="button" disabled={busy} onClick={() => setEditingDocumentId((current) => current === item.document_id ? '' : item.document_id)}><PencilLine size={14}/> Correggi catalogo</button> : null}
+                </div>
+                {assignment && evidenceDocumentId === item.document_id ? <CatalogEvidenceDisclosure assignment={assignment} document={document} onPreview={onPreview} /> : null}
+                {assignment && editingDocumentId === item.document_id ? <CatalogCorrectionForm assignment={assignment} busy={busy} onSubmit={(draft) => void override(item.document_id, draft)} onCancel={() => setEditingDocumentId('')} /> : null}
+              </article>
+            )
+          })}
+        </div>
+        {!loading && payload && !payload.documents.length ? <p className="iu-empty">Nessun documento disponibile per la catalogazione nel fascicolo.</p> : null}
+        <footer>
+          <span>La lettura non scarica fonti esterne e non modifica il documento originale.</span>
+        </footer>
+      </div> : null}
     </section>
   )
 }

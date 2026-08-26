@@ -399,6 +399,33 @@ def test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione(g
     assert (gf.documents_dir / doc.versioni[0].percorso).exists()
 
 
+def test_documenti_portale_con_identificativi_distinti_e_stesso_nome_restano_distinti(gf, fascicolo_base):
+    primo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Decreto.pdf",
+        tipo=TipoDocumento.DECRETO,
+        contenuto=b"%PDF-1.4 decreto uno",
+        fonte_documento="PORTALE_TELEMATICO",
+        id_documento_portale="PST-DOC-001",
+        id_cat_portale="PST-CAT-001",
+    )
+    secondo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Decreto.pdf",
+        tipo=TipoDocumento.DECRETO,
+        contenuto=b"%PDF-1.4 decreto due",
+        fonte_documento="PORTALE_TELEMATICO",
+        id_documento_portale="PST-DOC-002",
+        id_cat_portale="PST-CAT-002",
+    )
+
+    aggiornato = gf.get(fascicolo_base.id)
+
+    assert primo.id != secondo.id
+    assert len(aggiornato.documenti) == 2
+    assert {doc.id_documento_portale for doc in aggiornato.documenti} == {"PST-DOC-001", "PST-DOC-002"}
+
+
 def test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti(gf, fascicolo_base):
     originale = gf.aggiungi_documento(
         fascicolo_base.id,

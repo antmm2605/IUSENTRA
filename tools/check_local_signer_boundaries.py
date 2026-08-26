@@ -72,7 +72,6 @@ def main() -> int:
             "filtered_cf_parte = None if exact_registry_lookup else cf_parte",
             "tag(\"nomeParte\", filtered_nome_parte)",
             "tag(\"codiceFiscaleParte\", filtered_cf_parte)",
-            "do_preflight=False",
             "def _windows_pin_prompt_candidate_score",
             "EnumChildWindows",
             "QueryFullProcessImageNameW",
@@ -88,20 +87,22 @@ def main() -> int:
         for snippet in required_snippets:
             if snippet not in signer_text:
                 failures.append(f"{signer_path} non preserva baseline PST: {snippet}")
+        if "do_preflight=False" not in signer_text and '"do_preflight": False' not in signer_text:
+            failures.append(f"{signer_path} non preserva baseline PST: disabilitazione preflight nel lotto")
 
     react_text = _read("frontend/src/components/TelematicoSurfacePage.tsx")
     react_required = (
-        "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))",
-        "nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte)",
-        "cf_parte: exactPstSearch ? '' : query.cf",
+        "const exactPstSearch = Boolean(asText(searchQuery.numero) && asText(searchQuery.anno))",
+        "nome_parte: exactPstSearch ? '' : (searchQuery.assistito || searchQuery.controparte)",
+        "cf_parte: exactPstSearch ? '' : searchQuery.cf",
         "pst_session_id: session?.sessionId || ''",
         "localSignerJson('/pst/ricerca-snapshot'",
-        "localSignerJson('/pst/download-documenti-batch'",
+        "localSignerJson('/pst/download-documenti-batch-job'",
         "function alternateLocalSignerBrowserTransport",
         "function isLocalSignerTransportFailure",
         "localSignerBrowserRequestWithFallback(endpoint, body, timeoutMs, route)",
         "preflight_auth: false",
-        "ufficioCodice: office.codice || office.codiceMinistero",
+        "const officeCode = office.codice || office.codiceMinistero",
         "exact?.codice || exact?.codiceMinistero || query.ufficio",
     )
     for snippet in react_required:

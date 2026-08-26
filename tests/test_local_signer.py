@@ -641,7 +641,13 @@ def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
     ]
 
     assert 'include_full_snapshot = bool(data.get("include_full_snapshot"))' in ricerca_block
-    full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
+    assert 'search_only = bool(data.get("search_only"))' in ricerca_block
+    assert 'single_interactive_batch = bool(data.get("single_interactive_batch"))' in ricerca_block
+    assert 'soap_documenti = "" if search_only else _soap_documenti_body(' in ricerca_block
+    assert 'fallback_soap_documenti = "" if search_only else _soap_documenti_body(' in ricerca_block
+    assert "section_batch_indexes" in ricerca_block
+    assert "and not single_interactive_batch" in ricerca_block
+    full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot and not single_interactive_batch:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
     assert 'cert_thumbprint=""' in full_branch
     assert "allow_cert_retry=False" in full_branch
     assert "allow_cert_retry=True" not in full_branch
@@ -971,6 +977,11 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "QueryFullProcessImageNameW" in source
     assert "AttachThreadInput" in source
     assert "SetWindowPos" in source
+    foreground_block = source[
+        source.index("def _windows_force_foreground_window"):source.index("def _windows_visible_top_level_window_handles")
+    ]
+    assert "hwnd_topmost" in foreground_block
+    assert "hwnd_notopmost" not in foreground_block
     assert "FlashWindow" in source
     assert "FlashWindowEx" in source
     assert "CREATE_NO_WINDOW" in source
@@ -978,6 +989,8 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "if user32.IsWindow(hwnd):" in source
     assert "if not user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):" not in source
     assert "possono creare il prompt PIN come finestra" in source
+    assert "Alcuni provider riutilizzano per il secondo PIN lo stesso HWND" in source
+    assert "if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):" in source
     assert "result = _run_process_with_pin_foreground(" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
@@ -1004,6 +1017,8 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "_run_curl_with_pin_foreground(" in batch
     assert "_run_curl_with_pin_foreground(" in best_effort
     assert "_run_curl_with_pin_foreground(" in preflight
+    assert '[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]' not in best_effort
+    assert '[_curl_command(), "-s", "-S", "-K", cfg_file]' in best_effort
 
 
 def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypatch):
@@ -1063,6 +1078,24 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
         assert getattr(startupinfo, "wShowWindow", None) == 0
 
 
+def test_run_curl_pst_riprende_un_dialog_pin_riusato_dal_provider(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    def _fake_run_process(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return module.subprocess.CompletedProcess(cmd, 0, b"", b"")
+
+    monkeypatch.setattr(module, "_run_process_with_pin_foreground", _fake_run_process)
+
+    result = module._run_curl_with_pin_foreground(["curl.exe", "--version"], timeout=7)
+
+    assert result.returncode == 0
+    assert captured["cmd"] == ["curl.exe", "--version"]
+    assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
+
+
 def test_local_signer_cleanup_termina_operazione_governata_e_ripulisce_prompt(monkeypatch):
     module = _load_local_signer()
     calls = {"terminate": 0, "prompt": [], "job": []}
@@ -1107,7 +1140,14 @@ def test_local_signer_cleanup_termina_operazione_governata_e_ripulisce_prompt(mo
 def test_batch_curl_arresta_intero_lotto_al_primo_annullamento():
     source = Path("tools/local_signer.py").read_text(encoding="utf-8")
 
-    assert source.count('[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]') == 3
+    # I batch ordinari restano annullabili subito; il solo ramo best-effort
+    # deve invece proseguire sugli altri canali ministeriali compatibili.
+    assert source.count('[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]') == 2
+    best_effort = source[
+        source.index("def _soap_call_curl_batch_raw_best_effort"):
+        source.index("def _soap_call_curl", source.index("def _soap_call_curl_batch_raw_best_effort") + 1)
+    ]
+    assert '[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]' not in best_effort
 
 
 def test_local_signer_foreground_pin_riconosce_dialog_windows_senza_titolo():
@@ -2286,6 +2326,40 @@ def test_stato_job_pst_accetta_post_per_browser_https():
     module._Handler.do_POST(_FakeHandler())
 
     assert captured["path"] == "/pst/jobs/job-browser"
+
+
+def test_download_documenti_batch_job_accetta_post_e_pubblica_contatori():
+    module = _load_local_signer()
+    captured = {}
+
+    class _FakeHandler:
+        path = "/pst/download-documenti-batch-job"
+
+        def _cors_ok(self):
+            return True
+
+        def _pst_download_documenti_batch_job(self):
+            captured["started"] = True
+
+    module._Handler.do_POST(_FakeHandler())
+
+    payload = module._pst_async_job_response({
+        "job_id": "job-progress",
+        "status": "running",
+        "phase": "Scaricamento documenti dal PST",
+        "current": "Documento 2 di 3",
+        "started_monotonic": 0,
+        "started_at": "",
+        "updated_at": "",
+        "completed": 2,
+        "total": 3,
+        "failed_documents": 0,
+    })
+
+    assert captured["started"] is True
+    assert payload["completed"] == 2
+    assert payload["total"] == 3
+    assert payload["failed_documents"] == 0
 
 
 def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
@@ -6698,6 +6772,48 @@ def test_download_documenti_batch_multi_documento_usa_id_documento_come_idcat_si
     assert "<idCat>33393309</idCat>" in calls["batch"][2]["soap_body"]
 
 
+def test_download_documenti_batch_pubblica_avanzamento_reale_per_ogni_risposta(monkeypatch):
+    module = _load_local_signer()
+    progress_events = []
+
+    def _fake_best_effort(requests, **kwargs):
+        callback = kwargs["progress_callback"]
+        for index in range(len(requests)):
+            callback(index)
+        return [
+            {
+                "body_bytes": b"%PDF-1.7\\n",
+                "headers_text": "HTTP/1.1 200 OK\\r\\nContent-Type: application/pdf\\r\\n",
+                "status_code": 200,
+                "error": "",
+            }
+            for _ in requests
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", _fake_best_effort)
+    monkeypatch.setattr(module, "_parse_download_documento_response", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(module, "_assemble_download_file_payload", lambda *_args, **_kwargs: {"nome": "documento.pdf"})
+
+    result = module._pst_download_documenti_batch_payloads(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP",
+        codice_ufficio="0800570094",
+        cert_thumbprint="CERT-123",
+        cf_avvocato="TESTCF00A00A000A",
+        documenti=[
+            {"id_documento": "DOC-1", "id_repeatto": "DOC-1", "nome_documento": "uno.pdf"},
+            {"id_documento": "DOC-2", "id_repeatto": "DOC-2", "nome_documento": "due.pdf"},
+        ],
+        do_preflight=False,
+        cookie_file="C:\\temp\\pst.cookies",
+        progress_callback=progress_events.append,
+    )
+
+    assert result["documenti_scaricati"] == 2
+    assert [event["completed"] for event in progress_events] == [0, 1, 2]
+    assert all(event["total"] == 2 for event in progress_events)
+    assert "Documento 2 di 2 ricevuto" in progress_events[-1]["current"]
+
+
 def test_download_documenti_batch_sicid_accetta_documento_con_solo_id_cat():
     module = _load_local_signer()
 
@@ -7586,11 +7702,12 @@ def test_download_documenti_batch_con_sessione_attiva_usa_certificato_in_lotto_u
 
     orig_batch = module._soap_call_pst_session_batch_raw_best_effort
     orig_download = module._pst_download_documento_payload
-    calls = {"batch": [], "cert_thumbprint": None}
+    calls = {"batch": [], "cert_thumbprint": None, "prefer_cookie_only": None}
     try:
         def _fake_batch(requests, cert_thumbprint=None, **kwargs):
             calls["batch"] = list(requests)
             calls["cert_thumbprint"] = cert_thumbprint
+            calls["prefer_cookie_only"] = kwargs.get("prefer_cookie_only")
             body = (
                 b"--abc123\r\n"
                 b"Content-Type: text/xml\r\n"
@@ -7646,6 +7763,7 @@ def test_download_documenti_batch_con_sessione_attiva_usa_certificato_in_lotto_u
     assert esito["documenti_scaricati"] == 1
     assert len(calls["batch"]) == 1
     assert calls["cert_thumbprint"] == "AABBCC11"
+    assert calls["prefer_cookie_only"] is False
     assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
     assert calls["batch"][0]["cookie_file"] == ""
 
@@ -7864,7 +7982,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         "_pst_arricchisci_documenti_con_master_detail": module._pst_arricchisci_documenti_con_master_detail,
         "_pst_carica_sezioni_fascicolo_qbuilder": module._pst_carica_sezioni_fascicolo_qbuilder,
     }
-    captured = {"batch": None, "preflight": 0, "session_ids": [], "master_detail": 0, "sezioni": 0}
+    captured = {"batch": None, "batch_calls": 0, "preflight": 0, "session_ids": [], "master_detail": 0, "sezioni": 0}
 
     class _FakeHandler:
         def _read_json(self):
@@ -7875,6 +7993,8 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
                 "cert_thumbprint": "AABBCC11",
                 "cf_avvocato": "RSSMRA80A01H501Z",
                 "pst_session_id": "SID-STALENESS-FROM-BROWSER",
+                "include_full_snapshot": True,
+                "single_interactive_batch": True,
             }
 
         def _send_json(self, payload, status=200):
@@ -7920,6 +8040,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
             }
 
         def _fake_batch(requests, **kwargs):
+            captured["batch_calls"] += 1
             captured["batch"] = {"requests": list(requests), "kwargs": kwargs}
             return [
                 (b"<search/>", "HTTP/1.1 200 OK\r\n"),
@@ -7991,23 +8112,17 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["fascicoli"][0]["nome_ufficio"] == "Tribunale di Palmi"
     assert captured["payload"]["fascicoli"][0]["oggetto"] == "Usucapione"
     assert captured["payload"]["snapshot"]["fascicolo"]["data_iscrizione"] == "2026-03-05"
+    assert captured["payload"]["snapshot"]["full_snapshot"] is True
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
     assert captured["master_detail"] == 0
     assert captured["sezioni"] == 0
-    assert len(captured["batch"]["requests"]) >= 21
+    assert captured["batch_calls"] == 1
+    assert len(captured["batch"]["requests"]) == 8
     servizi_logici = {_servizio_logico_richiesta(module, request) for request in captured["batch"]["requests"]}
-    assert "JPW_SIL_DISTR" in servizi_logici
-    assert "JPW_SIL" in servizi_logici
-    assert "JPW_SIVG" in servizi_logici
-    assert "JPW_MIN" in servizi_logici
-    assert "JPW_SIMIN" in servizi_logici
-    assert all(
-        request["url"].endswith("/JPW_SICID")
-        for request in captured["batch"]["requests"]
-        if _servizio_logico_richiesta(module, request) in module._PST_SICID_FAMILY_SERVIZI
-    )
+    assert servizi_logici == {"JPW_SICID"}
+    assert all(request["url"].endswith("/JPW_SICID") for request in captured["batch"]["requests"])
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 

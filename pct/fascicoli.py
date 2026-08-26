@@ -2204,6 +2204,29 @@ class GestioneFascicoli:
         fasc_dir.mkdir(parents=True, exist_ok=True)
         sha256 = hashlib.sha256(contenuto).hexdigest()
         raw_sha256 = str(hash_contenuto_sha256 or "").strip().lower()
+        incoming_portal_identity = {
+            f"{field_name}:{str(value or '').strip().casefold()}"
+            for field_name, value in (
+                ("id_documento", id_documento_portale),
+                ("id_cat", id_cat_portale),
+                ("id_repeatto", id_repeatto_portale),
+                ("msg_id", msg_id_portale),
+            )
+            if str(value or "").strip()
+        }
+
+        def _portal_identity(doc: Documento) -> set[str]:
+            return {
+                f"{field_name}:{str(value or '').strip().casefold()}"
+                for field_name, value in (
+                    ("id_documento", getattr(doc, "id_documento_portale", "")),
+                    ("id_cat", getattr(doc, "id_cat_portale", "")),
+                    ("id_repeatto", getattr(doc, "id_repeatto_portale", "")),
+                    ("msg_id", getattr(doc, "msg_id_portale", "")),
+                )
+                if str(value or "").strip()
+            }
+
         incoming_probe = Documento(
             id="",
             nome=nome_file,
@@ -2213,31 +2236,40 @@ class GestioneFascicoli:
             hash_sha256=sha256,
             hash_contenuto_sha256=raw_sha256 or sha256,
         )
-        incoming_semantic_key = _documento_semantic_identity_key(incoming_probe)
+        # Per il PST il riferimento ministeriale identifica il documento. Due
+        # PDF con lo stesso nome e tipo, ma con riferimenti ufficiali diversi,
+        # devono rimanere due documenti distinti nel fascicolo.
+        incoming_semantic_key = "" if incoming_portal_identity else _documento_semantic_identity_key(incoming_probe)
         incoming_name_key = _documento_identity_name_key(incoming_probe)
-        existing_doc = next(
-            (
-                doc
-                for doc in f.documenti
-                if (
-                    incoming_name_key
-                    and incoming_name_key == _documento_identity_name_key(doc)
-                    and str(getattr(doc, "hash_sha256", "") or "").strip().casefold() == sha256.casefold()
-                )
-                or (
-                    incoming_name_key
-                    and incoming_name_key == _documento_identity_name_key(doc)
-                    and raw_sha256
-                    and str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().casefold()
-                    == raw_sha256.casefold()
-                )
-                or (
-                    incoming_semantic_key
-                    and incoming_semantic_key == _documento_semantic_identity_key(doc)
-                )
-            ),
-            None,
-        )
+        if incoming_portal_identity:
+            existing_doc = next(
+                (doc for doc in f.documenti if incoming_portal_identity & _portal_identity(doc)),
+                None,
+            )
+        else:
+            existing_doc = next(
+                (
+                    doc
+                    for doc in f.documenti
+                    if (
+                        incoming_name_key
+                        and incoming_name_key == _documento_identity_name_key(doc)
+                        and str(getattr(doc, "hash_sha256", "") or "").strip().casefold() == sha256.casefold()
+                    )
+                    or (
+                        incoming_name_key
+                        and incoming_name_key == _documento_identity_name_key(doc)
+                        and raw_sha256
+                        and str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().casefold()
+                        == raw_sha256.casefold()
+                    )
+                    or (
+                        incoming_semantic_key
+                        and incoming_semantic_key == _documento_semantic_identity_key(doc)
+                    )
+                ),
+                None,
+            )
         if existing_doc is not None:
             semantic_match = bool(incoming_semantic_key) and incoming_semantic_key == _documento_semantic_identity_key(
                 existing_doc

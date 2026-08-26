@@ -3511,6 +3511,13 @@ def build_telematico_runtime(
 
         fasc = gf.get(id_fasc)
         documenti_importati_count = int(import_result.get("documenti_importati", 0) or 0)
+        documenti_registrati_count = int(
+            import_result.get("documenti_registrati", documenti_importati_count) or 0
+        )
+        documenti_nuovi_count = int(
+            import_result.get("documenti_nuovi", documenti_importati_count) or 0
+        )
+        documenti_riusati_count = int(import_result.get("documenti_riusati", 0) or 0)
         modalita_documenti_importati = {
             str(row.get("modalita_documento_portale") or "").strip().lower()
             for row in list(import_result.get("documenti") or [])
@@ -3523,14 +3530,12 @@ def build_telematico_runtime(
             if modalita_documenti_importati
             else "originale" if scarica_originale_portale else "copia"
         )
-        documenti_da_acquisire = max(documenti_attesi - documenti_importati_count, 0)
+        documenti_da_acquisire = max(documenti_attesi - documenti_registrati_count, 0)
         if portale == "pst" and importa_file_portale:
             document_report = dict(document_report)
-            document_report["documenti_importati"] = documenti_importati_count
-            document_report["documenti_gia_presenti_o_riusati"] = max(
-                int(document_report.get("documenti_reali") or 0) - documenti_importati_count,
-                0,
-            )
+            document_report["documenti_importati"] = documenti_nuovi_count
+            document_report["documenti_registrati"] = documenti_registrati_count
+            document_report["documenti_gia_presenti_o_riusati"] = documenti_riusati_count
             final_audit_events = list(audit_studio_events)
             if int(document_report.get("documenti_informativi") or 0):
                 final_audit_events.append("Documento informativo escluso dall'importazione documentale")

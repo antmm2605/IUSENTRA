@@ -151,7 +151,6 @@ def _safe_local_ai_status_payload(snapshot):
             for key in ("role", "kind", "name", "model_name", "install_state", "size_bytes", "context_window")
             if item.get(key) not in (None, "")
         })
-    macos_dmg = dist_dir / f"IUSENTRA-LocalSigner-{version}.dmg"
     return {
         "settings": settings_view,
         "runtime": runtime_view,

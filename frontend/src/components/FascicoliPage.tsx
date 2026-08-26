@@ -5935,7 +5935,7 @@ function FascicoloContextMenu({
       <div className="iu-fas-context-menu__group">
         <FascicoloContextMenuItem primary icon={<Send size={16}/>} label="Deposito telematico" note="Scegli documenti, firma e prepara la busta" onSelect={onDeposit}/>
         <FascicoloContextMenuItem icon={<Bell size={16}/>} label="Notifica" note="Prepara relata, allegati e prova" onSelect={onNotification}/>
-        <FascicoloContextMenuItem icon={<FolderSearch2 size={16}/>} label="Apri Portale Servizi" note="Fascicolo d’ufficio con sessione assistita" onSelect={onOfficePortal}/>
+        <FascicoloContextMenuItem icon={<FolderSearch2 size={16}/>} label="Visualizza fascicolo d’ufficio" note="Consultazione diretta e documenti disponibili" onSelect={onOfficePortal}/>
       </div>
 
       <div className="iu-fas-context-menu__group" aria-label="Anagrafiche">
@@ -9335,7 +9335,7 @@ function DetailPage({ id }:{id:string}) {
   const [contributoModalOpen, setContributoModalOpen] = useState(false)
   const [economicControlOpen, setEconomicControlOpen] = useState(false)
   const [contributoMemory, setContributoMemory] = useState<ContributoUnificatoMemory | null>(null)
-  const [officePortalOpenRequest, setOfficePortalOpenRequest] = useState(0)
+  const [officeDocumentsOpenRequest, setOfficeDocumentsOpenRequest] = useState(0)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
   useEffect(() => {
@@ -9472,11 +9472,11 @@ function DetailPage({ id }:{id:string}) {
     if (lazySection) loadLazySection(lazySection)
     openDetailSectionById(sectionId)
   }
-  const openOfficePortalFromContext = () => {
+  const openOfficeDocumentsFromContext = () => {
     setContextMenu(null)
     if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
     openDetailSectionById('documenti')
-    setOfficePortalOpenRequest((current) => current + 1)
+    setOfficeDocumentsOpenRequest((current) => current + 1)
   }
   const openContributoUnificatoFromContext = () => {
     setContextMenu(null)
@@ -9615,7 +9615,7 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
             <Suspense fallback={<p className="iu-empty">Preparazione ricerca documenti d’ufficio…</p>}>
-              <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openPortalRequest={officePortalOpenRequest}/>
+              <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
@@ -9757,7 +9757,7 @@ function DetailPage({ id }:{id:string}) {
           setContextMenu(null)
           setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })
         }}
-        onOfficePortal={openOfficePortalFromContext}
+        onOfficePortal={openOfficeDocumentsFromContext}
         onNotification={() => openDocumentFlow('notifica')}
         onContributoUnificato={openContributoUnificatoFromContext}
         onPagoPa={() => {

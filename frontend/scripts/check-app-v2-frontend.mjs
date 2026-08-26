@@ -41,7 +41,7 @@ const phase7RequiredAppSnippets = [
   'appV2FeatureFlagForPath(item.href)',
   'isFeatureFlagEnabledSync(flag)',
   'permissions: stringList(root.permissions)',
-  'effectiveStandalonePage = isStandalonePage || appV2FlagDenied || appV2UnknownRoute',
+  'effectiveStandalonePage = isStandalonePage || isCrmPage || appV2FlagDenied || appV2UnknownRoute',
 ]
 
 for (const snippet of phase7RequiredAppSnippets) {

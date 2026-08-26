@@ -75,6 +75,32 @@ codici JPW o altre scelte non necessarie all'avvocato.
   per tutta la durata della richiesta. Questa parte richiede sempre prova
   materiale sul PC che ospita token e browser.
 
+## Consultazione dal fascicolo interno
+
+Il pannello `Fascicolo d’ufficio` non apre più una scheda del Portale Servizi
+né richiede all’avvocato un download manuale. Il comando del fascicolo e il
+pulsante `Visualizza fascicolo` avviano entrambi la stessa consultazione
+diretta del Local Signer (`/pst/fascicolo-snapshot-job`), riutilizzando la
+sessione `view` valida quando presente. L’elenco, lo stato di acquisizione e
+la scelta copia/originale restano nella superficie React di IUSENTRA.
+
+Se la sessione non è disponibile o è scaduta, il provider può chiedere il PIN
+nel suo dialogo nativo; IUSENTRA non apre il sito esterno e non conserva il
+PIN. Dopo l’elenco, l’acquisizione selettiva resta un unico batch
+`/pst/download-documenti-batch` con importazione SQL nel fascicolo corrente.
+
+### Ripristino della sessione scaduta
+
+Il 26/08/2026 una sessione `view` memorizzata dal Local Signer era ancora
+marcata come autenticata, ma il cookie PST non era più accettato dal gateway.
+La richiesta cookie-only restava quindi in attesa fino al timeout di 90
+secondi, senza poter aprire il dialogo PIN. La correzione invalida quel cookie
+e ripete una sola volta la medesima chiamata con il certificato: il provider
+può così mostrare il PIN nativo. Un timeout della successiva chiamata con
+certificato resta invece un errore esplicito del PST, senza ulteriori retry o
+ulteriori finestre PIN. La regola si applica in modo uniforme alle chiamate
+SOAP singole, raw e batch, quindi a tutte le tabelle ministeriali.
+
 ## Persistenza e importazione
 
 Il risultato del PST conserva registro, ufficio, ruolo, identificativi del
@@ -113,6 +139,12 @@ riconducibile ai file selezionati.
   completato tale richiesta entro il limite di 300 secondi. Il dettaglio è
   stato conservato solo come diagnosi del canale esterno, senza modificare i
   documenti già registrati.
+- Dopo il riscontro del timeout senza PIN, sono stati aggiornati i sorgenti
+  effettivamente in esecuzione del Local Signer tramite il suo hot-update
+  locale: la copia attiva è stata confrontata per impronta con il sorgente
+  validato. Sono stati rigenerati i pacchetti Windows, macOS e Linux della
+  stessa versione. Nessun certificato, PIN, cookie o dato di studio è incluso
+  nei pacchetti o nel backup della procedura.
 
 ## Correzione della ripresa mirata
 
@@ -133,12 +165,13 @@ l'identificativo necessario per riparare in sicurezza il vecchio storico.
 
 ## Verifica reale ancora richiesta
 
-La correzione è stata ricostruita nella copia locale ed è coperta dai
-guardrail `test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito`,
-dal typecheck e dai test batch. Resta aperta la prova reale di una nuova
-ripresa generata dopo questa versione: il PST deve restituire l'anteprima e
-consentire il download del solo documento registrato. Non viene avviato alcun
-nuovo tentativo automatico né alcun invio del PIN da IUSENTRA; l'avvocato lo
-digita nel dialogo nativo. La verifica conclusiva deve osservare: una sola
-richiesta batch, il dialogo PIN in primo piano, selezione esatta, modalità
-copia/originale preservata, avanzamento, esito e conteggio del fascicolo.
+La copia Docker locale è stata ricostruita e il Local Signer attivo è stato
+riallineato al sorgente corretto. Resta aperta la prova reale del nuovo
+pulsante `Visualizza fascicolo`: il PST deve restituire l’anteprima nella
+stessa pagina, senza aprire il sito esterno, e il provider deve proporre il
+PIN nativo quando il cookie precedente non è utilizzabile. Non viene avviato
+alcun nuovo tentativo automatico né alcun invio del PIN da IUSENTRA;
+l’avvocato lo digita nel dialogo nativo. La verifica conclusiva deve
+osservare: una sola richiesta batch, il dialogo PIN in primo piano, selezione
+esatta, modalità copia/originale preservata, avanzamento, esito e conteggio
+del fascicolo.

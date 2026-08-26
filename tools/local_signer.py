@@ -3111,7 +3111,17 @@ def _drop_pst_session(session_id: str) -> None:
 
 def _reset_pst_session_cookie_after_auth_failure(cookie_file: Optional[str], reason: str = "") -> str:
     old_cookie = str(cookie_file or "").strip()
-    new_cookie = _ensure_cookie_file()
+    # Mantiene il percorso del cookie della sessione quando esiste: i passaggi
+    # della stessa consultazione hanno gia' ricevuto quel riferimento. Svuotare
+    # il file evita che una chiamata successiva riprovi il cookie scaduto e
+    # provochi nuovi timeout/PIN, senza cambiare il contratto del batch attivo.
+    new_cookie = _ensure_cookie_file(old_cookie) if old_cookie else _ensure_cookie_file()
+    try:
+        Path(new_cookie).write_text("", encoding="utf-8")
+    except Exception:
+        # Se il file non e' riscrivibile, usa un percorso nuovo e aggiornalo
+        # soltanto per la sessione ancora valida.
+        new_cookie = _ensure_cookie_file()
     matched = False
     current = _utcnow_naive()
     with _pst_session_lock:
@@ -3125,11 +3135,6 @@ def _reset_pst_session_cookie_after_auth_failure(cookie_file: Optional[str], rea
             entry["last_used_at"] = current
             entry["expires_at"] = current + timedelta(seconds=PST_SESSION_TTL_SECONDS)
             matched = True
-    if old_cookie:
-        try:
-            Path(old_cookie).unlink(missing_ok=True)
-        except Exception:
-            pass
     if matched:
         log.info("PST sessione: cookie autenticazione scartato dopo rifiuto PST; prossimo tentativo richiede il certificato.")
     return new_cookie
@@ -6337,17 +6342,20 @@ def _pst_cookie_retry_requires_cert(error: Exception) -> bool:
     col certificato client.
 
     Retry SI: segnali di sessione/certificato non accettato dal PST.
-    Retry NO: timeout, DNS, host down, 5xx temporanei e simili, per evitare
-    un secondo prompt PIN inutile quando il problema non e' l'autenticazione.
+    Retry NO: DNS, host down, 5xx temporanei e simili, per evitare un secondo
+    prompt PIN inutile quando il problema non e' l'autenticazione.
+
+    Un timeout della sola chiamata cookie-only viene gestito separatamente da
+    _pst_cookie_timeout_requires_fresh_certificate: un cookie scaduto puo'
+    restare in attesa sul gateway PST senza restituire 401/403. In quel caso
+    la stessa operazione deve ripartire con il certificato, non terminare con
+    un timeout silenzioso senza mostrare il PIN nativo.
     """
     text = str(error or "").strip().lower()
     if not text:
         return False
 
     no_retry_markers = [
-        "timeout connessione",
-        "curl uscito con codice 28",
-        "servizio pst potrebbe essere sovraccarico",
         "errore dns",
         "impossibile risolvere il nome host",
         "connessione rifiutata",
@@ -6376,6 +6384,68 @@ def _pst_cookie_retry_requires_cert(error: Exception) -> bool:
         "accesso al servizio e' stato negato",
     ]
     return any(marker in text for marker in retry_markers)
+
+
+def _pst_cookie_timeout_requires_fresh_certificate(error: Exception) -> bool:
+    """Riconosce il timeout del solo canale cookie PST da riprovare col CNS.
+
+    Il controllo e' volutamente limitato alla sessione cookie-only: un timeout
+    dopo la chiamata con certificato resta un errore della sorgente PST e non
+    genera ulteriori tentativi o finestre PIN.
+    """
+    text = str(error or "").strip().lower()
+    if not text:
+        return False
+    return (
+        "timeout connessione" in text
+        or "curl uscito con codice 28" in text
+    )
+
+
+def _pst_cookie_retry_needs_certificate(error: Exception) -> bool:
+    """Unifica rifiuto esplicito e timeout del cookie PST non piu' valido."""
+    return (
+        _pst_cookie_retry_requires_cert(error)
+        or _pst_cookie_timeout_requires_fresh_certificate(error)
+    )
+
+
+def _pst_prepare_cookie_retry(
+    cookie_file: Optional[str],
+    error: Exception,
+    *,
+    host: str,
+    operation: str,
+) -> str:
+    """Scarta il cookie non affidabile e prepara un solo retry col certificato."""
+    reason = str(error or "").strip()
+    fresh_cookie = _reset_pst_session_cookie_after_auth_failure(
+        cookie_file,
+        f"cookie-only PST non affidabile ({operation}); retry immediato col certificato: {reason}",
+    )
+    if _pst_cookie_retry_requires_cert(error):
+        # Il portale richiede mTLS per ogni chiamata: ricorda l'host per evitare
+        # tentativi cookie ripetuti nel resto della medesima sessione.
+        if host:
+            with _mTLS_required_lock:
+                _mTLS_required_hosts.add(host)
+        log.info(
+            "PST host %s (%s): cookie-only rifiutato, retry col certificato; "
+            "le chiamate successive useranno direttamente il certificato.",
+            host or "sconosciuto",
+            operation,
+        )
+    else:
+        # Il gateway PST puo' lasciare pendente un cookie scaduto senza 401/403.
+        # Non memorizziamo l'host come mTLS obbligatorio: dopo un nuovo preflight
+        # una sessione valida puo' tornare a riusare il cookie senza PIN.
+        log.info(
+            "PST host %s (%s): timeout cookie-only, sessione scartata e retry "
+            "immediato col certificato.",
+            host or "sconosciuto",
+            operation,
+        )
+    return fresh_cookie
 
 
 def _pst_auth_failure_requires_fresh_session(error: Any) -> bool:
@@ -8110,6 +8180,8 @@ def _soap_call_pst_session(
     """
     host = _pst_host(url)
 
+    effective_cookie_file = str(cookie_file or "").strip()
+
     def _run(cert_value: Optional[str]) -> str:
         return _soap_call_curl(
             url=url,
@@ -8117,7 +8189,7 @@ def _soap_call_pst_session(
             cert_thumbprint=cert_value,
             extra_headers=extra_headers,
             soap_action=soap_action,
-            cookie_file=cookie_file,
+            cookie_file=effective_cookie_file,
             max_time=max_time,
             connect_timeout=connect_timeout,
         )
@@ -8129,16 +8201,13 @@ def _soap_call_pst_session(
         try:
             return _run(None)
         except Exception as e:
-            if not _pst_cookie_retry_requires_cert(e):
+            if not _pst_cookie_retry_needs_certificate(e):
                 raise
-            # Il portale richiede mTLS per ogni chiamata: registra l'host così le
-            # chiamate successive saltano il tentativo cookie e vanno subito al cert,
-            # restando all'interno della finestra di cache-PIN di Windows.
-            with _mTLS_required_lock:
-                _mTLS_required_hosts.add(host)
-            log.info(
-                "PST host %s: cookie-only rifiutato, prossime chiamate useranno"
-                " direttamente il certificato (cache-PIN Windows).", host
+            effective_cookie_file = _pst_prepare_cookie_retry(
+                effective_cookie_file,
+                e,
+                host=host,
+                operation="SOAP",
             )
     return _run(cert_thumbprint)
 
@@ -8158,6 +8227,8 @@ def _soap_call_pst_session_raw(
     """Versione raw (bytes) di _soap_call_pst_session — stessa logica mTLS."""
     host = _pst_host(url)
 
+    effective_cookie_file = str(cookie_file or "").strip()
+
     def _run(cert_value: Optional[str]) -> tuple[bytes, str]:
         return _soap_call_curl_raw(
             url=url,
@@ -8165,7 +8236,7 @@ def _soap_call_pst_session_raw(
             cert_thumbprint=cert_value,
             extra_headers=extra_headers,
             soap_action=soap_action,
-            cookie_file=cookie_file,
+            cookie_file=effective_cookie_file,
             max_time=max_time,
             connect_timeout=connect_timeout,
         )
@@ -8176,13 +8247,13 @@ def _soap_call_pst_session_raw(
         try:
             return _run(None)
         except Exception as e:
-            if not _pst_cookie_retry_requires_cert(e):
+            if not _pst_cookie_retry_needs_certificate(e):
                 raise
-            with _mTLS_required_lock:
-                _mTLS_required_hosts.add(host)
-            log.info(
-                "PST host %s (raw): cookie-only rifiutato, future chiamate"
-                " useranno direttamente il certificato.", host
+            effective_cookie_file = _pst_prepare_cookie_retry(
+                effective_cookie_file,
+                e,
+                host=host,
+                operation="SOAP raw",
             )
     return _run(cert_thumbprint)
 
@@ -8218,15 +8289,18 @@ def _soap_call_pst_session_batch_raw(
                 cert_thumbprint=None,
             )
         except Exception as e:
-            if not _pst_cookie_retry_requires_cert(e):
+            if not _pst_cookie_retry_needs_certificate(e):
                 raise
-            if host:
-                with _mTLS_required_lock:
-                    _mTLS_required_hosts.add(host)
-                log.info(
-                    "PST host %s (batch): cookie-only rifiutato, future chiamate"
-                    " useranno direttamente il certificato.", host
-                )
+            fresh_cookie = _pst_prepare_cookie_retry(
+                cookie_file,
+                e,
+                host=host,
+                operation="batch SOAP",
+            )
+            effective_requests = [
+                {**request, "cookie_file": fresh_cookie}
+                for request in effective_requests
+            ]
     return _soap_call_curl_batch_raw(
         effective_requests,
         cert_thumbprint=cert_thumbprint,
@@ -8257,6 +8331,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
     host = _pst_host(first_url) if first_url else ""
     if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
+        retry_error: Optional[Exception] = None
         try:
             cookie_results = _soap_call_curl_batch_raw_best_effort(
                 effective_requests,
@@ -8264,8 +8339,9 @@ def _soap_call_pst_session_batch_raw_best_effort(
                 progress_callback=None,
             )
         except Exception as e:
-            if not _pst_cookie_retry_requires_cert(e):
+            if not _pst_cookie_retry_needs_certificate(e):
                 raise
+            retry_error = e
             if not allow_cert_retry:
                 message = str(e)
                 return [
@@ -8277,17 +8353,11 @@ def _soap_call_pst_session_batch_raw_best_effort(
                     }
                     for _ in effective_requests
                 ]
-            if host:
-                with _mTLS_required_lock:
-                    _mTLS_required_hosts.add(host)
-                log.info(
-                    "PST host %s (batch best-effort): cookie-only rifiutato,"
-                    " future chiamate useranno direttamente il certificato.", host
-                )
         else:
             blocking_error = _pst_best_effort_batch_blocking_error(cookie_results)
-            if not blocking_error or not _pst_cookie_retry_requires_cert(RuntimeError(blocking_error)):
+            if not blocking_error or not _pst_cookie_retry_needs_certificate(RuntimeError(blocking_error)):
                 return cookie_results
+            retry_error = RuntimeError(blocking_error)
             if not allow_cert_retry:
                 log.info(
                     "PST host %s (batch best-effort): cookie-only non basta; "
@@ -8295,17 +8365,12 @@ def _soap_call_pst_session_batch_raw_best_effort(
                     host or "sconosciuto",
                 )
                 return cookie_results
-            if host:
-                with _mTLS_required_lock:
-                    _mTLS_required_hosts.add(host)
-                log.info(
-                    "PST host %s (batch best-effort): cookie-only ha restituito"
-                    " autenticazione non valida, ritento subito col certificato.", host
-                )
 
-        fresh_cookie = _reset_pst_session_cookie_after_auth_failure(
+        fresh_cookie = _pst_prepare_cookie_retry(
             cookie_file,
-            "cookie-only PST rifiutato; retry immediato col certificato",
+            retry_error or RuntimeError("cookie-only PST non disponibile"),
+            host=host,
+            operation="batch SOAP best-effort",
         )
         effective_requests = [
             {**req, "cookie_file": fresh_cookie}

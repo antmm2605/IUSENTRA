@@ -1715,7 +1715,7 @@ assertContains(fascicoli, 'openDetailSectionById(sectionId)', 'l’esito qualit�
 assertContains(fascicoli, 'summary.focus({ preventScroll: true })', 'l’apertura qualità trasferisce il focus al pannello operativo')
 assertContains(fascicoli, 'Controlli prioritari', 'presidio riunisce controlli reali prioritari')
 assertContains(fascicoli, 'Comunicazioni, PEC e notifica', 'relata e comunicazioni unificate')
-assertContains(fascicoli, 'Incarico, economia e incassi', 'economia e percorso cliente-incasso unificati')
+assertContains(fascicoli, 'Contesto economico', 'economia e percorso cliente-incasso unificati')
 assertContains(fascicoli, 'Eventi tecnici e acquisizioni', 'acquisizioni tecniche separate dalle attività processuali')
 assertNotContains(fascicoli, '<FascicoloDecisionWorkspace', 'nessun presidio decisionale duplicato')
 assertNotContains(fascicoli, '<OperationalPresidioPanel data={data}', 'presidio operativo non replicato fuori dalla cabina')

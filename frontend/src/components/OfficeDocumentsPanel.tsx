@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, Download, FileText, FolderSearch2, RefreshCw, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, Download, FileText, FolderSearch2, ShieldCheck } from 'lucide-react'
 import type { FascicoloDetailData, FascicoloDocument } from '../fascicoliData'
 import { formatDateIt } from '../formatting'
 
@@ -32,30 +32,19 @@ type PstSession = {
   expiresAt: number
 }
 
-type PortalAssistantSession = {
-  sessionId: string
-  status: string
-  message: string
-  fileCount: number
-  manual?: boolean
-}
-
 type Props = {
   data: FascicoloDetailData
   onDone: (message?: string) => void
   onError: (message: string) => void
-  openPortalRequest?: number
+  openOfficeDocumentsRequest?: number
 }
 
 const CERT_KEY = 'iusentra.react.pst.cert.v2'
 const LEGACY_VIEW_SESSION_KEY = 'iusentra.react.pst.session.v2'
 const VIEW_SESSION_KEY = 'iusentra.react.pst.session.view.v3'
 const LOCAL_SIGNER_BASES = ['http://127.0.0.1:27272', 'http://localhost:27272']
-const OFFICIAL_PST_BASE = 'https://servizipst.giustizia.it/PST/it'
-const OFFICIAL_PST_ACCESS_URL = 'https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp'
 const JOB_TIMEOUT_MS = 360_000
 const DOWNLOAD_TIMEOUT_MS = 480_000
-const PORTAL_OPEN_TIMEOUT_MS = 20_000
 
 type LocalSignerTransport = 'fetch' | 'xhr'
 type LocalSignerRoute = { baseUrl: string; transport: LocalSignerTransport }
@@ -98,142 +87,6 @@ function writeStored(key: string, value: JsonRecord) {
     window.sessionStorage.setItem(key, JSON.stringify(value))
   } catch {
     // Il browser può disabilitare sessionStorage; la richiesta corrente resta valida.
-  }
-}
-
-function encodePstQuery(params: Record<string, string>): string {
-  const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    const clean = text(value)
-    if (clean) query.set(key, clean)
-  })
-  return query
-    .toString()
-    .replaceAll('%2F', '/')
-    .replaceAll('%40', '@')
-    .replaceAll('%5B', '[')
-    .replaceAll('%5D', ']')
-}
-
-function officialPstRegister(source: FascicoloDetailData['fascicolo']['sourceSnapshot'], hint: JsonRecord): string {
-  const registro = text(source.registroPortale || hint.registro_portale || hint.registro || hint.tipo_registro).toUpperCase()
-  if (registro) return registro
-  const servizio = text(source.servizioPst || hint.servizio_pst_preferito || hint.servizio_pst).toUpperCase()
-  if (servizio.includes('SIL')) return 'LAV'
-  if (servizio.includes('SIVG')) return 'VG'
-  if (servizio.includes('SIMIN') || servizio.includes('MIN')) return 'MIN'
-  if (servizio.includes('SIGP')) return 'GDP'
-  if (servizio.includes('SIECIC')) return 'FALL'
-  return 'RGN'
-}
-
-function officialPstSlug(registry: string): string {
-  const registro = registry.toUpperCase()
-  if (registro === 'LAV') return 'lav'
-  if (['GDP', 'GP'].includes(registro)) return 'sigp'
-  if (['VG', 'SIVG'].includes(registro)) return 'sivg'
-  if (['MIN', 'SIMIN'].includes(registro)) return 'min'
-  if (['RGN', 'SICID', 'CONTENZIOSO', 'CIVILE'].includes(registro)) return 'sicid'
-  return ''
-}
-
-function officialPstSearchUrl(registry: string, officeCode: string, fiscalCode: string): string {
-  const registro = registry.toUpperCase()
-  const pageByRegistry: Record<string, string> = {
-    FALL: 'pst_2_1_3_3.wp',
-    ESIM: 'pst_2_1_4_3.wp',
-    ESM: 'pst_2_1_5_3.wp',
-  }
-  const page = pageByRegistry[registro]
-  if (!page) return ''
-  const query = encodePstQuery({
-    ufficioRicerca: officeCode,
-    ruoloRicerca: 'AVV@AVV',
-    registroRicerca: registro,
-    pa: fiscalCode ? `[${fiscalCode}]` : '',
-  })
-  return `${OFFICIAL_PST_BASE}/${page}?${query}`
-}
-
-function officialPstAccessUrl(): string {
-  return OFFICIAL_PST_ACCESS_URL
-}
-
-function openOfficialPstWindow(): boolean {
-  const target = window.open(officialPstAccessUrl(), '_blank', 'noopener,noreferrer')
-  return Boolean(target)
-}
-
-function officialPstDocumentsUrl(args: {
-  source: FascicoloDetailData['fascicolo']['sourceSnapshot']
-  hint: JsonRecord
-  officeCode: string
-  rgNumber: string
-  rgYear: string | number
-  fiscalCode: string
-}): string {
-  const registry = officialPstRegister(args.source, args.hint)
-  const searchUrl = officialPstSearchUrl(registry, args.officeCode, args.fiscalCode)
-  if (searchUrl) return searchUrl
-  const slug = officialPstSlug(registry)
-  if (!slug) return officialPstAccessUrl()
-  const registroRicerca = ['GDP', 'GP'].includes(registry) ? 'GDP' : registry
-  const query = ['GDP', 'GP'].includes(registry)
-    ? encodePstQuery({
-        actionPath: '/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action',
-        currentFrame: '0',
-        ufficioRicerca: args.officeCode,
-        ruoloRicerca: 'AVV@AVV',
-        numero: args.rgNumber,
-        anno: String(args.rgYear),
-        registroRicerca: 'GDP',
-        pa: args.fiscalCode ? `[${args.fiscalCode}]` : '',
-      })
-    : encodePstQuery({
-        actionPath: '/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action',
-        currentFrame: '0',
-        registroRicerca,
-        ruoloRicerca: 'AVV@AVV',
-        ufficioRicerca: args.officeCode,
-        numero: args.rgNumber,
-        anno: String(args.rgYear),
-        subpro: text(args.source.subProcedimento),
-        pa: args.fiscalCode ? `[${args.fiscalCode}]` : '',
-      })
-  return `${OFFICIAL_PST_BASE}/${slug}_infofascicolo.wp?${query}`
-}
-
-function openPortalPlaceholder(): Window | null {
-  try {
-    const portalWindow = window.open('', '_blank')
-    if (!portalWindow) return null
-    try {
-      portalWindow.opener = null
-      portalWindow.document.title = 'Portale Servizi'
-      portalWindow.document.body.innerHTML = '<main style="font-family: system-ui, sans-serif; padding: 24px; color: #111827;">Apertura del Portale Servizi...</main>'
-    } catch {
-      // La navigazione ufficiale verrà impostata appena l'URL è pronto.
-    }
-    return portalWindow
-  } catch {
-    return null
-  }
-}
-
-function navigatePortalPlaceholder(portalWindow: Window | null, officialUrl: string): boolean {
-  if (!officialUrl) return false
-  try {
-    if (portalWindow && !portalWindow.closed) {
-      portalWindow.location.href = officialUrl
-      return true
-    }
-  } catch {
-    // Se la scheda non è controllabile, proviamo l'apertura diretta.
-  }
-  try {
-    return Boolean(window.open(officialUrl, '_blank', 'noopener,noreferrer'))
-  } catch {
-    return false
   }
 }
 
@@ -488,14 +341,13 @@ function sessionPayload(session: PstSession, cert: Certificate, purpose: 'view' 
   }
 }
 
-export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest = 0 }: Props) {
+export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocumentsRequest = 0 }: Props) {
   const [documents, setDocuments] = useState<OfficeDocument[]>([])
   const [snapshot, setSnapshot] = useState<JsonRecord>({})
   const [selection, setSelection] = useState<string[]>([])
   const [modes, setModes] = useState<Record<string, DocumentMode>>({})
   const [viewSession, setViewSession] = useState<PstSession | null>(null)
-  const [assistantSession, setAssistantSession] = useState<PortalAssistantSession | null>(null)
-  const [busy, setBusy] = useState<'portal' | 'collect' | 'search' | 'import' | ''>('')
+  const [busy, setBusy] = useState<'search' | 'import' | ''>('')
   const [message, setMessage] = useState('')
   const searchFlight = useRef<Promise<void> | null>(null)
   const downloadFlight = useRef<Promise<void> | null>(null)
@@ -506,160 +358,16 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest 
   const rgNumber = source.numero || String(data.fascicolo.rgNumber || '')
   const rgYear = source.anno || data.fascicolo.rgYear
   const missing = [!officeCode && 'codice ufficio', !rgNumber && 'numero R.G.', !rgYear && 'anno R.G.'].filter(Boolean) as string[]
-  const storedCertificate = useMemo(() => certificateFrom(readStored(CERT_KEY)), [])
-  const portalUrl = useMemo(() => officialPstDocumentsUrl({
-    source,
-    hint: {},
-    officeCode,
-    rgNumber,
-    rgYear,
-    fiscalCode: storedCertificate?.fiscalCode || '',
-  }), [source, officeCode, rgNumber, rgYear, storedCertificate?.fiscalCode])
-  const searchDisabled = Boolean(busy || missing.length)
   const acquiredCount = useMemo(() => documents.filter((doc) => doc.acquired).length, [documents])
   const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key) && !doc.acquired), [documents, selection])
 
-  const openAssistedPortal = async () => {
-    if (missing.length) {
-      onError(`Apertura Portale Servizi non avviata: manca ${missing.join(', ')} nel fascicolo.`)
-      return
-    }
-    const accessUrl = officialPstAccessUrl()
-    const targetUrl = portalUrl
-    const portalWindow = openPortalPlaceholder()
-    setBusy('portal')
-    setMessage('Apertura del Portale Servizi nella sessione assistita del PC...')
-    try {
-      const started = await localSignerJson('/portal-assistant/session/start', {
-        portale: 'pst',
-        official_url: accessUrl,
-        target_url: targetUrl,
-        fascicolo_id: data.fascicolo.id,
-        purpose: 'documenti_fascicolo',
-        context: {
-          ufficio: officeName,
-          ufficio_codice: officeCode,
-          numero_rg: rgNumber,
-          anno_rg: String(rgYear),
-          registro: officialPstRegister(source, {}),
-          infofascicolo_url: portalUrl,
-        },
-      }, PORTAL_OPEN_TIMEOUT_MS)
-      const sessionId = text(started.session_id)
-      if (!sessionId) throw new Error('Sessione assistita non inizializzata dal servizio locale.')
-      const opened = await localSignerJson(`/portal-assistant/session/${encodeURIComponent(sessionId)}/open`, {
-        official_url: accessUrl,
-        target_url: targetUrl,
-        portale: 'pst',
-      }, PORTAL_OPEN_TIMEOUT_MS)
-      const watched = record(await localSignerJson(`/portal-assistant/session/${encodeURIComponent(sessionId)}/watch-downloads`, {
-        portale: 'pst',
-      }, PORTAL_OPEN_TIMEOUT_MS).catch(() => ({})))
-      const files = list(watched.files || opened.files || started.files)
-      setAssistantSession({
-        sessionId,
-        status: text(watched.status || opened.status || started.status, 'portale_ufficiale_assistito_aperto'),
-        message: text(watched.message || opened.message || started.message),
-        fileCount: files.length,
-      })
-      try {
-        if (portalWindow && !portalWindow.closed) portalWindow.close()
-      } catch {
-        // La sessione assistita locale ha gia' aperto il portale; la scheda segnaposto non serve piu'.
-      }
-      setMessage(`Portale Servizi aperto. Dopo l'accesso la finestra viene portata su InfoFascicolo > Documenti per R.G. ${rgNumber}/${rgYear}; scarica i file scelti e poi usa "Raccogli download".`)
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Portale Servizi non aperto.'
-      const opened = navigatePortalPlaceholder(portalWindow, accessUrl) || openOfficialPstWindow()
-      setAssistantSession({
-        sessionId: '',
-        status: opened ? 'portale_ufficiale_aperto' : 'portale_ufficiale_da_aprire',
-        message: opened
-          ? 'Portale Servizi aperto. Dopo avere scaricato i documenti scelti, usa "Raccogli download" o "Carica documenti".'
-          : 'Apri il Portale Servizi dal collegamento ufficiale, scarica i documenti scelti e poi usa "Raccogli download" o "Carica documenti".',
-        fileCount: 0,
-        manual: true,
-      })
-      setMessage(
-        opened
-          ? 'Portale Servizi aperto. Accedi, vai in InfoFascicolo > Documenti, scarica i documenti scelti e poi usa "Raccogli download" o "Carica documenti".'
-          : `${reason} Apri il Portale Servizi dal collegamento ufficiale, scarica i documenti scelti e poi usa "Raccogli download" o "Carica documenti".`
-      )
-      if (!opened) onError(reason)
-    } finally {
-      setBusy('')
-    }
-  }
-
-  const lastOpenPortalRequest = useRef(0)
-  useEffect(() => {
-    if (!openPortalRequest || openPortalRequest === lastOpenPortalRequest.current) return
-    lastOpenPortalRequest.current = openPortalRequest
-    void openAssistedPortal()
-  }, [openPortalRequest])
-
-  const collectAssistedDownloads = async () => {
-    if (!assistantSession) {
-      onError('Apri prima il Portale Servizi e scarica i documenti scelti.')
-      return
-    }
-    setBusy('collect')
-    setMessage('Raccolta dei documenti scaricati dal Portale Servizi in corso...')
-    try {
-      const collected = assistantSession.sessionId
-        ? await localSignerJson(`/portal-assistant/session/${encodeURIComponent(assistantSession.sessionId)}/collect`, {
-            portale: 'pst',
-            limit: 100,
-            max_age_hours: 24,
-          }, DOWNLOAD_TIMEOUT_MS)
-        : await localSignerJson('/downloads/raccogli', {
-            limit: 100,
-            max_age_hours: 24,
-          }, DOWNLOAD_TIMEOUT_MS)
-      const files = list(collected.files).map(record)
-      if (!files.length) {
-        throw new Error('Nessun download recente trovato: scarica dal Portale Servizi il documento scelto e poi riprova.')
-      }
-      const imported = await serverJson('/api/portali/pst/acquisizione/importa-file', {
-        fascicolo_id: data.fascicolo.id,
-        downloaded_files: files,
-        mapping: { mode: 'update_existing', target_fascicolo_id: data.fascicolo.id },
-        options: {
-          importa_documenti: true,
-          importa_eventi: false,
-          importa_scadenze: false,
-          importa_parti: false,
-          non_duplicare: true,
-          importa_solo_nuovi: true,
-        },
-      })
-      const summary = record(imported.summary || record(imported.result).summary)
-      const importedCount = number(summary.documenti || imported.documenti_importati || files.length)
-      setAssistantSession((current) => current ? {
-        ...current,
-        status: text(collected.status, 'file_ufficiali_raccolti'),
-        message: text(collected.message),
-        fileCount: files.length,
-      } : current)
-      setMessage(`${importedCount || files.length} documenti salvati nel fascicolo corrente.`)
-      onDone(`${importedCount || files.length} documenti salvati nel fascicolo corrente.`)
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Raccolta dei download non completata.'
-      setMessage(reason)
-      onError(reason)
-    } finally {
-      setBusy('')
-    }
-  }
-
-  const runSearchOperation = async (openOfficialPortal: boolean, operationId: string) => {
+  const runSearchOperation = async (operationId: string) => {
     if (missing.length) {
       onError(`Ricerca documenti non avviata: manca ${missing.join(', ')} nel fascicolo.`)
       return
     }
-    const portalWindow = openOfficialPortal ? openPortalPlaceholder() : null
     setBusy('search')
-    setMessage('Apertura del Portale Servizi e lettura del fascicolo d’ufficio in corso...')
+    setMessage('Consultazione diretta del fascicolo d’ufficio in corso…')
     try {
       const cert = await ensureCertificate()
       const params = new URLSearchParams({
@@ -671,34 +379,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest 
       })
       const schemaPayload = await serverJson(`/api/v1/ui/telematico/pst/schema-hint?${params.toString()}`)
       const hint = record(schemaPayload.hint)
-      const officialUrl = officialPstDocumentsUrl({
-        source,
-        hint,
-        officeCode,
-        rgNumber,
-        rgYear,
-        fiscalCode: cert.fiscalCode,
-      })
-      let portalOpened = !openOfficialPortal || navigatePortalPlaceholder(portalWindow, officialUrl)
-      if (!portalOpened) {
-        const portalSession = await localSignerJson('/portal-assistant/session/start', {
-          portale: 'pst',
-          official_url: officialUrl,
-          fascicolo_id: data.fascicolo.id,
-          purpose: 'documenti_fascicolo',
-        }, PORTAL_OPEN_TIMEOUT_MS)
-        const portalSessionId = text(portalSession.session_id)
-        if (portalSessionId) {
-          await localSignerJson(`/portal-assistant/session/${encodeURIComponent(portalSessionId)}/open`, {
-            official_url: officialUrl,
-          }, PORTAL_OPEN_TIMEOUT_MS)
-          portalOpened = true
-        }
-      }
-      if (!portalOpened) {
-        throw new Error("Portale Servizi non aperto: consenti l'apertura della nuova scheda e riprova.")
-      }
-      setMessage(`${openOfficialPortal ? 'Portale Servizi aperto sulla consultazione ufficiale.' : 'Portale Servizi aperto nella nuova scheda.'} Lettura dei documenti disponibili in corso...`)
+      setMessage('Lettura dei documenti disponibili in corso…')
       const storedSession = viewSession
         || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
         || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
@@ -771,11 +452,6 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest 
       setModes({})
       setMessage(nextDocuments.length ? `${nextDocuments.length} documenti disponibili; ${nextDocuments.filter((doc) => doc.acquired).length} già acquisiti.` : 'Nessun nuovo documento disponibile nel fascicolo d’ufficio.')
     } catch (error) {
-      try {
-        if (portalWindow && !portalWindow.closed) portalWindow.close()
-      } catch {
-        // La scheda potrebbe gia' essere fuori controllo dopo la navigazione ufficiale.
-      }
       const reason = error instanceof Error ? error.message : 'Ricerca documenti non completata.'
       setMessage(reason)
       onError(reason)
@@ -784,11 +460,11 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest 
     }
   }
 
-  const runSearch = (openOfficialPortal = true): Promise<void> => {
+  const runSearch = (): Promise<void> => {
     if (searchFlight.current) return searchFlight.current
     if (downloadFlight.current) return downloadFlight.current
     const operationId = pstOperationId('view')
-    const flight = runSearchOperation(openOfficialPortal, operationId)
+    const flight = runSearchOperation(operationId)
     searchFlight.current = flight
     void flight.then(
       () => { if (searchFlight.current === flight) searchFlight.current = null },
@@ -796,6 +472,13 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest 
     )
     return flight
   }
+
+  const lastOpenOfficeDocumentsRequest = useRef(0)
+  useEffect(() => {
+    if (!openOfficeDocumentsRequest || openOfficeDocumentsRequest === lastOpenOfficeDocumentsRequest.current) return
+    lastOpenOfficeDocumentsRequest.current = openOfficeDocumentsRequest
+    void runSearch()
+  }, [openOfficeDocumentsRequest])
 
   const runImportOperation = async (operationId: string) => {
     if (!selectedDocuments.length) {
@@ -927,42 +610,16 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest 
             type="button"
             className="iu-btn iu-btn--primary"
             disabled={Boolean(busy || missing.length)}
-            title={missing.length ? `Mancano: ${missing.join(', ')}` : 'Apri il Portale Servizi nella sessione assistita del PC'}
-            onClick={() => void openAssistedPortal()}
+            title={missing.length ? `Mancano: ${missing.join(', ')}` : 'Visualizza direttamente nell’app i documenti disponibili presso l’ufficio'}
+            onClick={() => void runSearch()}
           >
             <FolderSearch2 size={15}/>
-            {busy === 'portal' ? 'Apertura...' : 'Apri Portale Servizi'}
-          </button>
-          <button
-            type="button"
-            className="iu-btn iu-btn--secondary"
-            disabled={!assistantSession || Boolean(busy)}
-            title={assistantSession ? 'Importa nel fascicolo i file scaricati dal Portale Servizi' : 'Apri prima il Portale Servizi'}
-            onClick={() => void collectAssistedDownloads()}
-          >
-            <Download size={15}/>
-            {busy === 'collect' ? 'Raccolta...' : 'Raccogli download'}
-          </button>
-          <button
-            type="button"
-            className="iu-btn iu-btn--secondary"
-            disabled={searchDisabled}
-            title={missing.length ? `Mancano: ${missing.join(', ')}` : 'Aggiorna l’elenco interno dei documenti disponibili'}
-            onClick={() => void runSearch(false)}
-          >
-            <RefreshCw size={15} className={busy === 'search' ? 'iu-spin' : ''}/>
-            {documents.length ? 'Aggiorna elenco' : 'Leggi elenco'}
+            {busy === 'search' ? 'Visualizzazione…' : documents.length ? 'Aggiorna fascicolo' : 'Visualizza fascicolo'}
           </button>
         </div>
       </header>
 
       {missing.length ? <p className="iu-fas-office-docs__notice iu-fas-office-docs__notice--warning">Completa {missing.join(', ')} nel fascicolo per avviare la ricerca.</p> : null}
-      {assistantSession ? <p className="iu-fas-office-docs__notice">
-        {assistantSession.manual
-          ? "Portale ufficiale aperto: scarica solo i documenti scelti dall'avvocato, poi raccoglili nel fascicolo o caricali manualmente."
-          : "Sessione assistita attiva: scarica dal portale solo i documenti scelti dall'avvocato, poi raccoglili nel fascicolo."}
-        {' '}File rilevati: {assistantSession.fileCount}.
-      </p> : null}
       {message ? <p className="iu-fas-office-docs__notice" aria-live="polite">{message}</p> : null}
 
       {documents.length ? (

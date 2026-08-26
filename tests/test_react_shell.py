@@ -3828,7 +3828,12 @@ def test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito():
     assert "Non verrà sostituito automaticamente" in source
     assert "failedDocuments: JsonRecord[]" in source
     assert "pendingPstFailedDocumentsRef.current = downloaded.failedDocuments" in source
-    assert "recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloaded.failures.join(' | '), downloaded.failedDocuments, 'documents')" in source
+    assert "const exactPreviewDocumentKeysFor = (documents: JsonRecord[]): string[] =>" in source
+    assert "const failedDocumentKeys = exactPreviewDocumentKeysFor(downloaded.failedDocuments)" in source
+    assert "retryScope === 'documents' ? id : ''" in source
+    assert "if (!downloaded.files.length)" in source
+    assert "Scaricamento non completato: è selezionato soltanto il documento da riprendere." in source
+    assert "Importazione parziale registrata: riprendi soltanto i documenti non ricevuti dal PST prima di aprire il fascicolo." in source
 
 
 def test_pst_catalogo_acquisizione_non_apre_i_certificati_del_deposito(monkeypatch):

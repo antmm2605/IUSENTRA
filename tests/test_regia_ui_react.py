@@ -840,8 +840,7 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Deposito telematico" in source
     assert "Modifica anagrafica cliente" in source
     assert "Soggetti" in source
-    assert "Fascicolo d’ufficio" in source
-    assert "Apri Portale Servizi" in source
+    assert "Visualizza fascicolo d’ufficio" in source
     assert "Notifica" in source
     assert "PagoPA" in source
     assert "Controllo economico" in source
@@ -867,9 +866,9 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Nuovo appuntamento" in source
     assert "openDocumentFlow('deposito')" in source
     assert "openDocumentFlow('notifica')" in source
-    assert "openOfficePortalFromContext" in source
-    assert "setOfficePortalOpenRequest((current) => current + 1)" in source
-    assert "openPortalRequest={officePortalOpenRequest}" in source
+    assert "openOfficeDocumentsFromContext" in source
+    assert "setOfficeDocumentsOpenRequest((current) => current + 1)" in source
+    assert "openOfficeDocumentsRequest={officeDocumentsOpenRequest}" in source
     assert "setEmbeddedRecord({ kind: 'cliente', title: 'Modifica anagrafica cliente'" in source
     assert "setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti'" in source
     assert "setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST'" in source
@@ -887,10 +886,15 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Import pratiche" in source
     assert "onSection('documenti', 'documenti')" in source
 
-    assert "openPortalRequest?: number" in office_source
-    assert "openPortalRequest = 0" in office_source
-    assert "lastOpenPortalRequest" in office_source
-    assert "void openAssistedPortal()" in office_source
+    assert "openOfficeDocumentsRequest?: number" in office_source
+    assert "openOfficeDocumentsRequest = 0" in office_source
+    assert "lastOpenOfficeDocumentsRequest" in office_source
+    assert "void runSearch()" in office_source
+    assert "Visualizza fascicolo" in office_source
+    assert "Consultazione diretta del fascicolo d’ufficio in corso…" in office_source
+    assert "localSignerJson('/pst/fascicolo-snapshot-job'" in office_source
+    assert "window.open" not in office_source
+    assert "/portal-assistant/" not in office_source
 
     assert ".iu-fas-context-menu" in css
     assert ".iu-fas-context-menu__item" in css

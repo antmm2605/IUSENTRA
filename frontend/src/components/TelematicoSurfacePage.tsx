@@ -4126,17 +4126,20 @@ function AcquisitionWizard({
       return matches ? [pstDocumentSelectionKey(doc, index)] : []
     })
   }, [previewDocuments, targetDocument.documento, targetDocument.hash, targetDocument.idDocumento, targetDocument.singleDocument, targetDocument.tipoDocumento])
-  const retryPreviewDocumentKeys = useMemo(() => {
-    if (!retryDocuments.length) return []
-    const keys = retryDocuments.flatMap((retryDocument) => {
+  const exactPreviewDocumentKeysFor = (documents: JsonRecord[]): string[] => {
+    if (!documents.length) return []
+    const keys = documents.flatMap((documentToMatch) => {
       const matches = previewDocuments.flatMap((document, index) => (
-        pstDocumentsShareIdentifier(document, retryDocument)
+        pstDocumentsShareIdentifier(document, documentToMatch)
           ? [pstDocumentSelectionKey(document, index)]
           : []
       ))
       return matches.length === 1 ? matches : []
     })
     return [...new Set(keys)]
+  }
+  const retryPreviewDocumentKeys = useMemo(() => {
+    return exactPreviewDocumentKeysFor(retryDocuments)
   }, [previewDocuments, retryDocuments])
   const previewDocumentKeySignature = previewDocumentKeys.join('\u001f')
   const targetedPreviewDocumentKeySignature = targetedPreviewDocumentKeys.join('\u001f')
@@ -4937,7 +4940,7 @@ function AcquisitionWizard({
         item,
         asText(item.modalita_documento_portale) === 'originale' || item.original_documento_portale === true,
       ))
-    const retryHref = acquisitionRetryHref(portal, query, mapping, retryRows.length ? id : '')
+    const retryHref = acquisitionRetryHref(portal, query, mapping, retryScope === 'documents' ? id : '')
     pushAcquisitionHistoryEvent({
       id,
       portal: portal as AcquisitionHistoryEvent['portal'],
@@ -5989,6 +5992,7 @@ function AcquisitionWizard({
     setBusy('import')
     setImportProgress({ active: true, phase: 'Preparazione importazione', current: '', completed: 0, total: 0, failures: [] })
     let downloadFailureMessages: string[] = []
+    let downloadFailureRecorded = false
     try {
       let activeSelection: JsonRecord = selection?.raw || {}
       let activePreview = preview
@@ -6019,6 +6023,29 @@ function AcquisitionWizard({
             downloadedFiles = filterDownloadedFilesForSelectedPstDocuments(downloadedFiles, selectedDocsForImport)
           }
           activeSelection = downloaded.selection
+          pendingPstFailedDocumentsRef.current = downloaded.failedDocuments
+          if (downloaded.failures.length) {
+            const failedDocumentKeys = exactPreviewDocumentKeysFor(downloaded.failedDocuments)
+            const retryReady = downloaded.failedDocuments.length > 0
+              && failedDocumentKeys.length === downloaded.failedDocuments.length
+            setSelectedDocumentKeys(failedDocumentKeys)
+            recordAcquisitionHistory(
+              'warning',
+              'Scarico completato con documenti da riprovare',
+              downloaded.failures.join(' | '),
+              downloaded.failedDocuments,
+              'documents',
+            )
+            downloadFailureRecorded = true
+            if (!downloaded.files.length) {
+              setFiles(activeFiles)
+              setStep(4)
+              setMessage(retryReady
+                ? 'Scaricamento non completato: è selezionato soltanto il documento da riprendere.'
+                : 'Scaricamento non completato: nessun documento viene sostituito o preselezionato senza identificativo ufficiale.')
+              return
+            }
+          }
         }
       }
       let payload: JsonRecord
@@ -6072,9 +6099,14 @@ function AcquisitionWizard({
       setStep(7)
       const importRedirectHref = importResultRedirectHref(payload)
       if (downloadFailureMessages.length) {
-        if (!pendingPstFailedDocumentsRef.current.length) {
+        if (!downloadFailureRecorded && !pendingPstFailedDocumentsRef.current.length) {
           recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloadFailureMessages.join(' | '), [], 'documents')
         }
+      }
+      if (downloadFailureMessages.length) {
+        setStep(4)
+        setMessage('Importazione parziale registrata: riprendi soltanto i documenti non ricevuti dal PST prima di aprire il fascicolo.')
+        return
       }
       if (importRedirectHref) {
         setMessage(downloadFailureMessages.length

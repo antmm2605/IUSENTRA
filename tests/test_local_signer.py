@@ -639,7 +639,9 @@ def test_pst_visualizzazione_esplicita_usa_lo_snapshot_completo_polisweb():
     assert "force_new_session: true" not in panel
     assert "single_interactive_batch: true" in panel
     assert "include_full_snapshot: true" in panel
-    assert "const rows = list(nextSnapshot.documenti || nextSnapshot.catalogo || result.documenti)" in panel
+    assert "id_fascicolo: text(source.idFascicoloPortale || source.externalId)" in panel
+    assert "const rows = completeCatalogRows(nextSnapshot, result)" in panel
+    assert "sections.documenti_fascicolo" in panel
     assert "purpose: 'view'" in panel
     assert "pst_session_id: storedSession?.sessionId || ''" in panel
     # Il pannello non avvia un helper browser: il Local Signer gestisce soltanto
@@ -652,6 +654,33 @@ def test_pst_visualizzazione_esplicita_usa_lo_snapshot_completo_polisweb():
     assert "setDownloadProgress" in panel
     assert "Seleziona tutto" in panel
     assert "Deseleziona tutto" in panel
+
+def test_wizard_e_pannello_fascicolo_condividono_contratto_snapshot_pst_unico():
+    root = Path(__file__).resolve().parents[1]
+    wizard = (root / "frontend" / "src" / "components" / "TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    panel = (root / "frontend" / "src" / "components" / "OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
+
+    assert "localSignerJson('/pst/ricerca-snapshot'" in wizard
+    assert "localSignerJson('/pst/ricerca-snapshot'" in panel
+    for field in (
+        "tribunale",
+        "numero_rg",
+        "anno_rg",
+        "cf_avvocato",
+        "cert_thumbprint",
+        "cert_key",
+        "purpose: 'view'",
+        "pst_session_id",
+        "search_only: false",
+        "include_full_snapshot: true",
+        "single_interactive_batch: true",
+    ):
+        assert field in wizard
+        assert field in panel
+    assert "...ministerialHintsFromQuery(searchQuery)" in wizard
+    for field in ("servizio_pst", "registro_portale", "tabella_ministeriale", "id_fascicolo"):
+        assert field in panel
+    assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in panel
 
 def test_selettore_certificato_pst_non_usa_owner_cross_process():
     root = Path(__file__).resolve().parents[1]

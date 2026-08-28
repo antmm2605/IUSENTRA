@@ -322,6 +322,35 @@ function flattenDocuments(rows: unknown[], localDocuments: FascicoloDocument[], 
   })
 }
 
+/**
+ * Il PST può esporre lo stesso catalogo in più rami della risposta unica
+ * (sommario, catalogo e sezione documenti). Li ricompattiamo per id prima
+ * della visualizzazione: nessun ramo parziale deve nascondere documenti
+ * restituiti dal medesimo batch autenticato.
+ */
+function completeCatalogRows(snapshot: JsonRecord, result: JsonRecord): unknown[] {
+  const sections = record(snapshot.sezioni)
+  const rows = [
+    ...list(snapshot.documenti),
+    ...list(snapshot.catalogo),
+    ...list(snapshot.documents),
+    ...list(sections.documenti_fascicolo),
+    ...list(result.documenti),
+    ...list(result.catalogo),
+    ...list(result.documents),
+  ]
+  const merged = new Map<string, unknown>()
+  rows.forEach((value, index) => {
+    const row = record(value)
+    const ids = documentIds(row)
+    const name = text(row.nome || row.nome_documento || row.nome_file_originale)
+    const date = text(row.data_documento || row.data_deposito || row.data)
+    const key = ids[0] || (name ? `${name.toLowerCase()}::${date}` : `riga-${index}`)
+    const existing = record(merged.get(key))
+    merged.set(key, Object.keys(existing).length ? { ...existing, ...row } : row)
+  })
+  return [...merged.values()]
+}
 function downloadableDocument(row: JsonRecord, mode: DocumentMode): JsonRecord {
   const original = mode === 'originale'
   return {
@@ -441,6 +470,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         tribunale: officeCode,
         numero_rg: rgNumber,
         anno_rg: String(rgYear),
+        id_fascicolo: text(source.idFascicoloPortale || source.externalId),
         nome_parte: '',
         cf_parte: '',
         oggetto: '',
@@ -484,7 +514,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         certThumbprint: nextSession.certThumbprint,
         expiresAt: nextSession.expiresAt,
       })
-      const rows = list(nextSnapshot.documenti || nextSnapshot.catalogo || result.documenti)
+      const rows = completeCatalogRows(nextSnapshot, result)
       const nextDocuments = flattenDocuments(rows, data.documents)
       setSearchProgress({
         completed: 4,

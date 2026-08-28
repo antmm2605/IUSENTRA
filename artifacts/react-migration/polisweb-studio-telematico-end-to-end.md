@@ -414,3 +414,24 @@ La UI distingue ora:
 - Acquisisci nuovi: importa soltanto i documenti non ancora acquisiti, preservando il presidio anti-duplicato.
 
 Sono passati typecheck React e i due contratti automatici mirati. La nuova prova materiale su http://localhost:8080 con una sola richiesta PIN per la consultazione e una sola per l’eventuale lotto di scarico resta necessaria e non è ancora stata eseguita per questa correzione.
+## Catalogo completo e parità batch Wizard / Fascicolo d’ufficio — 28/08/2026
+
+Il pannello `Fascicolo d’ufficio` usa lo stesso endpoint interattivo del Wizard,
+`POST /pst/ricerca-snapshot`, con un singolo batch autenticato. Per una pratica
+già identificata aggiunge al medesimo contratto `id_fascicolo`, utilizzando
+esclusivamente il riferimento ministeriale memorizzato nel fascicolo; non avvia
+un job aggiuntivo e non effettua recuperi cookie-only.
+
+La risposta può riportare lo stesso catalogo nei rami `documenti`, `catalogo`,
+`documents` e `sezioni.documenti_fascicolo`. Il pannello ricompone tali rami per
+identificativo del documento prima della UI: un sommario parziale non può più
+nascondere record presenti nella stessa risposta autenticata. La regola è
+generica e vale per tutte le tabelle ministeriali, senza eccezioni per ufficio,
+numero R.G. o materia.
+
+Guardrail automatici: typecheck React; test dello snapshot completo; test di
+parità tra richiesta del Wizard e richiesta del pannello (endpoint, ufficio,
+numero/anno, certificato/sessione, finalità `view`, tabella/servizio,
+`include_full_snapshot` e `single_interactive_batch`). La prova reale con
+certificato/PIN non è stata eseguita per questa correzione: non va considerata
+verificata finché la UI locale non mostra il catalogo completo ricevuto dal PST.

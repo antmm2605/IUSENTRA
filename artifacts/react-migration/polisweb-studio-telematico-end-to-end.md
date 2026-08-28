@@ -16,7 +16,10 @@ materia per una ricerca esatta R.G./anno.
 
 Fonti ammesse:
 
-- Documentazione ufficiale PST e pagina servizi del Ministero della Giustizia.
+- Documentazione ufficiale PST e pagina servizi del Ministero della Giustizia:
+  `Documentazione_servizi_web_v1.69.pdf` — *Documentazione servizi web esposti (versione 1.69)* —
+  <https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571>
+  — e catalogo WSDL/XSD associato.
 - Catalogo ministeriale degli uffici e dei servizi disponibili.
 - Dati SQL tenant-aware dello studio già autorizzati.
 - Risposte, stati e log del Local Signer generati durante prove autorizzate.
@@ -79,10 +82,13 @@ codici JPW o altre scelte non necessarie all'avvocato.
 
 Il pannello `Fascicolo d’ufficio` non apre più una scheda del Portale Servizi
 né richiede all’avvocato un download manuale. Il comando del fascicolo e il
-pulsante `Visualizza fascicolo` avviano entrambi la stessa consultazione
-diretta del Local Signer (`/pst/fascicolo-snapshot-job`), riutilizzando la
-sessione `view` valida quando presente. L’elenco, lo stato di acquisizione e
-la scelta copia/originale restano nella superficie React di IUSENTRA.
+pulsante `Visualizza fascicolo` avviano entrambi lo snapshot completo del
+Local Signer (`/pst/fascicolo-snapshot-job`): oltre al primo catalogo SOAP,
+questa procedura legge le pagine documentali ufficiali, gli allegati e la
+paginazione necessaria a ricostruire il medesimo elenco usato
+dall’acquisizione. La sessione `view` valida viene riutilizzata quando
+presente; l’elenco, lo stato di acquisizione e la scelta copia/originale
+restano nella superficie React di IUSENTRA.
 
 Se la sessione non è disponibile o è scaduta, il provider può chiedere il PIN
 nel suo dialogo nativo; IUSENTRA non apre il sito esterno e non conserva il
@@ -163,6 +169,59 @@ manualmente, ma il software non sostituisce mai il documento. I log locali
 disponibili sono stati esaminati solo in forma aggregata: non contengono
 l'identificativo necessario per riparare in sicurezza il vecchio storico.
 
+## Audit selezione tabella e avanzamento — 26/08/2026
+
+L’audit corrente ha separato il default generico dell’ufficio dalla tabella
+specifica del fascicolo. Il codice ufficio identifica il canale ministeriale,
+ma non può sostituire il profilo esatto già persistito per R.G., procedimento,
+materia e codice oggetto. Per il fascicolo controllato il profilo strutturato
+è Lavoro: la selezione `JPW_SIL_DISTR` è pertanto coerente ed è la stessa
+riscontrata nelle consultazioni reali riuscite. `JPW_SICID` resta il default
+ufficiale da usare solo quando manca un profilo del fascicolo compatibile.
+
+Il pannello diretto ora chiede al resolver server-side la tabella del
+fascicolo prima della chiamata e non consente a valori storici della snapshot
+di prevalere. Riusa inoltre la sessione `view` ancora valida, come il wizard
+di acquisizione; se il PST la dichiara scaduta, il Local Signer ricrea solo il
+canale necessario. Non viene forzata una nuova sessione a ogni click e non
+vengono duplicati il PIN o il processo curl.
+
+Il nuovo job di consultazione non è un secondo percorso PST: avvia il lotto
+unico `ricerca-snapshot` e pubblica solo gli stati materialmente raggiunti:
+
+1. risoluzione di ufficio e tabella;
+2. apertura o riuso del canale certificato;
+3. risposte del lotto PST effettivamente ricevute;
+4. elaborazione di fascicolo, catalogo e sezioni;
+5. esito finale.
+
+Il polling del browser raggiunge soltanto il Local Signer in loopback; non
+genera ulteriori richieste al PST. Il contatore e la barra di avanzamento
+sono esposti solo dopo che il lotto comunica il numero reale delle risposte,
+quindi non rappresentano percentuali stimate.
+
+Verifiche automatiche eseguite dopo la correzione:
+
+- matrice decisionale completa delle dieci tabelle: profilo → schema →
+  tabella → servizio Local Signer, incluse esecuzioni mobiliari, immobiliari
+  e procedure concorsuali;
+- preservazione del codice oggetto come dato del fascicolo, senza che possa
+  sovrascrivere una procedura esatta già risolta;
+- job `ricerca-snapshot` con pubblicazione di fase, contatori e risultato
+  del medesimo lotto;
+- dispatch HTTP del job, typecheck React, compilazione Python e controllo
+  diff senza errori;
+- ricostruzione della copia Docker reale `127.0.0.1:8080` e allineamento del
+  Local Signer installato alle sorgenti aggiornate.
+
+La suite estesa `tests/test_local_signer.py` + `tests/test_react_shell.py`
+è stata rieseguita integralmente dopo gli aggiornamenti e si è conclusa senza
+failure. Ha riallineato tre guardrail obsoleti: la condizione di caricamento
+del suggerimento tabella, la precedente apertura esterna del portale e il
+vecchio test che cercava campi generici anziché la ricerca esatta già risolta.
+Resta distinta e ancora necessaria la prova materiale con PIN nel browser
+reale.
+
 ## Verifica reale ancora richiesta
 
 La copia Docker locale è stata ricostruita e il Local Signer attivo è stato
@@ -172,6 +231,186 @@ stessa pagina, senza aprire il sito esterno, e il provider deve proporre il
 PIN nativo quando il cookie precedente non è utilizzabile. Non viene avviato
 alcun nuovo tentativo automatico né alcun invio del PIN da IUSENTRA;
 l’avvocato lo digita nel dialogo nativo. La verifica conclusiva deve
-osservare: una sola richiesta batch, il dialogo PIN in primo piano, selezione
-esatta, modalità copia/originale preservata, avanzamento, esito e conteggio
-del fascicolo.
+osservare: un solo dialogo PIN nativo per la consultazione, riuso della stessa
+sessione per le letture correlate, selezione esatta, modalità copia/originale
+preservata, avanzamento, esito e conteggio del fascicolo.
+
+## Correzione catalogo completo e selezione manuale — 26/08/2026
+
+Durante la verifica reale del pannello diretto il catalogo aveva esposto solo
+cinque atti principali, mentre l’acquisizione completa del medesimo fascicolo
+aveva restituito trenta documenti. La causa era circoscritta: il pannello
+usava `ricerca-snapshot-job`, che pubblica il primo catalogo SOAP e le sezioni
+del fascicolo, ma non la lettura delle pagine documentali ufficiali e della
+loro paginazione. Non è stata modificata la ricerca guidata già verificata.
+
+Il pannello diretto ora usa `fascicolo-snapshot-job`, già governato per il
+catalogo completo. Il job riusa la sessione `view`, non forza una nuova
+sessione e pubblica gli stati reali: tabella selezionata, autenticazione,
+catalogo iniziale, pagine e allegati, dati del fascicolo ed elaborazione
+finale. Il componente React unisce le sorgenti `documenti`, `catalogo`,
+`sezioni.documenti_fascicolo` e gli eventuali depositi prima della
+deduplicazione per identificativo ministeriale.
+
+L’elenco espone inoltre i comandi `Tutti`, `Nessuno` e la modalità collettiva
+`Copia` o `Originale`; resta disponibile la scelta per singolo documento. I
+documenti già registrati nel fascicolo restano visibili con lo stato
+`Acquisito`, ma non sono riscaricati automaticamente né duplicati. Al download
+il servizio, il registro e la tabella provengono dallo snapshot appena risolto,
+non da valori storici del fascicolo.
+
+Guardrail eseguiti dopo la modifica: compilazione Python, typecheck React,
+controllo diff, test del resolver delle dieci tabelle, test del catalogo
+completo e test dei controlli di selezione. La copia locale è stata ricostruita
+ed è healthy su `http://127.0.0.1:8080/api/pronto`; resta necessaria la prova
+materiale con PIN nel browser reale per confermare il conteggio completo sul
+PST e l’assenza di richieste PIN ripetute.
+
+## Audit di riallineamento al backup positivo — 26/08/2026
+
+Il controllo più recente ha corretto una deviazione introdotta nel pannello
+`Documenti e atti`: la ricerca diretta era stata instradata a
+`ricerca-snapshot-job`, che restituisce il solo catalogo SOAP iniziale. Il
+percorso ora è di nuovo `fascicolo-snapshot-job`, lo stesso percorso presente
+nel backup della prova positiva. Tale job completa il catalogo con le pagine
+ufficiali di InfoFascicolo e con il recupero master/dettaglio degli allegati;
+non viene aggiunto un secondo lotto PST dal browser.
+
+Il pannello usa ora la medesima priorità del wizard per tabella, servizio e
+registro: prima il resolver server-side calcolato dal fascicolo (compresi
+procedura, materia e codice oggetto), poi lo snapshot storico solo se il
+resolver non può decidere. Il risultato del job unisce tutte le raccolte
+documentali previste prima della deduplicazione, così una posizione non resta
+invisibile perché esposta in `catalogo`, `sezioni` o `depositi` anziché nel
+primo campo `documenti`.
+
+Il confronto completo fra `tools/local_signer.py` e
+`local-signer-procedura-final-20260826-115150.zip` evidenzia due sole
+variazioni deliberate: il limite esterno del processo curl viene portato al
+massimo configurabile di 10.800 secondi e il timeout del processo usa il
+minimo tra il limite configurato e quello richiesto dal lotto. I timeout delle
+singole chiamate PST non sono stati ampliati. Il codice di
+`_pst_fascicolo_snapshot`, il suo job e la selezione della tabella sono
+invariati rispetto al backup. Il pacchetto distribuito e il processo Local
+Signer attivo corrispondono allo stesso sorgente.
+
+La matrice delle dieci tabelle e il catalogo dei codici oggetto sono stati
+ricontrollati: 1.018 codici univoci, nessun duplicato e nessun codice non
+risolto. Questo è un controllo di regole e dati; non sostituisce la prossima
+prova reale con PIN. Dopo il ripristino non è ancora stata osservata nel
+browser reale l’intera consultazione del pannello diretto: il lavoro resta
+aperto finché il PST non espone il catalogo completo e l’avvocato non verifica
+selezione, modalità copia/originale e una sola richiesta PIN per operazione.
+
+Guardrail eseguiti nell’audit: 6 test Local Signer mirati, 35 test della
+matrice PST/cataloghi, test del contratto React del pannello, typecheck React,
+compilazione Python e controllo diff. È stata ricostruita la copia Docker
+locale e verificata la risposta `pronto`; la pagina reale del fascicolo è
+stata ricaricata senza avviare una consultazione. Il test PIN/PST resta quindi
+esplicitamente non verificato su macchina reale dopo questo riallineamento.
+
+### Regressione certificato rilevata nella prova reale
+
+La prima pressione di `Visualizza fascicolo` ha confermato una regressione del
+pannello: `ensureCertificate` produceva un valore vuoto quando il certificato
+non era già presente nella memoria della scheda. Il Local Signer bloccava
+correttamente la richiesta prima del PST, ma l’avvocato riceveva un errore
+anziché il dialogo nativo. Il pannello ora ripete la sequenza del wizard:
+rilevamento del certificato compatibile, quindi selezione nativa CNS/CIE se
+necessaria; solo dopo trasmette il singolo lotto di consultazione. Il PIN non
+è letto né salvato da IUSENTRA.
+
+Il dialogo nativo CNS/CIE riceve come owner la finestra Windows in primo piano
+al momento della richiesta. In questo modo resta modale sopra IUSENTRA invece
+di comparire solo nella barra delle applicazioni; il pump già presente continua
+a portare in primo piano anche l’eventuale dialogo PIN del provider.
+
+### Verifica materiale del prompt PIN sopra IUSENTRA — 26/08/2026
+
+La diagnosi sul computer reale ha identificato il contenitore usato da Windows
+per il token Bit4id: `CredentialUIBroker.exe`, classe
+`Credential Dialog Xaml Host`. Il precedente monitor riconosceva il processo,
+ma provava ad attivare soltanto il primo handle enumerato; il vero popup poteva
+restare legato a un owner o root-owner distinto e comparire solo nella barra.
+
+Il Local Signer `1.6.118` ora:
+
+- usa firme Win32 pointer-safe per tutti gli HWND coinvolti;
+- percorre owner, root-owner e ultimo popup attivo del broker credenziali;
+- ripristina la catena e porta TOPMOST il popup effettivo senza modificare
+  posizione o dimensione;
+- considera stabile l’esito finché il popup resta visibile, non minimizzato e
+  non cloaked, evitando pressioni tecniche di attivazione ripetute;
+- distingue le finestre nate durante il curl da quelle preesistenti, così il
+  cleanup può chiudere soltanto prompt appartenenti all’operazione corrente;
+- non legge, compila, registra o trasmette il PIN.
+
+La prova isolata finale è stata eseguita sul Local Signer realmente installato,
+con una sola richiesta locale `/pst/preflight-auth`, senza download e senza
+inserire il PIN. Alle 22:16:26 Windows ha mostrato materialmente sopra la pagina
+IUSENTRA la finestra `Sicurezza di Windows · Smart card · Immettere il PIN`.
+Il log ha registrato un solo passaggio effettivo a primo piano; non vi sono state
+riattivazioni nei successivi 36 secondi. Alla scadenza intenzionale della prova,
+il processo curl e il prompt sono stati chiusi senza registrare download.
+
+Evidenza visiva:
+`artifacts/ui-checks/pin-foreground-final-20260826-221645.png`.
+
+Guardrail eseguiti: compilazione Python e cinque test mirati relativi a
+rilevamento del prompt, catena owner/root-owner, riuso del dialogo, console
+silenziosa e timeout del lotto. La prova completa dal pulsante React
+`Visualizza fascicolo`, con inserimento del PIN da parte dell’avvocato e risposta
+reale del PST, resta distinta: la verifica non può essere dichiarata conclusa
+finché tale click non conferma lo stesso comportamento e il catalogo completo.
+L’analisi è clean-room su sorgenti, log e backup IUSENTRA; non è stato trascritto
+o copiato codice proprietario decompilato.
+
+## Esito reale positivo wizard e Fascicolo ufficio - 27/08/2026
+
+L'avvocato ha confermato in persona entrambi i percorsi sulla copia Docker reale `http://localhost:8080`:
+
+- Wizard `Importa pratica da PST / PolisWeb`: consultazione del fascicolo, anteprima e acquisizione del lotto documentale con la procedura Local Signer positiva.
+- `Fascicolo d'ufficio` in `Documenti e atti`: consultazione autenticata, selezione di tutti, nessuno o documenti singoli, scelta `Copia` o `Originale`, lotto unico e avanzamento per documento. I documenti acquisiti restano non selezionabili per evitare duplicati.
+- Local Signer in uso: `1.6.116`. Il PIN non e' stato registrato nel repository, nei log applicativi o nel backup.
+
+Il backup verificato della procedura e del runtime associato e' `artifacts/local-signer-procedure-backups/pst-wizard-office-documents-positive-20260827-020909.zip`, SHA-256 `ED9668FFDF1FA57027A9BF9145247C55526B1CDF11F81119A15CEC982B4AA7BD`. Include sorgenti React, Local Signer, bundle Git, patch della worktree e copia del runtime installato; esclude PIN, cookie, sessioni PST, documenti e dati dello studio.
+## Riallineamento pannello Fascicolo d’ufficio — 27/08/2026
+
+Durante la verifica successiva, il pannello ha ricevuto soltanto cinque atti
+principali già acquisiti. L’origine non era nei controlli di selezione: essi
+escludono correttamente i documenti già presenti nel fascicolo per evitare
+una nuova importazione duplicata. Il log del Local Signer ha invece mostrato
+che il pannello era stato deviato dalla procedura positiva e aveva avviato un
+recupero master-detail cookie-only aggiuntivo; il PST lo ha rifiutato con HTTP
+401. Tale percorso aggiuntivo è stato rimosso.
+
+Il job `fascicolo-snapshot` è stato riallineato al percorso diretto conservato
+nel backup positivo. Il Wizard continua a usare il proprio lotto interattivo
+unico senza un recupero cookie-only successivo. La UI conserva seleziona tutto,
+deseleziona tutto, formato copia/originale e avanzamento per documento; il job
+di consultazione pubblica quattro stati reali: apertura canale, connessione,
+catalogo e dati del fascicolo.
+
+Verifiche tecniche eseguite: compilazione di `tools/local_signer.py`, sei test
+mirati Local Signer, test React mirati del pannello, typecheck React e
+`check_local_signer_boundaries.py`. La copia reale `localhost:8080` risponde
+con versione `2.278.82`; il Local Signer `1.6.124` installato ha impronta
+SHA-256 identica al sorgente. Non è stata eseguita una nuova consultazione
+reale con PIN dopo questo riallineamento: il risultato sul catalogo completo,
+la selezione di documenti non acquisiti e l’unico prompt PIN restano da
+verificare materialmente nel browser reale prima di commit, deploy o
+classificazione positiva.
+## Correzione del pannello Fascicolo d’ufficio — 28/08/2026
+
+L’osservazione reale di cinque richieste PIN ha invalidato il precedente riallineamento al job diretto fascicolo-snapshot: quel job esegue ulteriori recuperi autenticati e non è equivalente al lotto unico del Wizard.
+
+Il pannello React ora invoca direttamente POST /pst/ricerca-snapshot con include_full_snapshot: true e single_interactive_batch: true, omettendo identificativi locali non necessari nella ricerca iniziale. Questo è lo stesso percorso di consultazione usato dal Wizard, con un solo lotto PST per la visualizzazione. Lo scarico resta una seconda operazione separata, sempre con un solo lotto per tutti i documenti selezionati.
+
+La UI distingue ora:
+
+- Acquisito: stato informativo, non più un divieto di selezione;
+- Seleziona tutto, Seleziona non acquisiti e Deseleziona tutto;
+- Scarica: riscarica i selezionati, inclusi gli acquisiti, in copia o originale senza modificare il fascicolo;
+- Acquisisci nuovi: importa soltanto i documenti non ancora acquisiti, preservando il presidio anti-duplicato.
+
+Sono passati typecheck React e i due contratti automatici mirati. La nuova prova materiale su http://localhost:8080 con una sola richiesta PIN per la consultazione e una sola per l’eventuale lotto di scarico resta necessaria e non è ancora stata eseguita per questa correzione.

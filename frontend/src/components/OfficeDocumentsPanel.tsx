@@ -250,10 +250,24 @@ async function serverJson(path: string, body?: JsonRecord): Promise<JsonRecord> 
   return payload
 }
 
-async function ensureCertificate(): Promise<Certificate> {
+type LocalSignerJsonRequest = (path: string, body?: JsonRecord, timeoutMs?: number) => Promise<JsonRecord>
+
+async function ensureCertificate(request: LocalSignerJsonRequest): Promise<Certificate> {
   const stored = certificateFrom(readStored(CERT_KEY))
   if (stored) return stored
-  return { thumbprint: '', fiscalCode: '' }
+  try {
+    const automatic = certificateFrom(await request('/ping?auto=1', undefined, 8_000))
+    if (automatic) {
+      writeStored(CERT_KEY, { thumbprint: automatic.thumbprint, codiceFiscale: automatic.fiscalCode })
+      return automatic
+    }
+  } catch {
+    // La selezione esplicita restituisce il messaggio operativo del servizio locale.
+  }
+  const selected = certificateFrom(await request('/seleziona-certificato?auto=1', undefined, 120_000))
+  if (!selected) throw new Error('Seleziona il certificato CNS/CIE per l’accesso al PST e riprova.')
+  writeStored(CERT_KEY, { thumbprint: selected.thumbprint, codiceFiscale: selected.fiscalCode })
+  return selected
 }
 
 function documentIds(row: JsonRecord): string[] {
@@ -323,7 +337,7 @@ function downloadableDocument(row: JsonRecord, mode: DocumentMode): JsonRecord {
   }
 }
 
-function pstOperationId(purpose: 'view' | 'import'): string {
+function pstOperationId(purpose: 'view' | 'import' | 'download'): string {
   const token = typeof window.crypto?.randomUUID === 'function'
     ? window.crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
@@ -341,25 +355,59 @@ function sessionPayload(session: PstSession, cert: Certificate, purpose: 'view' 
   }
 }
 
+function savePstFileToBrowser(file: JsonRecord): boolean {
+  const encoded = text(file.contenuto_b64 || file.content_base64 || file.base64)
+  if (!encoded) return false
+  try {
+    const binary = window.atob(encoded.includes(',') ? encoded.slice(encoded.indexOf(',') + 1) : encoded)
+    const bytes = new Uint8Array(binary.length)
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+    const blob = new Blob([bytes], { type: text(file.content_type, 'application/octet-stream') })
+    const href = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = href
+    link.download = text(file.nome || file.filename || file.name, 'documento-portale').replace(/[\\/:*?"<>|]/g, '_')
+    link.hidden = true
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => window.URL.revokeObjectURL(href), 2_000)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocumentsRequest = 0 }: Props) {
   const [documents, setDocuments] = useState<OfficeDocument[]>([])
   const [snapshot, setSnapshot] = useState<JsonRecord>({})
   const [selection, setSelection] = useState<string[]>([])
   const [modes, setModes] = useState<Record<string, DocumentMode>>({})
   const [viewSession, setViewSession] = useState<PstSession | null>(null)
-  const [busy, setBusy] = useState<'search' | 'import' | ''>('')
+  const [busy, setBusy] = useState<'search' | 'import' | 'download' | ''>('')
   const [message, setMessage] = useState('')
+  const [downloadProgress, setDownloadProgress] = useState({ completed: 0, total: 0, current: '' })
+  const [searchProgress, setSearchProgress] = useState({ completed: 0, total: 4, phase: '', current: '' })
   const searchFlight = useRef<Promise<void> | null>(null)
   const downloadFlight = useRef<Promise<void> | null>(null)
 
   const source = data.fascicolo.sourceSnapshot
-  const officeCode = source.ufficioCodice || data.depositOffice.ministerialCode || data.depositOffice.code
+  const officeCode = data.depositOffice.code || data.depositOffice.ministerialCode || source.ufficioCodice
   const officeName = source.ufficioNome || data.fascicolo.court
   const rgNumber = source.numero || String(data.fascicolo.rgNumber || '')
   const rgYear = source.anno || data.fascicolo.rgYear
   const missing = [!officeCode && 'codice ufficio', !rgNumber && 'numero R.G.', !rgYear && 'anno R.G.'].filter(Boolean) as string[]
   const acquiredCount = useMemo(() => documents.filter((doc) => doc.acquired).length, [documents])
-  const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key) && !doc.acquired), [documents, selection])
+  const selectableDocuments = useMemo(() => documents.filter((doc) => !doc.acquired), [documents])
+  const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key)), [documents, selection])
+  const selectedImportDocuments = useMemo(() => selectedDocuments.filter((doc) => !doc.acquired), [selectedDocuments])
+  const selectAllDocuments = () => setSelection(documents.map((doc) => doc.key))
+  const selectOnlyNotAcquired = () => setSelection(selectableDocuments.map((doc) => doc.key))
+  const deselectAll = () => setSelection([])
+  const setSelectedDocumentsMode = (mode: DocumentMode) => setModes((current) => selectedDocuments.reduce<Record<string, DocumentMode>>(
+    (next, doc) => ({ ...next, [doc.key]: mode }),
+    { ...current },
+  ))
 
   const runSearchOperation = async (operationId: string) => {
     if (missing.length) {
@@ -367,9 +415,15 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
       return
     }
     setBusy('search')
+    setSearchProgress({
+      completed: 0,
+      total: 4,
+      phase: 'Consultazione autenticata',
+      current: 'Verifico certificato, sessione e ricerca esatta del fascicolo.',
+    })
     setMessage('Consultazione diretta del fascicolo d’ufficio in corso…')
     try {
-      const cert = await ensureCertificate()
+      const cert = await ensureCertificate(localSignerJson)
       const params = new URLSearchParams({
         id_fasc: data.fascicolo.id,
         numero: rgNumber,
@@ -383,46 +437,33 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
       const storedSession = viewSession
         || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
         || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
-      const job = await localSignerJson('/pst/fascicolo-snapshot-job', {
-        operation_id: operationId,
-        selection: {
-          id_fascicolo: source.idFascicoloPortale || source.externalId,
-          codice_ufficio: officeCode,
-          numero_rg: rgNumber,
-          anno_rg: String(rgYear),
-        },
-        codice_ufficio: officeCode,
+      const result = await localSignerJson('/pst/ricerca-snapshot', {
+        tribunale: officeCode,
         numero_rg: rgNumber,
         anno_rg: String(rgYear),
-        id_fascicolo: source.idFascicoloPortale || source.externalId,
+        nome_parte: '',
+        cf_parte: '',
+        oggetto: '',
+        ufficio_nome: officeName,
         sub_procedimento: source.subProcedimento,
         id_dfa: source.idDfa,
         id_ruolo_jpw: source.idRuoloJpw,
-        servizio_pst: source.servizioPst || text(hint.servizio_pst_preferito),
-        registro_portale: source.registroPortale || text(hint.registro_portale),
-        tabella_ministeriale: source.tabellaMinisteriale || text(hint.tabella_ministeriale),
+        servizio_pst: text(hint.servizio_pst_preferito || hint.servizio_pst || source.servizioPst),
+        registro_portale: text(hint.registro_portale || source.registroPortale),
+        tabella_ministeriale: text(hint.tabella_ministeriale || source.tabellaMinisteriale),
         tipo_registro: text(hint.tipo_registro || hint.registro),
         materia: text(hint.materia),
         schema: text(hint.schema),
         cf_avvocato: cert.fiscalCode,
         cert_thumbprint: cert.thumbprint,
         cert_key: cert.thumbprint,
+        operation_id: operationId,
         purpose: 'view',
         pst_session_id: storedSession?.sessionId || '',
-      }, 60_000)
-      const jobId = text(job.job_id)
-      if (!jobId) throw new Error('La consultazione non è stata avviata.')
-      const startedAt = Date.now()
-      let status = job
-      while (Date.now() - startedAt < JOB_TIMEOUT_MS) {
-        if (text(status.status) === 'completed') break
-        if (text(status.status) === 'failed') throw new Error(text(status.errore || status.error, 'Consultazione non completata.'))
-        setMessage(text(status.current, 'Lettura dei documenti disponibili…'))
-        await new Promise((resolve) => window.setTimeout(resolve, 2_500))
-        status = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, { operation_id: operationId }, 60_000)
-      }
-      if (text(status.status) !== 'completed') throw new Error('Il portale non ha completato la consultazione entro il tempo massimo.')
-      const result = record(status.result)
+        search_only: false,
+        include_full_snapshot: true,
+        single_interactive_batch: true,
+      }, JOB_TIMEOUT_MS)
       const nextSnapshot = record(result.snapshot)
       const nextCert = certificateFrom(result)
         || certificateFrom(result.pst_session)
@@ -445,6 +486,12 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
       })
       const rows = list(nextSnapshot.documenti || nextSnapshot.catalogo || result.documenti)
       const nextDocuments = flattenDocuments(rows, data.documents)
+      setSearchProgress({
+        completed: 4,
+        total: 4,
+        phase: 'Fascicolo visualizzato',
+        current: 'Catalogo completo ricevuto e pronto per la selezione.',
+      })
       setSnapshot(nextSnapshot)
       setViewSession(nextSession)
       setDocuments(nextDocuments)
@@ -481,8 +528,8 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
   }, [openOfficeDocumentsRequest])
 
   const runImportOperation = async (operationId: string) => {
-    if (!selectedDocuments.length) {
-      onError('Seleziona almeno un documento da acquisire.')
+    if (!selectedImportDocuments.length) {
+      onError('Seleziona almeno un documento non ancora acquisito.')
       return
     }
     if (!viewSession) {
@@ -490,14 +537,15 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
       return
     }
     setBusy('import')
-    setMessage(`Acquisizione di ${selectedDocuments.length} documenti in corso…`)
+    setDownloadProgress({ completed: 0, total: selectedImportDocuments.length, current: 'Preparo il lotto documentale.' })
+    setMessage(`Acquisizione di ${selectedImportDocuments.length} documenti in corso…`)
     try {
-      const cert = await ensureCertificate()
+      const cert = await ensureCertificate(localSignerJson)
       const storedDownloadSession = viewSession
         || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
         || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
-      const selectedRows = selectedDocuments.map((doc) => downloadableDocument(doc.raw, modes[doc.key] || 'copia'))
-      const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
+      const selectedRows = selectedImportDocuments.map((doc) => downloadableDocument(doc.raw, modes[doc.key] || 'copia'))
+      const job = await localSignerJson('/pst/download-documenti-batch-job', {
         operation_id: operationId,
         tribunale: officeCode,
         codice_ufficio: officeCode,
@@ -508,11 +556,33 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         pst_session_id: storedDownloadSession?.sessionId || '',
         preflight_auth: false,
         original: false,
-        servizio_pst: source.servizioPst || text(record(snapshot.fascicolo).servizio_pst),
-        registro_portale: source.registroPortale || text(record(snapshot.fascicolo).registro_portale),
-        tabella_ministeriale: source.tabellaMinisteriale || text(record(snapshot.fascicolo).tabella_ministeriale),
+        servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst),
+        registro_portale: text(record(snapshot.fascicolo).registro_portale || source.registroPortale),
+        tabella_ministeriale: text(record(snapshot.fascicolo).tabella_ministeriale || source.tabellaMinisteriale),
         documents: selectedRows,
-      }, DOWNLOAD_TIMEOUT_MS)
+      }, 60_000)
+      const jobId = text(job.job_id)
+      if (!jobId) throw new Error('Il lotto documentale PST non è stato avviato.')
+      const startedAt = Date.now()
+      let status = job
+      while (Date.now() - startedAt < DOWNLOAD_TIMEOUT_MS) {
+        if (text(status.status) === 'completed') break
+        if (text(status.status) === 'failed') throw new Error(text(status.errore || status.error, 'Scaricamento documenti non completato.'))
+        const completed = number(status.completed || status.progress_completed)
+        const total = number(status.total || status.progress_total || selectedRows.length)
+        const current = text(status.current, 'Scaricamento documenti dal PST in corso…')
+        setDownloadProgress({ completed, total, current })
+        setMessage(total ? `${current} · ${completed}/${total} documenti elaborati` : current)
+        await new Promise((resolve) => window.setTimeout(resolve, 1_000))
+        status = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, { operation_id: operationId }, 60_000)
+      }
+      if (text(status.status) !== 'completed') throw new Error('Il portale non ha completato lo scaricamento entro il tempo massimo.')
+      const signerPayload = record(status.result)
+      setDownloadProgress({
+        completed: number(status.completed || status.progress_completed || selectedRows.length),
+        total: number(status.total || status.progress_total || selectedRows.length),
+        current: text(status.current, 'Lotto documentale ricevuto, verifico i file prima dell’importazione.'),
+      })
       const files = list(signerPayload.files).map(record)
       if (!files.length) {
         const firstFailure = record(list(signerPayload.failures)[0])
@@ -584,6 +654,104 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     }
   }
 
+  const runDownloadOperation = async (operationId: string) => {
+    if (!selectedDocuments.length) {
+      onError('Seleziona almeno un documento da riscaricare.')
+      return
+    }
+    if (!viewSession) {
+      onError('La sessione di consultazione è scaduta: aggiorna prima l’elenco.')
+      return
+    }
+    setBusy('download')
+    setDownloadProgress({ completed: 0, total: selectedDocuments.length, current: 'Preparo un unico lotto per i documenti selezionati.' })
+    setMessage(`Scaricamento di ${selectedDocuments.length} documenti in corso…`)
+    try {
+      const cert = await ensureCertificate(localSignerJson)
+      const storedDownloadSession = viewSession
+        || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
+        || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
+      const selectedRows = selectedDocuments.map((doc) => downloadableDocument(doc.raw, modes[doc.key] || 'copia'))
+      const job = await localSignerJson('/pst/download-documenti-batch-job', {
+        operation_id: operationId,
+        tribunale: officeCode,
+        codice_ufficio: officeCode,
+        cf_avvocato: cert.fiscalCode,
+        cert_thumbprint: cert.thumbprint,
+        cert_key: cert.thumbprint,
+        purpose: 'view',
+        pst_session_id: storedDownloadSession?.sessionId || '',
+        preflight_auth: false,
+        original: false,
+        servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst),
+        registro_portale: text(record(snapshot.fascicolo).registro_portale || source.registroPortale),
+        tabella_ministeriale: text(record(snapshot.fascicolo).tabella_ministeriale || source.tabellaMinisteriale),
+        documents: selectedRows,
+      }, 60_000)
+      const jobId = text(job.job_id)
+      if (!jobId) throw new Error('Il lotto documentale PST non è stato avviato.')
+      const startedAt = Date.now()
+      let status = job
+      while (Date.now() - startedAt < DOWNLOAD_TIMEOUT_MS) {
+        if (text(status.status) === 'completed') break
+        if (text(status.status) === 'failed') throw new Error(text(status.errore || status.error, 'Scaricamento documenti non completato.'))
+        const completed = number(status.completed || status.progress_completed)
+        const total = number(status.total || status.progress_total || selectedRows.length)
+        const current = text(status.current, 'Scaricamento documenti dal PST in corso…')
+        setDownloadProgress({ completed, total, current })
+        setMessage(total ? `${current} · ${completed}/${total} documenti elaborati` : current)
+        await new Promise((resolve) => window.setTimeout(resolve, 1_000))
+        status = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, { operation_id: operationId }, 60_000)
+      }
+      if (text(status.status) !== 'completed') throw new Error('Il portale non ha completato lo scaricamento entro il tempo massimo.')
+      const signerPayload = record(status.result)
+      setDownloadProgress({
+        completed: number(status.completed || status.progress_completed || selectedRows.length),
+        total: number(status.total || status.progress_total || selectedRows.length),
+        current: text(status.current, 'Lotto documentale ricevuto, avvio lo scarico nel browser.'),
+      })
+      const files = list(signerPayload.files).map(record)
+      if (!files.length) {
+        const firstFailure = record(list(signerPayload.failures)[0])
+        throw new Error(text(firstFailure.errore || firstFailure.message, 'Nessun documento è stato ricevuto dal portale.'))
+      }
+      const nextDownloadSession = sessionFrom(signerPayload, officeCode, cert, 'view')
+        || sessionFrom(signerPayload.pst_session, officeCode, cert, 'view')
+        || storedDownloadSession
+      if (!nextDownloadSession) throw new Error('Sessione di scaricamento non inizializzata.')
+      writeStored(VIEW_SESSION_KEY, {
+        sessionId: nextDownloadSession.sessionId,
+        purpose: 'view',
+        tribunale: nextDownloadSession.officeCode,
+        certThumbprint: nextDownloadSession.certThumbprint,
+        expiresAt: nextDownloadSession.expiresAt,
+      })
+      setViewSession(nextDownloadSession)
+      const saved = files.reduce((count, file) => count + (savePstFileToBrowser(file) ? 1 : 0), 0)
+      if (!saved) throw new Error('I file ricevuti dal PST non sono scaricabili dal browser.')
+      setMessage(`${saved} documenti scaricati senza modificare il fascicolo.`)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Scaricamento documenti non completato.'
+      setMessage(reason)
+      onError(reason)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const runDownload = (): Promise<void> => {
+    if (downloadFlight.current) return downloadFlight.current
+    if (searchFlight.current) return searchFlight.current
+    const operationId = pstOperationId('download')
+    const flight = runDownloadOperation(operationId)
+    downloadFlight.current = flight
+    void flight.then(
+      () => { if (downloadFlight.current === flight) downloadFlight.current = null },
+      () => { if (downloadFlight.current === flight) downloadFlight.current = null },
+    )
+    return flight
+  }
+
   const runImport = (): Promise<void> => {
     if (downloadFlight.current) return downloadFlight.current
     if (searchFlight.current) return searchFlight.current
@@ -621,6 +789,28 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
 
       {missing.length ? <p className="iu-fas-office-docs__notice iu-fas-office-docs__notice--warning">Completa {missing.join(', ')} nel fascicolo per avviare la ricerca.</p> : null}
       {message ? <p className="iu-fas-office-docs__notice" aria-live="polite">{message}</p> : null}
+      {busy === 'search' ? (
+        <div className="iu-fas-office-docs__progress" role="status" aria-live="polite">
+          <div className="iu-fas-office-docs__progress-head">
+            <FolderSearch2 size={15}/>
+            <strong>{searchProgress.phase || 'Consultazione autenticata'}</strong>
+            <span>{searchProgress.completed}/{searchProgress.total} fasi PST</span>
+          </div>
+          <progress value={Math.min(searchProgress.completed, searchProgress.total)} max={searchProgress.total} aria-label={`Consultazione autenticata: fase ${searchProgress.completed} di ${searchProgress.total}`} />
+          <p>{searchProgress.current || 'Attendo l’avvio della consultazione PST.'}</p>
+        </div>
+      ) : null}
+      {(busy === 'import' || busy === 'download') && downloadProgress.total ? (
+        <div className="iu-fas-office-docs__progress" role="status" aria-live="polite">
+          <div className="iu-fas-office-docs__progress-head">
+            <Download size={15}/>
+            <strong>{busy === 'download' ? 'Scaricamento selezionati dal PST' : 'Acquisizione documenti dal PST'}</strong>
+            <span>{downloadProgress.completed}/{downloadProgress.total} documenti elaborati</span>
+          </div>
+          <progress value={Math.min(downloadProgress.completed, downloadProgress.total)} max={downloadProgress.total} aria-label={`Scaricamento documenti: ${downloadProgress.completed} di ${downloadProgress.total}`} />
+          <p>{downloadProgress.current}</p>
+        </div>
+      ) : null}
 
       {documents.length ? (
         <>
@@ -628,6 +818,24 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
             <span><FileText size={14}/> {documents.length} disponibili</span>
             <span><CheckCircle2 size={14}/> {acquiredCount} già acquisiti</span>
             <span><ShieldCheck size={14}/> {selectedDocuments.length} selezionati</span>
+          </div>
+          <div className="iu-fas-office-docs__selection-toolbar" aria-label="Selezione documenti del fascicolo d’ufficio">
+            <span>{selectableDocuments.length} non ancora acquisiti · {selectedDocuments.length} selezionati</span>
+            <button type="button" className="iu-btn iu-btn--neutral" onClick={selectAllDocuments} disabled={!documents.length || Boolean(busy)}>Seleziona tutto</button>
+            <button type="button" className="iu-btn iu-btn--neutral" onClick={selectOnlyNotAcquired} disabled={!selectableDocuments.length || Boolean(busy)}>Seleziona non acquisiti</button>
+            <button type="button" className="iu-btn iu-btn--neutral" onClick={deselectAll} disabled={!selection.length || Boolean(busy)}>Deseleziona tutto</button>
+            <label>
+              <span>Formato selezionati</span>
+              <select
+                aria-label="Formato per i documenti selezionati"
+                value={selectedDocuments.length ? (modes[selectedDocuments[0].key] || 'copia') : 'copia'}
+                disabled={!selectedDocuments.length || Boolean(busy)}
+                onChange={(event) => setSelectedDocumentsMode(event.target.value as DocumentMode)}
+              >
+                <option value="copia">Copia</option>
+                <option value="originale">Originale</option>
+              </select>
+            </label>
           </div>
           <div className="iu-fas-office-docs__list">
             {documents.map((doc) => {
@@ -638,7 +846,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
                     <input
                       type="checkbox"
                       checked={selected}
-                      disabled={doc.acquired || Boolean(busy)}
+                      disabled={Boolean(busy)}
                       onChange={(event) => setSelection((current) => event.target.checked ? [...current, doc.key] : current.filter((key) => key !== doc.key))}
                     />
                     <span className="sr-only">Seleziona {doc.name}</span>
@@ -647,11 +855,10 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
                     <strong>{doc.name}</strong>
                     <span>{doc.isAttachment ? `Allegato${doc.parentName ? ` di ${doc.parentName}` : ''}` : 'Atto principale'} · {doc.type}{doc.date ? ` · ${formatDateIt(doc.date)}` : ''}</span>
                   </div>
-                  {doc.acquired ? (
-                    <span className="iu-fas-office-docs__acquired"><CheckCircle2 size={14}/> Acquisito</span>
-                  ) : (
+                  <div className="iu-fas-office-docs__row-actions">
+                    {doc.acquired ? <span className="iu-fas-office-docs__acquired"><CheckCircle2 size={14}/> Acquisito</span> : null}
                     <select
-                      aria-label={`Formato da acquisire per ${doc.name}`}
+                      aria-label={`${doc.acquired ? 'Formato da riscaricare' : 'Formato da acquisire'} per ${doc.name}`}
                       value={modes[doc.key] || 'copia'}
                       disabled={!selected || Boolean(busy)}
                       onChange={(event) => setModes((current) => ({ ...current, [doc.key]: event.target.value as DocumentMode }))}
@@ -659,16 +866,21 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
                       <option value="copia">Copia</option>
                       <option value="originale">Originale</option>
                     </select>
-                  )}
+                  </div>
                 </article>
               )
             })}
           </div>
           <footer className="iu-fas-office-docs__actions">
-            <span>La scelta resta manuale: vengono acquisiti soltanto i documenti selezionati.</span>
-            <button type="button" className="iu-btn iu-btn--primary" onClick={() => void runImport()} disabled={!selectedDocuments.length || Boolean(busy)}>
-              <Download size={15}/>{busy === 'import' ? 'Acquisizione…' : `Acquisisci ${selectedDocuments.length || ''}`}
-            </button>
+            <span>I documenti già acquisiti restano riconoscibili e possono essere riscaricati in copia o originale senza creare duplicati nel fascicolo.</span>
+            <div className="iu-fas-office-docs__action-buttons">
+              <button type="button" className="iu-btn iu-btn--neutral" onClick={() => void runDownload()} disabled={!selectedDocuments.length || Boolean(busy)}>
+                <Download size={15}/>{busy === 'download' ? 'Scaricamento…' : `Scarica ${selectedDocuments.length || ''}`}
+              </button>
+              <button type="button" className="iu-btn iu-btn--primary" onClick={() => void runImport()} disabled={!selectedImportDocuments.length || Boolean(busy)}>
+                <Download size={15}/>{busy === 'import' ? 'Acquisizione…' : `Acquisisci nuovi ${selectedImportDocuments.length || ''}`}
+              </button>
+            </div>
           </footer>
         </>
       ) : null}

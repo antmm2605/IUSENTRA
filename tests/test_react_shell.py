@@ -2385,11 +2385,11 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" not in source
     assert "dopo il tentativo di avvio automatico" in source
     assert "ok: reachable" in source
-    assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)}" in source
+    assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported) || (portal === 'pst' && pstSchemaHintPending)}" in source
     assert "REACT_PST_SESSION_KEY" in source
     assert "localSignerJson('/pst/preflight-auth'" not in source
     assert "localSignerJson('/pst/ricerca-snapshot'" in source
-    assert "localSignerJson('/pst/ricerca'" in source
+    assert "localSignerJson('/pst/ricerca'" in source  # fallback controllato se lo snapshot esatto non è disponibile
     assert "localSignerPstFascicoloSnapshotJob" in source
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" in source
     assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
@@ -2409,9 +2409,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert ".iu-tel-acq-status button:hover:not(:disabled)" in css_source
     assert ".iu-tel-local-signer-card .iu-tel-acq-actions button:disabled" in css_source
     assert ".iu-tel-local-signer-inline button:focus-visible:not(:disabled)" in css_source
-    assert "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))" in source
-    assert "nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte)" in source
-    assert "cf_parte: exactPstSearch ? '' : query.cf" in source
+    assert "const exactPstSearch = Boolean(asText(searchQuery.numero) && asText(searchQuery.anno))" in source
+    assert "nome_parte: exactPstSearch ? '' : (searchQuery.assistito || searchQuery.controparte)" in source
+    assert "cf_parte: exactPstSearch ? '' : searchQuery.cf" in source
     assert "codiceFiscale: extractItalianFiscalCode(" in source
     assert "function coercePstCertificate(value: unknown): PstCertificate | null" in source
     assert "function certificateMatchesPstPreferences" in source
@@ -2421,16 +2421,71 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "function statusHasPstCertificatePreference" in source
     assert "const statusForPstCertificate = async (): Promise<JsonRecord>" in source
     assert "const certificateStatus = await statusForPstCertificate()" in source
+    assert "beginLocalSignerForegroundGrant()" not in source
+    assert "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)" not in source
+    assert "foreground_nonce: foregroundNonce" not in source
+    run_search = source[source.index("const runSearch = async"):source.index("useEffect(() =>", source.index("const runSearch = async"))]
+    assert "const operation = executeSearch(createLocalSignerOperationId('pst-view'))" in run_search
 
 
-def test_office_documents_portale_pst_separa_accesso_e_infofascicolo():
+def test_office_documents_portale_pst_consulta_nell_app_con_catalogo_completo():
     source = Path("frontend/src/components/OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
-    assert "const accessUrl = officialPstAccessUrl()" in source
-    assert "const targetUrl = portalUrl" in source
-    assert "official_url: accessUrl" in source
-    assert "target_url: targetUrl" in source
-    assert "infofascicolo_url: portalUrl" in source
-    assert "Dopo l'accesso la finestra viene portata su InfoFascicolo > Documenti" in source
+    assert "Documenti disponibili presso" in source
+    assert "const JOB_TIMEOUT_MS = 360_000" in source
+    assert "const DOWNLOAD_TIMEOUT_MS = 480_000" in source
+    assert "localSignerJson('/pst/ricerca-snapshot'" in source
+    assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in source
+    assert "single_interactive_batch: true" in source
+    assert "include_full_snapshot: true" in source
+    assert "localSignerJson('/pst/ricerca-snapshot-job'" not in source
+    assert "const nextSnapshot = record(result.snapshot)" in source
+    assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
+    assert "id_fascicolo: source.idFascicoloPortale || source.externalId" in source
+    assert "purpose: 'view'" in source
+    assert "pst_session_id: storedSession?.sessionId || ''" in source
+    assert "localSignerJson('/pst/download-documenti-batch-job'" in source
+    assert "localSignerJson('/pst/download-documenti-batch'," not in source
+    assert "window.setTimeout(resolve, 1_000)" in source
+    assert "setDownloadProgress" in source
+    assert "documenti elaborati" in source
+    assert "const [searchProgress, setSearchProgress]" in source
+    assert "Consultazione autenticata" in source
+    assert "Formato selezionati" in source
+    assert "const selectableDocuments" in source
+    assert "const selectedDocuments" in source
+    assert "const selectedImportDocuments" in source
+    assert "Seleziona tutto" in source
+    assert "Seleziona non acquisiti" in source
+    assert "Deseleziona tutto" in source
+    assert "Scarica ${selectedDocuments.length || ''}" in source
+    assert "savePstFileToBrowser" in source
+    assert "<option value=\"copia\">Copia</option>" in source
+    assert "<option value=\"originale\">Originale</option>" in source
+    assert "disabled={Boolean(busy)}" in source
+    assert "disabled={doc.acquired || Boolean(busy)}" not in source
+    assert "non_duplicare: true" in source
+    assert "importa_solo_nuovi: true" in source
+    assert "request('/ping?auto=1'" in source
+    assert "request('/seleziona-certificato?auto=1', undefined, 120_000)" in source
+    assert "const officeCode = data.depositOffice.code || data.depositOffice.ministerialCode || source.ufficioCodice" in source
+    assert "servizio_pst: text(hint.servizio_pst_preferito || hint.servizio_pst || source.servizioPst)" in source
+    assert "tabella_ministeriale: text(hint.tabella_ministeriale || source.tabellaMinisteriale)" in source
+
+def test_local_signer_protocol_resta_opzionale_e_non_blocca_i_flussi_pst_react():
+    helper = Path("frontend/src/features/telematico/localSignerForeground.ts").read_text(encoding="utf-8")
+    fascicoli = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    wizard = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+
+    assert helper.count("window.location.assign(") == 1
+    assert "iframe" not in helper
+    assert "navigator.userActivation.isActive" in helper
+    assert "iusentra-local-signer://foreground?nonce=" in helper
+    assert "'/foreground/status'" in helper
+    assert "beginLocalSignerForegroundGrant()" not in fascicoli
+    assert "foregroundGrant" not in fascicoli
+    assert "useState(0)" in fascicoli
+    assert "beginLocalSignerForegroundGrant()" not in wizard
+    assert "foreground_nonce: foregroundNonce" not in wizard
 
 
 def test_local_signer_verifica_avvia_autoaggiornamento_se_versione_vecchia():
@@ -3824,7 +3879,7 @@ def test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito():
     assert "function pstDocumentsShareIdentifier" in source
     assert "return matches.length === 1 ? matches : []" in source
     assert "if (isDocumentRetry) return retryPreviewDocumentKeys" in source
-    assert "Ripresa mirata: è selezionato soltanto il documento" in source
+    assert "Ripresa mirata: sono selezionati soltanto i ${retryPreviewDocumentKeys.length} documenti" in source
     assert "Non verrà sostituito automaticamente" in source
     assert "failedDocuments: JsonRecord[]" in source
     assert "pendingPstFailedDocumentsRef.current = downloaded.failedDocuments" in source
@@ -3832,7 +3887,8 @@ def test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito():
     assert "const failedDocumentKeys = exactPreviewDocumentKeysFor(downloaded.failedDocuments)" in source
     assert "retryScope === 'documents' ? id : ''" in source
     assert "if (!downloaded.files.length)" in source
-    assert "Scaricamento non completato: è selezionato soltanto il documento da riprendere." in source
+    assert "Scaricamento non completato: sono selezionati soltanto i ${failedDocumentKeys.length} documenti da riprendere." in source
+    assert "documenti ricevuti · ${failedDocuments} non ricevuti" in source
     assert "Importazione parziale registrata: riprendi soltanto i documenti non ricevuti dal PST prima di aprire il fascicolo." in source
 
 

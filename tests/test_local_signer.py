@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -94,15 +95,9 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
             self.returncode = -9
 
     monkeypatch.setattr(module.subprocess, "Popen", _FakeProcess)
-    monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
     monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
     monkeypatch.setattr(module, "_windows_close_job_handle", lambda handle: None)
     monkeypatch.setattr(module, "_windows_close_owned_pin_prompts", lambda handles: None)
-    monkeypatch.setattr(
-        module,
-        "_windows_pin_prompt_foreground_pump",
-        lambda stop_event, deadline_seconds, excluded_handles=None, owned_handles=None: None,
-    )
     return processes
 
 
@@ -633,6 +628,156 @@ def test_pst_master_detail_arricchisce_anteprima_nella_sessione_di_visualizzazio
     assert '"connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT' in source
 
 
+def test_pst_visualizzazione_esplicita_usa_lo_snapshot_completo_polisweb():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    panel = (root / "frontend" / "src" / "components" / "OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
+
+    assert "localSignerJson('/pst/ricerca-snapshot'" in panel
+    assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in panel
+    assert "localSignerJson('/pst/ricerca-snapshot-job'" not in panel
+    assert "force_new_session: true" not in panel
+    assert "single_interactive_batch: true" in panel
+    assert "include_full_snapshot: true" in panel
+    assert "const rows = list(nextSnapshot.documenti || nextSnapshot.catalogo || result.documenti)" in panel
+    assert "purpose: 'view'" in panel
+    assert "pst_session_id: storedSession?.sessionId || ''" in panel
+    # Il pannello non avvia un helper browser: il Local Signer gestisce soltanto
+    # la visibilità del prompt nativo senza intercettare o simulare il PIN.
+    assert "beginLocalSignerForegroundGrant()" not in panel
+    assert "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)" not in panel
+    assert "foreground_nonce: foregroundNonce" not in panel
+    assert "localSignerJson('/pst/download-documenti-batch-job'" in panel
+    assert "localSignerJson('/pst/download-documenti-batch'," not in panel
+    assert "setDownloadProgress" in panel
+    assert "Seleziona tutto" in panel
+    assert "Deseleziona tutto" in panel
+
+def test_selettore_certificato_pst_non_usa_owner_cross_process():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    cert_selector = source[
+        source.index("def _windows_seleziona_cert()"):
+        source.index("def _cert_match_normalized")
+    ]
+
+    assert "parent_hwnd" not in cert_selector
+    assert "user32.GetForegroundWindow" not in cert_selector
+    assert "h_store,\n            None,\n            \"IUSENTRA - Seleziona certificato PST\"" in cert_selector
+
+
+def test_selettore_certificato_pst_non_attiva_helper_tecnico_cert_store():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    cert_selector = source[
+        source.index("def _windows_seleziona_cert()"):
+        source.index("def _cert_match_normalized")
+    ]
+
+    for forbidden in ("EnumWindows", "GetWindowTextW", "SetForegroundWindow", "SetWindowPos"):
+        assert forbidden not in source
+    assert 'name="iusentra-certificate-foreground"' not in cert_selector
+    assert "target=_windows_pin_prompt_foreground_pump" not in cert_selector
+    assert "prompt_stop_event" not in cert_selector
+
+
+def test_fascicolo_snapshot_job_usa_il_percorso_diretto_validato(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    job_id = "job-parita-wizard"
+    with module._pst_async_job_lock:
+        module._pst_async_job_cache[job_id] = {
+            "job_id": job_id,
+            "status": "queued",
+            "phase": "",
+            "current": "",
+            "started_at": "",
+            "updated_at": "",
+            "started_monotonic": module.time.time(),
+            "updated_monotonic": module.time.time(),
+            "result": None,
+            "error": "",
+        }
+
+    def fake_fascicolo_snapshot(shim):
+        captured["payload"] = shim._read_json()
+        shim._send_json({"ok": True, "snapshot": {"documenti": [{"id": "doc-1"}]}})
+
+    def forbidden_ricerca_snapshot(_shim):
+        raise AssertionError("Il pannello non deve deviare alla ricerca del Wizard.")
+
+    monkeypatch.setattr(module._Handler, "_pst_fascicolo_snapshot", fake_fascicolo_snapshot)
+    monkeypatch.setattr(module._Handler, "_pst_ricerca_snapshot", forbidden_ricerca_snapshot)
+
+    module._pst_run_fascicolo_snapshot_job(
+        job_id,
+        {"tribunale": "0640011", "numero_rg": "1084", "anno_rg": 2026},
+    )
+
+    assert captured["payload"]["tribunale"] == "0640011"
+    assert captured["payload"]["numero_rg"] == "1084"
+    assert callable(captured["payload"]["_pst_progress_callback"])
+    assert "single_interactive_batch" not in captured["payload"]
+    with module._pst_async_job_lock:
+        job = dict(module._pst_async_job_cache[job_id])
+        module._pst_async_job_cache.pop(job_id, None)
+    assert job["status"] == "completed"
+    assert job["completed"] == 4
+    assert job["total"] == 4
+    assert job["result"]["snapshot"]["documenti"] == [{"id": "doc-1"}]
+
+
+def test_pst_resolver_copre_la_matrice_delle_dieci_tabelle_senza_sovrascritture_storiche():
+    """Il pannello diretto e il wizard devono convergere sulla stessa tabella."""
+    from web.blueprints.api_v1_react import _pst_react_schema_hint_from_fascicolo
+
+    signer = _load_local_signer()
+    cases = (
+        ("civile ordinario", "Civile ordinario", "JPW_SICID", "civile", "SICID_CONTENZIOSO_CIVILE"),
+        ("lavoro e previdenza", "Lavoro e previdenza", "JPW_SIL_DISTR", "lavoro", "SICID_LAVORO"),
+        ("volontaria giurisdizione", "Volontaria giurisdizione", "JPW_SIVG", "volontaria", "SICID_VOLONTARIA_GIURISDIZIONE"),
+        ("minorenni", "Minorenni", "JPW_MIN", "minori", "SICID_MINORI"),
+        ("esecuzioni mobiliari", "Esecuzione mobiliare", "JPW_SIECIC", "esecuzioni mobiliari", "SIECIC_ESECUZIONI_MOBILIARI"),
+        ("esecuzioni immobiliari", "Esecuzione immobiliare", "JPW_SIECIC", "esecuzioni immobiliari", "SIECIC_ESECUZIONI_IMMOBILIARI"),
+        ("procedure concorsuali", "Procedura concorsuale", "JPW_SIECIC", "procedure concorsuali", "SIECIC_PROCEDURE_CONCORSUALI"),
+        ("giudice di pace", "Giudice di pace", "JPW_SIGP", "giudice di pace", "SIGP_GIUDICE_DI_PACE"),
+        ("cassazione civile", "Cassazione civile", "JPW_CASSCI", "cassazione civile", "JPW_CASSCI"),
+        ("cassazione penale", "Cassazione penale", "JPW_CASSPE", "cassazione penale", "JPW_CASSPE"),
+    )
+
+    for label, procedure, service, schema, table in cases:
+        fascicolo = SimpleNamespace(
+            registro_operativo="",
+            canale_operativo="",
+            procedura_operativa_codice=procedure,
+            tipo_procedimento=procedure,
+            codice_guida_pratica="",
+            tipo="CIVILE",
+            area_pratica="",
+            titolo="",
+            oggetto="",
+            # Il codice oggetto è un dato del fascicolo, ma non può
+            # sovrascrivere una procedura esatta già individuata.
+            codice_oggetto_pst="222050",
+            tribunale="Tribunale ordinario",
+            profilo_deposito={},
+        )
+        hint = _pst_react_schema_hint_from_fascicolo(fascicolo)
+
+        assert hint["schema"] == schema, label
+        assert hint["tabella_ministeriale"] == table, label
+        assert hint["servizio_pst_preferito"] == service, label
+        assert signer._pst_servizio_ministeriale_da_payload({
+            "servizio_pst": hint["servizio_pst_preferito"],
+            "registro_portale": hint["registro_portale"],
+            "tabella_ministeriale": hint["tabella_ministeriale"],
+            "tipo_registro": hint["tipo_registro"],
+            "materia": hint["materia"],
+            "schema": hint["schema"],
+            "codice_oggetto_pst": fascicolo.codice_oggetto_pst,
+        }) == service, label
+
+
 def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
@@ -646,7 +791,7 @@ def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
     assert 'soap_documenti = "" if search_only else _soap_documenti_body(' in ricerca_block
     assert 'fallback_soap_documenti = "" if search_only else _soap_documenti_body(' in ricerca_block
     assert "section_batch_indexes" in ricerca_block
-    assert "and not single_interactive_batch" in ricerca_block
+    assert "if _pst_namespace_qbuilder(base_url) and include_full_snapshot and not single_interactive_batch:" in ricerca_block
     full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot and not single_interactive_batch:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
     assert 'cert_thumbprint=""' in full_branch
     assert "allow_cert_retry=False" in full_branch
@@ -954,43 +1099,41 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "if (AW_PST_DOWNLOAD_OPERATION_PROMISE) return AW_PST_DOWNLOAD_OPERATION_PROMISE" in download_fn
 
 
-def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
+def test_local_signer_pst_curl_mette_in_primo_piano_prompt_nativo_senza_manipolare_input():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    helper = (root / "tools" / "local_signer_foreground_helper.py").read_text(encoding="utf-8")
 
-    assert "def _windows_pin_prompt_foreground_pump" in source
-    assert "min(float(deadline_seconds or 1), 900.0)" in source
+    assert "def _claim_windows_foreground_grant" in source
+    assert "def _complete_windows_foreground_grant" in source
+    assert "def _consume_windows_foreground_grant" in source
     assert "def _run_curl_with_pin_foreground" in source
-    assert '"sicurezza di windows"' in source
-    assert '"windows security"' in source
-    assert '"credential"' in source
-    assert '"credentialuibroker"' in source
-    assert '"bit4id"' in source
-    assert '"minva"' in source
-    assert '"infocert"' in source
-    assert '"namirial"' in source
-    assert '"idprotect"' in source
-    assert '"safenet"' in source
     assert "def _run_process_with_pin_foreground" in source
-    assert "EnumChildWindows" in source
-    assert "GetClassNameW" in source
-    assert "QueryFullProcessImageNameW" in source
-    assert "AttachThreadInput" in source
-    assert "SetWindowPos" in source
-    foreground_block = source[
-        source.index("def _windows_force_foreground_window"):source.index("def _windows_visible_top_level_window_handles")
+    runner = source[
+        source.index("def _run_process_with_pin_foreground"):
+        source.index("def _http_status_from_headers")
     ]
-    assert "hwnd_topmost" in foreground_block
-    assert "hwnd_notopmost" not in foreground_block
-    assert "FlashWindow" in source
-    assert "FlashWindowEx" in source
+    assert "target=_windows_pin_prompt_foreground_pump" in runner
+    assert "_windows_visible_top_level_window_handles()" in runner
+    assert "reclaim_existing_pin_prompt" in runner
+    assert "process = subprocess.Popen" in runner
+    assert "requires_foreground_grant" not in runner
+    # Il Local Signer può individuare e mostrare il dialogo nativo, ma non può
+    # collegarsi all’input, simulare tasti, imporre focus o chiudere il prompt.
+    for forbidden in (
+        "SwitchToThisWindow", "AttachThreadInput", "SetFocus", "SetWindowPos",
+        "PostMessageW", "keybd_event", "FlashWindow",
+    ):
+        assert forbidden not in source
+        assert forbidden not in helper
+    for allowed_foreground_call in ("ShowWindow", "BringWindowToTop", "SetForegroundWindow"):
+        assert allowed_foreground_call in source
+    assert helper.count("AllowSetForegroundWindow") == 3
+    assert "_nonce_from_uri" in helper
+    assert '"/foreground/claim"' in helper
+    assert '"/foreground/complete"' in helper
     assert "CREATE_NO_WINDOW" in source
     assert "STARTF_USESHOWWINDOW" in source
-    assert "if user32.IsWindow(hwnd):" in source
-    assert "if not user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):" not in source
-    assert "possono creare il prompt PIN come finestra" in source
-    assert "Alcuni provider riutilizzano per il secondo PIN lo stesso HWND" in source
-    assert "if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):" in source
     assert "result = _run_process_with_pin_foreground(" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
@@ -1020,7 +1163,6 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert '[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]' not in best_effort
     assert '[_curl_command(), "-s", "-S", "-K", cfg_file]' in best_effort
 
-
 def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypatch):
     module = _load_local_signer()
     captured = {}
@@ -1029,12 +1171,6 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
     monkeypatch.setattr(module.subprocess, "CREATE_NO_WINDOW", 0x08000000, raising=False)
     monkeypatch.setattr(module.subprocess, "STARTF_USESHOWWINDOW", 1, raising=False)
     monkeypatch.setattr(module.subprocess, "SW_HIDE", 0, raising=False)
-    monkeypatch.setattr(
-        module,
-        "_windows_pin_prompt_foreground_pump",
-        lambda stop_event, deadline_seconds, excluded_handles=None, owned_handles=None: None,
-    )
-    monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
     monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
     monkeypatch.setattr(module, "_windows_close_owned_pin_prompts", lambda handles: None)
 
@@ -1078,7 +1214,7 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
         assert getattr(startupinfo, "wShowWindow", None) == 0
 
 
-def test_run_curl_pst_riprende_un_dialog_pin_riusato_dal_provider(monkeypatch):
+def test_run_curl_pst_riusa_il_pump_windows_positivo(monkeypatch):
     module = _load_local_signer()
     captured = {}
 
@@ -1094,6 +1230,36 @@ def test_run_curl_pst_riprende_un_dialog_pin_riusato_dal_provider(monkeypatch):
     assert result.returncode == 0
     assert captured["cmd"] == ["curl.exe", "--version"]
     assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
+
+def test_run_process_windows_presidia_il_prompt_pin_senza_bloccare_il_curl():
+    source = Path("tools/local_signer.py").read_text(encoding="utf-8")
+    runner = source[
+        source.index("def _run_process_with_pin_foreground"):
+        source.index("def _http_status_from_headers")
+    ]
+
+    assert "_windows_pin_prompt_foreground_pump" in runner
+    assert "reclaim_existing_pin_prompt" in runner
+    assert "requires_foreground_grant" not in runner
+    assert "process = subprocess.Popen" in runner
+
+def test_run_curl_pst_batch_limita_il_timeout_al_valore_verificato(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    def _fake_run_process(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return module.subprocess.CompletedProcess(cmd, 0, b"", b"")
+
+    monkeypatch.setattr(module, "_run_process_with_pin_foreground", _fake_run_process)
+
+    result = module._run_curl_with_pin_foreground(["curl.exe", "-K", "lotto.cfg"], timeout=800)
+
+    assert result.returncode == 0
+    assert captured["kwargs"]["timeout"] == module.PST_INTERACTIVE_CURL_MAX_TIME
+    assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
+    assert module.PST_INTERACTIVE_CURL_BATCH_HARD_MAX_TIME >= 800
 
 
 def test_local_signer_cleanup_termina_operazione_governata_e_ripulisce_prompt(monkeypatch):
@@ -1150,28 +1316,37 @@ def test_batch_curl_arresta_intero_lotto_al_primo_annullamento():
     assert '[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]' not in best_effort
 
 
-def test_local_signer_foreground_pin_riconosce_dialog_windows_senza_titolo():
+def test_local_signer_foreground_grant_e_monouso():
     module = _load_local_signer()
+    nonce = "a" * 32
+    with module._windows_foreground_grant_lock:
+        module._windows_foreground_grant_cache.clear()
 
-    assert module._windows_pin_prompt_candidate_score("", "Credential Dialog Xaml Host", "") >= 5
-    assert module._windows_pin_prompt_candidate_score(
-        "Richiesta credenziali",
-        "#32770",
-        "Inserire il PIN della smart card",
-    ) >= 15
-    assert module._windows_pin_prompt_candidate_score(
-        "",
-        "ApplicationFrameWindow",
-        "",
-        r"C:\Windows\System32\CredentialUIBroker.exe",
-    ) >= 9
-    assert module._windows_pin_prompt_candidate_score(
-        "",
-        "NativeHWNDHost",
-        "",
-        r"C:\Program Files\Bit4id\MinVa\MinVa.exe",
-    ) >= 9
-    assert module._windows_pin_prompt_candidate_score("Google Chrome", "Chrome_WidgetWin_1", "") == 0
+    claim = module._claim_windows_foreground_grant(nonce)
+    assert claim["state"] == "claimed"
+    assert claim["target_pid"] == module.os.getpid()
+    assert module._complete_windows_foreground_grant(nonce, claim["claim_token"], True)["state"] == "granted"
+    assert module._windows_foreground_grant_status(nonce)["state"] == "granted"
+    assert module._consume_windows_foreground_grant(nonce) is True
+    assert module._consume_windows_foreground_grant(nonce) is False
+    assert module._windows_foreground_grant_status(nonce)["state"] == "consumed"
+
+
+def test_local_signer_foreground_grant_rifiuta_nonce_e_token_non_validi():
+    module = _load_local_signer()
+    with module._windows_foreground_grant_lock:
+        module._windows_foreground_grant_cache.clear()
+
+    with pytest.raises(ValueError, match="Nonce"):
+        module._claim_windows_foreground_grant("breve")
+    nonce = "b" * 32
+    claim = module._claim_windows_foreground_grant(nonce)
+    with pytest.raises(ValueError, match="non riconosciuta"):
+        module._complete_windows_foreground_grant(nonce, "token-errato", True)
+    assert module._complete_windows_foreground_grant(nonce, claim["claim_token"], False)["state"] == "denied"
+    assert module._consume_windows_foreground_grant(nonce) is False
+    with pytest.raises(ValueError, match="già utilizzata"):
+        module._claim_windows_foreground_grant(nonce)
 
 
 def test_pst_import_test_reale_note_blinda_passaggi_grafica_e_multi_studio():
@@ -2849,6 +3024,19 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "IUSENTRA Local Signer.lnk" in installer
     assert "iusentra-local-signer://restart" in installer
     assert "iusentra-local-signer://update" in installer
+    assert "iusentra-local-signer://foreground" in installer
+    assert "local_signer_foreground_helper.py" in installer
+    protocol_start = installer.index("function Register-LocalSignerProtocol")
+    protocol_block = installer[
+        protocol_start:installer.index("function Register-LocalSignerStartupShortcut", protocol_start)
+    ]
+    assert "python\\pythonw.exe" in protocol_block
+    assert ".venv\\Scripts\\pythonw.exe" in protocol_block
+    assert "$foregroundHelperScript" in protocol_block
+    assert "$starterVbs" not in protocol_block
+    assert "wscript.exe" not in protocol_block
+    assert 'matcher.Pattern = "^iusentra-local-signer://foreground\\?nonce=[A-Za-z0-9_-]{32,64}$"' in installer
+    assert "shell.Run Chr(34) & pythonExe" in installer
     assert 'set "UPDATE_MODE=0"' in installer
     assert 'set "ARGS=%*"' in installer
     assert 'echo %ARGS% | find /I "--force"' in installer
@@ -2871,6 +3059,24 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "openInstallerDownload(cfg);" not in monitor
     assert "autoOpenInstallerOnce(cfg, 'missing')" in monitor
     assert "autoOpenInstallerOnce(cfg, 'outdated-auto')" not in monitor
+
+
+def test_builder_windows_preserva_pyhanko_negli_installer_macos_e_linux():
+    builder = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "build_local_signer_windows_exe.ps1"
+    ).read_text(encoding="utf-8")
+    pip_lines = [
+        line.strip()
+        for line in builder.splitlines()
+        if '"$PY" -m pip install --quiet python-pkcs11 ' in line
+    ]
+
+    assert len(pip_lines) == 2
+    for pip_line in pip_lines:
+        assert " pyhanko " in f" {pip_line} "
+        assert " pyhanko-certvalidator " in f" {pip_line} "
 
 
 def test_local_signer_update_endpoint_preferisce_hot_update_sorgenti(monkeypatch):
@@ -3092,13 +3298,46 @@ def test_local_signer_update_endpoint_rifiuta_url_non_ufficiale(monkeypatch):
         module._local_signer_update_url()
 
 
-def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
+def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive(monkeypatch):
     module = _load_local_signer()
+    orig_platform = module.sys.platform
+    orig_cached = module._ultimo_certificato_windows
+    try:
+        module.sys.platform = "win32"
+        module._ultimo_certificato_windows = {"thumbprint": "AABBCC11"}
+        monkeypatch.setattr(module, "_windows_lista_certificati", lambda: [
+            {"thumbprint": "AABBCC11"},
+            {"thumbprint": "FFEEDD22"},
+        ])
 
-    module._ultimo_certificato_windows = {"thumbprint": "AABBCC11"}
+        assert module._require_certificato_pst(None) == "AABBCC11"
+        assert module._require_certificato_pst("FFEEDD22") == "FFEEDD22"
+    finally:
+        module.sys.platform = orig_platform
+        module._ultimo_certificato_windows = orig_cached
 
-    assert module._require_certificato_pst(None) == "AABBCC11"
-    assert module._require_certificato_pst("FFEEDD22") == "FFEEDD22"
+
+def test_certificato_windows_cache_non_presente_nello_store_viene_scartato(monkeypatch):
+    module = _load_local_signer()
+    orig_platform = module.sys.platform
+    orig_cached = module._ultimo_certificato_windows
+    try:
+        module.sys.platform = "win32"
+        module._ultimo_certificato_windows = {
+            "thumbprint": "CACHE-OBSOLETA",
+            "soggetto": "Certificato già rimosso",
+        }
+        monkeypatch.setattr(module, "_windows_lista_certificati", lambda: [
+            {"thumbprint": "CERTIFICATO-CORRENTE"},
+        ])
+
+        assert module._certificato_windows_corrente_nello_store(module._ultimo_certificato_windows) == {}
+        with pytest.raises(RuntimeError, match="Seleziona certificato"):
+            module._require_certificato_pst(None)
+        assert module._ultimo_certificato_windows is None
+    finally:
+        module.sys.platform = orig_platform
+        module._ultimo_certificato_windows = orig_cached
 
 
 def test_ping_windows_espone_certificati_store_anche_senza_token_pkcs11():
@@ -3406,6 +3645,7 @@ def test_seleziona_certificato_windows_usa_dialog_nativo_solo_se_auto_disattivat
     orig_lista = module._windows_lista_certificati
     orig_pick = module._pick_preferred_windows_cert
     orig_select = module._windows_seleziona_cert
+    orig_bridge = module._windows_collega_certificato_cns_pst
     orig_remember = module._ricorda_certificato_windows
     orig_cached = module._ultimo_certificato_windows
     captured = {}
@@ -3422,6 +3662,7 @@ def test_seleziona_certificato_windows_usa_dialog_nativo_solo_se_auto_disattivat
         module.sys.platform = "win32"
         module._windows_lista_certificati = lambda: []
         module._pick_preferred_windows_cert = lambda *args, **kwargs: None
+        module._windows_collega_certificato_cns_pst = lambda: []
         module._windows_seleziona_cert = lambda: {
             "thumbprint": "MANUAL-SELECT",
             "soggetto": "ROBERTO MONTAGNESE",
@@ -3437,6 +3678,7 @@ def test_seleziona_certificato_windows_usa_dialog_nativo_solo_se_auto_disattivat
         module._windows_lista_certificati = orig_lista
         module._pick_preferred_windows_cert = orig_pick
         module._windows_seleziona_cert = orig_select
+        module._windows_collega_certificato_cns_pst = orig_bridge
         module._ricorda_certificato_windows = orig_remember
         module._ultimo_certificato_windows = orig_cached
 
@@ -3447,6 +3689,65 @@ def test_seleziona_certificato_windows_usa_dialog_nativo_solo_se_auto_disattivat
     assert remembered["thumbprint"] == "MANUAL-SELECT"
 
 
+def test_seleziona_certificato_windows_collega_cns_pkcs11_prima_del_dialog_generico():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_lista = module._windows_lista_certificati
+    orig_pick = module._pick_preferred_windows_cert
+    orig_select = module._windows_seleziona_cert
+    orig_bridge = module._windows_collega_certificato_cns_pst
+    orig_remember = module._ricorda_certificato_windows
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+    remembered = {}
+    auth_cert = {
+        "thumbprint": "AUTH-TOKEN",
+        "soggetto": "ROBERTO MONTAGNESE",
+        "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+        "scadenza": "2029-02-23",
+        "codice_fiscale": "MNTRRT64L01L063H",
+    }
+
+    class _FakeHandler:
+        path = (
+            "/seleziona-certificato?auto=0&prefer_cf=MNTRRT64L01L063H"
+            "&prefer_subject=auth%7Cautentica%7Cclient"
+        )
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    def _should_not_open_store():
+        raise AssertionError("Il certificato CNS collegato non deve aprire il dialogo generico")
+
+    try:
+        module.sys.platform = "win32"
+        module._ultimo_certificato_windows = {}
+        module._windows_lista_certificati = lambda: []
+        module._windows_collega_certificato_cns_pst = lambda: [auth_cert]
+        module._pick_preferred_windows_cert = orig_pick
+        module._windows_seleziona_cert = _should_not_open_store
+        module._ricorda_certificato_windows = lambda cert: remembered.update(cert or {})
+
+        module._Handler._seleziona_certificato(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._windows_lista_certificati = orig_lista
+        module._pick_preferred_windows_cert = orig_pick
+        module._windows_seleziona_cert = orig_select
+        module._windows_collega_certificato_cns_pst = orig_bridge
+        module._ricorda_certificato_windows = orig_remember
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["auto_selezionato"] is True
+    assert payload["thumbprint"] == "AUTH-TOKEN"
+    assert remembered["thumbprint"] == "AUTH-TOKEN"
+
+
 def test_seleziona_certificato_windows_auto_non_apre_dialog_generico_se_manca_match():
     module = _load_local_signer()
 
@@ -3454,6 +3755,7 @@ def test_seleziona_certificato_windows_auto_non_apre_dialog_generico_se_manca_ma
     orig_lista = module._windows_lista_certificati
     orig_pick = module._pick_preferred_windows_cert
     orig_select = module._windows_seleziona_cert
+    orig_bridge = module._windows_collega_certificato_cns_pst
     orig_cached = module._ultimo_certificato_windows
     captured = {}
 
@@ -3480,6 +3782,7 @@ def test_seleziona_certificato_windows_auto_non_apre_dialog_generico_se_manca_ma
             }
         ]
         module._pick_preferred_windows_cert = orig_pick
+        module._windows_collega_certificato_cns_pst = lambda: []
         module._windows_seleziona_cert = _should_not_open_store
 
         module._Handler._seleziona_certificato(_FakeHandler())
@@ -3488,6 +3791,7 @@ def test_seleziona_certificato_windows_auto_non_apre_dialog_generico_se_manca_ma
         module._windows_lista_certificati = orig_lista
         module._pick_preferred_windows_cert = orig_pick
         module._windows_seleziona_cert = orig_select
+        module._windows_collega_certificato_cns_pst = orig_bridge
         module._ultimo_certificato_windows = orig_cached
 
     payload = captured["payload"]
@@ -3763,39 +4067,45 @@ def test_pst_tabella_lavoro_da_schema_ministeriale_parte_da_sil(monkeypatch):
     assert "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID" in varianti
 
 
-def test_estrai_codice_fiscale_dal_certificato_windows():
+def test_estrai_codice_fiscale_dal_certificato_windows(monkeypatch):
     module = _load_local_signer()
 
-    module._ultimo_certificato_windows = {
+    cert = {
         "thumbprint": "AABBCC11",
         "soggetto": "MNTRRT64L01L063H/7430010029148677.255hHgKCPtfSkIn6w4MBTjOX0QQ=",
     }
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_windows_lista_certificati", lambda: [cert])
 
     assert module._estrai_codice_fiscale_testo("MNTRRT64L01L063H/123") == "MNTRRT64L01L063H"
     assert module._cf_avvocato_pst("", "AABBCC11") == "MNTRRT64L01L063H"
 
 
-def test_cf_avvocato_pst_usa_subject_completo_quando_il_cf_non_e_nel_display_name():
+def test_cf_avvocato_pst_usa_subject_completo_quando_il_cf_non_e_nel_display_name(monkeypatch):
     module = _load_local_signer()
 
-    module._ultimo_certificato_windows = {
+    cert = {
         "thumbprint": "FFEEDD22",
         "soggetto": "ROBERTO MONTAGNESE",
         "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
         "emittente": "ArubaPEC EU Authentica Certificates CA G1",
     }
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_windows_lista_certificati", lambda: [cert])
 
     assert module._cf_avvocato_pst("", "FFEEDD22") == "MNTRRT64L01L063H"
 
 
-def test_cf_avvocato_pst_preferisce_certificato_a_cf_studio_diverso():
+def test_cf_avvocato_pst_preferisce_certificato_a_cf_studio_diverso(monkeypatch):
     module = _load_local_signer()
 
-    module._ultimo_certificato_windows = {
+    cert = {
         "thumbprint": "AABBCC11",
         "codice_fiscale": "MNTRRT64L01L063H",
         "soggetto": "CN=Avv. Studio Due",
     }
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_windows_lista_certificati", lambda: [cert])
 
     assert module._cf_avvocato_pst("RSSMRA80A01H501Z", "AABBCC11") == "MNTRRT64L01L063H"
     assert module._cf_avvocato_pst("RSSMRA80A01H501Z", "FFEEDD22") == "RSSMRA80A01H501Z"
@@ -5643,6 +5953,8 @@ def test_installer_local_signer_macos_e_pubblico(tmp_path):
     assert "/polisWeb/local-signer/download/local-signer-mod/support_agent.py" in body
     assert "zeep" in body
     assert "pillow" in body.lower()
+    assert "pyhanko" in body
+    assert "pyhanko-certvalidator" in body
 
 
 def test_installer_local_signer_linux_e_pubblico(tmp_path):
@@ -5666,6 +5978,8 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     assert "/polisWeb/local-signer/download/local-signer-mod/support_agent.py" in body
     assert "zeep" in body
     assert "pillow" in body.lower()
+    assert "pyhanko" in body
+    assert "pyhanko-certvalidator" in body
 
 
 def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_path):
@@ -5906,6 +6220,8 @@ def test_installer_locale_windows_registra_protocollo_e_attesa_ping():
     assert "hacs-local-signer" not in script
     assert "Wait-LocalSigner" in script
     assert "start_local_signer.cmd" in script
+    assert "local_signer_foreground_helper.py" in script
+    assert "iusentra-local-signer://foreground" in script
     assert "Stop-LocalSignerProcesses" in script
     assert "Test-LocalSignerOnline" in script
 
@@ -8145,6 +8461,8 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
+    # Nel lotto interattivo unico il catalogo e le sezioni sono già incluse
+    # nella stessa esecuzione curl: non deve partire un recupero successivo.
     assert captured["master_detail"] == 0
     assert captured["sezioni"] == 0
     assert captured["batch_calls"] == 1

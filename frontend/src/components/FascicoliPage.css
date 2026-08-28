@@ -3082,6 +3082,66 @@ body.iu-fascicoli-table-expanded{
   color: #7b4f0a;
 }
 
+.iu-fas-office-docs__progress {
+  display: grid;
+  gap: 7px;
+  margin: 10px 14px 0;
+  padding: 11px;
+  border: 1px solid #93baf5;
+  border-radius: 7px;
+  background: #f4f8ff;
+  color: #203a62;
+}
+
+.iu-fas-office-docs__progress-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.iu-fas-office-docs__progress-head svg {
+  flex: 0 0 auto;
+  color: #155bd7;
+}
+
+.iu-fas-office-docs__progress-head strong {
+  min-width: 0;
+  color: #15386f;
+  font-size: 12px;
+}
+
+.iu-fas-office-docs__progress-head span {
+  margin-left: auto;
+  color: #41628f;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.iu-fas-office-docs__progress p {
+  margin: 0;
+  color: #3d577b;
+  font-size: 12px;
+}
+
+.iu-fas-office-docs__progress progress {
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: #2563eb;
+}
+
+.iu-fas-office-docs__progress progress::-webkit-progress-bar {
+  background: #dbeafe;
+}
+
+.iu-fas-office-docs__progress progress::-webkit-progress-value {
+  background: #2563eb;
+}
+
 .iu-fas-office-docs__summary {
   display: flex;
   flex-wrap: wrap;
@@ -3097,6 +3157,46 @@ body.iu-fascicoli-table-expanded{
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+.iu-fas-office-docs__selection-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 16px 12px;
+  border-bottom: 1px solid #dbe7f8;
+}
+
+.iu-fas-office-docs__selection-toolbar > span,
+.iu-fas-office-docs__selection-toolbar label > span {
+  color: #51627e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.iu-fas-office-docs__selection-toolbar > span {
+  margin-right: auto;
+}
+
+.iu-fas-office-docs__selection-toolbar .iu-btn {
+  min-height: 34px;
+  padding-block: 6px;
+}
+
+.iu-fas-office-docs__selection-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iu-fas-office-docs__selection-toolbar select {
+  min-height: 34px;
+  border: 1px solid #cbd7e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #263954;
+  padding: 0 28px 0 8px;
 }
 
 .iu-fas-office-docs__list {
@@ -3170,11 +3270,21 @@ body.iu-fascicoli-table-expanded{
   padding: 0 30px 0 9px;
 }
 
+.iu-fas-office-docs__row-actions {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
 .iu-fas-office-docs__acquired {
   justify-self: end;
   color: #187343;
   font-size: 12px;
   font-weight: 800;
+}
+
+.iu-fas-office-docs__row-actions .iu-fas-office-docs__acquired {
+  justify-self: start;
 }
 
 .iu-fas-office-docs__actions {
@@ -3190,6 +3300,15 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-office-docs__actions > span {
   color: #65758e;
   font-size: 11px;
+  max-width: 68ch;
+}
+
+.iu-fas-office-docs__action-buttons {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .iu-spin {
@@ -3207,14 +3326,47 @@ body.iu-fascicoli-table-expanded{
     flex-direction: column;
   }
 
+  .iu-fas-office-docs__selection-toolbar {
+    align-items: stretch;
+  }
+
+  .iu-fas-office-docs__selection-toolbar > span {
+    width: 100%;
+  }
+
+  .iu-fas-office-docs__selection-toolbar .iu-btn,
+  .iu-fas-office-docs__selection-toolbar label {
+    flex: 1 1 140px;
+  }
+
+  .iu-fas-office-docs__selection-toolbar select {
+    flex: 1;
+  }
+
   .iu-fas-office-docs__head .iu-btn,
   .iu-fas-office-docs__actions .iu-btn {
     justify-content: center;
     width: 100%;
   }
 
+  .iu-fas-office-docs__action-buttons {
+    display: grid;
+    width: 100%;
+  }
+
   .iu-fas-office-docs__head-actions {
     width: 100%;
+  }
+
+  .iu-fas-office-docs__progress-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .iu-fas-office-docs__progress-head span {
+    width: 100%;
+    margin-left: 22px;
+    white-space: normal;
   }
 
   .iu-fas-office-docs__row {

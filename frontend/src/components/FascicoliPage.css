@@ -3125,6 +3125,26 @@ body.iu-fascicoli-table-expanded{
   font-size: 12px;
 }
 
+.iu-fas-office-docs__progress-hint {
+  color: #5b7196 !important;
+  font-size: 11px !important;
+}
+
+/* Il PST non espone un avanzamento reale: la barra pulsa per mostrare che
+   l'attesa e' viva anche quando la fase non cambia per minuti. */
+.iu-fas-office-docs__progress progress:not([value="4"]) {
+  animation: iu-fas-office-docs-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes iu-fas-office-docs-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iu-fas-office-docs__progress progress:not([value="4"]) { animation: none; }
+}
+
 .iu-fas-office-docs__progress progress {
   width: 100%;
   height: 7px;

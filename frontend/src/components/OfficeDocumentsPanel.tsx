@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileText, FolderSearch2, ShieldCheck } from 'lucide-react'
 import type { FascicoloDetailData, FascicoloDocument } from '../fascicoliData'
 import { formatDateIt } from '../formatting'
+import { pstMinisterialProfileFromParts } from '../lib/pstMinisterialProfile'
 
 type JsonRecord = Record<string, unknown>
 type DocumentMode = 'copia' | 'originale'
@@ -32,11 +33,15 @@ type PstSession = {
   expiresAt: number
 }
 
+export type OfficeDocumentsOpenRequest = {
+  requestId: number
+}
+
 type Props = {
   data: FascicoloDetailData
   onDone: (message?: string) => void
   onError: (message: string) => void
-  openOfficeDocumentsRequest?: number
+  openOfficeDocumentsRequest?: OfficeDocumentsOpenRequest | null
 }
 
 const CERT_KEY = 'iusentra.react.pst.cert.v2'
@@ -407,7 +412,25 @@ function savePstFileToBrowser(file: JsonRecord): boolean {
   }
 }
 
-export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocumentsRequest = 0 }: Props) {
+function formatWait(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minuti = Math.floor(seconds / 60)
+  const resto = seconds % 60
+  return `${minuti} min ${String(resto).padStart(2, '0')}s`
+}
+
+// Il PST non espone un avanzamento reale: al posto di una percentuale finta si
+// dice all'utente cosa aspettarsi e, se il portale tarda, che sta ancora lavorando.
+// Il primo messaggio riguarda il PIN: Windows non sempre concede il primo piano al
+// prompt del provider CNS, che resta lampeggiante nella barra delle applicazioni.
+function searchWaitHint(seconds: number): string {
+  if (seconds < 25) return 'Se la richiesta del PIN non compare in primo piano, guarda la barra delle applicazioni: Windows la apre lampeggiante quando non le concede il fuoco.'
+  if (seconds < 60) return 'Il portale ministeriale risponde a lotti: di norma servono da uno a tre minuti.'
+  if (seconds < 150) return 'Consultazione ancora in corso. Non chiudere la pagina: il PIN non verrà richiesto una seconda volta.'
+  return 'Il portale ministeriale sta rispondendo lentamente, ma l’operazione prosegue. Si interrompe da sola se supera i sei minuti.'
+}
+
+export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocumentsRequest = null }: Props) {
   const [documents, setDocuments] = useState<OfficeDocument[]>([])
   const [snapshot, setSnapshot] = useState<JsonRecord>({})
   const [selection, setSelection] = useState<string[]>([])
@@ -417,11 +440,31 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
   const [message, setMessage] = useState('')
   const [downloadProgress, setDownloadProgress] = useState({ completed: 0, total: 0, current: '' })
   const [searchProgress, setSearchProgress] = useState({ completed: 0, total: 4, phase: '', current: '' })
+  const [searchStartedAt, setSearchStartedAt] = useState(0)
+  const [searchElapsed, setSearchElapsed] = useState(0)
   const searchFlight = useRef<Promise<void> | null>(null)
   const downloadFlight = useRef<Promise<void> | null>(null)
 
   const source = data.fascicolo.sourceSnapshot
+  // Stesso codice operativo del Wizard: `code` è il codice PST canonico;
+  // `ministerialCode` identifica l'ufficio ma non va mandato al Local Signer.
   const officeCode = data.depositOffice.code || data.depositOffice.ministerialCode || source.ufficioCodice
+  // Profilo ministeriale dedotto dal fascicolo, come fa il wizard di
+  // acquisizione: si parte dai campi piu' affidabili e si scende ai
+  // descrittivi solo se i primi non bastano.
+  const fascicoloPstProfile = useMemo(() => {
+    const candidates: unknown[][] = [
+      [source.tabellaMinisteriale, source.servizioPst],
+      [source.registroPortale, source.procedimento, source.subProcedimento],
+      [data.fascicolo.register, data.fascicolo.procedureType, data.fascicolo.type],
+      [source.oggetto, data.fascicolo.object, data.fascicolo.title, data.fascicolo.court],
+    ]
+    for (const parts of candidates) {
+      const profile = pstMinisterialProfileFromParts(...parts)
+      if (profile.tabella_ministeriale) return profile
+    }
+    return {}
+  }, [data.fascicolo, source])
   const officeName = source.ufficioNome || data.fascicolo.court
   const rgNumber = source.numero || String(data.fascicolo.rgNumber || '')
   const rgYear = source.anno || data.fascicolo.rgYear
@@ -438,21 +481,32 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     { ...current },
   ))
 
+  // La visualizzazione usa un solo lotto autenticato: ricerca, scheda e
+  // catalogo ufficiale sono restituiti da /pst/ricerca-snapshot nello stesso
+  // processo Local Signer. Non viene avviato un secondo job né un secondo PIN.
   const runSearchOperation = async (operationId: string) => {
     if (missing.length) {
       onError(`Ricerca documenti non avviata: manca ${missing.join(', ')} nel fascicolo.`)
       return
     }
     setBusy('search')
+    setSearchStartedAt(Date.now())
+    setSearchElapsed(0)
     setSearchProgress({
       completed: 0,
       total: 4,
-      phase: 'Consultazione autenticata',
-      current: 'Verifico certificato, sessione e ricerca esatta del fascicolo.',
+      phase: 'Certificato e sessione',
+      current: 'Verifico il certificato CNS e apro la sessione di consultazione.',
     })
     setMessage('Consultazione diretta del fascicolo d’ufficio in corso…')
     try {
       const cert = await ensureCertificate(localSignerJson)
+      setSearchProgress({
+        completed: 1,
+        total: 4,
+        phase: 'Ricerca del fascicolo',
+        current: 'Interrogo il registro ministeriale con numero e anno di R.G.',
+      })
       const params = new URLSearchParams({
         id_fasc: data.fascicolo.id,
         numero: rgNumber,
@@ -466,24 +520,31 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
       const storedSession = viewSession
         || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
         || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
+      setSearchProgress({
+        completed: 2,
+        total: 4,
+        phase: 'Ricerca del fascicolo',
+        current: 'Lotto autenticato verso il PST, in attesa della risposta ministeriale.',
+      })
       const result = await localSignerJson('/pst/ricerca-snapshot', {
         tribunale: officeCode,
         numero_rg: rgNumber,
         anno_rg: String(rgYear),
-        id_fascicolo: text(source.idFascicoloPortale || source.externalId),
         nome_parte: '',
         cf_parte: '',
         oggetto: '',
         ufficio_nome: officeName,
-        sub_procedimento: source.subProcedimento,
-        id_dfa: source.idDfa,
-        id_ruolo_jpw: source.idRuoloJpw,
-        servizio_pst: text(hint.servizio_pst_preferito || hint.servizio_pst || source.servizioPst),
-        registro_portale: text(hint.registro_portale || source.registroPortale),
-        tabella_ministeriale: text(hint.tabella_ministeriale || source.tabellaMinisteriale),
-        tipo_registro: text(hint.tipo_registro || hint.registro),
-        materia: text(hint.materia),
-        schema: text(hint.schema),
+        // Stessa precedenza del Wizard: rito e registro del fascicolo vengono
+        // dal resolver centrale; il registro dell’ufficio è solo fallback.
+        servizio_pst_preferito: text(hint.servizio_pst_preferito || hint.servizio_pst || fascicoloPstProfile.servizio_pst_preferito || source.servizioPst),
+        registro_portale: text(hint.registro_portale || fascicoloPstProfile.registro_portale || source.registroPortale),
+        tabella_ministeriale: text(hint.tabella_ministeriale || fascicoloPstProfile.tabella_ministeriale || source.tabellaMinisteriale),
+        tipo_registro: text(hint.tipo_registro || hint.registro || fascicoloPstProfile.tipo_registro || fascicoloPstProfile.registro),
+        registro: text(hint.registro || fascicoloPstProfile.registro),
+        materia: text(hint.materia || fascicoloPstProfile.materia),
+        schema: text(hint.schema || fascicoloPstProfile.schema),
+        quick_filter: text(hint.quick_filter || fascicoloPstProfile.quick_filter),
+        ruolo_polisweb: text(hint.ruolo_polisweb, 'AVV').toUpperCase(),
         cf_avvocato: cert.fiscalCode,
         cert_thumbprint: cert.thumbprint,
         cert_key: cert.thumbprint,
@@ -514,20 +575,24 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         certThumbprint: nextSession.certThumbprint,
         expiresAt: nextSession.expiresAt,
       })
+      const catalogSnapshot = nextSnapshot
       const rows = completeCatalogRows(nextSnapshot, result)
       const nextDocuments = flattenDocuments(rows, data.documents)
       setSearchProgress({
         completed: 4,
         total: 4,
         phase: 'Fascicolo visualizzato',
-        current: 'Catalogo completo ricevuto e pronto per la selezione.',
+        current: 'Catalogo ricevuto nel lotto PST unico e pronto per la selezione.',
       })
-      setSnapshot(nextSnapshot)
+      setSnapshot(catalogSnapshot)
       setViewSession(nextSession)
       setDocuments(nextDocuments)
       setSelection([])
       setModes({})
-      setMessage(nextDocuments.length ? `${nextDocuments.length} documenti disponibili; ${nextDocuments.filter((doc) => doc.acquired).length} già acquisiti.` : 'Nessun nuovo documento disponibile nel fascicolo d’ufficio.')
+      const foundMessage = `${nextDocuments.length} documenti disponibili; ${nextDocuments.filter((doc) => doc.acquired).length} già acquisiti.`
+      setMessage(nextDocuments.length
+        ? foundMessage
+        : `Il PST non ha restituito documenti interrogando ${text(hint.tabella_ministeriale || hint.servizio_pst_preferito || fascicoloPstProfile.tabella_ministeriale || source.tabellaMinisteriale) || 'la tabella ministeriale dedotta'} sull’ufficio ${officeCode}. Se il fascicolo appartiene a un altro registro, correggi il rito nel fascicolo oppure usa la procedura guidata di acquisizione.`)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Ricerca documenti non completata.'
       setMessage(reason)
@@ -549,11 +614,19 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     )
     return flight
   }
+  // Il PST risponde a lotti e puo' restare in silenzio per minuti: un contatore
+  // che avanza dice all'utente che l'operazione e' viva e non bloccata.
+  useEffect(() => {
+    if (busy !== 'search' || !searchStartedAt) return
+    setSearchElapsed(Math.round((Date.now() - searchStartedAt) / 1000))
+    const timer = window.setInterval(() => setSearchElapsed(Math.round((Date.now() - searchStartedAt) / 1000)), 1_000)
+    return () => window.clearInterval(timer)
+  }, [busy, searchStartedAt])
 
   const lastOpenOfficeDocumentsRequest = useRef(0)
   useEffect(() => {
-    if (!openOfficeDocumentsRequest || openOfficeDocumentsRequest === lastOpenOfficeDocumentsRequest.current) return
-    lastOpenOfficeDocumentsRequest.current = openOfficeDocumentsRequest
+    if (!openOfficeDocumentsRequest || openOfficeDocumentsRequest.requestId === lastOpenOfficeDocumentsRequest.current) return
+    lastOpenOfficeDocumentsRequest.current = openOfficeDocumentsRequest.requestId
     void runSearch()
   }, [openOfficeDocumentsRequest])
 
@@ -586,9 +659,9 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         pst_session_id: storedDownloadSession?.sessionId || '',
         preflight_auth: false,
         original: false,
-        servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst),
-        registro_portale: text(record(snapshot.fascicolo).registro_portale || source.registroPortale),
-        tabella_ministeriale: text(record(snapshot.fascicolo).tabella_ministeriale || source.tabellaMinisteriale),
+        servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst || fascicoloPstProfile.servizio_pst_preferito),
+        registro_portale: text(record(snapshot.fascicolo).registro_portale || fascicoloPstProfile.registro_portale || source.registroPortale),
+        tabella_ministeriale: text(record(snapshot.fascicolo).tabella_ministeriale || source.tabellaMinisteriale || fascicoloPstProfile.tabella_ministeriale),
         documents: selectedRows,
       }, 60_000)
       const jobId = text(job.job_id)
@@ -713,9 +786,9 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         pst_session_id: storedDownloadSession?.sessionId || '',
         preflight_auth: false,
         original: false,
-        servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst),
-        registro_portale: text(record(snapshot.fascicolo).registro_portale || source.registroPortale),
-        tabella_ministeriale: text(record(snapshot.fascicolo).tabella_ministeriale || source.tabellaMinisteriale),
+        servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst || fascicoloPstProfile.servizio_pst_preferito),
+        registro_portale: text(record(snapshot.fascicolo).registro_portale || fascicoloPstProfile.registro_portale || source.registroPortale),
+        tabella_ministeriale: text(record(snapshot.fascicolo).tabella_ministeriale || source.tabellaMinisteriale || fascicoloPstProfile.tabella_ministeriale),
         documents: selectedRows,
       }, 60_000)
       const jobId = text(job.job_id)
@@ -781,7 +854,6 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     )
     return flight
   }
-
   const runImport = (): Promise<void> => {
     if (downloadFlight.current) return downloadFlight.current
     if (searchFlight.current) return searchFlight.current
@@ -794,7 +866,6 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     )
     return flight
   }
-
   return (
     <section className="iu-fas-office-docs" aria-label="Documenti del fascicolo d’ufficio">
       <header className="iu-fas-office-docs__head">
@@ -824,10 +895,11 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
           <div className="iu-fas-office-docs__progress-head">
             <FolderSearch2 size={15}/>
             <strong>{searchProgress.phase || 'Consultazione autenticata'}</strong>
-            <span>{searchProgress.completed}/{searchProgress.total} fasi PST</span>
+            <span>{searchProgress.completed}/{searchProgress.total} fasi PST · {formatWait(searchElapsed)}</span>
           </div>
           <progress value={Math.min(searchProgress.completed, searchProgress.total)} max={searchProgress.total} aria-label={`Consultazione autenticata: fase ${searchProgress.completed} di ${searchProgress.total}`} />
           <p>{searchProgress.current || 'Attendo l’avvio della consultazione PST.'}</p>
+          <p className="iu-fas-office-docs__progress-hint">{searchWaitHint(searchElapsed)}</p>
         </div>
       ) : null}
       {(busy === 'import' || busy === 'download') && downloadProgress.total ? (

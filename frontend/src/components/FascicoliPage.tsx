@@ -149,6 +149,7 @@ import { formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
+import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -9335,7 +9336,7 @@ function DetailPage({ id }:{id:string}) {
   const [contributoModalOpen, setContributoModalOpen] = useState(false)
   const [economicControlOpen, setEconomicControlOpen] = useState(false)
   const [contributoMemory, setContributoMemory] = useState<ContributoUnificatoMemory | null>(null)
-  const [officeDocumentsOpenRequest, setOfficeDocumentsOpenRequest] = useState(0)
+  const [officeDocumentsOpenRequest, setOfficeDocumentsOpenRequest] = useState<OfficeDocumentsOpenRequest | null>(null)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
   useEffect(() => {
@@ -9476,7 +9477,9 @@ function DetailPage({ id }:{id:string}) {
     setContextMenu(null)
     if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
     openDetailSectionById('documenti')
-    setOfficeDocumentsOpenRequest((current) => current + 1)
+    setOfficeDocumentsOpenRequest((current) => ({
+      requestId: (current?.requestId || 0) + 1,
+    }))
   }
   const openContributoUnificatoFromContext = () => {
     setContextMenu(null)

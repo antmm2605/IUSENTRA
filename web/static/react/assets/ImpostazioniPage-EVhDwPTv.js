@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DQltaUIZ.js";export{e as ImpostazioniPage};

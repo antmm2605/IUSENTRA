@@ -2388,8 +2388,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported) || (portal === 'pst' && pstSchemaHintPending)}" in source
     assert "REACT_PST_SESSION_KEY" in source
     assert "localSignerJson('/pst/preflight-auth'" not in source
-    assert "localSignerJson('/pst/ricerca-snapshot'" in source
-    assert "localSignerJson('/pst/ricerca'" in source  # fallback controllato se lo snapshot esatto non è disponibile
+    assert "localSignerJson('/pst/ricerca-snapshot'" not in source
+    assert "localSignerJson('/pst/ricerca'" in source
     assert "localSignerPstFascicoloSnapshotJob" in source
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" in source
     assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
@@ -2415,77 +2415,72 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "codiceFiscale: extractItalianFiscalCode(" in source
     assert "function coercePstCertificate(value: unknown): PstCertificate | null" in source
     assert "function certificateMatchesPstPreferences" in source
-    assert "const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 360_000" in source
+    assert "const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 840_000" in source
     assert "const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000" in source
     assert "const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000" in source
     assert "function statusHasPstCertificatePreference" in source
     assert "const statusForPstCertificate = async (): Promise<JsonRecord>" in source
     assert "const certificateStatus = await statusForPstCertificate()" in source
-    assert "beginLocalSignerForegroundGrant()" not in source
-    assert "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)" not in source
-    assert "foreground_nonce: foregroundNonce" not in source
+    assert "beginLocalSignerForegroundGrant()" in source
+    assert "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)" in source
+    assert "foreground_nonce: foregroundNonce" in source
     run_search = source[source.index("const runSearch = async"):source.index("useEffect(() =>", source.index("const runSearch = async"))]
-    assert "const operation = executeSearch(createLocalSignerOperationId('pst-view'))" in run_search
+    assert run_search.index("beginLocalSignerForegroundGrant()") < run_search.index("const operation = executeSearch(")
 
 
 def test_office_documents_portale_pst_consulta_nell_app_con_catalogo_completo():
     source = Path("frontend/src/components/OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
-    assert "Documenti disponibili presso" in source
-    assert "const JOB_TIMEOUT_MS = 360_000" in source
-    assert "const DOWNLOAD_TIMEOUT_MS = 480_000" in source
+    assert "Visualizza direttamente nell’app i documenti disponibili presso l’ufficio" in source
     assert "localSignerJson('/pst/ricerca-snapshot'" in source
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in source
-    assert "single_interactive_batch: true" in source
-    assert "include_full_snapshot: true" in source
     assert "localSignerJson('/pst/ricerca-snapshot-job'" not in source
-    assert "const nextSnapshot = record(result.snapshot)" in source
-    assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
-    assert "id_fascicolo: source.idFascicoloPortale || source.externalId" in source
-    assert "purpose: 'view'" in source
-    assert "pst_session_id: storedSession?.sessionId || ''" in source
+    assert "search_only: false" in source
+    assert "include_full_snapshot: true" in source
+    assert "single_interactive_batch: true" in source
+    assert "const rows = completeCatalogRows(nextSnapshot, result)" in source
+    assert "servizio_pst_preferito: text(hint.servizio_pst_preferito" in source
+    search_block = source[source.index("const runSearchOperation"):source.index("const runImportOperation")]
+    assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" not in search_block
+    assert "id_fascicolo: source.idFascicoloPortale || source.externalId" not in search_block
+    assert "officialPstAccessUrl" not in source
+    assert "Seleziona tutto</button>" in source
+    assert "Seleziona non acquisiti</button>" in source
+    assert "Deseleziona tutto</button>" in source
+    assert 'aria-label="Formato per i documenti selezionati"' in source
+    assert "<option value=\"copia\">Copia</option>" in source
+    assert "<option value=\"originale\">Originale</option>" in source
+    assert "const cert = await ensureCertificate(localSignerJson)" in source
+    assert "const schemaPayload = await serverJson(`/api/v1/ui/telematico/pst/schema-hint?${params.toString()}`)" in source
     assert "localSignerJson('/pst/download-documenti-batch-job'" in source
     assert "localSignerJson('/pst/download-documenti-batch'," not in source
     assert "window.setTimeout(resolve, 1_000)" in source
     assert "setDownloadProgress" in source
     assert "documenti elaborati" in source
-    assert "const [searchProgress, setSearchProgress]" in source
-    assert "Consultazione autenticata" in source
-    assert "Formato selezionati" in source
-    assert "const selectableDocuments" in source
-    assert "const selectedDocuments" in source
-    assert "const selectedImportDocuments" in source
-    assert "Seleziona tutto" in source
-    assert "Seleziona non acquisiti" in source
-    assert "Deseleziona tutto" in source
-    assert "Scarica ${selectedDocuments.length || ''}" in source
-    assert "savePstFileToBrowser" in source
-    assert "<option value=\"copia\">Copia</option>" in source
-    assert "<option value=\"originale\">Originale</option>" in source
-    assert "disabled={Boolean(busy)}" in source
+    assert "const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key))" in source
+    assert "setSelection(documents.map((doc) => doc.key))" in source
     assert "disabled={doc.acquired || Boolean(busy)}" not in source
     assert "non_duplicare: true" in source
     assert "importa_solo_nuovi: true" in source
-    assert "request('/ping?auto=1'" in source
-    assert "request('/seleziona-certificato?auto=1', undefined, 120_000)" in source
-    assert "const officeCode = data.depositOffice.code || data.depositOffice.ministerialCode || source.ufficioCodice" in source
-    assert "servizio_pst: text(hint.servizio_pst_preferito || hint.servizio_pst || source.servizioPst)" in source
-    assert "tabella_ministeriale: text(hint.tabella_ministeriale || source.tabellaMinisteriale)" in source
+    assert "function formatWait(seconds: number): string" in source
+    assert "function searchWaitHint(seconds: number): string" in source
 
-def test_local_signer_protocol_resta_opzionale_e_non_blocca_i_flussi_pst_react():
+
+def test_local_signer_foreground_react_usa_un_solo_protocollo_e_preserva_click_contestuale():
     helper = Path("frontend/src/features/telematico/localSignerForeground.ts").read_text(encoding="utf-8")
     fascicoli = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
-    wizard = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
 
-    assert helper.count("window.location.assign(") == 1
+    assert helper.count("link.click()") == 1
     assert "iframe" not in helper
     assert "navigator.userActivation.isActive" in helper
     assert "iusentra-local-signer://foreground?nonce=" in helper
     assert "'/foreground/status'" in helper
-    assert "beginLocalSignerForegroundGrant()" not in fascicoli
-    assert "foregroundGrant" not in fascicoli
-    assert "useState(0)" in fascicoli
-    assert "beginLocalSignerForegroundGrant()" not in wizard
-    assert "foreground_nonce: foregroundNonce" not in wizard
+    context = fascicoli[
+        fascicoli.index("const openOfficeDocumentsFromContext"):
+        fascicoli.index("const openContributoUnificatoFromContext")
+    ]
+    assert context.index("beginLocalSignerForegroundGrant()") < context.index("setContextMenu(null)")
+    assert "foregroundGrant," in context
+    assert "useState<OfficeDocumentsOpenRequest | null>(null)" in fascicoli
 
 
 def test_local_signer_verifica_avvia_autoaggiornamento_se_versione_vecchia():

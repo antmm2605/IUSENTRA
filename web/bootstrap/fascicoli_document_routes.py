@@ -93,7 +93,6 @@ def register_fascicoli_document_routes(
                 document_id,
                 exc,
             )
-
     def _indicizza_documento_lex(
         *,
         id_fasc: str,
@@ -109,7 +108,6 @@ def register_fascicoli_document_routes(
                 document_ai_tenant_id,
                 document_ai_user_context,
             )
-
             tenant_id = document_ai_tenant_id()
             source = source_from_uploaded_document(
                 tenant_id=tenant_id,
@@ -130,7 +128,6 @@ def register_fascicoli_document_routes(
             )
         except Exception as exc:
             app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
-
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
@@ -226,7 +223,6 @@ def register_fascicoli_document_routes(
                 return jsonify({"ok": False, "messaggio": msg}), 503
             flash(msg, "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/metadati", methods=["POST"])
     def aggiorna_metadati_documento(id_fasc, id_doc):
         gestore_fascicoli = get_fascicoli()
@@ -255,7 +251,6 @@ def register_fascicoli_document_routes(
             )
             flash("Impossibile aggiornare i metadati del documento. Verifica i dati e riprova.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc, focus="documenti"))
-
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/rinomina", methods=["POST"])
     def rinomina_documento(id_fasc, id_doc):
         response = rinomina_documento_response(
@@ -268,7 +263,6 @@ def register_fascicoli_document_routes(
         )
         clear_react_fascicoli_list_cache()
         return response
-
     @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
     def importa_documenti_portale(id_fasc):
         gestore_fascicoli = get_fascicoli()
@@ -278,7 +272,6 @@ def register_fascicoli_document_routes(
                 return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
-
         fonte = portale_ufficiale_label(fascicolo)
         note_importazione = (request.form.get("note_importazione", "") or "").strip()
         mantieni_albero_originale = payload_bool(request.form.get("mantieni_albero_originale"), False)
@@ -299,13 +292,11 @@ def register_fascicoli_document_routes(
                     origine=f"upload:{storage.filename}",
                 )
             )
-
         staging_items: list[dict[str, Any]] = []
         staging_dir = pst_import_dir_for_fascicolo(fascicolo)
         usa_staging = not uploaded_items
         if usa_staging:
             staging_items, staging_dir = leggi_staging_documenti_portale(fascicolo)
-
         items = applica_modalita_portale(
             uploaded_items or staging_items,
             scarica_originale=scarica_originale_portale,
@@ -397,7 +388,6 @@ def register_fascicoli_document_routes(
                 decode_portale_downloaded_items(data.get("files") or []),
                 scarica_originale=scarica_originale_portale,
             )
-
             if not items:
                 return jsonify({"ok": False, "errore": "Nessun file valido ricevuto dal Local Signer."}), 200
 

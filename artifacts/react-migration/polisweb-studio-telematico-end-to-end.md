@@ -435,3 +435,37 @@ numero/anno, certificato/sessione, finalità `view`, tabella/servizio,
 `include_full_snapshot` e `single_interactive_batch`). La prova reale con
 certificato/PIN non è stata eseguita per questa correzione: non va considerata
 verificata finché la UI locale non mostra il catalogo completo ricevuto dal PST.
+
+## Verifica catalogo incompleto e correzione cookie-only — 28/08/2026
+
+La prova reale sul fascicolo del Tribunale di Vicenza, R.G. 1084/2026, ha dato esito non accettabile: dopo il solo PIN inserito dall’avvocato, il pannello ha visualizzato “Nessun nuovo documento disponibile”. Il log del Local Signer ha confermato che il codice ufficio operativo era corretto: identificativo studio `0640011`, codice ministeriale `0241160092`, servizio `JPW_SICID`. La causa non è quindi la tabella ministeriale né il codice ufficio.
+
+Il lotto SOAP iniziale ha restituito soltanto il sommario/atti principali e una risposta di sezione non bloccante con SOAP Fault `IDATTO`. Nel ramo `single_interactive_batch` mancava però la lettura della pagina ministeriale autenticata del fascicolo, che espone allegati e pagine successive del catalogo. Il risultato parziale veniva pertanto trasformato impropriamente in elenco vuoto.
+
+Correzione applicata a `tools/local_signer.py` e al Local Signer realmente installato `1.6.124`: dopo il lotto iniziale, il catalogo viene completato dalla pagina ministeriale usando **solo** il cookie della sessione già autenticata. Non vengono passati certificato, thumbprint o retry mTLS all’arricchimento: la correzione non può quindi richiedere un secondo PIN. Se la pagina non restituisce documenti, resta il recupero master-detail cookie-only, anch’esso senza certificato o retry.
+
+Verifiche tecniche eseguite: compilazione Python della sorgente e del runtime installato; sette test mirati Local Signer (parità Wizard/pannello, catalogo completo, allegati/paginazione, servizi e schema); riavvio silenzioso del solo Local Signer e risposta positiva `/ping?light=1` su processo avviato alle 13:48 del 28/08/2026. La nuova prova materiale su `http://localhost:8080` non è stata eseguita in questa sessione per non richiedere all’avvocato un ulteriore PIN; il comportamento reale del catalogo completo resta quindi **non verificato su macchina reale** e non va classificato come risolto.
+
+## Correzione lotto unico catalogo completo — 29/08/2026
+
+### Causa confermata dal confronto con il backup IUSENTRA
+
+Il backup con esito positivo conserva la stessa fonte del catalogo completo: la pagina ministeriale autenticata `documentiFascicolo`, che contiene allegati oltre ai cinque atti principali restituiti dal solo SOAP. Nel codice corrente il Wizard e il pannello erano stati portati sullo stesso job, ma il catalogo esteso veniva richiesto dopo il batch iniziale tramite più recuperi solo-cookie. Se il cookie non era sufficiente, il risultato rimaneva fermo ai cinque atti principali; inoltre il batch iniziale includeva cinque sezioni accessorie, facendo crescere il tempo della consultazione oltre il comportamento osservato di circa 45 secondi.
+
+### Correzione applicata
+
+- `registroRicerca` viene normalizzato ai codici brevi ministeriali per tutte le dieci tabelle (`CC`, `LAV`, `VG`, `MIN`, `ESM`, `ESIM`, `FALL`, `GDP`, `CASSCI`, `CASSPE`), senza riutilizzare il nome tecnico della tabella.
+- Il percorso comune `POST /pst/ricerca-snapshot` ora compone un unico processo `curl` autenticato con tre trasferimenti SOAP (ricerca, profilo, sommario) e, quando il registro espone la pagina, due trasferimenti GET in sequenza (scheda e catalogo allegati). Lo stesso certificato e lo stesso cookie jar restano nel processo: non esiste un secondo processo solo-cookie nel ramo interattivo.
+- Eventi, comunicazioni, udienze e scadenze non sono più aggiunti al lotto iniziale; non ritardano il catalogo selezionabile. Le tabelle senza pagina InfoFascicolo mantengono il loro catalogo SOAP senza essere bloccate.
+- La UI Wizard e Fascicolo d’ufficio restano sul medesimo endpoint e sul medesimo contratto; il download selezionato resta un secondo lotto separato.
+
+### Controlli tecnici eseguiti
+
+- Compilazione Python della sorgente e del runtime installato: superata.
+- Sei test mirati Local Signer: superati. Coprono lotto `curl` unico SOAP/HTML, catalogo, parità Wizard/pannello, normalizzazione delle dieci tabelle e compatibilità del job.
+- `GET /api/pronto` su `127.0.0.1:8080`: applicazione pronta, versione `2.278.83`.
+- `GET /ping?light=1` su `127.0.0.1:27272`: Local Signer `1.6.124` pronto dopo riavvio silenzioso.
+
+### Stato di accettazione
+
+Non è stata ancora eseguita la nuova prova materiale PST dopo questa correzione. La connessione automatica alla scheda browser integrata non è disponibile in questa sessione; pertanto servono ancora click reale su `Visualizza fascicolo`, una sola richiesta PIN inserita dall’avvocato e osservazione nella UI di 30 documenti, del tempo di consultazione e dell’assenza di un secondo prompt. Fino a tale prova, la correzione è **non verificata su macchina reale**.

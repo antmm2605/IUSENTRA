@@ -36,6 +36,7 @@ TOOLS_DIR      = Path(__file__).resolve().parent
 REPO_DIR       = TOOLS_DIR.parent
 DIST_DIR       = TOOLS_DIR / "dist"
 LS_PY          = TOOLS_DIR / "local_signer.py"
+FOREGROUND_HELPER_PY = TOOLS_DIR / "local_signer_foreground_helper.py"
 WINDOWS_HTTP_PS1 = TOOLS_DIR / "local_signer_windows_http.ps1"
 AI_BRIDGE_PY   = TOOLS_DIR / "local_ai_host_bridge.py"
 LEX_CONTEXT_PY = TOOLS_DIR / "lex_document_context.py"
@@ -474,6 +475,7 @@ def write_windows_support_files(dist_dir: Path) -> list[Path]:
     copied: list[Path] = []
     for source, target_name in (
         (LS_PY, "local_signer.py"),
+        (FOREGROUND_HELPER_PY, "local_signer_foreground_helper.py"),
         (WINDOWS_HTTP_PS1, "local_signer_windows_http.ps1"),
         (AI_BRIDGE_PY, "local_ai_host_bridge.py"),
         (LEX_CONTEXT_PY, "lex_document_context.py"),

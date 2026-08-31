@@ -631,56 +631,41 @@ def test_pst_master_detail_arricchisce_anteprima_nella_sessione_di_visualizzazio
 def test_pst_visualizzazione_esplicita_usa_lo_snapshot_completo_polisweb():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    snapshot_block = source[
+        source.index("    def _pst_fascicolo_snapshot(self):"):source.index("def _pdp_ricerca")
+    ]
     panel = (root / "frontend" / "src" / "components" / "OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
 
+    assert 'force_new_session = bool(data.get("force_new_session"))' not in snapshot_block
+    assert "force_new=force_new_session" not in snapshot_block
+    assert "PST fascicolo-snapshot: sessione %s non piu' presente" not in snapshot_block
+    assert '"La sessione precedente è scaduta: apro un nuovo canale certificato"' not in snapshot_block
+    assert '"session_expired" in str(exc)' not in snapshot_block
     assert "localSignerJson('/pst/ricerca-snapshot'" in panel
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in panel
     assert "localSignerJson('/pst/ricerca-snapshot-job'" not in panel
     assert "force_new_session: true" not in panel
-    assert "single_interactive_batch: true" in panel
+    assert 'search_only = bool(data.get("search_only"))' in source
+    assert 'include_full_snapshot = bool(data.get("include_full_snapshot"))' in source
+    assert 'single_interactive_batch = bool(data.get("single_interactive_batch"))' in source
+    assert "search_only: false" in panel
     assert "include_full_snapshot: true" in panel
-    assert "id_fascicolo: text(source.idFascicoloPortale || source.externalId)" in panel
+    assert "single_interactive_batch: true" in panel
+    assert "servizio_pst_preferito: text(hint.servizio_pst_preferito" in panel
+    assert "registro_portale: text(hint.registro_portale" in panel
+    assert "tabella_ministeriale: text(hint.tabella_ministeriale" in panel
+    assert "def _pst_start_fascicolo_snapshot_job" in source
+    assert "_Handler._pst_fascicolo_snapshot(shim)" in source
+    assert '"/pst/fascicolo-snapshot-job"' in source
+    assert 'job_payload["_pst_progress_callback"] = _on_progress' in source
     assert "const rows = completeCatalogRows(nextSnapshot, result)" in panel
-    assert "sections.documenti_fascicolo" in panel
+    assert "servizio_pst: text(record(snapshot.fascicolo).servizio_pst || source.servizioPst" in panel
+    assert "data.depositOffice.code || data.depositOffice.ministerialCode || source.ufficioCodice" in panel
     assert "purpose: 'view'" in panel
     assert "pst_session_id: storedSession?.sessionId || ''" in panel
-    # Il pannello non avvia un helper browser: il Local Signer gestisce soltanto
-    # la visibilità del prompt nativo senza intercettare o simulare il PIN.
-    assert "beginLocalSignerForegroundGrant()" not in panel
-    assert "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)" not in panel
-    assert "foreground_nonce: foregroundNonce" not in panel
-    assert "localSignerJson('/pst/download-documenti-batch-job'" in panel
-    assert "localSignerJson('/pst/download-documenti-batch'," not in panel
-    assert "setDownloadProgress" in panel
-    assert "Seleziona tutto" in panel
-    assert "Deseleziona tutto" in panel
+    assert "known_document_count: data.documents.length" not in panel
+    assert "_pst_snapshot_infofascicolo_lotto_unico(" not in source
 
-def test_wizard_e_pannello_fascicolo_condividono_contratto_snapshot_pst_unico():
-    root = Path(__file__).resolve().parents[1]
-    wizard = (root / "frontend" / "src" / "components" / "TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
-    panel = (root / "frontend" / "src" / "components" / "OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
-
-    assert "localSignerJson('/pst/ricerca-snapshot'" in wizard
-    assert "localSignerJson('/pst/ricerca-snapshot'" in panel
-    for field in (
-        "tribunale",
-        "numero_rg",
-        "anno_rg",
-        "cf_avvocato",
-        "cert_thumbprint",
-        "cert_key",
-        "purpose: 'view'",
-        "pst_session_id",
-        "search_only: false",
-        "include_full_snapshot: true",
-        "single_interactive_batch: true",
-    ):
-        assert field in wizard
-        assert field in panel
-    assert "...ministerialHintsFromQuery(searchQuery)" in wizard
-    for field in ("servizio_pst", "registro_portale", "tabella_ministeriale", "id_fascicolo"):
-        assert field in panel
-    assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in panel
 
 def test_selettore_certificato_pst_non_usa_owner_cross_process():
     root = Path(__file__).resolve().parents[1]
@@ -710,7 +695,7 @@ def test_selettore_certificato_pst_non_attiva_helper_tecnico_cert_store():
     assert "prompt_stop_event" not in cert_selector
 
 
-def test_fascicolo_snapshot_job_usa_il_percorso_diretto_validato(monkeypatch):
+def test_fascicolo_snapshot_job_delega_al_wizard_con_lotto_unico(monkeypatch):
     module = _load_local_signer()
     captured = {}
     job_id = "job-parita-wizard"
@@ -728,31 +713,30 @@ def test_fascicolo_snapshot_job_usa_il_percorso_diretto_validato(monkeypatch):
             "error": "",
         }
 
-    def fake_fascicolo_snapshot(shim):
+    def fake_ricerca_snapshot(shim):
         captured["payload"] = shim._read_json()
         shim._send_json({"ok": True, "snapshot": {"documenti": [{"id": "doc-1"}]}})
 
-    def forbidden_ricerca_snapshot(_shim):
-        raise AssertionError("Il pannello non deve deviare alla ricerca del Wizard.")
+    def forbidden_fascicolo_snapshot(_shim):
+        raise AssertionError("Il pannello non deve usare l'orchestratore snapshot parallelo.")
 
-    monkeypatch.setattr(module._Handler, "_pst_fascicolo_snapshot", fake_fascicolo_snapshot)
-    monkeypatch.setattr(module._Handler, "_pst_ricerca_snapshot", forbidden_ricerca_snapshot)
+    monkeypatch.setattr(module._Handler, "_pst_ricerca_snapshot", fake_ricerca_snapshot)
+    monkeypatch.setattr(module._Handler, "_pst_fascicolo_snapshot", forbidden_fascicolo_snapshot)
 
     module._pst_run_fascicolo_snapshot_job(
         job_id,
         {"tribunale": "0640011", "numero_rg": "1084", "anno_rg": 2026},
     )
 
-    assert captured["payload"]["tribunale"] == "0640011"
-    assert captured["payload"]["numero_rg"] == "1084"
-    assert callable(captured["payload"]["_pst_progress_callback"])
-    assert "single_interactive_batch" not in captured["payload"]
+    assert captured["payload"]["search_only"] is False
+    assert captured["payload"]["include_full_snapshot"] is True
+    assert captured["payload"]["single_interactive_batch"] is True
     with module._pst_async_job_lock:
         job = dict(module._pst_async_job_cache[job_id])
         module._pst_async_job_cache.pop(job_id, None)
     assert job["status"] == "completed"
-    assert job["completed"] == 4
-    assert job["total"] == 4
+    assert job["completed"] == 1
+    assert job["total"] == 1
     assert job["result"]["snapshot"]["documenti"] == [{"id": "doc-1"}]
 
 
@@ -820,7 +804,7 @@ def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
     assert 'soap_documenti = "" if search_only else _soap_documenti_body(' in ricerca_block
     assert 'fallback_soap_documenti = "" if search_only else _soap_documenti_body(' in ricerca_block
     assert "section_batch_indexes" in ricerca_block
-    assert "if _pst_namespace_qbuilder(base_url) and include_full_snapshot and not single_interactive_batch:" in ricerca_block
+    assert "and not single_interactive_batch" in ricerca_block
     full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot and not single_interactive_batch:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
     assert 'cert_thumbprint=""' in full_branch
     assert "allow_cert_retry=False" in full_branch
@@ -1128,7 +1112,7 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "if (AW_PST_DOWNLOAD_OPERATION_PROMISE) return AW_PST_DOWNLOAD_OPERATION_PROMISE" in download_fn
 
 
-def test_local_signer_pst_curl_mette_in_primo_piano_prompt_nativo_senza_manipolare_input():
+def test_local_signer_pst_curl_usa_grant_nonce_senza_manipolare_dialoghi_windows():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
     helper = (root / "tools" / "local_signer_foreground_helper.py").read_text(encoding="utf-8")
@@ -1136,27 +1120,24 @@ def test_local_signer_pst_curl_mette_in_primo_piano_prompt_nativo_senza_manipola
     assert "def _claim_windows_foreground_grant" in source
     assert "def _complete_windows_foreground_grant" in source
     assert "def _consume_windows_foreground_grant" in source
+    assert "def _windows_prepare_foreground_for_process_start" in source
     assert "def _run_curl_with_pin_foreground" in source
     assert "def _run_process_with_pin_foreground" in source
     runner = source[
         source.index("def _run_process_with_pin_foreground"):
         source.index("def _http_status_from_headers")
     ]
-    assert "target=_windows_pin_prompt_foreground_pump" in runner
-    assert "_windows_visible_top_level_window_handles()" in runner
-    assert "reclaim_existing_pin_prompt" in runner
-    assert "process = subprocess.Popen" in runner
-    assert "requires_foreground_grant" not in runner
-    # Il Local Signer può individuare e mostrare il dialogo nativo, ma non può
-    # collegarsi all’input, simulare tasti, imporre focus o chiudere il prompt.
+    assert "_windows_pin_prompt_foreground_pump(" not in runner
+    assert "_windows_visible_top_level_window_handles(" not in runner
+    foreground_call = "_windows_prepare_foreground_for_process_start()"
+    assert foreground_call in runner
+    assert runner.index(foreground_call) < runner.index("process = subprocess.Popen")
     for forbidden in (
         "SwitchToThisWindow", "AttachThreadInput", "SetFocus", "SetWindowPos",
-        "PostMessageW", "keybd_event", "FlashWindow",
+        "BringWindowToTop", "PostMessageW", "keybd_event", "EnumWindows",
     ):
-        assert forbidden not in source
+        assert forbidden not in runner
         assert forbidden not in helper
-    for allowed_foreground_call in ("ShowWindow", "BringWindowToTop", "SetForegroundWindow"):
-        assert allowed_foreground_call in source
     assert helper.count("AllowSetForegroundWindow") == 3
     assert "_nonce_from_uri" in helper
     assert '"/foreground/claim"' in helper
@@ -1189,8 +1170,13 @@ def test_local_signer_pst_curl_mette_in_primo_piano_prompt_nativo_senza_manipola
     assert "_run_curl_with_pin_foreground(" in batch
     assert "_run_curl_with_pin_foreground(" in best_effort
     assert "_run_curl_with_pin_foreground(" in preflight
+    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in raw
+    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in batch
+    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in best_effort
+    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in preflight
     assert '[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]' not in best_effort
     assert '[_curl_command(), "-s", "-S", "-K", cfg_file]' in best_effort
+
 
 def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypatch):
     module = _load_local_signer()
@@ -1243,7 +1229,7 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
         assert getattr(startupinfo, "wShowWindow", None) == 0
 
 
-def test_run_curl_pst_riusa_il_pump_windows_positivo(monkeypatch):
+def test_run_curl_pst_propaga_solo_il_grant_di_processo(monkeypatch):
     module = _load_local_signer()
     captured = {}
 
@@ -1254,25 +1240,77 @@ def test_run_curl_pst_riusa_il_pump_windows_positivo(monkeypatch):
 
     monkeypatch.setattr(module, "_run_process_with_pin_foreground", _fake_run_process)
 
-    result = module._run_curl_with_pin_foreground(["curl.exe", "--version"], timeout=7)
+    result = module._run_curl_with_pin_foreground(
+        ["curl.exe", "--version"],
+        timeout=7,
+        requires_foreground_grant=True,
+    )
 
     assert result.returncode == 0
     assert captured["cmd"] == ["curl.exe", "--version"]
-    assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
+    assert captured["kwargs"]["requires_foreground_grant"] is True
 
-def test_run_process_windows_presidia_il_prompt_pin_senza_bloccare_il_curl():
-    source = Path("tools/local_signer.py").read_text(encoding="utf-8")
-    runner = source[
-        source.index("def _run_process_with_pin_foreground"):
-        source.index("def _http_status_from_headers")
-    ]
 
-    assert "_windows_pin_prompt_foreground_pump" in runner
-    assert "reclaim_existing_pin_prompt" in runner
-    assert "requires_foreground_grant" not in runner
-    assert "process = subprocess.Popen" in runner
+def test_run_process_windows_prepara_foreground_prima_di_popen(monkeypatch):
+    module = _load_local_signer()
+    events = []
 
-def test_run_curl_pst_batch_limita_il_timeout_al_valore_verificato(monkeypatch):
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_windows_hidden_subprocess_kwargs", lambda kwargs: dict(kwargs))
+    monkeypatch.setattr(
+        module,
+        "_windows_prepare_foreground_for_process_start",
+        lambda: events.append("foreground") or True,
+    )
+    monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
+    monkeypatch.setattr(module, "_register_managed_process", lambda process, job, handles: None)
+    monkeypatch.setattr(module, "_take_managed_process", lambda pid: None)
+    monkeypatch.setattr(module, "_finish_managed_process", lambda entry, terminate: None)
+
+    class _FakeProcess:
+        pid = 123
+        returncode = 0
+
+        def communicate(self, input=None, timeout=None):
+            return b"", b""
+
+        def poll(self):
+            return self.returncode
+
+    def _popen(cmd, **kwargs):
+        events.append("popen")
+        return _FakeProcess()
+
+    monkeypatch.setattr(module.subprocess, "Popen", _popen)
+    result = module._run_process_with_pin_foreground(
+        ["curl.exe", "--version"],
+        requires_foreground_grant=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0
+    assert events[:2] == ["foreground", "popen"]
+
+
+def test_run_process_windows_senza_grant_non_avvia_popen(monkeypatch):
+    module = _load_local_signer()
+    calls = []
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_windows_hidden_subprocess_kwargs", lambda kwargs: dict(kwargs))
+    monkeypatch.setattr(module, "_windows_prepare_foreground_for_process_start", lambda: False)
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *args, **kwargs: calls.append(args))
+
+    with pytest.raises(RuntimeError, match="Nessun processo è stato avviato"):
+        module._run_process_with_pin_foreground(
+            ["curl.exe", "--version"],
+            requires_foreground_grant=True,
+        )
+
+    assert calls == []
+
+
+def test_run_curl_pst_batch_rispetta_il_timeout_sommato_delle_richieste(monkeypatch):
     module = _load_local_signer()
     captured = {}
 
@@ -1286,8 +1324,8 @@ def test_run_curl_pst_batch_limita_il_timeout_al_valore_verificato(monkeypatch):
     result = module._run_curl_with_pin_foreground(["curl.exe", "-K", "lotto.cfg"], timeout=800)
 
     assert result.returncode == 0
-    assert captured["kwargs"]["timeout"] == module.PST_INTERACTIVE_CURL_MAX_TIME
-    assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
+    assert captured["kwargs"]["timeout"] == 800
+    assert "reclaim_existing_pin_prompt" not in captured["kwargs"]
     assert module.PST_INTERACTIVE_CURL_BATCH_HARD_MAX_TIME >= 800
 
 
@@ -8490,8 +8528,6 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
-    # Nel lotto interattivo unico il catalogo e le sezioni sono già incluse
-    # nella stessa esecuzione curl: non deve partire un recupero successivo.
     assert captured["master_detail"] == 0
     assert captured["sezioni"] == 0
     assert captured["batch_calls"] == 1

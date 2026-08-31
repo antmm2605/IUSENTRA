@@ -867,8 +867,11 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "openDocumentFlow('deposito')" in source
     assert "openDocumentFlow('notifica')" in source
     assert "openOfficeDocumentsFromContext" in source
-    assert "setOfficeDocumentsOpenRequest((current) => current + 1)" in source
+    assert "beginLocalSignerForegroundGrant()" in source
+    assert "requestId: (current?.requestId || 0) + 1" in source
+    assert "foregroundGrant," in source
     assert "openOfficeDocumentsRequest={officeDocumentsOpenRequest}" in source
+    assert "export type OfficeDocumentsOpenRequest" in office_source
     assert "setEmbeddedRecord({ kind: 'cliente', title: 'Modifica anagrafica cliente'" in source
     assert "setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti'" in source
     assert "setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST'" in source
@@ -886,13 +889,15 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Import pratiche" in source
     assert "onSection('documenti', 'documenti')" in source
 
-    assert "openOfficeDocumentsRequest?: number" in office_source
-    assert "openOfficeDocumentsRequest = 0" in office_source
+    assert "openOfficeDocumentsRequest?: OfficeDocumentsOpenRequest | null" in office_source
+    assert "openOfficeDocumentsRequest = null" in office_source
     assert "lastOpenOfficeDocumentsRequest" in office_source
     assert "void runSearch()" in office_source
     assert "Visualizza fascicolo" in office_source
     assert "Consultazione diretta del fascicolo d’ufficio in corso…" in office_source
-    assert "localSignerJson('/pst/fascicolo-snapshot-job'" in office_source
+    assert "localSignerJson('/pst/ricerca-snapshot'" in office_source
+    assert "localSignerJson('/pst/fascicolo-snapshot-job'" not in office_source
+    assert "single_interactive_batch: true" in office_source
     assert "window.open" not in office_source
     assert "/portal-assistant/" not in office_source
 

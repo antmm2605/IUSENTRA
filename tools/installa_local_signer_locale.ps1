@@ -19,6 +19,7 @@ $targetParentDir = Split-Path -Parent $targetDir
 $venvDir = Join-Path $targetDir ".venv"
 $embeddedPythonDir = Join-Path $targetDir "python"
 $pythonScript = Join-Path $targetDir "local_signer.py"
+$foregroundHelperScript = Join-Path $targetDir "local_signer_foreground_helper.py"
 $windowsHttpScript = Join-Path $targetDir "local_signer_windows_http.ps1"
 $aiBridgeScript = Join-Path $targetDir "local_ai_host_bridge.py"
 $lexContextScript = Join-Path $targetDir "lex_document_context.py"
@@ -622,13 +623,31 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 Dim extra
 Dim here
 Dim starter
+Dim rawUri
+Dim matcher
+Dim helper
+Dim pythonExe
 here = fso.GetParentFolderName(WScript.ScriptFullName)
 starter = fso.BuildPath(here, "start_local_signer.cmd")
 extra = " --background"
 If WScript.Arguments.Count > 0 Then
-  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://update") > 0 Then
+  rawUri = WScript.Arguments(0)
+  If InStr(LCase(rawUri), "iusentra-local-signer://foreground") = 1 Then
+    Set matcher = New RegExp
+    matcher.Pattern = "^iusentra-local-signer://foreground\?nonce=[A-Za-z0-9_-]{32,64}$"
+    matcher.IgnoreCase = True
+    If matcher.Test(rawUri) Then
+      helper = fso.BuildPath(here, "local_signer_foreground_helper.py")
+      pythonExe = fso.BuildPath(here, "python\python.exe")
+      If Not fso.FileExists(pythonExe) Then pythonExe = fso.BuildPath(here, ".venv\Scripts\python.exe")
+      If fso.FileExists(helper) And fso.FileExists(pythonExe) Then
+        shell.Run Chr(34) & pythonExe & Chr(34) & " " & Chr(34) & helper & Chr(34) & " " & Chr(34) & rawUri & Chr(34), 0, False
+      End If
+    End If
+    WScript.Quit
+  ElseIf InStr(LCase(rawUri), "iusentra-local-signer://update") > 0 Then
     extra = " --update"
-  ElseIf InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
+  ElseIf InStr(LCase(rawUri), "iusentra-local-signer://restart") > 0 Then
     extra = extra & " --force"
   End If
 End If
@@ -643,8 +662,22 @@ function Register-LocalSignerProtocol {
 
     $protocolRoot = "HKCU:\Software\Classes\iusentra-local-signer"
     $commandKey = Join-Path $protocolRoot "shell\open\command"
-    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
-    $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
+    $protocolPythonCandidates = @(
+        (Join-Path $targetDir "python\pythonw.exe"),
+        (Join-Path $targetDir ".venv\Scripts\pythonw.exe")
+    )
+    $protocolPython = $protocolPythonCandidates |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1
+    if (-not $protocolPython) {
+        throw "Runtime pythonw.exe mancante: protocollo Local Signer non registrato."
+    }
+    if (-not (Test-Path -LiteralPath $foregroundHelperScript)) {
+        throw "Helper foreground Local Signer mancante: protocollo non registrato."
+    }
+    # Il browser avvia direttamente l'helper: nessun doppio hop wscript ->
+    # Python può disperdere l'autorizzazione foreground derivata dal clic.
+    $command = "`"$protocolPython`" `"$foregroundHelperScript`" `"%1`""
 
     New-Item -Path $commandKey -Force | Out-Null
     Set-Item -Path $protocolRoot -Value "URL:IUSENTRA Local Signer Protocol"
@@ -911,6 +944,7 @@ function Copy-LocalSignerPackageToStage {
 
     $requiredCopies = @(
         @((Join-Path $toolsDir "local_signer.py"), (Join-Path $StageRoot "local_signer.py")),
+        @((Join-Path $toolsDir "local_signer_foreground_helper.py"), (Join-Path $StageRoot "local_signer_foreground_helper.py")),
         @((Join-Path $toolsDir "local_signer_windows_http.ps1"), (Join-Path $StageRoot "local_signer_windows_http.ps1")),
         @((Join-Path $toolsDir "local_ai_host_bridge.py"), (Join-Path $StageRoot "local_ai_host_bridge.py")),
         @((Join-Path $toolsDir "lex_document_context.py"), (Join-Path $StageRoot "lex_document_context.py")),
@@ -1013,6 +1047,7 @@ function Test-LocalSignerPreparedStage {
 
     $requiredPaths = @(
         (Join-Path $StageRoot "local_signer.py"),
+        (Join-Path $StageRoot "local_signer_foreground_helper.py"),
         (Join-Path $StageRoot "local_signer_windows_http.ps1"),
         (Join-Path $StageRoot "local_ai_host_bridge.py"),
         (Join-Path $StageRoot "lex_document_context.py"),
@@ -1030,6 +1065,7 @@ function Test-LocalSignerPreparedStage {
 
     $pythonFiles = @(
         (Join-Path $StageRoot "local_signer.py"),
+        (Join-Path $StageRoot "local_signer_foreground_helper.py"),
         (Join-Path $StageRoot "local_ai_host_bridge.py"),
         (Join-Path $StageRoot "lex_document_context.py"),
         (Join-Path $StageRoot "visible_signature.py")

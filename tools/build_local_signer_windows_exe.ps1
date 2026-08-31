@@ -13,6 +13,7 @@ $distDir = Join-Path $toolsDir "dist"
 $buildDir = Join-Path $toolsDir ".iexpress-build"
 $iexpressExe = Join-Path $env:SystemRoot "System32\iexpress.exe"
 $localSignerPy = Join-Path $toolsDir "local_signer.py"
+$localSignerForegroundHelper = Join-Path $toolsDir "local_signer_foreground_helper.py"
 $visibleSignaturePy = Join-Path $repoDir "visible_signature.py"
 $localSignerModDir = Join-Path $repoDir "local_signer_mod"
 $ufficiJson = Join-Path $repoDir "pct\data\uffici_ministero.json"
@@ -33,6 +34,9 @@ function Write-Utf8TextFile {
 
 if (-not (Test-Path $localSignerPy)) {
     throw "File Local Signer non trovato: $localSignerPy"
+}
+if (-not (Test-Path $localSignerForegroundHelper)) {
+    throw "Helper foreground Local Signer non trovato: $localSignerForegroundHelper"
 }
 if (-not (Test-Path $visibleSignaturePy)) {
     throw "File firma visibile non trovato: $visibleSignaturePy"
@@ -78,6 +82,7 @@ $installHeader = @"
 Write-Utf8TextFile -Path $buildInstallPs1 -Content ($installHeader + $installScriptSource)
 Write-Utf8TextFile -Path $outputPs1Versioned -Content ($installHeader + $installScriptSource)
 Copy-Item (Join-Path $toolsDir "local_signer.py") $buildDir -Force
+Copy-Item $localSignerForegroundHelper $buildDir -Force
 Copy-Item (Join-Path $toolsDir "local_signer_windows_http.ps1") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "lex_document_context.py") $buildDir -Force
@@ -161,6 +166,7 @@ SourceFiles0=$escapedSource
 %FILE14%=
   %FILE15%=
   %FILE16%=
+  %FILE17%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -179,6 +185,7 @@ FILE13=local_signer_mod__pec_bridge.py
 FILE14=local_signer_mod__security.py
 FILE15=local_signer_mod__server_bootstrap.py
 FILE16=local_signer_mod__support_agent.py
+FILE17=local_signer_foreground_helper.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -193,6 +200,7 @@ if (-not (Test-Path $outputExeVersioned)) {
 
 Copy-Item $outputExeVersioned $outputExeAlias -Force
 Copy-Item $localSignerPy (Join-Path $distDir "local_signer.py") -Force
+Copy-Item $localSignerForegroundHelper (Join-Path $distDir "local_signer_foreground_helper.py") -Force
 Copy-Item (Join-Path $toolsDir "local_signer_windows_http.ps1") (Join-Path $distDir "local_signer_windows_http.ps1") -Force
 Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") (Join-Path $distDir "local_ai_host_bridge.py") -Force
 Copy-Item (Join-Path $toolsDir "lex_document_context.py") (Join-Path $distDir "lex_document_context.py") -Force
@@ -254,7 +262,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -343,7 +351,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
 
 cat > "$SERVICE" <<EOF
 [Unit]

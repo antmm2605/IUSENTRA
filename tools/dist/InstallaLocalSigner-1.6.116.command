@@ -1,27 +1,27 @@
-#!/bin/bash
-# IUSENTRA Local Signer Setup v1.6.116
-set -euo pipefail
+        #!/bin/bash
+        # IUSENTRA Local Signer v1.6.116 - Installer macOS
+        # Punto ufficiale: https://app.iusentra.it/impostazioni?tab=firma
+        set -euo pipefail
 
-BASE_URL="https://app.iusentra.it"
-ALLOWED_ORIGINS="https://app.iusentra.it,https://studio-legale-pct-production.up.railway.app,http://127.0.0.1:8080,http://localhost:8080"
-VERSION="1.6.116"
-DIR="$HOME/Library/Application Support/HACS/LocalSigner"
-DATA_DIR="$DIR/data"
-MOD_DIR="$DIR/local_signer_mod"
-VENV="$DIR/.venv"
-PY="$VENV/bin/python3"
-PLIST="$HOME/Library/LaunchAgents/it.iusentra.local-signer.plist"
+        BASE_URL="https://app.iusentra.it"
+        ALLOWED_ORIGINS="http://127.0.0.1:8080,http://localhost:8080,https://app.iusentra.it,https://studio-legale-pct-production.up.railway.app"
+        VERSION="1.6.116"
+        DIR="$HOME/Library/Application Support/IUSENTRA/LocalSigner"
+        DATA_DIR="$DIR/data"
+        MOD_DIR="$DIR/local_signer_mod"
+        VENV="$DIR/.venv"
+        PY="$VENV/bin/python3"
+        PLIST="$HOME/Library/LaunchAgents/it.iusentra.local-signer.plist"
 
-echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
-echo "Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma"
+        echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
+        echo "Scarico da: $BASE_URL"
 
-mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$(dirname "$PLIST")"
+        mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$(dirname "$PLIST")"
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "Python 3 non trovato. Installarlo prima da https://python.org"
-  read -r -p "Premi Invio per uscire..." _
-  exit 1
-fi
+        if ! command -v python3 >/dev/null 2>&1; then
+          echo "Python 3 non trovato. Scaricarlo da https://python.org"
+          read -r -p "Premi Invio per uscire..." _; exit 1
+        fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
@@ -36,43 +36,34 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
-python3 -m venv "$VENV"
-"$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
+        python3 -m venv "$VENV"
+        "$PY" -m pip install --quiet --upgrade pip
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
 
-cat > "$PLIST" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>it.iusentra.local-signer</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$PY</string>
-    <string>$DIR/local_signer.py</string>
-  </array>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PCT_LOCAL_SIGNER_ALLOWED_ORIGINS</key>
-    <string>$ALLOWED_ORIGINS</string>
-  </dict>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-  <key>WorkingDirectory</key>
-  <string>$DIR</string>
-</dict>
-</plist>
-EOF
+        cat > "$PLIST" <<PLISTEOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key><string>it.iusentra.local-signer</string>
+          <key>ProgramArguments</key>
+          <array><string>$PY</string><string>$DIR/local_signer.py</string></array>
+          <key>EnvironmentVariables</key>
+          <dict>
+            <key>PCT_LOCAL_SIGNER_ALLOWED_ORIGINS</key><string>$ALLOWED_ORIGINS</string>
+          </dict>
+          <key>RunAtLoad</key><true/>
+          <key>KeepAlive</key><true/>
+          <key>WorkingDirectory</key><string>$DIR</string>
+        </dict>
+        </plist>
+        PLISTEOF
 
-launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
-launchctl bootstrap "gui/$(id -u)" "$PLIST"
-launchctl kickstart -k "gui/$(id -u)/it.iusentra.local-signer"
+        launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
+        launchctl bootstrap "gui/$(id -u)" "$PLIST"
+        launchctl kickstart -k "gui/$(id -u)/it.iusentra.local-signer"
 
-echo
-echo "Installazione completata. Local Signer v$VERSION pronto."
-echo "Local Signer attivo su http://127.0.0.1:27272"
-echo "Tornare su IUSENTRA e cliccare Riverifica."
-read -r -p "Premi Invio per chiudere..." _
+        echo
+        echo "Installazione completata. Local Signer v$VERSION pronto su http://127.0.0.1:27272"
+        echo "Tornare su IUSENTRA e cliccare Riverifica."
+        read -r -p "Premi Invio per chiudere..." _

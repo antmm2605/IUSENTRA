@@ -6289,6 +6289,22 @@ def _pst_react_apply_siecic_schema(hint: dict[str, Any], source: Any) -> dict[st
 
 
 def _pst_react_service_from_fascicolo(fascicolo: Any) -> tuple[str, str]:
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if not isinstance(snapshot, Mapping):
+        snapshot = {}
+    # Se il fascicolo arriva da un portale, registro e rito vengono dal
+    # ministero: vincono su campi descrittivi e registro dell'ufficio.
+    snapshot_service, snapshot_source = _pst_react_service_from_text(
+        snapshot.get("tabella_ministeriale"),
+        snapshot.get("servizio_pst"),
+        snapshot.get("registro_portale"),
+        snapshot.get("tipo_registro"),
+        snapshot.get("procedimento"),
+        snapshot.get("sub_procedimento"),
+    )
+    if snapshot_service:
+        return snapshot_service, f"snapshot_portale {snapshot_source}".strip()
+
     profile = getattr(fascicolo, "profilo_deposito", None)
     if not isinstance(profile, Mapping):
         profile = {}
@@ -6332,8 +6348,27 @@ def _pst_react_service_from_fascicolo(fascicolo: Any) -> tuple[str, str]:
     return _pst_react_service_from_text(canale.get("codice"))
 
 
-def _pst_react_schema_hint_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
+def _pst_react_schema_hint_from_fascicolo(fascicolo: Any, *, office_code: str = "") -> dict[str, Any]:
+    """Risolve il servizio dal fascicolo, con il registro ufficio come fallback."""
+    # Il rito/registro memorizzato nel fascicolo identifica la procedura
+    # effettiva. Un Tribunale può esporre più servizi, quindi il suo servizio
+    # predefinito non può sovrascrivere un fascicolo LAV, VG, SIECIC o MIN.
     service, source = _pst_react_service_from_fascicolo(fascicolo)
+    if not service and office_code:
+        try:
+            office = risolvi_ufficio(office_code)
+        except Exception:
+            office = None
+        if isinstance(office, Mapping):
+            preferred = str(office.get("servizio_pst_predefinito") or "").strip().upper()
+            services = {
+                str(item or "").strip().upper()
+                for item in (office.get("servizi_ministero") or [])
+                if str(item or "").strip()
+            }
+            if preferred in _PST_REACT_SCHEMA_BY_SERVICE and (not services or preferred in services):
+                service = preferred
+                source = "registro_ufficio"
     if not service:
         return {}
     hint = dict(_PST_REACT_SCHEMA_BY_SERVICE.get(service, {}))
@@ -6351,8 +6386,6 @@ def _pst_react_schema_hint_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
         ),
     })
     return hint
-
-
 def _pst_react_rg_matches(left: Any, right: Any) -> bool:
     a = re.sub(r"\s+", "", str(left or "")).lstrip("0")
     b = re.sub(r"\s+", "", str(right or "")).lstrip("0")
@@ -6418,7 +6451,7 @@ def telematico_pst_schema_hint():
                 continue
             matched = fascicolo
             break
-        hint = _pst_react_schema_hint_from_fascicolo(matched) if matched is not None else {}
+        hint = _pst_react_schema_hint_from_fascicolo(matched, office_code=ufficio_codice) if matched is not None else {}
         return jsonify({
             "ok": True,
             "matched": matched is not None,

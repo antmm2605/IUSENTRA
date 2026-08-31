@@ -474,11 +474,13 @@ def run_gate(args: argparse.Namespace) -> int:
             )
             time.sleep(args.poll_seconds)
             continue
-        hard_failure = any(row.state == "failed" for row in check_rows)
-        external_failure = any(row.state == "failed" for row in status_rows)
         pending_or_missing = any(row.state in {"pending", "missing"} for row in check_rows)
 
-        if hard_failure or external_failure or not pending_or_missing or not args.wait:
+        # Anche se un check ha già fallito, gli altri job dello stesso SHA
+        # possono essere ancora in esecuzione. Con --wait si attende sempre il
+        # quadro completo: interrompersi subito trasforma i job non ancora
+        # pubblicati in "missing" e produce un falso esito del gate.
+        if not pending_or_missing or not args.wait:
             break
         if time.monotonic() >= deadline:
             break

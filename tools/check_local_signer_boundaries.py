@@ -21,6 +21,7 @@ def main() -> int:
         "local_signer_mod/ai_handlers.py",
         "local_signer_mod/server_bootstrap.py",
         "local_signer_mod/support_agent.py",
+        "tools/local_signer_foreground_helper.py",
     ):
         if not (REPO_ROOT / required).exists():
             failures.append(f"Manca {required}")
@@ -72,12 +73,13 @@ def main() -> int:
             "filtered_cf_parte = None if exact_registry_lookup else cf_parte",
             "tag(\"nomeParte\", filtered_nome_parte)",
             "tag(\"codiceFiscaleParte\", filtered_cf_parte)",
-            "def _windows_pin_prompt_candidate_score",
-            "EnumChildWindows",
-            "QueryFullProcessImageNameW",
-            "credentialuibroker",
-            "AttachThreadInput",
-            "FlashWindow",
+            "def _claim_windows_foreground_grant",
+            "def _complete_windows_foreground_grant",
+            "def _consume_windows_foreground_grant",
+            "def _windows_prepare_foreground_for_process_start",
+            '"/foreground/claim"',
+            '"/foreground/complete"',
+            '"/foreground/status"',
             "def _cf_avvocato_pst",
             "if explicit:\n        return explicit",
             "Master-detail PST:",
@@ -87,6 +89,30 @@ def main() -> int:
         for snippet in required_snippets:
             if snippet not in signer_text:
                 failures.append(f"{signer_path} non preserva baseline PST: {snippet}")
+        runner_text = signer_text[
+            signer_text.index("def _run_process_with_pin_foreground"):
+            signer_text.index("def _http_status_from_headers")
+        ]
+        # Il prompt PIN è nativo: il Local Signer può solo individuarlo e
+        # chiedere a Windows di mostrarlo in primo piano. Rimangono vietate
+        # tutte le API che agganciano l’input, simulano tasti, impongono focus
+        # o chiudono finestre del provider.
+        for forbidden in (
+            "AttachThreadInput", "SetFocus", "keybd_event", "FlashWindow",
+            "SwitchToThisWindow", "SetWindowPos", "PostMessageW",
+        ):
+            if forbidden in signer_text:
+                failures.append(
+                    f"{signer_path} manipola input o prompt Windows vietati: {forbidden}"
+                )
+        if "target=_windows_pin_prompt_foreground_pump" not in runner_text:
+            failures.append(f"{signer_path} non ripristina il pump del prompt PIN nativo nel percorso PST")
+        if 'kwargs["reclaim_existing_pin_prompt"] = True' not in runner_text:
+            failures.append(f"{signer_path} non presidia il prompt PIN riusato nel lotto PST unico")
+        if "process = subprocess.Popen" not in runner_text:
+            failures.append(f"{signer_path} non avvia il processo PST nel runner governato")
+        if "requires_foreground_grant" in runner_text:
+            failures.append(f"{signer_path} blocca il percorso PST dietro a un grant browser non necessario")
         if "do_preflight=False" not in signer_text and '"do_preflight": False' not in signer_text:
             failures.append(f"{signer_path} non preserva baseline PST: disabilitazione preflight nel lotto")
 
@@ -96,8 +122,10 @@ def main() -> int:
         "nome_parte: exactPstSearch ? '' : (searchQuery.assistito || searchQuery.controparte)",
         "cf_parte: exactPstSearch ? '' : searchQuery.cf",
         "pst_session_id: session?.sessionId || ''",
-        "localSignerJson('/pst/ricerca-snapshot'",
+        "localSignerPstFascicoloSnapshotJob({",
         "localSignerJson('/pst/download-documenti-batch-job'",
+        "const operation = executeSearch(createLocalSignerOperationId('pst-view'))",
+        "const cert = await ensurePstCertificate()",
         "function alternateLocalSignerBrowserTransport",
         "function isLocalSignerTransportFailure",
         "localSignerBrowserRequestWithFallback(endpoint, body, timeoutMs, route)",
@@ -110,10 +138,31 @@ def main() -> int:
             failures.append(f"TelematicoSurfacePage non preserva baseline PST: {snippet}")
     if "office.codiceMinistero || office.codice" in react_text:
         failures.append("TelematicoSurfacePage deve inviare il codice ufficio, non preferire il codice ministeriale")
+    for stale_browser_gate in (
+        "beginLocalSignerForegroundGrant()",
+        "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)",
+        "foreground_nonce: foregroundNonce",
+    ):
+        if stale_browser_gate in react_text:
+            failures.append(f"TelematicoSurfacePage blocca ancora il PST sul protocollo browser: {stale_browser_gate}")
     if "localSignerJson('/pst/preflight-auth'" in react_text:
         failures.append("TelematicoSurfacePage non deve chiamare /pst/preflight-auth")
     if "localSignerJson('/pst/download-documento'" in react_text:
         failures.append("TelematicoSurfacePage non deve tornare al download documento singolo")
+
+    helper_text = _read("tools/local_signer_foreground_helper.py")
+    for required in ("AllowSetForegroundWindow", '"/foreground/claim"', '"/foreground/complete"', "_nonce_from_uri"):
+        if required not in helper_text:
+            failures.append(f"Helper foreground non preserva il contratto: {required}")
+    for forbidden in (
+        "EnumWindows", "GetClassNameW", "ShowWindow", "SetWindowPos",
+        "BringWindowToTop", "SwitchToThisWindow",
+        "AttachThreadInput", "SetFocus", "keybd_event", "PostMessageW",
+    ):
+        if forbidden in helper_text:
+            failures.append(f"Helper foreground manipola una finestra vietata: {forbidden}")
+    if re.search(r"(?<!Allow)SetForegroundWindow\(", helper_text):
+        failures.append("Helper foreground richiama direttamente SetForegroundWindow")
 
     # Chrome Local Network Access distingue espressamente gli indirizzi
     # 127.0.0.1/localhost (loopback) dagli host della rete privata (local).

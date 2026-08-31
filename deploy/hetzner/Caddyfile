@@ -36,8 +36,18 @@
 	# per aggiungere rate limiting a livello reverse proxy usare un'immagine
 	# xcaddy custom oppure affidarsi al layer Flask (già operativo).
 
-	@static path /static/*
-	header @static Cache-Control "public, max-age=604800"
+	# I file Vite dentro `assets` hanno un nome content-hash: possono restare
+	# nella cache del browser per un anno senza rischio di servire codice vecchio.
+	# La shell React e il manifest restano invece rivalidati, quindi puntano sempre
+	# al bundle della versione distribuita più recente.
+	@react_hashed_assets path /static/react/assets/*
+	header @react_hashed_assets Cache-Control "public, max-age=31536000, immutable"
+
+	@other_static {
+		path /static/*
+		not path /static/react/assets/*
+	}
+	header @other_static Cache-Control "public, max-age=604800"
 
 	# La shell React usa rivalidazione condizionata con ETag: `no-cache` obbliga
 	# comunque il browser a rivalidare prima di ogni uso, quindi non mostra mai

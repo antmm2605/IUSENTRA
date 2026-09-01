@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.116
+IUSENTRA Local Signer - v1.6.126
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.116"
+VERSION = "1.6.126"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -132,6 +132,10 @@ PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT
 PST_INTERACTIVE_CURL_MAX_TIME = max(
     int(os.getenv("HACS_SIGNER_PST_INTERACTIVE_MAX_TIME", "330")),
     60,
+)
+PST_INTERACTIVE_CURL_BATCH_HARD_MAX_TIME = max(
+    int(os.getenv("HACS_SIGNER_PST_INTERACTIVE_BATCH_HARD_MAX_TIME", "900")),
+    PST_INTERACTIVE_CURL_MAX_TIME,
 )
 PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "1800")), 60)
 PIN_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_MAX_ACTIVE", "4")), 1)
@@ -2165,12 +2169,29 @@ def _ricorda_certificato_windows(cert: Optional[dict]) -> None:
         _ultimo_certificato_windows = dict(cert)
 
 
+def _certificato_windows_corrente_nello_store(cert: Optional[dict]) -> dict:
+    cached = dict(cert or {})
+    thumbprint = str(cached.get("thumbprint") or "").replace(" ", "").upper()
+    if not thumbprint or sys.platform != "win32":
+        return cached if thumbprint else {}
+    for available in _windows_lista_certificati():
+        available_thumbprint = str(available.get("thumbprint") or "").replace(" ", "").upper()
+        if available_thumbprint == thumbprint:
+            return dict(available)
+    return {}
+
+
 def _certificato_windows_effettivo(cert_thumbprint: Optional[str]) -> str:
+    global _ultimo_certificato_windows
     thumbprint = (cert_thumbprint or "").strip()
     if thumbprint:
         return thumbprint
-    cached = _ultimo_certificato_windows or {}
-    return (cached.get("thumbprint") or "").strip()
+    cached = _certificato_windows_corrente_nello_store(_ultimo_certificato_windows)
+    if not cached:
+        _ultimo_certificato_windows = None
+        return ""
+    _ultimo_certificato_windows = dict(cached)
+    return str(cached.get("thumbprint") or "").strip()
 
 
 def _require_certificato_pst(cert_thumbprint: Optional[str]) -> Optional[str]:
@@ -2424,9 +2445,13 @@ def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:
     cached = dict(_ultimo_certificato_windows or {})
     cached_thumb = str(cached.get("thumbprint") or "").replace(" ", "").upper()
     if thumbprint and cached_thumb == thumbprint:
-        return cached
+        cached = _certificato_windows_corrente_nello_store(cached)
+        if cached:
+            return cached
     if not thumbprint and cached:
-        return cached
+        cached = _certificato_windows_corrente_nello_store(cached)
+        if cached:
+            return cached
     if sys.platform != "win32":
         return {}
     for cert in _windows_lista_certificati():
@@ -2655,6 +2680,21 @@ def _windows_lista_certificati() -> list[dict]:
     except Exception as e:
         log.warning("_windows_lista_certificati: %s", e)
         return []
+
+
+def _windows_collega_certificato_cns_pst() -> list[dict]:
+    """Individua nel Certificate Store i certificati CNS/CIE già collegati.
+
+    Non apre dialoghi e non legge il PIN: la presenza nello store è l’unica
+    prova utilizzata prima della selezione esplicita dell’avvocato.
+    """
+    if sys.platform != "win32":
+        return []
+    return [
+        dict(cert)
+        for cert in _windows_lista_certificati()
+        if _certificato_windows_compatibile_pst(cert)
+    ]
 
 
 def _windows_seleziona_cert() -> Optional[dict]:
@@ -6516,31 +6556,24 @@ _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
     "autenticazione",
     "accesso",
     "autorizzazione",
-    "autorizza",
     "carta nazionale",
     "certificate",
     "certificato",
     "chiave privata",
     "credenziali",
     "credential",
-    "credentialui",
     "dispositivo di sicurezza",
-    "identita",
     "identità",
     "immettere il pin",
     "immetti il pin",
     "inserire il pin",
     "inserisci il pin",
-    "lettore",
     "password",
     "pin",
     "private key",
     "richiesta pin",
     "sicurezza windows",
     "sicurezza di windows",
-    "sicurezza",
-    "windows security",
-    "microsoft smart card",
     "smart card",
     "smartcard",
     "carta intelligente",
@@ -6549,13 +6582,9 @@ _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
     "cie",
     "bit4id",
     "aruba",
-    "arubapec",
-    "minva",
     "dike",
     "infocert",
     "namirial",
-    "firma certa",
-    "firmacerta",
     "idprotect",
     "safenet",
     "athena",
@@ -6563,10 +6592,8 @@ _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
     "token",
 )
 
-
 _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS = (
     "credential",
-    "credential dialog xaml host",
     "smartcard",
     "cryptui",
     "bit4",
@@ -6577,32 +6604,6 @@ _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS = (
     "idprotect",
     "safenet",
     "athena",
-)
-
-
-_WINDOWS_PIN_FOREGROUND_PROCESS_KEYWORDS = (
-    "credentialuibroker",
-    "credential",
-    "cryptui",
-    "certenroll",
-    "bit4",
-    "aruba",
-    "arubapec",
-    "minva",
-    "dike",
-    "infocert",
-    "namirial",
-    "firma4ng",
-    "firmacerta",
-    "idprotect",
-    "safenet",
-    "athena",
-    "actalis",
-    "akutility",
-    "smartcard",
-    "carta",
-    "cieid",
-    "cns",
 )
 
 
@@ -6610,12 +6611,10 @@ def _windows_pin_prompt_candidate_score(
     title: str,
     class_name: str = "",
     child_text: str = "",
-    process_name: str = "",
 ) -> int:
     title_norm = (title or "").casefold()
     class_norm = (class_name or "").casefold()
     child_norm = (child_text or "").casefold()
-    process_norm = (process_name or "").casefold()
     score = 0
     if title_norm and any(keyword in title_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
         score += 8
@@ -6623,8 +6622,6 @@ def _windows_pin_prompt_candidate_score(
         score += 6
     if class_norm and any(keyword in class_norm for keyword in _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS):
         score += 5
-    if process_norm and any(keyword in process_norm for keyword in _WINDOWS_PIN_FOREGROUND_PROCESS_KEYWORDS):
-        score += 7
     if class_norm in {"applicationframewindow", "windows.ui.core.corewindow", "nativehwndhost"} and score:
         score += 2
     if class_norm == "#32770" and score:
@@ -6632,139 +6629,8 @@ def _windows_pin_prompt_candidate_score(
     return score
 
 
-def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
-    """
-    Best-effort robusto per finestre PIN Windows: restore, topmost temporaneo
-    e attach del thread aiutano quando il dialog resta solo sulla taskbar.
-    """
-    try:
-        import ctypes
-
-        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
-        sw_show = 5
-        sw_restore = 9
-        hwnd_topmost = -1
-        swp_nomove = 0x0002
-        swp_nosize = 0x0001
-        swp_showwindow = 0x0040
-        swp_noownerzorder = 0x0200
-        swp_nosendchanging = 0x0400
-        swp_flags = swp_nomove | swp_nosize | swp_showwindow | swp_noownerzorder | swp_nosendchanging
-
-        allow_set_foreground = getattr(user32, "AllowSetForegroundWindow", None)
-        if allow_set_foreground:
-            try:
-                allow_set_foreground(-1)
-            except Exception:
-                pass
-
-        current_thread = kernel32.GetCurrentThreadId()
-        target_thread = user32.GetWindowThreadProcessId(hwnd, None)
-        foreground_hwnd = user32.GetForegroundWindow()
-        foreground_thread = user32.GetWindowThreadProcessId(foreground_hwnd, None) if foreground_hwnd else 0
-        attached_threads: list[Any] = []
-        attach_thread_input = getattr(user32, "AttachThreadInput", None)
-        if attach_thread_input:
-            for thread_id in {target_thread, foreground_thread}:
-                if thread_id and thread_id != current_thread:
-                    try:
-                        if attach_thread_input(current_thread, thread_id, True):
-                            attached_threads.append(thread_id)
-                    except Exception:
-                        continue
-
-        try:
-            if user32.IsIconic(hwnd):
-                user32.ShowWindow(hwnd, sw_restore)
-            else:
-                user32.ShowWindow(hwnd, sw_show)
-            show_window_async = getattr(user32, "ShowWindowAsync", None)
-            if show_window_async:
-                show_window_async(hwnd, sw_restore)
-
-            set_window_pos = getattr(user32, "SetWindowPos", None)
-            if set_window_pos:
-                set_window_pos(hwnd, hwnd_topmost, 0, 0, 0, 0, swp_flags)
-                time.sleep(0.08)
-
-            user32.BringWindowToTop(hwnd)
-            foreground_ok = bool(user32.SetForegroundWindow(hwnd))
-            if not foreground_ok:
-                user32.ShowWindow(hwnd, sw_restore)
-                user32.BringWindowToTop(hwnd)
-                foreground_ok = bool(user32.SetForegroundWindow(hwnd))
-            try:
-                user32.SetActiveWindow(hwnd)
-                user32.SetFocus(hwnd)
-            except Exception:
-                pass
-
-            switch_to_this_window = getattr(user32, "SwitchToThisWindow", None)
-            if switch_to_this_window:
-                switch_to_this_window(hwnd, True)
-
-            if not foreground_ok:
-                flash_window = getattr(user32, "FlashWindow", None)
-                if flash_window:
-                    try:
-                        flash_window(hwnd, True)
-                    except Exception:
-                        pass
-                flash_window_ex = getattr(user32, "FlashWindowEx", None)
-                if flash_window_ex:
-                    try:
-                        class _FlashWindowInfo(ctypes.Structure):
-                            _fields_ = (
-                                ("cbSize", ctypes.c_uint),
-                                ("hwnd", ctypes.c_void_p),
-                                ("dwFlags", ctypes.c_uint),
-                                ("uCount", ctypes.c_uint),
-                                ("dwTimeout", ctypes.c_uint),
-                            )
-
-                        flash_info = _FlashWindowInfo(
-                            ctypes.sizeof(_FlashWindowInfo),
-                            hwnd,
-                            0x00000003 | 0x0000000C,
-                            6,
-                            0,
-                        )
-                        flash_window_ex(ctypes.byref(flash_info))
-                    except Exception:
-                        pass
-                # Windows a volte rifiuta SetForegroundWindow ma mostra comunque
-                # il dialog se resta topmost per qualche istante.
-                time.sleep(0.45)
-                try:
-                    foreground_ok = bool(user32.GetForegroundWindow() == hwnd)
-                except Exception:
-                    pass
-
-            # Il provider può creare il dialogo sulla taskbar senza consegnargli
-            # il focus. Manteniamolo topmost finché il curl governato resta in
-            # vita: rimuoverlo subito lo faceva ricadere dietro IUSENTRA prima
-            # che l'utente potesse digitare il PIN. Alla chiusura del prompt la
-            # sua z-order viene rimossa naturalmente da Windows.
-            return foreground_ok
-        finally:
-            if attach_thread_input:
-                for thread_id in attached_threads:
-                    try:
-                        attach_thread_input(current_thread, thread_id, False)
-                    except Exception:
-                        pass
-    except Exception as exc:
-        log.debug("Foreground PIN non applicabile alla finestra: %s", exc)
-        return False
-
-
 def _windows_visible_top_level_window_handles() -> set[int]:
-    """Fotografa tutte le finestre top-level gia' aperte prima dell'operazione.
-
-    Alcuni CSP espongono il dialogo PIN dapprima come finestra non visibile. La
-    fotografia deve quindi includere anche quelle nascoste, altrimenti il pump
-    potrebbe scambiare per nuovo un prompt di un'altra operazione.
-    """
+    """Fotografa le finestre esistenti senza interagire con input o focus."""
     if sys.platform != "win32":
         return set()
     try:
@@ -6772,16 +6638,16 @@ def _windows_visible_top_level_window_handles() -> set[int]:
         from ctypes import wintypes
 
         user32 = ctypes.windll.user32  # type: ignore[attr-defined]
-        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+        enum_callback = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
         handles: set[int] = set()
 
-        @EnumWindowsProc
-        def _enum_window(hwnd, _lparam):
+        @enum_callback
+        def _collect(hwnd: Any, _lparam: Any) -> bool:
             if user32.IsWindow(hwnd):
                 handles.add(int(hwnd))
             return True
 
-        user32.EnumWindows(_enum_window, 0)
+        user32.EnumWindows(_collect, 0)
         return handles
     except Exception as exc:
         log.debug("Snapshot finestre Windows non disponibile: %s", exc)
@@ -6792,12 +6658,7 @@ def _windows_try_foreground_pin_prompt_once(
     excluded_handles: Optional[set[int]] = None,
     owned_handles: Optional[set[int]] = None,
 ) -> bool:
-    """
-    Best-effort: durante il TLS client-auth di curl, alcune dialog Windows
-    per il PIN restano minimizzate o dietro al browser. Se ne troviamo una
-    con titolo, classe o testo figlio coerente, la ripristiniamo e proviamo a
-    portarla davanti.
-    """
+    """Mostra il dialogo PIN nativo senza simulare input o imporre il focus."""
     if sys.platform != "win32":
         return False
     try:
@@ -6805,13 +6666,13 @@ def _windows_try_foreground_pin_prompt_once(
         from ctypes import wintypes
 
         user32 = ctypes.windll.user32  # type: ignore[attr-defined]
-        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
-        EnumChildWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
-        matched: list[tuple[int, Any]] = []
+        enum_callback = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+        child_callback = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
         excluded = {int(value) for value in (excluded_handles or set())}
+        matched: list[tuple[int, Any]] = []
 
         def _window_text(hwnd: Any) -> str:
-            length = user32.GetWindowTextLengthW(hwnd)
+            length = int(user32.GetWindowTextLengthW(hwnd) or 0)
             if length <= 0:
                 return ""
             buffer = ctypes.create_unicode_buffer(length + 1)
@@ -6823,91 +6684,50 @@ def _windows_try_foreground_pin_prompt_once(
             user32.GetClassNameW(hwnd, buffer, len(buffer))
             return (buffer.value or "").strip()
 
-        def _process_name(hwnd: Any) -> str:
-            pid = wintypes.DWORD()
-            try:
-                user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-            except Exception:
-                return ""
-            if not pid.value:
-                return ""
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
-            open_process = getattr(kernel32, "OpenProcess", None)
-            query_image = getattr(kernel32, "QueryFullProcessImageNameW", None)
-            close_handle = getattr(kernel32, "CloseHandle", None)
-            if not (open_process and query_image and close_handle):
-                return ""
-            handle = open_process(0x1000, False, pid.value)
-            if not handle:
-                return ""
-            try:
-                buffer = ctypes.create_unicode_buffer(1024)
-                size = wintypes.DWORD(len(buffer))
-                if query_image(handle, 0, buffer, ctypes.byref(size)):
-                    return (buffer.value or "").strip()
-            finally:
-                try:
-                    close_handle(handle)
-                except Exception:
-                    pass
-            return ""
-
         def _child_text(hwnd: Any) -> str:
             parts: list[str] = []
 
-            @EnumChildWindowsProc
-            def _enum_child(child_hwnd, _child_lparam):
-                text = _window_text(child_hwnd)
-                if text:
-                    parts.append(text)
+            @child_callback
+            def _collect_child(child_hwnd: Any, _lparam: Any) -> bool:
+                value = _window_text(child_hwnd)
+                if value:
+                    parts.append(value)
                 return len(parts) < 24
 
-            user32.EnumChildWindows(hwnd, _enum_child, 0)
+            user32.EnumChildWindows(hwnd, _collect_child, 0)
             return " ".join(parts)
 
-        @EnumWindowsProc
-        def _enum_window(hwnd, _lparam):
-            # Alcuni provider riutilizzano per il secondo PIN lo stesso HWND
-            # creato durante la visualizzazione. Se è rimasto minimizzato o
-            # invisibile, non va escluso solo perché era presente prima del
-            # nuovo curl: è proprio il dialogo di scarico da riportare davanti.
-            # Una finestra preesistente già visibile resta invece fuori dal
-            # pump, così non si sottrae il focus ad altri programmi.
+        @enum_callback
+        def _inspect(hwnd: Any, _lparam: Any) -> bool:
             preexisting = int(hwnd) in excluded
-            if preexisting:
-                try:
-                    if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
-                        return True
-                except Exception:
-                    return True
+            if preexisting and user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
+                return True
             title = _window_text(hwnd)
             class_name = _class_name(hwnd)
-            process_name = _process_name(hwnd)
-            child_text = ""
-            score = _windows_pin_prompt_candidate_score(title, class_name, child_text, process_name)
+            score = _windows_pin_prompt_candidate_score(title, class_name)
             if not score:
-                child_text = _child_text(hwnd)
-                score = _windows_pin_prompt_candidate_score(title, class_name, child_text, process_name)
+                score = _windows_pin_prompt_candidate_score(title, class_name, _child_text(hwnd))
             if score:
-                # Bit4id e altri CSP possono creare il prompt PIN come finestra
-                # top-level ancora invisibile. Esso non deve restare in barra:
-                # _windows_force_foreground_window lo mostra e lo rende attivo.
                 matched.append((score, hwnd))
                 if owned_handles is not None:
                     owned_handles.add(int(hwnd))
             return True
 
-        user32.EnumWindows(_enum_window, 0)
+        user32.EnumWindows(_inspect, 0)
         if not matched:
             return False
-
         matched.sort(key=lambda item: item[0], reverse=True)
-        for _score, hwnd in matched[:3]:
-            if _windows_force_foreground_window(user32, hwnd):
-                return True
-        return True
+        _score, hwnd = matched[0]
+        allow_foreground = getattr(user32, "AllowSetForegroundWindow", None)
+        if allow_foreground:
+            try:
+                allow_foreground(-1)
+            except Exception:
+                pass
+        user32.ShowWindow(hwnd, 9 if user32.IsIconic(hwnd) else 5)
+        return bool(user32.SetForegroundWindow(hwnd))
     except Exception as exc:
-        log.debug("Helper foreground PIN non disponibile: %s", exc)
+        log.debug("Presentazione del prompt PIN non disponibile: %s", exc)
         return False
 
 
@@ -6924,24 +6744,9 @@ def _windows_pin_prompt_foreground_pump(
 
 
 def _windows_close_owned_pin_prompts(handles: set[int]) -> None:
-    """Chiude soltanto le finestre nate durante l'operazione governata."""
-    if sys.platform != "win32" or not handles:
-        return
-    try:
-        import ctypes
-
-        user32 = ctypes.windll.user32  # type: ignore[attr-defined]
-        wm_close = 0x0010
-        for raw_handle in tuple(handles):
-            try:
-                hwnd = int(raw_handle)
-                if hwnd and user32.IsWindow(hwnd):
-                    user32.PostMessageW(hwnd, wm_close, 0, 0)
-            except Exception:
-                continue
-    except Exception as exc:
-        log.debug("Chiusura finestra PIN governata non disponibile: %s", exc)
-
+    # La chiusura del processo governato lascia al provider la gestione del
+    # proprio dialogo nativo. Non vengono inviati comandi alle finestre.
+    return None
 
 def _windows_create_kill_on_close_job(process: Any) -> Any:
     """Lega il processo a un Job Object che non può lasciare figli orfani."""
@@ -7146,11 +6951,18 @@ def _run_process_with_pin_foreground(
         run_kwargs["stdout"] = subprocess.PIPE
         run_kwargs["stderr"] = subprocess.PIPE
 
+    # Un grant monouso eventualmente già ottenuto viene consumato come aiuto,
+    # ma la richiesta PST non dipende dal browser e non viene mai bloccata.
+    try:
+        _windows_prepare_foreground_for_process_start()
+    except Exception:
+        log.debug("Grant Windows non disponibile; proseguo con il prompt nativo", exc_info=True)
+
+    try:
+        pump_seconds = float(pump_seconds)
+    except (TypeError, ValueError):
+        pump_seconds = float(PST_SOAP_MAX_TIME + 10)
     existing_windows = _windows_visible_top_level_window_handles()
-    # Durante una seconda autenticazione TLS alcuni CSP riutilizzano la stessa
-    # finestra PIN: Windows la può dichiarare visibile pur lasciandola soltanto
-    # nella taskbar. Per le sole richieste PST governate la finestra candidata
-    # deve quindi essere ripresa dal pump, non esclusa dalla fotografia iniziale.
     prompt_excluded_windows = set() if reclaim_existing_pin_prompt else existing_windows
     owned_windows: set[int] = set()
     stop_event = threading.Event()
@@ -7169,6 +6981,7 @@ def _run_process_with_pin_foreground(
         )
         worker.start()
         if callable(progress_callback):
+
             def _pump_progress() -> None:
                 while not stop_event.is_set():
                     try:
@@ -7216,10 +7029,13 @@ def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.C
         timeout_seconds = float(requested_timeout or PST_INTERACTIVE_CURL_MAX_TIME)
     except (TypeError, ValueError):
         timeout_seconds = float(PST_INTERACTIVE_CURL_MAX_TIME)
-    kwargs["timeout"] = min(timeout_seconds, float(PST_INTERACTIVE_CURL_MAX_TIME))
-    # Curl è usato per i flussi PST con il lock interattivo esclusivo: se il
-    # provider riusa il dialogo PIN della vista iniziale, il pump può riprenderlo
-    # anche quando Windows lo lascia dietro alla finestra dell'applicazione.
+    is_batch_config = "-K" in cmd
+    timeout_cap = (
+        float(PST_INTERACTIVE_CURL_BATCH_HARD_MAX_TIME)
+        if is_batch_config
+        else float(PST_INTERACTIVE_CURL_MAX_TIME)
+    )
+    kwargs["timeout"] = min(timeout_seconds, timeout_cap)
     kwargs["reclaim_existing_pin_prompt"] = True
 
     if not _pst_interactive_curl_lock.acquire(blocking=False):
@@ -7236,7 +7052,6 @@ def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.C
         ) from exc
     finally:
         _pst_interactive_curl_lock.release()
-
 
 def _http_status_from_headers(header_text: str) -> Optional[int]:
     status = None
@@ -7598,7 +7413,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
 
         result = _run_curl_with_pin_foreground(
             cmd, capture_output=True,
-            timeout=effective_max_time + 10
+            timeout=effective_max_time + 10,
         )
 
         if result.returncode != 0:
@@ -8539,8 +8354,8 @@ def _pst_preflight_auth_curl(url: str,
         try:
             result = _run_curl_with_pin_foreground(
                 cmd, capture_output=True, text=True,
-                timeout=PST_PREFLIGHT_MAX_TIME + 10, encoding="utf-8", errors="replace"
-            )
+                timeout=PST_PREFLIGHT_MAX_TIME + 10, encoding="utf-8", errors="replace",
+                )
         except subprocess.TimeoutExpired:
             return {
                 "ok": True,
@@ -12698,9 +12513,15 @@ def _pst_run_fascicolo_snapshot_job(job_id: str, payload: dict[str, Any]) -> Non
             status="running",
             phase="Visualizzazione fascicolo PST",
             current="Carico scheda ministeriale, documenti, eventi e comunicazioni",
+            completed=0,
+            total=1,
         )
-        shim = _PstSnapshotJobShim(payload)
-        _Handler._pst_fascicolo_snapshot(shim)  # type: ignore[name-defined]
+        snapshot_payload = dict(payload)
+        snapshot_payload.setdefault("search_only", False)
+        snapshot_payload.setdefault("include_full_snapshot", True)
+        snapshot_payload.setdefault("single_interactive_batch", True)
+        shim = _PstSnapshotJobShim(snapshot_payload)
+        _Handler._pst_ricerca_snapshot(shim)  # type: ignore[name-defined]
         response = shim.response or {"ok": False, "errore": "Risposta vuota dal Local Signer."}
         if shim.status >= 400 or response.get("ok") is False:
             _pst_update_async_job(
@@ -12717,6 +12538,8 @@ def _pst_run_fascicolo_snapshot_job(job_id: str, payload: dict[str, Any]) -> Non
             status="completed",
             phase="Fascicolo visualizzato",
             current="Scheda ministeriale completa ricevuta",
+            completed=1,
+            total=1,
             result=response,
         )
     except Exception as exc:
@@ -12859,6 +12682,149 @@ def _pst_get_async_job(job_id: str) -> dict[str, Any] | None:
     with _pst_async_job_lock:
         job = _pst_async_job_cache.get(job_id)
         return dict(job) if job else None
+
+
+_WINDOWS_FOREGROUND_NONCE_RE = re.compile(r"[A-Za-z0-9_-]{32,64}\Z")
+_WINDOWS_FOREGROUND_GRANT_TTL_SECONDS = 15.0
+_WINDOWS_FOREGROUND_GRANT_MAX_ACTIVE = 32
+_windows_foreground_grant_lock = threading.RLock()
+_windows_foreground_grant_cache: dict[str, dict[str, Any]] = {}
+_windows_foreground_request = threading.local()
+
+# Alias espliciti per il protocollo HTTP del ponte Windows.
+_FOREGROUND_NONCE_RE = _WINDOWS_FOREGROUND_NONCE_RE
+_FOREGROUND_GRANT_TTL_SECONDS = _WINDOWS_FOREGROUND_GRANT_TTL_SECONDS
+_foreground_grant_lock = _windows_foreground_grant_lock
+_foreground_grants = _windows_foreground_grant_cache
+
+
+def _windows_foreground_nonce(value: Any) -> str:
+    nonce = str(value or "").strip()
+    return nonce if _WINDOWS_FOREGROUND_NONCE_RE.fullmatch(nonce) else ""
+
+
+def _prune_windows_foreground_grants(now: float | None = None) -> None:
+    deadline = time.monotonic() if now is None else now
+    expired = [
+        nonce
+        for nonce, item in _windows_foreground_grant_cache.items()
+        if float(item.get("expires_at") or 0.0) <= deadline
+    ]
+    for nonce in expired:
+        _windows_foreground_grant_cache.pop(nonce, None)
+    if len(_windows_foreground_grant_cache) <= _WINDOWS_FOREGROUND_GRANT_MAX_ACTIVE:
+        return
+    oldest = sorted(
+        _windows_foreground_grant_cache.items(),
+        key=lambda row: float(row[1].get("expires_at") or 0.0),
+    )
+    for nonce, _item in oldest[: len(_windows_foreground_grant_cache) - _WINDOWS_FOREGROUND_GRANT_MAX_ACTIVE]:
+        _windows_foreground_grant_cache.pop(nonce, None)
+
+
+def _claim_windows_foreground_grant(value: Any) -> dict[str, Any]:
+    nonce = _windows_foreground_nonce(value)
+    if not nonce:
+        raise ValueError("Nonce di attivazione non valido.")
+    now = time.monotonic()
+    with _windows_foreground_grant_lock:
+        _prune_windows_foreground_grants(now)
+        if nonce in _windows_foreground_grant_cache:
+            raise ValueError("Nonce di attivazione già utilizzata.")
+        claim_token = secrets.token_urlsafe(24)
+        _windows_foreground_grant_cache[nonce] = {
+            "state": "claimed",
+            "claim_token": claim_token,
+            "target_pid": os.getpid(),
+            "expires_at": now + _WINDOWS_FOREGROUND_GRANT_TTL_SECONDS,
+        }
+    return {"ok": True, "state": "claimed", "target_pid": os.getpid(), "claim_token": claim_token}
+
+
+def _complete_windows_foreground_grant(value: Any, claim_token: Any, granted: Any) -> dict[str, Any]:
+    nonce = _windows_foreground_nonce(value)
+    token = str(claim_token or "").strip()
+    if not nonce:
+        raise ValueError("Nonce di attivazione non valido.")
+    now = time.monotonic()
+    with _windows_foreground_grant_lock:
+        _prune_windows_foreground_grants(now)
+        current = _windows_foreground_grant_cache.get(nonce)
+        if not current or current.get("state") != "claimed":
+            raise ValueError("Nonce di attivazione non riconosciuta.")
+        if not token or not secrets.compare_digest(str(current.get("claim_token") or ""), token):
+            raise ValueError("Conferma di attivazione non riconosciuta.")
+        state = "granted" if bool(granted) else "denied"
+        current.update({
+            "state": state,
+            "claim_token": "",
+            "expires_at": now + _WINDOWS_FOREGROUND_GRANT_TTL_SECONDS,
+        })
+        return {"ok": state == "granted", "state": state}
+
+
+def _windows_foreground_grant_status(value: Any) -> dict[str, Any]:
+    nonce = _windows_foreground_nonce(value)
+    if not nonce:
+        return {"ok": False, "state": "invalid", "errore": "Nonce di attivazione non valido."}
+    now = time.monotonic()
+    with _windows_foreground_grant_lock:
+        _prune_windows_foreground_grants(now)
+        current = _windows_foreground_grant_cache.get(nonce)
+        return {"ok": True, "state": str(current.get("state") if current else "pending")}
+
+
+def _consume_windows_foreground_grant(value: Any) -> bool:
+    nonce = _windows_foreground_nonce(value)
+    if not nonce:
+        return False
+    now = time.monotonic()
+    with _windows_foreground_grant_lock:
+        _prune_windows_foreground_grants(now)
+        current = _windows_foreground_grant_cache.get(nonce)
+        if not current or current.get("state") != "granted":
+            return False
+        current.update({
+            "state": "consumed",
+            "expires_at": now + _WINDOWS_FOREGROUND_GRANT_TTL_SECONDS,
+        })
+        return True
+
+
+def _set_windows_foreground_grant_for_request(value: Any) -> None:
+    _windows_foreground_request.nonce = _windows_foreground_nonce(value)
+
+
+def _windows_prepare_foreground_for_process_start() -> bool:
+    nonce = str(getattr(_windows_foreground_request, "nonce", "") or "")
+    _windows_foreground_request.nonce = ""
+    return _consume_windows_foreground_grant(nonce)
+
+
+def _foreground_nonce(value: Any) -> str:
+    return _windows_foreground_nonce(value)
+
+
+def _foreground_claim(value: Any) -> dict[str, Any]:
+    try:
+        return _claim_windows_foreground_grant(value)
+    except ValueError as exc:
+        return {"ok": False, "state": "invalid", "errore": str(exc)}
+
+
+def _foreground_complete(value: Any, claim_token: Any, granted: Any) -> dict[str, Any]:
+    try:
+        return _complete_windows_foreground_grant(value, claim_token, granted)
+    except ValueError as exc:
+        return {"ok": False, "state": "invalid", "errore": str(exc)}
+
+
+def _foreground_status(value: Any) -> dict[str, Any]:
+    return _windows_foreground_grant_status(value)
+
+
+def _foreground_nonce_is_granted(value: Any) -> bool:
+    return _windows_foreground_grant_status(value).get("state") == "granted"
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -13080,9 +13046,18 @@ class _Handler(BaseHTTPRequestHandler):
             "/pec/send",
             "/scanner/acquire",
             "/portal-assistant/session/start",
+            "/foreground/claim",
+            "/foreground/complete",
+            "/foreground/status",
         }:
             log.info("HTTP POST %s", path)
-        if path == "/ai/bootstrap":
+        if path == "/foreground/claim":
+            self._foreground_claim()
+        elif path == "/foreground/complete":
+            self._foreground_complete()
+        elif path == "/foreground/status":
+            self._foreground_status()
+        elif path == "/ai/bootstrap":
             self._ai_bootstrap()
         elif path == "/ai/attachments/parse":
             self._ai_attachments_parse()
@@ -13167,6 +13142,18 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ── Handlers ────────────────────────────────────────────────────────────────
 
+
+    def _foreground_claim(self):
+        payload = self._read_json()
+        self._send_json(_foreground_claim(payload.get("nonce")))
+
+    def _foreground_complete(self):
+        payload = self._read_json()
+        self._send_json(_foreground_complete(payload.get("nonce"), payload.get("claim_token"), payload.get("granted")))
+
+    def _foreground_status(self):
+        payload = self._read_json()
+        self._send_json(_foreground_status(payload.get("nonce")))
 
     def _scanner_acquire(self):
         try:
@@ -13575,6 +13562,15 @@ class _Handler(BaseHTTPRequestHandler):
                 ):
                     cert = cached
                     auto_pick = True
+                if cert is None:
+                    cert = _pick_preferred_windows_cert(
+                        _windows_collega_certificato_cns_pst(),
+                        prefer_issuer=prefer_issuer,
+                        prefer_subject=prefer_subject,
+                        prefer_cf=prefer_cf,
+                        auto=True,
+                    )
+                    auto_pick = cert is not None
                 if cert is None:
                     cert = _pick_preferred_windows_cert(
                         _windows_lista_certificati(),
@@ -14134,6 +14130,14 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         data = self._read_json()
+        foreground_nonce = _foreground_nonce(data.get("foreground_nonce"))
+        if sys.platform == "win32" and not _foreground_nonce_is_granted(foreground_nonce):
+            self._send_json({"ok": False, "errore": "Attivazione Windows non confermata. Premi di nuovo Cerca fascicolo."}, 409)
+            return
+        if foreground_nonce and not _foreground_nonce_is_granted(foreground_nonce):
+            self._send_json({"ok": False, "errore": "Attivazione Windows non confermata. Premi di nuovo Cerca fascicolo."}, 409)
+            return
+        _set_windows_foreground_grant_for_request(foreground_nonce)
         tribunale = data.get("tribunale", "").strip()
         if not tribunale:
             self._send_json({"ok": False, "errore": "Campo 'tribunale' obbligatorio"}, 400)
@@ -14385,6 +14389,14 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         data = self._read_json()
+        foreground_nonce = _foreground_nonce(data.get("foreground_nonce"))
+        if sys.platform == "win32" and not _foreground_nonce_is_granted(foreground_nonce):
+            self._send_json({"ok": False, "errore": "Attivazione Windows non confermata. Premi di nuovo Cerca fascicolo."}, 409)
+            return
+        if foreground_nonce and not _foreground_nonce_is_granted(foreground_nonce):
+            self._send_json({"ok": False, "errore": "Attivazione Windows non confermata. Premi di nuovo Cerca fascicolo."}, 409)
+            return
+        _set_windows_foreground_grant_for_request(foreground_nonce)
         tribunale = str(data.get("tribunale") or data.get("codice_ufficio") or "").strip()
         numero_rg = str(data.get("numero_rg") or "").strip()
         search_only = bool(data.get("search_only"))

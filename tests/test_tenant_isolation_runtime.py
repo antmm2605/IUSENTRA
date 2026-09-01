@@ -87,6 +87,32 @@ def test_multi_tenant_studio_api_key_is_blocked_for_other_tenant(tmp_path: Path)
     assert str(tmp_path) not in raw
 
 
+
+@pytest.mark.parametrize(("path", "allowed"), [
+    ("/profilo", True),
+    ("/api/v1/ui/profilo", True),
+    ("/fascicoli", False),
+    ("/api/v1/clienti", False),
+])
+def test_superadmin_senza_tenant_ammette_solo_profilo_personale(tmp_path: Path, path: str, allowed: bool):
+    app = _app(tmp_path, multi_tenant=True)
+
+    with app.test_request_context(path):
+        g.multi_tenant_enabled = True
+        g.utente_corrente = SimpleNamespace(is_superadmin=True, tenant_slug="")
+        g.tenant = None
+        g.data_paths = {}
+
+        if allowed:
+            ensure_private_tenant_context()
+        else:
+            with pytest.raises(TenantIsolationError) as excinfo:
+                ensure_private_tenant_context()
+
+    if not allowed:
+        assert excinfo.value.status_code == 403
+        assert excinfo.value.code == "superadmin_tenant_context_required"
+
 def test_missing_tenant_context_for_non_superadmin_is_blocked(tmp_path: Path):
     app = _app(tmp_path, multi_tenant=True)
 

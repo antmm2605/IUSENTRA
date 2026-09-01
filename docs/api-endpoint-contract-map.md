@@ -8,15 +8,20 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 327.
+- Endpoint React API contrattualizzati: 332.
 - Endpoint P0/P1 contrattualizzati: 280.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 312.
+- Endpoint con provider verification auth-error: 317.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
 |------|----------|--------|--------|----------|---------|---------------|------|------|--------|-------|
+| API React operativa | `/api/v1/clienti/{id_cliente}/condivisioni` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/clienti/{id_cliente}/condivisioni` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/clienti/{id_cliente}/condivisioni/{id_utente}` | `DELETE` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/condivisioni/pulizia-scaduti` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/condivisioni/statistiche` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Amministrazione database | `/api/v1/ui/admin/database` | `GET` | Amministrazione database | P0 | verified | success+auth-error | `utenti.leggi` | `n/a` | current_tenant | verified |
 | Agenda | `/api/v1/ui/agenda` | `GET` | Agenda (/app/agenda) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.agenda.calendar` | current_tenant | verified |
 | Agenda | `/api/v1/ui/agenda/importa` | `GET` | Agenda | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

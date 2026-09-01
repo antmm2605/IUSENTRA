@@ -21,6 +21,7 @@ API_BLUEPRINTS = (
         "api_v1_client_portal",
         "/api/v1/ui/client-portal",
     ),
+    (REPO_ROOT / "web" / "bootstrap" / "condivisioni_routes.py", "app", ""),
 )
 FRONTEND_PAGES = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
 OPENAPI_OUTPUT = REPO_ROOT / "docs" / "openapi.yaml"
@@ -207,7 +208,7 @@ def endpoints() -> list[Endpoint]:
     items: list[Endpoint] = []
     for source, blueprint, api_prefix in API_BLUEPRINTS:
         tree = ast.parse(source.read_text(encoding="utf-8"))
-        for node in tree.body:
+        for node in ast.walk(tree):
             if not isinstance(node, ast.FunctionDef):
                 continue
             auth = any("_richiedi_auth" in _decorator_text(decorator) for decorator in node.decorator_list)
@@ -216,6 +217,8 @@ def endpoints() -> list[Endpoint]:
                 if route is None:
                     continue
                 methods, path = route
+                if not f"{api_prefix}{path}".startswith("/api/"):
+                    continue
                 for method in methods.split(","):
                     items.append(
                         Endpoint(

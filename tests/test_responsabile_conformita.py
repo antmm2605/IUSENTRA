@@ -138,45 +138,22 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fasc.id}?_legacy=1")
+        response = client.get(f"/fascicoli/{fasc.id}")
+        detail = client.get(f"/api/v1/ui/fascicoli/{fasc.id}?include=all")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Profilo fascicolo" in html
-    assert "Documenti fascicolo" in html
-    assert "Attività processuali" in html
-    assert "Udienze e scadenze" in html
-    assert "Comunicazioni di cancelleria" in html
-    assert "Istanze" in html
-    assert "Responsabile di conformita" in html
-    assert "Deposito non pronto" in html
-    assert "Controlli rapidi" in html
-    assert "Prossimo passo consigliato" in html
-    assert "Checklist operativa del deposito" in html
-    assert "Workflow deposito" in html
-    assert 'id="complianceChecklistBody"' in html
-    assert 'id="complianceWorkflowBody"' in html
-    assert 'data-compliance-accordion="#complianceChecklistBody"' in html
-    assert 'data-compliance-accordion="#complianceWorkflowBody"' in html
-    assert 'href="#sezione-cambia-stato"' in html
-    assert 'href="#sezione-azioni-fascicolo"' in html
-    assert 'href="#sezione-avanzamento-pratica"' in html
-    assert 'href="#sezione-cliente"' in html
-    assert 'href="#sezione-soggetti-procedimento"' in html
-    assert "Espandi aree" in html
-    assert "Riduci aree" in html
-    assert html.count("Torna ai controlli rapidi") >= 6
-    assert "Controlli processuali" in html
-    assert "Controlli documentali" in html
-    assert "Controlli tecnici PST" in html
-    assert "Controlli redazionali" in html
-    assert "Procura alle liti non rilevata" in html
-    assert "Procura / nomina difensore non rilevato" not in html
-    assert "Procura non inclusa nella selezione" not in html
-    assert "Manca la data della prima comparizione" in html
-    assert "Imposta prima udienza" in html
-    assert "Carica procura" in html
-    assert "Apri redattore guidato" in html
+    payload = detail.get_json()
+    assert 'class="react-shell-document"' in html
+    assert 'id="iusentra-react-bootstrap"' in html
+    assert detail.status_code == 200
+    assert payload["fascicolo"]["id"] == fasc.id
+    assert payload["fascicolo"]["complianceControlsEnabled"] is True
+    quality = {item["label"]: item for item in payload["quality"]}
+    assert quality["Controlli conformita"]["value"] == "attivi"
+    assert payload["actions"]["complianceOn"].endswith("?enabled=1")
+    assert payload["actions"]["complianceOff"].endswith("?enabled=0")
+    assert isinstance(payload["operationalPresidio"], dict)
 
 
 def test_dettaglio_fascicolo_consente_disattivare_controlli_conformita(tmp_path):
@@ -235,23 +212,27 @@ def test_dettaglio_fascicolo_consente_disattivare_controlli_conformita(tmp_path)
             f"/fascicoli/{fasc.id}/conformita/controlli",
             data={
                 "enabled": "0",
-                "next": f"/fascicoli/{fasc.id}?_legacy=1#sezione-responsabile-conformita",
+                "next": f"/fascicoli/{fasc.id}#presidio-fascicolo",
             },
             follow_redirects=True,
         )
+        detail = client.get(f"/api/v1/ui/fascicoli/{fasc.id}?include=all")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
+    payload = detail.get_json()
     fasc_aggiornato = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
         documents_dir=cfg["FASCICOLI_DOCS"],
         archive_dir=cfg["FASCICOLI_ARCH"],
     ).get(fasc.id)
     assert fasc_aggiornato.compliance_controls_enabled is False
-    assert "Controlli automatici disattivati" in html
-    assert "Verifica manuale sospesa" in html
-    assert "Controlli sospesi" in html
-    assert "Controlli attivi" in html
+    assert 'class="react-shell-document"' in html
+    assert 'id="iusentra-react-bootstrap"' in html
+    assert detail.status_code == 200
+    assert payload["fascicolo"]["complianceControlsEnabled"] is False
+    quality = {item["label"]: item for item in payload["quality"]}
+    assert quality["Controlli conformita"]["value"] == "disattivati"
 
 
 def test_dettaglio_fascicolo_separa_istanze_e_scadenze(tmp_path):

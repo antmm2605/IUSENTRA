@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.config_studio import GestioneConfigStudio
+from pct.template_atti_legal_sources import LAST_VERIFIED_AT
 from web.app import create_app
 
 
@@ -111,7 +112,7 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
     assert "Civile" in {option["value"] for option in matter_field["options"]}
     assert "CIVILE" not in {option["value"] for option in matter_field["options"]}
     assert any(
-        isinstance(ref, dict) and ref.get("official_url") and ref.get("last_verified_at") == "2026-06-04"
+        isinstance(ref, dict) and ref.get("official_url") and ref.get("last_verified_at") == LAST_VERIFIED_AT
         for ref in compiler_payload["compliance"]["normativeReferences"]
     )
     assert compiler_payload["fontRegistry"]["policy"]["external_font_downloads"] is False

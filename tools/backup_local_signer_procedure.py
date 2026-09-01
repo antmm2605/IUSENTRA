@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import hashlib
 import json
 import shutil
@@ -19,6 +20,17 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 ROME = ZoneInfo("Europe/Rome")
 INSTALLED_SIGNER_ROOT = Path(os.environ.get("APPDATA", "")) / "IUSENTRA" / "LocalSigner"
+
+
+def local_signer_version() -> str:
+    source = (ROOT / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    match = re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
+    if not match:
+        raise RuntimeError("VERSION non trovata in tools/local_signer.py")
+    return match.group(1)
+
+
+LOCAL_SIGNER_VERSION = local_signer_version()
 
 
 @dataclass(frozen=True)
@@ -66,11 +78,11 @@ REQUIRED_PATHS = (
     RequiredPath("tools/requirements_local_signer.txt"),
     RequiredPath("tools/avvia_local_signer.bat"),
     RequiredPath("tools/dist/SetupLocalSigner.exe"),
-    RequiredPath("tools/dist/SetupLocalSigner-1.6.116.exe"),
-    RequiredPath("tools/dist/InstallaLocalSigner-1.6.116.ps1"),
-    RequiredPath("tools/dist/InstallaLocalSigner-1.6.116.command"),
-    RequiredPath("tools/dist/InstallaLocalSigner-1.6.116.run"),
-    RequiredPath("tools/dist/LocalSigner-1.6.116.txt"),
+    RequiredPath(f"tools/dist/SetupLocalSigner-{LOCAL_SIGNER_VERSION}.exe"),
+    RequiredPath(f"tools/dist/InstallaLocalSigner-{LOCAL_SIGNER_VERSION}.ps1"),
+    RequiredPath(f"tools/dist/InstallaLocalSigner-{LOCAL_SIGNER_VERSION}.command"),
+    RequiredPath(f"tools/dist/InstallaLocalSigner-{LOCAL_SIGNER_VERSION}.run"),
+    RequiredPath(f"tools/dist/LocalSigner-{LOCAL_SIGNER_VERSION}.txt"),
     RequiredPath("Dockerfile"),
     RequiredPath("deploy/hetzner/docker-compose.hetzner.yml"),
     RequiredPath("deploy/hetzner/deploy.sh"),

@@ -1,49 +1,24 @@
 """Repository SQL tenant-aware per il presidio procedurale del fascicolo.
-
 SQLite o PostgreSQL sono la fonte di verità. Il JSON storico resta soltanto
 un mirror rigenerabile e una sorgente d'importazione una tantum: non viene
 mai letto per decidere lo stato operativo quando l'archivio SQL è disponibile.
 """
 
 from __future__ import annotations
-
 from dataclasses import asdict
 import json
 from pathlib import Path
 from typing import Any
-
 from .models import (
-    AuditEvent,
-    ChecklistItem,
-    DepositReceipt,
-    DepositSession,
-    DocumentSlot,
-    EvidencePack,
-    PracticeProfile,
-    PracticeState,
-    SlotStatus,
-    TimelineEvent,
-    ValidationResult,
-    dataclass_from_dict,
-    new_id,
-    utc_now,
+    AuditEvent, ChecklistItem, DepositReceipt, DepositSession, DocumentSlot, EvidencePack, PracticeProfile,
+    PracticeState, SlotStatus, TimelineEvent, ValidationResult, dataclass_from_dict, new_id, utc_now,
 )
 
-
 STORE_KEYS = [
-    "practice_profiles",
-    "practice_requirements",
-    "practice_document_slots",
-    "practice_checklist_items",
-    "practice_validation_results",
-    "practice_state_history",
-    "deposit_sessions",
-    "deposit_receipts",
-    "deposit_timeline_events",
-    "evidence_packs",
-    "audit_events",
+    "practice_profiles", "practice_requirements", "practice_document_slots", "practice_checklist_items",
+    "practice_validation_results", "practice_state_history", "deposit_sessions", "deposit_receipts",
+    "deposit_timeline_events", "evidence_packs", "audit_events",
 ]
-
 
 class PracticeEngineRepository:
     def __init__(self, db_path: str, *, studio_db: Any | None = None):
@@ -59,34 +34,27 @@ class PracticeEngineRepository:
         self._ensure_sql_schema()
         self._bootstrap_sql_from_legacy_mirror()
         self._data = self._load()
-
     @classmethod
     def from_fascicoli_db(cls, fascicoli_db_path: str, *, studio_db: Any | None = None) -> "PracticeEngineRepository":
         base = Path(fascicoli_db_path).parent
         return cls(str(base / "practice_engine" / "practice_engine.json"), studio_db=studio_db)
-
     @property
     def source_of_truth(self) -> str:
         return str(getattr(self.studio_db, "backend_kind", "sqlite") or "sqlite")
-
     def _default_studio_db(self) -> Any:
         """Crea il backend SQL solo per i chiamanti legacy senza injection.
-
         I runtime Flask passano sempre il backend del tenant. Il percorso di
         compatibilità è riservato a tool e test e conserva la stessa root
         ``studio.db`` del fascicolo, non un database JSON parallelo.
         """
         from pct.storage import StudioDB
-
         if self.root_dir.name == "practice_engine" and self.root_dir.parent.name == "fascicoli":
             root = self.root_dir.parent.parent
         else:
             root = self.root_dir.parent
         return StudioDB.get(str(root / "studio.db"))
-
     def _empty(self) -> dict[str, Any]:
         return {key: [] for key in STORE_KEYS}
-
     def _legacy_data(self) -> dict[str, Any]:
         if not self.db_path.exists():
             return self._empty()
@@ -101,7 +69,6 @@ class PracticeEngineRepository:
             rows = raw.get(key, [])
             data[key] = rows if isinstance(rows, list) else []
         return data
-
     @staticmethod
     def _json_value(raw: Any, default: Any) -> Any:
         if isinstance(raw, (dict, list)):
@@ -113,7 +80,6 @@ class PracticeEngineRepository:
         except (TypeError, ValueError):
             return default
         return parsed if isinstance(parsed, type(default)) else default
-
     @staticmethod
     def _row_value(row: Any, key: str, default: Any = "") -> Any:
         try:
@@ -121,7 +87,6 @@ class PracticeEngineRepository:
         except (KeyError, IndexError, TypeError):
             return default
         return default if value is None else value
-
     def _ensure_sql_schema(self) -> None:
         sql_dir = Path(__file__).resolve().parents[1] / "sql"
         is_postgres = self.source_of_truth == "postgresql"
@@ -134,7 +99,6 @@ class PracticeEngineRepository:
             return
         self.studio_db.conn.executescript(script)
         self.studio_db.conn.commit()
-
     def _sql_has_records(self) -> bool:
         tables = (
             "practice_profiles", "practice_requirements", "practice_document_slots",
@@ -147,11 +111,9 @@ class PracticeEngineRepository:
             if row:
                 return True
         return False
-
     @staticmethod
     def _legacy_row_identity(collection: str, row: dict[str, Any]) -> tuple[str, ...]:
         """Identità stabile per l'importazione una tantum del mirror storico.
-
         I record SQL restano prioritari. L'identità per fascicolo evita che un
         vecchio ``id`` condiviso fra mirror diversi possa sovrascrivere un
         presidio già consolidato nello studio.
@@ -175,10 +137,8 @@ class PracticeEngineRepository:
                 str(row.get("created_at") or ""),
             )
         return (collection, str(row.get("id") or ""))
-
     def _bootstrap_sql_from_legacy_mirror(self) -> None:
         """Importa dal mirror solo i record ancora assenti dalla fonte SQL.
-
         Il tenant può avere già altri fascicoli in SQL mentre un vecchio mirror
         contiene il primo presidio di una pratica diversa. Saltare tutto il
         mirror in quel caso perderebbe dati; sostituire SQL con JSON sarebbe
@@ -209,11 +169,9 @@ class PracticeEngineRepository:
         if changed:
             self._data = self._normalize_legacy_profile_ids(merged)
             self._persist_all()
-
     @staticmethod
     def _normalize_legacy_profile_ids(data: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
         """Rende univoci gli identificativi legacy riusati fra fascicoli.
-
         I vecchi mirror usavano in alcuni casi il *codice* del profilo anche
         come chiave primaria. Lo stesso codice puo' essere applicato a piu'
         fascicoli e non e' quindi una chiave SQL valida. La normalizzazione
@@ -226,7 +184,6 @@ class PracticeEngineRepository:
             profile_id = str(row.get("id") or "").strip()
             if profile_id:
                 occurrences[profile_id] = occurrences.get(profile_id, 0) + 1
-
         replacements: dict[tuple[str, str], str] = {}
         for row in profiles:
             profile_id = str(row.get("id") or "").strip()
@@ -236,10 +193,8 @@ class PracticeEngineRepository:
             canonical_id = f"profile::{fascicolo_id}::{profile_id}"
             row["id"] = canonical_id
             replacements[(fascicolo_id, profile_id)] = canonical_id
-
         if not replacements:
             return data
-
         for collection in (
             "practice_requirements",
             "practice_document_slots",
@@ -325,33 +280,24 @@ class PracticeEngineRepository:
         data["evidence_packs"] = [self._evidence_row(row) for row in evidence_rows]
         data["audit_events"] = [self._audit_row(row) for row in audit_rows]
         return data
-
     def _session_row(self, row: Any) -> dict[str, Any]:
         return {"id": self._row_value(row, "id"), "fascicolo_id": self._row_value(row, "fascicolo_id"), "profile_id": self._row_value(row, "profile_id"), "channel": self._row_value(row, "channel"), "status": self._row_value(row, "status"), "transport_mode": self._row_value(row, "transport_mode"), "simulated": bool(self._row_value(row, "simulated", False)), "real_transport": bool(self._row_value(row, "real_transport", False)), "predeposit_status": self._row_value(row, "predeposit_status"), "messages": self._json_value(self._row_value(row, "messages_json", "[]"), []), "created_at": self._row_value(row, "created_at"), "updated_at": self._row_value(row, "updated_at"), "sent_at": self._row_value(row, "sent_at"), "acquired_at": self._row_value(row, "acquired_at"), "final_receipt_id": self._row_value(row, "final_receipt_id")}
-
     def _receipt_row(self, row: Any) -> dict[str, Any]:
         return {"id": self._row_value(row, "id"), "deposit_session_id": self._row_value(row, "deposit_session_id"), "fascicolo_id": self._row_value(row, "fascicolo_id"), "receipt_type": self._row_value(row, "receipt_type"), "status": self._row_value(row, "status"), "positive": bool(self._row_value(row, "positive", False)), "source": self._row_value(row, "source"), "original_name": self._row_value(row, "original_name"), "original_hash_sha256": self._row_value(row, "original_hash_sha256"), "original_path": self._row_value(row, "original_path"), "payload": self._json_value(self._row_value(row, "payload_json", "{}"), {}), "imported_at": self._row_value(row, "imported_at"), "message": self._row_value(row, "message")}
-
     def _timeline_row(self, row: Any) -> dict[str, Any]:
         return {"id": self._row_value(row, "id"), "deposit_session_id": self._row_value(row, "deposit_session_id"), "fascicolo_id": self._row_value(row, "fascicolo_id"), "event_type": self._row_value(row, "event_type"), "status": self._row_value(row, "status"), "message": self._row_value(row, "message"), "created_at": self._row_value(row, "created_at"), "evidence_ref": self._row_value(row, "evidence_ref")}
-
     def _evidence_row(self, row: Any) -> dict[str, Any]:
         return {"id": self._row_value(row, "id"), "fascicolo_id": self._row_value(row, "fascicolo_id"), "deposit_session_id": self._row_value(row, "deposit_session_id"), "path": self._row_value(row, "path"), "hash_sha256": self._row_value(row, "hash_sha256"), "created_at": self._row_value(row, "created_at"), "available": bool(self._row_value(row, "available", True))}
-
     def _audit_row(self, row: Any) -> dict[str, Any]:
         return {"id": self._row_value(row, "id"), "fascicolo_id": self._row_value(row, "fascicolo_id"), "event_type": self._row_value(row, "event_type"), "actor": self._row_value(row, "actor"), "message": self._row_value(row, "message"), "reason": self._row_value(row, "reason"), "payload": self._json_value(self._row_value(row, "payload_json", "{}"), {}), "created_at": self._row_value(row, "created_at")}
-
     def _json_dump(self, value: Any) -> str:
         return json.dumps(value if value is not None else {}, ensure_ascii=False, separators=(",", ":"))
-
     def _commit(self) -> None:
         raw = getattr(self.studio_db, "raw_conn", None)
         (raw or self.studio_db.conn).commit()
-
     def _rollback(self) -> None:
         raw = getattr(self.studio_db, "raw_conn", None)
         (raw or self.studio_db.conn).rollback()
-
     def _persist_all(self) -> None:
         conn = self.studio_db.conn
         tables = ("practice_profiles", "practice_requirements", "practice_document_slots", "practice_checklist_items", "practice_validation_results", "practice_state_history", "deposit_sessions", "deposit_receipts", "deposit_timeline_events", "evidence_packs", "practice_audit_events")
@@ -364,7 +310,6 @@ class PracticeEngineRepository:
         except Exception:
             self._rollback()
             raise
-
     def _insert_all(self, conn: Any) -> None:
         for row in self._data["practice_profiles"]:
             profile_id = str(row.get("id") or new_id("profile"))
@@ -389,7 +334,6 @@ class PracticeEngineRepository:
             conn.execute("INSERT INTO evidence_packs (id,fascicolo_id,deposit_session_id,path,hash_sha256,created_at,available) VALUES (?,?,?,?,?,?,?)", (row.get("id") or new_id("evidence"), row.get("fascicolo_id", ""), row.get("deposit_session_id", ""), row.get("path", ""), row.get("hash_sha256", ""), row.get("created_at", utc_now()), bool(row.get("available", True))))
         for row in self._data["audit_events"]:
             conn.execute("INSERT INTO practice_audit_events (id,fascicolo_id,event_type,actor,message,reason,payload_json,created_at) VALUES (?,?,?,?,?,?,?,?)", (row.get("id") or new_id("audit"), row.get("fascicolo_id", ""), row.get("event_type", ""), row.get("actor", ""), row.get("message", ""), row.get("reason", ""), self._json_dump(row.get("payload", {})), row.get("created_at", utc_now())))
-
     def _write_legacy_mirror(self) -> None:
         try:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -399,13 +343,11 @@ class PracticeEngineRepository:
             self.last_mirror_error = ""
         except OSError as exc:
             self.last_mirror_error = str(exc)
-
     def _save(self) -> None:
         if self._suspend_persist:
             return
         self._persist_all()
         self._write_legacy_mirror()
-
     def reload(self) -> None:
         self._data = self._load()
 
@@ -448,7 +390,6 @@ class PracticeEngineRepository:
             self._suspend_persist = False
         self._save()
         return snapshot
-
     def get_profile_snapshot(self, fascicolo_id: str) -> dict[str, Any] | None:
         for row in reversed(self._data["practice_profiles"]):
             if row.get("fascicolo_id") == fascicolo_id:
@@ -531,7 +472,6 @@ class PracticeEngineRepository:
         self._data["practice_checklist_items"] = rows
         self._save()
         return self.list_checklist(fascicolo_id)
-
     def list_slots(self, fascicolo_id: str) -> list[DocumentSlot]:
         rows = [
             dataclass_from_dict(DocumentSlot, row)
@@ -539,14 +479,12 @@ class PracticeEngineRepository:
             if row.get("fascicolo_id") == fascicolo_id
         ]
         return sorted(rows, key=lambda item: (item.sort_order, item.label))
-
     def get_slot(self, fascicolo_id: str, slot_key: str) -> DocumentSlot | None:
         key = str(slot_key or "").strip().upper()
         for slot in self.list_slots(fascicolo_id):
             if slot.slot_key.upper() == key:
                 return slot
         return None
-
     def upsert_slot(self, slot: DocumentSlot) -> DocumentSlot:
         rows = [
             row
@@ -557,7 +495,6 @@ class PracticeEngineRepository:
         self._data["practice_document_slots"] = rows
         self._save()
         return slot
-
     def link_slot(self, fascicolo_id: str, slot_key: str, document_id: str, *, actor: str = "") -> DocumentSlot:
         slot = self.get_slot(fascicolo_id, slot_key)
         if not slot:
@@ -569,7 +506,6 @@ class PracticeEngineRepository:
         self.upsert_slot(slot)
         self.audit(fascicolo_id, "DOCUMENT_SLOT_LINKED", actor=actor, message=f"Slot {slot.slot_key} collegato al documento {document_id}.")
         return slot
-
     def list_checklist(self, fascicolo_id: str) -> list[ChecklistItem]:
         rows = [
             dataclass_from_dict(ChecklistItem, row)
@@ -598,7 +534,6 @@ class PracticeEngineRepository:
         self._data["practice_validation_results"] = rows
         self._save()
         return results
-
     def list_validation_results(self, fascicolo_id: str, *, scope: str = "", slot_key: str = "") -> list[ValidationResult]:
         rows: list[ValidationResult] = []
         for row in self._data["practice_validation_results"]:
@@ -610,7 +545,6 @@ class PracticeEngineRepository:
                 continue
             rows.append(dataclass_from_dict(ValidationResult, row))
         return rows
-
     def record_state(self, fascicolo_id: str, state: str, *, actor: str = "", reason: str = "", payload: dict[str, Any] | None = None) -> None:
         self._data["practice_state_history"].append(
             {
@@ -624,13 +558,11 @@ class PracticeEngineRepository:
             }
         )
         self._save()
-
     def latest_state(self, fascicolo_id: str) -> str:
         for row in reversed(self._data["practice_state_history"]):
             if row.get("fascicolo_id") == fascicolo_id:
                 return str(row.get("state") or "")
         return PracticeState.PRE_FASCICOLO.value
-
     def create_deposit_session(self, fascicolo_id: str, profile_id: str, channel: str, *, status: str, transport_mode: str = "non_configurato", messages: list[str] | None = None) -> DepositSession:
         session = DepositSession(
             id=new_id("dep"),
@@ -645,13 +577,11 @@ class PracticeEngineRepository:
         self.add_timeline_event(session.id, fascicolo_id, "DEPOSIT_SESSION_CREATED", status, "Sessione deposito creata.")
         self._save()
         return session
-
     def get_deposit_session(self, deposito_id: str) -> DepositSession | None:
         for row in self._data["deposit_sessions"]:
             if row.get("id") == deposito_id:
                 return dataclass_from_dict(DepositSession, row)
         return None
-
     def update_deposit_session(self, session: DepositSession) -> DepositSession:
         session.updated_at = utc_now()
         rows = [row for row in self._data["deposit_sessions"] if row.get("id") != session.id]
@@ -659,7 +589,6 @@ class PracticeEngineRepository:
         self._data["deposit_sessions"] = rows
         self._save()
         return session
-
     def list_deposit_sessions(self, fascicolo_id: str) -> list[DepositSession]:
         rows = [
             dataclass_from_dict(DepositSession, row)
@@ -667,7 +596,6 @@ class PracticeEngineRepository:
             if row.get("fascicolo_id") == fascicolo_id
         ]
         return sorted(rows, key=lambda item: item.created_at, reverse=True)
-
     def add_receipt(self, receipt: DepositReceipt) -> DepositReceipt:
         self._data["deposit_receipts"].append(asdict(receipt))
         self.add_timeline_event(
@@ -680,20 +608,17 @@ class PracticeEngineRepository:
         )
         self._save()
         return receipt
-
     def list_receipts(self, deposito_id: str) -> list[DepositReceipt]:
         return [
             dataclass_from_dict(DepositReceipt, row)
             for row in self._data["deposit_receipts"]
             if row.get("deposit_session_id") == deposito_id
         ]
-
     def add_timeline_event(self, deposito_id: str, fascicolo_id: str, event_type: str, status: str, message: str, *, evidence_ref: str = "") -> TimelineEvent:
         event = TimelineEvent(new_id("evt"), deposito_id, fascicolo_id, event_type, status, message, evidence_ref=evidence_ref)
         self._data["deposit_timeline_events"].append(asdict(event))
         self._save()
         return event
-
     def list_timeline(self, deposito_id: str) -> list[TimelineEvent]:
         rows = [
             dataclass_from_dict(TimelineEvent, row)
@@ -701,26 +626,22 @@ class PracticeEngineRepository:
             if row.get("deposit_session_id") == deposito_id
         ]
         return sorted(rows, key=lambda item: item.created_at)
-
     def save_evidence_pack(self, pack: EvidencePack) -> EvidencePack:
         rows = [row for row in self._data["evidence_packs"] if row.get("id") != pack.id]
         rows.append(asdict(pack))
         self._data["evidence_packs"] = rows
         self._save()
         return pack
-
     def get_evidence_pack(self, deposito_id: str) -> EvidencePack | None:
         for row in reversed(self._data["evidence_packs"]):
             if row.get("deposit_session_id") == deposito_id:
                 return dataclass_from_dict(EvidencePack, row)
         return None
-
     def audit(self, fascicolo_id: str, event_type: str, *, actor: str = "", message: str = "", reason: str = "", payload: dict[str, Any] | None = None) -> AuditEvent:
         event = AuditEvent(new_id("audit"), fascicolo_id, event_type, actor=actor, message=message, reason=reason, payload=payload or {})
         self._data["audit_events"].append(asdict(event))
         self._save()
         return event
-
     def list_audit(self, fascicolo_id: str) -> list[AuditEvent]:
         return [
             dataclass_from_dict(AuditEvent, row)

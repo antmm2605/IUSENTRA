@@ -379,15 +379,17 @@ class LexRouter:
         # P2b: lookup comunicazioni; non va trattato come redazione.
         if self._has_any(text, self._COMMUNICATION_LOOKUP_HINTS):
             return "cabina"
+        # Il calcolo espresso di un termine prevale sul nome dell'atto citato
+        # (es. opposizione a decreto ingiuntivo).
+        if self._has_any(text, self._TERMINI_HINTS):
+            return "termini_processuali"
         # P3a: atti dal catalogo prima della redazione libera.
         if self._looks_like_template_act(text, getattr(request, "metadata", {}) or {}):
             return "atto_da_template"
         # P3: redazione
         if self._has_any(text, self._LETTERA_HINTS):
             return "drafting_legal_letter"
-        # P4: termini
-        if self._has_any(text, self._TERMINI_HINTS):
-            return "termini_processuali"
+
         # Domande sulla base normativa di un canale telematico restano ricerca normativa,
         # non checklist operativa di deposito.
         if self._has_any(text, self._NORMATIVA_HINTS) and self._looks_like_telematico(text):
@@ -456,6 +458,10 @@ class LexRouter:
             return True
         if str(metadata.get("model_code") or active.get("model_code") or active.get("modelCode") or "").strip():
             return True
+        if self._has_any(text, self._LETTERA_HINTS) and not any(
+            token in text for token in ("template", "catalogo", "compilatore", "modello", "editor")
+        ):
+            return False
         if not self._has_any(text, self._TEMPLATE_ACT_HINTS):
             return False
         if "lettera generica" in text and not any(token in text for token in ("template", "catalogo", "diffida")):

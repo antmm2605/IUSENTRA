@@ -315,66 +315,97 @@ def test_cartelle_condivise_route(client_web):
 
 
 def test_gestione_collaboratori_cliente_inesistente(client_web):
-    c, gu, cfg = client_web
-    r = c.get("/clienti/id_inesistente/collaboratori", follow_redirects=True)
-    assert r.status_code == 200
-    assert "non trovato" in r.data.decode().lower()
+    c, _gu, _cfg = client_web
+    page = c.get("/clienti/id_inesistente/collaboratori")
+    api = c.get("/api/v1/clienti/id_inesistente/condivisioni")
+
+    assert page.status_code == 200
+    assert 'class="react-shell-document"' in page.get_data(as_text=True)
+    assert 'id="root"' in page.get_data(as_text=True)
+    assert api.status_code == 404
+    assert api.get_json()["errore"] == "Cliente non trovato."
 
 
 def test_gestione_collaboratori_cliente_esistente(client_web, tmp_path):
-    c, gu, cfg = client_web
-    # Crea un cliente nel db
+    c, _gu, cfg = client_web
     from pct.clienti import GestioneClienti, TipoCliente
-    gc = GestioneClienti(db_path=cfg["CLIENTI_DB"])
-    cliente = gc.nuovo(
-        tipo=TipoCliente.PERSONA_FISICA,
-        nome="Test", cognome="Cliente",
-    )
-    r = c.get(f"/clienti/{cliente.id}/collaboratori")
-    assert r.status_code == 200
-    assert "Collaboratori" in r.data.decode()
+
+    with c.application.app_context():
+        cliente = c.application.extensions["core_runtime"]["get_clienti"]().nuovo(
+            tipo=TipoCliente.PERSONA_FISICA,
+            nome="Test", cognome="Cliente",
+        )
+
+    page = c.get(f"/clienti/{cliente.id}/collaboratori")
+    api = c.get(f"/api/v1/clienti/{cliente.id}/condivisioni")
+
+    assert page.status_code == 200
+    assert 'class="react-shell-document"' in page.get_data(as_text=True)
+    assert api.status_code == 200
+    payload = api.get_json()
+    assert payload["client"]["id"] == cliente.id
+    assert payload["client"]["name"] == "Cliente Test"
+    assert payload["permissions"]["canManage"] is True
+    assert payload["contracts"]["mock_fallback"] is False
+    assert any(item["username"] == "collab1" for item in payload["availableUsers"])
 
 
-def test_aggiungi_collaboratore_via_form(client_web, tmp_path):
-    c, gu, cfg = client_web
-    from pct.clienti import GestioneClienti, TipoCliente
-    gc = GestioneClienti(db_path=cfg["CLIENTI_DB"])
-    cliente = gc.nuovo(tipo=TipoCliente.PERSONA_FISICA, nome="Test", cognome="CLI")
-
-    # Ottieni l'id del collaboratore creato nella fixture
-    collab = gu.get_by_username("collab1")
-
-    r = c.post(
-        f"/clienti/{cliente.id}/collaboratori",
-        data={"azione": "condividi", "id_utente": collab.id, "ruolo": "LETTURA"},
-        follow_redirects=True,
-    )
-    assert r.status_code == 200
-    # Verifica la condivisione è stata salvata
-    from pct.condivisione import GestioneCondivisioni
-    gcd = GestioneCondivisioni(cfg["CONDIVISIONI_DB"])
-    assert gcd.ha_accesso(collab.id, cliente.id, RuoloCondivisione.LETTURA)
-
-
-def test_revoca_collaboratore_via_form(client_web, tmp_path):
+def test_aggiungi_collaboratore_via_api_react(client_web, tmp_path):
     c, gu, cfg = client_web
     from pct.clienti import GestioneClienti, TipoCliente
     from pct.condivisione import GestioneCondivisioni
-    gc = GestioneClienti(db_path=cfg["CLIENTI_DB"])
-    cliente = gc.nuovo(tipo=TipoCliente.PERSONA_FISICA, nome="Test", cognome="CLI2")
+
+    with c.application.app_context():
+        cliente = c.application.extensions["core_runtime"]["get_clienti"]().nuovo(
+            tipo=TipoCliente.PERSONA_FISICA,
+            nome="Test",
+            cognome="CLI",
+        )
     collab = gu.get_by_username("collab1")
 
-    # Prima aggiungi
-    gcd = GestioneCondivisioni(cfg["CONDIVISIONI_DB"])
-    gcd.condividi(cliente.id, collab.id, "collab1", "Collab 1",
-                  RuoloCondivisione.LETTURA, "avvocato")
-
-    # Poi revoca via form
-    r = c.post(
-        f"/clienti/{cliente.id}/collaboratori",
-        data={"azione": "revoca", "id_utente": collab.id},
-        follow_redirects=True,
+    response = c.post(
+        f"/api/v1/clienti/{cliente.id}/condivisioni",
+        json={
+            "id_utente": collab.id,
+            "ruolo": "LETTURA",
+            "data_scadenza": "",
+            "note": "Supporto istruttoria",
+            "tags": ["istruttoria"],
+        },
     )
-    assert r.status_code == 200
-    gcd2 = GestioneCondivisioni(cfg["CONDIVISIONI_DB"])
-    assert not gcd2.ha_accesso(collab.id, cliente.id)
+
+    assert response.status_code == 201
+    assert response.get_json()["stato"] == "ok"
+    with c.application.app_context():
+        condivisioni = c.application.extensions["core_runtime"]["get_condivisioni"]()
+        assert condivisioni.ha_accesso(collab.id, cliente.id, RuoloCondivisione.LETTURA)
+
+
+def test_revoca_collaboratore_via_api_react(client_web, tmp_path):
+    c, gu, cfg = client_web
+    from pct.clienti import GestioneClienti, TipoCliente
+    from pct.condivisione import GestioneCondivisioni
+
+    with c.application.app_context():
+        cliente = c.application.extensions["core_runtime"]["get_clienti"]().nuovo(
+            tipo=TipoCliente.PERSONA_FISICA,
+            nome="Test",
+            cognome="CLI2",
+        )
+        collab = gu.get_by_username("collab1")
+        c.application.extensions["core_runtime"]["get_condivisioni"]().condividi(
+            cliente.id,
+            collab.id,
+            "collab1",
+            "Collab 1",
+            RuoloCondivisione.LETTURA,
+            "avvocato",
+        )
+
+    response = c.delete(f"/api/v1/clienti/{cliente.id}/condivisioni/{collab.id}")
+
+    assert response.status_code == 200
+    assert response.get_json()["stato"] == "ok"
+    with c.application.app_context():
+        updated = c.application.extensions["core_runtime"]["get_condivisioni"]()
+        assert not updated.ha_accesso(collab.id, cliente.id)

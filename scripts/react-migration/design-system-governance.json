@@ -23,6 +23,8 @@
     "frontend/src/components/BackupPage.css",
     "frontend/src/components/CartellaClientePage.css",
     "frontend/src/components/CartelleCondivisePage.css",
+    "frontend/src/components/ClientiCollaboratoriControls.css",
+    "frontend/src/components/ClientiCollaboratoriPage.css",
     "frontend/src/components/CodiceOggettoPstSearch.css",
     "frontend/src/components/CompensiForensiPage.css",
     "frontend/src/components/CrmPage.css",

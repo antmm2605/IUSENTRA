@@ -56,10 +56,10 @@ def test_lex_dataset_training_status_distingue_rag_review_export_e_job(tmp_path)
     assert cards["rag"]["status"] == "Pronto"
     assert cards["qa_review"]["label"] == "Domande in revisione"
     assert cards["qa_review"]["status"] == "Da revisionare"
-    assert cards["manual_training"]["label"] == "Modello locale"
+    assert cards["manual_training"]["label"] == "Addestramento modello"
     assert cards["alpaca"]["value"] == 1
     assert cards["sharegpt"]["value"] == 2
-    assert cards["manual_training"]["status"] == "Percorso manuale"
+    assert cards["manual_training"]["status"] == "Manuale"
     assert cards["latest_job"]["status"] == "Completato"
     assert cards["errors"]["status"] == "Da verificare"
 

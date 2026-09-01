@@ -41,7 +41,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
-| coverage-critical | 10 | lex/tests, tests/test_lex_docling_parser.py, tests/test_lex_professional_upgrade.py, tests/test_lex_sources_and_studio_data.py, tests/test_auth.py ... |
+| coverage-critical | 64 | lex/tests, tests/test_lex_agenda_scadenze_knowledge_matrix.py, tests/test_lex_ai_quality_framework.py, tests/test_lex_assistente_context_real_requests.py, tests/test_lex_atti_redazione_knowledge_matrix.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | quality-overlay | 3 | tests/test_lex_quality_gates.py, tests/test_performance_budget.py, tests/test_local_signer_ai_cache.py |

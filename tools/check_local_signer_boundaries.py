@@ -112,7 +112,7 @@ def main() -> int:
         if "process = subprocess.Popen" not in runner_text:
             failures.append(f"{signer_path} non avvia il processo PST nel runner governato")
         if "requires_foreground_grant" in runner_text:
-            failures.append(f"{signer_path} blocca il percorso PST dietro a un grant browser non necessario")
+            failures.append(f"{signer_path} delega al runner il blocco foreground invece di validarlo prima nell'handler")
         if "do_preflight=False" not in signer_text and '"do_preflight": False' not in signer_text:
             failures.append(f"{signer_path} non preserva baseline PST: disabilitazione preflight nel lotto")
 
@@ -124,7 +124,7 @@ def main() -> int:
         "pst_session_id: session?.sessionId || ''",
         "localSignerPstFascicoloSnapshotJob({",
         "localSignerJson('/pst/download-documenti-batch-job'",
-        "const operation = executeSearch(createLocalSignerOperationId('pst-view'))",
+        "const operation = executeSearch(createLocalSignerOperationId('pst-view'), foregroundGrant)",
         "const cert = await ensurePstCertificate()",
         "function alternateLocalSignerBrowserTransport",
         "function isLocalSignerTransportFailure",
@@ -138,13 +138,23 @@ def main() -> int:
             failures.append(f"TelematicoSurfacePage non preserva baseline PST: {snippet}")
     if "office.codiceMinistero || office.codice" in react_text:
         failures.append("TelematicoSurfacePage deve inviare il codice ufficio, non preferire il codice ministeriale")
-    for stale_browser_gate in (
+    for required_browser_gate in (
         "beginLocalSignerForegroundGrant()",
         "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)",
         "foreground_nonce: foregroundNonce",
     ):
-        if stale_browser_gate in react_text:
-            failures.append(f"TelematicoSurfacePage blocca ancora il PST sul protocollo browser: {stale_browser_gate}")
+        if required_browser_gate not in react_text:
+            failures.append(f"TelematicoSurfacePage non preserva l’autorizzazione foreground: {required_browser_gate}")
+
+    office_text = _read("frontend/src/components/OfficeDocumentsPanel.tsx")
+    for required_office_gate in (
+        "foregroundGrant: LocalSignerForegroundGrant",
+        "waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)",
+        "foreground_nonce: foregroundNonce",
+        "runSearch(openOfficeDocumentsRequest.foregroundGrant)",
+    ):
+        if required_office_gate not in office_text:
+            failures.append(f"OfficeDocumentsPanel non preserva l’autorizzazione foreground: {required_office_gate}")
     if "localSignerJson('/pst/preflight-auth'" in react_text:
         failures.append("TelematicoSurfacePage non deve chiamare /pst/preflight-auth")
     if "localSignerJson('/pst/download-documento'" in react_text:

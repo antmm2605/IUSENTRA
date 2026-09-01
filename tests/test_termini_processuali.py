@@ -152,7 +152,7 @@ def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
             "/api/v1/ui/scadenziario/termini/calculate",
             json={
                 "template_code": "CIV_APPELLO_BREVE",
-                "input_date": "2026-07-30",
+                "input_date": "2030-07-30",
                 "case_reference": "RG API/2026",
                 "suspend_august": False,
             },
@@ -161,7 +161,7 @@ def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
             "/api/v1/ui/scadenziario/termini/crea-scadenza",
             json={
                 "template_code": "CIV_APPELLO_BREVE",
-                "input_date": "2026-07-30",
+                "input_date": "2030-07-30",
                 "case_reference": "RG API/2026",
                 "title": "Appello breve auditato",
                 "suspend_august": False,
@@ -171,7 +171,7 @@ def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
             "/api/v1/ui/scadenziario/termini/crea-scadenza",
             json={
                 "template_code": "CIV_APPELLO_BREVE",
-                "input_date": "2026-07-30",
+                "input_date": "2030-07-30",
                 "case_reference": "RG API/2026",
                 "title": "Appello breve auditato",
                 "suspend_august": False,

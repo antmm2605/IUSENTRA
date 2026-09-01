@@ -1198,36 +1198,48 @@ def test_riconcilia_documenti_portale_ripara_match_ambiguo_e_normalizza_note(gf,
     )
     doc_verbale = gf.aggiungi_documento(
         fascicolo_base.id,
-        "Citazione_28139218.pdf",
+        "VerbaleUdienza_32970605.pdf",
         TipoDocumento.VERBALE,
         b"verbale",
         note="Importato da PolisWeb / PST il 2026-04-24 | Origine: pst:JPW_SICID:32970605 | Tipo atto portale: VerbaleUdienza",
         data_documento="2026-04-24",
         fonte_documento="PORTALE_TELEMATICO",
         nome_originale="pst:JPW_SICID:32970605",
-        nome_portale="Citazione_28139218.pdf",
-        classificazione_portale="Citazione",
-        tipo_atto_portale="Citazione",
-        id_documento_portale="28139218",
-        id_cat_portale="28139218",
-        id_deposito_pct=dep_citazione.id,
+        nome_portale="VerbaleUdienza_32970605.pdf",
+        classificazione_portale="VerbaleUdienza",
+        tipo_atto_portale="Verbale udienza",
+        id_documento_portale="32970605",
+        id_cat_portale="32970605",
+        id_deposito_pct=dep_verbale.id,
     )
     doc_sentenza = gf.aggiungi_documento(
         fascicolo_base.id,
-        "Citazione_28139218.pdf",
+        "SentenzaDefinitiva_33581101.pdf",
         TipoDocumento.SENTENZA,
         b"sentenza",
         note="Importato da PolisWeb / PST il 2026-04-24 | Origine: SentenzaDefinitiva_33581101.pdf.p7m | Tipo atto portale: SentenzaDefinitiva",
         data_documento="2026-04-24",
         fonte_documento="PORTALE_TELEMATICO",
         nome_originale="SentenzaDefinitiva_33581101.pdf.p7m",
-        nome_portale="Citazione_28139218.pdf",
-        classificazione_portale="Citazione",
-        tipo_atto_portale="Citazione",
-        id_documento_portale="28139218",
-        id_cat_portale="28139218",
-        id_deposito_pct=dep_citazione.id,
+        nome_portale="SentenzaDefinitiva_33581101.pdf",
+        classificazione_portale="SentenzaDefinitiva",
+        tipo_atto_portale="Sentenza definitiva",
+        id_documento_portale="33581101",
+        id_cat_portale="33581101",
+        id_deposito_pct=dep_sentenza.id,
     )
+
+    # Riproduce due righe storiche corrotte senza passare dalla deduplicazione
+    # corrente, che impedisce correttamente di creare nuovi duplicati portale.
+    for documento in (doc_verbale, doc_sentenza):
+        documento.nome = "Citazione_28139218.pdf"
+        documento.nome_portale = "Citazione_28139218.pdf"
+        documento.classificazione_portale = "Citazione"
+        documento.tipo_atto_portale = "Citazione"
+        documento.id_documento_portale = "28139218"
+        documento.id_cat_portale = "28139218"
+        documento.id_deposito_pct = dep_citazione.id
+    gf._salva()
 
     esito = gf.riconcilia_documenti_portale(fascicolo_base.id)
 

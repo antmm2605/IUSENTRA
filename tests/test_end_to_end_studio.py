@@ -14,12 +14,12 @@ def test_end_to_end_studio_bootstrap_login_e_superfici_core(tmp_path):
         "/agenda",
         "/scadenziario",
         "/timesheet",
+        "/ricerca-legale/news",
     )
     platform_paths = (
         "/admin/governance",
         "/admin/assistente-migrazione",
         "/admin/copertura-ai",
-        "/legal-intelligence/news",
     )
 
     with app.test_client() as tenant_client:

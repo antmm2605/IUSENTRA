@@ -45,7 +45,7 @@ def test_app_v2_phase7_frontend_guard_is_source_locked():
         "requiredPermissionsForHref",
         "appV2FeatureFlagForPath(item.href)",
         "isFeatureFlagEnabledSync(flag)",
-        "effectiveStandalonePage = isStandalonePage || appV2FlagDenied || appV2UnknownRoute",
+        "effectiveStandalonePage = isStandalonePage || isCrmPage || appV2FlagDenied || appV2UnknownRoute",
     ):
         assert snippet in app_text
 

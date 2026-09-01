@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileText, FolderSearch2, ShieldCheck } from 'lucide-react'
 import type { FascicoloDetailData, FascicoloDocument } from '../fascicoliData'
 import { formatDateIt } from '../formatting'
+import {
+  beginLocalSignerForegroundGrant,
+  waitLocalSignerForegroundGrant,
+  type LocalSignerForegroundGrant,
+} from '../features/telematico/localSignerForeground'
 import { pstMinisterialProfileFromParts } from '../lib/pstMinisterialProfile'
 
 type JsonRecord = Record<string, unknown>
@@ -35,6 +40,7 @@ type PstSession = {
 
 export type OfficeDocumentsOpenRequest = {
   requestId: number
+  foregroundGrant: LocalSignerForegroundGrant
 }
 
 type Props = {
@@ -484,7 +490,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
   // La visualizzazione usa un solo lotto autenticato: ricerca, scheda e
   // catalogo ufficiale sono restituiti da /pst/ricerca-snapshot nello stesso
   // processo Local Signer. Non viene avviato un secondo job né un secondo PIN.
-  const runSearchOperation = async (operationId: string) => {
+  const runSearchOperation = async (operationId: string, foregroundGrant: LocalSignerForegroundGrant) => {
     if (missing.length) {
       onError(`Ricerca documenti non avviata: manca ${missing.join(', ')} nel fascicolo.`)
       return
@@ -500,6 +506,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     })
     setMessage('Consultazione diretta del fascicolo d’ufficio in corso…')
     try {
+      const foregroundNonce = await waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)
       const cert = await ensureCertificate(localSignerJson)
       setSearchProgress({
         completed: 1,
@@ -551,6 +558,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         operation_id: operationId,
         purpose: 'view',
         pst_session_id: storedSession?.sessionId || '',
+        foreground_nonce: foregroundNonce,
         search_only: false,
         include_full_snapshot: true,
         single_interactive_batch: true,
@@ -602,11 +610,22 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
     }
   }
 
-  const runSearch = (): Promise<void> => {
+  const runSearch = (providedGrant?: LocalSignerForegroundGrant): Promise<void> => {
     if (searchFlight.current) return searchFlight.current
     if (downloadFlight.current) return downloadFlight.current
+    let foregroundGrant = providedGrant
+    if (!foregroundGrant) {
+      try {
+        foregroundGrant = beginLocalSignerForegroundGrant()
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'Consultazione non avviata.'
+        setMessage(reason)
+        onError(reason)
+        return Promise.resolve()
+      }
+    }
     const operationId = pstOperationId('view')
-    const flight = runSearchOperation(operationId)
+    const flight = runSearchOperation(operationId, foregroundGrant)
     searchFlight.current = flight
     void flight.then(
       () => { if (searchFlight.current === flight) searchFlight.current = null },
@@ -627,7 +646,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
   useEffect(() => {
     if (!openOfficeDocumentsRequest || openOfficeDocumentsRequest.requestId === lastOpenOfficeDocumentsRequest.current) return
     lastOpenOfficeDocumentsRequest.current = openOfficeDocumentsRequest.requestId
-    void runSearch()
+    void runSearch(openOfficeDocumentsRequest.foregroundGrant)
   }, [openOfficeDocumentsRequest])
 
   const runImportOperation = async (operationId: string) => {

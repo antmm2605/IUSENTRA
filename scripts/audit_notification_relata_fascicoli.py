@@ -248,7 +248,7 @@ def _markdown_table(rows: list[dict[str, Any]], columns: list[tuple[str, str]], 
 def _write_markdown(path: Path, payload: dict[str, Any]) -> None:
     summary = payload["summary"]
     lines = [
-        "# Audit presidio notifiche fascicoli Montagnese",
+        "# Audit presidio notifiche fascicoli",
         "",
         f"- Eseguito il: {payload['generatedAt']}",
         "- Fonte di verità: SQLite tenant `studio.db`.",

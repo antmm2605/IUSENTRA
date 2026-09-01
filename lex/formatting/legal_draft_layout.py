@@ -133,6 +133,12 @@ def _normalize_title(value: str) -> str:
     lowered = title.casefold()
     if not lowered.startswith("bozza") or not any(term in lowered for term in _DRAFT_TERMS):
         return value
+    if not separator:
+        boundary = lowered.find(" studio legale ")
+        if boundary > 0:
+            rest = clean[boundary:].strip()
+            title = clean[:boundary].strip().strip("*").strip()
+            separator = "\n"
     remainder = rest.lstrip("-\n ")
     return f"**{title}**\n\n---\n\n{remainder}" if separator else f"**{title}**\n\n---"
 

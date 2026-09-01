@@ -48,6 +48,11 @@ import {
   resolvedPstDocumentMode,
   uniquePstValues,
 } from '../features/telematico/pstImportParity'
+import {
+  beginLocalSignerForegroundGrant,
+  waitLocalSignerForegroundGrant,
+  type LocalSignerForegroundGrant,
+} from '../features/telematico/localSignerForeground'
 import './TelematicoSurfacePage.css'
 
 const iconMap: Record<string, LucideIcon> = {
@@ -5045,7 +5050,7 @@ function AcquisitionWizard({
     target_document: targetDocumentPayload,
   })
 
-  const executeSearch = async (operationId = '') => {
+  const executeSearch = async (operationId = '', foregroundGrant: LocalSignerForegroundGrant | null = null) => {
     const previousAutoTarget = autoMatchedTargetRef.current
     if (previousAutoTarget) {
       setMapping((current) => current.target_fascicolo_id === previousAutoTarget
@@ -5185,6 +5190,9 @@ function AcquisitionWizard({
           current: 'Controllo collegamento Local Signer dal browser',
         }))
         await requireLocalSignerBrowserBridge()
+        const foregroundNonce = foregroundGrant
+          ? await waitLocalSignerForegroundGrant(localSignerJson, foregroundGrant)
+          : ''
         if (!pstHasSearchCriteria()) {
           throw new Error("Indica numero e anno, un anno per vedere l'elenco fascicoli, oppure almeno una parte o un codice fiscale per interrogare il PST.")
         }
@@ -5225,6 +5233,7 @@ function AcquisitionWizard({
                   operation_id: operationId ? `${operationId}-${targetIndex + 1}-snapshot` : '',
                   purpose: 'view',
                   pst_session_id: session?.sessionId || '',
+                  foreground_nonce: foregroundNonce,
                   // Un solo lotto curl autenticato acquisisce dati, catalogo e
                   // sezioni del fascicolo. L'anteprima usa il risultato già
                   // ricevuto e non apre un secondo PIN o un job nascosto.
@@ -5257,6 +5266,7 @@ function AcquisitionWizard({
                 operation_id: operationId ? `${operationId}-${targetIndex + 1}-search` : '',
                 purpose: 'view',
                 pst_session_id: session?.sessionId || '',
+                foreground_nonce: foregroundNonce,
               }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
             }
             const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
@@ -5421,7 +5431,14 @@ function AcquisitionWizard({
       await activeOperation
       return
     }
-    const operation = executeSearch(createLocalSignerOperationId('pst-view'))
+    let foregroundGrant: LocalSignerForegroundGrant
+    try {
+      foregroundGrant = beginLocalSignerForegroundGrant()
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Ricerca PST non avviata.'))
+      return
+    }
+    const operation = executeSearch(createLocalSignerOperationId('pst-view'), foregroundGrant)
     pstSearchOperationRef.current = operation
     try {
       await operation

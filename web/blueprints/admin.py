@@ -591,11 +591,17 @@ def assistente_migrazione_esegui():
             flash(f"Report generato: {report_path}", "info")
     except Exception as exc:
         current_app.logger.exception("Errore assistente migrazione %s: %s", target, exc)
+        error_text = str(exc or "").strip().lower()
+        public_error = (
+            "Connessione PostgreSQL non disponibile."
+            if target == "postgresql" and ("connessione" in error_text or "connect" in error_text)
+            else "Migrazione non completata."
+        )
         session["assistente_migrazione_last_execution"] = {
             "slug": selected_slug,
             "target": target,
             "generated_at": datetime.now().replace(microsecond=0).isoformat(),
-            "error_message": "Migrazione non completata.",
+            "error_message": public_error,
         }
         flash("Errore durante la migrazione completa.", "danger")
     return redirect(url_for("admin.assistente_migrazione", slug=selected_slug))

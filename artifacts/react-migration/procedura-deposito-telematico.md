@@ -6033,3 +6033,33 @@ Stato: prova visiva locale completata; i soli invii telematici restano esclusiva
 - Il Practice Engine usa `studio.db` del tenant come fonte di verità. Il JSON sotto `fascicoli/practice_engine` è solo mirror/import storico controllato. L'import normalizza gli identificativi legacy di profilo riusati da fascicoli diversi e riallinea i relativi requisiti, slot, checklist e sessioni prima della scrittura SQL.
 - Lo storico `PROFILE_APPLIED` è mostrato nell'Audit come **Registro operativo**, distinto dalle prove WORM/firma/conservazione; non viene presentato come evidenza probatoria.
 - Prova locale eseguita su `http://127.0.0.1:8080/fascicoli/474DC848`: click reale su Dati principali, Parti, Documenti, Scadenze e Cliente; ogni click ha cambiato l'ancora corretta, aperto il pannello e reso disponibile la relativa correzione. Audit visualizzato: 1 evento `Profilo procedurale confermato`, con data/ora Europe/Rome. I badge `OK`/`Verifica` sono risultati leggibili senza testo tagliato.
+
+
+## Aggiornamento 31/08/2026 - Consenso esplicito Windows per Local Signer e PST
+
+Perimetro: Local Signer, consultazione PST dal Wizard e dal Fascicolo d’ufficio. Nessuna firma, nessun PIN, nessuna PEC, nessun deposito e nessuna notifica sono stati eseguiti.
+
+- La richiesta PST avviata da Windows richiede ora un consenso monouso originato dal click dell’avvocato. Il browser genera un nonce, il companion locale concede al solo processo Local Signer il permesso nativo di primo piano e il signer consuma il consenso una sola volta al momento dell’avvio del processo certificato.
+- È stata rimossa la precedente gestione delle finestre: il signer non enumera, sposta, chiude o porta in primo piano finestre PIN di altri programmi. Se il consenso manca o è scaduto, la UI restituisce un messaggio operativo e chiede di premere nuovamente Cerca fascicolo.
+- Wizard e Fascicolo d’ufficio continuano a usare lo stesso endpoint, batch, sessione, catalogo e resolver PST. `OfficeDocumentsPanel` invia lo stesso nonce al comando di ricerca snapshot; non è stato introdotto alcun percorso parallelo.
+- Il batch interattivo può usare il proprio limite massimo, configurabile e separato dalla singola richiesta, così una consultazione completa non viene troncata da un timeout breve.
+- La cache del certificato Windows viene riutilizzata solo se la relativa impronta è ancora presente nello store; il bridge può selezionare il certificato CNS/PST già disponibile senza aprire un dialogo generico. Se non esiste una corrispondenza, la selezione resta esplicita.
+
+Guardrail automatici del 31/08/2026:
+
+- `python -m pytest -q tests\test_local_signer.py tests\test_local_signer_installer_atomic.py tests\test_build_dist.py --junitxml artifacts\react-migration\local-signer-20260831.xml`: `281` test, `0` errori, `0` failure.
+- `npm --prefix frontend run typecheck`: superato.
+- `python -m pytest -q tests\test_react_shell.py -k "local_signer_foreground or office_documents_portale_pst" --junitxml artifacts\react-migration\react-pst-foreground-20260831.xml`: `2` test superati.
+- Controllo statico: nessuna chiamata a API che enumera, sposta, chiude o forza in primo piano finestre PIN nel Local Signer.
+
+Stato della prova materiale: **non verificato su macchina reale** per questa modifica. Restano obbligatori rebuild Docker locale su `127.0.0.1:8080`, click reale con smart card disponibile, hover/focus e verifica desktop/tablet/mobile prima di considerare la modifica accettata. Il PIN non deve essere trascritto o usato dal sistema.
+## Aggiornamento 01/09/2026 - Local Signer 1.6.126 e consenso PST governato
+
+Perimetro: avvio della consultazione PST dal Wizard e dal Fascicolo d’ufficio. Non sono state modificate classificazione documenti, composizione busta, deposito, notifica, firma o firma multipla.
+
+- Il consenso monouso nasce dal click dell’avvocato nella superficie React e viene atteso prima della chiamata PST; lo stesso nonce raggiunge la ricerca snapshot e la ricerca ordinaria senza introdurre endpoint, resolver, sessioni o batch paralleli.
+- Il Local Signer consuma il consenso valido prima dell’avvio del processo certificato e usa esclusivamente le API Windows consentite per mostrare la finestra nativa. Sono assenti input sintetico, collegamento forzato dei thread, chiusura di finestre e forzature del focus.
+- Il pacchetto ufficiale Windows è stato rigenerato come `SetupLocalSigner-1.6.126.exe`; la sorgente distribuita e quella applicativa espongono entrambe la versione `1.6.126`.
+- I quattro shard completi di Local Signer, installer e packaging hanno superato `305/305` test; il controllo dei confini, il typecheck React e i test mirati dei due ingressi PST sono superati.
+
+Stato della prova materiale: **non verificato su macchina reale** per la build `1.6.126`. Restano obbligatori rebuild Docker locale, click reale con smart card, comparsa governata del prompt nativo, verifica della risposta PST, hover/focus, scroll completo e responsive desktop/tablet/mobile. Il test non deve firmare documenti né inviare PEC o depositi.

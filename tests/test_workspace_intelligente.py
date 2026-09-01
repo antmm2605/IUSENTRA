@@ -378,15 +378,25 @@ def test_workspace_intelligente_web_e_fascicolo_renderizzano(tmp_path: Path):
         assert login.status_code == 200
 
         workspace = client.get("/workspace-intelligente?_legacy=1", follow_redirects=True)
-        fascicolo_detail = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
+        workspace_data = client.get("/api/workspace-intelligente")
+        fascicolo_detail = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        fascicolo_data = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all")
 
     workspace_html = workspace.get_data(as_text=True)
     fascicolo_html = fascicolo_detail.get_data(as_text=True)
+    workspace_payload = workspace_data.get_json()
+    fascicolo_payload = fascicolo_data.get_json()
 
     assert workspace.status_code == 200
-    assert "Regia Operativa dello Studio" in workspace_html
-    assert "Fascicoli da presidiare" in workspace_html
+    assert 'class="react-shell-document"' in workspace_html
+    assert 'id="iusentra-react-bootstrap"' in workspace_html
+    assert workspace_data.status_code == 200
+    assert isinstance(workspace_payload["summary"], dict)
+    assert "fascicoli_attenzionati" in workspace_payload["summary"]
     assert fascicolo_detail.status_code == 200
-    assert "Quadro intelligente fascicolo" in fascicolo_html
-    assert "Affidabilita' controlli pratica" in fascicolo_html
-    assert "Provvedimenti e sentenze utili" in fascicolo_html
+    assert 'class="react-shell-document"' in fascicolo_html
+    assert 'id="iusentra-react-bootstrap"' in fascicolo_html
+    assert fascicolo_data.status_code == 200
+    assert fascicolo_payload["fascicolo"]["id"] == fascicolo.id
+    assert isinstance(fascicolo_payload["operationalPresidio"], dict)
+    assert isinstance(fascicolo_payload["quickCounts"], dict)

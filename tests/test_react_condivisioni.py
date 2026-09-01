@@ -76,6 +76,8 @@ def test_cartelle_condivise_react_api_permessi_e_api_esistenti(tmp_path: Path):
         _login(client)
         response = client.get("/cartelle-condivise")
         classic = client.get("/cartelle-condivise?_legacy=1")
+        collaborators_page = client.get(f"/clienti/{cliente.id}/collaboratori")
+        collaborators_legacy = client.get(f"/clienti/{cliente.id}/collaboratori?_legacy=1")
         api = client.get("/api/v1/ui/cartelle-condivise")
         api_cliente = client.get(f"/api/v1/clienti/{cliente.id}/condivisioni")
         api_stats = client.get("/api/v1/condivisioni/statistiche")
@@ -84,7 +86,11 @@ def test_cartelle_condivise_react_api_permessi_e_api_esistenti(tmp_path: Path):
     assert response.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in response.get_data(as_text=True)
     assert classic.status_code == 200
-    assert 'id="root"' not in classic.get_data(as_text=True)
+    assert 'id="root"' in classic.get_data(as_text=True)
+    assert collaborators_page.status_code == 200
+    assert 'id="root"' in collaborators_page.get_data(as_text=True)
+    assert collaborators_legacy.status_code == 200
+    assert 'id="root"' in collaborators_legacy.get_data(as_text=True)
     assert api.status_code == 200
     payload = api.get_json()
     assert payload["contracts"]["mock_fallback"] is False
@@ -95,7 +101,10 @@ def test_cartelle_condivise_react_api_permessi_e_api_esistenti(tmp_path: Path):
     assert payload["managedFolders"][0]["client"]["id"] == cliente.id
     assert "token" not in str(payload["managedFolders"][0]["activeLinks"]).lower()
     assert api_cliente.status_code == 200
-    assert api_cliente.get_json()["id_cliente"] == cliente.id
+    client_payload = api_cliente.get_json()
+    assert client_payload["client"]["id"] == cliente.id
+    assert client_payload["permissions"]["canManage"] is True
+    assert client_payload["contracts"]["route_owner"] == "react_shell"
     assert api_stats.status_code == 200
     assert cleanup.status_code == 200
 
@@ -114,3 +123,19 @@ def test_cartelle_condivise_react_api_permessi_e_api_esistenti(tmp_path: Path):
     assert collaborator_payload["mode"] == "collaboratore"
     assert collaborator_payload["receivedFolders"][0]["client"]["id"] == cliente.id
     assert collaborator_payload["receivedMatters"][0]["id"] == fascicolo.id
+
+
+def test_clienti_collaboratori_route_non_puo_tornare_legacy():
+    from web.blueprints.react_shell import _route_component_key
+    from web.bootstrap.react_route_gate import _excluded
+
+    route = "/clienti/cliente-controllato/collaboratori"
+    assert _excluded(route) is False
+    assert _route_component_key(route) == "src/components/ClientiCollaboratoriPage.tsx"
+
+    root = Path(__file__).resolve().parents[1]
+    app_source = (root / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+    page_source = (root / "frontend" / "src" / "components" / "ClientiCollaboratoriPage.tsx").read_text(encoding="utf-8")
+    assert "isClientCollaboratorsPage?<ClientiCollaboratoriPage/>" in app_source
+    assert "addClientCollaborator" in page_source
+    assert "revokeClientCollaborator" in page_source

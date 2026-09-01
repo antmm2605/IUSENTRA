@@ -306,6 +306,26 @@
       ]
     },
     {
+      "workspaceTarget": "/app/clienti/:id/collaboratori",
+      "route": "/clienti/:id/collaboratori",
+      "family": "anagrafiche",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ClientiCollaboratoriPage.tsx",
+      "targetData": "frontend/src/clientiCollaboratoriData.ts",
+      "targetBridge": "web/services/react_condivisioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/clienti__id__collaboratori.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "collaboratori reali della cartella cliente",
+        "ruoli lettura, scrittura e gestore",
+        "scadenze, note e tag degli accessi",
+        "permessi RBAC e audit",
+        "aggiunta e revoca tramite API JSON",
+        "nessun POST HTML o fallback Jinja"
+      ]
+    },
+    {
       "workspaceTarget": "/app/clienti/nuovo",
       "route": "/clienti/nuovo",
       "family": "anagrafiche",

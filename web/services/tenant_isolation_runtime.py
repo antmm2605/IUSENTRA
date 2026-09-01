@@ -231,7 +231,7 @@ def _platform_surface_for_superadmin() -> bool:
         return True
     if endpoint.startswith("admin."):
         return True
-    return path.startswith(("/admin/", "/api/assistente"))
+    return path in {"/profilo", "/api/v1/ui/profilo"} or path.startswith(("/admin/", "/api/assistente"))
 
 
 def _tenant_slug_from_context() -> str:

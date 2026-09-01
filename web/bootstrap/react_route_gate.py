@@ -359,8 +359,6 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/privacy/registro/") and lower != "/privacy/registro/nuovo":
         return True
-    if lower.startswith("/clienti/") and lower.endswith("/collaboratori"):
-        return True
     if lower.startswith("/wizard-pro/fascicolo/"):
         return True
     # I wizard deposito interni al fascicolo restano sui template operativi

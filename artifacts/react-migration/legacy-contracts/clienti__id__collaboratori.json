@@ -1,0 +1,15 @@
+{
+  "route": "/clienti/:id/collaboratori",
+  "capturedAt": "2026-09-01",
+  "status": "react_operational_full",
+  "source": "percorso Jinja clienti/collaboratori.html sostituito dalla superficie React operativa",
+  "preserve": [
+    "elenco reale dei collaboratori autorizzati",
+    "ruoli lettura, scrittura e gestore",
+    "scadenza, note e tag dell'accesso",
+    "aggiunta e revoca con permessi, audit e sincronizzazione",
+    "notifica ordinaria esistente al collaboratore quando disponibile"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "l'URL /clienti/<id>/collaboratori, anche con _legacy=1, deve servire la shell React; il POST HTML deve restare non disponibile e le mutazioni devono usare esclusivamente le API JSON protette"
+}

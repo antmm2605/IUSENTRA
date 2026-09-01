@@ -25,6 +25,9 @@ from typing import Iterable, TypeVar
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOTS = [REPO_ROOT / "tests", REPO_ROOT / "lex" / "tests"]
 T = TypeVar("T")
+LEX_CROSS_SUITE: tuple[Path, ...] = tuple(
+    sorted((REPO_ROOT / "tests").glob("test_lex_*.py"))
+)
 CORE_CI_SUBSHARDS: dict[int, int] = {
     5: 6,
     6: 16,
@@ -36,9 +39,7 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     "coverage-critical": (
         REPO_ROOT / "lex" / "tests",
-        REPO_ROOT / "tests" / "test_lex_docling_parser.py",
-        REPO_ROOT / "tests" / "test_lex_professional_upgrade.py",
-        REPO_ROOT / "tests" / "test_lex_sources_and_studio_data.py",
+        *LEX_CROSS_SUITE,
         REPO_ROOT / "tests" / "test_auth.py",
         REPO_ROOT / "tests" / "test_storage_strategy.py",
         REPO_ROOT / "tests" / "test_storage_governance.py",

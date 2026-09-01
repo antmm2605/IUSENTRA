@@ -655,7 +655,7 @@ def test_pst_visualizzazione_esplicita_usa_lo_snapshot_completo_polisweb():
     assert "registro_portale: text(hint.registro_portale" in panel
     assert "tabella_ministeriale: text(hint.tabella_ministeriale" in panel
     assert "def _pst_start_fascicolo_snapshot_job" in source
-    assert "_Handler._pst_fascicolo_snapshot(shim)" in source
+    assert "_Handler._pst_ricerca_snapshot(shim)" in source
     assert '"/pst/fascicolo-snapshot-job"' in source
     assert 'job_payload["_pst_progress_callback"] = _on_progress' in source
     assert "const rows = completeCatalogRows(nextSnapshot, result)" in panel
@@ -689,7 +689,7 @@ def test_selettore_certificato_pst_non_attiva_helper_tecnico_cert_store():
     ]
 
     for forbidden in ("EnumWindows", "GetWindowTextW", "SetForegroundWindow", "SetWindowPos"):
-        assert forbidden not in source
+        assert forbidden not in cert_selector
     assert 'name="iusentra-certificate-foreground"' not in cert_selector
     assert "target=_windows_pin_prompt_foreground_pump" not in cert_selector
     assert "prompt_stop_event" not in cert_selector
@@ -1112,7 +1112,7 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "if (AW_PST_DOWNLOAD_OPERATION_PROMISE) return AW_PST_DOWNLOAD_OPERATION_PROMISE" in download_fn
 
 
-def test_local_signer_pst_curl_usa_grant_nonce_senza_manipolare_dialoghi_windows():
+def test_local_signer_pst_curl_usa_prompt_nativo_senza_blocco_browser_o_input_sintetico():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
     helper = (root / "tools" / "local_signer_foreground_helper.py").read_text(encoding="utf-8")
@@ -1127,16 +1127,17 @@ def test_local_signer_pst_curl_usa_grant_nonce_senza_manipolare_dialoghi_windows
         source.index("def _run_process_with_pin_foreground"):
         source.index("def _http_status_from_headers")
     ]
-    assert "_windows_pin_prompt_foreground_pump(" not in runner
-    assert "_windows_visible_top_level_window_handles(" not in runner
+    assert "target=_windows_pin_prompt_foreground_pump" in runner
+    assert 'kwargs["reclaim_existing_pin_prompt"] = True' in runner
     foreground_call = "_windows_prepare_foreground_for_process_start()"
     assert foreground_call in runner
     assert runner.index(foreground_call) < runner.index("process = subprocess.Popen")
+    assert "requires_foreground_grant" not in runner
     for forbidden in (
         "SwitchToThisWindow", "AttachThreadInput", "SetFocus", "SetWindowPos",
-        "BringWindowToTop", "PostMessageW", "keybd_event", "EnumWindows",
+        "BringWindowToTop", "PostMessageW", "keybd_event", "FlashWindow",
     ):
-        assert forbidden not in runner
+        assert forbidden not in source
         assert forbidden not in helper
     assert helper.count("AllowSetForegroundWindow") == 3
     assert "_nonce_from_uri" in helper
@@ -1166,17 +1167,11 @@ def test_local_signer_pst_curl_usa_grant_nonce_senza_manipolare_dialoghi_windows
         source.index("def _esc", preflight_start + 1)
     ]
 
-    assert "_run_curl_with_pin_foreground(" in raw
-    assert "_run_curl_with_pin_foreground(" in batch
-    assert "_run_curl_with_pin_foreground(" in best_effort
-    assert "_run_curl_with_pin_foreground(" in preflight
-    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in raw
-    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in batch
-    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in best_effort
-    assert "requires_foreground_grant=bool(sys.platform == \"win32\")" in preflight
+    for block in (raw, batch, best_effort, preflight):
+        assert "_run_curl_with_pin_foreground(" in block
+        assert "requires_foreground_grant" not in block
     assert '[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]' not in best_effort
     assert '[_curl_command(), "-s", "-S", "-K", cfg_file]' in best_effort
-
 
 def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypatch):
     module = _load_local_signer()
@@ -1229,7 +1224,7 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
         assert getattr(startupinfo, "wShowWindow", None) == 0
 
 
-def test_run_curl_pst_propaga_solo_il_grant_di_processo(monkeypatch):
+def test_run_curl_pst_abilita_il_recupero_del_prompt_nativo(monkeypatch):
     module = _load_local_signer()
     captured = {}
 
@@ -1243,15 +1238,14 @@ def test_run_curl_pst_propaga_solo_il_grant_di_processo(monkeypatch):
     result = module._run_curl_with_pin_foreground(
         ["curl.exe", "--version"],
         timeout=7,
-        requires_foreground_grant=True,
     )
 
     assert result.returncode == 0
     assert captured["cmd"] == ["curl.exe", "--version"]
-    assert captured["kwargs"]["requires_foreground_grant"] is True
+    assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
+    assert "requires_foreground_grant" not in captured["kwargs"]
 
-
-def test_run_process_windows_prepara_foreground_prima_di_popen(monkeypatch):
+def test_run_process_windows_consuma_un_eventuale_grant_prima_di_popen(monkeypatch):
     module = _load_local_signer()
     events = []
 
@@ -1262,6 +1256,8 @@ def test_run_process_windows_prepara_foreground_prima_di_popen(monkeypatch):
         "_windows_prepare_foreground_for_process_start",
         lambda: events.append("foreground") or True,
     )
+    monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
+    monkeypatch.setattr(module, "_windows_pin_prompt_foreground_pump", lambda *args: None)
     monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
     monkeypatch.setattr(module, "_register_managed_process", lambda process, job, handles: None)
     monkeypatch.setattr(module, "_take_managed_process", lambda pid: None)
@@ -1284,31 +1280,49 @@ def test_run_process_windows_prepara_foreground_prima_di_popen(monkeypatch):
     monkeypatch.setattr(module.subprocess, "Popen", _popen)
     result = module._run_process_with_pin_foreground(
         ["curl.exe", "--version"],
-        requires_foreground_grant=True,
         capture_output=True,
     )
 
     assert result.returncode == 0
     assert events[:2] == ["foreground", "popen"]
 
-
-def test_run_process_windows_senza_grant_non_avvia_popen(monkeypatch):
+def test_run_process_windows_senza_grant_avvia_comunque_il_prompt_nativo(monkeypatch):
     module = _load_local_signer()
-    calls = []
+    events = []
 
     monkeypatch.setattr(module.sys, "platform", "win32")
     monkeypatch.setattr(module, "_windows_hidden_subprocess_kwargs", lambda kwargs: dict(kwargs))
-    monkeypatch.setattr(module, "_windows_prepare_foreground_for_process_start", lambda: False)
-    monkeypatch.setattr(module.subprocess, "Popen", lambda *args, **kwargs: calls.append(args))
+    monkeypatch.setattr(
+        module,
+        "_windows_prepare_foreground_for_process_start",
+        lambda: events.append("foreground-non-concesso") or False,
+    )
+    monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
+    monkeypatch.setattr(module, "_windows_pin_prompt_foreground_pump", lambda *args: None)
+    monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
+    monkeypatch.setattr(module, "_register_managed_process", lambda process, job, handles: None)
+    monkeypatch.setattr(module, "_take_managed_process", lambda pid: None)
+    monkeypatch.setattr(module, "_finish_managed_process", lambda entry, terminate: None)
 
-    with pytest.raises(RuntimeError, match="Nessun processo è stato avviato"):
-        module._run_process_with_pin_foreground(
-            ["curl.exe", "--version"],
-            requires_foreground_grant=True,
-        )
+    class _FakeProcess:
+        pid = 456
+        returncode = 0
 
-    assert calls == []
+        def communicate(self, input=None, timeout=None):
+            return b"", b""
 
+        def poll(self):
+            return self.returncode
+
+    def _popen(cmd, **kwargs):
+        events.append("popen")
+        return _FakeProcess()
+
+    monkeypatch.setattr(module.subprocess, "Popen", _popen)
+    result = module._run_process_with_pin_foreground(["curl.exe", "--version"])
+
+    assert result.returncode == 0
+    assert events[:2] == ["foreground-non-concesso", "popen"]
 
 def test_run_curl_pst_batch_rispetta_il_timeout_sommato_delle_richieste(monkeypatch):
     module = _load_local_signer()
@@ -1325,7 +1339,7 @@ def test_run_curl_pst_batch_rispetta_il_timeout_sommato_delle_richieste(monkeypa
 
     assert result.returncode == 0
     assert captured["kwargs"]["timeout"] == 800
-    assert "reclaim_existing_pin_prompt" not in captured["kwargs"]
+    assert captured["kwargs"]["reclaim_existing_pin_prompt"] is True
     assert module.PST_INTERACTIVE_CURL_BATCH_HARD_MAX_TIME >= 800
 
 
@@ -8367,6 +8381,7 @@ def test_pst_prepare_authenticated_session_non_marca_cookie_pronto_su_preflight_
 
 def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
 
     originals = {
         "_curl_disponibile": module._curl_disponibile,
@@ -8541,6 +8556,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
 
 def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
     captured = {}
     monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
 
@@ -8684,6 +8700,7 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
 
 def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypatch):
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
     captured = {}
     monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
 
@@ -8789,6 +8806,7 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
 
 def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallback(monkeypatch):
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
     captured = {}
     monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
 
@@ -8893,6 +8911,7 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
 
 def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypatch):
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
     captured = {}
     monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "0")
 
@@ -9008,6 +9027,7 @@ def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypa
 
 def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazione():
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
 
     originals = {
         "_curl_disponibile": module._curl_disponibile,
@@ -9245,6 +9265,7 @@ def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra
 
 def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
     module = _load_local_signer()
+    module._foreground_nonce_is_granted = lambda _nonce: True
 
     originals = {
         "_curl_disponibile": module._curl_disponibile,

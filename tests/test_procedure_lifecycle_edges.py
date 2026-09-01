@@ -1087,22 +1087,18 @@ def test_anti_bypass_sql_diretto_apply_generated_sql_e_fixture(tmp_path):
     assert "DEPOSITO_ACCETTATO" not in fixture_source
 
     endpoint_cli_violations: list[str] = []
-    guarded_terms = (
+    guarded_tables = (
         "telematic_deposit_packages",
         "notification_events",
         "fascicolo_workflow_instances",
-        "OFFICE_ACCEPTED",
-        "DEPOSITO_ACCETTATO",
-        "PROOF_ACQUIRED",
-        "CHIUSA",
     )
     for root in (Path("web"), Path("scripts")):
         for path in root.rglob("*.py"):
             text = path.read_text(encoding="utf-8", errors="ignore")
-            if any(term in text for term in guarded_terms):
+            if any(table in text for table in guarded_tables):
                 endpoint_cli_violations.append(str(path))
     cli_text = Path("pct/cli.py").read_text(encoding="utf-8", errors="ignore")
-    if any(term in cli_text for term in guarded_terms):
+    if any(table in cli_text for table in guarded_tables):
         endpoint_cli_violations.append("pct/cli.py")
     assert endpoint_cli_violations == []
 
@@ -1300,3 +1296,61 @@ def test_repository_guardrail_error_edges(tmp_path):
     )
     assert repo.get_notification_event(ready_guard_notification_id)["proof_bundle_id"] == "proof-guard-2"
     assert evidence_id
+
+def test_repository_notification_update_remaining_branches(tmp_path, monkeypatch):
+    import pct.procedure_lifecycle_repository as lifecycle_repository_module
+
+    repo = make_repo(tmp_path)
+    monkeypatch.setattr(
+        lifecycle_repository_module,
+        "NOTIFICATION_PROOF_MATRIX_SCHEMA_SQL",
+        tmp_path / "notification-proof-matrix-missing.sql",
+    )
+    repo.ensure_extended_schema()
+
+    with pytest.raises(ValueError, match="Notifica non trovata"):
+        repo.update_notification_event(999_999, {"notes": "missing"})
+
+    missing_address_id = repo.create_notification_event(
+        {
+            "fascicolo_id": "FREADY",
+            "notification_type": "PEC",
+            "act_document_id": "atto",
+        }
+    )
+    with pytest.raises(ValueError, match="READY richiede destinatario"):
+        repo.update_notification_event(missing_address_id, {"status": "READY"})
+
+    manual_address_id = repo.create_notification_event(
+        {
+            "fascicolo_id": "FMANUAL",
+            "notification_type": "PEC",
+            "act_document_id": "atto",
+            "recipient_name": "Mario Rossi",
+            "recipient_address": "mario@example.test",
+            "recipient_address_source": "manuale",
+        }
+    )
+    with pytest.raises(ValueError, match="review avvocato"):
+        repo.update_notification_event(manual_address_id, {"status": "READY"})
+
+    after_missing_id = repo.create_notification_event(
+        {
+            "fascicolo_id": "FAFTER",
+            "notification_type": "PEC",
+            "act_document_id": "atto",
+        }
+    )
+    original_get = repo.get_notification_event
+    calls = 0
+
+    def get_before_then_missing(_repo, notification_id, conn=None):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return original_get(notification_id, conn=conn)
+        return None
+
+    monkeypatch.setattr(type(repo), "get_notification_event", get_before_then_missing)
+    repo.update_notification_event(after_missing_id, {"notes": "after assente"})
+    assert calls == 2

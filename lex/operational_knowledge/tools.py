@@ -1142,14 +1142,17 @@ class OperationalKnowledgeTools:
         if not paths:
             return None
         try:
+            from pct.storage import StudioDB
+
+            studio_db = StudioDB.get(paths["STUDIO_DB"])
             if source_id == "clienti":
                 from pct.clienti import GestioneClienti
 
-                return GestioneClienti(db_path=paths["CLIENTI_DB"])
+                return GestioneClienti(db_path=paths["CLIENTI_DB"], studio_db=studio_db)
             if source_id == "soggetti":
                 from pct.soggetti import GestioneSoggetti
 
-                return GestioneSoggetti(paths["SOGGETTI_DB"], paths["SOGGETTI_PARTI_DB"])
+                return GestioneSoggetti(paths["SOGGETTI_DB"], paths["SOGGETTI_PARTI_DB"], studio_db=studio_db)
             if source_id == "fascicoli":
                 from pct.fascicoli import GestioneFascicoli
 
@@ -1157,31 +1160,32 @@ class OperationalKnowledgeTools:
                     db_path=paths["FASCICOLI_DB"],
                     documents_dir=paths["FASCICOLI_DOCS"],
                     archive_dir=paths["FASCICOLI_ARCH"],
+                    studio_db=studio_db,
                 )
             if source_id == "agenda":
                 from pct.agenda import Agenda
 
-                return Agenda(db_path=paths["AGENDA_DB"])
+                return Agenda(db_path=paths["AGENDA_DB"], studio_db=studio_db)
             if source_id == "scadenziario":
                 from pct.scadenziario import GestioneScadenziario
 
-                return GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"])
+                return GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"], studio_db=studio_db)
             if source_id in {"preventivi", "conferimenti"}:
                 from pct.preventivi import GestionePreventivi
 
-                return GestionePreventivi(db_path=paths["PREVENTIVI_DB"])
+                return GestionePreventivi(db_path=paths["PREVENTIVI_DB"], studio_db=studio_db)
             if source_id == "fatturazione":
                 from pct.fatturazione import GestioneFatturazione
 
-                return GestioneFatturazione(db_path=paths["FATTURAZIONE_DB"])
+                return GestioneFatturazione(db_path=paths["FATTURAZIONE_DB"], studio_db=studio_db)
             if source_id == "timesheet":
                 from pct.timesheet import GestioneTimesheet
 
-                return GestioneTimesheet(db_path=paths["TIMESHEET_DB"])
+                return GestioneTimesheet(db_path=paths["TIMESHEET_DB"], studio_db=studio_db)
             if source_id == "pagamenti":
                 from pct.pagamenti import GestionePagamenti
 
-                return GestionePagamenti(db_dir=paths["PAGAMENTI_DIR"])
+                return GestionePagamenti(db_dir=paths["PAGAMENTI_DIR"], studio_db=studio_db)
         except Exception:
             return None
         return None

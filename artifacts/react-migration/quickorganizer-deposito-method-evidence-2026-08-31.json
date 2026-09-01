@@ -1,0 +1,715 @@
+{
+  "schema_version": 1,
+  "generated_at": "31/08/2026 21:21 Europe/Rome",
+  "source": {
+    "application": "Studio Telematico 2026 Rel. 021",
+    "executable": "D:/QuickOrganizer/QuickOrganizer.exe",
+    "executable_sha256": "cca08538edf092aa4cbc4de510a10a13c8584cf296db513f7a5bb2e20158d6f2",
+    "decompiled_form": "FormSentMailBee.cs",
+    "decompiled_form_sha256": "e27cde904029459e741b64c64ae82fd0ec089094f2d4592746fbf55e6148049b",
+    "decompiler": "ilspycmd 8.2.0.7535",
+    "source_line_contract": "Ogni metodo è individuato dalla prima riga decompilata che contiene esattamente method + (."
+  },
+  "methods": [
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_AttoRichiestaVisibilità",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14382
+    },
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_CostituzioneSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14408
+    },
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_DepositoMemorie",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14418
+    },
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteConclusionali",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14438
+    },
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteScritteSostUdie",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14428
+    },
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14396
+    },
+    {
+      "method": "Create_DatiAtto_CorsoCausa_SIGP_ProduzioneDocumentiRichiesti",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14448
+    },
+    {
+      "method": "Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13615
+    },
+    {
+      "method": "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13745
+    },
+    {
+      "method": "Create_DatiAtto_DelSiecicEsecuzioni_AggiudicazioneLotto",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13819
+    },
+    {
+      "method": "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13771
+    },
+    {
+      "method": "Create_DatiAtto_DelSiecicEsecuzioni_MinutaDecreto",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13807
+    },
+    {
+      "method": "Create_DatiAtto_DelSiecicEsecuzioni_ProgettoDistribuzione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13825
+    },
+    {
+      "method": "Create_DatiAtto_DelSiecicEsecuzioni_PropostaProgetto",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13813
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_Ricorso702Bis",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12092
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11667
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneAppello",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11825
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11689
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneSfratto",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11730
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniDivorzio",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11799
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11754
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_OpposizioneDecretoIngiuntivo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12158
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11961
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoAppello",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12062
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCAInibitoria",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12016
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCautelareAnteCausam",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12107
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12288
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12221
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11885
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazioneConvalida",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11915
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoOpposizioneDecretoIngiuntivo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12181
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoReclamoSospensiva",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11945
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoRitoSemplificatoCartabia",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12077
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSeparazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12196
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroConservativo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12122
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroGiudiziario",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12137
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_Cartabia_Successioni",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12262
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11978
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenniSoggettoInteressato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11994
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12342
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoAmmissConcordatoPreventivoCCIPU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12658
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoDichiarazioneInsolvenzaCCIPU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12693
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneControllataCCIPU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12505
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneGiudizialeCCIPU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12472
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoOmologaAccordiRistrutturazioneCCIPU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12533
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_Cartabia_RicorsoImmigrazioneGDP",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 11855
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_Citazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14256
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_CitazioneInRiassunzione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14280
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_OpposizioneDecretoIngiuntivo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14368
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_Ricorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14297
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14343
+    },
+    {
+      "method": "Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14318
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_AccettazioneRinunciaRicorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14061
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_AttoGenerico",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14058
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaControricorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14067
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaRicorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14064
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_ControRicorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13928
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13980
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_DepositoExArt372",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14073
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_DocumentiCondonoFiscale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14070
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14188
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IntegrazioneSpeseGiustizia",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14237
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaAssegnazioneSezioniUnite",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14076
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaCessazioneMateriaContendere",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14079
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaOpposizione380bis",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14112
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaPatrocinioASpeseDelloStato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14082
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaRimborsoSpeseGiustizia",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14085
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaRinnovoNotificaRicorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14088
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaRinvioUdienza",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14091
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaRiunioneRicorsi",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14094
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaSollecitaFissazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14097
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_IstanzaSospensioneGiudizio",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14100
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_Memoria378",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14106
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_Memoria380bis",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14109
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_Memoria380bis1",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14115
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_Memoria380ter",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14118
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_ProvvedimentoImpugnato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14121
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_Ricorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13876
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_RicorsoRinnovoNotifica",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14127
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_RinunciaProcura",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14130
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_RinunciaRicorso",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14133
+    },
+    {
+      "method": "Create_DatiAtto_ParteCassazione_SegnalazioneErroreMateriale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14136
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicConcorsuali_AttoCostituzioneAvvocato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13552
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicConcorsuali_AttoRichiestaVisibilità",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12733
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicEsecuzioni_AttoCostituzioneAvvocato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12755
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicEsecuzioni_AttoRichiestaVisibilità",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12719
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicEsecuzioni_DepositoRelazioneNotarile",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12766
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicEsecuzioni_NotaPrecisazioneCredito",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12777
+    },
+    {
+      "method": "Create_DatiAtto_ParteSiecicEsecuzioni_RinunciaDebitori",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12788
+    },
+    {
+      "method": "Create_DatiAtto_Parte_AttoCostituzioneNuovoAvvocato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12744
+    },
+    {
+      "method": "Create_DatiAtto_Parte_AttoNonCodificato",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13136
+    },
+    {
+      "method": "Create_DatiAtto_Parte_AttoRichiestaVisibilità",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12706
+    },
+    {
+      "method": "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13477
+    },
+    {
+      "method": "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenericoCCIPU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13490
+    },
+    {
+      "method": "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_NotaDepositoCCI",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13503
+    },
+    {
+      "method": "Create_DatiAtto_Parte_Comparsa180",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12811
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ComparsaConclusionale190",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12934
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ComparsaConclusionaleReplica190",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12946
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ComparsaCostituzioneAppello",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12886
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ComparsaCostituzioneAppelloIncidentale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12900
+    },
+    {
+      "method": "Create_DatiAtto_Parte_CostituzioneConRiconvenzionale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12872
+    },
+    {
+      "method": "Create_DatiAtto_Parte_CostituzioneSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12858
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13418
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoIntervento",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13382
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaAssegnazione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13393
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaDistribuzione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13404
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaVendita",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13370
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13464
+    },
+    {
+      "method": "Create_DatiAtto_Parte_IstanzaGenerica",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13115
+    },
+    {
+      "method": "Create_DatiAtto_Parte_Memoria183",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12958
+    },
+    {
+      "method": "Create_DatiAtto_Parte_MemoriaDifensivaCA",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13073
+    },
+    {
+      "method": "Create_DatiAtto_Parte_MemoriaGenerica",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12989
+    },
+    {
+      "method": "Create_DatiAtto_Parte_MemoriaReplica183",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12971
+    },
+    {
+      "method": "Create_DatiAtto_Parte_MemoriaReplicaProvaContraria183",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12983
+    },
+    {
+      "method": "Create_DatiAtto_Parte_MemorieCartabia",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13068
+    },
+    {
+      "method": "Create_DatiAtto_Parte_NominaCTPexart87",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12799
+    },
+    {
+      "method": "Create_DatiAtto_Parte_PrecisazioneConclusioni",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13109
+    },
+    {
+      "method": "Create_DatiAtto_Parte_Preverbale",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12928
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13088
+    },
+    {
+      "method": "Create_DatiAtto_Parte_Reclamo",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12913
+    },
+    {
+      "method": "Create_DatiAtto_Parte_RicorsoCautelareCorsoCausa",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12822
+    },
+    {
+      "method": "Create_DatiAtto_Parte_RicorsoGenerico",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13340
+    },
+    {
+      "method": "Create_DatiAtto_Parte_RicorsoSequestroConservativoCorsoCausa",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12833
+    },
+    {
+      "method": "Create_DatiAtto_Parte_RicorsoSequestroGiudiziarioCorsoCausa",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 12844
+    },
+    {
+      "method": "Create_DatiAtto_Parte_ScrittiDifensivi",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13095
+    },
+    {
+      "method": "Create_DatiAtto_ProfSiecicConcorsuali_DepositoRelazioneNotarile",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13605
+    },
+    {
+      "method": "Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13575
+    },
+    {
+      "method": "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoRelazioneNotarile",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13677
+    },
+    {
+      "method": "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13659
+    },
+    {
+      "method": "Create_DatiAtto_ProfSiecicEsecuzioni_IstanzaProrogaCTU",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13683
+    },
+    {
+      "method": "Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13689
+    },
+    {
+      "method": "Create_DatiAtto_Professionista_DepositoSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13621
+    },
+    {
+      "method": "Create_DatiAtto_Professionista_SIGP_DepositoSemplice",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 13699
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_PagamentoRichiesta",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14776
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_RichiestaNotifica",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14502
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_RichiestaNotificaDebito",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14557
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_RichiestaPignoramento",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14622
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_RichiestaPignoramentoADebito",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14688
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_RichiestaRestituzioneSomme",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14811
+    },
+    {
+      "method": "Create_DatiAtto_UNEP_RichiestaRicercaBeni",
+      "source_file": "FormSentMailBee.cs",
+      "source_line": 14741
+    }
+  ]
+}

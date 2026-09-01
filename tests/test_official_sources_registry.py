@@ -40,7 +40,8 @@ def test_official_sources_config_has_required_sources_and_no_tokens():
     }
     assert required.issubset(ids)
     enabled = {item["id"] for item in config["sources"] if item.get("enabled")}
-    assert enabled == {"normattiva", "gazzetta_ufficiale"}
+    assert {"normattiva", "gazzetta_ufficiale"}.issubset(enabled)
+    assert enabled.issubset(ids)
     assert "cookie" not in text.lower()
     assert "token" not in text.lower()
 

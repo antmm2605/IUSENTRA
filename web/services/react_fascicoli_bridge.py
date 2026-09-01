@@ -3786,12 +3786,36 @@ def _proforma_presidio_for_fascicolo(
     is_defined = _fascicolo_is_defined(fascicolo)
     parcella_item = items.get("parcella") or {}
     liquidazione_item = items.get("liquidazione_giudice") or {}
+    parcella_status = _normalise_payment_status(parcella_item.get("status"), default="")
     source = visible_source = ""
     for candidate in (parcella_item, liquidazione_item):
         source = _text(candidate.get("documentoFonte") or candidate.get("documento_fonte") or candidate.get("origine"))
         if source:
             visible_source = _readable_document_source(source)
             break
+    if not existing_count and parcella_status in {"pagato", "non_previsto"}:
+        amount = _payment_amount_value(parcella_item.get("importo"))
+        status_label = "Parcella registrata" if parcella_status == "pagato" else "Parcella non prevista"
+        message = (
+            f"Voce economica registrata come pagata per {_amount_label(amount)}."
+            if parcella_status == "pagato" and amount is not None
+            else "Voce economica registrata come pagata."
+            if parcella_status == "pagato"
+            else "Per questo fascicolo la parcella è stata registrata come non prevista."
+        )
+        return {
+            "status": parcella_status,
+            "statusLabel": status_label,
+            "tone": "success" if parcella_status == "pagato" else "neutral",
+            "message": message,
+            "href": f"/fascicoli/{encoded_fid}#economia-incassi",
+            "existingCount": 0,
+            "existingDraftCount": 0,
+            "total": amount or 0.0,
+            "totalLabel": _euro(amount or 0.0),
+            "evidence": visible_source,
+            "requiresAction": False,
+        }
     if existing_count:
         if existing_draft_count:
             status_label = "Bozza proforma da visionare"

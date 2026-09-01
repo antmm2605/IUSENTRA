@@ -1344,6 +1344,7 @@ def build_fascicoli_runtime(
         id_cat_portale: str = "",
         id_repeatto_portale: str = "",
         msg_id_portale: str = "",
+        pdfa_profile: str = "2b",
     ) -> Documento:
         contenuto_chiaro = raw
         preserva_documento_portale = str(fonte_documento or "").strip().upper() == "PORTALE_TELEMATICO"
@@ -1356,12 +1357,13 @@ def build_fascicoli_runtime(
                     tmp_path.write_bytes(raw)
                     esito_pdfa = verifica_pdfa(str(tmp_path))
                     if esito_pdfa.get("conforme") is False:
-                        conv = converti_pdfa(str(tmp_path))
+                        conv = converti_pdfa(str(tmp_path), pdfa_profile=pdfa_profile)
                         if conv.get("ok"):
                             contenuto_chiaro = tmp_path.read_bytes()
                             app.logger.info(
-                                "PDF/A auto-conversione: %s -> PDF/A-2B (%s)",
+                                "PDF/A auto-conversione: %s -> %s (%s)",
                                 nome_file,
+                                conv.get("pdfa_profile") or "PDF/A",
                                 conv.get("messaggio", ""),
                             )
                         else:

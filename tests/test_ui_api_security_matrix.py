@@ -108,6 +108,10 @@ def _ui_api_cases(app) -> list[tuple[str, str]]:
     return sorted(set(cases))
 
 
+def _is_public_client_portal_path(path: str) -> bool:
+    return path.startswith("/api/v1/ui/client-portal/public/")
+
+
 def test_all_ui_api_endpoints_enforce_auth_tenant_denials_and_forbidden_context_keys(tmp_path: Path):
     app = _app(tmp_path)
     _studio_a, paths_a = _tenant(app, nome="Studio A", slug="studio-a", api_key="studio-a-key")
@@ -150,11 +154,37 @@ def test_all_ui_api_endpoints_enforce_auth_tenant_denials_and_forbidden_context_
     with app.test_client() as client:
         for method, path in cases:
             anonymous = client.open(path, method=method)
-            assert anonymous.status_code == 401, (method, path, anonymous.status_code, anonymous.get_data(as_text=True))
+            if _is_public_client_portal_path(path):
+                assert anonymous.status_code >= 400, (
+                    method,
+                    path,
+                    anonymous.status_code,
+                    anonymous.get_data(as_text=True),
+                )
+            else:
+                assert anonymous.status_code == 401, (
+                    method,
+                    path,
+                    anonymous.status_code,
+                    anonymous.get_data(as_text=True),
+                )
             assert not any(fragment in anonymous.get_data(as_text=True) for fragment in sensitive_fragments)
 
             mismatch = client.open(path, method=method, headers=_tenant_headers("studio-a-key", "studio-b"))
-            assert mismatch.status_code == 403, (method, path, mismatch.status_code, mismatch.get_data(as_text=True))
+            if _is_public_client_portal_path(path):
+                assert mismatch.status_code == anonymous.status_code, (
+                    method,
+                    path,
+                    mismatch.status_code,
+                    mismatch.get_data(as_text=True),
+                )
+            else:
+                assert mismatch.status_code == 403, (
+                    method,
+                    path,
+                    mismatch.status_code,
+                    mismatch.get_data(as_text=True),
+                )
             assert not any(fragment in mismatch.get_data(as_text=True) for fragment in sensitive_fragments)
 
             forced = client.open(

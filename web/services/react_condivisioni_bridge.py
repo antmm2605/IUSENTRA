@@ -21,6 +21,12 @@ ROLE_TONES = {
     RuoloCondivisione.GESTORE.value: "warning",
 }
 
+ROLE_DESCRIPTIONS = {
+    RuoloCondivisione.LETTURA.value: "Può consultare la cartella senza modificare i dati.",
+    RuoloCondivisione.SCRITTURA.value: "Può consultare e aggiornare i contenuti della cartella.",
+    RuoloCondivisione.GESTORE.value: "Può aggiornare la cartella e gestire gli altri collaboratori.",
+}
+
 
 def _safe_text(value: Any, fallback: str = "") -> str:
     text = str(value or "").strip()
@@ -227,5 +233,74 @@ def build_react_condivisioni_payload(
             "noManagedFolders": not managed_folders,
             "noReceivedFolders": not received_folders,
             "noExpiringAccesses": not int(stats.get("accessi_in_scadenza_7gg") or 0),
+        },
+    }
+
+def build_client_collaborators_payload(
+    *,
+    cliente: Any,
+    get_condivisioni: Callable[[], Any],
+    get_utenti: Callable[[], Any],
+    current_user: Any,
+) -> dict[str, Any]:
+    """Payload operativo per la gestione React dei collaboratori cliente."""
+
+    condivisioni = get_condivisioni()
+    utenti = get_utenti()
+    client_id = _safe_text(getattr(cliente, "id", ""))
+    user_id = _safe_text(getattr(current_user, "id", ""))
+    has_permission = getattr(current_user, "ha_permesso", lambda _permission: False)
+    can_manage = bool(
+        has_permission("clienti.scrivi")
+        or condivisioni.ha_accesso(user_id, client_id, RuoloCondivisione.GESTORE)
+    )
+    collaborators = list(condivisioni.collaboratori_di(client_id))
+    collaborator_ids = {_safe_text(getattr(accesso, "id_utente", "")) for accesso in collaborators}
+    available_users = []
+    if can_manage:
+        available_users = [
+            {
+                "id": _safe_text(getattr(user, "id", "")),
+                "username": _safe_text(getattr(user, "username", "")),
+                "name": _safe_text(
+                    getattr(user, "nome_completo", "") or getattr(user, "username", ""),
+                    "Collaboratore",
+                ),
+            }
+            for user in utenti.tutti(solo_attivi=True)
+            if _safe_text(getattr(user, "id", "")) not in collaborator_ids
+            and _safe_text(getattr(user, "id", "")) != user_id
+        ]
+
+    return {
+        "source": "repository_reali",
+        "contracts": {
+            "mock_fallback": False,
+            "writes": "operational_routes",
+            "route_owner": "react_shell",
+        },
+        "client": _client_payload(cliente),
+        "permissions": {"canManage": can_manage},
+        "collaborators": [_access_payload(accesso) for accesso in collaborators],
+        "availableUsers": sorted(available_users, key=lambda item: item["name"].casefold()),
+        "roleOptions": [
+            {
+                "value": role.value,
+                "label": ROLE_LABELS[role.value],
+                "tone": ROLE_TONES[role.value],
+                "description": ROLE_DESCRIPTIONS[role.value],
+            }
+            for role in RuoloCondivisione
+        ],
+        "actions": {
+            "client": f"/clienti/{client_id}",
+            "folder": f"/clienti/{client_id}/cartella",
+            "sharedFolders": "/cartelle-condivise",
+            "audit": "/audit",
+            "collection": f"/api/v1/clienti/{client_id}/condivisioni",
+        },
+        "emptyStates": {
+            "noCollaborators": not collaborators,
+            "noAvailableUsers": not available_users,
         },
     }

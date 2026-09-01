@@ -67,7 +67,7 @@ def test_tariffario_riepilogo_realtime_sticky_sul_wrapper():
     page = (root / "frontend/src/components/TariffarioPage.tsx").read_text(encoding="utf-8")
     css = (root / "frontend/src/components/TariffarioPage.css").read_text(encoding="utf-8")
 
-    assert 'className="iu-tar-summary-dock"' in page
+    assert 'className="iu-tar-summary-dock iu-tar-summary-sticky"' in page
     assert "position: 'fixed'" in page
     assert "window.addEventListener('resize', schedule)" in page
     assert 'className="iu-tar-realtime iu-tar-summary-sticky"' not in page

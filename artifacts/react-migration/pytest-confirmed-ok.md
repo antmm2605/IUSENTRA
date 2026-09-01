@@ -6361,3 +6361,36 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Frontend e governance | OK | Contratti React, presidi notifiche, sequenza UI, design system, coverage, build Vite, governance repository, Ruff con la selezione usata dalla CI, integrità UTF-8 e `git diff --check` superati. |
 | Docker reale locale | OK | App, scheduler e OCR ricostruiti sulla versione `2.278.51`; tutti healthy; `/api/pronto` restituisce stato `pronto`, fuso `Europe/Rome` e versione corretta. |
 | Browser reale autenticato | OK osservato | In `Economica` + `Schede` restano visibili contributo, spese/esborsi, liquidazione e parcella. Il comando sopra i selettori apre e riduce il pieno schermo conservando vista, modalità e dati economici. |
+
+
+## Local Signer 1.6.125 - consenso Windows e parità PST - 31/08/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_local_signer.py tests\test_local_signer_installer_atomic.py tests\test_build_dist.py --junitxml artifacts\react-migration\local-signer-20260831.xml` | OK | `281` test, nessun errore o failure. Il nonce è monouso, il processo certificato riceve il consenso nativo prima dell’avvio e il Local Signer non manipola finestre PIN. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript `2.278.83` superato prima del bump di release `2.278.84`. |
+| `python -m pytest -q tests\test_react_shell.py -k "local_signer_foreground or office_documents_portale_pst" --junitxml artifacts\react-migration\react-pst-foreground-20260831.xml` | OK | `2` test: Wizard e Fascicolo d’ufficio mantengono il protocollo unico e il nonce raggiunge la ricerca snapshot. |
+| Controllo sorgente `tools/local_signer.py` | OK | Assenti API di enumerazione, spostamento, chiusura o forzatura del focus di finestre Windows. |
+## Local Signer 1.6.126 - barriera monouso e pacchetto ufficiale - 01/09/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Quattro shard completi Local Signer/installer/build | OK | `305/305` test superati, `0` errori e `0` failure; report `local-signer-20260901-shard-1.json` … `-4.json`. |
+| `python tools/check_local_signer_boundaries.py` | OK | Barriera monouso richiesta nelle due superfici React; assenti API Windows invasive e gate divergenti nel runner. |
+| Typecheck e test React PST mirati | OK | Il Wizard e il Fascicolo d’ufficio acquisiscono il consenso dal click e conservano endpoint, sessione, catalogo, resolver e batch condivisi. |
+| `python tools/build_dist.py --native-windows` | OK | Generati `SetupLocalSigner.exe` e `SetupLocalSigner-1.6.126.exe` dalla sorgente `1.6.126`. |
+
+La prova browser reale con smart card resta separata e non è inclusa negli esiti automatici sopra.
+
+## Fasi 4–14, condivisioni clienti React e gate locali 2.278.84 - 01/09/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Matrice Pytest core CI, 10 fasi e 39 processi | OK | `39/39` report con `exitCode=0`, `428` target complessivi; ogni processo è rimasto entro il limite di 5 minuti. |
+| Coverage moduli critici, parti 1–12 | OK | `12/12` shard superati; combinazione locale `80%`, superiore alla baseline richiesta `71,49%`. Il vecchio aggregatore CI non è stato reintrodotto. |
+| Procedure Lifecycle Knowledge Pipeline | OK | `1.810` istruzioni e `580` rami coperti al `100%`, inclusi notifica, prova, firma, deposito, ricevute e audit. |
+| Frontend React | OK | Test frontend, typecheck, build Vite e copertura Storybook pagine `74/74` superati. |
+| Contratti, sicurezza e dipendenze | OK | OpenAPI/provider, registry e documentazione generata, governance, Ruff, flake8, mypy governato, compileall, `pip-audit` e audit pnpm produzione superati. |
+| Condivisioni clienti | OK automatico | Il percorso precedente è sostituito dalla pagina React tenant-aware e dalle API JSON reali, con RBAC, revoca e audit; i test del percorso storico sono stati riallineati al nuovo contratto. |
+
+La prova visiva materiale locale e in produzione resta registrata separatamente fino al rebuild e ai click reali.

@@ -183,10 +183,14 @@ def test_compilatore_alias_builtin_apre_wizard_specifico(tmp_path):
         _login_client(client)
         response_procura = client.get("/template-atti/compila/CIV_PROC_001")
         response_querela = client.get("/template-atti/compila/PEN_BLT_001")
+        payload_procura = client.get("/api/v1/ui/template-atti/compila/CIV_PROC_001")
+        payload_querela = client.get("/api/v1/ui/template-atti/compila/PEN_BLT_001")
 
     assert response_procura.status_code == 200
     assert response_querela.status_code == 200
-    html_procura = response_procura.get_data(as_text=True)
-    html_querela = response_querela.get_data(as_text=True)
-    assert "Procura alle liti" in html_procura
-    assert "Querela" in html_querela
+    assert "IUSENTRA - React Shell" in response_procura.get_data(as_text=True)
+    assert "IUSENTRA - React Shell" in response_querela.get_data(as_text=True)
+    assert payload_procura.status_code == 200
+    assert payload_querela.status_code == 200
+    assert "Procura alle liti" in payload_procura.get_json()["model"]["name"]
+    assert "Querela" in payload_querela.get_json()["model"]["name"]

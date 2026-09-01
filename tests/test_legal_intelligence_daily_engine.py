@@ -99,7 +99,7 @@ def test_auto_apply_applica_solo_fonti_tecniche_sicure(tmp_path: Path):
     assert snapshot["counts"]["pending"] == 1
 
 
-def test_endpoint_dashboard_mostra_motore_giornaliero(tmp_path: Path):
+def test_endpoint_react_mostra_monitor_fonti_giornaliere(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     cfg["LEGAL_INTELLIGENCE_DAILY_DB"] = str(tmp_path / "daily.sqlite")
     app = create_app(cfg)
@@ -107,12 +107,18 @@ def test_endpoint_dashboard_mostra_motore_giornaliero(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/legal-intelligence/?_legacy=1")
-        body = response.get_data(as_text=True)
+        legacy = client.get("/legal-intelligence/?_legacy=1", follow_redirects=False)
+        response = client.get("/ricerca-legale")
+        payload_response = client.get("/api/v1/ui/ricerca-legale")
 
+    assert legacy.status_code == 301
+    assert legacy.headers["Location"].startswith("/ricerca-legale")
     assert response.status_code == 200
-    assert "Motore giornaliero fonti ufficiali" in body
-    assert "Esegui controllo ora" in body
+    assert 'id="root"' in response.get_data(as_text=True)
+    assert payload_response.status_code == 200
+    payload = payload_response.get_json()
+    assert any(section["id"] == "acquisizione_fonti" for section in payload["sections"])
+    assert any(metric["id"] == "fonti_monitorate" for metric in payload["metrics"])
 
 
 def test_comando_daily_sync_eseguibile_con_fonte_selezionata(tmp_path: Path):

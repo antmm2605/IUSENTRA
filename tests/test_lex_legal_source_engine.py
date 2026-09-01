@@ -52,7 +52,7 @@ def _passage(**citation_overrides) -> RetrievedLegalPassage:
 def test_registry_registers_all_sources_disabled_by_default():
     registry = create_default_registry(env={})
 
-    assert len(registry.all_sources()) == 15
+    assert len(registry.all_sources()) == 16
     assert registry.enabled_sources() == []
     assert registry.network_allowed() is False
     assert all(source.metadata.enabled_by_default is False for source in registry.all_sources())

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from pct.storage import StudioDB
 from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config
 
 
@@ -37,8 +38,9 @@ def _seed_studio_con_moscato(tmp_path: Path):
     manager = GestioneTenant(app.config["TENANTS_REGISTRY"])
     paths = manager.percorsi_dati(studio.slug, reconcile_aliases=False)
     _write_studio_config(Path(paths["CONFIG_STUDIO_DB"]))
+    studio_db = StudioDB.get(paths["STUDIO_DB"])
 
-    clienti = GestioneClienti(db_path=paths["CLIENTI_DB"])
+    clienti = GestioneClienti(db_path=paths["CLIENTI_DB"], studio_db=studio_db)
     cliente = clienti.nuovo(
         TipoCliente.PERSONA_FISICA,
         nome="Marco",
@@ -55,7 +57,7 @@ def _seed_studio_con_moscato(tmp_path: Path):
         ),
     )
 
-    agenda = Agenda(db_path=paths["AGENDA_DB"])
+    agenda = Agenda(db_path=paths["AGENDA_DB"], studio_db=studio_db)
     agenda.aggiungi(
         "Udienza istruttoria Moscato",
         TipoAppuntamento.UDIENZA,

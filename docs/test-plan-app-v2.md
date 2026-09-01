@@ -15,11 +15,11 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 
 ## Copertura fase 10
 
-- Route manifest: 118.
-- Route P0/P1: 77.
-- Route P0/P1 con stato `tested`: 60.
+- Route manifest: 119.
+- Route P0/P1: 78.
+- Route P0/P1 con stato `tested`: 61.
 - File test/smoke censiti: 608.
-- Stati matrice: blocked=3, partial=41, pending=14, tested=60.
+- Stati matrice: blocked=3, partial=41, pending=14, tested=61.
 
 ## Comandi principali
 
@@ -45,7 +45,7 @@ Eseguito il gate critico reale:
 python scripts\run_pytest_phases.py --suite coverage-critical --timeout-minutes 20 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=term-missing --cov-fail-under=71
 ```
 
-Esito: PASS, 313 test, coverage totale 71.61%, soglia 71 raggiunta. Sono comparsi `ResourceWarning` su connessioni SQLite nei test, senza fallimento del gate.
+Esito locale: PASS, 982 test, coverage totale 80%, soglia minima 71 raggiunta. Il target storico 100% resta distinto e non viene dichiarato raggiunto. Sono comparsi `ResourceWarning` su connessioni SQLite nei test, senza fallimento del gate.
 
 ## Frontend coverage
 

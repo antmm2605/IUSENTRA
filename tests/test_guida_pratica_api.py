@@ -365,7 +365,7 @@ def test_guida_pratica_api_fascicolo_react_legge_stesso_fascicolo_json_legacy(tm
     assert guida_payload["guida"]["codice"] == "220101"
 
 
-def test_guida_pratica_api_fascicolo_senza_codice_propone_scheda_facoltativa_da_oggetto(tmp_path: Path):
+def test_guida_pratica_api_fascicolo_senza_codice_usa_match_univoco_catalogo_ufficiale(tmp_path: Path):
     app = _app(tmp_path)
     headers = {"X-API-Key": "guida-test-key"}
     fascicoli = GestioneFascicoli(
@@ -392,12 +392,9 @@ def test_guida_pratica_api_fascicolo_senza_codice_propone_scheda_facoltativa_da_
     assert payload["bloccaLavoro"] is False
     assert payload["guida"]["codice"] == "145009"
     assert payload["guida"]["coverage"]["level"] == "curata"
-    assert payload["matchedFromFascicolo"]["confirmation_required"] is True
-    assert "deposito" not in payload["message"].casefold()
-    assert "Scheda pratica suggerita dall'oggetto del fascicolo" not in payload["message"]
-    assert "Scheda pratica individuata dall'oggetto del fascicolo" not in payload["message"]
-    assert "Guida pratica facoltativa suggerita" in payload["message"]
-    assert payload["checklist"]["blocca_lavoro"] is False
+    assert payload["fascicolo"]["codice_oggetto_pst"] == "145009"
+    assert payload["fascicolo"]["fonte_codice_oggetto"] == "PST_XSD"
+    assert "matchedFromFascicolo" not in payload
     assert not any(blocker.get("type") == "codice_oggetto_da_confermare" for blocker in payload["checklist"]["blockers"])
 
     ui_source = Path("frontend/src/components/GuidaPraticaSidebar.tsx").read_text(encoding="utf-8")

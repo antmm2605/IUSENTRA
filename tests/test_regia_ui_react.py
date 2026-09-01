@@ -730,7 +730,8 @@ def test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti():
     css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
 
     assert "const visibleRecipientSuggestions = useMemo" in source
-    assert "if (!query) return recipientSuggestions" in source
+    assert "if (!tokens.length) return true" in source
+    assert "normalizedRecipientRegisterFilter" in source
     assert "practiceRecipientSuggestionKeys" in source
     assert "Cerca indirizzo o soggetto" in source
     assert "Uffici NEP / UNEP" in source

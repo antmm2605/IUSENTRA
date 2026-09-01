@@ -124,3 +124,94 @@ def test_notification_proof_bundle_blocca_destinatario_senza_ricevute(tmp_path):
             {"proof_bundle_id": str(proof["bundle_id"])},
             source="notification_proof_validation",
         )
+
+def test_notification_workflow_remaining_error_and_branch_paths(tmp_path, monkeypatch):
+    import pct.notification_workflow as workflow_module
+
+    repo = make_repo(tmp_path)
+    notification_id = create_notification_event(
+        repo,
+        fascicolo_id="F-BRANCH",
+        notification_type="PEC",
+        act_document_id="atto",
+        recipient_name="Mario Rossi",
+        recipient_address="mario@example.test",
+        recipient_address_source="ReGIndE",
+    )
+
+    with pytest.raises(ValueError, match="Notifica non trovata"):
+        acquire_notification_proof_bundle(repo, 999_999, "missing")
+    with pytest.raises(ValueError, match="solo dopo invio o consegna"):
+        acquire_notification_proof_bundle(repo, notification_id, "missing")
+
+    mark_notification_ready(repo, notification_id)
+    record_notification_sent(repo, notification_id)
+    record_notification_delivery(repo, notification_id)
+    proof = build_complete_notification_proof_bundle(
+        repo,
+        notification_id=notification_id,
+        bundle_id="proof-branch",
+    )
+    acquire_notification_proof_bundle(repo, notification_id, str(proof["bundle_id"]))
+
+    mark_proof_deposit_required(repo, notification_id)
+    assert repo.get_notification_event(notification_id)["status"] == "PROOF_ACQUIRED"
+    with pytest.raises(ValueError, match="Evidenza deposito prova mancante"):
+        mark_proof_deposited(repo, notification_id, 999_999)
+
+    other_evidence_id = add_evidence_document(
+        repo,
+        fascicolo_id="F-OTHER",
+        evidence_type="DEPOSIT_RECEIPT",
+        document_id="deposit-other",
+        hash="b" * 64,
+    )
+    with pytest.raises(ValueError, match="altro fascicolo"):
+        mark_proof_deposited(repo, notification_id, other_evidence_id)
+
+    evidence_id = add_evidence_document(
+        repo,
+        fascicolo_id="F-BRANCH",
+        evidence_type="DEPOSIT_RECEIPT",
+        document_id="deposit-branch",
+        hash="c" * 64,
+    )
+    actual_event = repo.get_notification_event(notification_id)
+    assert actual_event is not None
+    with monkeypatch.context() as event_patch:
+        event_patch.setattr(
+            type(repo),
+            "get_notification_event",
+            lambda _repo, _notification_id, conn=None: {
+                **actual_event,
+                "status": "PROOF_ACQUIRED",
+                "proof_bundle_id": None,
+            },
+        )
+        with pytest.raises(ValueError, match="bundle probatorio"):
+            mark_proof_deposited(repo, notification_id, evidence_id)
+
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        workflow_module,
+        "fetch_notification_case_for_event",
+        lambda _conn, _notification_id: None,
+    )
+    monkeypatch.setattr(
+        type(repo),
+        "update_notification_event",
+        lambda _repo, event_id, updates, **kwargs: captured.update(
+            {
+                "event_id": event_id,
+                "updates": updates,
+                "source": kwargs.get("source"),
+            }
+        ),
+    )
+    mark_proof_deposited(repo, notification_id, evidence_id)
+    assert captured["event_id"] == notification_id
+    assert captured["updates"] == {
+        "status": "PROOF_DEPOSITED",
+        "proof_bundle_id": str(proof["bundle_id"]),
+    }
+    assert captured["source"] == "notification_proof_validation"

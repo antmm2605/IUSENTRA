@@ -139,7 +139,7 @@ def test_fattura_sdi_mancata_consegna_non_crea_scadenza_processuale():
 
 
 def test_udienza_online_e_in_presenza_rilevano_modalita():
-    online = _classifica("274/2026/CC udienza fissata", "Collegamento https://meet.example.test/abc")
+    online = _classifica("274/2026/CC udienza fissata", "Collegamento https://meet.google.com/abc-defg-hij")
     presenza = _classifica("274/2026/CC udienza in presenza", "Aula 3 secondo piano")
     assert online["event_type"] == "udienza_online"
     assert online["udienza"]["modalita"] == "online"

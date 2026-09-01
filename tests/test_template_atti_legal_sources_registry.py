@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pct.template_atti_legal_sources import template_atti_sources_for_model
+from pct.template_atti_legal_sources import LAST_VERIFIED_AT, template_atti_sources_for_model
 
 
 def test_template_atti_fonti_ufficiali_integrabili_sono_tracciate():
@@ -13,7 +13,7 @@ def test_template_atti_fonti_ufficiali_integrabili_sono_tracciate():
     assert any(row["article"] == "art. 167 c.p.c." for row in rows)
     assert any(row["id"] == "normattiva_dm_217_2023_giustizia_telematica" for row in rows)
     assert all(row["official_url"].startswith("https://") for row in rows)
-    assert all(row["last_verified_at"] == "2026-06-06" for row in rows)
+    assert all(row["last_verified_at"] == LAST_VERIFIED_AT for row in rows)
     assert any(row["coverage_role"] == "specifica" for row in rows)
     assert any(row["coverage_role"] == "secondaria_collegata" for row in rows)
     assert all("testo" not in row for row in rows)

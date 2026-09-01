@@ -15,6 +15,7 @@ import pytest
 
 from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.storage import StudioDB
 from pct.redazione_contesto import (
     anteprima_campi_modello,
     applica_marcatori_dati_mancanti,
@@ -470,7 +471,8 @@ def _app_redazione(tmp_path):
 
     from pct.fascicoli import TipoDocumento
 
-    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"], studio_db=studio_db)
     cliente = clienti.nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi", codice_fiscale="RSSMRA70B10G288K")
     clienti.aggiorna(
         cliente.id,
@@ -478,7 +480,12 @@ def _app_redazione(tmp_path):
         luogo_nascita="Palmi",
         indirizzo_residenza=Indirizzo(via="Via Roma", civico="10", cap="89015", comune="Palmi", provincia="RC"),
     )
-    fascicoli = GestioneFascicoli(db_path=cfg["FASCICOLI_DB"], documents_dir=cfg["FASCICOLI_DOCS"], archive_dir=cfg["FASCICOLI_ARCH"])
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+        studio_db=studio_db,
+    )
     fascicolo = fascicoli.nuovo(
         titolo="Risoluzione contratto preliminare immobile",
         tipo=TipoFascicolo.CIVILE,

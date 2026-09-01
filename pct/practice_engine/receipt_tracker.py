@@ -173,7 +173,7 @@ def import_receipt(
 
             required = required or bool(has_app_context() and current_app.config.get("AUDIT_ENABLED"))
         except Exception:
-            pass
+            required = bool(required)
         if required:
             raise
     return {"receipt": receipt, "session": repository.get_deposit_session(deposito_id)}

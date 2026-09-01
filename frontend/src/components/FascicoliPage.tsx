@@ -150,6 +150,7 @@ import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRunt
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
+import { beginLocalSignerForegroundGrant } from '../features/telematico/localSignerForeground'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -9474,11 +9475,20 @@ function DetailPage({ id }:{id:string}) {
     openDetailSectionById(sectionId)
   }
   const openOfficeDocumentsFromContext = () => {
+    let foregroundGrant
+    try {
+      foregroundGrant = beginLocalSignerForegroundGrant()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Attivazione Windows non disponibile.'
+      setToast({ tone: 'danger', message })
+      return
+    }
     setContextMenu(null)
     if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
     openDetailSectionById('documenti')
     setOfficeDocumentsOpenRequest((current) => ({
       requestId: (current?.requestId || 0) + 1,
+      foregroundGrant,
     }))
   }
   const openContributoUnificatoFromContext = () => {

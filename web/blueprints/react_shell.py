@@ -198,6 +198,8 @@ def _route_component_key(path: str) -> str:
         lower = lower[len("/app-v2") :] or "/"
     if lower == "/":
         return ""
+    if lower.startswith("/clienti/") and lower.endswith("/collaboratori"):
+        return "src/components/ClientiCollaboratoriPage.tsx"
     for prefix, component in _ROUTE_COMPONENTS:
         if lower == prefix or lower.startswith(f"{prefix}/"):
             return component

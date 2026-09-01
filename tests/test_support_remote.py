@@ -859,7 +859,7 @@ def test_support_remote_pc_control_scripts_use_browser_screen_and_local_signer_f
     assert "allow_control: bool" in agent_source
     assert "await connectWs();" in customer_script
     assert 'id="support-operator-react-root"' in Path("web/templates/support/operator_room.html").read_text(encoding="utf-8")
-    assert "SupportOperatorRoom" in Path("frontend/src/main.tsx").read_text(encoding="utf-8")
+    assert "SupportOperatorRoom" in Path("frontend/src/reactEntry.tsx").read_text(encoding="utf-8")
     assert "IUSENTRA Support Remote Agent" in agent_source
     assert "SetCursorPos" in agent_source
     assert "SendInput" in agent_source

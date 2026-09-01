@@ -59,8 +59,8 @@ def test_dedup_per_url_e_tetto(monkeypatch):
     assert len({candidate.url for candidate in candidates}) == 2
 
 
-def test_archivi_assenti_risultato_vuoto_senza_eccezioni():
-    # Nessun monkeypatch: nel sandbox i DB non esistono -> lista vuota, mai errori.
+def test_archivi_assenti_risultato_vuoto_senza_eccezioni(monkeypatch):
+    _patch_retriever(monkeypatch)
     assert LocalArchiveSearchProvider().search("art. 2043 codice civile", limit=3) == []
 
 

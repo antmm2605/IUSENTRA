@@ -4,13 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request
 
 from web.blueprints.react_shell import render_react_shell_response
-
-
-def _richiede_vista_classica() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_workspace_routes(
@@ -23,21 +19,7 @@ def register_workspace_routes(
 
     @app.route("/workspace-intelligente")
     def workspace_intelligente():
-        if not _richiede_vista_classica():
-            return render_react_shell_response("regia-operativa")
-
-        try:
-            horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
-        except ValueError:
-            horizon_days = 14
-        focus = str(request.args.get("focus", "tutto") or "tutto").strip().lower()
-        overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
-        return render_template(
-            "workspace_intelligente.html",
-            overview=overview,
-            horizon_days=horizon_days,
-            focus=focus,
-        )
+        return render_react_shell_response("regia-operativa")
 
     @app.route("/api/workspace-intelligente")
     def api_workspace_intelligente():

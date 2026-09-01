@@ -443,7 +443,7 @@ def _test_plan_doc(routes: list[dict[str, object]], inventory_rows: list[TestInv
             r"python scripts\run_pytest_phases.py --suite coverage-critical --timeout-minutes 20 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=term-missing --cov-fail-under=71",
             "```",
             "",
-            "Esito: PASS, 313 test, coverage totale 71.61%, soglia 71 raggiunta. Sono comparsi `ResourceWarning` su connessioni SQLite nei test, senza fallimento del gate.",
+            "Esito locale: PASS, 982 test, coverage totale 80%, soglia minima 71 raggiunta. Il target storico 100% resta distinto e non viene dichiarato raggiunto. Sono comparsi `ResourceWarning` su connessioni SQLite nei test, senza fallimento del gate.",
             "",
             "## Frontend coverage",
             "",

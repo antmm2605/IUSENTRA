@@ -118,15 +118,14 @@ def test_filtri_per_voce_economica(tmp_path):
         items = response.get_json()["items"]
         assert [item["id"] for item in items] == [fascicoli[1].id]
 
-        # parcella=da_emettere e' il default di dominio: include i fascicoli senza
-        # registrazione parcella ed esclude quello con parcella pagata
+        # parcella=da_emettere mostra solo lavoro economico reale: uno stato
+        # generico senza importo, azione o bozza non deve creare falsi positivi.
         response = client.get(
             "/api/v1/ui/fascicoli?parcella=da_emettere",
             headers={"X-API-Key": "react-test-key"},
         )
         ids = {item["id"] for item in response.get_json()["items"]}
-        assert fascicoli[1].id not in ids
-        assert {fascicoli[0].id, fascicoli[2].id} <= ids
+        assert ids == set()
 
         # filtro combinato senza riscontri: cu pagato E parcella pagata su fascicoli diversi
         response = client.get(

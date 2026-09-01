@@ -1,0 +1,224 @@
+.iu-client-collab-panel form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.iu-client-collab-panel label {
+  display: grid;
+  gap: 7px;
+  color: var(--iu-slate-800);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.iu-client-collab-panel label > span {
+  color: var(--iu-slate-500);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.iu-client-collab-panel input,
+.iu-client-collab-panel select,
+.iu-client-collab-panel textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--iu-slate-300);
+  border-radius: var(--iu-radius-md);
+  color: var(--iu-slate-900);
+  background: #fff;
+  font: inherit;
+  font-weight: 500;
+}
+
+.iu-client-collab-panel textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.iu-client-collab-role-help,
+.iu-client-collab-guidance {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin: 0;
+  color: var(--iu-blue-800);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.iu-client-collab-role-help svg,
+.iu-client-collab-guidance svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.iu-client-collab-panel .iu-client-collab-submit {
+  min-height: 46px;
+  border-color: var(--iu-blue-700);
+  color: #fff;
+  background: var(--iu-blue-700);
+}
+
+.iu-client-collab-panel .iu-client-collab-submit:hover:not(:disabled) {
+  border-color: var(--iu-blue-800);
+  color: #fff;
+  background: var(--iu-blue-800);
+}
+
+.iu-client-collab-panel button:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.iu-client-collab-guidance {
+  margin: 0 18px 18px;
+  padding: 12px;
+  border-radius: var(--iu-radius-md);
+  color: var(--iu-slate-600);
+  background: var(--iu-slate-50);
+}
+
+.iu-client-collab-guidance p {
+  margin: 0;
+}
+
+.iu-client-collab-empty,
+.iu-client-collab-state {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 18px;
+  padding: 20px;
+  border: 1px dashed var(--iu-slate-300);
+  border-radius: var(--iu-radius-lg);
+  color: var(--iu-slate-600);
+  background: var(--iu-slate-50);
+}
+
+.iu-client-collab-empty div,
+.iu-client-collab-state div {
+  display: grid;
+  gap: 4px;
+}
+
+.iu-client-collab-empty strong {
+  color: var(--iu-slate-900);
+}
+
+.iu-client-collab-empty span,
+.iu-client-collab-state p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.iu-client-collab-state {
+  align-items: center;
+  margin: 0;
+  border-style: solid;
+}
+
+.iu-client-collab-state h1 {
+  margin: 0;
+  color: var(--iu-slate-950);
+  font-size: 20px;
+}
+
+.iu-client-collab-state button {
+  margin-left: auto;
+}
+
+.iu-client-collab-skeleton {
+  border-radius: var(--iu-radius-xl);
+  background: var(--iu-slate-100);
+  animation: iu-client-collab-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.iu-client-collab-skeleton--hero { min-height: 180px; }
+.iu-client-collab-skeleton--list { min-height: 440px; }
+.iu-client-collab-skeleton--form { min-height: 520px; }
+
+.iu-client-collab-spin {
+  animation: iu-client-collab-spin .8s linear infinite;
+}
+
+@keyframes iu-client-collab-spin { to { transform: rotate(360deg); } }
+@keyframes iu-client-collab-pulse { to { opacity: .55; } }
+
+@media (max-width: 1040px) {
+  .iu-client-collab-hero,
+  .iu-client-collab-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-client-collab-hero-actions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .iu-client-collab-panel--form {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  .iu-client-collab-hero {
+    padding: 18px;
+  }
+
+  .iu-client-collab-hero-actions,
+  .iu-client-collab-hero-actions a,
+  .iu-client-collab-summary {
+    width: 100%;
+  }
+
+  .iu-client-collab-hero-actions a {
+    justify-content: flex-start;
+  }
+
+  .iu-client-collab-summary,
+  .iu-client-collab-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-client-collab-card {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .iu-client-collab-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .iu-client-collab-card-title {
+    display: grid;
+  }
+
+  .iu-client-collab-revoke {
+    grid-column: 1 / -1;
+  }
+
+  .iu-client-collab-confirm {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .iu-client-collab-panel .iu-client-collab-revoke-button,
+  .iu-client-collab-panel .iu-client-collab-submit {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iu-client-collab-hero-actions a,
+  .iu-client-collab-panel button,
+  .iu-client-collab-skeleton,
+  .iu-client-collab-spin {
+    transition: none;
+    animation: none;
+  }
+}

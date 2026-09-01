@@ -2026,3 +2026,22 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Firma reale `Ricorso.pdf.p7m` e `Procura .pdf.p7m` | PIN personale dell'avvocato | Aperto fino alla prova materiale | Server `2.278.20`, pagina reale e Local Signer `1.6.110` verificati; entrambi i file sono riconosciuti come `Firma CAdES-BES da aggiornare` e il vecchio avviso non compare. Codex non ha inserito alcun PIN. | L'avvocato inserisce il PIN e usa `Firma 2 documenti`; subito dopo verificare profilo CAdES-BES, contenuto originale e versione precedente nello storico. Non inviare PEC durante questa prova. |
+
+
+## Local Signer 1.6.125 - accettazione materiale ancora richiesta - 31/08/2026
+
+| Area | Gate | Stato | Azione |
+| --- | --- | --- | --- |
+| Consenso Windows e consultazione PST | Browser reale autenticato su `127.0.0.1:8080` con smart card disponibile | Aperto fino alla prova materiale | Dopo rebuild Docker, avviare dal Wizard e dal Fascicolo d’ufficio una ricerca PST con click reale, verificando che il PIN compaia senza spostamenti forzati di finestre, che la sessione e il batch restino unici, e che desktop/tablet/mobile non abbiano overflow. Non firmare né inviare PEC. |
+## Local Signer 1.6.126 - accettazione materiale - 01/09/2026
+
+| Area | Gate | Stato | Azione |
+| --- | --- | --- | --- |
+| Consenso monouso e ricerca PST unificata | Browser reale autenticato su `127.0.0.1:8080`, smart card disponibile | Aperto fino alla prova materiale | Dopo rebuild della release `2.278.84`, avviare con click reale la ricerca dal Wizard e dal Fascicolo d’ufficio; osservare prompt nativo, risultato, sessione e batch unici, hover/focus, scroll e responsive desktop/tablet/mobile. Non firmare e non inviare PEC, notifiche o depositi. |
+
+## Fasi 4–14 e condivisioni clienti 2.278.84 - verifiche residue - 01/09/2026
+
+| Area | Gate | Stato | Azione |
+| --- | --- | --- | --- |
+| Accettazione UI locale e produzione | Browser reale autenticato, desktop/tablet/mobile | Aperto fino alla prova materiale | Dopo rebuild locale, verificare navigazione, pagina collaboratori, Fascicoli e viste economiche con click, scroll completo, hover e focus; ripetere sulla produzione dopo deploy. |
+| Codex quality gate `code` / `ui-support` | Scope del worktree di release | Non verde per scope intenzionale | Il gate segnala i file prodotto, gli asset, il bump versione e `setup.py`; guardrail `AGENTS.md`, Open Design e assenza di nuove dipendenze runtime sono confermati. Non rimuovere codice o versione per forzare il gate; rieseguire sul worktree riallineato e riportare il segnale nel report. |

@@ -66,6 +66,9 @@ QUICKORGANIZER_EXE_CANDIDATES = (
 QUICKORGANIZER_DECOMPILED_FORM = Path(
     r"C:\Users\antmm\AppData\Local\Temp\quickorganizer_decompiled_full\FormSentMailBee.cs"
 )
+QUICKORGANIZER_METHOD_EVIDENCE = (
+    ROOT / "artifacts" / "react-migration" / "quickorganizer-deposito-method-evidence-2026-08-31.json"
+)
 QUICKORGANIZER_CATALOG = ROOT / "pct" / "data" / "cataloghi" / "quickorganizer_depositi_studio_telematico.json"
 QUICKORGANIZER_VALIDATIONS = ROOT / "pct" / "data" / "cataloghi" / "quickorganizer_deposito_validazioni.json"
 STUDIO_DESTINATION_TABLES = ROOT / "pct" / "data" / "cataloghi" / "studio_telematico_uffici_deposito.json"
@@ -102,22 +105,86 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _source_evidence() -> dict[str, Any]:
+def _method_evidence_source() -> tuple[list[str], dict[str, Any]]:
+    """Carica il decompilato locale o il suo indice versionato e improntato.
+
+    Lo snapshot conserva soltanto metodo/riga dei percorsi effettivamente usati
+    dal catalogo: non include il sorgente decompilato. Se il file temporaneo è
+    stato ripulito, l'audit resta riproducibile e confronta l'impronta
+    dell'eseguibile locale con quella registrata nello snapshot.
+    """
+
+    if QUICKORGANIZER_DECOMPILED_FORM.exists():
+        source_lines = QUICKORGANIZER_DECOMPILED_FORM.read_text(
+            encoding="utf-8",
+            errors="replace",
+        ).splitlines()
+        source_sha256 = _sha256_file(QUICKORGANIZER_DECOMPILED_FORM)
+        return source_lines, {
+            "source_kind": "decompiled_form_local",
+            "source_path": str(QUICKORGANIZER_DECOMPILED_FORM),
+            "source_sha256": source_sha256,
+            "decompiled_form_sha256": source_sha256,
+            "decompiled_form_lines": len(source_lines),
+            "snapshot_executable_sha256": "",
+        }
+
+    if not QUICKORGANIZER_METHOD_EVIDENCE.exists():
+        return [], {
+            "source_kind": "missing",
+            "source_path": str(QUICKORGANIZER_METHOD_EVIDENCE),
+            "source_sha256": "",
+            "decompiled_form_sha256": "",
+            "decompiled_form_lines": 0,
+            "snapshot_executable_sha256": "",
+        }
+
+    try:
+        snapshot = json.loads(QUICKORGANIZER_METHOD_EVIDENCE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return [], {
+            "source_kind": "invalid_snapshot",
+            "source_path": str(QUICKORGANIZER_METHOD_EVIDENCE),
+            "source_sha256": "",
+            "decompiled_form_sha256": "",
+            "decompiled_form_lines": 0,
+            "snapshot_executable_sha256": "",
+        }
+
+    source = snapshot.get("source") if isinstance(snapshot.get("source"), dict) else {}
+    methods = snapshot.get("methods") if isinstance(snapshot.get("methods"), list) else []
+    normalized_methods = [
+        item
+        for item in methods
+        if isinstance(item, dict)
+        and str(item.get("method") or "")
+        and int(item.get("source_line") or 0) > 0
+    ]
+    last_line = max((int(item["source_line"]) for item in normalized_methods), default=0)
+    source_lines = [""] * last_line
+    for item in normalized_methods:
+        source_lines[int(item["source_line"]) - 1] = f"{item['method']}("
+
+    return source_lines, {
+        "source_kind": "versioned_method_evidence_snapshot",
+        "source_path": str(QUICKORGANIZER_METHOD_EVIDENCE),
+        "source_sha256": _sha256_file(QUICKORGANIZER_METHOD_EVIDENCE),
+        "decompiled_form_sha256": str(source.get("decompiled_form_sha256") or ""),
+        "decompiled_form_lines": last_line,
+        "snapshot_executable_sha256": str(source.get("executable_sha256") or ""),
+    }
+
+
+def _source_evidence(method_evidence: dict[str, Any]) -> dict[str, Any]:
     executable = next((path for path in QUICKORGANIZER_EXE_CANDIDATES if path.exists()), None)
-    source_lines = (
-        QUICKORGANIZER_DECOMPILED_FORM.read_text(encoding="utf-8", errors="replace").splitlines()
-        if QUICKORGANIZER_DECOMPILED_FORM.exists()
-        else []
-    )
     return {
         "application": "Studio Telematico 2026 Rel. 021",
         "executable": str(executable or ""),
         "executable_sha256": _sha256_file(executable) if executable else "",
         "decompiled_form": str(QUICKORGANIZER_DECOMPILED_FORM),
-        "decompiled_form_sha256": (
-            _sha256_file(QUICKORGANIZER_DECOMPILED_FORM) if QUICKORGANIZER_DECOMPILED_FORM.exists() else ""
-        ),
-        "decompiled_form_lines": len(source_lines),
+        "decompiled_form_sha256": str(method_evidence.get("decompiled_form_sha256") or ""),
+        "decompiled_form_lines": int(method_evidence.get("decompiled_form_lines") or 0),
+        "method_evidence": method_evidence,
         "catalog": str(QUICKORGANIZER_CATALOG),
         "catalog_sha256": _sha256_file(QUICKORGANIZER_CATALOG),
         "validations": str(QUICKORGANIZER_VALIDATIONS),
@@ -188,7 +255,11 @@ def _reference_table_evidence(errors: list[str]) -> dict[str, Any]:
     return evidence
 
 
-def _method_evidence(methods: list[str], source_lines: list[str]) -> list[dict[str, Any]]:
+def _method_evidence(
+    methods: list[str],
+    source_lines: list[str],
+    source_file: str,
+) -> list[dict[str, Any]]:
     evidence: list[dict[str, Any]] = []
     for method in methods:
         needle = f"{method}("
@@ -199,7 +270,7 @@ def _method_evidence(methods: list[str], source_lines: list[str]) -> list[dict[s
         evidence.append(
             {
                 "method": method,
-                "source_file": str(QUICKORGANIZER_DECOMPILED_FORM),
+                "source_file": source_file,
                 "source_line": source_line,
                 "found": source_line > 0,
             }
@@ -1444,11 +1515,8 @@ def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tu
 
 def audit_deposit_catalog() -> dict[str, Any]:
     entries = list(list_deposit_catalog_entries())
-    source_evidence = _source_evidence()
-    source_lines = QUICKORGANIZER_DECOMPILED_FORM.read_text(
-        encoding="utf-8",
-        errors="replace",
-    ).splitlines()
+    source_lines, method_evidence_source = _method_evidence_source()
+    source_evidence = _source_evidence(method_evidence_source)
     raw_catalog = json.loads(QUICKORGANIZER_CATALOG.read_text(encoding="utf-8"))
     raw_entries = raw_catalog.get("entries") if isinstance(raw_catalog.get("entries"), list) else []
     raw_entries_by_key = {
@@ -1522,7 +1590,11 @@ def audit_deposit_catalog() -> dict[str, Any]:
                     source_entry = candidates[0]
                     source_match = "unique_method_macro_category"
             validation_contract = validation_types_by_key.get(key) or validation_types_by_key.get(source_key) or {}
-            method_evidence = _method_evidence(methods, source_lines)
+            method_evidence = _method_evidence(
+                methods,
+                source_lines,
+                str(method_evidence_source.get("source_path") or QUICKORGANIZER_DECOMPILED_FORM),
+            )
             detail: dict[str, Any] = {
                 "key": key,
                 "source_key": source_key,
@@ -1972,6 +2044,21 @@ def audit_deposit_catalog() -> dict[str, Any]:
         errors.append(f"matrice analitica: attese 270 schede, prodotte {len(detailed_entries)}")
     if not source_evidence.get("executable_sha256") or not source_evidence.get("decompiled_form_sha256"):
         errors.append("fonte Studio Telematico o decompilato non disponibile per l'impronta probatoria")
+    method_evidence = source_evidence.get("method_evidence")
+    if not isinstance(method_evidence, dict) or method_evidence.get("source_kind") in {
+        "missing",
+        "invalid_snapshot",
+    }:
+        errors.append("evidenza dei metodi decompilati non disponibile o non leggibile")
+    expected_executable_sha256 = str(
+        method_evidence.get("snapshot_executable_sha256") if isinstance(method_evidence, dict) else ""
+    )
+    if (
+        expected_executable_sha256
+        and source_evidence.get("executable_sha256")
+        and expected_executable_sha256 != source_evidence["executable_sha256"]
+    ):
+        errors.append("impronta dell'eseguibile Studio Telematico diversa dallo snapshot dei metodi")
 
     pct_generated = sum(item.get("channel") == "pct_civile_dm44" for item in generated)
     unep_generated = sum(item.get("channel") == "unep_deposito_telematico" for item in generated)

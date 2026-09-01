@@ -512,6 +512,7 @@ def register_auth_runtime(
                 "/support/ws/",
                 "/web/",
                 "/api/pec/",
+                "/api/v1/ui/",
                 "/polisWeb/local-signer/",
             )
         ):

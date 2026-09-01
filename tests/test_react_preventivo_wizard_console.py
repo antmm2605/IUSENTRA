@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pct.clienti import GestioneClienti, TipoCliente
+from pct.clienti import TipoCliente
 from pct.economico_context import carica_log_calcolo
 from pct.fascicoli import TipoFascicolo
 from pct.preventivi import StatoPreventivo
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
-from web.helpers import get_preventivi
+from web.helpers import get_clienti, get_preventivi
 
 
 def _logged_client(tmp_path: Path):
@@ -84,34 +84,36 @@ def _calculation_payload(practice: dict, **overrides) -> dict:
 
 
 def _cliente_conferimento_pronto(app) -> str:
-    clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
-    cliente = clienti.nuovo(
-        TipoCliente.PERSONA_FISICA,
-        nome="Ada",
-        cognome="Accettazione",
-        codice_fiscale="RSSMRA80A01H501U",
-    )
-    clienti.aggiorna_recapiti(cliente.id, email="ada.accettazione@example.it")
-    clienti.aggiorna_indirizzo(
-        cliente.id,
-        "residenza",
-        via="Via Roma",
-        civico="1",
-        cap="00100",
-        comune="Roma",
-        provincia="RM",
-    )
-    return cliente.id
+    with app.app_context():
+        clienti = get_clienti()
+        cliente = clienti.nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome="Ada",
+            cognome="Accettazione",
+            codice_fiscale="RSSMRA80A01H501U",
+        )
+        clienti.aggiorna_recapiti(cliente.id, email="ada.accettazione@example.it")
+        clienti.aggiorna_indirizzo(
+            cliente.id,
+            "residenza",
+            via="Via Roma",
+            civico="1",
+            cap="00100",
+            comune="Roma",
+            provincia="RM",
+        )
+        return cliente.id
 
 
 def test_preventivo_wizard_react_bootstrap_console_operativa(tmp_path: Path):
     app, client = _logged_client(tmp_path)
-    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
-        TipoCliente.PERSONA_FISICA,
-        nome="Ada",
-        cognome="Sostegno",
-        email="ada@example.it",
-    )
+    with app.app_context():
+        cliente = get_clienti().nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome="Ada",
+            cognome="Sostegno",
+            email="ada@example.it",
+        )
 
     response = client.get("/api/v1/ui/preventivi/wizard")
 
@@ -424,12 +426,13 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
 
 def test_preventivo_react_nuovo_risolve_codice_digitato_nell_oggetto(tmp_path: Path):
     app, client = _logged_client(tmp_path)
-    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
-        TipoCliente.PERSONA_FISICA,
-        nome="Paola",
-        cognome="Preventivo",
-        codice_fiscale="PRVPLA80A41H501X",
-    )
+    with app.app_context():
+        cliente = get_clienti().nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome="Paola",
+            cognome="Preventivo",
+            codice_fiscale="PRVPLA80A41H501X",
+        )
 
     response = client.post(
         "/api/v1/ui/preventivi/nuovo",

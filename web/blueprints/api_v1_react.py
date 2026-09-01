@@ -13789,7 +13789,7 @@ def procedure_completion_publish(card_id: str):
         try:
             esito = service.publish_completion(card_id, context)
         except ProcedureCompletionError as exc:
-            return _procedure_completion_public_error("Pubblicazione non disponibile.", exc)
+            return _procedure_completion_public_error(str(exc).strip() or "Pubblicazione non disponibile.", exc)
         return _jsonify_redacted(esito)
     except Exception as exc:
         current_app.logger.exception("Errore pubblicazione procedure completion: %s", exc)

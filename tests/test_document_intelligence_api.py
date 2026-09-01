@@ -117,7 +117,7 @@ def test_catalogazione_documentale_sql_api_esegue_pipeline_e_revisione(tmp_path:
         updated = client.post(f"/api/v1/ui/fascicoli/{fascicolo.id}/catalogazione-documentale/aggiorna")
         reviewed = client.post(
             f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti-ai/{document.id}/catalogazione-documentale/revisione",
-            json={"status": "confirmed"},
+            json={"status": "confirmed", "evidence_acknowledged": True},
         )
         from web.blueprints import api_v1_documenti_ai as documenti_ai_api
         original_lex_indexing = documenti_ai_api.build_lex_indexing_summary_payload

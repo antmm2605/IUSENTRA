@@ -18,6 +18,7 @@ from pct.template_atti import (
 )
 from web.app import create_app
 from web.blueprints.template_atti import _extract_rtf_fonts, _rtf_to_text
+from web.helpers import get_clienti, get_fascicoli, get_soggetti
 
 
 def _cfg_web(tmp_path):
@@ -183,40 +184,6 @@ def test_template_custom_rende_disponibili_soggetti_e_parti_fascicolo(tmp_path):
         email="avvocato@example.com",
     )
 
-    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
-    cliente = clienti.nuovo(
-        TipoCliente.PERSONA_FISICA,
-        nome="Elisabetta",
-        cognome="Montagnese",
-        codice_fiscale="MNTLBT80A41H501X",
-    )
-
-    fascicoli = GestioneFascicoli(
-        db_path=cfg["FASCICOLI_DB"],
-        documents_dir=cfg["FASCICOLI_DOCS"],
-        archive_dir=cfg["FASCICOLI_ARCH"],
-    )
-    fascicolo = fascicoli.nuovo(
-        "Vendita di cose immobili",
-        TipoFascicolo.CIVILE,
-        id_cliente=cliente.id,
-        nome_cliente=cliente.nome_completo,
-        numero_rg="1025",
-        tribunale="Tribunale di Palmi",
-    )
-
-    soggetti = GestioneSoggetti(
-        soggetti_path=cfg["SOGGETTI_DB"],
-        parti_path=cfg["SOGGETTI_PARTI_DB"],
-    )
-    controparte = soggetti.crea(
-        TipoSoggetto.PERSONA_FISICA,
-        nome="Francesco",
-        cognome="Stillitano",
-        codice_fiscale="STLFNC80A01H224A",
-    )
-    soggetti.aggiungi_parte(fascicolo.id, controparte.id, RuoloSoggetto.CONTROPARTE)
-
     gt = GestioneTemplateAtti(db_path=cfg["TEMPLATE_ATTI_DB"])
     template = gt.crea(
         titolo="Test soggetti",
@@ -225,6 +192,29 @@ def test_template_custom_rende_disponibili_soggetti_e_parti_fascicolo(tmp_path):
     )
 
     app = create_app(cfg)
+    with app.app_context():
+        cliente = get_clienti().nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome="Elisabetta",
+            cognome="Montagnese",
+            codice_fiscale="MNTLBT80A41H501X",
+        )
+        fascicolo = get_fascicoli().nuovo(
+            "Vendita di cose immobili",
+            TipoFascicolo.CIVILE,
+            id_cliente=cliente.id,
+            nome_cliente=cliente.nome_completo,
+            numero_rg="1025",
+            tribunale="Tribunale di Palmi",
+        )
+        soggetti = get_soggetti()
+        controparte = soggetti.crea(
+            TipoSoggetto.PERSONA_FISICA,
+            nome="Francesco",
+            cognome="Stillitano",
+            codice_fiscale="STLFNC80A01H224A",
+        )
+        soggetti.aggiungi_parte(fascicolo.id, controparte.id, RuoloSoggetto.CONTROPARTE)
     with app.test_client() as client:
         client.post(
             "/login",

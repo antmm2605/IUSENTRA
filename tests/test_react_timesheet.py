@@ -3,37 +3,35 @@ from __future__ import annotations
 from datetime import date, timedelta
 from pathlib import Path
 
-from pct.clienti import GestioneClienti, TipoCliente
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
-from pct.timesheet import GestioneTimesheet, StatoTimesheet
+from pct.clienti import TipoCliente
+from pct.fascicoli import TipoFascicolo
+from pct.timesheet import StatoTimesheet
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
+from web.helpers import get_clienti, get_fascicoli, get_timesheet
 
 
 def _seed_cliente_fascicolo(app):
-    clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
-    cliente = clienti.nuovo(TipoCliente.PERSONA_FISICA, nome="Laura", cognome="Bianchi")
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
-    fascicolo = fascicoli.nuovo(
-        "Recupero credito",
-        TipoFascicolo.CIVILE,
-        id_cliente=cliente.id,
-        nome_cliente=cliente.nome_completo,
-        tribunale="Tribunale di Milano",
-    )
-    return cliente, fascicolo
+    with app.app_context():
+        clienti = get_clienti()
+        cliente = clienti.nuovo(TipoCliente.PERSONA_FISICA, nome="Laura", cognome="Bianchi")
+        fascicolo = get_fascicoli().nuovo(
+            "Recupero credito",
+            TipoFascicolo.CIVILE,
+            id_cliente=cliente.id,
+            nome_cliente=cliente.nome_completo,
+            tribunale="Tribunale di Milano",
+        )
+        return cliente, fascicolo
 
 
 def test_timesheet_react_shell_api_e_post_operativi(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
     cliente, fascicolo = _seed_cliente_fascicolo(app)
-    timesheet = GestioneTimesheet(db_path=app.config["TIMESHEET_DB"])
-    voce = timesheet.crea(
+    with app.app_context():
+        timesheet = get_timesheet()
+        voce = timesheet.crea(
         descrizione="Studio documenti udienza",
         minuti=90,
         id_fascicolo=fascicolo.id,
@@ -41,8 +39,8 @@ def test_timesheet_react_shell_api_e_post_operativi(tmp_path: Path):
         username="operatore",
         data_attivita=date.today().isoformat(),
         valore_unitario=120.0,
-        fatturabile=True,
-    )
+            fatturabile=True,
+        )
 
     with app.test_client() as client:
         _login(client)

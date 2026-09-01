@@ -708,7 +708,6 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             "/strumenti-legali/?tool=contributo_unificato&_legacy=1",
             "/strumenti-legali/?tool=onorari_forensi&_legacy=1",
             "/timesheet?_legacy=1",
-            "/cartelle-condivise?_legacy=1",
             "/portali/pst/acquisizione?_legacy=1",
             "/statistiche/?_legacy=1",
             "/ricerca-legale/news?_legacy=1",
@@ -729,6 +728,10 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             response = client.get(route)
             assert response.status_code == 200, route
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+
+        condivisioni_react = client.get("/cartelle-condivise?_legacy=1")
+        assert condivisioni_react.status_code == 200
+        assert "IUSENTRA - React Shell" in condivisioni_react.get_data(as_text=True)
 
         legacy_alias = client.get("/legal-intelligence/news?_legacy=1")
         assert legacy_alias.status_code == 301
@@ -2388,7 +2391,7 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported) || (portal === 'pst' && pstSchemaHintPending)}" in source
     assert "REACT_PST_SESSION_KEY" in source
     assert "localSignerJson('/pst/preflight-auth'" not in source
-    assert "localSignerJson('/pst/ricerca-snapshot'" not in source
+    assert "localSignerJson('/pst/ricerca-snapshot'" in source
     assert "localSignerJson('/pst/ricerca'" in source
     assert "localSignerPstFascicoloSnapshotJob" in source
     assert "localSignerJson('/pst/fascicolo-snapshot-job'" in source
@@ -2415,7 +2418,7 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "codiceFiscale: extractItalianFiscalCode(" in source
     assert "function coercePstCertificate(value: unknown): PstCertificate | null" in source
     assert "function certificateMatchesPstPreferences" in source
-    assert "const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 840_000" in source
+    assert "const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 360_000" in source
     assert "const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000" in source
     assert "const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000" in source
     assert "function statusHasPstCertificatePreference" in source
@@ -3883,7 +3886,7 @@ def test_pst_ripresa_mantiene_identificativo_del_solo_documento_fallito():
     assert "retryScope === 'documents' ? id : ''" in source
     assert "if (!downloaded.files.length)" in source
     assert "Scaricamento non completato: sono selezionati soltanto i ${failedDocumentKeys.length} documenti da riprendere." in source
-    assert "documenti ricevuti · ${failedDocuments} non ricevuti" in source
+    assert "${current} · ${failedDocuments} con avviso" in source
     assert "Importazione parziale registrata: riprendi soltanto i documenti non ricevuti dal PST prima di aprire il fascicolo." in source
 
 
@@ -9378,6 +9381,7 @@ def test_manifest_react_full_blocca_post_html_primari_nei_salvataggi():
 
     assert checked == [
         "/agenda/nuovo",
+        "/clienti/:id/collaboratori",
         "/clienti/nuovo",
         "/giurisprudenza/nuova",
         "/messaggi/nuovo",

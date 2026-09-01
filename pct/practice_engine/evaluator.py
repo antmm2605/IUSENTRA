@@ -1,15 +1,10 @@
 """Valutazione completa Regia Operativa e payload API/UI."""
-
 from __future__ import annotations
-
-
 from pct.formatting import format_euro_it
 import json
 from typing import Any
 from urllib.parse import urlencode
-
 from legal_deposit.policies import AmbiguousChannelError, UnknownChannelError, channel_profile_for
-
 from .deposit_readiness import run_predeposit_check
 from .evidence_pack import generate_evidence_pack
 from .messages import DEPOSIT_ACQUIRED, DEPOSIT_SENT_NOT_ACQUIRED, NO_REAL_TRANSPORT
@@ -19,16 +14,12 @@ from pct.pst_catalog import PST_BUSTA_ENCRYPTION_ALGORITHM
 from .repository import PracticeEngineRepository
 from .resolver import resolve_practice_profile
 from .state_machine import derive_state
-
-
 def _enum_value(value: Any) -> str:
     return str(getattr(value, "value", value) or "")
-
 
 def _text(value: Any, default: str = "") -> str:
     text = str(value if value is not None else default).strip()
     return text if text else default
-
 
 def _mapping_text(source: Any, *keys: str) -> str:
     if not isinstance(source, dict):
@@ -44,7 +35,6 @@ def _mapping_text(source: Any, *keys: str) -> str:
         if text:
             return text
     return ""
-
 
 def _deposit_profile_dict(fascicolo: Any) -> dict[str, Any]:
     profile = getattr(fascicolo, "profilo_deposito", None)
@@ -72,7 +62,6 @@ def _deposit_profile_dict(fascicolo: Any) -> dict[str, Any]:
             return parsed["profilo_deposito"]
     return {}
 
-
 def _profile_from_deposit_profile(fascicolo: Any) -> Any | None:
     profile = _deposit_profile_dict(fascicolo)
     office = profile.get("ufficio") if isinstance(profile.get("ufficio"), dict) else {}
@@ -85,21 +74,15 @@ def _profile_from_deposit_profile(fascicolo: Any) -> Any | None:
         return get_profile("PROC_SIGP_GDP_001")
     return None
 
-
 def _euro(value: Any) -> str:
     return format_euro_it(value)
-
-
 def _tone(ok: bool, *, warning: bool = False) -> str:
     if ok:
         return "success"
     return "warning" if warning else "danger"
-
-
 def _linked_preventivi(preventivi: list[Any], fascicolo: Any) -> list[Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     return [item for item in preventivi if _text(getattr(item, "id_fascicolo", "")) == fid]
-
 
 def _linked_conferimenti(conferimenti: list[Any], fascicolo: Any, preventivi: list[Any]) -> list[Any]:
     fid = _text(getattr(fascicolo, "id", ""))
@@ -110,7 +93,6 @@ def _linked_conferimenti(conferimenti: list[Any], fascicolo: Any, preventivi: li
         if _text(getattr(item, "id_fascicolo", "")) == fid or _text(getattr(item, "id_preventivo", "")) in pids
     ]
 
-
 def _linked_parcelle(parcelle: list[Any], fascicolo: Any, preventivi: list[Any]) -> list[Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     pids = {_text(getattr(item, "id", "")) for item in preventivi}
@@ -120,16 +102,11 @@ def _linked_parcelle(parcelle: list[Any], fascicolo: Any, preventivi: list[Any])
         if _text(getattr(item, "id_fascicolo", "")) == fid or _text(getattr(item, "id_preventivo", "")) in pids
     ]
 
-
 def _primary(rows: list[Any]) -> Any | None:
     return rows[0] if rows else None
-
-
 def _query_url(path: str, **params: Any) -> str:
     cleaned = {key: _text(value) for key, value in params.items() if _text(value)}
     return f"{path}?{urlencode(cleaned)}" if cleaned else path
-
-
 def _legal_deposit_profile_key(profile: Any) -> str:
     channel = _text(getattr(profile, "channel", "")).upper()
     registry = _text(getattr(profile, "registry", "")).upper()
@@ -152,8 +129,6 @@ def _legal_deposit_profile_key(profile: Any) -> str:
     if channel in {"PEC_ONLY", "PEC", "STRAGIUDIZIALE_PEC"}:
         return "pec_stragiudiziale"
     return channel.lower()
-
-
 def _deposit_delivery_policy(profile: Any | None) -> dict[str, Any]:
     if not profile or not getattr(profile, "depositable", False):
         return {
@@ -271,7 +246,6 @@ def _deposit_delivery_policy(profile: Any | None) -> dict[str, Any]:
         "note": channel_profile.defender_channel_note,
     }
 
-
 def _channel_display_label(profile: Any, delivery_policy: dict[str, Any]) -> str:
     channel = _text(getattr(profile, "channel", "")).upper()
     registry = _text(getattr(profile, "registry", "")).upper()
@@ -293,7 +267,6 @@ def _channel_display_label(profile: Any, delivery_policy: dict[str, Any]) -> str
         return "PEC"
     official = _text(delivery_policy.get("officialChannel"))
     return official or channel.replace("_", " ")
-
 
 def ensure_profile_for_fascicolo(
     repository: PracticeEngineRepository,
@@ -333,7 +306,6 @@ def ensure_profile_for_fascicolo(
     if resolver.profile:
         resolver.needs_manual_confirmation = True
     return resolver.profile, resolver.to_dict()
-
 
 def _economic_summary(
     preventivo: Any | None,
@@ -422,7 +394,6 @@ def _economic_summary(
         ],
     }
 
-
 def _checklist_payload(rows: list[Any], results: list[Any]) -> list[dict[str, Any]]:
     blocking_messages = {item.key: item for item in results if item.blocking}
     payload = []
@@ -443,7 +414,6 @@ def _checklist_payload(rows: list[Any], results: list[Any]) -> list[dict[str, An
             }
         )
     return payload
-
 
 def _slots_payload(slots: list[Any]) -> list[dict[str, Any]]:
     return [
@@ -466,7 +436,6 @@ def _slots_payload(slots: list[Any]) -> list[dict[str, Any]]:
         }
         for slot in slots
     ]
-
 
 def _timeline_payload(events: list[Any], receipts: list[Any]) -> list[dict[str, Any]]:
     rows = [
@@ -493,7 +462,6 @@ def _timeline_payload(events: list[Any], receipts: list[Any]) -> list[dict[str, 
             for receipt in receipts
         )
     return rows
-
 
 def build_regia_payload(
     repository: PracticeEngineRepository,
@@ -674,7 +642,6 @@ def build_regia_payload(
             "predepositCheck": f"/api/v1/ui/fascicoli/{fascicolo_id}/predeposito/check",
         },
     }
-
 
 def ensure_evidence_pack(repository: PracticeEngineRepository, *, fascicolo: Any, profile: Any, deposito_id: str):
     return generate_evidence_pack(repository, fascicolo=fascicolo, profile=profile, deposito_id=deposito_id)

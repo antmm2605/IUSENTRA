@@ -93,6 +93,7 @@ def _seed_tenant_admin(
     studio = tm.get(studio_slug) or tm.crea(studio_nome, studio_slug, db_config={"mode": "SQLITE"})
     bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio.slug)
     paths = tm.percorsi_dati(studio.slug)
+    _write_studio_config(Path(paths["CONFIG_STUDIO_DB"]))
     utenti = GestioneUtenti(
         db_path=paths["AUTH_DB"],
         audit_path=paths["AUDIT_DB"],

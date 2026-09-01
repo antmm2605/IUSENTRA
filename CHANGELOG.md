@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.278.84 - 01/09/2026
+
+- Condivisioni clienti: il percorso storico è sostituito dalla superficie React tenant-aware, con collaboratori, permessi, revoca e audit governati dalle API reali dello studio.
+- Fascicoli: corretti layout, azioni e pannelli economici per evitare sovrapposizioni, testi compressi e spazi inutilizzati nelle viste operative.
+- Sicurezza: tutte le API UI restituiscono dinieghi JSON coerenti; le route pubbliche del portale cliente restano separate dalle credenziali tenant dello studio.
+- Qualità: riallineati registry, OpenAPI, mappa sicurezza, documentazione e gate delle fasi 00–14 senza modificare la logica operativa già verificata di deposito, notifiche e firma.
+- Local Signer `1.6.126`: il consenso Windows monouso viene acquisito dal click reale e riutilizzato dai percorsi PST già unificati; il processo certificato riceve il primo piano senza input sintetico, chiusura di finestre o forzature del focus.
+
 ## 2.278.77 - 25/08/2026
 
 - Catalogo fascicolo: le identità “Istanza di trattazione scritta”, “Nota di deposito”, “Istanze e conclusioni” e “Decreto di fissazione udienza” sono ora riconosciute esclusivamente dal testo indicizzato, con segnali CTU e termini mantenuti separati.

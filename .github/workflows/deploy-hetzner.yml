@@ -26,7 +26,7 @@ on:
       skip_backup:
         description: Salta il backup preventivo
         type: boolean
-        default: true
+        default: false
       branch_override:
         description: Branch da deployare (default Codex/legal-electronic-filing-kIxcV)
         type: string
@@ -45,7 +45,7 @@ env:
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
   HETZNER_DOMAIN: ${{ vars.HETZNER_DOMAIN }}
   DEPLOY_BRANCH: ${{ inputs.branch_override || (github.event_name == 'push' && github.ref_name) || 'Codex/legal-electronic-filing-kIxcV' }}
-  NO_BACKUP_REQUESTED: ${{ github.event_name == 'push' || inputs.skip_backup || contains(github.event.head_commit.message, '[no-backup]') }}
+  NO_BACKUP_REQUESTED: ${{ inputs.skip_backup || contains(github.event.head_commit.message, '[no-backup]') }}
 
 jobs:
   deploy:
@@ -150,6 +150,13 @@ jobs:
         if: ${{ steps.current.outputs.already_deployed != 'true' && env.NO_BACKUP_REQUESTED != 'true' }}
         run: |
           set -euo pipefail
+          scp -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              deploy/hetzner/backup_structured.py \
+              "${HETZNER_USER}@${HETZNER_HOST}:/tmp/iusentra-backup-structured.py"
           ssh -i ~/.ssh/id_deploy \
               -o BatchMode=yes \
               -o ConnectTimeout=15 \
@@ -158,7 +165,14 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              'bash /opt/iusentra/repo/deploy/hetzner/backup.sh'
+              'set -euo pipefail
+               trap "rm -f /tmp/iusentra-backup-structured.py" EXIT
+               timeout 290 python3 /tmp/iusentra-backup-structured.py \
+                 --source-root /opt/iusentra/data/tenants \
+                 --backup-dir /opt/iusentra/backups \
+                 --retention-count 1 \
+                 --min-free-gib 2 \
+                 --prune-legacy-single-db'
 
       - name: Esegui deploy
         id: deploy

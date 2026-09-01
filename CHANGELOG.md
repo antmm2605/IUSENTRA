@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.278.85 - 01/09/2026
+
+- Il deploy Hetzner crea ora, prima di ogni aggiornamento effettivo, un backup SQLite coerente di tutti i tenant con API nativa SQLite, quick_check, hash SHA-256 e manifest verificabile.
+- La retention del backup preventivo conserva una sola istantanea strutturata e rimuove la precedente soltanto dopo la riuscita e la validazione completa della nuova copia.
+- I push non saltano più il backup per costruzione: l'esclusione resta possibile solo tramite input manuale skip_backup oppure marcatore esplicito [no-backup] nel commit.
+- Il flusso fallisce chiuso se manca un database tenant, lo spazio non basta o una copia non supera il controllo di integrità; nessuna logica di wizard, deposito, notifiche o firma è stata modificata.
+
 ## 2.278.84 - 01/09/2026
 
 - Condivisioni clienti: il percorso storico è sostituito dalla superficie React tenant-aware, con collaboratori, permessi, revoca e audit governati dalle API reali dello studio.

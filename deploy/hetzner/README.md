@@ -108,9 +108,9 @@ bash deploy/hetzner/verify_web_push.sh
 ```
 
 `IUSENTRA_SKIP_BACKUP_CRON=1` e `IUSENTRA_DISABLE_BACKUP_JOBS=1` mantengono
-disattivati il cron e gli archivi automatici. È la configurazione operativa
-predefinita: una nuova copia richiede un'autorizzazione esplicita.
-
+disattivati il cron e gli archivi completi automatici. Non disattivano il backup
+SQLite preventivo del workflow di deploy, che viene creato a ogni aggiornamento
+effettivo salvo richiesta manuale esplicita.
 Lo script genera chiavi VAPID EC P-256 se mancanti, abilita il canale, aggiorna `/opt/iusentra/.env.hetzner` con permessi `600` e non stampa la chiave privata nei log normali. Usare `--force` solo quando si vuole rigenerare la coppia di chiavi.
 
 Generazione chiavi:
@@ -135,23 +135,18 @@ Regola operativa obbligatoria: dopo ogni aggiornamento completato, committato e 
 
 **Da v2.241.1 il deploy parte automaticamente** da GitHub Actions quando viene pushato uno dei due branch ammessi, `Codex/legal-electronic-filing-kIxcV` o `claude/legal-electronic-filing-kIxcV`. Workflow: `.github/workflows/deploy-hetzner.yml`. Per setup secrets, rotazione chiavi e rollback vedere `docs/DEPLOY_HETZNER_CPX42.md` sezione "Deploy automatico via GitHub Actions".
 
-Il comando manuale sotto resta valido per esecuzioni fuori banda (es. test della SSH key, deploy da branch alternativo, recovery rapido senza passare da GitHub):
-
-Backup automatici:
-
-```bash
-IUSENTRA_DISABLE_BACKUP_JOBS=1 bash /opt/iusentra/repo/deploy/hetzner/backup.sh
-```
-
-La configurazione corrente è intenzionalmente fail-closed: con
-`IUSENTRA_DISABLE_BACKUP_JOBS=1` il comando non crea archivi e il deploy rimuove
-il cron IUSENTRA. Questa procedura non prevede override temporanei.
+Il comando manuale sotto resta valido per esecuzioni fuori banda. Prima del deploy crea una copia SQLite coerente di tutti i tenant; il workflow GitHub esegue automaticamente gli stessi controlli.
 
 ```bash
 cd /opt/iusentra/repo
+python3 deploy/hetzner/backup_structured.py \
+  --source-root /opt/iusentra/data/tenants \
+  --backup-dir /opt/iusentra/backups \
+  --retention-count 1 \
+  --min-free-gib 2 \
+  --prune-legacy-single-db
 bash deploy/hetzner/deploy.sh
 ```
-
 Verifiche:
 
 ```bash
@@ -195,25 +190,34 @@ bash /opt/iusentra/repo/deploy/hetzner/deploy.sh
 
 ## Backup server
 
-Backup manuale:
+### Copia preventiva del deploy
+
+```bash
+python3 /opt/iusentra/repo/deploy/hetzner/backup_structured.py \
+  --source-root /opt/iusentra/data/tenants \
+  --backup-dir /opt/iusentra/backups \
+  --retention-count 1 \
+  --min-free-gib 2 \
+  --prune-legacy-single-db
+```
+
+La copia usa l'API SQLite, valida ogni database tenant con quick_check, salva SHA-256 e manifest e conserva una sola istantanea. La copia precedente viene rimossa soltanto dopo il successo completo della nuova. Il workflow la esegue sui push ordinari; può saltarla esclusivamente con l'input manuale skip_backup=true o il marcatore [no-backup].
+
+La copia preventiva protegge i dati strutturati studio.db; non è un backup completo di documenti, allegati, posta, indici verticali o altri dati sotto /opt/iusentra/data.
+
+### Archivio completo
 
 ```bash
 bash /opt/iusentra/repo/deploy/hetzner/backup.sh
 ```
 
-Cron consigliato:
+Il backup completo produce archivio e checksum in /opt/iusentra/backups e verifica il checksum generato. Va eseguito solo quando la destinazione dispone di spazio sufficiente; il controllo fail-closed non consente di saturare il nodo. Per il corpus completo è raccomandato uno storage separato dimensionato rispetto a /opt/iusentra/data.
 
-```cron
-15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
-```
-
-Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
-La retention e' applicata dallo script: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Anche se l'ambiente imposta un numero piu' alto, il deploy lo limita a 3 copie. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`. Lo script elimina anche backup legacy/quarantene email non operative (`auth-before-migration-*`, `hetzner-pre-*`, `tenant-email-quarantine-*`).
-I backup `.tar.zst` sono prodotti con zstd a budget server (`IUSENTRA_BACKUP_ZSTD_LEVEL=6`, `IUSENTRA_BACKUP_ZSTD_THREADS=2`, long window 27) e partono con `nice`/`ionice` prudenti per non sottrarre CPU e I/O alla navigazione. Prima di comprimere lo script applica retention e verifica lo spazio libero (`IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT=65` + `IUSENTRA_BACKUP_MIN_FREE_GIB=4`); se il margine non basta si ferma invece di saturare il nodo. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Su dati runtime vivi un file puo' cambiare durante la lettura: lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita.
-Host e container applicativi devono usare ora italiana: `.env.hetzner` contiene `TZ=Europe/Rome`, il compose propaga `TZ` ad app/scheduler/OCR e l'immagine installa `tzdata`. I log Docker possono comunque mostrare metadati interni del runtime, ma gli orari applicativi e di job vanno letti e riportati in `Europe/Rome`.
+I backup .tar.zst usano zstd a budget server e partono con nice/ionice prudenti. Ollama, modelli locali e download rigenerabili sono esclusi. Host e container applicativi usano Europe/Rome.
 
 Dopo ogni deploy Hetzner il deploy esegue `docker builder prune --all --force` e rimuove `/opt/iusentra/tmp-backup-snapshot` se presente. La posta multi-studio non deve essere sincronizzata in `/data/email`: scheduler e route devono usare solo `/data/tenants/<studio>/email`.
-Gli allegati PEC/email nuovi usano `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`: vengono compressi in `archivio-allegati.zip` nella cartella della casella, ma il lettore resta compatibile con i file storici sciolti per non rompere download e anteprime.
+
+La retention dell'archivio completo resta governata da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`. Gli allegati PEC/email nuovi possono usare `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`; il lettore resta compatibile con i file storici sciolti.
 
 ## Ricerca legale e archivio fonti (v2.240.0)
 
@@ -238,7 +242,7 @@ docker compose --env-file /opt/iusentra/.env.hetzner \
   "SELECT source_id, fetched_at, length(normalized_text) FROM legal_source_snapshots ORDER BY id DESC LIMIT 5"
 ```
 
-Il backup automatico (`backup.sh`) include gia' `/opt/iusentra/data/legal_intelligence/` come parte di `/opt/iusentra/data`, quindi gli snapshot sono coperti dalla retention configurata.
+Il backup completo (`backup.sh`) include `/opt/iusentra/data/legal_intelligence/` come parte di `/opt/iusentra/data`; il backup preventivo strutturato del deploy copre invece soltanto i database `studio.db` dei tenant.
 
 ## Note operative
 

@@ -2045,3 +2045,10 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- |
 | Accettazione UI locale e produzione | Browser reale autenticato, desktop/tablet/mobile | Aperto fino alla prova materiale | Dopo rebuild locale, verificare navigazione, pagina collaboratori, Fascicoli e viste economiche con click, scroll completo, hover e focus; ripetere sulla produzione dopo deploy. |
 | Codex quality gate `code` / `ui-support` | Scope del worktree di release | Non verde per scope intenzionale | Il gate segnala i file prodotto, gli asset, il bump versione e `setup.py`; guardrail `AGENTS.md`, Open Design e assenza di nuove dipendenze runtime sono confermati. Non rimuovere codice o versione per forzare il gate; rieseguire sul worktree riallineato e riportare il segnale nel report. |
+## Backup Hetzner 2.278.85 - limite corpus completo - 01/09/2026
+
+| Area | Gate | Stato | Azione |
+| --- | --- | --- | --- |
+| Archivio completo di `/opt/iusentra/data` | Storage esterno dimensionato | Aperto, distinto dal backup preventivo | Il corpus live occupa circa 230 GB e il nodo non dispone del margine per crearne una seconda copia completa locale senza rischio di saturazione. Il deploy protegge ora i database strutturati tenant con copia SQLite coerente, hash, manifest e retention a una sola istantanea; documenti, allegati e archivi verticali richiedono una destinazione esterna con capacità adeguata prima di poter dichiarare un backup completo. |
+| Workflow automatico 2.278.85 | Push, CI e deploy Hetzner | Da confermare sul nuovo SHA | Dopo il push verificare che lo step Backup preventivo venga eseguito realmente, crei una nuova istantanea, rimuova la precedente solo dopo la validazione e lasci una sola copia. |
+| Accettazione UI fasi 4–14 | Browser reale autenticato locale e produzione | Aperto fino alla prova materiale | Restano click, scroll completo, hover, focus e responsive desktop/tablet/mobile sulle superfici React già sviluppate. Nessuna firma, notifica, PEC o deposito reale deve essere inviato durante la prova. |

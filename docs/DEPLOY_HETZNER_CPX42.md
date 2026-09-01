@@ -11,7 +11,7 @@ Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di pr
 - Root applicativa: `/opt/iusentra`.
 - Dati persistenti: `/opt/iusentra/data`.
 - Runtime: Docker Compose, Caddy HTTPS, Redis, worker scheduler e worker OCR.
-- Backup: `/opt/iusentra/backups`, con checksum SHA-256.
+- Backup preventivo deploy: `/opt/iusentra/backups`, con copie SQLite tenant coerenti, manifest, `quick_check` e SHA-256; backup completo separato quando la capacità lo consente.
 - Restore: ripristino controllato dentro `/opt/iusentra/data`.
 
 Railway puo' restare fase transitoria, ambiente di fallback o riferimento durante la migrazione, ma il profilo Hetzner non dipende da Railway per avviare app, worker, Redis o Caddy.
@@ -23,7 +23,8 @@ Railway puo' restare fase transitoria, ambiente di fallback o riferimento durant
 - `deploy/hetzner/Caddyfile`: termina HTTPS, imposta header di sicurezza, gestisce SSE e WebSocket, inoltra verso l'app Flask. Il rate limiting sulle route di autenticazione è gestito da Flask-Limiter con Redis a livello applicativo.
 - `deploy/hetzner/env.hetzner.example`: template delle variabili ambiente di produzione, incluse le variabili `COMPOSE_PROFILES`, `PCT_LOCAL_AI_ENABLED` e `IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED` per il controllo dell'AI locale.
 - `deploy/hetzner/deploy.sh`: sincronizza il branch, legge `COMPOSE_PROFILES` da `.env.hetzner`, avvia i servizi con i profili corretti, scarica il modello Ollama solo se il sidecar è attivo, imposta il cron backup.
-- `deploy/hetzner/backup.sh`: crea archivio dati e checksum.
+- `deploy/hetzner/backup_structured.py`: crea il backup preventivo coerente dei database SQLite tenant, con manifest, hash e retention a una copia.
+- `deploy/hetzner/backup.sh`: crea l'archivio completo dei dati e il relativo checksum quando lo storage di destinazione ha capacità sufficiente.
 - `deploy/hetzner/restore_data.sh`: verifica checksum se presente, ferma i servizi e ripristina i dati.
 
 ## Build multi-stage del Dockerfile (da v2.243.0)
@@ -133,10 +134,15 @@ python tools/codex_harness/run_codex_quality_gate.py --mode dev-tooling
 Il gate non sostituisce backup, test applicativi, Docker build o verifiche del nodo remoto.
 Ogni aggiornamento completato e pushato deve arrivare anche su Hetzner CPX42: non considerare chiuso il lavoro finche' il server non punta al commit pushato e i controlli sotto non sono verdi, anche quando la modifica e' documentale o operativa.
 
-Prima del deploy creare sempre un backup dei dati:
+Prima del deploy creare sempre il backup SQLite strutturato dei tenant:
 
 ```bash
-bash /opt/iusentra/repo/deploy/hetzner/backup.sh
+python3 /opt/iusentra/repo/deploy/hetzner/backup_structured.py \
+  --source-root /opt/iusentra/data/tenants \
+  --backup-dir /opt/iusentra/backups \
+  --retention-count 1 \
+  --min-free-gib 2 \
+  --prune-legacy-single-db
 ```
 
 ```bash
@@ -162,34 +168,51 @@ Le ultime tre verifiche controllano il routing canonico di **Ricerca legale** (d
 
 ## Backup
 
+### Backup preventivo del deploy
+
+```bash
+python3 /opt/iusentra/repo/deploy/hetzner/backup_structured.py \
+  --source-root /opt/iusentra/data/tenants \
+  --backup-dir /opt/iusentra/backups \
+  --retention-count 1 \
+  --min-free-gib 2 \
+  --prune-legacy-single-db
+```
+
+Il workflow GitHub esegue questo comando prima di ogni deploy effettivo. Ogni studio.db viene copiato tramite l'API di backup SQLite, controllato con PRAGMA quick_check(1), associato a SHA-256 e registrato in manifest.json con source_of_truth=sqlite. La nuova istantanea viene pubblicata atomicamente; la precedente viene rimossa solo dopo il successo completo. La retention resta fissata a una sola istantanea strutturata.
+
+Il backup fallisce chiuso se non trova database tenant, se lo spazio libero non copre le sorgenti più il margine configurato o se anche una sola copia non supera il controllo di integrità. Il salto è ammesso soltanto con input manuale skip_backup=true o marcatore esplicito [no-backup]; i push ordinari non lo saltano.
+
+Questa protezione preventiva copre i database strutturati tenant, non l'intero corpus documentale. Non va descritta come backup completo di /opt/iusentra/data.
+
+### Backup completo del corpus
+
 ```bash
 bash /opt/iusentra/repo/deploy/hetzner/backup.sh
 ```
 
-Il comando crea un archivio di `/opt/iusentra/data` e il relativo file `.sha256` in `/opt/iusentra/backups`.
+Il comando crea un archivio di /opt/iusentra/data e il relativo file .sha256 in /opt/iusentra/backups. Va eseguito soltanto verso uno storage con capacità sufficiente: sul nodo applicativo la verifica spazio resta fail-closed e impedisce di saturare il disco.
 
-Cron consigliato:
+Cron consigliato, solo quando la destinazione del backup completo è dimensionata:
 
 ```cron
 15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
 ```
 
-Lo script applica anche la retention: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Il massimo di 3 copie e' un tetto rigido anche se l'ambiente imposta un valore piu' alto. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`. La retention rimuove anche backup legacy/quarantene email non operative (`auth-before-migration-*`, `hetzner-pre-*`, `tenant-email-quarantine-*`).
+Lo script applica anche la retention: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli più vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Il massimo di 3 copie è un tetto rigido anche se l'ambiente imposta un valore più alto. In produzione i valori sono governati da IUSENTRA_BACKUP_RETENTION_COUNT, IUSENTRA_BACKUP_RETENTION_MIN_COUNT, IUSENTRA_BACKUP_RETENTION_DAYS e IUSENTRA_BACKUP_RETENTION_MAX_GIB in /opt/iusentra/.env.hetzner.
 
-I backup `.tar.zst` usano zstd a budget server (`IUSENTRA_BACKUP_ZSTD_LEVEL=6`, `IUSENTRA_BACKUP_ZSTD_THREADS=2`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default) e vengono avviati con priorita' bassa (`IUSENTRA_BACKUP_NICE=19`, `IUSENTRA_BACKUP_IONICE_CLASS=3`). Prima della compressione lo script applica retention e verifica lo spazio libero richiesto (`IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT=65` dei dati + `IUSENTRA_BACKUP_MIN_FREE_GIB=4`): se il margine non basta, il backup fallisce chiuso invece di saturare il nodo. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Se durante la lettura cambiano file runtime vivi, `tar` puo' restituire un warning non fatale: da v2.243.3 lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
+I backup .tar.zst usano zstd a budget server e vengono avviati con priorità bassa. Prima della compressione lo script verifica lo spazio libero richiesto; se il margine non basta, fallisce chiuso. Ollama, modelli locali e download rigenerabili sono esclusi e verificati.
 
-Dopo ogni deploy Hetzner il deploy elimina la cache build Docker rigenerabile e l'eventuale `/opt/iusentra/tmp-backup-snapshot` non operativo. In multi-studio la sincronizzazione PEC/email ordinaria deve fallire chiusa se non risolve un path tenant sotto `/data/tenants/<studio>/email`; `/data/email` non va popolato da scheduler o route operative.
+Dopo ogni deploy Hetzner il deploy elimina la cache build Docker rigenerabile e l'eventuale /opt/iusentra/tmp-backup-snapshot non operativo. In multi-studio la sincronizzazione PEC/email ordinaria deve fallire chiusa se non risolve un path tenant sotto /data/tenants/<studio>/email; /data/email non va popolato da scheduler o route operative.
 
-Per compattare lo storage live senza cambiare i path applicativi:
+### Compattazione dello storage live
 
 ```bash
 python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/iusentra/data
 python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/iusentra/data --apply
 ```
 
-Il comando usa hardlink per deduplicare allegati email e mirror backup identici nello stesso filesystem; i riferimenti salvati nei JSON restano invariati.
-Da v2.243.7 i nuovi allegati PEC/email possono essere salvati direttamente in `archivio-allegati.zip` con `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`; il lettore applicativo continua ad aprire anche i file sciolti storici, quindi download e anteprime non dipendono dal formato fisico.
-Il pannello Superadmin `Server e manutenzione` mostra dimensioni hardlink-aware: i file gia' compattati restano percorsi distinti per l'applicazione, ma non vengono trattati come spazio ancora recuperabile. Il profilo Docker monta anche `/opt/iusentra/backups` nel container app, cosi' il pannello puo' misurare i backup esterni reali e applicare la retention governata solo sugli archivi `iusentra-data-*.tar.zst`/`.tar.gz`, preservando sempre le copie minime configurate.
+Il comando usa hardlink per deduplicare allegati email e mirror backup identici nello stesso filesystem; i riferimenti salvati nei JSON restano invariati. I nuovi allegati PEC/email possono essere salvati in archivio ZIP mantenendo compatibilità con i file storici. Il pannello Superadmin misura i backup esterni reali e applica la retention solo agli archivi completi governati, senza confonderli con le istantanee SQLite del deploy.
 
 ## Restore
 
@@ -218,7 +241,7 @@ Il workflow `.github/workflows/deploy-hetzner.yml` esegue il deploy sul server H
 
 1. Verifica che i secrets SSH siano configurati e parsabili.
 2. Apre una sessione SSH non interattiva verso `${HETZNER_USER}@${HETZNER_HOST}` con `known_hosts` pinnato (no MITM).
-3. Esegue `bash /opt/iusentra/repo/deploy/hetzner/backup.sh` (saltabile via input booleano `skip_backup`).
+3. Copia ed esegue `deploy/hetzner/backup_structured.py`, con backup SQLite coerente di tutti i tenant, verifica di integrità e retention a una copia; può saltarlo solo tramite input manuale `skip_backup` o marcatore `[no-backup]`.
 4. Esegue `BRANCH=<branch pushato> bash deploy/hetzner/deploy.sh` sul server; nei run manuali senza override usa `Codex/legal-electronic-filing-kIxcV`.
 5. Recupera `git rev-parse --short HEAD` remoto per verifica.
 6. `docker compose ps` e curl pubblici su `/api/pronto`, `/legal-intelligence/`, `/legal-intelligence/ricerca`, `/ricerca-legale`.

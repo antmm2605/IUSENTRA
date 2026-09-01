@@ -6394,3 +6394,12 @@ La prova browser reale con smart card resta separata e non è inclusa negli esit
 | Condivisioni clienti | OK automatico | Il percorso precedente è sostituito dalla pagina React tenant-aware e dalle API JSON reali, con RBAC, revoca e audit; i test del percorso storico sono stati riallineati al nuovo contratto. |
 
 La prova visiva materiale locale e in produzione resta registrata separatamente fino al rebuild e ai click reali.
+## Backup strutturato Hetzner 2.278.85 - 01/09/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Prova reale server di backup strutturato | OK | Creata una sola istantanea sotto `/opt/iusentra/backups`: 2 database tenant, 11.682.545.664 byte copiati. Il manifest dichiara `source_of_truth=sqlite`. |
+| SHA-256 e SQLite `quick_check(1)` sulle copie | OK | Entrambe le copie coincidono con gli hash del manifest e rispondono `ok`. La copia precedente è stata eliminata solo dopo questa verifica. |
+| Riparazione indice derivato FTS tenant | OK | Il secondo tenant conteneva la voce virtuale `search_documenti` senza shadow table. La riparazione è stata prima provata su copia di sicurezza, poi applicata ricreando il solo indice FTS vuoto; nessuna tabella dati primaria è stata cancellata e il database sorgente risponde ora `quick_check=ok`. |
+| Pulizia vecchi backup autorizzata | OK | Eliminati definitivamente il vecchio snapshot Redis non attivo e la copia tecnica pre-riparazione FTS; il Redis attivo usa `/opt/iusentra/data/redis`. Resta una sola istantanea strutturata valida. |
+| Test backup nuovo e storico | OK | `tests/test_hetzner_structured_backup.py` 4/4 e `tests/test_hetzner_backup_retention.py` 6/6; Ruff, py_compile, parsing YAML e governance repository superati. |

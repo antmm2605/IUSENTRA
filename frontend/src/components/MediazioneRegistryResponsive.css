@@ -1,0 +1,34 @@
+/* Keep the same fields and inline detail, without a horizontal hunt for actions. */
+@media (max-width: 1100px) {
+  #registro-mediazione .iu-li-registry-table-wrap { overflow: visible; border: 0; }
+  #registro-mediazione .iu-li-registry-table { display: block; width: 100%; min-width: 0; }
+  #registro-mediazione .iu-li-registry-table thead {
+    position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  #registro-mediazione .iu-li-registry-table tbody { display: block; }
+  #registro-mediazione .iu-li-registry-table tbody > tr {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--iu-space-3); padding: var(--iu-space-3); margin-top: var(--iu-space-3);
+    border: 1px solid var(--iu-od-border); border-radius: var(--iu-radius-sm, 8px);
+  }
+  #registro-mediazione .iu-li-registry-table tbody > tr > td {
+    display: block; min-width: 0; width: auto; padding: 0; border: 0; overflow-wrap: anywhere;
+  }
+  #registro-mediazione .iu-li-registry-table td[data-label]::before {
+    content: attr(data-label); display: block; font-size: .75rem;
+    color: var(--iu-od-muted); margin-bottom: var(--iu-space-1);
+  }
+  #registro-mediazione td[data-label="Denominazione / nominativo"],
+  #registro-mediazione td[data-label="Identificativi"],
+  #registro-mediazione td[data-label="Contatti"],
+  #registro-mediazione td[data-label="Azioni"] { grid-column: 1 / -1; }
+  #registro-mediazione td[data-label="Azioni"] > button { width: 100%; }
+  #registro-mediazione td[data-label="Stato"] > span { width: fit-content; }
+  #registro-mediazione .iu-li-registry-table tbody > .iu-li-registry-detail-row {
+    grid-template-columns: minmax(0, 1fr); margin-top: 0;
+  }
+  #registro-mediazione .iu-med-detail { padding: 0; }
+  #registro-mediazione .iu-med-detail h3 { overflow-wrap: anywhere; }
+  #registro-mediazione .iu-med-detail__office-list { grid-template-columns: minmax(0, 1fr); }
+}

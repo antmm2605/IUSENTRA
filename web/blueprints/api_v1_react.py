@@ -13977,6 +13977,19 @@ def legal_intelligence_mediazione_page():
     )
 
 
+@api_v1_react.get("/legal-intelligence/mediazione/organismi/<int:number>/sedi")
+@_richiedi_auth
+def mediazione_organismo_sedi(number: int):
+    from web.services.mediazione_directory_surface import office_detail
+    if not 0 < number < 1_000_000:
+        return jsonify({"ok": False, "message": "Numero di registro non valido."}), 400
+    try:
+        return redacted_json_response(office_detail(str(number), current_app.config))
+    except Exception:
+        current_app.logger.exception("Consultazione sedi mediazione non riuscita")
+        return jsonify({"ok": False, "message": "Non è stato possibile caricare le sedi. Riprova."}), 503
+
+
 @api_v1_react.get("/ricerca-legale")
 @_richiedi_auth
 def ricerca_legale_page():

@@ -35,6 +35,8 @@ export type LegalIntelligenceRecord = {
   vatNumber: string
   email: string
   website: string
+  locations?: { region: string; province: string; city: string }[]
+  officeCount?: number | null
   organismoType: string
   registryKind: string
   registrySection: string
@@ -396,6 +398,11 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     stateLabel: display(item.stateLabel),
     stateTone: tone(item.stateTone),
     territory: display(item.territory),
+    locations: list(item.locations).map((value) => {
+      const location = asRecord(value)
+      return { region: display(location.region), province: display(location.province), city: display(location.city) }
+    }),
+    officeCount: typeof item.officeCount === 'number' ? item.officeCount : null,
     registryNumber: display(item.registryNumber),
     taxCode: display(item.taxCode),
     vatNumber: display(item.vatNumber),
@@ -453,9 +460,15 @@ export async function getLegalIntelligenceNewsPage(): Promise<LegalIntelligenceP
   return normalisePage(payload)
 }
 
-export async function getLegalIntelligenceMediazionePage(): Promise<LegalIntelligencePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/legal-intelligence/mediazione', emptyLegalIntelligencePage)
-  return normalisePage(payload)
+let mediazionePending: Promise<LegalIntelligencePageData> | undefined
+export function getLegalIntelligenceMediazionePage(): Promise<LegalIntelligencePageData> {
+  // Share only in-flight reads (including StrictMode remounts), never stale/session data.
+  if (!mediazionePending) {
+    mediazionePending = apiJson<unknown>('/api/v1/ui/legal-intelligence/mediazione', emptyLegalIntelligencePage)
+      .then(normalisePage)
+      .finally(() => { mediazionePending = undefined })
+  }
+  return mediazionePending
 }
 
 export async function getRicercaLegalePage(params: { q?: string } = {}): Promise<LegalIntelligencePageData> {

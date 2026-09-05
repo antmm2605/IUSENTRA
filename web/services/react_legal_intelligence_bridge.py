@@ -3519,6 +3519,30 @@ def build_react_legal_intelligence_payload(
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     manager = get_legal_intelligence()
+    if page == "mediazione":
+        # The register is a read-only directory, not the global source dashboard.
+        # Do not build case monitors, AI audits or news pipelines to display it.
+        registry = _mediazione_snapshot(manager, warnings, query)
+        rows = [row for row in _list(registry.get("rows")) if isinstance(row, dict)]
+        records = [_safe_mediazione_record(row, index) for index, row in enumerate(rows, 1)]
+        from web.services.mediazione_directory_surface import enrich_locations
+        records = enrich_locations(records, config or {})
+        return {
+            "source": "repository_reali",
+            "generated_at": _iso_now(),
+            "contracts": {
+                "mock_fallback": False, "writes": "none", "route_owner": "react_shell",
+                "external_fetch": False, "ai_generation": False,
+                "canonical_source": "backend_storico",
+                "legacy_contract": "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",
+            },
+            "records": [_enrich_record_context(row) for row in _mediazione_official_registry_records()] + records,
+            "metrics": [_metric("mediazione", "Organismi mediazione",
+                sum(row.get("registry_kind", "organismo") == "organismo" for row in rows),
+                "Registro consultabile", "info")],
+            "sections": [_mediazione_section({"mediazione_registry": registry})],
+            "actions": [], "forms": [], "warnings": warnings, "filters": dict(query or {}),
+        }
     pipeline = get_legal_update_pipeline()
     snapshot = _dashboard_snapshot(
         manager,

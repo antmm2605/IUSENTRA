@@ -381,6 +381,34 @@ def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -
         if media_type == "multipart/form-data":
             operation["responses"]["413"] = _response_ref("PayloadTooLarge")
             operation["responses"]["415"] = _response_ref("UnsupportedMediaType")
+    if endpoint.function == "mediazione_organismo_sedi":
+        operation["description"] = (
+            "Consultazione autenticata dell'inventario SQL pubblico delle sedi ministeriali. "
+            "Nessun dato di fascicolo e nessuna richiesta esterna durante l'apertura. "
+            "available=false indica un organismo non ancora acquisito, non un elenco vuoto verificato."
+        )
+        operation["x-data-classification"] = "public_ministerial_directory"
+        operation["parameters"] = [{
+            "name": "number", "in": "path", "required": True,
+            "schema": {"type": "integer", "minimum": 1, "maximum": 999999},
+        }]
+        office_fields = {key: {"type": "string"} for key in (
+            "address", "city", "postal_code", "province", "region", "phone", "fax", "email", "pec",
+        )}
+        office_fields["legal"] = {"type": "boolean"}
+        operation["responses"]["200"] = {
+            "description": "Inventario pubblico con disponibilità, fonte e data di acquisizione.",
+            "content": {"application/json": {"schema": {
+                "type": "object", "required": ["ok", "available"], "properties": {
+                    "ok": {"type": "boolean"}, "available": {"type": "boolean"},
+                    "expected_count": {"type": "integer"}, "pages": {"type": "integer"},
+                    "checked_at": {"type": "string", "format": "date-time"},
+                    "source_url": {"type": "string", "format": "uri"},
+                    "offices": {"type": "array", "items": {"type": "object", "properties": office_fields}},
+                },
+            }}},
+        }
+        operation["responses"]["503"] = {"description": "Archivio temporaneamente non leggibile; messaggio senza dettagli interni."}
     return operation
 
 

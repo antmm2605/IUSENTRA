@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { mediazioneWebsite } from '../lib/mediazioneWebsite'
+import { MediazioneOrganismoDetail } from './MediazioneOrganismoDetail'
 import {
   AlertTriangle,
   ArrowRight,
@@ -41,6 +43,7 @@ import {
   type LegalIntelligenceRecord,
 } from '../legalIntelligenceData'
 import './LegalIntelligencePage.css'
+import './MediazioneRegistryResponsive.css'
 type LegalIntelligenceView = 'dashboard' | 'news' | 'mediazione' | 'ricerca-legale'
 const INTERNAL_FULLSCREEN_BODY_CLASS = 'iusentra-ui-fullscreen-open'
 const LEGAL_INTELLIGENCE_FULLSCREEN_CLASS = 'iu-li-fullscreen-mode'
@@ -919,6 +922,8 @@ function isImportedMediazioneRecord(record: LegalIntelligenceRecord) {
   return record.id.startsWith('registro-mediazione-') || Boolean(record.registrySection)
 }
 function MediazioneRegistryExplorer({
+  selectedId,
+  onClose,
   records,
   allRecords,
   query,
@@ -926,6 +931,7 @@ function MediazioneRegistryExplorer({
   status,
   type,
   territory,
+  region,
   contact,
   onQuery,
   onSubmit,
@@ -933,10 +939,13 @@ function MediazioneRegistryExplorer({
   onStatus,
   onType,
   onTerritory,
+  onRegion,
   onContact,
   onReset,
   onOpen,
 }: {
+  selectedId: string
+  onClose: () => void
   records: LegalIntelligenceRecord[]
   allRecords: LegalIntelligenceRecord[]
   query: string
@@ -944,6 +953,7 @@ function MediazioneRegistryExplorer({
   status: string
   type: string
   territory: string
+  region: string
   contact: string
   onQuery: (value: string) => void
   onSubmit: () => void
@@ -951,6 +961,7 @@ function MediazioneRegistryExplorer({
   onStatus: (value: string) => void
   onType: (value: string) => void
   onTerritory: (value: string) => void
+  onRegion: (value: string) => void
   onContact: (value: string) => void
   onReset: () => void
   onOpen: (record: LegalIntelligenceRecord) => void
@@ -958,15 +969,34 @@ function MediazioneRegistryExplorer({
   const sectionOptions = uniqueOptions(allRecords, 'registrySection')
   const statusOptions = uniqueOptions(allRecords, 'stateLabel')
   const typeOptions = uniqueOptions(allRecords, 'organismoType')
-  const territoryOptions = uniqueOptions(allRecords, 'territory').slice(0, 180)
-  const visibleRows = records.slice(0, 80)
+  const locations = allRecords.flatMap((record) => record.locations || [])
+  const regionOptions = [...new Set(locations.map((l) => l.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'))
+  const territoryOptions = [...new Set(locations.filter((l) => !region || l.region === region).map((l) => l.province).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'))
+  const scope = JSON.stringify([query, section, status, type, region, territory, contact])
+  const [pagination, setPagination] = useState({ scope, page: 1 })
+  const pageSize = 25
+  useEffect(() => {
+    const selectedIndex = records.findIndex((record) => record.id === selectedId)
+    if (selectedIndex >= 0) setPagination({ scope, page: Math.floor(selectedIndex / pageSize) + 1 })
+  }, [records, selectedId, scope])
+  const closeDetail = (recordId: string) => {
+    onClose()
+    requestAnimationFrame(() => document.getElementById(`apri-${recordId}`)?.focus())
+  }
+  const pageCount = Math.max(1, Math.ceil(records.length / pageSize))
+  const page = Math.min(pagination.scope === scope ? pagination.page : 1, pageCount)
+  const firstRow = (page - 1) * pageSize
+  const visibleRows = records.slice(firstRow, firstRow + pageSize)
+  const organisms = allRecords.filter((record) => record.registryKind === 'organismo')
+  const activeOrganisms = organisms.filter((record) => record.isActive)
   return (
     <section id="registro-mediazione" className="iu-li-registry iu-od-source-card" aria-label="Elenco organismi di mediazione">
       <header className="iu-li-section-head">
         <Landmark size={18} aria-hidden="true" />
         <div>
-          <h2>Organismi nel registro</h2>
-          <p>{records.length} risultati filtrati su {allRecords.length} organismi acquisiti dal registro ministeriale.</p>
+          <h2>Registro degli organismi di mediazione</h2>
+          <p>{organisms.length.toLocaleString('it-IT')} organismi, di cui {activeOrganisms.length.toLocaleString('it-IT')} attivi nell'ultimo elenco acquisito.</p>
+          <p>Il registro comprende anche enti di formazione e formatori: {allRecords.length.toLocaleString('it-IT')} voci complessive. Puoi consultarli dal filtro Sezione.</p>
         </div>
       </header>
       <div className="iu-li-registry-filters" aria-label="Filtri registro organismi">
@@ -1003,9 +1033,16 @@ function MediazioneRegistryExplorer({
           </select>
         </label>
         <label>
-          <span>Territorio</span>
-          <select value={territory} onChange={(event) => onTerritory(event.target.value)}>
-            <option value="">Tutti</option>
+          <span>Regione</span>
+          <select value={region} onChange={(event) => onRegion(event.target.value)}>
+            <option value="">Tutte le regioni</option>
+            {regionOptions.map((option) => <option value={option} key={option}>{option}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Provincia</span>
+          <select value={territory} disabled={!region} onChange={(event) => onTerritory(event.target.value)}>
+            <option value="">{region ? 'Tutte le province' : 'Scegli prima la regione'}</option>
             {territoryOptions.map((option) => <option value={option} key={option}>{option}</option>)}
           </select>
         </label>
@@ -1017,18 +1054,18 @@ function MediazioneRegistryExplorer({
             <option value="website">Con sito web</option>
           </select>
         </label>
-        {(query || section || status || type || territory || contact) ? (
+        {(query || section || status || type || region || territory || contact) ? (
           <Button type="button" tone="neutral" onClick={onReset}>Azzera filtri</Button>
         ) : null}
       </div>
       {visibleRows.length ? (
-        <div className="iu-li-registry-table-wrap">
+        <div className="iu-li-registry-table-wrap" role="region" aria-label="Risultati del registro, tabella scorrevole" tabIndex={0}>
           <table className="iu-li-registry-table">
             <thead>
               <tr>
                 <th>Sezione</th>
-                <th>Registro</th>
-                <th>Organismo</th>
+                <th>N. registro</th>
+                <th>Denominazione / nominativo</th>
                 <th>Natura</th>
                 <th>Stato</th>
                 <th>Identificativi</th>
@@ -1038,43 +1075,51 @@ function MediazioneRegistryExplorer({
             </thead>
             <tbody>
               {visibleRows.map((record) => (
-                <tr key={record.id}>
-                  <td>{record.registrySection || 'Registro mediazione'}</td>
-                  <td><strong>{record.registryNumber || record.taxCode || '-'}</strong></td>
-                  <td>
+                <Fragment key={record.id}><tr>
+                  <td data-label="Sezione">{record.registrySection || 'Registro mediazione'}</td>
+                  <td data-label="N. registro"><strong>{record.registryNumber || record.taxCode || '-'}</strong></td>
+                  <td data-label="Denominazione / nominativo">
                     <span className="iu-li-registry-table__title">{record.title}</span>
                     {record.territory ? <small>{record.territory}</small> : null}
                   </td>
-                  <td>{record.organismoType || record.subtitle || '-'}</td>
-                  <td><Badge tone={record.stateTone}>{record.stateLabel || 'Fonte da completare'}</Badge></td>
-                  <td>
+                  <td data-label="Natura">{record.organismoType || record.subtitle || '-'}</td>
+                  <td data-label="Stato"><Badge tone={record.stateTone}>{record.stateLabel || 'Fonte da completare'}</Badge></td>
+                  <td data-label="Identificativi">
                     <span>{record.taxCode ? `CF ${record.taxCode}` : 'CF non indicato'}</span>
                     <small>{record.vatNumber ? `P. IVA ${record.vatNumber}` : 'P. IVA non indicata'}</small>
                   </td>
-                  <td>
+                  <td data-label="Contatti">
                     {record.email ? <span><Mail size={14} aria-hidden="true" /> {record.email}</span> : <span>Email non indicata</span>}
-                    {record.website ? <small><Globe2 size={14} aria-hidden="true" /> {record.website}</small> : null}
+                    {mediazioneWebsite(record.website) ? <a className="iu-li-registry-website" href={mediazioneWebsite(record.website)} target="_blank" rel="noopener noreferrer" aria-label={`Apri sito web: ${record.title} (nuova scheda)`}><Globe2 size={14} aria-hidden="true" /> {record.website}</a> : record.website ? <small>{record.website}</small> : null}
                   </td>
-                  <td>
-                    <Button type="button" tone="neutral" onClick={() => onOpen(record)}>
+                  <td data-label="Azioni">
+                    <Button id={`apri-${record.id}`} type="button" tone="neutral" aria-label={`${selectedId === record.id ? 'Chiudi' : 'Apri'} scheda: ${record.title}`} aria-expanded={selectedId === record.id} aria-controls={`dettaglio-${record.id}`} onClick={() => selectedId === record.id ? closeDetail(record.id) : onOpen(record)}>
                       <BookOpen size={15} aria-hidden="true" />
-                      Scheda
+                      {selectedId === record.id ? 'Chiudi' : 'Scheda'}
                     </Button>
                   </td>
                 </tr>
+                {selectedId === record.id ? <tr className="iu-li-registry-detail-row"><td colSpan={8}>
+                  <div id={`dettaglio-${record.id}`}><MediazioneOrganismoDetail record={record} region={region} province={territory} onClose={() => closeDetail(record.id)} /></div>
+                </td></tr> : null}
+                </Fragment>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
         <EmptyState
-          title="Nessun organismo con questi filtri"
+          title="Nessuna voce con questi filtri"
           message="Modifica ricerca, stato, natura o territorio per restringere il registro acquisito."
         />
       )}
-      {records.length > visibleRows.length ? (
-        <p className="iu-li-registry-note">Mostro i primi {visibleRows.length} risultati per mantenere la pagina reattiva: la ricerca e i filtri lavorano su tutti gli organismi acquisiti.</p>
-      ) : null}
+      <nav className="iu-li-registry-pagination" aria-label="Pagine del registro mediazione">
+        <p className="iu-li-registry-note" role="status">
+          {records.length ? `${firstRow + 1}–${firstRow + visibleRows.length} di ${records.length.toLocaleString('it-IT')} risultati. Pagina ${page} di ${pageCount}.` : '0 risultati.'}
+        </p>
+        <Button type="button" tone="neutral" disabled={page === 1} onClick={() => setPagination({ scope, page: page - 1 })}>Precedente</Button>
+        <Button type="button" tone="neutral" disabled={page === pageCount} onClick={() => setPagination({ scope, page: page + 1 })}>Successiva</Button>
+      </nav>
     </section>
   )
 }
@@ -1173,10 +1218,11 @@ export function LegalIntelligencePage() {
   const [recordState, setRecordState] = useState(initialParams.get('stato') || '')
   const [recordScope, setRecordScope] = useState(initialParams.get('ambito') || '')
   const [recordQuality, setRecordQuality] = useState(initialParams.get('qualita') || '')
-  const [mediazioneSection, setMediazioneSection] = useState('')
-  const [mediazioneStatus, setMediazioneStatus] = useState('')
+  const [mediazioneSection, setMediazioneSection] = useState('Organismi di mediazione')
+  const [mediazioneStatus, setMediazioneStatus] = useState('attivo')
   const [mediazioneType, setMediazioneType] = useState('')
   const [mediazioneTerritory, setMediazioneTerritory] = useState('')
+  const [mediazioneRegion, setMediazioneRegion] = useState('')
   const [mediazioneContact, setMediazioneContact] = useState('')
   const [fullscreenOpen, setFullscreenOpen] = useState(false)
   useEffect(() => {
@@ -1216,6 +1262,7 @@ export function LegalIntelligencePage() {
     record.vatNumber,
     record.email,
     record.website,
+    (record.locations || []).map((l) => `${l.region} ${l.province} ${l.city}`).join(' '),
   ].join(' '), localFilter)), [data.records, localFilter])
   const selectableRecords = view === 'mediazione' ? locallyVisibleRecords : data.records
   const kindOptions = useMemo(() => uniqueOptions(selectableRecords, 'kind'), [selectableRecords])
@@ -1249,12 +1296,13 @@ export function LegalIntelligencePage() {
       if (!recordMatchesSelect(record.registrySection, mediazioneSection)) return false
       if (!recordMatchesSelect(record.stateLabel, mediazioneStatus)) return false
       if (!recordMatchesSelect(record.organismoType, mediazioneType)) return false
-      if (!recordMatchesSelect(record.territory, mediazioneTerritory)) return false
+      if ((mediazioneRegion || mediazioneTerritory) && !(record.locations || []).some((l) =>
+        (!mediazioneRegion || l.region === mediazioneRegion) && (!mediazioneTerritory || l.province === mediazioneTerritory))) return false
       if (mediazioneContact === 'email' && !record.email) return false
       if (mediazioneContact === 'website' && !record.website) return false
       return true
     })
-  }, [mediazioneRegistryRecords, mediazioneContact, mediazioneSection, mediazioneStatus, mediazioneTerritory, mediazioneType, view])
+  }, [mediazioneRegistryRecords, mediazioneContact, mediazioneSection, mediazioneStatus, mediazioneRegion, mediazioneTerritory, mediazioneType, view])
   // Rete di sicurezza lato client: oltre questa soglia il rendering integrale
   // dell'inventario (950+ schede) fa cadere la pagina; il totale resta visibile
   // nell'intestazione e la ricerca filtra comunque l'intero archivio caricato.
@@ -1262,7 +1310,7 @@ export function LegalIntelligencePage() {
     ? [...mediazioneOfficialRecords, ...filteredMediazioneRegistryRecords]
     : filteredLegalRecords
   ).slice(0, 120)
-  const selectedRecord = visibleRecords.find((record) => record.id === selectedId) || visibleRecords[0]
+  const selectedRecord = (view === 'mediazione' ? data.records : visibleRecords).find((record) => record.id === selectedId) || visibleRecords[0]
   const updateSearchUrl = (value: string) => {
     const params = new URLSearchParams(window.location.search)
     if (value) params.set('q', value)
@@ -1342,7 +1390,7 @@ export function LegalIntelligencePage() {
     if (recordQuality) params.set('qualita', recordQuality)
     params.set('scheda', record.id)
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
-    const shouldScrollToDetail = view === 'mediazione' || window.matchMedia('(max-width: 1179px)').matches
+    const shouldScrollToDetail = !isImportedMediazioneRecord(record) && (view === 'mediazione' || window.matchMedia('(max-width: 1179px)').matches)
     if (shouldScrollToDetail) {
       window.requestAnimationFrame(() => document.querySelector('.iu-li-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
     }
@@ -1406,13 +1454,21 @@ export function LegalIntelligencePage() {
           <div className="iu-li-workbench__main">
             {view === 'mediazione' ? (
               <MediazioneRegistryExplorer
+                selectedId={selectedId}
+                onClose={() => {
+                  setSelectedId('')
+                  const params = new URLSearchParams(window.location.search)
+                  params.delete('scheda')
+                  window.history.replaceState({}, '', `${window.location.pathname}${params.size ? `?${params}` : ''}`)
+                }}
                 records={filteredMediazioneRegistryRecords}
-                allRecords={mediazioneRegistryRecords}
+                allRecords={data.records.filter(isImportedMediazioneRecord)}
                 query={query}
                 section={mediazioneSection}
                 status={mediazioneStatus}
                 type={mediazioneType}
                 territory={mediazioneTerritory}
+                region={mediazioneRegion}
                 contact={mediazioneContact}
                 onQuery={setQuery}
                 onSubmit={submitSearch}
@@ -1420,12 +1476,14 @@ export function LegalIntelligencePage() {
                 onStatus={setMediazioneStatus}
                 onType={setMediazioneType}
                 onTerritory={setMediazioneTerritory}
+                onRegion={(value) => { setMediazioneRegion(value); setMediazioneTerritory('') }}
                 onContact={setMediazioneContact}
                 onReset={() => {
                   setMediazioneStatus('')
                   setMediazioneSection('')
                   setMediazioneType('')
                   setMediazioneTerritory('')
+                  setMediazioneRegion('')
                   setMediazioneContact('')
                   resetSearch()
                 }}
@@ -1435,8 +1493,8 @@ export function LegalIntelligencePage() {
             <section id="schede" className="iu-li-results" aria-label="Schede ricerca legale">
               <ResultHeader
                 view={view}
-                visibleCount={visibleRecords.length}
-                totalCount={data.records.length}
+                visibleCount={view === 'mediazione' ? mediazioneOfficialRecords.length : visibleRecords.length}
+                totalCount={view === 'mediazione' ? mediazioneOfficialRecords.length : data.records.length}
                 submittedQuery={submittedQuery}
               />
               {visibleRecords.length && view !== 'mediazione' ? (
@@ -1472,7 +1530,7 @@ export function LegalIntelligencePage() {
               )}
             </section>
           </div>
-          <RecordDetail record={selectedRecord} view={view} onSearchRelated={runSearch} />
+          {view !== 'mediazione' || !selectedRecord || !isImportedMediazioneRecord(selectedRecord) ? <RecordDetail record={selectedRecord} view={view} onSearchRelated={runSearch} /> : null}
         </div>
         {view === 'ricerca-legale' ? <CollapsibleSourceDashboard data={data} onArchiveSearch={runArchiveSearch} /> : null}
       </div>

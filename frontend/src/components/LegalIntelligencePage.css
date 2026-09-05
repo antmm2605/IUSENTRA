@@ -1075,7 +1075,8 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
 
 .iu-li-registry-table {
   border-collapse: collapse;
-  min-width: 960px;
+  min-width: 76rem;
+  table-layout: auto;
   width: 100%;
 }
 
@@ -1094,6 +1095,9 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
   font-size: var(--iu-od-source-meta-size);
   font-weight: 800;
   text-transform: uppercase;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .iu-li-registry-table tbody tr:hover {
@@ -1102,6 +1106,65 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
 
 .iu-li-registry-table td {
   line-height: 1.4;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.iu-li-registry-table th:nth-child(3),
+.iu-li-registry-table td:nth-child(3) {
+  min-width: 16rem;
+}
+
+.iu-li-registry-table th:nth-child(6),
+.iu-li-registry-table td:nth-child(6) {
+  min-width: 10rem;
+}
+
+.iu-li-registry-table td:nth-child(8) > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: var(--iu-od-space-2);
+  min-width: 6.5rem;
+  min-height: var(--iu-touch-target, 2.75rem);
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.iu-li-registry-table td svg {
+  flex-shrink: 0;
+}
+
+.iu-li-registry-table-wrap:focus-visible {
+  box-shadow: var(--iu-od-source-focus-ring);
+  outline: 2px solid transparent;
+}
+
+.iu-li-registry-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--iu-od-space-3);
+}
+
+.iu-li-registry-website {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--iu-space-1);
+  color: var(--iusentra-primary);
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  overflow-wrap: anywhere;
+}
+.iu-li-registry-website svg { flex-shrink: 0; }
+.iu-li-registry-website:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.iu-li-registry-detail-row > td { padding: var(--iu-space-3); }
+.iu-li-registry-detail-row .iu-li-detail { position: static; width: 100%; max-height: none; }
+
+.iu-li-registry-pagination p {
+  flex: 1 1 16rem;
 }
 
 .iu-li-registry-table td:nth-child(3),
@@ -1110,8 +1173,8 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
   display: table-cell;
 }
 
-.iu-li-registry-table td span,
-.iu-li-registry-table td small {
+.iu-li-registry-table td > span,
+.iu-li-registry-table td > small {
   display: flex;
   gap: var(--iu-od-space-1);
   align-items: center;

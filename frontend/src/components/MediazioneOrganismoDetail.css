@@ -1,0 +1,14 @@
+.iu-med-detail { padding: var(--iu-space-3); color: var(--iu-od-text); }
+.iu-med-detail h3, .iu-med-detail h4 { margin: 0 0 var(--iu-space-3); }
+.iu-med-detail__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--iu-space-3); margin: 0 0 var(--iu-space-3); }
+.iu-med-detail__facts dt { font-size: .75rem; color: var(--iu-od-muted); }
+.iu-med-detail__facts dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.iu-med-detail__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: var(--iu-space-2); }
+.iu-med-detail__actions h4 { margin: 0; margin-right: auto; }
+.iu-med-detail__footer { margin-top: var(--iu-space-4); }
+.iu-med-detail a:not(.iu-btn) { text-decoration: underline; text-underline-offset: .2em; }
+.iu-med-detail__offices { margin-top: var(--iu-space-4); }
+.iu-med-detail__office-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--iu-space-3); }
+.iu-med-detail__office-list li { padding-block: var(--iu-space-2); border-bottom: 1px solid var(--iu-border); }
+.iu-med-detail__office-list span { display: block; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .iu-med-detail__facts, .iu-med-detail__office-list { grid-template-columns: 1fr; } }

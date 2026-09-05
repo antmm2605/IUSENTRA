@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.278.86 - 05/09/2026
+
+- Registro mediazione: scheda sotto l'organismo selezionato, sedi ministeriali complete, filtro Regione/Provincia, siti cliccabili e visualizzazione responsive.
+- Acquisizione sedi con verifica di tutte le pagine e dei totali, repository pubblico SQLite/PostgreSQL e API autenticata; nessuna acquisizione esterna durante l'apertura della scheda.
+- Caricamento dedicato del registro senza dashboard generale o pipeline AI; richieste duplicate eliminate.
+
 ## 2.278.85 - 01/09/2026
 
 - Il deploy Hetzner crea ora, prima di ogni aggiornamento effettivo, un backup SQLite coerente di tutti i tenant con API nativa SQLite, quick_check, hash SHA-256 e manifest verificabile.

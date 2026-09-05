@@ -14,6 +14,10 @@
       "reason": "Tutte le visualizzazioni dettaglio fascicolo devono mantenere la superficie personalizzata richiesta dall'utente; lista, nuovo e archivio restano nel preset operativo."
     }
   ],
+  "approvedCssRationale": {
+    "frontend/src/components/MediazioneOrganismoDetail.css": "Scheda organismo e sedi inline richiesta dall'utente: layout e token condivisi, nessun tema alternativo, nessuno stile inline.",
+    "frontend/src/components/MediazioneRegistryResponsive.css": "Adattamento della stessa tabella mediazione a tablet e mobile, mantenendo tutti i campi e i comandi senza scorrimento orizzontale."
+  },
   "approvedCssFiles": [
     "frontend/src/components/AdminDatabasePage.css",
     "frontend/src/components/AgendaImportPage.css",
@@ -40,6 +44,8 @@
     "frontend/src/components/IncassiPagamentiPage.css",
     "frontend/src/components/LegalIntelligencePage.css",
     "frontend/src/components/LexLearningPage.css",
+    "frontend/src/components/MediazioneOrganismoDetail.css",
+    "frontend/src/components/MediazioneRegistryResponsive.css",
     "frontend/src/components/MessaggiPage.css",
     "frontend/src/components/NotiziarioPanel.css",
     "frontend/src/components/NotificheLegaliPage.css",

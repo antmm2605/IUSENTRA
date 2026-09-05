@@ -49,7 +49,7 @@ export function MediazioneOrganismoDetail({ record, region, province, onClose }:
         : !data ? <p role="status">Caricamento sedi…</p>
         : !data.available ? <p>Sedi non ancora acquisite dal registro ministeriale.</p>
         : <>
-          <p>{offices.length} sedi mostrate su {data.offices?.length}. Consultazione del {formatDateTimeIt(data.checked_at)}.</p>
+          <p>{offices.length} {offices.length === 1 ? 'sede mostrata' : 'sedi mostrate'} su {data.offices?.length}. Consultazione del {formatDateTimeIt(data.checked_at)}.</p>
           {(region || province) && !all && offices.length < (data.offices?.length || 0) ? <Button tone="neutral" onClick={() => setAll(true)}>Mostra tutte le sedi dell'organismo</Button> : null}
           <ul className="iu-med-detail__office-list">{offices.map((office, index) => <li key={index}>
             <strong>{office.city} ({office.province}){office.legal ? ', sede legale' : ''}</strong>

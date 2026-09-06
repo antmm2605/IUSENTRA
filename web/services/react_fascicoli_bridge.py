@@ -7293,8 +7293,15 @@ def _sql_document_catalog_by_id(fascicolo: Any) -> dict[str, Any]:
     except Exception:
         return {}
     by_document: dict[str, Any] = {}
+    current_hashes = {
+        _text(getattr(doc, "id", "")): _text(getattr(doc, "hash_contenuto_sha256", ""))
+        for doc in (getattr(fascicolo, "documenti", []) or [])
+    }
     for assignment in assignments:
         document_id = _text(getattr(assignment, "document_id", ""))
+        current_hash = current_hashes.get(document_id)
+        if current_hash and current_hash != _text(getattr(assignment, "document_sha256", "")):
+            continue
         if document_id and document_id not in by_document:
             by_document[document_id] = assignment
     return by_document

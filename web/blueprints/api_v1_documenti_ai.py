@@ -213,6 +213,7 @@ def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
             and (
                 not isinstance(item.get("assignment"), dict)
                 or str((item.get("assignment") or {}).get("document_sha256") or "") != str(item.get("sha256") or "")
+                or str((item.get("assignment") or {}).get("resolver_version") or "") != str(pre_catalog.get("resolver_version") or "")
             )
             for item in list(pre_catalog.get("documents") or [])
         )
@@ -221,25 +222,16 @@ def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
                 fascicolo_id,
                 process=True,
                 retry_errors=retry,
+                apply_automations=False,
             )
         else:
             # Tutti i documenti supportati hanno già un record Document AI e
             # una catalogazione SQL con la stessa impronta. Il bottone deve
             # quindi restituire subito lo stato corrente, senza riaprire la
             # pipeline di indicizzazione né automazioni estranee al refresh.
-            supported = [item for item in list(pre_catalog.get("documents") or []) if item.get("supported")]
-            lex_indexing = {
-                "total_documents": len(supported),
-                "ready": len(supported),
-                "queued": 0,
-                "indexing": 0,
-                "errors": 0,
-                "stale": 0,
-                "not_indexed": 0,
-                "archived": 0,
-                "status": "ready",
-                "warnings": [],
-            }
+            lex_indexing = build_lex_indexing_summary_payload(
+                fascicolo_id, process=False, apply_automations=False,
+            )
         catalog = build_document_catalog_payload(fascicolo_id, process=True, retry=retry)
         return jsonify({"mock_fallback": False, "lex_indexing": _serialize_lex_indexing(lex_indexing), **catalog})
     except Exception as exc:

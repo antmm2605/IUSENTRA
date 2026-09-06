@@ -6063,3 +6063,11 @@ Perimetro: avvio della consultazione PST dal Wizard e dal Fascicolo d’ufficio.
 - I quattro shard completi di Local Signer, installer e packaging hanno superato `305/305` test; il controllo dei confini, il typecheck React e i test mirati dei due ingressi PST sono superati.
 
 Stato della prova materiale: **non verificato su macchina reale** per la build `1.6.126`. Restano obbligatori rebuild Docker locale, click reale con smart card, comparsa governata del prompt nativo, verifica della risposta PST, hover/focus, scroll completo e responsive desktop/tablet/mobile. Il test non deve firmare documenti né inviare PEC o depositi.
+
+## Aggiornamento 06/09/2026 — catalogazione e OCR, nessun invio telematico
+
+Integrato pdf-inspector offline nella copia Docker locale. File CAdES con nome PDF letti tramite estrazione del contenuto, senza modificare originali o verifica firme. Catalogo SQL unico con fonti, identità documentale distinta dai richiami, salvataggio atomico e dettagli tracciabili. L'aggiornamento catalogo non attiva automazioni di adempimenti estranee.
+
+Il pannello Fascicolo d'ufficio include ora i provvedimenti nel flag già previsto e rilegge i contatori restituiti dall'importazione; nessuna modifica al trasporto comune Wizard/PST, sessioni, PIN, Local Signer, firma o PEC. La prova PIN dei sette provvedimenti resta da eseguire con l'utente.
+
+Eseguite prove materiali nella copia `127.0.0.1:8080`: refresh, fonti, sentenza nel lettore con Stampa presente, RG citato senza riscrittura della pratica, XML di collaudo con due corpi e preview mobile. Test SQL/SQLite e PostgreSQL vivo su schema isolato; prove, norme e limiti in `catalogazione-unica-fonti-2026-09-06.md` e `docs/specs/ministero/CATALOGAZIONE_DOCUMENTALE_MATRICE_20260906.md`. Nessun deposito, notifica, firma o invio reali eseguiti. Rilascio complessivo ancora aperto.

@@ -21,7 +21,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from .models import DocumentAIPageText
-from .pdf_quality import repair_pdf_cid_placeholders, score_extracted_text_quality
+from .pdf_quality import has_only_signature_text, repair_pdf_cid_placeholders, score_extracted_text_quality
 from pct.formatting import format_datetime_it
 
 
@@ -89,7 +89,7 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         payload, payload_name, unwrap_warnings = _unwrap_p7m_payload(content, filename)
         payload_type = _file_type_from_payload(payload, payload_name, fallback=file_type)
         result = extract_text_from_document(payload, payload_name, payload_type)
-        if not result.ok:
+        if not result.ok and not _looks_like_pdf(payload):
             fallback = _extract_binary_best_effort(
                 payload,
                 payload_type or "cades",
@@ -105,11 +105,24 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
     ext = str(file_type or "").lower().lstrip(".")
     if ext == "pdf":
         if not _looks_like_pdf(content):
+            # Gli archivi storici possono conservare una busta CAdES con
+            # nome .pdf. Leggere il payload, mai le stringhe binarie della
+            # firma come se fossero il testo dell'atto.
+            if content.startswith(b"\x30"):
+                payload, payload_name, warnings = _unwrap_p7m_payload(content, filename + ".p7m")
+                if payload != content and _looks_like_pdf(payload):
+                    result = extract_text_from_document(payload, payload_name, "pdf")
+                    result.extraction_engine = "cades:" + result.extraction_engine
+                    result.warnings[:0] = warnings
+                    return result
+                return ExtractionResult(
+                    ok=False, text="", pages=[], extraction_engine="cades:pdf_payload_unavailable",
+                    error_code="pdf_payload_unavailable",
+                    error_message="Il contenuto PDF della busta firmata non è leggibile.",
+                )
             return _extract_mislabeled_pdf(content, filename)
-        unlimited = _extract_with_unlimited_ocr_for_index(content, filename, ext)
-        if unlimited is not None:
-            return unlimited
-        return _extract_pdf(content)
+        from .pdf_inspector_engine import extract_pdf_inspected
+        return extract_pdf_inspected(content)
     if ext == "docx":
         return _extract_docx(content)
     if ext == "doc":
@@ -844,7 +857,8 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
         pages, full_text, repair_warnings = _repair_pdf_text(pages)
         warnings.extend(repair_warnings)
         quality = score_extracted_text_quality(full_text)
-        if not full_text.strip() or quality.cid_placeholders or quality.score < 0.55:
+        signature_only = any(has_only_signature_text(page.text) for page in pages)
+        if not full_text.strip() or quality.cid_placeholders or quality.score < 0.55 or signature_only:
             if full_text.strip() and quality.cid_placeholders:
                 warnings.append("Testo PDF nativo non affidabile: rilevati segnaposto CID residui.")
             elif full_text.strip():
@@ -853,6 +867,9 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
             ocr_result = _extract_scanned_pdf_with_ocr(content, base_warnings=warnings, base_engine="pdfplumber")
             if ocr_result is not None:
                 return ocr_result
+            if signature_only:
+                return ExtractionResult(ok=False, text=full_text, pages=pages, extraction_engine="pdfplumber", warnings=warnings,
+                                        error_code="pdf_body_ocr_required", error_message="È leggibile soltanto il timbro di firma: OCR del corpo del documento non completato.")
         return ExtractionResult(
             ok=True,
             text=full_text,
@@ -873,7 +890,8 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
             warnings.append("Estrattore PDF primario non disponibile; usato parser alternativo.")
             warnings.extend(repair_warnings)
             quality = score_extracted_text_quality(full_text)
-            if not full_text.strip() or quality.cid_placeholders or quality.score < 0.55:
+            signature_only = any(has_only_signature_text(page.text) for page in pages)
+            if not full_text.strip() or quality.cid_placeholders or quality.score < 0.55 or signature_only:
                 if full_text.strip() and quality.cid_placeholders:
                     warnings.append("Testo PDF nativo non affidabile: rilevati segnaposto CID residui.")
                 elif full_text.strip():
@@ -882,6 +900,9 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
                 ocr_result = _extract_scanned_pdf_with_ocr(content, base_warnings=warnings, base_engine="pypdf")
                 if ocr_result is not None:
                     return ocr_result
+                if signature_only:
+                    return ExtractionResult(ok=False, text=full_text, pages=pages, extraction_engine="pypdf", warnings=warnings,
+                                            error_code="pdf_body_ocr_required", error_message="È leggibile soltanto il timbro di firma: OCR del corpo del documento non completato.")
             return ExtractionResult(
                 ok=True,
                 text=full_text,

@@ -8,6 +8,22 @@ import zipfile
 import pytest
 
 from pct.document_intelligence.extraction import extract_document_text, extract_text_from_document
+from pct.document_intelligence.pdf_inspector_engine import ENGINE_VERSION
+
+
+@pytest.fixture
+def inspector_native_contract(monkeypatch):
+    """Portable adapter contract; native OCR is separately exercised in Docker."""
+    import pdfplumber
+
+    def process(content, **options):
+        assert options['offline'] is True
+        with pdfplumber.open(BytesIO(content)) as document:
+            pages = [SimpleNamespace(page_number=i, markdown=p.extract_text() or '')
+                     for i, p in enumerate(document.pages, 1)]
+        return SimpleNamespace(pages=pages, pages_routed_to_ocr=[], pages_recommending_hosted=[])
+
+    monkeypatch.setitem(sys.modules, 'pdf_inspector', SimpleNamespace(process_pdf_with_ocr_bytes=process))
 
 
 def test_document_ai_extraction_docx_semplice(tmp_path: Path):
@@ -41,7 +57,7 @@ def test_document_ai_extraction_doc_legacy_testuale(tmp_path: Path):
     assert "Memoria difensiva" in result.text
 
 
-def test_document_ai_extraction_pdf_semplice(tmp_path: Path):
+def test_document_ai_extraction_pdf_semplice(tmp_path: Path, inspector_native_contract):
     pytest.importorskip("reportlab")
     from reportlab.pdfgen import canvas
 
@@ -56,7 +72,7 @@ def test_document_ai_extraction_pdf_semplice(tmp_path: Path):
     result = extract_document_text(target, "pdf")
 
     assert result.error is None
-    assert result.extraction_engine in {"pdfplumber", "pypdf"}
+    assert result.extraction_engine == ENGINE_VERSION
     assert result.page_count == 1
     assert "Testo PDF fascicolo" in result.text
 
@@ -120,7 +136,7 @@ def test_document_ai_unlimited_ocr_alimenta_indice_integrale_immagine(monkeypatc
     assert any("nessun chunk OCR" in warning for warning in result.warnings)
 
 
-def test_document_ai_extraction_pdf_p7m_leggibile_come_pdf(tmp_path: Path):
+def test_document_ai_extraction_pdf_p7m_leggibile_come_pdf(tmp_path: Path, inspector_native_contract):
     pytest.importorskip("reportlab")
     from reportlab.pdfgen import canvas
 
@@ -135,13 +151,13 @@ def test_document_ai_extraction_pdf_p7m_leggibile_come_pdf(tmp_path: Path):
     result = extract_document_text(target, "pdf")
 
     assert result.error is None
-    assert result.extraction_engine in {"cades:pdfplumber", "cades:pypdf"}
+    assert result.extraction_engine == f"cades:{ENGINE_VERSION}"
     assert result.page_count == 1
     assert "Testo PDF firmato leggibile" in result.text
     assert any("PDF interno" in warning for warning in result.warnings)
 
 
-def test_document_ai_extraction_pdf_scansionato_usa_ocr_quando_il_testo_manca(monkeypatch):
+def test_legacy_pdf_helper_scansionato_usa_ocr_quando_il_testo_manca(monkeypatch):
     class FakePdfPlumberPage:
         def extract_text(self):
             return ""
@@ -198,7 +214,8 @@ def test_document_ai_extraction_pdf_scansionato_usa_ocr_quando_il_testo_manca(mo
         ),
     )
 
-    result = extract_text_from_document(b"%PDF-1.7\n% scansione", "ordinanza.pdf", "pdf")
+    from pct.document_intelligence.extraction import _extract_pdf
+    result = _extract_pdf(b"%PDF-1.7\n% scansione")
 
     assert result.ok is True
     assert result.extraction_engine == "pdfplumber+ocr"
@@ -207,7 +224,7 @@ def test_document_ai_extraction_pdf_scansionato_usa_ocr_quando_il_testo_manca(mo
     assert any("OCR applicato" in warning for warning in result.warnings)
 
 
-def test_document_ai_extraction_pdf_con_cid_residui_usa_ocr(monkeypatch):
+def test_legacy_pdf_helper_con_cid_residui_usa_ocr(monkeypatch):
     class FakePdfPlumberPage:
         def extract_text(self):
             return "(cid:0)(cid:1)(cid:2)(cid:3)(cid:4)(cid:5)"
@@ -262,7 +279,8 @@ def test_document_ai_extraction_pdf_con_cid_residui_usa_ocr(monkeypatch):
         SimpleNamespace(image_to_string=lambda _image, lang: "Contratto scolastico Betti Alice"),
     )
 
-    result = extract_text_from_document(b"%PDF-1.7\n% cid", "contratto.pdf", "pdf")
+    from pct.document_intelligence.extraction import _extract_pdf
+    result = _extract_pdf(b"%PDF-1.7\n% cid")
 
     assert result.ok is True
     assert result.extraction_engine == "pdfplumber+ocr"
@@ -271,7 +289,7 @@ def test_document_ai_extraction_pdf_con_cid_residui_usa_ocr(monkeypatch):
     assert any("CID" in warning for warning in result.warnings)
 
 
-def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, monkeypatch):
+def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, monkeypatch, inspector_native_contract):
     pytest.importorskip("reportlab")
     from reportlab.pdfgen import canvas
 
@@ -301,7 +319,7 @@ def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, 
     result = extract_document_text(target, "pdf")
 
     assert result.error is None
-    assert result.extraction_engine in {"cades:pdfplumber", "cades:pypdf"}
+    assert result.extraction_engine == f"cades:{ENGINE_VERSION}"
     assert "Testo estratto dal payload firmato" in result.text
     assert "Contenuto firmato estratto." in result.warnings
 

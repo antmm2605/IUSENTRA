@@ -160,11 +160,18 @@ def build_document_catalog_payload(
         retry=retry,
     )
     assignments = service.repository.list_catalog_assignments(tenant_id, str(fascicolo_id))
-    by_document = {assignment.document_id: assignment for assignment in assignments}
+    # La lista è ordinata dalla versione più recente. Il vecchio dict
+    # sovrascriveva l'esito nuovo con quello storico dello stesso documento.
+    by_document = {}
+    for assignment in assignments:
+        by_document.setdefault((assignment.document_id, assignment.document_sha256), assignment)
+    source_urls_by_rule: dict[str, dict[str, str]] = {}
     documents: list[dict[str, Any]] = []
     for source in sources:
         document_id = str(source.source_id or source.metadata.get("documento_id") or "")
-        assignment = by_document.get(document_id)
+        assignment = by_document.get((document_id, source.sha256))
+        if assignment and assignment.rule_set_id not in source_urls_by_rule:
+            source_urls_by_rule[assignment.rule_set_id] = _catalog_source_urls(service.repository, assignment)
         documents.append(
             {
                 "document_id": document_id,
@@ -172,10 +179,16 @@ def build_document_catalog_payload(
                 "supported": bool(source.supported),
                 "sha256": source.sha256,
                 "indexed": bool(assignment),
-                "assignment": _catalog_assignment_payload(service.repository, assignment) if assignment else None,
+                "assignment": _catalog_assignment_payload(service.repository, assignment, source_urls=source_urls_by_rule.get(assignment.rule_set_id)) if assignment else None,
             }
         )
-    summary = service.repository.catalog_summary(tenant_id, str(fascicolo_id))
+    current = [item["assignment"] for item in documents if item["assignment"]]
+    summary = {
+        "total": len(current),
+        **{status: sum(item["status"] == status for item in current)
+           for status in ("proposed", "confirmed", "review_required")},
+        "errors": len(run.errors),
+    }
     summary["waiting_for_index"] = run.waiting_for_index
     summary["source_documents"] = len(sources)
     return {
@@ -315,9 +328,16 @@ def override_document_catalog_assignment(
     return _catalog_assignment_payload(repository, assignment)
 
 
-def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: Any) -> dict[str, Any]:
+def _catalog_source_urls(repository: DocumentAIRepository, assignment: Any) -> dict[str, str]:
+    snapshots = repository.list_catalog_source_snapshots(assignment.tenant_id, assignment.rule_set_id) if assignment.rule_set_id else []
+    return {str(row.get("source_id") or ""): str(row.get("official_url") or "") for row in snapshots}
+
+
+def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: Any, *, source_urls: dict[str, str] | None = None) -> dict[str, Any]:
     if assignment is None:
         return {}
+    if source_urls is None:
+        source_urls = _catalog_source_urls(repository, assignment)
     return {
         "id": assignment.id,
         "document_id": assignment.document_id,
@@ -353,6 +373,7 @@ def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: An
                 "locator": item.locator,
                 "excerpt": item.excerpt,
                 "weight": int(item.weight),
+                "official_url": source_urls.get(item.locator, "") if item.evidence_type == "legal_source" else "",
             }
             for item in repository.list_catalog_evidence(assignment.id)
         ],
@@ -365,6 +386,7 @@ def build_lex_indexing_summary_payload(
     process: bool = False,
     retry_errors: bool = False,
     user_context: object | None = None,
+    apply_automations: bool = True,
 ) -> dict[str, Any]:
     assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
@@ -380,6 +402,8 @@ def build_lex_indexing_summary_payload(
             retry_errors=retry_errors,
         )
         payload = result.summary.to_dict()
+        if not apply_automations:
+            return payload
         payload.update(
             _apply_ready_document_automations(
                 service=service,
@@ -391,6 +415,9 @@ def build_lex_indexing_summary_payload(
         )
         return payload
     summary: LexIndexingSummary = service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context)
+    if not apply_automations:
+        # Lettura dello stato SQL senza avviare OCR o automazioni estranee.
+        return summary.to_dict()
     if _lex_summary_needs_automatic_processing(summary, sources):
         result = service.process_lex_indexing_sources(
             tenant_id,

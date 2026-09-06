@@ -1211,6 +1211,28 @@ class DocumentAIRepository:
         evidence: list[DocumentCatalogEvidence] | None = None,
         review: DocumentCatalogReview | None = None,
     ) -> DocumentCatalogAssignment:
+        """Assegnazione ed evidenze sono indivisibili su SQLite e PostgreSQL."""
+        self._require_catalog_sql()
+        with self.catalog_write_batch():
+            conn = self._conn()
+            conn.execute("SAVEPOINT catalog_assignment_write")
+            try:
+                result = self._save_catalog_assignment(assignment, candidates=candidates, evidence=evidence, review=review)
+                conn.execute("RELEASE SAVEPOINT catalog_assignment_write")
+                return result
+            except Exception:
+                conn.execute("ROLLBACK TO SAVEPOINT catalog_assignment_write")
+                conn.execute("RELEASE SAVEPOINT catalog_assignment_write")
+                raise
+
+    def _save_catalog_assignment(
+        self,
+        assignment: DocumentCatalogAssignment,
+        *,
+        candidates: list[DocumentCatalogCandidate] | None = None,
+        evidence: list[DocumentCatalogEvidence] | None = None,
+        review: DocumentCatalogReview | None = None,
+    ) -> DocumentCatalogAssignment:
         self._require_catalog_sql()
         current = self.get_catalog_assignment(
             assignment.tenant_id,

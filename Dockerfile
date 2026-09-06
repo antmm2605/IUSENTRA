@@ -1,4 +1,4 @@
-#  version: 2.279.0
+#  version: 2.280.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -39,6 +39,8 @@ COPY packaging_manifest.py .
 COPY requirements ./requirements
 COPY pct/__init__.py pct/__init__.py
 RUN pip install --no-cache-dir --timeout 120 ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
+COPY scripts/install_pdf_ocr_runtime.py /build/install_pdf_ocr_runtime.py
+RUN python /build/install_pdf_ocr_runtime.py --destination /ocr-runtime
 
 
 # -------------------------------------------------------------
@@ -121,7 +123,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.279.0" \
+      org.opencontainers.image.version="2.280.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -148,6 +150,10 @@ RUN addgroup --system iusentra \
 
 # Copia il venv compilato dallo stage builder
 COPY --from=builder /venv /venv
+COPY --from=builder /ocr-runtime /opt/iusentra/ocr
+ENV PDFIUM_LIB_PATH=/opt/iusentra/ocr/pdfium/lib/libpdfium.so \
+    ORT_DYLIB_PATH=/opt/iusentra/ocr/onnx/onnxruntime-linux-x64-1.27.0/lib/libonnxruntime.so.1.27.0 \
+    IUSENTRA_PDF_OCR_MODEL_DIR=/opt/iusentra/ocr/models
 ENV PATH="/venv/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV TZ=Europe/Rome

@@ -68,8 +68,14 @@ export default function DocumentCapture({ fascicoloId, reference, onSaved }: { f
     reset(); setNotice(`${result.filename}: ${message}`); onSaved(message)
   })
   const preview = pages.find((page) => page.id === selected) || pages[0]
-  return <section className="iu-document-capture" aria-label="Acquisizione documenti da dispositivi">
-    {!open ? <Button type="button" tone="neutral" onClick={() => setOpen(true)}><ScanLine size={17}/>Acquisisci da scanner o fotocamera</Button> : <>
+  return <section className="iu-document-capture" aria-label="Acquisizione documenti da scanner, webcam e fotocamera">
+    {!open ? <div className="iu-document-capture__closed">
+      <div>
+        <strong>Acquisizione da dispositivo</strong>
+        <span>Scanner Windows, webcam o fotocamera del telefono: anteprima e salvataggio nel fascicolo.</span>
+      </div>
+      <Button type="button" tone="neutral" className="iu-document-capture__opener" onClick={() => setOpen(true)}><ScanLine size={17}/>Scanner / webcam / fotocamera</Button>
+    </div> : <>
       <header><div><h3>Acquisisci documenti</h3><p>Destinazione: {reference}. Le pagine entrano in Documenti e atti solo dopo la conferma.</p></div><Button type="button" tone="neutral" disabled={Boolean(busy)} onClick={close}><X size={16}/>Chiudi</Button></header>
       <div className="iu-capture-actions">
         <Button type="button" tone="neutral" disabled={Boolean(busy) || camera} onClick={() => perform('Acquisizione dallo scanner: completa la finestra sul PC…', async () => append(await acquireFromLocalScanner()))}><ScanLine size={16}/>Scanner Windows</Button>

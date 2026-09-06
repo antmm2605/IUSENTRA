@@ -470,7 +470,16 @@ function searchWaitHint(seconds: number): string {
 }
 
 export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocumentsRequest = null }: Props) {
-  const [documents, setDocuments] = useState<OfficeDocument[]>([])
+  const [catalogDocuments, setDocuments] = useState<OfficeDocument[]>([])
+  // Il catalogo ministeriale resta stabile; la presenza deriva sempre
+  // dall'ultima risposta del fascicolo, anche dopo un'importazione parziale.
+  const documents = useMemo(() => {
+    const localIds = new Set(data.documents.flatMap(localDocumentIds))
+    return catalogDocuments.map((doc) => ({
+      ...doc,
+      acquired: documentIds(doc.raw).some((id) => localIds.has(id)),
+    }))
+  }, [catalogDocuments, data.documents])
   const [snapshot, setSnapshot] = useState<JsonRecord>({})
   const [selection, setSelection] = useState<string[]>([])
   const [modes, setModes] = useState<Record<string, DocumentMode>>({})
@@ -792,7 +801,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
           importa_dati_pratica: false,
           importa_difensori: false,
           importa_udienze: false,
-          importa_provvedimenti: false,
+          importa_provvedimenti: true,
           importa_cronologia_depositi: false,
           importa_esiti_telematici: false,
           non_duplicare_documenti: true,
@@ -814,7 +823,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
       const incomplete = list(signerPayload.failures).length > 0
         || importedCount < selectedRows.length
         || number(summary.documenti_da_acquisire) > 0
-      const resultMessage = `Fascicolo ${data.fascicolo.ref}: ${newCount} nuovi, ${updatedCount} aggiornati, ${reusedCount} già identici. Integrità dei file verificata dal server.`
+      const resultMessage = `Fascicolo ${data.fascicolo.ref}: ${newCount} nuovi, ${updatedCount} aggiornati, ${reusedCount} già identici. Integrità dei file verificata.`
         + (incomplete ? ' Acquisizione parziale: la selezione resta disponibile per riprovare i documenti mancanti.' : '')
       setMessage(resultMessage)
       if (!incomplete) setSelection([])

@@ -57,7 +57,10 @@ def test_catalogo_fascicolo_mostra_prova_del_contenuto_e_mantiene_il_lettore_int
 
     assert "function CatalogEvidenceDisclosure" in fascicoli
     assert "Prova e fonti della catalogazione" in fascicoli
-    assert "Segnalazioni procedurali" in fascicoli
+    assert "Richiami rilevati nel testo" in fascicoli
+    assert "non definiscono da soli il rito, una scadenza o lo stato della pratica" in fascicoli
+    assert "Dettagli letti nel documento" in fascicoli
+    assert "documento $1 del lotto XML" in fascicoli
     assert "Fonti ufficiali del profilo" in fascicoli
     assert "Apri la prova nel lettore" in fascicoli
     assert "catalogProfileLabel(assignment)" in fascicoli

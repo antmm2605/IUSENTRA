@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
 from typing import Any, Iterable
 
 from .catalog_resolver import (
@@ -17,6 +18,7 @@ from .catalog_resolver import (
 from .models import DocumentCatalogAssignment, new_id, utc_now
 from .repository import DocumentAIRepository
 from .sources import DocumentAISource
+from .catalog_context import fascicolo_catalog_context
 
 
 @dataclass(slots=True)
@@ -130,6 +132,7 @@ class FascicoloDocumentCatalogPipeline:
         if not fid:
             raise ValueError("Fascicolo non disponibile per la catalogazione.")
         rule_set_id = self.ensure_rule_inventory(tenant_id)
+        logging.getLogger(__name__).info("Catalogo: inventario regole pronto")
         result = CatalogPipelineResult()
         document_sources = [source for source in sources if str(source.fascicolo_id or "") == fid]
         result.total_sources = len(document_sources)
@@ -138,7 +141,9 @@ class FascicoloDocumentCatalogPipeline:
         for record in records:
             sha = str(getattr(record, "sha256", "") or "")
             if sha and str(getattr(record, "status", "") or "") == "ready":
-                records_by_sha[sha] = record
+                current_record = records_by_sha.get(sha)
+                if current_record is None or str(getattr(record, "updated_at", "") or "") > str(getattr(current_record, "updated_at", "") or ""):
+                    records_by_sha[sha] = record
         existing_assignments = {
             (str(item.document_id or ""), str(item.document_sha256 or "")): item
             for item in self.repository.list_catalog_assignments(tenant_id, fid, include_superseded=True)
@@ -148,6 +153,7 @@ class FascicoloDocumentCatalogPipeline:
             for review in self.repository.list_catalog_reviews(tenant_id, fid)
         }
         context = _fascicolo_context(fascicolo)
+        logging.getLogger(__name__).info("Catalogo: contesto pronto, sorgenti=%s", len(document_sources))
         extracted_by_record_id: dict[str, str] = {}
         profile_id, _ = resolve_profile(context)
         if not profile_id:
@@ -189,7 +195,15 @@ class FascicoloDocumentCatalogPipeline:
                 # sovrascrivere un esito umano già tracciato nel fascicolo.
                 result.skipped_current += 1
                 continue
-            if existing and existing.resolver_version == RESOLVER_VERSION and not retry:
+            current_profile, _ = resolve_profile(context)
+            context_matches = bool(existing) and (
+                existing.profile_id == current_profile
+                and (existing.document_version_id or "") == str(getattr(record, "current_version_id", "") or "")
+                and (existing.legal_area or "") == str(context.get("area") or "")
+                and (existing.legal_branch or "") == str(context.get("branca") or "")
+                and (existing.legal_subfamily or "") == str(context.get("sottobranca") or "")
+            )
+            if existing and existing.resolver_version == RESOLVER_VERSION and context_matches and not retry:
                 # Una revisione aperta è già la risposta governata per il
                 # documento: non la rigeneriamo e non rieseguiamo estrazione
                 # o resolver. Se l'avvocato l'ha chiusa mantenendo "da
@@ -282,7 +296,7 @@ class FascicoloDocumentCatalogPipeline:
                     "filename": source.filename,
                     "source_type": source.source_type,
                     "document_ai_status": str(getattr(record, "status", "") or ""),
-                    "legal_source_count": len(profile_source_rows(resolution.profile_id or "")),
+                    "legal_source_count": sum(item.evidence_type == "legal_source" for item in resolution.evidence),
                     "profile_inferred_from_content": bool(context.get("_profile_inference_reason")),
                     "profile_inference_documents": list(context.get("_profile_evidence_documents") or [])[:5],
                 },
@@ -335,18 +349,7 @@ def _source_snapshot_matches(
 
 
 def _fascicolo_context(fascicolo: Any) -> dict[str, Any]:
-    profile = getattr(fascicolo, "profilo_deposito", {}) or {}
-    profile = dict(profile) if isinstance(profile, dict) else {}
-    return {
-        "area": profile.get("area") or profile.get("area_pratica") or getattr(fascicolo, "area_pratica", ""),
-        "branca": profile.get("branca") or profile.get("branch") or profile.get("materia") or "",
-        "sottobranca": profile.get("sottobranca") or profile.get("subfamily") or profile.get("sottomateria") or "",
-        "giurisdizione": profile.get("giurisdizione") or getattr(fascicolo, "tribunale", ""),
-        "rito": profile.get("rito") or getattr(fascicolo, "tipo_procedimento", ""),
-        "fase": profile.get("fase") or "",
-        "canale": profile.get("canale_telematico") or getattr(fascicolo, "canale_operativo", "") or getattr(fascicolo, "source", ""),
-        "source": getattr(fascicolo, "source", ""),
-    }
+    return fascicolo_catalog_context(fascicolo)
 
 
 __all__ = ["CatalogPipelineResult", "FascicoloDocumentCatalogPipeline"]

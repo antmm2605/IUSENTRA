@@ -1,5 +1,17 @@
 # Pytest issue aperte e risoluzioni
 
+## Acquisizione da scanner/webcam/fotocamera — 06/09/2026
+
+- Il controllo `tools/codex_harness/run_codex_quality_gate.py --mode ui-support` è stato eseguito e non è verde sul worktree di release perché quella modalità accetta solo modifiche al supporto UI, mentre questa tranche modifica codice prodotto React, asset Vite e file di versione obbligatori. Non rimuovere bundle o bump versione per forzare il gate; rieseguirlo a worktree pulito dopo commit/deploy e usare i test applicativi come prova funzionale.
+- Prova PIN PST e download con smart card: da eseguire insieme all'avvocato sul server online dopo il deploy, come già concordato. Non è stata inserita o memorizzata alcuna credenziale o PIN.
+
+## Catalogo documentale / OCR — 06/09/2026
+
+- Regressioni identificate: CAdES con estensione PDF letto come binario; assegnazioni storiche mostrate al posto dell'hash corrente; prova SQL non atomica; refresh catalogo con automazioni estranee; intestazioni confuse con atti citati. Correzioni locali e test documentati in `catalogazione-unica-fonti-2026-09-06.md`.
+- Due test dei riquadri non eseguibili nel Python Windows privo di OpenCV: verificati sull'immagine Linux applicativa, 2/2 superati. Non disabilitare i test né indebolire i controlli per uniformare gli ambienti.
+- Modulo di procura senza titolo: difetto rilevato nella prova reale v22, corretto con formula iniziale specifica v23; aggiornamento catalogo, prove e originale DOCX verificati nella UI 8080. Non riaprire il riconoscimento indiscriminato di una procura soltanto citata.
+- Rimangono aperti accettazione complessiva, gate finali, asset/versionamento, commit/push/deploy e prova PIN PST rinviata dall'utente. Nessuna dichiarazione di accuratezza universale o copertura critica al 100%.
+
 ## Deposito B494AAB9 - prova materiale 12/08/2026
 
 | Area | Gate | Stato | Nota | Azione |

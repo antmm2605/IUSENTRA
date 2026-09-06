@@ -6,18 +6,18 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 609.
+- File pytest censiti: 612.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 93 |
+| API contract | 95 |
 | Backend | 73 |
 | E2E | 9 |
 | Frontend static gate | 1 |
 | Frontend/UI | 189 |
-| RBAC | 61 |
+| RBAC | 62 |
 | Security | 37 |
 | Smoke CLI | 6 |
 | Tenant isolation | 147 |
@@ -31,11 +31,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 34 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 49 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
-| 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 43 |
+| 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 45 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 64 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 190 |
+| 09-misc | Test non classificati dalle fasi principali | 191 |
 
 ## Suite CI aggiuntive
 
@@ -108,6 +108,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | API contract | tests/test_local_pec_runtime.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_packaging_consistency.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_pdf_inspector_engine.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_performance_budget.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_transactional_outbox.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | Backend | tests/test_antiriciclaggio.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -392,13 +393,15 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Fascicoli | Frontend/UI | tests/test_fascicoli_signature_options.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_stato_e_filtri_economici.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Tenant isolation | tests/test_fascicoli.py | tenant, feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| File/document security | Backend | tests/test_document_intelligence_extraction.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | API contract | tests/test_document_intelligence_extraction.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| File/document security | Backend | tests/test_document_catalog_structural_identity.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_intelligence_pdf_quality.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_fascicoli_document_resilience.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_fascicolo_document_autonomy_audit.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Frontend/UI | tests/test_document_management.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_fascicolo_document_presidio.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_lex_document_context.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| File/document security | RBAC | tests/test_document_catalog_fields.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_document_intelligence_catalog_api.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_fascicolo_document_catalog.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_fascicolo_registry_document.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |

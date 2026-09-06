@@ -1,5 +1,26 @@
 # Pytest shard confermati OK
 
+## Acquisizione documenti e catalogo unico — 06/09/2026
+
+- `C:\Python314\python.exe -m pytest tests/test_document_capture_contracts.py tests/test_document_tools.py -q`: **12 test superati**. Confermato che `DocumentCapture` è montato prima del form `Carica documenti` e che il pulsante visibile espone `Scanner / webcam / fotocamera`.
+- `node --test tests/js/document_capture.test.mjs`: **11 test superati**. Confermati scanner loopback, fotocamera/immagini, anteprima PDF e salvataggio nel fascicolo con target esplicito e CSRF.
+- `npm --prefix frontend run typecheck`: **OK** su `@iusentra/studio@2.280.0`.
+- `C:\Python314\python.exe tools\check_release_readiness.py`: **Release readiness OK**.
+- `C:\Python314\python.exe -m pytest tests/test_document_capture_contracts.py tests/test_document_tools.py tests/test_document_catalog_fields.py tests/test_document_catalog_structural_identity.py tests/test_fascicolo_document_catalog_pipeline.py tests/test_document_intelligence_catalog_api.py tests/test_fascicolo_document_catalog_schema_contract.py tests/test_document_intelligence_repository_sql.py tests/test_document_intelligence_frontend.py tests/test_signed_attachment_preview.py tests/test_utf8_integrity.py -q`: **128 test superati** sul perimetro acquisizione, catalogazione, repository SQL, API, frontend, lettore e UTF-8.
+- `npm --prefix frontend run build:vite`: **OK**, bundle React generato con `FascicoliPage-C56FGxnJ.js`, `FascicoliPage-DR2vMwDp.css` e `localScanner-C-YzoIkC.js`.
+- Browser integrato reale su `http://127.0.0.1:8080/fascicoli/DD242366?scanner_check=202609061905#documenti`: **OK osservato**. Il riquadro `Acquisizione da dispositivo` è sopra `Carica documenti`; il click su `Scanner / webcam / fotocamera` apre `Acquisisci documenti` con `Scanner Windows`, `Webcam / fotocamera` e `Scatta dal telefono`. Nessun accesso hardware o salvataggio reale avviato.
+
+## Catalogo unico e OCR locale — 06/09/2026
+
+- Ripetizione finale API catalogo, schema SQLite/PostgreSQL, repository SQL e contratti frontend: **19 test superati in 4,66 secondi**. Typecheck React ripetuto e superato dopo le ultime verifiche.
+- Lettore Word e integrità UTF-8: **31 test superati in 1,62 secondi**, inclusi avvisi italiani per stili e altri elementi, nessuna diagnostica grezza esposta. Difetto visibile prima corretto e provato materialmente sul DOCX reale, poi blindato con test.
+- Ultimo riesame v23: **66 test superati in 11,85 secondi** su dettagli, identità strutturale e pipeline; aggiunti accordo e modulo di procura di mediazione senza titolo. Ruff mirato superato. Esito della procura poi osservato materialmente nella UI 8080, prove e DOCX aperti.
+- 64 test su `test_document_catalog_fields.py`, `test_document_catalog_structural_identity.py`, `test_fascicolo_document_catalog_pipeline.py`: superati prima dell'aggiunta accordo/riquadri v22.
+- 12 test su API catalogo, schema SQLite/PostgreSQL e repository SQL: superati in 3,10 secondi. Verificati contatori reali, errori parziali conservati e refresh senza automazioni estranee.
+- Suite v22 di sei file: 98 superati in 33,14 secondi; due test dei riquadri richiedono OpenCV non installato nel Python Windows. Questi due test sono stati poi eseguiti sull'immagine applicativa Linux reale con dipendenze OCR: **2 superati in 1,69 secondi**. Nessuno skip aggiunto. I primi avvii diagnostici del container di test non avevano mount dei test e poi usavano il virtualenv base errato; esecuzione finale con `/venv/bin/python`, test in sola lettura e pytest temporaneo, container eliminato automaticamente.
+- PostgreSQL vivo: `scripts/verify_document_catalog_postgres.py --dsn-env AUDIT_DATABASE_URL`, pipeline, dettaglio numero, rollback atomico, filtro tenant e connessione dopo errore superati. Schema di collaudo eliminato, tabelle preesistenti intatte.
+- Typecheck React e build delle immagini app/scheduler/OCR superati. Questi controlli sono guardrail, non sostituiscono l'accettazione UI documentata separatamente.
+
 ## Deposito telematico - qualifica professionista - 12/08/2026
 
 | Comando / verifica | Esito | Note |

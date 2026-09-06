@@ -275,13 +275,31 @@ class DocumentAIService:
     ):
         from .indexer import DocumentAIIndexer
 
-        return DocumentAIIndexer(self).process(
+        result = DocumentAIIndexer(self).process(
             tenant_id=tenant_id,
             fascicolo_id=fascicolo_id,
             sources=list(sources or []),
             user_context=user_context,
             retry_errors=retry_errors,
         )
+        import logging
+        logging.getLogger(__name__).info("Document AI: lettura terminata, indicizzati=%s saltati=%s errori=%s", result.indexed, result.skipped, len(result.errors))
+        # Un'unica pipeline: ogni indicizzazione del fascicolo alimenta il
+        # catalogo SQL, senza un secondo click e senza una seconda estrazione.
+        if self.fascicoli_repository is not None and self.repository.backend_kind in {"sqlite", "postgresql"}:
+            fascicolo = self.fascicoli_repository.get(fascicolo_id)
+            logging.getLogger(__name__).info("Document AI: contesto catalogo disponibile=%s", fascicolo is not None)
+            if fascicolo is not None:
+                from .catalog_pipeline import FascicoloDocumentCatalogPipeline
+
+                catalog = FascicoloDocumentCatalogPipeline(self.repository).run(
+                    tenant_id=tenant_id, fascicolo=fascicolo, sources=list(sources or []),
+                    actor=user_id_from_context(user_context), process=True,
+                )
+                if catalog.errors:
+                    result.errors.extend(catalog.errors)
+                    result.summary.warnings.extend(catalog.errors)
+        return result
 
     def list_fascicolo_documents(
         self,

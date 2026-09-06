@@ -17,6 +17,10 @@ from pct.fascicoli import TipoDocumento
 from pct.fascicolo_document_catalog import DocumentCatalogClassification, classify_fascicolo_document
 from pct.presidio_processuale_ruleset import presidio_rule_hits
 from pct.template_atti_legal_sources import REGISTRY_VERSION, TEMPLATE_ATTI_LEGAL_SOURCES
+from .catalog_identity import structural_identity
+from .catalog_fields import document_fields
+from .catalog_context import enrich_official_context
+from .catalog_sources import CATALOG_SOURCES, catalog_source_row, document_source_ids
 
 from .models import (
     DocumentCatalogCandidate,
@@ -29,11 +33,13 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.08.25.catalogo-fascicolo.v14"
+RESOLVER_VERSION = "2026.09.06.catalogo-fascicolo.v23"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
 PROFILE_SOURCES: dict[str, tuple[str, ...]] = {
+    "PST": ("catalog_pst_xsd", "catalog_agid_metadati"),
+    "DOCUMENTALE": tuple(CATALOG_SOURCES),
     "CIV-PCT": ("normattiva_codice_civile", "normattiva_cpc", "pst_specifiche_tecniche_pct", "corte_cassazione_sentenzeweb"),
     "CIV-MON-CAU": ("normattiva_cpc", "cpc_procedimento_monitorio", "cpc_procedimenti_cautelari_uniformi", "pst_specifiche_tecniche_pct"),
     "CIV-ESE": ("normattiva_cpc", "pst_specifiche_tecniche_pct", "pst_portale_vendite_pubbliche_specifiche_concorsuali", "corte_cassazione_sentenzeweb"),
@@ -299,6 +305,50 @@ def _content_identity(
             excerpt=_content_excerpt(raw, excerpt_pattern),
         )
 
+    # Una ricevuta può incorporare l'atto consegnato: l'involucro resta una
+    # ricevuta, non la sentenza o la procura citata nel messaggio originale.
+    receipt_head = _normalise(raw[:2200])
+    receipt_matches = []
+    for formula, label in (
+        (r"\bricevuta di avvenuta consegna\b", "Ricevuta PEC di avvenuta consegna"),
+        (r"\bricevuta di accettazione\b", "Ricevuta PEC di accettazione"),
+        (r"\bavviso di mancata consegna\b", "Avviso PEC di mancata consegna"),
+        (r"\bavviso di non accettazione\b", "Avviso PEC di non accettazione"),
+        (r"\bricevuta di presa in carico\b", "Ricevuta PEC di presa in carico"),
+    ):
+        match = re.search(r"^\s*(?:(?:subject|oggetto):\s*)?" + formula, raw[:600], re.I | re.M)
+        if match:
+            receipt_matches.append((match.start(), formula, label))
+    if receipt_matches and re.search(r"\b(?:posta certificata|identificativo messaggio|gestore|pec)\b", receipt_head):
+        _, formula, label = min(receipt_matches)
+        return result(
+            role="comunicazione", label=label, section="comunicazioni", confidence=99,
+            evidence="contenuto: intestazione della ricevuta e identificativi del sistema PEC",
+            tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta",
+            deposit_candidate=False, excerpt_pattern=formula,
+        )
+
+    structural = structural_identity(raw)
+    if structural is not None:
+        return result(**structural)
+
+    # Identità esplicite con due segnali concordanti, non menzioni isolate.
+    title_head = _normalise(raw[:1600])
+    if re.search(r"(?im)^\s*procura\s+(?:alle\s+liti|speciale)\b", raw[:1600]) and re.search(r"\b(?:deleg[oa]|conferisc[oe]|rappresent\w* e difend\w*)\b", head):
+        return result(
+            role="procura", label="Procura alle liti" if "procura alle liti" in title_head else "Procura speciale",
+            section="procure", confidence=97, evidence="contenuto: procura e conferimento dei poteri",
+            tipo_documento=TipoDocumento.PROCURA, deposit_role="procura", deposit_candidate=True,
+            excerpt_pattern=r"\bprocura\s+(?:alle\s+liti|speciale)\b",
+        )
+    if re.search(r"\b(?:contratto preliminare|preliminare di (?:vendita|compravendita))\b", title_head) and re.search(r"\b(?:promittente|promissari\w*|promett\w* di vendere)\b", head):
+        return result(
+            role="contratto", label="Contratto preliminare di compravendita", section="contratti", confidence=97,
+            evidence="contenuto: contratto preliminare e parti promittenti", tipo_documento=TipoDocumento.CONTRATTO,
+            deposit_role="allegato", deposit_candidate=True,
+            excerpt_pattern=r"\bcontratto\s+preliminare\b|\bpreliminare\s+di\s+(?:vendita|compravendita)\b",
+        )
+
     # Il dispositivo della sentenza è prova più forte di qualunque riferimento
     # economico o tecnico contenuto nella motivazione.
     if "in nome del popolo italiano" in head and re.search(r"\bsentenza\b", head):
@@ -533,7 +583,9 @@ def _classify_indexed_content(extracted_text: str) -> DocumentCatalogClassificat
 def profile_source_rows(profile_id: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for source_id in PROFILE_SOURCES.get(profile_id, ()):
-        if source_id.startswith("snapshot:"):
+        if source_id in CATALOG_SOURCES:
+            rows.append(catalog_source_row(source_id))
+        elif source_id.startswith("snapshot:"):
             rows.append({
                 "id": source_id,
                 "official_url": source_id,
@@ -576,6 +628,8 @@ def profile_source_rows(profile_id: str) -> list[dict[str, Any]]:
 
 
 def resolve_profile(context: dict[str, Any]) -> tuple[str | None, str]:
+    if context.get("_official_profile_id") in PROFILE_SOURCES and context.get("_official_catalog_sha256"):
+        return str(context["_official_profile_id"]), str(context["_official_profile_reason"])
     area = str(context.get("area") or context.get("area_pratica") or "")
     branch = str(context.get("branca") or context.get("branch") or "")
     subfamily = str(context.get("sottobranca") or context.get("subfamily") or "")
@@ -676,7 +730,7 @@ def resolve_document_catalog(
     fascicolo_context: dict[str, Any] | None,
 ) -> CatalogResolution:
     metadata = dict(document_metadata or {})
-    context = dict(fascicolo_context or {})
+    context = enrich_official_context(dict(fascicolo_context or {}))
     profile_id, profile_reason = resolve_profile(context)
     synthetic_document = SimpleNamespace(
         nome=filename,
@@ -712,6 +766,20 @@ def resolve_document_catalog(
             else _insufficient_content_classification(metadata_classification)
         )
     source_rows = profile_source_rows(profile_id) if profile_id else []
+    linked_ids = {row["id"] for row in source_rows}
+    extra_ids = document_source_ids(classification.role, classification.section, profile_id)
+    if context.get("_official_object_code"):
+        extra_ids += ("catalog_pst_xsd",)
+    for source_id in extra_ids:
+        if source_id in linked_ids:
+            continue
+        extra = catalog_source_row(source_id)
+        if extra is None and source_id in _SOURCE_INDEX:
+            source = _SOURCE_INDEX[source_id]
+            extra = {"id": source_id, "label": source.get("title"), **source}
+        if extra:
+            source_rows.append(extra)
+            linked_ids.add(source_id)
     has_manual_browser_evidence = any(row["source_type"] == "browser_evidence" for row in source_rows)
     source_state = "manual_browser_evidence" if has_manual_browser_evidence else "verified_snapshot"
     confidence = int(classification.confidence)
@@ -755,6 +823,13 @@ def resolve_document_catalog(
         ),
     ]
     inferred_reason = str(context.get("_profile_inference_reason") or "").strip()
+    if context.get("_official_object_code"):
+        evidence.append(DocumentCatalogEvidence(
+            id=new_id("catalog-evidence"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            assignment_id="", evidence_type="fascicolo_context", locator="catalog_pst_xsd",
+            excerpt=f"{context['_official_profile_reason']}. Schema: {context['_official_object_file']}"[:240],
+            weight=90, content_sha256=context['_official_catalog_sha256'], created_at=now,
+        ))
     inferred_documents = context.get("_profile_evidence_documents")
     if inferred_reason:
         names = inferred_documents if isinstance(inferred_documents, list) else []
@@ -778,6 +853,12 @@ def resolve_document_catalog(
             signal.content_sha256 = document_sha256 or None
             signal.created_at = now
             evidence.append(signal)
+        for locator, value in document_fields(extracted_text, classification.role):
+            evidence.append(DocumentCatalogEvidence(
+                id=new_id("catalog-evidence"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+                assignment_id="", evidence_type="document_metadata", locator=f"campo:{locator}",
+                excerpt=value, weight=0, content_sha256=document_sha256 or None, created_at=now,
+            ))
     for row in source_rows:
         source_label = str(row.get("label") or "Fonte ufficiale").strip()
         source_status = str(row.get("verification_status") or "fonte da verificare").strip()

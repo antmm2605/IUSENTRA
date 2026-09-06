@@ -3453,4 +3453,7 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-doc-actions.iu-fas-actions>.iu-fas-post>span{display:inline!important;min-width:0;white-space:nowrap}
 .iu-fas-doc-actions.iu-fas-actions>.iu-fas-doc-action>svg,
 .iu-fas-doc-actions.iu-fas-actions>.iu-fas-post>svg{flex:0 0 auto}
+.iu-fas-catalog__entry{min-width:0;border:1px solid var(--iu-border);border-radius:12px;overflow:hidden;background:var(--iu-surface,#fff)}
+.iu-fas-catalog__entry>.iu-fas-doc-row{border:0;border-radius:0;margin:0}
+.iu-fas-catalog__entry>.iu-fas-catalog__row{border:0;border-top:1px solid var(--iu-border);border-radius:0;margin:0}
 @media(max-width:760px){.iu-fas-doc-actions.iu-fas-actions{gap:7px}.iu-fas-doc-actions.iu-fas-actions>a.iu-fas-doc-action,.iu-fas-doc-actions.iu-fas-actions>button.iu-fas-doc-action,.iu-fas-doc-actions.iu-fas-actions>button.iu-fas-post{min-height:44px!important;height:44px!important}}

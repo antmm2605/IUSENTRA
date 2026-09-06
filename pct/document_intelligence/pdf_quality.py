@@ -10,6 +10,22 @@ CID_WARNING = "Rilevati e riparati segnaposto CID nel testo PDF."
 _CID_RE = re.compile(r"\(cid:(\d{1,6})\)")
 
 
+def has_only_signature_text(text: str) -> bool:
+    """Rileva pagine scansionate di cui il parser legge solo il timbro PCT.
+
+    Non scarta il timbro dal documento: segnala che il corpo va letto con OCR.
+    Non usa il nome del file né la lunghezza da sola come prova.
+    """
+    source = str(text or "")
+    cleaned = re.sub(r"(?ims)^[ \t]*[a-f0-9]{12,}[ \t]*\n[ \t]*:#laireS\b.*?\botamriF[ \t]*(?:\n|$)", "", source)
+    cleaned = re.sub(r"(?im)^.*\bFirmato\s+Da\s*:.*\b(?:Serial|Emesso)\b.*$", "", cleaned)
+    if cleaned == source:
+        return False
+    cleaned = re.sub(r"(?im)^\s*Ist\.\s*n\..*?\bdep\..*$", "", cleaned)
+    cleaned = re.sub(r"(?m)^\s*\d+\s*$", "", cleaned)
+    return len(re.sub(r"\s+", "", cleaned)) < 20
+
+
 @dataclass(slots=True)
 class TextQualityScore:
     score: float

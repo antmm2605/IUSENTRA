@@ -124,11 +124,11 @@ def _ready_source_has_extracted_text(
         if str(getattr(record, "status", "") or "") == _READY
         and (
             (source.sha256 and str(getattr(record, "sha256", "") or "") == source.sha256)
-            or source_names
+            or (not source.sha256 and source_names
             & {
                 str(getattr(record, "original_filename", "") or "").casefold(),
                 str(getattr(record, "safe_filename", "") or "").casefold(),
-            }
+            })
         )
     ]
     if not matching:
@@ -151,7 +151,16 @@ def _ready_source_has_extracted_text(
         except Exception:
             return True
         if extracted is not None and str(getattr(extracted, "text", "") or "").strip():
-            return True
+            from .pdf_quality import has_only_signature_text
+            from .pdf_inspector_engine import ENGINE_VERSION
+
+            if any(name.endswith(('.pdf', '.pdf.p7m')) for name in source_names) and ENGINE_VERSION not in str(getattr(extracted, 'extraction_engine', '') or ''):
+                continue
+
+            pages = list(getattr(extracted, "pages", []) or [])
+            texts = [str(getattr(page, "text", "") or "") for page in pages] or [extracted.text]
+            if not any(has_only_signature_text(text) for text in texts):
+                return True
     return False
 
 

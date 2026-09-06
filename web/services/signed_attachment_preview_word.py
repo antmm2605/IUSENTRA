@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from html import escape
 import io
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
@@ -274,10 +273,13 @@ def render_docx_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachm
         ]
         notes = ""
         if messages:
+            # I messaggi del convertitore sono diagnostici inglesi: non sono
+            # contenuto del documento e non vanno esposti come testo legale.
+            style_only = all(message.startswith(("Unrecognised paragraph style:", "Unrecognised run style:")) for message in messages)
             notes = (
-                '<p class="muted">Note di conversione: '
-                + escape("; ".join(messages[:3]))
-                + ("…" if len(messages) > 3 else "")
+                '<p class="muted">'
+                + ("Alcuni stili del documento non sono riprodotti nell’anteprima. Controlla l’originale per l’impaginazione."
+                   if style_only else "La conversione ha segnalato elementi non riprodotti fedelmente nell’anteprima. Controlla l’originale prima di usare il documento.")
                 + "</p>"
             )
         if html_body:

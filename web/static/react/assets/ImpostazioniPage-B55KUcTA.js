@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CDIvlzjh.js";export{e as ImpostazioniPage};

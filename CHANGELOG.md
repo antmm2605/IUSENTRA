@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.279.0 - 06/09/2026
+## 2.280.0 - 06/09/2026
 
 - Mediazione nel fascicolo: procedimenti SQL tenant-aware, scelta dell'organismo e della sede, modulistica con provenienza, allegati multipli, calendario, incontri e audit. Il salvataggio non equivale a un invio all'organismo.
 - Compilazione del PDF originale: pulsante “Tutto schermo”, ritorno alla vista normale anche con Esc, zoom e dimensione iniziale contenuta; i campi compilati restano conservati durante il cambio di vista.

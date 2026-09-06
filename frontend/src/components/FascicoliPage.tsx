@@ -1741,7 +1741,7 @@ type CatalogAssignmentView = {
   updated_at: string
   confirmed_at: string | null
   candidates: Array<{ profile_id: string; document_label: string; document_section: string; document_nature: string; deposit_role: string; confidence: number; reason: string }>
-  evidence: Array<{ type: string; locator: string; excerpt: string; weight: number }>
+  evidence: Array<{ type: string; locator: string; excerpt: string; weight: number; official_url?: string }>
 }
 
 function catalogProfileLabel(assignment: CatalogAssignmentView): string {
@@ -1754,6 +1754,7 @@ function catalogEvidenceTitle(type: string): string {
   if (type === 'procedural_signal') return 'Segnalazione procedurale'
   if (type === 'legal_source') return 'Fonte ufficiale del profilo'
   if (type === 'fascicolo_context') return 'Contesto del fascicolo'
+  if (type === 'official_catalog') return 'Corrispondenza nel catalogo ministeriale'
   return 'Origine e metadati'
 }
 
@@ -1769,15 +1770,19 @@ function CatalogEvidenceDisclosure({
   const identityEvidence = assignment.evidence.filter((entry) => entry.type === 'document_identity' || entry.type === 'extracted_text')
   const proceduralEvidence = assignment.evidence.filter((entry) => entry.type === 'procedural_signal')
   const sources = assignment.evidence.filter((entry) => entry.type === 'legal_source')
+  const contextEvidence = assignment.evidence.filter((entry) => entry.type === 'official_catalog' || entry.type === 'fascicolo_context')
+  const fieldEvidence = assignment.evidence.filter((entry) => entry.type === 'document_metadata' && entry.locator.startsWith('campo:'))
   return (
     <section className="iu-fas-catalog__evidence" aria-label={`Prova della catalogazione ${assignment.document_label}`}>
       <div>
         <strong>Prova e fonti della catalogazione</strong>
-        <span>La proposta nasce dal contenuto indicizzato; le segnalazioni processuali restano distinte dall'identità del documento.</span>
+        <span>La proposta identifica il documento. La confidenza è un punteggio di riconoscimento, non una verifica della firma, della validità giuridica o dell'avvenuto deposito.</span>
       </div>
       {identityEvidence.length ? <ul>{identityEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{catalogEvidenceTitle(entry.type)}</b><span>{entry.excerpt}</span></li>)}</ul> : null}
-      {proceduralEvidence.length ? <div className="iu-fas-catalog__signals"><strong>Segnalazioni procedurali</strong><ul>{proceduralEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{entry.excerpt}</b></li>)}</ul></div> : null}
-      {sources.length ? <div className="iu-fas-catalog__sources"><strong>Fonti ufficiali del profilo</strong><ul>{sources.map((entry, index) => <li key={`${entry.locator}-${index}`}>{entry.excerpt || 'Fonte ufficiale versionata nel catalogo.'}</li>)}</ul></div> : null}
+      {contextEvidence.length ? <ul>{contextEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{catalogEvidenceTitle(entry.type)}</b><span>{entry.excerpt}</span></li>)}</ul> : null}
+      {fieldEvidence.length ? <div><strong>Dettagli letti nel documento</strong><span>I riferimenti citati non modificano i dati della pratica. Controllali nella prova originale.</span><ul>{fieldEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{entry.locator.slice(6).replace(/ · XML \/ FatturaElettronicaBody\[(\d+)\] \/.*$/, ' · documento $1 del lotto XML')}</b><span>{entry.excerpt}</span></li>)}</ul></div> : null}
+      {proceduralEvidence.length ? <div className="iu-fas-catalog__signals"><strong>Richiami rilevati nel testo</strong><span>Possono riguardare atti citati: non definiscono da soli il rito, una scadenza o lo stato della pratica.</span><ul>{proceduralEvidence.map((entry, index) => <li key={`${entry.locator}-${index}`}><b>{entry.excerpt}</b></li>)}</ul></div> : null}
+      {sources.length ? <div className="iu-fas-catalog__sources"><strong>Fonti ufficiali del profilo e del documento</strong><ul>{sources.map((entry, index) => <li key={`${entry.locator}-${index}`}><span>{entry.excerpt || 'Fonte ufficiale versionata nel catalogo.'}</span>{entry.official_url?.startsWith('https://') ? <a href={entry.official_url} target="_blank" rel="noopener noreferrer">Sito istituzionale (nuova scheda)</a> : null}</li>)}</ul></div> : null}
       {document?.actions.preview ? <button type="button" title="Apri il documento sorgente nel lettore interno" onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={14}/> Apri la prova nel lettore</button> : null}
     </section>
   )
@@ -1813,7 +1818,7 @@ function catalogStatusLabel(status: string): string {
 }
 
 function catalogSourceLabel(state: string): string {
-  if (state === 'verified_snapshot') return 'Fonti ufficiali versionate'
+  if (state === 'verified_snapshot') return 'Riferimenti ufficiali collegati'
   if (state === 'manual_browser_evidence') return 'Fonte istituzionale verificata nel browser'
   if (state === 'manual_override') return 'Classificazione confermata manualmente dall’avvocato'
   return 'Fonti da riesaminare'
@@ -1902,6 +1907,11 @@ function CatalogazioneDocumentalePanel({
   const [catalogOpen, setCatalogOpen] = useState(true)
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
+  const documentRevision = documents.map((document) => `${document.id}:${document.hash || ''}`).join('|')
+  const catalogById = new Map((payload?.documents || []).map((item) => [item.document_id, item]))
+  const catalogDocuments = buildDocumentSections(documents).flatMap((section) => section.documents).map((document) => (
+    catalogById.get(document.id) || { document_id: document.id, filename: document.name, supported: true, indexed: false, assignment: null }
+  ))
 
   const load = useCallback(async () => {
     if (!fascicoloId) return
@@ -1921,8 +1931,12 @@ function CatalogazioneDocumentalePanel({
   }, [endpoint, fascicoloId])
 
   useEffect(() => {
+    setPayload(null)
+    setReviewedEvidenceDocumentIds(new Set())
+    setEvidenceDocumentId('')
+    setEditingDocumentId('')
     if (enabled) void load()
-  }, [enabled, load])
+  }, [enabled, load, documentRevision])
 
   const update = async () => {
     setBusy(true)
@@ -1937,6 +1951,11 @@ function CatalogazioneDocumentalePanel({
       const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string }
       if (!response.ok) throw new Error(next.detail || next.error || 'Aggiornamento della catalogazione non completato.')
       setPayload(next)
+      setReviewedEvidenceDocumentIds(new Set())
+      setEvidenceDocumentId('')
+      if (next.run?.errors?.length || next.summary?.errors) {
+        throw new Error('Catalogazione parziale: alcuni documenti non sono stati aggiornati. Consulta gli errori nel pannello prima di riprovare.')
+      }
       const processed = Number(next.run?.processed || 0)
       onDone(processed ? `Catalogazione aggiornata: ${processed} documenti elaborati.` : 'Indice e catalogazione aggiornati.')
     } catch (requestError) {
@@ -2014,11 +2033,11 @@ function CatalogazioneDocumentalePanel({
       <header>
         <div>
           <span><FolderSearch2 size={16}/> Catalogazione documentale</span>
-          <strong>Ogni esito resta collegato al fascicolo, al documento, alle evidenze e alle fonti.</strong>
-          <p>La classificazione automatica deriva dal contenuto indicizzato. Nome file e metadati del portale non sono lettura del contenuto; puoi correggere ogni proposta nel catalogo SQL del fascicolo.</p>
+          <strong>Documenti, classificazione e fonti in un solo elenco.</strong>
+          <p>Il contenuto identifica il documento; i dati del fascicolo e le fonti ufficiali ne motivano la collocazione. Ogni proposta resta verificabile e correggibile.</p>
         </div>
         <div className="iu-fas-catalog__header-actions">
-          <Badge tone={summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
+          <Badge tone={summary?.errors ? 'danger' : summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.errors ? 'Aggiornamento parziale' : summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
           <button type="button" disabled={busy} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw className={busy ? 'iu-spin' : ''} size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
           <button
             type="button"
@@ -2046,29 +2065,30 @@ function CatalogazioneDocumentalePanel({
         {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
         {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
         <div className="iu-fas-catalog__list">
-          {(payload?.documents || []).map((item) => {
+          {catalogDocuments.map((item) => {
             const assignment = item.assignment
             const document = documentsById.get(item.document_id)
             const needsConfirmation = assignment?.status === 'review_required' || assignment?.status === 'proposed'
             const hasEvidence = Boolean(assignment?.evidence?.length)
             const evidenceReviewed = reviewedEvidenceDocumentIds.has(item.document_id)
             return (
-              <article key={item.document_id || item.filename} className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
-                <FileText size={17}/>
+              <article key={item.document_id || item.filename} className="iu-fas-catalog__entry">
+                {document ? <DocumentRow doc={{ ...document, ...(assignment ? { type: assignment.document_label, catalogLabel: assignment.document_label, catalogSection: assignment.document_section } : {}) }} hideCatalogSummary onPreview={onPreview} onDone={onDone} onError={onError}/> : null}
+                <div className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
+                <FolderSearch2 size={17}/>
                 <div className="iu-fas-catalog__copy">
-                  <strong>{item.filename || 'Documento del fascicolo'}</strong>
-                  {assignment ? <span>{assignment.document_label} · {catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{item.supported ? 'In attesa dell’indice Document AI: nessuna classificazione dal contenuto è ancora disponibile.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
+                  {!document ? <strong>{item.filename || 'Documento del fascicolo'}</strong> : null}
+                  {assignment ? <span>{catalogProfileLabel(assignment)}{assignment.source_state === 'manual_override' ? ' · confermata manualmente' : ` · confidenza ${assignment.confidence}%`}</span> : <span>{document?.actions.acquire ? 'Censito dal portale: acquisisci il file nel fascicolo per leggerne e catalogarne il contenuto.' : item.supported ? 'Lettura e catalogazione della versione corrente da aggiornare.' : 'Formato da acquisire o verificare prima della catalogazione'}</span>}
                   {assignment ? <small>{assignment.reason}</small> : null}
                   {assignment?.evidence?.length ? <em>{catalogSourceLabel(assignment.source_state)} · {assignment.evidence.filter((entry) => entry.type === 'legal_source').length} fonti collegate</em> : null}
                   {needsConfirmation && hasEvidence && !evidenceReviewed ? <small className="iu-fas-catalog__review-hint">Prima apri “Prova e fonti”: la conferma registra anche l’avvenuta lettura delle evidenze.</small> : null}
                   {needsConfirmation && !hasEvidence ? <small className="iu-fas-catalog__review-hint">Manca una prova dal contenuto: correggi il catalogo manualmente oppure aggiorna l’indice.</small> : null}
                 </div>
                 <div className="iu-fas-catalog__badges">
-                  <Badge tone={catalogTone(assignment?.status || 'waiting')}>{catalogStatusLabel(assignment?.status || 'waiting')}</Badge>
+                  <Badge tone={catalogTone(assignment?.status || 'waiting')}>{!assignment && document?.actions.acquire ? 'Da acquisire' : catalogStatusLabel(assignment?.status || 'waiting')}</Badge>
                   {assignment?.deposit_candidate ? <Badge tone="primary">Valuta per deposito</Badge> : null}
                 </div>
                 <div className="iu-fas-catalog__actions">
-                  {document?.actions.preview ? <button type="button" title="Apri nel lettore interno" aria-label={`Apri ${document.name} nel lettore interno`} onClick={() => onPreview({ name: document.name, url: document.actions.preview, downloadUrl: document.actions.download })}><Eye size={15}/> Visualizza</button> : null}
                   {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => { setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id); setReviewedEvidenceDocumentIds((current) => new Set(current).add(item.document_id)) }}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
                   {assignment?.status === 'review_required' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la catalogazione dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma</button> : null}
                   {assignment?.status === 'proposed' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la proposta dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma proposta</button> : null}
@@ -2076,6 +2096,7 @@ function CatalogazioneDocumentalePanel({
                 </div>
                 {assignment && evidenceDocumentId === item.document_id ? <CatalogEvidenceDisclosure assignment={assignment} document={document} onPreview={onPreview} /> : null}
                 {assignment && editingDocumentId === item.document_id ? <CatalogCorrectionForm assignment={assignment} busy={busy} onSubmit={(draft) => void override(item.document_id, draft)} onCancel={() => setEditingDocumentId('')} /> : null}
+                </div>
               </article>
             )
           })}
@@ -7850,6 +7871,7 @@ function DocumentUploadWorkspace({
   const typeOptions = data.options.documentTypes.length ? data.options.documentTypes : [{ value: 'ALTRO', label: 'Altro' }]
   return (
     <section className="iu-fas-doc-workspace" aria-label="Documenti e atti del fascicolo">
+      <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
       <form className="iu-fas-doc-upload" onSubmit={submit} encType="multipart/form-data">
         <input type="hidden" name="classificazione_modalita" value={mode}/>
         <label className="iu-fas-field iu-fas-field--wide">
@@ -7899,7 +7921,6 @@ function DocumentUploadWorkspace({
         ) : null}
         <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? 'Caricamento...' : 'Carica documenti'}</button>
       </form>
-      <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
     </section>
   )
 }
@@ -7911,7 +7932,7 @@ function documentCatalogMethodLabel(doc: FascicoloDocument): { label: string; to
   return { label: 'Da indicizzare: contenuto non letto', tone: 'warning', detail: doc.catalogEvidence || 'Esegui la lettura documentale prima di usare una classificazione.' }
 }
 
-function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = false }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void; hideCatalogSummary?:boolean}) {
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState(doc.name)
   const [renameBusy, setRenameBusy] = useState(false)
@@ -7979,7 +8000,7 @@ function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument;
           </button>
         ) : null}
       </div>
-      <div><strong>{doc.name}</strong><span>{doc.type} · {doc.size || 'dimensione n.d.'} · {doc.documentDate || doc.uploadedAt || 'data n.d.'}</span>{doc.notes ? <p>{doc.notes}</p> : null}<small className="iu-fas-doc-catalog-state"><Badge tone={catalogMethod.tone}>{catalogMethod.label}</Badge>{catalogMethod.detail}</small>{tags.length ? <em>{tags.join(', ')}</em> : null}</div>
+      <div><strong>{doc.name}</strong><span>{doc.type} · {doc.size || 'dimensione n.d.'} · {doc.documentDate || doc.uploadedAt || 'data n.d.'}</span>{doc.notes ? <p>{doc.notes}</p> : null}{!hideCatalogSummary ? <small className="iu-fas-doc-catalog-state"><Badge tone={catalogMethod.tone}>{catalogMethod.label}</Badge>{catalogMethod.detail}</small> : null}{tags.length ? <em>{tags.join(', ')}</em> : null}</div>
       {renaming ? (
         <form className="iu-fas-doc-rename-form" onSubmit={submitRename}>
           <input value={draftName} onChange={(event) => setDraftName(event.currentTarget.value)} aria-label={`Nuovo nome file ${doc.name}`} />
@@ -9406,7 +9427,6 @@ function DetailPage({ id }:{id:string}) {
   const nextAppointment = data.appointments[0]
   const preventivo = data.workflow.find((item) => /preventiv/i.test(item.label))
   const conferimento = data.workflow.find((item) => /conferiment|incaric/i.test(item.label))
-  const documentSections = buildDocumentSections(data.documents)
   const notificationCommunicationDocuments = data.documents.filter(isNotificationCommunicationDocument)
   const comunicazioniRows = data.deposits.filter((dep) => !isCancelleriaCommunication(dep))
   const cancelleriaRows = data.deposits.filter(isCancelleriaCommunication)
@@ -9644,25 +9664,6 @@ function DetailPage({ id }:{id:string}) {
               onDone={refreshDetail}
               onError={failDetail}
             />
-            <div className="iu-fas-doc-section-list">
-              {lazyStatus.documenti === 'loading' ? <p className="iu-empty">Caricamento documenti...</p> : null}
-              {documentSections.map((section) => (
-                <section className="iu-fas-doc-auto-section" key={section.id}>
-                  <header>
-                    <Badge tone={section.tone}>{section.documents.length}</Badge>
-                    <div>
-                      <strong>{section.title}</strong>
-                      <span>{section.note}</span>
-                    </div>
-                  </header>
-                  <div className="iu-fas-doc-list">
-                    {section.documents.map((doc) => <DocumentRow doc={doc} key={doc.id} onPreview={setPreviewDoc} onDone={refreshDetail} onError={failDetail}/>)}
-                  </div>
-                </section>
-              ))}
-              {lazyStatus.documenti === 'loaded' && !data.documents.length ? <p className="iu-empty">Nessun documento caricato.</p> : null}
-              {lazyStatus.documenti === 'idle' ? <p className="iu-empty">Apri la sezione per caricare, classificare o modificare i documenti del fascicolo.</p> : null}
-            </div>
           </DetailSection>
           <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.quickCounts.attivita || 0} defaultOpen={activeHashSection === 'attivita'} onOpen={() => loadLazySection('attivita')}>
             <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>

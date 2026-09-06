@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 import sqlite3
+from dataclasses import replace
+import pytest
 from pathlib import Path
 
 from pct.document_intelligence import (
@@ -71,8 +73,9 @@ def test_resolver_copre_tutte_le_47_famiglie_e_le_triadi():
     assert len(templates) == 708
     assert len(FAMILY_PROFILE_BY_CONTEXT) == 47
     assert assert_full_family_matrix(templates) == []
-    assert len(PROFILE_SOURCES) == 25
-    assert all(len(sources) >= 3 for sources in PROFILE_SOURCES.values())
+    assert len(PROFILE_SOURCES) == 27
+    assert all(len(sources) >= 3 for key, sources in PROFILE_SOURCES.items() if key != 'PST')
+    assert set(PROFILE_SOURCES['PST']) == {'catalog_pst_xsd', 'catalog_agid_metadati'}
 
 
 def test_snapshot_fonti_immutato_non_scrive_di_nuovo(tmp_path):
@@ -101,6 +104,27 @@ def test_snapshot_fonti_immutato_non_scrive_di_nuovo(tmp_path):
     repo.upsert_catalog_source_snapshot(**kwargs)
 
     assert repo.structured_db.conn.total_changes == before
+
+
+def test_assignment_and_evidence_roll_back_together_on_constraint_error(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / 'studio.db')
+    source = _ready_source(repo, tenant_id='tenant-test', fascicolo_id='F1', document_id='D1',
+                           filename='atto.pdf', sha256='b' * 64)
+    fascicolo = SimpleNamespace(id='F1', oggetto='Vendita di cose immobili')
+    run = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id='tenant-test', fascicolo=fascicolo, sources=[source], actor='test', process=True)
+    assert not run.errors
+    before = repo.get_catalog_assignment('tenant-test', 'F1', 'D1')
+    evidence = repo.list_catalog_evidence(before.id)
+    assert any(item.evidence_type == 'legal_source' for item in evidence)
+    broken = replace(evidence[0], id='invalid-evidence', evidence_type='invalid_type')
+    with pytest.raises(sqlite3.IntegrityError):
+        repo.save_catalog_assignment(replace(before, document_label='Non deve essere salvato'), evidence=[broken])
+    assert repo.get_catalog_assignment('tenant-test', 'F1', 'D1').document_label == before.document_label
+    assert repo.list_catalog_evidence(before.id) == evidence
+    # La connessione resta utilizzabile dopo il rollback del singolo documento.
+    repo.save_catalog_assignment(before, evidence=evidence)
+    assert repo.list_catalog_evidence(before.id) == evidence
 
 
 def test_pipeline_catalogo_sql_persistente_e_revisionabile(tmp_path):

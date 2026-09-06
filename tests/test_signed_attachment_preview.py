@@ -131,6 +131,25 @@ def test_preview_docx_mostra_il_testo_nel_lettore_interno():
     assert "Contenuto professionale leggibile" in html
 
 
+@pytest.mark.parametrize("message, expected", [
+    ("Unrecognised paragraph style: Body Text (Style ID: Corpotesto)", "Alcuni stili del documento"),
+    ("Unrecognised run style: Custom", "Alcuni stili del documento"),
+    ("An unsupported element was ignored: secret <script>x</script>", "La conversione ha segnalato elementi"),
+])
+def test_preview_docx_avvisa_in_italiano_senza_esporre_diagnostica(monkeypatch, message, expected):
+    monkeypatch.setitem(sys.modules, "mammoth", SimpleNamespace(
+        convert_to_html=lambda _stream: SimpleNamespace(
+            value="<p>Contenuto del documento</p>", messages=[SimpleNamespace(message=message)]),
+    ))
+    source = _zip_bytes([("[Content_Types].xml", b"<Types/>"), ("word/document.xml", b"<w:document/>")])
+    html = word_preview.render_docx_preview("procura.docx", source, signed=False).data.decode("utf-8")
+    assert expected in html
+    assert "Controlla l’originale" in html
+    assert "Contenuto del documento" in html
+    assert message not in html
+    assert "secret" not in html
+
+
 def test_preview_docx_rimuove_markup_eseguibile_da_conversione_mammoth(monkeypatch):
     malicious_html = """
         <h1 id="atto">Memoria difensiva</h1>

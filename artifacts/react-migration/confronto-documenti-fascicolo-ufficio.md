@@ -687,3 +687,39 @@ La prova materiale sulla copia Docker `http://127.0.0.1:8080`, fascicolo
 `DC5BF1DB`, ha aperto la fonte PDF interna e poi il modulo Scadenziario con
 data, tipo, fascicolo, descrizione e nota della fonte precompilati. Nessun
 evento o scadenza è stato creato durante il collaudo.
+
+## Collaudo PIN osservato in produzione — 06/09/2026
+
+Prova dell’utente in Chrome reale, fascicolo `010701E9`, R.G. 1025/2024,
+Tribunale di Palmi, dalle 14:30 alle 14:33, ora italiana. Nessuna richiesta
+PST o modifica applicativa avviata dall’assistente. Il Local Signer 1.6.127
+ha restituito il catalogo di 51 elementi (16 principali e 35 allegati) e il
+server ha ricevuto 51 file. L’importazione è arrivata al fascicolo corretto.
+
+Verifica `source_of_truth=sqlite` nel tenant proprietario, con confronto dei
+file fisici: 51 record, 51 file esistenti, dimensioni e hash SHA-256 conformi
+51/51; decifratura in memoria e hash dei contenuti conformi 51/51. Sono stati
+effettivamente aggiunti 35 documenti e aggiornati 9. Sette documenti restano
+alla copia del 05/09/2026: sentenza 33581101, ordinanze 32473463 e 28626672,
+decreti 29352973, 29033905, 28162803 e 28147819. Non sono stati confrontati con
+i sette contenuti appena ricevuti e poi esclusi: non vanno dichiarati identici.
+
+La traccia diagnostica `PST-20260906143301-70C19D`, letta come log e non come
+fonte di verità documentale, registra 51 ricevuti, 44 attesi dopo il filtro,
+44 registrati e 7 scartati. Causa riscontrata nel codice: l’adattatore
+`OfficeDocumentsPanel.tsx` invia `importa_provvedimenti: false`; il filtro
+`_filter_portale_preview_by_options` esclude così i sette provvedimenti anche
+se selezionati. Non è una perdita del catalogo né un difetto del PIN in questa
+prova. È inoltre rimasto obsoleto lo stato `acquired` del pannello, con 16
+presenti visualizzati anche dopo l’aggiornamento a 51 della sezione generale.
+
+Il file `Documento_33584995.pdf` del fascicolo verificato contiene ora un PDF
+di 65.808 byte, salvato alle 14:33:03 (65.843 byte cifrati a riposo). Non è
+l’altro archivio storico da 256 byte citato nella conversazione precedente.
+
+Esito: salvataggi parziali verificati materialmente; acquisizione integrale
+non superata. Nessuna correzione al codice applicata durante questa diagnosi.
+La correzione dovrà preservare il percorso PST condiviso e separare l’inclusione
+dei file dalla creazione di attività/scadenze. Wizard e copia locale reale
+non verificati su macchina reale in questa prova. Dettagli nel report locale
+`artifacts/ui-checks/collaudo-pin-fascicolo-20260906.md`.

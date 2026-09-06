@@ -112,3 +112,20 @@ def test_presidio_documenti_non_espone_id_tecnici_come_fonte():
 
     assert payload["actions"]
     assert payload["actions"][0]["source"] == "Documento indicizzato del fascicolo"
+
+
+def test_presidio_documenti_non_scambia_scadenza_documento_identita_per_termine_processuale():
+    payload = analyze_fascicolo_document_texts(
+        _fascicolo(numero_rg="1025", anno_rg="2024", rg_completo="RG 1025/2024"),
+        {
+            "verbale-mediazione": (
+                "TRIBUNALE DI PALMI - RG 1025/2024. "
+                "La parte presenta carta di identità n. CA51212AQ, rilasciata dal Comune di Taurianova, "
+                "con scadenza il 26/05/2028."
+            )
+        },
+        {"verbale-mediazione": {"filename": "Verbale esito mediazione.pdf"}},
+        today=date(2026, 9, 5),
+    )
+
+    assert not [item for item in payload["actions"] if item["type"] == "termine_documento"]

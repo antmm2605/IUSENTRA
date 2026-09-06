@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.126
+IUSENTRA Local Signer - v1.6.127
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.126"
+VERSION = "1.6.127"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -11261,7 +11261,10 @@ def _pst_arricchisci_documenti_con_master_detail(
     prefer_cookie_only: bool = False,
     allow_cert_retry: bool = True,
     registro_portale: str = "",
+    catalog_check: Optional[dict] = None,
 ) -> list[dict]:
+    if catalog_check is not None:
+        catalog_check.update(expected=len(documenti), checked=0, complete=not documenti)
     if not documenti or not _pst_namespace_qbuilder(base_url):
         return documenti
     servizio = _pst_servizio_proxy(base_url)
@@ -11382,6 +11385,11 @@ def _pst_arricchisci_documenti_con_master_detail(
             " | ".join(examples),
         )
     unresolved = sorted(set(errors_by_doc) - successful_doc_indexes)
+    if catalog_check is not None:
+        catalog_check.update(
+            checked=len(successful_doc_indexes),
+            complete=len(successful_doc_indexes) == len(documenti),
+        )
     if unresolved:
         log.info(
             "Master-detail PST: %s documenti non hanno restituito dettaglio utile dopo tutti gli identificativi disponibili.",
@@ -14937,6 +14945,32 @@ class _Handler(BaseHTTPRequestHandler):
                         _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
             sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+            catalog_check: dict = {}
+            if (
+                single_interactive_batch
+                and include_full_snapshot
+                and documenti
+                and (_pst_servizio_sicid_family(base_url) or _pst_servizio_siecic(base_url))
+            ):
+                # DocumentiFascicolo/ElencoDocumenti sono il sommario, non gli
+                # allegati. Ripristina il servizio WSDL presente nella procedura
+                # positiva 1.6.116, per entrambi i chiamanti React. Un solo lotto
+                # di dettagli per gli id appena letti, senza preflight, HTML o
+                # sessioni cookie-only non restituite dal gateway ministeriale.
+                with _pst_session_lock_for(session_entry):
+                    documenti = _pst_arricchisci_documenti_con_master_detail(
+                        documenti,
+                        base_url=base_url,
+                        url_documenti=url_documenti,
+                        codice_ufficio=codice_pst,
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=False,
+                        allow_cert_retry=False,
+                        registro_portale=registro_portale,
+                        catalog_check=catalog_check,
+                    )
             if single_interactive_batch and section_batch_indexes:
                 xml_by_service: dict[str, str] = {}
                 for servizio_sezione, result_index in section_batch_indexes.items():
@@ -15110,6 +15144,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "fascicolo": fascicolo,
                     "documenti": documenti,
                     "catalogo": documenti,
+                    "verifica_catalogo": catalog_check,
                     "full_snapshot": snapshot_completo,
                     "master_detail": snapshot_completo,
                     "documenti_mode": tabella_policy.get("documenti_mode", "diretto"),

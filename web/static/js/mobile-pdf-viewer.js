@@ -8,6 +8,7 @@
   const zoomValue = document.querySelector('[data-zoom-value]')
   const downloadLink = document.querySelector('[data-document-download]')
   const downloadStatus = document.querySelector('[data-download-status]')
+  const printButton = document.querySelector('[data-document-print]')
   if (!(pages instanceof HTMLElement) || !(zoomValue instanceof HTMLOutputElement)) return
 
   const MIN_ZOOM = 0.75
@@ -45,6 +46,37 @@
   const setDownloadStatus = (message) => {
     if (downloadStatus instanceof HTMLElement) downloadStatus.textContent = message
   }
+
+  printButton?.addEventListener('click', async () => {
+    if (!(printButton instanceof HTMLButtonElement) || printButton.disabled) return
+    const images = [...pages.querySelectorAll('img')]
+    if (!images.length) {
+      setDownloadStatus('Il documento non contiene pagine stampabili.')
+      return
+    }
+    printButton.disabled = true
+    printButton.textContent = 'Preparo…'
+    setDownloadStatus('Caricamento di tutte le pagine per la stampa…')
+    let timeout
+    try {
+      await Promise.race([
+        Promise.all(images.map(async (image) => {
+          image.loading = 'eager'
+          await image.decode()
+          if (!image.naturalWidth) throw new Error('Pagina non disponibile')
+        })),
+        new Promise((_, reject) => { timeout = window.setTimeout(() => reject(new Error('Attesa terminata')), 60000) }),
+      ])
+      setDownloadStatus(`${images.length} pagine pronte per la stampa.`)
+      window.print()
+    } catch (_) {
+      setDownloadStatus('Non tutte le pagine sono disponibili. Riprova la stampa dopo il caricamento del documento.')
+    } finally {
+      window.clearTimeout(timeout)
+      printButton.disabled = false
+      printButton.textContent = 'Stampa'
+    }
+  })
 
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin || !event.data || typeof event.data !== 'object') return

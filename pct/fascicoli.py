@@ -260,6 +260,7 @@ class DocumentoVersione:
     dimensione_bytes: int
     sostituito_il: str   # ISO datetime
     sostituito_da: str   # username
+    metadati: dict = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, d: dict) -> "DocumentoVersione":
@@ -269,6 +270,7 @@ class DocumentoVersione:
             dimensione_bytes=d.get("dimensione_bytes", 0),
             sostituito_il=d.get("sostituito_il", ""),
             sostituito_da=d.get("sostituito_da", ""),
+            metadati=dict(d.get("metadati") or {}),
         )
 
 
@@ -856,10 +858,13 @@ class Fascicolo:
 
     @property
     def prossima_scadenza(self) -> Optional[AttivitaProcessuale]:
+        from pct.fascicolo_document_presidio import is_identity_expiry_observation
+
         oggi = date.today().isoformat()
         future = [
             a for a in self.attivita
             if a.data >= oggi and a.esito == EsitoAttivita.IN_ATTESA
+            and not is_identity_expiry_observation(a)
         ]
         return min(future, key=lambda a: a.data) if future else None
 
@@ -2192,6 +2197,8 @@ class GestioneFascicoli:
         msg_id_portale: str = "",
         nome_archivio: str = "",
         hash_contenuto_sha256: str = "",
+        aggiorna_contenuto_portale: bool = False,
+        firma_portale: Optional[dict] = None,
     ) -> Documento:
         """
         Aggiunge un documento al fascicolo salvandolo su disco.
@@ -2271,6 +2278,75 @@ class GestioneFascicoli:
                 None,
             )
         if existing_doc is not None:
+            if aggiorna_contenuto_portale and incoming_portal_identity:
+                # Il riferimento PST identifica il record, non certifica che i
+                # byte correnti siano quelli appena ricevuti. Non sovrascrivere
+                # mai il file storico (potrebbe essere un originale firmato).
+                original_doc = copy.deepcopy(existing_doc.__dict__)
+                original_modificato = f.modificato_il
+                original_pagamenti = copy.deepcopy(f.pagamenti)
+                nome_safe = Path(nome_archivio or nome_file).name
+                dest = fasc_dir / f"{Path(nome_safe).stem}_{uuid.uuid4().hex}{Path(nome_safe).suffix}"
+                try:
+                    with dest.open("xb") as stream:
+                        stream.write(contenuto)
+                    if hashlib.sha256(dest.read_bytes()).hexdigest() != sha256:
+                        raise OSError("Il file acquisito non supera la verifica di integrità.")
+                    old_metadata = {
+                        key: copy.deepcopy(value) for key, value in original_doc.items()
+                        if key != "versioni"
+                    }
+                    existing_doc.versioni.append(DocumentoVersione(
+                        hash_sha256=existing_doc.hash_sha256,
+                        percorso=existing_doc.percorso,
+                        dimensione_bytes=existing_doc.dimensione_bytes,
+                        sostituito_il=datetime.now().isoformat(),
+                        sostituito_da=caricato_da,
+                        metadati=old_metadata,
+                    ))
+                    existing_doc.percorso = str(dest.relative_to(self.documents_dir))
+                    existing_doc.nome = nome_file
+                    existing_doc.nome_originale = nome_originale or nome_file
+                    existing_doc.hash_sha256 = sha256
+                    existing_doc.hash_contenuto_sha256 = raw_sha256 or sha256
+                    existing_doc.dimensione_bytes = len(contenuto)
+                    existing_doc.caricato_da = caricato_da
+                    existing_doc.firmato_digitalmente = firmato
+                    existing_doc.signature_metadata = dict(firma_portale or {})
+                    existing_doc.fonte_documento = fonte_documento or existing_doc.fonte_documento
+                    if data_documento:
+                        existing_doc.data_documento = data_documento
+                    for key, value in (
+                        ("nome_portale", nome_portale),
+                        ("classificazione_portale", classificazione_portale),
+                        ("tipo_atto_portale", tipo_atto_portale),
+                        ("servizio_portale", servizio_portale),
+                        ("mittente_portale", mittente_portale),
+                        ("data_deposito_portale", data_deposito_portale),
+                        ("id_documento_portale", id_documento_portale),
+                        ("id_cat_portale", id_cat_portale),
+                        ("id_repeatto_portale", id_repeatto_portale),
+                        ("msg_id_portale", msg_id_portale),
+                    ):
+                        if value:
+                            setattr(existing_doc, key, value)
+                    existing_doc.tags = list(dict.fromkeys([*existing_doc.tags, *(tags or [])]))
+                    # Conservare classificazione e note dell'avvocato; una
+                    # nuova lettura deve riesaminarle, non confermarle da sola.
+                    self._segna_analisi_fascicolo_da_rieseguire(
+                        f, reason="aggiornamento_documento_portale", document_id=existing_doc.id,
+                    )
+                    f.modificato_il = datetime.now().isoformat()
+                    self._salva()
+                except Exception:
+                    existing_doc.__dict__.clear()
+                    existing_doc.__dict__.update(original_doc)
+                    f.modificato_il = original_modificato
+                    f.pagamenti = original_pagamenti
+                    if dest.is_file():
+                        dest.unlink()
+                    raise
+                return existing_doc
             semantic_match = bool(incoming_semantic_key) and incoming_semantic_key == _documento_semantic_identity_key(
                 existing_doc
             )
@@ -2335,8 +2411,8 @@ class GestioneFascicoli:
             dest = fasc_dir / nome_safe
 
         dest.write_bytes(contenuto)
-        signature_metadata: dict[str, Any] = {}
-        if firmato:
+        signature_metadata: dict[str, Any] = dict(firma_portale or {})
+        if firmato and firma_portale is None:
             try:
                 from pct.document_signature_state import (
                     document_bytes_have_real_digital_signature,

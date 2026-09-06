@@ -1,5 +1,26 @@
 # Registro mediazione: schede e sedi, 05/09/2026
 
+## Riesame del perimetro richiesto dall'utente
+
+Il controllo del codice del 05/09/2026 conferma che il registro e il procedimento
+di mediazione nel fascicolo sono due consegne diverse. Sono presenti il registro,
+le schede degli organismi, il repository delle sedi e il calcolo dei costi ODM.
+In `FascicoliPage.tsx` e nel relativo bridge React non risulta invece integrato
+un procedimento di mediazione. Il valore `MEDIAZIONE` nell'enumerazione del
+modello non costituisce tale integrazione.
+
+Restano da consegnare nel fascicolo: scelta e collegamento dell'organismo/sede,
+gestione dell'istanza e dei moduli dell'organismo, parti e documenti collegati,
+incontri, verbali, esito e relativo audit. Anche il censimento completo dei
+portali di deposito e della modulistica resta aperto. Il registro non deve
+essere presentato come completamento di queste richieste.
+
+Questo riesame è un controllo del codice e della documentazione, non una nuova
+prova in produzione o sulla macchina reale. Non sono stati effettuati nuovi
+invii, acquisizioni di documenti, modifiche ai dati dello studio o deploy.
+La correzione dell'acquisizione documentale PST è un'altra voce ancora aperta;
+la visibilità del catalogo non dimostra il salvataggio dei file nel fascicolo.
+
 ## Stato della consegna
 
 Intervento verificato sulla copia reale locale `http://127.0.0.1:8080`, versione di lavoro `2.278.86`.

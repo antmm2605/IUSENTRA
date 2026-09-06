@@ -99,12 +99,14 @@ class MediazioneDirectoryRepository:
             conn.execute("INSERT INTO mediazione_directory_audit VALUES (?, ?, ?, ?, ?)",
                          (uuid4().hex, utc_now(), "site_check", 1, number))
 
-    def records(self, *, active_only: bool = True) -> list[dict]:
+    def records(self, *, active_only: bool = True, number: str = "", include_checks: bool = True) -> list[dict]:
         with self.connection() as conn:
+            conditions = (["o.active=1"] if active_only else []) + (["o.registration_number=?"] if number else [])
             rows = conn.execute(
-                "SELECT o.*, c.result_json FROM mediazione_organismi o "
-                "LEFT JOIN mediazione_site_checks c ON c.registration_number=o.registration_number "
-                + ("WHERE o.active=1 " if active_only else "") + "ORDER BY o.name"
+                "SELECT o.*, " + ("c.result_json" if include_checks else "NULL AS result_json") + " FROM mediazione_organismi o "
+                + ("LEFT JOIN mediazione_site_checks c ON c.registration_number=o.registration_number " if include_checks else "")
+                + ("WHERE " + " AND ".join(conditions) + " " if conditions else "") + "ORDER BY o.name",
+                (number,) if number else (),
             ).fetchall()
         return [dict(json.loads(row["record_json"]),
                      registry_checked_at=row["registry_checked_at"],
@@ -147,3 +149,15 @@ class MediazioneDirectoryRepository:
             "offices": json.loads(row["offices_json"]), "checked_at": row["checked_at"],
             "source_url": row["source_url"], "expected_count": row["expected_count"], "pages": row["pages"],
         } for row in rows}
+
+    def save_channel_check(self, number: str, result: dict) -> None:
+        if result.get("registration_number") != number or not result.get("checked_at"):
+            raise ValueError("Ricerca canali non associata all'organismo.")
+        from pct.mediazione_source_history import record
+        with self.connection() as conn:
+            record(conn, number, result)
+
+    def channel_checks(self) -> dict[str, dict]:
+        with self.connection() as conn:
+            rows = conn.execute("SELECT registration_number, result_json FROM mediazione_channel_checks").fetchall()
+        return {row["registration_number"]: json.loads(row["result_json"]) for row in rows}

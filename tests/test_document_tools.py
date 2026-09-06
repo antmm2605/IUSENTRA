@@ -119,7 +119,10 @@ def test_superficie_react_collega_scanner_locale_e_route_documentali():
     shell_source = (root / "web" / "blueprints" / "react_shell.py").read_text(encoding="utf-8")
 
     assert "acquireFromLocalScanner" in component
-    assert "http://127.0.0.1:27272/scanner/acquire" in component
+    scanner = (root / "frontend/src/services/localScanner.ts").read_text(encoding="utf-8")
+    assert "from '../services/localScanner'" in component
+    assert "http://127.0.0.1:27272" in scanner
+    assert "${base}/scanner/acquire" in scanner
     assert "Acquisisci una pagina dallo scanner" in component
     assert "DocumentToolsPage" in app_source
     assert '"/strumenti-documentali"' in shell_source or "'/strumenti-documentali'" in shell_source
@@ -150,4 +153,3 @@ def test_api_zip_segnala_errore_leggibile_senza_file():
     response = client.post("/api/v1/ui/document-tools/zip", data={"output_name": "archivio"})
     assert response.status_code == 400
     assert response.get_json()["message"] == "Seleziona almeno un documento."
-

@@ -15,6 +15,7 @@ from web.bootstrap.fascicoli_pdp_routes import register_fascicoli_pdp_routes
 from web.bootstrap.fascicoli_signature_routes import register_fascicoli_signature_routes
 from web.bootstrap.reference_lookup_routes import register_reference_lookup_routes
 from web.bootstrap.tariffario_routes import register_tariffario_routes
+from web.bootstrap.mediazione_fascicolo_routes import register_mediazione_fascicolo_routes
 
 
 def register_fascicoli_surfaces(
@@ -26,6 +27,13 @@ def register_fascicoli_surfaces(
     pdp_penale: dict[str, Any],
     ocr_runtime: Any,
 ) -> None:
+    register_mediazione_fascicolo_routes(
+        app,
+        get_fascicoli=core["get_fascicoli"],
+        cliente_accessibile=core["cliente_accessibile"],
+        salva_documento_fascicolo=fascicoli["salva_documento_fascicolo"],
+        decrypt_doc=fascicoli["decrypt_doc"],
+    )
     register_fascicoli_management_routes(
         app,
         get_fascicoli=core["get_fascicoli"],

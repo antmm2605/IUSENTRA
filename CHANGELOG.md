@@ -1,10 +1,24 @@
 # Changelog
 
+## 2.279.0 - 06/09/2026
+
+- Mediazione nel fascicolo: procedimenti SQL tenant-aware, scelta dell'organismo e della sede, modulistica con provenienza, allegati multipli, calendario, incontri e audit. Il salvataggio non equivale a un invio all'organismo.
+- Compilazione del PDF originale: pulsante “Tutto schermo”, ritorno alla vista normale anche con Esc, zoom e dimensione iniziale contenuta; i campi compilati restano conservati durante il cambio di vista.
+- Documenti del fascicolo: acquisizione da scanner, webcam o fotocamera con anteprima, gestione pagine e conferma esplicita prima del salvataggio. La prova completa con dispositivi fisici resta da eseguire.
+- Moduli degli organismi: aggiornamenti delle fonti con storico e controlli di provenienza; un errore di rete non ripropone risorse ritirate da una fonte già riletta.
+- PST: consolidamento del catalogo principale/allegati e acquisizione versionata nel fascicolo con controllo di integrità; il download sul PC resta un'azione distinta. Local Signer distribuito: 1.6.127. Le prove con PIN restano da ripetere insieme all'avvocato.
+- Consolidate le correzioni già presenti sul server per attività processuali, eventi tecnici, scadenze e cartelle condivise. Nessun invio legale o firma è eseguito dal rilascio.
+
 ## 2.278.86 - 05/09/2026
 
 - Registro mediazione: scheda sotto l'organismo selezionato, sedi ministeriali complete, filtro Regione/Provincia, siti cliccabili e visualizzazione responsive.
 - Acquisizione sedi con verifica di tutte le pagine e dei totali, repository pubblico SQLite/PostgreSQL e API autenticata; nessuna acquisizione esterna durante l'apertura della scheda.
 - Caricamento dedicato del registro senza dashboard generale o pipeline AI; richieste duplicate eliminate.
+
+- Interfaccia fascicoli: le sei azioni nelle schede mantengono una griglia 3×2 leggibile sui viewport più stretti, con icona centrata e testo separato.
+- Presidio documentale: il messaggio di assenza di documenti candidati viene mostrato una sola volta.
+- Cartelle condivise: corretto l'accento in “Modalità” e reso leggibile l'avviso privacy su mobile.
+- Nessuna modifica a wizard, deposito telematico, notifiche, firma digitale o firma multipla.
 
 ## 2.278.85 - 01/09/2026
 

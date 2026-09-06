@@ -196,3 +196,14 @@ Per ogni tranche UI eseguire almeno:
 - controllo console per errori di import, asset e API
 
 Quando si aggiornano asset compilati, includere anche `web/static/react` nella release.
+
+### Fascicolo: moduli originali e acquisizione da dispositivi
+
+I CSS `components/mediazione/mediazione.css` e
+`components/documentCapture/documentCapture.css` sono registrati nella governance
+per i flussi richiesti dall'utente. Riutilizzano i pulsanti e i token condivisi.
+Il modulo originale conserva il rapporto del foglio e dei campi durante zoom e
+schermo intero. Le immagini acquisite rimangono in un pannello inline, con
+revisione e conferma prima del salvataggio. Gli unici stili dinamici autorizzati
+sono geometria/zoom del PDF e rotazione della pagina acquisita, derivati dai dati
+e dalle scelte dell'avvocato. Non sono introdotte eccezioni ai divieti grafici.

@@ -69,6 +69,7 @@ import {
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
+import DocumentCapture from './documentCapture/DocumentCapture'
 import {
   IusentraContextFilters,
   IusentraDataSurface,
@@ -155,6 +156,7 @@ import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
 const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((module) => ({ default: module.OfficeDocumentsPanel })))
+const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'))
 
 const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'
 const PAGOPA_PST_NEW_PAYMENT_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp'
@@ -7897,6 +7899,7 @@ function DocumentUploadWorkspace({
         ) : null}
         <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? 'Caricamento...' : 'Carica documenti'}</button>
       </form>
+      <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
     </section>
   )
 }
@@ -9021,11 +9024,11 @@ function ActivityRow({ activity, onPreview }:{activity:FascicoloActivity; onPrev
   const displayTitle = sourceDerived ? `${typeLabel} rilevata dal documento` : activity.title
   const displayDescription = sourceDerived ? '' : activity.description
   const badgeText = readOnlySystemEvent
-    ? (sourceDerived ? 'Rilevazione' : activity.type || 'Evento estratto')
+    ? (sourceDerived ? 'Rilevazione' : 'Registrato')
     : !resultText || /non applicabile/.test(resultText)
     ? (activity.type || 'Evento')
     : depositStatusLabel(activity.result)
-  const metaLine = [activity.type, activity.place, activity.lawyer].filter(Boolean).join(' - ')
+  const metaLine = [typeLabel, activity.place, activity.lawyer].filter(Boolean).join(' · ')
   const remoteUrl = activity.remoteHearingVerified ? activity.remoteHearingUrl || '' : ''
   const remoteMeta = [
     activity.remoteHearingMode ? `Modalità: ${activity.remoteHearingMode.replaceAll('_', ' ')}` : '',
@@ -9116,7 +9119,7 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
         <div>
           <Badge tone={presidio.tone}>{actions.length ? `${actions.length} controlli` : 'Da controllare'}</Badge>
           <strong>{next?.title || 'Presidio documenti fascicolo'}</strong>
-          <span>{next?.date || presidio.summary}</span>
+          {next?.date ? <span>{next.date}</span> : null}
         </div>
         <FileCheck2 size={20}/>
       </header>
@@ -9340,6 +9343,7 @@ function DetailPage({ id }:{id:string}) {
   const [officeDocumentsOpenRequest, setOfficeDocumentsOpenRequest] = useState<OfficeDocumentsOpenRequest | null>(null)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
+  const [mediazioneVisited, setMediazioneVisited] = useState(() => currentDetailHashSectionId() === 'mediazione')
   useEffect(() => {
     let active = true
     const initialIncludes = initialDetailIncludesFromHash()
@@ -9603,7 +9607,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -9665,8 +9669,11 @@ function DetailPage({ id }:{id:string}) {
             <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento attività...</p> : null}{data.activities.map((activity) => <ActivityRow activity={activity} key={activity.id} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.activities.length ? <p className="iu-empty">Nessuna attività processuale registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per caricare la timeline processuale.</p> : null}</div>
           </DetailSection>
           <DetailSection id="eventi-tecnici" title="Eventi tecnici e acquisizioni" icon={<RefreshCw size={17}/>} count={data.quickCounts.eventi_tecnici || 0} defaultOpen={activeHashSection === 'eventi-tecnici'} onOpen={() => loadLazySection('attivita')}>
-            <p className="iu-fas-section-intro">Le acquisizioni da PolisWeb/PST, le sincronizzazioni e i download ufficiali sono tracciati qui: non sono attività processuali e non alterano lo stato della pratica.</p>
-            <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento eventi tecnici...</p> : null}{data.technicalEvents.map((activity) => <ActivityRow activity={activity} key={`technical-${activity.id}`} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.technicalEvents.length ? <p className="iu-empty">Nessuna acquisizione o sincronizzazione tecnica registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per leggere gli eventi tecnici del fascicolo.</p> : null}</div>
+            <p className="iu-fas-section-intro">Registrazioni delle acquisizioni disponibili nel fascicolo, separate dalle attività processuali. Ogni voce indica cosa è stato effettivamente acquisito.</p>
+            <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento eventi tecnici...</p> : null}{data.technicalEvents.map((activity) => <ActivityRow activity={activity} key={`technical-${activity.id}`} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.technicalEvents.length ? <p className="iu-empty">Non è disponibile una registrazione dell'acquisizione. Questo non significa che il fascicolo sia privo di documenti: puoi consultarli in Documenti e atti.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per leggere le acquisizioni registrate.</p> : null}</div>
+          </DetailSection>
+          <DetailSection id="mediazione" title="Mediazione" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'mediazione'} onOpen={() => setMediazioneVisited(true)}>
+            {mediazioneVisited ? <Suspense fallback={<p role="status">Caricamento mediazione…</p>}><MediazioneFascicolo key={f.id || id} id={f.id || id} preview={setPreviewDoc} onDocuments={refreshDocuments}/></Suspense> : null}
           </DetailSection>
           <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => { loadLazySection('scadenze'); loadLazySection('documenti') }}>
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
@@ -9742,7 +9749,7 @@ function DetailPage({ id }:{id:string}) {
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={openPagoPaModal}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
-          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} count={0}><CtuSection fascicoloId={f.id}/></DetailSection>
+          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'}><CtuSection fascicoloId={f.id}/></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>

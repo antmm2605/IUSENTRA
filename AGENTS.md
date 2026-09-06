@@ -1002,3 +1002,10 @@ python tools/codex_harness/run_codex_quality_gate.py --mode ui-support
 
 - Se il quality gate fallisce, non dichiarare il task completato: correggere la violazione oppure segnalarla chiaramente nel report finale.
 - Il quality gate non sostituisce i test applicativi quando si modifica codice prodotto.
+
+## PST / PolisWeb — baseline positiva immutabile e parità Wizard–Fascicolo d’ufficio
+
+- Una copia della procedura PST/PolisWeb con esito positivo reale è una **baseline immutabile**: non va "ottimizzata", riscritta, ridotta, aggirata o sostituita da varianti locali. Prima di qualunque modifica al Local Signer, al resolver PST, al Wizard o al pannello `Fascicolo d’ufficio`, Codex deve confrontare riga per riga il ramo interessato con la baseline e motivare una differenza necessaria e verificabile.
+- Il Wizard e `OfficeDocumentsPanel.tsx` devono usare lo stesso endpoint, lo stesso resolver, lo stesso profilo ministeriale, la stessa tabella, lo stesso batch cURL, la stessa gestione della sessione e lo stesso catalogo. È vietato introdurre nel pannello un secondo percorso PST, filtri impliciti, job aggiuntivi, recuperi master/detail, retry o guardrail del browser non presenti nel Wizard.
+- Se una capacità è già verificata positivamente nel Wizard, il Fascicolo d’ufficio deve richiamare il medesimo codice condiviso; sono ammessi solo adattamenti di presentazione e mapping UI, senza cambiare la richiesta ministeriale né il comportamento di autenticazione/PIN.
+- Ogni modifica proposta deve prima dimostrare, con diff mirato e test di parità, che non cambia la baseline positiva del Wizard. In caso di dubbio, non modificare il codice PST condiviso: fermarsi al confronto e correggere soltanto l’adattatore UI divergente.

@@ -8512,6 +8512,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         module._get_pst_session = lambda *args, **kwargs: None
         def _fake_master_detail(documenti, **kwargs):
             captured["master_detail"] += 1
+            captured["master_detail_kwargs"] = kwargs
             return documenti
 
         def _fake_sezioni(**kwargs):
@@ -8543,7 +8544,12 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
-    assert captured["master_detail"] == 0
+    # Il catalogo completo include il dettaglio degli allegati nella stessa
+    # sessione, senza reintrodurre preflight o tentativi certificato aggiuntivi.
+    assert captured["master_detail"] == 1
+    assert captured["master_detail_kwargs"]["allow_cert_retry"] is False
+    assert captured["master_detail_kwargs"]["cookie_file"] == "C:\\temp\\pst.cookies"
+    assert captured["master_detail_kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["sezioni"] == 0
     assert captured["batch_calls"] == 1
     assert len(captured["batch"]["requests"]) == 8

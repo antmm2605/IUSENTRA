@@ -32,3 +32,39 @@ CREATE TABLE IF NOT EXISTS mediazione_office_snapshots (
     content_sha256 TEXT NOT NULL,
     offices_json TEXT NOT NULL
 );
+-- Evidence of public-channel research. Discovery never authorizes a submission.
+CREATE TABLE IF NOT EXISTS mediazione_channel_checks (
+    registration_number TEXT PRIMARY KEY REFERENCES mediazione_organismi(registration_number),
+    checked_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    result_json TEXT NOT NULL
+);
+-- Append-only research evidence and resumable, leased refreshes. No legal sends.
+CREATE TABLE IF NOT EXISTS mediazione_source_history (
+    id TEXT PRIMARY KEY,
+    registration_number TEXT NOT NULL REFERENCES mediazione_organismi(registration_number),
+    checked_at TEXT NOT NULL,
+    content_sha256 TEXT NOT NULL,
+    material_sha256 TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    result_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_mediazione_source_history ON mediazione_source_history(registration_number, checked_at);
+CREATE TABLE IF NOT EXISTS mediazione_source_state (
+    registration_number TEXT PRIMARY KEY REFERENCES mediazione_organismi(registration_number),
+    last_success_id TEXT NOT NULL DEFAULT '',
+    last_attempt_id TEXT NOT NULL DEFAULT '',
+    last_change_at TEXT NOT NULL DEFAULT '',
+    revision INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS mediazione_source_jobs (
+    registration_number TEXT PRIMARY KEY REFERENCES mediazione_organismi(registration_number),
+    input_sha256 TEXT NOT NULL,
+    research_version TEXT NOT NULL,
+    due_at TEXT NOT NULL,
+    lease_token TEXT NOT NULL DEFAULT '',
+    lease_until TEXT NOT NULL DEFAULT '',
+    failures INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_mediazione_source_due ON mediazione_source_jobs(due_at, lease_until);

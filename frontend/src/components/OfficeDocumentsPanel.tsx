@@ -321,7 +321,16 @@ function flattenDocuments(rows: unknown[], localDocuments: FascicoloDocument[], 
       acquired: ids.some((id) => localIds.has(id)),
       raw: row,
     })
-    const children = [row.allegati, row.attachments, row.children, row.documenti_collegati, row.docs_secondari]
+    const children = [
+      row.allegati,
+      row.attachments,
+      row.children,
+      row.documenti_collegati,
+      row.documenti_extra,
+      row.documentiExtra,
+      row.docs_secondari,
+      row.docsSecondari,
+    ]
       .flatMap((items) => list(items))
     if (children.length) result.push(...flattenDocuments(children, localDocuments, row))
   })
@@ -341,14 +350,38 @@ function flattenDocuments(rows: unknown[], localDocuments: FascicoloDocument[], 
  */
 function completeCatalogRows(snapshot: JsonRecord, result: JsonRecord): unknown[] {
   const sections = record(snapshot.sezioni)
+  const resultSections = record(result.sezioni)
   const rows = [
     ...list(snapshot.documenti),
     ...list(snapshot.catalogo),
     ...list(snapshot.documents),
+    ...list(snapshot.documenti_catalogo),
+    ...list(snapshot.documentiCatalogo),
+    ...list(snapshot.catalogo_documenti),
+    ...list(snapshot.catalogoDocumenti),
     ...list(sections.documenti_fascicolo),
+    ...list(sections.documentiFascicolo),
+    ...list(sections.documenti_catalogo),
+    ...list(sections.documentiCatalogo),
+    ...list(sections.allegati),
+    ...list(sections.attachments),
+    ...list(snapshot.allegati),
+    ...list(snapshot.attachments),
     ...list(result.documenti),
     ...list(result.catalogo),
     ...list(result.documents),
+    ...list(result.documenti_catalogo),
+    ...list(result.documentiCatalogo),
+    ...list(result.catalogo_documenti),
+    ...list(result.catalogoDocumenti),
+    ...list(resultSections.documenti_fascicolo),
+    ...list(resultSections.documentiFascicolo),
+    ...list(resultSections.documenti_catalogo),
+    ...list(resultSections.documentiCatalogo),
+    ...list(resultSections.allegati),
+    ...list(resultSections.attachments),
+    ...list(result.allegati),
+    ...list(result.attachments),
   ]
   const merged = new Map<string, unknown>()
   rows.forEach((value, index) => {
@@ -478,7 +511,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
   const acquiredCount = useMemo(() => documents.filter((doc) => doc.acquired).length, [documents])
   const selectableDocuments = useMemo(() => documents.filter((doc) => !doc.acquired), [documents])
   const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key)), [documents, selection])
-  const selectedImportDocuments = useMemo(() => selectedDocuments.filter((doc) => !doc.acquired), [selectedDocuments])
+  const selectedImportDocuments = selectedDocuments
   const selectAllDocuments = () => setSelection(documents.map((doc) => doc.key))
   const selectOnlyNotAcquired = () => setSelection(selectableDocuments.map((doc) => doc.key))
   const deselectAll = () => setSelection([])
@@ -651,7 +684,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
 
   const runImportOperation = async (operationId: string) => {
     if (!selectedImportDocuments.length) {
-      onError('Seleziona almeno un documento non ancora acquisito.')
+      onError('Seleziona almeno un documento da acquisire nel fascicolo.')
       return
     }
     if (!viewSession) {
@@ -756,17 +789,37 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
           importa_eventi: false,
           importa_scadenze: false,
           importa_parti: false,
-          non_duplicare: true,
-          importa_solo_nuovi: true,
+          importa_dati_pratica: false,
+          importa_difensori: false,
+          importa_udienze: false,
+          importa_provvedimenti: false,
+          importa_cronologia_depositi: false,
+          importa_esiti_telematici: false,
+          non_duplicare_documenti: true,
+          solo_nuovi: false,
         },
         mapping: { mode: 'update_existing', target_fascicolo_id: data.fascicolo.id },
         downloaded_files: files,
         pst_session: pstSession,
       })
-      const importedCount = number(imported.documenti_importati || imported.imported_documents || files.length)
-      setMessage(`${importedCount || files.length} documenti acquisiti nel fascicolo.`)
-      setSelection([])
-      onDone(`${importedCount || files.length} documenti acquisiti senza creare un nuovo fascicolo.`)
+      const summary = record(imported.summary)
+      const report = record(summary.report_documentale)
+      if (text(imported.id_fascicolo) !== data.fascicolo.id || report.integrita_verificata !== true) {
+        throw new Error('Il server non ha confermato il salvataggio e l’integrità nel fascicolo selezionato. La selezione è conservata.')
+      }
+      const importedCount = number(report.documenti_registrati)
+      const newCount = number(report.documenti_nuovi)
+      const updatedCount = number(report.documenti_aggiornati)
+      const reusedCount = number(report.documenti_gia_presenti_o_riusati)
+      const incomplete = list(signerPayload.failures).length > 0
+        || importedCount < selectedRows.length
+        || number(summary.documenti_da_acquisire) > 0
+      const resultMessage = `Fascicolo ${data.fascicolo.ref}: ${newCount} nuovi, ${updatedCount} aggiornati, ${reusedCount} già identici. Integrità dei file verificata dal server.`
+        + (incomplete ? ' Acquisizione parziale: la selezione resta disponibile per riprovare i documenti mancanti.' : '')
+      setMessage(resultMessage)
+      if (!incomplete) setSelection([])
+      onDone(resultMessage)
+      if (incomplete) onError('Non tutti i documenti selezionati sono stati acquisiti. Controlla l’esito prima di proseguire.')
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Acquisizione documenti non completata.'
       setMessage(reason)
@@ -937,7 +990,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         <>
           <div className="iu-fas-office-docs__summary">
             <span><FileText size={14}/> {documents.length} disponibili</span>
-            <span><CheckCircle2 size={14}/> {acquiredCount} già acquisiti</span>
+            <span><CheckCircle2 size={14}/> {acquiredCount} presenti nel fascicolo</span>
             <span><ShieldCheck size={14}/> {selectedDocuments.length} selezionati</span>
           </div>
           <div className="iu-fas-office-docs__selection-toolbar" aria-label="Selezione documenti del fascicolo d’ufficio">
@@ -977,7 +1030,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
                     <span>{doc.isAttachment ? `Allegato${doc.parentName ? ` di ${doc.parentName}` : ''}` : 'Atto principale'} · {doc.type}{doc.date ? ` · ${formatDateIt(doc.date)}` : ''}</span>
                   </div>
                   <div className="iu-fas-office-docs__row-actions">
-                    {doc.acquired ? <span className="iu-fas-office-docs__acquired"><CheckCircle2 size={14}/> Acquisito</span> : null}
+                    {doc.acquired ? <span className="iu-fas-office-docs__acquired"><CheckCircle2 size={14}/> Presente nel fascicolo</span> : null}
                     <select
                       aria-label={`${doc.acquired ? 'Formato da riscaricare' : 'Formato da acquisire'} per ${doc.name}`}
                       value={modes[doc.key] || 'copia'}
@@ -993,13 +1046,13 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
             })}
           </div>
           <footer className="iu-fas-office-docs__actions">
-            <span>I documenti già acquisiti restano riconoscibili e possono essere riscaricati in copia o originale senza creare duplicati nel fascicolo.</span>
+            <span>Acquisisci salva i file nel fascicolo e ne verifica l’integrità. Le versioni precedenti vengono conservate, senza duplicare i documenti. La presenza nell’elenco non certifica un nuovo scaricamento.</span>
             <div className="iu-fas-office-docs__action-buttons">
               <button type="button" className="iu-btn iu-btn--neutral" onClick={() => void runDownload()} disabled={!selectedDocuments.length || Boolean(busy)}>
-                <Download size={15}/>{busy === 'download' ? 'Scaricamento…' : `Scarica ${selectedDocuments.length || ''}`}
+                <Download size={15}/>{busy === 'download' ? 'Scaricamento…' : `Scarica sul PC ${selectedDocuments.length || ''}`}
               </button>
               <button type="button" className="iu-btn iu-btn--primary" onClick={() => void runImport()} disabled={!selectedImportDocuments.length || Boolean(busy)}>
-                <Download size={15}/>{busy === 'import' ? 'Acquisizione…' : `Acquisisci nuovi ${selectedImportDocuments.length || ''}`}
+                <Download size={15}/>{busy === 'import' ? 'Acquisizione…' : `Acquisisci nel fascicolo ${selectedImportDocuments.length || ''}`}
               </button>
             </div>
           </footer>

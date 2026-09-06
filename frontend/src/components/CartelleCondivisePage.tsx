@@ -220,7 +220,7 @@ export function CartelleCondivisePage() {
       <section className="iu-share-section">
         <div className="iu-share-section__head">
           <div>
-            <span className="iu-share-kicker">{data.mode === 'gestore' ? 'Modalita gestore' : 'Modalita collaboratore'}</span>
+            <span className="iu-share-kicker">{data.mode === 'gestore' ? 'Modalità gestore' : 'Modalità collaboratore'}</span>
             <h2>{data.mode === 'gestore' ? 'Cartelle gestite' : 'Accessi ricevuti'}</h2>
           </div>
           {data.emptyStates.noExpiringAccesses ? <Badge tone="success">Nessun accesso in scadenza</Badge> : <Badge tone="warning">Accessi da verificare</Badge>}

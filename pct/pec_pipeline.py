@@ -1195,6 +1195,10 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
             return
         clean_label = clean_text(label or "Data processuale", 80)
         clean_context = clean_text(context, 260)
+        from pct.fascicolo_document_presidio import _is_identity_document_expiry
+
+        if _is_identity_document_expiry(clean_context):
+            return
         if not event_time and not clean_context.casefold().startswith("nome documento:"):
             time_match = re.search(r"\b(?:ore|h\.?)?\s*(\d{1,2}[:.]\d{2})\b", clean_context, flags=re.I)
             event_time = time_match.group(1) if time_match else ""

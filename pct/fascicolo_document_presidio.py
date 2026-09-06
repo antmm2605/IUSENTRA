@@ -14,6 +14,33 @@ _ISO_RE = re.compile(r"\b(?P<year>(?:19|20)\d{2})-(?P<month>[01]\d)-(?P<day>[0-3
 _TIME_RE = re.compile(r"\b(?:ore|h\.?)\s*(?P<hour>[0-2]?\d)[:.,](?P<minute>[0-5]\d)\b", re.IGNORECASE)
 _RG_RE = re.compile(r"\b(?:r\.?\s*g\.?|rgl|n\.?\s*r\.?\s*g\.?)\s*(?:n\.?)?\s*(?P<num>\d{1,7})\s*/\s*(?P<year>(?:19|20)\d{2})\b", re.IGNORECASE)
 _WORD_RE = re.compile(r"[^a-z0-9]+")
+_PERSONAL_DOCUMENT_MARKERS = (
+    "carta di identita",
+    "documento di identita",
+    "patente di guida",
+    "passaporto",
+)
+_PROCEDURAL_DATE_MARKERS = (
+    "udienza",
+    "termine",
+    "deposit",
+    "costituzion",
+    "notific",
+    "comparizione",
+    "trattazione",
+    "discussione",
+    "precisazione delle conclusioni",
+    "provvedimento",
+    "ordinanza",
+    "decreto",
+    "sentenza",
+    "memoria",
+    "note scritte",
+    "impugnazion",
+    "opposizion",
+    "appello",
+    "ricorso",
+)
 
 
 def _text(value: Any, default: str = "") -> str:
@@ -123,6 +150,48 @@ def _time_near(text: str, anchor_date: date | None) -> str:
     if not match:
         return ""
     return f"{int(match.group('hour')):02d}:{int(match.group('minute')):02d}"
+
+
+def _is_identity_document_expiry(window: str) -> bool:
+    """Evita di scambiare la validità di un documento personale per un termine.
+
+    Il presidio processuale lavora sul testo del fascicolo: una carta d'identità
+    allegata a un verbale può contenere una data di scadenza, ma non genera un
+    adempimento per l'avvocato. La data resta pertanto fuori da attività e
+    scadenziario salvo un indicatore processuale concreto nello stesso contesto.
+    """
+
+    folded = _fold(window)
+    has_identity_document = any(marker in folded for marker in _PERSONAL_DOCUMENT_MARKERS)
+    has_expiry = any(marker in folded for marker in ("scadenza", "scade", "validita"))
+    has_procedural_context = any(marker in folded for marker in _PROCEDURAL_DATE_MARKERS)
+    return has_identity_document and has_expiry and not has_procedural_context
+
+
+def is_identity_expiry_observation(activity: Any) -> bool:
+    """Riconosce solo falsi termini automatici con un estratto verificabile.
+
+    Non cancella dati, non interpreta attività manuali e conserva la data
+    quando nel medesimo estratto è presente un'indicazione processuale.
+    """
+
+    raw = "\n".join(_text(_value(activity, key)) for key in (
+        "titolo", "descrizione", "note", "remote_hearing_source",
+    ))
+    if not re.search(r"\b(?:PEC_DOCUMENT_PRESIDIO|PEC_AUDIT):docpresidio:[^\s]+:termine:", raw, re.I):
+        return False
+    match = re.search(
+        r"\bContesto letto\s*:\s*(.*?)(?=\s+(?:Fonte modalità udienza|Orario udienza|"
+        r"Attività per l'avvocato|PEC_DOCUMENT_PRESIDIO|PEC_AUDIT)\s*:|$)",
+        raw, re.I | re.S,
+    )
+    if not match:
+        return False
+    excerpt = match.group(1).split(
+        "Verificare il provvedimento e predisporre l'atto, le note o la "
+        "comunicazione richiesta prima della scadenza.", 1,
+    )[0]
+    return _is_identity_document_expiry(excerpt)
 
 
 def _document_source(metadata: dict[str, Any], document_id: str) -> str:
@@ -386,6 +455,8 @@ def _analyze_generic_procedural_text(text: str, *, source: str, document_id: str
             continue
         window = text[max(0, match.start() - 130) : min(len(text), match.end() + 130)]
         folded_window = _fold(window)
+        if _is_identity_document_expiry(window):
+            continue
         if "udienza" in folded_window:
             action_type = "udienza_documento"
             title = "Udienza letta dai documenti del fascicolo"

@@ -3150,7 +3150,7 @@ function previewCount(preview: JsonRecord, key: string): number {
   const counts = asRecord(preview.counts)
   const counted = asNumber(counts[key])
   if (key === 'documenti') {
-    const docs = pstPreviewDocuments(preview)
+    const docs = pstCatalogDocuments(preview)
     if (docs.length) return docs.length
   }
   if (key === 'eventi') {
@@ -3236,7 +3236,36 @@ function mergePstPreviewDocumentRows(current: JsonRecord, incoming: JsonRecord):
   return merged
 }
 
-function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
+/**
+ * Il Local Signer può rendere il medesimo catalogo in rami diversi della
+ * risposta (documenti, catalogo, snapshot e sezioni). Non scegliere il primo
+ * ramo non vuoto: gli allegati aggiuntivi possono essere presenti soltanto in
+ * uno degli altri rami, soprattutto fra versioni differenti del connettore.
+ */
+function pstCatalogRows(...sources: JsonRecord[]): JsonRecord[] {
+  return sources.flatMap((source) => {
+    const sections = asRecord(source.sezioni)
+    return [
+      source.documenti,
+      source.documents,
+      source.catalogo,
+      source.documenti_catalogo,
+      source.documentiCatalogo,
+      source.catalogo_documenti,
+      source.catalogoDocumenti,
+      sections.documenti_fascicolo,
+      sections.documentiFascicolo,
+      sections.documenti_catalogo,
+      sections.documentiCatalogo,
+      sections.allegati,
+      sections.attachments,
+      source.allegati,
+      source.attachments,
+    ].flatMap((rows) => asList(rows).map(asRecord))
+  })
+}
+
+function pstCatalogDocuments(preview: JsonRecord): JsonRecord[] {
   const flatten = (rows: JsonRecord[], parent?: JsonRecord): JsonRecord[] => rows.flatMap((row) => {
     const current = parent && !asText(row.parent_id_documento || row.id_documento_padre)
       ? {
@@ -3257,7 +3286,6 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
     ]
     return children.length ? [current, ...flatten(children, current)] : [current]
   })
-  const keepDownloadable = (rows: JsonRecord[]) => rows.filter((row, index) => pstPreviewDocumentIsDownloadable(row, index))
   const snapshot = asRecord(preview.snapshot)
   const mergedRows: JsonRecord[] = []
   const seenIdentity = new Set<string>()
@@ -3286,8 +3314,8 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
       mergedRows.push(row)
     }
   }
-  appendRows(flatten(asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord)))
-  appendRows(flatten(asList(snapshot.catalogo || snapshot.documenti || snapshot.documents).map(asRecord)))
+  appendRows(flatten(pstCatalogRows(preview)))
+  appendRows(flatten(pstCatalogRows(snapshot)))
   appendRows(asList(preview.depositi).map(asRecord).flatMap((deposito) => {
     const docs = flatten(asList(deposito.documenti).map(asRecord))
     return docs.map((documento) => ({
@@ -3299,7 +3327,12 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
       mittente: asText(documento.mittente || deposito.mittente),
     }))
   }))
-  return keepDownloadable(mergedRows)
+  return mergedRows
+}
+
+function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
+  return pstCatalogDocuments(preview)
+    .filter((row, index) => pstPreviewDocumentIsDownloadable(row, index))
 }
 
 function previewPersonName(item: unknown): string {
@@ -4090,6 +4123,7 @@ function AcquisitionWizard({
     })
     return rows
   }, [data.recentCases, initialTargetFascicoloId, selection])
+  const previewCatalogDocuments = useMemo(() => pstCatalogDocuments(preview), [preview])
   const previewDocuments = useMemo(() => pstPreviewDocuments(preview), [preview])
   const previewPartyRows = useMemo(() => pstPreviewParties(preview, selection?.raw || null), [preview, selection])
   const previewTimelineRows = useMemo(() => previewEvents(preview), [preview])
@@ -5275,8 +5309,8 @@ function AcquisitionWizard({
             const snapshot = asRecord(signerPayload.snapshot)
             const signerRows = asList(signerPayload.fascicoli || signerPayload.results)
             const snapshotFascicolo = asRecord(snapshot.fascicolo)
-            const snapshotDocumenti = asList(snapshot.documenti || snapshot.catalogo || snapshot.documents)
-            const signerDocumenti = asList(signerPayload.documenti || signerPayload.documents || signerPayload.catalogo)
+            const snapshotDocumenti = pstCatalogRows(snapshot)
+            const signerDocumenti = pstCatalogRows(signerPayload)
             const searchDocumenti = snapshotDocumenti.length ? snapshotDocumenti : signerDocumenti
             const sourceRows = signerRows.length
               ? signerRows
@@ -5492,8 +5526,8 @@ function AcquisitionWizard({
         })
         const tribunale = asText(activeSelection.raw.ufficio_codice || resolvedOfficeCode())
         let snapshot = asRecord(activeSelection.raw.snapshot)
-        const rawDocumenti = asList(activeSelection.raw.documenti || activeSelection.raw.documents || activeSelection.raw.catalogo).map(asRecord)
-        let documenti = asList(snapshot.catalogo || snapshot.documenti || snapshot.documents).map(asRecord)
+        const rawDocumenti = pstCatalogRows(activeSelection.raw)
+        let documenti = pstCatalogRows(snapshot)
         if (!documenti.length && rawDocumenti.length) {
           documenti = rawDocumenti
         }
@@ -5503,7 +5537,7 @@ function AcquisitionWizard({
           snapshot = { ...snapshot, fascicolo: activeSelection.raw }
         }
         if (documenti.length) {
-          const snapshotHasDocuments = asList(snapshot.catalogo || snapshot.documenti || snapshot.documents).length > 0
+          const snapshotHasDocuments = pstCatalogRows(snapshot).length > 0
           if (!snapshotHasDocuments) {
             snapshot = { ...snapshot, documenti, catalogo: documenti }
           }
@@ -5566,7 +5600,7 @@ function AcquisitionWizard({
           if (Object.keys(refreshedSnapshot).length) {
             snapshot = refreshedSnapshot
           }
-          const refreshedDocumenti = asList(snapshot.documenti || snapshot.catalogo || signerPayload.documenti).map(asRecord)
+          const refreshedDocumenti = pstCatalogRows(snapshot, signerPayload)
           if (refreshedDocumenti.length) {
             documenti = refreshedDocumenti
           }
@@ -6801,9 +6835,9 @@ function AcquisitionWizard({
                       )}
                     </section>
                     <section className="iu-tel-acq-detail-grid__wide">
-                      <header><FileCheck2 size={16}/><strong>Documenti nel fascicolo</strong></header>
+                      <header><FileCheck2 size={16}/><strong>Documenti nel fascicolo · {previewCatalogDocuments.length}</strong></header>
                       <div className="iu-tel-acq-documents">
-                        {previewDocuments.length ? previewDocuments.slice(0, 24).map((doc, index) => (
+                        {previewCatalogDocuments.length ? previewCatalogDocuments.map((doc, index) => (
                           <article key={`${previewDocumentTitle(doc, index)}-${index}`}>
                             <FileText size={15}/>
                             <div>

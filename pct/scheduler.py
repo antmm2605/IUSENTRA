@@ -651,6 +651,12 @@ def start_scheduler(app):
     def _legal_updates_batch():
         _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
 
+    @scheduler.scheduled_job(CronTrigger(minute="3-59/10"), id="mediazione_sources_refresh", max_instances=1, coalesce=True)
+    def _mediazione_sources_refresh():
+        from web.services.mediazione_source_runtime import refresh_mediazione_sources
+        with app.app_context():
+            return refresh_mediazione_sources(app.config)
+
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)
     @scheduler.scheduled_job(CronTrigger(hour=4, minute=30), id="sync_tabelle_normative_daily")

@@ -318,6 +318,7 @@ def pdf_mobile_preview_html(
         ".empty strong{color:#111827;font-size:15px}"
         "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.page img{border-radius:10px}}"
         "@media(max-width:520px){header{grid-template-columns:1fr}header strong{white-space:normal}.reader-toolbar{justify-content:stretch}.reader-toolbar a{margin-left:auto}.reader-toolbar a,.reader-toolbar button{min-height:40px}}"
+        "@media print{@page{margin:8mm}html,body,.reader,.pages{height:auto;max-height:none;overflow:visible;display:block;background:white;width:100%;max-width:none;padding:0;margin:0}header,.page figcaption{display:none}.page{display:block;width:100%;break-after:page;margin:0}.page:last-child{break-after:auto}.page img{width:100%;height:auto;max-height:275mm;object-fit:contain;border:0;border-radius:0;box-shadow:none}}"
         "</style></head><body>"
         '<main class="reader">'
         f"<header><strong>{escaped_name}</strong>"
@@ -326,6 +327,7 @@ def pdf_mobile_preview_html(
         '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
         '<output class="reader-toolbar__zoom" data-zoom-value aria-live="polite">100%</output>'
         '<button type="button" data-zoom-in title="Ingrandisci" aria-label="Ingrandisci documento">+</button>'
+        '<button type="button" data-document-print title="Stampa tutte le pagine del documento">Stampa</button>'
         f'<a href="{escaped_download}" download data-document-download title="Scarica documento">Scarica</a>'
         "</nav>"
         '<span class="reader-download-status" data-download-status aria-live="polite"></span>'

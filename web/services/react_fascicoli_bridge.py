@@ -60,6 +60,7 @@ from pct.firma import attributi_cades_bes_mancanti, busta_cades_valida
 from web.services.deposito_anagrafica_ministeriale import deposito_ministerial_readiness
 from web.services.deposito_semantic_helpers import correct_deposito_oggetto_for_context
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
+from web.services.fascicolo_activity_provenance import recorded_portal_acquisition
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 ROME_TZ = ZoneInfo("Europe/Rome")
@@ -849,7 +850,18 @@ def _activity_labeled_source_value(text: str, label: str, *, limit: int) -> str:
         text,
         re.IGNORECASE,
     )
-    return _short(match.group(1).strip(" -:;."), limit) if match else ""
+    if not match:
+        return ""
+    value = match.group(1)
+    if label == "Contesto letto":
+        # Le versioni storiche concatenavano questa istruzione dopo l'estratto
+        # senza un'etichetta separatrice. Non è testo della fonte documentale.
+        generated_instruction = (
+            "Verificare il provvedimento e predisporre l'atto, le note o la "
+            "comunicazione richiesta prima della scadenza."
+        )
+        value = value.split(generated_instruction, 1)[0]
+    return _short(value.strip(" -:;."), limit)
 
 
 def _activity_source_document_payload(fascicolo_id: str, activity: Any) -> dict[str, Any]:
@@ -914,6 +926,21 @@ def _activity_notes_for_user(value: Any) -> str:
     text = _text(value)
     text = _ACTIVITY_DOCUMENT_SOURCE_MARKER_RE.sub("", text)
     return _short(text, 900)
+
+
+def _activity_is_identity_document_expiry_observation(activity: Any) -> bool:
+    """Esclude dai dati operativi le vecchie false rilevazioni documentali.
+
+    Alcune versioni precedenti hanno registrato come ``termine`` la data di
+    validità di una carta d'identità o di una patente citata nel fascicolo.
+    Il dato storico non viene cancellato: è escluso dalla timeline processuale
+    perché non è un adempimento dell'avvocato. Le nuove analisi lo bloccano già
+    nel presidio documentale.
+    """
+
+    from pct.fascicolo_document_presidio import is_identity_expiry_observation
+
+    return is_identity_expiry_observation(activity)
 
 
 def _activity_is_system_observation(activity: Any) -> bool:
@@ -7729,6 +7756,8 @@ def _visible_activity_records(fascicolo: Any) -> list[Any]:
         tipo = _enum_value(getattr(att, "tipo", "")).upper()
         if tipo in _ACTIVITY_TYPES_WITH_DEDICATED_SECTIONS:
             continue
+        if _activity_is_identity_document_expiry_observation(att):
+            continue
         if _activity_is_portal_noise(att) or _activity_is_technical_acquisition(att):
             continue
         key = _activity_group_key(att)
@@ -7747,6 +7776,11 @@ def _technical_activity_records(fascicolo: Any) -> list[Any]:
         att for att in (getattr(fascicolo, "attivita", []) or [])
         if _activity_is_technical_acquisition(att)
     ]
+    acquisition = recorded_portal_acquisition(fascicolo)
+    if acquisition is not None and not any(
+        _text(getattr(record, "id", "")) == acquisition.id for record in records
+    ):
+        records.append(acquisition)
     return sorted(
         records,
         key=lambda att: (_text(getattr(att, "data", "")), _text(getattr(att, "creato_il", ""))),

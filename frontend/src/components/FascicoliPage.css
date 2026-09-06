@@ -3008,6 +3008,9 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-card-grid .iu-fas-row-actions>button:focus-visible,
 .iu-fas-compact-list .iu-fas-row-actions>a:focus-visible,
 .iu-fas-compact-list .iu-fas-row-actions>button:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
+@media(max-width:560px){
+  .iu-fas-card-grid .iu-fas-row-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 .iu-fas-office-docs {
   margin-bottom: 12px;
   border: 1px solid #c9dbf8;

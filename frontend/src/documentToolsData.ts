@@ -11,6 +11,8 @@ export type GeneratedDocument = {
 }
 
 type ApiErrorPayload = {
+  ok?: boolean
+  documento_id?: string
   message?: string
   messaggio?: string
 }
@@ -62,7 +64,11 @@ export async function generateDocument(
   })
   if (!response.ok) throw new Error(await errorMessage(response))
 
+  const expectedType = mode === 'zip' ? 'application/zip' : 'application/pdf'
+  if (!response.headers.get('content-type')?.toLowerCase().startsWith(expectedType)) throw new Error('Documento non ricevuto. Verifica l’accesso a IUSENTRA e riprova.')
+
   const blob = await response.blob()
+  if (!blob.size) throw new Error('Il documento preparato è vuoto e non può essere salvato.')
   const fallback = mode === 'zip' ? 'documenti.zip' : 'documento.pdf'
   return {
     blob,
@@ -88,6 +94,6 @@ export async function saveGeneratedDocument(fascicoloId: string, result: Generat
   })
   if (!response.ok) throw new Error(await errorMessage(response))
   const payload = await response.json() as ApiErrorPayload
+  if (payload.ok !== true || !payload.documento_id) throw new Error(payload.message || payload.messaggio || 'Salvataggio non confermato. Controlla i documenti del fascicolo prima di riprovare.')
   return payload.message || payload.messaggio || 'Documento salvato nel fascicolo.'
 }
-

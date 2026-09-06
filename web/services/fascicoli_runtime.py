@@ -1345,9 +1345,11 @@ def build_fascicoli_runtime(
         id_repeatto_portale: str = "",
         msg_id_portale: str = "",
         pdfa_profile: str = "2b",
+        aggiorna_contenuto_portale: bool = False,
+        preserva_contenuto_originale: bool = False,
     ) -> Documento:
         contenuto_chiaro = raw
-        preserva_documento_portale = str(fonte_documento or "").strip().upper() == "PORTALE_TELEMATICO"
+        preserva_documento_portale = preserva_contenuto_originale or str(fonte_documento or "").strip().upper() == "PORTALE_TELEMATICO"
         if nome_file.lower().endswith(".pdf") and not firmato and not preserva_documento_portale:
             try:
                 from pct.validazione import converti_pdfa, verifica_pdfa
@@ -1375,6 +1377,25 @@ def build_fascicoli_runtime(
             except Exception as exc:
                 app.logger.warning("PDF/A auto-conversione errore per %s: %s", nome_file, exc)
         raw_hash = hashlib.sha256(contenuto_chiaro).hexdigest()
+        firma_portale = None
+        if aggiorna_contenuto_portale:
+            from pct.document_signature_state import (
+                document_bytes_have_real_digital_signature,
+                is_signed_container_name,
+            )
+            # La firma si esamina sul contenuto ricevuto, prima della cifratura
+            # tenant-aware, mai sui metadati della versione sostituita.
+            firmato = document_bytes_have_real_digital_signature(contenuto_chiaro, nome_file)
+            firma_portale = {}
+            if firmato:
+                is_container = is_signed_container_name(nome_file)
+                firma_portale = {
+                    "signature_format": "cades" if is_container else "pades",
+                    "signature_verified": True,
+                    "is_signed_container": is_container,
+                    "source": "portale",
+                    "file_name": Path(nome_file).name,
+                }
         contenuto = _encrypt_doc(contenuto_chiaro)
         doc = gf.aggiungi_documento(
             id_fasc,
@@ -1399,6 +1420,8 @@ def build_fascicoli_runtime(
             id_repeatto_portale=id_repeatto_portale,
             msg_id_portale=msg_id_portale,
             hash_contenuto_sha256=raw_hash,
+            aggiorna_contenuto_portale=aggiorna_contenuto_portale,
+            firma_portale=firma_portale,
         )
         percorso_doc = str(gf.percorso_documento(id_fasc, doc.id))
         _accoda_ocr(
@@ -2137,8 +2160,17 @@ def build_fascicoli_runtime(
             if not doc_esistente and not portal_keys:
                 doc_esistente = documenti_per_nome_hash.get((nome_norm, sha_payload))
             if doc_esistente:
-                documenti_creati.append({"doc": doc_esistente, "item": item, "riusato": True})
-                continue
+                try:
+                    stored = gf.percorso_documento(fasc.id, doc_esistente.id).read_bytes()
+                    identical = (
+                        hashlib.sha256(stored).hexdigest() == doc_esistente.hash_sha256
+                        and _decrypt_doc(stored) == payload
+                    )
+                except (OSError, ValueError):
+                    identical = False
+                if identical:
+                    documenti_creati.append({"doc": doc_esistente, "item": item, "riusato": True})
+                    continue
             tipo_doc = _tipo_documento_da_item_portale(item)
             note_doc = [f"Importato da {fonte} il {date.today().strftime('%d/%m/%Y')}"]
             if note_importazione:
@@ -2173,7 +2205,11 @@ def build_fascicoli_runtime(
                 id_cat_portale=str(item.get("id_cat") or "").strip(),
                 id_repeatto_portale=str(item.get("id_repeatto") or "").strip(),
                 msg_id_portale=str(item.get("msg_id") or "").strip(),
+                aggiorna_contenuto_portale=True,
             )
+            saved = gf.percorso_documento(fasc.id, doc.id).read_bytes()
+            if hashlib.sha256(saved).hexdigest() != doc.hash_sha256 or _decrypt_doc(saved) != payload:
+                raise ValueError(f"Acquisizione non confermata: verifica del file {nome} fallita.")
             documenti_creati.append(
                 {
                     "doc": doc,
@@ -2181,7 +2217,8 @@ def build_fascicoli_runtime(
                     # La persistenza può riusare un record già presente; il
                     # report deve esporlo correttamente invece di segnalarlo
                     # come una nuova acquisizione.
-                    "riusato": str(doc.id) in documenti_esistenti_ids,
+                    "riusato": False,
+                    "aggiornato": str(doc.id) in documenti_esistenti_ids,
                 }
             )
             for key in _portal_key_pairs_from_document(doc) | portal_keys:
@@ -2368,13 +2405,17 @@ def build_fascicoli_runtime(
         _sync.pubblica("modifica", "fascicoli", fasc.id, utente=u.username if u else "")
 
         documenti_riusati = sum(1 for entry in documenti_creati if entry.get("riusato"))
-        documenti_nuovi = len(documenti_creati) - documenti_riusati
+        documenti_aggiornati = sum(bool(entry.get("aggiornato")) for entry in documenti_creati)
+        documenti_nuovi = len(documenti_creati) - documenti_riusati - documenti_aggiornati
         return {
             "fonte": fonte,
             "documenti_importati": len(documenti_creati),
             "documenti_registrati": len(documenti_creati),
             "documenti_nuovi": documenti_nuovi,
             "documenti_riusati": documenti_riusati,
+            "documenti_aggiornati": documenti_aggiornati,
+            "integrita_verificata": True,
+            "id_fascicolo": fasc.id,
             "documenti": [
                 {
                     "fascicolo_document_id": entry["doc"].id,
@@ -2404,6 +2445,8 @@ def build_fascicoli_runtime(
                         entry["item"].get("original_documento_portale")
                     ),
                     "riusato": bool(entry.get("riusato")),
+                    "aggiornato": bool(entry.get("aggiornato")),
+                    "hash_contenuto_sha256": hashlib.sha256(entry["item"]["contenuto"]).hexdigest(),
                 }
                 for entry in documenti_creati
             ],

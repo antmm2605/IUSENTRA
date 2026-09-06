@@ -283,6 +283,26 @@ def test_attivita_derivata_da_documento_espone_fonte_interna_e_nasconde_il_marca
     assert "PEC_DOCUMENT_PRESIDIO" not in payload[0]["notes"]
 
 
+def test_attivita_storica_non_tratta_scadenza_documento_identita_come_termine_processuale():
+    attivita = SimpleNamespace(
+        id="TERMINE-DOCUMENTO-IDENTITA",
+        tipo="ALTRO",
+        titolo="Termine rilevato",
+        descrizione="Termine processuale rilevato nel documento indicizzato.",
+        note=(
+            "Fonte documentale: Verbale esito mediazione.pdf\n"
+            "Contesto letto: Carta di identità n. CA51212AQ, rilasciata dal Comune di Taurianova, "
+            "con scadenza il 26/05/2028.\n"
+            "PEC_DOCUMENT_PRESIDIO:docpresidio:FASC-SORGENTE:DOC-IDENTITA:termine:2028-05-26"
+        ),
+        data="2028-05-26",
+        esito="IN_ATTESA",
+    )
+    fascicolo = SimpleNamespace(id="FASC-SORGENTE", attivita=[attivita])
+
+    assert _activities(fascicolo) == []
+
+
 def test_udienza_rilevata_storica_non_espone_comandi_di_stato_o_eliminazione():
     attivita = SimpleNamespace(
         id="UDIENZA-STORICA-1",
@@ -299,3 +319,60 @@ def test_udienza_rilevata_storica_non_espone_comandi_di_stato_o_eliminazione():
     assert payload[0]["sourceDocumentHref"] == ""
     assert payload[0]["updateAction"] == ""
     assert payload[0]["deleteAction"] == ""
+
+
+def test_acquisizione_snapshot_sql_visibile_senza_creare_attivita_o_certificare_download():
+    fascicolo = SimpleNamespace(id="FASC-SNAPSHOT", attivita=[], source_snapshot={
+        "portale": "PST", "import_log_id": "IMPORT-1",
+        "acquisito_il": "2026-06-02T14:22:00Z",
+    })
+    records = _technical_activity_records(fascicolo)
+    payload = _activities(fascicolo, records=records, technical=True)
+    assert fascicolo.attivita == []
+    assert _activities(fascicolo) == []
+    assert len(payload) == 1
+    assert payload[0]["date"] == "02/06/2026"
+    assert "02/06/2026 16:22" in payload[0]["description"]
+    assert "non attesta da sola" in payload[0]["description"]
+    assert payload[0]["updateAction"] == payload[0]["deleteAction"] == ""
+    assert _technical_activity_records(fascicolo)[0].id == records[0].id
+
+
+def test_acquisizione_non_inventata_da_solo_stato_o_snapshot_incompleto():
+    from web.services.fascicolo_activity_provenance import recorded_portal_acquisition
+
+    for snapshot in (None, {}, {"portale": "PST"}, {
+        "portale": "PST", "import_log_id": "IMPORT-1", "acquisito_il": "data assente",
+    }, {
+        "portale": "sorgente non governata", "import_log_id": "IMPORT-1",
+        "acquisito_il": "2026-06-02T16:22:00",
+    }):
+        fascicolo = SimpleNamespace(source="PST", sync_status="completato", source_snapshot=snapshot)
+        assert recorded_portal_acquisition(fascicolo) is None
+
+
+def test_estratto_storico_separa_istruzione_generata_e_preserva_termine_processuale():
+    from web.services.react_fascicoli_bridge import _activity_source_document_payload
+
+    instruction = (
+        "Verificare il provvedimento e predisporre l'atto, le note o la "
+        "comunicazione richiesta prima della scadenza."
+    )
+    activity = SimpleNamespace(
+        id="OBS-IDENTITA", tipo="TERMINE_SCADENZA", titolo="Termine rilevato",
+        data="2028-05-26", esito="IN_ATTESA",
+        descrizione="Contesto letto: Patente di guida con scadenza il 26/05/2028. " + instruction,
+        note="PEC_DOCUMENT_PRESIDIO:docpresidio:FASC-SORGENTE:DOC-IDENTITA:termine:2028-05-26",
+    )
+    fascicolo = SimpleNamespace(id="FASC-SORGENTE", attivita=[activity])
+    assert _activities(fascicolo) == []
+    evidence = _activity_source_document_payload(fascicolo.id, activity)
+    assert "Verificare" not in evidence["sourceExcerpt"]
+    activity.descrizione = (
+        "Contesto letto: Entro il termine del 26/05/2028 depositare il documento di identità "
+        "in corso di validità. " + instruction
+    )
+    assert len(_activities(fascicolo)) == 1
+    # Senza prova documentale non si elimina una rilevazione per il solo titolo.
+    activity.descrizione = "Scadenza carta di identità"
+    assert len(_activities(fascicolo)) == 1

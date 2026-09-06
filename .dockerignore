@@ -13,6 +13,18 @@
 /sync/
 /data/
 
+# Prove locali e copie di recupero: non sono sorgenti del prodotto.
+/artifacts/local-signer-procedure-backups/
+/artifacts/recovery/
+/artifacts/ui-checks/
+/artifacts/ci/
+/artifacts/react-migration/*.xml
+/artifacts/react-migration/*coverage*.json
+/applica_fix_pst.py
+/avvia.bat
+/avvia.ps1
+/ferma.bat
+
 # Python
 __pycache__/
 **/__pycache__/

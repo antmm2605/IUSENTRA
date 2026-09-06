@@ -28,6 +28,8 @@ import {
   type GeneratedDocument,
 } from '../documentToolsData'
 import './DocumentToolsPage.css'
+import { acquireFromLocalScanner } from '../services/localScanner'
+export { acquireFromLocalScanner } from '../services/localScanner'
 
 type SelectedDocument = {
   id: string
@@ -92,65 +94,6 @@ function initialMode(): DocumentToolMode {
   return value === 'zip' || value === 'multipage' ? value : 'merge'
 }
 
-
-type LocalScannerPayload = {
-  ok?: boolean
-  filename?: string
-  mime_type?: string
-  content_base64?: string
-  errore?: string
-}
-
-const LOCAL_SCANNER_ENDPOINTS = [
-  'http://127.0.0.1:27272/scanner/acquire',
-  'http://localhost:27272/scanner/acquire',
-]
-
-function scannerFileFromPayload(payload: LocalScannerPayload): File {
-  const encoded = String(payload.content_base64 || '').trim()
-  if (!encoded) throw new Error('Lo scanner non ha restituito alcuna pagina.')
-  let binary = ''
-  try {
-    binary = window.atob(encoded)
-  } catch {
-    throw new Error('La pagina acquisita non è leggibile.')
-  }
-  if (!binary.length || binary.length > 60 * 1024 * 1024) {
-    throw new Error('La pagina acquisita è vuota o supera 60 MB.')
-  }
-  const bytes = new Uint8Array(binary.length)
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
-  const filename = String(payload.filename || 'scansione.jpg').replace(/[\\/:*?"<>|]/g, ' ').trim() || 'scansione.jpg'
-  return new File([bytes], filename, { type: payload.mime_type || 'image/jpeg' })
-}
-
-export async function acquireFromLocalScanner(): Promise<File> {
-  let lastError = ''
-  for (const endpoint of LOCAL_SCANNER_ENDPOINTS) {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 130_000)
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timeout: 120 }),
-        signal: controller.signal,
-      })
-      const payload = await response.json().catch(() => null) as LocalScannerPayload | null
-      if (response.ok && payload?.ok) return scannerFileFromPayload(payload)
-      lastError = response.status === 404
-        ? 'Aggiorna il Local Signer e ripeti l’acquisizione.'
-        : String(payload?.errore || `Acquisizione non completata (HTTP ${response.status}).`)
-    } catch (caught) {
-      lastError = caught instanceof DOMException && caught.name === 'AbortError'
-        ? 'Tempo scaduto durante l’acquisizione dallo scanner.'
-        : caught instanceof Error ? caught.message : 'Local Signer non raggiungibile.'
-    } finally {
-      window.clearTimeout(timeout)
-    }
-  }
-  throw new Error(lastError || 'Local Signer non raggiungibile sul PC in uso.')
-}
 
 export function DocumentToolsPage() {
   const [mode, setMode] = useState<DocumentToolMode>(initialMode)
@@ -516,4 +459,3 @@ export function DocumentToolsPage() {
 }
 
 export default DocumentToolsPage
-

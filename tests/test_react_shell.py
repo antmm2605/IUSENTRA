@@ -2462,8 +2462,9 @@ def test_office_documents_portale_pst_consulta_nell_app_con_catalogo_completo():
     assert "const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key))" in source
     assert "setSelection(documents.map((doc) => doc.key))" in source
     assert "disabled={doc.acquired || Boolean(busy)}" not in source
-    assert "non_duplicare: true" in source
-    assert "importa_solo_nuovi: true" in source
+    assert "non_duplicare_documenti: true" in source
+    assert "solo_nuovi: false" in source
+    assert "report.integrita_verificata !== true" in source
     assert "function formatWait(seconds: number): string" in source
     assert "function searchWaitHint(seconds: number): string" in source
 
@@ -2521,17 +2522,23 @@ def test_local_signer_cors_permette_accept_per_preflight_browser():
 
 def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
-    assert "const signerDocumenti = asList(signerPayload.documenti || signerPayload.documents || signerPayload.catalogo)" in source
+    assert "function pstCatalogRows(...sources: JsonRecord[]): JsonRecord[]" in source
+    assert "function pstCatalogDocuments(preview: JsonRecord): JsonRecord[]" in source
+    assert "source.documenti_catalogo" in source
+    assert "sections.allegati" in source
+    assert "const signerDocumenti = pstCatalogRows(signerPayload)" in source
     assert "...(searchDocumenti.length ? { documenti: searchDocumenti } : {})" in source
-    assert "activeSelection.raw.documenti || activeSelection.raw.documents || activeSelection.raw.catalogo" in source
+    assert "const rawDocumenti = pstCatalogRows(activeSelection.raw)" in source
     assert "snapshot = { fascicolo: activeSelection.raw, documenti, catalogo: documenti }" in source
     assert "function pstDocumentHasDirectPortalDownload(row: JsonRecord): boolean" in source
     assert "downloadDocumentoSemplice.action" in source
     assert "const hasSearchSnapshotPayload = Object.keys(snapshot).length > 0" in source
     assert "const hasSearchSnapshotDocuments = hasSearchSnapshotPayload" in source
     assert "const hasCompleteSearchSnapshotDocuments = hasSearchSnapshotDocuments" in source
-    assert "activeSelection.raw.full_snapshot" in source
-    assert "snapshot.master_detail" in source
+    assert "const previewCatalogDocuments = useMemo(() => pstCatalogDocuments(preview), [preview])" in source
+    assert "previewCatalogDocuments.map((doc, index)" in source
+    assert "previewDocuments.slice(0, 24)" not in source
+
     assert "Uso il catalogo documenti completo" in source
     assert "Uso i documenti gi" in source
     cached_branch = source.split("if (hasSearchSnapshotPayload)", 1)[1].split("} else {", 1)[0]
@@ -2647,6 +2654,27 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "localSignerPstFascicoloSnapshotJob({" in run_preview_source
     assert "localSignerJson('/pst/fascicolo-snapshot'" not in run_preview_source
     assert "if (!documenti.length && !Object.keys(snapshot).length) throw refreshError" in run_preview_source
+
+
+def test_react_documenti_ufficio_fonde_tutti_i_rami_catalogo_e_allegati():
+    source = Path("frontend/src/components/OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
+
+    assert "snapshot.documenti_catalogo" in source
+    assert "result.documenti_catalogo" in source
+    assert "sections.allegati" in source
+    assert "resultSections.allegati" in source
+    assert "row.documenti_extra" in source
+    assert "row.docsSecondari" in source
+    assert "const rows = completeCatalogRows(nextSnapshot, result)" in source
+    assert "Catalogo ricevuto nel lotto PST unico" in source
+
+
+def test_react_fascicolo_distingue_mancanza_di_audit_da_mancanza_di_documenti():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "Non è disponibile una registrazione dell'acquisizione." in source
+    assert "Questo non significa che il fascicolo sia privo di documenti" in source
+    assert "Nessuna acquisizione o sincronizzazione tecnica registrata." not in source
 
 
 def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
@@ -7369,6 +7397,7 @@ def test_react_fascicolo_dettaglio_espone_presidio_documenti_udienza(monkeypatch
 
 def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
 
     assert "quickCounts: { ...current.quickCounts, ...payload.quickCounts }" in source
     assert (
@@ -7382,6 +7411,18 @@ def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
     assert "fascicoloId={f.id}" in source
     assert "if (section === 'scadenze') return ['scadenze', 'documenti']" in source
     assert "loadLazySection('scadenze'); loadLazySection('documenti')" in source
+    assert "{next?.date ? <span>{next.date}</span> : null}" in source
+    assert "<span>{next?.date || presidio.summary}</span>" not in source
+    assert ".iu-fas-card-grid .iu-fas-row-actions{grid-template-columns:repeat(3,minmax(0,1fr))}" in css
+
+
+def test_react_cartelle_condivise_usa_italiano_e_alert_privacy_leggibile_su_mobile():
+    source = Path("frontend/src/components/CartelleCondivisePage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/CartelleCondivisePage.css").read_text(encoding="utf-8")
+
+    assert "'Modalità gestore'" in source
+    assert "'Modalità collaboratore'" in source
+    assert ".iu-share-warnings.ok{align-items:start}" in css
 
 
 def test_react_fascicolo_lex_indexing_non_mostra_status_tecnici_o_date_brevi():

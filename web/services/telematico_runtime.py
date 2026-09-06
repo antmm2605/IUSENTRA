@@ -3536,6 +3536,10 @@ def build_telematico_runtime(
             document_report["documenti_importati"] = documenti_nuovi_count
             document_report["documenti_registrati"] = documenti_registrati_count
             document_report["documenti_gia_presenti_o_riusati"] = documenti_riusati_count
+            document_report["documenti_nuovi"] = documenti_nuovi_count
+            document_report["documenti_aggiornati"] = int(import_result.get("documenti_aggiornati") or 0)
+            document_report["integrita_verificata"] = bool(import_result.get("integrita_verificata"))
+            document_report["documenti_verificati"] = list(import_result.get("documenti") or [])
             final_audit_events = list(audit_studio_events)
             if int(document_report.get("documenti_informativi") or 0):
                 final_audit_events.append("Documento informativo escluso dall'importazione documentale")

@@ -15,6 +15,16 @@ tools/dist/*
 !tools/dist/InstallaLocalSigner-*.command
 !tools/dist/InstallaLocalSigner-*.run
 !tools/dist/LocalSigner-*.txt
+# Build storiche locali già sostituite: conservarle sul PC, non ripubblicarle.
+tools/dist/*-1.6.115.*
+tools/dist/*-1.6.118.*
+tools/dist/*-1.6.119.*
+tools/dist/*-1.6.120.*
+tools/dist/*-1.6.121.*
+tools/dist/*-1.6.122.*
+tools/dist/*-1.6.123.*
+tools/dist/*-1.6.124.*
+tools/dist/*-1.6.125.*
 !tools/dist/local_signer.py
 !tools/dist/local_signer_mod/
 !tools/dist/local_signer_mod/*.py

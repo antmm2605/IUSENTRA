@@ -69,3 +69,14 @@ prima del deploy, oltre alla loro integrazione nel commit.
 
 CI dello SHA, push gemelli, backup preventivo e deploy sono passaggi successivi
 da verificare materialmente; questo verbale pre-commit non li attesta.
+
+## Protezione delle sessioni durante la pubblicazione
+
+Il controllo del manifest realmente servito da produzione ha rilevato che i
+suoi asset non coincidevano con quelli del manifest Git storico. Si conserva
+quindi nel pacchetto anche il grafo degli asset effettivamente in uso dal
+container precedente, senza cambiare il manifest nuovo né i suoi sorgenti.
+La compatibilità protegge le schede aperte da errori di chunk mancante.
+I primi job deploy dello SHA 00050994b sono stati annullati prima dell'accesso
+operativo al server: il commit successivo deve superare la propria CI reale.
+Nessun check annullato viene presentato come superato.

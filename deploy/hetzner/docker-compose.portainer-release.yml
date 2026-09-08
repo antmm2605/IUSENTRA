@@ -1,0 +1,12 @@
+# Portainer merges this file after docker-compose.hetzner.yml.
+# Images are built and verified by deploy.sh before the Git handoff.
+services:
+  app:
+    build: !reset null
+    pull_policy: never
+  scheduler-worker:
+    build: !reset null
+    pull_policy: never
+  ocr-worker:
+    build: !reset null
+    pull_policy: never

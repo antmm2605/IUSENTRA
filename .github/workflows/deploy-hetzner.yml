@@ -53,7 +53,8 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 90 minutes for required CI plus backup, image build and health checks.
+    timeout-minutes: 120
 
     steps:
       - name: Verifica secrets obbligatori
@@ -73,7 +74,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Attendi CI richiesta dello SHA corrente
         env:
@@ -199,6 +200,14 @@ jobs:
           if [ "${NO_BACKUP_REQUESTED}" = "true" ]; then
             deploy_prefix="IUSENTRA_SKIP_BACKUP_CRON=1 "
           fi
+          # Execute the script from the verified checkout, outside the directory
+          # it resets. This also makes the first Portainer migration deterministic.
+          scp -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              deploy/hetzner/deploy.sh \
+              "${HETZNER_USER}@${HETZNER_HOST}:/tmp/iusentra-deploy-${GITHUB_SHA}.sh"
           ssh -i ~/.ssh/id_deploy \
               -o BatchMode=yes \
               -o ConnectTimeout=15 \
@@ -207,7 +216,7 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              "cd /opt/iusentra/repo && EXPECTED_SHA='${GITHUB_SHA}' BRANCH='${DEPLOY_BRANCH}' ${deploy_prefix}bash deploy/hetzner/deploy.sh"
+              "trap 'rm -f /tmp/iusentra-deploy-${GITHUB_SHA}.sh' EXIT; EXPECTED_SHA='${GITHUB_SHA}' BRANCH='${DEPLOY_BRANCH}' ${deploy_prefix}bash /tmp/iusentra-deploy-${GITHUB_SHA}.sh"
 
       - name: Ripristina servizi se il commit era gia deployato
         if: ${{ steps.current.outputs.already_deployed == 'true' }}

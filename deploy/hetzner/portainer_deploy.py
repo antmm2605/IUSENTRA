@@ -16,6 +16,7 @@ import urllib.request
 
 BASE = "http://127.0.0.1:19000/api"
 COMPOSE = "deploy/hetzner/docker-compose.hetzner.yml"
+RELEASE_COMPOSE = "deploy/hetzner/docker-compose.portainer-release.yml"
 REPOSITORY = "https://github.com/antmm2605/IUSENTRA.git"
 
 
@@ -90,12 +91,15 @@ def main():
         stack = stacks[0]
         if (stack.get("GitConfig") or {}).get("URL") != REPOSITORY:
             raise RuntimeError("Lo stack esistente non usa il repository atteso")
+        if stack.get("AdditionalFiles") != [RELEASE_COMPOSE]:
+            raise RuntimeError("Lo stack non usa il file Compose delle immagini verificate")
         payload.update({"Prune": False, "RepullImageAndRedeploy": False})
         result = request(f"/stacks/{stack['Id']}/git/redeploy?endpointId={endpoint}",
                          token, payload, "PUT")
     else:
         payload.update({"Name": "iusentra", "RepositoryURL": REPOSITORY,
-                        "ComposeFile": COMPOSE, "RepositoryAuthentication": False})
+                        "ComposeFile": COMPOSE, "AdditionalFiles": [RELEASE_COMPOSE],
+                        "RepositoryAuthentication": False})
         result = request(f"/stacks/create/standalone/repository?endpointId={endpoint}",
                          token, payload, "POST")
     stack_id = result.get("Id") or result.get("Stack", {}).get("Id")

@@ -70,8 +70,20 @@ fixture; corretto usando un percorso POSIX esplicito. Nessun impatto runtime.
 Verifiche tecniche: 13 test Portainer/packaging passati, 6 contratti CI passati,
 Ruff passato; Compose candidato validato sul server con ambiente reale senza
 stampare segreti. Packaging inizialmente disallineato su frontend/OpenAPI,
-poi riallineato alla versione 2.280.2. Build locale senza cache in corso.
+poi riallineato alla versione 2.280.2. Build locale senza cache eseguita;
+Panoramica autenticata con dati dello studio verificata sulla porta 8080.
 
 Verifica sorgenti Portainer: il resolver richiede un riferimento Git nominato,
 non uno SHA isolato. Il deploy usa quindi un tag leggero univoco per commit,
 creato dalla CI dopo i gate e controllato prima della chiamata Portainer.
+
+Il deployer Compose di Portainer 2.45.0 richiama sempre la build. Per preservare
+l'immagine verificata, `docker-compose.portainer-release.yml` azzera `build`
+con `!reset null` e imposta `pull_policy: never` sui tre servizi applicativi.
+Il file viene letto da Git come `AdditionalFiles` dopo il Compose canonico.
+La CI esegue lo script del commit verificato da un percorso temporaneo esterno
+al checkout che lo script stesso sincronizza. Il limite del job comprende
+l'attesa dei gate, il backup, la build e i controlli di salute.
+
+Fonti aggiuntive: <https://docs.docker.com/reference/compose-file/merge/> e
+<https://github.com/portainer/portainer/blob/2.45.0/pkg/libstack/compose/composeplugin.go>.

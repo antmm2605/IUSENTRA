@@ -67,6 +67,9 @@ GitHub senza `.git`: il controllo ora accetta esclusivamente le due forme
 canoniche dello stesso repository. La prova reale di aggiornamento sullo stesso
 tag è poi riuscita. Una chiamata ripetuta con commit, ambiente e servizi già
 healthy termina senza ridistribuire, evitando riavvii per i push gemelli.
+La verifica include anche tutti i servizi dei profili Compose attivi: Caddy
+fermo, un servizio mancante o un'inizializzazione audit fallita impediscono
+di saltare il ripristino, anche quando l'applicazione è già healthy.
 Le verifiche operative successive sono registrate sul server in
 `/opt/iusentra/portainer/deployment-verification.json` e `README.md`.
 Test mirati: isolamento variabili, rifiuto valori multilinea, errori senza segreti.

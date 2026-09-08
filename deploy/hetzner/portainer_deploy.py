@@ -77,6 +77,33 @@ def verify_release_containers(expected_image):
     return healthy
 
 
+def stack_services_ready(repo):
+    """A repeated release must still restore missing or stopped infrastructure."""
+    services = subprocess.check_output([
+        "docker", "compose", "--env-file",
+        os.environ.get("IUSENTRA_ENV_FILE", "/opt/iusentra/.env.hetzner"),
+        "-f", str(repo / COMPOSE), "config", "--services",
+    ], text=True).split()
+    ids = subprocess.check_output([
+        "docker", "ps", "-aq", "--filter", "label=com.docker.compose.project=iusentra",
+    ], text=True).split()
+    if not services or not ids:
+        return False
+    containers = json.loads(subprocess.check_output(["docker", "inspect", *ids], text=True))
+    for service in services:
+        matches = [c for c in containers
+                   if c["Config"]["Labels"].get("com.docker.compose.service") == service]
+        if len(matches) != 1:
+            return False
+        state = matches[0]["State"]
+        if service == "audit-worm-init":
+            if state.get("Status") != "exited" or state.get("ExitCode") != 0:
+                return False
+        elif not state.get("Running") or state.get("Health", {}).get("Status", "healthy") != "healthy":
+            return False
+    return True
+
+
 def main():
     repo = Path(__file__).resolve().parents[2]
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
@@ -123,7 +150,7 @@ def main():
                 ready = verify_release_containers(expected_image)
             except RuntimeError:
                 ready = False
-            if ready:
+            if ready and stack_services_ready(repo):
                 print(f"Portainer: stack=iusentra id={stack['Id']} commit={sha} già healthy")
                 return
         payload.update({"Prune": False, "RepullImageAndRedeploy": False})

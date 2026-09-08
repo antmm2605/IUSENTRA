@@ -101,3 +101,27 @@ def test_release_readiness_requires_healthy_workers(monkeypatch, health, ready):
 
     monkeypatch.setattr(deploy.subprocess, "check_output", output)
     assert deploy.verify_release_containers({"Id": "release"}) is ready
+
+
+@pytest.mark.parametrize("caddy_present,caddy_running,init_exit,ready", [
+    (True, True, 0, True),
+    (True, False, 0, False),
+    (False, False, 0, False),
+    (True, True, 1, False),
+])
+def test_unchanged_release_still_restores_infrastructure(monkeypatch, caddy_present, caddy_running, init_exit, ready):
+    containers = [{"Config": {"Labels": {"com.docker.compose.service": "audit-worm-init"}},
+                   "State": {"Status": "exited", "ExitCode": init_exit}}]
+    if caddy_present:
+        containers.append({"Config": {"Labels": {"com.docker.compose.service": "caddy"}},
+                           "State": {"Running": caddy_running}})
+
+    def output(args, **kwargs):
+        if args[:2] == ["docker", "compose"]:
+            return "caddy\naudit-worm-init\n"
+        if args[:2] == ["docker", "ps"]:
+            return "containers"
+        return json.dumps(containers)
+
+    monkeypatch.setattr(deploy.subprocess, "check_output", output)
+    assert deploy.stack_services_ready(PurePosixPath("/repo")) is ready

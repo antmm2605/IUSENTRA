@@ -33,7 +33,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.09.06.catalogo-fascicolo.v23"
+RESOLVER_VERSION = "2026.09.08.catalogo-fascicolo.v24"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -522,7 +522,7 @@ def _content_identity(
             role="verbale_ufficio",
             label="Verbale d'udienza",
             section="provvedimenti",
-            confidence=94,
+            confidence=97,
             evidence="testo iniziale: verbale d'udienza",
             tipo_documento=TipoDocumento.VERBALE,
             deposit_role="fuori_busta",

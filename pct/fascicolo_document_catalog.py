@@ -404,7 +404,7 @@ def classify_fascicolo_document(
             role="verbale_ufficio",
             label=label,
             section="provvedimenti",
-            confidence=94,
+            confidence=96,
             evidence="OCR: verbale dell'ufficio giudiziario",
             tipo_documento=TipoDocumento.VERBALE,
             deposit_role="fuori_busta",

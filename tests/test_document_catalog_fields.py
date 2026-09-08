@@ -104,6 +104,17 @@ def test_pec_receipt_title_precedes_quoted_receipts_and_acts(title, label):
     assert identity.classification.deposit_candidate is False
 
 
+def test_hearing_minutes_with_textual_identity_exceed_operational_confidence_threshold():
+    identity = _content_identity(
+        "TRIBUNALE DI PALMI\n"
+        "Verbale di udienza\n"
+        "Il Giudice dà atto della comparizione delle parti e dispone il rinvio."
+    )
+    assert identity.classification.label == "Verbale d'udienza"
+    assert identity.classification.confidence >= 95
+    assert identity.classification.deposit_candidate is False
+
+
 def test_procura_mention_does_not_replace_the_document_identity():
     identity = _content_identity('Lettera del difensore. Si allega la procura speciale.\n'
                                  'Il cliente conferisce delega con atto separato.')

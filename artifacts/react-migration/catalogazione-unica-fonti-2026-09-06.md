@@ -96,3 +96,13 @@ Fonti consultate:
 - https://github.com/firecrawl/pdf-inspector/blob/main/docs/ocr-runtime.md
 - https://github.com/firecrawl/pdf-inspector/blob/636ca1a58bdc1af4cd3fc20b8c1f549a1121cca7/src/vision/routing.rs
 - https://pypi.org/pypi/pdf-inspector/json
+
+## Aggiornamento soglia verbali d’udienza, 08/09/2026
+
+Nel collaudo reale locale su `http://127.0.0.1:8080/fascicoli/DD242366#documenti` la catalogazione dei verbali d’udienza era corretta come profilo documentale, ma restava a confidenza 94%, sotto la soglia operativa richiesta per i casi in cui il titolo portale e il contenuto testuale coincidono chiaramente. La regola forte `verbale` più `udienza` è stata alzata a confidenza 97% nel resolver unico, con versione catalogo `2026.09.08.catalogo-fascicolo.v24`; il classificatore storico compatibile è stato allineato a 96% per evitare regressioni nei percorsi che lo interrogano ancora come supporto.
+
+La modifica non tocca Wizard, deposito telematico, notifiche, PEC, firma o firma multipla. Non simula la certezza universale al 95%: aumenta soltanto la confidenza quando le evidenze minime sono effettivamente presenti e coerenti, lasciando i casi deboli in revisione.
+
+Prova materiale eseguita sulla copia Docker reale dell’utente, `127.0.0.1:8080`, versione `2.280.1`: cliccato `Aggiorna catalogazione`; osservato il messaggio `Indice e catalogazione aggiornati`; verificati i documenti `VerbaleUdienza_33393309.pdf.p7m`, `VerbaleUdienza_32970605.pdf.p7m`, `VerbaleUdienza_32392386.pdf.p7m` e `VerbaleUdienza_29740536.pdf.p7m` con profilo `Verbale d’udienza` e `confidenza 97%`. Nella stessa sessione è stato aperto e richiuso il pannello `Acquisisci documenti`, confermando la presenza dei canali `Scanner Windows`, `Webcam / fotocamera` e `Scatta dal telefono`, senza avviare acquisizioni reali.
+
+Gate mirati superati prima del rilascio: `tests/test_document_catalog_fields.py`, pipeline catalogo persistente, contratti API catalogo documenti, contratti acquisizione scanner/camera, test JavaScript del canale acquisizione, typecheck React, packaging consistency, UTF-8 integrity e release readiness. La prova PIN PST e Wizard resta da eseguire insieme all’avvocato perché richiede token e finestra nativa.

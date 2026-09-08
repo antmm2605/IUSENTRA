@@ -112,7 +112,7 @@ PHASES: tuple[Phase, ...] = (
         re.compile(
             r"("
             r"test_ci_|test_packaging_consistency|test_release_readiness|test_backup|"
-            r"test_build_dist|test_docker_entrypoint|test_hetzner_backup_retention|"
+            r"test_build_dist|test_docker_entrypoint|test_hetzner_backup_retention|test_portainer_deploy|"
             r"test_performance_budget|test_secrets_manager|test_security_headers|"
             r"test_upload_security|test_rate_limit|test_cache|test_circuit_breaker|"
             r"test_structured_logging|test_metrics_endpoint|test_jobs"

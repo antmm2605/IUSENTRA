@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.280.2 - 08/09/2026
+
+- Predisposto deploy Git tramite Portainer, immagine unica identificata dal commit per applicazione e worker, percorsi configurabili per Caddy e monitoraggio e isolamento del pannello di gestione sul loopback.
+- Il workflow passa il commit verificato dalla CI; il passaggio a Portainer richiede attivazione esplicita sul server e verifica reale. Stato e procedura in `deploy/hetzner/PORTAINER.md`.
+
 ## 2.280.0 - 06/09/2026
 
 - Mediazione nel fascicolo: procedimenti SQL tenant-aware, scelta dell'organismo e della sede, modulistica con provenienza, allegati multipli, calendario, incontri e audit. Il salvataggio non equivale a un invio all'organismo.

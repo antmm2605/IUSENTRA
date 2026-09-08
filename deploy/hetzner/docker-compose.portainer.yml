@@ -1,0 +1,15 @@
+name: iusentra-management
+
+services:
+  portainer:
+    image: portainer/portainer-ce@sha256:511f3f06c96fe3b993ebeaafde311c1959cae73a7ef825dba6397d51b450dffa
+    container_name: iusentra-portainer
+    restart: unless-stopped
+    command: ["--http-enabled", "--admin-password-file", "/run/secrets/admin-password", "-H", "unix:///var/run/docker.sock"]
+    ports:
+      - "127.0.0.1:19000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/iusentra/portainer/data:/data
+      - /opt/iusentra/portainer/admin-password:/run/secrets/admin-password:ro
+      - /opt/iusentra/.env.hetzner:/opt/iusentra/.env.hetzner:ro

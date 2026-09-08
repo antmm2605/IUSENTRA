@@ -9,6 +9,11 @@ REPO_URL="${REPO_URL:-https://github.com/antmm2605/IUSENTRA.git}"
 BRANCH="${BRANCH:-Codex/legal-electronic-filing-kIxcV}"
 ENV_FILE="${IUSENTRA_ENV_FILE:-${IUSENTRA_HOME}/.env.hetzner}"
 COMPOSE_FILE="deploy/hetzner/docker-compose.hetzner.yml"
+EXPECTED_SHA="${EXPECTED_SHA:-}"
+if [ -n "$EXPECTED_SHA" ] && ! [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "EXPECTED_SHA non valido" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # 1. Verifica file ambiente
@@ -54,13 +59,17 @@ if [ ! -d "$REPO_DIR/.git" ]; then
 else
   git -C "$REPO_DIR" fetch origin "$BRANCH"
   git -C "$REPO_DIR" checkout "$BRANCH"
-  git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
+  git -C "$REPO_DIR" reset --hard "${EXPECTED_SHA:-origin/$BRANCH}"
 fi
 
 DEPLOYED_COMMIT="$(git -C "$REPO_DIR" rev-parse --short HEAD)"
 echo "Branch: $BRANCH — commit: $DEPLOYED_COMMIT"
 
 cd "$REPO_DIR"
+if [ -n "$EXPECTED_SHA" ] && [ "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]; then
+  echo "Commit diverso da quello verificato dalla CI" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # 4. Profilo Docker Compose
@@ -190,14 +199,21 @@ if profile_enabled audit-worm; then
 fi
 CORE_BOOT_SERVICES+=(app)
 
-cleanup_compose_conflict_containers
-compose_up_with_cleanup -d --build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
+if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
+  # Build once; app and workers use the same immutable release image.
+  RELEASE_SHA="$(git rev-parse HEAD)"
+  docker build --label "org.opencontainers.image.revision=${RELEASE_SHA}" -t "iusentra-app:${RELEASE_SHA}" -f Dockerfile .
+  python3 deploy/hetzner/portainer_deploy.py
+else
+  cleanup_compose_conflict_containers
+  compose_up_with_cleanup -d --build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 
-echo "Attendo health app..."
-wait_for_compose_services "${CORE_HEALTH_SERVICES[@]}"
+  echo "Attendo health app..."
+  wait_for_compose_services "${CORE_HEALTH_SERVICES[@]}"
 
-cleanup_compose_conflict_containers
-compose_up_with_cleanup -d --build --remove-orphans
+  cleanup_compose_conflict_containers
+  compose_up_with_cleanup -d --build --remove-orphans
+fi
 
 # ---------------------------------------------------------------------------
 # 6. Pull modello Ollama (solo se il sidecar è attivo)

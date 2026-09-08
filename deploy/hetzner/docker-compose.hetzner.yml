@@ -170,6 +170,7 @@ services:
 
   app:
     container_name: iusentra-app
+    image: ${IUSENTRA_APP_IMAGE:-iusentra-app}
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -198,6 +199,7 @@ services:
 
   # ── Core: Worker scheduler ───────────────────────────────────────────────────
   scheduler-worker:
+    image: ${IUSENTRA_APP_IMAGE:-iusentra-scheduler-worker}
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -226,6 +228,7 @@ services:
 
   # ── Core: Worker OCR ─────────────────────────────────────────────────────────
   ocr-worker:
+    image: ${IUSENTRA_APP_IMAGE:-iusentra-ocr-worker}
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -258,7 +261,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${IUSENTRA_CADDYFILE:-./Caddyfile}:/etc/caddy/Caddyfile:ro
       - ${IUSENTRA_CADDY_DATA_DIR:-/opt/iusentra/caddy_data}:/data
       - ${IUSENTRA_CADDY_CONFIG_DIR:-/opt/iusentra/caddy_config}:/config
       - /var/log/iusentra:/var/log/iusentra
@@ -339,7 +342,7 @@ services:
     image: prom/prometheus:latest
     restart: unless-stopped
     volumes:
-      - ../../prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${IUSENTRA_PROMETHEUS_CONFIG:-../../prometheus.yml}:/etc/prometheus/prometheus.yml:ro
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/prometheus:/prometheus
     depends_on:
       app:
@@ -353,6 +356,6 @@ services:
       - "127.0.0.1:3000:3000"
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/grafana:/var/lib/grafana
-      - ../../monitoring:/etc/grafana/provisioning/dashboards:ro
+      - ${IUSENTRA_MONITORING_CONFIG:-../../monitoring}:/etc/grafana/provisioning/dashboards:ro
     depends_on:
       - prometheus

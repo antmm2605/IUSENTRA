@@ -252,3 +252,7 @@ Il backup completo (`backup.sh`) include `/opt/iusentra/data/legal_intelligence/
 - Local Deep Research non e' attivo nel deploy standard. Se lo studio decide di abilitarlo, usare `docker-compose.ldr.yml` come overlay solo con `IUSENTRA_DATA_DIR=/opt/iusentra/data`, bind LDR su `127.0.0.1` o dietro proxy autenticato, e mantenere fascicoli/dati cliente nel retrieval tenant-aware di Lex.
 - Il Local Signer resta sul PC dell'avvocato e dialoga con `127.0.0.1`; non va spostato nel cloud.
 - Gli artefatti PST/PDP/PAT runtime restano sotto `/opt/iusentra/data`, mai nel path del repository.
+
+## Gestione Portainer
+
+Procedura, stato e architettura: [PORTAINER.md](PORTAINER.md).

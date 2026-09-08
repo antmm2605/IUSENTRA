@@ -60,6 +60,12 @@ def main():
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
     if not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise RuntimeError("Commit non valido")
+    reference = f"refs/tags/iusentra-release-{sha}"
+    remote_ref = subprocess.check_output(
+        ["git", "ls-remote", REPOSITORY, reference], text=True
+    ).split()
+    if not remote_ref or remote_ref[0] != sha:
+        raise RuntimeError("Tag di release verificata mancante o non coerente")
     expected_image = json.loads(subprocess.check_output(
         ["docker", "image", "inspect", f"iusentra-app:{sha}"], text=True
     ))[0]
@@ -79,7 +85,7 @@ def main():
               if s["Name"] == "iusentra" and s["EndpointId"] == endpoint]
     if len(stacks) > 1:
         raise RuntimeError("Stack IUSENTRA duplicato")
-    payload = {"RepositoryReferenceName": sha, "Env": env}
+    payload = {"RepositoryReferenceName": reference, "Env": env}
     if stacks:
         stack = stacks[0]
         if (stack.get("GitConfig") or {}).get("URL") != REPOSITORY:

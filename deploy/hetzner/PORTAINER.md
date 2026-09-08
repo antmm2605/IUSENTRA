@@ -28,7 +28,7 @@ conferisce privilegi amministrativi: l'accesso resta riservato al proprietario.
 GitHub esegue i gate e il backup già previsti. `deploy.sh` riceve `EXPECTED_SHA`,
 sincronizza quel commit, costruisce `iusentra-app:<SHA>` e, se l'ambiente server
 contiene `IUSENTRA_DEPLOY_DRIVER=portainer`, richiama `portainer_deploy.py`.
-Portainer legge il Compose direttamente dal repository pubblico, fissato allo
+Portainer legge il Compose direttamente dal repository pubblico, fissato al tag immutabile `iusentra-release-<SHA>` creato dopo i gate, sullo
 stesso SHA, e avvia lo stack con la stessa immagine per app e worker.
 Non sono attivi polling o webhook pubblici che possano anticipare la CI.
 Un errore Portainer interrompe il deploy senza avviare un secondo deploy Compose.
@@ -71,3 +71,7 @@ Verifiche tecniche: 13 test Portainer/packaging passati, 6 contratti CI passati,
 Ruff passato; Compose candidato validato sul server con ambiente reale senza
 stampare segreti. Packaging inizialmente disallineato su frontend/OpenAPI,
 poi riallineato alla versione 2.280.2. Build locale senza cache in corso.
+
+Verifica sorgenti Portainer: il resolver richiede un riferimento Git nominato,
+non uno SHA isolato. Il deploy usa quindi un tag leggero univoco per commit,
+creato dalla CI dopo i gate e controllato prima della chiamata Portainer.

@@ -50,6 +50,8 @@ env:
 jobs:
   deploy:
     name: Deploy su Hetzner CPX42
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -88,6 +90,20 @@ jobs:
             --poll-seconds 30 \
             --report-md artifacts/ci/deploy-required-gates.md \
             --report-json artifacts/ci/deploy-required-gates.json
+
+      - name: Registra riferimento immutabile per Portainer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="iusentra-release-${GITHUB_SHA}"
+          existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${tag}" --jq '.[].object.sha')
+          if [ -n "$existing" ]; then
+            test "$existing" = "$GITHUB_SHA"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/${tag}" -f "sha=${GITHUB_SHA}" > /dev/null
+          fi
 
       - name: Upload report CI pre-deploy
         if: always()

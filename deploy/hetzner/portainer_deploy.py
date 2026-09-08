@@ -56,6 +56,27 @@ def request(path, token=None, payload=None, method=None):
         raise RuntimeError(f"Portainer {path}: HTTP {error.code}") from None
 
 
+def verify_release_containers(expected_image):
+    """Verify the immutable release and return whether all app services are ready."""
+    healthy = True
+    for service in ("app", "scheduler-worker", "ocr-worker"):
+        ids = subprocess.check_output([
+            "docker", "ps", "-q", "--filter", "label=com.docker.compose.project=iusentra",
+            "--filter", f"label=com.docker.compose.service={service}",
+        ], text=True).split()
+        if len(ids) != 1:
+            raise RuntimeError(f"Numero container inatteso: {service}")
+        container = json.loads(subprocess.check_output(
+            ["docker", "inspect", ids[0]], text=True
+        ))[0]
+        if container["Image"] != expected_image["Id"]:
+            raise RuntimeError(f"Immagine non aggiornata: {service}")
+        if service == "app" and container["Name"] != "/iusentra-app":
+            raise RuntimeError("Nome container applicativo non canonico")
+        healthy = healthy and container.get("State", {}).get("Health", {}).get("Status") == "healthy"
+    return healthy
+
+
 def main():
     repo = Path(__file__).resolve().parents[2]
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
@@ -89,10 +110,22 @@ def main():
     payload = {"RepositoryReferenceName": reference, "Env": env}
     if stacks:
         stack = stacks[0]
-        if (stack.get("GitConfig") or {}).get("URL") != REPOSITORY:
+        # Portainer normalizes GitHub clone URLs by removing the .git suffix.
+        if (stack.get("GitConfig") or {}).get("URL") not in {
+            REPOSITORY, REPOSITORY.removesuffix(".git"),
+        }:
             raise RuntimeError("Lo stack esistente non usa il repository atteso")
         if stack.get("AdditionalFiles") != [RELEASE_COMPOSE]:
             raise RuntimeError("Lo stack non usa il file Compose delle immagini verificate")
+        if (stack.get("Status") == 1 and stack["GitConfig"].get("ConfigHash") == sha
+                and stack.get("Env") == env):
+            try:
+                ready = verify_release_containers(expected_image)
+            except RuntimeError:
+                ready = False
+            if ready:
+                print(f"Portainer: stack=iusentra id={stack['Id']} commit={sha} già healthy")
+                return
         payload.update({"Prune": False, "RepullImageAndRedeploy": False})
         result = request(f"/stacks/{stack['Id']}/git/redeploy?endpointId={endpoint}",
                          token, payload, "PUT")
@@ -112,20 +145,7 @@ def main():
             actual = (state.get("GitConfig") or {}).get("ConfigHash")
             if actual != sha:
                 raise RuntimeError("Commit Portainer diverso dal commit richiesto")
-            for service in ("app", "scheduler-worker", "ocr-worker"):
-                ids = subprocess.check_output([
-                    "docker", "ps", "-q", "--filter", "label=com.docker.compose.project=iusentra",
-                    "--filter", f"label=com.docker.compose.service={service}",
-                ], text=True).split()
-                if len(ids) != 1:
-                    raise RuntimeError(f"Numero container inatteso: {service}")
-                container = json.loads(subprocess.check_output(
-                    ["docker", "inspect", ids[0]], text=True
-                ))[0]
-                if container["Image"] != expected_image["Id"]:
-                    raise RuntimeError(f"Immagine non aggiornata: {service}")
-                if service == "app" and container["Name"] != "/iusentra-app":
-                    raise RuntimeError("Nome container applicativo non canonico")
+            verify_release_containers(expected_image)
             print(f"Portainer: stack=iusentra id={stack_id} commit={sha}")
             return
         if state.get("Status") != 3:

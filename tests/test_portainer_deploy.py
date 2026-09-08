@@ -1,6 +1,7 @@
 """Fast release guards for the Portainer handoff (no production mutations)."""
 
 import importlib.util
+import json
 from pathlib import Path, PurePosixPath
 import urllib.error
 
@@ -40,3 +41,63 @@ def test_http_failure_does_not_expose_configuration(monkeypatch):
         deploy.request("/stacks", "private-token", {"Env": "secret"})
     assert str(error.value) == "Portainer /stacks: HTTP 500"
     assert "secret" not in str(error.value)
+
+
+@pytest.mark.parametrize("repository,accepted", [
+    (deploy.REPOSITORY, True),
+    (deploy.REPOSITORY.removesuffix(".git"), True),
+    (deploy.REPOSITORY + ".untrusted", False),
+    ("https://example.com/antmm2605/IUSENTRA", False),
+])
+def test_redeploy_accepts_only_the_canonical_repository(monkeypatch, repository, accepted):
+    sha = "a" * 40
+    real_read = deploy.Path.read_text
+    monkeypatch.setattr(deploy.Path, "read_text", lambda p, *a, **kw:
+                        "test-credential" if p.name == "admin-password" else real_read(p, *a, **kw))
+
+    def output(args, **kwargs):
+        if args[:2] == ["git", "rev-parse"]:
+            return sha
+        if args[:2] == ["git", "ls-remote"]:
+            return sha + "\trefs/tags/iusentra-release-" + sha
+        assert args[:3] == ["docker", "image", "inspect"]
+        return json.dumps([{"Id": "image", "Config": {"Labels": {"org.opencontainers.image.revision": sha}}}])
+
+    class RedeployRequested(Exception):
+        pass
+
+    def request(path, token=None, payload=None, method=None):
+        if path == "/auth":
+            return {"jwt": "test-token"}
+        if path == "/endpoints":
+            return [{"Id": 1, "URL": "unix:///var/run/docker.sock", "Type": 1}]
+        if path == "/stacks":
+            return [{"Id": 1, "Name": "iusentra", "EndpointId": 1,
+                     "GitConfig": {"URL": repository}, "AdditionalFiles": [deploy.RELEASE_COMPOSE]}]
+        assert path == "/stacks/1/git/redeploy?endpointId=1"
+        assert method == "PUT"
+        assert payload["RepositoryReferenceName"] == "refs/tags/iusentra-release-" + sha
+        assert payload["Prune"] is False
+        raise RedeployRequested
+
+    monkeypatch.setattr(deploy.subprocess, "check_output", output)
+    monkeypatch.setattr(deploy, "request", request)
+    if accepted:
+        with pytest.raises(RedeployRequested):
+            deploy.main()
+    else:
+        with pytest.raises(RuntimeError, match="repository atteso"):
+            deploy.main()
+
+
+@pytest.mark.parametrize("health,ready", [("healthy", True), ("starting", False), ("unhealthy", False)])
+def test_release_readiness_requires_healthy_workers(monkeypatch, health, ready):
+    def output(args, **kwargs):
+        if args[:2] == ["docker", "ps"]:
+            return args[-1].split("=")[-1]
+        service = args[-1]
+        return json.dumps([{"Name": "/iusentra-app" if service == "app" else service,
+                            "Image": "release", "State": {"Health": {"Status": health}}}])
+
+    monkeypatch.setattr(deploy.subprocess, "check_output", output)
+    assert deploy.verify_release_containers({"Id": "release"}) is ready

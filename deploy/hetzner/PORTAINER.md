@@ -53,8 +53,22 @@ Non premere rimozione stack/volumi come procedura di aggiornamento.
 
 ## Stato della consegna
 
-Installazione e accesso al pannello verificati nel browser reale. Collegamento Git,
-presa in carico dello stack e prova di aggiornamento ancora da verificare.
+Installazione e accesso al pannello verificati nel browser reale. Lo stack Git
+`iusentra`, ID 1, è stato creato dalla CI sul commit `af77c602d`, con 83/83
+gate richiesti superati e backup SQLite di entrambi gli studi verificato.
+Il pannello reale mostra `Managed by Git` e controllo `Total`; app, OCR,
+scheduler, Redis, PostgreSQL audit e MinIO risultano healthy. Caddy è attivo,
+`audit-worm-init` termina con codice 0 come previsto. HTTPS `/api/pronto`
+conferma 2.280.2. Il confronto prima/dopo ha verificato identità di mount,
+porte, restart policy e variabili applicative, con la sola aggiunta del driver.
+
+La prova di aggiornamento ha rilevato la normalizzazione Portainer dell'URL
+GitHub senza `.git`: il controllo ora accetta esclusivamente le due forme
+canoniche dello stesso repository. La prova reale di aggiornamento sullo stesso
+tag è poi riuscita. Una chiamata ripetuta con commit, ambiente e servizi già
+healthy termina senza ridistribuire, evitando riavvii per i push gemelli.
+Le verifiche operative successive sono registrate sul server in
+`/opt/iusentra/portainer/deployment-verification.json` e `README.md`.
 Test mirati: isolamento variabili, rifiuto valori multilinea, errori senza segreti.
 Il primo test locale ha evidenziato il separatore Windows del percorso nella
 fixture; corretto usando un percorso POSIX esplicito. Nessun impatto runtime.

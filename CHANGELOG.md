@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.283.0 - 10/09/2026
+
+- Fascicolo › menu “Azioni fascicolo” (tasto destro): nuovo gruppo “Mediazione e CTU”. “Mediazione” apre e carica la sezione del procedimento di mediazione (organismo, moduli, parti, incontri ed esito); “CTU e perizie” apre la sezione degli incarichi CTU con consulenti di parte e termini. Entrambe le voci portano direttamente alla sezione e aggiornano l'ancora dell'indirizzo (#mediazione, #ctu). Verificato in Chromium headless: menu, apertura delle due sezioni e caricamento della mediazione.
+
 ## 2.282.1 - 10/09/2026
 
 - Acquisizione PST, ripresa dei documenti non ricevuti: con più documenti da riprendere i messaggi indicano quanti sono selezionati (“sono selezionati soltanto i N documenti…”) invece di parlare sempre di un solo documento; con un documento resta il singolare. Allineato il codice al test di contratto aggiornato con i batch PST, rimasto rosso dal 28/08/2026.

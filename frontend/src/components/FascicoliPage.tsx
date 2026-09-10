@@ -35,6 +35,7 @@ import {
   FolderPlus,
   Gauge,
   Gavel,
+  Handshake,
   Landmark,
   ListChecks,
   List,
@@ -42,6 +43,7 @@ import {
   Mail,
   MapPin,
   Maximize2,
+  Microscope,
   Minimize2,
   PackageCheck,
   PencilLine,
@@ -5959,6 +5961,7 @@ function FascicoloContextMenu({
   onContributoUnificato,
   onPagoPa,
   onEconomicControl,
+  onMediazione,
   onSection,
 }:{
   position: FascicoloContextMenuState | null
@@ -5980,6 +5983,7 @@ function FascicoloContextMenu({
   onContributoUnificato: () => void
   onPagoPa: () => void
   onEconomicControl: () => void
+  onMediazione: () => void
   onSection: (sectionId: string, lazySection?: FascicoloDetailSection) => void
 }) {
   const menuRef = useRef<HTMLElement | null>(null)
@@ -6016,6 +6020,12 @@ function FascicoloContextMenu({
         <FascicoloContextMenuItem primary icon={<Send size={16}/>} label="Deposito telematico" note="Scegli documenti, firma e prepara la busta" onSelect={onDeposit}/>
         <FascicoloContextMenuItem icon={<Bell size={16}/>} label="Notifica" note="Prepara relata, allegati e prova" onSelect={onNotification}/>
         <FascicoloContextMenuItem icon={<FolderSearch2 size={16}/>} label="Visualizza fascicolo d’ufficio" note="Consultazione diretta e documenti disponibili" onSelect={onOfficePortal}/>
+      </div>
+
+      <div className="iu-fas-context-menu__group" aria-label="Mediazione e CTU">
+        <span className="iu-fas-context-menu__group-title">Mediazione e CTU</span>
+        <FascicoloContextMenuItem icon={<Handshake size={16}/>} label="Mediazione" note="Organismo, moduli, parti, incontri ed esito" onSelect={onMediazione}/>
+        <FascicoloContextMenuItem icon={<Microscope size={16}/>} label="CTU e perizie" note="Incarichi, consulenti di parte e termini" onSelect={() => onSection('ctu')}/>
       </div>
 
       <div className="iu-fas-context-menu__group" aria-label="Anagrafiche">
@@ -9848,6 +9858,10 @@ function DetailPage({ id }:{id:string}) {
           openPagoPaModal()
         }}
         onEconomicControl={openEconomicControlFromContext}
+        onMediazione={() => {
+          setMediazioneVisited(true)
+          openSectionFromContext('mediazione')
+        }}
         onSection={openSectionFromContext}
       />
       {documentFlowMode ? (

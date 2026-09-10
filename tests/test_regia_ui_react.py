@@ -869,6 +869,11 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Nuovo pagamento PagoPA PST" in source
     assert "Nuova scadenza" in source
     assert "Nuovo appuntamento" in source
+    assert '<span className="iu-fas-context-menu__group-title">Mediazione e CTU</span>' in source
+    assert 'label="Mediazione" note="Organismo, moduli, parti, incontri ed esito" onSelect={onMediazione}' in source
+    assert 'label="CTU e perizie" note="Incarichi, consulenti di parte e termini" onSelect={() => onSection(\'ctu\')}' in source
+    assert "setMediazioneVisited(true)\n          openSectionFromContext('mediazione')" in source
+    assert '<DetailSection id="ctu"' in source and '<DetailSection id="mediazione"' in source
     assert "openDocumentFlow('deposito')" in source
     assert "openDocumentFlow('notifica')" in source
     assert "openOfficeDocumentsFromContext" in source

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.285.0 - 10/09/2026
+
+- Presidio PEC: quando la cancelleria comunica la modifica di un termine già fissato (per esempio «MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il 10/12/2026»), IUSENTRA sposta il termine esistente invece di crearne un secondo. Prima nasceva un termine doppio con titolo sporco, tipo udienza e ore 00:00, e quello superato restava aperto. Base normativa: art. 16 D.L. 179/2012; artt. 154 e 127-ter c.p.c.
+  - Individuazione fail-closed del termine da spostare: se non è certo quale sia, non si tocca nulla.
+  - Agenda allineata con promemoria «Rinviato» sulla data superata e il termine sulla nuova data; calendari sincronizzati; riga di audit `pec.deadline.term_modified`.
+  - Rileggere la fonte precedente o il provvedimento non ripristina né ricrea la data superata; rielaborando una PEC già lavorata il doppione viene annullato e la modifica applicata al termine originario.
+  - Notifica web push dedicata, con deduplica distinta per la nuova data.
+- `tests/test_pec_term_modification.py` (7 test) aggiunto agli shard eseguiti dalla CI: la funzione sposta scadenze processuali, quindi una regressione si vedrebbe sul calendario dello studio e non in un log.
+- Fasi rieseguite come le esegue la CI dopo la ridistribuzione: core-05 in 56-64 s per sotto-fase, core-02 in 34 s, core-04 in 10 s, core-06 in 2 s.
+
 ## 2.284.2 - 10/09/2026
 
 - `tests/test_react_shell.py` è ancorato alla fase 5 della CI invece di dipendere dalla propria posizione alfabetica: il file da solo supera i 4 minuti e una fase non suddivisa ha un limite di 5, quindi finire nella fase sbagliata significava mandare la CI in timeout. Misurato: bastavano **5 file aggiunti** a `CORE_TARGETS` per spostarlo nella fase 10, che non è suddivisa.

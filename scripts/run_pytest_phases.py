@@ -126,6 +126,10 @@ CORE_TARGETS: tuple[Path, ...] = (
     #  Presidia la Panoramica condivisa tra worker: senza questo file in CI la
     #  regressione di prestazioni tornerebbe invisibile ai required check.
     REPO_ROOT / "tests" / "test_react_dashboard_swr.py",
+    #  Modifica del termine comunicata dalla cancelleria: sposta una scadenza
+    #  processuale gia' fissata, quindi una regressione qui si vede sul
+    #  calendario dello studio e non in un log.
+    REPO_ROOT / "tests" / "test_pec_term_modification.py",
 )
 
 

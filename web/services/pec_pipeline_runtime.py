@@ -306,7 +306,17 @@ def build_pec_deadline_notification(
     else:
         href = "/scadenziario?vista=pec"
 
-    if remote_detected:
+    modification = deadline.get("term_modification") if isinstance(deadline.get("term_modification"), Mapping) else {}
+    if modification and not remote_detected:
+        old_label = format_date_it(str(modification.get("old_date") or "")) or str(modification.get("old_date") or "")
+        activity = str(modification.get("family_label") or "Termine").strip()
+        title = "Termine modificato dalla cancelleria"
+        body = (
+            f"{activity}: termine spostato dal {old_label} al {due_date_label}. "
+            "Scadenziario e Agenda aggiornati; alla data precedente resta il messaggio della modifica."
+        )
+        action_label = "Apri scadenza"
+    elif remote_detected:
         title = "Udienza audiovisiva registrata"
         if remote_url:
             remote_status = (
@@ -344,6 +354,8 @@ def build_pec_deadline_notification(
             "dueDate": due_date,
             "dueDateLabel": due_date_label,
             "alreadyExists": bool(deadline.get("already_exists")),
+            "termModified": bool(modification),
+            "previousDueDate": str(modification.get("old_date") or "") if modification else "",
             "origin": "auto" if automatic else "manual",
             "actionLabel": action_label,
             "remoteHearingDetected": remote_detected,
@@ -452,7 +464,14 @@ def notify_auto_deadlines_for_paths(
                     href=notification["href"],
                     source_type="pec_deadline",
                     source_id=source_id,
-                    dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
+                    # La modifica di un termine già notificato è un evento nuovo:
+                    # chiave distinta per data, così il push arriva anche se la
+                    # scadenza (stesso id) era già stata comunicata.
+                    dedupe_key=(
+                        f"PEC_AUDIT:{source_id}:deadline:modifica:{deadline.get('due_date')}"
+                        if isinstance(deadline.get("term_modification"), dict)
+                        else f"PEC_AUDIT:{source_id}:deadline"
+                    ),
                     payload_json=notification["payload_json"],
                     send_push=should_send_pec_deadline_web_push(notification),
                     redispatch_on_remote_hearing_enrichment=True,

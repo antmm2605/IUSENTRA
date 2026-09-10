@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 614.
+- File pytest censiti: 615.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 95 |
+| API contract | 96 |
 | Backend | 73 |
 | E2E | 9 |
 | Frontend static gate | 1 |
@@ -32,7 +32,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 49 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 45 |
-| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 64 |
+| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 65 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 191 |
@@ -109,6 +109,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_packaging_consistency.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_pdf_inspector_engine.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_pec_term_modification.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_performance_budget.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_transactional_outbox.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | Backend | tests/test_antiriciclaggio.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

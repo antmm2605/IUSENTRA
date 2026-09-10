@@ -523,7 +523,11 @@ def _notify_pec_deadline(message_id: str, result: dict[str, Any]) -> dict[str, A
                 href=notification["href"],
                 source_type="pec_deadline",
                 source_id=source_id,
-                dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
+                dedupe_key=(
+                    f"PEC_AUDIT:{source_id}:deadline:modifica:{deadline.get('due_date')}"
+                    if isinstance(deadline.get("term_modification"), dict)
+                    else f"PEC_AUDIT:{source_id}:deadline"
+                ),
                 payload_json=notification["payload_json"],
                 send_push=should_send_pec_deadline_web_push(notification),
                 redispatch_on_remote_hearing_enrichment=True,

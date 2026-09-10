@@ -40,6 +40,18 @@ from pct.scadenze_proposte_pec import (
 )
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
+from pct.pec_term_modification import (
+    COMMUNICATION_LINE_PREFIX as TERM_MODIFICATION_COMMUNICATION_PREFIX,
+    HUMAN_LINE_PREFIX as TERM_MODIFICATION_HUMAN_PREFIX,
+    MODIFICATION_LINE_PREFIX as TERM_MODIFICATION_LINE_PREFIX,
+    activity_family,
+    date_label_it as term_date_label_it,
+    detect_term_modification,
+    find_deadline_to_modify,
+    find_superseding_modification,
+    modification_lines,
+    title_with_new_date,
+)
 from pct.pec_notification_presidio import (
     DocumentRole,
     NotificationPresidioRepository,
@@ -12456,6 +12468,29 @@ class PecAuditRepository:
                             linked_value = getattr(linked_deadline, key, "") or ""
                             if linked_value not in ("", "[]", None):
                                 remote_extra[key] = linked_value
+            modification_note_lines: list[str] = []
+            if deadline_id and self.scadenziario_db_path:
+                try:
+                    modified_deadline = self._scadenziario_manager().get(deadline_id)
+                except Exception:
+                    modified_deadline = None
+                modifications = modification_lines(modified_deadline) if modified_deadline is not None else []
+                if modifications and modifications[-1]["message_id"] != message_id:
+                    # Il termine è stato spostato da una comunicazione di cancelleria
+                    # successiva: una rilettura della fonte precedente non deve
+                    # riportare in agenda la data superata.
+                    return {
+                        "ok": True,
+                        "message": "Agenda non modificata: il termine è stato modificato da una comunicazione successiva.",
+                        "agenda_id": clean_text(getattr(modified_deadline, "id_appuntamento", "") or "", 120),
+                        "agenda_outcome": "skipped_term_modified",
+                    }
+                if modifications:
+                    modification_note_lines = [
+                        line.strip()
+                        for line in str(getattr(modified_deadline, "note", "") or "").splitlines()
+                        if line.strip().startswith((TERM_MODIFICATION_HUMAN_PREFIX, TERM_MODIFICATION_COMMUNICATION_PREFIX))
+                    ]
             remote_lines = _remote_hearing_note_lines(report, proposal, extra=remote_extra)
             profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
             remote_hearing_payload = report.get("remote_hearing") if isinstance(report.get("remote_hearing"), dict) else {}
@@ -12496,6 +12531,7 @@ class PecAuditRepository:
                 part
                 for part in (
                     f"PEC_AUDIT:{message_id}",
+                    *modification_note_lines,
                     operational_message,
                     clean_text(proposal.get("reason")) or "Presidio operativo generato dalla PEC.",
                     *remote_lines,
@@ -12665,6 +12701,9 @@ class PecAuditRepository:
             app_source = str(getattr(app, "external_source_url", "") or "")
             app_uid = str(getattr(app, "external_uid", "") or "")
             note_lines = {line.strip() for line in app_note.splitlines() if line.strip()}
+            if any(line.startswith(f"{TERM_MODIFICATION_LINE_PREFIX}|") for line in note_lines):
+                # Promemoria della data superata con il testo della modifica: resta in agenda.
+                continue
             same_marker = marker in note_lines or f"UID esterno: {event_uid}" in note_lines
             same_deadline = bool(deadline_id and f"Scadenza: {deadline_id}" in note_lines)
             same_source = bool(
@@ -12820,6 +12859,169 @@ class PecAuditRepository:
         if not text.startswith("pec_"):
             return ""
         return clean_text(text.split(":", 1)[0], 160)
+
+    def _apply_pec_term_modification(
+        self,
+        *,
+        manager: Any,
+        previous: Any,
+        modification: Any,
+        message_id: str,
+        source_message_id: str,
+        proposal: dict[str, Any],
+        report: dict[str, Any],
+        linked_fascicolo_id: str,
+        actor: str,
+        reconciliation: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Sposta il termine già presidiato alla data comunicata dalla cancelleria.
+
+        La scadenza resta una sola (stesso id, stesso storico): cambiano data,
+        titolo e descrizione e le note conservano data precedente e testo della
+        comunicazione. In agenda la data superata diventa un promemoria «rinviato»
+        con il messaggio della modifica e il termine compare alla nuova data.
+        """
+
+        from pct.agenda import StatoAppuntamento
+
+        deadline_id = clean_text(getattr(previous, "id", "") or "", 120)
+        old_date = str(getattr(previous, "data_scadenza", "") or "")[:10]
+        new_date = modification.new_date
+        new_label = term_date_label_it(new_date)
+        marker = f"PEC_AUDIT:{message_id}"
+        audit_line = modification.audit_line(old_date=old_date, message_id=message_id)
+        human = f"{TERM_MODIFICATION_HUMAN_PREFIX} {modification.human_summary(old_date)}"
+        communication = (
+            f"{TERM_MODIFICATION_COMMUNICATION_PREFIX} {modification.communication}" if modification.communication else ""
+        )
+        new_title = clean_text(
+            title_with_new_date(
+                str(getattr(previous, "titolo", "") or ""),
+                old_date=old_date,
+                new_date=new_date,
+                family_label=modification.family_label,
+            ),
+            120,
+        )
+        previous_note = str(getattr(previous, "note", "") or "").rstrip()
+        updates: dict[str, Any] = {
+            "data_scadenza": new_date,
+            "operational_due_at": new_date,
+            "titolo": new_title,
+            "descrizione": clean_text(
+                " ".join(part for part in (human, str(getattr(previous, "descrizione", "") or "")) if part),
+                1600,
+            ),
+            "note": "\n".join(part for part in (previous_note, marker, audit_line, human, communication) if part),
+            "stato": "APERTO",
+            "completata_il": "",
+        }
+        if clean_text(getattr(previous, "legal_due_at", "") or ""):
+            updates["legal_due_at"] = new_date
+        if clean_text(getattr(previous, "raw_due_at", "") or ""):
+            updates["raw_due_at"] = new_date
+        try:
+            item = manager.aggiorna(deadline_id, **updates)
+        except Exception as exc:
+            return {"ok": False, "message": f"Modifica del termine non registrata: {exc}", "reconciliation": reconciliation}
+
+        old_agenda_id = clean_text(getattr(previous, "id_appuntamento", "") or "", 120)
+        previous_agenda: dict[str, Any] = {"agenda_id": old_agenda_id, "updated": False}
+        if old_agenda_id and self.agenda_db_path:
+            try:
+                agenda = self._agenda_manager()
+                old_appointment = agenda.get(old_agenda_id)
+                if old_appointment is not None:
+                    agenda.modifica(
+                        old_agenda_id,
+                        titolo=clean_text(f"Termine modificato al {new_label} - {modification.family_label}", 120),
+                        stato=StatoAppuntamento.RINVIATO,
+                        note="\n".join(
+                            part
+                            for part in (
+                                audit_line,
+                                human,
+                                communication,
+                                f"Il termine è ora in agenda al {new_label}.",
+                                "",
+                                str(getattr(old_appointment, "note", "") or "").strip(),
+                            )
+                            if part is not None
+                        ).strip(),
+                    )
+                    previous_agenda["updated"] = True
+            except Exception as exc:
+                previous_agenda["error"] = clean_text(exc, 300)
+
+        agenda_result = self._sync_pec_deadline_to_agenda(
+            message_id=message_id,
+            source_message_id=source_message_id,
+            title=new_title,
+            target_date=new_date,
+            proposal={
+                **proposal,
+                "deadline_kind": "termine",
+                "event_time": modification.new_time,
+                "force_agenda_without_time": True,
+                "reason": human,
+            },
+            report=report,
+            linked_fascicolo_id=linked_fascicolo_id,
+            deadline_id=deadline_id,
+            actor=actor,
+        )
+        new_agenda_id = clean_text((agenda_result or {}).get("agenda_id") or "", 120)
+        if new_agenda_id and new_agenda_id != old_agenda_id:
+            try:
+                item = manager.aggiorna(deadline_id, id_appuntamento=new_agenda_id)
+            except Exception:
+                pass
+        calendar_sync: dict[str, Any] = {"deadline": self._push_local_calendar_item("scadenza", deadline_id)}
+        if previous_agenda.get("updated"):
+            calendar_sync["previous_agenda"] = self._push_local_calendar_item("agenda", old_agenda_id)
+        if new_agenda_id:
+            calendar_sync["agenda"] = self._push_local_calendar_item("agenda", new_agenda_id)
+        calendar_sync["ok"] = all(bool(value.get("ok", True)) for value in calendar_sync.values() if isinstance(value, dict))
+        term_modification = {
+            "deadline_id": deadline_id,
+            "old_date": old_date,
+            "new_date": new_date,
+            "family": modification.family,
+            "family_label": modification.family_label,
+            "event_date": modification.event_date,
+            "phrase": modification.phrase,
+            "previous_agenda_id": old_agenda_id,
+            "agenda_id": new_agenda_id,
+            "summary": human,
+        }
+        try:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.deadline.term_modified",
+                    resource_type="pec_message",
+                    resource_id=message_id,
+                    payload={**term_modification, "proposal": proposal},
+                    actor=actor,
+                )
+        except Exception:
+            pass
+        return {
+            "ok": True,
+            "message": f"Termine modificato dalla cancelleria: dal {term_date_label_it(old_date)} al {new_label}.",
+            "deadline_id": deadline_id,
+            "due_date": new_date,
+            "agenda": agenda_result,
+            "previous_agenda": previous_agenda,
+            "calendar_sync": calendar_sync,
+            "already_exists": False,
+            "term_modification": term_modification,
+            "proposal": proposal,
+            "remote_hearing": {},
+            "reconciliation": reconciliation,
+            "scheduled_message_id": message_id,
+            "source_message_id": source_message_id,
+        }
 
     def _reconcile_automatic_pec_deadlines(
         self,
@@ -14156,14 +14358,212 @@ class PecAuditRepository:
                 if migration_candidates:
                     migration_candidates.sort(key=lambda entry: entry[0], reverse=True)
                     existing = migration_candidates[0][1]
+            linked_fascicolo_id = str(message.get("linked_fascicolo_id") or "")
+            term_modification = None
+            if existing is None and linked_fascicolo_id and not due_date:
+                term_modification = detect_term_modification(parsed, report)
+                if term_modification is not None and term_modification.new_date != target_date[:10]:
+                    term_modification = None
+                if term_modification is not None:
+                    previous = find_deadline_to_modify(
+                        existing_items,
+                        fascicolo_id=linked_fascicolo_id,
+                        modification=term_modification,
+                        message_id=message_id,
+                    )
+                    if previous is not None:
+                        return self._apply_pec_term_modification(
+                            manager=manager,
+                            previous=previous,
+                            modification=term_modification,
+                            message_id=message_id,
+                            source_message_id=_source_message_id or message_id,
+                            proposal=proposal,
+                            report=report,
+                            linked_fascicolo_id=linked_fascicolo_id,
+                            actor=actor,
+                            reconciliation=reconciliation,
+                        )
+                    # Termine precedente non individuabile con certezza: si crea il
+                    # nuovo termine dichiarandone l'origine, senza titolo generico.
+                    rg_match = re.search(r"\b\d{1,7}\s*/\s*\d{4}\b", str(profile.get("numero_rg") or ""))
+                    profile_rg = re.sub(r"\s+", "", rg_match.group(0)) if rg_match else ""
+                    title = clean_text(
+                        " - ".join(
+                            part
+                            for part in (
+                                term_modification.family_label,
+                                term_date_label_it(term_modification.new_date),
+                                f"RG {profile_rg}" if profile_rg else "",
+                                "termine modificato",
+                            )
+                            if part
+                        ),
+                        120,
+                    )
+                    human = f"{TERM_MODIFICATION_HUMAN_PREFIX} {term_modification.human_summary()}"
+                    communication = (
+                        f"{TERM_MODIFICATION_COMMUNICATION_PREFIX} {term_modification.communication}"
+                        if term_modification.communication
+                        else ""
+                    )
+                    proposal = {
+                        **proposal,
+                        "deadline_kind": "termine",
+                        "event_time": term_modification.new_time,
+                        "force_agenda_without_time": True,
+                        "reason": clean_text(" ".join(part for part in (human, communication) if part), 1200),
+                    }
+                    report["deadline_proposal"] = proposal
+                    remote_note_lines = [
+                        term_modification.audit_line(old_date="", message_id=message_id),
+                        human,
+                        *([communication] if communication else []),
+                    ]
+                    deadline_description = clean_text(f"{human}\n{deadline_description}", 1600)
+            if existing is None and linked_fascicolo_id and term_modification is None:
+                superseded = find_superseding_modification(
+                    existing_items,
+                    fascicolo_id=linked_fascicolo_id,
+                    target_date=target_date,
+                    family=activity_family(title, proposal.get("reason")),
+                )
+                if superseded:
+                    try:
+                        with self.connect() as conn:
+                            self.append_audit(
+                                conn,
+                                action="pec.deadline.skipped_modified_term",
+                                resource_type="pec_message",
+                                resource_id=message_id,
+                                payload={"due_date": target_date, "superseded_by": superseded},
+                                actor=actor,
+                            )
+                    except Exception:
+                        pass
+                    return {
+                        "ok": False,
+                        "message": (
+                            "Termine non ricreato: la cancelleria lo ha modificato dal "
+                            f"{term_date_label_it(superseded['old_date'])} al {term_date_label_it(superseded['new_date'])}."
+                        ),
+                        "due_date": target_date,
+                        "superseded_by_modification": superseded,
+                        "deadline_id": "",
+                        "proposal": proposal,
+                        "reconciliation": reconciliation,
+                    }
+            if existing is not None and linked_fascicolo_id and not due_date and not modification_lines(existing):
+                # PEC di modifica già elaborata prima di questa regola: il presidio
+                # aveva creato un secondo termine alla nuova data lasciando aperto
+                # quello superato. Alla rielaborazione il doppione viene annullato
+                # (senza più il marker della PEC) e la modifica si applica al termine
+                # originario, che resta l'unico.
+                late_modification = detect_term_modification(parsed, report)
+                if (
+                    late_modification is not None
+                    and late_modification.new_date == target_date[:10]
+                    and str(getattr(existing, "data_scadenza", "") or "")[:10] == late_modification.new_date
+                ):
+                    previous = find_deadline_to_modify(
+                        existing_items,
+                        fascicolo_id=linked_fascicolo_id,
+                        modification=late_modification,
+                        message_id=message_id,
+                    )
+                    if previous is not None and str(getattr(previous, "id", "")) != str(getattr(existing, "id", "")):
+                        duplicate_id = str(getattr(existing, "id", "") or "")
+                        duplicate_note = "\n".join(
+                            f"PEC_AUDIT_SOSTITUITO:{message_id}" if line.strip() == marker else line
+                            for line in str(getattr(existing, "note", "") or "").splitlines()
+                        )
+                        try:
+                            manager.aggiorna(
+                                duplicate_id,
+                                stato="ANNULLATO",
+                                completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                                id_appuntamento="",
+                                note="\n".join(
+                                    part
+                                    for part in (
+                                        duplicate_note.rstrip(),
+                                        "Doppione annullato: la modifica comunicata dalla cancelleria è stata applicata "
+                                        f"al termine già presidiato «{clean_text(getattr(previous, 'titolo', ''), 120)}».",
+                                    )
+                                    if part
+                                ),
+                            )
+                            self._push_local_calendar_item("scadenza", duplicate_id)
+                        except Exception:
+                            pass
+                        applied = self._apply_pec_term_modification(
+                            manager=manager,
+                            previous=previous,
+                            modification=late_modification,
+                            message_id=message_id,
+                            source_message_id=_source_message_id or message_id,
+                            proposal=proposal,
+                            report=report,
+                            linked_fascicolo_id=linked_fascicolo_id,
+                            actor=actor,
+                            reconciliation=reconciliation,
+                        )
+                        applied["duplicate_cancelled"] = duplicate_id
+                        return applied
             if existing is not None:
+                existing_modifications = modification_lines(existing)
+                if existing_modifications and existing_modifications[-1]["message_id"] != message_id:
+                    return {
+                        "ok": True,
+                        "message": (
+                            "Termine già modificato da una comunicazione di cancelleria successiva: "
+                            f"resta al {term_date_label_it(str(getattr(existing, 'data_scadenza', '') or ''))}."
+                        ),
+                        "deadline_id": getattr(existing, "id", ""),
+                        "due_date": getattr(existing, "data_scadenza", target_date),
+                        "agenda": {
+                            "ok": True,
+                            "agenda_id": clean_text(getattr(existing, "id_appuntamento", "") or "", 120),
+                            "agenda_outcome": "skipped_term_modified",
+                        },
+                        "calendar_sync": {"ok": True, "skipped": True},
+                        "already_exists": True,
+                        "term_modified_later": True,
+                        "proposal": proposal,
+                        "reconciliation": reconciliation,
+                        "scheduled_message_id": message_id,
+                        "source_message_id": _source_message_id or message_id,
+                    }
+                if existing_modifications:
+                    rerun_modification = detect_term_modification(parsed, report)
+                    human_lines = [
+                        line.strip()
+                        for line in str(getattr(existing, "note", "") or "").splitlines()
+                        if line.strip().startswith(TERM_MODIFICATION_HUMAN_PREFIX)
+                    ]
+                    proposal = {
+                        **proposal,
+                        "deadline_kind": "termine",
+                        "event_time": rerun_modification.new_time if rerun_modification else "",
+                        "force_agenda_without_time": True,
+                        "reason": human_lines[-1] if human_lines else clean_text(proposal.get("reason")),
+                    }
                 updates = {
                     **_deadline_updates_for_existing(existing, proposal, title=title, actor=actor),
                     **_remote_hearing_updates_for_existing(existing, remote_extra, remote_note_lines),
                 }
+                if existing_modifications:
+                    # Il termine spostato conserva attività, tipo e titolo originari:
+                    # la comunicazione di modifica non è un'udienza da remoto.
+                    updates = {
+                        key: value
+                        for key, value in updates.items()
+                        if key not in {"titolo", "tipo", "note"}
+                        and not key.startswith(("hearing_", "remote_hearing_"))
+                    }
                 if "PEC_AUDIT:" in str(getattr(existing, "note", "") or ""):
                     authoritative_updates = {
-                        "titolo": title,
+                        "titolo": str(getattr(existing, "titolo", "") or title) if existing_modifications else title,
                         "data_scadenza": target_date[:10],
                         "operational_due_at": target_date,
                         "perentorio": bool(legal_fields["perentorio"]),

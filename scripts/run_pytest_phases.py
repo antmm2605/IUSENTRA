@@ -28,9 +28,10 @@ T = TypeVar("T")
 LEX_CROSS_SUITE: tuple[Path, ...] = tuple(
     sorted((REPO_ROOT / "tests").glob("test_lex_*.py"))
 )
+#  Numero di fasi del gate "Pytest core": deve coincidere con
+#  --core-total-shards nella matrice di .github/workflows/ci.yml.
+CORE_CI_TOTAL_SHARDS = 10
 CORE_CI_SUBSHARDS: dict[int, int] = {
-    #  Lo shard che ospita test_react_shell.py va suddiviso per item: da solo
-    #  il file supera i 4 minuti e lo shard intero ha un limite di 5.
     4: 4,
     5: 6,
     6: 16,
@@ -39,6 +40,25 @@ CORE_CI_SUBSHARDS: dict[int, int] = {
     9: 6,
 }
 CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
+
+#  File ancorati a una fase precisa. Senza ancoraggio la fase dipende dalla
+#  posizione alfabetica del file dentro CORE_TARGETS, quindi ogni file aggiunto
+#  alla lista sposta silenziosamente i vicini in un'altra fase.
+#  La chiave e' il percorso, il valore il numero di fase come lo scrivono
+#  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
+CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_observability_runtime.py": 7,
+    "tests/test_ocr_worker.py": 8,
+    #  Da solo supera i 4 minuti e la fase intera ha un limite di 5: deve
+    #  restare in una fase suddivisa per item, altrimenti va in timeout.
+    "tests/test_react_shell.py": 5,
+}
+
+#  File che non reggono una fase non suddivisa: se perdesse la suddivisione,
+#  la CI andrebbe in timeout senza che il motivo sia leggibile dal log.
+CORE_CI_REQUIRE_ITEM_SPLIT: frozenset[str] = frozenset(
+    {"tests/test_react_shell.py"}
+)
 CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     "coverage-critical": (
         REPO_ROOT / "lex" / "tests",
@@ -298,19 +318,55 @@ def discover_suite_test_files(suite_name: str) -> list[Path]:
     return sorted(deduped, key=rel)
 
 
-def split_core_shards(items: list[T], total_shards: int) -> list[list[T]]:
+def validate_core_pinning() -> None:
+    """Verifica che l'ancoraggio delle fasi sia coerente con la matrice CI.
+
+    Fallisce subito e con un messaggio esplicito, invece di lasciare che la CI
+    vada in timeout su una fase troppo pesante.
+    """
+
+    for target, phase in sorted(CORE_CI_PINNED_PHASES.items()):
+        if not 1 <= phase <= CORE_CI_TOTAL_SHARDS:
+            raise SystemExit(
+                f"{target} e' ancorato alla fase {phase}, fuori dalle "
+                f"{CORE_CI_TOTAL_SHARDS} fasi del gate core."
+            )
+        if target in CORE_CI_REQUIRE_ITEM_SPLIT and phase not in CORE_CI_SUBSHARDS:
+            raise SystemExit(
+                f"{target} deve stare in una fase suddivisa per item, ma la "
+                f"fase {phase} non compare in CORE_CI_SUBSHARDS: aggiungila "
+                "li' e allinea la matrice di .github/workflows/ci.yml."
+            )
+
+
+def split_core_shards(
+    items: list[T],
+    total_shards: int,
+    *,
+    pin_phases: bool = False,
+) -> list[list[T]]:
+    """Distribuisce gli item sulle fasi.
+
+    Con ``pin_phases`` i file elencati in CORE_CI_PINNED_PHASES vanno nella
+    fase dichiarata invece che in quella dettata dall'ordine alfabetico. Si usa
+    solo per la divisione in fasi del gate core: la suddivisione interna di una
+    fase e quella delle suite hanno una numerazione propria, dove quelle fasi
+    non vorrebbero dire nulla.
+    """
+
     if total_shards < 1:
         raise SystemExit("--core-total-shards deve essere almeno 1")
 
+    pinning = pin_phases and total_shards == CORE_CI_TOTAL_SHARDS
+    if pinning:
+        validate_core_pinning()
+
     shards: list[list[T]] = [[] for _ in range(total_shards)]
     for index, item in enumerate(items):
-        if total_shards == 10 and isinstance(item, Path):
-            item_rel = rel(item)
-            if item_rel == "tests/test_observability_runtime.py":
-                shards[6].append(item)
-                continue
-            if item_rel == "tests/test_ocr_worker.py":
-                shards[7].append(item)
+        if pinning and isinstance(item, Path):
+            phase = CORE_CI_PINNED_PHASES.get(rel(item))
+            if phase is not None:
+                shards[phase - 1].append(item)
                 continue
         shards[index % total_shards].append(item)
     return shards
@@ -432,7 +488,7 @@ def _target_label(target: Path | str) -> str:
 
 def build_core_summary(total_shards: int) -> dict[str, object]:
     files = discover_core_test_files()
-    shards = split_core_shards(files, total_shards)
+    shards = split_core_shards(files, total_shards, pin_phases=True)
     shard_entries: list[dict[str, object]] = []
     for index, shard in enumerate(shards, start=1):
         total_subshards = CORE_CI_SUBSHARDS.get(index, 1)
@@ -715,7 +771,7 @@ def main() -> int:
             )
 
         files = discover_core_test_files()
-        shards = split_core_shards(files, args.core_total_shards)
+        shards = split_core_shards(files, args.core_total_shards, pin_phases=True)
         shard_files = shards[shard_index]
         targets: list[Path | str] = discover_test_items(shard_files) if args.core_subdivide_items else list(shard_files)
         subshards = split_core_shards(targets, args.core_total_subshards)

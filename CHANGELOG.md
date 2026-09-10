@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.284.2 - 10/09/2026
+
+- `tests/test_react_shell.py` è ancorato alla fase 5 della CI invece di dipendere dalla propria posizione alfabetica: il file da solo supera i 4 minuti e una fase non suddivisa ha un limite di 5, quindi finire nella fase sbagliata significava mandare la CI in timeout. Misurato: bastavano **5 file aggiunti** a `CORE_TARGETS` per spostarlo nella fase 10, che non è suddivisa.
+- L'ancoraggio delle fasi diventa una tabella dichiarata (`CORE_CI_PINNED_PHASES`), con i due file già ancorati in precedenza, e un controllo che rifiuta la configurazione se un file che richiede la suddivisione viene ancorato a una fase non suddivisa o inesistente.
+- La divisione in fasi non si attiva più in base al numero di shard, ma su richiesta esplicita: la suddivisione interna di una fase e quella delle suite hanno una numerazione propria, dove i numeri di fase non vorrebbero dire nulla.
+- Distribuzione degli shard invariata rispetto alla 2.284.1; fasi rieseguite come le esegue la CI: core-05 in 59-70 s per sotto-fase, core-07 in 7-9 s, core-08 in 16-18 s.
+
 ## 2.284.1 - 10/09/2026
 
 - I test che presidiano la Panoramica condivisa tra worker (`tests/test_react_dashboard_swr.py`) entrano negli shard eseguiti dalla CI: erano verdi ma nessun required check li eseguiva, quindi una regressione di prestazioni sarebbe tornata invisibile.

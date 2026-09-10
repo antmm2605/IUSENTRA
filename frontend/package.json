@@ -1,11 +1,11 @@
 {
   "name": "@iusentra/studio",
   "private": true,
-  "version": "2.280.2",
+  "version": "2.281.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
-    "test": "node --test ../tests/js/document_capture.test.mjs && node scripts/check-react-contracts.mjs && node scripts/check-notifiche-legali-presidi.mjs && node ../scripts/react-migration/audit-ui-preset-sequence.mjs && node ../scripts/react-migration/check-design-system-governance.mjs && node scripts/check-app-v2-frontend.mjs && node scripts/check-studio-voice-assistant.mjs && node scripts/check-legal-skills.mjs && node scripts/check-storybook-page-coverage.mjs && python ../scripts/validate_ui_coverage.py",
+    "test": "node --test ../tests/js/document_capture.test.mjs ../tests/js/fascicolo_document_list.test.mjs && node scripts/check-react-contracts.mjs && node scripts/check-notifiche-legali-presidi.mjs && node ../scripts/react-migration/audit-ui-preset-sequence.mjs && node ../scripts/react-migration/check-design-system-governance.mjs && node scripts/check-app-v2-frontend.mjs && node scripts/check-studio-voice-assistant.mjs && node scripts/check-legal-skills.mjs && node scripts/check-storybook-page-coverage.mjs && python ../scripts/validate_ui_coverage.py",
     "test:notifiche-legali-presidi": "node scripts/check-notifiche-legali-presidi.mjs",
     "test:notifiche-legali-presidi:bundle": "node scripts/check-notifiche-legali-presidi-bundle.mjs",
     "test:notifiche-legali-presidi:full": "npm run test:notifiche-legali-presidi && npm run build:vite && npm run test:notifiche-legali-presidi:bundle",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.281.0 - 10/09/2026
+
+- Fascicolo › Documenti e atti: l'elenco dei documenti è ordinato per data. Si può scegliere tra data del documento (più o meno recenti), data di caricamento (ultimi o primi caricati) e nome; la scelta resta memorizzata nel browser e i documenti senza data restano in fondo.
+- Ricerca rapida nell'elenco: filtro istantaneo su nome, tipo, catalogo, etichette, note, mittente e date, anche scritte in italiano (per esempio “procura marzo 2024”), senza distinzione di maiuscole e accenti. Il tasto / attiva la ricerca, Esc la cancella. Filtri per sezione (atti, provvedimenti, comunicazioni, pagamenti, allegati) e per stato (da firmare, da verificare) con i conteggi.
+- Caricamento documenti: i file si possono trascinare direttamente nel riquadro “Carica documenti” del fascicolo; il riepilogo mostra i file pronti prima dell'invio.
+- Non verificato sulla copia reale 127.0.0.1:8080 né in produzione: eseguiti typecheck, build Vite, test di ordinamento e ricerca e una prova visiva isolata della barra.
+
 ## 2.280.2 - 08/09/2026
 
 - Predisposto deploy Git tramite Portainer, immagine unica identificata dal commit per applicazione e worker, percorsi configurabili per Caddy e monitoraggio e isolamento del pannello di gestione sul loopback.

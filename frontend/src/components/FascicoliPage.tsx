@@ -150,6 +150,9 @@ import { formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
+import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
+import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
+import { useFileDropTarget } from './fascicoloDocumenti/useFileDropTarget'
 import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
 import { beginLocalSignerForegroundGrant } from '../features/telematico/localSignerForeground'
 import './FascicoliPage.css'
@@ -1908,10 +1911,22 @@ function CatalogazioneDocumentalePanel({
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
   const documentRevision = documents.map((document) => `${document.id}:${document.hash || ''}`).join('|')
-  const catalogById = new Map((payload?.documents || []).map((item) => [item.document_id, item]))
-  const catalogDocuments = buildDocumentSections(documents).flatMap((section) => section.documents).map((document) => (
-    catalogById.get(document.id) || { document_id: document.id, filename: document.name, supported: true, indexed: false, assignment: null }
-  ))
+  const documentEntries = useMemo<DocumentListEntry<CatalogDocumentView>[]>(() => {
+    const catalogById = new Map((payload?.documents || []).map((item) => [item.document_id, item]))
+    return documents.map((document) => {
+      const item = catalogById.get(document.id) || { document_id: document.id, filename: document.name, supported: true, indexed: false, assignment: null }
+      const assignment = item.assignment
+      return {
+        id: document.id,
+        document,
+        sectionId: assignment && documentListSectionIds.has(assignment.document_section) ? assignment.document_section : documentAutoSectionId(document),
+        pendingReview: assignment?.status === 'review_required' || assignment?.status === 'proposed',
+        searchExtra: assignment ? [assignment.document_label, catalogProfileLabel(assignment), catalogStatusLabel(assignment.status)] : [],
+        value: item,
+      }
+    })
+  }, [documents, payload])
+  const listControls = useDocumentListControls(documentEntries)
 
   const load = useCallback(async () => {
     if (!fascicoloId) return
@@ -2064,8 +2079,15 @@ function CatalogazioneDocumentalePanel({
         {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> Lettura catalogo SQL in corso…</p> : null}
         {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
         {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
+        {documentEntries.length ? <DocumentListToolbar controls={listControls} sections={documentListSectionOptions} visibleCount={listControls.visible.length}/> : null}
         <div className="iu-fas-catalog__list">
-          {catalogDocuments.map((item) => {
+          {documentEntries.length && !listControls.visible.length ? (
+            <div className="iu-doclist-empty" role="status">
+              <span>{listControls.query.trim() ? `Nessun documento corrisponde a “${listControls.query.trim()}” con i filtri scelti.` : 'Nessun documento corrisponde ai filtri scelti.'}</span>
+              <button type="button" onClick={listControls.resetFilters}>Azzera filtri</button>
+            </div>
+          ) : null}
+          {listControls.visible.map(({ value: item }) => {
             const assignment = item.assignment
             const document = documentsById.get(item.document_id)
             const needsConfirmation = assignment?.status === 'review_required' || assignment?.status === 'proposed'
@@ -7079,6 +7101,17 @@ const documentAutoSectionOrder: Array<Omit<DocumentAutoSection, 'documents'>> = 
   { id: 'da-verificare', title: 'Da verificare', note: 'Documenti senza sezione certa da controllare.', tone: 'warning' },
 ]
 
+const documentListSectionIds = new Set(documentAutoSectionOrder.map((section) => section.id))
+
+const documentListSectionOptions: DocumentSectionOption[] = [
+  { id: 'atti', label: 'Atti e memorie' },
+  { id: 'provvedimenti', label: 'Provvedimenti' },
+  { id: 'comunicazioni', label: 'Comunicazioni' },
+  { id: 'pagamenti', label: 'Pagamenti' },
+  { id: 'allegati', label: 'Allegati' },
+  { id: 'da-verificare', label: 'Senza sezione' },
+]
+
 function documentSearchText(doc: FascicoloDocument): string {
   return normaliseText([doc.type, doc.rawType, doc.name, doc.source, doc.portalClass, doc.portalName, doc.portalSender, doc.statusLabel, doc.catalogRole, doc.catalogLabel, doc.catalogSection, doc.catalogEvidence, doc.depositRole, ...doc.tags].join(' '))
 }
@@ -7822,17 +7855,6 @@ function DepositStateSummary({ dep }:{dep:FascicoloDeposit}) {
   )
 }
 
-function buildDocumentSections(documents: FascicoloDocument[]): DocumentAutoSection[] {
-  const grouped = new Map<string, FascicoloDocument[]>()
-  for (const doc of documents) {
-    const sectionId = documentAutoSectionId(doc)
-    grouped.set(sectionId, [...(grouped.get(sectionId) || []), doc])
-  }
-  return documentAutoSectionOrder
-    .map((section) => ({ ...section, documents: grouped.get(section.id) || [] }))
-    .filter((section) => section.documents.length > 0)
-}
-
 function DocumentUploadWorkspace({
   data,
   onDone,
@@ -7845,6 +7867,8 @@ function DocumentUploadWorkspace({
   const [files, setFiles] = useState<File[]>([])
   const [mode, setMode] = useState<'auto' | 'manuale'>('auto')
   const [busy, setBusy] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { dragging, dropHandlers } = useFileDropTarget(fileInputRef, setFiles)
   if (!data.actions.uploadDocument) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -7872,17 +7896,20 @@ function DocumentUploadWorkspace({
   return (
     <section className="iu-fas-doc-workspace" aria-label="Documenti e atti del fascicolo">
       <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
-      <form className="iu-fas-doc-upload" onSubmit={submit} encType="multipart/form-data">
+      <form className={`iu-fas-doc-upload${dragging ? ' is-dragging' : ''}`} onSubmit={submit} encType="multipart/form-data" {...dropHandlers}>
         <input type="hidden" name="classificazione_modalita" value={mode}/>
         <label className="iu-fas-field iu-fas-field--wide">
           <span>Carica documenti</span>
+          {dragging ? <span className="iu-fas-doc-upload__drop-hint" role="status"><UploadCloud size={15} aria-hidden="true"/> Rilascia qui i file per aggiungerli al fascicolo</span> : null}
           <input
+            ref={fileInputRef}
             type="file"
             name="files"
             multiple
             onChange={(event) => setFiles(Array.from(event.currentTarget.files || []))}
           />
-          <small className="iu-fas-field-help">Puoi selezionare più file. Il nome e il tipo dichiarato servono solo a organizzare provvisoriamente: dopo l’indicizzazione IUSENTRA legge il contenuto, propone il catalogo e richiede conferma quando le evidenze non bastano.</small>
+          {files.length ? <small className="iu-fas-field-help">{files.length === 1 ? `Pronto per il caricamento: ${files[0].name}` : `Pronti per il caricamento: ${files.length} file`}</small> : null}
+          <small className="iu-fas-field-help">Trascina i file in questo riquadro oppure selezionali: puoi caricarne più di uno. Il nome e il tipo dichiarato servono solo a organizzare provvisoriamente: dopo l’indicizzazione IUSENTRA legge il contenuto, propone il catalogo e richiede conferma quando le evidenze non bastano.</small>
         </label>
         <label className="iu-fas-field">
           <span>Classificazione</span>

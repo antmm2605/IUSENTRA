@@ -1,0 +1,37 @@
+.iu-doclist-toolbar{display:grid;gap:8px;padding:10px;border:1px solid #d9e7ef;border-radius:12px;background:rgba(255,255,255,.97);box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.iu-doclist-toolbar__main{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:8px}
+.iu-doclist-toolbar__search,.iu-doclist-toolbar__sort{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 10px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:var(--iu-slate-500)}
+.iu-doclist-toolbar__search:focus-within,.iu-doclist-toolbar__sort:focus-within{border-color:var(--iu-blue-700);box-shadow:0 0 0 3px rgba(37,99,235,.18)}
+.iu-doclist-toolbar__search input,.iu-doclist-toolbar__sort select{flex:1;min-width:0;height:40px;border:0;outline:0;background:transparent;color:#0f172a;font-size:13px;font-weight:750}
+.iu-doclist-toolbar__search input::placeholder{color:#7b8ba0;font-weight:650}
+.iu-doclist-toolbar__search input::-webkit-search-cancel-button{display:none}
+.iu-doclist-toolbar__sort select{cursor:pointer;font-size:12px;font-weight:850}
+.iu-doclist-toolbar kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;border:1px solid #cbd5e1;border-bottom-width:2px;border-radius:6px;background:#f8fafc;color:#475569;font:800 11px/1 ui-monospace,monospace}
+.iu-doclist-toolbar__clear{display:inline-grid;place-items:center;width:26px;height:26px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;cursor:pointer}
+.iu-doclist-toolbar__clear:hover{background:#e2e8f0}
+.iu-doclist-toolbar__clear:focus-visible{outline:3px solid rgba(37,99,235,.3);outline-offset:1px}
+.iu-doclist-toolbar__chips{display:flex;flex-wrap:wrap;gap:6px}
+.iu-doclist-toolbar__chips button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:1px solid #d5e0ea;border-radius:999px;background:#fff;color:#334155;font-size:11.5px;font-weight:850;cursor:pointer;white-space:nowrap}
+.iu-doclist-toolbar__chips button b{min-width:18px;padding:1px 6px;border-radius:999px;background:#eef2f7;color:#1e293b;font-size:10.5px;font-weight:900;text-align:center}
+.iu-doclist-toolbar__chips button:hover{border-color:#94a3b8;background:#f8fafc}
+.iu-doclist-toolbar__chips button:focus-visible,.iu-doclist-toolbar__result button:focus-visible{outline:3px solid rgba(37,99,235,.3);outline-offset:2px}
+.iu-doclist-toolbar__chips button[aria-pressed="true"]{border-color:var(--iu-blue-700);background:var(--iu-blue-700);color:#fff}
+.iu-doclist-toolbar__chips button[aria-pressed="true"] b{background:rgba(255,255,255,.22);color:#fff}
+.iu-doclist-toolbar__chips--status button[aria-pressed="true"]{border-color:#0f6478;background:#0f6478}
+.iu-doclist-toolbar__result{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;color:#41617a;font-size:11.5px;font-weight:800}
+.iu-doclist-toolbar__result small{color:var(--iu-slate-500);font-size:11px;font-weight:650}
+.iu-doclist-toolbar__result button{min-height:30px;padding:0 10px;border:1px solid #7bc4d2;border-radius:8px;background:#ecfeff;color:#0f6478;font-size:11.5px;font-weight:900;cursor:pointer}
+.iu-doclist-toolbar__result button:hover{background:#cffafe}
+.iu-doclist-toolbar__sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.iu-doclist-empty{display:grid;justify-items:start;gap:8px;padding:14px;border:1px dashed #cbd5e1;border-radius:11px;background:#f8fafc;color:#334155;font-size:12.5px;font-weight:750}
+.iu-doclist-empty button{min-height:32px;padding:0 10px;border:1px solid #7bc4d2;border-radius:8px;background:#ecfeff;color:#0f6478;font-size:11.5px;font-weight:900;cursor:pointer}
+.iu-fas-doc-upload.is-dragging{border-color:var(--iu-blue-700);border-style:solid;background:rgba(37,99,235,.1);box-shadow:inset 0 0 0 2px rgba(37,99,235,.18)}
+.iu-fas-doc-upload__drop-hint{display:flex;align-items:center;gap:7px;color:#1e3a8a;font-size:12px;font-weight:850}
+@media(max-width:900px){
+  .iu-doclist-toolbar__main{grid-template-columns:1fr}
+  .iu-doclist-toolbar__chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+  .iu-doclist-toolbar__chips button{min-height:38px}
+  .iu-doclist-toolbar__result{flex-direction:column;align-items:flex-start}
+  .iu-doclist-toolbar__result small{display:none}
+  .iu-doclist-toolbar kbd{display:none}
+}

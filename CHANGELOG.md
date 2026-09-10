@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.284.0 - 10/09/2026
+
+- Panoramica (prima pagina dopo il login) più rapida. Misurato in produzione su 2.282.0: `/api/v1/ui/dashboard` impiegava 20,3 s a cache fredda (una volta 502 dopo 22,6 s) e 78 ms a cache calda; la cache durava 60 s ed era separata per ciascuno dei 3 worker.
+  - Ultimo quadro valido condiviso tra i worker (Redis, ricaduta in memoria), per studio e utente: se il quadro è scaduto o sono cambiate le caselle, la Panoramica lo mostra subito con l'ora (“Dati delle 08:15 · aggiornamento in corso…”) e il client lo riallinea da solo con `?stale=0`. Solo quadri dello stesso giorno, al massimo di 8 ore; dopo una scrittura esplicita (cache invalidata) si ricalcola senza mostrare il quadro precedente; un quadro in errore non viene conservato.
+  - Un quadro appena calcolato da un altro worker è servito come fresco invece di essere ricalcolato.
+  - Ogni archivio viene aperto una sola volta per costruzione: prima fatturazione era aperta 4 volte, fascicoli e scadenziario 4, clienti e agenda 3.
+  - L'archivio giurisprudenza, usato dalla Panoramica solo per collegare sentenze ai fascicoli, si apre in sola lettura senza riallineare il repository e riesportare i JSON a ogni apertura (in locale era il 75% del tempo di costruzione: 152 ms → 38 ms su archivio vuoto).
+  - Tempi per sorgente nel campo `build` del payload, nell'header `Server-Timing` e nel log applicativo quando la costruzione supera 3 s, per individuare l'archivio che rallenta.
+  - Un 502/503/504 transitorio viene ritentato una volta prima di dichiarare la Panoramica non raggiungibile.
+
 ## 2.283.0 - 10/09/2026
 
 - Fascicolo › menu “Azioni fascicolo” (tasto destro): nuovo gruppo “Mediazione e CTU”. “Mediazione” apre e carica la sezione del procedimento di mediazione (organismo, moduli, parti, incontri ed esito); “CTU e perizie” apre la sezione degli incarichi CTU con consulenti di parte e termini. Entrambe le voci portano direttamente alla sezione e aggiornano l'ancora dell'indirizzo (#mediazione, #ctu). Verificato in Chromium headless: menu, apertura delle due sezioni e caricamento della mediazione.

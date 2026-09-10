@@ -392,9 +392,24 @@ jobs:
             label: "3/10"
           - phase: 4
             subshard: 1
-            total_subshards: 1
-            subdivide_items: false
-            label: "4/10"
+            total_subshards: 4
+            subdivide_items: true
+            label: "4/10 parte 1/4"
+          - phase: 4
+            subshard: 2
+            total_subshards: 4
+            subdivide_items: true
+            label: "4/10 parte 2/4"
+          - phase: 4
+            subshard: 3
+            total_subshards: 4
+            subdivide_items: true
+            label: "4/10 parte 3/4"
+          - phase: 4
+            subshard: 4
+            total_subshards: 4
+            subdivide_items: true
+            label: "4/10 parte 4/4"
           - phase: 5
             subshard: 1
             total_subshards: 6

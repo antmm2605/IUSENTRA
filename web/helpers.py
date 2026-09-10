@@ -223,6 +223,12 @@ def get_giurisprudenza() -> GestioneGiurisprudenza:
     return GestioneGiurisprudenza(db_path=_cfg("GIURISPRUDENZA_DB"))
 
 
+def get_giurisprudenza_readonly() -> GestioneGiurisprudenza:
+    """Archivio sentenze in sola lettura: nessun riallineamento del repository all'apertura."""
+
+    return GestioneGiurisprudenza(db_path=_cfg("GIURISPRUDENZA_DB"), sync_repository_on_init=False)
+
+
 def get_calendar_sync() -> GestioneCalendarSync:
     return GestioneCalendarSync(db_path=_cfg("CALENDAR_SYNC_DB"))
 

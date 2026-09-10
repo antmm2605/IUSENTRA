@@ -1490,7 +1490,12 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "cache: 'no-store'" in email_data
     assert "query.set('_ts', String(Date.now()))" in email_data
     dashboard_data = Path("frontend/src/data.ts").read_text(encoding="utf-8")
-    assert "getDashboard(options: { refresh?: boolean } = {})" in dashboard_data
+    #  Dalla 2.284.0 la Panoramica accetta anche il quadro scaduto (allowStale),
+    #  riallineato subito dopo dal client.
+    assert (
+        "getDashboard(options: { refresh?: boolean; allowStale?: boolean } = {})"
+        in dashboard_data
+    )
     assert "query.set('refresh', '1')" in dashboard_data
     assert "/api/v1/ui/dashboard${suffix}" in dashboard_data
     assert "syncDashboardMailboxes" in dashboard_data
@@ -4877,7 +4882,15 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
     assert first.headers["X-IUSENTRA-Cache"] == "MISS"
     assert second.headers["X-IUSENTRA-Cache"] == "HIT"
     assert refreshed.headers["X-IUSENTRA-Cache"] == "MISS"
-    assert payload["cache"] == {"hit": False, "ttl_seconds": 60}
+    #  Dalla 2.284.0 il quadro Panoramica dichiara anche eta, condivisione tra
+    #  worker e scadenza del quadro riusato (cache condivisa Redis).
+    assert payload["cache"] == {
+        "hit": False,
+        "ttl_seconds": 60,
+        "age_seconds": 0,
+        "shared": False,
+        "stale": False,
+    }
     assert payload["pec"][0]["id"] == "pec-dashboard"
     assert payload["emails"][0]["id"] == "mail-ordinaria-dashboard"
     assert payload["emails"][0]["href"] == "/email-ordinaria/messaggio/mail-ordinaria-dashboard"

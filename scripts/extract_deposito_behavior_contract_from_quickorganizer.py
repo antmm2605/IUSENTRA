@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -18,7 +19,14 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FORM = Path(os.environ["TEMP"]) / "quickorganizer_decompiled_full" / "FormSentMailBee.cs"
+#  TEMP esiste solo su Windows, dove il decompilato viene estratto. Il percorso
+#  serve unicamente all'estrazione: risolverlo con un ripiego mantiene il modulo
+#  importabile su Linux e in CI, dove i test usano solo le funzioni pure.
+FORM = (
+    Path(os.environ.get("TEMP") or tempfile.gettempdir())
+    / "quickorganizer_decompiled_full"
+    / "FormSentMailBee.cs"
+)
 CATALOG = ROOT / "pct" / "data" / "cataloghi" / "quickorganizer_depositi_studio_telematico.json"
 OUTPUT = (
     ROOT

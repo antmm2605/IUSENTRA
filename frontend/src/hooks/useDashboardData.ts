@@ -20,6 +20,8 @@ export const DASHBOARD_STALE_AFTER_MS = 120000
 export type DashboardState = {
   data: DashboardData
   loading: boolean
+  /** Quadro dell'ultimo aggiornamento mostrato mentre arriva quello ricalcolato. */
+  revalidating: boolean
   mailSyncing: boolean
   refresh: () => void
   syncMailboxes: () => void
@@ -28,6 +30,7 @@ export type DashboardState = {
 export function useDashboardData(enabled: boolean): DashboardState {
   const [data, setData] = useState<DashboardData>(emptyDashboard)
   const [loading, setLoading] = useState(enabled)
+  const [revalidating, setRevalidating] = useState(false)
   const [mailSyncing, setMailSyncing] = useState(false)
   const mountedRef = useRef(true)
   // Progressivo di richiesta: una risposta lenta non deve sovrascrivere un
@@ -46,20 +49,32 @@ export function useDashboardData(enabled: boolean): DashboardState {
     }
   }, [])
 
-  const load = useCallback((options: { refresh?: boolean; silent?: boolean } = {}) => {
+  const load = useCallback((options: { refresh?: boolean; silent?: boolean; revalidate?: boolean } = {}) => {
     const requestId = requestRef.current + 1
     requestRef.current = requestId
     if (!options.silent) setLoading(true)
-    getDashboard({ refresh: options.refresh })
+    getDashboard({ refresh: options.refresh, allowStale: options.revalidate ? false : undefined })
       .then((payload) => {
         if (!mountedRef.current || requestId !== requestRef.current) return
         // Un aggiornamento silenzioso non deve sostituire un quadro valido
         // con gli zeri di cortesia di una rete caduta: in quel caso si tiene
         // quello che l'utente sta gia' leggendo e si ritenta al giro dopo.
-        if (options.silent && payload.status === 'errore' && statusRef.current !== 'errore') return
+        if (options.silent && payload.status === 'errore' && statusRef.current !== 'errore') {
+          if (options.revalidate) setRevalidating(false)
+          return
+        }
         statusRef.current = payload.status
         setData(payload)
         lastLoadedRef.current = Date.now()
+        // Prima pagina dopo il login: il server risponde subito con l'ultimo
+        // quadro valido dell'utente e qui parte il riallineamento, senza
+        // bloccare la lettura.
+        if (payload.stale && !options.revalidate) {
+          setRevalidating(true)
+          window.setTimeout(() => load({ silent: true, revalidate: true }), 0)
+        } else if (options.revalidate || !payload.stale) {
+          setRevalidating(false)
+        }
       })
       .finally(() => {
         if (mountedRef.current && requestId === requestRef.current && !options.silent) setLoading(false)
@@ -114,5 +129,5 @@ export function useDashboardData(enabled: boolean): DashboardState {
     }
   }, [enabled, load])
 
-  return { data, loading, mailSyncing, refresh, syncMailboxes }
+  return { data, loading, revalidating, mailSyncing, refresh, syncMailboxes }
 }

@@ -33,6 +33,11 @@ export type DashboardData = {
   lex: string[]
   dossiers: Dossier[]
   sources: Source[]
+  /**
+   * Quadro mostrato subito dall'ultimo aggiornamento valido dell'utente mentre
+   * il server ricalcola: il client lo riallinea da solo e ne dichiara l'ora.
+   */
+  stale?: boolean
 }
 
 const emptyMetrics: Metric[] = [
@@ -74,7 +79,8 @@ export const emptyDashboard: DashboardData = {
   billingWork: [],
   lex: [],
   dossiers: [],
-  sources: []
+  sources: [],
+  stale: false
 }
 
 export const dashboardFallback = emptyDashboard
@@ -279,21 +285,34 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
   ]
 }
 
-export async function getDashboard(options: { refresh?: boolean } = {}): Promise<DashboardData> {
+const DASHBOARD_TRANSIENT_STATUSES = new Set([502, 503, 504])
+const DASHBOARD_RETRY_DELAY_MS = 1500
+
+export async function getDashboard(options: { refresh?: boolean; allowStale?: boolean } = {}): Promise<DashboardData> {
   try {
     const query = new URLSearchParams()
     if (options.refresh) query.set('refresh', '1')
+    if (options.allowStale === false) query.set('stale', '0')
     const suffix = query.toString() ? `?${query.toString()}` : ''
-    const res = await fetch(`/api/v1/ui/dashboard${suffix}`, {
+    const request = () => fetch(`/api/v1/ui/dashboard${suffix}`, {
       credentials:'same-origin',
       headers:{Accept:'application/json'}
     })
+    let res = await request()
+    // Un 502/503/504 durante un riavvio o un picco del server non deve lasciare
+    // la prima pagina dopo il login su «Panoramica non raggiungibile».
+    if (DASHBOARD_TRANSIENT_STATUSES.has(res.status)) {
+      await new Promise((resolve) => globalThis.setTimeout(resolve, DASHBOARD_RETRY_DELAY_MS))
+      res = await request()
+    }
     if (!res.ok) return unreachableDashboard()
     const payload = await res.json() as Record<string, unknown>
     const warning = String(payload.warning ?? '')
     const status = asDashboardStatus(payload.status ?? (warning ? 'parziale' : 'ok'))
+    const cache = isRecord(payload.cache) ? payload.cache : {}
     const dashboard = {
       status,
+      stale: cache.stale === true,
       warning,
       degradedSources: asStringList(payload.degraded_sources),
       generatedAt: String(payload.generated_at_rome ?? payload.generated_at ?? ''),

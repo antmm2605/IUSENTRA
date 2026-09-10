@@ -699,7 +699,14 @@ def tassonomia_flat() -> Dict[str, List[str]]:
 
 
 class GestioneGiurisprudenza:
-    def __init__(self, db_path: str = "./intelligence/giurisprudenza.json", timeout: int = 12, *, postgres_dsn: str = ""):
+    def __init__(
+        self,
+        db_path: str = "./intelligence/giurisprudenza.json",
+        timeout: int = 12,
+        *,
+        postgres_dsn: str = "",
+        sync_repository_on_init: bool = True,
+    ):
         self.db_path = db_path
         self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
         self.corpus_db_path = derive_corpus_db_path(db_path)
@@ -722,7 +729,11 @@ class GestioneGiurisprudenza:
             postgres_dsn=self.postgres_dsn,
         )
         self._load()
-        self._sync_repository()
+        # Le letture di sola consultazione (Panoramica, presidio fascicoli) non
+        # riallineano il repository SQL e non riesportano i JSON: la
+        # sincronizzazione resta nelle scritture e nelle superfici di gestione.
+        if sync_repository_on_init:
+            self._sync_repository()
 
     def _empty_storage(self) -> Dict[str, Any]:
         return {

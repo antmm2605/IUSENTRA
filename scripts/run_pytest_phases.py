@@ -29,6 +29,9 @@ LEX_CROSS_SUITE: tuple[Path, ...] = tuple(
     sorted((REPO_ROOT / "tests").glob("test_lex_*.py"))
 )
 CORE_CI_SUBSHARDS: dict[int, int] = {
+    #  Lo shard che ospita test_react_shell.py va suddiviso per item: da solo
+    #  il file supera i 4 minuti e lo shard intero ha un limite di 5.
+    4: 4,
     5: 6,
     6: 16,
     7: 3,
@@ -95,6 +98,11 @@ CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "tests" / "test_preventivi_repository.py",
     REPO_ROOT / "tests" / "test_applicazioni_repository.py",
     REPO_ROOT / "tests" / "test_lex_module.py",
+    #  Contratti UI React: restavano fuori dal core, quindi una regressione
+    #  poteva arrivare in produzione con i required check verdi (2.282.0).
+    REPO_ROOT / "tests" / "test_regia_ui_react.py",
+    REPO_ROOT / "tests" / "test_react_shell.py",
+    REPO_ROOT / "tests" / "test_document_capture_contracts.py",
 )
 
 

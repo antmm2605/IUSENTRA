@@ -135,7 +135,15 @@ from web.bootstrap.fascicoli_document_helpers import (
 from web.services.react_dashboard_cache import (
     DASHBOARD_CACHE_TTL_SECONDS,
     clear_dashboard_payload_cache,
-    get_dashboard_payload_cached,
+    get_dashboard_payload_swr,
+)
+from web.services.react_dashboard_build_context import (
+    SOGLIA_LOG_SECONDI as DASHBOARD_BUILD_LOG_SECONDS,
+    contesto_costruzione_panoramica,
+    fabbrica_panoramica,
+    gestore_panoramica,
+    misura_sorgente,
+    server_timing_header,
 )
 from web.services.react_dashboard_health import (
     etichette_sorgenti,
@@ -449,6 +457,7 @@ from web.helpers import (
     get_pagamenti,
     get_practice_engine,
     get_giurisprudenza,
+    get_giurisprudenza_readonly,
     get_preventivi,
     get_preventivi_readonly,
     get_scadenziario,
@@ -1849,7 +1858,7 @@ def _euro(value: float) -> str:
 
 def _count_agenda_oggi() -> int:
     today = oggi_rome()
-    appuntamenti = _safe("agenda", lambda: get_agenda().tutti(), [])
+    appuntamenti = _safe("agenda", lambda: gestore_panoramica(get_agenda).tutti(), [])
     count = 0
     for item in appuntamenti:
         raw = getattr(item, "data_ora_dt", None) or getattr(item, "data_ora", "")
@@ -1860,11 +1869,11 @@ def _count_agenda_oggi() -> int:
 
 
 def _count_fascicoli_attivi() -> int:
-    return len(_safe("fascicoli", lambda: get_fascicoli().tutti(archiviati=False), []))
+    return len(_safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), []))
 
 
 def _parcelle_da_incassare() -> float:
-    parcelle = _safe("fatturazione", lambda: get_fatturazione().tutte(), [])
+    parcelle = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).tutte(), [])
     escluse = {StatoParcella.PAGATA.value, StatoParcella.ANNULLATA.value}
     totale = 0.0
     for parcella in parcelle:
@@ -1877,11 +1886,11 @@ def _parcelle_da_incassare() -> float:
 
 def _workspace_overview() -> dict[str, Any]:
     service = WorkspaceIntelligenteService(
-        agenda=get_agenda(),
-        scadenziario=get_scadenziario(),
-        fascicoli=get_fascicoli(),
-        calendar_sync=get_calendar_sync(),
-        giurisprudenza=get_giurisprudenza(),
+        agenda=gestore_panoramica(get_agenda),
+        scadenziario=gestore_panoramica(get_scadenziario),
+        fascicoli=gestore_panoramica(get_fascicoli),
+        calendar_sync=gestore_panoramica(get_calendar_sync),
+        giurisprudenza=gestore_panoramica(get_giurisprudenza_readonly),
         snapshot_path=str(current_app.config.get("WORKSPACE_INTELLIGENCE_DB", "")),
     )
     return service.panoramica(horizon_days=14)
@@ -1904,7 +1913,7 @@ def _messaggi_manager() -> GestioneMessaggi:
 
 def _messaggi_tutti() -> list[Messaggio]:
     try:
-        return _messaggi_manager().tutti()
+        return gestore_panoramica(_messaggi_manager).tutti()
     except Exception:
         path = Path(_tenant_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"))
         if not path.exists():
@@ -1919,8 +1928,8 @@ def _messaggi_tutti() -> list[Messaggio]:
 
 
 def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
-    pec_emails = _safe("pec", lambda: _email_manager().tutte(cartella=CartellaEmail.INBOX), [])
-    ordinary_emails = _safe("email_ordinaria", lambda: _ordinary_email_manager().tutte(cartella=CartellaEmail.INBOX), [])
+    pec_emails = _safe("pec", lambda: gestore_panoramica(_email_manager).tutte(cartella=CartellaEmail.INBOX), [])
+    ordinary_emails = _safe("email_ordinaria", lambda: gestore_panoramica(_ordinary_email_manager).tutte(cartella=CartellaEmail.INBOX), [])
     pec_emails = sorted(
         pec_emails,
         key=lambda email: _parse_datetime(getattr(email, "timestamp", "")) or datetime.min,
@@ -2020,7 +2029,7 @@ def _client_message_rows(limit: int = 5) -> tuple[list[dict[str, Any]], int]:
 def _agenda_rows(limit: int = 6) -> list[dict[str, Any]]:
     today = oggi_rome()
     until = today + timedelta(days=14)
-    appuntamenti = _safe("agenda", lambda: get_agenda().tutti(), [])
+    appuntamenti = _safe("agenda", lambda: gestore_panoramica(get_agenda).tutti(), [])
     rows: list[dict[str, Any]] = []
     for item in appuntamenti:
         parsed = _parse_datetime(getattr(item, "data_ora", ""))
@@ -2085,13 +2094,13 @@ def _today_operations(overview: dict[str, Any], limit: int = 6) -> list[dict[str
 
 
 def _clienti_by_id() -> dict[str, Any]:
-    clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
+    clienti = _safe("clienti", lambda: gestore_panoramica(get_clienti).tutti(), [])
     return {str(getattr(cliente, "id", "")): cliente for cliente in clienti}
 
 
 def _incomplete_registry() -> dict[str, Any]:
-    clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
-    soggetti = _safe("soggetti", lambda: get_soggetti().tutti(), [])
+    clienti = _safe("clienti", lambda: gestore_panoramica(get_clienti).tutti(), [])
+    soggetti = _safe("soggetti", lambda: gestore_panoramica(get_soggetti).tutti(), [])
 
     clienti_mancanti = [
         item
@@ -2130,7 +2139,7 @@ def _soggetto_mancante(soggetto: Any) -> bool:
 
 
 def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
-    preventivi = _safe("preventivi", lambda: get_preventivi_readonly(), None)
+    preventivi = _safe("preventivi", lambda: gestore_panoramica(get_preventivi_readonly), None)
     if not preventivi:
         return [], 0
     clienti = _clienti_by_id()
@@ -2180,7 +2189,7 @@ def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
 
 
 def _expiring_quotes_count() -> int:
-    preventivi = _safe("preventivi", lambda: get_preventivi_readonly().tutti_preventivi(), [])
+    preventivi = _safe("preventivi", lambda: gestore_panoramica(get_preventivi_readonly).tutti_preventivi(), [])
     today = oggi_rome()
     horizon = today + timedelta(days=14)
     active = {StatoPreventivo.INVIATO.value, StatoPreventivo.APERTO.value, StatoPreventivo.VERIFICATO.value}
@@ -2195,8 +2204,8 @@ def _expiring_quotes_count() -> int:
 
 
 def _high_priority_matters(limit: int = 4) -> list[dict[str, Any]]:
-    scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(solo_aperte=True), [])
-    fascicoli = _safe("fascicoli", lambda: get_fascicoli().tutti(archiviati=False), [])
+    scadenze = _safe("scadenziario", lambda: gestore_panoramica(get_scadenziario).tutte(solo_aperte=True), [])
+    fascicoli = _safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), [])
     by_id = {str(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -2244,7 +2253,7 @@ def _high_priority_matters(limit: int = 4) -> list[dict[str, Any]]:
 
 
 def _deadline_distribution() -> list[dict[str, Any]]:
-    scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(solo_aperte=True), [])
+    scadenze = _safe("scadenziario", lambda: gestore_panoramica(get_scadenziario).tutte(solo_aperte=True), [])
     buckets = {
         PrioritaTermine.CRITICA.value: {"label": "scadenze critiche", "tone": "danger", "count": 0},
         PrioritaTermine.ALTA.value: {"label": "scadenze ad alta priorita", "tone": "warning", "count": 0},
@@ -2275,8 +2284,8 @@ def _economic_rows() -> list[dict[str, Any]]:
     oggi = oggi_rome()
     anno = oggi.year
     month_prefix = f"{anno:04d}-{oggi.month:02d}"
-    stats = _safe("fatturazione", lambda: get_fatturazione().statistiche(anno), {})
-    parcelle = _safe("fatturazione", lambda: get_fatturazione().tutte(), [])
+    stats = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).statistiche(anno), {})
+    parcelle = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).tutte(), [])
     month_parcelle = [
         item
         for item in parcelle
@@ -2289,7 +2298,7 @@ def _economic_rows() -> list[dict[str, Any]]:
         if str(getattr(item, "data_pagamento", "") or "").startswith(month_prefix)
         and _enum_value(getattr(item, "stato", "")) == StatoParcella.PAGATA.value
     ]
-    timesheet_entries = _safe("timesheet", lambda: get_timesheet().tutte(), [])
+    timesheet_entries = _safe("timesheet", lambda: gestore_panoramica(get_timesheet).tutte(), [])
     month_time = [
         item
         for item in timesheet_entries
@@ -2389,9 +2398,9 @@ def _billing_work_rows(limit: int = 5) -> list[dict[str, Any]]:
     """Parcelle da incassare lette dallo stesso bridge di Incassi e Pagamenti."""
 
     payload = build_react_incassi_pagamenti_payload(
-        get_fatturazione=get_fatturazione,
-        get_pagamenti=get_pagamenti,
-        get_clienti=get_clienti,
+        get_fatturazione=fabbrica_panoramica(get_fatturazione),
+        get_pagamenti=fabbrica_panoramica(get_pagamenti),
+        get_clienti=fabbrica_panoramica(get_clienti),
         current_user=g.get("utente_corrente"),
         query={},
     )
@@ -2507,7 +2516,7 @@ def _metrics(
 
 
 def _fascicoli_preview(limit: int = 5) -> list[dict[str, Any]]:
-    fascicoli = _safe("fascicoli", lambda: get_fascicoli().tutti(archiviati=False), [])
+    fascicoli = _safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), [])
     out: list[dict[str, Any]] = []
     for fascicolo in fascicoli[:limit]:
         out.append(
@@ -9319,11 +9328,33 @@ def _dashboard_cache_key() -> str:
     return "|".join([APP_VERSION, tenant, user_id, email_db, email_stamp, ordinary_email_db, ordinary_email_stamp])
 
 
+def _dashboard_stable_key() -> str:
+    """Studio e utente, senza versione né impronte: identifica l'ultimo quadro valido."""
+
+    utente = g.get("utente_corrente")
+    user_id = str(getattr(utente, "id", "") or getattr(utente, "username", "") or "api-key")
+    tenant = _tenant_runtime_label()
+    data_paths = getattr(g, "data_paths", {}) or {}
+    anchors = [
+        str(data_paths.get(name) or current_app.config.get(name, ""))
+        for name in ("FASCICOLI_DB", "CLIENTI_DB", "EMAIL_CASELLA_DB")
+    ]
+    return "|".join(["panoramica", tenant, user_id, *anchors])
+
+
 def _build_dashboard_payload() -> dict[str, Any]:
     """Payload della Panoramica con dichiarazione esplicita delle sorgenti cadute."""
 
-    with traccia_sorgenti_panoramica() as sorgenti_degradate:
+    with traccia_sorgenti_panoramica() as sorgenti_degradate, contesto_costruzione_panoramica() as costruzione:
         payload = _collect_dashboard_payload()
+        riepilogo = costruzione.riepilogo()
+    payload["build"] = riepilogo
+    if float(riepilogo.get("seconds") or 0.0) >= DASHBOARD_BUILD_LOG_SECONDS:
+        current_app.logger.warning(
+            "Panoramica lenta: %.1fs; sorgenti: %s",
+            float(riepilogo.get("seconds") or 0.0),
+            ", ".join(f"{label}={seconds:.2f}s" for label, seconds in (riepilogo.get("sources") or {}).items()),
+        )
     if sorgenti_degradate:
         payload["status"] = "parziale"
         payload["degraded_sources"] = etichette_sorgenti(sorgenti_degradate)
@@ -9332,25 +9363,25 @@ def _build_dashboard_payload() -> dict[str, Any]:
 
 
 def _collect_dashboard_payload() -> dict[str, Any]:
-    overview = _safe("workspace_intelligente", _workspace_overview, {})
+    overview = misura_sorgente("workspace", lambda: _safe("workspace_intelligente", _workspace_overview, {}))
     summary = dict(overview.get("summary") or {})
 
-    pec_rows, email_rows, pec_unread = _email_rows()
-    message_rows, client_messages_count = _client_message_rows()
-    agenda_rows = _agenda_rows()
+    pec_rows, email_rows, pec_unread = misura_sorgente("email", _email_rows)
+    message_rows, client_messages_count = misura_sorgente("messaggi", _client_message_rows)
+    agenda_rows = misura_sorgente("agenda", _agenda_rows)
     operations = _today_operations(overview)
-    completion = _incomplete_registry()
-    engagement_rows, missing_engagements_count = _missing_engagements()
-    matter_rows = _high_priority_matters()
+    completion = misura_sorgente("anagrafiche", _incomplete_registry)
+    engagement_rows, missing_engagements_count = misura_sorgente("conferimenti", _missing_engagements)
+    matter_rows = misura_sorgente("fascicoli_prioritari", _high_priority_matters)
 
     urgent_actions = len(operations)
-    expiring_quotes = _expiring_quotes_count()
-    deadline_distribution = _deadline_distribution()
-    worklist = _safe(
+    expiring_quotes = misura_sorgente("preventivi", _expiring_quotes_count)
+    deadline_distribution = misura_sorgente("scadenze", _deadline_distribution)
+    worklist = misura_sorgente("worklist", lambda: _safe(
         "scadenziario",
         lambda: build_regia_worklist(
             oggi=oggi_rome(),
-            scadenze=get_scadenziario().tutte(solo_aperte=True),
+            scadenze=gestore_panoramica(get_scadenziario).tutte(solo_aperte=True),
             parse_date=_parse_date,
             enum_value=_enum_value,
             short_text=_short_text,
@@ -9361,10 +9392,10 @@ def _collect_dashboard_payload() -> dict[str, Any]:
             operations=operations,
         ),
         [],
-    )
-    economic = _economic_rows()
-    notification_presidia = _safe("notifiche_legali", _notification_presidia_rows, [])
-    billing_work = _safe("fatturazione", _billing_work_rows, [])
+    ))
+    economic = misura_sorgente("economico", _economic_rows)
+    notification_presidia = misura_sorgente("notifiche_legali", lambda: _safe("notifiche_legali", _notification_presidia_rows, []))
+    billing_work = misura_sorgente("incassi", lambda: _safe("fatturazione", _billing_work_rows, []))
     lex = _lex_suggestions(
         urgent_actions=urgent_actions,
         incomplete_registry=completion,
@@ -9373,10 +9404,10 @@ def _collect_dashboard_payload() -> dict[str, Any]:
     )
 
     stats = {
-        "todayAppointments": _count_agenda_oggi(),
+        "todayAppointments": misura_sorgente("agenda", _count_agenda_oggi),
         "urgentDeadlines": int(summary.get("scadenze_urgenti") or 0),
-        "openMatters": _count_fascicoli_attivi(),
-        "unpaidAmount": _euro(_parcelle_da_incassare()),
+        "openMatters": misura_sorgente("fascicoli", _count_fascicoli_attivi),
+        "unpaidAmount": _euro(misura_sorgente("economico", _parcelle_da_incassare)),
         "documentsToReview": int(summary.get("notifiche_scadenze") or 0),
         "urgentActions": urgent_actions,
         "pecUnread": pec_unread,
@@ -9401,7 +9432,7 @@ def _collect_dashboard_payload() -> dict[str, Any]:
             missing_engagements_count=missing_engagements_count,
         ),
         "actions": list(overview.get("actions") or []),
-        "fascicoli": _fascicoli_preview(),
+        "fascicoli": misura_sorgente("fascicoli", _fascicoli_preview),
         "pec": pec_rows,
         "emails": email_rows,
         "client_messages": message_rows,
@@ -10016,19 +10047,31 @@ def strumenti_legali_calcola_react():
 def dashboard():
     try:
         refresh = str(request.args.get("refresh", "") or "").lower() in {"1", "true", "si", "yes"}
-        payload, cache_hit = get_dashboard_payload_cached(
+        # `stale=0`: il client sta riallineando un quadro mostrato in attesa e
+        # vuole il dato aggiornato (senza forzare il ricalcolo se è già fresco).
+        allow_stale = str(request.args.get("stale", "1") or "1").lower() not in {"0", "false", "no"}
+        payload, meta = get_dashboard_payload_swr(
             _dashboard_cache_key(),
+            _dashboard_stable_key(),
             _build_dashboard_payload,
+            day=oggi_rome().isoformat(),
             refresh=refresh,
+            allow_stale=allow_stale,
         )
         payload = dict(payload)
         payload["cache"] = {
-            "hit": bool(cache_hit),
+            "hit": bool(meta.get("hit")),
+            "stale": bool(meta.get("stale")),
+            "shared": bool(meta.get("shared")),
+            "age_seconds": int(meta.get("age_seconds") or 0),
             "ttl_seconds": int(DASHBOARD_CACHE_TTL_SECONDS),
         }
         response = jsonify(payload)
-        response.headers["X-IUSENTRA-Cache"] = "HIT" if cache_hit else "MISS"
+        response.headers["X-IUSENTRA-Cache"] = "STALE" if meta.get("stale") else ("HIT" if meta.get("hit") else "MISS")
         response.headers["Cache-Control"] = "no-store, max-age=0"
+        timing = server_timing_header(payload.get("build")) if not meta.get("hit") else ""
+        if timing:
+            response.headers["Server-Timing"] = timing
         return response
     except Exception as exc:
         current_app.logger.exception("Errore dashboard React bridge: %s", exc)

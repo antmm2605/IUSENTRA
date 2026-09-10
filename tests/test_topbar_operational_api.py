@@ -1,5 +1,13 @@
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+ROME_TZ = ZoneInfo("Europe/Rome")
+
+
+def _adesso_roma() -> datetime:
+    """Adesso in ora italiana, come lo intende la top bar."""
+    return datetime.now(ROME_TZ).replace(tzinfo=None)
 from pathlib import Path
 from urllib.parse import quote
 
@@ -115,7 +123,10 @@ def _login(client, username="operatore", password="Operatore123!") -> None:
 
 
 def _seed_domain(app) -> tuple[str, str]:
-    today = datetime.now().date()
+    #  La top bar conta gli impegni del giorno italiano: con l'orologio del
+    #  server (UTC) il test falliva ogni notte fra mezzanotte e le due ora
+    #  italiana, quando le due date non coincidono.
+    today = _adesso_roma().date()
     clienti = GestioneClienti(app.config["CLIENTI_DB"])
     cliente = clienti.nuovo(TipoCliente.PERSONA_FISICA, nome="Maria", cognome="Verdi")
     fascicoli = GestioneFascicoli(
@@ -172,7 +183,7 @@ def _seed_domain(app) -> tuple[str, str]:
             stato=StatoEmail.NON_LETTA,
             oggetto="Tribunale di Roma R.G. 1234/2026 - ordinanza da notificare",
             mittente="cancelleria.tribunale.roma@giustiziacert.it",
-            data=datetime.now().isoformat(),
+            data=_adesso_roma().isoformat(),
             corpo_testo="La cancelleria comunica ordinanza_da_notificare.pdf da notificare nel procedimento R.G. 1234/2026.",
             allegati=[{"nome": "ordinanza_da_notificare.pdf", "sha256": "a" * 64, "mime": "application/pdf"}],
         )
@@ -194,7 +205,7 @@ def _seed_persistent_topbar_notifications(app, user_id: str) -> None:
                     "type": "communication",
                     "title": "PEC non letta",
                     "message": "Cancelleria del Tribunale di Roma",
-                    "createdAt": datetime.now().isoformat(),
+                    "createdAt": _adesso_roma().isoformat(),
                     "priority": "important",
                     "href": "/email/messaggio/pec-1",
                     "actionLabel": "Apri PEC",
@@ -204,7 +215,7 @@ def _seed_persistent_topbar_notifications(app, user_id: str) -> None:
                     "type": "document",
                     "title": "Provvedimento da notificare",
                     "message": "ordinanza_da_notificare.pdf comunicata da PEC cancelleria, R.G. 1234/2026.",
-                    "createdAt": datetime.now().isoformat(),
+                    "createdAt": _adesso_roma().isoformat(),
                     "priority": "urgent",
                     "href": "/portali/pst/acquisizione?documento=ordinanza_da_notificare.pdf&single_document=1&non_duplicare_documenti=1",
                     "actionLabel": "Scarica dal portale",
@@ -214,7 +225,7 @@ def _seed_persistent_topbar_notifications(app, user_id: str) -> None:
                     "type": "deadline",
                     "title": "Deposito memoria istruttoria",
                     "message": "Scadenza oggi",
-                    "createdAt": datetime.now().isoformat(),
+                    "createdAt": _adesso_roma().isoformat(),
                     "priority": "urgent",
                     "href": "/scadenziario/scad-test",
                     "actionLabel": "Apri scadenza",

@@ -32,6 +32,7 @@ LEX_CROSS_SUITE: tuple[Path, ...] = tuple(
 #  --core-total-shards nella matrice di .github/workflows/ci.yml.
 CORE_CI_TOTAL_SHARDS = 10
 CORE_CI_SUBSHARDS: dict[int, int] = {
+    3: 3,
     4: 4,
     5: 6,
     6: 16,
@@ -130,6 +131,14 @@ CORE_TARGETS: tuple[Path, ...] = (
     #  processuale gia' fissata, quindi una regressione qui si vede sul
     #  calendario dello studio e non in un log.
     REPO_ROOT / "tests" / "test_pec_term_modification.py",
+    #  Presidio PEC end-to-end. Restavano fuori dalla CI e nel frattempo si
+    #  erano rotti in silenzio: collegamento all'udienza salvato malformato,
+    #  PEC da assegnare mai mostrate nel centro notifiche, termine legale non
+    #  riportato in scadenziario. Sono difetti che si vedono sul lavoro dello
+    #  studio, non in un log.
+    REPO_ROOT / "tests" / "test_pec_audit_pipeline.py",
+    REPO_ROOT / "tests" / "test_pec_legal_deadline_cablaggio.py",
+    REPO_ROOT / "tests" / "test_email_client.py",
 )
 
 

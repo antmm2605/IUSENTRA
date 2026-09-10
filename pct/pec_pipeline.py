@@ -6584,7 +6584,12 @@ class PecAuditRepository:
         scadenziario_db_path: str | Path | None = None,
         agenda_db_path: str | Path | None = None,
         calendar_sync_db_path: str | Path | None = None,
+        #  Orologio iniettabile. Se un termine sia superato dipende da "oggi":
+        #  senza questo punto un test che verifica la data legale esatta
+        #  smette di funzionare appena quella data passa.
+        now_provider: Callable[[], datetime] | None = None,
     ):
+        self._now_provider = now_provider or (lambda: datetime.now(ROME_TZ))
         self.db_path = Path(db_path)
         self.tenant_id = str(tenant_id or DEFAULT_TENANT_ID)
         self.clienti_db_path = Path(clienti_db_path) if clienti_db_path else None
@@ -12175,11 +12180,15 @@ class PecAuditRepository:
             parsed = parsed.astimezone(ROME_TZ)
         return parsed.date()
 
+    def _now_in_rome(self) -> datetime:
+        adesso = self._now_provider()
+        return adesso.astimezone(ROME_TZ) if adesso.tzinfo else adesso.replace(tzinfo=ROME_TZ)
+
     def _is_expired_deadline_date(self, target_date: str) -> bool:
         deadline_day = self._deadline_date_in_rome(target_date)
         if deadline_day is None:
             return False
-        return deadline_day < datetime.now(ROME_TZ).date()
+        return deadline_day < self._now_in_rome().date()
 
     def _studio_db_for_data_path(self, path: Path | str):
         try:

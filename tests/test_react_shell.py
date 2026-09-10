@@ -5869,9 +5869,14 @@ def test_react_agenda_bridge_presidio_documentale_lex_link_storico_da_controllar
 
 
 def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
+    from web.services.react_dashboard_time import oggi_rome
+
     app = _app(tmp_path)
     client = app.test_client()
-    today = date.today()
+    #  La Panoramica ragiona sul giorno italiano, non su quello del server:
+    #  con ``date.today()`` il test falliva ogni notte fra mezzanotte e le due
+    #  ora italiana, quando il server in UTC e' ancora al giorno prima.
+    today = oggi_rome()
 
     cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
     cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi")

@@ -1168,11 +1168,24 @@ def test_dashboard_ultime_pec_usa_inbox_completa_e_invalida_cache(tmp_path):
             )
         )
         second = client.get("/api/v1/ui/dashboard", headers=headers)
+        #  Dalla 2.284.0 la Panoramica mostra subito l'ultimo quadro valido
+        #  quando le caselle sono cambiate, e il client lo riallinea con
+        #  ?stale=0: la PEC nuova arriva al secondo giro, non al primo.
+        realigned = client.get("/api/v1/ui/dashboard?stale=0", headers=headers)
 
-    payload = second.get_json()
+    stale_payload = second.get_json()
     assert second.status_code == 200
     assert second.headers["Cache-Control"] == "no-store, max-age=0"
-    assert second.headers["X-IUSENTRA-Cache"] == "MISS"
+    assert second.headers["X-IUSENTRA-Cache"] == "STALE"
+    #  Il quadro in attesa deve dichiararsi tale, altrimenti la UI non puo'
+    #  avvisare l'utente che sta guardando dati non aggiornati.
+    assert stale_payload["cache"]["stale"] is True
+
+    payload = realigned.get_json()
+    assert realigned.status_code == 200
+    assert realigned.headers["Cache-Control"] == "no-store, max-age=0"
+    assert realigned.headers["X-IUSENTRA-Cache"] == "MISS"
+    assert payload["cache"]["stale"] is False
     assert payload["pec"][0]["id"] == "PEC-GIUSTIZIACERT-NEW"
     assert payload["stats"]["pecUnread"] == 2
     assert payload["emails"] == []

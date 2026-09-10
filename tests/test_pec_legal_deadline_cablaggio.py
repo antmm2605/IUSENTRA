@@ -15,16 +15,25 @@ Fonti certe: art. 127-ter c.p.c. (5 giorni dalla comunicazione), art. 133 c.p.c.
 
 from __future__ import annotations
 
+from datetime import datetime
 from email import policy
 from email.message import EmailMessage
 
 from pct.pec_pipeline import (
+    ROME_TZ,
     PecAuditRepository,
     _legal_deadline_scadenza_fields,
     _report_has_legal_deadline,
     build_validation_report,
 )
 from pct.scadenziario import GestioneScadenziario
+
+#  La comunicazione e' del 01/09/2026 e il termine ex art. 127-ter cade il
+#  07/09/2026. Senza un orologio fisso il test si autodistrugge il giorno dopo
+#  quella data: il termine risulta superato e non viene piu' riportato in
+#  scadenziario. L'orologio e' fermo al giorno successivo alla comunicazione,
+#  cosi' le date legali restano quelle vere e la verifica resta valida sempre.
+ORA_DI_PROVA = datetime(2026, 9, 2, 9, 0, tzinfo=ROME_TZ)
 
 
 def _parsed_127ter() -> dict:
@@ -49,6 +58,7 @@ def _ingest_127ter(tmp_path):
         tmp_path / "pec_audit.sqlite",
         tenant_id="default",
         scadenziario_db_path=scad_db,
+        now_provider=lambda: ORA_DI_PROVA,
     )
     msg = EmailMessage()
     msg["Subject"] = "Comunicazione di cancelleria - trattazione scritta ex art. 127-ter c.p.c. - RG 4321/2026"

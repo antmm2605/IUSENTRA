@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.285.1 - 10/09/2026
+
+Tre difetti reali del presidio PEC, rimasti nascosti perché i test che li coprivano non erano eseguiti da nessun controllo della CI.
+
+- **PEC da assegnare mai mostrate nel centro notifiche.** `_unlinked_pec_items` aveva un `return []` dentro il blocco `finally`: scartava le righe lette a ogni chiamata e restituiva sempre una lista vuota, inghiottendo anche le eccezioni. Le PEC che il sistema non riesce ad agganciare da solo a un fascicolo non comparivano più fra quelle da assegnare. Presente dal 24/08/2026.
+- **Collegamento all'udienza salvato malformato.** L'estrattore PDF rende gli indirizzi come `[indirizzo](indirizzo)`; `plain_markdown` toglieva titoli e grassetto ma non i collegamenti, così in agenda e scadenziario finiva un indirizzo con la seconda copia e le parentesi attaccate, inutilizzabile per entrare in udienza. Ora un collegamento Markdown torna testo leggibile conservando l'indirizzo.
+- **Orologio iniettabile nel presidio PEC** (`PecAuditRepository(now_provider=...)`): se un termine sia superato dipende da «oggi», quindi un test che verifica la data legale esatta smetteva di funzionare il giorno dopo quella data. Il comportamento predefinito è invariato.
+- Aggiornato al contratto della 2.284.0 il test della Panoramica: quando le caselle cambiano la risposta è `STALE` con il quadro precedente, e la PEC nuova arriva al riallineamento con `?stale=0`. Verificato che il riallineamento restituisce la PEC nuova e il conteggio corretto.
+- **CI sbloccata.** Dalla 2.284.0 il gate «anti-regressione CI 100%» era rosso perché contava le righe della matrice con un numero fisso (39) rimasto indietro rispetto alle fasi suddivise: tutti gli altri job risultavano «skipped» e nessun deploy partiva. Il contratto ora legge fasi e suddivisioni dal runner invece di ricopiarle, quindi non può più sfasarsi.
+- Test allineati all'ora italiana: la Panoramica e la top bar contano gli impegni del giorno di Roma, ma i test usavano l'orologio del server (UTC). Fallivano ogni notte fra mezzanotte e le due ora italiana — difetto a fascia oraria, più insidioso di uno stabile. È la regola già scritta in `CLAUDE.md`.
+- Acquisizione da portale: il test pretendeva che un file `.p7m` con contenuto di prova risultasse firmato. IUSENTRA verifica la firma sui byte e non si fida dell'estensione, ed è la condotta corretta: l'attesa del test è stata allineata, non la difesa del prodotto.
+- `test_pec_audit_pipeline.py`, `test_pec_legal_deadline_cablaggio.py` e `test_email_client.py` entrano negli shard della CI.
+- La fase 3 passa alla suddivisione per item: con i file nuovi arrivava a 115 s in un solo blocco, troppo vicina al limite di 5 minuti sui runner GitHub, che sono più lenti. Dopo la suddivisione: 51, 35 e 32 secondi.
+
 ## 2.285.0 - 10/09/2026
 
 - Presidio PEC: quando la cancelleria comunica la modifica di un termine già fissato (per esempio «MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il 10/12/2026»), IUSENTRA sposta il termine esistente invece di crearne un secondo. Prima nasceva un termine doppio con titolo sporco, tipo udienza e ore 00:00, e quello superato restava aperto. Base normativa: art. 16 D.L. 179/2012; artt. 154 e 127-ter c.p.c.

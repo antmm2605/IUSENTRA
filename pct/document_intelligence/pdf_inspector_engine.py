@@ -13,11 +13,32 @@ from pathlib import Path
 ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v2'
 
 
+def _unwrap_markdown_link(match: 're.Match[str]') -> str:
+    """Un collegamento Markdown torna testo leggibile senza perdere l'indirizzo.
+
+    L'estrattore rende gli indirizzi come `[url](url)`. Lasciarli intatti
+    significa che chi cerca l'indirizzo nel testo ne raccoglie anche la
+    seconda copia e le parentesi, e il collegamento all'udienza finisce
+    inutilizzabile in agenda e scadenziario.
+    """
+
+    etichetta = (match.group(1) or '').strip()
+    indirizzo = (match.group(2) or '').strip()
+    if not indirizzo:
+        return etichetta
+    if not etichetta or etichetta == indirizzo:
+        return indirizzo
+    return f'{etichetta} ({indirizzo})'
+
+
 def plain_markdown(text: str) -> str:
     """Keep headings as text for existing catalogue contracts, not Markdown syntax."""
     text = re.sub(r'(?m)^#{1,6}\s+', '', text)
     text = re.sub(r'\*\*([^*\n]+)\*\*', r'\1', text)
     text = re.sub(r'</?u>', '', text)
+    #  `[etichetta](indirizzo)`, comprese le forme annidate prodotte
+    #  dall'estrattore per gli indirizzi gia' scritti per esteso.
+    text = re.sub(r'\[([^\]\n]*)\]\(\s*([^)\s]*)\s*\)', _unwrap_markdown_link, text)
     return text.strip()
 
 

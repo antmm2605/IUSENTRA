@@ -5960,7 +5960,11 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     doc = next(item for item in fascicolo_reload.documenti if item.id_documento_portale == "DOC-VERBALE-1")
     ordinanza = next(item for item in fascicolo_reload.documenti if item.id_documento_portale == "DOC-ORDINANZA-2")
     assert doc.nome.endswith(".p7m")
-    assert doc.firmato is True
+    #  Il contenuto di prova non e' una vera busta CAdES: IUSENTRA verifica la
+    #  firma sui byte e non si fida dell'estensione, quindi il documento non
+    #  deve risultare firmato. Marcarlo firmato per il solo nome del file
+    #  significherebbe dichiarare valida una firma inesistente.
+    assert doc.firmato is False
     assert doc.tipo == TipoDocumento.VERBALE
     assert doc.data_documento == "2025-01-21"
     assert doc.data_deposito_portale == "2025-01-21"

@@ -763,10 +763,13 @@ def _unlinked_pec_items(paths: Mapping[str, Any], *, limit: int = UNLINKED_PEC_M
         # va detto, non ingoiato.
         if has_app_context():
             current_app.logger.warning("PEC non collegate non leggibili da %s: %s", db_path, exc)
+        return []
     finally:
+        # Mai un ``return`` qui: scarterebbe le righe lette a ogni chiamata e
+        # inghiottirebbe le eccezioni, lasciando le PEC da assegnare invisibili
+        # nel centro notifiche senza alcun segnale.
         if conn is not None:
             conn.close()
-        return []
 
     voci: list[dict[str, Any]] = []
     for riga in righe:

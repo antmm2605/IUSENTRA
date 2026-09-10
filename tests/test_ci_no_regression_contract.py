@@ -85,21 +85,31 @@ def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
         r"subdivide_items:\s*(true|false)\s+label:",
         shards_section,
     )
-    expected_subshards = {5: 6, 6: 16, 7: 3, 8: 3, 9: 6}
-    assert len(rows) == 39
+    #  La suddivisione delle fasi viene letta dal runner, non ricopiata qui:
+    #  una copia si sfasa in silenzio appena una fase viene suddivisa, e il
+    #  contratto smette di sorvegliare proprio cio' per cui esiste.
+    runner = _load_pytest_phase_runner()
+    expected_subshards = dict(runner.CORE_CI_SUBSHARDS)
+    total_shards = int(runner.CORE_CI_TOTAL_SHARDS)
+    attese = sum(expected_subshards.get(phase, 1) for phase in range(1, total_shards + 1))
+
+    assert len(rows) == attese
     split_rows = {(int(phase), int(sub), int(total), item_mode) for phase, sub, total, item_mode in rows}
     for phase, total in expected_subshards.items():
         assert {(phase, sub, total, "true") for sub in range(1, total + 1)} <= split_rows
-    for phase in (1, 2, 3, 4, 10):
-        assert (phase, 1, 1, "false") in split_rows
+    for phase in range(1, total_shards + 1):
+        if phase not in expected_subshards:
+            assert (phase, 1, 1, "false") in split_rows
 
     timeout = re.search(r"timeout-minutes:\s*(\d+)", shards_section)
     assert timeout
     assert int(timeout.group(1)) <= 15
 
-    runner = _load_pytest_phase_runner()
     core_files = runner.discover_core_test_files()
-    shards = runner.split_core_shards(core_files, 10)
+    #  ``pin_phases`` come nella divisione in fasi vera: senza, i file ancorati
+    #  finiscono dove capita e il contratto verificherebbe una distribuzione
+    #  che la CI non usa.
+    shards = runner.split_core_shards(core_files, total_shards, pin_phases=True)
     discovered = {path.relative_to(REPO_ROOT).as_posix() for path in core_files}
     flattened = [path for shard in shards for path in shard]
 

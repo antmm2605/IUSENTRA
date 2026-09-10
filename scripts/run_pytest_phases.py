@@ -103,6 +103,9 @@ CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "tests" / "test_regia_ui_react.py",
     REPO_ROOT / "tests" / "test_react_shell.py",
     REPO_ROOT / "tests" / "test_document_capture_contracts.py",
+    #  Presidia la Panoramica condivisa tra worker: senza questo file in CI la
+    #  regressione di prestazioni tornerebbe invisibile ai required check.
+    REPO_ROOT / "tests" / "test_react_dashboard_swr.py",
 )
 
 

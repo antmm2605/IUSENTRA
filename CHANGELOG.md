@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.284.1 - 10/09/2026
+
+- I test che presidiano la Panoramica condivisa tra worker (`tests/test_react_dashboard_swr.py`) entrano negli shard eseguiti dalla CI: erano verdi ma nessun required check li eseguiva, quindi una regressione di prestazioni sarebbe tornata invisibile.
+- L'ingresso del file ridistribuisce gli shard: `test_react_shell.py` passa da core-04 a core-05, già suddiviso per item. Shard verificati eseguendoli come la CI — core-04 in 8-10 s per sotto-fase, core-05 in 58-65 s, core-06 in 2-3 s, core-03 in 28 s.
+
 ## 2.284.0 - 10/09/2026
 
 - Panoramica (prima pagina dopo il login) più rapida. Misurato in produzione su 2.282.0: `/api/v1/ui/dashboard` impiegava 20,3 s a cache fredda (una volta 502 dopo 22,6 s) e 78 ms a cache calda; la cache durava 60 s ed era separata per ciascuno dei 3 worker.

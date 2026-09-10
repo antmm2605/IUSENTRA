@@ -801,9 +801,13 @@ def test_azioni_rapide_elenco_fascicoli_hanno_etichetta_e_target_tattile():
 def test_catalogazione_documentale_espone_visualizza_con_etichetta_esplicita():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     panel = source[source.index("function CatalogazioneDocumentalePanel"):source.index("function RowActions")]
+    row = source[source.index("function DocumentRow("):source.index("function ", source.index("function DocumentRow(") + 1)]
 
-    assert '<Eye size={15}/> Visualizza' in panel
-    assert 'aria-label={`Apri ${document.name} nel lettore interno`}' in panel
+    # Dal 2.280 il catalogo è un elenco unico: ogni voce riusa la riga documento,
+    # che porta l'azione Visualizza con etichetta esplicita del file aperto.
+    assert "<DocumentRow doc={{ ...document" in panel
+    assert "<Eye size={15}/><span>Visualizza</span>" in row
+    assert 'aria-label={`Apri ${doc.name} nel lettore interno`}' in row
 
 
 def test_navigazione_fascicolo_si_adatta_senza_troncare_sezioni_desktop():

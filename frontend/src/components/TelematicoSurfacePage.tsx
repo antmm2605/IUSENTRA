@@ -5948,7 +5948,9 @@ function AcquisitionWizard({
       pendingPstFailedDocumentsRef.current = downloaded.failedDocuments
       if (!downloaded.files.length) {
         const failureReason = downloaded.failures[0] || 'Nessun documento è stato ricevuto dal portale ufficiale.'
-        setMessage('Scaricamento non completato: il documento resta disponibile per una ripresa mirata.')
+        setMessage(downloaded.failedDocuments.length > 1
+          ? `Scaricamento non completato: i ${downloaded.failedDocuments.length} documenti restano disponibili per una ripresa mirata.`
+          : 'Scaricamento non completato: il documento resta disponibile per una ripresa mirata.')
         recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', failureReason, downloaded.failedDocuments, 'documents')
         return
       }
@@ -6092,7 +6094,9 @@ function AcquisitionWizard({
               setFiles(activeFiles)
               setStep(4)
               setMessage(retryReady
-                ? 'Scaricamento non completato: è selezionato soltanto il documento da riprendere.'
+                ? (failedDocumentKeys.length === 1
+                  ? 'Scaricamento non completato: è selezionato soltanto il documento da riprendere.'
+                  : `Scaricamento non completato: sono selezionati soltanto i ${failedDocumentKeys.length} documenti da riprendere.`)
                 : 'Scaricamento non completato: nessun documento viene sostituito o preselezionato senza identificativo ufficiale.')
               return
             }
@@ -7023,7 +7027,9 @@ function AcquisitionWizard({
                   {isDocumentRetry ? (
                     <p className="iu-tel-acq-note">
                       {retryDocuments.length && retryPreviewDocumentKeys.length === retryDocuments.length
-                        ? 'Ripresa mirata: è selezionato soltanto il documento che non è stato ricevuto dal PST.'
+                        ? (retryPreviewDocumentKeys.length === 1
+                          ? 'Ripresa mirata: è selezionato soltanto il documento che non è stato ricevuto dal PST.'
+                          : `Ripresa mirata: sono selezionati soltanto i ${retryPreviewDocumentKeys.length} documenti non ricevuti dal PST.`)
                         : retryPreviewDocumentKeys.length
                           ? 'Ripresa parziale: sono selezionati soltanto i documenti identificati con certezza; nessun altro documento verrà sostituito automaticamente.'
                           : 'Ripresa mirata bloccata: manca l’identificativo ufficiale o il documento non è più presente nell’anteprima. Non verrà sostituito automaticamente.'}

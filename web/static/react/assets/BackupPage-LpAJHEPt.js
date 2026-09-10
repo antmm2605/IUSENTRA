@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-B-Deo4S-.js";import{t}from"./ImpostazioniPage-DttXJuDN.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

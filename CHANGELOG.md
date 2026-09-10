@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.282.1 - 10/09/2026
+
+- Acquisizione PST, ripresa dei documenti non ricevuti: con più documenti da riprendere i messaggi indicano quanti sono selezionati (“sono selezionati soltanto i N documenti…”) invece di parlare sempre di un solo documento; con un documento resta il singolare. Allineato il codice al test di contratto aggiornato con i batch PST, rimasto rosso dal 28/08/2026.
+- Catalogazione documentale: l'azione “Visualizza” di ogni documento del catalogo ha ora un'etichetta accessibile con il nome del file aperto; il test di contratto verifica la riga documento riusata dal catalogo unico invece del vecchio pulsante duplicato.
+
 ## 2.282.0 - 10/09/2026
 
 - Prestazioni: l'interfaccia React veniva avviata due volte su ogni pagina (entry inline più il file `index-*.js` importato dai chunk di pagina), con due root React sullo stesso `#root` e ogni richiesta API inviata in doppio. Il fascicolo 82A8E2BD caricava dettaglio, documenti, depositi, relata, CTU, registro e catalogazione due volte ciascuno, saturando i worker gevent. Ora l'entry inline cede l'avvio al modulo canonico (stessa istanza dei chunk, precaricata con `modulepreload`) e un solo proprietario può montare la root: verificato in Chromium headless, richieste dimezzate (1 invece di 2 per ciascun endpoint).

@@ -30,6 +30,12 @@
   {% for preload_file in react_assets.preload_js %}
   <link rel="modulepreload" href="{{ preload_file }}">
   {% endfor %}
+  {# Con l'entry inline il file canonico dell'entry viene comunque importato dai
+     chunk di pagina: precaricandolo senza query l'avvio usa una sola istanza del
+     modulo (e una sola root React), senza attendere il download in serie. #}
+  {% if react_assets.inline_entry_code %}
+  <link rel="modulepreload" href="{{ react_assets.entry_file }}">
+  {% endif %}
 </head>
 <body class="react-shell-page {{ react_body_class if react_body_class is defined else '' }}">
   {% if not react_assets.ready %}

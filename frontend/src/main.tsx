@@ -8,6 +8,7 @@ type ReactBootstrapState = {
   renderScheduled?: boolean
   renderCompleted?: boolean
   shellRendered?: boolean
+  delegatedEntry?: string
   errors?: string[]
 }
 
@@ -15,6 +16,7 @@ declare global {
   interface Window {
     __IUSENTRA_REACT_BOOTSTRAP_STATE__?: ReactBootstrapState
     __IUSENTRA_INLINE_REACT_ENTRY__?: boolean
+    __IUSENTRA_REACT_ROOT_OWNER__?: string
   }
 }
 
@@ -24,12 +26,34 @@ bootstrapState.entryStartedAt = new Date().toISOString()
 bootstrapState.errors = Array.isArray(bootstrapState.errors) ? bootstrapState.errors : []
 window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = bootstrapState
 
+const REACT_ASSETS_PREFIX = '/static/react/assets/'
 const moduleUrl = new URL(import.meta.url)
 const viteDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV)
+const inlineEntryArmed = window.__IUSENTRA_INLINE_REACT_ENTRY__ === true
+const isRetryInstance = moduleUrl.searchParams.has('iu_boot_retry')
 const shouldRunBootstrap = viteDev
   || moduleUrl.searchParams.has('v')
-  || moduleUrl.searchParams.has('iu_boot_retry')
-  || window.__IUSENTRA_INLINE_REACT_ENTRY__ === true
+  || isRetryInstance
+  || inlineEntryArmed
+// L'entry inline e il file `/static/react/assets/index-*.js` sono due istanze
+// distinte dello stesso modulo: i chunk di pagina importano il file reale, che
+// quindi viene valutato una seconda volta. Senza un proprietario unico si
+// montavano due root React sullo stesso #root e ogni richiesta API partiva due
+// volte. La copia inline cede l'avvio al file canonico, che è la stessa istanza
+// usata dalle pagine (contesti e stato condivisi).
+const isInlineInstance = inlineEntryArmed && !viteDev && !isRetryInstance && !moduleUrl.pathname.startsWith(REACT_ASSETS_PREFIX)
+
+function canonicalEntryPath(): string {
+  const script = document.querySelector<HTMLScriptElement>('script[type="module"][data-iusentra-react-entry]')
+  const raw = script?.getAttribute('data-iusentra-react-entry') || ''
+  if (!raw) return ''
+  try {
+    const url = new URL(raw, window.location.origin)
+    return url.origin === window.location.origin && url.pathname.startsWith(REACT_ASSETS_PREFIX) ? url.pathname : ''
+  } catch {
+    return ''
+  }
+}
 
 const appRoot = document.getElementById('root') ?? document.getElementById('iusentra-react-root')
 const supportOperatorRoot = document.getElementById('support-operator-react-root')
@@ -74,18 +98,41 @@ function renderStartupError(target: HTMLElement, error: unknown) {
 
 async function bootReact() {
   if (!root) throw new Error('Elemento #root non trovato.')
+  if (window.__IUSENTRA_REACT_ROOT_OWNER__) return
+  window.__IUSENTRA_REACT_ROOT_OWNER__ = moduleUrl.pathname
   renderLoadingShell(root)
   bootstrapState.renderScheduled = true
   await mountReactApp({ root, shouldMountSupportOperator })
   bootstrapState.renderCompleted = true
 }
 
+function handleBootError(error: unknown) {
+  const message = startupErrorMessage(error)
+  bootstrapState.errors?.push(message)
+  document.documentElement.dataset.iusentraEntryRuntime = 'error'
+  document.documentElement.dataset.iusentraEntryRuntimeError = message
+  if (root) renderStartupError(root, error)
+}
+
+function startBootstrap() {
+  const entryPath = isInlineInstance ? canonicalEntryPath() : ''
+  if (!entryPath) {
+    bootReact().catch(handleBootError)
+    return
+  }
+  if (root && !window.__IUSENTRA_REACT_ROOT_OWNER__) renderLoadingShell(root)
+  bootstrapState.delegatedEntry = entryPath
+  import(/* @vite-ignore */ entryPath)
+    .then(() => {
+      // Il modulo canonico si avvia da solo; se per qualunque motivo non ha
+      // preso la root, l'istanza inline resta il presidio di avvio.
+      if (!window.__IUSENTRA_REACT_ROOT_OWNER__) return bootReact()
+      return undefined
+    })
+    .catch(() => bootReact())
+    .catch(handleBootError)
+}
+
 if (shouldRunBootstrap) {
-  bootReact().catch((error) => {
-    const message = startupErrorMessage(error)
-    bootstrapState.errors?.push(message)
-    document.documentElement.dataset.iusentraEntryRuntime = 'error'
-    document.documentElement.dataset.iusentraEntryRuntimeError = message
-    if (root) renderStartupError(root, error)
-  })
+  startBootstrap()
 }

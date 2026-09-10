@@ -1916,32 +1916,65 @@ function CatalogazioneDocumentalePanel({
     return documents.map((document) => {
       const item = catalogById.get(document.id) || { document_id: document.id, filename: document.name, supported: true, indexed: false, assignment: null }
       const assignment = item.assignment
+      const sectionId = assignment && documentListSectionIds.has(assignment.document_section) ? assignment.document_section : documentAutoSectionId(document)
+      const sectionLabel = documentListSectionOptions.find((option) => option.id === sectionId)?.label || ''
       return {
         id: document.id,
         document,
-        sectionId: assignment && documentListSectionIds.has(assignment.document_section) ? assignment.document_section : documentAutoSectionId(document),
+        sectionId,
         pendingReview: assignment?.status === 'review_required' || assignment?.status === 'proposed',
-        searchExtra: assignment ? [assignment.document_label, catalogProfileLabel(assignment), catalogStatusLabel(assignment.status)] : [],
+        searchExtra: [sectionLabel, ...(assignment ? [assignment.document_label, catalogProfileLabel(assignment), catalogStatusLabel(assignment.status)] : [])],
         value: item,
       }
     })
   }, [documents, payload])
   const listControls = useDocumentListControls(documentEntries)
 
+  const loadRequestRef = useRef(0)
+  const [retryNotice, setRetryNotice] = useState('')
+
   const load = useCallback(async () => {
     if (!fascicoloId) return
+    const requestId = loadRequestRef.current + 1
+    loadRequestRef.current = requestId
+    const current = () => loadRequestRef.current === requestId
     setLoading(true)
     setError('')
+    setRetryNotice('')
+    // Una risposta 502/503/504 o un errore di rete durante un picco del server
+    // non deve lasciare il pannello in errore fino al ricaricamento manuale.
+    const delays = [1200, 2500, 5000]
     try {
-      const response = await fetch(endpoint, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string }
-      if (!response.ok) throw new Error(next.detail || next.error || 'Catalogazione documentale non disponibile.')
-      setPayload(next)
-    } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : 'Catalogazione documentale non disponibile.'
-      setError(message)
+      for (let attempt = 0; ; attempt += 1) {
+        let transient = false
+        let failure = 'Catalogazione documentale non disponibile.'
+        try {
+          const response = await fetch(endpoint, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+          const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string }
+          if (response.ok && Array.isArray(next.documents)) {
+            if (current()) setPayload(next)
+            return
+          }
+          transient = catalogTransientStatuses.has(response.status) || (response.ok && !Array.isArray(next.documents))
+          failure = next.detail || next.error || (transient ? 'Il server è momentaneamente occupato: catalogazione non letta.' : failure)
+        } catch {
+          transient = true
+          failure = 'Connessione interrotta durante la lettura della catalogazione.'
+        }
+        if (!current()) return
+        if (!transient || attempt >= delays.length) {
+          setError(`${failure} Premi “Riprova” per rileggerla.`)
+          return
+        }
+        setRetryNotice(`Server occupato: nuovo tentativo ${attempt + 2} di ${delays.length + 1}…`)
+        await new Promise((resolve) => globalThis.setTimeout(resolve, delays[attempt]))
+        if (!current()) return
+      }
     } finally {
-      setLoading(false)
+      if (current()) {
+        setLoading(false)
+        setRetryNotice('')
+      }
     }
   }, [endpoint, fascicoloId])
 
@@ -2076,8 +2109,8 @@ function CatalogazioneDocumentalePanel({
           <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
           <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
         </dl>
-        {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> Lettura catalogo SQL in corso…</p> : null}
-        {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
+        {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> {retryNotice || 'Lettura catalogo SQL in corso…'}</p> : null}
+        {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error} <button type="button" className="iu-fas-catalog__retry" disabled={loading || busy} onClick={() => void load()}><RefreshCw size={14}/> Riprova</button></p> : null}
         {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
         {documentEntries.length ? <DocumentListToolbar controls={listControls} sections={documentListSectionOptions} visibleCount={listControls.visible.length}/> : null}
         <div className="iu-fas-catalog__list">
@@ -7102,6 +7135,8 @@ const documentAutoSectionOrder: Array<Omit<DocumentAutoSection, 'documents'>> = 
 ]
 
 const documentListSectionIds = new Set(documentAutoSectionOrder.map((section) => section.id))
+
+const catalogTransientStatuses = new Set([408, 423, 429, 502, 503, 504])
 
 const documentListSectionOptions: DocumentSectionOption[] = [
   { id: 'atti', label: 'Atti e memorie' },

@@ -24,7 +24,8 @@ export function DocumentListToolbar<T>({
   const searchId = useId()
   const sortId = useId()
   const hintId = useId()
-  const { query, setQuery, sort, setSort, section, setSection, status, setStatus, searchRef, total, sectionCounts, statusCounts, filtersActive, resetFilters } = controls
+  const { query, setQuery, sort, setSort, section, setSection, status, setStatus, searchRef, total, sectionCounts, statusCounts, filtersActive, resetFilters, searchMode, relevanceActive } = controls
+  const orderLabel = relevanceActive ? 'ordinati per pertinenza' : DOCUMENT_SORT_OPTIONS.find((option) => option.value === sort)?.label.toLowerCase()
   const sectionTotal = Array.from(sectionCounts.values()).reduce((sum, value) => sum + value, 0)
   const availableSections = sections.filter((option) => (sectionCounts.get(option.id) || 0) > 0 || option.id === section)
 
@@ -41,7 +42,7 @@ export function DocumentListToolbar<T>({
             value={query}
             autoComplete="off"
             spellCheck={false}
-            placeholder="Cerca nome, tipo, nota o data (es. procura marzo 2024)"
+            placeholder="Cerca nome, tipo, sigla o data (es. DI, PEC giugno 2026, procura)"
             aria-describedby={hintId}
             onChange={(event) => setQuery(event.currentTarget.value)}
             onKeyDown={(event) => {
@@ -55,7 +56,7 @@ export function DocumentListToolbar<T>({
             <button type="button" className="iu-doclist-toolbar__clear" onClick={() => { setQuery(''); searchRef.current?.focus() }} aria-label="Cancella ricerca" title="Cancella ricerca">
               <X size={14} aria-hidden="true"/>
             </button>
-          ) : <kbd aria-hidden="true" title="Premi / per cercare">/</kbd>}
+          ) : null}
         </label>
         <label className="iu-doclist-toolbar__sort" htmlFor={sortId}>
           <ArrowDownUp size={15} aria-hidden="true"/>
@@ -83,8 +84,11 @@ export function DocumentListToolbar<T>({
         ))}
       </div>
       <p id={hintId} className="iu-doclist-toolbar__result" aria-live="polite">
-        <span>{filtersActive ? `${visibleCount} di ${total} documenti` : `${total} documenti`} · {DOCUMENT_SORT_OPTIONS.find((option) => option.value === sort)?.label.toLowerCase()}</span>
-        {filtersActive ? <button type="button" onClick={resetFilters}>Azzera filtri</button> : <small>Premi / per cercare, Esc per cancellare.</small>}
+        <span>
+          {filtersActive ? `${visibleCount} di ${total} documenti` : `${total} documenti`} · {orderLabel}
+          {searchMode === 'simili' ? <em className="iu-doclist-toolbar__similar"> · nessun documento contiene tutti i termini: mostro i più simili</em> : null}
+        </span>
+        {filtersActive ? <button type="button" onClick={resetFilters}>Azzera filtri</button> : null}
       </p>
     </div>
   )

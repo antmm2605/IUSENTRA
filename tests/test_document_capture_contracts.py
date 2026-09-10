@@ -31,7 +31,7 @@ def test_acquisizione_richiede_anteprima_conferma_e_id_fascicolo_attuale():
     page = source("components/FascicoliPage.tsx")
     assert 'key={data.fascicolo.id} fascicoloId={data.fascicolo.id}' in page
     upload_workspace = page.split('function DocumentUploadWorkspace', 1)[1].split('function documentCatalogMethodLabel', 1)[0]
-    assert upload_workspace.index("<DocumentCapture") < upload_workspace.index('<form className="iu-fas-doc-upload"')
+    assert upload_workspace.index("<DocumentCapture") < upload_workspace.index('<form className={`iu-fas-doc-upload')
     assert "Scanner / webcam / fotocamera" in capture
     assert "Acquisizione da dispositivo" in capture
     assert "if (!result || !reviewed) return" in capture

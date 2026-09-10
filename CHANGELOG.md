@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.282.0 - 10/09/2026
+
+- Prestazioni: l'interfaccia React veniva avviata due volte su ogni pagina (entry inline più il file `index-*.js` importato dai chunk di pagina), con due root React sullo stesso `#root` e ogni richiesta API inviata in doppio. Il fascicolo 82A8E2BD caricava dettaglio, documenti, depositi, relata, CTU, registro e catalogazione due volte ciascuno, saturando i worker gevent. Ora l'entry inline cede l'avvio al modulo canonico (stessa istanza dei chunk, precaricata con `modulepreload`) e un solo proprietario può montare la root: verificato in Chromium headless, richieste dimezzate (1 invece di 2 per ciascun endpoint).
+- Catalogazione documentale: una risposta 502/503/504 o un errore di rete durante un picco non lascia più il pannello su “Catalogazione documentale non disponibile”. La lettura viene ritentata automaticamente (fino a 4 tentativi) e, se resta non disponibile, compare il pulsante “Riprova”.
+- Ricerca documenti del fascicolo più intelligente: sigle e sinonimi forensi (DI/D.I., CU, PEC, RdA, RdAC, CTU, NIR, procura/mandato, relata/notifica, sentenza, ordinanza…), nomi file in camelCase o con trattini e underscore, singolare/plurale e prefissi, refusi di una lettera, date scritte come 8-3-2024, 08.03.2024, 2024-03-08, 03/2024, “mar 2024”, “frase esatta” tra virgolette e -parola per escludere. I risultati sono ordinati per pertinenza; se nessun documento contiene tutti i termini vengono mostrati i più simili, dichiarandolo. Anche la sezione (Provvedimenti, Pagamenti…) è ricercabile.
+- Rimossa l'indicazione “Premi / per cercare, Esc per cancellare.” e il tasto “/” disegnato nel campo di ricerca.
+
 ## 2.281.0 - 10/09/2026
 
 - Fascicolo › Documenti e atti: l'elenco dei documenti è ordinato per data. Si può scegliere tra data del documento (più o meno recenti), data di caricamento (ultimi o primi caricati) e nome; la scelta resta memorizzata nel browser e i documenti senza data restano in fondo.

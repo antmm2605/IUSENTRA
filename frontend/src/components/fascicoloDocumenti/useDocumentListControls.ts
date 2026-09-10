@@ -2,13 +2,11 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import type { FascicoloDocument } from '../../fascicoliData'
 import {
   DEFAULT_DOCUMENT_SORT,
-  buildDocumentHaystack,
   compareDocuments,
   isDocumentSortKey,
-  matchesSearchTerms,
-  searchTerms,
   type DocumentSortKey,
 } from './documentListOrdering'
+import { buildDocumentSearchIndex, searchDocumentIndex, type DocumentSearchMode } from './documentSearch'
 
 export type DocumentStatusFilter = 'tutti' | 'da_firmare' | 'da_verificare'
 
@@ -61,16 +59,22 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
   }, [])
 
   const indexed = useMemo(
-    () => entries.map((entry) => ({ entry, haystack: buildDocumentHaystack(entry.document, entry.searchExtra) })),
+    () => entries.map((entry) => ({ item: entry, index: buildDocumentSearchIndex(entry.document, entry.searchExtra) })),
     [entries],
   )
 
-  const terms = useMemo(() => searchTerms(deferredQuery), [deferredQuery])
+  // Ricerca per pertinenza: sigle e sinonimi forensi, radici, refusi e date in
+  // qualunque formato; se nessun documento contiene tutti i termini propone i più simili.
+  const searchResult = useMemo(() => searchDocumentIndex(indexed, deferredQuery), [indexed, deferredQuery])
+  const searchMode: DocumentSearchMode = searchResult.mode
+  const relevanceActive = searchMode === 'esatta' || searchMode === 'simili'
 
-  const matchingQuery = useMemo(
-    () => (terms.length ? indexed.filter((item) => matchesSearchTerms(item.haystack, terms)) : indexed).map((item) => item.entry),
-    [indexed, terms],
+  const relevanceRank = useMemo(
+    () => new Map(searchResult.items.map(({ item }, position) => [item.id, position])),
+    [searchResult],
   )
+
+  const matchingQuery = useMemo(() => searchResult.items.map(({ item }) => item), [searchResult])
 
   const sectionCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -93,8 +97,8 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
   const visible = useMemo(
     () => matchingQuery
       .filter((entry) => (section === 'tutte' || entry.sectionId === section) && matchesStatus(entry, status))
-      .sort((a, b) => compareDocuments(sort, a.document, b.document)),
-    [matchingQuery, section, status, sort],
+      .sort((a, b) => (relevanceActive ? (relevanceRank.get(a.id) ?? 0) - (relevanceRank.get(b.id) ?? 0) : 0) || compareDocuments(sort, a.document, b.document)),
+    [matchingQuery, section, status, sort, relevanceActive, relevanceRank],
   )
 
   const filtersActive = Boolean(query.trim()) || section !== 'tutte' || status !== 'tutti'
@@ -130,6 +134,8 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
     setStatus,
     searchRef,
     visible,
+    searchMode,
+    relevanceActive,
     total: entries.length,
     sectionCounts,
     statusCounts,

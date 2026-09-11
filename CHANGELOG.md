@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.290.0 - 11/09/2026
+
+Ricerca Studio: meno rumore nei risultati e un indice che non perde piu' pezzi.
+
+- **La stessa PEC non compare piu' due volte.** Un messaggio registrato sia nel registro delle comunicazioni sia nella casella produceva due risultati distinti, con due link diversi e nessun modo di capire quale aprire. Ora le voci che parlano dello stesso messaggio — riconosciuto dal `Message-ID` — diventano una sola: il collegamento porta al messaggio vero invece che alla riga di registro, resta il corpo piu' completo, e l'altra posizione e le etichette di entrambe le sorgenti restano consultabili. Senza `Message-ID` non si accorpa nulla, per non unire messaggi diversi.
+- **La ricerca non perde piu' PEC ed email.** La top bar dichiarava nove sorgenti invece di dodici, senza messaggi, PEC ed email ordinaria, e quando trovava l'indice vuoto lo ricostruiva con quella lista ridotta: da quel momento cercare una PEC non dava risultati, ne' dalla top bar ne' dalla pagina Ricerca. Ora l'elenco delle sorgenti vive in un punto solo (`web/services/global_search_context.py`) e vale per entrambe le superfici; un test fallisce se tornano a divergere.
+- Una sorgente non disponibile non ferma piu' l'intera ricerca: resta esclusa e viene segnalata nel log.
+
 ## 2.289.0 - 11/09/2026
 
 - Template atti › editor (`/template-atti/editor` e compilazione dei modelli) riscritto come un vero programma di videoscrittura. Prima la pagina era un solo riquadro con spaziatori stimati: il testo poteva finire nei margini, nello spazio tra i fogli o sotto il timbro, e su mobile il foglio veniva ristretto a 1,1 rem di margine (le righe andavano a capo in modo diverso dal documento reale) con barra strumenti e pannelli sovrapposti al testo.

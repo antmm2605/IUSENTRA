@@ -31,12 +31,16 @@ from web.services.notifications_runtime import (
     current_tenant_id as _notification_tenant_id,
     current_user_id as _notification_user_id,
 )
+from web.services.global_search_context import costruisci_contesto_ricerca
 from web.helpers import (
     get_agenda,
     get_clienti,
+    get_email_ordinaria,
+    get_email_pec,
     get_fascicoli,
     get_fatturazione,
     get_legal_intelligence,
+    get_messaggi,
     get_pagamenti,
     get_preventivi,
     get_scadenziario,
@@ -396,36 +400,33 @@ def _global_search_db_path() -> Path:
 
 
 def _global_search_context() -> dict[str, Any]:
-    context: dict[str, Any] = {
-        "tenant_id": _tenant_id(),
-        "search_index_path": _cfg_value("SEARCH_INDEX", ""),
-        "fascicoli": None,
-        "clienti": None,
-        "soggetti": None,
-        "scadenziario": None,
-        "agenda": None,
-        "preventivi": None,
-        "fatturazione": None,
-        "pagamenti": None,
-        "legal_intelligence": None,
-    }
-    factories = {
-        "fascicoli": get_fascicoli,
-        "clienti": get_clienti,
-        "soggetti": get_soggetti,
-        "scadenziario": get_scadenziario,
-        "agenda": get_agenda,
-        "preventivi": get_preventivi,
-        "fatturazione": get_fatturazione,
-        "pagamenti": get_pagamenti,
-        "legal_intelligence": get_legal_intelligence,
-    }
-    for key, factory in factories.items():
-        try:
-            context[key] = factory()
-        except Exception:
-            current_app.logger.info("Top bar: modulo %s non disponibile per ricerca", key, exc_info=True)
-    return context
+    """Stesso contesto della pagina Ricerca.
+
+    Quando l'indice risulta vuoto la top bar lo ricostruisce: se qui mancasse
+    una sorgente, la ricostruzione la cancellerebbe dall'indice per tutti.
+    """
+
+    return costruisci_contesto_ricerca(
+        tenant_id=_tenant_id(),
+        search_index_path=_cfg_value("SEARCH_INDEX", ""),
+        factories={
+            "fascicoli": get_fascicoli,
+            "clienti": get_clienti,
+            "soggetti": get_soggetti,
+            "scadenziario": get_scadenziario,
+            "agenda": get_agenda,
+            "preventivi": get_preventivi,
+            "fatturazione": get_fatturazione,
+            "pagamenti": get_pagamenti,
+            "legal_intelligence": get_legal_intelligence,
+            "messaggi": get_messaggi,
+            "email_pec": get_email_pec,
+            "email_ordinaria": get_email_ordinaria,
+        },
+        on_error=lambda nome, exc: current_app.logger.info(
+            "Top bar: modulo %s non disponibile per ricerca: %s", nome, exc
+        ),
+    )
 
 
 def global_search_payload(user: Any, query: str, limit: int = 20) -> dict[str, Any]:

@@ -26,6 +26,7 @@ from web.helpers import (
     tenant_corrente,
 )
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.global_search_context import costruisci_contesto_ricerca
 
 global_search = Blueprint("global_search", __name__)
 
@@ -61,44 +62,29 @@ def _service() -> GlobalSearchService:
 
 
 def _context() -> dict[str, Any]:
-    ctx: dict[str, Any] = {
-        "tenant_id": _tenant_id(),
-        "search_index_path": str(current_app.config.get("SEARCH_INDEX", "")),
-        "fascicoli": None,
-        "clienti": None,
-        "soggetti": None,
-        "scadenziario": None,
-        "agenda": None,
-        "preventivi": None,
-        "fatturazione": None,
-        "pagamenti": None,
-        "legal_intelligence": None,
-        "messaggi": None,
-        "comunicazioni": None,
-        "email_pec": None,
-        "email_ordinaria": None,
-    }
-    factories = {
-        "fascicoli": get_fascicoli,
-        "clienti": get_clienti,
-        "soggetti": get_soggetti,
-        "scadenziario": get_scadenziario,
-        "agenda": get_agenda,
-        "preventivi": get_preventivi,
-        "fatturazione": get_fatturazione,
-        "pagamenti": get_pagamenti,
-        "legal_intelligence": get_legal_intelligence,
-        "messaggi": get_messaggi,
-        "email_pec": get_email_pec,
-        "email_ordinaria": get_email_ordinaria,
-    }
-    for key, factory in factories.items():
-        try:
-            ctx[key] = factory()
-        except Exception as exc:
-            current_app.logger.info("Ricerca Studio: modulo %s non disponibile: %s", key, exc)
-    ctx["comunicazioni"] = ctx.get("messaggi")
-    return ctx
+    """Contesto della ricerca, con l'elenco unico delle sorgenti."""
+
+    return costruisci_contesto_ricerca(
+        tenant_id=_tenant_id(),
+        search_index_path=str(current_app.config.get("SEARCH_INDEX", "")),
+        factories={
+            "fascicoli": get_fascicoli,
+            "clienti": get_clienti,
+            "soggetti": get_soggetti,
+            "scadenziario": get_scadenziario,
+            "agenda": get_agenda,
+            "preventivi": get_preventivi,
+            "fatturazione": get_fatturazione,
+            "pagamenti": get_pagamenti,
+            "legal_intelligence": get_legal_intelligence,
+            "messaggi": get_messaggi,
+            "email_pec": get_email_pec,
+            "email_ordinaria": get_email_ordinaria,
+        },
+        on_error=lambda nome, exc: current_app.logger.info(
+            "Ricerca Studio: modulo %s non disponibile: %s", nome, exc
+        ),
+    )
 
 
 def _types_from_request() -> list[str] | None:

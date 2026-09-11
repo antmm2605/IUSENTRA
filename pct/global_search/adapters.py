@@ -563,6 +563,10 @@ class ComunicazioniSearchAdapter(BaseSearchAdapter):
                             " ".join(attachment_names),
                         ),
                         metadata={
+                            #  Identita' condivisa con la casella: e' cio' che
+                            #  permette di riconoscere lo stesso messaggio letto
+                            #  da due sorgenti e presentarlo una volta sola.
+                            "message_id": _first(data, "message_id", "uid_imap"),
                             "date": italian_date(_first(data, "data", "created_at", "ricevuto_il", "inviato_il")),
                             "non_letto": bool(data.get("non_letto") or data.get("unread")),
                             "canale": canale,
@@ -620,6 +624,9 @@ class EmailRicevuteSearchAdapter(BaseSearchAdapter):
                         ),
                         keywords=_join(entity_id, canale, _first(data, "message_id", "uid_imap"), " ".join(attachment_names)),
                         metadata={
+                            #  Vedi ComunicazioniSearchAdapter: stessa identita',
+                            #  cosi' le due letture confluiscono in una voce sola.
+                            "message_id": _first(data, "message_id", "uid_imap"),
                             "date": italian_date(_first(data, "data", "ricevuta_il")),
                             "cartella": _first(data, "cartella"),
                             "stato": _first(data, "stato"),

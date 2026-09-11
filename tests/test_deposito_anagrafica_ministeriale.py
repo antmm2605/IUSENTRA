@@ -197,7 +197,7 @@ def test_indirizzi_mancanti_non_bloccano_anagrafica_cassazione():
 
     assert xml is not None
     assert b"AnagraficaProcedimento" in xml
-    assert b"cassazione/tipi/atti/v13" in xml
+    assert b"cassazione/tipi/atti/v21" in xml
 
 
 @pytest.mark.parametrize(

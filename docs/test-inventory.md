@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 615.
+- File pytest censiti: 618.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -14,9 +14,9 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | --- | --- |
 | API contract | 97 |
 | Backend | 73 |
-| E2E | 9 |
+| E2E | 11 |
 | Frontend static gate | 1 |
-| Frontend/UI | 190 |
+| Frontend/UI | 191 |
 | RBAC | 62 |
 | Security | 38 |
 | Smoke CLI | 6 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 65 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 170 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 191 |
+| 09-misc | Test non classificati dalle fasi principali | 194 |
 
 ## Suite CI aggiuntive
 
@@ -155,6 +155,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | E2E | tests/e2e/test_ai_pipeline_full.py | audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/e2e/test_operational_crash_day.py | tenant, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/e2e/test_studio_reale_flow.py | happy/edge path dominio | richiede ambiente/credenziali quando esce dal test client | censito |
+| Backend domain | E2E | tests/test_cassazione_atti_v21_predisposti.py | contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
+| Backend domain | E2E | tests/test_cassazione_datiatto_schemi_esercizio.py | contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_end_to_end_studio.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_golden_paths.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_pec_ocr_pipeline.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
@@ -167,6 +169,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_assistente_context_cache.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_busta.py | contratto, file, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_cades_signed_attrs.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_codici_oggetto_sici_xsd_esercizio.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_compilatore_atti.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_dashboard_panoramica.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_economic_dashboard.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

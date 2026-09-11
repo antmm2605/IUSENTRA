@@ -27,3 +27,8 @@ regola adottata.
 - `xsd/2026-05-12-sici/`: XSD SICI PST pubblicati il 12 maggio 2026 e relativa
   nota modifiche, mantenuti offline per controlli deposito collegati alla prova
   della notifica.
+- `PST_XSD_CONFORMITA_2026-09-11.md`: confronto file per file tra i pacchetti XSD/DTD della pagina
+  Download PST e le copie versionate qui, stato di esercizio di ogni pacchetto, correzioni della 2.286.0
+  (codici oggetto SICID al pacchetto del 12/05/2026, DatiAtto Cassazione sugli schemi v21) e punti aperti.
+- `CASSAZIONE_ATTI_V21_PREDISPOSTI.md`: otto atti di parte Cassazione degli schemi v21 predisposti ma non
+  attivi (interruttore in `pct/cassazione_atti_v21.py`), fonti normative e checklist di attivazione.

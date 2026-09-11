@@ -450,8 +450,8 @@ def test_dati_atto_ministeriale_catalogo_cassazione_usa_root_e_anagrafica(tmp_pd
         contributo_unificato_richiesto=True,
         contributo_unificato_xml_mode="cassazione_spese_giustizia",
         anagrafica_procedimento_xml=_anagrafica_ministeriale_test(
-            "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13",
-            "http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/v13",
+            "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v21",
+            "http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/v21",
         ),
         datiatto_generator_class="ParteCassazione",
         datiatto_root_name="Ricorso",

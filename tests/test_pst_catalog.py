@@ -90,7 +90,8 @@ def test_xsd_channels_have_status_and_package():
     sici = get_xsd_channel("SICI")
     cassazione = get_xsd_channel("CASSAZIONE")
 
-    assert sici.package_name == "XSD_SICI_20260116.zip"
+    assert sici.package_name == "XSD_SICI_20260508.zip"
+    assert sici.status_source_news_date == "2026-05-12"
     assert sici.production_ready is True
     assert cassazione.status_source_news_date == "2026-03-04"
     assert cassazione.production_ready is True

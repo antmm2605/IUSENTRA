@@ -1,5 +1,16 @@
 # Pytest issue aperte e risoluzioni
 
+## Atti Cassazione v21 predisposti (2.287.0) — 11/09/2026
+
+- Atti predisposti ma **non attivi** per decisione dello studio. Prima di attivarli: checklist in `docs/specs/ministero/CASSAZIONE_ATTI_V21_PREDISPOSTI.md` (audit completo a 278 tipi sulla macchina reale, bundle React ricompilato, prova UI fino al PIN senza invio).
+- Audit completo del catalogo ancora da rieseguire sulla macchina reale, come per la 2.286.0.
+
+## Conformità schemi PST 2.286.0 — 11/09/2026
+
+- `tests/test_deposito_telematico_catalogo.py::test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde` non eseguibile nel sandbox cloud: mancano `ListaUfficiGiudiziari.xml`, `QuickOrganizer.mdb`, `psycopg2` e l'accesso al PST per i certificati di cifratura degli uffici SICID (237 errori "Download PST non riuscito", identici prima delle modifiche). Nella stessa esecuzione i 33 tipi Cassazione risultano 32 verificati e 1 eliminato dal Ministero (Memoria380bis). Le attese del test sono aggiornate a 269 DatiAtto generati: **rieseguire sulla macchina reale**.
+- Non verificato su macchina reale: form del deposito Cassazione (select Rito, Numero CCI, campi della segnalazione di errore materiale), messaggio della memoria 380-bis non inviabile, ricerca codici oggetto (171404, 4714xx) dopo la ricompilazione del bundle React. Il bundle in `web/static/react` non è stato ricompilato qui; il Docker lo ricompila da `pct/data`.
+- Aperti: codifica beni mobili PST non applicata; codifica errori controlli 1.0 non mappata; atti Cassazione v21 non ancora a catalogo; pacchetti anticipati SICI 22/07/2026 e Cassazione v.22 da salvare in `docs/specs/ministero/xsd/`.
+
 ## Acquisizione da scanner/webcam/fotocamera — 06/09/2026
 
 - Il controllo `tools/codex_harness/run_codex_quality_gate.py --mode ui-support` è stato eseguito e non è verde sul worktree di release perché quella modalità accetta solo modifiche al supporto UI, mentre questa tranche modifica codice prodotto React, asset Vite e file di versione obbligatori. Non rimuovere bundle o bump versione per forzare il gate; rieseguirlo a worktree pulito dopo commit/deploy e usare i test applicativi come prova funzionale.

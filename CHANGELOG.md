@@ -1,19 +1,18 @@
 # Changelog
 
-## 2.287.0 - 11/09/2026
+## 2.288.0 - 11/09/2026
 
-Catalogo dei codici oggetto riallineato agli XSD SICI del 08/05/2026, in esercizio dal 14/05. Il catalogo era etichettato `2026-05-11` ma i record citavano ancora come fonte il pacchetto `XSD_SICI_20260116` di gennaio.
-
-- **Codice 171404 corretto.** IUSENTRA lo mostrava come «Esdebitazione del Debitore Incapiente (CCI)»; l'XSD ministeriale in esercizio dice «Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (Marzano)». Sono due materie diverse, e con la vecchia descrizione si rischiava di iscrivere una causa con l'oggetto sbagliato. La descrizione superata resta fra le alternative, così chi cerca con il vecchio testo continua a trovare il codice.
-- **Dieci codici CCI ora selezionabili nel SICID.** 471404, 471405 e 471412-471419 erano registrati come soli UNEP, sulla base del pacchetto UNEP del 2024, benché siano presenti nell'XSD SICI: non si potevano scegliere per un deposito SICID.
-- Allineate alla fonte anche le differenze di sole maiuscole su quei codici e su 473455-473457 (`(lca)` → `(LCA)`).
-- Confronto sistematico dell'intero catalogo contro l'XSD in esercizio: su 748 codici, 14 descrizioni divergevano e 10 avevano i registri incompleti. Nessun codice dell'XSD risulta mancante dal catalogo.
-
-## 2.286.1 - 11/09/2026
-
-- L'audit end-to-end del catalogo depositi cercava le fonti probatorie dello Studio Telematico (`ListaUfficiGiudiziari.xml`, `QuickOrganizer.mdb`, impronta dell'eseguibile) solo su percorsi Windows fissi: fuori da quella postazione il confronto non era eseguibile e il test restava rosso per sempre, anche su una macchina che quelle fonti le aveva. Ora la cartella si indica con `IUSENTRA_QUICKORGANIZER_DIR` su qualunque sistema, e i percorsi storici restano come ripiego.
-- Dove le fonti non ci sono, il test si astiene dichiarando quali mancano invece di fallire: un disallineamento vero resta rosso, mentre l'assenza delle fonti non produce più un rosso permanente che nasconde i problemi veri.
-- Con le fonti presenti il confronto gira davvero e ha subito prodotto un riscontro: per il Giudice di Pace di Pordenone e quello di Porretta Terme `ListaUfficiGiudiziari.xml` indica un indirizzo `@giustizia.it`, che non è un dominio di posta certificata. Su 593 uffici con PEC nella stessa fonte, 590 usano `civile.ptel.giustiziacert.it` e solo questi due fanno eccezione: l'errore è nella lista ministeriale, non nel catalogo. Il catalogo resta invariato — allinearlo manderebbe quei depositi a un indirizzo non certificato — e la divergenza è dichiarata nell'audit con la sua motivazione, da rimuovere quando il Ministero correggerà la lista.
+- **Otto atti di parte della Corte di Cassazione predisposti ma non attivi.** Gli schemi v21 in esercizio contengono atti che il catalogo depositi non offriva:
+  - istanza di sospensione e produzione del pagamento per la definizione agevolata ex L. 197/2022;
+  - istanza di anticipazione dell'udienza e di trattazione in pubblica udienza;
+  - istanza di oscuramento dei dati identificativi (art. 52 D.Lgs. 196/2003);
+  - ricorso per correzione di errore materiale (art. 391-bis c.p.c.);
+  - ricorsi per revocazione ex artt. 391-ter e 391-quater c.p.c., con i motivi limitati ai numeri dell'art. 395 e alle lettere dell'art. 391-quater previsti dal Ministero.
+- Voci del catalogo, campi del deposito, generazione del DatiAtto e controlli sono pronti. Per scelta dello studio restano spenti (`CASSAZIONE_ATTI_V21_ATTIVI = False` in `pct/cassazione_atti_v21.py`): non compaiono nel catalogo e la preparazione viene rifiutata con un messaggio chiaro.
+- Con l'interruttore acceso gli 8 atti producono DatiAtto valido sugli XSD v21 e l'audit del catalogo li verifica insieme agli altri 32 atti Cassazione. La data di perfezionamento dell'ultima notifica è chiesta esplicitamente, perché lo schema la vuole distinta dalla prima notifica.
+- Checklist di attivazione e fonti in `docs/specs/ministero/CASSAZIONE_ATTI_V21_PREDISPOSTI.md`. Test: `tests/test_cassazione_atti_v21_predisposti.py`; le attese dell'audit del catalogo seguono lo stato dell'interruttore.
+- I namespace Cassazione passano in `pct/cassazione_xsd_tables.py`, riesportati da `pct.busta`.
+- Confronto sistematico dell'intero catalogo contro l'XSD in esercizio: su 748 codici, 14 descrizioni divergevano (una sola di sostanza, il 171404: le altre erano di sole maiuscole) e 10 avevano i registri incompleti. Nessun codice dell'XSD risulta mancante dal catalogo.
 
 ## 2.286.0 - 11/09/2026
 
@@ -24,6 +23,23 @@ Difetti emersi ripristinando tre test che nessun controllo della CI eseguiva.
 - **Precontrollo di deposito che bocciava PDF/A autentici.** La conformità veniva cercata nei soli primi 2 KB del file, mentre i marcatori XMP `pdfaid:` stanno più avanti (in un documento di prova al byte 3174). Ora si legge testa e coda, come fa già `pct.validazione`.
 - **Sincronizzazione PEC senza finestra temporale.** Guardava solo gli ultimi 60 giorni: la PEC di autorizzazione di un procedimento aperto oggi, ma arrivata mesi prima, non sarebbe mai stata agganciata. Ora si guarda l'intera casella.
 - **Sincronizzazione PEC incrementale.** Nuovo registro `pec_sync_seen`: ogni PEC esaminata — anche quelle che non riguardavano il caso — resta segnata, così i giri successivi leggono solo le nuove. La deduplica regge anche per le PEC prive di `Message-ID`, con un ripiego su mittente, data e oggetto.
+
+### Allineamento agli schemi PST in esercizio
+
+Allineamento agli schemi ministeriali in esercizio sulla pagina Download del PST. Gli XSD salvati nel repository erano già identici a quelli ufficiali (confronto file per file); il codice che li usa era rimasto indietro. Dettaglio e fonti in `docs/specs/ministero/PST_XSD_CONFORMITA_2026-09-11.md`.
+
+- **Codici oggetto SICID fermi al pacchetto del 26/01/2026.** Gli XSD SICI del 12/05/2026 sono in esercizio dal 14/05/2026 e cambiano il tipo `CodiceOggetto`.
+  - L'oggetto **171404** compariva come "Esdebitazione del Debitore Incapiente (CCI)". Il Ministero ne ha corretto la descrizione perché induceva in errore: è "Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (Marzano)". Chi sceglieva la voce per un'esdebitazione iscriveva la causa con l'oggetto sbagliato.
+  - I dieci nuovi oggetti CCI (471404, 471405, 471412-471419) erano presenti solo come UNEP e non si potevano scegliere per il SICID.
+  - Allineati catalogo tecnico, catalogo della ricerca, schede Guida Pratica e knowledge base con `scripts/allinea_codici_oggetto_sici.py`; `--check` segnala se tornano disallineati.
+- **Atti di parte in Cassazione generati sugli schemi v13.** In esercizio c'è la v21 dal 04/03/2026. Generatore, anagrafica, validatore e campi del deposito leggono ora le tabelle degli XSD in esercizio, e la versione è dichiarata in un solo punto.
+  - Tolto il tipo "Ricorso per revocazione", eliminato dal Ministero: ora IUSENTRA spiega che serve l'atto di revocazione dedicato.
+  - Ruolo del fascicolo impugnato con i quattro valori aggiunti (tra cui procedure concorsuali e procedimento unitario), rito scelto dall'elenco ministeriale, numero CCI.
+  - Segnalazione di errore materiale: numero e anno di raccolta generale del provvedimento, obbligatori dalla v21.
+  - La memoria ex art. 380-bis non esiste più come atto negli schemi in esercizio: resta visibile, non inviabile, con il motivo.
+  - I 32 atti Cassazione del catalogo producono DatiAtto valido sugli XSD v21.
+- Catalogo PST: canale SICI al pacchetto in esercizio, anticipazioni SICI del 22/07/2026 e Cassazione v.22 del 09/09/2026 registrate come non in esercizio. Il monitor riconosce le formule di messa in esercizio usate dal PST nel 2026, prima non lette.
+- Test: `test_codici_oggetto_sici_xsd_esercizio.py`, `test_cassazione_datiatto_schemi_esercizio.py`; aggiornati catalogo PST, codici oggetto, busta, anagrafica, intelligence e audit del catalogo depositi.
 
 ## 2.285.2 - 11/09/2026
 

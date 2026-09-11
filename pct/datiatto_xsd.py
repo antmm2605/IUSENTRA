@@ -9,13 +9,15 @@ from typing import Iterable
 
 from lxml import etree
 
+from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
+
 
 _XSD_NS = "http://www.w3.org/2001/XMLSchema"
 _ROOT = Path(__file__).resolve().parents[1]
 _SCHEMA_ROOTS = (
     _ROOT / "docs" / "specs" / "ministero" / "xsd" / "2026-05-12-sici",
     _ROOT / "docs" / "specs" / "ministero" / "schema" / "sigp_v3",
-    _ROOT / "docs" / "specs" / "ministero" / "parte" / "parte_v13",
+    _ROOT / "docs" / "specs" / "ministero" / "parte" / f"parte_{PST_CASSAZIONE_XSD_ACTIVE_VERSION}",
     _ROOT / "docs" / "specs" / "ministero" / "XSD PLO118 FASE2 per SW House" / "schema",
 )
 

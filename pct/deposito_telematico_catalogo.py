@@ -12,6 +12,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from pct.cassazione_atti_v21 import ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI
+from pct.cassazione_atti_v21 import catalog_raw_with_cassazione_v21
+from pct.cassazione_xsd_tables import cassazione_parte_roots
 from pct.deposito_datiatto_fields import datiatto_input_fields, datiatto_reference_data
 from pct.deposito_studio_telematico_contract import (
     studio_telematico_document_requirements,
@@ -21,6 +24,14 @@ from pct.pst_cifratura import canali_telematici_cifratura_policy
 from pct.pst_catalog import (
     PST_CASSAZIONE_XSD_20260611_PACKAGE_URL,
     PST_CASSAZIONE_XSD_20260615_DOWNLOAD_PAGE_URL,
+    PST_CASSAZIONE_XSD_20260907_PACKAGE_URL,
+    PST_CASSAZIONE_XSD_20260909_NEWS_URL,
+    PST_CASSAZIONE_XSD_ACTIVE_VERSION,
+    PST_SICI_XSD_20260512_NEWS_URL,
+    PST_SICI_XSD_20260512_PACKAGE_URL,
+    PST_SICI_XSD_20260722_NEWS_URL,
+    PST_SICI_XSD_20260722_NEW_OBJECT_CODES,
+    PST_SICI_XSD_20260722_PACKAGE_URL,
     PST_SICI_XSD_20260611_CHANGELOG_URL,
     PST_SICI_XSD_20260611_NEW_ACT,
     PST_SICI_XSD_20260611_NEW_OBJECT_CODE,
@@ -59,6 +70,30 @@ OFFICIAL_SOURCES: tuple[dict[str, str], ...] = (
         "label": "PST - XSD ufficiali Processo Civile Telematico",
         "url": PST_XSD_URL,
         "note": "Schemi XSD ufficiali per gli atti del Processo Civile Telematico.",
+    },
+    {
+        "id": "pst_xsd_sici_esercizio_20260512",
+        "label": "PST - XSD SICI 12/05/2026 in esercizio",
+        "url": PST_SICI_XSD_20260512_PACKAGE_URL,
+        "note": "Schemi SICI in esercizio dal 14/05/2026: base del validatore e del catalogo codici oggetto.",
+    },
+    {
+        "id": "pst_xsd_sici_preview_20260722",
+        "label": "PST - XSD SICI 22/07/2026 per software house",
+        "url": PST_SICI_XSD_20260722_PACKAGE_URL,
+        "note": (
+            "Anticipazione non ancora in esercizio (test su Model Office); 13 nuovi codici oggetto TSAP. "
+            f"Notizia PST: {PST_SICI_XSD_20260722_NEWS_URL}"
+        ),
+    },
+    {
+        "id": "pst_xsd_cassazione_preview_20260909",
+        "label": "PST - XSD Cassazione v.22 del 09/09/2026 per software house",
+        "url": PST_CASSAZIONE_XSD_20260907_PACKAGE_URL,
+        "note": (
+            "Anticipazione non ancora in esercizio: ricorso ex art. 14, comma 1, T.U. immigrazione e memorie dedicate. "
+            f"Notizia PST: {PST_CASSAZIONE_XSD_20260909_NEWS_URL}"
+        ),
     },
     {
         "id": "pst_xsd_sici_preview_20260611",
@@ -416,7 +451,7 @@ def _contribution_xml_mode(*, generator_class: str, root_name: str, required: bo
     if generator_class.startswith("ParteCassazione"):
         if root_name == "IntegrazioneSpeseGiustizia":
             return "cassazione_integrazione_spese"
-        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
+        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale", *CASSAZIONE_V21_INTRODUTTIVI}:
             return "cassazione_spese_giustizia"
     # The payment state still has to be resolved, but this root does not carry it.
     return "controllo_documentale"
@@ -605,6 +640,21 @@ def _iusentra_act_code(entry: dict[str, Any]) -> str:
     return "ATTO_GENERICO"
 
 
+CASSAZIONE_ROOT_ELIMINATA_STATUS = "eliminato_dagli_schemi_ministeriali_in_esercizio"
+
+
+def _root_eliminata_dagli_schemi_cassazione(hint: dict[str, Any]) -> bool:
+    """Vero se la radice Cassazione del catalogo non e piu dichiarata da Parte-cassazione.xsd attivo.
+
+    Esempio: `Memoria380bis` e presente nel catalogo decompilato (schemi fino a v15) ma il
+    Ministero l'ha tolta dalle radici degli atti di parte dalla v16; negli schemi v21 in
+    esercizio non e depositabile come atto autonomo.
+    """
+    generator_class = _text(hint.get("generatorClass"))
+    root_name = _text(hint.get("ministerialRoot"))
+    return bool(generator_class.startswith("ParteCassazione") and root_name and root_name not in cassazione_parte_roots())
+
+
 def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str) -> dict[str, Any]:
     channel_kind = _text(rules.get("channel_kind"))
     roots = _raw_roots(entry)
@@ -617,6 +667,22 @@ def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str)
             "supported": True,
             "requiresSpecificGenerator": False,
             "supportedMinisterialRoot": hint["ministerialRoot"],
+            "evidenceMethodsCount": len(methods),
+            "evidenceRootsCount": len(roots),
+            "evidenceMethods": methods[:12],
+            "evidenceRoots": roots[:12],
+            **hint,
+        }
+    if _root_eliminata_dagli_schemi_cassazione(hint):
+        return {
+            "status": CASSAZIONE_ROOT_ELIMINATA_STATUS,
+            "label": (
+                f"Atto non più previsto dagli schemi ministeriali Cassazione in esercizio "
+                f"({PST_CASSAZIONE_XSD_ACTIVE_VERSION})"
+            ),
+            "supported": False,
+            "requiresSpecificGenerator": False,
+            "supportedMinisterialRoot": "",
             "evidenceMethodsCount": len(methods),
             "evidenceRootsCount": len(roots),
             "evidenceMethods": methods[:12],
@@ -795,7 +861,18 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
         ),
     }
     studio_validation = studio_telematico_runtime_payload(key)
-    if rules["real_send_allowed_from_pct_panel"] and schema["requiresSpecificGenerator"]:
+    if schema["status"] == CASSAZIONE_ROOT_ELIMINATA_STATUS:
+        rules = {
+            **rules,
+            "real_send_allowed_from_pct_panel": False,
+            "ministerial_act_eliminated": True,
+            "real_send_blocker": (
+                "Il Ministero ha tolto questo atto dagli schemi della Corte di Cassazione in esercizio: "
+                "non può essere depositato come atto autonomo. Scegli l'atto previsto oggi dal Portale "
+                "dei Servizi Telematici."
+            ),
+        }
+    elif rules["real_send_allowed_from_pct_panel"] and schema["requiresSpecificGenerator"]:
         rules = {
             **rules,
             "real_send_allowed_from_pct_panel": False,
@@ -859,7 +936,8 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def list_deposit_catalog_entries() -> tuple[dict[str, Any], ...]:
-    raw = load_deposit_catalog_raw()
+    # Gli atti Cassazione v21 predisposti entrano solo quando attivati (pct.cassazione_atti_v21).
+    raw = catalog_raw_with_cassazione_v21(load_deposit_catalog_raw())
     rows: list[dict[str, Any]] = []
     for index, item in enumerate(raw.get("entries") or []):
         if isinstance(item, dict):
@@ -925,7 +1003,7 @@ def _macro_service(macro: str, entries: list[dict[str, Any]]) -> str:
 
 
 def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, Any]:
-    raw = load_deposit_catalog_raw()
+    raw = catalog_raw_with_cassazione_v21(load_deposit_catalog_raw())
     counts = raw.get("counts") if isinstance(raw.get("counts"), dict) else {}
     macro_counts = counts.get("macroareas") if isinstance(counts.get("macroareas"), dict) else {}
     entries = list_deposit_catalog_entries()
@@ -953,6 +1031,27 @@ def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, 
                 "xsdCount": 156,
                 "newAct": PST_SICI_XSD_20260611_NEW_ACT,
                 "newObjectCode": PST_SICI_XSD_20260611_NEW_OBJECT_CODE,
+                "productionReady": False,
+            },
+            "siciEsercizio20260512": {
+                "packageUrl": PST_SICI_XSD_20260512_PACKAGE_URL,
+                "newsUrl": PST_SICI_XSD_20260512_NEWS_URL,
+                "productionReady": True,
+            },
+            "siciPreview20260722": {
+                "packageUrl": PST_SICI_XSD_20260722_PACKAGE_URL,
+                "newsUrl": PST_SICI_XSD_20260722_NEWS_URL,
+                "newObjectCodes": list(PST_SICI_XSD_20260722_NEW_OBJECT_CODES),
+                "productionReady": False,
+            },
+            "cassazioneEsercizio": {
+                "schemaVersion": PST_CASSAZIONE_XSD_ACTIVE_VERSION,
+                "parteRoots": len(cassazione_parte_roots()),
+                "productionReady": True,
+            },
+            "cassazionePreview20260909": {
+                "packageUrl": PST_CASSAZIONE_XSD_20260907_PACKAGE_URL,
+                "newsUrl": PST_CASSAZIONE_XSD_20260909_NEWS_URL,
                 "productionReady": False,
             },
             "cassazionePreview20260615": {

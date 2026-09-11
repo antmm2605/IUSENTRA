@@ -1,5 +1,5 @@
 {
-  "versione": "2026-05-21.pst-xsd-sources",
+  "versione": "2026-09-11.pst-xsd-sources",
   "fonte": {
     "tipo": "PST_DOWNLOAD_PAGE",
     "nome": "Portale dei Servizi Telematici del Ministero della Giustizia - Download",
@@ -7,11 +7,11 @@
   },
   "sources": [
     {
-      "id": "sici_20260126",
-      "label": "Nuovi XSD SICI - 26/01/2026",
+      "id": "sici_20260512",
+      "label": "Nuovi XSD SICI - 12/05/2026",
       "kind": "SICI",
       "page_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277",
-      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260116.zip"
+      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260508.zip"
     },
     {
       "id": "sigp_20241129",

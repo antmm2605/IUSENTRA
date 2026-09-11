@@ -1,6 +1,6 @@
 {
-  "versione": "2026-05-11.pst-xsd-official",
-  "generatoIl": "2026-05-11",
+  "versione": "2026-05-12.pst-xsd-official",
+  "generatoIl": "2026-05-12",
   "fonte": {
     "tipo": "PST_XSD",
     "nome": "PST Giustizia - File Ufficiali del Processo Civile Telematico",
@@ -10557,9 +10557,9 @@
     },
     {
       "codice": "171404",
-      "descrizione": "Esdebitazione del Debitore Incapiente (CCI)",
+      "descrizione": "Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (Marzano)",
       "descrizioniAlternative": [
-        "Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (Marzano)"
+        "Esdebitazione del Debitore Incapiente (CCI)"
       ],
       "registri": [
         "SICID",
@@ -10573,7 +10573,7 @@
       "codicePadre": "171",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
@@ -22398,9 +22398,12 @@
     },
     {
       "codice": "471404",
-      "descrizione": "ESDEBITAZIONE DEL DEBITORE INCAPIENTE (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Esdebitazione del Debitore Incapiente (CCI)",
+      "descrizioniAlternative": [
+        "ESDEBITAZIONE DEL DEBITORE INCAPIENTE (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22410,7 +22413,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22420,9 +22423,12 @@
     },
     {
       "codice": "471405",
-      "descrizione": "LIQUIDAZIONE COATTA AMMINISTRATIVA (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Liquidazione Coatta Amministrativa (CCI)",
+      "descrizioniAlternative": [
+        "LIQUIDAZIONE COATTA AMMINISTRATIVA (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22432,7 +22438,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22506,9 +22512,12 @@
     },
     {
       "codice": "471412",
-      "descrizione": "AMMINISTRAZIONE STRAORDINARIA PRODI BIS (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Amministrazione Straordinaria Prodi bis (CCI)",
+      "descrizioniAlternative": [
+        "AMMINISTRAZIONE STRAORDINARIA PRODI BIS (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22518,7 +22527,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22528,9 +22537,12 @@
     },
     {
       "codice": "471413",
-      "descrizione": "AMMINISTRAZIONE STRAORDINARIA L.166/2004 MARZANO (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Amministrazione Straordinaria l.166/2004 Marzano (CCI)",
+      "descrizioniAlternative": [
+        "AMMINISTRAZIONE STRAORDINARIA L.166/2004 MARZANO (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22540,7 +22552,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22550,9 +22562,12 @@
     },
     {
       "codice": "471414",
-      "descrizione": "ACCORDI DI RISTRUTTURAZIONE (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Accordi di Ristrutturazione (CCI)",
+      "descrizioniAlternative": [
+        "ACCORDI DI RISTRUTTURAZIONE (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22562,7 +22577,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22572,9 +22587,12 @@
     },
     {
       "codice": "471415",
-      "descrizione": "CONCORDATO PREVENTIVO OMOLOGATO (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Concordato Preventivo Omologato (CCI)",
+      "descrizioniAlternative": [
+        "CONCORDATO PREVENTIVO OMOLOGATO (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22584,7 +22602,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22594,9 +22612,12 @@
     },
     {
       "codice": "471416",
-      "descrizione": "LIQUIDAZIONE GIUDIZIALE (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Liquidazione Giudiziale (CCI)",
+      "descrizioniAlternative": [
+        "LIQUIDAZIONE GIUDIZIALE (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22606,7 +22627,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22616,9 +22637,12 @@
     },
     {
       "codice": "471417",
-      "descrizione": "RISTRUTTURAZIONE DEI DEBITI (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Ristrutturazione dei debiti (CCI)",
+      "descrizioniAlternative": [
+        "RISTRUTTURAZIONE DEI DEBITI (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22628,7 +22652,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22638,9 +22662,12 @@
     },
     {
       "codice": "471418",
-      "descrizione": "CONCORDATO MINORE (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Concordato Minore (CCI)",
+      "descrizioniAlternative": [
+        "CONCORDATO MINORE (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22650,7 +22677,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -22660,9 +22687,12 @@
     },
     {
       "codice": "471419",
-      "descrizione": "LIQUIDAZIONE CONTROLLATA (CCI)",
-      "descrizioniAlternative": [],
+      "descrizione": "Liquidazione Controllata (CCI)",
+      "descrizioniAlternative": [
+        "LIQUIDAZIONE CONTROLLATA (CCI)"
+      ],
       "registri": [
+        "SICID",
         "UNEP"
       ],
       "descrizioniPerRegistro": {
@@ -22672,7 +22702,7 @@
       "codicePadre": "471",
       "descrizionePadre": "Fallimento e procedure concorsuali",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
       ],
@@ -23123,9 +23153,10 @@
     },
     {
       "codice": "473455",
-      "descrizione": "Ricorso per la dichiarazione stato insolvenza (lca)",
+      "descrizione": "Ricorso per la dichiarazione stato insolvenza (LCA)",
       "descrizioniAlternative": [
-        "RICORSO PER LA DICHIARAZIONE STATO INSOLVENZA (LCA)"
+        "RICORSO PER LA DICHIARAZIONE STATO INSOLVENZA (LCA)",
+        "Ricorso per la dichiarazione stato insolvenza (lca)"
       ],
       "registri": [
         "SICID",
@@ -23139,7 +23170,7 @@
       "codicePadre": "473",
       "descrizionePadre": "Ricorsi vari",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
@@ -23150,9 +23181,10 @@
     },
     {
       "codice": "473456",
-      "descrizione": "Ricorso per la dichiarazione stato insolvenza (asp)",
+      "descrizione": "Ricorso per la dichiarazione stato insolvenza (ASP)",
       "descrizioniAlternative": [
-        "RICORSO PER LA DICHIARAZIONE STATO INSOLVENZA (ASP)"
+        "RICORSO PER LA DICHIARAZIONE STATO INSOLVENZA (ASP)",
+        "Ricorso per la dichiarazione stato insolvenza (asp)"
       ],
       "registri": [
         "SICID",
@@ -23166,7 +23198,7 @@
       "codicePadre": "473",
       "descrizionePadre": "Ricorsi vari",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"
@@ -23177,9 +23209,10 @@
     },
     {
       "codice": "473457",
-      "descrizione": "Ricorso per la dichiarazione stato insolvenza (asm)",
+      "descrizione": "Ricorso per la dichiarazione stato insolvenza (ASM)",
       "descrizioniAlternative": [
-        "RICORSO PER LA DICHIARAZIONE STATO INSOLVENZA (ASM)"
+        "RICORSO PER LA DICHIARAZIONE STATO INSOLVENZA (ASM)",
+        "Ricorso per la dichiarazione stato insolvenza (asm)"
       ],
       "registri": [
         "SICID",
@@ -23193,7 +23226,7 @@
       "codicePadre": "473",
       "descrizionePadre": "Ricorsi vari",
       "fonte": "PST_XSD",
-      "fileFonte": "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
+      "fileFonte": "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd",
       "fileFonti": [
         "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
         "XSD_UNEP_20241106/XSD PLO118 FASE2 per SW House/schema/tipi-base.xsd"

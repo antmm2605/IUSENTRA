@@ -6,7 +6,7 @@
 
 ## Stato corrente
 
-Il catalogo caricato in repository è `2026-05-11.pst-xsd-official` e contiene 1.018 record validi. Le verifiche locali confermano:
+Il catalogo caricato in repository è `2026-05-12.pst-xsd-official` e contiene 1.018 record validi. Le verifiche locali confermano:
 
 - duplicati: 0;
 - codici invalidi: 0;

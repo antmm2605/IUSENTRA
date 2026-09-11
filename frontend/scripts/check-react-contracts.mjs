@@ -1801,7 +1801,7 @@ assertContains(praticheCollegateTs, "@iusentra-data/cataloghi/codici_oggetto_pst
 assertContains(praticheCollegateTs, 'NUOVO_FASCICOLO_LABELS', 'label apertura nuovo fascicolo centralizzate')
 assertContains(praticheCollegateCatalog, '"tipo": "PST_XSD"', 'catalogo pratiche con fonte PST XSD')
 assertContains(praticheCollegateCatalog, '"codice": "014001"', 'catalogo pratiche contiene codice PST 014001')
-assertContains(codiciOggettoPstCatalog, '"versione": "2026-05-11.pst-xsd-official"', 'catalogo tecnico ufficiale CodiceOggetto importato dagli XSD PST')
+assertContains(codiciOggettoPstCatalog, '"versione": "2026-05-12.pst-xsd-official"', 'catalogo tecnico ufficiale CodiceOggetto importato dagli XSD PST')
 assertContains(codiciOggettoPstCatalog, '"codice": "111604"', 'catalogo tecnico ufficiale contiene aggiornamento CodiceOggetto 111604')
 assertNotContains(fascicoli, 'const PRATICHE_COLLEGATE = [', 'catalogo pratiche non hardcoded nel componente fascicoli')
 assertContains(fascicoliData, 'FascicoloFormGuardrails', 'tipo guardrail form fascicolo')

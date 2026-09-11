@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.287.0 - 11/09/2026
+
+Catalogo dei codici oggetto riallineato agli XSD SICI del 08/05/2026, in esercizio dal 14/05. Il catalogo era etichettato `2026-05-11` ma i record citavano ancora come fonte il pacchetto `XSD_SICI_20260116` di gennaio.
+
+- **Codice 171404 corretto.** IUSENTRA lo mostrava come «Esdebitazione del Debitore Incapiente (CCI)»; l'XSD ministeriale in esercizio dice «Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (Marzano)». Sono due materie diverse, e con la vecchia descrizione si rischiava di iscrivere una causa con l'oggetto sbagliato. La descrizione superata resta fra le alternative, così chi cerca con il vecchio testo continua a trovare il codice.
+- **Dieci codici CCI ora selezionabili nel SICID.** 471404, 471405 e 471412-471419 erano registrati come soli UNEP, sulla base del pacchetto UNEP del 2024, benché siano presenti nell'XSD SICI: non si potevano scegliere per un deposito SICID.
+- Allineate alla fonte anche le differenze di sole maiuscole su quei codici e su 473455-473457 (`(lca)` → `(LCA)`).
+- Confronto sistematico dell'intero catalogo contro l'XSD in esercizio: su 748 codici, 14 descrizioni divergevano e 10 avevano i registri incompleti. Nessun codice dell'XSD risulta mancante dal catalogo.
+
 ## 2.286.1 - 11/09/2026
 
 - L'audit end-to-end del catalogo depositi cercava le fonti probatorie dello Studio Telematico (`ListaUfficiGiudiziari.xml`, `QuickOrganizer.mdb`, impronta dell'eseguibile) solo su percorsi Windows fissi: fuori da quella postazione il confronto non era eseguibile e il test restava rosso per sempre, anche su una macchina che quelle fonti le aveva. Ora la cartella si indica con `IUSENTRA_QUICKORGANIZER_DIR` su qualunque sistema, e i percorsi storici restano come ripiego.

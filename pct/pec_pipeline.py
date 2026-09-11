@@ -12002,6 +12002,28 @@ class PecAuditRepository:
             "href": f"/fascicoli/{fascicolo_id}" if fascicolo_id else "/fascicoli",
         }
 
+    def fascicolo_client_for_message(self, message_id: str) -> dict[str, Any]:
+        """Cliente del fascicolo collegato alla PEC (regole in ``pct.pec_fascicolo_cliente``)."""
+
+        detail = self.get_message_detail(message_id)
+        empty = {"ok": False, "stato": "non_disponibile", "motivazioni": [], "fascicolo": {}, "cliente": {}}
+        if not self.fascicoli_db_path:
+            return {**empty, "messaggio": "Archivio fascicoli non configurato per questa azione."}
+        try:
+            from pct.clienti import GestioneClienti
+            from pct.fascicoli import GestioneFascicoli
+            from pct.pec_fascicolo_cliente import resolve_pec_fascicolo_cliente
+
+            fascicoli = GestioneFascicoli(
+                db_path=str(self.fascicoli_db_path),
+                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+            )
+            clienti = GestioneClienti(db_path=str(self.clienti_db_path)) if self.clienti_db_path else None
+            return resolve_pec_fascicolo_cliente(detail, fascicoli=fascicoli, clienti=clienti)
+        except Exception:
+            return {**empty, "messaggio": "Cliente del fascicolo non disponibile in questo momento."}
+
     def prepare_save_to_fascicolo(
         self,
         message_id: str,
@@ -12021,7 +12043,12 @@ class PecAuditRepository:
         cognome = clean_text(cognome, 80)
         cliente_id = clean_text(cliente_id, 80)
         query = " ".join(part for part in (nome, cognome) if part).strip()
-        if not cliente_id and not query:
+        # Fascicolo gia' ricondotto alla PEC per numero di ruolo e ufficio: resta
+        # il primo candidato proposto, sempre soggetto a conferma dell'avvocato.
+        pec_resolution = self.fascicolo_client_for_message(message_id)
+        pec_fascicolo = pec_resolution.get("fascicolo") if isinstance(pec_resolution.get("fascicolo"), dict) else {}
+        pec_fascicolo_id = clean_text(pec_fascicolo.get("id"), 80) if pec_fascicolo.get("aperto") else ""
+        if not cliente_id and not query and not pec_fascicolo_id:
             return {"ok": False, "message": "Indica nome e cognome del cliente prima di cercare il fascicolo aperto.", "requires_confirmation": False, "candidates": []}
 
         try:
@@ -12087,7 +12114,22 @@ class PecAuditRepository:
                     reason="Nome cliente coerente con il fascicolo aperto.",
                 )
 
-        candidates = sorted(candidates_by_id.values(), key=lambda item: (-float(item.get("confidence") or 0), str(item.get("label") or "")))
+        if pec_fascicolo_id:
+            resolved = fascicoli.get(pec_fascicolo_id)
+            if resolved is not None:
+                reason = (
+                    "Fascicolo collegato alla PEC."
+                    if pec_resolution.get("stato") == "collegato"
+                    else "Fascicolo proposto per numero di ruolo e ufficio della PEC."
+                )
+                card = self._fascicolo_card(resolved, confidence=1.0, reason=reason)
+                card["pec_match"] = True
+                candidates_by_id[pec_fascicolo_id] = card
+
+        candidates = sorted(
+            candidates_by_id.values(),
+            key=lambda item: (not item.get("pec_match"), -float(item.get("confidence") or 0), str(item.get("label") or "")),
+        )
         cliente_card = {}
         if matched_clienti:
             cliente = matched_clienti[0]
@@ -12096,6 +12138,14 @@ class PecAuditRepository:
                 "nome": _lookup_text(cliente, "nome"),
                 "cognome": _lookup_text(cliente, "cognome"),
                 "nome_completo": _lookup_text(cliente, "nome_completo", "ragione_sociale"),
+            }
+        elif isinstance(pec_resolution.get("cliente"), dict) and pec_resolution["cliente"]:
+            pec_cliente = pec_resolution["cliente"]
+            cliente_card = {
+                "id": clean_text(pec_cliente.get("id"), 80),
+                "nome": clean_text(pec_cliente.get("nome"), 80),
+                "cognome": clean_text(pec_cliente.get("cognome"), 80),
+                "nome_completo": clean_text(pec_cliente.get("nome_completo"), 160),
             }
         with self.connect() as conn:
             self.append_audit(

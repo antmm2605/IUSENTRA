@@ -112,10 +112,22 @@ Gli endpoint REST sono sotto `/api/pec/*`:
 - `POST /api/pec/workers/run`
 - `GET /api/pec/digest`
 - `POST /api/pec/digest/run`
+- `GET /api/pec/messages/<message_id>/cliente-fascicolo`
 - `POST /api/pec/messages/<message_id>/salva-fascicolo`
 - `POST /api/pec/messages/<message_id>/richiedi-allegato-mancante`
 - `POST /api/pec/messages/<message_id>/schedula-scadenza`
 - `POST /api/pec/demo/ingest`
+
+### Cliente del fascicolo nella PEC
+
+`GET /api/pec/messages/<message_id>/cliente-fascicolo` restituisce il fascicolo della PEC e il nominativo del suo cliente (modulo `pct/pec_fascicolo_cliente.py`). Le comunicazioni di cancelleria e le ricevute del deposito telematico (D.M. 44/2011 artt. 13 e 16; Specifiche tecniche DGSIA, `Comunicazione.xml` / `EsitoAtto.xml`) identificano il procedimento con ufficio e numero di ruolo, non con il cliente: il nominativo si legge quindi solo dall'anagrafica del fascicolo dello studio.
+
+- `stato=collegato`: PEC già collegata dalla pipeline (`linked_fascicolo_id`).
+- `stato=da_confermare`: primo candidato con RG certificato dall'XML ministeriale oppure RG e ufficio coincidenti.
+- `stato=non_collegato`: nessuna proposta, nessun cliente dedotto dal testo.
+- Escono solo nome, cognome, ragione sociale e tipo cliente (GDPR art. 5.1.c): niente codice fiscale o recapiti.
+
+Nella pagina Email PEC il Profilo processuale mostra `Cliente` e `Fascicolo`; «Salva nel fascicolo» apre la finestra con nome e cognome già compilati e il fascicolo della PEC già selezionato come primo candidato, sempre da confermare. `prepara` accetta anche una richiesta senza nome quando la PEC ha già un fascicolo aperto.
 
 Le API accettano sessione autenticata o API key tenant-aware, non accettano tenant scelti dal client e non espongono credenziali IMAP, path filesystem o contenuto MIME nei JSON.
 

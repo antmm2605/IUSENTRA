@@ -1280,6 +1280,18 @@ def pec_digest_run():
         return _json_error(403)
 
 
+@pec_pipeline_api.get("/messages/<message_id>/cliente-fascicolo")
+@_richiedi_auth
+def pec_fascicolo_client(message_id: str):
+    """Nominativo del cliente del fascicolo collegato alla PEC (sola lettura)."""
+    try:
+        return _json_success(_repo().fascicolo_client_for_message(message_id))
+    except KeyError:
+        return _json_error(404)
+    except TenantDataPathError:
+        return _json_error(403)
+
+
 @pec_pipeline_api.post("/messages/<message_id>/salva-fascicolo")
 @_richiedi_auth
 def pec_save_to_fascicolo(message_id: str):

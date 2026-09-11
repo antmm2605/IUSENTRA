@@ -33,6 +33,14 @@ import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
+import {
+  fetchPecFascicoloCliente,
+  invalidatePecFascicoloCliente,
+  pecFascicoloClienteFacts,
+  pecFascicoloClienteUrl,
+  pecFascicoloClienteUrlFromSaveUrl,
+  usePecFascicoloCliente,
+} from '../features/comunicazioni/pecFascicoloCliente'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import {
   emptyEmailOrdinariaPage,
@@ -481,7 +489,9 @@ function uniqueText(values: string[]): string[] {
 }
 
 function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSummary; compact?: boolean }) {
+  const matterClient = usePecFascicoloCliente(audit?.persisted ? pecFascicoloClienteUrl(audit.id) : '')
   if (!audit) return null
+  const matterFacts = pecFascicoloClienteFacts(matterClient)
   const profile = record(audit.proceduralProfile)
   const remote = record(profile.remote_hearing ?? profile.remoteHearing)
   const cliente = profileValue(audit, 'cliente')
@@ -499,7 +509,8 @@ function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSumm
   const parteConRuolo = parteProcessuale && ruoloParte ? `${parteProcessuale} (${ruoloParte})` : parteProcessuale
   const partiLabel = uniqueText(soggettiParti.length ? soggettiParti : partiProcessuali).join(' / ')
   const facts = [
-    ['Cliente', cliente],
+    // Il cliente del fascicolo prevale sul nominativo estratto dal testo PEC.
+    ...(matterFacts.length ? matterFacts : [['Cliente', cliente]]),
     ['Parte/Soggetto', parteConRuolo],
     ['Soggetti e parti', partiLabel],
     ['Ufficio', profileValue(audit, 'ufficio')],
@@ -827,6 +838,7 @@ type PecSaveMatterRequest = {
 
 type PecSaveCandidate = {
   id: string
+  pecMatch: boolean
   label: string
   numero: string
   titolo: string
@@ -840,6 +852,7 @@ function pecSaveCandidateFromPayload(value: unknown): PecSaveCandidate {
   const item = record(value)
   return {
     id: text(item.id),
+    pecMatch: item.pec_match === true || item.pecMatch === true,
     label: text(item.label),
     numero: text(item.numero),
     titolo: text(item.titolo),
@@ -885,28 +898,60 @@ function PecSaveMatterDialog({
   const [working, setWorking] = useState(false)
   const [savedHref, setSavedHref] = useState('')
 
+  const [prefilling, setPrefilling] = useState(true)
+  const clientUrl = pecFascicoloClienteUrlFromSaveUrl(request.url)
+
   const selected = candidates.find((item) => item.id === selectedId)
 
-  const prepare = () => {
-    if (!nome.trim() && !cognome.trim()) {
+  const runPrepare = (nomeValue: string, cognomeValue: string, allowWithoutName: boolean) => {
+    if (!allowWithoutName && !nomeValue.trim() && !cognomeValue.trim()) {
       setMessage('Indica almeno nome o cognome del cliente.')
       return
     }
     setWorking(true)
     setMessage('')
     setSavedHref('')
-    postPecSaveJson(request.url, { prepara: true, nome: nome.trim(), cognome: cognome.trim() })
+    postPecSaveJson(request.url, { prepara: true, nome: nomeValue.trim(), cognome: cognomeValue.trim() })
       .then((payload) => {
         const nextCandidates = Array.isArray(payload.candidates)
           ? payload.candidates.map(pecSaveCandidateFromPayload).filter((item) => item.id)
           : []
         setCandidates(nextCandidates)
-        setSelectedId(nextCandidates[0]?.id || '')
+        setSelectedId((nextCandidates.find((item) => item.pecMatch) || nextCandidates[0])?.id || '')
         setMessage(text(payload.message ?? payload.messaggio ?? payload.errore) || (nextCandidates.length ? 'Conferma il fascicolo aperto.' : 'Nessun fascicolo aperto trovato.'))
       })
       .catch((error) => setMessage(error instanceof Error ? error.message : 'Ricerca fascicolo non completata.'))
       .finally(() => setWorking(false))
   }
+
+  const prepare = () => runPrepare(nome, cognome, false)
+
+  useEffect(() => {
+    let active = true
+    setPrefilling(true)
+    fetchPecFascicoloCliente(clientUrl)
+      .then((result) => {
+        if (!active) return
+        const cliente = result.cliente
+        const nextNome = cliente.nome || (cliente.cognome ? '' : cliente.ragioneSociale || cliente.nomeCompleto)
+        const nextCognome = cliente.cognome
+        if (nextNome || nextCognome) {
+          setNome(nextNome)
+          setCognome(nextCognome)
+        }
+        if (result.fascicolo.id && result.fascicolo.aperto) {
+          runPrepare(nextNome, nextCognome, true)
+        } else if (result.messaggio) {
+          setMessage(result.messaggio)
+        }
+      })
+      .finally(() => {
+        if (active) setPrefilling(false)
+      })
+    return () => { active = false }
+    // Precompilazione una sola volta all'apertura della finestra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientUrl])
 
   const confirm = () => {
     if (!selectedId) {
@@ -921,6 +966,7 @@ function PecSaveMatterDialog({
         const nextMessage = text(payload.message ?? payload.messaggio) || 'MIME PEC salvato nel fascicolo.'
         setSavedHref(text(payload.fascicolo_href ?? payload.document_href))
         setMessage(nextMessage)
+        invalidatePecFascicoloCliente(clientUrl)
         onSaved(nextMessage)
       })
       .catch((error) => setMessage(error instanceof Error ? error.message : 'Salvataggio non completato.'))
@@ -940,11 +986,11 @@ function PecSaveMatterDialog({
         <div className="iu-pec-save-dialog__fields">
           <label>
             <span>Nome cliente</span>
-            <input value={nome} onChange={(event) => setNome(event.target.value)} autoFocus />
+            <input value={nome} onChange={(event) => setNome(event.target.value)} placeholder={prefilling ? 'Lettura dal fascicolo...' : ''} autoFocus />
           </label>
           <label>
             <span>Cognome cliente</span>
-            <input value={cognome} onChange={(event) => setCognome(event.target.value)} />
+            <input value={cognome} onChange={(event) => setCognome(event.target.value)} placeholder={prefilling ? 'Lettura dal fascicolo...' : ''} />
           </label>
           <button type="button" onClick={prepare} disabled={working}>
             <Search size={15} /> {working ? 'Ricerca...' : 'Cerca fascicolo aperto'}
@@ -958,7 +1004,7 @@ function PecSaveMatterDialog({
                 <input type="radio" name="pec-fascicolo" checked={selectedId === candidate.id} onChange={() => setSelectedId(candidate.id)} />
                 <span>
                   <strong>{candidate.label || candidate.titolo || candidate.id}</strong>
-                  <small>{[candidate.nomeCliente, candidate.stato, candidate.reason].filter(Boolean).join(' - ')}</small>
+                  <small>{[candidate.pecMatch ? 'Fascicolo della PEC' : '', candidate.nomeCliente, candidate.stato, candidate.reason].filter(Boolean).join(' - ')}</small>
                 </span>
               </label>
             ))}
@@ -1709,7 +1755,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const runAction = (url: string, label: string) => {
     if (copy.includeTelematic && url.includes('/salva-fascicolo')) {
       setSaveMatterRequest({ url, subject: selected?.subject || detail?.item?.subject || 'PEC selezionata' })
-      setStatusLine('Indica nome e cognome del cliente per trovare il fascicolo aperto.')
+      setStatusLine('Verifica cliente e fascicolo proposti, poi conferma il salvataggio.')
       return
     }
     setStatusLine(`${label} in corso...`)

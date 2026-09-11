@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.298.0 - 11/09/2026
+
+Email PEC: il Profilo processuale mostra nome e cognome del cliente del fascicolo, e «Salva nel fascicolo» arriva già compilato.
+
+- **Profilo processuale.** Nome cliente, Cognome cliente (o la ragione sociale) e il fascicolo collegato. `Salva nel fascicolo` apre la finestra con i campi già compilati e il fascicolo della PEC preselezionato, da confermare.
+- **Fail-closed sul collegamento** (`pct/pec_fascicolo_cliente.py`). PEC già collegata dalla pipeline → fascicolo certo; numero di ruolo certificato dall'XML ministeriale, oppure RG e ufficio coincidenti entrambi → fascicolo da confermare; in ogni altro caso nessun nome viene proposto. Il cliente si legge **solo** dall'anagrafica del fascicolo, mai dal testo del messaggio: per il D.M. 44/2011 (artt. 13 e 16) e le Specifiche DGSIA la PEC identifica il procedimento — ufficio e numero di ruolo — non il cliente.
+- **Minimizzazione dei dati** (GDPR art. 5.1.c): verso l'interfaccia escono solo nominativo e tipo del cliente, mai codice fiscale, recapiti o documenti.
+- Nuovo endpoint `GET /api/pec/messages/<id>/cliente-fascicolo`; `prepare_save_to_fascicolo` accetta la ricerca senza nome quando la PEC ha già un fascicolo aperto e lo propone per primo.
+
 ## 2.297.1 - 11/09/2026
 
 Piano del giorno: un evento, una sola attività. Lo stesso adempimento non compare più in più copie.

@@ -160,7 +160,15 @@ _PROFILES: dict[str, ChannelProfile] = {
         id="pdp_penale",
         name="PDP Penale",
         requires_xml=False,
-        requires_pdfa=True,
+        #  Il penale NON pretende il PDF/A, a differenza del civile (D.M. 44/2011
+        #  art. 12). Fonti in docs/specs/ministero/:
+        #  - Specifiche Tecniche PPT 11.07.2023 (post D.M. 217/2023): l'atto
+        #    "e' in formato PDF o PDF/A (.pdf)" — alternativa, non obbligo;
+        #  - vademecum deposito atti penali sul portale telematico: "gli atti
+        #    caricati sul portale DEVONO ESSERE IN FORMATO PDF", e ammette la
+        #    mera scansione, cioe' un PDF per immagine.
+        #  Pretendere il PDF/A qui bloccava depositi penali legittimi.
+        requires_pdfa=False,
         requires_cades=False,
         requires_pades=False,
         max_total_size_mb=500,
@@ -168,10 +176,12 @@ _PROFILES: dict[str, ChannelProfile] = {
         max_filename_length=100,
         allows_portal_upload=True,
         package_kind="pdp_upload",
-        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
+        #  Nessuna restrizione sulla parte PDF/A: la specifica PPT ammette
+        #  "PDF o PDF/A" senza distinguere fra PDF/A-1, -2 o -3.
+        accepted_pdfa=(),
         accepted_signature_formats=("PADES", "CADES_BES"),
         receipt_types=("INVIATO", "IN_TRANSITO", "IN_FASE_DI_VERIFICA", "ACCOLTO", "RIGETTATO", "ERRORE_TECNICO"),
-        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "native_digital", "signed", "no_password", "safe_filename"),
+        validation_rules=("pdf_readable", "procedure_registry", "native_digital", "signed", "no_password", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="PDP/PST e' il canale del difensore per il deposito penale telematico.",
         internal_office_system_note="APP e' sistema interno degli uffici giudiziari: non va presentato come canale di deposito del difensore.",

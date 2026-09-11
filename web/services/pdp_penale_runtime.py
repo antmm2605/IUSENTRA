@@ -576,6 +576,26 @@ def build_pdp_penale_runtime(
         doc.build(story)
         return buf.getvalue()
 
+    def _pdp_penale_chiave_messaggio(
+        message_id: str,
+        mittente: str,
+        data: str,
+        oggetto: str,
+    ) -> str:
+        """Identita' stabile di una PEC, per non registrarla due volte.
+
+        Il ``Message-ID`` e' la chiave naturale, ma non tutte le PEC lo
+        espongono: senza un ripiego, ogni sincronizzazione ricreerebbe le
+        stesse righe. Mittente, data e oggetto insieme identificano il
+        messaggio in modo sufficientemente stabile.
+        """
+
+        identificativo = str(message_id or "").strip()
+        if identificativo:
+            return identificativo
+        parti = [str(parte or "").strip().lower() for parte in (mittente, data, oggetto)]
+        return "__".join(parti) if any(parti) else ""
+
     def _pdp_penale_email_text(email_row: Any) -> str:
         corpo_html = re.sub(r"<[^>]+>", " ", str(getattr(email_row, "corpo_html", "") or ""))
         return " ".join(
@@ -662,13 +682,27 @@ def build_pdp_penale_runtime(
                 limite=80,
                 incremental_only=True,
             )
-        emails = ge.tutte(cartella="INBOX", data_da=(date.today() - timedelta(days=60)).isoformat())
+        #  Nessuna finestra temporale: l'autorizzazione di un procedimento puo'
+        #  essere arrivata mesi prima che il caso venga aperto nel gestionale, e
+        #  con un limite a 60 giorni quella PEC non sarebbe mai stata trovata.
+        #  A evitare i doppioni bastano le chiavi gia' registrate qui sotto.
+        emails = ge.tutte(cartella="INBOX")
         existing_pec = repo.list_pec_messages(str(case_row.get("id") or ""))
         existing_headers = {
-            str(row.get("message_id_header") or "").strip()
+            chiave
             for row in existing_pec
-            if str(row.get("message_id_header") or "").strip()
+            for chiave in (_pdp_penale_chiave_messaggio(
+                str(row.get("message_id_header") or ""),
+                str(row.get("sender") or ""),
+                str(row.get("message_date") or row.get("received_at") or ""),
+                str(row.get("subject") or ""),
+            ),)
+            if chiave
         }
+        #  Anche le PEC gia' esaminate e non pertinenti: senza questo registro
+        #  ogni sincronizzazione rivaluterebbe l'intera casella da capo.
+        existing_headers |= repo.pec_sync_seen_keys(str(case_row.get("id") or ""))
+        esaminate: list[str] = []
         matched = 0
         password_found = 0
         latest_deadline = ""
@@ -676,8 +710,16 @@ def build_pdp_penale_runtime(
         now_iso = datetime.now().isoformat(timespec="minutes")
         for email_row in emails:
             header_id = str(getattr(email_row, "message_id", "") or "").strip()
-            if header_id and header_id in existing_headers:
+            chiave_messaggio = _pdp_penale_chiave_messaggio(
+                header_id,
+                str(getattr(email_row, "mittente", "") or ""),
+                str(getattr(email_row, "data", "") or ""),
+                str(getattr(email_row, "oggetto", "") or ""),
+            )
+            if chiave_messaggio and chiave_messaggio in existing_headers:
                 continue
+            if chiave_messaggio:
+                esaminate.append(chiave_messaggio)
             if _pdp_penale_match_email_score(case_row, access_requests, email_row) < 5:
                 continue
             testo = _pdp_penale_email_text(email_row)
@@ -713,8 +755,13 @@ def build_pdp_penale_runtime(
                 password_found += 1
             if scadenza and (not latest_deadline or scadenza > latest_deadline):
                 latest_deadline = scadenza
-            if header_id:
-                existing_headers.add(header_id)
+            if chiave_messaggio:
+                existing_headers.add(chiave_messaggio)
+
+        #  Tutte le PEC esaminate in questo giro, pertinenti o no, non vanno
+        #  riesaminate al prossimo: e' questo a rendere la sincronizzazione
+        #  incrementale invece di ripartire ogni volta dall'intera casella.
+        repo.mark_pec_sync_seen(str(case_row.get("id") or ""), esaminate)
 
         case_changes: dict[str, Any] = {"last_sync_at": now_iso}
         if latest_deadline:

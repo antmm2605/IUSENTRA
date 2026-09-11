@@ -188,27 +188,71 @@ def verifica_pdfa(percorso: str) -> dict:
 #  PDF/A Conversion via Ghostscript
 # ---------------------------------------------------------------------------
 
-def converti_pdfa(percorso_input: str, percorso_output: str | None = None) -> dict:
+#  Profili PDF/A ammessi e livello ISO corrispondente per Ghostscript.
+#  PDF/A-1b (ISO 19005-1) è quello che alcuni uffici giudiziari pretendono per
+#  il deposito; PDF/A-2b (ISO 19005-2) è accettato dalla maggior parte dei
+#  portali ed è il valore predefinito.
+PROFILI_PDFA: dict[str, int] = {
+    "1a": 1,
+    "1b": 1,
+    "2a": 2,
+    "2b": 2,
+    "2u": 2,
+    "3a": 3,
+    "3b": 3,
+    "3u": 3,
+}
+
+
+def converti_pdfa(
+    percorso_input: str,
+    percorso_output: str | None = None,
+    *,
+    pdfa_profile: str = "2b",
+) -> dict:
     """
-    Converte un PDF in PDF/A-2B usando Ghostscript.
+    Converte un PDF in PDF/A usando Ghostscript.
 
     Ghostscript è lo strumento standard per la conversione PDF/A conforme
-    a ISO 19005-2 (PDF/A-2B) — usato da LibreOffice, Acrobat e altri tool.
+    a ISO 19005 — usato da LibreOffice, Acrobat e altri tool.
 
     Args:
         percorso_input:  percorso del PDF sorgente
         percorso_output: percorso del PDF/A risultante (se None → sovrascrive input)
+        pdfa_profile:    profilo richiesto (`1b`, `2b`, `3b`…); un profilo
+                         sconosciuto viene rifiutato invece di ripiegare su un
+                         altro, perché il profilo ammesso lo decide l'ufficio
+                         giudiziario e non può essere indovinato.
 
     Returns:
         dict con chiavi:
-          ok          (bool)   — True se conversione riuscita
-          percorso    (str)    — percorso file output (se ok=True)
-          messaggio   (str)    — descrizione risultato
-          ghostscript (bool)   — True se Ghostscript era disponibile
+          ok           (bool)  — True se conversione riuscita
+          percorso     (str)   — percorso file output (se ok=True)
+          messaggio    (str)   — descrizione risultato
+          ghostscript  (bool)  — True se Ghostscript era disponibile
+          pdfa_profile (str)   — profilo applicato
     """
+    profilo = str(pdfa_profile or "").strip().lower().replace("pdf/a-", "").replace("pdfa-", "")
+    livello = PROFILI_PDFA.get(profilo)
+    if livello is None:
+        ammessi = ", ".join(sorted(PROFILI_PDFA))
+        return {
+            "ok": False,
+            "percorso": "",
+            "messaggio": f"Profilo PDF/A '{pdfa_profile}' non riconosciuto. Ammessi: {ammessi}.",
+            "ghostscript": False,
+            "pdfa_profile": str(pdfa_profile or ""),
+        }
+
     path_in = Path(percorso_input)
     if not path_in.exists():
-        return {"ok": False, "percorso": "", "messaggio": "File sorgente non trovato.", "ghostscript": False}
+        return {
+            "ok": False,
+            "percorso": "",
+            "messaggio": "File sorgente non trovato.",
+            "ghostscript": False,
+            "pdfa_profile": profilo,
+        }
 
     # Verifica disponibilità Ghostscript
     gs_bin = shutil.which("gs") or shutil.which("gswin64c") or shutil.which("gswin32c")
@@ -222,6 +266,7 @@ def converti_pdfa(percorso_input: str, percorso_output: str | None = None) -> di
                 "(Esporta → PDF/A-2) o con PDF24 / iLovePDF."
             ),
             "ghostscript": False,
+            "pdfa_profile": profilo,
         }
 
     # Output: sovrascrive in place usando un file temporaneo intermedio
@@ -242,7 +287,7 @@ def converti_pdfa(percorso_input: str, percorso_output: str | None = None) -> di
         "-dBATCH", "-dNOPAUSE", "-dQUIET",
         "-sDEVICE=pdfwrite",
         "-dCompatibilityLevel=1.7",
-        "-dPDFA=2",
+        f"-dPDFA={livello}",
         "-dPDFACompatibilityPolicy=1",
         "-dCompressFonts=true",
         "-dEmbedAllFonts=true",
@@ -257,15 +302,15 @@ def converti_pdfa(percorso_input: str, percorso_output: str | None = None) -> di
     except subprocess.TimeoutExpired:
         if overwrite and Path(out_path).exists():
             Path(out_path).unlink(missing_ok=True)
-        return {"ok": False, "percorso": "", "messaggio": "Timeout conversione PDF/A (>120s).", "ghostscript": True}
+        return {"ok": False, "percorso": "", "messaggio": "Timeout conversione PDF/A (>120s).", "ghostscript": True, "pdfa_profile": profilo}
     except Exception as exc:
-        return {"ok": False, "percorso": "", "messaggio": f"Errore Ghostscript: {exc}", "ghostscript": True}
+        return {"ok": False, "percorso": "", "messaggio": f"Errore Ghostscript: {exc}", "ghostscript": True, "pdfa_profile": profilo}
 
     if result.returncode != 0:
         if overwrite and Path(out_path).exists():
             Path(out_path).unlink(missing_ok=True)
         stderr = (result.stderr or "")[:400]
-        return {"ok": False, "percorso": "", "messaggio": f"Ghostscript errore ({result.returncode}): {stderr}", "ghostscript": True}
+        return {"ok": False, "percorso": "", "messaggio": f"Ghostscript errore ({result.returncode}): {stderr}", "ghostscript": True, "pdfa_profile": profilo}
 
     # Rimpiazza il file originale (in-place)
     if overwrite:
@@ -281,6 +326,7 @@ def converti_pdfa(percorso_input: str, percorso_output: str | None = None) -> di
         "percorso": out_path,
         "messaggio": f"Conversione completata. {esito.get('messaggio', '')}",
         "ghostscript": True,
+        "pdfa_profile": profilo,
     }
 
 

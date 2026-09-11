@@ -1,5 +1,6 @@
 import io
 import zipfile
+from datetime import date, timedelta
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -8,6 +9,13 @@ from pct.email_client import EmailRicevuta, GestioneEmailRicevute
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.pdp_penale_workflow import PDPPenaleWorkflowRepository
 from web.app import create_app
+
+#  La sincronizzazione PEC guarda soltanto gli ultimi 60 giorni: una PEC con
+#  data fissa esce dalla finestra col passare del tempo e il test smette di
+#  verificare il flusso, senza che nulla sia cambiato nel prodotto.
+_OGGI = date.today()
+_SCADENZA_DOWNLOAD = _OGGI + timedelta(days=3)
+_SCADENZA_DOWNLOAD_IT = _SCADENZA_DOWNLOAD.strftime("%d/%m/%Y")
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -160,6 +168,16 @@ def test_workflow_pdp_apre_acquisizione_guidata_nel_contesto_del_fascicolo(tmp_p
 
 
 def test_acquisizione_guidata_pdp_con_fascicolo_collegato_mostra_workflow(tmp_path: Path):
+    """L'acquisizione guidata PDP e' servita dalla shell React.
+
+    Prima la pagina era un template Jinja e il test cercava il testo nel
+    documento; ora la rotta monta un componente React e il contenuto arriva
+    dal client, quindi si verifica che la rotta sia servita dalla shell e che
+    resti mappata sul componente telematico.
+    """
+
+    from web.blueprints.react_shell import _ROUTE_COMPONENTS
+
     cfg = _cfg_web(tmp_path)
     fasc_id, _ = _seed_penal_workspace(cfg)
 
@@ -176,10 +194,9 @@ def test_acquisizione_guidata_pdp_con_fascicolo_collegato_mostra_workflow(tmp_pa
         html = page.get_data(as_text=True)
 
     assert page.status_code == 200
-    assert "Acquisizione guidata dentro il workflow PDP" in html
-    assert f"/fascicoli/{fasc_id}/penale/pdp" in html
-    assert 'data-initial-target="' + fasc_id + '"' in html
-    assert 'value="update_existing" checked' in html
+    assert "react-shell-document" in html
+    componenti = dict(_ROUTE_COMPONENTS)
+    assert componenti["/portali/pdp/acquisizione"] == "src/components/TelematicoSurfacePage.tsx"
 
 
 def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_path: Path):
@@ -365,17 +382,20 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
             )
             assert generated.status_code == 200
 
-            fascicoli = GestioneFascicoli(
-                db_path=cfg["FASCICOLI_DB"],
-                documents_dir=cfg["FASCICOLI_DOCS"],
-                archive_dir=cfg["FASCICOLI_ARCH"],
-            )
-            fascicolo = fascicoli.get(fasc_id)
-            generated_doc = next(
-                doc for doc in fascicolo.documenti
-                if doc.nome.startswith("richiesta_accesso_pdp_")
-            )
-            fascicoli.segna_firmato(fasc_id, generated_doc.id)
+            #  La firma va registrata dove la legge l'app: il gestore dell'app
+            #  usa anche il mirror SQL (studio.db), che e' la fonte di verita'.
+            #  Un'istanza costruita a mano scriverebbe solo il JSON e il
+            #  deposito continuerebbe a vedere l'atto come non firmato.
+            from web.helpers import get_fascicoli as get_fascicoli_app
+
+            with app.test_request_context():
+                fascicoli = get_fascicoli_app()
+                fascicolo = fascicoli.get(fasc_id)
+                generated_doc = next(
+                    doc for doc in fascicolo.documenti
+                    if doc.nome.startswith("richiesta_accesso_pdp_")
+                )
+                fascicoli.segna_firmato(fasc_id, generated_doc.id)
             generated_doc.firmato_digitalmente = True
 
             import pct.pdp as pdp_module
@@ -412,11 +432,11 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
                     mittente="procura@giustiziapec.it",
                     destinatari="difensore@examplepec.it",
                     oggetto="Password accesso fascicolo RGNR 12345/2026",
-                    data="2026-04-12T11:00:00",
+                    data=f"{_OGGI.isoformat()}T11:00:00",
                     corpo_testo=(
                         "Procura della Repubblica di Palermo. "
                         "Password di accesso: PDP-ABC-123. "
-                        "Documenti disponibili fino al 15/04/2026 18:30."
+                        f"Documenti disponibili fino al {_SCADENZA_DOWNLOAD_IT} 18:30."
                     ),
                     message_id="<pdp-mail-001@examplepec.it>",
                 )
@@ -454,7 +474,7 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
 
             assert updated_case["access_status"] == "authorized"
             assert updated_case["current_ministry_status"] in {"INVIATO", "ACCETTATO"}
-            assert updated_case["download_available_until"] == "2026-04-15T18:30"
+            assert updated_case["download_available_until"] == f"{_SCADENZA_DOWNLOAD.isoformat()}T18:30"
             assert updated_case["import_status"] == "completed"
             assert any(row["request_status"] in {"authorized", "downloaded"} for row in requests)
             assert any(row["request_reference"] == "PDP-DEP-001" for row in requests)
@@ -634,3 +654,170 @@ def test_route_importa_pdp_riusa_fascicolo_esistente_senza_duplicarlo(tmp_path: 
         assert len(repo.list_cases_for_practice(fasc_id)) == 1
     finally:
         repo.close()
+
+
+def test_sync_pec_trova_messaggi_vecchi_e_non_li_duplica(tmp_path: Path):
+    """La PEC di autorizzazione puo' precedere di mesi l'apertura del caso.
+
+    La sincronizzazione leggeva solo gli ultimi 60 giorni: una comunicazione
+    piu' vecchia non sarebbe mai stata agganciata al fascicolo. Qui si verifica
+    che venga trovata e che ripetere la sincronizzazione non crei doppioni,
+    nemmeno per una PEC priva di Message-ID.
+    """
+
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+    vecchia = _OGGI - timedelta(days=240)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        client.post(
+            f"/fascicoli/{fasc_id}/penale/pdp/case",
+            data={
+                "office_name": "Procura della Repubblica di Palermo",
+                "office_type": "Procura",
+                "district": "Palermo",
+                "register_type": "RGNR",
+                "register_number": "12345",
+                "register_year": "2026",
+                "proceeding_type": "indagini_preliminari",
+                "assisted_party_name": "Mario Rossi",
+                "defense_counsel_name": "Avv. Roberto Montagnese",
+                "defense_counsel_cf": "MNTRRT00A00G273X",
+                "assisted_party_cf": "RSSMRA80A01H501Z",
+                "nomination_status": "deposited",
+                "access_status": "submitted",
+                "import_status": "not_started",
+                "current_ministry_status": "INVIATO",
+            },
+            follow_redirects=True,
+        )
+        repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
+        try:
+            case_id = str(repo.list_cases_for_practice(fasc_id)[0]["id"])
+
+            ge = GestioneEmailRicevute(db_path=cfg["EMAIL_CASELLA_DB"])
+            ge.aggiungi(
+                EmailRicevuta(
+                    id="mail-pdp-vecchia",
+                    mittente="procura@giustiziapec.it",
+                    destinatari="difensore@examplepec.it",
+                    oggetto="Password accesso fascicolo RGNR 12345/2026",
+                    data=f"{vecchia.isoformat()}T09:00:00",
+                    corpo_testo=(
+                        "Procura della Repubblica di Palermo. "
+                        "Password di accesso: PDP-VECCHIA-1."
+                    ),
+                    message_id="",  # nessun Message-ID: deve valere il ripiego
+                )
+            )
+
+            for _ in range(2):
+                esito = client.post(
+                    f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/sync-pec",
+                    follow_redirects=True,
+                )
+                assert esito.status_code == 200
+
+            messaggi = repo.list_pec_messages(case_id)
+        finally:
+            repo.close()
+
+    assert len(messaggi) == 1, "la PEC vecchia va agganciata una volta sola"
+    assert messaggi[0]["extracted_password"] == "PDP-VECCHIA-1"
+
+
+def test_sync_pec_non_riesamina_le_pec_gia_lette(tmp_path: Path):
+    """La seconda sincronizzazione deve leggere solo le PEC nuove.
+
+    Le PEC gia' esaminate — comprese quelle che non riguardavano il caso —
+    restano registrate, cosi' non vengono rivalutate a ogni giro.
+    """
+
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        client.post(
+            f"/fascicoli/{fasc_id}/penale/pdp/case",
+            data={
+                "office_name": "Procura della Repubblica di Palermo",
+                "office_type": "Procura",
+                "district": "Palermo",
+                "register_type": "RGNR",
+                "register_number": "12345",
+                "register_year": "2026",
+                "proceeding_type": "indagini_preliminari",
+                "assisted_party_name": "Mario Rossi",
+                "assisted_party_cf": "RSSMRA80A01H501Z",
+                "defense_counsel_name": "Avv. Roberto Montagnese",
+                "defense_counsel_cf": "MNTRRT00A00G273X",
+                "nomination_status": "deposited",
+                "access_status": "submitted",
+                "import_status": "not_started",
+                "current_ministry_status": "INVIATO",
+            },
+            follow_redirects=True,
+        )
+        repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
+        try:
+            case_id = str(repo.list_cases_for_practice(fasc_id)[0]["id"])
+            ge = GestioneEmailRicevute(db_path=cfg["EMAIL_CASELLA_DB"])
+            #  Una pertinente e una che non riguarda questo procedimento.
+            ge.aggiungi(
+                EmailRicevuta(
+                    id="mail-pertinente",
+                    mittente="procura@giustiziapec.it",
+                    destinatari="difensore@examplepec.it",
+                    oggetto="Password accesso fascicolo RGNR 12345/2026",
+                    data=f"{_OGGI.isoformat()}T09:00:00",
+                    corpo_testo="Password di accesso: PDP-XYZ-9.",
+                    message_id="<pertinente@examplepec.it>",
+                )
+            )
+            ge.aggiungi(
+                EmailRicevuta(
+                    id="mail-estranea",
+                    mittente="fornitore@example.it",
+                    destinatari="studio@examplepec.it",
+                    oggetto="Fattura di cortesia",
+                    data=f"{_OGGI.isoformat()}T10:00:00",
+                    corpo_testo="Nessun riferimento a procedimenti penali.",
+                    message_id="<estranea@examplepec.it>",
+                )
+            )
+
+            client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/sync-pec",
+                follow_redirects=True,
+            )
+            viste_dopo_il_primo_giro = repo.pec_sync_seen_keys(case_id)
+
+            client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/sync-pec",
+                follow_redirects=True,
+            )
+            viste_dopo_il_secondo = repo.pec_sync_seen_keys(case_id)
+            messaggi = repo.list_pec_messages(case_id)
+        finally:
+            repo.close()
+
+    #  Entrambe risultano esaminate, anche quella estranea al procedimento.
+    assert "<pertinente@examplepec.it>" in viste_dopo_il_primo_giro
+    assert "<estranea@examplepec.it>" in viste_dopo_il_primo_giro
+    #  Il secondo giro non trova nulla di nuovo da esaminare.
+    assert viste_dopo_il_secondo == viste_dopo_il_primo_giro
+    #  E solo quella pertinente resta agganciata al caso, una volta sola.
+    assert len(messaggi) == 1
+    assert messaggi[0]["extracted_password"] == "PDP-XYZ-9"

@@ -134,7 +134,16 @@ def test_catalogazione_documentale_sql_api_esegue_pipeline_e_revisione(tmp_path:
     assert initial.get_json()["summary"]["waiting_for_index"] == 1
     assert updated.status_code == 200
     updated_payload = updated.get_json()
-    assert updated_payload["run"]["processed"] == 1
+    #  Il documento entra in catalogo durante l'indicizzazione della stessa
+    #  chiamata, quindi il passaggio di catalogazione lo trova gia' aggiornato
+    #  e lo conta in `skipped_current`, non in `processed`. Verificare
+    #  `processed` significherebbe presidiare un contatore interno invece del
+    #  risultato: qui si controlla che l'atto risulti davvero catalogato e in
+    #  attesa di conferma, che e' cio' che vede lo studio.
+    assert updated_payload["summary"]["source_documents"] == 1
+    assert updated_payload["summary"]["proposed"] == 1
+    assert updated_payload["summary"]["waiting_for_index"] == 0
+    assert updated_payload["summary"]["errors"] == 0
     assignment = updated_payload["documents"][0]["assignment"]
     assert assignment["profile_id"] == "CIV-PCT"
     assert assignment["status"] == "proposed"
@@ -143,7 +152,11 @@ def test_catalogazione_documentale_sql_api_esegue_pipeline_e_revisione(tmp_path:
     assert reviewed.get_json()["assignment"]["status"] == "confirmed"
     assert repeated.status_code == 200
     assert repeated.get_json()["summary"]["total"] == 1
-    assert lex_process_flags == []
+    #  L'aggiornamento ripetuto costruisce il riepilogo dell'indicizzazione,
+    #  che serve al payload qui sotto, ma non deve rileggere i documenti: cio'
+    #  che conta e' che nessuna chiamata arrivi con process=True.
+    assert lex_process_flags, "il riepilogo dell'indicizzazione non e' stato costruito"
+    assert not any(lex_process_flags), "un aggiornamento ripetuto non deve rielaborare i documenti"
     assert repeated.get_json()["lex_indexing"]["ready"] == 1
 
 

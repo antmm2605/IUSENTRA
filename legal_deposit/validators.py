@@ -178,6 +178,21 @@ class DocumentPreflightValidator:
         return results
 
 
+def _finestra_marcatori_pdfa(path: Path, testa: int = 262144, coda: int = 65536) -> bytes:
+    """Testa e coda del PDF: dove i convertitori scrivono l'XMP ``pdfaid:``."""
+
+    try:
+        dimensione = path.stat().st_size
+        with path.open("rb") as fh:
+            head = fh.read(min(testa, dimensione))
+            if dimensione <= testa:
+                return head
+            fh.seek(max(0, dimensione - coda))
+            return head + fh.read(coda)
+    except OSError:
+        return b""
+
+
 def _validate_pdf(path: Path, profile: ChannelProfile) -> list[PreflightResult]:
     results: list[PreflightResult] = []
     head = path.read_bytes()[:2048]
@@ -188,7 +203,11 @@ def _validate_pdf(path: Path, profile: ChannelProfile) -> list[PreflightResult]:
     if b"/JavaScript" in head or b"/OpenAction" in head:
         results.append(_error("PDF_SCRIPT", f"PDF con azioni/script: {path.name}.", "Rigenera un PDF pulito."))
     if profile.requires_pdfa:
-        pdfa = _pdfa_flavour(head)
+        #  I marcatori XMP ``pdfaid:`` non stanno nei primi 2 KB: Ghostscript e
+        #  gli altri convertitori li scrivono piu' avanti, spesso in coda. Con
+        #  la sola testa un PDF/A autentico risultava non conforme e il deposito
+        #  veniva rifiutato. Stessa finestra usata da pct.validazione.
+        pdfa = _pdfa_flavour(_finestra_marcatori_pdfa(path))
         if not pdfa:
             results.append(_error("PDFA_REQUIRED", f"PDF/A obbligatorio per {path.name}.", "Converti o rigenera il documento in PDF/A."))
         elif profile.accepted_pdfa and pdfa not in profile.accepted_pdfa:

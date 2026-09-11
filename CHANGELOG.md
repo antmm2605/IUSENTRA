@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.286.0 - 11/09/2026
+
+Difetti emersi ripristinando tre test che nessun controllo della CI eseguiva.
+
+- **PDF/A obbligatorio tolto dal deposito penale.** Il canale PDP pretendeva il PDF/A e bloccava ogni deposito. Non ha base normativa: il *vademecum deposito atti penali sul portale telematico* dice che «gli atti caricati sul portale DEVONO ESSERE IN FORMATO PDF» e ammette la mera scansione, e le *Specifiche Tecniche PPT 11.07.2023* (post D.M. 217/2023) dicono «PDF o PDF/A», cioè un'alternativa. Il PDF/A resta obbligatorio nel civile (D.M. 44/2011 art. 12), dove è intatto.
+- **Conversione automatica in PDF/A mai riuscita.** `converti_pdfa()` veniva chiamata con un parametro `pdfa_profile` che non esisteva nella firma: ogni documento caricato in un fascicolo falliva la conversione e l'errore restava un avviso nel log. Ora la funzione accetta il profilo (`1b`, `2b`, `3b`…), lo riporta nell'esito e rifiuta un profilo sconosciuto invece di ripiegare su un altro, perché il profilo ammesso lo decide l'ufficio giudiziario.
+- **Precontrollo di deposito che bocciava PDF/A autentici.** La conformità veniva cercata nei soli primi 2 KB del file, mentre i marcatori XMP `pdfaid:` stanno più avanti (in un documento di prova al byte 3174). Ora si legge testa e coda, come fa già `pct.validazione`.
+- **Sincronizzazione PEC senza finestra temporale.** Guardava solo gli ultimi 60 giorni: la PEC di autorizzazione di un procedimento aperto oggi, ma arrivata mesi prima, non sarebbe mai stata agganciata. Ora si guarda l'intera casella.
+- **Sincronizzazione PEC incrementale.** Nuovo registro `pec_sync_seen`: ogni PEC esaminata — anche quelle che non riguardavano il caso — resta segnata, così i giri successivi leggono solo le nuove. La deduplica regge anche per le PEC prive di `Message-ID`, con un ripiego su mittente, data e oggetto.
+
 ## 2.285.2 - 11/09/2026
 
 - **Deploy sbloccato.** Con la CI finalmente verde il deploy falliva lo stesso: attendeva per 90 minuti due check che nessuno emette più. `.github/required-checks.json` pretendeva `Pytest core fase 3/10` e `Pytest core fase 4/10`, ma quelle fasi sono suddivise per item e i loro job si chiamano `… parte n/N`. La fase 4 era disallineata dalla 2.284.0, la 3 dalla 2.285.1.

@@ -21,7 +21,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 
 SCHEMA_SQL_PDP_PENALE = """
@@ -240,6 +240,18 @@ CREATE INDEX IF NOT EXISTS idx_criminal_access_request_documents_req
     ON criminal_access_request_documents(access_request_id);
 CREATE INDEX IF NOT EXISTS idx_criminal_access_request_documents_doc
     ON criminal_access_request_documents(document_id);
+
+--  PEC gia' esaminate dalla sincronizzazione di un caso, anche quelle che non
+--  lo riguardavano. Senza questo registro ogni sincronizzazione ripasserebbe
+--  l'intera casella: qui restano solo le chiavi, non il contenuto, e la lista
+--  PEC mostrata all'utente continua a contenere soltanto i messaggi pertinenti.
+CREATE TABLE IF NOT EXISTS pec_sync_seen (
+    criminal_case_id TEXT NOT NULL,
+    message_key TEXT NOT NULL,
+    seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (criminal_case_id, message_key),
+    FOREIGN KEY (criminal_case_id) REFERENCES criminal_cases(id) ON DELETE CASCADE
+);
 
 CREATE TRIGGER IF NOT EXISTS trg_criminal_cases_updated_at
 AFTER UPDATE ON criminal_cases
@@ -717,6 +729,33 @@ class PDPPenaleWorkflowRepository:
         if criminal_case_id and contains_password:
             self.update_case(criminal_case_id, pec_password_received=1)
         return record
+
+    def pec_sync_seen_keys(self, criminal_case_id: str) -> set[str]:
+        """Chiavi delle PEC gia' esaminate per questo caso."""
+
+        rows = self.conn.execute(
+            "SELECT message_key FROM pec_sync_seen WHERE criminal_case_id = ?",
+            (str(criminal_case_id or ""),),
+        ).fetchall()
+        return {str(row["message_key"]) for row in rows if str(row["message_key"] or "").strip()}
+
+    def mark_pec_sync_seen(self, criminal_case_id: str, message_keys: Iterable[str]) -> int:
+        """Registra le PEC esaminate perche' la prossima sincronizzazione le salti."""
+
+        case_id = str(criminal_case_id or "").strip()
+        valori = [
+            (case_id, str(chiave).strip())
+            for chiave in message_keys
+            if case_id and str(chiave or "").strip()
+        ]
+        if not valori:
+            return 0
+        self.conn.executemany(
+            "INSERT OR IGNORE INTO pec_sync_seen (criminal_case_id, message_key) VALUES (?, ?)",
+            valori,
+        )
+        self.conn.commit()
+        return len(valori)
 
     def list_pec_messages(self, criminal_case_id: str) -> list[dict[str, Any]]:
         rows = self.conn.execute(

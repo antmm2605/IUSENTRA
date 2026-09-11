@@ -21,10 +21,18 @@ from reportlab.pdfgen import canvas
 
 from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .atto_enc_validation import inspect_atto_enc_payload
-from .cassazione_xsd_tables import cassazione_enumeration_values
+from .cassazione_atti_v21 import CASSAZIONE_ATTI_V21_ROOTS, ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI
+from .cassazione_atti_v21_datiatto import CassazioneAttiV21DatiAttoMixin
+from .cassazione_xsd_tables import (
+    CASSAZIONE_ALLEGATI_NS,
+    CASSAZIONE_ATTI_NS,
+    CASSAZIONE_EVENTI_NS,
+    CASSAZIONE_PARTE_NS,
+    CASSAZIONE_TIPI_NS,
+    cassazione_enumeration_values,
+)
 from .document_crypto import ENC_MAGIC, decrypt_doc
 from .pst_catalog import (
-    PST_CASSAZIONE_XSD_ACTIVE_VERSION,
     PST_BUSTA_ENCRYPTION_ALGORITHM,
     PST_BUSTA_ENCRYPTION_FATAL_FROM,
     PST_BUSTA_ENCRYPTION_REQUIRED_FROM,
@@ -78,16 +86,10 @@ SIECIC_PROF_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siec
 SIECIC_PROF_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/professionista/v6"
 SICID_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/sicid/sistema/pubblico/v3"
 SIECIC_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3"
-# Cassazione: schemi degli atti di parte in esercizio (XSD_Cassazione_20260227, v.21,
-# applicati dal 04/03/2026). La versione vive in pct.pst_catalog insieme alla fonte PST.
-_CASSAZIONE_SCHEMI = "http://schemi.processotelematico.giustizia.it/cassazione"
-CASSAZIONE_PARTE_NS = f"{_CASSAZIONE_SCHEMI}/Parte/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
-CASSAZIONE_ATTI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/atti/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
-CASSAZIONE_TIPI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
-CASSAZIONE_EVENTI_NS = f"{_CASSAZIONE_SCHEMI}/eventi/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+# Cassazione: i namespace degli atti di parte in esercizio (XSD_Cassazione_20260227, v.21,
+# applicati dal 04/03/2026) sono definiti in pct.cassazione_xsd_tables e riesportati qui.
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
 MINISTERIAL_ALLEGATI_V2_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2"
-CASSAZIONE_ALLEGATI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/allegati/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
 MINISTERIAL_EVENTI_PARTE_NS = "http://schemi.processotelematico.giustizia.it/eventi/parte"
 MINISTERIAL_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/eventi/professionista"
 SIGP_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sigp/eventi/professionista"
@@ -350,7 +352,7 @@ class _DocumentoBusta:
     is_main: bool = False
 
 
-class BustaTelematica:
+class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
     """
     Prepara Atto.msg e Atto.enc per il deposito civile.
 
@@ -2734,7 +2736,10 @@ class BustaTelematica:
 
     def _aggiungi_base_cassazione(self, root: etree._Element) -> None:
         key = self._catalog_key()
-        destination = self._datiatto_root_name() == "Ricorso" or "IscrittoDalControricorrente" in key
+        destination = (
+            self._datiatto_root_name() in {"Ricorso", *CASSAZIONE_V21_INTRODUTTIVI}
+            or "IscrittoDalControricorrente" in key
+        )
         if destination:
             etree.SubElement(
                 root,
@@ -2892,6 +2897,8 @@ class BustaTelematica:
 
     def _aggiungi_dati_specifici_cassazione(self, root: etree._Element) -> bool:
         root_name = self._datiatto_root_name()
+        if root_name in CASSAZIONE_ATTI_V21_ROOTS:
+            return self._aggiungi_dati_atti_cassazione_v21(root)
         if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
             ns = CASSAZIONE_PARTE_NS
             etree.SubElement(root, f"{{{ns}}}TipoRicorso").text = self._cassazione_tipo_ricorso()

@@ -1,5 +1,14 @@
 # Pytest shard confermati OK
 
+## Atti Cassazione v21 predisposti (2.287.0) — 11/09/2026
+
+Stesso ambiente cloud della 2.286.0 (Python 3.11, nessun accesso a PyPI/npm).
+
+- `pytest` su 19 file (nuovo `test_cassazione_atti_v21_predisposti.py`; Cassazione v21, codici oggetto SICID, busta, anagrafica, catalogo PST, intelligence, catalogo depositi, destinazioni, compatibilità, profilo, simulazione, registro telematico, contratto CI, packaging): **259 superati, 1 fallito per ambiente** (audit catalogo, vedi issue aperte).
+- Interruttore acceso (monkeypatch e script): 8/8 DatiAtto validi su `parte_v21`; audit catalogo con 40 atti Cassazione verificati e nessun errore sulle voci Cassazione.
+- `node frontend/scripts/check-react-contracts.mjs`: **Contratti React verificati**. `tsc` senza dipendenze: nessun errore di tipo nuovo oltre ai `TS7026` dovuti ai tipi React non installati.
+- `flake8`, `ruff --select E9,F63,F7,F82` e `py_compile` 3.12 sui file Python toccati: nessun errore.
+
 ## Conformità schemi PST (codici oggetto SICID, Cassazione v21) — 11/09/2026
 
 Ambiente cloud senza accesso a PyPI/npm: Python 3.11 con lxml di sistema e pytest da sorgente; i moduli web con sintassi 3.12 non sono importabili, quindi i test che avviano l'app Flask non sono stati eseguiti qui.

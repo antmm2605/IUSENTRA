@@ -807,6 +807,11 @@ function depositSpecificFieldComplete(field: FascicoloDepositInputField, value: 
     const items = depositObjectList(value)
     return items.length > 0 && items.every((item) => ['1', '2', '3', '4', '5'].includes(depositValueText(item.numero_art_360)))
   }
+  if (field.type === 'motivi-revocazione-cassazione') {
+    const allowed = new Set(field.options.map((option) => option.value))
+    const items = depositObjectList(value)
+    return items.length > 0 && items.every((item) => allowed.has(depositValueText(item.numero_articolo)))
+  }
   if (field.type === 'contromotivi-cassazione') {
     const items = depositObjectList(value)
     return items.length > 0 && items.every((item) => (
@@ -1229,6 +1234,32 @@ function DepositSpecificComplexField({
     )
   }
 
+  if (field.type === 'motivi-revocazione-cassazione') {
+    const items = depositObjectList(value)
+    const update = (index: number, nextItem: Record<string, unknown>) => onChange(items.map((item, itemIndex) => itemIndex === index ? nextItem : item))
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <DepositRepeatingHeader label={items.length ? `${items.length} ${items.length === 1 ? 'motivo inserito' : 'motivi inseriti'}` : 'Nessun motivo inserito'} onAdd={() => onChange([...items, { numero: String(items.length + 1) }])} />
+        <div className="iu-fas-deposit-specific__repeat-list">
+          {items.map((item, index) => {
+            const set = (key: string, nextValue: unknown) => update(index, { ...item, [key]: nextValue })
+            return (
+              <article className="iu-fas-deposit-specific__repeat-row" key={`motivo-revocazione-${index}`}>
+                <header><strong>Motivo {index + 1}</strong><button type="button" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} title={`Rimuovi motivo ${index + 1}`} aria-label={`Rimuovi motivo ${index + 1}`}><Trash2 size={15} /></button></header>
+                <div className="iu-fas-deposit-specific__grid">
+                  <DepositSelectInput label="Motivo di revocazione" value={item.numero_articolo} options={field.options} onChange={(next) => set('numero_articolo', next)} required />
+                  <DepositTextInput label="Pagina" value={item.pagina} onChange={(next) => set('pagina', next)} inputMode="numeric" />
+                  <DepositTextInput label="Descrizione" value={item.descrizione} onChange={(next) => set('descrizione', next)} />
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </fieldset>
+    )
+  }
+
   return null
 }
 
@@ -1274,6 +1305,7 @@ function DepositSpecificDataForm({
     'unep-titoli',
     'provvedimento-cassazione',
     'motivi-cassazione',
+    'motivi-revocazione-cassazione',
     'contromotivi-cassazione',
     'cassazione-materia',
   ])

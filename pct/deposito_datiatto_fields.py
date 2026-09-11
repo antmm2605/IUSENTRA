@@ -8,7 +8,13 @@ from typing import Any
 
 from lxml import etree
 
-from pct.cassazione_xsd_tables import cassazione_enumeration
+from pct.cassazione_atti_v21 import (
+    CASSAZIONE_ATTI_V21_INTRODUTTIVI_KEYS,
+    MOTIVI_REVOCAZIONE,
+    ROOT_OSCURAMENTO,
+    ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI,
+)
+from pct.cassazione_xsd_tables import cassazione_enumeration, cassazione_parte_child_enumeration
 from pct.deposito_studio_telematico_contract import studio_telematico_type_contract
 from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
@@ -112,6 +118,63 @@ def cassazione_tipo_ricorso_options() -> tuple[tuple[str, str], ...]:
 def cassazione_rito_options() -> tuple[tuple[str, str], ...]:
     return _cassazione_options("Rito", {})
 
+
+CASSAZIONE_OSCURAMENTO_LABELS = {
+    "A_RICHIESTA_DI_PARTE": "Su istanza di parte",
+    "EX_LEGE": "Disposto per legge",
+}
+CASSAZIONE_MOTIVI_REVOCAZIONE_LABELS = {
+    "Art395Num": "Art. 395, primo comma, n. {value} c.p.c.",
+    "Art391QuaterNum": "Art. 391-quater, primo comma, lett. {letter} c.p.c.",
+}
+
+
+def cassazione_oscuramento_options() -> tuple[tuple[str, str], ...]:
+    return tuple(
+        (value, CASSAZIONE_OSCURAMENTO_LABELS.get(value) or documentation or value)
+        for value, documentation in cassazione_parte_child_enumeration(ROOT_OSCURAMENTO, "Privacy")
+    )
+
+
+def cassazione_motivi_revocazione_options(root_name: str) -> tuple[tuple[str, str], ...]:
+    article_type = MOTIVI_REVOCAZIONE[root_name][2]
+    template = CASSAZIONE_MOTIVI_REVOCAZIONE_LABELS[article_type]
+    return tuple(
+        (value, template.format(value=value, letter="ab"[int(value) - 1] if value in {"1", "2"} else value))
+        for value, _ in cassazione_enumeration(article_type)
+    )
+
+
+def _append_cassazione_v21_introduttivo_fields(fields: list[dict[str, Any]], root_name: str) -> None:
+    """Campi degli atti introduttivi Cassazione v21 (errore materiale e revocazioni)."""
+    group = "Dati del ricorso"
+    _append_unique(
+        fields,
+        _field("data_richiesta_notifica_cassazione", "Data della prima notifica", "date", group=group),
+        _field("data_effettiva_notifica_cassazione", "Data di perfezionamento dell'ultima notifica", "date", group=group),
+        _field("materia_ricorso_cassazione", "Materia del ricorso", "cassazione-materia", group=group),
+        _field("parole_chiave_cassazione", "Parole chiave", required=False, group=group),
+        _field(
+            "provvedimento_impugnato",
+            "Provvedimento della Corte impugnato",
+            "provvedimento-cassazione",
+            group="Provvedimento impugnato",
+        ),
+        _field("inizio_primo_grado_anno", "Anno di inizio del primo grado", "year", required=False, group=group),
+        _field("inizio_primo_grado_ufficio", "Ufficio del primo grado", required=False, group=group),
+    )
+    if root_name in MOTIVI_REVOCAZIONE:
+        _append_unique(
+            fields,
+            _field(
+                "motivi_revocazione_cassazione",
+                "Motivi di revocazione",
+                "motivi-revocazione-cassazione",
+                group="Motivi",
+                options=cassazione_motivi_revocazione_options(root_name),
+            ),
+        )
+
 DEPOSITO_PROFESSIONISTA_ROLE_OPTIONS = (
     ("ARCH.", "Arch."),
     ("AVV.", "Avv."),
@@ -191,6 +254,7 @@ CASSAZIONE_JUSTICE_EXPENSE_KEYS = {
     "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente",
     "Parte_CASSAZIONE::IntegrazioneContradittorio",
     "Parte_CASSAZIONE::IntegrazioneSpeseGiustizia",
+    *CASSAZIONE_ATTI_V21_INTRODUTTIVI_KEYS,
 }
 
 
@@ -531,6 +595,27 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
             _append_unique(fields, _field("motivi_cassazione", "Motivi", "motivi-cassazione", group="Motivi"))
         if root_name in {"ControRicorso", "ControRicorsoIncidentale"}:
             _append_unique(fields, _field("contromotivi_cassazione", "Contromotivi", "contromotivi-cassazione", group="Contromotivi"))
+
+    if generator_class.startswith("ParteCassazione") and root_name in CASSAZIONE_V21_INTRODUTTIVI:
+        _append_cassazione_v21_introduttivo_fields(fields, root_name)
+
+    if generator_class.startswith("ParteCassazione") and root_name == ROOT_OSCURAMENTO:
+        oscuramento_group = "Oscuramento dei dati"
+        _append_unique(
+            fields,
+            _field(
+                "oscuramento_parte_codice_fiscale",
+                "Codice fiscale o partita IVA della parte",
+                group=oscuramento_group,
+            ),
+            _field(
+                "oscuramento_tipologia",
+                "Tipologia di oscuramento",
+                "select",
+                group=oscuramento_group,
+                options=cassazione_oscuramento_options(),
+            ),
+        )
 
     if generator_class.startswith("ParteCassazione") and root_name == "SegnalazioneErroreMateriale":
         errore_group = "Provvedimento da correggere"

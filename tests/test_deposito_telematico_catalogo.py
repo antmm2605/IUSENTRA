@@ -24,14 +24,21 @@ from scripts.audit_deposito_catalogo_end_to_end import (
     audit_deposit_catalog,
 )
 from scripts.extract_deposito_behavior_contract_from_quickorganizer import _applicable_keys
+from pct.cassazione_atti_v21 import CASSAZIONE_ATTI_V21_KEYS, cassazione_atti_v21_attivi
+
+
+def _atti_cassazione_v21_attivi() -> int:
+    """Atti Cassazione v21 predisposti: contano solo se attivati (pct.cassazione_atti_v21)."""
+    return len(CASSAZIONE_ATTI_V21_KEYS) if cassazione_atti_v21_attivi() else 0
 
 
 def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     payload = build_deposit_catalog_payload()
+    extra = _atti_cassazione_v21_attivi()
 
-    assert payload["counts"]["totalDepositTypes"] == 270
+    assert payload["counts"]["totalDepositTypes"] == 270 + extra
     assert len(payload["counts"]["macroareas"]) == 6
-    assert len(payload["entries"]) == 270
+    assert len(payload["entries"]) == 270 + extra
     fonte_ids = {source["id"] for source in payload["officialSources"]}
     assert "pst_specifiche_tecniche_dm44_2024" in fonte_ids
     assert "normattiva_dm44_2011" in fonte_ids
@@ -466,22 +473,23 @@ def test_catalogo_recupera_rami_decompilati_non_presenti_nel_json_menu():
 def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     report = audit_deposit_catalog()
     blocked_keys = {item["key"] for item in report["blocked_keys"]}
+    extra = _atti_cassazione_v21_attivi()
 
     assert report["ok"] is True
-    assert report["total"] == 270
-    assert report["channels"] == {"pct": 252, "unep": 18, "other": 0}
+    assert report["total"] == 270 + extra
+    assert report["channels"] == {"pct": 252 + extra, "unep": 18, "other": 0}
     # Memoria ex art. 380-bis: tolta dal Ministero dalle radici degli atti di parte Cassazione
     # dalla v16, quindi negli schemi v21 in esercizio non e un deposito da generare.
     assert report["eliminated_by_active_ministerial_schema"] == [
         {"key": "Parte_CASSAZIONE::Memoria380bis", "root": "Memoria380bis"}
     ]
-    assert report["pct_generated_datiatto"] == 251
+    assert report["pct_generated_datiatto"] == 251 + extra
     assert report["unep_generated_datiatto"] == 18
-    assert report["ministerial_generated_datiatto"] == 269
-    assert report["pct_expected_datiatto"] == 251
+    assert report["ministerial_generated_datiatto"] == 269 + extra
+    assert report["pct_expected_datiatto"] == 251 + extra
     assert report["unep_expected_datiatto"] == 18
-    assert report["ministerial_expected_datiatto"] == 269
-    assert report["ministerial_role_checks"] == 269
+    assert report["ministerial_expected_datiatto"] == 269 + extra
+    assert report["ministerial_role_checks"] == 269 + extra
     rule_coverage = report["studio_validation_rule_coverage"]
     assert rule_coverage["ok"] is True
     assert rule_coverage["source_rules_total"] == 186
@@ -492,8 +500,8 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert rule_coverage["covered_rule_ids"] == 186
     assert rule_coverage["missing_rule_ids"] == []
     assert rule_coverage["unknown_rule_ids"] == []
-    assert report["verified_entries"] == 269
-    assert len(report["entries"]) == 270
+    assert report["verified_entries"] == 269 + extra
+    assert len(report["entries"]) == 270 + extra
     verified = [item for item in report["entries"] if item["status"] == "verified"]
     assert all(
         item["status"] in {"verified", "eliminato_dal_ministero"} and not item["errors"] for item in report["entries"]

@@ -43,6 +43,12 @@ from pct.deposito_studio_telematico_validation import (
     FOLLOW_UP_MESSAGE_RULE_IDS,
     validate_studio_telematico_deposit,
 )
+from pct.cassazione_atti_v21 import (
+    CASSAZIONE_ATTI_V21_SOURCE,
+    MOTIVI_REVOCAZIONE,
+    ROOT_OSCURAMENTO,
+    ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI,
+)
 from pct.deposito_telematico_catalogo import CASSAZIONE_ROOT_ELIMINATA_STATUS, list_deposit_catalog_entries
 from web.services.deposito_anagrafica_ministeriale import (
     _anagrafica_procedimento_deposito_xml,
@@ -561,6 +567,9 @@ DATIATTO_EXTRA_BASE: dict[str, Any] = {
     "misure_protettive": False,
     "tipo_ricorso_cassazione": "Ricorso ordinario",
     "numero_raccolta_generale_provvedimento": "12345",
+    "oscuramento_parte_codice_fiscale": "RSSMRA80A01H501Z",
+    "oscuramento_tipologia": "A_RICHIESTA_DI_PARTE",
+    "motivi_revocazione_cassazione": [{"numero": "1", "numero_articolo": "1", "pagina": "2"}],
     "anno_raccolta_generale_provvedimento": "2025",
     "data_richiesta_notifica_cassazione": "01/07/2026",
     "data_effettiva_notifica_cassazione": "02/07/2026",
@@ -995,7 +1004,9 @@ def _check_common_contract(entry: dict[str, Any], errors: list[str]) -> None:
             errors.append(f"{key}: classe generatore mancante")
         if not schema.get("ministerialRoot"):
             errors.append(f"{key}: radice ministeriale mancante")
-        if not schema.get("evidenceMethods"):
+        from_xsd = str((entry.get("quickOrganizer") or {}).get("mappingSource") or "") == CASSAZIONE_ATTI_V21_SOURCE
+        # Per gli atti Cassazione v21 la prova di origine e la radice dello XSD ministeriale, non il decompilato.
+        if not (schema.get("evidenceRoots") if from_xsd else schema.get("evidenceMethods")):
             errors.append(f"{key}: metodo generatore di origine mancante")
         input_fields = schema.get("inputFields") if isinstance(schema.get("inputFields"), list) else []
         input_ids = [str(field.get("id") or "").strip() for field in input_fields if isinstance(field, dict)]
@@ -1372,6 +1383,21 @@ def _required_xml_fields(entry: dict[str, Any]) -> list[str]:
             required.extend(["Motivi", "Motivo"])
         if root in {"ControRicorso", "ControRicorsoIncidentale"}:
             required.extend(["ControMotivi", "ControMotivo"])
+    elif generator.startswith("ParteCassazione") and root in CASSAZIONE_V21_INTRODUTTIVI:
+        required = [
+            "destinazione",
+            "dataRichiestaNotifica",
+            "dataEffettivaNotifica",
+            "Provvedimento",
+            "DatiFascicolo",
+            "Materia",
+            "AnagraficaProcedimento",
+            "DocumentiECLI",
+        ]
+        if root in MOTIVI_REVOCAZIONE:
+            required.extend(MOTIVI_REVOCAZIONE[root][:2])
+    elif generator.startswith("ParteCassazione") and root == ROOT_OSCURAMENTO:
+        required = ["procedimento", "numero", "anno", "Parte", "Privacy"]
     elif generator.startswith("ParteCassazione") and root == "AttoGenerico":
         required = ["procedimento", "numero", "anno", "deposito"]
     elif generator.startswith("ParteCassazione") and root == "IntegrazioneAnagrafica":
@@ -1606,7 +1632,10 @@ def audit_deposit_catalog() -> dict[str, Any]:
                 "categoria": str(entry.get("category") or ""),
                 "canale": str(rules.get("channel_kind") or ""),
                 "fonte_decompilata": {
-                    "catalog_entry_found": source_entry is not None,
+                    # Gli atti Cassazione v21 non esistono nel decompilato: la fonte e lo XSD ministeriale.
+                    "catalog_entry_found": source_entry is not None
+                    or str(quick.get("mappingSource") or "") == CASSAZIONE_ATTI_V21_SOURCE,
+                    "fonte_xsd_ministeriale": str(quick.get("mappingSource") or "") == CASSAZIONE_ATTI_V21_SOURCE,
                     "catalog_match": source_match,
                     "catalog_original_key": str((source_entry or {}).get("key") or ""),
                     "documented_aliases": aliases,
@@ -1644,7 +1673,7 @@ def audit_deposit_catalog() -> dict[str, Any]:
                 "errors": [],
             }
             _check_common_contract(entry, errors)
-            if source_entry is None:
+            if source_entry is None and str(quick.get("mappingSource") or "") != CASSAZIONE_ATTI_V21_SOURCE:
                 detail["errors"].append("Voce non collegata al catalogo decompilato.")
             missing_methods = [item["method"] for item in method_evidence if not item["found"]]
             if missing_methods:
@@ -2055,8 +2084,13 @@ def audit_deposit_catalog() -> dict[str, Any]:
         errors.append(f"catalogo decompilato: attese 270 voci, trovate {len(raw_entries)}")
     if len(validation_types) != 270:
         errors.append(f"contratti di validazione: attese 270 voci, trovate {len(validation_types)}")
-    if len(detailed_entries) != 270:
-        errors.append(f"matrice analitica: attese 270 schede, prodotte {len(detailed_entries)}")
+    expected_entries = 270 + sum(
+        1
+        for entry in entries
+        if str((entry.get("quickOrganizer") or {}).get("mappingSource") or "") == CASSAZIONE_ATTI_V21_SOURCE
+    )
+    if len(detailed_entries) != expected_entries:
+        errors.append(f"matrice analitica: attese {expected_entries} schede, prodotte {len(detailed_entries)}")
     if not source_evidence.get("executable_sha256") or not source_evidence.get("decompiled_form_sha256"):
         errors.append("fonte Studio Telematico o decompilato non disponibile per l'impronta probatoria")
     method_evidence = source_evidence.get("method_evidence")

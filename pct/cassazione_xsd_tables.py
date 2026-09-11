@@ -18,6 +18,12 @@ from lxml import etree
 from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
 XSD_NS = {"xs": "http://www.w3.org/2001/XMLSchema"}
+_CASSAZIONE_SCHEMI = "http://schemi.processotelematico.giustizia.it/cassazione"
+CASSAZIONE_PARTE_NS = f"{_CASSAZIONE_SCHEMI}/Parte/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_ATTI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/atti/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_TIPI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_EVENTI_NS = f"{_CASSAZIONE_SCHEMI}/eventi/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_ALLEGATI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/allegati/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
 CASSAZIONE_SCHEMI_DIR = Path(__file__).resolve().parents[1] / "docs" / "specs" / "ministero" / "parte"
 
 
@@ -51,6 +57,19 @@ def cassazione_enumeration_values(type_name: str) -> frozenset[str]:
     return frozenset(value for value, _ in cassazione_enumeration(type_name))
 
 
+@lru_cache(maxsize=16)
+def cassazione_parte_child_enumeration(root_name: str, child_name: str) -> tuple[tuple[str, str], ...]:
+    """Valori ammessi di un elemento con enumerazione locale dentro una radice di Parte-cassazione.xsd."""
+    root = etree.parse(str(cassazione_parte_schema_path())).getroot()
+    nodes = root.xpath(
+        f"./xs:element[@name='{root_name}']//xs:element[@name='{child_name}']//xs:enumeration",
+        namespaces=XSD_NS,
+    )
+    return tuple(
+        (str(node.get("value") or "").strip(), _documentation(node)) for node in nodes if str(node.get("value") or "").strip()
+    )
+
+
 @lru_cache(maxsize=1)
 def cassazione_parte_roots() -> frozenset[str]:
     """Radici DatiAtto dichiarate dallo schema Parte-cassazione.xsd in esercizio."""
@@ -59,7 +78,13 @@ def cassazione_parte_roots() -> frozenset[str]:
 
 
 __all__ = [
+    "CASSAZIONE_ALLEGATI_NS",
+    "CASSAZIONE_ATTI_NS",
+    "CASSAZIONE_EVENTI_NS",
+    "CASSAZIONE_PARTE_NS",
     "CASSAZIONE_SCHEMI_DIR",
+    "CASSAZIONE_TIPI_NS",
+    "cassazione_parte_child_enumeration",
     "cassazione_enumeration",
     "cassazione_enumeration_values",
     "cassazione_parte_roots",

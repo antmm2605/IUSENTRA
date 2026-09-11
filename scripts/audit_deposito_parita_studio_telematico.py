@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
 from audit_studio_telematico_schema_namespaces import audit_schema_namespaces  # noqa: E402
 from generate_quickorganizer_analysis_artifacts import FORM, extract_datiatto  # noqa: E402
 
+from pct.cassazione_atti_v21 import CASSAZIONE_ATTI_V21_SOURCE  # noqa: E402
 from pct.deposito_telematico_catalogo import list_deposit_catalog_entries  # noqa: E402
 
 
@@ -60,7 +61,13 @@ def _source_for(entry: dict[str, Any], source_by_key: dict[str, dict[str, Any]])
 def audit_parity() -> dict[str, Any]:
     _, _, source_by_key = extract_datiatto()
     schema_report = audit_schema_namespaces(FORM.parent)
-    entries = list(list_deposit_catalog_entries())
+    # Parita con Studio Telematico: gli atti Cassazione v21 aggiunti da XSD ministeriale non esistono
+    # nel decompilato e restano fuori dal confronto nominativo.
+    entries = [
+        entry
+        for entry in list_deposit_catalog_entries()
+        if str((entry.get("quickOrganizer") or {}).get("mappingSource") or "") != CASSAZIONE_ATTI_V21_SOURCE
+    ]
     results: list[dict[str, Any]] = []
     errors: list[str] = []
 

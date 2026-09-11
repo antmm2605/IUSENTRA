@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.287.0 - 11/09/2026
+
+- **Otto atti di parte della Corte di Cassazione predisposti ma non attivi.** Gli schemi v21 in esercizio contengono atti che il catalogo depositi non offriva:
+  - istanza di sospensione e produzione del pagamento per la definizione agevolata ex L. 197/2022;
+  - istanza di anticipazione dell'udienza e di trattazione in pubblica udienza;
+  - istanza di oscuramento dei dati identificativi (art. 52 D.Lgs. 196/2003);
+  - ricorso per correzione di errore materiale (art. 391-bis c.p.c.);
+  - ricorsi per revocazione ex artt. 391-ter e 391-quater c.p.c., con i motivi limitati ai numeri dell'art. 395 e alle lettere dell'art. 391-quater previsti dal Ministero.
+- Voci del catalogo, campi del deposito, generazione del DatiAtto e controlli sono pronti. Per scelta dello studio restano spenti (`CASSAZIONE_ATTI_V21_ATTIVI = False` in `pct/cassazione_atti_v21.py`): non compaiono nel catalogo e la preparazione viene rifiutata con un messaggio chiaro.
+- Con l'interruttore acceso gli 8 atti producono DatiAtto valido sugli XSD v21 e l'audit del catalogo li verifica insieme agli altri 32 atti Cassazione. La data di perfezionamento dell'ultima notifica è chiesta esplicitamente, perché lo schema la vuole distinta dalla prima notifica.
+- Checklist di attivazione e fonti in `docs/specs/ministero/CASSAZIONE_ATTI_V21_PREDISPOSTI.md`. Test: `tests/test_cassazione_atti_v21_predisposti.py`; le attese dell'audit del catalogo seguono lo stato dell'interruttore.
+- I namespace Cassazione passano in `pct/cassazione_xsd_tables.py`, riesportati da `pct.busta`.
+
 ## 2.286.0 - 11/09/2026
 
 Difetti emersi ripristinando tre test che nessun controllo della CI eseguiva.

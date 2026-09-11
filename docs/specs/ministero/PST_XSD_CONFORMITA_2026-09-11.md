@@ -61,9 +61,9 @@ Differenze verificate tra pacchetti:
   `Codifiche_Beni_Mobili.pdf` del PST prevede codici numerici. Da implementare con la tabella ufficiale salvata qui.
 - **Codifica errori controlli 1.0**: `legal_deposit/errors/rejection_analyzer.py` non mappa i messaggi
   FATAL/ERROR/WARN ministeriali.
-- **Atti Cassazione v21 non ancora nel catalogo**: IstanzaSospensioneExL197_2022, ProduzionePagamentoExL197_2022,
-  IstanzaAnticipazioneUdienza, IstanzaTrattazionePubblicaUdienza, RevocazioneExArt391ter,
-  RevocazioneExArt391quater, RicorsoErroreMateriale, IstanzaOscuramento.
+- **Atti Cassazione v21 non ancora nel catalogo**: predisposti e non attivi dalla 2.287.0 (catalogo, campi,
+  generatore e test), in attesa di attivazione da parte dello studio. Dettaglio e checklist in
+  `CASSAZIONE_ATTI_V21_PREDISPOSTI.md`.
 - **Anticipazioni non salvate**: `XSD_SICI_20260720.zip` e `XSD_Cassazione_20260907.zip` vanno salvati in
   `xsd/` (hash sopra) prima di usarli nel codice; alla messa in esercizio aggiornare catalogo e versione attiva.
 - Schede Guida Pratica dei codici CCI 4714xx: normativa generica ereditata dal modello (c.c. 404 ss.), da curare.

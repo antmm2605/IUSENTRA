@@ -12,6 +12,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from pct.cassazione_atti_v21 import ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI
+from pct.cassazione_atti_v21 import catalog_raw_with_cassazione_v21
 from pct.cassazione_xsd_tables import cassazione_parte_roots
 from pct.deposito_datiatto_fields import datiatto_input_fields, datiatto_reference_data
 from pct.deposito_studio_telematico_contract import (
@@ -449,7 +451,7 @@ def _contribution_xml_mode(*, generator_class: str, root_name: str, required: bo
     if generator_class.startswith("ParteCassazione"):
         if root_name == "IntegrazioneSpeseGiustizia":
             return "cassazione_integrazione_spese"
-        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
+        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale", *CASSAZIONE_V21_INTRODUTTIVI}:
             return "cassazione_spese_giustizia"
     # The payment state still has to be resolved, but this root does not carry it.
     return "controllo_documentale"
@@ -934,7 +936,8 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def list_deposit_catalog_entries() -> tuple[dict[str, Any], ...]:
-    raw = load_deposit_catalog_raw()
+    # Gli atti Cassazione v21 predisposti entrano solo quando attivati (pct.cassazione_atti_v21).
+    raw = catalog_raw_with_cassazione_v21(load_deposit_catalog_raw())
     rows: list[dict[str, Any]] = []
     for index, item in enumerate(raw.get("entries") or []):
         if isinstance(item, dict):
@@ -1000,7 +1003,7 @@ def _macro_service(macro: str, entries: list[dict[str, Any]]) -> str:
 
 
 def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, Any]:
-    raw = load_deposit_catalog_raw()
+    raw = catalog_raw_with_cassazione_v21(load_deposit_catalog_raw())
     counts = raw.get("counts") if isinstance(raw.get("counts"), dict) else {}
     macro_counts = counts.get("macroareas") if isinstance(counts.get("macroareas"), dict) else {}
     entries = list_deposit_catalog_entries()

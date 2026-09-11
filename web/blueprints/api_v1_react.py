@@ -154,8 +154,10 @@ from web.services.react_dashboard_health import (
 from web.services.react_dashboard_time import adesso_rome, oggi_rome
 from web.services.react_regia_worklist import build_regia_worklist
 from web.services.reginde_cache_search import (
+    default_inipec_cache_db_path,
     default_reginde_cache_db_path,
     default_registro_ppaa_cache_db_path,
+    search_inipec_cache,
     search_reginde_cache,
     search_registro_ppaa_cache,
 )
@@ -2955,7 +2957,21 @@ def soggetti_react_list():
     ))
 
 
+_PUBLIC_REGISTER_LABELS = {
+    "reginde": "ReGIndE",
+    "registro_ppaa": "Registro PP.AA.",
+    "inipec": "INI-PEC",
+}
+
+
 def _soggetti_public_register_db(kind: str) -> Path:
+    if kind == "inipec":
+        configured_path = (
+            current_app.config.get("INIPEC_CACHE_DB")
+            or os.environ.get("IUSENTRA_INIPEC_CACHE_DB")
+            or ""
+        )
+        return Path(configured_path) if str(configured_path).strip() else default_inipec_cache_db_path()
     if kind == "registro_ppaa":
         configured_path = (
             current_app.config.get("REGISTRO_PPAA_CACHE_DB")
@@ -2989,28 +3005,31 @@ def _soggetti_register_result(item: Mapping[str, Any]) -> dict[str, Any]:
     label = str(item.get("nome") or item.get("label") or item.get("pec") or "").strip()
     identity = str(item.get("codiceFiscalePiva") or "").strip().upper()
     is_pa = source == "registro_ppaa" or role == "pa" or "avvocatura" in label.casefold()
-    tipo = "PUBBLICA_AMMINISTRAZIONE" if is_pa else "PROFESSIONISTA"
+    is_impresa = source == "inipec" and role == "impresa"
+    tipo = "PUBBLICA_AMMINISTRAZIONE" if is_pa else ("PERSONA_GIURIDICA" if is_impresa else "PROFESSIONISTA")
     nome, cognome = _split_register_person_name(item)
+    registry_label = _PUBLIC_REGISTER_LABELS.get(source, "ReGIndE")
+    is_ente = is_pa or is_impresa
     subject_patch = {
         "tipo": tipo,
-        "nome": "" if is_pa else nome,
-        "cognome": "" if is_pa else cognome,
-        "ragione_sociale": label if is_pa else "",
+        "nome": "" if is_ente else nome,
+        "cognome": "" if is_ente else cognome,
+        "ragione_sociale": label if is_ente else "",
         "codice_fiscale": identity,
-        "partita_iva": identity if is_pa and identity.isdigit() and len(identity) == 11 else "",
-        "qualifica": "CONTROPARTE" if is_pa else "DIFENSORE_CONTROPARTE",
+        "partita_iva": identity if is_ente and identity.isdigit() and len(identity) == 11 else "",
+        "qualifica": "CONTROPARTE" if is_ente or source == "inipec" else "DIFENSORE_CONTROPARTE",
         "pec": str(item.get("pec") or "").strip().lower(),
         "email": "",
         "telefono": "",
         "ordine": "ReGIndE" if source == "reginde" and not is_pa else "",
-        "note": f"Importato da {'Registro PP.AA.' if source == 'registro_ppaa' else 'ReGIndE'} locale certificato.",
-        "tag": "registro-ppaa" if source == "registro_ppaa" else "reginde",
+        "note": f"Importato da {registry_label} locale certificato.",
+        "tag": {"registro_ppaa": "registro-ppaa", "inipec": "inipec"}.get(source, "reginde"),
     }
     return {
         "id": str(item.get("id") or ""),
         "label": label,
         "registry": source,
-        "registryLabel": "Registro PP.AA." if source == "registro_ppaa" else "ReGIndE",
+        "registryLabel": registry_label,
         "taxCode": identity,
         "pec": str(item.get("pec") or "").strip().lower(),
         "role": str(item.get("ruolo") or ""),
@@ -3027,7 +3046,9 @@ def soggetti_registri_pubblici_cache():
     selected_registry = str(request.args.get("registro") or request.args.get("registry") or "tutti").strip().lower().replace("-", "_")
     if selected_registry in {"ppaa", "pa", "registro_pa", "registro_paa", "registro_pubbliche_amministrazioni", "ipa"}:
         selected_registry = "registro_ppaa"
-    if selected_registry not in {"reginde", "registro_ppaa"}:
+    if selected_registry in {"ini_pec", "unipec", "uni_pec", "registro_imprese_pec"}:
+        selected_registry = "inipec"
+    if selected_registry not in {"reginde", "registro_ppaa", "inipec"}:
         selected_registry = "tutti"
     try:
         limit = int(request.args.get("limit") or 12)
@@ -3036,8 +3057,13 @@ def soggetti_registri_pubblici_cache():
     safe_limit = max(1, min(limit, 20))
     reginde = search_reginde_cache(_soggetti_public_register_db("reginde"), query, limit=safe_limit)
     ppaa = search_registro_ppaa_cache(_soggetti_public_register_db("registro_ppaa"), query, limit=safe_limit)
-    payloads_by_registry = {"reginde": reginde, "registro_ppaa": ppaa}
-    selected_payloads = [payloads_by_registry[selected_registry]] if selected_registry != "tutti" else [reginde, ppaa]
+    inipec = search_inipec_cache(_soggetti_public_register_db("inipec"), query, limit=safe_limit)
+    payloads_by_registry = {"reginde": reginde, "registro_ppaa": ppaa, "inipec": inipec}
+    if selected_registry != "tutti":
+        selected_payloads = [payloads_by_registry[selected_registry]]
+    else:
+        # INI-PEC entra nella ricerca complessiva solo quando la cache locale e presente.
+        selected_payloads = [reginde, ppaa, *([inipec] if inipec.get("available") else [])]
     results: list[dict[str, Any]] = []
     seen: set[str] = set()
     for payload in selected_payloads:
@@ -3052,10 +3078,7 @@ def soggetti_registri_pubblici_cache():
                 break
         if len(results) >= safe_limit:
             break
-    scope_label = {
-        "reginde": "ReGIndE",
-        "registro_ppaa": "Registro PP.AA.",
-    }.get(selected_registry, "ReGIndE e Registro PP.AA.")
+    scope_label = _PUBLIC_REGISTER_LABELS.get(selected_registry, "ReGIndE, Registro PP.AA. e INI-PEC")
     message = ""
     if len(query) < 3:
         message = f"Digita almeno 3 caratteri per cercare in {scope_label}."
@@ -3084,6 +3107,14 @@ def soggetti_registri_pubblici_cache():
                 "complete": bool(ppaa.get("complete")),
                 "records": int(ppaa.get("records") or 0),
                 "updatedAt": str(ppaa.get("updatedAt") or ""),
+            },
+            {
+                "id": "inipec",
+                "label": "INI-PEC",
+                "available": bool(inipec.get("available")),
+                "complete": bool(inipec.get("complete")),
+                "records": int(inipec.get("records") or 0),
+                "updatedAt": str(inipec.get("updatedAt") or ""),
             },
         ],
         "results": results,

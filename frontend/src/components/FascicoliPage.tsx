@@ -69,6 +69,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
+import { ContropartiRegistriField, type ControparteCandidata } from '../features/fascicoli/ContropartiRegistriField'
 import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import DocumentCapture from './documentCapture/DocumentCapture'
@@ -4210,6 +4211,10 @@ function CounterpartyFields({
   const [subjectType, setSubjectType] = useState('PERSONA_GIURIDICA')
   const [linkingSubject, setLinkingSubject] = useState(false)
   const [linkMessage, setLinkMessage] = useState('')
+  const [subjectPrefill, setSubjectPrefill] = useState({ nome: '', identificativo: '', email: '', pec: '', telefono: '' })
+  const [subjectPrefillKey, setSubjectPrefillKey] = useState(0)
+  const [additionalCounterparties, setAdditionalCounterparties] = useState(0)
+  const principalRequired = required && additionalCounterparties === 0
   useEffect(() => {
     setCounterpartyName(initialName)
     setCounterpartyCode(initialCode)
@@ -4225,6 +4230,25 @@ function CounterpartyFields({
       setCounterpartyName(subject.label)
       setCounterpartyCode(subject.taxCode || subject.vat)
     }
+  }
+  const usePrincipalCounterparty = (candidate: ControparteCandidata) => {
+    setLinkMessage('')
+    if (candidate.idSoggetto) {
+      handleSubjectChange(candidate.idSoggetto)
+      setLinkMessage(`${candidate.nome} impostata come controparte principale dai Soggetti dello studio.`)
+      return
+    }
+    const principalTypes = new Set(['PERSONA_FISICA', 'PERSONA_GIURIDICA', 'ENTE', 'PUBBLICA_AMMINISTRAZIONE', 'CONDOMINIO'])
+    setSelectedId('')
+    setCounterpartyName(candidate.nome)
+    setCounterpartyCode(candidate.identificativo)
+    setSubjectType(principalTypes.has(candidate.tipo) ? candidate.tipo : candidate.tipo === 'ASSOCIAZIONE' ? 'ENTE' : 'PERSONA_FISICA')
+    setSubjectPrefill({ nome: candidate.nome, identificativo: candidate.identificativo, email: candidate.email, pec: candidate.pec, telefono: candidate.telefono })
+    setSubjectPrefillKey((value) => value + 1)
+    setCreateSubject(true)
+    setLinkMessage(candidate.identificativo
+      ? `${candidate.nome} impostata come controparte principale: verifica i dati, al salvataggio viene creata la scheda soggetto.`
+      : `${candidate.nome} impostata come controparte principale: il registro non riporta C.F./P. IVA, completalo prima di salvare.`)
   }
   const linkSelectedSubject = async () => {
     if (!fascicoloId || !selected) {
@@ -4298,11 +4322,11 @@ function CounterpartyFields({
       ) : (
         <small className="iu-fas-field-help iu-fas-field--wide">Nessuna parte processuale collegata: seleziona un soggetto già censito o crea una nuova scheda, poi salva/collega.</small>
       )}
-      <Field label="Controparte" name="controparte" required={required}>
-        <input name="controparte" value={counterpartyName} onChange={(event) => setCounterpartyName(event.currentTarget.value)} required={required} placeholder="Nome o ragione sociale della controparte"/>
+      <Field label="Controparte" name="controparte" required={principalRequired}>
+        <input name="controparte" value={counterpartyName} onChange={(event) => setCounterpartyName(event.currentTarget.value)} required={principalRequired} placeholder="Nome o ragione sociale della controparte"/>
       </Field>
-      <Field label="Codice fiscale / P. IVA controparte" name="cf_controparte" required={required}>
-        <input name="cf_controparte" value={counterpartyCode} onChange={(event) => setCounterpartyCode(event.currentTarget.value)} required={required} placeholder="Dato necessario per la scheda soggetto"/>
+      <Field label="Codice fiscale / P. IVA controparte" name="cf_controparte" required={principalRequired}>
+        <input name="cf_controparte" value={counterpartyCode} onChange={(event) => setCounterpartyCode(event.currentTarget.value)} required={principalRequired} placeholder="Dato necessario per la scheda soggetto"/>
       </Field>
       <Field label={NUOVO_FASCICOLO_LABELS.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
       {!selected ? (
@@ -4315,7 +4339,7 @@ function CounterpartyFields({
         <small className="iu-fas-field-help iu-fas-field--wide">Per aggiungere una controparte diversa non ancora censita, svuota la selezione e attiva la creazione della nuova scheda.</small>
       )}
       {createSubject && !selected ? (
-        <div className="iu-fas-inline-subject iu-fas-field--wide">
+        <div className="iu-fas-inline-subject iu-fas-field--wide" key={`nuovo-soggetto-${subjectPrefillKey}`}>
           <Field label="Tipo soggetto" name="nuovo_soggetto_tipo" required>
             <select name="nuovo_soggetto_tipo" value={subjectType} onChange={(event) => setSubjectType(event.currentTarget.value)} required>
               <option value="PERSONA_FISICA">Persona fisica</option>
@@ -4325,13 +4349,21 @@ function CounterpartyFields({
               <option value="CONDOMINIO">Condominio</option>
             </select>
           </Field>
-          <Field label="Nome completo / ragione sociale" name="nuovo_soggetto_nome_completo" required placeholder="Dato obbligatorio"/>
-          <Field label="Codice fiscale / P. IVA" name="nuovo_soggetto_identificativo" required placeholder="Dato obbligatorio"/>
-          <Field label="Email" name="nuovo_soggetto_email" type="email"/>
-          <Field label="PEC" name="nuovo_soggetto_pec" type="email"/>
-          <Field label="Telefono" name="nuovo_soggetto_telefono"/>
+          <Field label="Nome completo / ragione sociale" name="nuovo_soggetto_nome_completo" defaultValue={subjectPrefill.nome} required placeholder="Dato obbligatorio"/>
+          <Field label="Codice fiscale / P. IVA" name="nuovo_soggetto_identificativo" defaultValue={subjectPrefill.identificativo} required placeholder="Dato obbligatorio"/>
+          <Field label="Email" name="nuovo_soggetto_email" type="email" defaultValue={subjectPrefill.email}/>
+          <Field label="PEC" name="nuovo_soggetto_pec" type="email" defaultValue={subjectPrefill.pec}/>
+          <Field label="Telefono" name="nuovo_soggetto_telefono" defaultValue={subjectPrefill.telefono}/>
         </div>
       ) : null}
+      <ContropartiRegistriField
+        subjects={data.subjects}
+        linkedSubjects={data.linkedSubjects}
+        principalName={counterpartyName}
+        principalCode={counterpartyCode}
+        onUsePrincipal={usePrincipalCounterparty}
+        onCounterpartyRowsChange={setAdditionalCounterparties}
+      />
     </>
   )
 }
@@ -4753,10 +4785,10 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               {mode === 'edit' && id ? (
                 <div className="iu-fas-party-context iu-fas-field--wide">
                   <div>
-                    <strong>Altre controparti e parti</strong>
-                    <span>Crea un nuovo soggetto processuale e rientra qui: verrà collegato al fascicolo come controparte.</span>
+                    <strong>Altre parti processuali</strong>
+                    <span>Per testimoni, CTU o altri ruoli apri la scheda completa del soggetto e rientra qui.</span>
                   </div>
-                  <a className="iu-fas-inline-link" href={contextualSubjectHref}><Plus size={14}/> Aggiungi altra controparte</a>
+                  <a className="iu-fas-inline-link" href={contextualSubjectHref}><Plus size={14}/> Scheda soggetto completa</a>
                 </div>
               ) : (
                 <a className="iu-fas-inline-link" href={contextualSubjectHref} target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a>

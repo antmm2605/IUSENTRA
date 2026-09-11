@@ -16,6 +16,11 @@ from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from pct.uffici_giudiziari import risolvi_ufficio
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.fascicolo_controparti_aggiuntive import (
+    EsitoControparti,
+    collega_controparti_aggiuntive,
+    leggi_controparti_aggiuntive,
+)
 from web.services.fascicoli_create_helpers import (
     codice_guida_pratica_da_form as _codice_guida_pratica_da_form,
     codice_oggetto_pst_da_form as _codice_oggetto_pst_da_form,
@@ -287,6 +292,19 @@ def register_fascicoli_create_routes(
                         raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
                     controparte = controparte or soggetto_scelto.nome_completo
                     cf_controparte = cf_controparte or soggetto_scelto.identificativo
+                # Altre controparti (Soggetti, ReGIndE, Registro PP.AA., INI-PEC o manuali): validate prima di creare.
+                controparti_aggiuntive = leggi_controparti_aggiuntive(
+                    form.get("controparti_aggiuntive_json", ""),
+                    gestore_soggetti=gestore_soggetti,
+                )
+                if not controparte:
+                    prima_controparte = next(
+                        (item for item in controparti_aggiuntive if item.ruolo == RuoloSoggetto.CONTROPARTE),
+                        None,
+                    )
+                    if prima_controparte:
+                        controparte = prima_controparte.nome
+                        cf_controparte = cf_controparte or prima_controparte.identificativo
                 if _form_bool(form, "crea_soggetto_controparte"):
                     if not (form.get("nuovo_soggetto_nome_completo", "").strip() or controparte):
                         raise ValueError("Per creare la scheda soggetto della controparte serve il nome completo o la ragione sociale.")
@@ -391,6 +409,15 @@ def register_fascicoli_create_routes(
                     fascicolo_veloce=fascicolo_veloce,
                     note=form.get("note", ""),
                 )
+                esito_controparti = EsitoControparti(collegate=(), escluse_cliente=())
+                if controparti_aggiuntive:
+                    esito_controparti = collega_controparti_aggiuntive(
+                        gestore_soggetti,
+                        get_clienti().tutti(),
+                        fascicolo.id,
+                        controparti_aggiuntive,
+                        momento="l'apertura",
+                    )
                 soggetto_controparte = None
                 if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte") or (controparte and cf_controparte):
                     if not _controparte_coincide_con_cliente(controparte, cf_controparte):
@@ -456,6 +483,8 @@ def register_fascicoli_create_routes(
                         avvocato=avvocato_referente,
                     )
                 messaggio_creazione = f"Fascicolo {fascicolo.numero} creato."
+                if esito_controparti.messaggio():
+                    messaggio_creazione += f" {esito_controparti.messaggio()}"
                 if fascicolo_veloce and (documenti_iniziali or email_iniziali):
                     messaggio_creazione += f" Caricati {documenti_iniziali} documenti e {email_iniziali} email EML."
                 if email_scartate:

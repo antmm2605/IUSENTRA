@@ -36,10 +36,11 @@ import {
   type RegistryOption,
 } from '../clientiNuovoData'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { anagraficaDraftKey, useAnagraficaDraft, type AnagraficaDraftStatus } from '../features/anagrafiche/useAnagraficaDraft'
 import './NuovoClientePage.css'
 
 type Tab = 'cliente' | 'soggetto'
-type PublicRegistryKind = 'reginde' | 'registro_ppaa'
+type PublicRegistryKind = 'reginde' | 'registro_ppaa' | 'inipec'
 type ClientType = 'PERSONA_FISICA' | 'PERSONA_GIURIDICA'
 type ClientFormState = Record<string, string | boolean>
 type SubjectFormState = Record<string, string>
@@ -56,6 +57,7 @@ const subjectLegalTypes = new Set(['PERSONA_GIURIDICA', 'PUBBLICA_AMMINISTRAZION
 const publicRegistryChoices: Array<{ id: PublicRegistryKind; label: string; note: string; placeholder: string }> = [
   { id: 'reginde', label: 'ReGIndE', note: 'Difensori e domiciliatari', placeholder: 'Nome, C.F. o PEC del professionista' },
   { id: 'registro_ppaa', label: 'Registro PP.AA.', note: 'Pubbliche amministrazioni locali', placeholder: 'Ente, C.F., P. IVA o PEC' },
+  { id: 'inipec', label: 'INI-PEC', note: 'Imprese e professionisti', placeholder: 'Ragione sociale, P. IVA o PEC' },
 ]
 
 const initialClient: ClientFormState = {
@@ -168,7 +170,9 @@ async function safeJson(response: Response): Promise<Record<string, unknown>> {
 }
 
 function asInputValue(value: string | boolean | undefined): string {
-  return typeof value === 'boolean' ? (value ? '1' : '0') : text(value)
+  // Nessun trim durante la digitazione: altrimenti lo spazio finale sparisce e non si possono scrivere
+  // nomi composti, indirizzi o ragioni sociali. La pulizia avviene al salvataggio lato server.
+  return typeof value === 'boolean' ? (value ? '1' : '0') : String(value ?? '')
 }
 
 type ClientDocumentField = keyof typeof initialClient
@@ -589,6 +593,18 @@ function DocumentAutofillPanel({
   )
 }
 
+function DraftAutosaveBar({ status, onRestore, onDiscard }:{ status: AnagraficaDraftStatus; onRestore: () => void; onDiscard: () => void }) {
+  const hasDraft = Boolean(status.savedAt) || status.pendingRestore
+  return (
+    <div className={`iu-cln-draft iu-cln-draft--${status.tone}`} role="status" aria-live="polite">
+      <ClipboardCheck size={15}/>
+      <span>{status.message || 'Salvataggio automatico attivo: ogni campo compilato viene salvato in bozza quando passi al successivo.'}</span>
+      {status.pendingRestore ? <button type="button" onClick={onRestore}>Ripristina bozza</button> : null}
+      {hasDraft ? <button type="button" onClick={onDiscard}>Scarta bozza</button> : null}
+    </div>
+  )
+}
+
 function emptySubmitState(): SubmitState {
   return { saving: false, tone: 'neutral', message: '' }
 }
@@ -893,6 +909,26 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
   const nextUrl = data.query.nextUrl
+  const clientDraftInitial = useMemo<ClientFormState>(
+    () => (data.mode === 'edit' ? {...initialClient, ...data.initialClient} : {...initialClient}),
+    [data.mode, data.initialClient],
+  )
+  const clientDraftKey = useMemo(
+    () => anagraficaDraftKey('cliente', data.mode === 'edit' ? data.query.idCliente : '', data.mode === 'edit' ? '' : data.query.idCliente),
+    [data.mode, data.query.idCliente],
+  )
+  const draft = useAnagraficaDraft<ClientFormState>({
+    storageKey: clientDraftKey,
+    ready: data.source !== 'vuoto',
+    autoRestore: data.mode !== 'edit',
+    values,
+    initialValues: clientDraftInitial,
+    excludedFields: ['next_url'],
+    onRestore: (draftValues) => {
+      setValues((current) => ({...current, ...draftValues}) as ClientFormState)
+      setTouchedFields((current) => new Set([...current, ...Object.keys(draftValues)]))
+    },
+  })
 
   useEffect(() => {
     valuesRef.current = values
@@ -1147,6 +1183,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
     try {
       const result = await submitFormJson(action, new FormData(event.currentTarget))
+      draft.clearAfterSave()
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Cliente salvato.' })
       redirectAfterSuccess(result, data.mode === 'edit' && data.query.idCliente ? `/clienti/${encodeURIComponent(data.query.idCliente)}` : '/clienti')
     } catch (error) {
@@ -1155,8 +1192,9 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   }
 
   return (
-    <form className="iu-cln-form" onSubmit={handleSubmit}>
+    <form className="iu-cln-form" onSubmit={handleSubmit} onBlur={draft.handleBlur}>
       <input type="hidden" name="next_url" value={asInputValue(values.next_url)}/>
+      <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => draft.discard(true)}/>
       <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note={data.mode === 'edit' ? 'Aggiornamento anagrafica esistente' : 'Nuova anagrafica governata'}>
         <ChoiceGrid name="tipo" value={asInputValue(values.tipo)} options={data.options.clientTypes} onChange={change}/>
       </Card>
@@ -1311,6 +1349,28 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
       return
     }
   }, [data.mode, data.initialSubject])
+
+  const subjectDraftInitial = useMemo<SubjectFormState>(() => ({ ...initialSubject, ...data.initialSubject }), [data.initialSubject])
+  const subjectDraftKey = useMemo(
+    () => anagraficaDraftKey(
+      'soggetto',
+      data.mode === 'edit_subject' ? data.query.idSoggetto : '',
+      data.mode === 'edit_subject' ? '' : [data.query.idFascicolo, data.query.ruoloSoggetto].filter(Boolean).join('-'),
+    ),
+    [data.mode, data.query.idSoggetto, data.query.idFascicolo, data.query.ruoloSoggetto],
+  )
+  const draft = useAnagraficaDraft<SubjectFormState>({
+    storageKey: subjectDraftKey,
+    ready: data.source !== 'vuoto',
+    autoRestore: data.mode !== 'edit_subject',
+    values,
+    initialValues: subjectDraftInitial,
+    onRestore: (draftValues) => {
+      const clean = Object.fromEntries(Object.entries(draftValues).map(([key, value]) => [key, String(value ?? '')]))
+      setValues((current) => ({ ...current, ...clean }))
+      setTouchedFields((current) => new Set([...current, ...Object.keys(clean)]))
+    },
+  })
 
   useEffect(() => {
     const code = text(values.codice_fiscale).replace(/\s/g, '').toUpperCase()
@@ -1581,6 +1641,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
     try {
       const result = await submitFormJson(action, new FormData(event.currentTarget))
+      draft.clearAfterSave()
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Soggetto salvato.' })
       redirectAfterSuccess(result, subjectCancelHref)
     } catch (error) {
@@ -1589,7 +1650,8 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   }
 
   return (
-    <form className="iu-cln-form" onSubmit={handleSubmit}>
+    <form className="iu-cln-form" onSubmit={handleSubmit} onBlur={draft.handleBlur}>
+      <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => draft.discard(true)}/>
       <input type="hidden" name="id_fascicolo" value={data.query.idFascicolo}/>
       <input type="hidden" name="next_url" value={data.query.nextUrl}/>
       <input type="hidden" name="ruolo_collegamento" value={values.qualifica || data.query.ruoloSoggetto}/>
@@ -1647,7 +1709,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
                     <strong>{item.label}</strong>
                     <small>{item.taxCode || 'Identificativo non presente'} - {item.pec || 'PEC non presente'}</small>
                   </span>
-                  <Badge tone={item.registry === 'registro_ppaa' ? 'info' : 'primary'}>{item.registryLabel}</Badge>
+                  <Badge tone={item.registry === 'registro_ppaa' ? 'info' : item.registry === 'inipec' ? 'purple' : 'primary'}>{item.registryLabel}</Badge>
                 </button>
               ))}
             </div>

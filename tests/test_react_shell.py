@@ -8956,6 +8956,17 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert "PraticheCollegateField data={data}" not in identificazione
     assert "ClientChoiceField data={data}" in source
     assert "<CounterpartyFields" in source
+    controparti = Path("frontend/src/features/fascicoli/ContropartiRegistriField.tsx").read_text(encoding="utf-8")
+    assert "<ContropartiRegistriField" in source
+    assert "onUsePrincipal={usePrincipalCounterparty}" in source
+    assert "required={principalRequired}" in source
+    assert 'name="controparti_aggiuntive_json"' in controparti
+    assert "Aggiungi controparte" in controparti
+    assert "searchPublicSubjectRegisters(text, 12, source)" in controparti
+    for fonte in ("'soggetti'", "'registro_ppaa'", "'reginde'", "'inipec'"):
+        assert f"id: {fonte}" in controparti
+    assert "DIFENSORE_CONTROPARTE" in controparti
+    assert ".iu-fas-controparti__row" in css
     assert "required={fascicoloVeloce}" in source
     assert "JudicialOfficeField data={data} required={fascicoloVeloce}" in source
     assert "id_soggetto_controparte" in source
@@ -9335,7 +9346,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "Visualizza cliente nel fascicolo" in fascicoli_page
     assert "Visualizza soggetti e parti nel fascicolo" in fascicoli_page
     assert "subjectContextParams.set('id_fascicolo', id)" in fascicoli_page
-    assert "Aggiungi altra controparte" in fascicoli_page
+    assert "Scheda soggetto completa" in fascicoli_page
     assert "linkedSubjects" in fascicoli_data
     assert "Parti già collegate al fascicolo" in fascicoli_page
     assert "Aggiungi controparte al fascicolo" in fascicoli_page
@@ -9940,6 +9951,7 @@ def test_soggetti_registri_pubblici_riusa_cache_reginde_e_ppaa(tmp_path: Path):
     create_cache(ppaa_db, source="registro_ppaa")
     app.config["REGINDE_CACHE_DB"] = str(reginde_db)
     app.config["REGISTRO_PPAA_CACHE_DB"] = str(ppaa_db)
+    app.config["INIPEC_CACHE_DB"] = str(tmp_path / "inipec_assente.sqlite")
 
     with app.test_client() as client:
         _login(client)
@@ -9968,6 +9980,318 @@ def test_soggetti_registri_pubblici_riusa_cache_reginde_e_ppaa(tmp_path: Path):
     ppaa_payload = ppaa_response.get_json()
     assert ppaa_payload["selectedRegistry"] == "registro_ppaa"
     assert {item["registry"] for item in ppaa_payload["results"]} == {"registro_ppaa"}
+
+
+def _crea_cache_registro_pubblico_test(path: Path, righe: list[dict[str, object]]) -> None:
+    import sqlite3
+
+    conn = sqlite3.connect(str(path))
+    conn.execute(
+        """
+        CREATE TABLE records (
+            record_key TEXT PRIMARY KEY,
+            denominazione TEXT,
+            nome_completo TEXT,
+            codici_fiscali_json TEXT NOT NULL,
+            partite_iva_json TEXT NOT NULL,
+            pec_json TEXT NOT NULL,
+            ruolo TEXT,
+            stato TEXT,
+            visibile INTEGER NOT NULL,
+            first_seen_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            first_page_start INTEGER NOT NULL,
+            last_page_start INTEGER NOT NULL,
+            response_sha256 TEXT NOT NULL,
+            record_json TEXT NOT NULL
+        )
+        """
+    )
+    for riga in righe:
+        conn.execute(
+            """
+            INSERT INTO records (
+                record_key, denominazione, nome_completo, codici_fiscali_json,
+                partite_iva_json, pec_json, ruolo, stato, visibile,
+                first_seen_at, last_seen_at, first_page_start, last_page_start,
+                response_sha256, record_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 1, 1, 'hash', ?)
+            """,
+            (
+                riga["record_key"],
+                riga.get("denominazione", ""),
+                riga.get("nome_completo", ""),
+                json.dumps(riga.get("codici_fiscali", [])),
+                json.dumps(riga.get("partite_iva", [])),
+                json.dumps(riga.get("pec", [])),
+                riga.get("ruolo", ""),
+                "attivo",
+                "2026-09-10T10:00:00+02:00",
+                "2026-09-10T10:00:00+02:00",
+                json.dumps(riga.get("record_json", {}), ensure_ascii=False),
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
+def test_soggetti_registri_pubblici_include_inipec_quando_la_cache_esiste(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    inipec_db = tmp_path / "inipec_cache.sqlite"
+    _crea_cache_registro_pubblico_test(inipec_db, [
+        {
+            "record_key": "inipec-beta",
+            "denominazione": "BETA SERVIZI SRL",
+            "partite_iva": ["01234567890"],
+            "pec": ["beta.servizi@pec.test"],
+        },
+        {
+            "record_key": "inipec-bianchi",
+            "nome_completo": "BIANCHI LAURA",
+            "codici_fiscali": ["BNCLRA80A41F205X"],
+            "pec": ["laura.bianchi@pec.test"],
+            "record_json": {"nome": "Laura", "cognome": "Bianchi"},
+        },
+    ])
+    app.config["REGINDE_CACHE_DB"] = str(tmp_path / "reginde_assente.sqlite")
+    app.config["REGISTRO_PPAA_CACHE_DB"] = str(tmp_path / "ppaa_assente.sqlite")
+    app.config["INIPEC_CACHE_DB"] = str(inipec_db)
+
+    with app.test_client() as client:
+        _login(client)
+        impresa_response = client.get("/api/v1/ui/soggetti/registri-pubblici?q=Beta%20Servizi&registro=unipec")
+        tutti_response = client.get("/api/v1/ui/soggetti/registri-pubblici?q=Bianchi%20Laura")
+
+    impresa_payload = impresa_response.get_json()
+    assert impresa_response.status_code == 200
+    assert impresa_payload["selectedRegistry"] == "inipec"
+    assert impresa_payload["available"] is True
+    registries = {item["id"]: item for item in impresa_payload["registries"]}
+    assert registries["inipec"] == {
+        "id": "inipec",
+        "label": "INI-PEC",
+        "available": True,
+        "complete": False,
+        "records": 2,
+        "updatedAt": "",
+    }
+    impresa = impresa_payload["results"][0]
+    assert impresa["registry"] == "inipec"
+    assert impresa["registryLabel"] == "INI-PEC"
+    assert impresa["subjectPatch"]["tipo"] == "PERSONA_GIURIDICA"
+    assert impresa["subjectPatch"]["ragione_sociale"] == "BETA SERVIZI SRL"
+    assert impresa["subjectPatch"]["partita_iva"] == "01234567890"
+    assert impresa["subjectPatch"]["qualifica"] == "CONTROPARTE"
+    assert impresa["subjectPatch"]["pec"] == "beta.servizi@pec.test"
+
+    tutti_payload = tutti_response.get_json()
+    assert tutti_payload["selectedRegistry"] == "tutti"
+    professionista = next(item for item in tutti_payload["results"] if item["registry"] == "inipec")
+    assert professionista["subjectPatch"]["tipo"] == "PROFESSIONISTA"
+    assert professionista["subjectPatch"]["nome"] == "Laura"
+    assert professionista["subjectPatch"]["cognome"] == "Bianchi"
+    assert professionista["subjectPatch"]["qualifica"] == "CONTROPARTE"
+
+
+def test_post_nuovo_fascicolo_collega_piu_controparti_da_registri_pubblici(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    controparti = [
+        {
+            "nome": "Comune di Milano",
+            "identificativo": "01199250158",
+            "tipo": TipoSoggetto.PUBBLICA_AMMINISTRAZIONE.value,
+            "ruolo": "CONTROPARTE",
+            "fonte": "registro_ppaa",
+            "pec": "protocollo@postacert.comune.milano.it",
+        },
+        {
+            "nome": "Beta Servizi Srl",
+            "identificativo": "01234567890",
+            "tipo": TipoSoggetto.PERSONA_GIURIDICA.value,
+            "ruolo": "CONTROPARTE",
+            "fonte": "inipec",
+            "pec": "beta.servizi@pec.test",
+        },
+        {
+            "nome": "Mario Rossi",
+            "identificativo": "RSSMRA80A01F205X",
+            "tipo": TipoSoggetto.PROFESSIONISTA.value,
+            "ruolo": "DIFENSORE_CONTROPARTE",
+            "fonte": "reginde",
+            "pec": "mario.rossi@pec.ordineavvocatimilano.it",
+            "persona_nome": "Mario",
+            "persona_cognome": "Rossi",
+        },
+    ]
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Fascicolo con piu controparti",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "Opposizione a ingiunzione",
+                "tribunale": "Tribunale di Milano",
+                "fascicolo_veloce": "1",
+                "controparti_aggiuntive_json": json.dumps(controparti),
+            },
+            follow_redirects=False,
+        )
+        location = response.headers["Location"]
+        id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
+        detail_response = client.get(
+            f"/api/v1/ui/fascicoli/{id_fascicolo}",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    with app.app_context():
+        soggetti = app.extensions["core_runtime"]["get_soggetti"]()
+    parti = soggetti.parti_fascicolo(id_fascicolo)
+    per_ruolo = {
+        (soggetto.nome_completo, parte.ruolo)
+        for parte, soggetto in parti
+    }
+    payload = detail_response.get_json()
+
+    assert response.status_code in {302, 303}
+    assert ("Comune di Milano", RuoloSoggetto.CONTROPARTE) in per_ruolo
+    assert ("Beta Servizi Srl", RuoloSoggetto.CONTROPARTE) in per_ruolo
+    assert any(
+        ruolo == RuoloSoggetto.DIFENSORE_CONTROPARTE and "Rossi" in nome
+        for nome, ruolo in per_ruolo
+    )
+    comune = next(soggetto for _parte, soggetto in parti if soggetto.nome_completo == "Comune di Milano")
+    assert comune.recapiti.pec == "protocollo@postacert.comune.milano.it"
+    assert payload["fascicolo"]["counterparty"] == "Comune di Milano"
+    assert payload["fascicolo"]["counterpartyTaxCode"] == "01199250158"
+
+
+def test_post_modifica_fascicolo_aggiunge_altre_controparti_senza_duplicare(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo("Opposizione sanzione", TipoFascicolo.CIVILE)
+    comune = {
+        "nome": "Comune di Milano",
+        "identificativo": "01199250158",
+        "tipo": TipoSoggetto.PUBBLICA_AMMINISTRAZIONE.value,
+        "ruolo": "CONTROPARTE",
+        "fonte": "registro_ppaa",
+        "pec": "protocollo@postacert.comune.milano.it",
+    }
+    base_form = {
+        "titolo": "Opposizione sanzione",
+        "tipo": TipoFascicolo.CIVILE.value,
+        "id_cliente": "",
+        "controparte": "",
+        "tribunale": "",
+        "oggetto": "",
+        "valore_causa": "",
+        "note": "",
+    }
+
+    with app.test_client() as client:
+        _login(client)
+        first = client.post(
+            f"/fascicoli/{fascicolo.id}/modifica",
+            data={**base_form, "controparti_aggiuntive_json": json.dumps([comune])},
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+        second = client.post(
+            f"/fascicoli/{fascicolo.id}/modifica",
+            data={
+                **base_form,
+                "controparte": "Comune di Milano",
+                "cf_controparte": "01199250158",
+                "controparti_aggiuntive_json": json.dumps([
+                    comune,
+                    {
+                        "nome": "Delta Srl",
+                        "identificativo": "09876543210",
+                        "tipo": TipoSoggetto.PERSONA_GIURIDICA.value,
+                        "ruolo": "CONTROPARTE",
+                        "fonte": "manuale",
+                    },
+                ]),
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    with app.app_context():
+        soggetti = app.extensions["core_runtime"]["get_soggetti"]()
+    parti = soggetti.parti_fascicolo(fascicolo.id)
+    nomi = [soggetto.nome_completo for _parte, soggetto in parti]
+    aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+
+    assert first.status_code == 200, first.get_data(as_text=True)
+    assert "Collegate altre" in json.dumps(first.get_json(), ensure_ascii=False)
+    assert second.status_code == 200, second.get_data(as_text=True)
+    assert nomi.count("Comune di Milano") == 1
+    assert "Delta Srl" in nomi
+    assert len([s for s in soggetti.tutti() if s.identificativo == "01199250158"]) == 1
+    assert aggiornato is not None
+    assert aggiornato.controparte == "Comune di Milano"
+
+
+def test_post_nuovo_fascicolo_controparti_aggiuntive_non_valide_json(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Controparte senza codice",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "Recupero credito",
+                "tribunale": "Tribunale di Milano",
+                "fascicolo_veloce": "1",
+                "controparti_aggiuntive_json": json.dumps([
+                    {"nome": "Gamma Srl", "identificativo": "", "ruolo": "CONTROPARTE", "fonte": "manuale"},
+                ]),
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 400
+    assert "Gamma Srl" in json.dumps(payload, ensure_ascii=False)
+
+
+def test_react_anagrafica_nuova_accetta_spazi_e_salva_bozza_al_cambio_campo():
+    page = Path("frontend/src/components/NuovoClientePage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/NuovoClientePage.css").read_text(encoding="utf-8")
+    hook = Path("frontend/src/features/anagrafiche/useAnagraficaDraft.ts").read_text(encoding="utf-8")
+
+    as_input = page[page.index("function asInputValue"):page.index("type ClientDocumentField")]
+    # Il valore dei campi controllati non va ripulito durante la digitazione: lo spazio finale deve restare.
+    assert "String(value ?? '')" in as_input
+    assert "text(value)" not in as_input
+    assert page.count("onBlur={draft.handleBlur}") == 2
+    assert page.count("<DraftAutosaveBar") == 2
+    assert page.count("draft.clearAfterSave()") == 2
+    assert "autoRestore: data.mode !== 'edit'," in page
+    assert "autoRestore: data.mode !== 'edit_subject'," in page
+    assert "excludedFields: ['next_url']" in page
+    assert "Ripristina bozza" in page and "Scarta bozza" in page
+    assert "{ id: 'inipec', label: 'INI-PEC'" in page
+    assert ".iu-cln-draft--success" in css
+    assert "ANAGRAFICA_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000" in hook
+    assert "window.addEventListener('pagehide', flush)" in hook
+    assert "SKIPPED_INPUT_TYPES = new Set(['file', 'hidden', 'password', 'submit', 'button', 'search'])" in hook
+    assert "window.localStorage.setItem" in hook and "catch" in hook
 
 
 def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):

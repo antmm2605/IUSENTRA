@@ -187,3 +187,13 @@
   .iu-cln-registry__search button{grid-column:1/-1}
   .iu-cln-registry__results button{grid-template-columns:1fr}
 }
+
+/* Bozza automatica: salvataggio al passaggio al campo successivo */
+.iu-cln-draft{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding:9px 12px;border:1px solid var(--iu-border,#e2e8f0);border-radius:12px;background:#f8fafc;color:#334155;font-size:12px;font-weight:800}
+.iu-cln-draft>svg{flex:0 0 auto;color:#64748b}
+.iu-cln-draft>span{flex:1 1 240px;min-width:0;line-height:1.4}
+.iu-cln-draft button{min-height:30px;padding:0 10px;border:1px solid var(--iu-border,#e2e8f0);border-radius:9px;background:#fff;color:#1d4ed8;font-size:11.5px;font-weight:900;cursor:pointer}
+.iu-cln-draft--success{border-color:rgba(22,163,74,.24);background:rgba(22,163,74,.06);color:#166534}
+.iu-cln-draft--success>svg{color:#16a34a}
+.iu-cln-draft--warning{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#92400e}
+.iu-cln-draft--warning>svg{color:#d97706}

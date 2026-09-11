@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.292.0 - 11/09/2026
+
+Piu' controparti per fascicolo, INI-PEC fra i registri consultabili, e le anagrafiche non si perdono piu' a meta'.
+
+- **Controparti aggiuntive.** Il fascicolo accettava una sola controparte: le cause con piu' convenuti costringevano a censire le altre parti a mano dopo aver salvato. Ora nel form Nuovo/Modifica fascicolo si aggiungono fino a venti parti oltre alla principale — scelte fra i Soggetti dello studio, cercate nei registri pubblici consultati in locale (ReGIndE, Registro PP.AA., INI-PEC) o inserite a mano — ciascuna con il proprio ruolo (controparte o difensore di controparte). Al salvataggio ogni voce diventa (o riusa) una scheda in Soggetti e Parti collegata al fascicolo.
+- **Nessun duplicato e nessun fascicolo a meta'.** Una parte con lo stesso codice fiscale o partita IVA di una scheda esistente riusa quella scheda e ne completa solo la PEC mancante, senza sovrascrivere dati gia' presenti; una voce che coincide con il cliente dello studio non viene collegata come controparte. La validazione avviene prima di creare il fascicolo, cosi' un dato errato non lascia un fascicolo incompleto.
+- **INI-PEC fra i registri consultabili** (art. 6-bis CAD) accanto a ReGIndE e Registro PP.AA., con la stessa cache locale: imprese e professionisti si cercano per ragione sociale, partita IVA o PEC.
+- **Lo spazio non sparisce piu' mentre si scrive.** Nei form anagrafica il valore veniva ripulito a ogni tasto: non si riuscivano a scrivere nomi composti, indirizzi e ragioni sociali perche' lo spazio finale veniva tolto prima del carattere successivo. La pulizia ora avviene al salvataggio, lato server.
+- **Salvataggio automatico in bozza.** Nuovo cliente e Nuovo soggetto salvano la scheda in bozza in questo browser ogni volta che si lascia un campo compilato: riaprendo la pagina la bozza viene ripristinata (in modifica viene solo proposta, per non sovrascrivere dati piu' recenti del server). La bozza si cancella al salvataggio o con "Scarta bozza" e scade dopo sette giorni.
+
 ## 2.291.1 - 11/09/2026
 
 Il deploy su Hetzner torna a completarsi: cinque deploy di fila si erano fermati, per due motivi distinti, nessuno dei quali riguardava il codice applicativo.

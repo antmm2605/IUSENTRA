@@ -18,6 +18,10 @@ from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
+from web.services.fascicolo_controparti_aggiuntive import (
+    collega_controparti_aggiuntive,
+    leggi_controparti_aggiuntive,
+)
 
 
 def _richiede_vista_classica() -> bool:
@@ -278,6 +282,19 @@ def register_fascicoli_management_routes(
                         raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
                     controparte = controparte or soggetto_scelto.nome_completo
                     cf_controparte = cf_controparte or soggetto_scelto.identificativo
+                # Altre controparti (Soggetti, ReGIndE, Registro PP.AA., INI-PEC o manuali): validate prima di salvare.
+                controparti_aggiuntive = leggi_controparti_aggiuntive(
+                    form.get("controparti_aggiuntive_json", ""),
+                    gestore_soggetti=gestore_soggetti,
+                )
+                if not controparte:
+                    prima_controparte = next(
+                        (item for item in controparti_aggiuntive if item.ruolo == RuoloSoggetto.CONTROPARTE),
+                        None,
+                    )
+                    if prima_controparte:
+                        controparte = prima_controparte.nome
+                        cf_controparte = cf_controparte or prima_controparte.identificativo
                 if _form_bool(form, "crea_soggetto_controparte"):
                     if not (form.get("nuovo_soggetto_nome_completo", "").strip() or controparte):
                         raise ValueError("Per salvare la scheda soggetto della controparte serve il nome completo o la ragione sociale.")
@@ -343,6 +360,15 @@ def register_fascicoli_management_routes(
                             identificativo_base=cf_controparte,
                         )
                 linked_subject_message = ""
+                messaggio_controparti = ""
+                if controparti_aggiuntive:
+                    messaggio_controparti = collega_controparti_aggiuntive(
+                        gestore_soggetti,
+                        get_clienti().tutti(),
+                        id_fasc,
+                        controparti_aggiuntive,
+                        momento="la modifica",
+                    ).messaggio()
                 if soggetto_controparte:
                     gestore_soggetti.aggiungi_parte(
                         id_fasc,
@@ -357,6 +383,8 @@ def register_fascicoli_management_routes(
                         dettagli=f"{soggetto_controparte.nome_completo} -> {RuoloSoggetto.CONTROPARTE.label}",
                     )
                     linked_subject_message = " Controparte salvata in Soggetti e Parti e collegata al fascicolo."
+                if messaggio_controparti:
+                    linked_subject_message += f" {messaggio_controparti}"
                 sync_pubblica("modifica", "fascicoli", id_fasc)
                 _clear_react_fascicoli_list_cache()
                 redirect_to = url_for("dettaglio_fascicolo", id_fasc=id_fasc)

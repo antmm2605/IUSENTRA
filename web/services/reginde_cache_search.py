@@ -28,6 +28,15 @@ def default_registro_ppaa_cache_db_path(root: Path | None = None) -> Path:
     return repo_root / "data" / "local" / "registro_ppaa" / "registro_ppaa_cache.sqlite"
 
 
+def default_inipec_cache_db_path(root: Path | None = None) -> Path:
+    """Cache locale INI-PEC (art. 6-bis CAD): stesso formato SQLite di ReGIndE e Registro PP.AA."""
+    data_root = os.environ.get("PCT_DATA_ROOT")
+    if data_root and root is None:
+        return Path(data_root) / "local" / "inipec" / "inipec_cache.sqlite"
+    repo_root = root or Path(__file__).resolve().parents[2]
+    return repo_root / "data" / "local" / "inipec" / "inipec_cache.sqlite"
+
+
 def _json_list(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(item).strip() for item in value if str(item).strip()]
@@ -64,6 +73,8 @@ def _fts_query(value: str) -> str:
 def _recipient_role(record: dict[str, Any], *, register_value: str) -> str:
     if register_value == "registro_ppaa":
         return "pa"
+    if register_value == "inipec":
+        return "professionista" if str(record.get("nome_completo") or "").strip() else "impresa"
     haystack = _normalise_search_text(" ".join(str(record.get(key) or "") for key in ("denominazione", "nome_completo", "ruolo")))
     if "avvocatura" in haystack:
         return "pa"
@@ -290,4 +301,16 @@ def search_registro_ppaa_cache(db_path: Path, query: str, *, limit: int = 25) ->
         register_label="Registro PP.AA.",
         register_badge="Registro PP.AA.",
         cache_source="registro_ppaa_cache_locale",
+    )
+
+
+def search_inipec_cache(db_path: Path, query: str, *, limit: int = 25) -> dict[str, Any]:
+    return search_public_register_cache(
+        db_path,
+        query,
+        limit=limit,
+        register_value="inipec",
+        register_label="INI-PEC",
+        register_badge="INI-PEC",
+        cache_source="inipec_cache_locale",
     )

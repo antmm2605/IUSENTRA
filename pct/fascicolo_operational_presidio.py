@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any, Iterable
+from urllib.parse import quote
 
 from pct.formatting import format_date_it, format_euro_it
 
@@ -68,6 +69,8 @@ def _action(
     legal_basis: str = "",
     blocking: bool = False,
     evidence: str = "",
+    document_id: str = "",
+    fascicolo_id: str = "",
 ) -> dict[str, Any]:
     date_iso = _date_iso(due)
     return {
@@ -85,7 +88,19 @@ def _action(
         "legalBasis": _short(legal_basis, 140),
         "blocking": bool(blocking),
         "evidence": _short(evidence or source, 220),
+        # Fonte puntuale: il piano del giorno apre il documento che prova
+        # l'azione nel lettore interno, non l'intero fascicolo.
+        "documentId": _text(document_id),
+        "sourceHref": _source_document_href(fascicolo_id, document_id),
     }
+
+
+def _source_document_href(fid: str, document_id: str) -> str:
+    fid = _text(fid)
+    document_id = _text(document_id)
+    if not fid or not document_id:
+        return ""
+    return f"/fascicoli/{quote(fid, safe='')}/documenti/{quote(document_id, safe='')}/visualizza"
 
 
 def _sort_actions(actions: Iterable[dict[str, Any]], *, today: date) -> list[dict[str, Any]]:
@@ -159,6 +174,8 @@ def _document_sector(document_presidio: dict[str, Any], *, fid: str, today: date
                 legal_basis="Verifica del documento collegato" if is_connection_review else ("127-bis / 127-ter c.p.c." if "127" in _text(item.get("type")) else "Documento del fascicolo"),
                 blocking=priority == "P0" and not is_connection_review,
                 evidence=_text(item.get("source"), "Documento fascicolo"),
+                document_id=_text(item.get("documentId")),
+                fascicolo_id=fid,
             )
         )
         if bool(item.get("requiresCommunicationDate")):
@@ -247,6 +264,8 @@ def _pec_sector(
                 source=_text(item.get("source"), "Documento fascicolo"),
                 legal_basis="Art. 127-bis / 127-ter c.p.c.",
                 blocking=True,
+                document_id=_text(item.get("documentId")),
+                fascicolo_id=fid,
             )
         )
     if any(_text(item.get("type")) == "udienza_127_bis" for item in doc_actions):

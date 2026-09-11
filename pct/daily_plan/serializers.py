@@ -11,7 +11,7 @@ from typing import Any
 
 from pct.formatting import format_date_it, format_datetime_it
 
-from .models import DailyPlan, DailyWorkItem
+from .models import DailyPlan, DailyWorkItem, redact_text
 
 _SECTION_BY_SECTOR = {
     "pec": "pec",
@@ -34,8 +34,40 @@ def _format_date_it(value: str) -> str:
     return format_date_it(raw) or raw
 
 
+_MIN_SOURCE_LABEL_LEN = 4
+
+# Etichette per l'avvocato: mai codici interni delle fonti nei testi visibili.
+_SOURCE_TYPE_LABELS = {
+    "pec": "PEC",
+    "scadenziario": "scadenziario",
+    "agenda": "agenda",
+    "case_presidio": "documenti del fascicolo",
+    "economic": "sezione economica",
+    "deposit": "depositi telematici",
+    "notification": "notifiche legali",
+    "health": "verifica fonti",
+}
+
+
+def primary_source_hint(item: DailyWorkItem) -> dict[str, str]:
+    """Tipo ed etichetta della fonte principale, senza link né testi lunghi.
+
+    Serve alla card per dire all'avvocato QUALE documento o comunicazione
+    prova l'attività. Etichette troppo corte (snapshot storici con evidenze
+    spezzate carattere per carattere) non vengono mostrate.
+    """
+    for ev in item.evidence:
+        label = redact_text(ev.label, max_len=140)
+        if len(label.strip()) >= _MIN_SOURCE_LABEL_LEN:
+            return {"tipo": ev.source_type, "etichetta": label}
+    if item.evidence:
+        return {"tipo": item.evidence[0].source_type, "etichetta": ""}
+    return {"tipo": "", "etichetta": ""}
+
+
 def item_summary_payload(item: DailyWorkItem) -> dict[str, Any]:
     """Riga sintetica: nessun testo lungo, nessuna evidenza (solo conteggio)."""
+    fonte = primary_source_hint(item)
     return {
         "id": item.id,
         "titolo": item.title,
@@ -60,6 +92,8 @@ def item_summary_payload(item: DailyWorkItem) -> dict[str, Any]:
         "minuti_stimati": item.estimated_minutes,
         "in_backlog": item.in_backlog,
         "evidenze": len(item.evidence),
+        "fonte_tipo": fonte["tipo"],
+        "fonte_label": fonte["etichetta"],
         "apri": item.href,
         "azioni": list(item.available_actions),
     }
@@ -168,7 +202,8 @@ def deterministic_summary(plan: DailyPlan) -> str:
         + (f", con {da_assegnare} elementi da assegnare." if da_assegnare else ".")
     )
     for idx, item in enumerate(plan.work_items[:3], start=1):
-        fonte = item.evidence[0].source_type if item.evidence else "presidio"
+        hint = primary_source_hint(item)
+        fonte = hint["etichetta"] or _SOURCE_TYPE_LABELS.get(hint["tipo"], "presidio dello studio")
         pezzi = [f"{idx}. {item.title}."]
         if item.reason:
             pezzi.append(f"Motivo: {item.reason}")
@@ -185,6 +220,7 @@ def deterministic_summary(plan: DailyPlan) -> str:
 
 __all__ = [
     "deterministic_summary",
+    "primary_source_hint",
     "item_detail_payload",
     "item_summary_payload",
     "plan_missing_payload",

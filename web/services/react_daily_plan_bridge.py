@@ -94,6 +94,23 @@ def daily_plan_item_detail_payload(item_id: str) -> dict[str, Any]:
     return {"ok": True, "attivita": item_detail_payload(item)}
 
 
+def daily_plan_item_sources_payload(item_id: str) -> dict[str, Any]:
+    """Fonti consultabili dell'attività, per il lettore aperto da «Apri»."""
+    from web.services.daily_plan_runtime import _current_paths
+    from web.services.daily_plan_sources import resolve_item_sources
+
+    service = service_for_current_request()
+    item = service.repository.get_item(item_id)
+    if item is None:
+        raise DailyPlanNotFound(item_id)
+    return resolve_item_sources(
+        item,
+        paths=_current_paths(),
+        tenant_label=current_tenant_label(),
+        today=service.clock.today(),
+    )
+
+
 def daily_plan_backlog_payload(
     *, target_date: str = "", user_id: str, cursor: str = "", limit: int = 50
 ) -> dict[str, Any]:

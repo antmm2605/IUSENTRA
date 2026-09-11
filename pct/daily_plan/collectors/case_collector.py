@@ -80,20 +80,33 @@ class CasePresidioCollector:
         sector = str(action.get("sector") or "")
         kind = SECTOR_ACTION_KINDS.get(sector, "document_review")
         priority = str(action.get("priority") or "")
+        source_href = str(action.get("sourceHref") or "")
+        source_label = str(action.get("source") or "")
         evidence_rows = action.get("evidence") or []
+        # Il presidio espone ``evidence`` come testo unico: iterarlo come lista
+        # produrrebbe un'evidenza per ogni carattere (etichetta di una lettera).
+        if isinstance(evidence_rows, str):
+            evidence_rows = [evidence_rows]
+        elif not isinstance(evidence_rows, (list, tuple)):
+            evidence_rows = []
         evidence = [
             SignalEvidence(
                 source_type=self.source_type,
                 source_id=f"{fascicolo_id}:{action_id}",
-                label=str(ev if not isinstance(ev, dict) else ev.get("label") or ev.get("title") or ""),
+                label=str(
+                    ev if not isinstance(ev, dict) else ev.get("label") or ev.get("title") or ""
+                ),
+                href=source_href,
                 confidence=0.8,
             )
             for ev in evidence_rows[:3]
+            if str(ev if not isinstance(ev, dict) else ev.get("label") or ev.get("title") or "").strip()
         ] or [
             SignalEvidence(
                 source_type=self.source_type,
                 source_id=f"{fascicolo_id}:{action_id}",
-                label=str(action.get("title") or ""),
+                label=source_label or str(action.get("title") or ""),
+                href=source_href,
                 confidence=0.8,
             )
         ]
@@ -104,6 +117,9 @@ class CasePresidioCollector:
             "fascicolo_dominus": str(fascicolo.get("avvocato_dominus") or ""),
             "fascicolo_label": str(fascicolo.get("numero") or fascicolo.get("titolo") or ""),
         }
+        document_id = str(action.get("documentId") or "")
+        if document_id:
+            metadata["document_id"] = document_id
         base_normativa = str(action.get("legalBasis") or "")
         if base_normativa:
             metadata["base_normativa"] = base_normativa

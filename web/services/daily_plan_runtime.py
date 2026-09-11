@@ -145,23 +145,48 @@ def _hot_fascicolo_ids(paths: Mapping[str, Any]) -> list[str]:
         return []
 
 
+def operational_presidio_actions(fascicolo: Any, *, today) -> list[dict[str, Any]]:
+    """Azioni di presidio di UN fascicolo con input già materializzati.
+
+    Unica sorgente per il collettore del piano e per la risoluzione on-demand
+    delle fonti: testi documentali dal catalogo Document AI (nessun OCR) e
+    riepilogo pagamenti veloce. Gli esiti dei depositi arrivano dal presidio
+    PEC, non da qui.
+    """
+    from pct.fascicolo_operational_presidio import build_fascicolo_operational_presidio
+    from web.services.react_fascicoli_bridge import (
+        _document_presidio_for_fascicolo,
+        payment_summary_for_fascicolo_fast,
+    )
+
+    try:
+        document_presidio = _document_presidio_for_fascicolo(fascicolo)
+    except Exception:
+        document_presidio = {"status": "non_disponibile", "actions": [], "warnings": []}
+    try:
+        payment_summary = payment_summary_for_fascicolo_fast(fascicolo)
+    except Exception:
+        payment_summary = {}
+    presidio = build_fascicolo_operational_presidio(
+        fascicolo=fascicolo,
+        document_presidio=document_presidio,
+        notification_relata={},
+        payment_summary=payment_summary,
+        deposits=[],
+        duplicate_group=None,
+        sentenze_economiche=None,
+        today=today,
+    )
+    return list(presidio.get("actions") or [])
+
+
 def presidio_provider_factory(
     paths: Mapping[str, Any], *, clock: Clock
 ) -> Callable[[CollectorContext], Iterable[dict[str, Any]]]:
-    """Provider delle azioni di presidio per fascicolo.
-
-    Riusa i presidi puri con input GIÀ materializzati: testi documentali dal
-    catalogo Document AI (nessun OCR) e riepilogo pagamenti veloce. Gli esiti
-    dei depositi telematici arrivano dal presidio PEC, non da qui.
-    """
+    """Provider delle azioni di presidio per fascicolo (vedi
+    ``operational_presidio_actions``)."""
 
     def provider(ctx: CollectorContext) -> Iterable[dict[str, Any]]:
-        from pct.fascicolo_operational_presidio import build_fascicolo_operational_presidio
-        from web.services.react_fascicoli_bridge import (
-            _document_presidio_for_fascicolo,
-            payment_summary_for_fascicolo_fast,
-        )
-
         store = ctx.fascicoli_store
         if store is None:
             return
@@ -183,24 +208,7 @@ def presidio_provider_factory(
                 return
             processed += 1
             try:
-                document_presidio = _document_presidio_for_fascicolo(fascicolo)
-            except Exception:
-                document_presidio = {"status": "non_disponibile", "actions": [], "warnings": []}
-            try:
-                payment_summary = payment_summary_for_fascicolo_fast(fascicolo)
-            except Exception:
-                payment_summary = {}
-            try:
-                presidio = build_fascicolo_operational_presidio(
-                    fascicolo=fascicolo,
-                    document_presidio=document_presidio,
-                    notification_relata={},
-                    payment_summary=payment_summary,
-                    deposits=[],
-                    duplicate_group=None,
-                    sentenze_economiche=None,
-                    today=clock.today(),
-                )
+                actions = operational_presidio_actions(fascicolo, today=clock.today())
             except Exception:
                 continue
             yield {
@@ -212,7 +220,7 @@ def presidio_provider_factory(
                     "avvocato_referente": str(getattr(fascicolo, "avvocato_referente", "") or ""),
                     "avvocato_dominus": str(getattr(fascicolo, "avvocato_dominus", "") or ""),
                 },
-                "actions": list(presidio.get("actions") or []),
+                "actions": actions,
             }
 
     return provider

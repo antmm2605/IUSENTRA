@@ -119,6 +119,7 @@ Hook best-effort: il presidio PEC marca dirty i fascicoli/messaggi toccati.
 | `GET /daily-plan?date=&user=` | snapshot con ETag per tenant, utente, data, versione e timestamp → 304; `user` altrui solo admin |
 | `GET /daily-plan/coverage` | watermark e stato fonti |
 | `GET /daily-plan/items/<id>` | dettaglio lazy: evidenze + spiegazione priorità |
+| `GET /daily-plan/items/<id>/fonti` | fonti puntuali da aprire nel lettore interno (documento del fascicolo, PEC con allegato utile, scadenza, impegno); risolte on-demand con le stesse funzioni di Agenda/Scadenziario/PEC/presidio fascicolo, senza OCR; se manca un documento sorgente lo dichiara; `Cache-Control: private, no-store` |
 | `GET /daily-plan/backlog?cursor=&limit=` | keyset, `total_matching`/`truncated` sempre presenti |
 | `GET /daily-plan/jobs/<id>` | stato tenant-aware e `Cache-Control: no-store` della richiesta: `queued`, `running`, `done`, `failed`; nessun report tecnico o fonte sensibile |
 | `POST /daily-plan/refresh` | 202, riceve `date=AAAA-MM-GG`, accoda job con chiave univoca per click e richiede una run immediata del servizio automatico; restituisce `job_id`, `run_id` e stato effettivo del dispatch; se la pianificazione è disattivata chiude subito il job con messaggio comprensibile, senza polling ingannevole; date passate rifiutate; `mode=full` solo admin; `Idempotency-Key` |
@@ -136,6 +137,30 @@ durata, stato, fonti e attendibilità. Il pannello lazy rende visibili il
 perché della priorità, il contesto di pianificazione, lo stato aggiornato e le
 fonti verificabili con data/ora italiana e link interno. Agenda e fonti restano
 materializzate: il dettaglio aggiuntivo non innesca scansioni o analisi.
+
+### «Apri» apre la fonte, non il fascicolo (2.297.0)
+
+Il pulsante `Apri` di ogni card apre sopra la pagina Oggi il lettore della
+fonte (`SourceWorkspace`), riusando `SourceDocumentReader`, cioè lo stesso
+lettore interno di Agenda, Scadenziario, PEC e Notifiche legali:
+
+- a sinistra la fonte: il decreto nel fascicolo, la PEC con l'allegato utile
+  già indicizzato, oppure la scheda della scadenza/impegno; più fonti sono
+  schede selezionabili; `Apri originale` e `Tutto schermo` restano disponibili;
+- a destra il pannello operativo: termine con conteggio dalla data del piano
+  (`Scade oggi`, `Scaduto da N giorni`, `Mancano N giorni`), avviso quando la
+  data letta è anteriore di oltre un anno (lettura documentale da verificare),
+  perché è in piano, fascicolo/cliente/assegnatario, `Già gestita`, `Rinvia`
+  e le proposte approvabili; il fascicolo completo resta un link secondario;
+- `Precedente`/`Successiva` (anche con le frecce ← →) scorrono le attività
+  della stessa sezione; dopo `Già gestita` o `Rinvia` si passa alla successiva.
+
+Il conteggio dei giorni è informativo: il calcolo dei termini (art. 155 c.p.c.)
+resta al motore dello scadenziario. Le azioni del presidio fascicolo portano
+ora `documentId`/`sourceHref`; il collettore non spezza più l'evidenza testuale
+in lettere e la card mostra il nome della fonte. Gli snapshot precedenti si
+aprono comunque: la fonte viene risolta ricalcolando il presidio del solo
+fascicolo interessato.
 
 ## Approvazioni (Fase 12)
 

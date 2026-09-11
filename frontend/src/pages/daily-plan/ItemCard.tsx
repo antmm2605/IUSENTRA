@@ -3,6 +3,7 @@ import {
   CalendarClock,
   Clock3,
   FileCheck2,
+  FileSearch,
   FolderOpen,
   ShieldAlert,
   Timer,
@@ -11,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatTimeIt } from '@/formatting'
+import { statoTermine } from './termine'
 import {
   dailyPlanActionKindLabel,
   dailyPlanPriorityLabel,
@@ -30,6 +32,9 @@ type Props = {
   onOpenDetail: (item: AttivitaPiano) => void
   busy?: boolean
   onAzione?: (item: AttivitaPiano, action: string) => void
+  /** Apre la fonte dell'attività sopra la pagina, non l'intero fascicolo. */
+  onOpenSource?: (item: AttivitaPiano) => void
+  dataPiano?: string
 }
 
 function programmazioneLabel(item: AttivitaPiano): string {
@@ -40,10 +45,11 @@ function programmazioneLabel(item: AttivitaPiano): string {
   return durata
 }
 
-export function ItemCard({ item, onOpenDetail, busy, onAzione }: Props) {
+export function ItemCard({ item, onOpenDetail, busy, onAzione, onOpenSource, dataPiano = '' }: Props) {
   const chiusa = item.stato === 'completed' || item.stato === 'rejected'
   const programmazione = programmazioneLabel(item)
   const fonteLabel = item.evidenze === 1 ? 'fonte' : 'fonti'
+  const termine = chiusa ? null : statoTermine(item.scadenza, dataPiano)
 
   return (
     <div
@@ -73,6 +79,11 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione }: Props) {
         {item.scadenza_label ? (
           <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
             <CalendarClock size={13} aria-hidden="true" /> Termine {item.scadenza_label}
+            {termine ? (
+              <span className={termine.tono === 'neutral' ? '' : termine.tono === 'danger' ? 'font-medium text-destructive' : 'font-medium text-amber-700 dark:text-amber-300'}>
+                · {termine.label}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </div>
@@ -115,15 +126,28 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione }: Props) {
             <span className="font-medium text-foreground">Pianificazione</span> {programmazione}
           </span>
         ) : null}
-        <span className="flex items-center gap-1">
+        <span className="flex min-w-0 items-center gap-1">
           <FileCheck2 size={13} aria-hidden="true" />
-          <span className="font-medium text-foreground">Fonti</span> {item.evidenze} {fonteLabel}
+          <span className="font-medium text-foreground">Fonti</span>
+          <span className="truncate" title={item.fonte_label || undefined}>
+            {item.fonte_label || `${item.evidenze} ${fonteLabel}`}
+          </span>
         </span>
         <span>
           <span className="font-medium text-foreground">Attendibilità</span> {Math.round(item.affidabilita * 100)}%
         </span>
         <span className="flex flex-wrap gap-1.5 sm:col-span-2 sm:justify-self-end xl:col-span-1">
-          {item.apri ? (
+          {onOpenSource ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => onOpenSource(item)}
+              aria-label={`Apri la fonte di ${item.titolo}`}
+            >
+              <FileSearch aria-hidden="true" /> Apri
+            </Button>
+          ) : item.apri ? (
             <Button asChild size="sm" variant="outline">
               <a href={item.apri}>Apri</a>
             </Button>

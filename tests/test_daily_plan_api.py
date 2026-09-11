@@ -143,6 +143,50 @@ def test_get_item_detail_lazy(tmp_path):
         assert mancante.status_code == 404
 
 
+def test_fonti_attivita_aprono_il_documento_e_non_il_fascicolo(tmp_path):
+    app = _app(tmp_path)
+    href = "/fascicoli/fasc-1/documenti/doc-decreto/visualizza"
+    repo = _seed_plan(
+        app,
+        [
+            _item(
+                "k-doc",
+                action_kind="document_review",
+                href="/fascicoli/fasc-1#udienze",
+                evidence=[
+                    SignalEvidence(
+                        source_type="case_presidio",
+                        source_id="fasc-1:documenti-note_127_ter-0",
+                        label="Decreto 127-ter.pdf",
+                        href=href,
+                    )
+                ],
+            )
+        ],
+    )
+    with app.app_context():
+        item = repo.list_items(DATE)[0]
+    with app.test_client() as client:
+        anonimo = client.get(f"/api/v1/ui/daily-plan/items/{item.id}/fonti")
+        assert anonimo.status_code == 401
+
+        risposta = client.get(f"/api/v1/ui/daily-plan/items/{item.id}/fonti", headers=HEADERS)
+        assert risposta.status_code == 200
+        assert risposta.headers["Cache-Control"] == "private, no-store"
+        payload = risposta.get_json()
+        assert payload["ok"] is True
+        assert payload["fonti"][0]["tipo"] == "documento"
+        assert payload["fonti"][0]["href"] == href
+        assert payload["fonti"][0]["etichetta"] == "Decreto 127-ter.pdf"
+        assert payload["fascicolo_href"] == "/fascicoli/fasc-1"
+
+        riga = client.get(f"/api/v1/ui/daily-plan?user=u1&date={DATE}", headers=HEADERS).get_json()
+        assert riga["sezioni"]["da_fare_ora"][0]["fonte_label"] == "Decreto 127-ter.pdf"
+
+        mancante = client.get("/api/v1/ui/daily-plan/items/inesistente/fonti", headers=HEADERS)
+        assert mancante.status_code == 404
+
+
 def test_backlog_paginato_con_metadata(tmp_path):
     app = _app(tmp_path)
     items = [

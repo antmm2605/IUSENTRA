@@ -41,6 +41,8 @@ type Props = {
   onAzione: (item: AttivitaPiano, action: string, params?: Record<string, unknown>) => void
   busy: boolean
   esitoMessaggio: string
+  /** Apre la fonte nel lettore interno sopra la pagina, senza uscire dal piano. */
+  onOpenSource: (item: AttivitaPiano) => void
 }
 
 function programmazioneLabel(item: AttivitaPiano): string {
@@ -58,7 +60,7 @@ function evidenzaDataLabel(value: string): string {
     : formatDateTimeIt(value, '')
 }
 
-export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione, busy, esitoMessaggio }: Props) {
+export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione, busy, esitoMessaggio, onOpenSource }: Props) {
   const [dettaglio, setDettaglio] = useState<AttivitaDettaglio | null>(null)
   const [erroreDettaglio, setErroreDettaglio] = useState('')
   const [tentativoDettaglio, setTentativoDettaglio] = useState(0)
@@ -205,9 +207,13 @@ export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione
                           {dailyPlanSourceLabel[ev.source_type] || 'Fonte'}
                         </span>
                         {ev.href ? (
-                          <a className="text-sm font-medium text-primary underline underline-offset-2" href={ev.href}>
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-primary underline underline-offset-2"
+                            onClick={() => onOpenSource(item)}
+                          >
                             Apri fonte
-                          </a>
+                          </button>
                         ) : null}
                       </div>
                       {ev.label ? <p className="text-muted-foreground">{ev.label}</p> : null}

@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-D87v-pXH.js";import{t}from"./ImpostazioniPage-Cu4RN3co.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
-  CalendarDays,
   Euro,
   FolderKanban,
-  Inbox,
   ListTodo,
   Mail,
   RefreshCw,
@@ -18,18 +16,17 @@ import {
   IusErrorState,
   IusLoadingState,
   IusPageShell,
-  IusSectionHeader,
 } from '@/components/iusentra'
 import { isFeatureFlagEnabledSync } from '@/lib/featureFlags'
 import { formatTimeIt } from '@/formatting'
-import { ItemCard } from './ItemCard'
 import { ItemDetailPanel } from './ItemDetailPanel'
 import {
   DailyPlanDateControls,
   initialDailyPlanDate,
   syncDailyPlanDateUrl,
 } from './DailyPlanDateControls'
-import { ActivitySection, CoverageChips } from './DailyPlanPageParts'
+import { ActivitySection, AgendaOggiSection, BacklogSection, CoverageChips } from './DailyPlanPageParts'
+import { SourceWorkspace, type FonteAperta } from './SourceWorkspace'
 import {
   eseguiAzione,
   fetchBacklog,
@@ -55,6 +52,11 @@ export function OggiPage() {
   const [backlogCursor, setBacklogCursor] = useState('')
   const [backlogTotale, setBacklogTotale] = useState(0)
   const [backlogAperto, setBacklogAperto] = useState(false)
+  const [fonteAperta, setFonteAperta] = useState<FonteAperta | null>(null)
+  const apriFonte = useCallback((item: AttivitaPiano, lista: AttivitaPiano[]) => {
+    setEsitoAzione('')
+    setFonteAperta({ item, lista })
+  }, [])
 
   const writeProposalsEnabled = isFeatureFlagEnabledSync('lex.dailyPlan.writeProposals')
 
@@ -91,6 +93,7 @@ export function OggiPage() {
     setBacklogTotale(0)
     setBacklogAperto(false)
     setDettaglio(null)
+    setFonteAperta(null)
     setErrore('')
     setAggiornamentoMessaggio('')
     setAggiornamentoRichiesto(false)
@@ -179,22 +182,23 @@ export function OggiPage() {
     })
   }, [backlogCursor, dataSelezionata])
 
-  async function azione(item: AttivitaPiano, action: string, params: Record<string, unknown> = {}) {
+  async function azione(item: AttivitaPiano, action: string, params: Record<string, unknown> = {}): Promise<boolean> {
     setBusyId(item.id)
     setEsitoAzione('')
     const esito = await eseguiAzione(item.id, action, params)
     setBusyId('')
     if (!esito.ok) {
       setEsitoAzione(esito.detail || 'Operazione non riuscita.')
-      return
+      return false
     }
     if (esito.proposta_creata) {
       setEsitoAzione(esito.messaggio || 'Proposta inviata alla coda approvazioni.')
-      return
+      return true
     }
     setEsitoAzione('')
     setDettaglio(null)
     await carica()
+    return true
   }
 
   async function aggiorna() {
@@ -322,33 +326,11 @@ export function OggiPage() {
             onOpenDetail={setDettaglio}
             onAction={azione}
             busyId={busyId}
+            onOpenSource={apriFonte}
+            dataPiano={piano.data}
           />
 
-          <section className="grid gap-2">
-            <IusSectionHeader title="Agenda del giorno" icon={CalendarDays} sequence={false} />
-            {piano.agenda_oggi.length ? (
-              <div className="grid gap-1.5">
-                {piano.agenda_oggi.map((evento) => (
-                  <div key={evento.id} className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                    <Badge variant={evento.tipo.includes('UDIENZA') ? 'destructive' : 'secondary'}>
-                      {evento.tipo.includes('UDIENZA') ? 'Udienza' : 'Appuntamento'}
-                    </Badge>
-                    <strong>{formatTimeIt(evento.data_ora, 'Orario non indicato')}</strong>
-                    <span>{evento.titolo}</span>
-                    <span className="text-muted-foreground">
-                      {evento.durata_minuti} min{evento.luogo ? ` · ${evento.luogo}` : ''}
-                      {evento.avvocato ? ` · ${evento.avvocato}` : ''}
-                      {evento.procedimento ? ` · Proc. ${evento.procedimento}` : ''}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-                Nessun impegno fisso in agenda per questa data.
-              </p>
-            )}
-          </section>
+          <AgendaOggiSection eventi={piano.agenda_oggi} />
 
           <ActivitySection
             title="PEC da presidiare"
@@ -358,6 +340,8 @@ export function OggiPage() {
             onOpenDetail={setDettaglio}
             onAction={azione}
             busyId={busyId}
+            onOpenSource={apriFonte}
+            dataPiano={piano.data}
           />
           <ActivitySection
             title="Fascicoli da presidiare"
@@ -367,6 +351,8 @@ export function OggiPage() {
             onOpenDetail={setDettaglio}
             onAction={azione}
             busyId={busyId}
+            onOpenSource={apriFonte}
+            dataPiano={piano.data}
           />
           <ActivitySection
             title="Presidio economico"
@@ -376,6 +362,8 @@ export function OggiPage() {
             onOpenDetail={setDettaglio}
             onAction={azione}
             busyId={busyId}
+            onOpenSource={apriFonte}
+            dataPiano={piano.data}
           />
 
           {codaStudio.length ? (
@@ -387,44 +375,47 @@ export function OggiPage() {
               onOpenDetail={setDettaglio}
               onAction={azione}
               busyId={busyId}
+              onOpenSource={apriFonte}
+              dataPiano={piano.data}
             />
           ) : null}
 
-          <section className="grid gap-2">
-            <IusSectionHeader title="Backlog" icon={Inbox} sequence={false} />
-            {backlogAperto ? (
-              <>
-                {backlog.length ? (
-                  <div className="grid gap-2">
-                    {backlog.map((item) => (
-                      <ItemCard
-                        key={item.id}
-                        item={item}
-                        onOpenDetail={setDettaglio}
-                        onAzione={azione}
-                        busy={busyId === item.id}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-                    Il backlog è vuoto: tutto ciò che conta è già nel piano del giorno.
-                  </p>
-                )}
-                {backlogCursor ? (
-                  <Button type="button" variant="outline" onClick={backlogAltri}>
-                    Carica altri ({backlogTotale - backlog.length} rimanenti)
-                  </Button>
-                ) : null}
-              </>
-            ) : (
-              <Button type="button" variant="outline" onClick={apriBacklog}>
-                Mostra il backlog{piano.riepilogo.backlog ? ` (${piano.riepilogo.backlog})` : ''}
-              </Button>
-            )}
-          </section>
+          <BacklogSection
+            aperto={backlogAperto}
+            items={backlog}
+            restanti={backlogCursor ? backlogTotale - backlog.length : 0}
+            totalePiano={piano.riepilogo.backlog || 0}
+            onApri={apriBacklog}
+            onAltri={backlogAltri}
+            onOpenDetail={setDettaglio}
+            onAction={azione}
+            busyId={busyId}
+            onOpenSource={apriFonte}
+            dataPiano={piano.data}
+          />
         </>
       )}
+
+      <SourceWorkspace
+        aperta={fonteAperta}
+        dataPiano={piano.data}
+        writeProposalsEnabled={writeProposalsEnabled}
+        busy={Boolean(busyId)}
+        esitoMessaggio={esitoAzione}
+        onNavigate={(next) => {
+          setEsitoAzione('')
+          setFonteAperta(next)
+        }}
+        onClose={() => {
+          setFonteAperta(null)
+          setEsitoAzione('')
+        }}
+        onAzione={azione}
+        onOpenDetail={(item) => {
+          setFonteAperta(null)
+          setDettaglio(item)
+        }}
+      />
 
       <ItemDetailPanel
         item={dettaglio}
@@ -436,6 +427,10 @@ export function OggiPage() {
         onAzione={azione}
         busy={Boolean(busyId)}
         esitoMessaggio={esitoAzione}
+        onOpenSource={(item) => {
+          setDettaglio(null)
+          apriFonte(item, [item])
+        }}
       />
     </IusPageShell>
   )

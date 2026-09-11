@@ -30,6 +30,8 @@ export type AttivitaPiano = {
   minuti_stimati: number
   in_backlog: boolean
   evidenze: number
+  fonte_tipo?: string
+  fonte_label?: string
   apri: string
   azioni: string[]
 }
@@ -169,4 +171,39 @@ export type AzioneEsito = {
   detail?: string
   code?: string
   replayed?: boolean
+}
+
+export type DettaglioFonte = {
+  etichetta: string
+  valore: string
+}
+
+/** Fonte puntuale che prova l'attività: si apre nel lettore interno. */
+export type FonteAttivita = {
+  tipo: 'documento' | 'pec' | 'scadenza' | 'agenda' | 'economico' | 'fascicolo' | 'scheda' | string
+  etichetta: string
+  href: string
+  apri_href: string
+  verificata: boolean
+  rilevata_il: string
+  dettagli: DettaglioFonte[]
+  nota: string
+}
+
+export type FontiAttivitaPayload = {
+  ok: boolean
+  attivita_id?: string
+  fonti: FonteAttivita[]
+  fascicolo_href: string
+  messaggio?: string
+}
+
+export const dailyPlanSourceKindLabel: Record<string, string> = {
+  documento: 'Documento del fascicolo',
+  pec: 'PEC',
+  scadenza: 'Scadenza',
+  agenda: 'Impegno in agenda',
+  economico: 'Scheda economica',
+  fascicolo: 'Sezione del fascicolo',
+  scheda: 'Scheda collegata',
 }

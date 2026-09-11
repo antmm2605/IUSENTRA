@@ -9,7 +9,7 @@ export type SourceDocument = {
   kind?: string
 }
 
-function sourceViewerHref(source: SourceDocument, preview = true): string {
+export function sourceViewerHref(source: Pick<SourceDocument, 'href'>, preview = true): string {
   try {
     const parsed = new URL(source.href, window.location.origin)
     if (parsed.origin === window.location.origin) {
@@ -63,19 +63,51 @@ function sourceIframeSandbox(href: string): string {
   }
 }
 
+/**
+ * Lettore interno unico delle fonti (PDF, ZIP PEC, allegati, corpo PEC):
+ * condiviso da Agenda, Scadenziario, PEC, Notifiche legali e Piano del giorno.
+ */
+export function SourceDocumentReader({ href, label }: { href: string; label: string }) {
+  const [loadState, setLoadState] = useState<'loading' | 'loaded' | 'error'>('loading')
+  const viewerHref = sourceViewerHref({ href }, true)
+
+  useEffect(() => {
+    setLoadState('loading')
+  }, [viewerHref])
+
+  return (
+    <div className="iu-source-document-reader">
+      {loadState === 'loading' ? (
+        <div className="iu-source-document-reader__state" role="status">
+          <strong>Caricamento documento...</strong>
+          <span>Sto aprendo la fonte nel lettore interno IUSENTRA.</span>
+        </div>
+      ) : null}
+      {loadState === 'error' ? (
+        <div className="iu-source-document-reader__state iu-source-document-reader__state--error" role="alert">
+          <strong>Documento non visualizzabile nel lettore.</strong>
+          <span>Usa “Apri originale” o “Scarica” per recuperare il file, senza perdere il collegamento alla fonte.</span>
+        </div>
+      ) : null}
+      <iframe
+        src={viewerHref}
+        title={`Visualizzazione fonte ${label}`}
+        sandbox={sourceIframeSandbox(viewerHref)}
+        referrerPolicy="no-referrer"
+        onLoad={() => setLoadState('loaded')}
+        onError={() => setLoadState('error')}
+      />
+    </div>
+  )
+}
+
 export function SourceDocumentModal({ source, onClose }:{source:SourceDocument | null; onClose:()=>void}) {
   const [fullscreen, setFullscreen] = useState(false)
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
-  const viewerHref = source ? sourceViewerHref(source, true) : ''
   const originalHref = source ? sourceViewerHref(source, false) : ''
 
   useEffect(() => {
     setFullscreen(false)
   }, [source?.href])
-
-  useEffect(() => {
-    setLoadState(source ? 'loading' : 'idle')
-  }, [source?.href, viewerHref])
 
   return (
     <OperationalModal
@@ -100,30 +132,7 @@ export function SourceDocumentModal({ source, onClose }:{source:SourceDocument |
       onClose={onClose}
       boxClassName={fullscreen ? 'iu-ag-source-modal__box--fullscreen' : ''}
     >
-      {source ? (
-        <div className="iu-source-document-reader">
-          {loadState === 'loading' ? (
-            <div className="iu-source-document-reader__state" role="status">
-              <strong>Caricamento documento...</strong>
-              <span>Sto aprendo la fonte nel lettore interno IUSENTRA.</span>
-            </div>
-          ) : null}
-          {loadState === 'error' ? (
-            <div className="iu-source-document-reader__state iu-source-document-reader__state--error" role="alert">
-              <strong>Documento non visualizzabile nel lettore.</strong>
-              <span>Usa “Apri originale” o “Scarica” per recuperare il file, senza perdere il collegamento alla fonte.</span>
-            </div>
-          ) : null}
-          <iframe
-            src={viewerHref}
-            title={`Visualizzazione fonte ${source.label}`}
-            sandbox={sourceIframeSandbox(viewerHref)}
-            referrerPolicy="no-referrer"
-            onLoad={() => setLoadState('loaded')}
-            onError={() => setLoadState('error')}
-          />
-        </div>
-      ) : null}
+      {source ? <SourceDocumentReader key={source.href} href={source.href} label={source.label} /> : null}
     </OperationalModal>
   )
 }

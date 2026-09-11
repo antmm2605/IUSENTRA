@@ -27,6 +27,7 @@ from web.services.react_daily_plan_bridge import (
     daily_plan_coverage_payload,
     daily_plan_error_payload,
     daily_plan_item_detail_payload,
+    daily_plan_item_sources_payload,
     daily_plan_refresh_status_payload,
     enqueue_daily_plan_refresh,
     mark_daily_plan_refresh_scheduler_disabled,
@@ -230,6 +231,25 @@ def daily_plan_item_detail(item_id: str):
         return jsonify(daily_plan_item_detail_payload(item_id))
     except Exception as exc:
         current_app.logger.exception("Errore dettaglio piano del giorno: %s", exc)
+        body, status = daily_plan_error_payload(exc)
+        return jsonify(body), status
+
+
+@api_v1_daily_plan.get("/daily-plan/items/<item_id>/fonti")
+@_richiedi_auth
+def daily_plan_item_sources(item_id: str):
+    """Fonti puntuali (documento, PEC, scadenza, impegno) da aprire nel lettore."""
+    blocked = _flag_gate()
+    if blocked is not None:
+        return blocked
+    if not _can_all(*READ_PERMISSIONS):
+        return _forbidden()
+    try:
+        response = jsonify(daily_plan_item_sources_payload(item_id))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+    except Exception as exc:
+        current_app.logger.exception("Errore fonti attività piano del giorno: %s", exc)
         body, status = daily_plan_error_payload(exc)
         return jsonify(body), status
 

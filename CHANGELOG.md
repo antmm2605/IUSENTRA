@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.297.0 - 11/09/2026
+
+Piano del giorno: «Apri» mostra la fonte che prova l'attività, sopra la pagina, invece di portare nell'intero fascicolo.
+
+- **Fonte in primo piano.** Decreto, verbale o documento del fascicolo, PEC con l'allegato utile già indicizzato, scheda della scadenza o dell'impegno si aprono nel lettore interno unico, lo stesso di Agenda, Scadenziario e PEC. Se l'attività nasce dal controllo di una sezione e non da un documento, la finestra lo dice e offre la sezione.
+- **Pannello operativo accanto alla fonte.** Termine con conteggio dalla data del piano, avviso sulle date lette anteriori di oltre un anno (tipiche letture errate da documenti), perché l'attività è in piano, fascicolo, cliente e assegnatario, `Già gestita`, `Rinvia` e proposte approvabili; il fascicolo completo resta raggiungibile come collegamento secondario.
+- **Lavoro in sequenza.** `Precedente`/`Successiva` e le frecce ← → scorrono le attività della sezione; dopo `Già gestita` o `Rinvia` si apre la successiva.
+- **Card più chiare.** Il termine mostra «Scade oggi», «Scaduto da N giorni» o «Data da verificare»; al posto di «1 fonte» compare il nome del documento o della comunicazione.
+- **Correzioni.** Le evidenze del presidio fascicolo non vengono più spezzate carattere per carattere; la sintesi del piano non mostra più codici interni come `case_presidio`.
+- Nuovo endpoint `GET /api/v1/ui/daily-plan/items/<id>/fonti`, con gli stessi permessi del dettaglio, tenant risolto lato server e nessun OCR.
+
 ## 2.296.2 - 11/09/2026
 
 Patch mobile per la finestra `Scadenza selezionata`, portata sulla base corrente senza retrocedere la release.

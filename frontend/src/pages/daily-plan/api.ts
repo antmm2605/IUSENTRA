@@ -3,6 +3,7 @@ import type {
   AttivitaDettaglio,
   AzioneEsito,
   BacklogPayload,
+  FontiAttivitaPayload,
   PianoGiornoPayload,
 } from './types'
 
@@ -91,6 +92,14 @@ export function fetchDettaglioAttivita(itemId: string, signal?: AbortSignal) {
   return apiJson<{ ok: boolean; attivita?: AttivitaDettaglio }>(
     `/api/v1/ui/daily-plan/items/${encodeURIComponent(itemId)}`,
     { ok: false },
+    { signal },
+  )
+}
+
+export function fetchFontiAttivita(itemId: string, signal?: AbortSignal) {
+  return apiJson<FontiAttivitaPayload>(
+    `/api/v1/ui/daily-plan/items/${encodeURIComponent(itemId)}/fonti`,
+    { ok: false, fonti: [], fascicolo_href: '' },
     { signal },
   )
 }

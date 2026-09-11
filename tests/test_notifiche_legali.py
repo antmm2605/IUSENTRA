@@ -1163,6 +1163,32 @@ def test_rilascio_documento_ufficio_parte_da_pec_cancelleria_e_non_da_metadati_p
     evidence = office_notification_evidence_from_pec(fascicolo, [pec])
     assert evidence[0]["acquisito"] is True
 
+    fascicolo.documenti = [
+        SimpleNamespace(
+            id="doc-local-content",
+            id_documento_portale="",
+            nome="ordinanza_da_notificare.pdf",
+            hash_sha256="",
+            hash_contenuto_sha256="a" * 64,
+        )
+    ]
+    assert released_office_documents_from_pec(fascicolo, [pec]) == []
+    assert office_notification_evidence_from_pec(fascicolo, [pec])[0]["documentoLocaleId"] == "doc-local-content"
+
+    pec_copia = SimpleNamespace(
+        id="pec-cancelleria-1-copia",
+        mittente="cancelleria.tribunale.roma@giustiziacert.it",
+        oggetto="Tribunale di Roma R.G. 1234/2026 - provvedimento da notificare",
+        data="2026-05-23T10:20:00",
+        corpo_testo="Si comunica il provvedimento ordinanza_da_notificare.pdf da notificare nel procedimento R.G. 1234/2026.",
+        allegati=[],
+        message_id="<pec-cancelleria-1-copia@giustizia>",
+    )
+    fascicolo.documenti = []
+    evidence_duplicate = office_notification_evidence_from_pec(fascicolo, [pec, pec_copia])
+    assert len(evidence_duplicate) == 1
+    assert set(evidence_duplicate[0]["pecSourceIds"]) == {"pec-cancelleria-1", "pec-cancelleria-1-copia"}
+
     altro_fascicolo_stesso_anno = SimpleNamespace(
         id="fasc-altro",
         numero="FASC-ALTRO",

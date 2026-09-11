@@ -7066,11 +7066,22 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         for item in pec_evidence
         if item.get("acquisito") and _text(item.get("hashSha256"))
     }
+
+    def _document_hashes(doc: Any) -> set[str]:
+        return {
+            value
+            for value in (
+                _text(getattr(doc, "hash_contenuto_sha256", "")).lower(),
+                _text(getattr(doc, "hash_sha256", "")).lower(),
+            )
+            if value
+        }
+
     office_documents = [
         doc
         for doc in local_documents
         if _normalise_office_document_name(getattr(doc, "nome", "") or getattr(doc, "nome_originale", "") or getattr(doc, "nome_portale", "")) in office_names
-        or (_text(getattr(doc, "hash_sha256", "")).lower() in office_hashes if _text(getattr(doc, "hash_sha256", "")) else False)
+        or bool(_document_hashes(doc) & office_hashes)
         or "comunicazione_cancelleria" in _doc_haystack(doc)
         or ("notifica" in _doc_haystack(doc) and any(token in _doc_haystack(doc) for token in ("sentenza", "ordinanza", "decreto", "provvedimento")))
     ]
@@ -7494,6 +7505,8 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
     out = []
     local_doc_ids = set()
     local_portal_refs: set[tuple[str, str]] = set()
+    local_document_hashes: set[str] = set()
+    local_document_name_keys: set[str] = set()
 
     def _empty_actions() -> dict[str, str]:
         return {
@@ -7658,6 +7671,19 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             display_type = "Comunicazione / ricevuta"
         if did:
             local_doc_ids.add(did)
+        for value in (
+            getattr(doc, "nome", ""),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome_portale", ""),
+            getattr(doc, "percorso", ""),
+        ):
+            name_key = _normalise_office_document_name(value)
+            if name_key:
+                local_document_name_keys.add(name_key)
+        for attr in ("hash_contenuto_sha256", "hash_sha256"):
+            digest = _text(getattr(doc, attr, "")).lower()
+            if digest:
+                local_document_hashes.add(digest)
         for ref in (
             _portal_ref("id_documento", getattr(doc, "id_documento_portale", "")),
             _portal_ref("id_cat", getattr(doc, "id_cat_portale", "")),
@@ -7743,6 +7769,12 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             ]
             refs = {ref for ref in ref_candidates if ref}
             if refs & local_portal_refs:
+                continue
+            row_name_key = _normalise_office_document_name(row.get("nome"))
+            row_hash = _text(row.get("sha256") or row.get("hash_sha256") or row.get("hash")).lower()
+            if row_hash and row_hash in local_document_hashes:
+                continue
+            if row_name_key and row_name_key in local_document_name_keys:
                 continue
             if imported_doc_ids and imported_doc_ids.issubset(local_doc_ids) and len(imported_doc_ids) >= 1:
                 continue

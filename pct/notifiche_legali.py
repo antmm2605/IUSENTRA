@@ -2085,9 +2085,10 @@ def _local_office_document_lookup(fascicolo: Any) -> tuple[dict[str, Any], dict[
             key = _normalise_office_document_name(value)
             if key:
                 by_name.setdefault(key, document)
-        sha = text(getattr(document, "hash_sha256", "")).lower()
-        if sha:
-            by_hash.setdefault(sha, document)
+        for attr in ("hash_contenuto_sha256", "hash_sha256"):
+            sha = text(getattr(document, attr, "")).lower()
+            if sha:
+                by_hash.setdefault(sha, document)
     return by_name, by_hash
 
 
@@ -2124,8 +2125,16 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
             elif sha:
                 unique = ("sha256", sha)
             else:
-                unique = (source_key, key)
-            existing = seen.get(unique)
+                unique = ("name", key)
+            name_unique = ("name", key)
+            unique_aliases = [unique]
+            if name_unique not in unique_aliases:
+                unique_aliases.append(name_unique)
+            existing = next((seen[alias] for alias in unique_aliases if alias in seen), None)
+            if existing is not None:
+                existing_sha = text(existing.get("hashSha256")).lower()
+                if sha and existing_sha and sha != existing_sha:
+                    existing = None
             if existing is not None:
                 source_ids = existing.setdefault("pecSourceIds", [])
                 if email_id and email_id not in source_ids:
@@ -2174,7 +2183,8 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                     "hashSha256": sha,
                 }
             evidence.append(item)
-            seen[unique] = item
+            for alias in unique_aliases:
+                seen[alias] = item
     evidence.sort(key=lambda item: (item.get("dataRilascio") or "", item.get("nome") or ""), reverse=True)
     return evidence
 

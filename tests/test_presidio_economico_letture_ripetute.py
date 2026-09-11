@@ -320,6 +320,55 @@ def test_una_nuova_lettura_sostituisce_quella_vecchia_sullo_stesso_documento():
     ]
 
 
+def test_l_inventario_fonde_lo_stesso_contenuto_letto_da_pec_e_documenti():
+    marker = {
+        READ_DOCUMENTS_VERSION_KEY: VERSIONE,
+        READ_DOCUMENTS_KEY: [
+            read_document_entry(
+                document_id="PEC-1",
+                nome="ordinanza_da_notificare.pdf",
+                sha256="a" * 64,
+                size=2048,
+                source="pec_cancelleria",
+                chars=1200,
+            )
+        ],
+    }
+
+    assert unread_document_ids(
+        [{"id": "DOC-LOCALE", "sha256": "a" * 64, "size": 2048}],
+        marker,
+        analysis_version=VERSIONE,
+    ) == []
+
+    righe = merge_read_inventory(
+        marker,
+        [
+            read_document_entry(
+                document_id="DOC-LOCALE",
+                nome="ordinanza_da_notificare.pdf",
+                sha256="a" * 64,
+                size=2048,
+                source="document_ai_index",
+                chars=6400,
+            )
+        ],
+        analysis_version=VERSIONE,
+        known_document_ids=["DOC-LOCALE"],
+    )
+
+    assert righe == [
+        {
+            "id": "DOC-LOCALE",
+            "nome": "ordinanza_da_notificare.pdf",
+            "sha256": "a" * 64,
+            "size": 2048,
+            "source": "document_ai_index",
+            "chars": 6400,
+        }
+    ]
+
+
 def test_i_documenti_spariti_escono_dall_inventario():
     """Senza potatura l'elenco crescerebbe a ogni documento eliminato."""
 
@@ -364,3 +413,35 @@ def test_l_inventario_di_una_versione_diversa_non_viene_letto():
     }
 
     assert read_inventory(marker, analysis_version=VERSIONE) == {}
+
+
+def test_documenti_visibili_non_ripetono_il_portale_gia_acquisito_per_nome():
+    doc = _documento_indicizzato(
+        document_id="DOC-LOCALE",
+        sha256="b" * 64,
+        aggiornato_il="2026-09-11T09:00:00Z",
+    )
+    doc.nome = "ordinanza_da_notificare.pdf"
+    doc.nome_originale = "ordinanza_da_notificare.pdf.p7m"
+    fascicolo = _fascicolo([doc])
+    fascicolo.depositi_pct = [
+        SimpleNamespace(
+            id="dep-1",
+            id_deposito_esterno="dep-ext",
+            fonte_portale="PST",
+            documenti_ids=[],
+            documenti_portale=[
+                {
+                    "id_documento": "PST-DOC-1",
+                    "nome": "ordinanza_da_notificare.pdf",
+                    "tipo": "Ordinanza",
+                    "data_deposito": "2026-09-11",
+                    "sha256": "",
+                }
+            ],
+        )
+    ]
+
+    rows = react_fascicoli_bridge._documents(fascicolo)
+
+    assert [row["id"] for row in rows] == ["DOC-LOCALE"]

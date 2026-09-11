@@ -106,19 +106,52 @@ def _normalise_unresolved_kinds(value: Any) -> list[str]:
     return sorted(dict.fromkeys(values))
 
 
+def _normalise_document_name_key(value: Any) -> str:
+    name = Path(_text(value).replace("\\", "/")).name.casefold()
+    if name.endswith(".pdf.p7m"):
+        name = name[:-4]
+    elif name.endswith(".p7m") and ".pdf" not in name:
+        name = name[:-4]
+    return "".join(ch for ch in name if ch.isalnum())
+
+
+def _read_entry_document_id(raw: Mapping[str, Any]) -> str:
+    return _text(raw.get("id") or raw.get("documentId") or raw.get("document_id") or raw.get("documento_id"))
+
+
+def _read_entry_content_key(raw: Mapping[str, Any]) -> str:
+    sha256 = _text(raw.get("sha256") or raw.get("hash_sha256")).casefold()
+    if sha256:
+        return f"sha256:{sha256}"
+    try:
+        size = max(0, int(raw.get("size") or raw.get("dimensione_bytes") or 0))
+    except Exception:
+        size = 0
+    if size:
+        return f"size:{size}"
+    filename = _normalise_document_name_key(
+        raw.get("nome") or raw.get("filename") or raw.get("documentoFonte") or raw.get("source")
+    )
+    if filename:
+        return f"name:{filename}"
+    document_id = _read_entry_document_id(raw)
+    return f"id:{document_id}" if document_id else ""
+
+
 def _normalise_read_documents(value: Iterable[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    seen: set[tuple[str, str, str, str]] = set()
+    seen: set[tuple[str, str]] = set()
     for raw in value or []:
         if not isinstance(raw, Mapping):
             continue
-        document_id = _text(raw.get("id") or raw.get("documentId") or raw.get("document_id") or raw.get("documento_id"))
+        document_id = _read_entry_document_id(raw)
         sha256 = _text(raw.get("sha256") or raw.get("hash_sha256")).lower()
         filename = _text(raw.get("nome") or raw.get("filename") or raw.get("documentoFonte") or raw.get("source"))
         source = _text(raw.get("source") or raw.get("readSource") or raw.get("lettura"), "unknown")
         fascicolo_id = _text(raw.get("fascicoloId") or raw.get("fascicolo_id"))
         mode = _text(raw.get("mode") or raw.get("readMode"), "text")
-        key = (fascicolo_id, document_id, sha256, source)
+        identity = _read_entry_content_key(raw)
+        key = (fascicolo_id, identity or f"id:{document_id}")
         if key in seen or not any(key):
             continue
         seen.add(key)
@@ -215,6 +248,10 @@ def document_read_key(*, sha256: Any = "", size: Any = 0) -> str:
     return f"size:{max(0, int(size or 0))}"
 
 
+def _read_key_is_specific(value: str) -> bool:
+    return bool(value and value != "size:0")
+
+
 def read_inventory(marker: Mapping[str, Any] | None, *, analysis_version: str = "") -> dict[str, str]:
     """Documenti gia' letti: id documento -> identita' di contenuto.
 
@@ -261,8 +298,10 @@ def unread_document_ids(
     """
 
     letti = read_inventory(marker, analysis_version=analysis_version)
+    contenuti_letti = {value for value in letti.values() if _read_key_is_specific(value)}
     out: list[str] = []
     visti: set[str] = set()
+    contenuti_visti: set[str] = set()
     for row in documents or []:
         if not isinstance(row, Mapping):
             continue
@@ -271,9 +310,45 @@ def unread_document_ids(
             continue
         visti.add(document_id)
         atteso = document_read_key(sha256=row.get("sha256"), size=row.get("size"))
-        if letti.get(document_id) != atteso:
+        if _read_key_is_specific(atteso):
+            if atteso in contenuti_visti:
+                continue
+            contenuti_visti.add(atteso)
+        if letti.get(document_id) == atteso:
+            continue
+        if _read_key_is_specific(atteso) and atteso in contenuti_letti:
+            continue
+        else:
             out.append(document_id)
     return out
+
+
+def _normalise_inventory_entry(raw: Mapping[str, Any]) -> dict[str, Any] | None:
+    document_id = _read_entry_document_id(raw)
+    if not document_id:
+        return None
+    return read_document_entry(
+        document_id=document_id,
+        nome=raw.get("nome") or raw.get("filename"),
+        sha256=raw.get("sha256"),
+        size=raw.get("size"),
+        source=raw.get("source"),
+        chars=raw.get("chars"),
+    )
+
+
+def _prefer_inventory_entry(current: dict[str, Any] | None, candidate: dict[str, Any]) -> dict[str, Any]:
+    if current is None:
+        return candidate
+    current_source = _text(current.get("source")).casefold()
+    candidate_source = _text(candidate.get("source")).casefold()
+    if current_source == "metadati" and candidate_source != "metadati":
+        return candidate
+    if int(candidate.get("chars") or 0) > int(current.get("chars") or 0):
+        return candidate
+    if _text(candidate.get("sha256")) and not _text(current.get("sha256")):
+        return candidate
+    return current
 
 
 def merge_read_inventory(
@@ -291,37 +366,41 @@ def merge_read_inventory(
     spariti vengono tolte, cosi' l'inventario non cresce senza fine.
     """
 
-    precedenti: dict[str, dict[str, Any]] = {}
+    candidati: list[dict[str, Any]] = []
     if isinstance(marker, Mapping) and _text(analysis_version) and read_inventory(
         marker, analysis_version=analysis_version
     ):
         for riga in marker.get(READ_DOCUMENTS_KEY) or []:
             if not isinstance(riga, Mapping):
                 continue
-            document_id = _text(riga.get("id") or riga.get("document_id") or riga.get("documento_id"))
-            if document_id:
-                precedenti[document_id] = dict(riga)
+            entry = _normalise_inventory_entry(riga)
+            if entry is not None:
+                candidati.append(entry)
 
     for entry in entries or []:
         if not isinstance(entry, Mapping):
             continue
-        document_id = _text(entry.get("id") or entry.get("document_id") or entry.get("documento_id"))
-        if not document_id:
-            continue
-        precedenti[document_id] = read_document_entry(
-            document_id=document_id,
-            nome=entry.get("nome") or entry.get("filename"),
-            sha256=entry.get("sha256"),
-            size=entry.get("size"),
-            source=entry.get("source"),
-            chars=entry.get("chars"),
-        )
+        normalised = _normalise_inventory_entry(entry)
+        if normalised is not None:
+            candidati.append(normalised)
 
     if known_document_ids is not None:
         ammessi = {_text(value) for value in known_document_ids if _text(value)}
-        precedenti = {key: value for key, value in precedenti.items() if key in ammessi}
+        candidati = [entry for entry in candidati if _text(entry.get("id")) in ammessi]
 
-    righe = [precedenti[key] for key in sorted(precedenti)]
+    per_id: dict[str, dict[str, Any]] = {}
+    for entry in candidati:
+        document_id = _text(entry.get("id"))
+        per_id[document_id] = _prefer_inventory_entry(per_id.get(document_id), entry)
+
+    per_contenuto: dict[str, dict[str, Any]] = {}
+    for entry in per_id.values():
+        identity = document_read_key(sha256=entry.get("sha256"), size=entry.get("size"))
+        if not _read_key_is_specific(identity):
+            identity = f"id:{_text(entry.get('id'))}"
+        per_contenuto[identity] = _prefer_inventory_entry(per_contenuto.get(identity), entry)
+
+    righe = sorted(per_contenuto.values(), key=lambda item: (_read_entry_content_key(item), _text(item.get("id"))))
     massimo = max(1, int(limit or MAX_READ_DOCUMENTS))
     return righe[:massimo]
 

@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Conformità schemi PST (codici oggetto SICID, Cassazione v21) — 11/09/2026
+
+Ambiente cloud senza accesso a PyPI/npm: Python 3.11 con lxml di sistema e pytest da sorgente; i moduli web con sintassi 3.12 non sono importabili, quindi i test che avviano l'app Flask non sono stati eseguiti qui.
+
+- `pytest` su 27 file (nuovi `test_codici_oggetto_sici_xsd_esercizio.py` e `test_cassazione_datiatto_schemi_esercizio.py`; `test_busta`, `test_deposito_anagrafica_ministeriale`, `test_codici_oggetto_pst_catalog`, `test_pst_catalog`, `test_legal_intelligence`, Guida Pratica set33-49, importatori XSD, catalogo depositi, destinazioni, compatibilità, profilo, simulazione deposito, registro telematico, contratto CI): **292 superati, 1 fallito per ambiente** (vedi issue aperte).
+- `python scripts/allinea_codici_oggetto_sici.py --check`: **OK**; `python scripts/merge_legal_kb_modules.py`: KB completa rigenerata (riprodotta identica prima delle modifiche).
+- `node frontend/scripts/check-react-contracts.mjs`: **Contratti React verificati**.
+- `tsc --noEmit` senza dipendenze installate: nessun errore nuovo in `FascicoloDepositoPage.tsx` e `fascicoliData.ts` rispetto al commit precedente (confronto degli errori prima/dopo).
+- `ruff check` e `flake8` sui file Python toccati: nessun errore nuovo; `tools/check_python_baseline.py` OK; `tests/test_packaging_consistency.py` e `tests/test_release_readiness.py`: 11 superati.
+
 ## Acquisizione documenti e catalogo unico — 06/09/2026
 
 - `C:\Python314\python.exe -m pytest tests/test_document_capture_contracts.py tests/test_document_tools.py -q`: **12 test superati**. Confermato che `DocumentCapture` è montato prima del form `Carica documenti` e che il pulsante visibile espone `Scanner / webcam / fotocamera`.

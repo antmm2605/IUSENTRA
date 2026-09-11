@@ -6,6 +6,7 @@ from collections.abc import Callable, Iterable
 from typing import Any
 
 from pct.formatting import format_euro_it
+from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 from web.services.deposito_semantic_helpers import (
     ministerial_contributo_unificato_for_context,
     ministerial_valore_causa_for_context,
@@ -16,8 +17,12 @@ _ATTI_V7_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v7"
 _ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4"
 _SIGP_ATTI_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3"
 _SIGP_ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/anagrafiche/v2"
-_CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13"
-_CASSAZIONE_ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/v13"
+_CASSAZIONE_ATTI_NS = (
+    f"http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+)
+_CASSAZIONE_ANAGRAFICHE_NS = (
+    f"http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+)
 
 
 def _clean_cf(value: Any) -> str:

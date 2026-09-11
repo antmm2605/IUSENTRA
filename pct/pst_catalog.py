@@ -96,12 +96,77 @@ PST_CASSAZIONE_XSD_20260611_PACKAGE_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/XSD_Cassazione_20260611.zip"
 )
 PST_CASSAZIONE_XSD_20260615_STATUS = "anticipated_not_production"
+# SICI in esercizio: pacchetto pubblicato il 12/05/2026 (NWS4877), messo in esercizio
+# con la manutenzione del 14/05/2026. Rispetto al pacchetto del 26/01/2026 cambia solo
+# `Atti/sici/tipi-base.xsd` (tipo CodiceOggetto): descrizione dell'oggetto 171404 e
+# dieci nuovi oggetti CCI 4714xx (Nota modifiche XSD, versione 1 dell'11/05/2026).
+PST_SICI_XSD_20260512_NEWS_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_civile_telematico__comunicazione_alle_software_house_"
+    "aggiornamento_specifiche_tecniche_deposito_atti_sicid_it_1?contentId=NWS4877&modelId=4"
+)
+PST_SICI_XSD_20260512_DOWNLOAD_PAGE_URL = (
+    "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277"
+)
+PST_SICI_XSD_20260512_PACKAGE_NAME = "XSD_SICI_20260508.zip"
+PST_SICI_XSD_20260512_PACKAGE_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260508.zip"
+)
+PST_SICI_XSD_20260512_PACKAGE_SHA256 = "C59C825E1C55350E11C327DDD3F74160237BD6BF55CB9083ECF3DCA43330CC0B"
+PST_SICI_XSD_20260512_CHANGELOG_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/Nota_Modifiche_XSD__20250508.pdf"
+)
+PST_SICI_XSD_20260512_PRODUCTION_FROM = "2026-05-14"
+PST_SICI_XSD_ACTIVE_TIPI_BASE = (
+    "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd"
+)
+PST_SICI_XSD_20260722_NEWS_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_civile_telematico__comunicazione_alle_software_house_"
+    "aggiornamento_specifiche_tecniche_deposito_atti_sicid_it_3?contentId=NWS5070&modelId=4"
+)
+PST_SICI_XSD_20260722_DOWNLOAD_PAGE_URL = (
+    "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC5072"
+)
+PST_SICI_XSD_20260722_PACKAGE_NAME = "XSD_SICI_20260720.zip"
+PST_SICI_XSD_20260722_PACKAGE_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260720.zip"
+)
+PST_SICI_XSD_20260722_PACKAGE_SHA256 = "83E5CA05691E9D1E0422DE84695ED8FDAB4AA1E080E2FCCA9DDAC9E9BA11A264"
+PST_SICI_XSD_20260722_CHANGELOG_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/modifiche_XSD_SICI_20260721.pdf"
+)
+PST_SICI_XSD_20260722_STATUS = "anticipated_not_production"
+PST_SICI_XSD_20260722_NEW_OBJECT_CODES = (
+    "118012", "118013", "118014", "118015", "118016", "118017", "118018",
+    "118021", "118022", "118023", "118024", "418098", "418100",
+)
+# Cassazione in esercizio: pacchetto 27/02/2026, schemi `parte_v21` / `base_v21`
+# (Processo Telematico di legittimita - Schemi XSD v.21), in esercizio dal 04/03/2026.
+PST_CASSAZIONE_XSD_ACTIVE_VERSION = "v21"
+PST_CASSAZIONE_XSD_20260909_NEWS_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_telematico__comunicazione_per_le_software_house__nuovi_schemi_xsd_per_i_depositi_"
+    "telematici_presso_la_corte_suprema_di_cassazione_it_12?contentId=NWS5108&modelId=4"
+)
+PST_CASSAZIONE_XSD_20260909_DOWNLOAD_PAGE_URL = (
+    "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC5110"
+)
+PST_CASSAZIONE_XSD_20260907_PACKAGE_NAME = "XSD_Cassazione_20260907.zip"
+PST_CASSAZIONE_XSD_20260907_PACKAGE_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/XSD_Cassazione_20260907.zip"
+)
+PST_CASSAZIONE_XSD_20260907_PACKAGE_SHA256 = "46313B36A3408BA376746BDBE2509EEF48274A29731B64DA88EE0E6435549300"
+PST_CASSAZIONE_XSD_20260907_CHANGELOG_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/Processo_Telematico_di_legittimit__Schemi_XSD_v.22.pdf"
+)
+PST_CASSAZIONE_XSD_20260909_STATUS = "anticipated_not_production"
 PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
 PST_XSD_DOWNLOAD_PAGE_URL = "https://pst.giustizia.it/PST/it/download.page"
-PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.06.15.1"
-PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.06.15.1"
+PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.09.11.1"
+PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.09.11.1"
 PST_MAX_BUSTA_MB = 60
 PST_MAX_BUSTA_BYTES = PST_MAX_BUSTA_MB * 1024 * 1024
 PST_FORMAL_ERROR_CODES = {
@@ -332,25 +397,22 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
             key="SICI",
             label="XSD SICI",
             area="Civile ordinario / redattori area civile",
-            download_page_url="https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4588",
-            package_name="XSD_SICI_20260116.zip",
-            package_url="https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260116.zip",
-            package_date="2026-01-26",
-            changelog_name="Nota modifiche XSD SICI - 26/01/2026",
-            changelog_url="https://pst.giustizia.it/PST/resources/cms/documents/modifiche_XSD_SICI_20260116.pdf",
+            download_page_url=PST_SICI_XSD_20260512_DOWNLOAD_PAGE_URL,
+            package_name=PST_SICI_XSD_20260512_PACKAGE_NAME,
+            package_url=PST_SICI_XSD_20260512_PACKAGE_URL,
+            package_date="2026-05-12",
+            changelog_name="Nota modifiche XSD - 12/05/2026",
+            changelog_url=PST_SICI_XSD_20260512_CHANGELOG_URL,
             status="production",
-            status_source_news_date="2026-01-29",
-            status_source_news_url=(
-                "https://pst.giustizia.it/PST/page/it/"
-                "interruzione_dei_servizi_informatici_del_settore_civile_del_portale_dei_servizi_telematici_"
-                "e_del_portale_dei_depositi_penali_dalle_ore_1600_alle_ore_1800_del_29012026?contentId=NWS4596&modelId=4"
-            ),
+            status_source_news_date="2026-05-12",
+            status_source_news_url=PST_SICI_XSD_20260512_NEWS_URL,
             notes=(
-                "Pacchetto pubblicato il 26/01/2026; la news del 29/01/2026 conferma la messa in produzione "
-                "degli XSD aggiornati per i redattori atti dell'area civile. La comunicazione PST "
-                "dell'11/06/2026 anticipa ulteriori XSD SICI, ma rinvia a successiva comunicazione "
-                "la messa in esercizio: non vanno usati come schema attivo di deposito finche non "
-                "diventano produzione."
+                "Pacchetto pubblicato il 12/05/2026; la news PST dello stesso giorno dichiara gli XSD "
+                "in esercizio dopo la manutenzione del 14/05/2026. Rispetto al pacchetto del 26/01/2026 "
+                "cambia solo tipi-base.xsd (CodiceOggetto): corretta la descrizione dell'oggetto 171404 "
+                "e aggiunti gli oggetti CCI 471404, 471405 e 471412-471419. Le anticipazioni SICI "
+                "dell'11/06/2026 e del 22/07/2026 non sono in esercizio: il validatore resta su questo "
+                "pacchetto finche il PST non comunica la messa in esercizio."
             ),
             applies_to="Redattore civile SICI / SICID-SIECIC",
         ),
@@ -372,6 +434,28 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
                 f"{PST_SICI_XSD_20260611_NEW_ACT} e il codice oggetto "
                 f"{PST_SICI_XSD_20260611_NEW_OBJECT_CODE}; il validatore deve continuare a usare gli "
                 "XSD SICI di produzione finche il PST non comunica la messa in esercizio."
+            ),
+            applies_to="Monitoraggio normativo deposito SICI / SICID",
+        ),
+        PSTXSDChannel(
+            key="SICI_20260722_PREVIEW",
+            label="XSD SICI - anticipazione 22 luglio 2026",
+            area="Civile ordinario / redattori area civile",
+            download_page_url=PST_SICI_XSD_20260722_DOWNLOAD_PAGE_URL,
+            package_name=PST_SICI_XSD_20260722_PACKAGE_NAME,
+            package_url=PST_SICI_XSD_20260722_PACKAGE_URL,
+            package_date="2026-07-22",
+            changelog_name="Nota modifiche XSD SICI - 22/07/2026",
+            changelog_url=PST_SICI_XSD_20260722_CHANGELOG_URL,
+            status="preview",
+            status_source_news_date="2026-07-22",
+            status_source_news_url=PST_SICI_XSD_20260722_NEWS_URL,
+            notes=(
+                "Fonte PST anticipata per la configurazione dei redattori, con test gia possibili su "
+                "Model Office; la messa in esercizio sara comunicata con successivo avviso. Rispetto al "
+                "pacchetto in esercizio cambiano tipi-base.xsd ed eventi.xsd: 13 nuovi codici oggetto "
+                "TSAP (118012-118018, 118021-118024, 418098, 418100). Il pacchetto non contiene le "
+                "novita dell'anticipazione dell'11/06/2026."
             ),
             applies_to="Monitoraggio normativo deposito SICI / SICID",
         ),
@@ -441,7 +525,7 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
             ),
             notes=(
                 "Il pacchetto del 27/02/2026 e applicato in esercizio dal 04/03/2026, come da news "
-                "software house dedicata."
+                "software house dedicata. Gli atti di parte usano gli schemi parte_v21 / base_v21."
             ),
             applies_to="Redattore Cassazione / processo telematico di legittimita",
         ),
@@ -462,6 +546,27 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
                 "Fonte PST disponibile per le software house; la pagina precisa che gli schemi pubblicati "
                 "non sostituiscono quelli in esercizio e che la messa in esercizio verra comunicata "
                 "con successivo avviso ministeriale."
+            ),
+            applies_to="Monitoraggio normativo deposito Cassazione / legittimita",
+        ),
+        PSTXSDChannel(
+            key="CASSAZIONE_20260909_PREVIEW",
+            label="XSD Cassazione - anticipazione 9 settembre 2026",
+            area="Corte Suprema di Cassazione",
+            download_page_url=PST_CASSAZIONE_XSD_20260909_DOWNLOAD_PAGE_URL,
+            package_name=PST_CASSAZIONE_XSD_20260907_PACKAGE_NAME,
+            package_url=PST_CASSAZIONE_XSD_20260907_PACKAGE_URL,
+            package_date="2026-09-09",
+            changelog_name="Processo Telematico di legittimita - Schemi XSD v.22",
+            changelog_url=PST_CASSAZIONE_XSD_20260907_CHANGELOG_URL,
+            status="preview",
+            status_source_news_date="2026-09-09",
+            status_source_news_url=PST_CASSAZIONE_XSD_20260909_NEWS_URL,
+            notes=(
+                "Nuova versione degli schemi per gli atti di parte (parte_v22 / base_v22): tipo ricorso "
+                "Ricorso_art_14_1_TU_IMM, atti MemoriaDifensivaTUImmigrazione e "
+                "MemoriaIllustrativaTUImmigrazione (art. 14, comma 1, D.Lgs. 286/1998). La data di messa "
+                "in esercizio sara resa nota con successiva comunicazione: il generatore resta su v21."
             ),
             applies_to="Monitoraggio normativo deposito Cassazione / legittimita",
         ),

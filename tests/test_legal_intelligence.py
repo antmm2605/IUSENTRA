@@ -265,31 +265,51 @@ def test_monitor_source_pst_xsd_sici_rileva_pacchetto_e_stato_production(tmp_pat
 
     detail_html = b"""
     <html><body>
-      <h4>XSD SICI - 26 gennaio 2026</h4>
-      <a href="/PST/resources/cms/documents/XSD_SICI_20260116.zip">Nuovi XSD SICI - 26/01/2026</a>
-      <a href="/PST/resources/cms/documents/modifiche_XSD_SICI_20260116.pdf">Nota modifiche XSD SICI - 26/01/2026</a>
+      <h4>XSD SICI - 12 maggio 2026</h4>
+      <a href="/PST/resources/cms/documents/XSD_SICI_20260508.zip">Nuovi XSD SICI - 12/05/2026</a>
+      <a href="/PST/resources/cms/documents/Nota_Modifiche_XSD__20250508.pdf">Nota modifiche XSD - 12/05/2026</a>
     </body></html>
     """
-    news_html = b"""
+    news_html = """
     <html><body>
-      <h4>Interruzione del 29 gennaio 2026</h4>
-      <p>A seguito dell'attivita di manutenzione verranno messi in produzione gli XSD aggiornati,
-      anticipati con la news del 26.01.2026.</p>
+      <h4>martedi 12 maggio 2026</h4>
+      <p>Si anticipa a questo link la versione aggiornata degli schemi XSD per il SICI con le novit\u00e0
+      descritte nel seguente documento. I nuovi XSD saranno in esercizio a seguito dell'attivit\u00e0
+      di manutenzione prevista per il giorno 14/05/2026.</p>
     </body></html>
-    """
+    """.encode("utf-8")
 
     def fake_get(url, **kwargs):
-        if "NWS4596" in url:
+        if "NWS4877" in url:
             return DummyResponse(news_html, url=url)
         return DummyResponse(detail_html, url="https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277")
 
     result = gestore.monitor_source("pst_xsd_sici", request_get=fake_get)
 
+    alert_types = {alert["alert_type"] for alert in result["alerts"]}
+
     assert result["ok"] is True
-    assert result["run"]["detected_package"] == "XSD_SICI_20260116.zip"
-    assert result["run"]["detected_package_date"] == "2026-01-26"
+    assert result["run"]["detected_package"] == "XSD_SICI_20260508.zip"
+    assert result["run"]["detected_package_date"] == "2026-05-12"
     assert result["run"]["detected_status"] == "production"
-    assert result["run"]["detected_news_date"] == "2026-01-29"
+    assert "xsd_canale_da_aggiornare" not in alert_types
+
+
+def test_stato_xsd_riconosce_le_formule_pst_di_anticipazione_2026():
+    from pct.legal_intelligence import _detect_pst_xsd_status
+
+    anticipazioni = (
+        "Sar\u00e0 data successiva comunicazione riguardo la messa in esercizio di suddetti XSD.",
+        "La data della messa in esercizio verr\u00e0 resa nota con una successiva comunicazione.",
+        "Si comunica che \u00e8 gi\u00e0 possibile eseguire i test sull'ambiente di Model Office allineato ai "
+        "suddetti XSD mentre sar\u00e0 dato successivo avviso sul Portale dei Servizi Telematici per la messa "
+        "in esercizio di tale rilascio.",
+    )
+    for testo in anticipazioni:
+        assert _detect_pst_xsd_status(testo) == "preview", testo
+    assert _detect_pst_xsd_status(
+        "I nuovi XSD saranno in esercizio a seguito dell'attivit\u00e0 di manutenzione prevista per il giorno 14/05/2026."
+    ) == "production"
 
 
 def test_monitor_source_pst_xsd_cassazione_segnala_disallineamento_status(tmp_path):

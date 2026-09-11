@@ -4,7 +4,7 @@
 Compatibile con la documentazione Guida Pratica:
 
     python scripts/update_pst_xsd_catalog.py --download
-    python scripts/update_pst_xsd_catalog.py --no-download --source ./XSD_SICI_20260116.zip
+    python scripts/update_pst_xsd_catalog.py --no-download --source ./XSD_SICI_20260508.zip
 """
 
 from __future__ import annotations

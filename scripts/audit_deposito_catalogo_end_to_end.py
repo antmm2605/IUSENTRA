@@ -43,7 +43,7 @@ from pct.deposito_studio_telematico_validation import (
     FOLLOW_UP_MESSAGE_RULE_IDS,
     validate_studio_telematico_deposit,
 )
-from pct.deposito_telematico_catalogo import list_deposit_catalog_entries
+from pct.deposito_telematico_catalogo import CASSAZIONE_ROOT_ELIMINATA_STATUS, list_deposit_catalog_entries
 from web.services.deposito_anagrafica_ministeriale import (
     _anagrafica_procedimento_deposito_xml,
     _namespace_anagrafica_per_generatore,
@@ -560,6 +560,8 @@ DATIATTO_EXTRA_BASE: dict[str, Any] = {
     "misure_cautelari": False,
     "misure_protettive": False,
     "tipo_ricorso_cassazione": "Ricorso ordinario",
+    "numero_raccolta_generale_provvedimento": "12345",
+    "anno_raccolta_generale_provvedimento": "2025",
     "data_richiesta_notifica_cassazione": "01/07/2026",
     "data_effettiva_notifica_cassazione": "02/07/2026",
     "provvedimento_impugnato": {
@@ -1548,6 +1550,7 @@ def audit_deposit_catalog() -> dict[str, Any]:
     generated: list[dict[str, str]] = []
     detailed_entries: list[dict[str, Any]] = []
     blocked: list[dict[str, str]] = []
+    eliminated: list[dict[str, str]] = []
     contribution_exemption_checked = 0
     required_input_guards_checked = 0
     ministerial_role_checks = 0
@@ -1660,6 +1663,18 @@ def audit_deposit_catalog() -> dict[str, Any]:
             requires_specific = bool(schema.get("requiresSpecificGenerator"))
 
             is_ministerial_deposit = channel_kind in {"pct_civile_dm44", "unep_deposito_telematico"}
+
+            if str(schema.get("status") or "") == CASSAZIONE_ROOT_ELIMINATA_STATUS:
+                # Atto tolto dal Ministero dagli schemi in esercizio: non e un ramo da completare
+                # ma deve restare non inviabile, con il motivo mostrato all'avvocato.
+                if real_allowed or not rules.get("ministerial_act_eliminated") or not rules.get("real_send_blocker"):
+                    message = "atto eliminato dagli schemi in esercizio ma ancora inviabile o senza motivo"
+                    errors.append(f"{key}: {message}")
+                    detail["errors"].append(message)
+                detail["status"] = "eliminato_dal_ministero"
+                eliminated.append({"key": key, "root": str(schema.get("ministerialRoot") or "")})
+                detailed_entries.append(detail)
+                continue
 
             if is_ministerial_deposit and requires_specific:
                 message = "ramo deposito ancora sospeso, completare generatore e campi prima del verde"
@@ -2071,9 +2086,10 @@ def audit_deposit_catalog() -> dict[str, Any]:
         "unep_generated_datiatto": unep_generated,
         "ministerial_generated_datiatto": len(generated),
         "pct_real_send_suspended_until_dedicated_generator": len(blocked),
-        "pct_expected_datiatto": channels["pct"],
+        "pct_expected_datiatto": channels["pct"] - len(eliminated),
         "unep_expected_datiatto": channels["unep"],
-        "ministerial_expected_datiatto": channels["pct"] + channels["unep"],
+        "ministerial_expected_datiatto": channels["pct"] + channels["unep"] - len(eliminated),
+        "eliminated_by_active_ministerial_schema": eliminated,
         "pct_contribution_exemption_branches_checked": contribution_exemption_checked,
         "pct_required_input_guards_checked": required_input_guards_checked,
         "ministerial_role_checks": ministerial_role_checks,

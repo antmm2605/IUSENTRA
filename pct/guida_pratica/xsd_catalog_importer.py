@@ -30,7 +30,7 @@ class OfficialPstDownload:
 
 
 DEFAULT_OFFICIAL_DOWNLOADS: tuple[OfficialPstDownload, ...] = (
-    OfficialPstDownload("sici", "Nuovi XSD SICI - 26/01/2026", "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260116.zip", "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277", "Riferimento notizia 28/01/2026", "XSD SICI"),
+    OfficialPstDownload("sici", "Nuovi XSD SICI - 12/05/2026", "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260508.zip", "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277", "In esercizio dal 14/05/2026 (news 12/05/2026)", "XSD SICI"),
     OfficialPstDownload("sigp", "Nuovi XSD SIGP - 29/11/2024", "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SIGP_20241128.zip", "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3199", "Riferimento news 29/11/2024", "XSD Giudici di pace / SIGP"),
     OfficialPstDownload("cassazione", "XSD Cassazione 27/02/2026", "https://pst.giustizia.it/PST/resources/cms/documents/XSD_Cassazione_20260227.zip", "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4671", "Ultimo aggiornamento 02/03/2026", "XSD Corte Suprema di Cassazione"),
     OfficialPstDownload("reginde", "Nuovi XSD REGINDE - 15/10/2025", "https://pst.giustizia.it/PST/resources/cms/documents/XSD_REGINDE_20251010.zip", "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4437", "Riferimento news 15/10/2025", "XSD REGINDE"),

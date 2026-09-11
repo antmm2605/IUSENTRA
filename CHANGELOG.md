@@ -10,6 +10,23 @@ Difetti emersi ripristinando tre test che nessun controllo della CI eseguiva.
 - **Sincronizzazione PEC senza finestra temporale.** Guardava solo gli ultimi 60 giorni: la PEC di autorizzazione di un procedimento aperto oggi, ma arrivata mesi prima, non sarebbe mai stata agganciata. Ora si guarda l'intera casella.
 - **Sincronizzazione PEC incrementale.** Nuovo registro `pec_sync_seen`: ogni PEC esaminata — anche quelle che non riguardavano il caso — resta segnata, così i giri successivi leggono solo le nuove. La deduplica regge anche per le PEC prive di `Message-ID`, con un ripiego su mittente, data e oggetto.
 
+### Allineamento agli schemi PST in esercizio
+
+Allineamento agli schemi ministeriali in esercizio sulla pagina Download del PST. Gli XSD salvati nel repository erano già identici a quelli ufficiali (confronto file per file); il codice che li usa era rimasto indietro. Dettaglio e fonti in `docs/specs/ministero/PST_XSD_CONFORMITA_2026-09-11.md`.
+
+- **Codici oggetto SICID fermi al pacchetto del 26/01/2026.** Gli XSD SICI del 12/05/2026 sono in esercizio dal 14/05/2026 e cambiano il tipo `CodiceOggetto`.
+  - L'oggetto **171404** compariva come "Esdebitazione del Debitore Incapiente (CCI)". Il Ministero ne ha corretto la descrizione perché induceva in errore: è "Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (Marzano)". Chi sceglieva la voce per un'esdebitazione iscriveva la causa con l'oggetto sbagliato.
+  - I dieci nuovi oggetti CCI (471404, 471405, 471412-471419) erano presenti solo come UNEP e non si potevano scegliere per il SICID.
+  - Allineati catalogo tecnico, catalogo della ricerca, schede Guida Pratica e knowledge base con `scripts/allinea_codici_oggetto_sici.py`; `--check` segnala se tornano disallineati.
+- **Atti di parte in Cassazione generati sugli schemi v13.** In esercizio c'è la v21 dal 04/03/2026. Generatore, anagrafica, validatore e campi del deposito leggono ora le tabelle degli XSD in esercizio, e la versione è dichiarata in un solo punto.
+  - Tolto il tipo "Ricorso per revocazione", eliminato dal Ministero: ora IUSENTRA spiega che serve l'atto di revocazione dedicato.
+  - Ruolo del fascicolo impugnato con i quattro valori aggiunti (tra cui procedure concorsuali e procedimento unitario), rito scelto dall'elenco ministeriale, numero CCI.
+  - Segnalazione di errore materiale: numero e anno di raccolta generale del provvedimento, obbligatori dalla v21.
+  - La memoria ex art. 380-bis non esiste più come atto negli schemi in esercizio: resta visibile, non inviabile, con il motivo.
+  - I 32 atti Cassazione del catalogo producono DatiAtto valido sugli XSD v21.
+- Catalogo PST: canale SICI al pacchetto in esercizio, anticipazioni SICI del 22/07/2026 e Cassazione v.22 del 09/09/2026 registrate come non in esercizio. Il monitor riconosce le formule di messa in esercizio usate dal PST nel 2026, prima non lette.
+- Test: `test_codici_oggetto_sici_xsd_esercizio.py`, `test_cassazione_datiatto_schemi_esercizio.py`; aggiornati catalogo PST, codici oggetto, busta, anagrafica, intelligence e audit del catalogo depositi.
+
 ## 2.285.2 - 11/09/2026
 
 - **Deploy sbloccato.** Con la CI finalmente verde il deploy falliva lo stesso: attendeva per 90 minuti due check che nessuno emette più. `.github/required-checks.json` pretendeva `Pytest core fase 3/10` e `Pytest core fase 4/10`, ma quelle fasi sono suddivise per item e i loro job si chiamano `… parte n/N`. La fase 4 era disallineata dalla 2.284.0, la 3 dalla 2.285.1.

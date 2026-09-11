@@ -913,6 +913,7 @@ function DepositSpecificComplexField({
   catalogKey,
   titleOptions,
   roleOptions,
+  riteOptions,
   matterOptions,
   propertyClassOptions,
   parties,
@@ -924,6 +925,7 @@ function DepositSpecificComplexField({
   catalogKey: string
   titleOptions: FascicoloDepositInputOption[]
   roleOptions: FascicoloDepositInputOption[]
+  riteOptions: FascicoloDepositInputOption[]
   matterOptions: FascicoloDepositInputOption[]
   propertyClassOptions: FascicoloDepositInputOption[]
   parties: FascicoloParty[]
@@ -1060,8 +1062,9 @@ function DepositSpecificComplexField({
           <DepositSelectInput label="Ruolo" value={item.ruolo} options={roleOptions} onChange={(next) => set('ruolo', next)} required />
           <DepositTextInput label="Numero fascicolo" value={item.numero_fascicolo} onChange={(next) => set('numero_fascicolo', next)} required inputMode="numeric" />
           <DepositTextInput label="Anno fascicolo" value={item.anno_fascicolo} onChange={(next) => set('anno_fascicolo', next)} required inputMode="numeric" />
-          <DepositTextInput label="Rito" value={item.rito} onChange={(next) => set('rito', next)} />
+          <DepositSelectInput label="Rito (per procedure concorsuali e procedimento unitario)" value={item.rito} options={riteOptions} onChange={(next) => set('rito', next)} />
           <DepositTextInput label="Sub" value={item.sub} onChange={(next) => set('sub', next)} />
+          <DepositTextInput label="Numero CCI" value={item.numero_cci} onChange={(next) => set('numero_cci', next)} />
         </div>
       </fieldset>
     )
@@ -1337,6 +1340,7 @@ function DepositSpecificDataForm({
               catalogKey={entry?.key || ''}
               titleOptions={catalog.referenceData.titoliEsecutivi}
               roleOptions={catalog.referenceData.ruoliProvvedimentoCassazione}
+              riteOptions={catalog.referenceData.ritiProvvedimentoCassazione}
               matterOptions={catalog.referenceData.materieCassazione}
               propertyClassOptions={catalog.referenceData.classiImmobiliari}
               parties={parties}

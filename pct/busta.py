@@ -21,8 +21,10 @@ from reportlab.pdfgen import canvas
 
 from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .atto_enc_validation import inspect_atto_enc_payload
+from .cassazione_xsd_tables import cassazione_enumeration_values
 from .document_crypto import ENC_MAGIC, decrypt_doc
 from .pst_catalog import (
+    PST_CASSAZIONE_XSD_ACTIVE_VERSION,
     PST_BUSTA_ENCRYPTION_ALGORITHM,
     PST_BUSTA_ENCRYPTION_FATAL_FROM,
     PST_BUSTA_ENCRYPTION_REQUIRED_FROM,
@@ -76,13 +78,16 @@ SIECIC_PROF_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siec
 SIECIC_PROF_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/professionista/v6"
 SICID_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/sicid/sistema/pubblico/v3"
 SIECIC_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3"
-CASSAZIONE_PARTE_NS = "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13"
-CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13"
-CASSAZIONE_TIPI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/v13"
-CASSAZIONE_EVENTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/eventi/v13"
+# Cassazione: schemi degli atti di parte in esercizio (XSD_Cassazione_20260227, v.21,
+# applicati dal 04/03/2026). La versione vive in pct.pst_catalog insieme alla fonte PST.
+_CASSAZIONE_SCHEMI = "http://schemi.processotelematico.giustizia.it/cassazione"
+CASSAZIONE_PARTE_NS = f"{_CASSAZIONE_SCHEMI}/Parte/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_ATTI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/atti/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_TIPI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
+CASSAZIONE_EVENTI_NS = f"{_CASSAZIONE_SCHEMI}/eventi/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
 MINISTERIAL_ALLEGATI_V2_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v2"
-CASSAZIONE_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/allegati/v13"
+CASSAZIONE_ALLEGATI_NS = f"{_CASSAZIONE_SCHEMI}/tipi/allegati/{PST_CASSAZIONE_XSD_ACTIVE_VERSION}"
 MINISTERIAL_EVENTI_PARTE_NS = "http://schemi.processotelematico.giustizia.it/eventi/parte"
 MINISTERIAL_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/eventi/professionista"
 SIGP_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sigp/eventi/professionista"
@@ -2749,21 +2754,19 @@ class BustaTelematica:
             "regolamentodicompetenza": "RegolamentoDiCompetenza",
             "regolamento di giurisdizione": "RegolamentoPreventivoDiGiurisdizione",
             "regolamentopreventivodigiurisdizione": "RegolamentoPreventivoDiGiurisdizione",
-            "ricorso per revocazione": "RicorsoPerRevocazione",
-            "ricorsoperrevocazione": "RicorsoPerRevocazione",
             "ricorso ex art. 348 ter": "Ricorso_ex_art_348_TER",
             "ricorso ex art.348 ter": "Ricorso_ex_art_348_TER",
             "ricorso_ex_art_348_ter": "Ricorso_ex_art_348_TER",
         }
         normalized = mapping.get(value.casefold(), value)
-        allowed = {
-            "RegolamentoPreventivoDiGiurisdizione",
-            "RicorsoOrdinario",
-            "RegolamentoDiCompetenza",
-            "RicorsoPerRevocazione",
-            "Ricorso_ex_art_348_TER",
-        }
-        if normalized not in allowed:
+        if normalized.casefold().replace(" ", "") == "ricorsoperrevocazione":
+            # Tipo eliminato dagli schemi Cassazione dalla v16: la revocazione ha atti dedicati
+            # (RevocazioneExArt391ter / RevocazioneExArt391quater) non ancora gestiti qui.
+            raise ValueError(
+                "Il ricorso per revocazione non è più un tipo di ricorso negli schemi ministeriali in esercizio: "
+                "va depositato con l'atto di revocazione dedicato previsto dal Ministero."
+            )
+        if normalized not in cassazione_enumeration_values("TipoRicorso"):
             raise ValueError("Tipo di ricorso non valido: seleziona una voce prevista dalla tabella ministeriale.")
         return normalized
 
@@ -2785,19 +2788,11 @@ class BustaTelematica:
             missing.append("anno del fascicolo impugnato")
         if missing:
             raise ValueError("Dati del provvedimento impugnato mancanti: " + ", ".join(missing) + ".")
-        allowed_roles = {
-            "Speciale",
-            "Contenzioso",
-            "Lavoro",
-            "Agraria",
-            "VolontariaGiurisdizione",
-            "EsecuzioniCivili",
-            "EspropriazioniImmobiliari",
-            "Notifiche",
-            "AffariCivili",
-        }
-        if ruolo not in allowed_roles:
+        if ruolo not in cassazione_enumeration_values("Ruolo"):
             raise ValueError("Ruolo del fascicolo impugnato non valido: seleziona una voce ministeriale.")
+        rito = str(data.get("rito") or self._extra_text("provvedimento_rito")).strip()
+        if rito and rito not in cassazione_enumeration_values("Rito"):
+            raise ValueError("Rito del fascicolo impugnato non valido: seleziona una voce ministeriale.")
         if not re.sub(r"\D+", "", numero) or not anno.isdigit():
             raise ValueError("Numero o anno del fascicolo impugnato non validi.")
 
@@ -2805,13 +2800,18 @@ class BustaTelematica:
         fascicolo = etree.SubElement(provvedimento, f"{{{CASSAZIONE_ATTI_NS}}}DatiFascicolo")
         etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Ufficio").text = ufficio
         etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Ruolo").text = ruolo
-        rito = str(data.get("rito") or self._extra_text("provvedimento_rito")).strip()
         if rito:
             etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Rito").text = rito
         etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Numero").text = re.sub(r"\D+", "", numero)
-        sub = str(data.get("sub") or self._extra_text("provvedimento_fascicolo_sub")).strip()
-        if sub:
-            etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Sub").text = sub
+        # Ordine di tipi-atti.xsd v21 (DatiFascicolo): Sub, SubSocio, NumeroCCI, Anno.
+        for key, extra_key, element in (
+            ("sub", "provvedimento_fascicolo_sub", "Sub"),
+            ("sub_socio", "provvedimento_fascicolo_sub_socio", "SubSocio"),
+            ("numero_cci", "provvedimento_numero_cci", "NumeroCCI"),
+        ):
+            value = str(data.get(key) or self._extra_text(extra_key)).strip()
+            if value:
+                etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}{element}").text = value
         etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Anno").text = anno
 
     def _aggiungi_inizio_primo_grado_cassazione(self, root: etree._Element, *, required: bool) -> None:
@@ -2927,6 +2927,20 @@ class BustaTelematica:
             return True
         if root_name == "AttoGenerico":
             etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}deposito")
+            return True
+        if root_name == "SegnalazioneErroreMateriale":
+            # Parte-cassazione.xsd v21: numero e anno della raccolta generale del provvedimento
+            # da correggere sono obbligatori (xs:long).
+            numero = re.sub(r"\D+", "", self._required_extra_text(
+                "numero_raccolta_generale_provvedimento", "Numero di raccolta generale del provvedimento"
+            ))
+            anno = re.sub(r"\D+", "", self._required_extra_text(
+                "anno_raccolta_generale_provvedimento", "Anno di raccolta generale del provvedimento"
+            ))
+            if not numero or len(anno) != 4:
+                raise ValueError("Numero o anno di raccolta generale del provvedimento da correggere non validi.")
+            etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}numRaccGProvv").text = str(int(numero))
+            etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}annoRaccGProvv").text = anno
             return True
         if root_name == "IntegrazioneAnagrafica":
             root.append(self._modifiche_anagrafica_cassazione_node())

@@ -932,6 +932,7 @@ export type FascicoloDepositCatalog = {
     qualificheProfessionistaCassazione: FascicoloDepositInputOption[]
     titoliEsecutivi: FascicoloDepositInputOption[]
     ruoliProvvedimentoCassazione: FascicoloDepositInputOption[]
+    ritiProvvedimentoCassazione: FascicoloDepositInputOption[]
     materieCassazione: FascicoloDepositInputOption[]
     classiImmobiliari: FascicoloDepositInputOption[]
   }
@@ -1388,6 +1389,7 @@ export const emptyDepositCatalog: FascicoloDepositCatalog = {
     qualificheProfessionistaCassazione: [],
     titoliEsecutivi: [],
     ruoliProvvedimentoCassazione: [],
+    ritiProvvedimentoCassazione: [],
     materieCassazione: [],
     classiImmobiliari: [],
   },
@@ -2729,6 +2731,7 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
         qualificheProfessionistaCassazione: normalizeOptions(referenceData.qualificheProfessionistaCassazione ?? referenceData.qualifiche_professionista_cassazione),
         titoliEsecutivi: normalizeOptions(referenceData.titoliEsecutivi ?? referenceData.titoli_esecutivi),
         ruoliProvvedimentoCassazione: normalizeOptions(referenceData.ruoliProvvedimentoCassazione ?? referenceData.ruoli_provvedimento_cassazione),
+        ritiProvvedimentoCassazione: normalizeOptions(referenceData.ritiProvvedimentoCassazione ?? referenceData.riti_provvedimento_cassazione),
         materieCassazione: normalizeOptions(referenceData.materieCassazione ?? referenceData.materie_cassazione),
         classiImmobiliari: normalizeOptions(referenceData.classiImmobiliari ?? referenceData.classi_immobiliari),
       }

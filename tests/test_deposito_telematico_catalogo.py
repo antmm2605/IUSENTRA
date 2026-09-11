@@ -47,7 +47,13 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     assert payload["ministerialSchemaEvidence"]["cassazionePreview20260615"]["productionReady"] is False
     assert payload["schemaVersion"] == 3
     assert len(payload["referenceData"]["titoliEsecutivi"]) == 22
-    assert len(payload["referenceData"]["ruoliProvvedimentoCassazione"]) == 9
+    assert len(payload["referenceData"]["ruoliProvvedimentoCassazione"]) == 13
+    assert len(payload["referenceData"]["ritiProvvedimentoCassazione"]) == 44
+    assert "pst_xsd_sici_esercizio_20260512" in fonte_ids
+    assert "pst_xsd_sici_preview_20260722" in fonte_ids
+    assert "pst_xsd_cassazione_preview_20260909" in fonte_ids
+    assert payload["ministerialSchemaEvidence"]["cassazioneEsercizio"]["schemaVersion"] == "v21"
+    assert payload["ministerialSchemaEvidence"]["siciPreview20260722"]["productionReady"] is False
     assert len(payload["referenceData"]["materieCassazione"]) >= 170
     assert len(payload["referenceData"]["classiImmobiliari"]) >= 50
     assert payload["referenceData"]["qualificheProfessionista"] == [
@@ -464,13 +470,18 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert report["ok"] is True
     assert report["total"] == 270
     assert report["channels"] == {"pct": 252, "unep": 18, "other": 0}
-    assert report["pct_generated_datiatto"] == 252
+    # Memoria ex art. 380-bis: tolta dal Ministero dalle radici degli atti di parte Cassazione
+    # dalla v16, quindi negli schemi v21 in esercizio non e un deposito da generare.
+    assert report["eliminated_by_active_ministerial_schema"] == [
+        {"key": "Parte_CASSAZIONE::Memoria380bis", "root": "Memoria380bis"}
+    ]
+    assert report["pct_generated_datiatto"] == 251
     assert report["unep_generated_datiatto"] == 18
-    assert report["ministerial_generated_datiatto"] == 270
-    assert report["pct_expected_datiatto"] == 252
+    assert report["ministerial_generated_datiatto"] == 269
+    assert report["pct_expected_datiatto"] == 251
     assert report["unep_expected_datiatto"] == 18
-    assert report["ministerial_expected_datiatto"] == 270
-    assert report["ministerial_role_checks"] == 270
+    assert report["ministerial_expected_datiatto"] == 269
+    assert report["ministerial_role_checks"] == 269
     rule_coverage = report["studio_validation_rule_coverage"]
     assert rule_coverage["ok"] is True
     assert rule_coverage["source_rules_total"] == 186
@@ -481,9 +492,12 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert rule_coverage["covered_rule_ids"] == 186
     assert rule_coverage["missing_rule_ids"] == []
     assert rule_coverage["unknown_rule_ids"] == []
-    assert report["verified_entries"] == 270
+    assert report["verified_entries"] == 269
     assert len(report["entries"]) == 270
-    assert all(item["status"] == "verified" and not item["errors"] for item in report["entries"])
+    verified = [item for item in report["entries"] if item["status"] == "verified"]
+    assert all(
+        item["status"] in {"verified", "eliminato_dal_ministero"} and not item["errors"] for item in report["entries"]
+    )
     assert all(item["fonte_decompilata"]["catalog_entry_found"] for item in report["entries"])
     assert all(
         item["prova_generata"]["xsd"]["ok"]
@@ -491,7 +505,7 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
         and item["prova_generata"]["indice_busta"]["generated"]
         and item["prova_generata"]["indice_busta"]["mime_contract_ok"]
         and all(item["prova_generata"]["pacchetto_completo"]["checks"].values())
-        for item in report["entries"]
+        for item in verified
     )
     assert report["pct_contribution_exemption_branches_checked"] > 0
     assert report["pct_required_input_guards_checked"] >= 120

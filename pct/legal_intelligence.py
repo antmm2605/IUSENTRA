@@ -143,13 +143,20 @@ PST_XSD_PRODUCTION_MARKERS = (
     "messi in produzione",
     "messa in produzione",
     "entrata in esercizio",
+    # Formula PST del 12/05/2026 (NWS4877): "I nuovi XSD saranno in esercizio a seguito
+    # dell'attivita di manutenzione prevista per il giorno 14/05/2026".
+    "saranno in esercizio a seguito",
 )
 PST_XSD_PREVIEW_MARKERS = (
     "messa in esercizio verra comunicata successivamente",
     "messa in esercizio sara comunicata successivamente",
-    "messa in esercizio sara comunicata successivamente",
     "data di messa in esercizio",
     "verra resa nota con successiva comunicazione",
+    # Formule PST 2026: NWS4931 (11/06), NWS4954 (15/06), NWS5070 (22/07), NWS5108 (09/09).
+    "data della messa in esercizio",
+    "resa nota con una successiva comunicazione",
+    "successiva comunicazione riguardo la messa in esercizio",
+    "successivo avviso sul portale dei servizi telematici per la messa in esercizio",
 )
 ITALIAN_MONTHS = {
     "gennaio": 1,

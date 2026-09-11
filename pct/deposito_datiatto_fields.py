@@ -8,7 +8,9 @@ from typing import Any
 
 from lxml import etree
 
+from pct.cassazione_xsd_tables import cassazione_enumeration
 from pct.deposito_studio_telematico_contract import studio_telematico_type_contract
+from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
 
 def _field(
@@ -66,17 +68,49 @@ TITLE_OPTIONS = (
     ("99", "Altro titolo da specificare"),
 )
 
-CASSAZIONE_ROLE_OPTIONS = (
-    ("Speciale", "Ruolo speciale"),
-    ("Contenzioso", "Contenzioso"),
-    ("Lavoro", "Lavoro"),
-    ("Agraria", "Agraria"),
-    ("VolontariaGiurisdizione", "Volontaria giurisdizione"),
-    ("EsecuzioniCivili", "Esecuzioni civili"),
-    ("EspropriazioniImmobiliari", "Espropriazioni immobiliari"),
-    ("Notifiche", "Notifiche"),
-    ("AffariCivili", "Affari civili"),
-)
+# Etichette italiane dei valori ministeriali; i valori ammessi arrivano dagli XSD Cassazione in
+# esercizio (pct.cassazione_xsd_tables), quindi una voce eliminata dal Ministero non resta visibile.
+CASSAZIONE_ROLE_LABELS = {
+    "CassazioneCivile": "Cassazione civile",
+    "Speciale": "Ruolo speciale",
+    "Contenzioso": "Contenzioso",
+    "Lavoro": "Lavoro",
+    "Agraria": "Agraria",
+    "VolontariaGiurisdizione": "Volontaria giurisdizione",
+    "AltreProcedureConcorsuali": "Altre procedure concorsuali",
+    "ProcedimentoUnitario": "Procedimento unitario",
+    "EsecuzioniCivili": "Esecuzioni civili",
+    "EspropriazioniImmobiliari": "Espropriazioni immobiliari",
+    "GiustiziaTributaria": "Giustizia tributaria",
+    "Notifiche": "Notifiche",
+    "AffariCivili": "Affari civili",
+}
+CASSAZIONE_TIPO_RICORSO_LABELS = {
+    "RicorsoOrdinario": "Ricorso ordinario",
+    "RegolamentoDiCompetenza": "Regolamento di competenza",
+    "RegolamentoPreventivoDiGiurisdizione": "Regolamento di giurisdizione",
+    "Ricorso_ex_art_348_TER": "Ricorso ex art. 348-ter",
+}
+
+
+def _cassazione_options(type_name: str, labels: dict[str, str]) -> tuple[tuple[str, str], ...]:
+    return tuple(
+        (value, labels.get(value) or documentation or value)
+        for value, documentation in cassazione_enumeration(type_name)
+    )
+
+
+def cassazione_role_options() -> tuple[tuple[str, str], ...]:
+    return _cassazione_options("Ruolo", CASSAZIONE_ROLE_LABELS)
+
+
+def cassazione_tipo_ricorso_options() -> tuple[tuple[str, str], ...]:
+    ordered = {value: index for index, value in enumerate(CASSAZIONE_TIPO_RICORSO_LABELS)}
+    return tuple(sorted(_cassazione_options("TipoRicorso", CASSAZIONE_TIPO_RICORSO_LABELS), key=lambda item: ordered.get(item[0], 99)))
+
+
+def cassazione_rito_options() -> tuple[tuple[str, str], ...]:
+    return _cassazione_options("Rito", {})
 
 DEPOSITO_PROFESSIONISTA_ROLE_OPTIONS = (
     ("ARCH.", "Arch."),
@@ -479,13 +513,7 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
                 "Tipo di ricorso",
                 "select",
                 group=cass_group,
-                options=(
-                    ("RicorsoOrdinario", "Ricorso ordinario"),
-                    ("RegolamentoDiCompetenza", "Regolamento di competenza"),
-                    ("RegolamentoPreventivoDiGiurisdizione", "Regolamento di giurisdizione"),
-                    ("RicorsoPerRevocazione", "Ricorso per revocazione"),
-                    ("Ricorso_ex_art_348_TER", "Ricorso ex art. 348-ter"),
-                ),
+                options=cassazione_tipo_ricorso_options(),
             ),
             _field("data_richiesta_notifica_cassazione", "Data della prima notifica", "date", group=cass_group),
             _field("data_effettiva_notifica_cassazione", "Data di perfezionamento dell'ultima notifica", "date", group=cass_group),
@@ -503,6 +531,20 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
             _append_unique(fields, _field("motivi_cassazione", "Motivi", "motivi-cassazione", group="Motivi"))
         if root_name in {"ControRicorso", "ControRicorsoIncidentale"}:
             _append_unique(fields, _field("contromotivi_cassazione", "Contromotivi", "contromotivi-cassazione", group="Contromotivi"))
+
+    if generator_class.startswith("ParteCassazione") and root_name == "SegnalazioneErroreMateriale":
+        errore_group = "Provvedimento da correggere"
+        _append_unique(
+            fields,
+            _field(
+                "numero_raccolta_generale_provvedimento",
+                "Numero di raccolta generale",
+                "integer",
+                group=errore_group,
+                note="Numero di raccolta generale del provvedimento della Corte da correggere.",
+            ),
+            _field("anno_raccolta_generale_provvedimento", "Anno di raccolta generale", "year", group=errore_group),
+        )
 
     if key in CASSAZIONE_JUSTICE_EXPENSE_KEYS:
         _append_payment_branch(fields, "spese_integrazione_art13", "integrazione ex art. 13, comma 2-bis, T.U.")
@@ -632,7 +674,7 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
 def cassazione_materie_options() -> list[dict[str, str]]:
     xsd = (
         Path(__file__).resolve().parents[1]
-        / "docs/specs/ministero/parte/base_v13/tipi-base.xsd"
+        / f"docs/specs/ministero/parte/base_{PST_CASSAZIONE_XSD_ACTIVE_VERSION}/tipi-base.xsd"
     )
     if not xsd.is_file():
         return []
@@ -697,7 +739,10 @@ def datiatto_reference_data() -> dict[str, Any]:
         ],
         "titoliEsecutivi": [{"value": value, "label": label} for value, label in TITLE_OPTIONS],
         "ruoliProvvedimentoCassazione": [
-            {"value": value, "label": label} for value, label in CASSAZIONE_ROLE_OPTIONS
+            {"value": value, "label": label} for value, label in cassazione_role_options()
+        ],
+        "ritiProvvedimentoCassazione": [
+            {"value": value, "label": label} for value, label in cassazione_rito_options()
         ],
         "materieCassazione": cassazione_materie_options(),
         "classiImmobiliari": classi_immobiliari_options(),

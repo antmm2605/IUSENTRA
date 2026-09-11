@@ -57,6 +57,7 @@ import {
   type ScadenziarioRow,
   type ScadenziarioView,
 } from '../scadenziarioData'
+import { cleanAccessInfo, deadlineFactGroups, deadlineWhatToDo, plausiblePasscode, readablePlatform } from '../features/scadenziario/deadlineDetailFacts'
 import './ScadenziarioPage.css'
 
 type SortKey = 'scadenza' | 'priorita' | 'titolo' | 'fascicolo' | 'giorni'
@@ -343,7 +344,10 @@ function DeadlineActions({ item, onComplete, onDelete }:{item:ScadenziarioRow; o
 }
 
 function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
-  if (!item.remoteHearingUrl && !item.remoteHearingPdfRequired && !item.remoteHearingSource) return null
+  const platform = readablePlatform(item.remoteHearingPlatform, Boolean(item.remoteHearingUrl))
+  const passcode = plausiblePasscode(item.remoteHearingPasscode)
+  const accessInfo = cleanAccessInfo(item.remoteHearingAccessInfo)
+  if (!item.remoteHearingUrl && !item.remoteHearingPdfRequired && !item.remoteHearingSource && !platform && !passcode && !accessInfo) return null
   return (
     <div className="iu-scad-remote-box">
       {item.remoteHearingUrl ? (
@@ -353,15 +357,15 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
       ) : item.remoteHearingPdfRequired ? (
         <span className="iu-scad-remote-pending"><FileSearch size={13}/> Link udienza nel PDF allegato da acquisire</span>
       ) : null}
-      {!item.remoteHearingUrl && item.remoteHearingAccessInfo ? (
-        <span className="iu-scad-remote-access">{item.remoteHearingAccessInfo}</span>
+      {!item.remoteHearingUrl && accessInfo ? (
+        <span className="iu-scad-remote-access">{accessInfo}</span>
       ) : null}
       {item.remoteHearingSource ? (
         <span className="iu-scad-remote-source"><FileSearch size={13}/> Allegato udienza: {item.remoteHearingSource}</span>
       ) : null}
-      {item.remoteHearingPlatform ? <span>Piattaforma: {item.remoteHearingPlatform}</span> : null}
+      {platform ? <span>Piattaforma: {platform}</span> : null}
       {item.remoteHearingMeetingId ? <span>ID riunione: {item.remoteHearingMeetingId}</span> : null}
-      {item.remoteHearingPasscode ? <span>Codice di accesso: {item.remoteHearingPasscode}</span> : null}
+      {passcode ? <span>Codice di accesso: {passcode}</span> : null}
       {item.remoteHearingUrl ? (
         <span className={`iu-scad-remote-check ${item.remoteHearingVerified ? 'is-verified' : 'is-review'}`}>
           <CheckCircle2 size={13}/> {item.remoteHearingVerified ? 'Link verificato sull’allegato' : 'Link da controllare sull’allegato'}
@@ -899,6 +903,70 @@ function PdfDeadlineImportPanel({
           <span>Se il PDF è una scansione, serve testo OCR leggibile; se la data non è un termine, resta fuori dall'importazione automatica.</span>
         </div>
       ) : null}
+    </section>
+  )
+}
+
+function DeadlineFocusDetail({
+  row,
+  notificationPresidio,
+  onOpenSource,
+  onComplete,
+  onDelete,
+  onClose,
+}:{
+  row: ScadenziarioRow
+  notificationPresidio: boolean
+  onOpenSource: (item: ScadenziarioRow) => void
+  onComplete: (item: ScadenziarioRow) => void
+  onDelete: (item: ScadenziarioRow) => void
+  onClose: () => void
+}) {
+  const groups = deadlineFactGroups(row, { notificationPresidio })
+  const description = deadlineWhatToDo(row)
+  return (
+    <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
+      <header className="iu-scad-focus-summary">
+        <div className="iu-scad-focus-badges">
+          <Badge tone={row.tone}>{row.statusLabel}</Badge>
+          <Badge tone={row.priority === 'CRITICA' ? 'danger' : row.priority === 'ALTA' ? 'warning' : 'neutral'}>Priorità {row.priorityLabel.toLowerCase()}</Badge>
+          {row.peremptory ? <Badge tone="danger">Perentoria</Badge> : null}
+        </div>
+        <div className={`iu-scad-focus-when${row.overdue ? ' is-overdue' : row.dueToday ? ' is-today' : ''}`}>
+          <CalendarDays size={20}/>
+          <div>
+            <span>{notificationPresidio ? 'Da presidiare' : 'Scadenza'}</span>
+            <strong>{row.dateLabel}</strong>
+            {row.daysLabel && row.daysLabel !== row.dateLabel ? <small>{row.daysLabel}</small> : null}
+          </div>
+        </div>
+      </header>
+      <div className="iu-scad-focus-actions">
+        {row.remoteHearingUrl ? (
+          <a className="iu-scad-remote-action" href={row.remoteHearingUrl} target="_blank" rel="noreferrer">
+            <Link2 size={15}/> Apri link udienza
+          </a>
+        ) : null}
+        {row.sourceHref ? <button type="button" className="is-primary" onClick={() => onOpenSource(row)}><FileSearch size={15}/> Apri fonte</button> : null}
+        <button type="button" onClick={() => onComplete(row)}><CheckCircle2 size={15}/> Completa</button>
+        <Button href={row.editHref}><Edit3 size={15}/> Modifica</Button>
+        <button type="button" className="is-danger" onClick={() => onDelete(row)}><Trash2 size={15}/> Elimina</button>
+        <button type="button" className="iu-scad-focus-back" onClick={onClose}><ArrowLeft size={15}/> Torna allo scadenziario</button>
+      </div>
+      <section className="iu-scad-focus-block" aria-label="Cosa fare">
+        <h3><ListChecks size={15}/> Cosa fare</h3>
+        <p>{description}</p>
+      </section>
+      {groups.map((group) => (
+        <section className={`iu-scad-focus-block iu-scad-focus-block--${group.id}`} key={group.id} aria-label={group.title}>
+          <h3>{group.id === 'remoto' ? <Link2 size={15}/> : group.id === 'udienza' ? <Gavel size={15}/> : <Clock3 size={15}/>} {group.title}</h3>
+          <dl>
+            {group.facts.map((fact) => (
+              <div className={fact.wide ? 'is-wide' : ''} key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>
+            ))}
+          </dl>
+        </section>
+      ))}
     </section>
   )
 }
@@ -1445,47 +1513,14 @@ export function ScadenziarioPage() {
           boxClassName="iu-ag-source-modal__box--detail"
           bodyClassName="iu-ag-source-modal__body--detail"
         >
-          <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
-          <div>
-            <Badge tone={focusedRow.tone}>{focusedRow.statusLabel}</Badge>
-            <h2>{focusedRow.title}</h2>
-            <p>{focusedRow.detailDescription || focusedRow.description || focusedRow.fascicoloLabel || 'Dettaglio operativo della scadenza selezionata.'}</p>
-            <dl>
-              <div><dt>{isNotificationPresidio ? 'Attività da presidiare' : 'Scadenza legale'}</dt><dd>{focusedRow.dateLabel}</dd></div>
-              {isNotificationPresidio ? <div><dt>Visibilità</dt><dd>Calendario e notifiche operative</dd></div> : <div><dt>Scadenza operativa</dt><dd>{focusedRow.operationalDueLabel || 'Non impostata'}</dd></div>}
-              <div><dt>Priorità</dt><dd>{focusedRow.priorityLabel}</dd></div>
-              <div><dt>Responsabile</dt><dd>{focusedRow.ownerLabel || 'Non assegnato'}</dd></div>
-              {focusedRow.sourceEventTypeLabel ? <div><dt>Evento</dt><dd>{focusedRow.sourceEventTypeLabel}</dd></div> : null}
-              {focusedRow.officeLabel ? <div><dt>Ufficio</dt><dd>{focusedRow.officeLabel}</dd></div> : null}
-              {focusedRow.hearingMode ? <div><dt>Modalità udienza</dt><dd>{focusedRow.hearingMode}</dd></div> : null}
-              {focusedRow.hearingTime ? <div><dt>Orario udienza</dt><dd>{focusedRow.hearingTime}</dd></div> : null}
-              {focusedRow.hearingTimeVerificationRequired ? <div><dt>Verifica orario</dt><dd>Il valore letto dalla fonte non è un orario valido. Apri la fonte e registra l'orario corretto.</dd></div> : null}
-              {focusedRow.hearingModeSource ? <div><dt>Fonte modalità</dt><dd>{focusedRow.hearingModeSource}</dd></div> : null}
-              {focusedRow.remoteHearingSource ? <div><dt>Allegato udienza</dt><dd>{focusedRow.remoteHearingSource}</dd></div> : null}
-              {focusedRow.remoteHearingPlatform ? <div><dt>Piattaforma</dt><dd>{focusedRow.remoteHearingPlatform}</dd></div> : null}
-              {focusedRow.remoteHearingMeetingId ? <div><dt>ID riunione</dt><dd>{focusedRow.remoteHearingMeetingId}</dd></div> : null}
-              {focusedRow.remoteHearingPasscode ? <div><dt>Codice di accesso</dt><dd>{focusedRow.remoteHearingPasscode}</dd></div> : null}
-              {focusedRow.remoteHearingUrl ? <div><dt>Controllo link</dt><dd>{focusedRow.remoteHearingVerified ? 'Verificato sull’allegato' : 'Da controllare sull’allegato'}</dd></div> : null}
-              {focusedRow.remoteHearingPdfRequired ? <div><dt>Link udienza</dt><dd>Da acquisire dal PDF allegato</dd></div> : null}
-              {focusedRow.officeModeLabel ? <div><dt>Operatività ufficio</dt><dd>{focusedRow.officeModeLabel}</dd></div> : null}
-              {focusedRow.officePatronLabel ? <div><dt>Patrono ufficio</dt><dd>{focusedRow.officePatronLabel}</dd></div> : null}
-              {focusedRow.octoberObservanceBlocks ? <div><dt>Osservanza</dt><dd>Osservanza bloccante</dd></div> : null}
-            </dl>
-            {focusedRow.remoteHearingAccessInfo ? <p className="iu-scad-remote-access">{focusedRow.remoteHearingAccessInfo}</p> : null}
-          </div>
-          <div className="iu-scad-focus-actions">
-            {focusedRow.remoteHearingUrl ? (
-              <a className="iu-scad-remote-action" href={focusedRow.remoteHearingUrl} target="_blank" rel="noreferrer">
-                <Link2 size={15}/> Apri link udienza
-              </a>
-            ) : null}
-            {focusedRow.sourceHref ? <button type="button" onClick={() => setSourcePreview(focusedRow)}><FileSearch size={15}/> Apri fonte</button> : null}
-            <Button href={focusedRow.editHref}><Edit3 size={15}/> Modifica</Button>
-            <button type="button" onClick={() => runComplete(focusedRow)}><CheckCircle2 size={15}/> Completa</button>
-            <button type="button" onClick={() => runDelete(focusedRow)}><Trash2 size={15}/> Elimina</button>
-            <button type="button" onClick={closeDeadlineDetail}><ArrowLeft size={15}/> Torna allo scadenziario</button>
-          </div>
-          </section>
+          <DeadlineFocusDetail
+            row={focusedRow}
+            notificationPresidio={isNotificationPresidio}
+            onOpenSource={setSourcePreview}
+            onComplete={runComplete}
+            onDelete={runDelete}
+            onClose={closeDeadlineDetail}
+          />
         </OperationalModal>
       ) : null}
 

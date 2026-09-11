@@ -43,6 +43,7 @@ import { OperationalModal } from './OperationalModal'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import { formatDateIt } from '../formatting'
 import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaHighlightStartIndex, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
+import { cleanAccessInfo, plausiblePasscode, readablePlatform } from '../features/scadenziario/deadlineDetailFacts'
 import {
   addDays,
   addMonths,
@@ -296,17 +297,20 @@ function EventCard({
   const detailLines = agendaDetailLines(event)
   const whenLabel = `${new Date(event.start).toLocaleDateString('it-IT')} ${event.timeLabel}${event.durationLabel ? ` · ${event.durationLabel}` : ''}`
   const remoteUrl = event.remoteHearingVerified ? event.remoteHearingUrl : ''
-  const remoteInstruction = !remoteUrl && event.remoteHearingAccessInfo ? event.remoteHearingAccessInfo : ''
+  const remotePlatform = readablePlatform(event.remoteHearingPlatform, Boolean(remoteUrl))
+  const remotePasscode = plausiblePasscode(event.remoteHearingPasscode)
+  const remoteAccessInfo = cleanAccessInfo(event.remoteHearingAccessInfo)
+  const remoteInstruction = !remoteUrl && remoteAccessInfo ? remoteAccessInfo : ''
   const clusterWhen = clusterWhenLabel(clusteredEvents)
   const tooltipLines = [
     event.client ? `Cliente/parte: ${event.client}` : '',
     event.matter ? `Fascicolo/RG: ${event.matter}` : '',
     `Quando: ${whenLabel}`,
     event.location ? `Luogo: ${event.location}` : '',
-    event.remoteHearingPlatform ? `Piattaforma: ${event.remoteHearingPlatform}` : '',
+    remotePlatform ? `Piattaforma: ${remotePlatform}` : '',
     event.remoteHearingMeetingId ? `ID riunione: ${event.remoteHearingMeetingId}` : '',
-    event.remoteHearingPasscode ? `Codice di accesso: ${event.remoteHearingPasscode}` : '',
-    event.remoteHearingAccessInfo ? `Istruzioni: ${event.remoteHearingAccessInfo}` : '',
+    remotePasscode ? `Codice di accesso: ${remotePasscode}` : '',
+    remoteAccessInfo ? `Istruzioni: ${remoteAccessInfo}` : '',
     event.completed ? 'Stato: completata' : '',
     ...detailLines.filter((line) => !/^Cliente\/parte:|^Fascicolo\/RG:|^Luogo:|^Link udienza audiovisiva:/i.test(line)),
   ].filter(Boolean).slice(0, remoteUrl ? 9 : remoteInstruction ? 7 : 6)
@@ -728,6 +732,9 @@ function AgendaFocus({
   const activity = agendaActivityText(event)
   const proposedSteps = agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })
   const visibleDetails = event.detailLines.filter((line) => line.trim() && !AGENDA_ACTIVITY_PREFIX.test(line.trim())).slice(0, 12)
+  const remotePlatform = readablePlatform(event.remoteHearingPlatform, Boolean(event.remoteHearingUrl))
+  const remotePasscode = plausiblePasscode(event.remoteHearingPasscode)
+  const remoteAccessInfo = cleanAccessInfo(event.remoteHearingAccessInfo)
   return (
     <section className="iu-ag-focus">
       <div>
@@ -758,10 +765,10 @@ function AgendaFocus({
         <div><dt>Cliente/parte</dt><dd>{event.client || 'Da collegare'}</dd></div>
         <div><dt>Fascicolo/RG</dt><dd>{event.matter || 'Da indicare'}</dd></div>
         <div><dt>Origine</dt><dd>{agendaSourceLabel(event.source, event)}</dd></div>
-        {event.remoteHearingPlatform ? <div><dt>Piattaforma</dt><dd>{event.remoteHearingPlatform}</dd></div> : null}
+        {remotePlatform ? <div><dt>Piattaforma</dt><dd>{remotePlatform}</dd></div> : null}
         {event.remoteHearingMeetingId ? <div><dt>ID riunione</dt><dd>{event.remoteHearingMeetingId}</dd></div> : null}
-        {event.remoteHearingPasscode ? <div><dt>Codice di accesso</dt><dd>{event.remoteHearingPasscode}</dd></div> : null}
-        {event.remoteHearingAccessInfo ? <div><dt>Istruzioni</dt><dd>{event.remoteHearingAccessInfo}</dd></div> : null}
+        {remotePasscode ? <div><dt>Codice di accesso</dt><dd>{remotePasscode}</dd></div> : null}
+        {remoteAccessInfo ? <div><dt>Istruzioni</dt><dd>{remoteAccessInfo}</dd></div> : null}
       </dl>
       </div>
       <div className="iu-ag-focus__actions">

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.296.2 - 11/09/2026
+
+Patch mobile per la finestra `Scadenza selezionata`, portata sulla base corrente senza retrocedere la release.
+
+- **Dettaglio scadenza a una colonna su desktop e mobile.** Il riepilogo mostra stato, priorità e data; le azioni restano compatte e su mobile passano in una barra sticky con area sicura.
+- **Dati raggruppati e leggibili.** La finestra separa `Cosa fare`, `Termine`, `Udienza e ufficio` e `Collegamento da remoto`, evitando la ripetizione del titolo già presente nell'intestazione.
+- **Pulizia dati tecnici udienza.** Scadenziario e Agenda non mostrano più passcode non plausibili, piattaforme generiche senza link o fonti tecniche come `testo/href`.
+- **Parser PEC più selettivo.** Il codice di accesso viene letto solo da `passcode`, `password` o `codice di accesso`, non da campi come `codice_fiscale_destinatario`.
+- Test: `tests/test_scadenziario_dettaglio_mobile.py`, `npm --prefix frontend run typecheck`, `python -m py_compile pct\pec_legal_event_understanding.py`.
+
 ## 2.296.1 - 11/09/2026
 
 Correzione urgente sulla fusione tra letture PEC e documenti già acquisiti nei fascicoli.

@@ -30,7 +30,9 @@ _RULEPACK_CACHE: dict[str, dict[str, Any]] = {}
 _URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
 _TEAMS_RE = re.compile(r"https?://(?:teams\.microsoft\.com|[^/\s<>\"']+\.teams\.microsoft\.com)/[^\s<>\"']+", re.I)
 _MEETING_ID_RE = re.compile(r"(?i)(?:ID\s*(?:riunione|meeting)|Meeting\s*ID)\s*[:\-]?\s*([0-9\s]{6,})")
-_PASSCODE_RE = re.compile(r"(?i)(?:passcode|password|codice)\s*[:\-]?\s*([A-Za-z0-9._-]{3,})")
+_PASSCODE_RE = re.compile(
+    r"(?i)\b(?:passcode|password|codice\s+(?:di\s+)?accesso)\b\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9._-]{2,})"
+)
 _AULA_RE = re.compile(r"(?i)\baula\s+([A-Za-z0-9][A-Za-z0-9./_-]{0,20})")
 _PIANO_RE = re.compile(r"(?i)\b(?:piano|livello)\s+([A-Za-z0-9][A-Za-z0-9./_-]{0,20})")
 _EURO_RE = re.compile(r"(?i)(?:€|euro)\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)")

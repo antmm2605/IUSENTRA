@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Scadenza selezionata su desktop e mobile (2.296.2) — 11/09/2026
+
+- Da verificare dopo rebuild Docker locale su `127.0.0.1:8080`: apertura reale di una scadenza selezionata desktop/mobile, scroll completo della finestra, barra azioni sticky e assenza di dati tecnici nei dettagli Agenda/Scadenziario.
+
 ## Backfill documenti fascicolo e ricarica form React (2.296.0) — 11/09/2026
 
 - Da completare nel giro di rilascio: build bundle React, deploy Hetzner, backfill documenti in produzione, riallineamento Docker locale su `127.0.0.1:8080` e prova reale del doppio cambio sulla casella `Crea preventivo iniziale dopo il salvataggio`.

@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## Scadenza selezionata su desktop e mobile (2.296.2) — 11/09/2026
+
+- `python -m pytest tests/test_scadenziario_dettaglio_mobile.py -q`: **3 superati**.
+- `npm --prefix frontend run typecheck`: **OK**.
+- `python -m py_compile pct\pec_legal_event_understanding.py`: **OK**.
+
 ## Backfill documenti fascicolo e ricarica form React (2.296.0) — 11/09/2026
 
 - `python -m py_compile web/services/react_fascicoli_bridge.py pct/presidio_documentale_state.py scripts/backfill_fascicolo_document_texts.py`: **OK**.

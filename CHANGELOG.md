@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.296.0 - 11/09/2026
+
+Presidio documenti e form React più stabili dopo il lavoro in produzione.
+
+- **Backfill dei testi dei documenti nei fascicoli.** Nuovo comando `python -m scripts.backfill_fascicolo_document_texts --apply` per far leggere al motore Document AI/Lex i documenti già presenti nei fascicoli, con tenant esplicito, checkpoint e report JSON. Serve a dare ai presidi lo stesso inventario documentale anche quando i file erano stati caricati prima dell'indicizzazione governata.
+- **Inventario letture del presidio economico più completo.** Il marcatore registra conteggio, fingerprint e provenienza delle letture appena eseguite; i documenti indicizzati dal server non cambiano identità solo perché Document AI li ha aggiornati.
+- **Nuovo cliente e altri form React non ricaricano più la pagina quando si cambia un campo controllato.** La patch `IUSENTRA-2.292.0-nuovo-cliente-ricarica.patch` è stata integrata sulla base corrente: i gestori leggono `event.currentTarget` prima degli aggiornamenti funzionali di stato, e `tests/test_react_event_updaters.py` blocca la regressione.
+- **Baseline deposito/firma/PEC conservata.** Aggiunto il promemoria operativo e il documento di baseline del 09/09/2026, senza modificare invio PEC, Local Signer o firma multipla.
+
 ## 2.295.0 - 11/09/2026
 
 Tutte le comunicazioni di cancelleria entrano in agenda alla ricezione, e ogni provvedimento propone il termine che apre.

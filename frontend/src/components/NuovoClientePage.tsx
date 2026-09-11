@@ -1158,7 +1158,10 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     setValues((current) => ({...current, [name]: name.includes('codice') || name.includes('partita') || name.includes('provincia') ? value.toUpperCase() : value}))
   }
   const checkbox = (event: ChangeEvent<HTMLInputElement>) => {
-    setValues((current) => ({...current, [event.currentTarget.name]: event.currentTarget.checked}))
+    // Nome e stato vanno letti subito: React azzera event.currentTarget a fine evento e
+    // l'aggiornamento funzionale può girare dopo (secondo click → errore → ricarica pagina).
+    const { name, checked } = event.currentTarget
+    setValues((current) => ({...current, [name]: checked}))
   }
   const generateNow = () => {
     calculateFiscalCode({

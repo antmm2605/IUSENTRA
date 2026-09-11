@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Backfill documenti fascicolo e ricarica form React (2.296.0) — 11/09/2026
+
+- Da completare nel giro di rilascio: build bundle React, deploy Hetzner, backfill documenti in produzione, riallineamento Docker locale su `127.0.0.1:8080` e prova reale del doppio cambio sulla casella `Crea preventivo iniziale dopo il salvataggio`.
+
 ## Atti Cassazione v21 predisposti (2.287.0) — 11/09/2026
 
 - Atti predisposti ma **non attivi** per decisione dello studio. Prima di attivarli: checklist in `docs/specs/ministero/CASSAZIONE_ATTI_V21_PREDISPOSTI.md` (audit completo a 278 tipi sulla macchina reale, bundle React ricompilato, prova UI fino al PIN senza invio).

@@ -3871,9 +3871,10 @@ function DepositPreparePage({ id }:{id:string}) {
                 <textarea
                   value={pecBodyDraft || standardPecBody}
                   onChange={(event) => {
-                    setPecBodyDraft(event.currentTarget.value)
+                    const value = event.currentTarget.value
+                    setPecBodyDraft(value)
                     setPecBodyEdited(true)
-                    setPackagePreview((current) => current ? { ...current, corpoPec: event.currentTarget.value } : current)
+                    setPackagePreview((current) => current ? { ...current, corpoPec: value } : current)
                   }}
                   rows={8}
                   aria-label="Testo del corpo PEC del deposito"

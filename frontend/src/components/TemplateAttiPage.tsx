@@ -2859,7 +2859,7 @@ function ProfessionalTemplateEditorWorkspace({
                         <input
                           type="checkbox"
                           checked={multipleSelection[item.code || item.id] === true}
-                          onChange={(event) => setMultipleSelection((current) => ({ ...current, [item.code || item.id]: event.currentTarget.checked }))}
+                          onChange={(event) => { const checked = event.currentTarget.checked; setMultipleSelection((current) => ({ ...current, [item.code || item.id]: checked })) }}
                         />
                         <span>{item.title}</span>
                       </label>

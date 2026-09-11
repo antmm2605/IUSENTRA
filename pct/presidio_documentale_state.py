@@ -7,6 +7,8 @@ evidenze già calcolati, poi salvano l'esito nel proprio repository.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
@@ -102,6 +104,45 @@ def _normalise_unresolved_kinds(value: Any) -> list[str]:
     else:
         values = []
     return sorted(dict.fromkeys(values))
+
+
+def _normalise_read_documents(value: Iterable[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for raw in value or []:
+        if not isinstance(raw, Mapping):
+            continue
+        document_id = _text(raw.get("id") or raw.get("documentId") or raw.get("document_id") or raw.get("documento_id"))
+        sha256 = _text(raw.get("sha256") or raw.get("hash_sha256")).lower()
+        filename = _text(raw.get("nome") or raw.get("filename") or raw.get("documentoFonte") or raw.get("source"))
+        source = _text(raw.get("source") or raw.get("readSource") or raw.get("lettura"), "unknown")
+        fascicolo_id = _text(raw.get("fascicoloId") or raw.get("fascicolo_id"))
+        mode = _text(raw.get("mode") or raw.get("readMode"), "text")
+        key = (fascicolo_id, document_id, sha256, source)
+        if key in seen or not any(key):
+            continue
+        seen.add(key)
+        try:
+            chars = max(0, int(raw.get("chars") or raw.get("textChars") or 0))
+        except Exception:
+            chars = 0
+        rows.append(
+            {
+                "fascicoloId": fascicolo_id,
+                "documentId": document_id,
+                "filename": filename,
+                "sha256": sha256,
+                "source": source,
+                "mode": mode,
+                "textChars": chars,
+            }
+        )
+    return sorted(rows, key=lambda item: (item["fascicoloId"], item["documentId"], item["sha256"], item["source"]))
+
+
+def _read_documents_fingerprint(rows: Iterable[Mapping[str, Any]]) -> str:
+    payload = json.dumps(list(rows or []), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _unresolved_reason(marker: Mapping[str, Any], unresolved_kinds: list[str]) -> str:
@@ -390,6 +431,7 @@ def build_marker(
     document_count: int,
     metadata_rows: Iterable[Mapping[str, Any]] = (),
     automatic_sources: Mapping[str, Mapping[str, Any]] | None = None,
+    read_documents: Iterable[Mapping[str, Any]] = (),
     readable_source: Callable[[Any], str] = default_document_source,
     normalise_kind: Callable[[Any], str] | None = None,
     normalise_status: Callable[[Any], str] | None = None,
@@ -412,6 +454,7 @@ def build_marker(
             continue
         seen.add(key)
         hits.append(hit)
+    read_rows = _normalise_read_documents(read_documents)
     return {
         "status": status,
         "fingerprint": _text(fingerprint),
@@ -419,6 +462,9 @@ def build_marker(
         "updated_by": _text(actor, "IUSENTRA"),
         "reason": reason,
         "document_count": max(0, int(document_count or 0)),
+        "readDocumentCount": len(read_rows),
+        "readDocumentsFingerprint": _read_documents_fingerprint(read_rows),
+        "readDocuments": read_rows[:500],
         "classifications": hits[:80],
         "coverage": ["documenti_fascicolo", "economia", "contributo_unificato", "sentenze"],
     }

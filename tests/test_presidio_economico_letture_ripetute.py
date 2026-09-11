@@ -23,6 +23,7 @@ from types import SimpleNamespace
 from pct.presidio_documentale_state import (
     READ_DOCUMENTS_KEY,
     READ_DOCUMENTS_VERSION_KEY,
+    build_marker,
     merge_read_inventory,
     read_document_entry,
     read_inventory,
@@ -243,6 +244,63 @@ def test_l_inventario_non_conserva_il_testo_dei_documenti():
 
     assert set(riga) == {"id", "nome", "sha256", "size", "source", "chars"}
     assert riga["chars"] == 18000
+
+
+def test_il_marker_conta_anche_le_righe_in_formato_inventario_leggero():
+    marker = build_marker(
+        fingerprint="abc",
+        actor="test",
+        document_count=1,
+        read_documents=[
+            read_document_entry(
+                document_id="D1",
+                nome="sentenza.pdf",
+                sha256="abc123",
+                size=2048,
+                source="document_ai_index",
+                chars=18000,
+            )
+        ],
+    )
+
+    assert marker["readDocumentCount"] == 1
+    assert marker[READ_DOCUMENTS_KEY][0]["documentId"] == "D1"
+    assert marker[READ_DOCUMENTS_KEY][0]["filename"] == "sentenza.pdf"
+    assert marker["readDocumentsFingerprint"]
+
+
+def test_il_marker_del_bridge_aggiorna_conteggio_e_impronta_dopo_la_fusione():
+    fascicolo = _fascicolo([
+        _documento_indicizzato(document_id="D1", sha256="abc123", aggiornato_il="2026-09-11T09:00:00Z")
+    ])
+
+    marker = react_fascicoli_bridge._build_presidio_documentale_marker(
+        fascicolo,
+        actor="test",
+        read_documents={
+            "D1": read_document_entry(
+                document_id="D1",
+                nome="sentenza.pdf",
+                sha256="abc123",
+                size=1024,
+                source="document_ai_index",
+                chars=4200,
+            )
+        },
+    )
+
+    assert marker["readDocumentCount"] == 1
+    assert marker[READ_DOCUMENTS_KEY] == [
+        {
+            "id": "D1",
+            "nome": "sentenza.pdf",
+            "sha256": "abc123",
+            "size": 1024,
+            "source": "document_ai_index",
+            "chars": 4200,
+        }
+    ]
+    assert marker["readDocumentsFingerprint"]
 
 
 def test_una_nuova_lettura_sostituisce_quella_vecchia_sullo_stesso_documento():

@@ -1811,13 +1811,17 @@ def _document_display_name(doc: Any) -> str:
     )
 
 
-def _document_identity_keys(doc: Any) -> set[str]:
-    keys = {_text(_document_id(doc)).casefold()}
-    digest = _text(
-        getattr(doc, "hash_sha256", "")
-        or getattr(doc, "hash_contenuto_sha256", "")
+def _document_stable_sha256(doc: Any) -> str:
+    return _text(
+        getattr(doc, "hash_contenuto_sha256", "")
+        or getattr(doc, "hash_sha256", "")
         or getattr(doc, "sha256", "")
     ).casefold()
+
+
+def _document_identity_keys(doc: Any) -> set[str]:
+    keys = {_text(_document_id(doc)).casefold()}
+    digest = _document_stable_sha256(doc)
     if digest:
         keys.add(f"sha:{digest}")
     for value in (
@@ -1882,12 +1886,13 @@ def _server_document_ai_documents_for_fascicolo(fascicolo: Any) -> list[Any]:
             hash_sha256=_text(getattr(record, "sha256", "")),
             hash_contenuto_sha256=_text(getattr(record, "sha256", "")),
             dimensione_bytes=int(getattr(record, "size_bytes", 0) or 0),
-            data_caricamento=_text(getattr(record, "updated_at", "") or getattr(record, "created_at", "")),
-            data_documento=_text(getattr(record, "updated_at", "") or getattr(record, "created_at", "")),
+            data_caricamento="",
+            data_documento="",
             percorso="",
             file_type=_text(getattr(record, "file_type", "")),
             mime_type=_text(getattr(record, "mime_type", "")),
             document_ai_status=_text(getattr(record, "status", "")),
+            document_ai_record_updated_at=_text(getattr(record, "updated_at", "") or getattr(record, "created_at", "")),
             _iusentra_document_ai_server=True,
         )
         keys = _document_identity_keys(doc)
@@ -2191,7 +2196,7 @@ def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str
             "safe_filename": _text(getattr(doc, "nome", "")) or filename,
             "tipo_documento": _enum_value(getattr(doc, "tipo", "")),
             "classification": _text(getattr(doc, "classificazione_portale", "")),
-            "sha256": _text(getattr(doc, "hash_sha256", "")),
+            "sha256": _document_stable_sha256(doc),
             "fascicolo_id": _text(getattr(fascicolo, "id", "")),
             "data_documento": _text(getattr(doc, "data_documento", "")),
             "data_caricamento": _text(getattr(doc, "data_caricamento", "")),
@@ -2534,6 +2539,7 @@ def _build_presidio_documentale_marker(
         document_count=len(_economic_analysis_documents_for_fascicolo(fascicolo)),
         metadata_rows=_presidio_documentale_metadata_rows(fascicolo),
         automatic_sources=automatic_sources,
+        read_documents=list((read_documents or {}).values()),
         readable_source=_readable_document_source,
         normalise_kind=_normalise_payment_kind,
         normalise_status=lambda value: _normalise_payment_status(value, default=""),
@@ -2544,13 +2550,18 @@ def _build_presidio_documentale_marker(
     #  L'inventario delle letture viaggia con il marcatore: e' quello che
     #  permette al giro successivo di fermarsi invece di riaprire gli stessi
     #  documenti. Contiene identita' e provenienza della lettura, mai il testo.
-    marker[PRESIDIO_READ_DOCUMENTS_KEY] = presidio_merge_read_inventory(
+    read_inventory = presidio_merge_read_inventory(
         previous_marker,
         list((read_documents or {}).values()),
         analysis_version=ECONOMIC_DOCUMENT_ANALYSIS_VERSION,
         known_document_ids=_presidio_documenti_correnti(fascicolo).keys(),
     )
+    marker[PRESIDIO_READ_DOCUMENTS_KEY] = read_inventory
     marker[PRESIDIO_READ_DOCUMENTS_VERSION_KEY] = ECONOMIC_DOCUMENT_ANALYSIS_VERSION
+    marker["readDocumentCount"] = len(read_inventory)
+    marker["readDocumentsFingerprint"] = hashlib.sha256(
+        json.dumps(read_inventory, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
     return marker
 
 
@@ -3257,6 +3268,7 @@ def _automatic_payment_sources_for_fascicolo(
             )
         )
         texts = _document_ai_texts_for_fascicolo(source_fascicolo, documents=payment_documents)
+        text_sources = {str(document_id): "document_ai_index" for document_id in texts}
         missing_ocr_documents: list[Any] = []
         for doc in payment_documents:
             document_id = _document_id(doc)
@@ -3274,6 +3286,8 @@ def _automatic_payment_sources_for_fascicolo(
                 missing_ocr_documents,
             )
             if refreshed_texts:
+                for document_id in refreshed_texts:
+                    text_sources[str(document_id)] = "document_ai_refresh"
                 texts = {**texts, **refreshed_texts}
         physical_texts: dict[str, str] = {}
         if allow_document_extraction:
@@ -3285,6 +3299,8 @@ def _automatic_payment_sources_for_fascicolo(
                 if extracted_text:
                     physical_texts[document_id] = extracted_text
         if physical_texts:
+            for document_id in physical_texts:
+                text_sources[str(document_id)] = "physical_document"
             texts = {**texts, **physical_texts}
             _cache_document_ai_texts_for_fascicolo(source_fascicolo, payment_documents, texts)
         #  Da qui in poi il presidio annota che cosa ha davvero letto e da dove:
@@ -3315,7 +3331,7 @@ def _automatic_payment_sources_for_fascicolo(
             _annota_lettura(
                 _text(document_id),
                 text,
-                "file_estratto" if _text(document_id) in physical_texts else "document_ai",
+                text_sources.get(str(document_id), "document_ai_index"),
             )
         for doc in payment_documents:
             document_id = _document_id(doc)
@@ -3323,10 +3339,10 @@ def _automatic_payment_sources_for_fascicolo(
                 continue
             metadata = _document_metadata_for_id(source_fascicolo, document_id)
             if need_contributo and _document_metadata_may_contain_contributo_unificato(metadata):
-                sonda = _document_metadata_probe(metadata)
-                scoped_texts.append((source_fascicolo, document_id, sonda))
+                metadata_probe = _document_metadata_probe(metadata)
+                scoped_texts.append((source_fascicolo, document_id, metadata_probe))
                 appended.add(document_id)
-                _annota_lettura(document_id, sonda, "metadati")
+                _annota_lettura(document_id, metadata_probe, "metadati")
     if not scoped_texts and not cu_candidates:
         return {}
 

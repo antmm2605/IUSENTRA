@@ -1,5 +1,10 @@
 # Pytest shard confermati OK
 
+## Backfill documenti fascicolo e ricarica form React (2.296.0) — 11/09/2026
+
+- `python -m py_compile web/services/react_fascicoli_bridge.py pct/presidio_documentale_state.py scripts/backfill_fascicolo_document_texts.py`: **OK**.
+- `python -m pytest tests/test_presidio_economico_letture_ripetute.py tests/test_react_event_updaters.py tests/test_backfill_fascicolo_document_texts.py tests/test_run_fascicolo_document_presidio.py -q`: **24 superati**.
+
 ## Atti Cassazione v21 predisposti (2.287.0) — 11/09/2026
 
 Stesso ambiente cloud della 2.286.0 (Python 3.11, nessun accesso a PyPI/npm).

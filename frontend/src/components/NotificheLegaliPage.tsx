@@ -4879,19 +4879,19 @@ export function NotificheLegaliPage() {
                       <button type="button" onClick={() => setTemplateEditorOpen(false)}>Chiudi</button>
                     </div>
                     <div className="iu-legal-form-grid">
-                      <Field label="Nome modello"><input value={templateDraft.label} onChange={(event) => setTemplateDraft((current) => ({ ...current, label: event.currentTarget.value }))} /></Field>
-                      <Field label="Descrizione"><input value={templateDraft.description} onChange={(event) => setTemplateDraft((current) => ({ ...current, description: event.currentTarget.value }))} /></Field>
+                      <Field label="Nome modello"><input value={templateDraft.label} onChange={(event) => { const value = event.currentTarget.value; setTemplateDraft((current) => ({ ...current, label: value })) }} /></Field>
+                      <Field label="Descrizione"><input value={templateDraft.description} onChange={(event) => { const value = event.currentTarget.value; setTemplateDraft((current) => ({ ...current, description: value })) }} /></Field>
                       <Field label="Testo modello" wide hint="Usa i campi automatici per far compilare a IUSENTRA pratica, assistito, destinatario, documenti e procedimento.">
                         <textarea
                           ref={templateBodyRef}
                           value={templateDraft.body}
                           rows={16}
-                          onChange={(event) => setTemplateDraft((current) => ({ ...current, body: event.currentTarget.value }))}
+                          onChange={(event) => { const value = event.currentTarget.value; setTemplateDraft((current) => ({ ...current, body: value })) }}
                         />
                       </Field>
                     </div>
                     <label className="iu-legal-check">
-                      <input type="checkbox" checked={templateDraft.requiresProceeding} onChange={(event) => setTemplateDraft((current) => ({ ...current, requiresProceeding: event.currentTarget.checked }))} />
+                      <input type="checkbox" checked={templateDraft.requiresProceeding} onChange={(event) => { const checked = event.currentTarget.checked; setTemplateDraft((current) => ({ ...current, requiresProceeding: checked })) }} />
                       <span>Richiede sempre i dati del procedimento</span>
                     </label>
                     <div className="iu-legal-field-palette">

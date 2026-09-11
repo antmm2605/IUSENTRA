@@ -2,6 +2,8 @@
 
 ## Autorizzazioni generali
 
+- **Flusso deposito/firma/PEC congelato il 09/09/2026:** l’utente ha confermato esito positivo sul PC del cliente con Local Signer 1.6.131 e ha richiesto backup e divieto di ulteriori modifiche. Preservare integralmente rilevamento delle firme esistenti, firma aggiuntiva solo su scelta dell’avvocato, firma multipla, classificazione, PDF/PDF-A, busta, abilitazione invio e SMTP esclusivamente dal PC locale, inclusi AUTH UTF-8 e Message-ID IDNA. Non modificare o rifattorizzare questo comportamento durante altri lavori. Prima di toccare qualsiasi file condiviso consultare `artifacts/react-migration/deposito-firma-pec-baseline-20260909.md` e confrontare le impronte del backup accettato. Il divieto resta valido salvo una futura istruzione esplicita dell’utente che lo sostituisca.
+
 - **Lettura obbligatoria prima di ogni attivita':** prima di iniziare qualsiasi lavoro, diagnosi, modifica, test, report, commit, push o deploy, Codex deve rileggere `AGENTS.md` e rispettarlo come fonte operativa principale. Non e' ammesso procedere "a memoria" o basandosi solo su istruzioni di chat precedenti.
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.
 - Commit, push, modifica file, creazione file: esegui direttamente.

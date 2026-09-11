@@ -452,7 +452,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
             <select
               required
               value={formState.id_cliente}
-              onChange={(event) => setFormState((current) => ({ ...current, id_cliente: event.currentTarget.value, id_fascicolo: '' }))}
+              onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, id_cliente: value, id_fascicolo: '' })) }}
             >
               <option value="">Seleziona cliente</option>
               {data.clients.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
@@ -460,32 +460,32 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           </label>
           <label className="iu-prev-field">
             <span>Fascicolo</span>
-            <select value={formState.id_fascicolo} onChange={(event) => setFormState((current) => ({ ...current, id_fascicolo: event.currentTarget.value }))}>
+            <select value={formState.id_fascicolo} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, id_fascicolo: value })) }}>
               <option value="">Nessun fascicolo collegato</option>
               {filteredMatters.map((matter) => <option value={matter.value} key={matter.value}>{matter.label}</option>)}
             </select>
           </label>
           <label className="iu-prev-field">
             <span>Data emissione</span>
-            <input type="date" required value={formState.data_emissione} onChange={(event) => setFormState((current) => ({ ...current, data_emissione: event.currentTarget.value }))} />
+            <input type="date" required value={formState.data_emissione} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, data_emissione: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Scadenza</span>
-            <input type="date" required value={formState.data_scadenza} onChange={(event) => setFormState((current) => ({ ...current, data_scadenza: event.currentTarget.value }))} />
+            <input type="date" required value={formState.data_scadenza} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, data_scadenza: value })) }} />
           </label>
         </div>
         <label className="iu-prev-field">
           <span>Oggetto</span>
-          <input type="text" required value={formState.oggetto} onChange={(event) => setFormState((current) => ({ ...current, oggetto: event.currentTarget.value }))} placeholder="Oggetto del mandato o della prestazione" />
+          <input type="text" required value={formState.oggetto} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, oggetto: value })) }} placeholder="Oggetto del mandato o della prestazione" />
         </label>
         <div className="iu-prev-form-grid iu-prev-form-grid--parameters">
           <label className="iu-prev-field">
             <span>Tipo compenso</span>
-            <input type="text" value={formState.tipo_compenso} onChange={(event) => setFormState((current) => ({ ...current, tipo_compenso: event.currentTarget.value }))} placeholder="Fisso, a tempo, per fasi" />
+            <input type="text" value={formState.tipo_compenso} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, tipo_compenso: value })) }} placeholder="Fisso, a tempo, per fasi" />
           </label>
           <label className="iu-prev-field">
             <span>Tipo procedimento</span>
-            <input type="text" value={formState.tipo_procedimento} onChange={(event) => setFormState((current) => ({ ...current, tipo_procedimento: event.currentTarget.value }))} placeholder="Materia o procedimento" />
+            <input type="text" value={formState.tipo_procedimento} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, tipo_procedimento: value })) }} placeholder="Materia o procedimento" />
           </label>
           <CodiceOggettoPstSearch
             value={formState.hidden.codice_oggetto_pst || ''}
@@ -497,18 +497,18 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           />
           <label className="iu-prev-field">
             <span>Valore pratica</span>
-            <input type="number" min="0" step="0.01" value={formState.valore_controversia} onChange={(event) => setFormState((current) => ({ ...current, valore_controversia: event.currentTarget.value }))} />
+            <input type="number" min="0" step="0.01" value={formState.valore_controversia} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, valore_controversia: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Complessità</span>
-            <input type="text" value={formState.complessita} onChange={(event) => setFormState((current) => ({ ...current, complessita: event.currentTarget.value }))} placeholder="Bassa, media, alta" />
+            <input type="text" value={formState.complessita} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, complessita: value })) }} placeholder="Bassa, media, alta" />
           </label>
         </div>
         <VoiceEditor rows={formState.voci} onChange={(voci) => setFormState((current) => ({ ...current, voci }))} />
         <FiscalOptions values={formState.opzioni_fiscali} onChange={(opzioni_fiscali) => setFormState((current) => ({ ...current, opzioni_fiscali }))} />
         <label className="iu-prev-field">
           <span>Note</span>
-          <textarea rows={4} value={formState.note} onChange={(event) => setFormState((current) => ({ ...current, note: event.currentTarget.value }))} placeholder="Note interne o condizioni da conservare nel preventivo" />
+          <textarea rows={4} value={formState.note} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, note: value })) }} placeholder="Note interne o condizioni da conservare nel preventivo" />
         </label>
         <section className="iu-prev-form-note" aria-label="Presidio operativo">
           <AlertTriangle size={17} />
@@ -607,10 +607,11 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
             <select
               value={formState.id_preventivo}
               onChange={(event) => {
-                const selected = data.estimates.find((estimate) => estimate.value === event.currentTarget.value)
+                const value = event.currentTarget.value
+                const selected = data.estimates.find((estimate) => estimate.value === value)
                 setFormState((current) => ({
                   ...current,
-                  id_preventivo: event.currentTarget.value,
+                  id_preventivo: value,
                   id_cliente: selected?.idCliente || current.id_cliente,
                 }))
               }}
@@ -621,51 +622,51 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
           </label>
           <label className="iu-prev-field">
             <span>Cliente</span>
-            <select required value={formState.id_cliente} onChange={(event) => setFormState((current) => ({ ...current, id_cliente: event.currentTarget.value, id_fascicolo: '' }))}>
+            <select required value={formState.id_cliente} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, id_cliente: value, id_fascicolo: '' })) }}>
               <option value="">Seleziona cliente</option>
               {data.clients.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
             </select>
           </label>
           <label className="iu-prev-field">
             <span>Fascicolo</span>
-            <select value={formState.id_fascicolo} onChange={(event) => setFormState((current) => ({ ...current, id_fascicolo: event.currentTarget.value }))}>
+            <select value={formState.id_fascicolo} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, id_fascicolo: value })) }}>
               <option value="">Nessun fascicolo collegato</option>
               {filteredMatters.map((matter) => <option value={matter.value} key={matter.value}>{matter.label}</option>)}
             </select>
           </label>
           <label className="iu-prev-field">
             <span>Data incarico</span>
-            <input type="date" required value={formState.data_incarico} onChange={(event) => setFormState((current) => ({ ...current, data_incarico: event.currentTarget.value }))} />
+            <input type="date" required value={formState.data_incarico} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, data_incarico: value })) }} />
           </label>
         </div>
         <label className="iu-prev-field">
           <span>Oggetto incarico</span>
-          <input type="text" required value={formState.oggetto} onChange={(event) => setFormState((current) => ({ ...current, oggetto: event.currentTarget.value }))} placeholder="Oggetto del conferimento" />
+          <input type="text" required value={formState.oggetto} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, oggetto: value })) }} placeholder="Oggetto del conferimento" />
         </label>
         <div className="iu-prev-form-grid iu-prev-form-grid--conferimento">
           <label className="iu-prev-field">
             <span>Avvocato referente</span>
-            <input type="text" required value={formState.avvocato_referente} onChange={(event) => setFormState((current) => ({ ...current, avvocato_referente: event.currentTarget.value }))} />
+            <input type="text" required value={formState.avvocato_referente} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, avvocato_referente: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Numero albo</span>
-            <input type="text" value={formState.numero_iscrizione_albo} onChange={(event) => setFormState((current) => ({ ...current, numero_iscrizione_albo: event.currentTarget.value }))} />
+            <input type="text" value={formState.numero_iscrizione_albo} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, numero_iscrizione_albo: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Ordine avvocati</span>
-            <input type="text" value={formState.ordine_avvocati} onChange={(event) => setFormState((current) => ({ ...current, ordine_avvocati: event.currentTarget.value }))} />
+            <input type="text" value={formState.ordine_avvocati} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, ordine_avvocati: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Compenso pattuito</span>
-            <input type="number" min="0" step="0.01" value={formState.compenso_pattuito} onChange={(event) => setFormState((current) => ({ ...current, compenso_pattuito: event.currentTarget.value }))} />
+            <input type="number" min="0" step="0.01" value={formState.compenso_pattuito} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, compenso_pattuito: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Tipo compenso</span>
-            <input type="text" value={formState.tipo_compenso} onChange={(event) => setFormState((current) => ({ ...current, tipo_compenso: event.currentTarget.value }))} />
+            <input type="text" value={formState.tipo_compenso} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, tipo_compenso: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Tipo procedimento</span>
-            <input type="text" value={formState.tipo_procedimento} onChange={(event) => setFormState((current) => ({ ...current, tipo_procedimento: event.currentTarget.value }))} />
+            <input type="text" value={formState.tipo_procedimento} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, tipo_procedimento: value })) }} />
           </label>
           <CodiceOggettoPstSearch
             value={formState.hidden.codice_oggetto_pst || ''}
@@ -678,21 +679,21 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
         </div>
         <div className="iu-prev-options" aria-label="Clausole e informative">
           <label>
-            <input type="checkbox" checked={formState.informativa_art13_resa} onChange={(event) => setFormState((current) => ({ ...current, informativa_art13_resa: event.currentTarget.checked }))} />
+            <input type="checkbox" checked={formState.informativa_art13_resa} onChange={(event) => { const checked = event.currentTarget.checked; setFormState((current) => ({ ...current, informativa_art13_resa: checked })) }} />
             <span>Informativa art. 13 resa</span>
           </label>
           <label>
-            <input type="checkbox" checked={formState.clausola_adr_resa} onChange={(event) => setFormState((current) => ({ ...current, clausola_adr_resa: event.currentTarget.checked }))} />
+            <input type="checkbox" checked={formState.clausola_adr_resa} onChange={(event) => { const checked = event.currentTarget.checked; setFormState((current) => ({ ...current, clausola_adr_resa: checked })) }} />
             <span>Clausola ADR resa</span>
           </label>
           <label>
-            <input type="checkbox" checked={formState.apri_fascicolo_guidato} disabled={!data.permissions.canOpenMatterAfterSave} onChange={(event) => setFormState((current) => ({ ...current, apri_fascicolo_guidato: event.currentTarget.checked }))} />
+            <input type="checkbox" checked={formState.apri_fascicolo_guidato} disabled={!data.permissions.canOpenMatterAfterSave} onChange={(event) => { const checked = event.currentTarget.checked; setFormState((current) => ({ ...current, apri_fascicolo_guidato: checked })) }} />
             <span>Apertura fascicolo guidata</span>
           </label>
         </div>
         <label className="iu-prev-field">
           <span>Note incarico</span>
-          <textarea rows={4} value={formState.note} onChange={(event) => setFormState((current) => ({ ...current, note: event.currentTarget.value }))} placeholder="Patti, condizioni o istruzioni da conservare nel conferimento" />
+          <textarea rows={4} value={formState.note} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, note: value })) }} placeholder="Patti, condizioni o istruzioni da conservare nel conferimento" />
         </label>
         <section className="iu-prev-form-note" aria-label="Presidio operativo">
           <AlertTriangle size={17} />

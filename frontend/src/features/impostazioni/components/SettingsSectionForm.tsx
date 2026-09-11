@@ -205,7 +205,7 @@ export function SettingsSectionForm({
             type="file"
             accept={field.accept}
             disabled={!canUpdate}
-            onChange={(event) => setFiles((current) => ({ ...current, [field.name]: event.currentTarget.files?.[0] || null }))}
+            onChange={(event) => { const files = event.currentTarget.files; setFiles((current) => ({ ...current, [field.name]: files?.[0] || null })) }}
           />
           {renderFieldHelp(field)}
         </label>

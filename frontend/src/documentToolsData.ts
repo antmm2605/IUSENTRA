@@ -46,10 +46,12 @@ export async function generateDocument(
   outputName: string,
   logicalNames: string[],
   rotations: number[],
+  pageFormat: '' | 'a4' = '',
 ): Promise<GeneratedDocument> {
   const body = new FormData()
   files.forEach((file) => body.append('files', file, file.name))
   body.append('output_name', outputName)
+  if (pageFormat) body.append('page_format', pageFormat)
   logicalNames.forEach((name) => body.append('logical_names', name))
   rotations.forEach((rotation) => body.append('rotations', String(rotation)))
 

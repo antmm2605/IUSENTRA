@@ -28,6 +28,13 @@
   overscroll-behavior: contain;
   padding: 1.5rem 1rem 3rem;
   scrollbar-gutter: stable;
+  /* Il pizzico a due dita ingrandisce il foglio (usePinchZoom), non l'intera interfaccia. */
+  touch-action: pan-x pan-y;
+}
+
+.iu-ted-viewport.is-pinching .iu-ted-body {
+  caret-color: transparent;
+  user-select: none;
 }
 
 .iu-ted-frame {
@@ -460,7 +467,7 @@
   box-shadow: 0 12px 28px rgba(15, 23, 42, .16);
   display: grid;
   gap: .3rem;
-  grid-template-columns: repeat(5, 1.6rem);
+  grid-template-columns: repeat(4, 1.75rem);
   left: 0;
   padding: .45rem;
   position: absolute;
@@ -468,28 +475,63 @@
   z-index: 60;
 }
 
-.iu-ted-color__panel button {
-  border: 1px solid rgba(15, 23, 42, .18);
-  border-radius: 5px;
-  height: 1.6rem;
-  min-height: 1.6rem;
-  min-width: 1.6rem;
-  width: 1.6rem;
+/* Specificità alta: le regole dei pulsanti barra e del preset globale (min 44px,
+   sfondo bianco) non devono coprire il colore del campione. */
+.iu-template-pro-toolbar .iu-ted-color__panel button {
+  background: var(--iu-ted-swatch, #ffffff);
+  border: 1px solid rgba(15, 23, 42, .22);
+  border-radius: 6px;
+  box-shadow: none;
+  height: 1.75rem;
+  min-height: 1.75rem;
+  min-width: 1.75rem;
+  padding: 0;
+  transform: none;
+  width: 1.75rem;
 }
 
-.iu-ted-swatch--ink { background: #1b2230; }
-.iu-ted-swatch--navy { background: #1e3a6b; }
-.iu-ted-swatch--blue { background: #1d5fbf; }
-.iu-ted-swatch--green { background: #1f7a4d; }
-.iu-ted-swatch--red { background: #b42318; }
-.iu-ted-swatch--orange { background: #b45309; }
-.iu-ted-swatch--purple { background: #6b3fa0; }
-.iu-ted-swatch--gray { background: #5b6678; }
-.iu-ted-swatch--yellow-mark { background: #fff2a8; }
-.iu-ted-swatch--green-mark { background: #d8f5d0; }
-.iu-ted-swatch--blue-mark { background: #d6e8ff; }
-.iu-ted-swatch--pink-mark { background: #ffd9e6; }
-.iu-ted-swatch--none { background: repeating-linear-gradient(45deg, #ffffff 0 4px, #e5e9ef 4px 8px); }
+.iu-template-pro-toolbar .iu-ted-color__panel button:hover,
+.iu-template-pro-toolbar .iu-ted-color__panel button:focus-visible {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2d7de1;
+  outline: none;
+  transform: none;
+}
+
+.iu-template-pro-toolbar .iu-ted-color__panel .iu-ted-color__title {
+  color: #42516b;
+  font-size: .7rem;
+  font-weight: 750;
+  grid-column: 1 / -1;
+  line-height: 1.2;
+}
+
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--ink { --iu-ted-swatch: #1b2230; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--navy { --iu-ted-swatch: #1e3a6b; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--blue { --iu-ted-swatch: #1d5fbf; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--green { --iu-ted-swatch: #1f7a4d; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--red { --iu-ted-swatch: #b42318; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--orange { --iu-ted-swatch: #b45309; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--purple { --iu-ted-swatch: #6b3fa0; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--gray { --iu-ted-swatch: #5b6678; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--yellow-mark { --iu-ted-swatch: #fff2a8; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--green-mark { --iu-ted-swatch: #d8f5d0; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--blue-mark { --iu-ted-swatch: #d6e8ff; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--pink-mark { --iu-ted-swatch: #ffd9e6; }
+.iu-template-pro-toolbar .iu-ted-color__panel button.iu-ted-swatch--none { background: repeating-linear-gradient(45deg, #ffffff 0 4px, #e5e9ef 4px 8px); }
+
+@media (pointer: coarse) {
+  .iu-ted-color__panel {
+    gap: .45rem;
+    grid-template-columns: repeat(4, 2.75rem);
+  }
+
+  .iu-template-pro-toolbar .iu-ted-color__panel button {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    width: 2.75rem;
+  }
+}
 
 .iu-template-pro-scrim {
   display: none;

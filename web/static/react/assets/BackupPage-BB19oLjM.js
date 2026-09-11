@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-CE7c68Q9.js";import{t}from"./ImpostazioniPage-Bq0bAXBL.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

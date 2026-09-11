@@ -124,6 +124,10 @@ CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "tests" / "test_regia_ui_react.py",
     REPO_ROOT / "tests" / "test_react_shell.py",
     REPO_ROOT / "tests" / "test_document_capture_contracts.py",
+    #  Acquisizione dall'editor (scanner, webcam, fotocamera) e OCR di pagina:
+    #  un difetto qui produce PDF sbagliati o testo non riconosciuto nel fascicolo.
+    REPO_ROOT / "tests" / "test_document_ocr.py",
+    REPO_ROOT / "tests" / "test_template_editor_acquisition_contract.py",
     #  Presidia la Panoramica condivisa tra worker: senza questo file in CI la
     #  regressione di prestazioni tornerebbe invisibile ai required check.
     REPO_ROOT / "tests" / "test_react_dashboard_swr.py",

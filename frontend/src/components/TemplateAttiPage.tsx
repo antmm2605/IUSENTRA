@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
-import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Layers, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
+import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Layers, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Save, Scale, ScanLine, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -30,6 +30,7 @@ import { FloatingLex } from './FloatingLex'
 import { DocumentToolbar } from './templateEditor/DocumentToolbar'
 import { cleanEditorHtml, PAGE_BREAK_HTML } from './templateEditor/editorArtifacts'
 import { PagedDocumentCanvas } from './templateEditor/PagedDocumentCanvas'
+import { plainTextToParagraphs } from './templateEditor/pasteSanitizer'
 import { isCompactViewport, isNarrowEditorViewport, useCompactLayout } from './templateEditor/useCompactLayout'
 import { useDocumentHistory } from './templateEditor/useDocumentHistory'
 import { useSelectionFormats, type BlockFormat } from './templateEditor/useSelectionFormats'
@@ -1538,6 +1539,9 @@ function buildLocalLexProposal(action: TemplateLexAction, data: TemplateCompiler
 
 const TEMPLATE_CATEGORY_TABS = ['Tutti', 'Contratti', 'Diffide', 'Deleghe', 'Pareri', 'Atti']
 
+// Acquisizione scanner/webcam/fotocamera: caricata solo quando l'avvocato la apre.
+const DocumentAcquisitionDialog = lazy(() => import('./documentCapture/DocumentAcquisitionDialog'))
+
 function compactTemplateCategory(item: TemplateExample) {
   const searchable = `${item.title} ${item.description} ${item.category} ${item.tags.join(' ')}`.toLowerCase()
   if (/(diffid|mora|sollecito|stragiudizial)/i.test(searchable)) return 'Diffide'
@@ -1609,6 +1613,8 @@ function ProfessionalTemplateEditorWorkspace({
   const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
   const [auditRows, setAuditRows] = useState<string[]>([])
   const [workspaceStatus, setWorkspaceStatus] = useState('')
+  const [acquisitionOpen, setAcquisitionOpen] = useState(false)
+  const [acquisitionMounted, setAcquisitionMounted] = useState(false)
   const [catalogCollapsed, setCatalogCollapsed] = useState(isNarrowEditorViewport)
   const [fieldsCollapsed, setFieldsCollapsed] = useState(isCompactViewport)
   const editorRef = useRef<HTMLDivElement>(null)
@@ -1918,6 +1924,12 @@ function ProfessionalTemplateEditorWorkspace({
     restoreSelection()
     document.execCommand('insertHTML', false, html)
     syncEditorToDraft(status)
+  }
+
+  // Testo riconosciuto (OCR) dall'acquisizione: la finestra si chiude, poi il testo entra nel punto del cursore.
+  const insertAcquiredText = (paragraphs: string[]) => {
+    setAcquisitionOpen(false)
+    window.setTimeout(() => insertEditorHtml(plainTextToParagraphs(paragraphs.join('\n\n')), 'Testo riconosciuto inserito nel documento: rileggilo prima di salvare.'), 80)
   }
 
   const insertEditorText = (text: string, status?: string) => {
@@ -2342,6 +2354,10 @@ function ProfessionalTemplateEditorWorkspace({
           <button type="button" className="is-success" disabled={importing} onClick={onImport}>
             <UploadCloud size={15} aria-hidden="true" />
             {importing ? 'Importazione...' : 'Importa documento'}
+          </button>
+          <button type="button" onClick={() => { setAcquisitionMounted(true); setAcquisitionOpen(true) }}>
+            <ScanLine size={15} aria-hidden="true" />
+            Acquisisci
           </button>
           <button type="button" onClick={() => { setMultipleOpen((open) => !open); setTab('Export') }}>
             <Columns3 size={15} aria-hidden="true" />
@@ -2872,6 +2888,18 @@ function ProfessionalTemplateEditorWorkspace({
           </div>
         </aside>
       </div>
+      {acquisitionMounted ? (
+        <Suspense fallback={null}>
+          <DocumentAcquisitionDialog
+            open={acquisitionOpen}
+            matters={data.selectors.fascicoli}
+            defaultMatterId={contextFascicoloId}
+            onClose={() => setAcquisitionOpen(false)}
+            onInsertText={insertAcquiredText}
+            onSaved={(message) => setWorkspaceStatus(`Acquisizione salvata nel fascicolo. ${message}`)}
+          />
+        </Suspense>
+      ) : null}
     </section>
   )
 }

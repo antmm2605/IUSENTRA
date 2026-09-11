@@ -16,6 +16,7 @@
   ],
   "approvedCssRationale": {
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css": "Ricerca rapida, ordinamento per data o caricamento e filtri dei documenti del fascicolo richiesti dall'utente, più evidenza del trascinamento file nel caricamento: token condivisi, nessun tema alternativo, nessuno stile inline.",
+    "frontend/src/components/documentCapture/acquisition.css": "Acquisizione dall'editor richiesta dall'utente: scanner tramite Local Signer, webcam e fotocamera con riquadro del foglio rilevato, verifica del ritaglio, pagine, PDF e OCR; finestra a tutto schermo su telefono, token condivisi, nessuno stile inline.",
     "frontend/src/components/documentCapture/documentCapture.css": "Acquisizione inline nel fascicolo richiesta dall'utente: anteprima di pagine e PDF, riordino e conferma, con Button e token condivisi; nessuna nuova superficie modale.",
     "frontend/src/components/mediazione/mediazione.css": "Procedimento nel fascicolo e compilazione del modulo originale richiesti dall'utente: form, stati e zoom/fullscreen del foglio con proporzioni preservate; nessun tema alternativo.",
     "frontend/src/components/MediazioneOrganismoDetail.css": "Scheda organismo e sedi inline richiesta dall'utente: layout e token condivisi, nessun tema alternativo, nessuno stile inline.",
@@ -104,7 +105,8 @@
     "frontend/src/theme/layout.css",
     "frontend/src/theme/legal-ui.css",
     "frontend/src/theme/tokens.css",
-    "frontend/src/ui/ui.css"
+    "frontend/src/ui/ui.css",
+    "frontend/src/components/documentCapture/acquisition.css"
   ],
   "allowedInlineStyles": [
     {

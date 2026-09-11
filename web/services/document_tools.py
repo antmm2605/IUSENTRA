@@ -121,7 +121,35 @@ def create_zip(files: Iterable[UploadedDocument], logical_names: Iterable[str] |
     return output.getvalue()
 
 
-def images_to_pdf(files: Iterable[UploadedDocument], rotations: Iterable[int] | None = None) -> tuple[bytes, int]:
+A4_POINTS = (595.276, 841.89)
+
+
+def _image_on_a4_page(data: bytes) -> bytes:
+    """Pagina A4 (orientata come l'immagine) con l'immagine centrata e intera, senza ricampionarla."""
+    import fitz  # type: ignore
+
+    with fitz.open(stream=data) as image:
+        rect = image[0].rect
+    landscape = rect.width > rect.height
+    width, height = (A4_POINTS[1], A4_POINTS[0]) if landscape else A4_POINTS
+    document = fitz.open()
+    try:
+        page = document.new_page(width=width, height=height)
+        page.insert_image(page.rect, stream=data, keep_proportion=True)
+        return document.tobytes(garbage=3, deflate=True)
+    finally:
+        document.close()
+
+
+def images_to_pdf(
+    files: Iterable[UploadedDocument],
+    rotations: Iterable[int] | None = None,
+    *,
+    page_format: str = "",
+) -> tuple[bytes, int]:
+    """Immagini e PDF in un unico PDF; con ``page_format="a4"`` ogni immagine occupa una pagina A4."""
+    if page_format not in {"", "a4"}:
+        raise DocumentToolError("Formato di pagina non supportato.")
     documents = validate_uploads(files)
     angles = list(rotations or [])
     writer = PdfWriter()
@@ -140,9 +168,12 @@ def images_to_pdf(files: Iterable[UploadedDocument], rotations: Iterable[int] | 
         try:
             import fitz  # type: ignore
 
-            image = fitz.open(stream=document.data)
-            pdf_bytes = image.convert_to_pdf()
-            image.close()
+            if page_format == "a4":
+                pdf_bytes = _image_on_a4_page(document.data)
+            else:
+                image = fitz.open(stream=document.data)
+                pdf_bytes = image.convert_to_pdf()
+                image.close()
             reader = PdfReader(io.BytesIO(pdf_bytes), strict=False)
         except Exception as exc:
             raise DocumentToolError(

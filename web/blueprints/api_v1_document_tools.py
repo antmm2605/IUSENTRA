@@ -1,13 +1,15 @@
-"""API React per unione PDF, archivi ZIP e acquisizione multipagina."""
+"""API React per unione PDF, archivi ZIP, acquisizione multipagina e OCR di pagina."""
 
 from __future__ import annotations
 
+import base64
 import io
 import json
 
 from flask import Blueprint, Response, current_app, jsonify, request, send_file
 
 from web.blueprints.api_v1_react import _richiedi_auth
+from web.services.document_ocr import recognize_page
 from web.services.document_tools import (
     DocumentToolError,
     UploadedDocument,
@@ -117,7 +119,8 @@ def archive_documents():
 @_richiedi_auth
 def build_multipage_document():
     try:
-        data, pages = images_to_pdf(_uploads(), _integer_list("rotations"))
+        page_format = str(request.form.get("page_format") or "").strip().lower()
+        data, pages = images_to_pdf(_uploads(), _integer_list("rotations"), page_format=page_format)
         filename = safe_output_name(request.form.get("output_name", ""), "pdf", "acquisizione-multipagina")
         return _download(
             data,
@@ -126,5 +129,33 @@ def build_multipage_document():
             X_Iusentra_Pages=pages,
             X_Iusentra_Operation="multipage-pdf",
         )
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.post("/ocr-page")
+@_richiedi_auth
+def recognize_document_page():
+    """OCR di una pagina acquisita: PDF ricercabile in memoria, nessun salvataggio."""
+    try:
+        uploaded = request.files.get("file")
+        if uploaded is None:
+            raise DocumentToolError("Nessuna pagina ricevuta.")
+        try:
+            rotation = int(request.form.get("rotation") or 0) % 360
+        except (TypeError, ValueError):
+            rotation = 0
+        result = recognize_page(uploaded.read(), rotation)
+        response = jsonify(
+            {
+                "ok": True,
+                "pdf_base64": base64.b64encode(result.pdf).decode("ascii"),
+                "paragraphs": result.paragraphs,
+                "characters": result.characters,
+                "dpi": result.dpi,
+            }
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
     except Exception as exc:
         return _handle_error(exc)

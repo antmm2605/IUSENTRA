@@ -157,6 +157,7 @@ export function DocumentToolbar(props: Props) {
             <Baseline size={15} aria-hidden="true" />
           </summary>
           <div className="iu-ted-color__panel" role="menu" aria-label="Colori testo">
+            <span className="iu-ted-color__title" aria-hidden="true">Colore testo</span>
             {TEXT_COLORS.map((color) => (
               <button type="button" role="menuitem" className={`iu-ted-swatch--${color.id}`} title={color.label} aria-label={color.label} key={color.id} onMouseDown={keepSelection} onClick={(event) => { props.onTextColor(color.value); closeMenu(event) }} />
             ))}
@@ -167,6 +168,7 @@ export function DocumentToolbar(props: Props) {
             <Highlighter size={15} aria-hidden="true" />
           </summary>
           <div className="iu-ted-color__panel" role="menu" aria-label="Colori evidenziatore">
+            <span className="iu-ted-color__title" aria-hidden="true">Evidenziatore</span>
             {HIGHLIGHT_COLORS.map((color) => (
               <button type="button" role="menuitem" className={`iu-ted-swatch--${color.id}`} title={color.label} aria-label={color.label} key={color.id} onMouseDown={keepSelection} onClick={(event) => { props.onHighlight(color.value); closeMenu(event) }} />
             ))}

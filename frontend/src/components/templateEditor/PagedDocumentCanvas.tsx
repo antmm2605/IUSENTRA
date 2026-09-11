@@ -17,6 +17,7 @@ import {
   writableTop,
 } from './pageGeometry'
 import { paginateEditor } from './pagination'
+import { usePinchZoom } from './usePinchZoom'
 import { plainTextToParagraphs, sanitizePastedHtml } from './pasteSanitizer'
 
 const EDITABLE_PROPS = {
@@ -519,10 +520,12 @@ export function PagedDocumentCanvas({
   }
 
   const changeZoom = (direction: 1 | -1) => setZoomMode({ kind: 'manual', value: nearestZoomStep(zoom, direction) })
+  const setManualZoom = useCallback((value: number) => setZoomMode({ kind: 'manual', value }), [])
+  usePinchZoom({ viewportRef, frameRef, zoomRef, onZoom: setManualZoom })
 
   return (
     <div className="iu-ted-canvas">
-      <div ref={viewportRef} className="iu-ted-viewport" data-testid="template-editor-viewport">
+      <div ref={viewportRef} className="iu-ted-viewport" data-testid="template-editor-viewport" aria-description="Sul telefono avvicina o allontana due dita sul foglio per ingrandire o ridurre">
         <div ref={frameRef} className="iu-ted-frame">
           <div
             ref={stackRef}

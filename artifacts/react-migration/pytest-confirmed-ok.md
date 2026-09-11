@@ -1,5 +1,14 @@
 # Pytest shard confermati OK
 
+## Editor atti: colori, acquisizione PDF con OCR, zoom a due dita (2.299.0) — 11/09/2026
+
+Ambiente cloud con Python 3.12 (venv con `requirements.txt` e `requirements-dev.txt`), Node 22, Tesseract 5 con dizionario `ita`. Non è la macchina dello studio: scanner, webcam e telefono reali restano da provare.
+
+- `node --test tests/js/document_acquisition.test.mjs`: **10 superati**.
+- `python -m pytest tests/test_document_ocr.py tests/test_template_editor_acquisition_contract.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_atti_frontend_contract.py -q`: **verdi** (incluso OCR reale in italiano).
+- `npm --prefix frontend test` e `tsc --noEmit`: **OK**; `bash scripts/ci_local_gate.sh --fast`: **tutti i gate verdi**.
+- Prova Chromium con webcam e Local Signer simulati: riquadro stabile ~2 s, angoli entro 2 px, PDF A4 di 2 pagine, OCR corretto, salvataggio nel fascicolo di prova; profilo mobile Pixel 7: maniglie 48 px, nessuno scorrimento orizzontale, pizzico 0,48 → 1,68 → 0,60.
+
 ## Scadenza selezionata su desktop e mobile (2.296.2) — 11/09/2026
 
 - `python -m pytest tests/test_scadenziario_dettaglio_mobile.py -q`: **3 superati**.

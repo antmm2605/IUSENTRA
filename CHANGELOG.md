@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.299.0 - 11/09/2026
+
+Editor atti: colori della barra di nuovo visibili, acquisizione di documenti in PDF da scanner, webcam o fotocamera con OCR facoltativo, zoom a due dita sul foglio da telefono.
+
+- **Colore testo ed Evidenzia.** I campioni erano bianchi: la regola dei pulsanti della barra e il preset globale (minimo 44 px) coprivano il colore. Specificità corretta, titolo del pannello e campioni da 44 px sui dispositivi touch.
+- **Acquisisci (editor).** Desktop: scanner tramite IUSENTRA Local Signer (servizio `/scanner/acquire` già esistente, Local Signer non modificato) oppure webcam del PC. Telefono: fotocamera del dispositivo, con ripiego sull'app fotocamera. Il risultato è sempre un PDF A4.
+- **Rilevamento del foglio dal vivo.** Riquadro del foglio disegnato sull'inquadratura (giallo quando rilevato, verde quando fermo), scatto automatico facoltativo, luce del telefono quando disponibile; dopo lo scatto verifica del ritaglio con angoli trascinabili (mouse, dito o frecce), raddrizzamento prospettico e resa «Documento nitido», colore, grigi o bianco e nero. Tutto avviene nel browser, nessuna immagine esce prima della conferma.
+- **Profilo «Atto penale di parte».** Pagina A4 in bianco e nero a 200 dpi (Specifiche tecniche DGSIA, art. 15, comma 1, lett. g); l'interfaccia ricorda che nel civile l'atto principale non può essere una scansione (art. 15, lett. c) e che l'acquisizione serve per allegati e procure (art. 16).
+- **OCR facoltativo dopo l'acquisizione.** Nuovo endpoint `POST /api/v1/ui/document-tools/ocr-page` (`web/services/document_ocr.py`): una pagina per richiesta, Tesseract in italiano, PDF con testo ricercabile e paragrafi ricomposti; nessun salvataggio, concorrenza limitata (`IUSENTRA_OCR_PAGE_CONCURRENCY`). Il testo riconosciuto si può inserire nel documento nel punto del cursore.
+- **Salvataggio solo dopo conferma** nel fascicolo scelto, con il caricamento documenti esistente (tenant, SQL e audit invariati). Nessuna nuova tabella: l'acquisizione resta transitoria finché l'avvocato non la salva.
+- **PDF multipagina A4.** `/api/v1/ui/document-tools/multipage` accetta `page_format=a4`: ogni immagine su una pagina A4 orientata come l'immagine, senza ricampionarla; il comportamento predefinito resta invariato.
+- **Zoom a due dita.** Sul telefono il pizzico ingrandisce o riduce solo il foglio (30–200%), mantenendo fermo il punto sotto le dita; su desktop Ctrl + rotella o pizzico del trackpad.
+
 ## 2.298.0 - 11/09/2026
 
 Email PEC: il Profilo processuale mostra nome e cognome del cliente del fascicolo, e «Salva nel fascicolo» arriva già compilato.

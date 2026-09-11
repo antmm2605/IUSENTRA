@@ -4992,6 +4992,154 @@ def _deadline_updates_for_existing(existing: Any, proposal: dict[str, Any], *, t
     return updates
 
 
+def _operational_presidio_fold(value: Any) -> str:
+    return _normalise_lookup(value).replace("-", " ")
+
+
+def _operational_presidio_family(*texts: Any) -> str:
+    folded = _operational_presidio_fold(" ".join(str(item or "") for item in texts))
+    compact = folded.replace(" ", "")
+    if "opposizion" in folded and ("127ter" in compact or "trattazione scritta" in folded):
+        return "opposizione_127_ter"
+    if "note" in folded and ("127ter" in compact or "sostituzione" in folded or "trattazione scritta" in folded):
+        return "note_scritte_127_ter"
+    if "decreto" in folded and "127ter" in compact and "trattazione scritta" in folded:
+        return "trattazione_scritta_127_ter"
+    return activity_family(*texts)
+
+
+def _operational_presidio_time_key(*values: Any) -> str:
+    for value in values:
+        parsed = _time_label_from_text(str(value or ""))
+        if parsed:
+            return parsed
+    return ""
+
+
+def _operational_presidio_kind_from_item(item: Any, *, fallback: str = "") -> str:
+    raw_type = getattr(getattr(item, "tipo", ""), "value", getattr(item, "tipo", ""))
+    title_text = _operational_presidio_fold(
+        " ".join(
+            str(value or "")
+            for value in (
+                raw_type,
+                getattr(item, "titolo", ""),
+                getattr(item, "source_event_type", ""),
+            )
+        )
+    )
+    if (
+        str(raw_type).upper() == "UDIENZA"
+        or "udienza" in title_text
+        or bool(getattr(item, "remote_hearing_detected", False))
+        or bool(clean_text(getattr(item, "remote_hearing_url", "") or "", 300))
+    ):
+        return "udienza"
+    return clean_text(fallback or "termine", 40)
+
+
+def _operational_presidio_kind_from_proposal(proposal: dict[str, Any], title: str, remote_extra: dict[str, Any] | None = None) -> str:
+    remote_extra = remote_extra or {}
+    if (
+        str(proposal.get("deadline_kind") or "") == "udienza"
+        or remote_extra.get("remote_hearing_detected")
+        or remote_extra.get("remote_hearing_url")
+        or "udienza" in _operational_presidio_fold(title)
+    ):
+        return "udienza"
+    return "termine"
+
+
+def _operational_presidio_is_automatic_deadline(item: Any) -> bool:
+    note = str(getattr(item, "note", "") or "")
+    source_event_type = clean_text(getattr(item, "source_event_type", "") or "", 120)
+    if "PEC_RICEZIONE:" in note or "IUSENTRA_LEGAL_NOTIFICATION:" in note:
+        return False
+    if source_event_type in {DOCUMENT_PRESIDIO_EVENT_TYPE, "legal_notification_presidio"}:
+        return source_event_type == DOCUMENT_PRESIDIO_EVENT_TYPE
+    if "PEC_AUDIT:" not in note:
+        return False
+    return True
+
+
+def _operational_presidio_status(item: Any) -> str:
+    raw_status = getattr(item, "stato", "")
+    return clean_text(getattr(raw_status, "value", raw_status) or "", 40).upper()
+
+
+def _operational_presidio_deadline_key(
+    *,
+    fascicolo_id: str,
+    target_date: str,
+    kind: str,
+    title: str,
+    description: str = "",
+    note: str = "",
+    source_event_type: str = "",
+    time_key: str = "",
+) -> str:
+    case_key = clean_text(fascicolo_id or "", 120)
+    date_key = clean_text(target_date or "", 30)[:10]
+    if not case_key or not date_key:
+        return ""
+    family = _operational_presidio_family(title, description, note, source_event_type)
+    if not family or family == "generico":
+        return ""
+    effective_kind = "udienza" if kind == "udienza" else "termine"
+    clock = clean_text(time_key or "", 20) if effective_kind == "udienza" else ""
+    return "|".join((case_key, date_key, effective_kind, clock, family))
+
+
+def _operational_presidio_key_for_existing_deadline(item: Any) -> str:
+    if not _operational_presidio_is_automatic_deadline(item):
+        return ""
+    if _operational_presidio_status(item) in {"ANNULLATO", "COMPLETATO"}:
+        return ""
+    kind = _operational_presidio_kind_from_item(item)
+    return _operational_presidio_deadline_key(
+        fascicolo_id=clean_text(getattr(item, "id_fascicolo", "") or "", 120),
+        target_date=clean_text(getattr(item, "operational_due_at", "") or getattr(item, "data_scadenza", "") or "", 30),
+        kind=kind,
+        title=clean_text(getattr(item, "titolo", "") or "", 200),
+        description=clean_text(getattr(item, "descrizione", "") or "", 2000),
+        note=clean_text(getattr(item, "note", "") or "", 4000),
+        source_event_type=clean_text(getattr(item, "source_event_type", "") or "", 120),
+        time_key=_operational_presidio_time_key(
+            getattr(item, "remote_hearing_time", ""),
+            getattr(item, "hearing_time", ""),
+            getattr(item, "operational_due_at", ""),
+            getattr(item, "source_event_at", ""),
+        ),
+    )
+
+
+def _operational_presidio_key_for_proposal(
+    *,
+    fascicolo_id: str,
+    target_date: str,
+    title: str,
+    proposal: dict[str, Any],
+    report: dict[str, Any],
+    remote_extra: dict[str, Any] | None = None,
+) -> str:
+    remote_extra = remote_extra or {}
+    kind = _operational_presidio_kind_from_proposal(proposal, title, remote_extra)
+    return _operational_presidio_deadline_key(
+        fascicolo_id=fascicolo_id,
+        target_date=target_date,
+        kind=kind,
+        title=title,
+        description=clean_text(proposal.get("reason") or "", 2000),
+        note=clean_text((report or {}).get("event_type") or "", 120),
+        source_event_type=clean_text(proposal.get("source_event_type") or (report or {}).get("event_type") or "", 120),
+        time_key=_operational_presidio_time_key(
+            proposal.get("event_time"),
+            proposal.get("source_event_at"),
+            target_date,
+        ),
+    )
+
+
 def build_deadline_proposal(
     parsed: dict[str, Any],
     *,
@@ -9948,6 +10096,9 @@ class PecAuditRepository:
         message_id: str,
         legacy_message_id: str = "",
         allow_date_fallback: bool = True,
+        title: str = "",
+        proposal: dict[str, Any] | None = None,
+        report_payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if not self.scadenziario_db_path:
             return {}
@@ -9958,6 +10109,14 @@ class PecAuditRepository:
             manager = self._scadenziario_manager()
             marker = f"PEC_AUDIT:{message_id}"
             legacy_marker = f"PEC_AUDIT:{legacy_message_id}" if legacy_message_id else ""
+            proposal_payload = proposal if isinstance(proposal, dict) else {}
+            incoming_key = _operational_presidio_key_for_proposal(
+                fascicolo_id=fascicolo_id,
+                target_date=target_date,
+                title=title or clean_text(proposal_payload.get("title") or "", 200),
+                proposal=proposal_payload,
+                report=report_payload if isinstance(report_payload, dict) else {},
+            )
             fallback: dict[str, Any] = {}
             for item in manager.tutte(solo_aperte=False):
                 if str(getattr(item, "id_fascicolo", "") or "") != fascicolo_id:
@@ -9984,6 +10143,14 @@ class PecAuditRepository:
                     return payload
                 if (
                     allow_date_fallback
+                    and incoming_key
+                    and _operational_presidio_key_for_existing_deadline(item) == incoming_key
+                ):
+                    payload["matched_identity"] = "operational"
+                    return payload
+                if (
+                    allow_date_fallback
+                    and not incoming_key
                     and not fallback
                     and str(getattr(item, "data_scadenza", "") or "")[:10] == target_date[:10]
                 ):
@@ -9991,6 +10158,42 @@ class PecAuditRepository:
             return fallback
         except Exception:
             return {}
+
+    def _find_equivalent_automatic_deadline(
+        self,
+        existing_items: Iterable[Any],
+        *,
+        fascicolo_id: str,
+        target_date: str,
+        title: str,
+        proposal: dict[str, Any],
+        report: dict[str, Any],
+        remote_extra: dict[str, Any] | None = None,
+    ) -> Any | None:
+        incoming_key = _operational_presidio_key_for_proposal(
+            fascicolo_id=fascicolo_id,
+            target_date=target_date,
+            title=title,
+            proposal=proposal,
+            report=report,
+            remote_extra=remote_extra,
+        )
+        if not incoming_key:
+            return None
+        candidates: list[Any] = []
+        for item in existing_items:
+            if _operational_presidio_key_for_existing_deadline(item) == incoming_key:
+                candidates.append(item)
+        if not candidates:
+            return None
+        candidates.sort(
+            key=lambda item: (
+                0 if _operational_presidio_status(item) == "APERTO" else 1,
+                clean_text(getattr(item, "creata_il", "") or "", 40),
+                clean_text(getattr(item, "id", "") or "", 80),
+            )
+        )
+        return candidates[0]
 
     def _reconcile_document_presidio_deadlines(
         self,
@@ -11118,6 +11321,9 @@ class PecAuditRepository:
                             if base_key not in claimed_legacy_groups
                             else "",
                             allow_date_fallback=allow_date_fallback,
+                            title=proposal["title"],
+                            proposal=proposal,
+                            report_payload=report_payload,
                         )
                         if existing_deadline:
                             claimed_legacy_groups.add(base_key)
@@ -14971,6 +15177,18 @@ class PecAuditRepository:
                         *([communication] if communication else []),
                     ]
                     deadline_description = clean_text(f"{human}\n{deadline_description}", 1600)
+            if existing is None and linked_fascicolo_id and term_modification is None:
+                equivalent = self._find_equivalent_automatic_deadline(
+                    existing_items,
+                    fascicolo_id=linked_fascicolo_id,
+                    target_date=target_date,
+                    title=title,
+                    proposal=proposal,
+                    report=report,
+                    remote_extra=remote_extra,
+                )
+                if equivalent is not None:
+                    existing = equivalent
             if existing is None and linked_fascicolo_id and term_modification is None:
                 superseded = find_superseding_modification(
                     existing_items,

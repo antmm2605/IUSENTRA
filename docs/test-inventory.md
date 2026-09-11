@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 633.
+- File pytest censiti: 634.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 62 |
 | Security | 39 |
 | Smoke CLI | 6 |
-| Tenant isolation | 150 |
+| Tenant isolation | 151 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 67 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 172 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 201 |
+| 09-misc | Test non classificati dalle fasi principali | 202 |
 
 ## Suite CI aggiuntive
 
@@ -85,6 +85,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Audit | Security | tests/test_audit_worm.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_bundle.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_chain.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Audit | Tenant isolation | tests/test_audit_duplicate_presidia.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_emit.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_legal_source_delivery.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_proof.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

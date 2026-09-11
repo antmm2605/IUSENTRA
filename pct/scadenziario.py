@@ -989,6 +989,8 @@ class GestioneScadenziario:
         by_key: Dict[str, Scadenza] = {}
         remove_ids: list[str] = []
         for scadenza in list(self._scadenze.values()):
+            if scadenza.stato in {StatoTermine.ANNULLATO, StatoTermine.COMPLETATO}:
+                continue
             key = self._pec_canonical_key(scadenza)
             if not key:
                 continue

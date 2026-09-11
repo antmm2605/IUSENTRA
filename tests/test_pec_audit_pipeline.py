@@ -2873,6 +2873,72 @@ def test_presidio_documentale_migra_identita_legacy_senza_creare_duplicati(tmp_p
     assert f"PEC_AUDIT:{current_id}" in rows[0].note.splitlines()
 
 
+def test_presidio_documentale_riusa_scadenza_equivalente_anche_con_marker_diverso(tmp_path):
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    due_day = (date.today() + timedelta(days=40)).isoformat()
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    manager = GestioneScadenziario(str(scadenziario_db))
+    old_id = _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="DOC-OLD",
+        kind="termine",
+        date_value=due_day,
+        discriminator="aaaaaaaaaaaaaaaa",
+    )
+    manager.nuova(
+        titolo=f"Deposito note scritte 127-ter - {due_day}",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza=due_day,
+        id_fascicolo="FASC-1",
+        note=f"PEC_AUDIT:{old_id}\nFonte: documento fascicolo indicizzato da Lex AI.",
+        source_event_type="fascicolo_documenti_audit",
+    )
+    new_id = _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="DOC-NEW",
+        kind="termine",
+        date_value=due_day,
+        discriminator="bbbbbbbbbbbbbbbb",
+    )
+    proposal = {
+        "due_date": due_day,
+        "deadline_kind": "termine",
+        "title": f"Deposito note scritte 127-ter - {due_day}",
+        "reason": "Attività per l'avvocato: deposito note scritte ex art. 127-ter.",
+        "source_event_type": "fascicolo_documenti_audit",
+    }
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+
+    existing = repo._document_presidio_existing_deadline(
+        fascicolo_id="FASC-1",
+        target_date=due_day,
+        kind="termine",
+        message_id=new_id,
+        title=proposal["title"],
+        proposal=proposal,
+        report_payload={"event_type": "fascicolo_documenti_audit"},
+    )
+    repo._document_presidio_enrich_existing_deadline(
+        existing_deadline=existing,
+        message_id=new_id,
+        fascicolo_id="FASC-1",
+        proposal=proposal,
+        report_payload={"event_type": "fascicolo_documenti_audit"},
+        actor="pytest",
+    )
+
+    rows = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(rows) == 1
+    assert existing["matched_identity"] == "operational"
+    assert f"PEC_AUDIT:{old_id}" in rows[0].note.splitlines()
+    assert f"PEC_AUDIT:{new_id}" in rows[0].note.splitlines()
+
+
 def test_presidio_documentale_annulla_solo_derivato_escluso_con_audit(tmp_path):
     from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 
@@ -6220,6 +6286,49 @@ def test_pec_deadline_without_time_pushes_to_calendar_engine_as_all_day(tmp_path
     assert "09:00" not in visible
     for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "audit-grade", "payload", "runtime", "backend"):
         assert token not in visible
+
+
+def test_schedule_deadline_fonde_pec_diverse_sullo_stesso_presidio_operativo(tmp_path):
+    from pct.scadenziario import GestioneScadenziario
+
+    due_day = (date.today() + timedelta(days=35)).isoformat()
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+    proposal = {
+        "auto_create": True,
+        "deadline_kind": "adempimento",
+        "due_date": due_day,
+        "title": "Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+        "reason": "Verificare eventuale opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
+        "source_event_type": "comunicazione_cancelleria",
+        "source_event_at": date.today().isoformat(),
+    }
+    first = repo.schedule_deadline_from_payload(
+        "pec-prima-fonte",
+        parsed={"headers": {"subject": "POSTA CERTIFICATA: comunicazione 127-ter"}},
+        report={"event_type": "comunicazione_cancelleria", "deadline_proposal": proposal},
+        message={"linked_fascicolo_id": "FASC-127TER"},
+        actor="pytest",
+    )
+    second = repo.schedule_deadline_from_payload(
+        "pec-seconda-fonte",
+        parsed={"headers": {"subject": "POSTA CERTIFICATA: comunicazione 127-ter"}},
+        report={"event_type": "comunicazione_cancelleria", "deadline_proposal": proposal},
+        message={"linked_fascicolo_id": "FASC-127TER"},
+        actor="pytest",
+    )
+
+    rows = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert first["ok"] is True
+    assert second["ok"] is True
+    assert second["already_exists"] is True
+    assert len(rows) == 1
+    assert "PEC_AUDIT:pec-prima-fonte" in rows[0].note.splitlines()
+    assert "PEC_AUDIT:pec-seconda-fonte" in rows[0].note.splitlines()
 
 
 def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_path):

@@ -290,6 +290,14 @@ jobs:
               'git -C /opt/iusentra/repo rev-parse --short HEAD')
           echo "remote_head=${remote_head}" >> "$GITHUB_OUTPUT"
           echo "expected=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          # I due valori venivano solo riportati nel riepilogo, senza
+          # confronto: un deploy poteva chiudersi verde lasciando sul server
+          # un commit diverso da quello verificato dalla CI.
+          if [ "${remote_head}" != "${GITHUB_SHA::7}" ]; then
+            echo "::error::Sul server resta il commit ${remote_head}, atteso ${GITHUB_SHA::7}."
+            exit 1
+          fi
+          echo "Commit sul server allineato: ${remote_head}."
 
       - name: Verifiche post-deploy (container + health)
         if: ${{ steps.gate.outputs.superato != 'true' }}
@@ -321,16 +329,17 @@ jobs:
         run: |
           set -euo pipefail
           DOMAIN="${HETZNER_DOMAIN}"
-          echo "Health endpoint:"
+          attesa="$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' pct/__init__.py)"
+          echo "Health endpoint (versione attesa ${attesa}):"
           ready=false
           for attempt in $(seq 1 12); do
-            if curl -fsS --max-time 15 "https://${DOMAIN}/api/pronto" | head -c 400; then
+            risposta="$(curl -fsS --max-time 15 "https://${DOMAIN}/api/pronto" || true)"
+            if [ -n "${risposta}" ]; then
+              echo "  ${risposta}"
               ready=true
-              echo
               echo "  /api/pronto -> OK (tentativo ${attempt}/12)"
               break
             fi
-            echo
             echo "  /api/pronto non ancora pronto (tentativo ${attempt}/12)"
             sleep 10
           done
@@ -338,8 +347,17 @@ jobs:
             echo "::error::Health endpoint /api/pronto non risponde correttamente dopo i retry"
             exit 1
           fi
+          # Il container puo' rispondere restando su un'immagine precedente:
+          # la versione servita deve essere quella del commit appena deployato,
+          # altrimenti il deploy sarebbe verde senza aver portato nulla online.
+          servita="$(printf '%s' "${risposta}" | sed -n 's/.*"versione"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+          if [ "${servita}" != "${attesa}" ]; then
+            echo "::error::In produzione risponde la versione ${servita:-ignota}, attesa ${attesa}."
+            exit 1
+          fi
+          echo "  Versione in produzione: ${servita}."
           echo
-          echo "Rotte Ricerca legale (v2.240.0):"
+          echo "Rotte dell'applicazione:"
           check_public_route() {
             local path="$1"
             local status=""
@@ -354,7 +372,24 @@ jobs:
             echo "::error::Rotta ${path} non risponde correttamente dopo i retry (ultimo HTTP ${status})"
             return 1
           }
-          for path in "/legal-intelligence/" "/legal-intelligence/ricerca" "/ricerca-legale"; do
+          # Le pagine di lavoro quotidiano, non solo la ricerca legale: una
+          # rotta scomparsa dalla shell React risponderebbe 404, mentre la
+          # richiesta di autenticazione (302 verso il login) e' la risposta
+          # attesa e viene accettata.
+          for path in \
+            "/" \
+            "/agenda" \
+            "/scadenziario" \
+            "/fascicoli" \
+            "/clienti" \
+            "/email" \
+            "/notifiche-legali" \
+            "/template-atti" \
+            "/telematico" \
+            "/global-search" \
+            "/legal-intelligence/" \
+            "/legal-intelligence/ricerca" \
+            "/ricerca-legale"; do
             check_public_route "${path}"
           done
 

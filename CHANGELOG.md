@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.292.1 - 11/09/2026
+
+Il deploy verifica davvero cosa e' finito online, invece di limitarsi a riferirlo.
+
+- **Il commit sul server viene confrontato con quello verificato dalla CI.** Prima i due valori finivano solo nel riepilogo della run, senza confronto: un deploy poteva chiudersi verde lasciando in produzione un commit diverso.
+- **La versione servita da `/api/pronto` deve essere quella del commit appena rilasciato.** Un container che risponde restando su un'immagine precedente rendeva verde un deploy che non aveva portato online nulla.
+- **Le verifiche sulle rotte pubbliche coprono le pagine di lavoro quotidiano**, non solo la ricerca legale: Panoramica, Agenda, Scadenziario, Fascicoli, Clienti, PEC ed email, Notifiche legali, Template atti, Telematico e Ricerca Studio. Una pagina scomparsa dalla shell React risponderebbe 404; la richiesta di autenticazione (302 verso il login) e' la risposta attesa e viene accettata.
+
 ## 2.292.0 - 11/09/2026
 
 Piu' controparti per fascicolo, INI-PEC fra i registri consultabili, e le anagrafiche non si perdono piu' a meta'.

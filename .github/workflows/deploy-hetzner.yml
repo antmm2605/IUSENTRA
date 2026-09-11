@@ -77,6 +77,8 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Attendi CI richiesta dello SHA corrente
+        id: ci_gate
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -92,7 +94,37 @@ jobs:
             --report-md artifacts/ci/deploy-required-gates.md \
             --report-json artifacts/ci/deploy-required-gates.json
 
+      # Un commit spinto mentre questo deploy aspettava la propria CI annulla
+      # quella CI (il gruppo di concorrenza di ci.yml cancella la run
+      # precedente sullo stesso ref). Il deploy del commit superato trovava
+      # allora dei check "cancelled" e falliva, pur senza nulla di rotto: il
+      # codice arriva in produzione con il deploy del commit piu' recente.
+      # Qui quel caso diventa una sosta dichiarata, non un fallimento; la CI
+      # non verde su un commit ancora in testa al branch resta rossa.
+      - name: Esito CI richiesta
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.ci_gate.outcome }}" = "success" ]; then
+            echo "superato=false" >> "$GITHUB_OUTPUT"
+            echo "CI richiesta verde su ${GITHUB_SHA::7}."
+            exit 0
+          fi
+          testa="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${DEPLOY_BRANCH}" \
+            --jq '.object.sha' 2>/dev/null || true)"
+          if [ -n "${testa}" ] && [ "${testa}" != "${GITHUB_SHA}" ]; then
+            echo "superato=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Commit ${GITHUB_SHA::7} superato da ${testa::7} su ${DEPLOY_BRANCH}: il deploy si ferma qui, in produzione va il commit piu' recente."
+            exit 0
+          fi
+          echo "superato=false" >> "$GITHUB_OUTPUT"
+          echo "::error::CI richiesta non verde su ${GITHUB_SHA::7}, ancora in testa a ${DEPLOY_BRANCH}. Dettaglio in artifacts/ci/deploy-required-gates.md."
+          exit 1
+
       - name: Registra riferimento immutabile per Portainer
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -117,6 +149,7 @@ jobs:
 
       - name: Setup chiave SSH e known_hosts
         id: setup_ssh
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         env:
           HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
           HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
@@ -133,6 +166,7 @@ jobs:
           echo "Chiave SSH e known_hosts pronti."
 
       - name: Verifica raggiungibilita server
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \
@@ -145,6 +179,7 @@ jobs:
 
       - name: Controlla commit gia deployato
         id: current
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
           remote_head=$(ssh -i ~/.ssh/id_deploy \
@@ -164,7 +199,7 @@ jobs:
           fi
 
       - name: Backup preventivo
-        if: ${{ steps.current.outputs.already_deployed != 'true' && env.NO_BACKUP_REQUESTED != 'true' }}
+        if: ${{ steps.gate.outputs.superato != 'true' && steps.current.outputs.already_deployed != 'true' && env.NO_BACKUP_REQUESTED != 'true' }}
         run: |
           set -euo pipefail
           scp -i ~/.ssh/id_deploy \
@@ -193,7 +228,7 @@ jobs:
 
       - name: Esegui deploy
         id: deploy
-        if: ${{ steps.current.outputs.already_deployed != 'true' }}
+        if: ${{ steps.gate.outputs.superato != 'true' && steps.current.outputs.already_deployed != 'true' }}
         run: |
           set -euo pipefail
           deploy_prefix=""
@@ -219,7 +254,7 @@ jobs:
               "trap 'rm -f /tmp/iusentra-deploy-${GITHUB_SHA}.sh' EXIT; EXPECTED_SHA='${GITHUB_SHA}' BRANCH='${DEPLOY_BRANCH}' ${deploy_prefix}bash /tmp/iusentra-deploy-${GITHUB_SHA}.sh"
 
       - name: Ripristina servizi se il commit era gia deployato
-        if: ${{ steps.current.outputs.already_deployed == 'true' }}
+        if: ${{ steps.gate.outputs.superato != 'true' && steps.current.outputs.already_deployed == 'true' }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \
@@ -243,6 +278,7 @@ jobs:
 
       - name: Recupera commit deployato
         id: state
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
           remote_head=$(ssh -i ~/.ssh/id_deploy \
@@ -256,6 +292,7 @@ jobs:
           echo "expected=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Verifiche post-deploy (container + health)
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \
@@ -280,7 +317,7 @@ jobs:
                fi'
 
       - name: Verifiche post-deploy (rotte HTTPS pubbliche)
-        if: ${{ env.HETZNER_DOMAIN != '' }}
+        if: ${{ steps.gate.outputs.superato != 'true' && env.HETZNER_DOMAIN != '' }}
         run: |
           set -euo pipefail
           DOMAIN="${HETZNER_DOMAIN}"
@@ -337,7 +374,9 @@ jobs:
         if: always()
         run: |
           backup_state="eseguito"
-          if [ '${{ steps.current.outputs.already_deployed }}' = 'true' ]; then
+          if [ '${{ steps.gate.outputs.superato }}' = 'true' ]; then
+            backup_state="SALTATO: commit superato da uno piu' recente"
+          elif [ '${{ steps.current.outputs.already_deployed }}' = 'true' ]; then
             backup_state="SALTATO: commit gia deployato"
           elif [ "${NO_BACKUP_REQUESTED}" = 'true' ]; then
             backup_state="SALTATO: richiesta no-backup"
@@ -345,6 +384,10 @@ jobs:
           {
             echo "## Deploy Hetzner CPX42"
             echo
+            if [ '${{ steps.gate.outputs.superato }}' = 'true' ]; then
+              echo "Deploy non eseguito: il commit \`${GITHUB_SHA::7}\` e' stato superato da un commit piu' recente su \`${DEPLOY_BRANCH}\`, che porta in produzione anche queste modifiche."
+              echo
+            fi
             echo "| Voce | Valore |"
             echo "|---|---|"
             echo "| Host | \`${HETZNER_HOST}\` |"

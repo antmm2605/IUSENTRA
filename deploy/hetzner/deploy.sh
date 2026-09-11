@@ -58,8 +58,27 @@ if [ ! -d "$REPO_DIR/.git" ]; then
   git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
 else
   git -C "$REPO_DIR" fetch origin "$BRANCH"
-  git -C "$REPO_DIR" checkout "$BRANCH"
-  git -C "$REPO_DIR" reset --hard "${EXPECTED_SHA:-origin/$BRANCH}"
+  TARGET_REF="${EXPECTED_SHA:-origin/$BRANCH}"
+
+  # Il deploy non conserva nulla di locale: la sorgente di verita' e' il commit
+  # verificato dalla CI. Finche' si passava da "git checkout <branch>", un
+  # albero di lavoro sporco faceva abortire il checkout ("Your local changes to
+  # the following files would be overwritten") e il "reset --hard" che lo
+  # avrebbe ripulito non veniva mai eseguito: da quel momento ogni deploy
+  # falliva sempre nello stesso punto, finche' qualcuno non entrava sul server
+  # a mano.
+  DIRTY="$(git -C "$REPO_DIR" status --porcelain)"
+  if [ -n "$DIRTY" ]; then
+    echo "Albero di lavoro non pulito in $REPO_DIR: viene sovrascritto dal commit verificato."
+    printf '%s\n' "$DIRTY" | head -50
+  fi
+
+  git -C "$REPO_DIR" checkout --force -B "$BRANCH" "$TARGET_REF"
+  git -C "$REPO_DIR" reset --hard "$TARGET_REF"
+  # File non tracciati lasciati da build interrotte: rimossi perche' a loro
+  # volta possono bloccare un checkout successivo. I file ignorati restano
+  # (niente -x): sono cache e artefatti di runtime, non contenuto del commit.
+  git -C "$REPO_DIR" clean -fd
 fi
 
 DEPLOYED_COMMIT="$(git -C "$REPO_DIR" rev-parse --short HEAD)"

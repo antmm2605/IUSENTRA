@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.291.1 - 11/09/2026
+
+Il deploy su Hetzner torna a completarsi: cinque deploy di fila si erano fermati, per due motivi distinti, nessuno dei quali riguardava il codice applicativo.
+
+- **Un albero di lavoro sporco sul server bloccava ogni deploy, per sempre.** Lo script sincronizzava il repository con `git checkout <branch>` seguito da `git reset --hard`: con dei file modificati sul server il checkout abortiva ("Your local changes to the following files would be overwritten by checkout") e il `reset --hard`, che li avrebbe sovrascritti, non veniva mai eseguito. Ogni deploy successivo falliva allo stesso punto finche' qualcuno non fosse entrato sul server a rimettere a posto l'albero a mano. Ora il commit verificato dalla CI viene imposto in ogni caso, la condizione trovata viene scritta nel log del deploy — cosi' si sa da dove arrivavano quei file — e i file non tracciati lasciati da build interrotte vengono rimossi; i file ignorati (cache e artefatti di runtime) restano.
+- **Un commit superato da uno piu' recente non e' piu' un deploy fallito.** Quando si spinge un secondo commit mentre il primo aspetta la propria CI, quella CI viene annullata dal gruppo di concorrenza: il deploy del primo commit trovava dei controlli `cancelled` e si dichiarava fallito, pur senza nulla di rotto — il codice arriva in produzione con il deploy del commit piu' recente. Ora quel caso e' una sosta dichiarata nel riepilogo della run, non un rosso. Una CI non verde su un commit ancora in testa al branch resta rossa come prima.
+
 ## 2.291.0 - 11/09/2026
 
 Lex legge davvero gli atti del fascicolo, e li rilegge una volta sola.

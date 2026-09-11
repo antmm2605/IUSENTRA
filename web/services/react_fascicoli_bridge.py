@@ -45,9 +45,14 @@ from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pec_notification_presidio.historical_policy import HISTORICAL_CUTOFF, STRICT_TRACKING_FROM
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from pct.presidio_documentale_state import (
+    READ_DOCUMENTS_KEY as PRESIDIO_READ_DOCUMENTS_KEY,
+    READ_DOCUMENTS_VERSION_KEY as PRESIDIO_READ_DOCUMENTS_VERSION_KEY,
     build_marker as build_presidio_documentale_marker,
     marker_is_current as presidio_marker_is_current,
     marker_state as presidio_marker_state,
+    merge_read_inventory as presidio_merge_read_inventory,
+    read_document_entry as presidio_read_document_entry,
+    unread_document_ids as presidio_unread_document_ids,
 )
 from pct.presidio_processuale_ruleset import is_pagopa_rt_contributo_xml, is_pagopa_rt_xml
 from pct.soggetti import soggetto_coincide_con_cliente
@@ -2323,25 +2328,58 @@ def _analysis_fascicoli_scope(fascicolo: Any, related_fascicoli: Iterable[Any] |
     return out
 
 
+def _document_analysis_identity_row(doc: Any, source_id: str) -> dict[str, Any]:
+    """Identita' di un documento ai fini dell'analisi: contenuto, non cronologia.
+
+    `data_caricamento` dei documenti indicizzati e' l'`updated_at` del servizio
+    Document AI: cambia a ogni reindicizzazione anche quando il PDF e'
+    identico. Finche' entrava nell'impronta, il presidio vedeva "nuovo" un
+    documento gia' letto e lo rileggeva a ogni giro, per sempre — un core pieno
+    e raffiche di lettura da disco ogni quindici minuti. Resta nell'impronta
+    solo dove non c'e' un hash del contenuto, perche' li' e' l'unico segnale
+    che un file e' stato sostituito.
+    """
+
+    sha256 = _text(getattr(doc, "hash_contenuto_sha256", "") or getattr(doc, "hash_sha256", ""))
+    server_ai = bool(getattr(doc, "_iusentra_document_ai_server", False))
+    return {
+        "fascicolo": source_id,
+        "id": _document_id(doc),
+        "nome": _text(getattr(doc, "nome", "")),
+        "nome_originale": _text(getattr(doc, "nome_originale", "")),
+        "tipo": _enum_value(getattr(doc, "tipo", "")),
+        "sha256": sha256,
+        "size": int(getattr(doc, "dimensione_bytes", 0) or 0),
+        "loaded": "" if (sha256 or server_ai) else _text(getattr(doc, "data_caricamento", "")),
+        "portal": _text(getattr(doc, "id_documento_portale", "")),
+        "server_ai": server_ai,
+    }
+
+
 def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[Any] | None = None) -> str:
+    #  Un giro del presidio chiede l'impronta dello stesso fascicolo quattro
+    #  volte: per ordinare la coda, per contare i candidati, per decidere se
+    #  lavorarlo e per contare quel che resta. I documenti non cambiano nel
+    #  frattempo, quindi si calcola una volta sola: su un archivio di qualche
+    #  centinaio di fascicoli erano tre passate di hash risparmiate a ogni
+    #  quarto d'ora.
+    cache_key = ""
+    cache = _request_cache("_react_fascicoli_document_analysis_fingerprint")
+    if cache is not None:
+        fid = _text(getattr(fascicolo, "id", ""))
+        if fid:
+            correlati = ",".join(
+                sorted(_text(getattr(row, "id", "")) for row in (related_fascicoli or []))
+            )
+            cache_key = f"{fid}|{correlati}"
+            if cache_key in cache:
+                return cache[cache_key]
+
     rows: list[dict[str, Any]] = []
     for source in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
         source_id = _text(getattr(source, "id", ""))
         for doc in _economic_analysis_documents_for_fascicolo(source):
-            rows.append(
-                {
-                    "fascicolo": source_id,
-                    "id": _document_id(doc),
-                    "nome": _text(getattr(doc, "nome", "")),
-                    "nome_originale": _text(getattr(doc, "nome_originale", "")),
-                    "tipo": _enum_value(getattr(doc, "tipo", "")),
-                    "sha256": _text(getattr(doc, "hash_sha256", "")),
-                    "size": int(getattr(doc, "dimensione_bytes", 0) or 0),
-                    "loaded": _text(getattr(doc, "data_caricamento", "")),
-                    "portal": _text(getattr(doc, "id_documento_portale", "")),
-                    "server_ai": bool(getattr(doc, "_iusentra_document_ai_server", False)),
-                }
-            )
+            rows.append(_document_analysis_identity_row(doc, source_id))
     payload = json.dumps(
         {
             "analysis_version": ECONOMIC_DOCUMENT_ANALYSIS_VERSION,
@@ -2350,7 +2388,10 @@ def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[A
         sort_keys=True,
         ensure_ascii=False,
     )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    fingerprint = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    if cache is not None and cache_key:
+        cache[cache_key] = fingerprint
+    return fingerprint
 
 
 def _document_analysis_unresolved_reason(marker: dict[str, Any], unresolved_kinds: list[str]) -> str:
@@ -2484,6 +2525,8 @@ def _build_presidio_documentale_marker(
     automatic_sources: dict[str, dict[str, Any]] | None = None,
     status: str = "aggiornato",
     reason: str = "Analisi documentale completata e salvata nel fascicolo.",
+    previous_marker: dict[str, Any] | None = None,
+    read_documents: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     marker = build_presidio_documentale_marker(
         fingerprint=_document_analysis_fingerprint(fascicolo),
@@ -2498,7 +2541,47 @@ def _build_presidio_documentale_marker(
         reason=reason,
     )
     marker["analysisVersion"] = ECONOMIC_DOCUMENT_ANALYSIS_VERSION
+    #  L'inventario delle letture viaggia con il marcatore: e' quello che
+    #  permette al giro successivo di fermarsi invece di riaprire gli stessi
+    #  documenti. Contiene identita' e provenienza della lettura, mai il testo.
+    marker[PRESIDIO_READ_DOCUMENTS_KEY] = presidio_merge_read_inventory(
+        previous_marker,
+        list((read_documents or {}).values()),
+        analysis_version=ECONOMIC_DOCUMENT_ANALYSIS_VERSION,
+        known_document_ids=_presidio_documenti_correnti(fascicolo).keys(),
+    )
+    marker[PRESIDIO_READ_DOCUMENTS_VERSION_KEY] = ECONOMIC_DOCUMENT_ANALYSIS_VERSION
     return marker
+
+
+def _presidio_documenti_correnti(
+    fascicolo: Any,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Documenti attuali del fascicolo, ridotti alla sola identita' di contenuto."""
+
+    out: dict[str, dict[str, Any]] = {}
+    for source in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
+        source_id = _text(getattr(source, "id", ""))
+        for doc in _economic_analysis_documents_for_fascicolo(source):
+            riga = _document_analysis_identity_row(doc, source_id)
+            if riga["id"]:
+                out[riga["id"]] = riga
+    return out
+
+
+def _presidio_documenti_da_leggere(
+    fascicolo: Any,
+    marker: dict[str, Any] | None,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> list[str]:
+    """Documenti nuovi o cambiati dall'ultima lettura registrata."""
+
+    return presidio_unread_document_ids(
+        _presidio_documenti_correnti(fascicolo, related_fascicoli).values(),
+        marker if isinstance(marker, dict) else {},
+        analysis_version=ECONOMIC_DOCUMENT_ANALYSIS_VERSION,
+    )
 
 
 _ECONOMIC_AUTO_SOURCES_CACHE: OrderedDict[str, tuple[float, dict[str, dict[str, Any]]]] = OrderedDict()
@@ -3103,6 +3186,7 @@ def _automatic_payment_sources_for_fascicolo(
     allow_full_document_scan: bool = True,
     allow_document_extraction: bool = True,
     force_revalidate_auto: bool = False,
+    read_collector: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     raw_contributo = _payment_source_for_kind(payments, "contributo_unificato")
     need_contributo = _payment_source_needs_automatic_value(payments, "contributo_unificato") or (
@@ -3203,18 +3287,46 @@ def _automatic_payment_sources_for_fascicolo(
         if physical_texts:
             texts = {**texts, **physical_texts}
             _cache_document_ai_texts_for_fascicolo(source_fascicolo, payment_documents, texts)
+        #  Da qui in poi il presidio annota che cosa ha davvero letto e da dove:
+        #  e' l'unico modo per non rileggere all'infinito gli stessi documenti.
+        #  Un documento presente ma mai letto non finisce nell'inventario,
+        #  altrimenti verrebbe saltato per sempre senza essere mai analizzato.
+        documenti_per_id = {_document_id(doc): doc for doc in payment_documents if _document_id(doc)}
+
+        def _annota_lettura(document_id: str, testo: str, sorgente: str) -> None:
+            if read_collector is None:
+                return
+            doc = documenti_per_id.get(document_id)
+            if doc is None:
+                return
+            read_collector[document_id] = presidio_read_document_entry(
+                document_id=document_id,
+                nome=_text(getattr(doc, "nome", "")) or _text(getattr(doc, "nome_originale", "")),
+                sha256=_text(getattr(doc, "hash_contenuto_sha256", "") or getattr(doc, "hash_sha256", "")),
+                size=int(getattr(doc, "dimensione_bytes", 0) or 0),
+                source=sorgente,
+                chars=len(_text(testo)),
+            )
+
         appended: set[str] = set()
         for document_id, text in texts.items():
             scoped_texts.append((source_fascicolo, document_id, text))
             appended.add(_text(document_id))
+            _annota_lettura(
+                _text(document_id),
+                text,
+                "file_estratto" if _text(document_id) in physical_texts else "document_ai",
+            )
         for doc in payment_documents:
             document_id = _document_id(doc)
             if not document_id or document_id in appended:
                 continue
             metadata = _document_metadata_for_id(source_fascicolo, document_id)
             if need_contributo and _document_metadata_may_contain_contributo_unificato(metadata):
-                scoped_texts.append((source_fascicolo, document_id, _document_metadata_probe(metadata)))
+                sonda = _document_metadata_probe(metadata)
+                scoped_texts.append((source_fascicolo, document_id, sonda))
                 appended.add(document_id)
+                _annota_lettura(document_id, sonda, "metadati")
     if not scoped_texts and not cu_candidates:
         return {}
 
@@ -4565,20 +4677,30 @@ def _ensure_contributo_unificato_for_fascicolo(
         != ECONOMIC_DOCUMENT_ANALYSIS_VERSION
         or not marker_current
     )
+    documenti_da_leggere = _presidio_documenti_da_leggere(fascicolo, marker)
     if marker_current and not force_revalidate_auto:
         if not needs_cu_value:
             return {"status": "existing", "analysisUpdated": False}
         if _presidio_documentale_has_unresolved_kind(marker, "contributo_unificato"):
             return {"status": "missing_current", "analysisUpdated": False}
+        if not documenti_da_leggere:
+            #  Tutti i documenti del fascicolo sono gia' stati letti con questa
+            #  versione del lettore, e nessuno e' cambiato: rileggerli non puo'
+            #  dare un risultato diverso. Senza questa uscita il presidio
+            #  riapriva ogni documento a ogni giro, ogni quindici minuti,
+            #  anche quando l'esito precedente era gia' completo.
+            return {"status": "existing", "analysisUpdated": False, "readComplete": True}
     scan_payments = dict(payments)
     for other_kind in ("spese_esborsi", "liquidazione_giudice", "parcella"):
         scan_payments.setdefault(other_kind, {"kind": other_kind, "status": "non_previsto", "previsto": False})
+    letture: dict[str, dict[str, Any]] = {}
     automatic_sources = _automatic_payment_sources_for_fascicolo(
         fascicolo,
         scan_payments,
         allow_full_document_scan=True,
         allow_document_extraction=False,
         force_revalidate_auto=force_revalidate_auto,
+        read_collector=letture,
     )
     automatic = automatic_sources.get("contributo_unificato") if isinstance(automatic_sources, dict) else None
     unresolved_kinds: list[str] = []
@@ -4590,6 +4712,8 @@ def _ensure_contributo_unificato_for_fascicolo(
         automatic_sources=automatic_sources if isinstance(automatic_sources, dict) else {},
         status="aggiornato",
         reason="Presidio documentale eseguito: lettura, classificazione e dati salvati nel fascicolo.",
+        previous_marker=marker,
+        read_documents=letture,
     )
     if unresolved_kinds:
         marker["unresolvedKinds"] = unresolved_kinds

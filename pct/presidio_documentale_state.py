@@ -113,6 +113,178 @@ def _unresolved_reason(marker: Mapping[str, Any], unresolved_kinds: list[str]) -
     )
 
 
+#  ---------------------------------------------------------------------------
+#  Inventario dei documenti gia' letti
+#
+#  Il presidio economico girava ogni quarto d'ora e rileggeva gli stessi
+#  documenti all'infinito: sul server questo significava CPU a un core pieno e
+#  raffiche di lettura da disco a 300 MB/s, con l'applicazione che non
+#  rispondeva piu' al controllo di salute e rispondeva 503.
+#
+#  Il marcatore diceva soltanto "l'analisi e' allineata", un'informazione
+#  ricavata dall'esito economico: se il contributo unificato non risultava dai
+#  documenti, il fascicolo sembrava sempre da lavorare. Qui il presidio tiene
+#  invece l'elenco dei documenti che ha davvero letto, con la loro identita' di
+#  contenuto. Un documento gia' letto e immutato non si rilegge: quando sono
+#  stati letti tutti, il giro successivo non ha piu' niente da fare e finisce
+#  subito.
+#
+#  L'inventario non contiene il testo dei documenti: solo identificativo, nome,
+#  hash, dimensione, da dove e' arrivata la lettura e quanti caratteri sono
+#  stati letti.
+#  ---------------------------------------------------------------------------
+
+READ_DOCUMENTS_KEY = "readDocuments"
+READ_DOCUMENTS_VERSION_KEY = "readDocumentsVersion"
+MAX_READ_DOCUMENTS = 400
+
+
+def read_document_entry(
+    *,
+    document_id: Any,
+    nome: Any = "",
+    sha256: Any = "",
+    size: Any = 0,
+    source: Any = "",
+    chars: Any = 0,
+) -> dict[str, Any]:
+    """Una riga dell'inventario: cosa e' stato letto, non cosa c'era scritto."""
+
+    return {
+        "id": _text(document_id),
+        "nome": _text(nome),
+        "sha256": _text(sha256),
+        "size": max(0, int(size or 0)),
+        "source": _text(source, "sconosciuta"),
+        "chars": max(0, int(chars or 0)),
+    }
+
+
+def document_read_key(*, sha256: Any = "", size: Any = 0) -> str:
+    """Identita' di contenuto di un documento gia' letto.
+
+    L'hash e' la firma buona. Dove manca resta la dimensione: grossolana, ma
+    e' l'unico segnale di contenuto disponibile e non cambia da sola come
+    farebbe una data di aggiornamento.
+    """
+
+    digest = _text(sha256)
+    if digest:
+        return f"sha256:{digest.casefold()}"
+    return f"size:{max(0, int(size or 0))}"
+
+
+def read_inventory(marker: Mapping[str, Any] | None, *, analysis_version: str = "") -> dict[str, str]:
+    """Documenti gia' letti: id documento -> identita' di contenuto.
+
+    Se il marcatore e' stato scritto con una versione del lettore diversa da
+    quella attuale l'inventario non vale piu': le regole di lettura sono
+    cambiate e i documenti vanno riletti.
+    """
+
+    if not isinstance(marker, Mapping):
+        return {}
+    atteso = _text(analysis_version)
+    if atteso:
+        registrata = _text(
+            marker.get(READ_DOCUMENTS_VERSION_KEY)
+            or marker.get("analysisVersion")
+            or marker.get("analysis_version")
+        )
+        if registrata != atteso:
+            return {}
+    righe = marker.get(READ_DOCUMENTS_KEY)
+    if not isinstance(righe, (list, tuple)):
+        return {}
+    out: dict[str, str] = {}
+    for riga in righe:
+        if not isinstance(riga, Mapping):
+            continue
+        document_id = _text(riga.get("id") or riga.get("document_id") or riga.get("documento_id"))
+        if not document_id:
+            continue
+        out[document_id] = document_read_key(sha256=riga.get("sha256"), size=riga.get("size"))
+    return out
+
+
+def unread_document_ids(
+    documents: Iterable[Mapping[str, Any]],
+    marker: Mapping[str, Any] | None,
+    *,
+    analysis_version: str = "",
+) -> list[str]:
+    """Documenti nuovi o cambiati rispetto all'ultima lettura.
+
+    `documents` sono righe `{"id", "sha256", "size"}` costruite dal chiamante:
+    questo modulo non conosce il modello dei documenti e non legge nulla.
+    """
+
+    letti = read_inventory(marker, analysis_version=analysis_version)
+    out: list[str] = []
+    visti: set[str] = set()
+    for row in documents or []:
+        if not isinstance(row, Mapping):
+            continue
+        document_id = _text(row.get("id") or row.get("document_id") or row.get("documento_id"))
+        if not document_id or document_id in visti:
+            continue
+        visti.add(document_id)
+        atteso = document_read_key(sha256=row.get("sha256"), size=row.get("size"))
+        if letti.get(document_id) != atteso:
+            out.append(document_id)
+    return out
+
+
+def merge_read_inventory(
+    marker: Mapping[str, Any] | None,
+    entries: Iterable[Mapping[str, Any]],
+    *,
+    analysis_version: str = "",
+    known_document_ids: Iterable[Any] | None = None,
+    limit: int = MAX_READ_DOCUMENTS,
+) -> list[dict[str, Any]]:
+    """Aggiorna l'inventario con le letture appena fatte.
+
+    Le letture nuove sostituiscono quelle vecchie sullo stesso documento. Se il
+    chiamante dichiara quali documenti esistono ora, le righe dei documenti
+    spariti vengono tolte, cosi' l'inventario non cresce senza fine.
+    """
+
+    precedenti: dict[str, dict[str, Any]] = {}
+    if isinstance(marker, Mapping) and _text(analysis_version) and read_inventory(
+        marker, analysis_version=analysis_version
+    ):
+        for riga in marker.get(READ_DOCUMENTS_KEY) or []:
+            if not isinstance(riga, Mapping):
+                continue
+            document_id = _text(riga.get("id") or riga.get("document_id") or riga.get("documento_id"))
+            if document_id:
+                precedenti[document_id] = dict(riga)
+
+    for entry in entries or []:
+        if not isinstance(entry, Mapping):
+            continue
+        document_id = _text(entry.get("id") or entry.get("document_id") or entry.get("documento_id"))
+        if not document_id:
+            continue
+        precedenti[document_id] = read_document_entry(
+            document_id=document_id,
+            nome=entry.get("nome") or entry.get("filename"),
+            sha256=entry.get("sha256"),
+            size=entry.get("size"),
+            source=entry.get("source"),
+            chars=entry.get("chars"),
+        )
+
+    if known_document_ids is not None:
+        ammessi = {_text(value) for value in known_document_ids if _text(value)}
+        precedenti = {key: value for key, value in precedenti.items() if key in ammessi}
+
+    righe = [precedenti[key] for key in sorted(precedenti)]
+    massimo = max(1, int(limit or MAX_READ_DOCUMENTS))
+    return righe[:massimo]
+
+
 def metadata_rule_hits(
     metadata_rows: Iterable[Mapping[str, Any]],
     *,
@@ -253,10 +425,18 @@ def build_marker(
 
 
 __all__ = [
+    "MAX_READ_DOCUMENTS",
+    "READ_DOCUMENTS_KEY",
+    "READ_DOCUMENTS_VERSION_KEY",
     "automatic_economic_hits",
     "build_marker",
     "default_document_source",
+    "document_read_key",
     "marker_is_current",
     "marker_state",
+    "merge_read_inventory",
     "metadata_rule_hits",
+    "read_document_entry",
+    "read_inventory",
+    "unread_document_ids",
 ]

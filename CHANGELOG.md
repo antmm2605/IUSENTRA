@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.293.0 - 11/09/2026
+
+Il presidio dei documenti smette di rileggere quello che ha già letto: è la causa dei 503 e dei picchi sul server.
+
+Sul CPX42 il presidio economico girava ogni quindici minuti e ogni volta riapriva gli stessi documenti: un core di CPU sempre pieno, raffiche di lettura da disco fino a 300 MB/s e 6.000 IOPS quasi senza scritture, mentre il traffico di rete era prossimo allo zero — quindi il carico non veniva dagli utenti. In quei momenti `/api/pronto` non rispondeva entro cinque secondi, Caddy dichiarava l'applicazione non disponibile e restituiva 503.
+
+- **La causa non era il volume dei documenti ma il modo di riconoscerli.** Nell'impronta dell'analisi entrava `data_caricamento`, che per i documenti indicizzati è l'`updated_at` del servizio Document AI: cambia a ogni reindicizzazione anche quando il PDF è identico. Il presidio vedeva quindi "nuovo" un documento già letto e ricominciava da capo, per sempre. Ora l'impronta guarda il contenuto — hash, dimensione, identificativi — e la data resta un segnale solo dove l'hash non c'è, perché lì è l'unico indizio che un file è stato sostituito.
+- **Il fascicolo conserva l'elenco dei documenti davvero letti**, con hash, dimensione, canale di lettura (testo indicizzato, estrazione dal file, metadati) e quanti caratteri sono stati letti. Quando tutti i documenti risultano letti e nessuno è cambiato, il giro successivo non apre più niente e finisce subito. L'inventario non contiene il testo dei documenti, si aggiorna a ogni lettura, perde le righe dei documenti eliminati e riparte da zero se cambia la versione delle regole di lettura — perché un lettore nuovo può trovare quello che prima sfuggiva.
+- **Un documento presente ma mai letto non viene dato per letto**: resta in coda finché non viene aperto davvero. Era il rischio opposto, e sarebbe stato peggio del problema di partenza.
+- **L'impronta si calcola una volta per fascicolo a ogni giro** invece di quattro (coda, conteggio candidati, decisione, conteggio finale): su un archivio di qualche centinaio di fascicoli sono tre passate di hash risparmiate ogni quarto d'ora.
+
 ## 2.292.2 - 11/09/2026
 
 Un file con un nome Windows non valido bloccava tutta la CI Windows, e quindi il deploy.

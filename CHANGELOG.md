@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.296.1 - 11/09/2026
+
+Correzione urgente sulla fusione tra letture PEC e documenti già acquisiti nei fascicoli.
+
+- **Deduplica per contenuto, non per ID locale.** PEC di cancelleria e documento salvato nel fascicolo vengono riconosciuti come la stessa evidenza quando condividono hash del contenuto; se l'hash manca, il nome normalizzato viene usato solo quando non contraddice un hash diverso.
+- **Inventario presidi rigenerabile senza doppioni.** Le letture già registrate vengono fuse per contenuto e una nuova lettura dello stesso documento sostituisce quella vecchia, così il secondo giro del presidio non rilegge copie equivalenti.
+- **Nessun azzeramento dei dati dello studio.** Il reset operativo riguarda solo marker, fingerprint e inventari derivati dei presidi: PEC, documenti, pagamenti, audit e fascicoli restano intatti.
+
 ## 2.296.0 - 11/09/2026
 
 Presidio documenti e form React più stabili dopo il lavoro in produzione.

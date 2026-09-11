@@ -130,7 +130,11 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione, onOpenSource, dat
           <FileCheck2 size={13} aria-hidden="true" />
           <span className="font-medium text-foreground">Fonti</span>
           <span className="truncate" title={item.fonte_label || undefined}>
-            {item.fonte_label || `${item.evidenze} ${fonteLabel}`}
+            {item.fonte_label
+              ? item.evidenze > 1
+                ? `${item.fonte_label} e altre ${item.evidenze - 1}`
+                : item.fonte_label
+              : `${item.evidenze} ${fonteLabel}`}
           </span>
         </span>
         <span>

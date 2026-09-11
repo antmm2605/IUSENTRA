@@ -129,16 +129,20 @@ def test_apri_risolve_documento_da_snapshot_storico_senza_link(monkeypatch):
         "operational_presidio_actions",
         lambda fascicolo, today: [
             {
-                "id": "documenti-note_127_ter-0",
+                "id": "documenti-note_127_ter-2",
                 "sector": "documenti",
+                "title": "Deposito note scritte ex art. 127-ter c.p.c.",
+                "dateIso": "2026-09-20",
                 "source": "Decreto 127-ter.pdf",
                 "documentId": "DOC-DECRETO",
                 "sourceHref": "/fascicoli/FASC-1/documenti/DOC-DECRETO/visualizza",
             }
         ],
     )
+    # l'indice salvato (-0) non coincide più con quello corrente (-2): conta l'evento
     item = _item(
-        evidence=[SignalEvidence(source_type="case_presidio", source_id="FASC-1:documenti-note_127_ter-0", label="D")]
+        due_at="2026-09-20",
+        evidence=[SignalEvidence(source_type="case_presidio", source_id="FASC-1:documenti-note_127_ter-0", label="D")],
     )
     payload = resolve_item_sources(item, paths={}, tenant_label="default", today=TODAY)
     assert payload["fonti"][0]["tipo"] == "documento"
@@ -150,19 +154,25 @@ def test_apri_risolve_documento_da_snapshot_storico_senza_link(monkeypatch):
 def test_apri_voce_economica_trova_solo_il_documento_con_nome_identico(monkeypatch):
     monkeypatch.setattr(daily_plan_runtime, "_fascicoli_store", lambda paths: _Store({"FASC-1": _fascicolo()}))
     actions = [
-        {"id": "economico-contributo_unificato", "sector": "economico", "source": "Contributo unificato Moscato.PDF"},
-        {"id": "economico-parcella", "sector": "economico", "source": "Contributo unificato.PDF", "href": "/fascicoli/FASC-1#economia", "legalBasis": "Controllo economico fascicolo"},
+        {"id": "economico-contributo_unificato", "sector": "economico", "title": "Registrare contributo unificato (€ 21,50)", "source": "Contributo unificato Moscato.PDF"},
+        {"id": "economico-parcella", "sector": "economico", "title": "Emettere o aggiornare parcella", "source": "Contributo unificato.PDF", "href": "/fascicoli/FASC-1#economia", "legalBasis": "Controllo economico fascicolo"},
     ]
     monkeypatch.setattr(daily_plan_runtime, "operational_presidio_actions", lambda fascicolo, today: actions)
 
     trovato = resolve_item_sources(
-        _item(evidence=[SignalEvidence(source_type="case_presidio", source_id="FASC-1:economico-contributo_unificato")]),
+        _item(
+            title="Registrare contributo unificato (€ 21,50)",
+            evidence=[SignalEvidence(source_type="case_presidio", source_id="FASC-1:economico-contributo_unificato")],
+        ),
         paths={}, tenant_label="default", today=TODAY,
     )
     assert trovato["fonti"][0]["href"] == "/fascicoli/FASC-1/documenti/DOC-CU/visualizza"
 
     sezione = resolve_item_sources(
-        _item(evidence=[SignalEvidence(source_type="case_presidio", source_id="FASC-1:economico-parcella")]),
+        _item(
+            title="Emettere o aggiornare parcella",
+            evidence=[SignalEvidence(source_type="case_presidio", source_id="FASC-1:economico-parcella")],
+        ),
         paths={}, tenant_label="default", today=TODAY,
     )
     fonte = sezione["fonti"][0]

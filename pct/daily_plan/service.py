@@ -38,7 +38,7 @@ from .collectors import (
     build_coverage_report,
 )
 from .correlation import correlate
-from .deduplication import MergedSignalGroup, merge_signals
+from .deduplication import MergedSignalGroup, collapse_same_source_duplicates, merge_signals
 from .models import (
     DailyPlan,
     DailyWorkItem,
@@ -252,7 +252,7 @@ class DailyPlanService:
 
         # normalizzazione + correlazione + upsert nella proiezione tenant-wide
         collected = [s for r in results for s in r.signals]
-        correlated = correlate(collected, clock=self.clock)
+        correlated = collapse_same_source_duplicates(correlate(collected, clock=self.clock))
         stats = self.repository.upsert_signals(correlated)
         report.signals_upserted = stats["inserted"] + stats["updated"]
 
@@ -266,10 +266,20 @@ class DailyPlanService:
                 report.signals_resolved += self.repository.resolve_signals_not_in(
                     result.source_type, keep
                 )
+            elif result.scanned_scopes:
+                keep = {s.dedupe_key for s in correlated if s.source_type == result.source_type}
+                report.signals_resolved += self.repository.resolve_signals_for_fascicoli_not_in(
+                    result.source_type, result.scanned_scopes, keep
+                )
 
         # dalla proiezione condivisa ai piani personali (mai rianalizzare le
         # stesse fonti per ogni avvocato)
-        active_signals = self.repository.list_active_signals(limit=5000)
+        # le chiavi vengono ricalcolate anche sui segnali già salvati: copie
+        # dello stesso evento registrate con identificativi superati si fondono
+        # subito, senza attendere la rilettura del fascicolo
+        active_signals = correlate(
+            self.repository.list_active_signals(limit=5000), clock=self.clock
+        )
         groups = merge_signals(active_signals)
         resolver = self.resolver_factory()
         fascicoli_lookup = self.fascicoli_lookup_factory()
@@ -459,7 +469,7 @@ class DailyPlanService:
             peremptory=any(s.peremptory for s in group.signals),
             confidence=group.confidence,
             review_required=needs_review,
-            source_signal_ids=[s.id for s in group.signals],
+            source_signal_ids=_source_signal_ids(group),
             evidence=group.evidence,
             available_actions=actions,
             href=primary.href,
@@ -471,6 +481,16 @@ class _DecisionShim:
     priority: str
     rule_id: str = ""
     reason: str = ""
+
+
+def _source_signal_ids(group: MergedSignalGroup) -> list[str]:
+    """Segnali all'origine dell'attività, incluse le copie già superate."""
+    ids: list[str] = []
+    for sig in group.signals:
+        for signal_id in [sig.id, *((sig.metadata or {}).get("legacy_signal_ids") or [])]:
+            if signal_id and str(signal_id) not in ids:
+                ids.append(str(signal_id))
+    return ids[:50]
 
 
 def _plan_version(items: list[DailyWorkItem]) -> str:

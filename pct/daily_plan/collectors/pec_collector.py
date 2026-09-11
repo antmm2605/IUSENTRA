@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pct.formatting import format_datetime_it
+
 from ..models import OperationalSignal, SignalEvidence, SourceCoverage
 from .base import CollectorContext, CollectorResult, unavailable_result
 
@@ -269,6 +271,10 @@ class PecSignalCollector:
             review = bool(row.get("event_review_required"))
         if review:
             metadata["needs_review"] = True
+        ricevuta = format_datetime_it(str(row.get("received_at") or "")) if row.get("received_at") else ""
+        if ricevuta:
+            # PEC diverse con lo stesso esito restano distinguibili nella card
+            motivo = f"{motivo} Ricevuta il {ricevuta}."
         return OperationalSignal(
             id=f"sig_pecm_{message_id}",
             tenant_id=ctx.tenant_id,

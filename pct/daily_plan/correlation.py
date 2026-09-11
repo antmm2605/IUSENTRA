@@ -12,6 +12,7 @@ collegamenti definitivi: abbassano la confidence e marcano ``needs_review``.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Iterable
 
 from .clock import Clock, system_clock
@@ -35,15 +36,74 @@ def normalize_rg(value: str) -> str:
     return f"{numero}/{anno}"
 
 
-def canonical_event_for(signal: OperationalSignal) -> str:
+_NON_WORD = re.compile(r"[^a-z0-9]+")
+
+
+def event_text_key(value: str, *, limit: int = 120) -> str:
+    """Testo normalizzato per riconoscere lo stesso adempimento.
+
+    Minuscole, senza accenti e punteggiatura: «Deposito note scritte ex art.
+    127-ter c.p.c.» letto da tre copie del decreto produce la stessa chiave.
+    """
+    raw = unicodedata.normalize("NFKD", str(value or ""))
+    ascii_text = "".join(ch for ch in raw if not unicodedata.combining(ch)).casefold()
+    return _NON_WORD.sub("-", ascii_text).strip("-")[:limit]
+
+
+def presidio_event_canonical(signal: OperationalSignal) -> str:
+    """Evento del presidio fascicolo: fascicolo + settore + adempimento.
+
+    L'identificativo tecnico dell'azione del presidio contiene la posizione
+    nell'elenco (``documenti-note_127_ter-4``) e cambia quando cambiano i
+    documenti letti: non può identificare l'evento. Lo stesso adempimento con
+    la stessa data (la data entra comunque nella chiave di deduplica) letto da
+    più documenti dello stesso fascicolo è UN solo evento con più evidenze.
+    """
+    meta = signal.metadata or {}
+    sector = str(meta.get("sector") or signal.kind or "").strip()
+    return f"presidio:{signal.fascicolo_id or '-'}:{sector}:{event_text_key(signal.title)}"
+
+
+def scadenza_event_canonical(signal: OperationalSignal) -> str:
+    """Evento della scadenza: stessa comunicazione registrata più volte = uno.
+
+    Una comunicazione di cancelleria ricevuta due volte (stessa data evento,
+    stesso adempimento, stesso fascicolo) apre un solo termine: il termine
+    decorre dall'evento, non dal numero di copie ricevute (art. 127-ter c.p.c.,
+    art. 16 D.L. 179/2012). Scadenze inserite a mano o senza evento d'origine
+    restano distinte; senza fascicolo si fondono solo le scadenze nate dalla
+    stessa PEC.
+    """
+    meta = signal.metadata or {}
+    own_id = str(meta.get("scadenziario_id") or signal.source_id or "").strip()
+    event_day = str(meta.get("evento_origine_giorno") or "").strip()
+    if not event_day:
+        return f"scadenziario:{own_id}"
+    event_type = event_text_key(str(meta.get("evento_origine_tipo") or ""), limit=60)
+    scope = signal.fascicolo_id
+    if not scope:
+        pec_id = str(meta.get("pec_audit_id") or "").strip()
+        if not pec_id:
+            return f"scadenziario:{own_id}"
+        scope = f"-:{pec_id}"
+    return f"scadenza:{scope}:{event_text_key(signal.title)}:{event_type}:{event_day}"
+
+
+def canonical_event_for(
+    signal: OperationalSignal, scadenza_aliases: dict[str, str] | None = None
+) -> str:
     """Evento canonico stabile per un segnale, usando i link forti."""
     meta = signal.metadata or {}
+    if signal.source_type == "scadenziario":
+        return scadenza_event_canonical(signal)
     scadenza_id = str(meta.get("scadenziario_id") or "").strip()
     if scadenza_id:
-        return f"scadenziario:{scadenza_id}"
+        return (scadenza_aliases or {}).get(scadenza_id) or f"scadenziario:{scadenza_id}"
     agenda_id = str(meta.get("agenda_id") or "").strip()
     if agenda_id:
         return f"agenda:{agenda_id}"
+    if signal.source_type == "case_presidio":
+        return presidio_event_canonical(signal)
     explicit = str(meta.get("canonical_event") or "").strip()
     if explicit:
         return explicit
@@ -63,8 +123,19 @@ def correlate(
     viene limitata a ``WEAK_LINK_MAX_CONFIDENCE``.
     """
     clock = clock or system_clock()
+    batch = list(signals)
+    # prima passata: ogni scadenza punta all'evento del suo gruppo, così PEC e
+    # documenti collegati a una copia si fondono con l'unica attività
+    scadenza_aliases: dict[str, str] = {}
+    for sig in batch:
+        if sig.source_type != "scadenziario":
+            continue
+        canonical = scadenza_event_canonical(sig)
+        for ref in (sig.source_id, (sig.metadata or {}).get("scadenziario_id")):
+            if str(ref or "").strip():
+                scadenza_aliases[str(ref).strip()] = canonical
     out: list[OperationalSignal] = []
-    for sig in signals:
+    for sig in batch:
         meta = dict(sig.metadata or {})
         weak = str(meta.get("fascicolo_match") or "").lower() == "weak"
         if weak:
@@ -73,7 +144,7 @@ def correlate(
 
         key_fascicolo = "" if weak else sig.fascicolo_id
         due_date = normalize_due_date(sig.due_at, clock)
-        canonical = canonical_event_for(sig)
+        canonical = canonical_event_for(sig, scadenza_aliases)
         meta["canonical_event"] = canonical
         sig.metadata = meta
         sig.dedupe_key = build_dedupe_key(
@@ -87,5 +158,8 @@ __all__ = [
     "WEAK_LINK_MAX_CONFIDENCE",
     "canonical_event_for",
     "correlate",
+    "event_text_key",
     "normalize_rg",
+    "presidio_event_canonical",
+    "scadenza_event_canonical",
 ]

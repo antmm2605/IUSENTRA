@@ -94,6 +94,23 @@ class InvalidStatusTransition(ValueError):
     """Transizione di stato non ammessa dalla state machine delle attività."""
 
 
+def _inherited_status_row(item: DailyWorkItem, rows_by_signal: dict[str, list[Any]]) -> Any | None:
+    """Stato deciso da una persona da conservare quando più copie diventano una.
+
+    Se l'attività unificata raccoglie segnali che appartenevano ad attività
+    già esistenti e TUTTE quelle attività erano state decise da una persona,
+    si conserva la decisione più recente. Se anche una sola copia era ancora
+    aperta, l'attività unificata resta aperta: nulla viene chiuso d'ufficio.
+    """
+    prior: dict[str, Any] = {}
+    for signal_id in item.source_signal_ids:
+        for row in rows_by_signal.get(str(signal_id), []):
+            prior[str(row["id"])] = row
+    if not prior or any(row["status"] not in HUMAN_STATUSES for row in prior.values()):
+        return None
+    return max(prior.values(), key=lambda row: str(row["status_updated_at"] or ""))
+
+
 class DailyPlanRepository:
     def __init__(
         self,
@@ -173,6 +190,7 @@ class DailyPlanRepository:
             if sig.tenant_id and sig.tenant_id != self.tenant_id:
                 raise TenantMismatchError("segnale di un altro tenant rifiutato")
             rows.append(sig)
+        written_ids: set[str] = set()
         with self._connect() as conn:
             for sig in rows:
                 existing = conn.execute(
@@ -187,21 +205,42 @@ class DailyPlanRepository:
                     # sempre l'ID già materializzato per la medesima chiave.
                     signal_id = str(existing["id"] or "")
                 else:
-                    inserted += 1
                     # ``id`` è PK globale anche quando la deduplica è
                     # tenant-aware. Un ID proposto da una sorgente non deve
                     # mai impedire il piano del giorno: se è già occupato da
                     # un altro segnale, assegniamo un ID interno nuovo e
                     # lasciamo invariata la chiave di deduplica operativa.
                     signal_id = str(sig.id or new_id("sig"))
-                    while conn.execute(
-                        "SELECT 1 FROM operational_signals WHERE id = ?", (signal_id,)
-                    ).fetchone():
-                        signal_id = new_id("sig")
+                    occupied = conn.execute(
+                        "SELECT tenant_id, source_type, source_id FROM operational_signals WHERE id = ?",
+                        (signal_id,),
+                    ).fetchone()
+                    if (
+                        occupied is not None
+                        and signal_id not in written_ids
+                        and occupied["tenant_id"] == self.tenant_id
+                        and occupied["source_type"] == sig.source_type
+                        and occupied["source_id"] == sig.source_id
+                    ):
+                        # stessa fonte con chiave evento aggiornata (regola di
+                        # deduplica più precisa): il segnale conserva identità
+                        # e storia, cambia solo la chiave
+                        conn.execute(
+                            "UPDATE operational_signals SET dedupe_key = ? WHERE id = ?",
+                            (sig.dedupe_key, signal_id),
+                        )
+                        updated += 1
+                    else:
+                        inserted += 1
+                        while conn.execute(
+                            "SELECT 1 FROM operational_signals WHERE id = ?", (signal_id,)
+                        ).fetchone():
+                            signal_id = new_id("sig")
                 # I successivi passaggi costruiscono le attività usando gli
                 # oggetti raccolti: mantenerli allineati evita riferimenti a
                 # un ID tecnico che è stato sostituito per collisione.
                 sig.id = signal_id
+                written_ids.add(signal_id)
                 conn.execute(
                     """
                     INSERT INTO operational_signals (
@@ -314,6 +353,41 @@ class DailyPlanRepository:
             conn.commit()
         return len(stale)
 
+    def resolve_signals_for_fascicoli_not_in(
+        self,
+        source_type: str,
+        fascicolo_ids: Iterable[str],
+        keep_dedupe_keys: Iterable[str],
+    ) -> int:
+        """Riconciliazione per fascicolo: dopo la lettura completa di un
+        fascicolo, i segnali di quella fonte e di quel fascicolo non più
+        riemessi (identificativi superati, copie già fuse) diventano 'resolved'.
+        Vale anche quando la fonte è letta a lotti e non è mai «completa»."""
+        scopes = [str(fid) for fid in fascicolo_ids if str(fid or "").strip()]
+        if not scopes:
+            return 0
+        keep = set(keep_dedupe_keys)
+        now = self._now_iso()
+        stale: list[str] = []
+        with self._connect() as conn:
+            for offset in range(0, len(scopes), 200):
+                chunk = scopes[offset : offset + 200]
+                placeholders = ",".join("?" for _ in chunk)
+                rows = conn.execute(
+                    "SELECT dedupe_key FROM operational_signals "
+                    f"WHERE tenant_id = ? AND source_type = ? AND status = 'active' AND fascicolo_id IN ({placeholders})",
+                    (self.tenant_id, source_type, *chunk),
+                ).fetchall()
+                stale.extend(r["dedupe_key"] for r in rows if r["dedupe_key"] not in keep)
+            for key in stale:
+                conn.execute(
+                    "UPDATE operational_signals SET status = 'resolved', updated_at = ? "
+                    "WHERE tenant_id = ? AND dedupe_key = ?",
+                    (now, self.tenant_id, key),
+                )
+            conn.commit()
+        return len(stale)
+
     def _signal_from_row(self, row: Any) -> OperationalSignal:
         data = dict(row)
         data["evidence"] = [
@@ -347,16 +421,35 @@ class DailyPlanRepository:
         with self._connect() as conn:
             existing_rows = conn.execute(
                 "SELECT id, dedupe_key, status, status_actor, status_note, "
-                "status_updated_at, snoozed_until, created_at "
+                "status_updated_at, snoozed_until, created_at, source_signal_ids_json "
                 "FROM daily_plan_items WHERE tenant_id = ? AND target_date = ?",
                 (self.tenant_id, target_date),
             ).fetchall()
             existing = {r["dedupe_key"]: r for r in existing_rows}
+            rows_by_signal: dict[str, list[Any]] = {}
+            for row in existing_rows:
+                if row["status"] == "obsolete":
+                    continue
+                try:
+                    signal_ids = json.loads(row["source_signal_ids_json"] or "[]")
+                except (TypeError, ValueError):
+                    signal_ids = []
+                for signal_id in signal_ids:
+                    rows_by_signal.setdefault(str(signal_id), []).append(row)
 
             for item in new_items:
                 if item.tenant_id and item.tenant_id != self.tenant_id:
                     raise TenantMismatchError("item di un altro tenant rifiutato")
                 prev = existing.get(item.dedupe_key)
+                if prev is None:
+                    prev_status = _inherited_status_row(item, rows_by_signal)
+                    if prev_status is not None:
+                        item.status = prev_status["status"]
+                        item.status_actor = prev_status["status_actor"]
+                        item.status_note = prev_status["status_note"]
+                        item.status_updated_at = prev_status["status_updated_at"]
+                        item.snoozed_until = prev_status["snoozed_until"]
+                        stats["preserved_status"] += 1
                 status = item.status
                 status_actor = item.status_actor
                 status_note = item.status_note

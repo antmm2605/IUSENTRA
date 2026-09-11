@@ -9,7 +9,9 @@ più evidenze. La chiave stabile è
 Invarianti:
 - mai fondere eventi di fascicoli diversi (il fascicolo è nella chiave);
 - mai fondere scadenze diverse dello stesso giorno (l'evento canonico è
-  nella chiave);
+  nella chiave): si fondono solo le copie dello stesso evento d'origine
+  (vedi ``correlation.scadenza_event_canonical``) e le copie dello stesso
+  adempimento del presidio fascicolo con la stessa data;
 - tutte le evidenze vengono conservate (cap 10, ordinate per affidabilità);
 - la confidence aumenta solo quando fonti INDIPENDENTI concordano;
 - i conflitti non vengono nascosti: il gruppo diventa ``needs_review``.
@@ -144,6 +146,42 @@ def _detect_conflicts(signals: list[OperationalSignal]) -> list[str]:
     return conflicts
 
 
+def collapse_same_source_duplicates(signals: Iterable[OperationalSignal]) -> list[OperationalSignal]:
+    """Copie della stessa fonte con la stessa chiave → un solo segnale da salvare.
+
+    La proiezione salva un segnale per chiave: senza questa fusione la seconda
+    copia sovrascriverebbe la prima perdendone l'evidenza. Il segnale che resta
+    conserva le evidenze di tutte le copie e l'elenco degli identificativi
+    fusi, così le decisioni già prese sulle copie non vanno perse.
+    """
+    kept: dict[tuple[str, str], OperationalSignal] = {}
+    order: list[OperationalSignal] = []
+    for sig in signals:
+        key = (sig.source_type, sig.dedupe_key)
+        first = kept.get(key)
+        if first is None or not sig.dedupe_key:
+            kept[key] = sig
+            order.append(sig)
+            continue
+        refs = {(ev.source_type, ev.source_id or ev.label) for ev in first.evidence}
+        for ev in sig.evidence:
+            if (ev.source_type, ev.source_id or ev.label) not in refs:
+                first.evidence.append(ev)
+        first.evidence = first.evidence[:MAX_EVIDENCE]
+        first.blocking = first.blocking or sig.blocking
+        first.peremptory = first.peremptory or sig.peremptory
+        meta = dict(first.metadata or {})
+        legacy = list(meta.get("legacy_signal_ids") or [])
+        for signal_id in [sig.id, *((sig.metadata or {}).get("legacy_signal_ids") or [])]:
+            if signal_id and signal_id not in legacy:
+                legacy.append(signal_id)
+        meta["legacy_signal_ids"] = legacy[:20]
+        if (sig.metadata or {}).get("needs_review"):
+            meta["needs_review"] = True
+        first.metadata = meta
+    return order
+
+
 def merge_signals(signals: Iterable[OperationalSignal]) -> list[MergedSignalGroup]:
     """Raggruppa i segnali per dedupe_key conservando tutte le evidenze."""
     groups: dict[str, list[OperationalSignal]] = {}
@@ -159,7 +197,7 @@ def merge_signals(signals: Iterable[OperationalSignal]) -> list[MergedSignalGrou
             key=lambda s: (SOURCE_RELIABILITY.get(s.source_type, 99), s.id),
         )
         evidence: list[SignalEvidence] = []
-        seen_refs: set[tuple[str, str]] = set()
+        seen_refs: dict[tuple[str, str], int] = {}
         for sig in bucket:
             own = sig.evidence or [
                 SignalEvidence(
@@ -174,8 +212,13 @@ def merge_signals(signals: Iterable[OperationalSignal]) -> list[MergedSignalGrou
             for ev in own:
                 ref = (ev.source_type, ev.source_id or ev.label)
                 if ref in seen_refs:
+                    # la stessa evidenza da un segnale più recente può portare
+                    # etichetta e link migliori (es. nome del documento)
+                    current = evidence[seen_refs[ref]]
+                    if (not current.href and ev.href) or len(current.label.strip()) < len(ev.label.strip()) < 400:
+                        evidence[seen_refs[ref]] = ev
                     continue
-                seen_refs.add(ref)
+                seen_refs[ref] = len(evidence)
                 evidence.append(ev)
         evidence = evidence[:MAX_EVIDENCE]
 
@@ -197,6 +240,7 @@ def merge_signals(signals: Iterable[OperationalSignal]) -> list[MergedSignalGrou
 
 __all__ = [
     "MAX_EVIDENCE",
+    "collapse_same_source_duplicates",
     "MergedSignalGroup",
     "SOURCE_RELIABILITY",
     "build_dedupe_key",

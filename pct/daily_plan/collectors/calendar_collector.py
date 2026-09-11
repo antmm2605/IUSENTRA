@@ -7,6 +7,7 @@ Le scadenze arretrate ancora aperte NON vengono mai escluse.
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -29,6 +30,46 @@ def _to_date(value: Any) -> date | None:
 
 def _enum_val(obj: Any) -> str:
     return str(getattr(obj, "value", obj or "") or "")
+
+
+_PEC_AUDIT_REF = re.compile(r"\bPEC_AUDIT:([A-Za-z0-9][A-Za-z0-9_.:-]{1,179})", re.IGNORECASE)
+_PEC_AUDIT_SUFFIX = re.compile(r":(?:deadline|hearing(?::[A-Za-z0-9_.-]+)?)$", re.IGNORECASE)
+
+
+def origin_event_metadata(sc: Any) -> dict[str, str]:
+    """Evento d'origine della scadenza (tipo, giorno Europe/Rome, PEC audit).
+
+    Serve alla correlazione per riconoscere la stessa comunicazione registrata
+    più volte nello scadenziario; nessun dato viene dedotto se manca.
+    """
+    out: dict[str, str] = {}
+    event_day = _to_date(getattr(sc, "source_event_at", "") or "")
+    if event_day is not None:
+        out["evento_origine_giorno"] = event_day.isoformat()
+    event_type = str(getattr(sc, "source_event_type", "") or "").strip()
+    if event_type:
+        out["evento_origine_tipo"] = event_type
+    context = "\n".join(
+        str(getattr(sc, attr, "") or "") for attr in ("note", "descrizione", "external_uid", "dedupe_key")
+    )
+    match = _PEC_AUDIT_REF.search(context)
+    if match:
+        pec_id = _PEC_AUDIT_SUFFIX.sub("", match.group(1).rstrip(".,;:"))
+        if pec_id and not pec_id.casefold().startswith("docpresidio:"):
+            out["pec_audit_id"] = pec_id
+    return out
+
+
+def _scadenza_reason(ctx: CollectorContext, sc: Any, perentorio: bool) -> str:
+    base = "Termine perentorio dello scadenziario." if perentorio else "Scadenza aperta dello scadenziario."
+    resolver = ctx.scadenza_reason_resolver
+    if resolver is None:
+        return base
+    try:
+        detail = " ".join(str(resolver(sc) or "").split())
+    except Exception:
+        detail = ""
+    return f"{base} {detail}".strip() if detail else base
 
 
 class ScadenzarioCollector:
@@ -86,18 +127,14 @@ class ScadenzarioCollector:
                     dedupe_key="",
                     fascicolo_id=fascicolo_id,
                     responsible_user_id=responsabile,
-                    reason=(
-                        "Termine perentorio dello scadenziario."
-                        if perentorio
-                        else "Scadenza aperta dello scadenziario."
-                    ),
+                    reason=_scadenza_reason(ctx, sc, perentorio),
                     due_at=due_iso,
                     peremptory=perentorio,
                     blocking=perentorio,
                     legal_risk="high" if perentorio else "medium",
                     confidence=0.95,
                     href=f"/scadenziario?scadenza={scadenza_id}" if scadenza_id else "/scadenziario",
-                    metadata={"scadenziario_id": scadenza_id},
+                    metadata={"scadenziario_id": scadenza_id, **origin_event_metadata(sc)},
                     evidence=[
                         SignalEvidence(
                             source_type=self.source_type,
@@ -260,4 +297,4 @@ class AgendaCollector:
         )
 
 
-__all__ = ["AgendaCollector", "ScadenzarioCollector"]
+__all__ = ["AgendaCollector", "ScadenzarioCollector", "origin_event_metadata"]

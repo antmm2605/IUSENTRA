@@ -95,62 +95,66 @@ def _document_by_id(fascicolo: Any, document_id: str) -> Any | None:
     return None
 
 
+def _presidio_event_actions(item: DailyWorkItem, actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Azioni correnti del presidio che corrispondono all'attività.
+
+    L'attività unifica le copie dello stesso adempimento: si confrontano
+    settore/adempimento/data (``action_event_key``), mai la posizione
+    nell'elenco, che cambia al variare dei documenti letti.
+    """
+    from pct.daily_plan.collectors.case_collector import action_event_key
+    from pct.daily_plan.correlation import event_text_key
+
+    wanted = (event_text_key(item.title), str(item.due_at or "")[:10])
+    return [a for a in actions if action_event_key(a)[1:] == wanted]
+
+
 def _case_presidio_sources(
-    ev: SignalEvidence, item: DailyWorkItem, *, paths: Any, today: date
+    evidences: list[SignalEvidence], item: DailyWorkItem, *, paths: Any, today: date
 ) -> list[dict[str, Any]]:
     from web.services.daily_plan_runtime import _fascicoli_store, operational_presidio_actions
 
-    fascicolo_id, _, action_id = _text(ev.source_id).partition(":")
-    fascicolo_id = fascicolo_id or item.fascicolo_id
+    fascicolo_id = item.fascicolo_id or _text(evidences[0].source_id).partition(":")[0]
     fascicolo = _fascicoli_store(paths).get(fascicolo_id) if fascicolo_id else None
-    label = _text(ev.label)
-
-    if _is_viewer_href(ev.href) and "/documenti/" in ev.href:
-        doc_id = _text(ev.href).split("/documenti/", 1)[1].split("/", 1)[0]
-        doc = _document_by_id(fascicolo, doc_id) if fascicolo is not None else None
-        return [
-            fonte(
-                tipo="documento",
-                etichetta=(_document_name(doc) if doc is not None else "") or label or "Documento del fascicolo",
-                href=ev.href,
-                verificata=True,
+    out: list[dict[str, Any]] = []
+    for ev in evidences:
+        if _is_viewer_href(ev.href) and "/documenti/" in ev.href:
+            doc_id = _text(ev.href).split("/documenti/", 1)[1].split("/", 1)[0]
+            doc = _document_by_id(fascicolo, doc_id) if fascicolo is not None else None
+            out.append(
+                fonte(
+                    tipo="documento",
+                    etichetta=(_document_name(doc) if doc is not None else "") or _text(ev.label) or "Documento del fascicolo",
+                    href=ev.href,
+                    verificata=True,
+                )
             )
-        ]
-    if fascicolo is None:
-        return []
+    if out or fascicolo is None:
+        return out
 
-    action: dict[str, Any] = {}
     try:
-        action = next(
-            (a for a in operational_presidio_actions(fascicolo, today=today) if a.get("id") == action_id),
-            {},
-        )
+        actions = _presidio_event_actions(item, operational_presidio_actions(fascicolo, today=today))
     except Exception:
-        action = {}
-
-    source_href = _text(action.get("sourceHref"))
-    source_name = _text(action.get("source"))
-    if source_href:
-        doc = _document_by_id(fascicolo, _text(action.get("documentId")))
-        return [
-            fonte(
-                tipo="documento",
-                etichetta=(_document_name(doc) if doc is not None else "") or source_name or "Documento del fascicolo",
-                href=source_href,
-                verificata=True,
+        actions = []
+    for action in actions:
+        source_href = _text(action.get("sourceHref"))
+        source_name = _text(action.get("source"))
+        doc = _document_by_id(fascicolo, _text(action.get("documentId"))) if source_href else _document_by_name(fascicolo, source_name)
+        if doc is not None and not source_href and _text(getattr(doc, "id", "")):
+            source_href = _document_href(fascicolo_id, _text(getattr(doc, "id", "")))
+        if source_href:
+            out.append(
+                fonte(
+                    tipo="documento",
+                    etichetta=(_document_name(doc) if doc is not None else "") or source_name or "Documento del fascicolo",
+                    href=source_href,
+                    verificata=True,
+                )
             )
-        ]
-    doc = _document_by_name(fascicolo, source_name)
-    if doc is not None and _text(getattr(doc, "id", "")):
-        return [
-            fonte(
-                tipo="documento",
-                etichetta=_document_name(doc),
-                href=_document_href(fascicolo_id, _text(getattr(doc, "id", ""))),
-                verificata=True,
-            )
-        ]
-    sector = _text(action.get("sector")) or action_id.split("-", 1)[0]
+    if out:
+        return out
+    action = actions[0] if actions else {}
+    sector = _text(action.get("sector")) or _text(evidences[0].source_id).partition(":")[2].split("-", 1)[0]
     section = _SECTION_LABELS.get(sector, "Fascicolo")
     return [
         fonte(
@@ -158,7 +162,7 @@ def _case_presidio_sources(
             etichetta=f"Sezione «{section}» del fascicolo",
             apri_href=_text(action.get("href")) or item.href,
             dettagli=[
-                {"etichetta": "Controllo", "valore": source_name},
+                {"etichetta": "Controllo", "valore": _text(action.get("source"))},
                 {"etichetta": "Base di riferimento", "valore": _text(action.get("legalBasis"))},
             ],
             nota=(
@@ -182,8 +186,6 @@ def _evidence_sources(
     if ev.source_type == "agenda":
         ids = [part for part in _text(ev.source_id).split("+") if part]
         return [s for part in ids for s in agenda_sources(part, paths=paths, tenant_label=tenant_label)]
-    if ev.source_type == "case_presidio":
-        return _case_presidio_sources(ev, item, paths=paths, today=today)
     if item.href:
         return [
             fonte(
@@ -207,13 +209,23 @@ def resolve_item_sources(
     """Fonti consultabili per l'attività, documenti e PEC per primi."""
     fonti: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
-    for ev in item.evidence:
+    presidio = [ev for ev in item.evidence if ev.source_type == "case_presidio"]
+    batches: list[list[dict[str, Any]]] = []
+    if presidio:
         try:
-            resolved = _evidence_sources(ev, item, paths=paths, tenant_label=tenant_label, today=today)
+            batches.append(_case_presidio_sources(presidio, item, paths=paths, today=today))
         except Exception:
-            resolved = []
+            batches.append([])
+    for ev in item.evidence:
+        if ev.source_type == "case_presidio":
+            continue
+        try:
+            batches.append(_evidence_sources(ev, item, paths=paths, tenant_label=tenant_label, today=today))
+        except Exception:
+            batches.append([])
+    for resolved in batches:
         for entry in resolved:
-            key = (entry["tipo"], entry["href"] or entry["apri_href"], entry["etichetta"])
+            key = (entry["tipo"], entry["href"], "") if entry["href"] else (entry["tipo"], entry["apri_href"], entry["etichetta"])
             if key in seen:
                 continue
             seen.add(key)

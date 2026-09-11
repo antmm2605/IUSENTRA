@@ -44,6 +44,9 @@ class CollectorContext:
     watermarks: dict[str, dict[str, Any]] = field(default_factory=dict)
     # None = scansione completa; set di fascicolo_id = refresh incrementale
     dirty_fascicoli: set[str] | None = None
+    # descrizione leggibile della scadenza (stessa dello Scadenziario): rende
+    # distinguibili scadenze con titolo generico ma origine diversa
+    scadenza_reason_resolver: Callable[[Any], str] | None = None
 
 
 @dataclass
@@ -54,6 +57,9 @@ class CollectorResult:
     fixed_agenda: list[dict[str, Any]] = field(default_factory=list)
     watermark: str = ""
     truncated: bool = False
+    # ambiti letti per intero anche se la fonte è a budget (es. fascicoli):
+    # i segnali di quegli ambiti non riemessi sono superati
+    scanned_scopes: set[str] | None = None
 
 
 def unavailable_result(source_type: str, note: str) -> CollectorResult:

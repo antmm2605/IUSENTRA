@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.297.1 - 11/09/2026
+
+Piano del giorno: un evento, una sola attività. Lo stesso adempimento non compare più in più copie.
+
+- **Presidio fascicolo.** Le copie dello stesso adempimento con la stessa data diventano un segnale solo, con un'evidenza per documento; l'evento canonico non dipende più dalla posizione dell'azione nell'elenco.
+- **Riconciliazione per fascicolo** dei segnali superati dopo una lettura completa. Una lettura parziale non chiude nulla: chiudere un adempimento sulla base di documenti letti a metà sarebbe peggio di lasciarlo aperto.
+- **Scadenziario.** La stessa comunicazione registrata due volte — stesso fascicolo, adempimento, tipo e giorno dell'evento — viene fusa; restano separate le scadenze inserite a mano e le PEC diverse senza fascicolo. Le copie con la stessa chiave sono fuse prima del salvataggio.
+- **Segnali già salvati.** Le chiavi vengono ricalcolate; lo stato deciso dall'avvocato viene ereditato solo se tutte le copie erano state decise, e il segnale che cambia chiave conserva il proprio identificativo.
+- **Card distinguibili:** descrizione dello Scadenziario, data di ricezione della PEC, «Decreto.pdf e altre N».
+
 ## 2.297.0 - 11/09/2026
 
 Piano del giorno: «Apri» mostra la fonte che prova l'attività, sopra la pagina, invece di portare nell'intero fascicolo.

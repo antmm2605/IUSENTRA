@@ -82,6 +82,26 @@ indipendenti; i conflitti (perentorietà, responsabili, orari) marcano
 `needs_review` invece di sparire. Le associazioni PEC-fascicolo deboli
 (score < 0.75) perdono il fascicolo dalla chiave, confidence ≤ 0.6, revisione.
 
+### Un evento, una attività (2.297.1)
+
+Doppioni osservati in produzione l'11/09/2026 (534 righe, 37 gruppi, 92 card
+in più) e cause corrette:
+
+| Causa | Esempio | Regola |
+|---|---|---|
+| Identificativo posizionale delle azioni del presidio (`documenti-note_127_ter-4`) che cambia al variare dei documenti; più copie del decreto nello stesso fascicolo | 3× «Deposito note scritte ex art. 127-ter c.p.c.» su 2026/316 | evento `presidio:<fascicolo>:<settore>:<adempimento normalizzato>` + data nella chiave; il collettore emette UN segnale con un'evidenza per documento |
+| Segnali con identificativi superati mai chiusi: il presidio fascicoli è letto a lotti e non risulta mai «completo» | copie `-3`, `-4`, `-5` ancora attive | riconciliazione per fascicolo: dopo una lettura completa del fascicolo i segnali non riemessi diventano `resolved`; lettura parziale (testo non disponibile) → nessuna chiusura |
+| Stessa comunicazione di cancelleria registrata due volte nello scadenziario | 2× «Opposizione alla trattazione scritta» sullo stesso fascicolo, evento del 04/09/2026 | evento `scadenza:<fascicolo>:<titolo>:<tipo evento>:<giorno evento>`; senza fascicolo si fondono solo scadenze della stessa PEC; scadenze manuali (senza evento d'origine) mai fuse |
+
+Le chiavi vengono ricalcolate anche sui segnali già salvati prima di costruire
+le attività: i doppioni spariscono al primo aggiornamento, senza attendere la
+rilettura di ogni fascicolo. Una decisione già presa si conserva solo se TUTTE
+le copie fuse erano state decise da una persona (la più recente); se una copia
+era ancora aperta l'attività unificata resta aperta. Il segnale di scadenza che
+cambia chiave conserva il proprio identificativo. Card distinguibili: la
+motivazione delle scadenze riusa la descrizione dello Scadenziario e le PEC da
+presidiare riportano data e ora di ricezione.
+
 ## Assegnazione
 
 Referente fascicolo → avvocato agenda → responsabile scadenza (id verificato)

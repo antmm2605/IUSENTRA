@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.285.2 - 11/09/2026
+
+- **Deploy sbloccato.** Con la CI finalmente verde il deploy falliva lo stesso: attendeva per 90 minuti due check che nessuno emette più. `.github/required-checks.json` pretendeva `Pytest core fase 3/10` e `Pytest core fase 4/10`, ma quelle fasi sono suddivise per item e i loro job si chiamano `… parte n/N`. La fase 4 era disallineata dalla 2.284.0, la 3 dalla 2.285.1.
+- L'elenco ora nomina le 7 sotto-fasi reali, e il contratto CI confronta i check richiesti con le etichette della matrice di `ci.yml`: se una fase viene suddivisa senza aggiornare l'elenco, il test fallisce subito dicendo quali nomi mancano, invece di lasciare che sia il deploy a scoprirlo dopo un'ora e mezza di attesa.
+
 ## 2.285.1 - 10/09/2026
 
 Tre difetti reali del presidio PEC, rimasti nascosti perché i test che li coprivano non erano eseguiti da nessun controllo della CI.

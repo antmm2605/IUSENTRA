@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import sys
 from pathlib import Path
@@ -11,6 +12,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def _load_required_checks(*, event: str):
+    """Espande `.github/required-checks.json` con lo stesso codice del deploy."""
+
+    path = REPO_ROOT / "tools" / "check_github_required_gates.py"
+    spec = importlib.util.spec_from_file_location("iusentra_required_gates", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    config = json.loads((REPO_ROOT / ".github" / "required-checks.json").read_text(encoding="utf-8"))
+    return module.expand_required_checks(config, event=event)
 
 
 def _load_pytest_phase_runner() -> ModuleType:
@@ -104,6 +118,24 @@ def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
     timeout = re.search(r"timeout-minutes:\s*(\d+)", shards_section)
     assert timeout
     assert int(timeout.group(1)) <= 15
+
+    #  I check richiesti dal deploy devono chiamarsi esattamente come i job
+    #  che la CI produce. Quando una fase viene suddivisa il suo job cambia
+    #  nome: se l'elenco resta indietro, il deploy attende per novanta minuti
+    #  un check che nessuno emettera' mai e fallisce a CI verde (accaduto con
+    #  la fase 4 dalla 2.284.0 e con la fase 3 dalla 2.285.1).
+    etichette = set(re.findall(r'label:\s*"([^"]+)"', shards_section))
+    attesi_dalla_ci = {f"Pytest core fase {etichetta}" for etichetta in etichette}
+    richiesti = {
+        check.name
+        for check in _load_required_checks(event="push")
+        if check.name.startswith("Pytest core fase ")
+    }
+    assert richiesti == attesi_dalla_ci, (
+        "Elenco dei check richiesti disallineato dalla matrice di ci.yml. "
+        f"Mancano: {sorted(attesi_dalla_ci - richiesti)}. "
+        f"Non esistono piu': {sorted(richiesti - attesi_dalla_ci)}."
+    )
 
     core_files = runner.discover_core_test_files()
     #  ``pin_phases`` come nella divisione in fasi vera: senza, i file ancorati

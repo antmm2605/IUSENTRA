@@ -19,7 +19,8 @@
     "frontend/src/components/documentCapture/documentCapture.css": "Acquisizione inline nel fascicolo richiesta dall'utente: anteprima di pagine e PDF, riordino e conferma, con Button e token condivisi; nessuna nuova superficie modale.",
     "frontend/src/components/mediazione/mediazione.css": "Procedimento nel fascicolo e compilazione del modulo originale richiesti dall'utente: form, stati e zoom/fullscreen del foglio con proporzioni preservate; nessun tema alternativo.",
     "frontend/src/components/MediazioneOrganismoDetail.css": "Scheda organismo e sedi inline richiesta dall'utente: layout e token condivisi, nessun tema alternativo, nessuno stile inline.",
-    "frontend/src/components/MediazioneRegistryResponsive.css": "Adattamento della stessa tabella mediazione a tablet e mobile, mantenendo tutti i campi e i comandi senza scorrimento orizzontale."
+    "frontend/src/components/MediazioneRegistryResponsive.css": "Adattamento della stessa tabella mediazione a tablet e mobile, mantenendo tutti i campi e i comandi senza scorrimento orizzontale.",
+    "frontend/src/components/templateEditor/templateEditor.css": "Editor atti tipo Word richiesto dall'utente: fogli A4 reali con margini fisici, timbro ripetuto in intestazione, zoom e pannelli a scomparsa su mobile, barra di stato e stampa fedele; token e superfici del preset, nessuno stile inline."
   },
   "approvedCssFiles": [
     "frontend/src/components/AdminDatabasePage.css",
@@ -85,6 +86,7 @@
     "frontend/src/components/documentCapture/documentCapture.css",
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css",
     "frontend/src/components/mediazione/mediazione.css",
+    "frontend/src/components/templateEditor/templateEditor.css",
     "frontend/src/features/impostazioni/ImpostazioniPage.css",
     "frontend/src/features/impostazioni/components/BackupSettingsPanel.css",
     "frontend/src/features/impostazioni/components/BillingSettingsPanel.css",

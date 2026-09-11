@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.289.0 - 11/09/2026
+
+- Template atti › editor (`/template-atti/editor` e compilazione dei modelli) riscritto come un vero programma di videoscrittura. Prima la pagina era un solo riquadro con spaziatori stimati: il testo poteva finire nei margini, nello spazio tra i fogli o sotto il timbro, e su mobile il foglio veniva ristretto a 1,1 rem di margine (le righe andavano a capo in modo diverso dal documento reale) con barra strumenti e pannelli sovrapposti al testo.
+  - Fogli A4 reali (210 × 297 mm, anche orizzontali) con i margini impostati; il timbro dello studio è nell'intestazione di ogni pagina e il testo parte sempre sotto il timbro.
+  - Impaginazione riga per riga come in Word: una riga che non entra passa alla pagina successiva senza spezzare il paragrafo (giustificazione corretta), controllo righe orfane e vedove, titoli che non restano soli in fondo alla pagina, elenchi, citazioni e tabelle. Verificato su 80 pagine: nessuna riga fuori dall'area scrivibile, circa 40 ms per tasto.
+  - Interruzione di pagina (pulsante o Ctrl+Invio), annulla/ripeti affidabili (Ctrl+Z, Ctrl+Y), stile paragrafo (Normale, Titolo 1–3, Citazione), colore testo ed evidenziatore, interlinea, cancella formattazione, Tab negli elenchi; la barra riflette la formattazione del punto in cui si trova il cursore.
+  - Incolla da Word e dal web ripulito (classi e stili Office rimossi, grassetti, elenchi e allineamenti conservati); copia senza elementi tecnici di impaginazione.
+  - Barra di stato con pagina corrente, parole, caratteri, formato e zoom (−, 100%, +, adatta alla larghezza).
+  - Mobile e tablet: la pagina resta un A4 vero e viene scalata alla larghezza dello schermo; barre strumenti in una riga scorrevole, catalogo e pannello campi a scomparsa con velo di chiusura, cursore mantenuto visibile sopra la tastiera. Su tablet il catalogo parte chiuso.
+  - Stampa fedele: fogli a contatto, @page A4 con l'orientamento scelto, timbro su ogni pagina, stesse interruzioni viste a schermo.
+- Esportazioni coerenti con l'editor:
+  - Salvataggio ed export ricevono l'HTML formattato del documento: prima veniva ridotto a testo semplice e grassetti, corsivi e allineamenti andavano persi.
+  - RTF: formato pagina, orientamento, margini, timbro nell'intestazione (ripetuto su ogni pagina), interruzioni di pagina, titoli, elenchi numerati e puntati, barrato, allineamento per paragrafo, caratteri fuori dal piano base.
+  - DOCX: sezione con formato, orientamento e margini, timbro nell'intestazione di sezione invece che una sola volta nel corpo, interruzioni di pagina, barrato, apici e pedici.
+  - PDF: orientamento orizzontale, interruzioni di pagina, timbro alla posizione mostrata dall'editor; i paragrafi non vengono più fusi in un unico blocco e i caratteri «&» e «<» non fanno più saltare il testo.
+
 ## 2.288.0 - 11/09/2026
 
 - **Otto atti di parte della Corte di Cassazione predisposti ma non attivi.** Gli schemi v21 in esercizio contengono atti che il catalogo depositi non offriva:

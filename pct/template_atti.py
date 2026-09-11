@@ -228,6 +228,7 @@ DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
     "stamp_font_family": "ibm_plex_mono",
     "stamp_font_size_pt": 8,
     "stamp_line_height": 1.16,
+    "stamp_anchor": "profilo",
 }
 
 
@@ -449,6 +450,7 @@ def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[st
             _clamp_float(raw.get("stamp_line_height", raw.get("stampLineHeight")), DEFAULT_EDITOR_LAYOUT["stamp_line_height"], 1.0, 2.6),
             2,
         ),
+        "stamp_anchor": "page_margin" if str(raw.get("stamp_anchor", raw.get("stampAnchor")) or "").strip().lower() == "page_margin" else "profilo",
         "margin_top_mm": _clamp_int(raw.get("margin_top_mm", raw.get("marginTop")), DEFAULT_EDITOR_LAYOUT["margin_top_mm"], 5, 60),
         "margin_right_mm": _clamp_int(raw.get("margin_right_mm", raw.get("marginRight")), DEFAULT_EDITOR_LAYOUT["margin_right_mm"], 5, 60),
         "margin_bottom_mm": _clamp_int(raw.get("margin_bottom_mm", raw.get("marginBottom")), DEFAULT_EDITOR_LAYOUT["margin_bottom_mm"], 5, 60),

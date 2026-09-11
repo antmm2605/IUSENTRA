@@ -2132,92 +2132,11 @@ def compila_word(model_code: str):
         testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
-    try:
-        from pct.template_atti import font_editor
-
-        font_meta = font_editor(str(layout.get("font_family") or ""))
-    except Exception:
-        font_meta = {"docx_family": "Times New Roman"}
-    try:
-        font_size = max(9.0, min(22.0, float(layout.get("font_size_pt") or layout.get("font_size") or layout.get("fontSize") or 12)))
-    except (TypeError, ValueError):
-        font_size = 12.0
-    try:
-        line_height = max(1.0, min(2.2, float(layout.get("line_height") or layout.get("lineHeight") or 1.45)))
-    except (TypeError, ValueError):
-        line_height = 1.45
-    timbro = _get_studio_timbro()
-    docx_font = str(font_meta.get("docx_family") or layout.get("fallback_font_family") or "Times New Roman")
-    text_align = str(layout.get("text_align") or layout.get("textAlign") or "justify").lower()
-    stamp_position = str(layout.get("stamp_position") or layout.get("stampPosition") or "top-center").lower()
     download_name = _safe_word_download_name(titolo)
     try:
-        from docx import Document
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        from docx.shared import Pt
+        from web.services.template_atti_export import build_docx_export
 
-        document = Document()
-        stamp_alignment = WD_ALIGN_PARAGRAPH.CENTER
-        if stamp_position.endswith("left"):
-            stamp_alignment = WD_ALIGN_PARAGRAPH.LEFT
-        elif stamp_position.endswith("right"):
-            stamp_alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        try:
-            stamp_lines = timbro.to_lines()
-        except Exception:
-            stamp_lines = []
-        if not stamp_lines and getattr(timbro, "text", ""):
-            stamp_lines = [{"text": line} for line in str(timbro.text).splitlines() if line.strip()]
-        try:
-            stamp_offset = int(layout.get("stamp_offset_y_mm") or 0)
-        except (TypeError, ValueError):
-            stamp_offset = 0
-        if stamp_position.startswith("middle"):
-            for _ in range(7):
-                document.add_paragraph("")
-        elif stamp_offset > 8:
-            for _ in range(min(5, max(1, stamp_offset // 12))):
-                document.add_paragraph("")
-        for line in stamp_lines:
-            text_value = str(line.get("text") if isinstance(line, dict) else getattr(line, "text", "")).strip()
-            if not text_value:
-                continue
-            paragraph = document.add_paragraph()
-            paragraph.alignment = stamp_alignment
-            run = paragraph.add_run(text_value)
-            run.bold = bool(line.get("bold")) if isinstance(line, dict) else bool(getattr(line, "bold", False))
-            run.font.name = docx_font
-            run.font.size = Pt(9)
-        if stamp_lines:
-            document.add_paragraph("")
-        align_map = {
-            "left": WD_ALIGN_PARAGRAPH.LEFT,
-            "center": WD_ALIGN_PARAGRAPH.CENTER,
-            "right": WD_ALIGN_PARAGRAPH.RIGHT,
-            "justify": WD_ALIGN_PARAGRAPH.JUSTIFY,
-        }
-        body_alignment = align_map.get(text_align, WD_ALIGN_PARAGRAPH.JUSTIFY)
-        if html:
-            _append_html_to_docx(
-                document,
-                html,
-                docx_font=docx_font,
-                font_size=font_size,
-                line_height=line_height,
-                default_alignment=body_alignment,
-                align_map=align_map,
-            )
-        else:
-            for block in str(testo or "").splitlines():
-                paragraph = document.add_paragraph()
-                paragraph.alignment = body_alignment
-                paragraph.paragraph_format.line_spacing = line_height
-                run = paragraph.add_run(block)
-                run.font.name = docx_font
-                run.font.size = Pt(font_size)
-        buf = io.BytesIO()
-        document.save(buf)
-        buf.seek(0)
+        buf = build_docx_export(testo, layout, timbro=_get_studio_timbro(), html_content=html)
         return send_file(
             buf,
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -2238,25 +2157,6 @@ def compila_word(model_code: str):
         return response
 
 
-def _rtf_escape(value: str) -> str:
-    parts = []
-    for char in value:
-        code = ord(char)
-        if char == "\\":
-            parts.append("\\\\")
-        elif char == "{":
-            parts.append("\\{")
-        elif char == "}":
-            parts.append("\\}")
-        elif char == "\n":
-            parts.append("\\par\n")
-        elif code > 127:
-            parts.append(f"\\u{code}?")
-        else:
-            parts.append(char)
-    return "".join(parts)
-
-
 def _rtf_content_from_text(
     testo: str,
     layout: dict[str, Any] | None = None,
@@ -2264,31 +2164,9 @@ def _rtf_content_from_text(
     timbro: Any = None,
     html_content: str | None = None,
 ) -> str:
-    layout = layout or {}
-    try:
-        from pct.template_atti import font_editor
+    from web.services.template_atti_export import build_rtf_export
 
-        font_meta = font_editor(str(layout.get("font_family") or ""))
-    except Exception:
-        font_meta = {"rtf_family": "Times New Roman"}
-    try:
-        font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or layout.get("font_size_pt") or 12)))
-    except (TypeError, ValueError):
-        font_size = 12.0
-    rtf_font = str(font_meta.get("rtf_family") or "Times New Roman").replace(";", "")
-    stamp_text = _stamp_text(timbro)
-    body_rtf = _rtf_body_from_html(html_content or "") if html_content else _rtf_escape(testo)
-    stamp_rtf = ""
-    if stamp_text:
-        stamp_rtf = f"{_rtf_align_command(layout, stamp=True)}\\fs18\n{_rtf_escape(stamp_text)}\\par\\par\n"
-    body_align = _rtf_align_command(layout)
-    return (
-        "{\\rtf1\\ansi\\deff0"
-        f"{{\\fonttbl{{\\f0 {rtf_font};}}}}"
-        f"\\fs{int(round(font_size * 2))}\n"
-        f"{stamp_rtf}{body_align}\n{body_rtf}"
-        "}"
-    )
+    return build_rtf_export(testo, layout, timbro=timbro, html_content=html_content)
 
 
 @template_atti.route("/compila/<model_code>/rtf", methods=["POST"])
@@ -2565,184 +2443,6 @@ def _document_text_with_stamp(text: str, stamp: Any) -> str:
     if body.startswith(stamp_text.splitlines()[0]):
         return body
     return f"{stamp_text}\n\n{body}".strip()
-
-
-def _append_html_to_docx(
-    document: Any,
-    html: str,
-    *,
-    docx_font: str,
-    font_size: float,
-    line_height: float,
-    default_alignment: Any,
-    align_map: dict[str, Any],
-) -> None:
-    try:
-        from docx.shared import Pt
-        from lxml import etree
-    except Exception:
-        for block in _editor_html_to_text(html).splitlines():
-            paragraph = document.add_paragraph()
-            paragraph.alignment = default_alignment
-            run = paragraph.add_run(block)
-            run.font.name = docx_font
-            run.font.size = Pt(font_size)
-        return
-
-    try:
-        root = etree.fromstring(
-            f"<div>{html}</div>".encode("utf-8"),
-            parser=etree.HTMLParser(encoding="utf-8"),
-        )
-        body = root.find(".//body") or root.find(".//div") or root
-    except Exception:
-        body = None
-
-    def _alignment_from_style(style: str) -> Any:
-        lowered = (style or "").lower()
-        if "text-align:center" in lowered or "text-align: center" in lowered:
-            return align_map.get("center", default_alignment)
-        if "text-align:right" in lowered or "text-align: right" in lowered:
-            return align_map.get("right", default_alignment)
-        if "text-align:left" in lowered or "text-align: left" in lowered:
-            return align_map.get("left", default_alignment)
-        if "text-align:justify" in lowered or "text-align: justify" in lowered:
-            return align_map.get("justify", default_alignment)
-        return default_alignment
-
-    def _add_run(paragraph: Any, text: str, *, bold: bool = False, italic: bool = False, underline: bool = False) -> None:
-        if not text:
-            return
-        run = paragraph.add_run(text)
-        run.bold = bold
-        run.italic = italic
-        run.underline = underline
-        run.font.name = docx_font
-        run.font.size = Pt(font_size)
-
-    def _walk_inline(paragraph: Any, node: Any, *, bold: bool = False, italic: bool = False, underline: bool = False) -> None:
-        tag = str(getattr(node, "tag", "") or "").lower().split("}")[-1]
-        next_bold = bold or tag in {"strong", "b"}
-        next_italic = italic or tag in {"em", "i"}
-        next_underline = underline or tag == "u"
-        if getattr(node, "text", None):
-            _add_run(paragraph, str(node.text), bold=next_bold, italic=next_italic, underline=next_underline)
-        for child in list(node):
-            child_tag = str(getattr(child, "tag", "") or "").lower().split("}")[-1]
-            if child_tag == "br":
-                paragraph.add_run().add_break()
-            else:
-                _walk_inline(paragraph, child, bold=next_bold, italic=next_italic, underline=next_underline)
-            if getattr(child, "tail", None):
-                _add_run(paragraph, str(child.tail), bold=next_bold, italic=next_italic, underline=next_underline)
-
-    def _add_paragraph(node: Any, style: str | None = None, list_style: str | None = None) -> None:
-        paragraph = document.add_paragraph(style=list_style or style)
-        paragraph.alignment = _alignment_from_style(str(node.get("style") or ""))
-        paragraph.paragraph_format.line_spacing = line_height
-        _walk_inline(paragraph, node)
-
-    def _process(node: Any) -> None:
-        tag = str(getattr(node, "tag", "") or "").lower().split("}")[-1]
-        if tag in {"h1", "h2", "h3", "h4"}:
-            _add_paragraph(node, style=f"Heading {tag[1]}")
-            return
-        if tag == "ul":
-            for li in node.findall("li"):
-                _add_paragraph(li, list_style="List Bullet")
-            return
-        if tag == "ol":
-            for li in node.findall("li"):
-                _add_paragraph(li, list_style="List Number")
-            return
-        if tag in {"p", "div", "section", "blockquote"}:
-            if len(node) == 0 and not str(getattr(node, "text", "") or "").strip():
-                document.add_paragraph("")
-            else:
-                _add_paragraph(node)
-            return
-        for child in list(node):
-            _process(child)
-
-    if body is None:
-        return
-    for child in list(body):
-        _process(child)
-
-
-def _rtf_align_command(layout: dict[str, Any] | None, *, stamp: bool = False) -> str:
-    align = str((layout or {}).get("text_align") or "justify").lower()
-    if stamp:
-        position = str((layout or {}).get("stamp_position") or "top-center").lower()
-        if position.endswith("left"):
-            return "\\qc"
-        if position.endswith("right"):
-            return "\\qc"
-        return "\\qc"
-    return {"left": "\\ql", "center": "\\qc", "right": "\\qr", "justify": "\\qj"}.get(align, "\\qj")
-
-
-class _RtfHtmlParser(HTMLParser):
-    _BLOCK_TAGS = {"p", "div", "h1", "h2", "h3", "h4", "blockquote"}
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-        self._list_stack: list[str] = []
-
-    def _paragraph(self) -> None:
-        if self.parts and not self.parts[-1].endswith("\\par\n"):
-            self.parts.append("\\par\n")
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        tag = tag.lower()
-        if tag in self._BLOCK_TAGS:
-            self._paragraph()
-            if tag in {"h1", "h2", "h3", "h4"}:
-                self.parts.append("\\b ")
-        elif tag == "br":
-            self.parts.append("\\line ")
-        elif tag in {"strong", "b"}:
-            self.parts.append("\\b ")
-        elif tag in {"em", "i"}:
-            self.parts.append("\\i ")
-        elif tag == "u":
-            self.parts.append("\\ul ")
-        elif tag in {"ul", "ol"}:
-            self._list_stack.append(tag)
-        elif tag == "li":
-            self._paragraph()
-            self.parts.append("- ")
-
-    def handle_endtag(self, tag: str) -> None:
-        tag = tag.lower()
-        if tag in {"strong", "b"}:
-            self.parts.append("\\b0 ")
-        elif tag in {"em", "i"}:
-            self.parts.append("\\i0 ")
-        elif tag == "u":
-            self.parts.append("\\ul0 ")
-        elif tag in {"h1", "h2", "h3", "h4"}:
-            self.parts.append("\\b0 ")
-            self._paragraph()
-        elif tag in self._BLOCK_TAGS or tag == "li":
-            self._paragraph()
-        elif tag in {"ul", "ol"} and self._list_stack:
-            self._list_stack.pop()
-
-    def handle_data(self, data: str) -> None:
-        if data:
-            self.parts.append(_rtf_escape(data))
-
-    def get_rtf(self) -> str:
-        return "".join(self.parts).strip()
-
-
-def _rtf_body_from_html(html: str) -> str:
-    parser = _RtfHtmlParser()
-    parser.feed(html or "")
-    parser.close()
-    return parser.get_rtf()
 
 
 def _pdf_layout_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:

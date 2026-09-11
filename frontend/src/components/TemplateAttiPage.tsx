@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes, type MouseEvent } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, Heading1, Heading2, HelpCircle, Highlighter, IndentDecrease, IndentIncrease, Italic, Layers, List, ListOrdered, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pilcrow, Plus, Printer, Quote, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
+import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Layers, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -27,7 +27,14 @@ import {
 import { displaySourceLabel } from '../displayText'
 import { csrfToken, submitFormJson } from '../formSubmit'
 import { FloatingLex } from './FloatingLex'
+import { DocumentToolbar } from './templateEditor/DocumentToolbar'
+import { cleanEditorHtml, PAGE_BREAK_HTML } from './templateEditor/editorArtifacts'
+import { PagedDocumentCanvas } from './templateEditor/PagedDocumentCanvas'
+import { isCompactViewport, isNarrowEditorViewport, useCompactLayout } from './templateEditor/useCompactLayout'
+import { useDocumentHistory } from './templateEditor/useDocumentHistory'
+import { useSelectionFormats, type BlockFormat } from './templateEditor/useSelectionFormats'
 import './TemplateAttiPage.css'
+import './templateEditor/templateEditor.css'
 
 const EDITABLE_DOM_PROPS = {
   ['content' + 'Editable']: true,
@@ -37,13 +44,6 @@ const EDITABLE_DOM_PROPS = {
 const FREE_EDITOR_MODEL_CODE = 'STR_COM_001'
 const FREE_EDITOR_URL = '/template-atti/editor'
 const FONT_SIZE_OPTIONS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28]
-const MAX_TEMPLATE_VISUAL_PAGES = 120
-const TEMPLATE_PAGE_GAP_PX = 56
-const REPEATED_STAMP_TEXT_GAP_PX = 84
-const TEMPLATE_PAGE_FRAME_HEIGHT = {
-  verticale: 1123,
-  orizzontale: 794,
-}
 
 const PLACEHOLDER_LABELS_IT: Record<string, string> = {
   appeal_court: 'GIUDICE_APPELLO',
@@ -583,8 +583,8 @@ function replaceFieldPlaceholderInHtml(html: string, field: TemplateCompilerFiel
 }
 
 function stripHtmlStampFromDraft(html: string, data: TemplateCompilerData) {
-  const text = stripFixedStampFromDraft(editorHtmlToPlainText(html), data)
-  return plainTextToEditorHtml(text)
+  const source = looksLikeEditorHtml(String(html || '')) ? String(html || '') : plainTextToEditorHtml(String(html || ''))
+  return cleanEditorHtml(source, { stampLines: data.stamp.lines.map((line) => line.text) })
 }
 
 function fontLabelByKey(data: TemplateCompilerData, key: string) {
@@ -596,16 +596,7 @@ function fontCssStackByKey(data: TemplateCompilerData, key: string) {
 }
 
 function normaliseClipboardHtml(html: string, data: TemplateCompilerData) {
-  const node = document.createElement('div')
-  node.innerHTML = html
-  node.querySelectorAll<HTMLElement>('[data-iu-page-spacer="true"]').forEach((element) => {
-    element.removeAttribute('data-iu-page-spacer')
-    element.style.removeProperty('--iu-template-page-spacer')
-    element.style.removeProperty('margin-top')
-    element.style.removeProperty('padding-top')
-    if (!element.getAttribute('style')) element.removeAttribute('style')
-  })
-  return stripHtmlStampFromDraft(node.innerHTML, data)
+  return stripHtmlStampFromDraft(html, data)
 }
 
 function fieldForPlaceholder(fields: TemplateCompilerField[], token: string) {
@@ -1606,8 +1597,6 @@ function ProfessionalTemplateEditorWorkspace({
   const [stampLineHeight, setStampLineHeight] = useState(Number(data.editorLayout.stampLineHeight || 1.16))
   const [toolbarFontKey, setToolbarFontKey] = useState(data.editorLayout.fontFamily || data.fontRegistry.defaults.document)
   const [toolbarFontSize, setToolbarFontSize] = useState(Number(data.editorLayout.fontSize || bodyFontSize || 12))
-  const [activeInlineFormats, setActiveInlineFormats] = useState<Record<string, boolean>>({})
-  const [activeBlockFormat, setActiveBlockFormat] = useState<'h1' | 'h2' | 'p' | 'blockquote'>('p')
   const [pageOrientation, setPageOrientation] = useState(data.editorLayout.pageOrientation || 'verticale')
   const [pageMargins, setPageMargins] = useState({
     top: Number(data.editorLayout.marginTop || 25),
@@ -1620,10 +1609,8 @@ function ProfessionalTemplateEditorWorkspace({
   const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
   const [auditRows, setAuditRows] = useState<string[]>([])
   const [workspaceStatus, setWorkspaceStatus] = useState('')
-  const [visualPageCount, setVisualPageCount] = useState(1)
-  const [visualPageHeight, setVisualPageHeight] = useState(784)
-  const [catalogCollapsed, setCatalogCollapsed] = useState(false)
-  const [fieldsCollapsed, setFieldsCollapsed] = useState(false)
+  const [catalogCollapsed, setCatalogCollapsed] = useState(isNarrowEditorViewport)
+  const [fieldsCollapsed, setFieldsCollapsed] = useState(isCompactViewport)
   const editorRef = useRef<HTMLDivElement>(null)
   const savedSelectionRef = useRef<Range | null>(null)
   const lastPlainDraftFromEditorRef = useRef('')
@@ -1672,49 +1659,18 @@ function ProfessionalTemplateEditorWorkspace({
     `iu-template-stamp-position--${classToken(stampPosition, 'top_center')}`,
   ].join(' ')
 
-  const isLandscape = pageOrientation === 'orizzontale'
-  const pageFrameHeight = isLandscape ? TEMPLATE_PAGE_FRAME_HEIGHT.orizzontale : TEMPLATE_PAGE_FRAME_HEIGHT.verticale
-  const pageStep = pageFrameHeight + TEMPLATE_PAGE_GAP_PX
-  const pageStackHeight = (pageFrameHeight * visualPageCount) + (TEMPLATE_PAGE_GAP_PX * Math.max(0, visualPageCount - 1))
-  const editorStackHeight = (visualPageHeight * visualPageCount) + (TEMPLATE_PAGE_GAP_PX * Math.max(0, visualPageCount - 1))
-  const visualPages = useMemo(() => Array.from({ length: Math.max(1, visualPageCount) }), [visualPageCount])
-
-  const paperRef = useRef<HTMLElement>(null)
   const stampRef = useRef<HTMLDivElement>(null)
-
-  useLayoutEffect(() => {
-    const paper = paperRef.current
-    if (!paper) return
-    const variables: Record<string, string> = {
-      '--iu-template-paper-width': isLandscape ? '70.1rem' : '49.6rem',
-      '--iu-template-paper-page-height': `${pageFrameHeight}px`,
-      '--iu-template-page-gap': `${TEMPLATE_PAGE_GAP_PX}px`,
-      '--iu-template-page-step': `${pageStep}px`,
-      '--iu-template-stack-height': `${pageStackHeight}px`,
-      '--iu-template-editor-stack-height': `${editorStackHeight}px`,
-      '--iu-template-page-padding-top': `${pageMargins.top}mm`,
-      '--iu-template-page-padding-right': `${pageMargins.right}mm`,
-      '--iu-template-page-padding-bottom': `${pageMargins.bottom}mm`,
-      '--iu-template-page-padding-left': `${pageMargins.left}mm`,
-      '--iu-template-editor-height': isLandscape ? '35rem' : '49rem',
-      '--iu-template-stamp-offset-y': `${stampOffsetY}mm`,
-      '--iu-template-stamp-font-size': `${stampFontSize}pt`,
-      '--iu-template-stamp-line-height': String(stampLineHeight),
-      '--iu-template-stamp-font-family': fontCssStackByKey(data, stampFontKey),
-    }
-    Object.entries(variables).forEach(([property, value]) => {
-      paper.style.setProperty(property, value)
-    })
-    paper.querySelectorAll<HTMLElement>('.iu-template-pro-paper__sheet').forEach((element, index) => {
-      element.style.setProperty('--iu-template-sheet-top', `${pageStep * index}px`)
-    })
-    paper.querySelectorAll<HTMLElement>('.iu-template-pro-paper__stamp--page-copy').forEach((element, index) => {
-      element.style.setProperty(
-        '--iu-template-repeat-stamp-top',
-        `calc(${pageStep * (index + 1)}px + var(--iu-template-page-padding-top) - .2rem + var(--iu-template-stamp-offset-y, 0mm))`,
-      )
-    })
-  }, [data, editorStackHeight, isLandscape, pageFrameHeight, pageMargins, pageStackHeight, pageStep, stampFontKey, stampFontSize, stampLineHeight, stampOffsetY])
+  const layoutKey = [documentFont, headingFont, placeholderFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign].join('|')
+  const stampLines = useMemo(() => data.stamp.lines.map((line) => ({ text: line.text, bold: Boolean(line.bold) })), [data.stamp.lines])
+  const collapseDrawersOnCompact = useCallback((compact: boolean) => {
+    if (!compact) return
+    setCatalogCollapsed(true)
+    setFieldsCollapsed(true)
+  }, [])
+  const compactLayout = useCompactLayout(collapseDrawersOnCompact)
+  const { formats: selectionFormats, refresh: refreshSelectionFormats } = useSelectionFormats(editorRef)
+  const syncAfterHistoryRef = useRef<() => void>(() => undefined)
+  const documentHistory = useDocumentHistory(editorRef, () => syncAfterHistoryRef.current())
 
   useEffect(() => {
     const values: Record<string, string> = {}
@@ -1746,8 +1702,11 @@ function ProfessionalTemplateEditorWorkspace({
     const editor = editorRef.current
     if (!editor) return
     if (baseDraftText === lastPlainDraftFromEditorRef.current && editor.innerHTML.trim()) return
+    const hadDocument = Boolean(lastPlainDraftFromEditorRef.current)
     editor.innerHTML = draftToEditorHtml(baseDraftText)
     lastPlainDraftFromEditorRef.current = editorHtmlToPlainText(editor.innerHTML)
+    if (hadDocument) documentHistory.recordReplacement()
+    else documentHistory.reset()
   }, [baseDraftText, data.model.code])
 
   useEffect(() => {
@@ -1774,165 +1733,11 @@ function ProfessionalTemplateEditorWorkspace({
     })
   }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, pageOrientation, pageMargins, stampPosition, stampOffsetY, stampFontKey, stampFontSize, stampLineHeight, data.model.code])
 
-  useEffect(() => {
-    stampRef.current?.style.setProperty('--iu-template-stamp-offset-y', `${stampOffsetY}mm`)
-  }, [stampOffsetY])
-
-  useEffect(() => {
-    const editor = editorRef.current
-    const shell = editor?.closest('.iu-template-pro-paper__body-shell') as HTMLElement | null
-    const paper = editor?.closest('.iu-template-pro-paper') as HTMLElement | null
-    if (!editor || !shell) return undefined
-
-    let frame = 0
-    const recalcPages = () => {
-      window.cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(() => {
-        const paperStyle = paper ? window.getComputedStyle(paper) : null
-        const shellStyle = window.getComputedStyle(shell)
-        const editorStyle = window.getComputedStyle(editor)
-        const paperPaddingTop = Number.parseFloat(paperStyle?.paddingTop || '0') || 0
-        const paperPaddingBottom = Number.parseFloat(paperStyle?.paddingBottom || '0') || 0
-        const shellMarginTop = Number.parseFloat(shellStyle.marginTop || '0') || 0
-        const editorPaddingTop = Number.parseFloat(editorStyle.paddingTop || '0') || 0
-        const footerReserve = 42
-        const baseHeight = pageFrameHeight - paperPaddingTop - paperPaddingBottom - shellMarginTop - editorPaddingTop - footerReserve
-        const pageHeight = Math.max(420, baseHeight)
-        const pageGap = TEMPLATE_PAGE_GAP_PX
-        const pageStride = pageFrameHeight + pageGap
-        const estimateVisualPageCount = (contentHeight: number) => {
-          if (contentHeight <= pageHeight) return 1
-          return Math.min(MAX_TEMPLATE_VISUAL_PAGES, Math.max(1, Math.ceil((contentHeight - pageHeight) / pageStride) + 1))
-        }
-        const clearPageSpacers = () => {
-          editor.querySelectorAll<HTMLElement>('[data-iu-page-spacer="true"]').forEach((element) => {
-            element.removeAttribute('data-iu-page-spacer')
-            element.style.removeProperty('--iu-template-page-spacer')
-            element.style.removeProperty('margin-top')
-            element.style.removeProperty('padding-top')
-          })
-        }
-        const hasMeaningfulBlockContent = (block: HTMLElement) => (
-          (block.textContent || '').replace(/\u00a0/g, ' ').trim().length > 0
-          || Array.from(block.children).some((child) => child.tagName !== 'BR' && (child.textContent || '').replace(/\u00a0/g, ' ').trim().length > 0)
-        )
-        const getEditorBlocks = () => Array.from(editor.querySelectorAll<HTMLElement>(':scope > p,:scope > h1,:scope > h2,:scope > h3,:scope > h4,:scope > h5,:scope > h6,:scope > ul,:scope > ol,:scope > blockquote,:scope > div'))
-          .filter(hasMeaningfulBlockContent)
-        const measureEditorContentHeight = () => {
-          const measure = editor.cloneNode(true) as HTMLElement
-          measure.removeAttribute('contenteditable')
-          measure.removeAttribute('data-testid')
-          measure.setAttribute('aria-hidden', 'true')
-          measure.querySelectorAll<HTMLElement>('[data-iu-page-spacer="true"]').forEach((element) => {
-            element.removeAttribute('data-iu-page-spacer')
-            element.style.removeProperty('--iu-template-page-spacer')
-            element.style.removeProperty('margin-top')
-            element.style.removeProperty('padding-top')
-          })
-          measure.style.height = 'auto'
-          measure.style.left = '-10000px'
-          measure.style.maxHeight = 'none'
-          measure.style.minHeight = '0px'
-          measure.style.overflow = 'visible'
-          measure.style.pointerEvents = 'none'
-          measure.style.position = 'absolute'
-          measure.style.top = '0'
-          measure.style.visibility = 'hidden'
-          measure.style.width = `${editor.clientWidth || editor.getBoundingClientRect().width}px`
-          ;(paper || document.body).appendChild(measure)
-          const contentHeight = Math.max(measure.scrollHeight, pageHeight)
-          measure.remove()
-          return contentHeight
-        }
-        const applyRepeatedPageSpacing = (initialPageCount: number) => {
-          clearPageSpacers()
-          if (!paper || !data.stamp.lines.length || initialPageCount <= 1) {
-            return initialPageCount
-          }
-          let expectedCount = initialPageCount
-          const naturalContentHeight = measureEditorContentHeight()
-          for (let iteration = 0; iteration < 4; iteration += 1) {
-            clearPageSpacers()
-            const paperRect = paper.getBoundingClientRect()
-            const stampRect = stampRef.current?.getBoundingClientRect()
-            const stampHeight = Math.max(0, stampRect ? stampRect.height : 0)
-            const contentTop = paperPaddingTop + shellMarginTop + editorPaddingTop
-            const safeHeaderBottom = Math.max(contentTop, paperPaddingTop + stampHeight + REPEATED_STAMP_TEXT_GAP_PX)
-            const naturalBlocks = getEditorBlocks().map((block) => {
-              const rect = block.getBoundingClientRect()
-              return {
-                block,
-                bottom: rect.bottom - paperRect.top,
-                top: rect.top - paperRect.top,
-              }
-            })
-            const desired = new Map<HTMLElement, number>()
-            let accumulatedPageShift = 0
-            for (const item of naturalBlocks) {
-              if (desired.has(item.block)) continue
-              const shiftedTop = item.top + accumulatedPageShift
-              const shiftedBottom = item.bottom + accumulatedPageShift
-              const pageIndex = Math.max(0, Math.floor(Math.max(0, shiftedTop) / pageStride))
-              const pageStart = pageStride * pageIndex
-              const pageFrameBottom = pageStart + pageFrameHeight
-              const pageSafeContentTop = pageStart + (pageIndex > 0 ? safeHeaderBottom : contentTop)
-              const pageContentBottom = pageStart + contentTop + pageHeight
-              const blockHeight = Math.max(0, shiftedBottom - shiftedTop)
-              const isInsideHeader = pageIndex > 0 && shiftedTop < pageSafeContentTop
-              const isInsideFooterOrGap = shiftedTop >= pageContentBottom && shiftedTop < pageStart + pageStride
-              const crossesWritableBottom = shiftedTop < pageContentBottom && shiftedBottom > pageContentBottom
-              const fitsOnFreshPage = blockHeight <= Math.max(160, pageHeight - (safeHeaderBottom - contentTop) - 24)
-              const shouldKeepBlockReadable = crossesWritableBottom && fitsOnFreshPage
-              const isInPhysicalGap = shiftedTop >= pageFrameBottom && shiftedTop < pageStart + pageStride
-              const targetTop = isInsideFooterOrGap || shouldKeepBlockReadable || isInPhysicalGap
-                ? ((pageIndex + 1) * pageStride) + safeHeaderBottom
-                : isInsideHeader
-                  ? pageSafeContentTop
-                  : shiftedTop
-              const pageShift = Math.max(0, targetTop - shiftedTop)
-              if (pageShift <= 0.5) continue
-              desired.set(item.block, pageShift)
-              accumulatedPageShift += pageShift
-            }
-            desired.forEach((value, block) => {
-              block.setAttribute('data-iu-page-spacer', 'true')
-              const spacerValue = `${Math.max(0, value)}px`
-              block.style.setProperty('--iu-template-page-spacer', spacerValue)
-              block.style.removeProperty('margin-top')
-              block.style.removeProperty('padding-top')
-            })
-            const measuredCount = estimateVisualPageCount(naturalContentHeight + accumulatedPageShift)
-            if (measuredCount === expectedCount) return expectedCount
-            expectedCount = measuredCount
-          }
-          return expectedCount
-        }
-        const contentHeight = measureEditorContentHeight()
-        const measuredPageCount = estimateVisualPageCount(contentHeight)
-        const settledPageCount = applyRepeatedPageSpacing(measuredPageCount)
-        setVisualPageHeight(pageHeight)
-        setVisualPageCount(settledPageCount)
-      })
-    }
-
-    const resizeObserver = new ResizeObserver(recalcPages)
-    resizeObserver.observe(editor)
-    const mutationObserver = new MutationObserver(recalcPages)
-    mutationObserver.observe(editor, { childList: true, subtree: true, characterData: true })
-    window.addEventListener('resize', recalcPages)
-    recalcPages()
-
-    return () => {
-      window.cancelAnimationFrame(frame)
-      resizeObserver.disconnect()
-      mutationObserver.disconnect()
-      window.removeEventListener('resize', recalcPages)
-    }
-  }, [baseDraftText, data.model.code, data.stamp.lines.length, pageOrientation, pageMargins, bodyFontSize, bodyLineHeight, stampOffsetY, stampFontSize, stampLineHeight])
-
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
     onToolSelect(tab)
+    setFieldsCollapsed(false)
+    if (compactLayout) setCatalogCollapsed(true)
     window.requestAnimationFrame(() => {
       if (panelRef.current) panelRef.current.scrollTop = 0
     })
@@ -1942,11 +1747,13 @@ function ProfessionalTemplateEditorWorkspace({
     const previousValue = fieldValues[field.name] || fieldDisplayValue(field)
     const editor = editorRef.current
     if (editor) {
-      const nextHtml = replaceFieldPlaceholderInHtml(editor.innerHTML, field, value, previousValue)
-      if (nextHtml !== editor.innerHTML) {
+      const currentHtml = cleanEditorHtml(editor.innerHTML)
+      const nextHtml = replaceFieldPlaceholderInHtml(currentHtml, field, value, previousValue)
+      if (nextHtml !== currentHtml) {
         editor.innerHTML = nextHtml
         lastPlainDraftFromEditorRef.current = editorHtmlToPlainText(nextHtml)
         onDraftTextChange(lastPlainDraftFromEditorRef.current)
+        documentHistory.scheduleCommit()
       }
     }
     setFieldValues((current) => ({ ...current, [field.name]: value }))
@@ -2007,95 +1814,20 @@ function ProfessionalTemplateEditorWorkspace({
     lastPlainDraftFromEditorRef.current = plain
     onDraftTextChange(plain)
     saveSelection()
-    if (status) setWorkspaceStatus(status)
-  }
-
-  const focusEditorAtEnd = () => {
-    const editor = editorRef.current
-    if (!editor) return
-    editor.focus()
-    const selection = window.getSelection()
-    if (!selection) return
-    const range = document.createRange()
-    range.selectNodeContents(editor)
-    range.collapse(false)
-    selection.removeAllRanges()
-    selection.addRange(range)
-    savedSelectionRef.current = range.cloneRange()
-  }
-
-  const createCaretRangeFromPoint = (editor: HTMLElement, clientX: number, clientY: number) => {
-    const documentAtPoint = editor.ownerDocument
-    const target = documentAtPoint.elementFromPoint(clientX, clientY)
-    const targetElement = target && editor.contains(target) ? target as Element : editor
-    const searchRoot = targetElement.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,div') || targetElement
-    const root = editor.contains(searchRoot) ? searchRoot : editor
-    const walker = documentAtPoint.createTreeWalker(
-      root,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          return (node.textContent || '').trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
-        },
-      },
-    )
-    const probe = documentAtPoint.createRange()
-    let best: { node: Text; offset: number; score: number } | null = null
-    let current = walker.nextNode() as Text | null
-    while (current) {
-      const text = current.textContent || ''
-      const limit = Math.min(text.length, 1200)
-      for (let index = 0; index < limit; index += 1) {
-        probe.setStart(current, index)
-        probe.setEnd(current, Math.min(index + 1, text.length))
-        const rect = Array.from(probe.getClientRects())[0]
-        if (!rect) continue
-        const outsideX = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0
-        const outsideY = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0
-        const score = (outsideY * 1000) + outsideX
-        if (!best || score < best.score) {
-          const offset = clientX > rect.left + (rect.width / 2) ? index + 1 : index
-          best = { node: current, offset, score }
-        }
-      }
-      current = walker.nextNode() as Text | null
+    refreshSelectionFormats()
+    if (status) {
+      documentHistory.commitNow()
+      setWorkspaceStatus(status)
+    } else {
+      documentHistory.scheduleCommit()
     }
-    probe.detach()
-    const range = documentAtPoint.createRange()
-    if (best) {
-      range.setStart(best.node, best.offset)
-      range.collapse(true)
-      return range
-    }
-    range.selectNodeContents(root)
-    range.collapse(false)
-    return range
   }
-
-  const placeEditorCaretFromMouse = (event: MouseEvent<HTMLElement>) => {
-    const editor = editorRef.current
-    const target = event.target as Node | null
-    if (!editor || !target || !editor.contains(target)) return
-    const selection = window.getSelection()
-    if (!selection) return
-    if (selection.rangeCount > 0 && !selection.isCollapsed) {
-      const selectedRange = selection.getRangeAt(0)
-      if (editor.contains(selectedRange.commonAncestorContainer)) {
-        savedSelectionRef.current = selectedRange.cloneRange()
-        return
-      }
-    }
-    const range = createCaretRangeFromPoint(editor, event.clientX, event.clientY)
-    selection.removeAllRanges()
-    selection.addRange(range)
-    savedSelectionRef.current = range.cloneRange()
-  }
-
-  const focusEditorFromPaper = (event: MouseEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement | null
-    if (!target) return
-    if (target.closest('button,a,input,select,textarea,[contenteditable="true"]')) return
-    focusEditorAtEnd()
+  syncAfterHistoryRef.current = () => {
+    const plain = editorPlainText()
+    lastPlainDraftFromEditorRef.current = plain
+    onDraftTextChange(plain)
+    saveSelection()
+    refreshSelectionFormats()
   }
 
   const setEditorContentFromText = (text: string, status?: string) => {
@@ -2107,6 +1839,7 @@ function ProfessionalTemplateEditorWorkspace({
     }
     lastPlainDraftFromEditorRef.current = editorHtmlToPlainText(html)
     onDraftTextChange(lastPlainDraftFromEditorRef.current)
+    documentHistory.recordReplacement()
     if (status) setWorkspaceStatus(status)
   }
 
@@ -2281,9 +2014,16 @@ function ProfessionalTemplateEditorWorkspace({
       insertOrderedList: 'Elenco numerato applicato alla selezione.',
       indent: 'Rientro aumentato.',
       outdent: 'Rientro ridotto.',
-      undo: 'Ultima modifica annullata.',
-      redo: 'Modifica ripristinata.',
     }
+    if (command === 'undo') {
+      if (documentHistory.undo()) setWorkspaceStatus('Ultima modifica annullata.')
+      return
+    }
+    if (command === 'redo') {
+      if (documentHistory.redo()) setWorkspaceStatus('Modifica ripristinata.')
+      return
+    }
+    documentHistory.commitNow()
     if (command === 'justifyLeft' || command === 'justifyCenter' || command === 'justifyRight' || command === 'justifyFull') {
       const nextAlign = command === 'justifyLeft'
         ? 'left'
@@ -2298,37 +2038,85 @@ function ProfessionalTemplateEditorWorkspace({
       return
     }
     restoreSelection()
-    if (command === 'formatBlock:h1' || command === 'formatBlock:h2' || command === 'formatBlock:p' || command === 'formatBlock:blockquote') {
-      const block = command.split(':')[1] as 'h1' | 'h2' | 'p' | 'blockquote'
+    if (command.startsWith('formatBlock:')) {
+      const block = command.split(':')[1] as BlockFormat
       document.execCommand('formatBlock', false, block)
-      setActiveBlockFormat(block)
-      syncEditorToDraft(block === 'p' ? 'Paragrafo applicato alla selezione.' : 'Stile blocco applicato alla selezione.')
-      return
-    }
-    if (command === 'hiliteColor') {
-      const nextActive = !activeInlineFormats.hiliteColor
-      document.execCommand('hiliteColor', false, nextActive ? 'rgb(255, 242, 194)' : 'transparent')
-      setActiveInlineFormats((current) => ({ ...current, hiliteColor: nextActive }))
-      syncEditorToDraft(nextActive ? 'Evidenziazione attiva per la selezione o il testo successivo.' : 'Evidenziazione disattivata.')
-      return
-    }
-    if (command === 'insertHorizontalRule') {
-      insertEditorHtml('<p><br></p>', 'Spazio paragrafo inserito.')
+      syncEditorToDraft(block === 'p' ? 'Stile Normale applicato al paragrafo.' : 'Stile paragrafo applicato alla selezione.')
       return
     }
     document.execCommand(command, false)
-    if (command === 'bold' || command === 'italic' || command === 'underline' || command === 'strikeThrough') {
-      const nextActive = !activeInlineFormats[command]
-      setActiveInlineFormats((current) => ({ ...current, [command]: nextActive }))
-      syncEditorToDraft(
-        nextActive
-          ? `${labels[command].replace('applicato alla selezione.', 'attivo per la selezione o il testo successivo.')}`
-          : `${labels[command].replace('applicato alla selezione.', 'disattivato.')}`,
-      )
-      return
-    }
     syncEditorToDraft(labels[command] || 'Comando applicato alla selezione.')
   }
+
+  const applyTextColor = (color: string) => {
+    documentHistory.commitNow()
+    restoreSelection()
+    document.execCommand('styleWithCSS', false, 'true')
+    document.execCommand('foreColor', false, color)
+    document.execCommand('styleWithCSS', false, 'false')
+    syncEditorToDraft('Colore del testo applicato alla selezione.')
+  }
+
+  const applyHighlight = (color: string) => {
+    documentHistory.commitNow()
+    restoreSelection()
+    document.execCommand('styleWithCSS', false, 'true')
+    document.execCommand('hiliteColor', false, color)
+    document.execCommand('styleWithCSS', false, 'false')
+    syncEditorToDraft(color === 'transparent' ? 'Evidenziazione rimossa.' : 'Evidenziazione applicata alla selezione.')
+  }
+
+  const insertPageBreak = () => {
+    documentHistory.commitNow()
+    restoreSelection()
+    document.execCommand('insertHTML', false, PAGE_BREAK_HTML)
+    syncEditorToDraft('Interruzione di pagina inserita: il testo successivo inizia sulla pagina seguente.')
+  }
+
+  const clearFormatting = () => {
+    documentHistory.commitNow()
+    restoreSelection()
+    document.execCommand('removeFormat', false)
+    document.execCommand('formatBlock', false, 'p')
+    syncEditorToDraft('Formattazione rimossa: il testo torna allo stile Normale.')
+  }
+
+  const handleEditorKeyDown = useCallback((event: KeyboardEvent) => {
+    const modifier = event.ctrlKey || event.metaKey
+    const key = event.key.toLowerCase()
+    if (modifier && !event.altKey && (key === 'z' || key === 'y')) {
+      event.preventDefault()
+      if (key === 'y' || event.shiftKey) documentHistory.redo()
+      else documentHistory.undo()
+      return
+    }
+    if (event.key === 'Tab' && !modifier && !event.altKey) {
+      const selection = document.getSelection()
+      const anchor = selection?.anchorNode
+      const element = anchor && anchor.nodeType === Node.ELEMENT_NODE ? anchor as Element : anchor?.parentElement
+      event.preventDefault()
+      documentHistory.commitNow()
+      if (element?.closest('li')) {
+        document.execCommand(event.shiftKey ? 'outdent' : 'indent', false)
+      } else if (!event.shiftKey) {
+        document.execCommand('insertText', false, '\u00a0\u00a0\u00a0\u00a0')
+      }
+    }
+  }, [documentHistory])
+
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor) return undefined
+    const onBeforeInput = (event: InputEvent) => {
+      if (event.inputType === 'historyUndo' || event.inputType === 'historyRedo') {
+        event.preventDefault()
+        if (event.inputType === 'historyUndo') documentHistory.undo()
+        else documentHistory.redo()
+      }
+    }
+    editor.addEventListener('beforeinput', onBeforeInput)
+    return () => editor.removeEventListener('beforeinput', onBeforeInput)
+  }, [documentHistory])
 
   const applyFontSelection = (fontKey: string) => {
     setToolbarFontKey(fontKey)
@@ -2338,6 +2126,7 @@ function ProfessionalTemplateEditorWorkspace({
       return
     }
     if (hasEditorSelection()) {
+      documentHistory.commitNow()
       restoreSelection()
       document.execCommand('fontName', false, fontLabelByKey(data, fontKey))
       syncEditorToDraft('Font applicato alla selezione.')
@@ -2355,6 +2144,7 @@ function ProfessionalTemplateEditorWorkspace({
       return
     }
     if (hasEditorSelection()) {
+      documentHistory.commitNow()
       restoreSelection()
       document.execCommand('fontSize', false, '4')
       const selection = window.getSelection()
@@ -2528,30 +2318,6 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const panelTabs: TemplateEditorTab[] = TEMPLATE_EDITOR_TABS
-  const inlineTools = [
-    { label: 'Catalogo template atti', icon: ArrowLeft, action: () => window.location.assign(data.catalogHref || '/template-atti/catalogo') },
-    { label: 'Titolo principale', icon: Heading1, action: () => applyFormat('formatBlock:h1'), active: activeBlockFormat === 'h1' },
-    { label: 'Titolo sezione', icon: Heading2, action: () => applyFormat('formatBlock:h2'), active: activeBlockFormat === 'h2' },
-    { label: 'Paragrafo', icon: Pilcrow, action: () => applyFormat('formatBlock:p'), active: activeBlockFormat === 'p' },
-    { label: 'Grassetto', icon: Bold, action: () => applyFormat('bold'), active: Boolean(activeInlineFormats.bold) },
-    { label: 'Corsivo', icon: Italic, action: () => applyFormat('italic'), active: Boolean(activeInlineFormats.italic) },
-    { label: 'Sottolineato', icon: Underline, action: () => applyFormat('underline'), active: Boolean(activeInlineFormats.underline) },
-    { label: 'Barrato', icon: Strikethrough, action: () => applyFormat('strikeThrough'), active: Boolean(activeInlineFormats.strikeThrough) },
-    { label: 'Evidenzia', icon: Highlighter, action: () => applyFormat('hiliteColor'), active: Boolean(activeInlineFormats.hiliteColor) },
-    { label: 'Allinea a sinistra', icon: AlignLeft, action: () => applyFormat('justifyLeft'), active: textAlign === 'left' },
-    { label: 'Centra', icon: AlignCenter, action: () => applyFormat('justifyCenter'), active: textAlign === 'center' },
-    { label: 'Allinea a destra', icon: AlignRight, action: () => applyFormat('justifyRight'), active: textAlign === 'right' },
-    { label: 'Giustifica', icon: AlignJustify, action: () => applyFormat('justifyFull'), active: textAlign === 'justify' },
-    { label: 'Elenco puntato', icon: List, action: () => applyFormat('insertUnorderedList') },
-    { label: 'Elenco numerato', icon: ListOrdered, action: () => applyFormat('insertOrderedList') },
-    { label: 'Riduci rientro', icon: IndentDecrease, action: () => applyFormat('outdent') },
-    { label: 'Aumenta rientro', icon: IndentIncrease, action: () => applyFormat('indent') },
-    { label: 'Citazione', icon: Quote, action: () => applyFormat('formatBlock:blockquote') },
-    { label: 'Annulla', icon: Undo2, action: () => applyFormat('undo') },
-    { label: 'Ripristina', icon: Redo2, action: () => applyFormat('redo') },
-    { label: 'Segnaposto', icon: Code2, action: () => setTab('Campi'), active: activeTab === 'Campi' },
-  ]
-
   return (
     <section className={editorClassName} aria-label="Editor professionale template atti">
       <header className="iu-template-pro-topbar">
@@ -2595,33 +2361,47 @@ function ProfessionalTemplateEditorWorkspace({
           </button>
         </div>
       </header>
-      <div className="iu-template-pro-toolbar" aria-label="Barra strumenti documento">
-        <select aria-label="Font testo selezionato" value={toolbarFontKey} onChange={(event) => applyFontSelection(event.currentTarget.value)}>
-          {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
-        </select>
-        <select aria-label="Dimensione testo selezionato" value={toolbarFontSize} onChange={(event) => applySizeSelection(Number(event.currentTarget.value))}>
-          {FONT_SIZE_OPTIONS.map((size) => <option value={size} key={size}>{size}pt</option>)}
-        </select>
-        <div className="iu-template-pro-toolbar__icons">
-          {inlineTools.map((tool) => {
-            const Icon = tool.icon
-            return (
-              <button type="button" className={tool.active ? 'is-active' : ''} title={tool.label} aria-label={tool.label} aria-pressed={Boolean(tool.active)} key={tool.label} onMouseDown={(event) => event.preventDefault()} onClick={tool.action}>
-                <Icon size={15} aria-hidden="true" />
-              </button>
-            )
-          })}
-        </div>
-        <span className="iu-template-pro-toolbar__spacer" />
-        <span className="iu-template-pro-toolbar__hint">Campi variabili</span>
-        <button type="button" className="iu-template-pro-toolbar__panel" title="Mostra campi" onClick={() => setTab('Campi')}>
-          <Columns3 size={15} aria-hidden="true" />
-        </button>
-        <button type="button" className="iu-template-pro-print-button" title="Stampa documento" onClick={() => { setWorkspaceStatus('Apro la finestra di stampa del browser.'); window.print() }}>
-          <Printer size={15} aria-hidden="true" />
-          Stampa
-        </button>
-      </div>
+      <DocumentToolbar
+        fonts={data.fontRegistry.fonts}
+        fontKey={toolbarFontKey}
+        fontSizes={FONT_SIZE_OPTIONS}
+        fontSize={selectionFormats.fontSizePt && FONT_SIZE_OPTIONS.includes(selectionFormats.fontSizePt) ? selectionFormats.fontSizePt : toolbarFontSize}
+        formats={selectionFormats}
+        documentAlign={textAlign}
+        lineHeight={bodyLineHeight}
+        canUndo={documentHistory.canUndo}
+        canRedo={documentHistory.canRedo}
+        catalogOpen={!catalogCollapsed}
+        panelOpen={!fieldsCollapsed}
+        placeholdersActive={activeTab === 'Campi' && !fieldsCollapsed}
+        onUndo={() => applyFormat('undo')}
+        onRedo={() => applyFormat('redo')}
+        onBlockFormat={(block) => applyFormat(`formatBlock:${block}`)}
+        onFont={applyFontSelection}
+        onFontSize={applySizeSelection}
+        onCommand={applyFormat}
+        onTextColor={applyTextColor}
+        onHighlight={applyHighlight}
+        onLineHeight={(value) => {
+          onBodyLineHeightChange(value)
+          setWorkspaceStatus(`Interlinea del documento impostata a ${value.toLocaleString('it-IT')}.`)
+        }}
+        onPageBreak={insertPageBreak}
+        onClearFormatting={clearFormatting}
+        onPlaceholders={() => setTab('Campi')}
+        onToggleCatalog={() => {
+          setCatalogCollapsed((value) => !value)
+          if (compactLayout) setFieldsCollapsed(true)
+        }}
+        onTogglePanel={() => {
+          setFieldsCollapsed((value) => !value)
+          if (compactLayout) setCatalogCollapsed(true)
+        }}
+        onPrint={() => {
+          setWorkspaceStatus('Apro la finestra di stampa del browser.')
+          window.print()
+        }}
+      />
       {statusText ? <p className="iu-template-pro-status" role="status">{statusText}</p> : null}
       <div className={[
         'iu-template-pro-layout',
@@ -2663,70 +2443,35 @@ function ProfessionalTemplateEditorWorkspace({
           <footer>{visibleTemplates.length} template disponibili</footer>
           </div>
         </aside>
-        <main className="iu-template-pro-canvas">
-          <article ref={paperRef} className={paperClassName} onClick={focusEditorFromPaper}>
-            <div className="iu-template-pro-paper__sheets" aria-hidden="true">
-              {visualPages.map((_, index) => (
-                <div
-                  className="iu-template-pro-paper__sheet"
-                  key={`page-sheet-${index + 1}`}
-                >
-                  <div className="iu-template-pro-paper__margin-guide" />
-                  <footer className="iu-template-pro-paper__page-footer">
-                    <span>Pagina {index + 1}</span>
-                    <span>{index > 0 && data.stamp.lines.length ? 'Timbro studio riportato.' : 'Formato documento A4.'}</span>
-                  </footer>
-                </div>
-              ))}
-            </div>
-            <div
-              ref={stampRef}
-              className="iu-template-pro-paper__stamp"
-              {...EDITABLE_DOM_PROPS}
-              spellCheck={false}
-              tabIndex={0}
-              onBlur={saveSelection}
-              onKeyUp={saveSelection}
-              onMouseUp={saveSelection}
-            >
-              {data.stamp.lines.length ? data.stamp.lines.map((line, index) => (
-                <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
-              )) : null}
-            </div>
-            {data.stamp.lines.length ? Array.from({ length: Math.max(0, visualPageCount - 1) }).map((_, index) => (
-              <div
-                aria-hidden="true"
-                className="iu-template-pro-paper__stamp iu-template-pro-paper__stamp--page-copy"
-                key={`stamp-copy-${index + 2}`}
-              >
-                {data.stamp.lines.map((line, lineIndex) => (
-                  <span className={line.bold ? 'is-bold' : ''} key={`copy-${index}-${line.text}-${lineIndex}`}>{line.text}</span>
-                ))}
-              </div>
-            )) : null}
-            <div className="iu-template-pro-paper__body-shell">
-              <div
-                ref={editorRef}
-                className="iu-template-pro-paper__body"
-                {...EDITABLE_DOM_PROPS}
-                spellCheck
-                data-placeholder={documentPlaceholder}
-                data-testid="professional-template-editor"
-                role="textbox"
-                aria-multiline="true"
-                onInput={() => syncEditorToDraft()}
-                onKeyUp={saveSelection}
-                onMouseUp={(event) => {
-                  placeEditorCaretFromMouse(event)
-                  saveSelection()
-                }}
-                onBlur={saveSelection}
-                onFocus={saveSelection}
-                aria-label="Corpo documento modificabile"
-              />
-            </div>
-          </article>
-        </main>
+        {compactLayout && (!catalogCollapsed || !fieldsCollapsed) ? (
+          <button
+            type="button"
+            className="iu-template-pro-scrim"
+            aria-label="Chiudi pannello laterale"
+            onClick={() => {
+              setCatalogCollapsed(true)
+              setFieldsCollapsed(true)
+            }}
+          />
+        ) : null}
+        <PagedDocumentCanvas
+          editorRef={editorRef}
+          stampRef={stampRef}
+          paperClassName={paperClassName}
+          orientation={pageOrientation === 'orizzontale' ? 'orizzontale' : 'verticale'}
+          margins={pageMargins}
+          stampLines={stampLines}
+          stampPosition={stampPosition}
+          stampOffsetMm={stampOffsetY}
+          stampFontFamily={fontCssStackByKey(data, stampFontKey)}
+          stampFontSizePt={stampFontSize}
+          stampLineHeight={stampLineHeight}
+          layoutKey={layoutKey}
+          placeholder={documentPlaceholder}
+          onEditorInput={() => syncEditorToDraft()}
+          onSelectionSave={saveSelection}
+          onEditorKeyDown={handleEditorKeyDown}
+        />
         <aside className={`iu-template-pro-fields${fieldsCollapsed ? ' is-collapsed' : ''}`} aria-label="Pannello editor template">
           <header>
             <div>
@@ -3572,6 +3317,10 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       margin_left_mm: guideEditorLayoutRef.current.marginLeft || data.editorLayout.marginLeft || 32,
       stamp_position: guideEditorLayoutRef.current.stampPosition || data.editorLayout.stampPosition || 'top-center',
       stamp_offset_y_mm: Number(guideEditorLayoutRef.current.stampOffsetY ?? data.editorLayout.stampOffsetY ?? 0),
+      stamp_font_family: guideEditorLayoutRef.current.stampFontFamily || data.editorLayout.stampFontFamily || data.fontRegistry.defaults.placeholder,
+      stamp_font_size_pt: Number(guideEditorLayoutRef.current.stampFontSize || data.editorLayout.stampFontSize || 8),
+      stamp_line_height: Number(guideEditorLayoutRef.current.stampLineHeight || data.editorLayout.stampLineHeight || 1.16),
+      stamp_anchor: 'page_margin',
       page_scale: data.guidePreview.editorLayout.pageScale || 100,
     }))
     formData.set('id_fascicolo', data.selectors.selectedFascicoloId)

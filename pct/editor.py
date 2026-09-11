@@ -859,11 +859,11 @@ def html_to_pdf(
     """
     try:
         from reportlab.platypus import (
-            SimpleDocTemplate, Paragraph, Spacer,
+            SimpleDocTemplate, Paragraph, Spacer, PageBreak,
             Table, TableStyle, HRFlowable, ListFlowable, ListItem, Image as RLImage,
         )
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib.units import cm
         from reportlab.lib import colors
         from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT, TA_LEFT
@@ -893,13 +893,29 @@ def html_to_pdf(
         }
         font_meta = {"pdf_family": "times"}
 
-    try:
-        from pct.legal_layout_profiles import make_pdf_stamp_callback, top_margin_with_stamp
+    editor_page_setup = None
+    stamp_callback = None
+    if layout_cfg.get("stamp_anchor") == "page_margin":
+        # Layout dall'editor atti: pagina, margini e timbro come nei fogli dell'editor.
+        try:
+            from pct.template_atti_page_setup import page_setup_from_layout, stamp_lines_from_timbro
+            from pct.template_atti_pdf import make_editor_stamp_callback
 
-        stamp_callback = make_pdf_stamp_callback(studio_timbro, layout_profile, layout_cfg)
-        layout_cfg["margin_top_mm"] = top_margin_with_stamp(layout_cfg, studio_timbro)
-    except Exception:
-        stamp_callback = None
+            editor_page_setup = page_setup_from_layout(layout_cfg)
+            editor_stamp_lines = stamp_lines_from_timbro(studio_timbro)
+            stamp_callback = make_editor_stamp_callback(editor_stamp_lines, editor_page_setup)
+            layout_cfg["margin_top_mm"] = editor_page_setup.body_top_mm(len(editor_stamp_lines))
+        except Exception:
+            editor_page_setup = None
+            stamp_callback = None
+    if editor_page_setup is None:
+        try:
+            from pct.legal_layout_profiles import make_pdf_stamp_callback, top_margin_with_stamp
+
+            stamp_callback = make_pdf_stamp_callback(studio_timbro, layout_profile, layout_cfg)
+            layout_cfg["margin_top_mm"] = top_margin_with_stamp(layout_cfg, studio_timbro)
+        except Exception:
+            stamp_callback = None
 
     pdf_family = (font_meta.get("pdf_family") or "times").lower()
     font_bundle = {
@@ -928,6 +944,7 @@ def html_to_pdf(
         "bold_italic": "Times-BoldItalic",
     })
 
+    page_size = landscape(A4) if layout_cfg.get("page_orientation") == "orizzontale" else A4
     font_size = layout_cfg["font_size_pt"]
     leading = round(font_size * layout_cfg["line_height"], 1)
     paragraph_spacing = layout_cfg["paragraph_spacing_pt"]
@@ -999,24 +1016,38 @@ def html_to_pdf(
         body = None
 
     # ── Conversione nodo → testo reportlab rich text ─────────
+    def _rich_text(value: Optional[str]) -> str:
+        return (value or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     def _node_to_rich(el) -> str:
         """Converte un elemento HTML in markup reportlab (para XML)."""
-        tag = (el.tag or "").lower().split("}")[-1]
-        text = (el.text or "")
-        parts = [text]
+        parts = [_rich_text(el.text)]
         for child in el:
-            child_tag = (child.tag or "").lower().split("}")[-1]
+            child_tag = (child.tag or "").lower().split("}")[-1] if isinstance(child.tag, str) else ""
+            if not child_tag:
+                if child.tail:
+                    parts.append(_rich_text(child.tail))
+                continue
             inner = _node_to_rich(child)
-            if child_tag in ("strong", "b"):
+            style = (child.get("style") or "").lower().replace(" ", "")
+            if child_tag == "br":
+                parts.append("<br/>")
+            elif child_tag in ("strong", "b") or "font-weight:bold" in style or re.search(r"font-weight:[6-9]00", style):
                 parts.append(f"<b>{inner}</b>")
-            elif child_tag in ("em", "i"):
+            elif child_tag in ("em", "i") or "font-style:italic" in style:
                 parts.append(f"<i>{inner}</i>")
-            elif child_tag in ("u",):
+            elif child_tag in ("u",) or "underline" in style:
                 parts.append(f"<u>{inner}</u>")
+            elif child_tag in ("s", "strike", "del") or "line-through" in style:
+                parts.append(f"<strike>{inner}</strike>")
+            elif child_tag == "sup":
+                parts.append(f"<super>{inner}</super>")
+            elif child_tag == "sub":
+                parts.append(f"<sub>{inner}</sub>")
             else:
                 parts.append(inner)
             if child.tail:
-                parts.append(child.tail)
+                parts.append(_rich_text(child.tail))
         return "".join(parts)
 
     def _image_flowable_from_src(src: str):
@@ -1031,7 +1062,7 @@ def html_to_pdf(
             return None
         try:
             img = RLImage(io.BytesIO(image_bytes))
-            usable_width = A4[0] - ((layout_cfg["margin_left_mm"] + layout_cfg["margin_right_mm"]) / 10.0 * cm)
+            usable_width = page_size[0] - ((layout_cfg["margin_left_mm"] + layout_cfg["margin_right_mm"]) / 10.0 * cm)
             if img.drawWidth > usable_width:
                 ratio = usable_width / float(img.drawWidth)
                 img.drawWidth = usable_width
@@ -1052,7 +1083,19 @@ def html_to_pdf(
             return
 
         if tag in ("p", "div"):
-            child_tags = [(child.tag or "").lower().split("}")[-1] for child in el]
+            child_tags = [(child.tag or "").lower().split("}")[-1] for child in el if isinstance(child.tag, str)]
+            nested_blocks = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "table", "hr", "blockquote", "figure", "section", "article"}
+            if any(child_tag in nested_blocks for child_tag in child_tags):
+                # Contenitore di blocchi (es. l'involucro del documento): ogni blocco resta un paragrafo.
+                if (el.text or "").strip():
+                    story.append(Paragraph(_rich_text(el.text.strip()), st_normal))
+                for child in el:
+                    if not isinstance(child.tag, str):
+                        continue
+                    _process(child)
+                    if (child.tail or "").strip():
+                        story.append(Paragraph(_rich_text(child.tail.strip()), st_normal))
+                return
             rich = _node_to_rich(el)
             if any(child_tag in ("img", "figure") for child_tag in child_tags) and not rich.strip():
                 for child in el:
@@ -1072,6 +1115,10 @@ def html_to_pdf(
             if items:
                 story.append(ListFlowable(items, bulletType="bullet" if tag == "ul" else "1",
                                           leftIndent=18, bulletFontSize=10))
+            return
+
+        if tag == "hr" and (el.get("data-iu-page-break") is not None or "iu-ted-page-break" in (el.get("class") or "").split()):
+            story.append(PageBreak())
             return
 
         if tag == "hr":
@@ -1152,7 +1199,7 @@ def html_to_pdf(
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf,
-        pagesize=A4,
+        pagesize=page_size,
         rightMargin=(layout_cfg["margin_right_mm"] / 10.0) * cm,
         leftMargin=(layout_cfg["margin_left_mm"] / 10.0) * cm,
         topMargin=(layout_cfg["margin_top_mm"] / 10.0) * cm,

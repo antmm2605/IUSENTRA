@@ -281,23 +281,27 @@ jobs:
         if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
+          # Il confronto usa lo SHA per intero: "rev-parse --short" accorcia
+          # quanto basta a non essere ambiguo nel repository, quindi non
+          # restituisce sempre sette caratteri e confrontarlo con i primi sette
+          # di GITHUB_SHA faceva fallire un deploy in realta' allineato.
           remote_head=$(ssh -i ~/.ssh/id_deploy \
               -o BatchMode=yes \
               -o ConnectTimeout=15 \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              'git -C /opt/iusentra/repo rev-parse --short HEAD')
-          echo "remote_head=${remote_head}" >> "$GITHUB_OUTPUT"
+              'git -C /opt/iusentra/repo rev-parse HEAD')
+          echo "remote_head=${remote_head::7}" >> "$GITHUB_OUTPUT"
           echo "expected=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           # I due valori venivano solo riportati nel riepilogo, senza
           # confronto: un deploy poteva chiudersi verde lasciando sul server
           # un commit diverso da quello verificato dalla CI.
-          if [ "${remote_head}" != "${GITHUB_SHA::7}" ]; then
-            echo "::error::Sul server resta il commit ${remote_head}, atteso ${GITHUB_SHA::7}."
+          if [ "${remote_head}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Sul server resta il commit ${remote_head::7}, atteso ${GITHUB_SHA::7}."
             exit 1
           fi
-          echo "Commit sul server allineato: ${remote_head}."
+          echo "Commit sul server allineato: ${remote_head::7}."
 
       - name: Verifiche post-deploy (container + health)
         if: ${{ steps.gate.outputs.superato != 'true' }}

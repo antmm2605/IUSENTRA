@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.293.1 - 11/09/2026
+
+- **La verifica del commit sul server confronta SHA della stessa lunghezza.** Il controllo introdotto con la 2.292.1 leggeva il commit dal server con `git rev-parse --short`, che accorcia quanto basta a non essere ambiguo nel repository e quindi non restituisce sempre sette caratteri, e lo confrontava con i primi sette di `GITHUB_SHA`. Risultato: la 2.292.2 è stata rilasciata e installata correttamente, ma la run risultava fallita e le verifiche post-deploy sulle rotte pubbliche venivano saltate. Il confronto usa ora lo SHA per intero; la forma breve resta solo nel riepilogo.
+
 ## 2.293.0 - 11/09/2026
 
 Il presidio dei documenti smette di rileggere quello che ha già letto: è la causa dei 503 e dei picchi sul server.

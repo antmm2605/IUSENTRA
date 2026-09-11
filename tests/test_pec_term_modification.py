@@ -24,6 +24,12 @@ from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 from tests.test_pec_audit_pipeline import _repo_con_fascicolo
 
 
+def _senza_ricezioni(items):
+    """Esclude gli impegni «PEC ricevuta» (tests/test_pec_change_receipt.py)."""
+
+    return [item for item in items if not str(item.external_uid or "").startswith("PEC_RICEZIONE:")]
+
+
 def _it(value: date) -> str:
     return value.strftime("%d/%m/%Y")
 
@@ -153,8 +159,11 @@ def test_modifica_sposta_il_termine_e_lascia_in_agenda_il_messaggio_alla_data_su
     memorie = next(item for item in deadlines if item.id != previous.id)
     assert memorie.data_scadenza == (today + timedelta(days=5)).isoformat()
 
-    appointments = {item.id: item for item in Agenda(str(tmp_path / "agenda.json")).tutti()}
+    all_appointments = Agenda(str(tmp_path / "agenda.json")).tutti()
+    appointments = {item.id: item for item in _senza_ricezioni(all_appointments)}
     assert len(appointments) == 2
+    receipts = [item for item in all_appointments if item.external_uid == f"PEC_RICEZIONE:{message_id}"]
+    assert len(receipts) == 1 and receipts[0].data_ora == "2026-09-10T16:08:00"
     reminder = appointments[old_appointment.id]
     assert reminder.data_ora.startswith(old_day.isoformat())
     assert reminder.stato == StatoAppuntamento.RINVIATO
@@ -172,7 +181,7 @@ def test_modifica_sposta_il_termine_e_lascia_in_agenda_il_messaggio_alla_data_su
     again = GestioneScadenziario(str(tmp_path / "scadenze.json")).get(previous.id)
     assert again.data_scadenza == new_day.isoformat() and again.tipo == TipoTermine.ADEMPIMENTO
     assert again.titolo == moved.titolo
-    appointments_again = Agenda(str(tmp_path / "agenda.json")).tutti()
+    appointments_again = _senza_ricezioni(Agenda(str(tmp_path / "agenda.json")).tutti())
     assert len(appointments_again) == 2
     assert {item.data_ora for item in appointments_again} == {f"{old_day.isoformat()}T09:00:00", f"{new_day.isoformat()}T09:00:00"}
 
@@ -214,7 +223,7 @@ def test_letture_successive_della_fonte_precedente_non_ripristinano_la_data_supe
     assert [item.data_scadenza for item in deadlines] == [new_day.isoformat()]
     reminder = Agenda(str(tmp_path / "agenda.json")).get(old_appointment.id)
     assert reminder.stato == StatoAppuntamento.RINVIATO
-    assert len(Agenda(str(tmp_path / "agenda.json")).tutti()) == 2
+    assert len(_senza_ricezioni(Agenda(str(tmp_path / "agenda.json")).tutti())) == 2
 
 
 def test_senza_termine_precedente_crea_il_nuovo_termine_dichiarando_la_modifica(tmp_path):
@@ -304,7 +313,7 @@ def test_rielaborazione_di_una_pec_gia_lavorata_annulla_il_doppione_e_sposta_il_
     open_items = [item for item in items.values() if item.stato == StatoTermine.APERTO]
     assert len(open_items) == 1
 
-    appointments = Agenda(str(tmp_path / "agenda.json")).tutti()
+    appointments = _senza_ricezioni(Agenda(str(tmp_path / "agenda.json")).tutti())
     assert len(appointments) == 2
     assert Agenda(str(tmp_path / "agenda.json")).get(old_appointment.id).stato == StatoAppuntamento.RINVIATO
     assert Agenda(str(tmp_path / "agenda.json")).get(items[previous.id].id_appuntamento).data_ora.startswith(new_day.isoformat())

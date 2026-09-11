@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Clock3,
   Download,
+  FilePenLine,
   FileSearch,
   Filter,
   Landmark,
@@ -27,6 +28,7 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  ShieldCheck,
   Sparkles,
   UploadCloud,
   UsersRound,
@@ -40,6 +42,7 @@ import { SourceDocumentModal } from './SourceDocumentModal'
 import { OperationalModal } from './OperationalModal'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import { formatDateIt } from '../formatting'
+import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaHighlightStartIndex, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
 import {
   addDays,
   addMonths,
@@ -192,7 +195,9 @@ function agendaTitle(event: AgendaEvent): string {
 }
 
 function agendaLegalLabel(event: AgendaEvent): string {
-  return event.legalLabel || (event.kind === 'udienza' ? 'Udienza' : event.kind === 'deposito' ? 'Deposito' : event.kind === 'scadenza' ? 'Scadenza da presidiare' : 'Adempimento')
+  const label = event.legalLabel || (event.kind === 'udienza' ? 'Udienza' : event.kind === 'deposito' ? 'Deposito' : event.kind === 'scadenza' ? 'Scadenza da presidiare' : 'Adempimento')
+  // Udienza superata da un rinvio comunicato via PEC: resta visibile ma dichiarata.
+  return event.status.toUpperCase() === 'RINVIATO' && !/rinviat|rinvio|modificat/i.test(label) ? `${label} (rinviata)` : label
 }
 
 function sameAgendaText(left: string, right: string): boolean {
@@ -650,24 +655,101 @@ function AgendaDeleteAction({ event }:{event:AgendaEvent}) {
   )
 }
 
-function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(event:AgendaEvent)=>void}) {
+function AgendaSourceCard({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(event:AgendaEvent)=>void}) {
+  const kindLabel = agendaSourceLabel(event.source, event)
+  if (!event.sourceHref) {
+    return (
+      <div className="iu-ag-focus__source is-missing">
+        <span><FileSearch size={14}/> Fonte</span>
+        <strong>{kindLabel}</strong>
+        <small>Nessun documento sorgente collegato a questo impegno.</small>
+        {event.href ? <a href={event.href}>Apri origine</a> : null}
+      </div>
+    )
+  }
+  return (
+    <div className="iu-ag-focus__source">
+      <span><FileSearch size={14}/> Fonte</span>
+      <button type="button" className="iu-ag-focus__source-link" onClick={() => onOpenSource(event)} title="Visualizza la fonte completa sopra il dettaglio">
+        <strong>{event.sourceLabel || kindLabel}</strong>
+        <small>{kindLabel}{event.sourceVerified ? ' · verificata' : ' · da verificare'}</small>
+      </button>
+      <div className="iu-ag-focus__source-actions">
+        <button type="button" onClick={() => onOpenSource(event)}><FileSearch size={14}/>Visualizza fonte</button>
+        {event.sourceVerified ? <em><ShieldCheck size={13}/> Fonte verificata</em> : null}
+      </div>
+    </div>
+  )
+}
+
+function AgendaProposedActions({ event, steps, onOpenSource }:{event:AgendaEvent; steps:AgendaProposedStep[]; onOpenSource:(event:AgendaEvent)=>void}) {
+  if (!steps.length) return null
+  return (
+    <section className="iu-ag-focus__proposed" aria-label="Attività proposte">
+      <header>
+        <strong><ListChecks size={15}/> Attività proposte</strong>
+        <small>Esegui da qui quello che l’impegno richiede.</small>
+      </header>
+      <ol>
+        {steps.map((step, index) => (
+          <li key={step.id}>
+            <span>{index + 1}</span>
+            <p>{step.label}</p>
+            {step.id === 'fonte' ? (
+              <button type="button" onClick={() => onOpenSource(event)}><FileSearch size={14}/>{step.actionLabel}</button>
+            ) : (
+              <a href={step.href}>{step.id === 'atti' ? <FilePenLine size={14}/> : step.id === 'fascicolo' ? <BriefcaseBusiness size={14}/> : step.id === 'quando' ? <CalendarClock size={14}/> : step.id === 'termine' ? <CalendarCheck size={14}/> : <Bell size={14}/>}{step.actionLabel}</a>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function AgendaFocus({
+  event,
+  onOpenSource,
+  position,
+  total,
+  onNavigate,
+}:{
+  event:AgendaEvent
+  onOpenSource:(event:AgendaEvent)=>void
+  position?:number
+  total?:number
+  onNavigate?:(delta:-1|1)=>void
+}) {
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
   const completeHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/stato`
-  const visibleDetails = event.detailLines.filter((line) => line.trim()).slice(0, 12)
+  const activity = agendaActivityText(event)
+  const proposedSteps = agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })
+  const visibleDetails = event.detailLines.filter((line) => line.trim() && !AGENDA_ACTIVITY_PREFIX.test(line.trim())).slice(0, 12)
   return (
     <section className="iu-ag-focus">
       <div>
         <a href="/agenda"><ArrowLeftIcon/>Torna all'agenda</a>
+        {onNavigate && total && total > 1 ? (
+          <nav className="iu-ag-focus__nav" aria-label="Scorri gli impegni del periodo">
+            <button type="button" onClick={() => onNavigate(-1)} aria-label="Impegno precedente"><ChevronLeft size={15}/>Precedente</button>
+            <em>{(position ?? 0) + 1} di {total}</em>
+            <button type="button" onClick={() => onNavigate(1)} aria-label="Impegno successivo">Successivo<ChevronRight size={15}/></button>
+          </nav>
+        ) : null}
         <span>Dettaglio operativo</span>
         <h2>{agendaHeadline(event)}</h2>
         <p>{event.subtitle || event.notes || event.location || 'Verifica il fascicolo collegato prima dell’attività.'}</p>
+        {activity ? <p className="iu-ag-focus__activity"><b>Attività per l’avvocato:</b> {activity}</p> : null}
+        <AgendaProposedActions event={event} steps={proposedSteps} onOpenSource={onOpenSource}/>
         {visibleDetails.length ? (
           <ul className="iu-ag-focus__details">
             {visibleDetails.map((line) => <li key={line}>{line}</li>)}
           </ul>
         ) : null}
       </div>
+      <div className="iu-ag-focus__side">
+      <AgendaSourceCard event={event} onOpenSource={onOpenSource}/>
       <dl>
         <div><dt>Data</dt><dd>{new Date(event.start).toLocaleDateString('it-IT')}</dd></div>
         <div><dt>Orario</dt><dd>{event.timeLabel} · {event.durationLabel}</dd></div>
@@ -679,6 +761,7 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
         {event.remoteHearingPasscode ? <div><dt>Codice di accesso</dt><dd>{event.remoteHearingPasscode}</dd></div> : null}
         {event.remoteHearingAccessInfo ? <div><dt>Istruzioni</dt><dd>{event.remoteHearingAccessInfo}</dd></div> : null}
       </dl>
+      </div>
       <div className="iu-ag-focus__actions">
         {event.remoteHearingVerified && event.remoteHearingUrl ? <a href={event.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={15}/>Collegati all'udienza</a> : null}
         {event.matterId ? <a href={`/fascicoli/${encodeURIComponent(event.matterId)}`}><BriefcaseBusiness size={15}/>Apri fascicolo</a> : null}
@@ -704,6 +787,58 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
         {!isDeadline ? <AgendaDeleteAction event={event}/> : null}
       </div>
     </section>
+  )
+}
+
+function AgendaHighlightCarousel({
+  events,
+  index,
+  nextEventId,
+  onChange,
+  onOpenDetail,
+}:{
+  events:AgendaEvent[]
+  index:number
+  nextEventId?:string
+  onChange:(index:number)=>void
+  onOpenDetail:(event:AgendaEvent)=>void
+}) {
+  if (!events.length) return null
+  const total = events.length
+  const safeIndex = Math.min(Math.max(index, 0), total - 1)
+  const current = events[safeIndex]
+  const move = (delta: -1 | 1) => onChange((safeIndex + delta + total) % total)
+  const handleKey = (keyboardEvent: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (keyboardEvent.key === 'ArrowLeft') {
+      keyboardEvent.preventDefault()
+      move(-1)
+    } else if (keyboardEvent.key === 'ArrowRight') {
+      keyboardEvent.preventDefault()
+      move(1)
+    }
+  }
+  const shortDate = new Date(`${current.date || current.start.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+  return (
+    <div className="iu-ag-highlight-carousel" role="group" aria-roledescription="carosello" aria-label="Impegni in evidenza nel periodo" onKeyDown={handleKey}>
+      <button type="button" className="iu-ag-highlight-carousel__nav" onClick={() => move(-1)} disabled={total < 2} aria-label="Impegno precedente"><ChevronLeft size={15}/></button>
+      <a
+        className="iu-ag-highlight"
+        href={current.href || '/agenda'}
+        aria-live="polite"
+        title={`${agendaHeadline(current)} · ${agendaSubjectLine(current)} · ${shortDate} ${current.timeLabel}`}
+        onClick={(clickEvent) => {
+          if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
+          clickEvent.preventDefault()
+          onOpenDetail(current)
+        }}
+      >
+        <Clock3 size={14}/><b>{current.id === nextEventId ? 'Prossimo:' : 'In evidenza:'}</b>
+        <i className={`iu-ag-highlight__dot is-${current.tone}`} aria-hidden="true"/>
+        <span className="iu-ag-highlight__text">{agendaLegalLabel(current)} · {agendaSubjectLine(current)} · {shortDate} {current.timeLabel}</span>
+      </a>
+      <small className="iu-ag-highlight-carousel__count">{safeIndex + 1}/{total}</small>
+      <button type="button" className="iu-ag-highlight-carousel__nav" onClick={() => move(1)} disabled={total < 2} aria-label="Impegno successivo"><ChevronRight size={15}/></button>
+    </div>
   )
 }
 
@@ -786,7 +921,17 @@ export function AgendaPage() {
   }), [events, kind, query])
 
   const agenda = useMemo(() => buildAgendaPageData(filteredEvents, anchorDate, 'client', view), [filteredEvents, anchorDate, view])
-  const highlightedEvent = agenda.summary.nextEvent || agenda.events[0]
+  const highlightEvents = useMemo(
+    () => [...filteredEvents].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime()),
+    [filteredEvents],
+  )
+  const highlightKey = highlightEvents.map((event) => event.id).join('|')
+  const highlightStart = agendaHighlightStartIndex(highlightEvents, agenda.summary.nextEvent)
+  const [highlightIndex, setHighlightIndex] = useState(0)
+  useEffect(() => {
+    setHighlightIndex(highlightStart)
+  }, [highlightKey, highlightStart])
+  const detailPosition = detailPreview ? highlightEvents.findIndex((event) => event.id === detailPreview.id) : -1
   const selectedEvent = selectedId ? events.find((event) => event.id === selectedId || event.id === `scadenza-${selectedId}`) : undefined
 
   useEffect(() => {
@@ -809,6 +954,17 @@ export function AgendaPage() {
   const openAgendaDetail = (event: AgendaEvent) => {
     window.history.pushState(window.history.state, '', `/agenda/${encodeURIComponent(event.id)}${window.location.search}`)
     setDetailPreview(event)
+  }
+
+  const navigateAgendaDetail = (delta: -1 | 1) => {
+    if (!highlightEvents.length) return
+    const from = detailPosition >= 0 ? detailPosition : highlightIndex
+    const nextIndex = (from + delta + highlightEvents.length) % highlightEvents.length
+    const nextEvent = highlightEvents[nextIndex]
+    window.history.replaceState(window.history.state, '', `/agenda/${encodeURIComponent(nextEvent.id)}${window.location.search}`)
+    setHighlightIndex(nextIndex)
+    setSourcePreview(null)
+    setDetailPreview(nextEvent)
   }
 
   const closeAgendaDetail = () => {
@@ -951,19 +1107,17 @@ export function AgendaPage() {
 
       <section className="iu-ag-status-line">
         <span className={loading ? '' : 'is-ok'}>{sourceLabel}</span>
-        {highlightedEvent ? (
-          <a
-            className="iu-ag-highlight"
-            href={highlightedEvent.href || '/agenda'}
-            onClick={(clickEvent) => {
-              if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-              clickEvent.preventDefault()
-              openAgendaDetail(highlightedEvent)
-            }}
-          >
-            <Clock3 size={14}/><b>In evidenza:</b> {agendaLegalLabel(highlightedEvent)} · {agendaSubjectLine(highlightedEvent)} · {highlightedEvent.timeLabel}
-          </a>
-        ) : null}
+        <AgendaHighlightCarousel
+          events={highlightEvents}
+          index={highlightIndex}
+          nextEventId={agenda.summary.nextEvent?.id}
+          onChange={setHighlightIndex}
+          onOpenDetail={(event) => {
+            const position = highlightEvents.findIndex((item) => item.id === event.id)
+            if (position >= 0) setHighlightIndex(position)
+            openAgendaDetail(event)
+          }}
+        />
         <small><ListChecks size={14}/>{filteredEvents.length} {filteredEvents.length === 1 ? 'elemento' : 'elementi'} nel periodo selezionato.</small>
         {moveStatus ? <small className="iu-ag-move-status">{moveStatus}</small> : null}
       </section>
@@ -1056,7 +1210,15 @@ export function AgendaPage() {
         boxClassName="iu-ag-source-modal__box--detail"
         bodyClassName="iu-ag-source-modal__body--detail"
       >
-        {detailPreview ? <AgendaFocus event={detailPreview} onOpenSource={setSourcePreview}/> : null}
+        {detailPreview ? (
+          <AgendaFocus
+            event={detailPreview}
+            onOpenSource={setSourcePreview}
+            position={detailPosition}
+            total={detailPosition >= 0 ? highlightEvents.length : 0}
+            onNavigate={navigateAgendaDetail}
+          />
+        ) : null}
       </OperationalModal>
       <SourceDocumentModal
         source={sourcePreview ? {

@@ -40,6 +40,25 @@ from pct.scadenze_proposte_pec import (
 )
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
+from pct.pec_change_receipt import (
+    PREVIOUS_DATE_LINE as CHANGE_RECEIPT_PREVIOUS_DATE_LINE,
+    RECEIPT_AT_LINE as CHANGE_RECEIPT_AT_LINE,
+    RECEIPT_KIND_LINE as CHANGE_RECEIPT_KIND_LINE,
+    RECEIPT_PROFILE_ID as CHANGE_RECEIPT_PROFILE_ID,
+    NEW_DATE_LINE as CHANGE_RECEIPT_NEW_DATE_LINE,
+    change_summary as schedule_change_summary,
+    date_it as change_date_it,
+    detect_schedule_change,
+    lawyer_activity as schedule_change_lawyer_activity,
+    new_date_label as schedule_change_new_date_label,
+    normalize_rg as change_normalize_rg,
+    receipt_datetime_rome,
+    receipt_title as schedule_change_receipt_title,
+    receipt_uid as schedule_change_receipt_uid,
+    reschedule_marker,
+    reschedule_markers,
+    select_rescheduled_appointments,
+)
 from pct.pec_term_modification import (
     COMMUNICATION_LINE_PREFIX as TERM_MODIFICATION_COMMUNICATION_PREFIX,
     HUMAN_LINE_PREFIX as TERM_MODIFICATION_HUMAN_PREFIX,
@@ -12424,6 +12443,23 @@ class PecAuditRepository:
             agenda = self._agenda_manager()
             event_uid = f"PEC_AUDIT:{message_id}:deadline"
             source_url = f"/api/pec/messages/{source_message_id or message_id}"
+            current_appointment = agenda.trova_per_uid_esterno(
+                event_uid,
+                provider="pec_audit",
+                profile_id="pec_scadenziario",
+            )
+            if current_appointment is not None and any(
+                row["message_id"] not in {message_id, source_message_id}
+                for row in reschedule_markers(getattr(current_appointment, "note", ""))
+            ):
+                # Udienza già rinviata da una comunicazione di cancelleria successiva:
+                # rileggere la fonte precedente non la riporta «programmata».
+                return {
+                    "ok": True,
+                    "message": "Agenda non modificata: l'udienza è stata rinviata da una comunicazione successiva.",
+                    "agenda_id": clean_text(getattr(current_appointment, "id", "") or "", 120),
+                    "agenda_outcome": "skipped_rescheduled",
+                }
             remote_extra = _remote_hearing_deadline_extra(report, proposal)
             if deadline_id and self.scadenziario_db_path:
                 try:
@@ -12868,6 +12904,299 @@ class PecAuditRepository:
         if not text.startswith("pec_"):
             return ""
         return clean_text(text.split(":", 1)[0], 160)
+
+    def record_pec_schedule_change_receipt(
+        self,
+        message_id: str,
+        *,
+        parsed: dict[str, Any] | None = None,
+        report: dict[str, Any] | None = None,
+        message: dict[str, Any] | None = None,
+        actor: str = "pec-api",
+    ) -> dict[str, Any]:
+        """Riporta in agenda la ricezione della PEC che cambia udienza o termine.
+
+        L'impegno «PEC ricevuta: …» è collocato nel giorno e all'ora di consegna della
+        PEC (ora italiana) e indica la nuova data; le udienze superate dello stesso
+        fascicolo passano a «rinviato» con il riferimento alla comunicazione. Idempotente
+        per messaggio; un impegno già completato dall'avvocato non viene riaperto.
+        """
+
+        from pct.agenda import StatoAppuntamento, TipoAppuntamento
+        from pct.ical_import import EventoImportato
+
+        if not self.agenda_db_path:
+            return {"ok": False, "skipped": "agenda_non_configurata"}
+        clean_id = clean_text(message_id, 180)
+        try:
+            detail = self.get_message_detail(clean_id)
+        except Exception:
+            return {"ok": True, "skipped": "messaggio_non_trovato"}
+        stored_message = detail.get("message") if isinstance(detail.get("message"), dict) else {}
+        if not clean_text(stored_message.get("received_at") or ""):
+            return {"ok": True, "skipped": "messaggio_non_trovato"}
+        parsed = parsed if isinstance(parsed, dict) and parsed else (detail.get("parsed") or {})
+        if not (isinstance(report, dict) and isinstance(report.get("procedural_profile"), dict) and report.get("procedural_profile")):
+            report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
+        profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+        proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+        body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+        change = detect_schedule_change(
+            profile,
+            body_text=str(body.get("text") or body.get("html_text") or ""),
+            fallback_date=clean_text(proposal.get("due_date") or "", 20),
+            fallback_time=clean_text(proposal.get("event_time") or "", 10).replace(".", ":"),
+        )
+        if change is None:
+            return {"ok": True, "skipped": "nessun_cambio"}
+        received = receipt_datetime_rome(
+            _field_date_value(parsed, "data_consegna"),
+            stored_message.get("received_at"),
+        )
+        if received is None:
+            return {"ok": False, "skipped": "data_ricezione_assente", "message": "Data di consegna della PEC non leggibile."}
+        received = received.replace(second=0)
+        message = message if isinstance(message, dict) else {}
+        fascicolo_id = clean_text(message.get("linked_fascicolo_id") or stored_message.get("linked_fascicolo_id") or "", 120)
+        rg = change_normalize_rg(profile.get("numero_rg"))
+        agenda = self._agenda_manager()
+        appointments = list(agenda.tutti())
+        already_rescheduled = [
+            item
+            for item in appointments
+            if any(row["message_id"] == clean_id for row in reschedule_markers(getattr(item, "note", "")))
+        ]
+        selected, reason = select_rescheduled_appointments(
+            appointments,
+            fascicolo_id=fascicolo_id,
+            rg=rg,
+            change=change,
+            received_on=received.date(),
+            message_id=clean_id,
+        )
+        if change.kind == "udienza_revocata":
+            # La revoca può sostituire l'udienza con note allo stesso giorno.
+            same_day = [
+                item
+                for item in appointments
+                if item not in selected
+                and str(getattr(item, "data_ora", "") or "")[:10] == change.new_date
+                and str(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", ""))) in {"PROGRAMMATO", "CONFERMATO"}
+                and "udienza" in str(getattr(item, "titolo", "") or "").lower()
+                and "note" not in str(getattr(item, "titolo", "") or "").lower()
+                and f"PEC_AUDIT:{clean_id}" not in str(getattr(item, "note", "") or "")
+                and not str(getattr(item, "external_uid", "") or "").startswith("PEC_RICEZIONE:")
+                and (
+                    (fascicolo_id and f"Fascicolo: {fascicolo_id}" in str(getattr(item, "note", "") or ""))
+                    or (rg and change_normalize_rg(getattr(item, "procedimento", "")) == rg)
+                )
+            ]
+            selected = [*selected, *same_day]
+        previous_items = [*already_rescheduled, *[item for item in selected if item not in already_rescheduled]]
+        previous_days = sorted({str(getattr(item, "data_ora", "") or "")[:10] for item in previous_items if getattr(item, "data_ora", "")})
+        if previous_days:
+            previous_line = (
+                f"{CHANGE_RECEIPT_PREVIOUS_DATE_LINE} {', '.join(change_date_it(day) for day in previous_days)} "
+                "(impegno segnato come rinviato in agenda)"
+            )
+        else:
+            previous_line = f"{CHANGE_RECEIPT_PREVIOUS_DATE_LINE} da verificare: {reason}"
+        new_label = schedule_change_new_date_label(change)
+        uid = schedule_change_receipt_uid(clean_id)
+        cliente = clean_text(profile.get("cliente") or profile.get("attore_principale") or "", 160)
+        ufficio = clean_text(profile.get("ufficio") or "", 180)
+        description = "\n".join(
+            part
+            for part in (
+                uid,
+                f"{CHANGE_RECEIPT_KIND_LINE} {change.label}",
+                f"{CHANGE_RECEIPT_AT_LINE} {received:%d/%m/%Y} alle {received:%H:%M} (ora italiana)",
+                f"{CHANGE_RECEIPT_NEW_DATE_LINE} {new_label}",
+                previous_line,
+                f"Ufficio: {ufficio}" if ufficio else "",
+                f"RG: {rg}" if rg else "",
+                f"Cliente: {cliente}" if cliente else "",
+                f"Giudice: {clean_text(profile.get('giudice') or '', 120)}" if clean_text(profile.get("giudice") or "") else "",
+                f"Evento: {change.event}" if change.event else "",
+                f"Descrizione evento: {change.description}" if change.description else "",
+                f"Attività per l'avvocato: {schedule_change_lawyer_activity(change)}",
+                f"Fascicolo: {fascicolo_id}" if fascicolo_id else "",
+                "Fonte: comunicazione di cancelleria ricevuta via PEC.",
+            )
+            if part
+        )
+        existing = agenda.trova_per_uid_esterno(uid, provider="pec_audit", profile_id=CHANGE_RECEIPT_PROFILE_ID)
+        outcome = "skipped_closed"
+        receipt_id = clean_text(getattr(existing, "id", "") or "", 120)
+        existing_status = str(getattr(getattr(existing, "stato", ""), "value", getattr(existing, "stato", "")) or "")
+        if existing is None or existing_status == "PROGRAMMATO":
+            event = EventoImportato(
+                uid=uid,
+                titolo=schedule_change_receipt_title(change, rg=rg)[:120],
+                data_ora=received.isoformat(timespec="seconds"),
+                durata_minuti=15,
+                tutto_giorno=False,
+                luogo="",
+                descrizione=description,
+                stato_ical="CONFIRMED",
+                organizzatore=_deadline_responsible_actor(actor),
+            )
+            upsert = agenda.upsert_da_evento_importato(
+                event,
+                provider="pec_audit",
+                source_url=f"/api/pec/messages/{clean_id}",
+                profile_id=CHANGE_RECEIPT_PROFILE_ID,
+                default_tipo=TipoAppuntamento.ALTRO,
+                reminder_minuti=0,
+                allow_overlap=True,
+            )
+            outcome = str(upsert.get("outcome") or "")
+            appointment = upsert.get("appuntamento")
+            receipt_id = clean_text(getattr(appointment, "id", "") or "", 120)
+            if appointment is not None:
+                extra = {
+                    key: value
+                    for key, value in {
+                        "procedimento": f"RG {rg}" if rg else "",
+                        "cliente": cliente,
+                        "tribunale": ufficio,
+                    }.items()
+                    if value and getattr(appointment, key, "") != value
+                }
+                if extra:
+                    agenda.modifica(receipt_id, **extra)
+        rescheduled_ids: list[str] = []
+        closed_deadline_ids: list[str] = []
+        human = (
+            f"{change.label}: nuova data {new_label} "
+            f"(PEC ricevuta il {received:%d/%m/%Y} alle {received:%H:%M})."
+        )
+        for item in selected:
+            item_id = clean_text(getattr(item, "id", "") or "", 120)
+            if not item_id or item in already_rescheduled:
+                continue
+            agenda.modifica(
+                item_id,
+                stato=StatoAppuntamento.RINVIATO,
+                note="\n".join(
+                    part
+                    for part in (
+                        reschedule_marker(clean_id, change.new_date),
+                        human,
+                        "",
+                        str(getattr(item, "note", "") or "").strip(),
+                    )
+                    if part is not None
+                ).strip(),
+            )
+            rescheduled_ids.append(item_id)
+            if self.scadenziario_db_path:
+                try:
+                    from pct.scadenziario import StatoTermine
+
+                    manager = self._scadenziario_manager()
+                    for deadline in list(manager.tutte(solo_aperte=False)):
+                        if clean_text(getattr(deadline, "id_appuntamento", "") or "", 120) != item_id:
+                            continue
+                        if getattr(deadline, "stato", None) not in {StatoTermine.APERTO, StatoTermine.SCADUTO}:
+                            continue
+                        if modification_lines(deadline):
+                            continue
+                        manager.aggiorna(
+                            str(getattr(deadline, "id", "") or ""),
+                            stato=StatoTermine.ANNULLATO,
+                            completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                            note="\n".join(
+                                part
+                                for part in (
+                                    str(getattr(deadline, "note", "") or "").rstrip(),
+                                    reschedule_marker(clean_id, change.new_date),
+                                    human,
+                                )
+                                if part
+                            ),
+                        )
+                        closed_deadline_ids.append(str(getattr(deadline, "id", "") or ""))
+                except Exception:
+                    pass
+            self._push_local_calendar_item("agenda", item_id)
+        if receipt_id and outcome in {"created", "updated"}:
+            self._push_local_calendar_item("agenda", receipt_id)
+        payload = {
+            "agenda_id": receipt_id,
+            "agenda_outcome": outcome,
+            "received_at": received.isoformat(timespec="minutes"),
+            "change": {
+                "kind": change.kind,
+                "label": change.label,
+                "summary": schedule_change_summary(change),
+                "new_date": change.new_date,
+                "new_time": change.new_time,
+                "event_date": change.event_date,
+            },
+            "rescheduled_agenda_ids": rescheduled_ids,
+            "closed_deadline_ids": closed_deadline_ids,
+            "previous_dates": previous_days,
+            "reason": reason,
+        }
+        if outcome in {"created", "updated"} or rescheduled_ids:
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.agenda.change_receipt",
+                        resource_type="pec_message",
+                        resource_id=clean_id,
+                        payload=payload,
+                        actor=actor,
+                    )
+            except Exception:
+                pass
+        return {"ok": True, "recorded": outcome, **payload}
+
+    def record_pec_schedule_change_receipts(
+        self,
+        *,
+        since: str = "",
+        days: int = 180,
+        limit: int = 0,
+        actor: str = "pec-maintenance",
+    ) -> dict[str, Any]:
+        """Riallinea l'agenda per le PEC di cancelleria già ricevute (manutenzione idempotente)."""
+
+        cutoff = clean_text(since or "", 40) or (utc_now() - timedelta(days=max(int(days or 180), 1))).isoformat().replace("+00:00", "Z")
+        query = "SELECT id FROM pec_messages WHERE tenant_id=? AND received_at>=? ORDER BY received_at ASC"
+        params: list[Any] = [self.tenant_id, cutoff]
+        if limit:
+            query += " LIMIT ?"
+            params.append(int(limit))
+        with self.connect() as conn:
+            ids = [str(row["id"]) for row in conn.execute(query, tuple(params)).fetchall()]
+        summary: dict[str, Any] = {"ok": True, "checked": 0, "recorded": 0, "rescheduled": 0, "errors": [], "items": []}
+        for message_id in ids:
+            summary["checked"] += 1
+            try:
+                result = self.record_pec_schedule_change_receipt(message_id, actor=actor)
+            except Exception as exc:
+                summary["errors"].append({"message_id": message_id, "error": clean_text(exc, 200)})
+                continue
+            if result.get("skipped"):
+                continue
+            if result.get("recorded") in {"created", "updated"}:
+                summary["recorded"] += 1
+            summary["rescheduled"] += len(result.get("rescheduled_agenda_ids") or [])
+            summary["items"].append(
+                {
+                    "message_id": message_id,
+                    "agenda_id": result.get("agenda_id"),
+                    "received_at": result.get("received_at"),
+                    "change": (result.get("change") or {}).get("summary"),
+                    "rescheduled": result.get("rescheduled_agenda_ids") or [],
+                    "reason": result.get("reason"),
+                }
+            )
+        summary["ok"] = not summary["errors"]
+        return summary
 
     def _apply_pec_term_modification(
         self,
@@ -14150,6 +14479,48 @@ class PecAuditRepository:
         _source_message_id: str = "",
         _reconcile_derived: bool = True,
     ) -> dict[str, Any]:
+        result = self._schedule_deadline_from_payload_core(
+            message_id,
+            parsed=parsed,
+            report=report,
+            message=message,
+            actor=actor,
+            due_date=due_date,
+            _schedule_all_hearings=_schedule_all_hearings,
+            _source_message_id=_source_message_id,
+            _reconcile_derived=_reconcile_derived,
+        )
+        if _source_message_id or not self.agenda_db_path:
+            return result
+        # Dopo il presidio della nuova data: la comunicazione che cambia udienza o
+        # termine entra in agenda nel giorno e all'ora di consegna della PEC.
+        try:
+            receipt = self.record_pec_schedule_change_receipt(
+                message_id,
+                parsed=parsed,
+                report=report,
+                message=message,
+                actor=actor,
+            )
+        except Exception as exc:  # pragma: no cover - il presidio principale resta valido
+            receipt = {"ok": False, "message": f"Ricezione in agenda non registrata: {clean_text(exc, 200)}"}
+        if isinstance(result, dict) and receipt.get("skipped") not in {"nessun_cambio", "messaggio_non_trovato"}:
+            result["change_receipt"] = receipt
+        return result
+
+    def _schedule_deadline_from_payload_core(
+        self,
+        message_id: str,
+        *,
+        parsed: dict[str, Any],
+        report: dict[str, Any] | None = None,
+        message: dict[str, Any] | None = None,
+        actor: str = "pec-api",
+        due_date: str = "",
+        _schedule_all_hearings: bool = True,
+        _source_message_id: str = "",
+        _reconcile_derived: bool = True,
+    ) -> dict[str, Any]:
         if not self.scadenziario_db_path:
             return {"ok": False, "message": "Scadenziario non configurato per questa azione."}
         report = dict(report or {})
@@ -14294,7 +14665,13 @@ class PecAuditRepository:
                 "expired": True,
                 "proposal": proposal,
             }
-        title = clean_text(legal_fields["title"] or proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
+        legal_title = legal_fields["title"]
+        if legal_title and legal_fields["due_date"][:10] and legal_fields["due_date"][:10] != target_date[:10] and clean_text(proposal.get("title")):
+            # La data presidiata è l'udienza o il termine della comunicazione, non il
+            # termine legale proposto (es. opposizione ex art. 127-ter entro 5 giorni):
+            # il titolo resta quello dell'evento, il termine legale resta nella nota.
+            legal_title = ""
+        title = clean_text(legal_title or proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
         remote_extra = _remote_hearing_deadline_extra(report, proposal)
         remote_note_lines = _remote_hearing_note_lines(report, proposal)
         profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
@@ -14520,6 +14897,33 @@ class PecAuditRepository:
                         applied["duplicate_cancelled"] = duplicate_id
                         return applied
             if existing is not None:
+                later_reschedules = [
+                    row
+                    for row in reschedule_markers(getattr(existing, "note", ""))
+                    if row["message_id"] not in {message_id, _source_message_id}
+                ]
+                if later_reschedules:
+                    return {
+                        "ok": True,
+                        "message": (
+                            "Udienza già rinviata da una comunicazione di cancelleria successiva "
+                            f"al {term_date_label_it(later_reschedules[-1]['new_date'])}."
+                        ),
+                        "deadline_id": getattr(existing, "id", ""),
+                        "due_date": getattr(existing, "data_scadenza", target_date),
+                        "agenda": {
+                            "ok": True,
+                            "agenda_id": clean_text(getattr(existing, "id_appuntamento", "") or "", 120),
+                            "agenda_outcome": "skipped_rescheduled",
+                        },
+                        "calendar_sync": {"ok": True, "skipped": True},
+                        "already_exists": True,
+                        "rescheduled_later": True,
+                        "proposal": proposal,
+                        "reconciliation": reconciliation,
+                        "scheduled_message_id": message_id,
+                        "source_message_id": _source_message_id or message_id,
+                    }
                 existing_modifications = modification_lines(existing)
                 if existing_modifications and existing_modifications[-1]["message_id"] != message_id:
                     return {

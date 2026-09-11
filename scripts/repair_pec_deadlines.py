@@ -59,6 +59,9 @@ def run_repair(*, registry: Path, tenant: str = "", limit: int = 0, actor: str =
             refresh = repo.refresh_validation_reports(actor=actor, limit=0, refresh_ocr=False)
             result = repo.repair_pec_deadlines(actor=actor, limit=limit)
             result["refresh_reports"] = refresh
+            # PEC di cancelleria che hanno cambiato udienza o termine: ricezione in
+            # agenda al giorno e all'ora di consegna, udienze superate «rinviate».
+            result["change_receipts"] = repo.record_pec_schedule_change_receipts(actor=actor, limit=limit)
         payload["studios"][studio.slug] = result
         payload["ok"] = bool(payload["ok"] and result.get("ok", False))
         for key in ("checked", "updated", "deleted", "skipped"):

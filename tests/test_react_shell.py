@@ -10294,6 +10294,40 @@ def test_react_anagrafica_nuova_accetta_spazi_e_salva_bozza_al_cambio_campo():
     assert "window.localStorage.setItem" in hook and "catch" in hook
 
 
+def test_react_agenda_in_evidenza_scorre_tutti_gli_impegni_e_dettaglio_mostra_fonte_e_attivita():
+    agenda_page = Path("frontend/src/components/AgendaPage.tsx").read_text(encoding="utf-8")
+    actions = Path("frontend/src/features/agenda/agendaDetailActions.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+
+    # "In evidenza" non mostra piu un solo impegno: stesso spazio, frecce e contatore su tutti gli eventi filtrati.
+    assert "function AgendaHighlightCarousel" in agenda_page
+    assert "[...filteredEvents].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime())" in agenda_page
+    assert 'aria-label="Impegno precedente"' in agenda_page and 'aria-label="Impegno successivo"' in agenda_page
+    assert "{safeIndex + 1}/{total}" in agenda_page
+    assert "keyboardEvent.key === 'ArrowLeft'" in agenda_page
+    assert "agendaHighlightStartIndex(highlightEvents, agenda.summary.nextEvent)" in agenda_page
+    assert "highlightedEvent" not in agenda_page
+    # Dal dettaglio si scorrono gli impegni senza chiudere la maschera.
+    assert "const navigateAgendaDetail = (delta: -1 | 1) =>" in agenda_page
+    assert "onNavigate={navigateAgendaDetail}" in agenda_page
+    # Fonte visibile nel dettaglio: il click apre la fonte completa sopra la maschera.
+    assert "function AgendaSourceCard" in agenda_page
+    assert "<AgendaSourceCard event={event} onOpenSource={onOpenSource}/>" in agenda_page
+    assert "Visualizza fonte" in agenda_page
+    assert "Nessun documento sorgente collegato a questo impegno." in agenda_page
+    assert agenda_page.index("<OperationalModal") < agenda_page.index("<SourceDocumentModal")
+    # Attivita proposte eseguibili.
+    assert "function AgendaProposedActions" in agenda_page
+    assert "agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })" in agenda_page
+    assert "export const AGENDA_ACTIVITY_PREFIX" in actions
+    assert "/deposito/prepara" in actions
+    assert "actionLabel: 'Visualizza fonte'" in actions
+    assert "actionLabel: 'Apri fascicolo'" in actions
+    assert "actionLabel: 'Avvisa cliente'" in actions
+    for selector in (".iu-ag-highlight-carousel{", ".iu-ag-highlight-carousel__nav{", ".iu-ag-focus__source{", ".iu-ag-focus__proposed li{"):
+        assert selector in css
+
+
 def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

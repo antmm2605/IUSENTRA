@@ -416,7 +416,15 @@ def _extract_labeled_line(text: str, label: str, *, limit: int = 220) -> str:
     return ""
 
 
+def _is_pec_change_receipt(text: Any) -> bool:
+    """Impegno «PEC ricevuta»: cambio di udienza/termine alla data e ora di consegna."""
+
+    return "pec_ricezione:" in str(text or "").lower()
+
+
 def _has_structured_pec_profile(text: str) -> bool:
+    if _is_pec_change_receipt(text):
+        return True
     return bool(
         _extract_labeled_line(text, "Cliente", limit=120)
         and (
@@ -616,6 +624,9 @@ def _legal_label(title: str, kind: str, notes: str = "") -> str:
     title_text = _normalise_for_matching(title)
     kind_text = _normalise_for_matching(kind)
     text = _normalise_for_matching(f"{title}\n{kind}\n{notes}")
+    if _is_pec_change_receipt(notes):
+        change_label = _extract_labeled_line(notes, "Comunicazione ricevuta", limit=80)
+        return f"PEC ricevuta · {change_label}" if change_label else "PEC ricevuta"
     if _is_document_presidio_lex_text(title, notes):
         if _is_document_presidio_cancelled_text(title, notes):
             return "Presidio documentale annullato"
@@ -715,6 +726,11 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         value = _visible_legal_text(row.get(key), limit=140)
         if value:
             lines.append(f"{label}: {value}")
+    if _is_pec_change_receipt(raw_notes):
+        for label in ("Ricevuta il", "Nuova data", "Data precedente"):
+            value = _extract_labeled_line(raw_notes, label, limit=220)
+            if value:
+                _append_detail_line(lines, f"{label}: {value}", limit=260)
     if is_pec_operational:
         for label in ("Oggetto PEC", "Destinatario PEC", "Mittente PEC", "Possibile fascicolo da verificare"):
             value = _structured_detail_value(label, _extract_labeled_line(raw_notes, label, limit=260), limit=260)

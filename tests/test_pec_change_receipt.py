@@ -1,0 +1,346 @@
+"""Cambio di udienza o di termine comunicato dalla cancelleria: ricezione in agenda.
+
+Casi reali (Tribunale di Palmi, settembre 2026):
+- RG 1854/2026, PEC consegnata il 10/09/2026 alle 14:58: «RINVIATO AD ALTRA UDIENZA DI
+  DISCUSSIONE IL 14/04/2027 09:00 in presenza». In agenda l'udienza precedente restava
+  programmata, la ricezione non compariva e la nuova udienza era intitolata «Opposizione
+  alla trattazione scritta».
+- RG 1733/2026, PEC consegnata il 10/09/2026 alle 16:08: «MODIFICATO TERMINE PER NOTE IN
+  SOSTITUZIONE UDIENZA il 10/12/2026».
+
+Regola: l'agenda riporta la comunicazione nel giorno e all'ora di consegna della PEC (ora
+italiana), con la nuova data; l'udienza superata dello stesso fascicolo passa a «rinviato».
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta
+from email import policy
+from email.message import EmailMessage
+from pathlib import Path
+from types import SimpleNamespace
+
+from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
+from pct.pec_change_receipt import (
+    detect_schedule_change,
+    receipt_datetime_rome,
+    receipt_title,
+    reschedule_markers,
+    select_rescheduled_appointments,
+)
+from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
+from tests.test_pec_audit_pipeline import _repo_con_fascicolo
+from tests.test_pec_term_modification import _modifica_termine_mime, _termine_presidiato
+
+
+def _it(value: date) -> str:
+    return value.strftime("%d/%m/%Y")
+
+
+def _profile(oggetto: str, descrizione: str, data_evento: str = "10/09/2026") -> dict[str, str]:
+    return {"oggetto_evento": oggetto, "descrizione_evento": descrizione, "data_evento": data_evento}
+
+
+def test_riconosce_i_cambi_di_udienza_e_di_termine_dagli_eventi_di_cancelleria():
+    rinvio = detect_schedule_change(
+        _profile("RINVIO AD ALTRA UDIENZA DI DISCUSSIONE", "RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00 in presenza")
+    )
+    assert rinvio is not None
+    assert (rinvio.kind, rinvio.new_date, rinvio.new_time, rinvio.event_date) == ("rinvio_udienza", "2027-04-14", "09:00", "2026-09-10")
+    assert receipt_title(rinvio, rg="1854/2026") == "PEC ricevuta: rinvio udienza al 14/04/2027 ore 09:00 - RG 1854/2026"
+
+    termine = detect_schedule_change(
+        _profile("MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA", "MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il 10/12/2026 00:00, ADEMPIMENTI")
+    )
+    assert termine is not None and termine.kind == "termine_modificato"
+    assert (termine.new_date, termine.new_time) == ("2026-12-10", "")
+    assert receipt_title(termine, rg="1733/2026") == "PEC ricevuta: termine modificato al 10/12/2026 - RG 1733/2026"
+
+    # «IN DATA» è la data della registrazione, non la nuova udienza.
+    rinviata = detect_schedule_change(_profile("RINVIO DI UDIENZA", "RINVIATA UDIENZA AL 02/11/2026, ORE 09:30 IN DATA 03/07/2026 Annotazioni"))
+    assert rinviata is not None and (rinviata.new_date, rinviata.new_time) == ("2026-11-02", "09:30")
+
+    revoca = detect_schedule_change(
+        _profile(
+            "REVOCA UDIENZA E FISSAZIONE TERMINE PER NOTE IN SOST. UDIENZA",
+            "REVOCATA UDIENZA E FISSATO TERMINE PER NOTE IN SOST. UDIENZA il 08/09/2026 09:30, ADEMPIMENTI",
+        )
+    )
+    assert revoca is not None and revoca.kind == "udienza_revocata"
+    assert receipt_title(revoca) == "PEC ricevuta: udienza revocata: note scritte entro il 08/09/2026 ore 09:30"
+
+    mancata = detect_schedule_change(
+        _profile("RINVIO MANCATA COMPARIZIONE PARTI (art.309 cpc)", "UDIENZA RINVIATA AL 08/09/2026 09:00 PER MANCATA COMPARIZIONE PARTI")
+    )
+    assert mancata is not None and mancata.kind == "rinvio_udienza" and mancata.new_date == "2026-09-08"
+
+    # Prima fissazione, sentenze ed estinzione non sono cambi di data.
+    for oggetto, descrizione in (
+        ("FISSAZIONE UDIENZA DI DISCUSSIONE", "FISSATA UDIENZA DI DISCUSSIONE IL 22/12/2026 09:30 in presenza"),
+        ("FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA", "FISSATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il 14/10/2026 14:00"),
+        ("SENTENZA A VERBALE (art. 127 ter cpc)", "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 659/2026"),
+        ("ESTINZIONE", "FASCICOLO ESTINTO"),
+    ):
+        assert detect_schedule_change(_profile(oggetto, descrizione)) is None
+
+
+def test_ora_di_ricezione_in_ora_italiana_anche_con_ora_legale():
+    assert receipt_datetime_rome("2026-09-10T12:58:48Z") == datetime(2026, 9, 10, 14, 58, 48)
+    assert receipt_datetime_rome("2026-01-10T12:58:48Z") == datetime(2026, 1, 10, 13, 58, 48)
+    assert receipt_datetime_rome("", "2026-09-10T14:08:57+02:00") == datetime(2026, 9, 10, 14, 8, 57)
+    assert receipt_datetime_rome("non-una-data") is None
+
+
+def _appointment(day: str, title: str, *, fascicolo: str = "F1", rg: str = "RG 1854/2026", stato: str = "PROGRAMMATO", tipo: str = "UDIENZA"):
+    return SimpleNamespace(
+        id=f"{day}-{title[:8]}",
+        titolo=title,
+        tipo=tipo,
+        stato=stato,
+        data_ora=f"{day}T09:00:00",
+        note=f"PEC_AUDIT:pec_old\nFascicolo: {fascicolo}",
+        procedimento=rg,
+        external_uid="PEC_AUDIT:pec_old:deadline",
+    )
+
+
+def test_selezione_udienza_rinviata_e_fail_closed():
+    change = detect_schedule_change(
+        _profile("RINVIO AD ALTRA UDIENZA DI DISCUSSIONE", "RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00", data_evento="09/09/2026")
+    )
+    assert change is not None
+    items = [
+        _appointment("2026-09-09", "Fissazione udienza di discussione - 09/09/2026"),
+        _appointment("2026-09-09", "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.", tipo="UDIENZA"),
+        _appointment("2026-09-09", "Udienza di altro fascicolo", fascicolo="F2", rg="RG 10/2026"),
+        _appointment("2026-06-01", "Udienza già rinviata", stato="RINVIATO"),
+    ]
+    selected, reason = select_rescheduled_appointments(
+        items, fascicolo_id="F1", rg="1854/2026", change=change, received_on=date(2026, 9, 10), message_id="pec_new"
+    )
+    assert [item.titolo for item in selected] == ["Fissazione udienza di discussione - 09/09/2026"]
+    assert "evento di cancelleria" in reason
+
+    senza_evento = detect_schedule_change(_profile("RINVIO DI UDIENZA", "UDIENZA RINVIATA AL 14/04/2027 09:00", data_evento=""))
+    assert senza_evento is not None
+    two_dates = [_appointment("2026-09-09", "Udienza di discussione"), _appointment("2026-10-06", "Udienza istruttoria")]
+    selected, reason = select_rescheduled_appointments(
+        two_dates, fascicolo_id="F1", rg="1854/2026", change=senza_evento, received_on=date(2026, 9, 10), message_id="pec_new"
+    )
+    assert selected == [] and "più udienze" in reason
+
+
+def _rinvio_mime(event_day: date, new_day: date, *, rg: str = "523/2026", with_127_ter: bool = True) -> bytes:
+    msg = EmailMessage()
+    msg["From"] = "Tribunale di Vicenza <tribunale.vicenza@civile.ptel.giustiziacert.it>"
+    msg["To"] = "studio@pec.it"
+    msg["Subject"] = "POSTA CERTIFICATA: Tribunale di Vicenza Notificazione ai sensi del D.L. 179/2012"
+    msg["Date"] = "Thu, 10 Sep 2026 14:58:48 +0200"
+    msg["Message-ID"] = f"<rinvio-udienza-{new_day.isoformat()}@iusentra.test>"
+    extra = "Già disposta la trattazione scritta ex art. 127-ter c.p.c. per la precedente udienza.\n" if with_127_ter else ""
+    msg.set_content(
+        f"Si da' atto che in data {_it(event_day)} alle ore 14:58 il cancelliere ROSSI MARIA ha provveduto ad inviare "
+        "all'indirizzo di posta elettronica studio@pec.it il seguente messaggio:\n\n"
+        f"Data Evento: {_it(event_day)}\nTipo Evento: EVENTI DI RINVIO\nOggetto: RINVIO AD ALTRA UDIENZA DI DISCUSSIONE\n"
+        f"Descrizione: RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL {_it(new_day)} 09:00 in presenza\n{extra}"
+    )
+    xml = f"""<Comunicazione><NumeroRuolo>{rg}</NumeroRuolo><Oggetto>RINVIO AD ALTRA UDIENZA DI DISCUSSIONE</Oggetto>
+    <Contenuto><![CDATA[Ufficio: TRIBUNALE ORDINARIO DI VICENZA
+    Numero di Ruolo generale: {rg}
+    Giudice: GABUTTI CARLO
+    Data Evento: {_it(event_day)}
+    Tipo Evento: EVENTI DI RINVIO
+    Oggetto: RINVIO AD ALTRA UDIENZA DI DISCUSSIONE
+    Descrizione: RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL {_it(new_day)} 09:00 in presenza]]></Contenuto></Comunicazione>""".encode()
+    msg.add_attachment(xml, maintype="application", subtype="xml", filename="Comunicazione.xml")
+    return msg.as_bytes(policy=policy.SMTP)
+
+
+def _udienza_presidiata(tmp_path: Path, fascicolo_id: str, day: date):
+    title = f"Fissazione udienza di discussione - {_it(day)} - RG 523/2026"
+    appointment = Agenda(str(tmp_path / "agenda.json")).aggiungi(
+        title,
+        TipoAppuntamento.UDIENZA,
+        f"{day.isoformat()}T09:00:00",
+        allow_overlap=True,
+        external_uid="PEC_AUDIT:pec_fissazione:deadline",
+        external_provider="pec_audit",
+        external_profile_id="pec_scadenziario",
+        note=f"PEC_AUDIT:pec_fissazione\nFascicolo: {fascicolo_id}\nFonte: pipeline PEC audit-grade.",
+        procedimento="RG 523/2026",
+    )
+    deadline = GestioneScadenziario(str(tmp_path / "scadenze.json")).nuova(
+        titolo=title,
+        tipo=TipoTermine.UDIENZA,
+        data_scadenza=day.isoformat(),
+        id_fascicolo=fascicolo_id,
+        note="PEC_AUDIT:pec_fissazione",
+        id_appuntamento=appointment.id,
+    )
+    return appointment, deadline
+
+
+def test_rinvio_udienza_ricezione_in_agenda_udienza_precedente_rinviata_e_titolo_corretto(tmp_path):
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    today = date.today()
+    # Differimento comunicato prima dell'udienza: l'evento di cancelleria è di oggi.
+    old_day, new_day = today + timedelta(days=3), today + timedelta(days=200)
+    old_appointment, old_deadline = _udienza_presidiata(tmp_path, fascicolo.id, old_day)
+
+    ingest = repo.ingest_mime(
+        _rinvio_mime(today, new_day), account_email="studio@pec.it", folder="INBOX", imap_uid="INBOX:UID:77", actor="pytest"
+    )
+    report = repo.run_pending_jobs(limit=40)
+    link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
+    message_id = str(ingest["id"])
+
+    receipt_result = link["auto_deadline"]["change_receipt"]
+    assert receipt_result["ok"] is True and receipt_result["recorded"] == "created"
+    assert receipt_result["received_at"] == "2026-09-10T14:58"
+    assert receipt_result["rescheduled_agenda_ids"] == [old_appointment.id]
+
+    appointments = {item.id: item for item in Agenda(str(tmp_path / "agenda.json")).tutti()}
+    receipt = appointments[receipt_result["agenda_id"]]
+    assert receipt.data_ora == "2026-09-10T14:58:00"
+    assert receipt.tipo == TipoAppuntamento.ALTRO and receipt.stato == StatoAppuntamento.PROGRAMMATO
+    assert receipt.titolo == f"PEC ricevuta: rinvio udienza al {_it(new_day)} ore 09:00 - RG 523/2026"
+    assert "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)" in receipt.note
+    assert f"Data precedente: {_it(old_day)}" in receipt.note
+    assert receipt.external_source_url == f"/api/pec/messages/{message_id}"
+    assert f"PEC_AUDIT:{message_id}" not in receipt.note, "la riconciliazione dei presidi non deve poterla annullare"
+
+    previous = appointments[old_appointment.id]
+    assert previous.stato == StatoAppuntamento.RINVIATO
+    assert reschedule_markers(previous.note)[0] == {"message_id": message_id, "new_date": new_day.isoformat()}
+    assert GestioneScadenziario(str(tmp_path / "scadenze.json")).get(old_deadline.id).stato == StatoTermine.ANNULLATO
+
+    new_hearing = next(item for item in appointments.values() if item.data_ora.startswith(new_day.isoformat()))
+    assert new_hearing.tipo == TipoAppuntamento.UDIENZA and new_hearing.stato == StatoAppuntamento.PROGRAMMATO
+    assert "Opposizione" not in new_hearing.titolo, "la nuova udienza non prende il nome del termine ex art. 127-ter"
+    assert len(appointments) == 3
+
+    # Rilettura della stessa PEC: nessun duplicato, nessuna riapertura.
+    rerun = repo.schedule_deadline(message_id, actor="pytest")
+    assert rerun["ok"] is True
+    again = Agenda(str(tmp_path / "agenda.json")).tutti()
+    assert len(again) == 3
+    assert sum(1 for item in again if item.external_uid.startswith("PEC_RICEZIONE:")) == 1
+
+    # Rilettura della PEC di fissazione: l'udienza superata non torna «programmata».
+    old_source = repo.schedule_deadline_from_payload(
+        "pec_fissazione",
+        parsed={},
+        report={"deadline_proposal": {"auto_create": True, "due_date": old_day.isoformat(), "deadline_kind": "udienza", "title": old_appointment.titolo}},
+        message={"linked_fascicolo_id": fascicolo.id},
+        actor="pytest",
+        due_date=old_day.isoformat(),
+    )
+    assert old_source["ok"] is True and old_source.get("rescheduled_later") is True
+    assert Agenda(str(tmp_path / "agenda.json")).get(old_appointment.id).stato == StatoAppuntamento.RINVIATO
+    assert GestioneScadenziario(str(tmp_path / "scadenze.json")).get(old_deadline.id).stato == StatoTermine.ANNULLATO
+
+    # Impegno completato dall'avvocato: la manutenzione non lo riapre.
+    Agenda(str(tmp_path / "agenda.json")).cambia_stato(receipt.id, StatoAppuntamento.COMPLETATO)
+    maintenance = repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
+    assert maintenance["ok"] is True and maintenance["recorded"] == 0
+    assert Agenda(str(tmp_path / "agenda.json")).get(receipt.id).stato == StatoAppuntamento.COMPLETATO
+
+
+def test_modifica_termine_riporta_la_ricezione_alla_data_e_ora_di_consegna(tmp_path):
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    today = date.today()
+    old_day, new_day = today + timedelta(days=2), today + timedelta(days=91)
+    previous, old_appointment = _termine_presidiato(tmp_path, fascicolo.id, old_day)
+
+    ingest = repo.ingest_mime(
+        _modifica_termine_mime(today, new_day), account_email="studio@pec.it", folder="INBOX", imap_uid="INBOX:UID:88", actor="pytest"
+    )
+    repo.run_pending_jobs(limit=40)
+
+    appointments = Agenda(str(tmp_path / "agenda.json")).tutti()
+    receipts = [item for item in appointments if item.external_uid == f"PEC_RICEZIONE:{ingest['id']}"]
+    assert len(receipts) == 1
+    receipt = receipts[0]
+    assert receipt.data_ora == "2026-09-10T16:08:00"
+    assert receipt.titolo == f"PEC ricevuta: termine modificato al {_it(new_day)} - RG 523/2026"
+    assert "Comunicazione ricevuta: Termine modificato" in receipt.note
+    # Il termine spostato e il promemoria alla data superata restano quelli della modifica.
+    assert GestioneScadenziario(str(tmp_path / "scadenze.json")).get(previous.id).data_scadenza == new_day.isoformat()
+    assert Agenda(str(tmp_path / "agenda.json")).get(old_appointment.id).stato == StatoAppuntamento.RINVIATO
+    assert len(appointments) == 3
+
+
+def test_backfill_manutenzione_idempotente_per_pec_gia_ricevute(tmp_path):
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    today = date.today()
+    ingest = repo.ingest_mime(
+        _rinvio_mime(today - timedelta(days=1), today + timedelta(days=120), with_127_ter=False),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:99",
+        actor="pytest",
+    )
+    repo.run_pending_jobs(limit=40)
+    agenda_path = tmp_path / "agenda.json"
+    agenda = Agenda(str(agenda_path))
+    for item in list(agenda.tutti()):
+        if item.external_uid.startswith("PEC_RICEZIONE:"):
+            agenda.elimina(item.id)
+
+    first = repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
+    second = repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
+
+    assert first["recorded"] == 1 and first["items"][0]["message_id"] == ingest["id"]
+    assert second["recorded"] == 0
+    assert sum(1 for item in Agenda(str(agenda_path)).tutti() if item.external_uid.startswith("PEC_RICEZIONE:")) == 1
+
+
+def test_agenda_react_mostra_la_ricezione_con_etichetta_e_date():
+    from web.services.react_agenda_bridge import _agenda_event
+
+    item = SimpleNamespace(
+        id="R1",
+        titolo="PEC ricevuta: rinvio udienza al 14/04/2027 ore 09:00 - RG 1854/2026",
+        tipo=TipoAppuntamento.ALTRO,
+        stato=StatoAppuntamento.PROGRAMMATO,
+        data_ora="2026-09-10T14:58:00",
+        data_ora_dt=datetime(2026, 9, 10, 14, 58),
+        durata_minuti=15,
+        luogo="",
+        tribunale="Tribunale di Palmi",
+        procedimento="RG 1854/2026",
+        cliente="GRANDE GIUSEPPE",
+        id_cliente="",
+        avvocato="",
+        note="\n".join(
+            (
+                "PEC_RICEZIONE:pec_abc",
+                "Comunicazione ricevuta: Rinvio udienza",
+                "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)",
+                "Nuova data: 14/04/2027 ore 09:00",
+                "Data precedente: 09/09/2026 (impegno segnato come rinviato in agenda)",
+                "Ufficio: Tribunale di Palmi",
+                "Cliente: GRANDE GIUSEPPE",
+                "Evento: RINVIO AD ALTRA UDIENZA DI DISCUSSIONE",
+                "Attività per l'avvocato: leggere il provvedimento, verificare data e ora della nuova udienza.",
+            )
+        ),
+        external_source_url="/api/pec/messages/pec_abc",
+        external_uid="PEC_RICEZIONE:pec_abc",
+        external_provider="pec_audit",
+        external_last_sync="2026-09-10T14:59:00",
+        remote_hearing_source="",
+    )
+    event = _agenda_event(item)
+    assert event is not None
+    assert event["start"] == "2026-09-10T14:58"
+    assert event["legalLabel"] == "PEC ricevuta · Rinvio udienza"
+    assert event["sourceKind"] == "pec" and "pec_abc" in event["sourceHref"]
+    assert "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)" in event["detailLines"]
+    assert "Nuova data: 14/04/2027 ore 09:00" in event["detailLines"]
+
+
+def test_agenda_react_dichiara_le_udienze_rinviate():
+    agenda_page = Path("frontend/src/components/AgendaPage.tsx").read_text(encoding="utf-8")
+    assert "event.status.toUpperCase() === 'RINVIATO'" in agenda_page
+    assert "`${label} (rinviata)`" in agenda_page

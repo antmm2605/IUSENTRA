@@ -512,6 +512,7 @@ def presidia_studio(
     try:
         report["repair_deadlines"] = repo.repair_pec_deadlines(actor=actor, limit=0)
         report["remote_hearing_backfill"] = repo.enrich_deadlines_with_remote_hearing_links(actor=actor, limit=0)
+        report["change_receipts"] = repo.record_pec_schedule_change_receipts(actor=actor, days=45, limit=0)
         if control_tower_backfill:
             report["control_tower"] = control_tower.backfill_from_email_archive(
                 gestore,

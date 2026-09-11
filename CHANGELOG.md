@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.294.0 - 11/09/2026
+
+Le PEC che cambiano un'udienza o un termine arrivano in agenda il giorno in cui le ricevi, e l'impegno superato non resta più «programmato».
+
+Controllo sulle 53 PEC di cancelleria ricevute in produzione dal 15/06/2026: i cambi di udienza e di termine comparivano in agenda solo alla nuova data, quando ci arrivavano, e l'impegno superato restava attivo. I tre difetti sono stati riprodotti sulla versione precedente prima di correggerli.
+
+- **Voce alla ricezione.** Rinvio, differimento, anticipazione, revoca dell'udienza e modifica di un termine creano l'impegno «PEC ricevuta: rinvio udienza al … - RG …» nel giorno e all'ora di consegna della PEC, in ora italiana. Il dettaglio riporta quando è arrivata, la nuova data, la data superata e cosa fare; dalla fonte si apre la PEC. Per il RG 1733/2026 (PEC del 10/09 alle 16:08, termine per note spostato al 10/12/2026) il 10/09 non compariva nulla.
+- **Impegno superato.** L'udienza o il termine dello stesso fascicolo passa a «rinviata» e la scadenza collegata viene annullata. Si prende l'impegno indicato dalla cancelleria, oppure l'unico aperto nei 60 giorni precedenti; se ce ne sono più di uno non si tocca nulla e la voce «PEC ricevuta» chiede di verificare. Rielaborare una PEC già trattata non riporta l'udienza a «programmata».
+- **Titolo della nuova udienza.** Non prende più il nome di un termine legale ex art. 127-ter proposto per una data diversa: l'udienza del 14/04/2027 del RG 1854/2026 si intitolava «Opposizione alla trattazione scritta ex art. 127-ter». Il termine resta nella nota, da verificare.
+- **Agenda › In evidenza** scorre tutti gli impegni filtrati del periodo (frecce, contatore, tasti freccia), partendo dal prossimo; il dettaglio operativo ha Precedente/Successivo senza chiudere la maschera, il riquadro Fonte che apre il documento o la PEC d'origine, e le attività proposte eseguibili.
+- **Le PEC già ricevute non si aggiornano da sole.** Dopo il rilascio va eseguito sul server `python -m scripts.backfill_pec_change_receipts --days 180`: è ripetibile senza creare doppioni e non riapre gli impegni già completati. È incluso anche in `repair_pec_deadlines` e nel presidio dell'archivio PEC (45 giorni).
+
 ## 2.293.1 - 11/09/2026
 
 - **La verifica del commit sul server confronta SHA della stessa lunghezza.** Il controllo introdotto con la 2.292.1 leggeva il commit dal server con `git rev-parse --short`, che accorcia quanto basta a non essere ambiguo nel repository e quindi non restituisce sempre sette caratteri, e lo confrontava con i primi sette di `GITHUB_SHA`. Risultato: la 2.292.2 è stata rilasciata e installata correttamente, ma la run risultava fallita e le verifiche post-deploy sulle rotte pubbliche venivano saltate. Il confronto usa ora lo SHA per intero; la forma breve resta solo nel riepilogo.

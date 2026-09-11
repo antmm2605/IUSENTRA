@@ -3100,9 +3100,13 @@ def test_giudice_di_pace_hearing_creates_real_hearing_not_generic_notice(tmp_pat
     assert "Valuta termini da notifica PEC" not in scadenze[0].titolo
     assert "Evento:" in scadenze[0].descrizione
     assert scadenze[0].id_utente_responsabile == ""
-    agenda_items = Agenda(str(agenda_db)).tutti()
+    all_agenda_items = Agenda(str(agenda_db)).tutti()
+    agenda_items = [item for item in all_agenda_items if not item.external_uid.startswith("PEC_RICEZIONE:")]
     assert len(agenda_items) == 1
     assert agenda_items[0].external_organizer == ""
+    # «UDIENZA RINVIATA»: la ricezione della PEC compare alla data e ora di consegna.
+    receipts = [item for item in all_agenda_items if item.external_uid.startswith("PEC_RICEZIONE:")]
+    assert [item.data_ora for item in receipts] == ["2026-06-01T12:00:00"]
 
 
 def test_pec_repair_removes_generic_gdp_notice_2030_deadline_and_agenda(tmp_path):

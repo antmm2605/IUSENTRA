@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import tempfile
 import sys
 import time
 from datetime import UTC, datetime, timedelta
@@ -14,6 +15,18 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
+
+#  Cookie jar della sessione PST usato nei test.
+#
+#  Qui c'era il percorso Windows scritto a mano "C:\temp\pst.cookies". Su
+#  Windows e' un percorso assoluto, su Linux e macOS diventa un nome di file
+#  relativo: _ensure_cookie_file lo creava nella cartella di lavoro, cioe' nella
+#  radice del repository. Un file con quel nome finito in un commit rende
+#  impossibile il checkout su Windows ("error: invalid path") e ferma l'intera
+#  CI Windows, quindi il deploy. Il percorso vive ora nella cartella temporanea
+#  del sistema, su qualunque sistema operativo.
+COOKIE_FILE_PST = str(Path(tempfile.gettempdir()) / "iusentra-test-pst.cookies")
+COOKIE_FILE_PST_IMPORT = str(Path(tempfile.gettempdir()) / "iusentra-test-pst-import.cookies")
 
 
 def _load_local_signer():
@@ -916,7 +929,7 @@ def test_pst_download_batch_usa_download_documento_semplice_senza_soap(monkeypat
         codice_ufficio="0012720095",
         cert_thumbprint="CERT-123",
         cf_avvocato="MNTGPP94L01G791A",
-        cookie_file="C:\\temp\\pst.cookies",
+        cookie_file=COOKIE_FILE_PST,
         do_preflight=False,
         documenti=[
             {
@@ -1555,7 +1568,7 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
         lambda session_id: {
             "session_id": session_id,
             "purpose": "view",
-            "cookie_file": "C:\\temp\\pst.cookies",
+            "cookie_file": COOKIE_FILE_PST,
             "auth_ready": True,
             "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
         },
@@ -1577,7 +1590,7 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
             {
                 "session_id": requested_session_id,
                 "purpose": kwargs.get("purpose"),
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": True,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
@@ -1655,7 +1668,7 @@ def test_pst_download_batch_senza_sessione_autenticata_non_invia_cookie_non_pron
         lambda session_id: {
             "session_id": session_id,
             "purpose": "view",
-            "cookie_file": "C:\\temp\\pst.cookies",
+            "cookie_file": COOKIE_FILE_PST,
             "auth_ready": False,
             "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
         },
@@ -1667,7 +1680,7 @@ def test_pst_download_batch_senza_sessione_autenticata_non_invia_cookie_non_pron
             {
                 "session_id": "SID-IMPORT",
                 "purpose": kwargs.get("purpose"),
-                "cookie_file": "C:\\temp\\pst-import.cookies",
+                "cookie_file": COOKIE_FILE_PST_IMPORT,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
@@ -1751,7 +1764,7 @@ def test_pst_download_batch_senza_sessione_crea_import_nuova(monkeypatch):
             {
                 "session_id": "SID-IMPORT",
                 "purpose": kwargs.get("purpose"),
-                "cookie_file": "C:\\temp\\pst-import.cookies",
+                "cookie_file": COOKIE_FILE_PST_IMPORT,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
                 "base_url": kwargs.get("base_url"),
@@ -1835,7 +1848,7 @@ def test_pst_download_batch_applica_servizio_documenti_su_sessione_import(monkey
         lambda session_id: {
             "session_id": session_id,
             "purpose": "view",
-            "cookie_file": "C:\\temp\\pst.cookies",
+            "cookie_file": COOKIE_FILE_PST,
             "auth_ready": True,
             "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
         },
@@ -1849,7 +1862,7 @@ def test_pst_download_batch_applica_servizio_documenti_su_sessione_import(monkey
             {
                 "session_id": "SID-IMPORT",
                 "purpose": kwargs.get("purpose"),
-                "cookie_file": "C:\\temp\\pst-import.cookies",
+                "cookie_file": COOKIE_FILE_PST_IMPORT,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
                 "base_url": kwargs.get("base_url"),
@@ -7080,7 +7093,7 @@ def test_download_documenti_batch_singolo_usa_id_documento_come_idcat_sicid():
             cf_avvocato="RSSMRA80A01H501Z",
             documenti=[{"id_documento": "33581101", "nome_documento": "Sentenza.pdf"}],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
         )
     finally:
         module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
@@ -7152,7 +7165,7 @@ def test_download_documenti_batch_multi_documento_usa_id_documento_come_idcat_si
                 {"id_documento": "33393309", "nome_documento": "Verbale.pdf"},
             ],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
         )
     finally:
         module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
@@ -7201,7 +7214,7 @@ def test_download_documenti_batch_pubblica_avanzamento_reale_per_ogni_risposta(m
             {"id_documento": "DOC-2", "id_repeatto": "DOC-2", "nome_documento": "due.pdf"},
         ],
         do_preflight=False,
-        cookie_file="C:\\temp\\pst.cookies",
+        cookie_file=COOKIE_FILE_PST,
         progress_callback=progress_events.append,
     )
 
@@ -7256,7 +7269,7 @@ def test_download_documenti_batch_sicid_accetta_documento_con_solo_id_cat():
             cf_avvocato="RSSMRA80A01H501Z",
             documenti=[{"id_documento": "", "id_cat": "CAT-ONLY-001", "nome_documento": "Atto.pdf"}],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
         )
     finally:
         module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
@@ -7323,7 +7336,7 @@ def test_download_documenti_batch_rispetta_original_false_sicid():
                 }
             ],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             original=False,
         )
     finally:
@@ -7409,7 +7422,7 @@ def test_download_documenti_batch_rispetta_modalita_per_singolo_documento():
                 },
             ],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             original=False,
         )
     finally:
@@ -7528,7 +7541,7 @@ def test_download_documenti_batch_sigp_include_dominio_invocazione():
                 }
             ],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             original=False,
         )
     finally:
@@ -7622,7 +7635,7 @@ def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fal
                 {"id_documento": "DOC-OK", "nome_documento": ""},
             ],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
         )
     finally:
         module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
@@ -7792,7 +7805,7 @@ def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
             url="https://pst.example.test",
             soap_body="<xml/>",
             cert_thumbprint="AABBCC11",
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             prefer_cookie_only=True,
         )
     finally:
@@ -7828,16 +7841,16 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
                 }
             ],
             cert_thumbprint="AABBCC11",
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             prefer_cookie_only=True,
         )
     finally:
         module._soap_call_curl_batch_raw = orig_call
 
     assert result == [(b"<ok/>", "HTTP/1.1 200 OK\r\n")]
-    assert calls[0] == {"cert_thumbprint": None, "cookie_files": ["C:\\temp\\pst.cookies"]}
+    assert calls[0] == {"cert_thumbprint": None, "cookie_files": [COOKIE_FILE_PST]}
     assert calls[1]["cert_thumbprint"] == "AABBCC11"
-    assert calls[1]["cookie_files"] == ["C:\\temp\\pst.cookies"]
+    assert calls[1]["cookie_files"] == [COOKIE_FILE_PST]
 
 
 def test_soap_call_pst_session_batch_best_effort_riprova_con_certificato_dopo_401_cookie_only():
@@ -7923,7 +7936,7 @@ def test_soap_call_pst_session_salta_cookie_se_host_mtls_gia_noto():
             url="https://pst.example.test/soap",
             soap_body="<xml/>",
             cert_thumbprint="AABBCC11",
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             prefer_cookie_only=True,
         )
     finally:
@@ -7953,7 +7966,7 @@ def test_soap_call_pst_session_batch_salta_cookie_se_host_mtls_gia_noto():
         result = module._soap_call_pst_session_batch_raw(
             [{"url": "https://pst.example.test/soap", "soap_body": "<xml/>"}],
             cert_thumbprint="AABBCC11",
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             prefer_cookie_only=True,
         )
     finally:
@@ -7962,7 +7975,7 @@ def test_soap_call_pst_session_batch_salta_cookie_se_host_mtls_gia_noto():
 
     assert result == [(b"<ok/>", "HTTP/1.1 200 OK\r\n")]
     assert calls == [
-        {"cert_thumbprint": "AABBCC11", "cookie_files": ["C:\\temp\\pst.cookies"]},
+        {"cert_thumbprint": "AABBCC11", "cookie_files": [COOKIE_FILE_PST]},
     ]
 
 
@@ -8049,7 +8062,7 @@ def test_soap_call_pst_session_timeout_cookie_only_riprova_una_volta_col_certifi
                 url="https://pst.example.test",
                 soap_body="<xml/>",
                 cert_thumbprint="AABBCC11",
-                cookie_file="C:\\temp\\pst.cookies",
+                cookie_file=COOKIE_FILE_PST,
                 prefer_cookie_only=True,
             )
             raise AssertionError("Atteso RuntimeError")
@@ -8082,7 +8095,7 @@ def test_soap_call_pst_session_raw_timeout_cookie_only_riprova_una_volta_col_cer
             url="https://pst.example.test",
             soap_body="<xml/>",
             cert_thumbprint="AABBCC11",
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
             prefer_cookie_only=True,
         )
     finally:
@@ -8111,7 +8124,7 @@ def test_soap_call_pst_session_batch_raw_timeout_cookie_only_riprova_una_volta_c
             module._soap_call_pst_session_batch_raw(
                 [{"url": "https://pst.example.test", "soap_body": "<xml/>"}],
                 cert_thumbprint="AABBCC11",
-                cookie_file="C:\\temp\\pst.cookies",
+                cookie_file=COOKIE_FILE_PST,
                 prefer_cookie_only=True,
             )
             raise AssertionError("Atteso RuntimeError")
@@ -8179,7 +8192,7 @@ def test_download_documenti_batch_con_sessione_attiva_usa_certificato_in_lotto_u
             cf_avvocato="RSSMRA80A01H501Z",
             documenti=[{"id_documento": "33581101", "nome_documento": "Sentenza.pdf"}],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
         )
     finally:
         module._soap_call_pst_session_batch_raw_best_effort = orig_batch
@@ -8227,7 +8240,7 @@ def test_download_documenti_batch_timeout_non_torna_al_download_singolo():
             cf_avvocato="RSSMRA80A01H501Z",
             documenti=[{"id_documento": "33581101", "nome_documento": "Sentenza.pdf", "id_cat": "33581101"}],
             do_preflight=False,
-            cookie_file="C:\\temp\\pst.cookies",
+            cookie_file=COOKIE_FILE_PST,
         )
     finally:
         module._soap_call_pst_session_batch_raw_best_effort = orig_batch
@@ -8447,7 +8460,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
             return (
                 {
                     "session_id": "SID-SNAPSHOT",
-                    "cookie_file": "C:\\temp\\pst.cookies",
+                    "cookie_file": COOKIE_FILE_PST,
                     "auth_ready": False,
                     "cf_avvocato": "RSSMRA80A01H501Z",
                 },
@@ -8548,7 +8561,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     # sessione, senza reintrodurre preflight o tentativi certificato aggiuntivi.
     assert captured["master_detail"] == 1
     assert captured["master_detail_kwargs"]["allow_cert_retry"] is False
-    assert captured["master_detail_kwargs"]["cookie_file"] == "C:\\temp\\pst.cookies"
+    assert captured["master_detail_kwargs"]["cookie_file"] == COOKIE_FILE_PST
     assert captured["master_detail_kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["sezioni"] == 0
     assert captured["batch_calls"] == 1
@@ -8603,7 +8616,7 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
         lambda *args, **kwargs: (
             {
                 "session_id": "SID-PALMI",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
@@ -8747,7 +8760,7 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
         lambda *args, **kwargs: (
             {
                 "session_id": "SID-GIUSEPPE",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": False,
                 "cf_avvocato": "MNTGPP94L01G791A",
             },
@@ -8853,7 +8866,7 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
         lambda *args, **kwargs: (
             {
                 "session_id": "SID-EMPTY",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": False,
                 "cf_avvocato": "MNTGPP94L01G791A",
             },
@@ -8951,7 +8964,7 @@ def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypa
         lambda *args, **kwargs: (
             {
                 "session_id": "SID-PALMI",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
@@ -9091,7 +9104,7 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
         module._ensure_pst_session_entry = lambda *args, **kwargs: (
             {
                 "session_id": "SID-SIGP-VIEW",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
@@ -9218,7 +9231,7 @@ def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra
         module._ensure_pst_session_entry = lambda *args, **kwargs: (
             {
                 "session_id": "SID-SIGP-VIEW",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
@@ -9321,7 +9334,7 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
         module._ensure_pst_session_entry = lambda *args, **kwargs: (
             {
                 "session_id": "SID-EXACT",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "cookie_file": COOKIE_FILE_PST,
                 "auth_ready": True,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },

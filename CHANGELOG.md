@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.292.2 - 11/09/2026
+
+Un file con un nome Windows non valido bloccava tutta la CI Windows, e quindi il deploy.
+
+- **`C:\temp\pst.cookies` era finito fra i file del repository.** La suite del Local Signer passava quel percorso scritto a mano: su Windows è un percorso assoluto, su Linux e macOS diventa un nome di file relativo, e i test lo creavano nella radice del repository. Con quel nome in un commit, `git checkout` su Windows fallisce con `error: invalid path` — i quattro job Windows del Local Signer si fermavano in quindici secondi, prima ancora di eseguire un test, e con i check richiesti rossi il deploy non partiva. Il file è stato rimosso e i test usano ora la cartella temporanea del sistema, su qualunque sistema operativo.
+- **Il controllo di governance del repository rifiuta i percorsi non estraibili su Windows**: caratteri non ammessi (`< > : " | ? *` e la barra rovesciata), nomi di dispositivo riservati (`CON`, `NUL`, `COM1`…), nomi che finiscono con spazio o punto. Un errore di questo tipo si vedeva solo dopo venti minuti di CI, su una piattaforma sola; ora si vede subito, anche nel gate locale.
+
 ## 2.292.1 - 11/09/2026
 
 Il deploy verifica davvero cosa e' finito online, invece di limitarsi a riferirlo.

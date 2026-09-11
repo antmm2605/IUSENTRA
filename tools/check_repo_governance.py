@@ -133,6 +133,58 @@ def _iter_governed_text_files():
         yield normalized, path
 
 
+#  Caratteri che Windows non ammette in un nome di file, piu' i nomi di
+#  dispositivo riservati. Un percorso cosi' fatto si crea senza problemi su
+#  Linux, ma rende impossibile il checkout su Windows ("error: invalid path"):
+#  i job Windows della CI si fermano prima ancora di iniziare, i check
+#  richiesti restano rossi e il deploy non parte. E' successo davvero con un
+#  file "C:\\temp\\pst.cookies" lasciato in radice da una suite di test.
+_CARATTERI_VIETATI_WINDOWS = '<>:"|?*\\'
+_NOMI_RISERVATI_WINDOWS = {
+    "CON", "PRN", "AUX", "NUL",
+    *(f"COM{n}" for n in range(1, 10)),
+    *(f"LPT{n}" for n in range(1, 10)),
+}
+
+
+def _percorsi_non_estraibili_su_windows() -> list[str]:
+    """Percorsi tracciati che impedirebbero il checkout su Windows."""
+
+    git_dir = REPO_ROOT / ".git"
+    if not git_dir.exists():
+        return []
+    import subprocess
+
+    #  -z restituisce i percorsi grezzi: senza, git cita e raddoppia le barre
+    #  rovesciate, cioe' proprio i nomi che stiamo cercando.
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    offenders: list[str] = []
+    for percorso in result.stdout.split("\0"):
+        if not percorso:
+            continue
+        for segmento in percorso.split("/"):
+            if not segmento:
+                continue
+            motivo = ""
+            vietati = sorted({c for c in segmento if c in _CARATTERI_VIETATI_WINDOWS})
+            if vietati:
+                motivo = "caratteri non ammessi su Windows: " + " ".join(vietati)
+            elif segmento.split(".")[0].upper() in _NOMI_RISERVATI_WINDOWS:
+                motivo = "nome riservato su Windows"
+            elif segmento != segmento.rstrip(" ."):
+                motivo = "termina con spazio o punto: non estraibile su Windows"
+            if motivo:
+                offenders.append(f"{percorso} ({motivo})")
+                break
+    return offenders
+
+
 def _find_mojibake_or_non_utf8_files() -> list[str]:
     offenders: list[str] = []
     for relative_path, path in _iter_governed_text_files():
@@ -786,6 +838,13 @@ def main() -> int:
         _check(
             normalized not in forbidden_root_files,
             f"Specifica ministeriale non deve stare in root: {normalized}.",
+            failures,
+        )
+
+    for offender in _percorsi_non_estraibili_su_windows():
+        _check(
+            False,
+            f"Percorso tracciato che blocca il checkout su Windows: {offender}.",
             failures,
         )
 

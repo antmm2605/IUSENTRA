@@ -89,8 +89,48 @@ PCT_OFFICE_TYPES_REQUIRING_DEPOSIT_RESOLUTION = {"CA", "OR", "SC", "TM", "GP", "
 AES256_CBC_OID = "2.16.840.1.101.3.4.1.42"
 
 
+#  Le fonti probatorie dello Studio Telematico stavano solo su percorsi
+#  Windows della postazione dell'avvocato: fuori di li' l'audit non poteva
+#  eseguire il confronto e si fermava, anche su una macchina che quelle fonti
+#  le aveva. Con IUSENTRA_QUICKORGANIZER_DIR si indica la cartella che le
+#  contiene, su qualunque sistema; i percorsi storici restano come ripiego.
+QUICKORGANIZER_DIR_ENV = "IUSENTRA_QUICKORGANIZER_DIR"
+
+#  Due uffici per cui ListaUfficiGiudiziari.xml riporta un indirizzo
+#  @giustizia.it, che NON e' un dominio di posta certificata. Su 593 uffici con
+#  PEC nella stessa fonte, 590 usano civile.ptel.giustiziacert.it e solo questi
+#  due fanno eccezione: e' un errore della lista ministeriale, non del
+#  catalogo. Allinearsi alla fonte manderebbe i depositi di questi uffici a un
+#  indirizzo non certificato, quindi il catalogo resta com'e' e la divergenza
+#  viene dichiarata qui invece di essere segnalata come disallineamento.
+#  Da rimuovere appena il Ministero corregge la lista.
+PEC_FONTE_NON_CERTIFICATA: dict[str, str] = {
+    "0930330157": "gdp.pordenone@giustizia.it",       # Giudice di Pace - Pordenone
+    "0370490152": "gdp.porrettaterme@giustizia.it",   # Giudice di Pace - Porretta Terme
+}
+
+
+def _quickorganizer_dir_candidates(filename: str) -> tuple[Path, ...]:
+    configurata = os.environ.get(QUICKORGANIZER_DIR_ENV, "").strip()
+    return (Path(configurata) / filename,) if configurata else ()
+
+
+def _nome_file_windows(percorso: Path) -> str:
+    """Nome del file anche quando il percorso e' scritto alla Windows.
+
+    Su POSIX la barra rovesciata non separa i segmenti, quindi ``Path.name`` su
+    ``D:\\QuickOrganizer\\ListaUfficiGiudiziari.xml`` restituisce l'intera
+    stringa: senza questa normalizzazione la cartella configurata non verrebbe
+    mai consultata fuori da Windows.
+    """
+
+    return str(percorso).replace("\\", "/").rsplit("/", 1)[-1]
+
+
 def _first_existing(candidates: tuple[Path, ...]) -> Path:
-    return next((path for path in candidates if path.exists()), candidates[0])
+    nome = _nome_file_windows(candidates[0]) if candidates else ""
+    completi = (*_quickorganizer_dir_candidates(nome), *candidates) if nome else candidates
+    return next((path for path in completi if path.exists()), candidates[0])
 
 
 QUICKORGANIZER_LISTA_UFFICI = _first_existing(QUICKORGANIZER_LISTA_UFFICI_CANDIDATES)
@@ -233,7 +273,10 @@ def _reference_table_evidence(errors: list[str]) -> dict[str, Any]:
         errors.append("tabella uffici deposito non allineata a ListaUfficiGiudiziari.xml")
 
     mdb_source = payloads.get("studio_mdb_schema_audit", {}).get("source") or {}
-    mdb_source_path = Path(str(mdb_source.get("path") or ""))
+    #  Il percorso registrato nell'artefatto e' quello della postazione su cui
+    #  fu prodotto lo snapshot: se non esiste qui, si riprova nella cartella
+    #  indicata da IUSENTRA_QUICKORGANIZER_DIR.
+    mdb_source_path = _first_existing((Path(str(mdb_source.get("path") or "")),))
     if not mdb_source_path.exists():
         errors.append("QuickOrganizer.mdb sorgente non disponibile")
     elif mdb_source.get("sha256") != _sha256_file(mdb_source_path):
@@ -1252,6 +1295,10 @@ def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
         actual_pec = str(office.get("pec") or office.get("pec_ministero") or "").strip().lower()
         if not expected_pec:
             external_no_pec.append({"codice": code, "descrizione": str(row.get("descrizione") or "")})
+        elif code in PEC_FONTE_NON_CERTIFICATA and expected_pec == PEC_FONTE_NON_CERTIFICATA[code]:
+            #  Divergenza nota e documentata: qui la fonte sbaglia, non il
+            #  catalogo. Vedi PEC_FONTE_NON_CERTIFICATA.
+            pass
         elif actual_pec != expected_pec:
             external_mismatch.append(
                 {

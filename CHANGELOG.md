@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.286.1 - 11/09/2026
+
+- L'audit end-to-end del catalogo depositi cercava le fonti probatorie dello Studio Telematico (`ListaUfficiGiudiziari.xml`, `QuickOrganizer.mdb`, impronta dell'eseguibile) solo su percorsi Windows fissi: fuori da quella postazione il confronto non era eseguibile e il test restava rosso per sempre, anche su una macchina che quelle fonti le aveva. Ora la cartella si indica con `IUSENTRA_QUICKORGANIZER_DIR` su qualunque sistema, e i percorsi storici restano come ripiego.
+- Dove le fonti non ci sono, il test si astiene dichiarando quali mancano invece di fallire: un disallineamento vero resta rosso, mentre l'assenza delle fonti non produce più un rosso permanente che nasconde i problemi veri.
+- Con le fonti presenti il confronto gira davvero e ha subito prodotto un riscontro: per il Giudice di Pace di Pordenone e quello di Porretta Terme `ListaUfficiGiudiziari.xml` indica un indirizzo `@giustizia.it`, che non è un dominio di posta certificata. Su 593 uffici con PEC nella stessa fonte, 590 usano `civile.ptel.giustiziacert.it` e solo questi due fanno eccezione: l'errore è nella lista ministeriale, non nel catalogo. Il catalogo resta invariato — allinearlo manderebbe quei depositi a un indirizzo non certificato — e la divergenza è dichiarata nell'audit con la sua motivazione, da rimuovere quando il Ministero correggerà la lista.
+
 ## 2.286.0 - 11/09/2026
 
 Difetti emersi ripristinando tre test che nessun controllo della CI eseguiva.

@@ -1,3 +1,5 @@
+import pytest
+
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -460,6 +462,23 @@ def test_catalogo_recupera_rami_decompilati_non_presenti_nel_json_menu():
 def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     report = audit_deposit_catalog()
     blocked_keys = {item["key"] for item in report["blocked_keys"]}
+
+    #  L'audit confronta il catalogo con le fonti probatorie dello Studio
+    #  Telematico ministeriale (ListaUfficiGiudiziari.xml, QuickOrganizer.mdb,
+    #  impronta dell'eseguibile), che stanno su percorsi Windows della
+    #  postazione dell'avvocato e non nel repository. Senza quelle fonti
+    #  l'audit si astiene, ed e' giusto cosi': dichiararlo conforme sarebbe il
+    #  falso verde che questo test esiste per impedire. Qui si distingue fra
+    #  "fonti assenti" — che rende il confronto non eseguibile — e un
+    #  disallineamento vero, che deve restare rosso.
+    fonti_mancanti = [
+        errore for errore in (report.get("errors") or []) if "non disponibile" in errore
+    ]
+    if fonti_mancanti and len(fonti_mancanti) == len(report.get("errors") or []):
+        pytest.skip(
+            "fonti probatorie dello Studio Telematico non presenti su questa "
+            "macchina: " + "; ".join(fonti_mancanti)
+        )
 
     assert report["ok"] is True
     assert report["total"] == 270

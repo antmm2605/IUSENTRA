@@ -15,6 +15,7 @@ from lex.retrieval.document_parser_docling import (
     is_docling_enabled,
     parse_document_with_docling,
 )
+from lex.retrieval.documenti_cache import MEMORIA_DOCUMENTI
 from pct.formatting import format_date_it
 
 _MAX_EXCERPT = 1200   # caratteri massimi per singola evidenza
@@ -30,21 +31,43 @@ def _tipo_val(doc: Any) -> str:
 
 
 def _document_path(doc: Any, documents_dir: Path) -> Path | None:
+    """Percorso del documento sul filesystem, tollerante sul suffisso di firma.
+
+    Il registro del fascicolo puo' indicare l'atto firmato (``.pdf.p7m``)
+    mentre su disco e' salvato il PDF, o viceversa. Finche' si cercava solo il
+    percorso esatto, gli atti depositati risultavano privi di contenuto: Lex li
+    elencava ma non poteva leggerli, proprio i documenti che contano di piu'.
+    """
+
     percorso = _clean(getattr(doc, "percorso", ""))
     if not percorso:
         return None
-    full_path = documents_dir / percorso
-    if not full_path.exists():
-        return None
-    return full_path
+
+    candidati = [documents_dir / percorso]
+    if percorso.lower().endswith(".p7m"):
+        #  Busta di firma dichiarata, PDF salvato in chiaro.
+        candidati.append(documents_dir / percorso[: -len(".p7m")])
+    else:
+        #  PDF dichiarato, busta di firma sul disco.
+        candidati.append(documents_dir / f"{percorso}.p7m")
+
+    for candidato in candidati:
+        if candidato.exists():
+            return candidato
+    return None
 
 
 def _extract_text_from_path(full_path: Path) -> str:
-    try:
-        from lex.tools._doc_extractor import extract_text_from_file
-        return extract_text_from_file(full_path)
-    except Exception:
-        return ""
+    def _leggi() -> str:
+        try:
+            from lex.tools._doc_extractor import extract_text_from_file
+            return extract_text_from_file(full_path)
+        except Exception:
+            return ""
+
+    #  Il contenuto di un documento non cambia fra una domanda e l'altra:
+    #  rileggerlo a ogni interrogazione costava secondi per fascicolo.
+    return MEMORIA_DOCUMENTI.ottieni(full_path, "testo", _leggi)
 
 
 def _extract_text(doc: Any, documents_dir: Path) -> str:
@@ -61,10 +84,16 @@ def _extract_docling_result(doc: Any, documents_dir: Path) -> tuple[DocumentPars
     if full_path is None:
         return None, "Documento non disponibile su filesystem per parsing Docling."
     doc_id = _clean(getattr(doc, "id", ""))
-    try:
-        return parse_document_with_docling(full_path, document_id=doc_id), ""
-    except Exception as exc:
-        return None, _clean(exc)
+
+    def _analizza() -> tuple[DocumentParseResult | None, str]:
+        try:
+            return parse_document_with_docling(full_path, document_id=doc_id), ""
+        except Exception as exc:
+            return None, _clean(exc)
+
+    #  Il parsing Docling e' la parte piu' cara: con l'OCR attivo puo' valere
+    #  secondi per documento, ripetuti a ogni domanda sullo stesso fascicolo.
+    return MEMORIA_DOCUMENTI.ottieni(full_path, f"docling:{doc_id}", _analizza)
 
 
 def _build_excerpt(doc: Any, text: str, tipo: str) -> str:

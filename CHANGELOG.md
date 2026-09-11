@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.291.0 - 11/09/2026
+
+Lex legge davvero gli atti del fascicolo, e li rilegge una volta sola.
+
+- **Gli atti depositati erano illeggibili per Lex.** Il registro del fascicolo indica l'atto firmato (`Sentenza.pdf.p7m`) mentre su disco e' salvato il PDF: cercando solo il percorso esatto, il file non veniva trovato e il documento restava senza contenuto. Lex lo elencava ma non poteva leggerlo — proprio i depositi, i documenti che contano di piu'. Misurato su un fascicolo reale da 14 documenti: prima **0 con contenuto leggibile**, ora **11**. La ricerca del file ora tollera il suffisso di firma in entrambe le direzioni.
+- **Una domanda dopo l'altra non ricomincia da capo.** Il testo di ogni documento veniva riestratto a ogni interrogazione. Ora resta in memoria, con una chiave che comprende data di modifica e dimensione del file: un atto sostituito viene riletto, uno immutato no. Sullo stesso fascicolo reale: prima domanda 20,9 s, seconda **0,01 s**. Su un fascicolo di prova con 12 PDF: da 28,2 s complessivi a 9,3 s.
+- La memoria e' limitata a 256 documenti e scarta i piu' vecchi, cosi' un processo che lavora su molti fascicoli non cresce senza limite; un documento non leggibile non viene memorizzato, per non servire il contenuto di un file che non c'e' piu'.
+
 ## 2.290.0 - 11/09/2026
 
 Ricerca Studio: meno rumore nei risultati e un indice che non perde piu' pezzi.

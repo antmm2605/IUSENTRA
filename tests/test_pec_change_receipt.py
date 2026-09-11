@@ -342,5 +342,146 @@ def test_agenda_react_mostra_la_ricezione_con_etichetta_e_date():
 
 def test_agenda_react_dichiara_le_udienze_rinviate():
     agenda_page = Path("frontend/src/components/AgendaPage.tsx").read_text(encoding="utf-8")
-    assert "event.status.toUpperCase() === 'RINVIATO'" in agenda_page
+    assert "status === 'RINVIATO'" in agenda_page
+    assert "`${label} (proposta da confermare)`" in agenda_page
     assert "`${label} (rinviata)`" in agenda_page
+
+
+# ---------------------------------------------------------------------------
+# Sentenze, estinzioni, designazioni del giudice: ricezione e termini proposti
+# ---------------------------------------------------------------------------
+
+from pct.pec_change_receipt import classify_court_communication, communication_receipt_title  # noqa: E402
+from pct.pec_provvedimento_terms import is_labour_matter, propose_terms  # noqa: E402
+
+
+def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", ufficio: str = "TRIBUNALE ORDINARIO DI VICENZA", when: str = "Wed, 05 Aug 2026 08:39:12 +0200", tag: str = "x") -> bytes:
+    msg = EmailMessage()
+    msg["From"] = "posta-certificata@legalmail.it"
+    msg["To"] = "studio@pec.it"
+    msg["Subject"] = f"POSTA CERTIFICATA: COMUNICAZIONE {rg}"
+    msg["Date"] = when
+    msg["Message-ID"] = f"<cancelleria-{tag}@iusentra.test>"
+    msg.set_content(
+        "Messaggio di posta certificata. I dati di cancelleria sono associati a:\n"
+        f"Oggetto: {oggetto}\nDescrizione: {descrizione}\n"
+    )
+    xml = f"""<Comunicazione><NumeroRuolo>{rg}</NumeroRuolo><Oggetto>{oggetto}</Oggetto>
+    <Contenuto><![CDATA[Ufficio: {ufficio}
+    Numero di Ruolo generale: {rg}
+    Oggetto: {oggetto}
+    Descrizione: {descrizione}]]></Contenuto></Comunicazione>""".encode()
+    msg.add_attachment(xml, maintype="application", subtype="xml", filename="Comunicazione.xml")
+    msg.add_attachment(b"<postacert><tipo>posta-certificata</tipo></postacert>", maintype="application", subtype="xml", filename="daticert.xml")
+    return msg.as_bytes(policy=policy.SMTP)
+
+
+def test_classifica_ogni_comunicazione_di_cancelleria_e_titoli():
+    cases = {
+        ("SENTENZA A VERBALE (art. 127 ter cpc)", "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 659/2026"): ("sentenza", "PEC ricevuta: sentenza n. 659/2026 - RG 215/2026"),
+        ("ESTINZIONE", "FASCICOLO ESTINTO"): ("estinzione", "PEC ricevuta: estinzione del processo - RG 215/2026"),
+        ("DESIGNAZIONE GIUDICE", "FASCICOLO ASSEGNATO AL GIUDICE GROSSI SABINA"): ("designazione_giudice", "PEC ricevuta: designazione del giudice GROSSI SABINA - RG 215/2026"),
+        ("COSTITUZIONE PARTI", "MINISTERO DELL'ISTRUZIONE E DEL MERITO COSTITUITO, DIFESO DALL'AVVOCATURA"): ("costituzione_parti", "PEC ricevuta: costituzione di MINISTERO DELL'ISTRUZIONE E DEL MERITO - RG 215/2026"),
+        ("FISSAZIONE UDIENZA DI DISCUSSIONE", "FISSATA UDIENZA DI DISCUSSIONE IL 22/12/2026 09:30 in presenza"): ("fissazione_udienza", "PEC ricevuta: fissazione udienza al 22/12/2026 ore 09:30 - RG 215/2026"),
+        ("ATTO NON CODIFICATO", "ATTO decreto corretto"): ("provvedimento", "PEC ricevuta: atto non codificato: decreto corretto - RG 215/2026"),
+    }
+    for (oggetto, descrizione), (kind, title) in cases.items():
+        comm = classify_court_communication({"oggetto_evento": oggetto, "descrizione_evento": descrizione})
+        assert comm is not None and comm.kind == kind
+        assert communication_receipt_title(comm, rg="215/2026") == title
+    assert classify_court_communication({"oggetto_evento": "POSTA CERTIFICATA: Ricevuta protocollo"}) is None
+
+
+def test_termini_proposti_per_sentenza_ed_estinzione_con_rito_del_lavoro():
+    sentenza = classify_court_communication({"oggetto_evento": "SENTENZA EX ART. 429, I comma CPC", "descrizione_evento": "NUMERO 3271/2026"})
+    lavoro = propose_terms(sentenza, dies_a_quo=date(2026, 8, 5), labour=True)
+    ordinario = propose_terms(sentenza, dies_a_quo=date(2026, 8, 5), labour=False)
+    assert [(item.code, item.due_date) for item in lavoro] == [("CIV_APPELLO_LUNGO", "2027-02-05")]
+    assert "non applicata" in lavoro[0].note and "art. 133, comma 2" in lavoro[0].note
+    assert ordinario[0].due_date > lavoro[0].due_date, "fuori dal lavoro agosto non si computa"
+
+    estinzione = classify_court_communication({"oggetto_evento": "ESTINZIONE", "descrizione_evento": "FASCICOLO ESTINTO"})
+    assert [item.code for item in propose_terms(estinzione, dies_a_quo=date(2026, 9, 11), labour=True)] == ["CIV_APPELLO_LUNGO"]
+    civile = propose_terms(estinzione, dies_a_quo=date(2026, 9, 11), labour=False)
+    assert [(item.code, item.due_date) for item in civile] == [("CIV_APPELLO_LUNGO", "2027-03-11"), ("CIV_RECLAMO_ESTINZIONE_308", "2026-09-21")]
+
+    designazione = classify_court_communication({"oggetto_evento": "DESIGNAZIONE GIUDICE", "descrizione_evento": "FASCICOLO ASSEGNATO AL GIUDICE ROSSI"})
+    assert propose_terms(designazione, dies_a_quo=date(2026, 9, 11), labour=True) == []
+    assert is_labour_matter("771/2025/LAV") and is_labour_matter("", "TRIBUNALE DI PALMI SEZIONE LAVORO")
+    assert not is_labour_matter("523/2026", "TRIBUNALE ORDINARIO DI VICENZA")
+
+
+def _run_cancelleria(repo, mime: bytes, uid: str):
+    ingest = repo.ingest_mime(mime, account_email="studio@pec.it", folder="INBOX", imap_uid=uid, actor="pytest")
+    repo.run_pending_jobs(limit=40)
+    return str(ingest["id"])
+
+
+def test_sentenza_estinzione_designazione_in_agenda_alla_ricezione_con_termini_in_bozza(tmp_path):
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    today = date.today()
+    sentence_day = today - timedelta(days=3)
+    sentenza_id = _run_cancelleria(
+        repo,
+        _cancelleria_mime(
+            "SENTENZA A VERBALE (art. 127 ter cpc)",
+            "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 659/2026",
+            rg="523/2026/LAV",
+            when=sentence_day.strftime("%a, %d %b %Y") + " 08:39:12 +0200",
+            tag="sentenza",
+        ),
+        "INBOX:UID:301",
+    )
+    estinzione_id = _run_cancelleria(
+        repo,
+        _cancelleria_mime("ESTINZIONE", "FASCICOLO ESTINTO", rg="523/2026/LAV", when="Fri, 11 Sep 2026 08:23:37 +0200", tag="estinzione"),
+        "INBOX:UID:302",
+    )
+    designazione_id = _run_cancelleria(
+        repo,
+        _cancelleria_mime("DESIGNAZIONE GIUDICE", "FASCICOLO ASSEGNATO AL GIUDICE GROSSI SABINA", when="Tue, 23 Jun 2026 14:34:00 +0200", tag="designazione"),
+        "INBOX:UID:303",
+    )
+    receipts = {
+        item.external_uid.split(":", 1)[1]: item
+        for item in Agenda(str(tmp_path / "agenda.json")).tutti()
+        if item.external_uid.startswith("PEC_RICEZIONE:")
+    }
+    assert set(receipts) == {sentenza_id, estinzione_id, designazione_id}
+    assert receipts[sentenza_id].data_ora == f"{sentence_day.isoformat()}T08:39:00"
+    assert receipts[sentenza_id].titolo.startswith("PEC ricevuta: sentenza n. 659/2026")
+    assert "Termine proposto (bozza da confermare nello scadenziario): Impugnazione sentenza - termine lungo" in receipts[sentenza_id].note
+    assert receipts[estinzione_id].data_ora == "2026-09-11T08:23:00"
+    assert receipts[estinzione_id].titolo.startswith("PEC ricevuta: estinzione del processo")
+    assert receipts[designazione_id].data_ora == "2026-06-23T14:34:00"
+    assert receipts[designazione_id].titolo == "PEC ricevuta: designazione del giudice GROSSI SABINA - RG 523/2026"
+    assert all(item.tipo == TipoAppuntamento.ALTRO for item in receipts.values())
+
+    drafts = [
+        item
+        for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False)
+        if "PEC_TERMINE_PROPOSTO:" in item.note
+    ]
+    by_message = {(item.source_message_id, item.deadline_profile_code): item for item in drafts}
+    assert set(by_message) == {(sentenza_id, "CIV_APPELLO_LUNGO"), (estinzione_id, "CIV_APPELLO_LUNGO")}, "rito del lavoro: niente reclamo 308"
+    sentenza_draft = by_message[(sentenza_id, "CIV_APPELLO_LUNGO")]
+    assert sentenza_draft.stato == StatoTermine.BOZZA and sentenza_draft.tipo == TipoTermine.IMPUGNAZIONE
+    assert sentenza_draft.perentorio is True and "Sospensione feriale non applicata" in sentenza_draft.descrizione
+
+    # Idempotenza: nessun doppione di ricezioni o bozze.
+    repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
+    assert sum(1 for item in Agenda(str(tmp_path / "agenda.json")).tutti() if item.external_uid.startswith("PEC_RICEZIONE:")) == 3
+    assert len([item for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False) if "PEC_TERMINE_PROPOSTO:" in item.note]) == 2
+
+
+def test_ricevute_di_deposito_e_protocollo_non_diventano_ricezioni_di_cancelleria(tmp_path):
+    repo, _fascicolo = _repo_con_fascicolo(tmp_path)
+    msg = EmailMessage()
+    msg["From"] = "posta-certificata@legalmail.it"
+    msg["To"] = "studio@pec.it"
+    msg["Subject"] = "POSTA CERTIFICATA: Ricevuta protocollo"
+    msg["Date"] = "Tue, 08 Sep 2026 11:34:57 +0200"
+    msg["Message-ID"] = "<protocollo@iusentra.test>"
+    msg.set_content("Ricevuta di protocollo della PEC inviata.")
+    _run_cancelleria(repo, msg.as_bytes(policy=policy.SMTP), "INBOX:UID:401")
+    assert not [item for item in Agenda(str(tmp_path / "agenda.json")).tutti() if item.external_uid.startswith("PEC_RICEZIONE:")]

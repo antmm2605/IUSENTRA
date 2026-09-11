@@ -197,7 +197,9 @@ function agendaTitle(event: AgendaEvent): string {
 function agendaLegalLabel(event: AgendaEvent): string {
   const label = event.legalLabel || (event.kind === 'udienza' ? 'Udienza' : event.kind === 'deposito' ? 'Deposito' : event.kind === 'scadenza' ? 'Scadenza da presidiare' : 'Adempimento')
   // Udienza superata da un rinvio comunicato via PEC: resta visibile ma dichiarata.
-  return event.status.toUpperCase() === 'RINVIATO' && !/rinviat|rinvio|modificat/i.test(label) ? `${label} (rinviata)` : label
+  const status = event.status.toUpperCase()
+  if (status === 'BOZZA') return `${label} (proposta da confermare)`
+  return status === 'RINVIATO' && !/rinviat|rinvio|modificat/i.test(label) ? `${label} (rinviata)` : label
 }
 
 function sameAgendaText(left: string, right: string): boolean {

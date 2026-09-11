@@ -311,3 +311,150 @@ def select_rescheduled_appointments(
     if not days:
         return [], "nessuna udienza aperta vicina alla data di ricezione"
     return [], "più udienze aperte nello stesso fascicolo: verificare quale è stata rinviata"
+
+
+# ---------------------------------------------------------------------------
+# Tutte le comunicazioni di cancelleria (sentenze, estinzioni, designazioni...)
+# ---------------------------------------------------------------------------
+
+COMMUNICATION_KIND_LABELS = {
+    "sentenza": "Sentenza",
+    "estinzione": "Estinzione del processo",
+    "designazione_giudice": "Designazione del giudice",
+    "costituzione_parti": "Costituzione di parte",
+    "fissazione_udienza": "Fissazione udienza",
+    "fissazione_termine": "Fissazione termine",
+    "provvedimento": "Comunicazione di cancelleria",
+}
+
+_COMMUNICATION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("sentenza", re.compile(r"\bSENTENZ", re.I)),
+    ("estinzione", re.compile(r"\bESTINZION|\bESTINT[OA]\b", re.I)),
+    ("designazione_giudice", re.compile(r"\bDESIGNAZIONE\b|\bASSEGNAT[OA]\s+AL\s+GIUDICE\b", re.I)),
+    ("costituzione_parti", re.compile(r"\bCOSTITUZION|\bCOSTITUIT[OAIE]\b", re.I)),
+    ("fissazione_udienza", re.compile(r"\bFISSA\w*\s+(?:L['’]\s*)?UDIENZ", re.I)),
+    ("fissazione_termine", re.compile(r"\bFISSA\w*\s+(?:IL\s+)?TERMIN|\bASSEGNA\w*\s+(?:IL\s+)?TERMIN", re.I)),
+)
+
+
+@dataclass(frozen=True)
+class CourtCommunication:
+    kind: str
+    event: str
+    description: str
+    event_date: str
+    date: str
+    time: str
+    change: ScheduleChange | None = None
+
+    @property
+    def label(self) -> str:
+        if self.change is not None:
+            return self.change.label
+        if self.kind == "provvedimento" and self.event:
+            return self.event[:1].upper() + self.event[1:].lower()
+        return COMMUNICATION_KIND_LABELS.get(self.kind, COMMUNICATION_KIND_LABELS["provvedimento"])
+
+
+def classify_court_communication(
+    profile: dict[str, Any] | None,
+    *,
+    body_text: str = "",
+    fallback_date: str = "",
+    fallback_time: str = "",
+) -> CourtCommunication | None:
+    """Ogni evento del registro di cancelleria comunicato via PEC, non solo i cambi di data."""
+
+    profile = profile if isinstance(profile, dict) else {}
+    event = _text(profile.get("oggetto_evento")) or _profile_line(body_text, "Oggetto")
+    description = _text(profile.get("descrizione_evento")) or _profile_line(body_text, "Descrizione")
+    event_date = _iso_from_it(_text(profile.get("data_evento")) or _profile_line(body_text, "Data Evento"))
+    change = detect_schedule_change(profile, body_text=body_text, fallback_date=fallback_date, fallback_time=fallback_time)
+    if change is not None:
+        return CourtCommunication(
+            kind=change.kind,
+            event=change.event,
+            description=change.description,
+            event_date=change.event_date,
+            date=change.new_date,
+            time=change.new_time,
+            change=change,
+        )
+    if not event or event.upper().startswith(("POSTA CERTIFICATA", "ACCETTAZIONE", "CONSEGNA", "ESITO")):
+        return None
+    joined = f"{event} {description}"
+    kind = next((name for name, pattern in _COMMUNICATION_PATTERNS if pattern.search(event)), "")
+    if not kind:
+        kind = next((name for name, pattern in _COMMUNICATION_PATTERNS if pattern.search(joined)), "provvedimento")
+    read_date, read_time = "", ""
+    if kind in {"fissazione_udienza", "fissazione_termine"}:
+        match = _NEW_DATE_RE.search(description) or _NEW_DATE_RE.search(event)
+        if match and _iso_from_it(match.group("date")):
+            read_date = _iso_from_it(match.group("date"))
+            read_time = (match.group("time") or "").replace(".", ":")
+            if read_time in {"00:00", "0:00", "23:59"}:
+                read_time = ""
+    return CourtCommunication(
+        kind=kind,
+        event=event[:220],
+        description=description[:320],
+        event_date=event_date,
+        date=read_date,
+        time=read_time,
+    )
+
+
+def _date_time_label(day: str, time_value: str) -> str:
+    return f"{date_it(day)} ore {time_value}" if time_value else date_it(day)
+
+
+def communication_summary(comm: CourtCommunication) -> str:
+    if comm.change is not None:
+        return change_summary(comm.change)
+    text = f"{comm.event} {comm.description}"
+    if comm.kind == "sentenza":
+        number = re.search(r"\bNUMERO\s+(\d{1,6}\s*/\s*\d{4})", text, flags=re.I)
+        return f"sentenza n. {number.group(1).replace(' ', '')}" if number else "sentenza"
+    if comm.kind == "estinzione":
+        return "estinzione del processo"
+    if comm.kind == "designazione_giudice":
+        judge = re.search(
+            r"\bGIUDICE\s+((?:(?!(?:DESIGNAZIONE|UFFICIO|OGGETTO|DESCRIZIONE)\b)[A-ZÀ-Ý']{2,}\s*){1,4})",
+            comm.description.upper(),
+        )
+        return f"designazione del giudice {judge.group(1).strip()}" if judge else "designazione del giudice"
+    if comm.kind == "costituzione_parti":
+        party = re.match(r"\s*(.{3,80}?)\s+COSTITUIT", comm.description, flags=re.I)
+        return f"costituzione di {party.group(1).strip()}" if party else "costituzione di parte"
+    if comm.kind in {"fissazione_udienza", "fissazione_termine"} and comm.date:
+        base = "fissazione udienza" if comm.kind == "fissazione_udienza" else "termine fissato"
+        return f"{base} al {_date_time_label(comm.date, comm.time)}"
+    if comm.kind in COMMUNICATION_KIND_LABELS and comm.kind != "provvedimento":
+        return COMMUNICATION_KIND_LABELS[comm.kind].lower()
+    if comm.event.lower().startswith("comunicazione"):
+        return "comunicazione di cancelleria"
+    detail = comm.description.lower()
+    detail = re.sub(r"^atto\s+", "", detail)
+    base = comm.event.lower()[:70] or "comunicazione di cancelleria"
+    return f"{base}: {detail[:60]}" if detail and detail not in base else base
+
+
+def communication_receipt_title(comm: CourtCommunication, *, rg: str = "") -> str:
+    base = f"PEC ricevuta: {communication_summary(comm)}"
+    return f"{base} - RG {rg}" if rg else base
+
+
+def communication_activity(comm: CourtCommunication) -> str:
+    if comm.change is not None:
+        return lawyer_activity(comm.change)
+    return {
+        "sentenza": (
+            "leggere la sentenza, informare il cliente sull'esito e valutare impugnazione e notifica; "
+            "il termine breve decorre dalla notificazione, non dalla comunicazione di cancelleria (art. 133, comma 2, c.p.c.)."
+        ),
+        "estinzione": "leggere il provvedimento di estinzione, informare il cliente e valutare impugnazione o riproposizione della domanda.",
+        "designazione_giudice": "annotare il giudice assegnato nel fascicolo e verificare il decreto di fissazione dell'udienza.",
+        "costituzione_parti": "leggere l'atto di costituzione (difese, eccezioni, domande riconvenzionali) e aggiornare la strategia con il cliente.",
+        "fissazione_udienza": "verificare data, ora e modalità dell'udienza e i termini che ne derivano.",
+        "fissazione_termine": "preparare il deposito richiesto entro il termine assegnato.",
+    }.get(comm.kind, "leggere il provvedimento e verificare se assegna termini o adempimenti.")

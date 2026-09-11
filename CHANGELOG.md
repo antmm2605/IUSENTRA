@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.295.0 - 11/09/2026
+
+Tutte le comunicazioni di cancelleria entrano in agenda alla ricezione, e ogni provvedimento propone il termine che apre.
+
+- **Ogni comunicazione di cancelleria compare in agenda nel giorno e all'ora di ricezione, in ora italiana.** Oltre ai cambi di udienza e di termine già introdotti con la 2.294.0: sentenze («PEC ricevuta: sentenza n. 659/2026 - RG …»), estinzioni, designazioni del giudice (con il nome del giudice), costituzioni di parte, fissazioni di udienza o termine, atti non codificati. Il criterio è il tipo «comunicazione di cancelleria» o la presenza di `Comunicazione.xml`. Ricevute di deposito, protocollo e mancata consegna restano fuori.
+- **Termini proposti per i provvedimenti**, in bozza nello scadenziario (tipo impugnazione, perentorio) e richiamati nell'impegno di ricezione. Restano proposte da confermare: non sono mai fonte unica.
+  - Sentenza: impugnazione con il termine lungo di sei mesi dalla pubblicazione (art. 327 c.p.c.). Il termine breve — 30 giorni per l'appello (art. 325 e, nel rito del lavoro, art. 434, comma 2, c.p.c.), 60 per il ricorso per cassazione — decorre dalla notificazione e non dalla comunicazione di cancelleria (art. 133, comma 2, c.p.c.): resta indicato in nota.
+  - Estinzione: appello con il termine lungo, perché il provvedimento del giudice monocratico ha natura di sentenza. Fuori dal rito del lavoro anche il reclamo al collegio entro 10 giorni dalla comunicazione (artt. 308 e 178, commi 3-5, c.p.c.), valido se la causa è collegiale.
+  - Rito del lavoro e previdenza (RG «/LAV», sezione lavoro o fascicolo di lavoro): niente sospensione feriale (art. 3 L. 742/1969, art. 92 R.D. 12/1941).
+  - Decorrenza dalla data dell'evento di cancelleria o, in mancanza, dalla ricezione: da verificare sulla data di pubblicazione. Nessuna bozza per termini già scaduti.
+  - Designazione del giudice, costituzione di parte e fissazioni non aprono termini automatici: le date lette sono già presidiate come udienze o termini.
+- **Opposizione ex art. 127-ter:** il proponente dei termini legali resta senza restrizioni aggiuntive.
+- In Agenda le proposte in bozza sono indicate «(proposta da confermare)».
+- Il backfill `python -m scripts.backfill_pec_change_receipts --days 180` applica tutto anche alle PEC già ricevute, senza creare doppioni.
+
 ## 2.294.0 - 11/09/2026
 
 Le PEC che cambiano un'udienza o un termine arrivano in agenda il giorno in cui le ricevi, e l'impegno superato non resta più «programmato».

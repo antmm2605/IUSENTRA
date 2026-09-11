@@ -1731,7 +1731,7 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     assert scadenze[0].remote_hearing_verified is True
     assert "Link udienza audiovisiva" in scadenze[0].note
     agenda = Agenda(str(agenda_db))
-    agenda_items = agenda.tutti()
+    agenda_items = [item for item in agenda.tutti() if not item.external_uid.startswith("PEC_RICEZIONE:")]
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
@@ -1991,7 +1991,7 @@ def test_schedule_deadline_persistito_materializza_tutte_le_udienze(tmp_path):
     assert result["ok"] is True
     assert result["hearing_count"] == 2
     assert len(GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)) == 2
-    assert len(Agenda(str(agenda_db)).tutti()) == 2
+    assert len([item for item in Agenda(str(agenda_db)).tutti() if not item.external_uid.startswith("PEC_RICEZIONE:")]) == 2
 
 
 def test_multi_udienza_riordinata_e_arricchita_aggiorna_senza_duplicare(tmp_path):
@@ -5658,7 +5658,7 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert notice_deadlines[0].deadline_profile_code == "PEC_AUTO_PRESIDIO"
     assert notice_deadlines[0].operational_due_at.startswith("2030-01-15")
     assert notice_deadlines[0].legal_due_at == ""
-    agenda_items = Agenda(str(paths["AGENDA_DB"])).tutti()
+    agenda_items = [item for item in Agenda(str(paths["AGENDA_DB"])).tutti() if not item.external_uid.startswith("PEC_RICEZIONE:")]
     assert len(agenda_items) == 1
     assert agenda_items[0].tipo == TipoAppuntamento.SCADENZA
     assert agenda_items[0].external_uid == f"PEC_AUDIT:{notice_id}:deadline"
@@ -5678,7 +5678,7 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert schedule_again.status_code == 200
     assert schedule_again.get_json()["already_exists"] is True
     assert schedule_again.get_json()["notification"]["created"] is False
-    assert len(Agenda(str(paths["AGENDA_DB"])).tutti()) == 1
+    assert len([item for item in Agenda(str(paths["AGENDA_DB"])).tutti() if not item.external_uid.startswith("PEC_RICEZIONE:")]) == 1
 
     prepare_save = client.post(
         f"/api/pec/messages/{notice_id}/salva-fascicolo",

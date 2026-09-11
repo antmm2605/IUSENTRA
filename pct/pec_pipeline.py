@@ -47,18 +47,20 @@ from pct.pec_change_receipt import (
     RECEIPT_PROFILE_ID as CHANGE_RECEIPT_PROFILE_ID,
     NEW_DATE_LINE as CHANGE_RECEIPT_NEW_DATE_LINE,
     change_summary as schedule_change_summary,
+    classify_court_communication,
+    communication_activity,
+    communication_receipt_title,
+    communication_summary,
     date_it as change_date_it,
-    detect_schedule_change,
-    lawyer_activity as schedule_change_lawyer_activity,
     new_date_label as schedule_change_new_date_label,
     normalize_rg as change_normalize_rg,
     receipt_datetime_rome,
-    receipt_title as schedule_change_receipt_title,
     receipt_uid as schedule_change_receipt_uid,
     reschedule_marker,
     reschedule_markers,
     select_rescheduled_appointments,
 )
+from pct.pec_provvedimento_terms import is_labour_matter, propose_terms as propose_provvedimento_terms
 from pct.pec_term_modification import (
     COMMUNICATION_LINE_PREFIX as TERM_MODIFICATION_COMMUNICATION_PREFIX,
     HUMAN_LINE_PREFIX as TERM_MODIFICATION_HUMAN_PREFIX,
@@ -9211,6 +9213,14 @@ class PecAuditRepository:
                 auto_deadline = self.schedule_deadline(message_id, actor=actor)
         except Exception as exc:
             auto_deadline = {"ok": False, "message": f"Scadenza automatica non registrata: {exc}"}
+        change_receipt: dict[str, Any] = dict(auto_deadline.get("change_receipt") or {}) if isinstance(auto_deadline, dict) else {}
+        if not change_receipt and self.agenda_db_path:
+            # Ogni comunicazione di cancelleria (anche senza scadenza: sentenza, estinzione,
+            # designazione del giudice) entra in agenda alla data e ora di ricezione.
+            try:
+                change_receipt = self.record_pec_schedule_change_receipt(message_id, actor=actor)
+            except Exception as exc:  # pragma: no cover - il collegamento resta valido
+                change_receipt = {"ok": False, "message": clean_text(exc, 180)}
         try:
             # Le date lette ma non promosse dalla matrice diventano proposte in
             # BOZZA da confermare: nessuna data va perduta, nessun automatismo
@@ -9227,6 +9237,7 @@ class PecAuditRepository:
             "seeds": seeds,
             "deposit_upsert": deposit_upsert,
             "auto_deadline": auto_deadline,
+            "change_receipt": change_receipt,
             "draft_proposals": draft_proposals,
             "notification_presidia": presidia_dopo_collegamento,
         }
@@ -12914,12 +12925,14 @@ class PecAuditRepository:
         message: dict[str, Any] | None = None,
         actor: str = "pec-api",
     ) -> dict[str, Any]:
-        """Riporta in agenda la ricezione della PEC che cambia udienza o termine.
+        """Riporta in agenda la ricezione di ogni comunicazione di cancelleria.
 
-        L'impegno «PEC ricevuta: …» è collocato nel giorno e all'ora di consegna della
-        PEC (ora italiana) e indica la nuova data; le udienze superate dello stesso
-        fascicolo passano a «rinviato» con il riferimento alla comunicazione. Idempotente
-        per messaggio; un impegno già completato dall'avvocato non viene riaperto.
+        L'impegno «PEC ricevuta: …» è collocato nel giorno e all'ora di consegna della PEC
+        (ora italiana): rinvii e modifiche di data, sentenze, estinzioni, designazioni del
+        giudice, costituzioni, fissazioni e altri provvedimenti. Per i cambi di data le udienze
+        superate dello stesso fascicolo passano a «rinviato»; per sentenze ed estinzioni i
+        termini aperti dal provvedimento sono proposti in bozza nello scadenziario.
+        Idempotente per messaggio; un impegno già completato dall'avvocato non viene riaperto.
         """
 
         from pct.agenda import StatoAppuntamento, TipoAppuntamento
@@ -12941,14 +12954,20 @@ class PecAuditRepository:
         profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
         proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
         body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
-        change = detect_schedule_change(
+        comm = classify_court_communication(
             profile,
             body_text=str(body.get("text") or body.get("html_text") or ""),
             fallback_date=clean_text(proposal.get("due_date") or "", 20),
             fallback_time=clean_text(proposal.get("event_time") or "", 10).replace(".", ":"),
         )
-        if change is None:
+        event_type = clean_text(report.get("event_type") or profile.get("evento_pec") or "", 80)
+        ministerial_xml = any(
+            str(name or "").strip().lower().endswith("comunicazione.xml")
+            for name in list(profile.get("documenti_letti") or [])
+        )
+        if comm is None or (comm.change is None and event_type != "comunicazione_cancelleria" and not ministerial_xml):
             return {"ok": True, "skipped": "nessun_cambio"}
+        change = comm.change
         received = receipt_datetime_rome(
             _field_date_value(parsed, "data_consegna"),
             stored_message.get("received_at"),
@@ -12966,60 +12985,100 @@ class PecAuditRepository:
             for item in appointments
             if any(row["message_id"] == clean_id for row in reschedule_markers(getattr(item, "note", "")))
         ]
-        selected, reason = select_rescheduled_appointments(
-            appointments,
-            fascicolo_id=fascicolo_id,
-            rg=rg,
-            change=change,
-            received_on=received.date(),
-            message_id=clean_id,
-        )
-        if change.kind == "udienza_revocata":
-            # La revoca può sostituire l'udienza con note allo stesso giorno.
-            same_day = [
-                item
-                for item in appointments
-                if item not in selected
-                and str(getattr(item, "data_ora", "") or "")[:10] == change.new_date
-                and str(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", ""))) in {"PROGRAMMATO", "CONFERMATO"}
-                and "udienza" in str(getattr(item, "titolo", "") or "").lower()
-                and "note" not in str(getattr(item, "titolo", "") or "").lower()
-                and f"PEC_AUDIT:{clean_id}" not in str(getattr(item, "note", "") or "")
-                and not str(getattr(item, "external_uid", "") or "").startswith("PEC_RICEZIONE:")
-                and (
-                    (fascicolo_id and f"Fascicolo: {fascicolo_id}" in str(getattr(item, "note", "") or ""))
-                    or (rg and change_normalize_rg(getattr(item, "procedimento", "")) == rg)
-                )
-            ]
-            selected = [*selected, *same_day]
+        selected: list[Any] = []
+        reason = ""
+        if change is not None:
+            selected, reason = select_rescheduled_appointments(
+                appointments,
+                fascicolo_id=fascicolo_id,
+                rg=rg,
+                change=change,
+                received_on=received.date(),
+                message_id=clean_id,
+            )
+            if change.kind == "udienza_revocata":
+                # La revoca può sostituire l'udienza con note allo stesso giorno.
+                same_day = [
+                    item
+                    for item in appointments
+                    if item not in selected
+                    and str(getattr(item, "data_ora", "") or "")[:10] == change.new_date
+                    and str(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", ""))) in {"PROGRAMMATO", "CONFERMATO"}
+                    and "udienza" in str(getattr(item, "titolo", "") or "").lower()
+                    and "note" not in str(getattr(item, "titolo", "") or "").lower()
+                    and f"PEC_AUDIT:{clean_id}" not in str(getattr(item, "note", "") or "")
+                    and not str(getattr(item, "external_uid", "") or "").startswith("PEC_RICEZIONE:")
+                    and (
+                        (fascicolo_id and f"Fascicolo: {fascicolo_id}" in str(getattr(item, "note", "") or ""))
+                        or (rg and change_normalize_rg(getattr(item, "procedimento", "")) == rg)
+                    )
+                ]
+                selected = [*selected, *same_day]
         previous_items = [*already_rescheduled, *[item for item in selected if item not in already_rescheduled]]
         previous_days = sorted({str(getattr(item, "data_ora", "") or "")[:10] for item in previous_items if getattr(item, "data_ora", "")})
-        if previous_days:
-            previous_line = (
-                f"{CHANGE_RECEIPT_PREVIOUS_DATE_LINE} {', '.join(change_date_it(day) for day in previous_days)} "
-                "(impegno segnato come rinviato in agenda)"
-            )
-        else:
-            previous_line = f"{CHANGE_RECEIPT_PREVIOUS_DATE_LINE} da verificare: {reason}"
-        new_label = schedule_change_new_date_label(change)
+        previous_line = ""
+        if change is not None:
+            if previous_days:
+                previous_line = (
+                    f"{CHANGE_RECEIPT_PREVIOUS_DATE_LINE} {', '.join(change_date_it(day) for day in previous_days)} "
+                    "(impegno segnato come rinviato in agenda)"
+                )
+            else:
+                previous_line = f"{CHANGE_RECEIPT_PREVIOUS_DATE_LINE} da verificare: {reason}"
+
+        # Termini aperti dal provvedimento (sentenze, estinzioni): proposte in bozza.
+        term_proposals: list[Any] = []
+        labour = is_labour_matter(
+            profile.get("numero_rg"),
+            profile.get("ufficio"),
+            profile.get("sezione"),
+            (parsed.get("headers") or {}).get("subject") if isinstance(parsed.get("headers"), dict) else "",
+        )
+        if not labour and fascicolo_id and self.fascicoli_db_path:
+            try:
+                fascicolo = self._fascicoli_manager().get(fascicolo_id)
+                labour = str(getattr(getattr(fascicolo, "tipo", ""), "value", getattr(fascicolo, "tipo", "")) or "").upper() == "LAVORO"
+            except Exception:
+                pass
+        dies_day = None
+        for candidate_day in (comm.event_date, received.date().isoformat()):
+            try:
+                dies_day = date.fromisoformat(str(candidate_day or "")[:10])
+                break
+            except ValueError:
+                continue
+        if change is None and dies_day is not None:
+            term_proposals = propose_provvedimento_terms(comm, dies_a_quo=dies_day, labour=labour)
+
+        new_label = ""
+        if change is not None:
+            new_label = schedule_change_new_date_label(change)
+        elif comm.date:
+            new_label = f"{change_date_it(comm.date)} ore {comm.time}" if comm.time else change_date_it(comm.date)
         uid = schedule_change_receipt_uid(clean_id)
         cliente = clean_text(profile.get("cliente") or profile.get("attore_principale") or "", 160)
         ufficio = clean_text(profile.get("ufficio") or "", 180)
+        today_rome = datetime.now(ROME_TZ).date().isoformat()
         description = "\n".join(
             part
             for part in (
                 uid,
-                f"{CHANGE_RECEIPT_KIND_LINE} {change.label}",
+                f"{CHANGE_RECEIPT_KIND_LINE} {comm.label}",
                 f"{CHANGE_RECEIPT_AT_LINE} {received:%d/%m/%Y} alle {received:%H:%M} (ora italiana)",
-                f"{CHANGE_RECEIPT_NEW_DATE_LINE} {new_label}",
+                (f"{CHANGE_RECEIPT_NEW_DATE_LINE} {new_label}" if change is not None else f"Data letta: {new_label}") if new_label else "",
                 previous_line,
                 f"Ufficio: {ufficio}" if ufficio else "",
                 f"RG: {rg}" if rg else "",
                 f"Cliente: {cliente}" if cliente else "",
                 f"Giudice: {clean_text(profile.get('giudice') or '', 120)}" if clean_text(profile.get("giudice") or "") else "",
-                f"Evento: {change.event}" if change.event else "",
-                f"Descrizione evento: {change.description}" if change.description else "",
-                f"Attività per l'avvocato: {schedule_change_lawyer_activity(change)}",
+                f"Evento: {comm.event}" if comm.event else "",
+                f"Descrizione evento: {comm.description}" if comm.description else "",
+                *(
+                    f"Termine proposto (bozza da confermare nello scadenziario): {item.summary()}"
+                    for item in term_proposals
+                    if item.due_date >= today_rome
+                ),
+                f"Attività per l'avvocato: {communication_activity(comm)}",
                 f"Fascicolo: {fascicolo_id}" if fascicolo_id else "",
                 "Fonte: comunicazione di cancelleria ricevuta via PEC.",
             )
@@ -13032,7 +13091,7 @@ class PecAuditRepository:
         if existing is None or existing_status == "PROGRAMMATO":
             event = EventoImportato(
                 uid=uid,
-                titolo=schedule_change_receipt_title(change, rg=rg)[:120],
+                titolo=communication_receipt_title(comm, rg=rg)[:120],
                 data_ora=received.isoformat(timespec="seconds"),
                 durata_minuti=15,
                 tutto_giorno=False,
@@ -13067,79 +13126,134 @@ class PecAuditRepository:
                     agenda.modifica(receipt_id, **extra)
         rescheduled_ids: list[str] = []
         closed_deadline_ids: list[str] = []
-        human = (
-            f"{change.label}: nuova data {new_label} "
-            f"(PEC ricevuta il {received:%d/%m/%Y} alle {received:%H:%M})."
-        )
-        for item in selected:
-            item_id = clean_text(getattr(item, "id", "") or "", 120)
-            if not item_id or item in already_rescheduled:
-                continue
-            agenda.modifica(
-                item_id,
-                stato=StatoAppuntamento.RINVIATO,
-                note="\n".join(
-                    part
-                    for part in (
-                        reschedule_marker(clean_id, change.new_date),
-                        human,
-                        "",
-                        str(getattr(item, "note", "") or "").strip(),
-                    )
-                    if part is not None
-                ).strip(),
+        if change is not None:
+            human = (
+                f"{change.label}: nuova data {new_label} "
+                f"(PEC ricevuta il {received:%d/%m/%Y} alle {received:%H:%M})."
             )
-            rescheduled_ids.append(item_id)
-            if self.scadenziario_db_path:
-                try:
-                    from pct.scadenziario import StatoTermine
-
-                    manager = self._scadenziario_manager()
-                    for deadline in list(manager.tutte(solo_aperte=False)):
-                        if clean_text(getattr(deadline, "id_appuntamento", "") or "", 120) != item_id:
-                            continue
-                        if getattr(deadline, "stato", None) not in {StatoTermine.APERTO, StatoTermine.SCADUTO}:
-                            continue
-                        if modification_lines(deadline):
-                            continue
-                        manager.aggiorna(
-                            str(getattr(deadline, "id", "") or ""),
-                            stato=StatoTermine.ANNULLATO,
-                            completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
-                            note="\n".join(
-                                part
-                                for part in (
-                                    str(getattr(deadline, "note", "") or "").rstrip(),
-                                    reschedule_marker(clean_id, change.new_date),
-                                    human,
-                                )
-                                if part
-                            ),
+            for item in selected:
+                item_id = clean_text(getattr(item, "id", "") or "", 120)
+                if not item_id or item in already_rescheduled:
+                    continue
+                agenda.modifica(
+                    item_id,
+                    stato=StatoAppuntamento.RINVIATO,
+                    note="\n".join(
+                        part
+                        for part in (
+                            reschedule_marker(clean_id, change.new_date),
+                            human,
+                            "",
+                            str(getattr(item, "note", "") or "").strip(),
                         )
-                        closed_deadline_ids.append(str(getattr(deadline, "id", "") or ""))
-                except Exception:
-                    pass
-            self._push_local_calendar_item("agenda", item_id)
+                        if part is not None
+                    ).strip(),
+                )
+                rescheduled_ids.append(item_id)
+                if self.scadenziario_db_path:
+                    try:
+                        from pct.scadenziario import StatoTermine
+
+                        manager = self._scadenziario_manager()
+                        for deadline in list(manager.tutte(solo_aperte=False)):
+                            if clean_text(getattr(deadline, "id_appuntamento", "") or "", 120) != item_id:
+                                continue
+                            if getattr(deadline, "stato", None) not in {StatoTermine.APERTO, StatoTermine.SCADUTO}:
+                                continue
+                            if modification_lines(deadline):
+                                continue
+                            manager.aggiorna(
+                                str(getattr(deadline, "id", "") or ""),
+                                stato=StatoTermine.ANNULLATO,
+                                completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                                note="\n".join(
+                                    part
+                                    for part in (
+                                        str(getattr(deadline, "note", "") or "").rstrip(),
+                                        reschedule_marker(clean_id, change.new_date),
+                                        human,
+                                    )
+                                    if part
+                                ),
+                            )
+                            closed_deadline_ids.append(str(getattr(deadline, "id", "") or ""))
+                    except Exception:
+                        pass
+                self._push_local_calendar_item("agenda", item_id)
+        proposed_deadlines: list[dict[str, str]] = []
+        if term_proposals and self.scadenziario_db_path:
+            try:
+                from pct.scadenziario import StatoTermine, TipoTermine
+
+                manager = self._scadenziario_manager()
+                existing_notes = "\n".join(str(getattr(item, "note", "") or "") for item in manager.tutte(solo_aperte=False))
+                for item in term_proposals:
+                    if item.due_date < today_rome or item.marker(clean_id) in existing_notes:
+                        continue
+                    scadenza = manager.nuova(
+                        titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
+                        tipo=TipoTermine.IMPUGNAZIONE,
+                        data_scadenza=item.due_date,
+                        id_fascicolo=fascicolo_id,
+                        descrizione=clean_text(
+                            f"{communication_summary(comm).capitalize()} comunicata via PEC il {received:%d/%m/%Y}. {item.note}",
+                            1600,
+                        ),
+                        data_decorrenza=item.dies_a_quo,
+                        note="\n".join(
+                            (
+                                item.marker(clean_id),
+                                f"Termine proposto: {item.summary()}",
+                                "Proposta in bozza: revisione professionale obbligatoria prima della conferma.",
+                            )
+                        ),
+                        id_utente_responsabile=_deadline_responsible_actor(actor),
+                        perentorio=item.perentorio,
+                        stato=StatoTermine.BOZZA,
+                        deadline_profile_code=item.code,
+                        source_event_type="comunicazione_cancelleria",
+                        source_event_at=item.dies_a_quo,
+                        source_message_id=clean_id,
+                    )
+                    proposed_deadlines.append(
+                        {"deadline_id": str(getattr(scadenza, "id", "") or ""), "code": item.code, "due_date": item.due_date}
+                    )
+            except Exception:
+                pass
         if receipt_id and outcome in {"created", "updated"}:
             self._push_local_calendar_item("agenda", receipt_id)
         payload = {
             "agenda_id": receipt_id,
             "agenda_outcome": outcome,
             "received_at": received.isoformat(timespec="minutes"),
-            "change": {
-                "kind": change.kind,
-                "label": change.label,
-                "summary": schedule_change_summary(change),
-                "new_date": change.new_date,
-                "new_time": change.new_time,
-                "event_date": change.event_date,
+            "communication": {
+                "kind": comm.kind,
+                "label": comm.label,
+                "summary": communication_summary(comm),
+                "date": comm.date,
+                "time": comm.time,
+                "event_date": comm.event_date,
             },
+            "change": (
+                {
+                    "kind": change.kind,
+                    "label": change.label,
+                    "summary": schedule_change_summary(change),
+                    "new_date": change.new_date,
+                    "new_time": change.new_time,
+                    "event_date": change.event_date,
+                }
+                if change is not None
+                else {}
+            ),
             "rescheduled_agenda_ids": rescheduled_ids,
             "closed_deadline_ids": closed_deadline_ids,
             "previous_dates": previous_days,
+            "proposed_deadlines": proposed_deadlines,
+            "labour_matter": labour,
             "reason": reason,
         }
-        if outcome in {"created", "updated"} or rescheduled_ids:
+        if outcome in {"created", "updated"} or rescheduled_ids or proposed_deadlines:
             try:
                 with self.connect() as conn:
                     self.append_audit(

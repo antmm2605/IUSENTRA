@@ -104,6 +104,14 @@ def stack_services_ready(repo):
     return True
 
 
+def release_is_effectively_ready(state, expected_image, repo, sha):
+    """Accept Portainer's error status only when Docker proves the release is live."""
+    actual = (state.get("GitConfig") or {}).get("ConfigHash")
+    if actual != sha:
+        raise RuntimeError("Commit Portainer diverso dal commit richiesto")
+    return verify_release_containers(expected_image) and stack_services_ready(repo)
+
+
 def main():
     repo = Path(__file__).resolve().parents[2]
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
@@ -144,14 +152,16 @@ def main():
             raise RuntimeError("Lo stack esistente non usa il repository atteso")
         if stack.get("AdditionalFiles") != [RELEASE_COMPOSE]:
             raise RuntimeError("Lo stack non usa il file Compose delle immagini verificate")
-        if (stack.get("Status") == 1 and stack["GitConfig"].get("ConfigHash") == sha
-                and stack.get("Env") == env):
+        if (stack["GitConfig"].get("ConfigHash") == sha and stack.get("Env") == env):
             try:
-                ready = verify_release_containers(expected_image)
+                ready = release_is_effectively_ready(stack, expected_image, repo, sha)
             except RuntimeError:
                 ready = False
             if ready and stack_services_ready(repo):
-                print(f"Portainer: stack=iusentra id={stack['Id']} commit={sha} già healthy")
+                suffix = "già healthy"
+                if stack.get("Status") != 1:
+                    suffix += f" (stato Portainer {stack.get('Status')} ignorato dopo verifica Docker)"
+                print(f"Portainer: stack=iusentra id={stack['Id']} commit={sha} {suffix}")
                 return
         payload.update({"Prune": False, "RepullImageAndRedeploy": False})
         result = request(f"/stacks/{stack['Id']}/git/redeploy?endpointId={endpoint}",
@@ -169,12 +179,17 @@ def main():
     while time.monotonic() < deadline:
         state = request(f"/stacks/{stack_id}", token)
         if state.get("Status") == 1:
-            actual = (state.get("GitConfig") or {}).get("ConfigHash")
-            if actual != sha:
-                raise RuntimeError("Commit Portainer diverso dal commit richiesto")
-            verify_release_containers(expected_image)
+            release_is_effectively_ready(state, expected_image, repo, sha)
             print(f"Portainer: stack=iusentra id={stack_id} commit={sha}")
             return
+        if state.get("Status") == 4:
+            if release_is_effectively_ready(state, expected_image, repo, sha):
+                print(
+                    f"Portainer: stack=iusentra id={stack_id} commit={sha} "
+                    "healthy nonostante stato Portainer error"
+                )
+                return
+            raise RuntimeError("Deploy Portainer non riuscito; container non coerenti")
         if state.get("Status") != 3:
             raise RuntimeError("Deploy Portainer non riuscito; consultare il pannello")
         time.sleep(5)

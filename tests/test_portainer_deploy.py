@@ -43,6 +43,83 @@ def test_http_failure_does_not_expose_configuration(monkeypatch):
     assert "secret" not in str(error.value)
 
 
+def test_portainer_error_status_is_accepted_only_with_verified_release(monkeypatch, capsys):
+    sha = "a" * 40
+    env = [{"name": "IUSENTRA_APP_IMAGE", "value": "'iusentra-app:" + sha + "'"}]
+    real_read = deploy.Path.read_text
+    monkeypatch.setattr(deploy.Path, "read_text", lambda p, *a, **kw:
+                        "test-credential" if p.name == "admin-password" else real_read(p, *a, **kw))
+    monkeypatch.setattr(deploy, "stack_environment", lambda *a, **kw: env)
+    monkeypatch.setattr(deploy, "verify_release_containers", lambda expected: True)
+    monkeypatch.setattr(deploy, "stack_services_ready", lambda repo: True)
+
+    def output(args, **kwargs):
+        if args[:2] == ["git", "rev-parse"]:
+            return sha
+        if args[:2] == ["git", "ls-remote"]:
+            return sha + "\trefs/tags/iusentra-release-" + sha
+        assert args[:3] == ["docker", "image", "inspect"]
+        return json.dumps([{"Id": "image", "Config": {"Labels": {"org.opencontainers.image.revision": sha}}}])
+
+    def request(path, token=None, payload=None, method=None):
+        if path == "/auth":
+            return {"jwt": "test-token"}
+        if path == "/endpoints":
+            return [{"Id": 1, "URL": "unix:///var/run/docker.sock", "Type": 1}]
+        if path == "/stacks":
+            return [{"Id": 1, "Name": "iusentra", "EndpointId": 1, "Status": 4, "Env": env,
+                     "GitConfig": {"URL": deploy.REPOSITORY, "ConfigHash": sha},
+                     "AdditionalFiles": [deploy.RELEASE_COMPOSE]}]
+        raise AssertionError("Non deve richiedere redeploy quando la release è già verificata")
+
+    monkeypatch.setattr(deploy.subprocess, "check_output", output)
+    monkeypatch.setattr(deploy, "request", request)
+
+    deploy.main()
+
+    assert "stato Portainer 4 ignorato dopo verifica Docker" in capsys.readouterr().out
+
+
+def test_portainer_error_status_after_redeploy_requires_verified_release(monkeypatch, capsys):
+    sha = "a" * 40
+    real_read = deploy.Path.read_text
+    monkeypatch.setattr(deploy.Path, "read_text", lambda p, *a, **kw:
+                        "test-credential" if p.name == "admin-password" else real_read(p, *a, **kw))
+    monkeypatch.setattr(deploy, "stack_environment", lambda *a, **kw: [])
+    monkeypatch.setattr(deploy, "verify_release_containers", lambda expected: True)
+    monkeypatch.setattr(deploy, "stack_services_ready", lambda repo: True)
+
+    def output(args, **kwargs):
+        if args[:2] == ["git", "rev-parse"]:
+            return sha
+        if args[:2] == ["git", "ls-remote"]:
+            return sha + "\trefs/tags/iusentra-release-" + sha
+        assert args[:3] == ["docker", "image", "inspect"]
+        return json.dumps([{"Id": "image", "Config": {"Labels": {"org.opencontainers.image.revision": sha}}}])
+
+    def request(path, token=None, payload=None, method=None):
+        if path == "/auth":
+            return {"jwt": "test-token"}
+        if path == "/endpoints":
+            return [{"Id": 1, "URL": "unix:///var/run/docker.sock", "Type": 1}]
+        if path == "/stacks":
+            return [{"Id": 1, "Name": "iusentra", "EndpointId": 1, "Status": 4,
+                     "GitConfig": {"URL": deploy.REPOSITORY, "ConfigHash": "0" * 40},
+                     "AdditionalFiles": [deploy.RELEASE_COMPOSE]}]
+        if path == "/stacks/1/git/redeploy?endpointId=1":
+            return {"Id": 1}
+        if path == "/stacks/1":
+            return {"Id": 1, "Status": 4, "GitConfig": {"ConfigHash": sha}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(deploy.subprocess, "check_output", output)
+    monkeypatch.setattr(deploy, "request", request)
+
+    deploy.main()
+
+    assert "healthy nonostante stato Portainer error" in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("repository,accepted", [
     (deploy.REPOSITORY, True),
     (deploy.REPOSITORY.removesuffix(".git"), True),

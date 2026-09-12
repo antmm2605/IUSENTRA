@@ -46,6 +46,11 @@ validazione dei mount e disponibilità dell'immagine. La creazione usa sempre
 nome `iusentra` e ambiente Docker locale esistente; non cancella volumi.
 Controllare Portainer, app e worker healthy, Caddy, HTTPS `/api/pronto`, SHA
 effettivo e unicità di `iusentra-app`. Pulire la cache Docker a fine deploy.
+Se Portainer 2.45.0 resta in stato `Error` dopo un falso negativo sui controlli
+health intermedi, il deploy può essere considerato valido solo quando lo script
+verifica contemporaneamente commit Git, immagine immutabile, container app/worker
+e tutti i servizi Compose attivi o correttamente completati. In assenza di una di
+queste prove Docker, lo stato `Error` resta bloccante.
 
 Per un rollback usare un commit precedente verificato e la sua immagine,
 preservando dati e configurazione; verificare prima compatibilità delle migrazioni.

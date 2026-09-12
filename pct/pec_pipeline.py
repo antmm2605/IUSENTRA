@@ -10699,6 +10699,7 @@ class PecAuditRepository:
             "already_checked": 0,
             "indexed_documents": 0,
             "indexing_skipped": 0,
+            "indexed_without_matching_record": 0,
             "candidate_dates": 0,
             "skipped_non_actionable_candidates": 0,
             "reconciled_non_actionable_deadlines": 0,
@@ -11458,6 +11459,46 @@ class PecAuditRepository:
                         rows=processed_checked_rows,
                         actor=actor,
                     )
+                if (
+                    len(unchecked_sources) == 1
+                    and int(getattr(indexing, "indexed", 0) or 0) >= 1
+                    and not transient_warnings
+                    and hard_error_count == 0
+                ):
+                    source = unchecked_sources[0]
+                    checked_resource = source_resource_ids.get(id(source), "")
+                    if (
+                        id(source) not in processed_source_keys
+                        and checked_resource
+                        and checked_resource not in checked_resource_ids
+                    ):
+                        self._append_document_presidio_checked_batch(
+                            rows=[
+                                {
+                                    "resource_id": checked_resource,
+                                    "fascicolo_id": fascicolo_id,
+                                    "document_id": source.source_id,
+                                    "document_ai_id": "",
+                                    "filename": source.filename,
+                                    "sha256": source.sha256,
+                                    "candidates": 0,
+                                    "status": "indexed_without_matching_record",
+                                    "reason": "record_lex_non_riconciliato",
+                                }
+                            ],
+                            actor=actor,
+                        )
+                        checked_resource_ids.add(checked_resource)
+                        report["indexed_without_matching_record"] += 1
+                        if len(report["items"]) < 30:
+                            report["items"].append(
+                                {
+                                    "status": "indexed_without_matching_record",
+                                    "fascicolo_id": fascicolo_id,
+                                    "document": clean_text(source.filename or source.safe_filename or "", 260),
+                                    "reason": "record_lex_non_riconciliato",
+                                }
+                            )
                 if all(resource_id in checked_resource_ids for resource_id in source_resource_ids.values()):
                     mark_fascicolo_complete("inventario_documentale_acquisito")
                 else:

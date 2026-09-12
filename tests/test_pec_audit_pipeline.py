@@ -5348,6 +5348,111 @@ def test_presidio_documentale_file_sorgente_mancante_non_blocca_worker_e_viene_m
     assert service.calls == 1
 
 
+def test_presidio_documentale_indicizzato_senza_record_lex_compatibile_non_rilegge(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Ricorso lavoro con record Lex non riconciliato",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Record Lex",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="31344",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Provvedimento acquisito senza match.txt",
+        TipoDocumento.ORDINANZA,
+        b"Documento letto da Lex ma restituito con identificativi non riconciliabili.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    class IndexedWithoutMatchingRecordService:
+        calls = 0
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls += len(sources)
+            return SimpleNamespace(indexed=1, skipped=0, errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return [
+                SimpleNamespace(
+                    id="docai-non-compatibile",
+                    status="ready",
+                    sha256="sha256-non-corrispondente",
+                    original_filename="Altro documento.txt",
+                    safe_filename="Altro documento.txt",
+                )
+            ]
+
+        def get_fascicolo_document_text(self, tenant_id, fascicolo_id, document_id, user_context):
+            raise AssertionError("Un record non riconciliato non deve essere letto come fonte del documento")
+
+    service = IndexedWithoutMatchingRecordService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+
+    assert report["new_or_changed_documents"] == 1
+    assert report["indexed_documents"] == 1
+    assert report["indexed_without_matching_record"] == 1
+    assert report["partial_fascicoli"] == 0
+    assert report["pending_fascicoli"] == 0
+    assert report["items"][0]["status"] == "indexed_without_matching_record"
+    resource_id = _document_presidio_checked_resource_id(
+        fascicolo_id=fascicolo.id,
+        document_id=doc.id,
+        sha256=doc.hash_sha256,
+    )
+    with repo.connect() as conn:
+        checked = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo_documento'
+              AND resource_id=?
+            """,
+            (resource_id,),
+        ).fetchone()
+        fascicolo_state = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo'
+            ORDER BY occurred_at DESC, rowid DESC
+            LIMIT 1
+            """
+        ).fetchone()
+    assert checked is not None
+    checked_payload = json.loads(checked["payload_json"])
+    assert checked_payload["status"] == "indexed_without_matching_record"
+    assert checked_payload["reason"] == "record_lex_non_riconciliato"
+    assert fascicolo_state is not None
+    assert json.loads(fascicolo_state["payload_json"])["status"] == "complete"
+
+    second = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+    assert second["new_or_changed_documents"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 1
+    assert service.calls == 1
+
+
 def test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto(tmp_path, monkeypatch):
     from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

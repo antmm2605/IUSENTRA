@@ -11,7 +11,7 @@ export type CapturedImage = { canvas: HTMLCanvasElement; width: number; height: 
 
 /** A4 a 200 dpi (Specifiche tecniche DGSIA, art. 15, comma 1, lett. g). */
 export const PENAL_200_DPI: Size = { width: 1654, height: 2339 }
-const DETECTION_WIDTH = 320
+const DETECTION_WIDTH = 384
 const MAX_PIXELS = 50_000_000
 
 function context2d(canvas: HTMLCanvasElement) {

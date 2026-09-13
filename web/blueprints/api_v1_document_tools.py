@@ -9,6 +9,7 @@ import json
 from flask import Blueprint, Response, current_app, jsonify, request, send_file
 
 from web.blueprints.api_v1_react import _richiedi_auth
+from web.helpers import get_clienti, get_fascicoli
 from web.services.document_ocr import recognize_page
 from web.services.document_tools import (
     DocumentToolError,
@@ -18,6 +19,7 @@ from web.services.document_tools import (
     merge_pdfs,
     safe_output_name,
 )
+from web.services.fascicolo_lookup import cerca_fascicoli_per_cliente
 
 
 api_v1_document_tools = Blueprint("api_v1_document_tools", __name__)
@@ -145,7 +147,8 @@ def recognize_document_page():
             rotation = int(request.form.get("rotation") or 0) % 360
         except (TypeError, ValueError):
             rotation = 0
-        result = recognize_page(uploaded.read(), rotation)
+        raddrizza = str(request.form.get("deskew") or "1").strip() not in {"0", "false", "no"}
+        result = recognize_page(uploaded.read(), rotation, raddrizza=raddrizza)
         response = jsonify(
             {
                 "ok": True,
@@ -153,8 +156,42 @@ def recognize_document_page():
                 "paragraphs": result.paragraphs,
                 "characters": result.characters,
                 "dpi": result.dpi,
+                # Struttura riconosciuta: l'editor la usa per reinserire il testo
+                # con la forma del documento invece che come blocco unico.
+                "blocks": result.blocks,
+                "figures": result.figures,
+                "tables": result.tables,
+                "confidence": result.confidence,
+                "engine": result.engine,
+                "steps": list(result.steps),
             }
         )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.get("/fascicoli")
+@_richiedi_auth
+def search_matters():
+    """Fascicoli che corrispondono al nome del cliente cercato.
+
+    L'avvocato salva il documento acquisito cercando per come chiama le cose:
+    nome e cognome del cliente, non l'identificativo del fascicolo.
+    """
+    try:
+        try:
+            limite = int(request.args.get("limit") or 20)
+        except (TypeError, ValueError):
+            limite = 20
+        risultati = cerca_fascicoli_per_cliente(
+            request.args.get("q") or "",
+            gestore_fascicoli=get_fascicoli,
+            gestore_clienti=get_clienti,
+            limite=max(1, min(limite, 50)),
+        )
+        response = jsonify({"ok": True, "results": risultati})
         response.headers["Cache-Control"] = "no-store"
         return response
     except Exception as exc:

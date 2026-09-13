@@ -30,7 +30,6 @@ import { FloatingLex } from './FloatingLex'
 import { DocumentToolbar } from './templateEditor/DocumentToolbar'
 import { cleanEditorHtml, PAGE_BREAK_HTML } from './templateEditor/editorArtifacts'
 import { PagedDocumentCanvas } from './templateEditor/PagedDocumentCanvas'
-import { plainTextToParagraphs } from './templateEditor/pasteSanitizer'
 import { isCompactViewport, isNarrowEditorViewport, useCompactLayout } from './templateEditor/useCompactLayout'
 import { useDocumentHistory } from './templateEditor/useDocumentHistory'
 import { useSelectionFormats, type BlockFormat } from './templateEditor/useSelectionFormats'
@@ -1927,9 +1926,10 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   // Testo riconosciuto (OCR) dall'acquisizione: la finestra si chiude, poi il testo entra nel punto del cursore.
-  const insertAcquiredText = (paragraphs: string[]) => {
+  const insertAcquiredHtml = (html: string) => {
+    if (!html.trim()) return
     setAcquisitionOpen(false)
-    window.setTimeout(() => insertEditorHtml(plainTextToParagraphs(paragraphs.join('\n\n')), 'Testo riconosciuto inserito nel documento: rileggilo prima di salvare.'), 80)
+    window.setTimeout(() => insertEditorHtml(html, 'Testo acquisito inserito nel documento con la struttura riconosciuta.'), 80)
   }
 
   const insertEditorText = (text: string, status?: string) => {
@@ -2895,7 +2895,7 @@ function ProfessionalTemplateEditorWorkspace({
             matters={data.selectors.fascicoli}
             defaultMatterId={contextFascicoloId}
             onClose={() => setAcquisitionOpen(false)}
-            onInsertText={insertAcquiredText}
+            onInsertHtml={insertAcquiredHtml}
             onSaved={(message) => setWorkspaceStatus(`Acquisizione salvata nel fascicolo. ${message}`)}
           />
         </Suspense>

@@ -5,12 +5,32 @@
  */
 import { csrfHeader } from '../api/csrf'
 import { generateDocument, type GeneratedDocument } from '../documentToolsData'
+import { parseBlocks, parseFigures, type OcrBlock, type OcrFigure } from '../components/documentCapture/ocrBlocks'
 
 export type OcrSourcePage = { file: File; rotation: number }
-export type OcrPage = { pdf: Blob; paragraphs: string[]; characters: number }
-export type OcrOutcome = { document: GeneratedDocument; paragraphs: string[]; characters: number; emptyPages: number }
+export type OcrPage = { pdf: Blob; paragraphs: string[]; characters: number; blocks: OcrBlock[]; figures: OcrFigure[]; confidence: number; engine: string }
+export type OcrOutcome = {
+  document: GeneratedDocument
+  paragraphs: string[]
+  characters: number
+  emptyPages: number
+  blocks: OcrBlock[]
+  figures: OcrFigure[]
+  confidence: number
+  engine: string
+}
 
-type OcrPayload = { ok?: boolean; pdf_base64?: string; paragraphs?: unknown; characters?: number; message?: string }
+type OcrPayload = {
+  ok?: boolean
+  pdf_base64?: string
+  paragraphs?: unknown
+  characters?: number
+  message?: string
+  blocks?: unknown
+  figures?: unknown
+  confidence?: number
+  engine?: string
+}
 
 export function pdfBlobFromBase64(encoded: string): Blob {
   let binary = ''
@@ -19,7 +39,7 @@ export function pdfBlobFromBase64(encoded: string): Blob {
   return new Blob([Uint8Array.from(binary, (character) => character.charCodeAt(0))], { type: 'application/pdf' })
 }
 
-export async function recognizePage(page: OcrSourcePage, signal?: AbortSignal): Promise<OcrPage> {
+export async function recognizePage(page: OcrSourcePage, pageNumber = 1, signal?: AbortSignal): Promise<OcrPage> {
   const body = new FormData()
   body.append('file', page.file, page.file.name)
   body.append('rotation', String(page.rotation % 360))
@@ -35,7 +55,15 @@ export async function recognizePage(page: OcrSourcePage, signal?: AbortSignal): 
     throw new Error(payload?.message || 'Riconoscimento del testo non completato. Riprova tra qualche istante.')
   }
   const paragraphs = Array.isArray(payload.paragraphs) ? payload.paragraphs.map((item) => String(item || '').trim()).filter(Boolean) : []
-  return { pdf: pdfBlobFromBase64(payload.pdf_base64), paragraphs, characters: Number(payload.characters || 0) }
+  return {
+    pdf: pdfBlobFromBase64(payload.pdf_base64),
+    paragraphs,
+    characters: Number(payload.characters || 0),
+    blocks: parseBlocks(payload.blocks, pageNumber),
+    figures: parseFigures(payload.figures, pageNumber),
+    confidence: Number(payload.confidence || 0),
+    engine: String(payload.engine || ''),
+  }
 }
 
 function safePdfName(name: string) {
@@ -50,7 +78,7 @@ export async function recognizeDocument(pages: OcrSourcePage[], outputName: stri
   onProgress(0, pages.length)
   for (const page of pages) {
     if (signal?.aborted) throw new Error('Riconoscimento del testo annullato.')
-    results.push(await recognizePage(page, signal))
+    results.push(await recognizePage(page, results.length + 1, signal))
     onProgress(results.length, pages.length)
   }
   const filename = safePdfName(outputName)
@@ -62,10 +90,15 @@ export async function recognizeDocument(pages: OcrSourcePage[], outputName: stri
     const files = results.map((result, index) => new File([result.pdf], `pagina-${index + 1}.pdf`, { type: 'application/pdf' }))
     document = await generateDocument('merge', files, filename, [], [])
   }
+  const confidences = results.map((result) => result.confidence).filter((value) => value > 0)
   return {
     document,
     paragraphs: results.flatMap((result) => result.paragraphs),
     characters: results.reduce((sum, result) => sum + result.characters, 0),
     emptyPages: results.filter((result) => !result.characters).length,
+    blocks: results.flatMap((result) => result.blocks),
+    figures: results.flatMap((result) => result.figures),
+    confidence: confidences.length ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length : 0,
+    engine: results[0]?.engine || '',
   }
 }

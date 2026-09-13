@@ -4,14 +4,21 @@
  * chiaro dello sfondo, contorno chiuso dai bordi) propongono un quadrilatero; vince quello
  * con il miglior supporto di bordo reale lungo i quattro lati. Nessun dato lascia il browser.
  */
-import { boxBlur, gradientMagnitude, otsuThreshold, type GrayImage } from './grayImage'
+import { boxBlur, flattenIllumination, gradientMagnitude, morphOpen, otsuThreshold, type GrayImage } from './grayImage'
 import { refineQuad } from './quadRefine'
 
 export type Point = { x: number; y: number }
 export type Quad = [Point, Point, Point, Point]
 
-const MIN_AREA_RATIO = 0.12
-const MIN_EDGE_SUPPORT = 0.5
+const MIN_AREA_RATIO = 0.10
+const MIN_EDGE_SUPPORT = 0.42
+// Un foglio inquadrato di sbieco può avere angoli lontani dai 90°: la soglia
+// serve solo a scartare i quadrilateri degeneri, non a pretendere un rettangolo.
+const ANGOLO_MINIMO = 32
+const ANGOLO_MASSIMO = 148
+// Nessun formato di carta arriva a un lato dieci volte l'altro: oltre questo
+// rapporto si tratta di una striscia dello sfondo, non della pagina.
+const RAPPORTO_LATI_MASSIMO = 6
 
 function cross(o: Point, a: Point, b: Point) {
   return ((a.x - o.x) * (b.y - o.y)) - ((a.y - o.y) * (b.x - o.x))
@@ -81,7 +88,7 @@ function interiorAnglesValid(quad: Quad) {
     const by = next.y - current.y
     const cosine = ((ax * bx) + (ay * by)) / ((Math.hypot(ax, ay) * Math.hypot(bx, by)) || 1)
     const degrees = Math.acos(Math.max(-1, Math.min(1, cosine))) * 180 / Math.PI
-    if (degrees < 45 || degrees > 135) return false
+    if (degrees < ANGOLO_MINIMO || degrees > ANGOLO_MASSIMO) return false
   }
   return true
 }
@@ -149,9 +156,33 @@ export function largestComponentOutline(mask: Uint8Array, width: number, height:
   return outline
 }
 
-function brightPaperMask(blurred: Uint8ClampedArray): Uint8Array {
-  const threshold = otsuThreshold(blurred)
-  return Uint8Array.from(blurred, (value) => (value > threshold ? 1 : 0))
+function brightPaperMask(flattened: GrayImage): Uint8Array {
+  const threshold = otsuThreshold(flattened.data)
+  const mask = Uint8Array.from(flattened.data, (value) => (value > threshold ? 1 : 0))
+  return morphOpen(mask, flattened.width, flattened.height)
+}
+
+/** Rapporto fra i lati opposti: quanto il quadrilatero somiglia a un foglio. */
+function sideRatioValid(quad: Quad): boolean {
+  const sides = [0, 1, 2, 3].map((index) => {
+    const from = quad[index]
+    const to = quad[(index + 1) % 4]
+    return Math.hypot(to.x - from.x, to.y - from.y)
+  })
+  const shortest = Math.min(...sides)
+  if (shortest <= 0) return false
+  return (Math.max(...sides) / shortest) <= RAPPORTO_LATI_MASSIMO
+}
+
+/**
+ * Quanto il quadrilatero riempie il proprio rettangolo circoscritto: un foglio
+ * lo riempie quasi tutto, una macchia dello sfondo molto meno.
+ */
+function rectangularity(quad: Quad): number {
+  const xs = quad.map((point) => point.x)
+  const ys = quad.map((point) => point.y)
+  const box = (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys))
+  return box > 0 ? Math.min(1, polygonArea(quad) / box) : 0
 }
 
 /** Regione racchiusa dai bordi: tutto ciò che non si raggiunge dal perimetro senza attraversare un bordo. */
@@ -184,18 +215,29 @@ export function detectDocumentQuad(image: GrayImage): { quad: Quad; support: num
   const { width, height } = image
   if (width < 32 || height < 32) return null
   const blurred = boxBlur(boxBlur(image))
+  const flattened = flattenIllumination(blurred)
   const magnitude = gradientMagnitude(blurred)
   const sorted = Float32Array.from(magnitude).sort()
-  const edgeThreshold = Math.max(24, sorted[Math.floor(sorted.length * 0.88)])
+  const edgeThreshold = Math.max(20, sorted[Math.floor(sorted.length * 0.88)])
   const frameArea = width * height
-  let best: { quad: Quad; support: number } | null = null
-  for (const mask of [brightPaperMask(blurred.data), enclosedByEdgesMask(magnitude, width, height, edgeThreshold)]) {
+  let best: { quad: Quad; support: number; score: number } | null = null
+  const masks = [
+    brightPaperMask(flattened),
+    brightPaperMask({ width, height, data: blurred.data }),
+    enclosedByEdgesMask(magnitude, width, height, edgeThreshold),
+  ]
+  for (const mask of masks) {
     const quad = simplifyToQuad(convexHull(largestComponentOutline(mask, width, height)))
-    if (!quad || !interiorAnglesValid(quad)) continue
+    if (!quad || !interiorAnglesValid(quad) || !sideRatioValid(quad)) continue
     const ratio = polygonArea(quad) / frameArea
     if (ratio < MIN_AREA_RATIO || ratio > 0.985) continue
     const support = edgeSupport(quad, magnitude, width, height, edgeThreshold * 0.6)
-    if (support >= MIN_EDGE_SUPPORT && (!best || support > best.support)) best = { quad, support }
+    if (support < MIN_EDGE_SUPPORT) continue
+    // Fra più candidati vince quello che ha insieme bordi reali, forma da foglio
+    // e una porzione plausibile dell'inquadratura: il solo supporto di bordo
+    // premierebbe anche un rettangolo minuscolo ben contrastato.
+    const score = (support * 0.6) + (rectangularity(quad) * 0.3) + (Math.min(ratio / 0.6, 1) * 0.1)
+    if (!best || score > best.score) best = { quad, support, score }
   }
   return best ? { quad: refineQuad(best.quad, magnitude, width, height, edgeThreshold * 0.5), support: best.support } : null
 }

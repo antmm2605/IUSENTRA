@@ -2,8 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { generateDocument, saveGeneratedDocument, type GeneratedDocument } from '../../documentToolsData'
 import { recognizeDocument } from '../../services/documentOcr'
 import { MAX_CAPTURE_BYTES, MAX_CAPTURE_FILES, type CapturePage } from './captureImages'
+import { countCharacters, type OcrBlock, type OcrFigure } from './ocrBlocks'
 
-export type OcrState = { paragraphs: string[]; characters: number; emptyPages: number }
+export type OcrState = {
+  blocks: OcrBlock[]
+  figures: OcrFigure[]
+  characters: number
+  emptyPages: number
+  confidence: number
+  engine: string
+}
 
 /**
  * Stato di una sessione di acquisizione: pagine in memoria, PDF da verificare,
@@ -105,7 +113,14 @@ export function useAcquisitionSession() {
     if (!alive.current) { URL.revokeObjectURL(outcome.document.objectUrl); return }
     clearResult()
     setResult(outcome.document)
-    setOcr({ paragraphs: outcome.paragraphs, characters: outcome.characters, emptyPages: outcome.emptyPages })
+    setOcr({
+      blocks: outcome.blocks,
+      figures: outcome.figures,
+      characters: outcome.characters,
+      emptyPages: outcome.emptyPages,
+      confidence: outcome.confidence,
+      engine: outcome.engine,
+    })
     setNotice(outcome.characters
       ? 'Testo riconosciuto: il PDF ora è ricercabile. Verifica il testo prima di usarlo.'
       : 'Nessun testo riconosciuto: controlla nitidezza e luce delle pagine.')
@@ -121,5 +136,11 @@ export function useAcquisitionSession() {
     onSaved(message)
   })
 
-  return { pages, result, ocr, busy, error, notice, setError, addPage, rotate, remove, move, reset, buildPdf, runOcr, save }
+  // Le correzioni dell'avvocato sostituiscono i blocchi riconosciuti: il
+  // conteggio dei caratteri segue il testo rivisto, non quello letto dal motore.
+  const editOcrBlocks = useCallback((blocks: OcrBlock[]) => {
+    setOcr((corrente) => (corrente ? { ...corrente, blocks, characters: countCharacters(blocks) } : corrente))
+  }, [])
+
+  return { pages, result, ocr, busy, error, notice, setError, addPage, rotate, remove, move, reset, buildPdf, runOcr, editOcrBlocks, save }
 }

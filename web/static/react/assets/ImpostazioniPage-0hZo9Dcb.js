@@ -1,1 +1,0 @@
-import{t as e}from"./ImpostazioniPage-BFC-7L6l.js";export{e as ImpostazioniPage};

@@ -86,3 +86,43 @@ export function otsuThreshold(values: ArrayLike<number>): number {
   }
   return threshold
 }
+
+/**
+ * Toglie il gradiente di luce dalla pagina: ogni pixel viene confrontato con lo
+ * sfondo locale invece che con una soglia unica. È la differenza fra riconoscere
+ * un foglio illuminato di lato e non riconoscerlo affatto: con una sola soglia
+ * globale la metà in ombra finisce fuori dal foglio.
+ */
+export function flattenIllumination(image: GrayImage): GrayImage {
+  const radius = Math.max(6, Math.round(Math.min(image.width, image.height) / 8))
+  const background = boxBlur(boxBlur(image, radius), radius)
+  const data = new Uint8ClampedArray(image.width * image.height)
+  for (let index = 0; index < data.length; index += 1) {
+    data[index] = 128 + image.data[index] - background.data[index]
+  }
+  return { width: image.width, height: image.height, data }
+}
+
+/** Erosione seguita da dilatazione: stacca il foglio dai ponti sottili con lo sfondo. */
+export function morphOpen(mask: Uint8Array, width: number, height: number, radius = 1): Uint8Array {
+  const eroded = new Uint8Array(width * height)
+  const opened = new Uint8Array(width * height)
+  const sweep = (source: Uint8Array, target: Uint8Array, keepWhenAnyNeighbourIs: 0 | 1) => {
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        let hit = keepWhenAnyNeighbourIs === 0 ? 1 : 0
+        for (let dy = -radius; dy <= radius && hit !== keepWhenAnyNeighbourIs; dy += 1) {
+          for (let dx = -radius; dx <= radius && hit !== keepWhenAnyNeighbourIs; dx += 1) {
+            const nx = Math.min(width - 1, Math.max(0, x + dx))
+            const ny = Math.min(height - 1, Math.max(0, y + dy))
+            if (source[(ny * width) + nx] === keepWhenAnyNeighbourIs) hit = keepWhenAnyNeighbourIs
+          }
+        }
+        target[(y * width) + x] = hit
+      }
+    }
+  }
+  sweep(mask, eroded, 0)
+  sweep(eroded, opened, 1)
+  return opened
+}

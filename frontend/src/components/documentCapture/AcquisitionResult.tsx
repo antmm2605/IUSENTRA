@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { Check, FileText, ScanText, TextCursorInput } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import type { GeneratedDocument } from '../../documentToolsData'
+import { blocksToHtml, type OcrBlock } from './ocrBlocks'
+import { OcrReview } from './OcrReview'
+import { MatterPicker, type MatterOption } from './MatterPicker'
 import type { OcrState } from './useAcquisitionSession'
 
-export type MatterOption = { value: string; label: string }
+export type { MatterOption }
 
 type Props = {
   result: GeneratedDocument
@@ -13,15 +16,15 @@ type Props = {
   matters: MatterOption[]
   defaultMatterId: string
   onOcr: () => void
-  onInsertText: (paragraphs: string[]) => void
+  onEditBlocks: (blocks: OcrBlock[]) => void
+  onInsertHtml: (html: string) => void
   onSave: (matterId: string) => void
 }
 
 /** Verifica del PDF, OCR facoltativo, inserimento del testo e salvataggio confermato nel fascicolo. */
-export function AcquisitionResult({ result, ocr, busy, matters, defaultMatterId, onOcr, onInsertText, onSave }: Props) {
+export function AcquisitionResult({ result, ocr, busy, matters, defaultMatterId, onOcr, onEditBlocks, onInsertHtml, onSave }: Props) {
   const [matterId, setMatterId] = useState(defaultMatterId)
   const [reviewed, setReviewed] = useState(false)
-  const preview = ocr?.paragraphs.join('\n\n') || ''
   return (
     <section className="iu-acq-result" aria-label="Verifica del PDF acquisito">
       <header>
@@ -43,24 +46,26 @@ export function AcquisitionResult({ result, ocr, busy, matters, defaultMatterId,
         ) : (
           <>
             <p className="iu-acq-hint">
-              {ocr.characters ? `${ocr.characters.toLocaleString('it-IT')} caratteri riconosciuti.` : 'Nessun testo riconosciuto.'}
-              {ocr.emptyPages ? ` Pagine senza testo: ${ocr.emptyPages}.` : ''} Il riconoscimento automatico può contenere errori: rileggi prima di usarlo.
+              {ocr.characters ? `${ocr.characters.toLocaleString('it-IT')} caratteri riconosciuti` : 'Nessun testo riconosciuto'}
+              {ocr.blocks.length ? ` in ${ocr.blocks.length} ${ocr.blocks.length === 1 ? 'blocco' : 'blocchi'}` : ''}
+              {ocr.confidence ? ` · qualità media ${Math.round(ocr.confidence * 100)}%` : ''}
+              {ocr.emptyPages ? ` · pagine senza testo: ${ocr.emptyPages}` : ''}
+              {ocr.engine ? ` · ${ocr.engine}` : ''}.
             </p>
-            {preview ? <textarea className="iu-acq-result__text" readOnly value={preview} aria-label="Testo riconosciuto" /> : null}
-            <Button type="button" tone="neutral" disabled={busy || !ocr.paragraphs.length} onClick={() => onInsertText(ocr.paragraphs)}>
-              <TextCursorInput size={16} aria-hidden="true" />Inserisci il testo nel documento
+            <OcrReview blocks={ocr.blocks} figures={ocr.figures} disabled={busy} onChange={onEditBlocks} />
+            <Button type="button" tone="neutral" disabled={busy || !ocr.blocks.length} onClick={() => onInsertHtml(blocksToHtml(ocr.blocks))}>
+              <TextCursorInput size={16} aria-hidden="true" />Inserisci il testo rivisto nel documento
             </Button>
           </>
         )}
       </div>
       <div className="iu-acq-result__save">
-        <label className="iu-acq-field iu-acq-field--wide">
-          <span>Fascicolo di destinazione</span>
-          <select value={matterId} disabled={busy} onChange={(event) => { setMatterId(event.target.value); setReviewed(false) }}>
-            <option value="">Seleziona il fascicolo</option>
-            {matters.map((matter) => <option key={matter.value} value={matter.value}>{matter.label}</option>)}
-          </select>
-        </label>
+        <MatterPicker
+          matters={matters}
+          value={matterId}
+          disabled={busy}
+          onChange={(scelto) => { setMatterId(scelto); setReviewed(false) }}
+        />
         <label className="iu-acq-check">
           <input type="checkbox" checked={reviewed} disabled={busy || !matterId} onChange={(event) => setReviewed(event.target.checked)} />
           Ho controllato tutte le pagine e confermo il salvataggio in questo fascicolo.

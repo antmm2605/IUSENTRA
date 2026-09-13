@@ -25,8 +25,8 @@ type Props = {
   matters: MatterOption[]
   defaultMatterId: string
   onClose: () => void
-  /** Il genitore chiude la finestra e inserisce il testo nel punto del cursore. */
-  onInsertText: (paragraphs: string[]) => void
+  /** Il genitore chiude la finestra e inserisce nel punto del cursore il contenuto rivisto. */
+  onInsertHtml: (html: string) => void
   onSaved: (message: string) => void
 }
 
@@ -34,7 +34,7 @@ function isTouchDevice() {
   return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse) and (hover: none)').matches
 }
 
-export default function DocumentAcquisitionDialog({ open, matters, defaultMatterId, onClose, onInsertText, onSaved }: Props) {
+export default function DocumentAcquisitionDialog({ open, matters, defaultMatterId, onClose, onInsertHtml, onSaved }: Props) {
   const session = useAcquisitionSession()
   const mobile = useMemo(isTouchDevice, [])
   const [camera, setCamera] = useState(false)
@@ -146,7 +146,8 @@ export default function DocumentAcquisitionDialog({ open, matters, defaultMatter
                   matters={matters}
                   defaultMatterId={defaultMatterId}
                   onOcr={() => void session.runOcr(name)}
-                  onInsertText={onInsertText}
+                  onEditBlocks={session.editOcrBlocks}
+                  onInsertHtml={onInsertHtml}
                   onSave={(matterId) => void session.save(matterId, onSaved)}
                 />
               ) : null}

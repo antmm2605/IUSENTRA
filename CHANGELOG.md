@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.301.0 - 13/09/2026
+
+Strumenti legali: quattro nuovi moduli sul danno alla persona e sull'abuso del processo, tutti dalle tabelle milanesi 2024 ufficiali. Il danno da perdita parentale, che usava valori inventati, ora segue la tabella pubblicata.
+
+- **Danno da perdita del rapporto parentale — corretto.** Usava un valore punto sbagliato per i fratelli (1.461,20 €, cioè l'edizione 2022), fasce d'età inventate e punteggi che non corrispondevano a nessuna tabella. Ora legge le due tabelle integrate a punti dell'edizione 2024: valore punto **3.911,00 €** con 118 punti e tetto **391.103,18 €** per genitore, figlio, coniuge e assimilati; **1.698,00 €** con 116 punti e tetto **169.830,60 €** per fratelli e nipoti. I nove esempi di calcolo che l'Osservatorio pubblica in allegato si riproducono tutti esattamente.
+- **Danno da premorienza** (nuovo). Menomazione permanente e morte per causa diversa e indipendente prima della liquidazione: tabella a 100 punti con le tre colonne pubblicate (primo anno, primo e secondo anno, ogni anno successivo). Gli anni si ricavano dalle date dell'evento e del decesso, e ogni anno iniziato conta per intero.
+- **Danno terminale** (nuovo). Sofferenza fra le lesioni e il decesso (Cass. S.U. 15350/2015): primi tre giorni entro il tetto di **35.247,00 €** non personalizzabile, dal quarto giorno la tabella pro die e cumulata fino al centesimo. L'esempio del documento — 10 giorni, 35.247,00 + 11.989,50 = **47.236,50 €** — si riproduce al centesimo.
+- **Lite temeraria, art. 96 comma 3 c.p.c.** (nuovo). Importo pari al compenso defensionale liquidato, riducibile alla metà e aumentabile della metà, con i cinque indici di graduazione elencati dall'Osservatorio (valore, durata, numero di parti abusate, intensità dell'elemento soggettivo, affaticamento). Anche qui l'esempio pubblicato — compenso 5.000 € → 2.500 / 5.000 / 7.500 — torna esatto.
+- **Le due colonne della tabella terminale si controllano a vicenda:** il cumulato di ciascuno dei 97 giorni è la somma dei valori pro die, verificata giorno per giorno da un test.
+- Ogni modulo dichiara la voce, il criterio e la fonte (documento P. 7599/24 del Tribunale di Milano, URL ufficiale, data di consultazione). Nuove macro condivise nella pagina Strumenti legali per le voci di liquidazione e per la tabella applicata, usate anche dal danno biologico.
+- Il catalogo degli Strumenti legali passa da 64 a 67 moduli.
+
 ## 2.300.0 - 13/09/2026
 
 Danno biologico: il calcolatore usa le tabelle oggi in vigore, non più una stima approssimata. La tabella si sceglie da sola in base all'ambito del danno e alla data del sinistro.

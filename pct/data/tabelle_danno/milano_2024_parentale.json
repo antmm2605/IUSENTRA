@@ -1,0 +1,212 @@
+{
+ "id": "milano_2024_parentale",
+ "nome": "Perdita del rapporto parentale — tabelle integrate a punti Milano 2024",
+ "riferimento_normativo": "Osservatorio sulla giustizia civile di Milano, tabelle integrate a punti edizione 2024, in attuazione di Cass. civ. 21 aprile 2021 n. 10579 (sistema a punti con eta' della vittima, eta' del superstite, grado di parentela e convivenza).",
+ "pubblicazione": "Tribunale di Milano, area 'Tabelle Milano', documento P. 7599/24 del 4 giugno 2024",
+ "url_ufficiale": "https://tribunale-milano.giustizia.it/cmsresources/cms/documents/P._7599_24.pdf",
+ "data_consultazione": "2026-09-13",
+ "ambito": "Danno non patrimoniale del congiunto per la perdita del rapporto parentale (artt. 2043 e 2059 c.c.).",
+ "categorie": {
+  "nucleo_primario": {
+   "label": "Genitore, figlio, coniuge non separato, parte dell'unione civile o convivente di fatto",
+   "valore_punto": 3911.0,
+   "punti_massimi": 118,
+   "cap": 391103.18,
+   "forbice_minima": 195551.59,
+   "fasce_eta_vittima_primaria": [
+    [
+     10,
+     28
+    ],
+    [
+     20,
+     26
+    ],
+    [
+     30,
+     24
+    ],
+    [
+     40,
+     22
+    ],
+    [
+     50,
+     20
+    ],
+    [
+     60,
+     18
+    ],
+    [
+     70,
+     16
+    ],
+    [
+     80,
+     12
+    ],
+    [
+     90,
+     8
+    ],
+    [
+     100,
+     4
+    ]
+   ],
+   "fasce_eta_vittima_secondaria": [
+    [
+     10,
+     28
+    ],
+    [
+     20,
+     26
+    ],
+    [
+     30,
+     24
+    ],
+    [
+     40,
+     22
+    ],
+    [
+     50,
+     20
+    ],
+    [
+     60,
+     18
+    ],
+    [
+     70,
+     16
+    ],
+    [
+     80,
+     12
+    ],
+    [
+     90,
+     8
+    ],
+    [
+     100,
+     4
+    ]
+   ],
+   "punti_convivenza": {
+    "convivenza": 16,
+    "stesso_stabile": 8,
+    "nessuna": 0
+   },
+   "punti_superstiti": {
+    "0": 16,
+    "1": 14,
+    "2": 12,
+    "3": 9
+   },
+   "punti_massimi_relazione": 30
+  },
+  "fratello_nipote": {
+   "label": "Fratello, sorella, nonno o nipote",
+   "valore_punto": 1698.0,
+   "punti_massimi": 116,
+   "cap": 169830.6,
+   "forbice_minima": 28301.23,
+   "fasce_eta_vittima_primaria": [
+    [
+     20,
+     20
+    ],
+    [
+     30,
+     18
+    ],
+    [
+     40,
+     16
+    ],
+    [
+     50,
+     14
+    ],
+    [
+     60,
+     12
+    ],
+    [
+     70,
+     10
+    ],
+    [
+     80,
+     8
+    ],
+    [
+     90,
+     4
+    ],
+    [
+     100,
+     2
+    ]
+   ],
+   "fasce_eta_vittima_secondaria": [
+    [
+     20,
+     20
+    ],
+    [
+     30,
+     18
+    ],
+    [
+     40,
+     16
+    ],
+    [
+     50,
+     14
+    ],
+    [
+     60,
+     12
+    ],
+    [
+     70,
+     10
+    ],
+    [
+     80,
+     8
+    ],
+    [
+     90,
+     4
+    ],
+    [
+     100,
+     2
+    ]
+   ],
+   "punti_convivenza": {
+    "convivenza_oltre_40_anni": 30,
+    "convivenza_oltre_30_anni": 25,
+    "convivenza": 20,
+    "stesso_stabile": 8,
+    "nessuna": 0
+   },
+   "punti_superstiti": {
+    "0": 16,
+    "1": 14,
+    "2": 12,
+    "3": 9
+   },
+   "punti_massimi_relazione": 30
+  }
+ },
+ "nota_cap": "Il totale non puo' di regola superare il cap della categoria, salva la ricorrenza di circostanze eccezionali; contrasti di rilevante intensita', controversie giudiziarie, violenze o reati della vittima secondaria verso la primaria possono ridurre fino ad azzerare il risarcimento."
+}

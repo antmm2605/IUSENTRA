@@ -46,6 +46,41 @@
 {% endif %}
 {%- endmacro %}
 
+{% macro render_voci(voci) -%}
+{% if voci %}
+<div class="table-responsive mt-3">
+  <table class="table align-middle">
+    <thead><tr><th>Voce</th><th>Criterio</th><th class="text-end">Importo</th></tr></thead>
+    <tbody>
+      {% for voce in voci %}
+      <tr>
+        <td class="fw-semibold">{{ voce.voce }}</td>
+        <td class="small text-muted">{{ voce.criterio }}</td>
+        <td class="text-end">{{ voce.importo|euro }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro render_tabelle(tabelle) -%}
+{% if tabelle %}
+<div class="tool-soft-panel mt-3">
+  <div class="tool-soft-title">Tabella applicata</div>
+  {% for tabella in tabelle %}
+  <div class="mb-2">
+    <div class="fw-semibold">{{ tabella.nome }}</div>
+    <div class="small text-muted">{{ tabella.riferimento_normativo }}</div>
+    {% if tabella.pubblicazione %}<div class="small text-muted">{{ tabella.pubblicazione }}</div>{% endif %}
+    <div class="small text-muted">Consultata il {{ tabella.data_consultazione|fmt_data }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{%- endmacro %}
+
 {% macro tool_section(tool_id, title, icon, subtitle) -%}
 <div class="accordion-item tool-accordion-item">
   <h2 class="accordion-header">
@@ -588,32 +623,15 @@
         {{ metric_box('Totale complessivo', risultato_db.totale|euro) }}
       </div>
       <div class="row g-3 mt-3">
-        <div class="col-md-7">
-          <div class="tool-soft-panel h-100">
-            <div class="tool-soft-title">Voci di liquidazione</div>
-            {% for voce in risultato_db.dettaglio %}
-            <div class="d-flex justify-content-between gap-3">
-              <span>{{ voce.voce }}</span><span class="fw-semibold">{{ voce.importo|euro }}</span>
-            </div>
-            <div class="small text-muted mb-2">{{ voce.criterio }}</div>
-            {% endfor %}
-          </div>
-        </div>
-        <div class="col-md-5">
-          <div class="tool-soft-panel h-100">
-            <div class="tool-soft-title">Tabella applicata</div>
-            {% for tabella in risultato_db.tabelle_applicate %}
-            <div class="mb-2">
-              <div class="fw-semibold">{{ tabella.nome }}</div>
-              <div class="small text-muted">{{ tabella.riferimento_normativo }}</div>
-              {% if tabella.pubblicazione %}<div class="small text-muted">{{ tabella.pubblicazione }}</div>{% endif %}
-              <div class="small text-muted">Consultata il {{ tabella.data_consultazione|fmt_data }}</div>
-            </div>
-            {% endfor %}
-            <div class="small text-muted">Personalizzazione {{ risultato_db.personalizzazione_pct }}% = {{ risultato_db.importo_personalizzazione|euro }} (massimo {{ risultato_db.personalizzazione_massima_permanente_pct }}% sul permanente, {{ risultato_db.personalizzazione_massima_temporanea_pct }}% sul temporaneo)</div>
+        <div class="col-12">
+          <div class="tool-soft-panel">
+            <div class="tool-soft-title">Personalizzazione</div>
+            <div class="small text-muted">{{ risultato_db.personalizzazione_pct }}% = {{ risultato_db.importo_personalizzazione|euro }} — massimo {{ risultato_db.personalizzazione_massima_permanente_pct }}% sul danno permanente, {{ risultato_db.personalizzazione_massima_temporanea_pct }}% sull'inabilita temporanea</div>
           </div>
         </div>
       </div>
+      {{ render_voci(risultato_db.dettaglio) }}
+      {{ render_tabelle(risultato_db.tabelle_applicate) }}
       {{ render_messages(risultato_db.notes, risultato_db.warnings) }}
       {{ render_sources(risultato_db.sources) }}
       {% endif %}
@@ -952,15 +970,15 @@
     {% endcall %}
 
     {% set risultato_dp = results.get('danno_parentale') %}
-    {% call tool_section('danno_parentale', 'Danno da perdita parentale', 'bi-people', 'Tabella a punti Milano 2024 con i cinque parametri della Cassazione.') %}
+    {% call tool_section('danno_parentale', 'Danno da perdita parentale', 'bi-people', 'Tabelle integrate a punti Milano 2024, con i cinque parametri di Cass. 10579/2021.') %}
       <form method="post" class="row g-3 tool-form-grid">
         {{ tool_hidden('danno_parentale', fascicolo_sel) }}
-        <div class="col-md-6"><label class="form-label">Rapporto con la vittima</label><select name="dp_categoria" class="form-select"><option value="nucleo_primario" {{ 'selected' if form_state.dp_categoria == 'nucleo_primario' }}>Genitore, figlio o coniuge</option><option value="altri_congiunti" {{ 'selected' if form_state.dp_categoria == 'altri_congiunti' }}>Fratello, sorella, nonno o nipote</option></select></div>
-        <div class="col-md-3"><label class="form-label">Età della vittima</label><input type="number" min="0" name="dp_eta_vittima" class="form-control" value="{{ form_state.dp_eta_vittima }}"></div>
-        <div class="col-md-3"><label class="form-label">Età del congiunto</label><input type="number" min="0" name="dp_eta_congiunto" class="form-control" value="{{ form_state.dp_eta_congiunto }}"></div>
-        <div class="col-md-3"><label class="form-label">Convivenza</label><select name="dp_convivenza" class="form-select"><option value="1" {{ 'selected' if form_state.dp_convivenza == '1' }}>Sì</option><option value="0" {{ 'selected' if form_state.dp_convivenza != '1' }}>No</option></select></div>
-        <div class="col-md-4"><label class="form-label">Unico superstite del nucleo</label><select name="dp_unico_superstite" class="form-select"><option value="0" {{ 'selected' if form_state.dp_unico_superstite != '1' }}>No</option><option value="1" {{ 'selected' if form_state.dp_unico_superstite == '1' }}>Sì</option></select></div>
-        <div class="col-md-5"><label class="form-label">Qualità della relazione</label><select name="dp_qualita_relazione" class="form-select">{% for value, label in [('eccezionale','Eccezionale'),('intensa','Intensa'),('ordinaria','Ordinaria'),('ridotta','Ridotta'),('assente','Assente o conflittuale')] %}<option value="{{ value }}" {{ 'selected' if form_state.dp_qualita_relazione == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-6"><label class="form-label">Rapporto con la vittima</label><select name="dp_categoria" class="form-select"><option value="nucleo_primario" {{ 'selected' if form_state.dp_categoria == 'nucleo_primario' }}>Genitore, figlio, coniuge, unito civilmente o convivente</option><option value="fratello_nipote" {{ 'selected' if form_state.dp_categoria == 'fratello_nipote' }}>Fratello, sorella, nonno o nipote</option></select></div>
+        <div class="col-md-3"><label class="form-label">Eta della vittima primaria</label><input type="number" min="0" max="120" name="dp_eta_vittima" class="form-control" value="{{ form_state.dp_eta_vittima }}"></div>
+        <div class="col-md-3"><label class="form-label">Eta del congiunto superstite</label><input type="number" min="0" max="120" name="dp_eta_congiunto" class="form-control" value="{{ form_state.dp_eta_congiunto }}"></div>
+        <div class="col-md-5"><label class="form-label">Convivenza</label><select name="dp_convivenza" class="form-select">{% for value, label in [('convivenza','Conviventi'),('convivenza_oltre_30_anni','Conviventi da oltre 30 anni (fratelli e nipoti)'),('convivenza_oltre_40_anni','Conviventi da oltre 40 anni (fratelli e nipoti)'),('stesso_stabile','Stesso stabile o complesso condominiale'),('nessuna','Nessuna convivenza')] %}<option value="{{ value }}" {{ 'selected' if form_state.dp_convivenza == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Altri congiunti superstiti</label><input type="number" min="0" max="20" name="dp_superstiti" class="form-control" value="{{ form_state.dp_superstiti }}"></div>
+        <div class="col-md-4"><label class="form-label">Qualita e intensita della relazione</label><select name="dp_qualita_relazione" class="form-select">{% for value, label in [('massima','Massima — relazione quotidiana e dipendenza'),('molto_intensa','Molto intensa — condivisione giornaliera'),('intensa','Intensa — condivisione abituale'),('ordinaria','Ordinaria — condivisione sporadica'),('debole','Debole — contatti rari'),('assente','Assente o conflittuale')] %}<option value="{{ value }}" {{ 'selected' if form_state.dp_qualita_relazione == value }}>{{ label }}</option>{% endfor %}</select></div>
         <div class="col-12"><button class="btn btn-primary"><i class="bi bi-people me-2"></i>Calcola danno</button></div>
       </form>
       {% if risultato_dp %}
@@ -971,8 +989,83 @@
         {{ metric_box('Tetto categoria', risultato_dp.massimale_categoria|euro) }}
       </div>
       <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Parametro</th><th>Dato</th><th class="text-end">Punti</th><th class="text-end">Massimo</th></tr></thead><tbody>{% for row in risultato_dp.parametri %}<tr><td class="fw-semibold">{{ row.label }}</td><td>{{ row.detail }}</td><td class="text-end">{{ row.punti }}</td><td class="text-end">{{ row.max }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_tabelle(risultato_dp.tabelle_applicate) }}
       {{ render_messages(risultato_dp.notes, risultato_dp.warnings) }}
       {{ render_sources(risultato_dp.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_lt = results.get('lite_temeraria') %}
+    {% call tool_section('lite_temeraria', 'Lite temeraria — art. 96 comma 3 c.p.c.', 'bi-exclamation-diamond', 'Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('lite_temeraria', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Compenso defensionale liquidato</label><input type="number" step="0.01" min="0" name="lt_compenso" class="form-control" value="{{ form_state.lt_compenso }}"></div>
+        <div class="col-md-2"><label class="form-label">Parti vittoriose</label><input type="number" min="1" name="lt_parti" class="form-control" value="{{ form_state.lt_parti }}"></div>
+        {% for campo, etichetta in [('lt_valore_elevato','Valore della causa elevato'),('lt_processo_lungo','Durata del processo protratta'),('lt_piu_parti','Piu parti vittoriose'),('lt_dolo','Elemento soggettivo intenso'),('lt_affaticamento','Affaticamento rilevante')] %}
+        <div class="col-md-3"><label class="form-label">{{ etichetta }}</label><select name="{{ campo }}" class="form-select"><option value="0" {{ 'selected' if form_state[campo] != '1' }}>No</option><option value="1" {{ 'selected' if form_state[campo] == '1' }}>Si</option></select></div>
+        {% endfor %}
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-exclamation-diamond me-2"></i>Calcola importo</button></div>
+      </form>
+      {% if risultato_lt %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Riducibile fino a', risultato_lt.importo_minimo|euro, 'meta del compenso') }}
+        {{ metric_box('Importo di riferimento', risultato_lt.importo_base|euro, 'pari al compenso') }}
+        {{ metric_box('Aumentabile fino a', risultato_lt.importo_massimo|euro, 'compenso piu la meta') }}
+        {{ metric_box('Proposta sugli indici', risultato_lt.importo_proposto|euro, 'coefficiente ' ~ risultato_lt.coefficiente) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Indice di graduazione</th><th class="text-end">Ricorre</th></tr></thead><tbody>{% for riga in risultato_lt.indici %}<tr><td>{{ riga.label }}</td><td class="text-end">{{ 'Si' if riga.presente else 'No' }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_lt.notes, risultato_lt.warnings) }}
+      {{ render_sources(risultato_lt.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_pm = results.get('danno_premorienza') %}
+    {% call tool_section('danno_premorienza', 'Danno da premorienza', 'bi-hourglass', 'Menomazione permanente e morte per causa diversa prima della liquidazione (Milano 2024).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('danno_premorienza', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Invalidita permanente %</label><input type="number" min="1" max="100" name="pm_perc_ip" class="form-control" value="{{ form_state.pm_perc_ip }}"></div>
+        <div class="col-md-3"><label class="form-label">Data dell'evento lesivo</label><input type="date" name="pm_data_lesione" class="form-control" value="{{ form_state.pm_data_lesione }}"></div>
+        <div class="col-md-3"><label class="form-label">Data del decesso</label><input type="date" name="pm_data_decesso" class="form-control" value="{{ form_state.pm_data_decesso }}"></div>
+        <div class="col-md-3"><label class="form-label">Anni di sopravvivenza</label><input type="number" min="0" name="pm_anni" class="form-control" value="{{ form_state.pm_anni }}"></div>
+        <div class="col-md-3"><label class="form-label">Personalizzazione %</label><input type="number" step="0.01" min="0" max="50" name="pm_personalizzazione" class="form-control" value="{{ form_state.pm_personalizzazione }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-hourglass me-2"></i>Calcola danno</button></div>
+      </form>
+      {% if risultato_pm %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Danno biologico', risultato_pm.danno_biologico|euro) }}
+        {{ metric_box('Sofferenza soggettiva', risultato_pm.danno_sofferenza|euro) }}
+        {{ metric_box('Anni computati', risultato_pm.anni_sopravvivenza, risultato_pm.periodo) }}
+        {{ metric_box('Totale', risultato_pm.totale|euro) }}
+      </div>
+      {{ render_voci(risultato_pm.dettaglio) }}
+      {{ render_tabelle(risultato_pm.tabelle_applicate) }}
+      {{ render_messages(risultato_pm.notes, risultato_pm.warnings) }}
+      {{ render_sources(risultato_pm.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_dt = results.get('danno_terminale') %}
+    {% call tool_section('danno_terminale', 'Danno terminale', 'bi-heartbreak', 'Sofferenza fra lesioni e decesso, tabella Milano 2024 (Cass. S.U. 15350/2015).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('danno_terminale', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Data delle lesioni</label><input type="date" name="dt_data_lesione" class="form-control" value="{{ form_state.dt_data_lesione }}"></div>
+        <div class="col-md-3"><label class="form-label">Data del decesso</label><input type="date" name="dt_data_decesso" class="form-control" value="{{ form_state.dt_data_decesso }}"></div>
+        <div class="col-md-2"><label class="form-label">Giorni di sopravvivenza</label><input type="number" min="0" name="dt_giorni" class="form-control" value="{{ form_state.dt_giorni }}"></div>
+        <div class="col-md-2"><label class="form-label">Primi tre giorni</label><input type="number" step="0.01" min="0" name="dt_importo_primi_tre" class="form-control" value="{{ form_state.dt_importo_primi_tre }}" placeholder="massimo"></div>
+        <div class="col-md-2"><label class="form-label">Personalizzazione %</label><input type="number" step="0.01" min="0" max="50" name="dt_personalizzazione" class="form-control" value="{{ form_state.dt_personalizzazione }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-heartbreak me-2"></i>Calcola danno</button></div>
+      </form>
+      {% if risultato_dt %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Primi tre giorni', risultato_dt.primi_tre_giorni|euro, 'tetto ' ~ risultato_dt.primi_tre_giorni_massimo|euro) }}
+        {{ metric_box('Giorni successivi', risultato_dt.giorni_successivi|euro) }}
+        {{ metric_box('Personalizzazione', risultato_dt.importo_personalizzazione|euro, risultato_dt.personalizzazione_pct ~ '%') }}
+        {{ metric_box('Totale', risultato_dt.totale|euro) }}
+      </div>
+      {{ render_voci(risultato_dt.dettaglio) }}
+      {{ render_tabelle(risultato_dt.tabelle_applicate) }}
+      {{ render_messages(risultato_dt.notes, risultato_dt.warnings) }}
+      {{ render_sources(risultato_dt.sources) }}
       {% endif %}
     {% endcall %}
 

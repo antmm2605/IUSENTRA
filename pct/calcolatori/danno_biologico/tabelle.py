@@ -18,6 +18,9 @@ _CARTELLA_DATI = Path(__file__).resolve().parents[2] / "data" / "tabelle_danno"
 ART_139 = "art_139_cap"
 TUN_2025 = "tun_dpr_12_2025"
 MILANO_2024 = "milano_2024"
+MILANO_2024_PREMORIENZA = "milano_2024_premorienza"
+MILANO_2024_TERMINALE = "milano_2024_terminale"
+MILANO_2024_PARENTALE = "milano_2024_parentale"
 
 
 @lru_cache(maxsize=None)

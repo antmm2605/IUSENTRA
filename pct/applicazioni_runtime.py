@@ -40,6 +40,22 @@ def _metric(label: str, value: str, subtext: str = "") -> Dict[str, str]:
     return {"label": label, "value": value, "subtext": subtext}
 
 
+def _tabella_voci(result: Mapping[str, Any]) -> Dict[str, Any]:
+    """Tabella delle voci di liquidazione, per i calcolatori che dichiarano il criterio."""
+    return {
+        "title": "Voci di liquidazione",
+        "headers": ["Voce", "Criterio", "Importo"],
+        "rows": [
+            [
+                str(voce.get("voce") or ""),
+                str(voce.get("criterio") or ""),
+                _fmt_money(voce.get("importo")),
+            ]
+            for voce in list(result.get("dettaglio") or [])
+        ],
+    }
+
+
 TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "uffici_competenti": {
         "title": "Uffici competenti per Comune",
@@ -608,7 +624,7 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     },
     "danno_parentale": {
         "title": "Danno da perdita parentale",
-        "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.",
+        "subtitle": "Tabelle integrate a punti Milano 2024, con i cinque parametri di Cass. 10579/2021.",
         "submit_label": "Calcola danno",
         "method": "calcola_danno_parentale",
         "fields": [
@@ -617,42 +633,88 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "label": "Rapporto",
                 "type": "select",
                 "options": [
-                    {"value": "nucleo_primario", "label": "Genitore, figlio o coniuge"},
-                    {"value": "altri_congiunti", "label": "Fratello, sorella, nonno o nipote"},
+                    {"value": "nucleo_primario", "label": "Genitore, figlio, coniuge, unito civilmente o convivente"},
+                    {"value": "fratello_nipote", "label": "Fratello, sorella, nonno o nipote"},
                 ],
             },
-            {"name": "dp_eta_vittima", "label": "Età della vittima", "type": "number", "step": "1", "min": "0"},
-            {"name": "dp_eta_congiunto", "label": "Età del congiunto", "type": "number", "step": "1", "min": "0"},
+            {"name": "dp_eta_vittima", "label": "Età della vittima primaria", "type": "number", "step": "1", "min": "0", "max": "120"},
+            {"name": "dp_eta_congiunto", "label": "Età del congiunto superstite", "type": "number", "step": "1", "min": "0", "max": "120"},
             {
                 "name": "dp_convivenza",
                 "label": "Convivenza",
                 "type": "select",
                 "options": [
-                    {"value": "1", "label": "Sì"},
-                    {"value": "0", "label": "No"},
+                    {"value": "convivenza", "label": "Conviventi"},
+                    {"value": "convivenza_oltre_30_anni", "label": "Conviventi da oltre 30 anni (fratelli e nipoti)"},
+                    {"value": "convivenza_oltre_40_anni", "label": "Conviventi da oltre 40 anni (fratelli e nipoti)"},
+                    {"value": "stesso_stabile", "label": "Stesso stabile o complesso condominiale"},
+                    {"value": "nessuna", "label": "Nessuna convivenza"},
                 ],
             },
-            {
-                "name": "dp_unico_superstite",
-                "label": "Unico superstite del nucleo",
-                "type": "select",
-                "options": [
-                    {"value": "0", "label": "No"},
-                    {"value": "1", "label": "Sì"},
-                ],
-            },
+            {"name": "dp_superstiti", "label": "Altri congiunti superstiti", "type": "number", "step": "1", "min": "0", "max": "20"},
             {
                 "name": "dp_qualita_relazione",
-                "label": "Qualità della relazione",
+                "label": "Qualità e intensità della relazione",
                 "type": "select",
                 "options": [
-                    {"value": "eccezionale", "label": "Eccezionale"},
-                    {"value": "intensa", "label": "Intensa"},
-                    {"value": "ordinaria", "label": "Ordinaria"},
-                    {"value": "ridotta", "label": "Ridotta"},
+                    {"value": "massima", "label": "Massima — relazione quotidiana e dipendenza"},
+                    {"value": "molto_intensa", "label": "Molto intensa — condivisione giornaliera"},
+                    {"value": "intensa", "label": "Intensa — condivisione abituale"},
+                    {"value": "ordinaria", "label": "Ordinaria — condivisione sporadica"},
+                    {"value": "debole", "label": "Debole — contatti rari"},
                     {"value": "assente", "label": "Assente o conflittuale"},
                 ],
             },
+        ],
+    },
+    "lite_temeraria": {
+        "title": "Lite temeraria — art. 96 comma 3 c.p.c.",
+        "subtitle": "Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.",
+        "submit_label": "Calcola importo",
+        "method": "calcola_lite_temeraria",
+        "fields": [
+            {"name": "lt_compenso", "label": "Compenso defensionale liquidato", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "lt_parti", "label": "Parti vittoriose", "type": "number", "step": "1", "min": "1"},
+        ] + [
+            {
+                "name": nome,
+                "label": etichetta,
+                "type": "select",
+                "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Sì"}],
+            }
+            for nome, etichetta in (
+                ("lt_valore_elevato", "Valore della causa elevato"),
+                ("lt_processo_lungo", "Durata del processo protratta"),
+                ("lt_piu_parti", "Più parti vittoriose subiscono l'abuso"),
+                ("lt_dolo", "Elemento soggettivo particolarmente intenso"),
+                ("lt_affaticamento", "Affaticamento rilevante della parte abusata"),
+            )
+        ],
+    },
+    "danno_premorienza": {
+        "title": "Danno da premorienza",
+        "subtitle": "Menomazione permanente e morte per causa diversa prima della liquidazione (Milano 2024).",
+        "submit_label": "Calcola danno",
+        "method": "calcola_danno_premorienza",
+        "fields": [
+            {"name": "pm_perc_ip", "label": "Invalidità permanente %", "type": "number", "step": "1", "min": "1", "max": "100"},
+            {"name": "pm_data_lesione", "label": "Data dell'evento lesivo", "type": "date"},
+            {"name": "pm_data_decesso", "label": "Data del decesso", "type": "date"},
+            {"name": "pm_anni", "label": "Anni di sopravvivenza", "type": "number", "step": "1", "min": "0"},
+            {"name": "pm_personalizzazione", "label": "Personalizzazione %", "type": "number", "step": "0.01", "min": "0"},
+        ],
+    },
+    "danno_terminale": {
+        "title": "Danno terminale",
+        "subtitle": "Sofferenza fra lesioni e decesso, tabella Milano 2024 (Cass. S.U. 15350/2015).",
+        "submit_label": "Calcola danno",
+        "method": "calcola_danno_terminale",
+        "fields": [
+            {"name": "dt_data_lesione", "label": "Data delle lesioni", "type": "date"},
+            {"name": "dt_data_decesso", "label": "Data del decesso", "type": "date"},
+            {"name": "dt_giorni", "label": "Giorni di sopravvivenza", "type": "number", "step": "1", "min": "0"},
+            {"name": "dt_importo_primi_tre", "label": "Importo equitativo per i primi tre giorni", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "dt_personalizzazione", "label": "Personalizzazione % (massimo sconvolgimento)", "type": "number", "step": "0.01", "min": "0"},
         ],
     },
     "usufrutto": {
@@ -1159,6 +1221,39 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                 ],
             }
         )
+    elif tool_id == "lite_temeraria":
+        metrics = [
+            _metric("Compenso liquidato", f"{_fmt_money(result.get('compenso'))}"),
+            _metric("Riducibile fino a", f"{_fmt_money(result.get('importo_minimo'))}"),
+            _metric("Aumentabile fino a", f"{_fmt_money(result.get('importo_massimo'))}"),
+            _metric("Proposta sugli indici", f"{_fmt_money(result.get('importo_proposto'))}"),
+        ]
+        tables.append(
+            {
+                "title": "Indici di graduazione",
+                "headers": ["Indice", "Ricorre"],
+                "rows": [
+                    [str(riga.get("label") or ""), "Sì" if riga.get("presente") else "No"]
+                    for riga in list(result.get("indici") or [])
+                ],
+            }
+        )
+    elif tool_id == "danno_premorienza":
+        metrics = [
+            _metric("Invalidità permanente", f"{result.get('perc_ip', 0)}%"),
+            _metric("Anni computati", str(result.get("anni_sopravvivenza") or ""), str(result.get("periodo") or "")),
+            _metric("Danno tabellare", f"{_fmt_money(result.get('subtotale'))}"),
+            _metric("Totale", f"{_fmt_money(result.get('totale'))}"),
+        ]
+        tables.append(_tabella_voci(result))
+    elif tool_id == "danno_terminale":
+        metrics = [
+            _metric("Giorni", str(result.get("giorni") or ""), str(result.get("periodo") or "")),
+            _metric("Primi tre giorni", f"{_fmt_money(result.get('primi_tre_giorni'))}"),
+            _metric("Giorni successivi", f"{_fmt_money(result.get('giorni_successivi'))}"),
+            _metric("Totale", f"{_fmt_money(result.get('totale'))}"),
+        ]
+        tables.append(_tabella_voci(result))
     elif tool_id == "usufrutto":
         metrics = [
             _metric("Usufrutto", f"{_fmt_money(result.get('valore_usufrutto'))}", f"{result.get('percentuale_usufrutto', 0)}%"),

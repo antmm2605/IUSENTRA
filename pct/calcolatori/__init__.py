@@ -8,6 +8,12 @@ Ogni modulo copre una materia con base normativa dichiarata nel docstring:
   (art. 139 D.Lgs. 209/2005, tabella unica nazionale del D.P.R. 12/2025,
   tabelle milanesi edizione 2024).
 - ``danno_parentale``: perdita del rapporto parentale (Tabelle Milano 2024).
+- ``danno_premorienza``: lesione del bene salute definita da premorienza
+  (Tabelle Milano 2024).
+- ``lite_temeraria``: somma equitativa per abuso del processo (art. 96,
+  comma 3, c.p.c.; criteri Osservatorio di Milano 2024).
+- ``danno_terminale``: sofferenza fra lesioni e decesso (Tabelle Milano 2024;
+  Cass. Sez. Un. 15350/2015).
 - ``usufrutto``: usufrutto vitalizio e nuda proprietà (D.P.R. 131/1986).
 - ``quote_riserva``: quote di riserva dei legittimari (artt. 536-556 c.c.).
 - ``assegno_mantenimento``: stima orientativa dell'assegno (art. 337-ter c.c.,
@@ -38,8 +44,11 @@ from pct.calcolatori import (  # noqa: F401
     crediti_lavoro,
     danno_biologico,
     danno_parentale,
+    danno_premorienza,
+    danno_terminale,
     impugnazioni,
     interessi_acconti,
+    lite_temeraria,
     maggior_danno,
     patrocinio_spese_stato,
     pena_riti_alternativi,
@@ -56,8 +65,11 @@ __all__ = [
     "crediti_lavoro",
     "danno_biologico",
     "danno_parentale",
+    "danno_premorienza",
+    "danno_terminale",
     "impugnazioni",
     "interessi_acconti",
+    "lite_temeraria",
     "maggior_danno",
     "patrocinio_spese_stato",
     "pena_riti_alternativi",

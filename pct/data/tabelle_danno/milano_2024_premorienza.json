@@ -1,0 +1,1713 @@
+{
+ "id": "milano_2024_premorienza",
+ "nome": "Danno da lesione del bene salute definito da premorienza — Milano 2024",
+ "riferimento_normativo": "Osservatorio sulla giustizia civile di Milano, edizione 2024; criterio approvato dall'Assemblea nazionale degli Osservatori (Roma, maggio 2017). Liquidazione equitativa ex art. 1226 c.c. nel solco di Cass. civ. n. 679/2016 e n. 10897/2016.",
+ "pubblicazione": "Tribunale di Milano, area 'Tabelle Milano', documento P. 7599/24 del 4 giugno 2024",
+ "url_ufficiale": "https://tribunale-milano.giustizia.it/cmsresources/cms/documents/P._7599_24.pdf",
+ "data_consultazione": "2026-09-13",
+ "ambito": "Danno non patrimoniale del soggetto che, subita una menomazione invalidante, muore prima della liquidazione per causa esterna e indipendente dalla lesione.",
+ "personalizzazione_massima_pct": 50,
+ "nota_totali": "I totali sono ricostruiti sommando i due addendi pubblicati fra parentesi (danno biologico/dinamico-relazionale e sofferenza soggettiva interiore): in 27 celle su 300 il totale stampato nel PDF perde una cifra, mentre gli addendi sono integri e coerenti con la struttura della tabella.",
+ "punti": {
+  "1": {
+   "primo_anno": {
+    "biologico": 60,
+    "sofferenza": 14,
+    "totale": 74
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 106,
+    "sofferenza": 24,
+    "totale": 130
+   },
+   "anno_successivo": {
+    "biologico": 30,
+    "sofferenza": 7,
+    "totale": 37
+   }
+  },
+  "2": {
+   "primo_anno": {
+    "biologico": 128,
+    "sofferenza": 33,
+    "totale": 161
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 224,
+    "sofferenza": 57,
+    "totale": 281
+   },
+   "anno_successivo": {
+    "biologico": 64,
+    "sofferenza": 16,
+    "totale": 80
+   }
+  },
+  "3": {
+   "primo_anno": {
+    "biologico": 202,
+    "sofferenza": 51,
+    "totale": 253
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 354,
+    "sofferenza": 89,
+    "totale": 443
+   },
+   "anno_successivo": {
+    "biologico": 101,
+    "sofferenza": 26,
+    "totale": 127
+   }
+  },
+  "4": {
+   "primo_anno": {
+    "biologico": 284,
+    "sofferenza": 72,
+    "totale": 356
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 496,
+    "sofferenza": 127,
+    "totale": 623
+   },
+   "anno_successivo": {
+    "biologico": 142,
+    "sofferenza": 36,
+    "totale": 178
+   }
+  },
+  "5": {
+   "primo_anno": {
+    "biologico": 374,
+    "sofferenza": 93,
+    "totale": 467
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 656,
+    "sofferenza": 163,
+    "totale": 819
+   },
+   "anno_successivo": {
+    "biologico": 187,
+    "sofferenza": 46,
+    "totale": 233
+   }
+  },
+  "6": {
+   "primo_anno": {
+    "biologico": 495,
+    "sofferenza": 123,
+    "totale": 618
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 867,
+    "sofferenza": 216,
+    "totale": 1083
+   },
+   "anno_successivo": {
+    "biologico": 248,
+    "sofferenza": 62,
+    "totale": 310
+   }
+  },
+  "7": {
+   "primo_anno": {
+    "biologico": 630,
+    "sofferenza": 158,
+    "totale": 788
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 1103,
+    "sofferenza": 277,
+    "totale": 1380
+   },
+   "anno_successivo": {
+    "biologico": 315,
+    "sofferenza": 79,
+    "totale": 394
+   }
+  },
+  "8": {
+   "primo_anno": {
+    "biologico": 779,
+    "sofferenza": 195,
+    "totale": 974
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 1363,
+    "sofferenza": 342,
+    "totale": 1705
+   },
+   "anno_successivo": {
+    "biologico": 389,
+    "sofferenza": 98,
+    "totale": 487
+   }
+  },
+  "9": {
+   "primo_anno": {
+    "biologico": 944,
+    "sofferenza": 235,
+    "totale": 1179
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 1652,
+    "sofferenza": 411,
+    "totale": 2063
+   },
+   "anno_successivo": {
+    "biologico": 472,
+    "sofferenza": 117,
+    "totale": 589
+   }
+  },
+  "10": {
+   "primo_anno": {
+    "biologico": 1123,
+    "sofferenza": 293,
+    "totale": 1416
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 1965,
+    "sofferenza": 513,
+    "totale": 2478
+   },
+   "anno_successivo": {
+    "biologico": 561,
+    "sofferenza": 146,
+    "totale": 707
+   }
+  },
+  "11": {
+   "primo_anno": {
+    "biologico": 1292,
+    "sofferenza": 349,
+    "totale": 1641
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 2262,
+    "sofferenza": 610,
+    "totale": 2872
+   },
+   "anno_successivo": {
+    "biologico": 646,
+    "sofferenza": 174,
+    "totale": 820
+   }
+  },
+  "12": {
+   "primo_anno": {
+    "biologico": 1471,
+    "sofferenza": 411,
+    "totale": 1882
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 2576,
+    "sofferenza": 721,
+    "totale": 3297
+   },
+   "anno_successivo": {
+    "biologico": 736,
+    "sofferenza": 206,
+    "totale": 942
+   }
+  },
+  "13": {
+   "primo_anno": {
+    "biologico": 1662,
+    "sofferenza": 481,
+    "totale": 2143
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 2909,
+    "sofferenza": 843,
+    "totale": 3752
+   },
+   "anno_successivo": {
+    "biologico": 831,
+    "sofferenza": 241,
+    "totale": 1072
+   }
+  },
+  "14": {
+   "primo_anno": {
+    "biologico": 1862,
+    "sofferenza": 558,
+    "totale": 2420
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 3259,
+    "sofferenza": 976,
+    "totale": 4235
+   },
+   "anno_successivo": {
+    "biologico": 931,
+    "sofferenza": 279,
+    "totale": 1210
+   }
+  },
+  "15": {
+   "primo_anno": {
+    "biologico": 2071,
+    "sofferenza": 642,
+    "totale": 2713
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 3625,
+    "sofferenza": 1123,
+    "totale": 4748
+   },
+   "anno_successivo": {
+    "biologico": 1036,
+    "sofferenza": 321,
+    "totale": 1357
+   }
+  },
+  "16": {
+   "primo_anno": {
+    "biologico": 2292,
+    "sofferenza": 732,
+    "totale": 3024
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 4011,
+    "sofferenza": 1282,
+    "totale": 5293
+   },
+   "anno_successivo": {
+    "biologico": 1146,
+    "sofferenza": 366,
+    "totale": 1512
+   }
+  },
+  "17": {
+   "primo_anno": {
+    "biologico": 2522,
+    "sofferenza": 832,
+    "totale": 3354
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 4414,
+    "sofferenza": 1456,
+    "totale": 5870
+   },
+   "anno_successivo": {
+    "biologico": 1261,
+    "sofferenza": 416,
+    "totale": 1677
+   }
+  },
+  "18": {
+   "primo_anno": {
+    "biologico": 2764,
+    "sofferenza": 939,
+    "totale": 3703
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 4837,
+    "sofferenza": 1643,
+    "totale": 6480
+   },
+   "anno_successivo": {
+    "biologico": 1382,
+    "sofferenza": 470,
+    "totale": 1852
+   }
+  },
+  "19": {
+   "primo_anno": {
+    "biologico": 3015,
+    "sofferenza": 1055,
+    "totale": 4070
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 5277,
+    "sofferenza": 1847,
+    "totale": 7124
+   },
+   "anno_successivo": {
+    "biologico": 1507,
+    "sofferenza": 528,
+    "totale": 2035
+   }
+  },
+  "20": {
+   "primo_anno": {
+    "biologico": 3275,
+    "sofferenza": 1179,
+    "totale": 4454
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 5732,
+    "sofferenza": 2063,
+    "totale": 7795
+   },
+   "anno_successivo": {
+    "biologico": 1638,
+    "sofferenza": 589,
+    "totale": 2227
+   }
+  },
+  "21": {
+   "primo_anno": {
+    "biologico": 3550,
+    "sofferenza": 1313,
+    "totale": 4863
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 6212,
+    "sofferenza": 2299,
+    "totale": 8511
+   },
+   "anno_successivo": {
+    "biologico": 1775,
+    "sofferenza": 657,
+    "totale": 2432
+   }
+  },
+  "22": {
+   "primo_anno": {
+    "biologico": 3831,
+    "sofferenza": 1455,
+    "totale": 5286
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 6704,
+    "sofferenza": 2547,
+    "totale": 9251
+   },
+   "anno_successivo": {
+    "biologico": 1915,
+    "sofferenza": 728,
+    "totale": 2643
+   }
+  },
+  "23": {
+   "primo_anno": {
+    "biologico": 4124,
+    "sofferenza": 1609,
+    "totale": 5733
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 7217,
+    "sofferenza": 2815,
+    "totale": 10032
+   },
+   "anno_successivo": {
+    "biologico": 2062,
+    "sofferenza": 804,
+    "totale": 2866
+   }
+  },
+  "24": {
+   "primo_anno": {
+    "biologico": 4426,
+    "sofferenza": 1771,
+    "totale": 6197
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 7745,
+    "sofferenza": 3100,
+    "totale": 10845
+   },
+   "anno_successivo": {
+    "biologico": 2213,
+    "sofferenza": 886,
+    "totale": 3099
+   }
+  },
+  "25": {
+   "primo_anno": {
+    "biologico": 4740,
+    "sofferenza": 1943,
+    "totale": 6683
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 8295,
+    "sofferenza": 3401,
+    "totale": 11696
+   },
+   "anno_successivo": {
+    "biologico": 2370,
+    "sofferenza": 972,
+    "totale": 3342
+   }
+  },
+  "26": {
+   "primo_anno": {
+    "biologico": 5063,
+    "sofferenza": 2127,
+    "totale": 7190
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 8860,
+    "sofferenza": 3723,
+    "totale": 12583
+   },
+   "anno_successivo": {
+    "biologico": 2531,
+    "sofferenza": 1063,
+    "totale": 3594
+   }
+  },
+  "27": {
+   "primo_anno": {
+    "biologico": 5398,
+    "sofferenza": 2320,
+    "totale": 7718
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 9446,
+    "sofferenza": 4060,
+    "totale": 13506
+   },
+   "anno_successivo": {
+    "biologico": 2699,
+    "sofferenza": 1160,
+    "totale": 3859
+   }
+  },
+  "28": {
+   "primo_anno": {
+    "biologico": 5739,
+    "sofferenza": 2527,
+    "totale": 8266
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 10044,
+    "sofferenza": 4422,
+    "totale": 14466
+   },
+   "anno_successivo": {
+    "biologico": 2870,
+    "sofferenza": 1263,
+    "totale": 4133
+   }
+  },
+  "29": {
+   "primo_anno": {
+    "biologico": 6095,
+    "sofferenza": 2743,
+    "totale": 8838
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 10666,
+    "sofferenza": 4800,
+    "totale": 15466
+   },
+   "anno_successivo": {
+    "biologico": 3047,
+    "sofferenza": 1371,
+    "totale": 4418
+   }
+  },
+  "30": {
+   "primo_anno": {
+    "biologico": 6460,
+    "sofferenza": 2971,
+    "totale": 9431
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 11305,
+    "sofferenza": 5199,
+    "totale": 16504
+   },
+   "anno_successivo": {
+    "biologico": 3230,
+    "sofferenza": 1485,
+    "totale": 4715
+   }
+  },
+  "31": {
+   "primo_anno": {
+    "biologico": 6834,
+    "sofferenza": 3213,
+    "totale": 10047
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 11960,
+    "sofferenza": 5622,
+    "totale": 17582
+   },
+   "anno_successivo": {
+    "biologico": 3417,
+    "sofferenza": 1606,
+    "totale": 5023
+   }
+  },
+  "32": {
+   "primo_anno": {
+    "biologico": 7220,
+    "sofferenza": 3466,
+    "totale": 10686
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 12635,
+    "sofferenza": 6066,
+    "totale": 18701
+   },
+   "anno_successivo": {
+    "biologico": 3610,
+    "sofferenza": 1733,
+    "totale": 5343
+   }
+  },
+  "33": {
+   "primo_anno": {
+    "biologico": 7615,
+    "sofferenza": 3731,
+    "totale": 11346
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 13327,
+    "sofferenza": 6530,
+    "totale": 19857
+   },
+   "anno_successivo": {
+    "biologico": 3808,
+    "sofferenza": 1865,
+    "totale": 5673
+   }
+  },
+  "34": {
+   "primo_anno": {
+    "biologico": 8020,
+    "sofferenza": 4010,
+    "totale": 12030
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 14034,
+    "sofferenza": 7018,
+    "totale": 21052
+   },
+   "anno_successivo": {
+    "biologico": 4010,
+    "sofferenza": 2005,
+    "totale": 6015
+   }
+  },
+  "35": {
+   "primo_anno": {
+    "biologico": 8438,
+    "sofferenza": 4219,
+    "totale": 12657
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 14767,
+    "sofferenza": 7384,
+    "totale": 22151
+   },
+   "anno_successivo": {
+    "biologico": 4219,
+    "sofferenza": 2110,
+    "totale": 6329
+   }
+  },
+  "36": {
+   "primo_anno": {
+    "biologico": 8863,
+    "sofferenza": 4431,
+    "totale": 13294
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 15512,
+    "sofferenza": 7753,
+    "totale": 23265
+   },
+   "anno_successivo": {
+    "biologico": 4432,
+    "sofferenza": 2215,
+    "totale": 6647
+   }
+  },
+  "37": {
+   "primo_anno": {
+    "biologico": 9300,
+    "sofferenza": 4651,
+    "totale": 13951
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 16276,
+    "sofferenza": 8141,
+    "totale": 24417
+   },
+   "anno_successivo": {
+    "biologico": 4650,
+    "sofferenza": 2326,
+    "totale": 6976
+   }
+  },
+  "38": {
+   "primo_anno": {
+    "biologico": 9747,
+    "sofferenza": 4872,
+    "totale": 14619
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 17057,
+    "sofferenza": 8526,
+    "totale": 25583
+   },
+   "anno_successivo": {
+    "biologico": 4873,
+    "sofferenza": 2436,
+    "totale": 7309
+   }
+  },
+  "39": {
+   "primo_anno": {
+    "biologico": 10205,
+    "sofferenza": 5102,
+    "totale": 15307
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 17858,
+    "sofferenza": 8930,
+    "totale": 26788
+   },
+   "anno_successivo": {
+    "biologico": 5102,
+    "sofferenza": 2551,
+    "totale": 7653
+   }
+  },
+  "40": {
+   "primo_anno": {
+    "biologico": 10672,
+    "sofferenza": 5335,
+    "totale": 16007
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 18676,
+    "sofferenza": 9336,
+    "totale": 28012
+   },
+   "anno_successivo": {
+    "biologico": 5336,
+    "sofferenza": 2667,
+    "totale": 8003
+   }
+  },
+  "41": {
+   "primo_anno": {
+    "biologico": 11151,
+    "sofferenza": 5574,
+    "totale": 16725
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 19514,
+    "sofferenza": 9755,
+    "totale": 29269
+   },
+   "anno_successivo": {
+    "biologico": 5575,
+    "sofferenza": 2787,
+    "totale": 8362
+   }
+  },
+  "42": {
+   "primo_anno": {
+    "biologico": 11637,
+    "sofferenza": 5818,
+    "totale": 17455
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 20364,
+    "sofferenza": 10183,
+    "totale": 30547
+   },
+   "anno_successivo": {
+    "biologico": 5818,
+    "sofferenza": 2909,
+    "totale": 8727
+   }
+  },
+  "43": {
+   "primo_anno": {
+    "biologico": 12136,
+    "sofferenza": 6069,
+    "totale": 18205
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 21239,
+    "sofferenza": 10622,
+    "totale": 31861
+   },
+   "anno_successivo": {
+    "biologico": 6068,
+    "sofferenza": 3035,
+    "totale": 9103
+   }
+  },
+  "44": {
+   "primo_anno": {
+    "biologico": 12645,
+    "sofferenza": 6323,
+    "totale": 18968
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 22130,
+    "sofferenza": 11065,
+    "totale": 33195
+   },
+   "anno_successivo": {
+    "biologico": 6323,
+    "sofferenza": 3161,
+    "totale": 9484
+   }
+  },
+  "45": {
+   "primo_anno": {
+    "biologico": 13164,
+    "sofferenza": 6583,
+    "totale": 19747
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 23037,
+    "sofferenza": 11520,
+    "totale": 34557
+   },
+   "anno_successivo": {
+    "biologico": 6582,
+    "sofferenza": 3292,
+    "totale": 9874
+   }
+  },
+  "46": {
+   "primo_anno": {
+    "biologico": 13694,
+    "sofferenza": 6846,
+    "totale": 20540
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 23965,
+    "sofferenza": 11981,
+    "totale": 35946
+   },
+   "anno_successivo": {
+    "biologico": 6847,
+    "sofferenza": 3423,
+    "totale": 10270
+   }
+  },
+  "47": {
+   "primo_anno": {
+    "biologico": 14233,
+    "sofferenza": 7118,
+    "totale": 21351
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 24909,
+    "sofferenza": 12456,
+    "totale": 37365
+   },
+   "anno_successivo": {
+    "biologico": 7117,
+    "sofferenza": 3559,
+    "totale": 10676
+   }
+  },
+  "48": {
+   "primo_anno": {
+    "biologico": 14784,
+    "sofferenza": 7392,
+    "totale": 22176
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 25872,
+    "sofferenza": 12936,
+    "totale": 38808
+   },
+   "anno_successivo": {
+    "biologico": 7392,
+    "sofferenza": 3696,
+    "totale": 11088
+   }
+  },
+  "49": {
+   "primo_anno": {
+    "biologico": 15344,
+    "sofferenza": 7673,
+    "totale": 23017
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 26853,
+    "sofferenza": 13429,
+    "totale": 40282
+   },
+   "anno_successivo": {
+    "biologico": 7672,
+    "sofferenza": 3837,
+    "totale": 11509
+   }
+  },
+  "50": {
+   "primo_anno": {
+    "biologico": 15914,
+    "sofferenza": 7957,
+    "totale": 23871
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 27849,
+    "sofferenza": 13925,
+    "totale": 41774
+   },
+   "anno_successivo": {
+    "biologico": 7957,
+    "sofferenza": 3978,
+    "totale": 11935
+   }
+  },
+  "51": {
+   "primo_anno": {
+    "biologico": 16486,
+    "sofferenza": 8243,
+    "totale": 24729
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 28850,
+    "sofferenza": 14425,
+    "totale": 43275
+   },
+   "anno_successivo": {
+    "biologico": 8243,
+    "sofferenza": 4121,
+    "totale": 12364
+   }
+  },
+  "52": {
+   "primo_anno": {
+    "biologico": 17060,
+    "sofferenza": 8529,
+    "totale": 25589
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 29855,
+    "sofferenza": 14926,
+    "totale": 44781
+   },
+   "anno_successivo": {
+    "biologico": 8530,
+    "sofferenza": 4264,
+    "totale": 12794
+   }
+  },
+  "53": {
+   "primo_anno": {
+    "biologico": 17634,
+    "sofferenza": 8817,
+    "totale": 26451
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 30859,
+    "sofferenza": 15430,
+    "totale": 46289
+   },
+   "anno_successivo": {
+    "biologico": 8817,
+    "sofferenza": 4408,
+    "totale": 13225
+   }
+  },
+  "54": {
+   "primo_anno": {
+    "biologico": 18206,
+    "sofferenza": 9103,
+    "totale": 27309
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 31860,
+    "sofferenza": 15930,
+    "totale": 47790
+   },
+   "anno_successivo": {
+    "biologico": 9103,
+    "sofferenza": 4551,
+    "totale": 13654
+   }
+  },
+  "55": {
+   "primo_anno": {
+    "biologico": 18780,
+    "sofferenza": 9391,
+    "totale": 28171
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 32865,
+    "sofferenza": 16434,
+    "totale": 49299
+   },
+   "anno_successivo": {
+    "biologico": 9390,
+    "sofferenza": 4696,
+    "totale": 14086
+   }
+  },
+  "56": {
+   "primo_anno": {
+    "biologico": 19354,
+    "sofferenza": 9677,
+    "totale": 29031
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 33870,
+    "sofferenza": 16935,
+    "totale": 50805
+   },
+   "anno_successivo": {
+    "biologico": 9677,
+    "sofferenza": 4839,
+    "totale": 14516
+   }
+  },
+  "57": {
+   "primo_anno": {
+    "biologico": 19926,
+    "sofferenza": 9963,
+    "totale": 29889
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 34870,
+    "sofferenza": 17435,
+    "totale": 52305
+   },
+   "anno_successivo": {
+    "biologico": 9963,
+    "sofferenza": 4981,
+    "totale": 14944
+   }
+  },
+  "58": {
+   "primo_anno": {
+    "biologico": 20498,
+    "sofferenza": 10249,
+    "totale": 30747
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 35871,
+    "sofferenza": 17936,
+    "totale": 53807
+   },
+   "anno_successivo": {
+    "biologico": 10249,
+    "sofferenza": 5124,
+    "totale": 15373
+   }
+  },
+  "59": {
+   "primo_anno": {
+    "biologico": 21067,
+    "sofferenza": 10532,
+    "totale": 31599
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 36868,
+    "sofferenza": 18432,
+    "totale": 55300
+   },
+   "anno_successivo": {
+    "biologico": 10534,
+    "sofferenza": 5266,
+    "totale": 15800
+   }
+  },
+  "60": {
+   "primo_anno": {
+    "biologico": 21634,
+    "sofferenza": 10818,
+    "totale": 32452
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 37861,
+    "sofferenza": 18932,
+    "totale": 56793
+   },
+   "anno_successivo": {
+    "biologico": 10817,
+    "sofferenza": 5409,
+    "totale": 16226
+   }
+  },
+  "61": {
+   "primo_anno": {
+    "biologico": 22202,
+    "sofferenza": 11100,
+    "totale": 33302
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 38853,
+    "sofferenza": 19425,
+    "totale": 58278
+   },
+   "anno_successivo": {
+    "biologico": 11101,
+    "sofferenza": 5550,
+    "totale": 16651
+   }
+  },
+  "62": {
+   "primo_anno": {
+    "biologico": 22762,
+    "sofferenza": 11381,
+    "totale": 34143
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 39833,
+    "sofferenza": 19917,
+    "totale": 59750
+   },
+   "anno_successivo": {
+    "biologico": 11381,
+    "sofferenza": 5690,
+    "totale": 17071
+   }
+  },
+  "63": {
+   "primo_anno": {
+    "biologico": 23324,
+    "sofferenza": 11662,
+    "totale": 34986
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 40818,
+    "sofferenza": 20409,
+    "totale": 61227
+   },
+   "anno_successivo": {
+    "biologico": 11662,
+    "sofferenza": 5831,
+    "totale": 17493
+   }
+  },
+  "64": {
+   "primo_anno": {
+    "biologico": 23882,
+    "sofferenza": 11941,
+    "totale": 35823
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 41794,
+    "sofferenza": 20898,
+    "totale": 62692
+   },
+   "anno_successivo": {
+    "biologico": 11941,
+    "sofferenza": 5971,
+    "totale": 17912
+   }
+  },
+  "65": {
+   "primo_anno": {
+    "biologico": 24436,
+    "sofferenza": 12218,
+    "totale": 36654
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 42762,
+    "sofferenza": 21381,
+    "totale": 64143
+   },
+   "anno_successivo": {
+    "biologico": 12218,
+    "sofferenza": 6109,
+    "totale": 18327
+   }
+  },
+  "66": {
+   "primo_anno": {
+    "biologico": 24989,
+    "sofferenza": 12494,
+    "totale": 37483
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 43730,
+    "sofferenza": 21866,
+    "totale": 65596
+   },
+   "anno_successivo": {
+    "biologico": 12494,
+    "sofferenza": 6247,
+    "totale": 18741
+   }
+  },
+  "67": {
+   "primo_anno": {
+    "biologico": 25535,
+    "sofferenza": 12766,
+    "totale": 38301
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 44687,
+    "sofferenza": 22341,
+    "totale": 67028
+   },
+   "anno_successivo": {
+    "biologico": 12768,
+    "sofferenza": 6383,
+    "totale": 19151
+   }
+  },
+  "68": {
+   "primo_anno": {
+    "biologico": 26079,
+    "sofferenza": 13038,
+    "totale": 39117
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 45639,
+    "sofferenza": 22818,
+    "totale": 68457
+   },
+   "anno_successivo": {
+    "biologico": 13039,
+    "sofferenza": 6519,
+    "totale": 19558
+   }
+  },
+  "69": {
+   "primo_anno": {
+    "biologico": 26621,
+    "sofferenza": 13310,
+    "totale": 39931
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 46586,
+    "sofferenza": 23293,
+    "totale": 69879
+   },
+   "anno_successivo": {
+    "biologico": 13310,
+    "sofferenza": 6655,
+    "totale": 19965
+   }
+  },
+  "70": {
+   "primo_anno": {
+    "biologico": 27155,
+    "sofferenza": 13578,
+    "totale": 40733
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 47522,
+    "sofferenza": 23761,
+    "totale": 71283
+   },
+   "anno_successivo": {
+    "biologico": 13578,
+    "sofferenza": 6789,
+    "totale": 20367
+   }
+  },
+  "71": {
+   "primo_anno": {
+    "biologico": 27685,
+    "sofferenza": 13843,
+    "totale": 41528
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 48449,
+    "sofferenza": 24225,
+    "totale": 72674
+   },
+   "anno_successivo": {
+    "biologico": 13843,
+    "sofferenza": 6921,
+    "totale": 20764
+   }
+  },
+  "72": {
+   "primo_anno": {
+    "biologico": 28213,
+    "sofferenza": 14108,
+    "totale": 42321
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 49373,
+    "sofferenza": 24689,
+    "totale": 74062
+   },
+   "anno_successivo": {
+    "biologico": 14106,
+    "sofferenza": 7054,
+    "totale": 21160
+   }
+  },
+  "73": {
+   "primo_anno": {
+    "biologico": 28734,
+    "sofferenza": 14368,
+    "totale": 43102
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 50284,
+    "sofferenza": 25145,
+    "totale": 75429
+   },
+   "anno_successivo": {
+    "biologico": 14367,
+    "sofferenza": 7184,
+    "totale": 21551
+   }
+  },
+  "74": {
+   "primo_anno": {
+    "biologico": 29252,
+    "sofferenza": 14626,
+    "totale": 43878
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 51191,
+    "sofferenza": 25595,
+    "totale": 76786
+   },
+   "anno_successivo": {
+    "biologico": 14626,
+    "sofferenza": 7313,
+    "totale": 21939
+   }
+  },
+  "75": {
+   "primo_anno": {
+    "biologico": 29766,
+    "sofferenza": 14882,
+    "totale": 44648
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 52091,
+    "sofferenza": 26043,
+    "totale": 78134
+   },
+   "anno_successivo": {
+    "biologico": 14883,
+    "sofferenza": 7441,
+    "totale": 22324
+   }
+  },
+  "76": {
+   "primo_anno": {
+    "biologico": 30272,
+    "sofferenza": 15137,
+    "totale": 45409
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 52977,
+    "sofferenza": 26490,
+    "totale": 79467
+   },
+   "anno_successivo": {
+    "biologico": 15136,
+    "sofferenza": 7569,
+    "totale": 22705
+   }
+  },
+  "77": {
+   "primo_anno": {
+    "biologico": 30775,
+    "sofferenza": 15388,
+    "totale": 46163
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 53856,
+    "sofferenza": 26930,
+    "totale": 80786
+   },
+   "anno_successivo": {
+    "biologico": 15387,
+    "sofferenza": 7694,
+    "totale": 23081
+   }
+  },
+  "78": {
+   "primo_anno": {
+    "biologico": 31277,
+    "sofferenza": 15639,
+    "totale": 46916
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 54735,
+    "sofferenza": 27369,
+    "totale": 82104
+   },
+   "anno_successivo": {
+    "biologico": 15638,
+    "sofferenza": 7820,
+    "totale": 23458
+   }
+  },
+  "79": {
+   "primo_anno": {
+    "biologico": 31767,
+    "sofferenza": 15884,
+    "totale": 47651
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 55592,
+    "sofferenza": 27797,
+    "totale": 83389
+   },
+   "anno_successivo": {
+    "biologico": 15884,
+    "sofferenza": 7942,
+    "totale": 23826
+   }
+  },
+  "80": {
+   "primo_anno": {
+    "biologico": 32255,
+    "sofferenza": 16128,
+    "totale": 48383
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 56447,
+    "sofferenza": 28223,
+    "totale": 84670
+   },
+   "anno_successivo": {
+    "biologico": 16128,
+    "sofferenza": 8064,
+    "totale": 24192
+   }
+  },
+  "81": {
+   "primo_anno": {
+    "biologico": 32739,
+    "sofferenza": 16369,
+    "totale": 49108
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 57293,
+    "sofferenza": 28646,
+    "totale": 85939
+   },
+   "anno_successivo": {
+    "biologico": 16369,
+    "sofferenza": 8185,
+    "totale": 24554
+   }
+  },
+  "82": {
+   "primo_anno": {
+    "biologico": 33215,
+    "sofferenza": 16609,
+    "totale": 49824
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 58127,
+    "sofferenza": 29066,
+    "totale": 87193
+   },
+   "anno_successivo": {
+    "biologico": 16608,
+    "sofferenza": 8304,
+    "totale": 24912
+   }
+  },
+  "83": {
+   "primo_anno": {
+    "biologico": 33692,
+    "sofferenza": 16846,
+    "totale": 50538
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 58961,
+    "sofferenza": 29481,
+    "totale": 88442
+   },
+   "anno_successivo": {
+    "biologico": 16846,
+    "sofferenza": 8423,
+    "totale": 25269
+   }
+  },
+  "84": {
+   "primo_anno": {
+    "biologico": 34161,
+    "sofferenza": 17081,
+    "totale": 51242
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 59782,
+    "sofferenza": 29891,
+    "totale": 89673
+   },
+   "anno_successivo": {
+    "biologico": 17081,
+    "sofferenza": 8540,
+    "totale": 25621
+   }
+  },
+  "85": {
+   "primo_anno": {
+    "biologico": 34626,
+    "sofferenza": 17313,
+    "totale": 51939
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 60596,
+    "sofferenza": 30298,
+    "totale": 90894
+   },
+   "anno_successivo": {
+    "biologico": 17313,
+    "sofferenza": 8657,
+    "totale": 25970
+   }
+  },
+  "86": {
+   "primo_anno": {
+    "biologico": 35084,
+    "sofferenza": 17543,
+    "totale": 52627
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 61398,
+    "sofferenza": 30701,
+    "totale": 92099
+   },
+   "anno_successivo": {
+    "biologico": 17542,
+    "sofferenza": 8772,
+    "totale": 26314
+   }
+  },
+  "87": {
+   "primo_anno": {
+    "biologico": 35542,
+    "sofferenza": 17771,
+    "totale": 53313
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 62199,
+    "sofferenza": 31100,
+    "totale": 93299
+   },
+   "anno_successivo": {
+    "biologico": 17771,
+    "sofferenza": 8886,
+    "totale": 26657
+   }
+  },
+  "88": {
+   "primo_anno": {
+    "biologico": 35993,
+    "sofferenza": 17997,
+    "totale": 53990
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 62988,
+    "sofferenza": 31494,
+    "totale": 94482
+   },
+   "anno_successivo": {
+    "biologico": 17997,
+    "sofferenza": 8998,
+    "totale": 26995
+   }
+  },
+  "89": {
+   "primo_anno": {
+    "biologico": 36442,
+    "sofferenza": 18220,
+    "totale": 54662
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 63774,
+    "sofferenza": 31884,
+    "totale": 95658
+   },
+   "anno_successivo": {
+    "biologico": 18221,
+    "sofferenza": 9110,
+    "totale": 27331
+   }
+  },
+  "90": {
+   "primo_anno": {
+    "biologico": 36886,
+    "sofferenza": 18443,
+    "totale": 55329
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 64550,
+    "sofferenza": 32275,
+    "totale": 96825
+   },
+   "anno_successivo": {
+    "biologico": 18443,
+    "sofferenza": 9221,
+    "totale": 27664
+   }
+  },
+  "91": {
+   "primo_anno": {
+    "biologico": 37325,
+    "sofferenza": 18664,
+    "totale": 55989
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 65319,
+    "sofferenza": 32662,
+    "totale": 97981
+   },
+   "anno_successivo": {
+    "biologico": 18663,
+    "sofferenza": 9332,
+    "totale": 27995
+   }
+  },
+  "92": {
+   "primo_anno": {
+    "biologico": 37762,
+    "sofferenza": 18882,
+    "totale": 56644
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 66084,
+    "sofferenza": 33044,
+    "totale": 99128
+   },
+   "anno_successivo": {
+    "biologico": 18881,
+    "sofferenza": 9441,
+    "totale": 28322
+   }
+  },
+  "93": {
+   "primo_anno": {
+    "biologico": 38197,
+    "sofferenza": 19098,
+    "totale": 57295
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 66844,
+    "sofferenza": 33422,
+    "totale": 100266
+   },
+   "anno_successivo": {
+    "biologico": 19098,
+    "sofferenza": 9549,
+    "totale": 28647
+   }
+  },
+  "94": {
+   "primo_anno": {
+    "biologico": 38629,
+    "sofferenza": 19315,
+    "totale": 57944
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 67601,
+    "sofferenza": 33801,
+    "totale": 101402
+   },
+   "anno_successivo": {
+    "biologico": 19315,
+    "sofferenza": 9657,
+    "totale": 28972
+   }
+  },
+  "95": {
+   "primo_anno": {
+    "biologico": 39059,
+    "sofferenza": 19528,
+    "totale": 58587
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 68354,
+    "sofferenza": 34175,
+    "totale": 102529
+   },
+   "anno_successivo": {
+    "biologico": 19530,
+    "sofferenza": 9764,
+    "totale": 29294
+   }
+  },
+  "96": {
+   "primo_anno": {
+    "biologico": 39487,
+    "sofferenza": 19745,
+    "totale": 59232
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 69103,
+    "sofferenza": 34553,
+    "totale": 103656
+   },
+   "anno_successivo": {
+    "biologico": 19743,
+    "sofferenza": 9872,
+    "totale": 29615
+   }
+  },
+  "97": {
+   "primo_anno": {
+    "biologico": 39912,
+    "sofferenza": 19956,
+    "totale": 59868
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 69846,
+    "sofferenza": 34924,
+    "totale": 104770
+   },
+   "anno_successivo": {
+    "biologico": 19956,
+    "sofferenza": 9978,
+    "totale": 29934
+   }
+  },
+  "98": {
+   "primo_anno": {
+    "biologico": 40340,
+    "sofferenza": 20170,
+    "totale": 60510
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 70595,
+    "sofferenza": 35298,
+    "totale": 105893
+   },
+   "anno_successivo": {
+    "biologico": 20170,
+    "sofferenza": 10085,
+    "totale": 30255
+   }
+  },
+  "99": {
+   "primo_anno": {
+    "biologico": 40763,
+    "sofferenza": 20382,
+    "totale": 61145
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 71335,
+    "sofferenza": 35668,
+    "totale": 107003
+   },
+   "anno_successivo": {
+    "biologico": 20382,
+    "sofferenza": 10191,
+    "totale": 30573
+   }
+  },
+  "100": {
+   "primo_anno": {
+    "biologico": 41188,
+    "sofferenza": 20595,
+    "totale": 61783
+   },
+   "primo_e_secondo_anno": {
+    "biologico": 72080,
+    "sofferenza": 36042,
+    "totale": 108122
+   },
+   "anno_successivo": {
+    "biologico": 20594,
+    "sofferenza": 10298,
+    "totale": 30892
+   }
+  }
+ }
+}

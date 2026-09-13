@@ -18,6 +18,9 @@ from pct.calcolatori import (
     crediti_lavoro as calc_crediti_lavoro,
     danno_biologico as calc_danno_biologico,
     danno_parentale as calc_danno_parentale,
+    danno_premorienza as calc_danno_premorienza,
+    danno_terminale as calc_danno_terminale,
+    lite_temeraria as calc_lite_temeraria,
     fiscale_detrazioni as calc_fiscale_detrazioni,
     fiscale_irpef as calc_fiscale_irpef,
     fiscale_regimi as calc_fiscale_regimi,
@@ -187,7 +190,10 @@ class GestioneStrumentiLegali:
             {"id": "interessi_acconti", "title": "Interessi con acconti", "subtitle": "Imputazione degli acconti prima a interessi e poi a capitale ex art. 1194 c.c.", "icon": "bi-cash-coin", "categoria": "Credito"},
             {"id": "maggior_danno", "title": "Maggior danno da svalutazione", "subtitle": "Art. 1224 co. 2 c.c.: capitale rivalutato ISTAT più interessi legali del periodo.", "icon": "bi-graph-down-arrow", "categoria": "Credito"},
             {"id": "crediti_lavoro", "title": "Crediti di lavoro: rivalutazione e interessi", "subtitle": "Art. 429 co. 3 c.p.c. con divieto di cumulo per il pubblico impiego (art. 22 co. 36 L. 724/1994).", "icon": "bi-briefcase-fill", "categoria": "Lavoro"},
-            {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.", "icon": "bi-people", "categoria": "Danni"},
+            {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabelle integrate a punti Milano 2024, con i cinque parametri di Cass. 10579/2021.", "icon": "bi-people", "categoria": "Danni"},
+            {"id": "danno_premorienza", "title": "Danno da premorienza", "subtitle": "Menomazione permanente e morte per causa diversa prima della liquidazione (Milano 2024).", "icon": "bi-hourglass", "categoria": "Danni"},
+            {"id": "lite_temeraria", "title": "Lite temeraria — art. 96 comma 3 c.p.c.", "subtitle": "Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.", "icon": "bi-exclamation-diamond", "categoria": "Processo"},
+            {"id": "danno_terminale", "title": "Danno terminale", "subtitle": "Sofferenza fra lesioni e decesso, tabella Milano 2024 (Cass. S.U. 15350/2015).", "icon": "bi-heartbreak", "categoria": "Danni"},
             {"id": "usufrutto", "title": "Usufrutto e nuda proprietà", "subtitle": "Valore fiscale con le fasce d'età del D.P.R. 131/1986 e il tasso legale corrente.", "icon": "bi-house-heart", "categoria": "Patrimonio"},
             {"id": "quote_riserva", "title": "Quote di riserva legittimari", "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.", "icon": "bi-shield-check", "categoria": "Patrimonio"},
             {"id": "indennita_mediazione", "title": "Indennita di mediazione", "subtitle": "Spese di avvio, primo incontro e indennita per scaglione con riduzione obbligatoria e maggiorazioni (D.M. 150/2023).", "icon": "bi-people-fill", "categoria": "ADR"},
@@ -385,6 +391,33 @@ class GestioneStrumentiLegali:
             "presc_data_decorrenza": today,
             "presc_atto_interruttivo": "",
             "presc_descrizione": prefill.get("oggetto", ""),
+            # Danno da perdita del rapporto parentale
+            "dp_categoria": "nucleo_primario",
+            "dp_eta_vittima": "",
+            "dp_eta_congiunto": "",
+            "dp_convivenza": "convivenza",
+            "dp_superstiti": "0",
+            "dp_qualita_relazione": "ordinaria",
+            # Somma equitativa art. 96 comma 3 c.p.c.
+            "lt_compenso": "",
+            "lt_parti": "1",
+            "lt_valore_elevato": "0",
+            "lt_processo_lungo": "0",
+            "lt_piu_parti": "0",
+            "lt_dolo": "0",
+            "lt_affaticamento": "0",
+            # Danno da premorienza
+            "pm_perc_ip": "",
+            "pm_data_lesione": "",
+            "pm_data_decesso": "",
+            "pm_anni": "",
+            "pm_personalizzazione": "0",
+            # Danno terminale
+            "dt_data_lesione": "",
+            "dt_data_decesso": "",
+            "dt_giorni": "",
+            "dt_importo_primi_tre": "",
+            "dt_personalizzazione": "0",
             # Danno biologico
             "db_ambito": "circolazione",
             "db_data_sinistro": "",
@@ -1499,6 +1532,15 @@ class GestioneStrumentiLegali:
 
     def calcola_danno_parentale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_danno_parentale.calcola(payload)
+
+    def calcola_danno_premorienza(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_danno_premorienza.calcola(payload)
+
+    def calcola_danno_terminale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_danno_terminale.calcola(payload)
+
+    def calcola_lite_temeraria(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_lite_temeraria.calcola(payload)
 
     def calcola_usufrutto(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_usufrutto.calcola(payload, self.norme)

@@ -278,7 +278,12 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
                 [("privato", "Lavoro privato"), ("pubblico", "Pubblico impiego")],
                 aiuto="Nel pubblico impiego rivalutazione e interessi non sono cumulabili (art. 22, comma 36, L. 724/1994).",
             ),
-            _scelta("lav_tipo_indice", "Indice ISTAT", [("foi", "FOI"), ("nic", "NIC")]),
+            _scelta(
+                "lav_tipo_indice",
+                "Indice ISTAT",
+                [("foi", "FOI (al netto dei tabacchi)")],
+                aiuto="Art. 429, comma 3, c.p.c. e art. 150 disp. att. c.p.c. rinviano al FOI.",
+            ),
             _scelta(
                 "lav_base_interessi",
                 "Base degli interessi",
@@ -360,7 +365,12 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
         "azione": "Rivaluta importo",
         "campi": [
             _numero("riv_importo", "Importo"),
-            _scelta("riv_tipo", "Indice ISTAT", [("nic", "NIC"), ("foi", "FOI")]),
+            _scelta(
+                "riv_tipo",
+                "Indice ISTAT",
+                [("foi", "FOI (al netto dei tabacchi)")],
+                aiuto="È l'indice prescritto dall'art. 81 L. 392/1978 e richiamato per la rivalutazione dei crediti.",
+            ),
             _intero("riv_anno_base", "Anno base", minimo=1947),
             _intero("riv_mese_base", "Mese base", minimo=1, massimo=12),
             _intero("riv_anno_fine", "Anno finale", minimo=1947),

@@ -1415,46 +1415,78 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "source_codes": ["istat_indici_prezzi", "legge_431_1998_locazioni"],
             "watch_source_ids": ["istat", "normattiva"],
             "rows": [
-                # Indici FOI (base 2015=100) — anno su anno
-                {"year": 2023, "month": 1, "index": 118.6, "variation_yoy": 10.7},
-                {"year": 2023, "month": 2, "index": 119.2, "variation_yoy": 9.7},
-                {"year": 2023, "month": 3, "index": 119.6, "variation_yoy": 8.3},
-                {"year": 2023, "month": 4, "index": 119.9, "variation_yoy": 8.5},
-                {"year": 2023, "month": 5, "index": 120.2, "variation_yoy": 8.0},
-                {"year": 2023, "month": 6, "index": 120.2, "variation_yoy": 6.7},
-                {"year": 2023, "month": 7, "index": 120.9, "variation_yoy": 6.3},
-                {"year": 2023, "month": 8, "index": 121.1, "variation_yoy": 5.5},
-                {"year": 2023, "month": 9, "index": 120.9, "variation_yoy": 5.3},
-                {"year": 2023, "month": 10, "index": 120.9, "variation_yoy": 1.8},
-                {"year": 2023, "month": 11, "index": 120.6, "variation_yoy": 0.7},
-                {"year": 2023, "month": 12, "index": 120.7, "variation_yoy": 0.6},
-                {"year": 2024, "month": 1, "index": 120.8, "variation_yoy": 0.2},
-                {"year": 2024, "month": 2, "index": 121.0, "variation_yoy": 0.7},
-                {"year": 2024, "month": 3, "index": 121.2, "variation_yoy": 1.3},
-                {"year": 2024, "month": 4, "index": 121.5, "variation_yoy": 0.9},
-                {"year": 2024, "month": 5, "index": 121.7, "variation_yoy": 0.8},
-                {"year": 2024, "month": 6, "index": 121.7, "variation_yoy": 0.9},
-                {"year": 2024, "month": 7, "index": 122.1, "variation_yoy": 1.0},
-                {"year": 2024, "month": 8, "index": 122.0, "variation_yoy": 1.2},
-                {"year": 2024, "month": 9, "index": 122.1, "variation_yoy": 0.8},
-                {"year": 2024, "month": 10, "index": 122.4, "variation_yoy": 0.9},
-                {"year": 2024, "month": 11, "index": 122.5, "variation_yoy": 1.5},
-                {"year": 2024, "month": 12, "index": 122.8, "variation_yoy": 1.7},
-                {"year": 2025, "month": 1, "index": 123.2, "variation_yoy": 2.0},
-                {"year": 2025, "month": 2, "index": 123.4, "variation_yoy": 2.0},
-                {"year": 2025, "month": 3, "index": 123.3, "variation_yoy": 1.7},
+                # Serie pubblicata nei comunicati ISTAT in Gazzetta Ufficiale:
+                # G.U. n. 103 del 04/05/2023 (23A02556), n. 122 del 27/05/2024 (24A02620),
+                # n. 117 del 22/05/2025 (25A03038) e n. 201 del 31/08/2026 (26A04494).
+                # Base 2015=100 fino a dicembre 2025; base 2025=100 da gennaio 2026.
+                {"year": 2022, "month": 3, "index": 109.9, "variation_yoy": 6.4, "base": 2015},
+                {"year": 2022, "month": 4, "index": 109.7, "variation_yoy": 5.8, "base": 2015},
+                {"year": 2022, "month": 5, "index": 110.6, "variation_yoy": 6.8, "base": 2015},
+                {"year": 2022, "month": 6, "index": 111.9, "variation_yoy": 7.8, "base": 2015},
+                {"year": 2022, "month": 7, "index": 112.3, "variation_yoy": 7.8, "base": 2015},
+                {"year": 2022, "month": 8, "index": 113.2, "variation_yoy": 8.1, "base": 2015},
+                {"year": 2022, "month": 9, "index": 113.5, "variation_yoy": 8.6, "base": 2015},
+                {"year": 2022, "month": 10, "index": 117.2, "variation_yoy": 11.5, "base": 2015},
+                {"year": 2022, "month": 11, "index": 117.9, "variation_yoy": 11.5, "base": 2015},
+                {"year": 2022, "month": 12, "index": 118.2, "variation_yoy": 11.3, "base": 2015},
+                {"year": 2023, "month": 1, "index": 118.3, "variation_yoy": 9.8, "base": 2015},
+                {"year": 2023, "month": 2, "index": 118.5, "variation_yoy": 8.9, "base": 2015},
+                {"year": 2023, "month": 3, "index": 118.0, "variation_yoy": 7.4, "base": 2015},
+                {"year": 2023, "month": 4, "index": 118.4, "variation_yoy": 7.9, "base": 2015},
+                {"year": 2023, "month": 5, "index": 118.6, "variation_yoy": 7.2, "base": 2015},
+                {"year": 2023, "month": 6, "index": 118.6, "variation_yoy": 6.0, "base": 2015},
+                {"year": 2023, "month": 7, "index": 118.7, "variation_yoy": 5.7, "base": 2015},
+                {"year": 2023, "month": 8, "index": 119.1, "variation_yoy": 5.2, "base": 2015},
+                {"year": 2023, "month": 9, "index": 119.3, "variation_yoy": 5.1, "base": 2015},
+                {"year": 2023, "month": 10, "index": 119.2, "variation_yoy": 1.7, "base": 2015},
+                {"year": 2023, "month": 11, "index": 118.7, "variation_yoy": 0.7, "base": 2015},
+                {"year": 2023, "month": 12, "index": 118.9, "variation_yoy": 0.6, "base": 2015},
+                {"year": 2024, "month": 1, "index": 119.3, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2024, "month": 2, "index": 119.3, "variation_yoy": 0.7, "base": 2015},
+                {"year": 2024, "month": 3, "index": 119.4, "variation_yoy": 1.2, "base": 2015},
+                {"year": 2024, "month": 4, "index": 119.3, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2024, "month": 5, "index": 119.5, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2024, "month": 6, "index": 119.5, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2024, "month": 7, "index": 120.0, "variation_yoy": 1.1, "base": 2015},
+                {"year": 2024, "month": 8, "index": 120.1, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2024, "month": 9, "index": 120.0, "variation_yoy": 0.6, "base": 2015},
+                {"year": 2024, "month": 10, "index": 120.1, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2024, "month": 11, "index": 120.1, "variation_yoy": 1.2, "base": 2015},
+                {"year": 2024, "month": 12, "index": 120.2, "variation_yoy": 1.1, "base": 2015},
+                {"year": 2025, "month": 1, "index": 120.9, "variation_yoy": 1.3, "base": 2015},
+                {"year": 2025, "month": 2, "index": 121.1, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2025, "month": 3, "index": 121.4, "variation_yoy": 1.7, "base": 2015},
+                {"year": 2025, "month": 4, "index": 121.3, "variation_yoy": 1.7, "base": 2015},
+                {"year": 2025, "month": 5, "index": 121.2, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2025, "month": 6, "index": 121.3, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2025, "month": 7, "index": 121.8, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2025, "month": 8, "index": 121.8, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2025, "month": 9, "index": 121.7, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2025, "month": 10, "index": 121.4, "variation_yoy": 1.1, "base": 2015},
+                {"year": 2025, "month": 11, "index": 121.3, "variation_yoy": 1.0, "base": 2015},
+                {"year": 2025, "month": 12, "index": 121.5, "variation_yoy": 1.1, "base": 2015},
+                {"year": 2026, "month": 1, "index": 100.4, "variation_yoy": 0.8, "base": 2025},
+                {"year": 2026, "month": 2, "index": 100.9, "variation_yoy": 1.1, "base": 2025},
+                {"year": 2026, "month": 3, "index": 101.5, "variation_yoy": 1.5, "base": 2025},
+                {"year": 2026, "month": 4, "index": 102.5, "variation_yoy": 2.6, "base": 2025},
+                {"year": 2026, "month": 5, "index": 102.8, "variation_yoy": 3.0, "base": 2025},
+                {"year": 2026, "month": 6, "index": 102.8, "variation_yoy": 2.9, "base": 2025},
             ],
             "defaults": {
                 "base_year": 2015,
+                "base_year_corrente": 2025,
+                "coefficiente_raccordo_2015_2025": 1.214,
+                "medie_annue": {2020: 102.3, 2021: 104.2, 2022: 112.6, 2023: 118.7, 2024: 119.7, 2025: 121.4},
                 "note": (
-                    "Indice base 2015=100, al netto dei tabacchi. "
-                    "Aggiornare mensilmente con i dati ISTAT da "
-                    "https://www.istat.it/it/prezzi/prezzi-al-consumo/"
+                    "Indice al netto dei tabacchi, come pubblicato dai comunicati ISTAT in "
+                    "Gazzetta Ufficiale ai sensi dell'art. 81 L. 392/1978 e dell'art. 54 "
+                    "L. 449/1997. Da gennaio 2026 la base passa da 2015=100 a 2025=100: il "
+                    "coefficiente di raccordo fra le basi e' 1,214."
                 ),
                 "aggiornamento": "mensile",
             },
-            "published_at": "2025-04-15",
-            "effective_from": "2023-01-01",
+            "published_at": "2026-08-31",
+            "effective_from": "2022-03-01",
         },
         # ── ISTAT NIC ─────────────────────────────────────────────────────────
         "istat_nic": {
@@ -1462,53 +1494,26 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "title": "ISTAT - Indice NIC (prezzi al consumo per l'intera collettivita nazionale)",
             "category": "indici_rivalutazione",
             "description": (
-                "Indice ISTAT NIC dei prezzi al consumo per l'intera collettivita nazionale, "
-                "comprensivo dei tabacchi. Utilizzato per rivalutazione monetaria generale, "
-                "assegni divorzili (L. 898/1970), liquidazioni, pensioni e adeguamenti contrattuali. "
-                "Comunicato mensile ISTAT — aggiornato ogni mese."
+                "Serie non disponibile. Per la rivalutazione monetaria di rilievo giuridico la "
+                "legge indica il FOI al netto dei tabacchi: art. 81 L. 392/1978 e art. 54 "
+                "L. 449/1997 per le locazioni, art. 150 disp. att. c.p.c. e art. 429, comma 3, "
+                "c.p.c. per i crediti di lavoro. Il NIC non e' pubblicato in Gazzetta Ufficiale "
+                "e la serie non e' quindi verificabile su una fonte ufficiale accessibile: la "
+                "tabella resta vuota invece di esporre valori non riscontrabili."
             ),
             "strategy": "seed_mirror",
             "source_codes": ["istat_indici_prezzi"],
             "watch_source_ids": ["istat"],
-            "rows": [
-                {"year": 2023, "month": 1, "index": 118.9, "variation_yoy": 11.6},
-                {"year": 2023, "month": 2, "index": 119.5, "variation_yoy": 9.8},
-                {"year": 2023, "month": 3, "index": 119.9, "variation_yoy": 8.3},
-                {"year": 2023, "month": 4, "index": 120.3, "variation_yoy": 8.7},
-                {"year": 2023, "month": 5, "index": 120.6, "variation_yoy": 7.6},
-                {"year": 2023, "month": 6, "index": 120.6, "variation_yoy": 6.4},
-                {"year": 2023, "month": 7, "index": 121.3, "variation_yoy": 6.0},
-                {"year": 2023, "month": 8, "index": 121.5, "variation_yoy": 5.4},
-                {"year": 2023, "month": 9, "index": 121.4, "variation_yoy": 5.3},
-                {"year": 2023, "month": 10, "index": 121.4, "variation_yoy": 1.8},
-                {"year": 2023, "month": 11, "index": 121.2, "variation_yoy": 0.7},
-                {"year": 2023, "month": 12, "index": 121.3, "variation_yoy": 0.6},
-                {"year": 2024, "month": 1, "index": 121.4, "variation_yoy": 0.8},
-                {"year": 2024, "month": 2, "index": 121.6, "variation_yoy": 0.8},
-                {"year": 2024, "month": 3, "index": 121.8, "variation_yoy": 1.2},
-                {"year": 2024, "month": 4, "index": 122.1, "variation_yoy": 0.9},
-                {"year": 2024, "month": 5, "index": 122.3, "variation_yoy": 0.8},
-                {"year": 2024, "month": 6, "index": 122.3, "variation_yoy": 0.9},
-                {"year": 2024, "month": 7, "index": 122.7, "variation_yoy": 1.1},
-                {"year": 2024, "month": 8, "index": 122.7, "variation_yoy": 1.1},
-                {"year": 2024, "month": 9, "index": 122.8, "variation_yoy": 0.7},
-                {"year": 2024, "month": 10, "index": 123.1, "variation_yoy": 0.9},
-                {"year": 2024, "month": 11, "index": 123.3, "variation_yoy": 1.5},
-                {"year": 2024, "month": 12, "index": 123.6, "variation_yoy": 1.4},
-                {"year": 2025, "month": 1, "index": 124.1, "variation_yoy": 2.2},
-                {"year": 2025, "month": 2, "index": 124.3, "variation_yoy": 2.2},
-                {"year": 2025, "month": 3, "index": 124.2, "variation_yoy": 1.9},
-            ],
+            "rows": [],
             "defaults": {
-                "base_year": 2015,
                 "note": (
-                    "Indice base 2015=100. Aggiornare mensilmente con i dati ISTAT da "
-                    "https://www.istat.it/it/prezzi/prezzi-al-consumo/"
+                    "Tabella intenzionalmente vuota: usare il FOI, che e' l'indice prescritto "
+                    "per la rivalutazione monetaria nei casi di rilievo giuridico."
                 ),
-                "aggiornamento": "mensile",
+                "aggiornamento": "non disponibile",
             },
-            "published_at": "2025-04-15",
-            "effective_from": "2023-01-01",
+            "published_at": "2026-09-13",
+            "effective_from": "2026-09-13",
         },
         # ── Contributi Cassa Forense ───────────────────────────────────────────
         "contributi_cassa_forense": {
@@ -1753,10 +1758,12 @@ class GestioneTabelleNormative:
         existing_tables = self._data.setdefault("tables", {})
         created_tables: List[str] = []
         for table_id, definition in canonical_table_definitions().items():
-            if table_id in existing_tables:
-                continue
-            existing_tables[table_id] = self._build_table_payload(definition, seed_time, created=True)
-            created_tables.append(table_id)
+            if table_id not in existing_tables:
+                existing_tables[table_id] = self._build_table_payload(definition, seed_time, created=True)
+                created_tables.append(table_id)
+            elif self._seed_da_riallineare(existing_tables[table_id], definition):
+                self._riallinea_al_seed(existing_tables[table_id], definition, seed_time)
+                created_tables.append(table_id)
         if created_tables:
             self._append_sync_run(
                 {
@@ -1771,6 +1778,41 @@ class GestioneTabelleNormative:
                 }
             )
             self._save()
+
+    def _seed_da_riallineare(self, table: Mapping[str, Any], definition: Mapping[str, Any]) -> bool:
+        """La tabella salvata su disco e' rimasta indietro rispetto al seed?
+
+        Le tabelle ``seed_mirror`` rispecchiano dati ufficiali versionati nel
+        codice: se il seed viene corretto — un indice ISTAT sbagliato, un
+        importo di legge aggiornato — l'installazione che ha gia' il file su
+        disco deve riceverne la correzione, altrimenti continuerebbe a
+        calcolare sui vecchi valori. Le tabelle aggiornate da una sincronia
+        esterna restano invece intoccate.
+        """
+        if str(definition.get("strategy") or "seed_mirror") != "seed_mirror":
+            return False
+        versioni = list(table.get("versions") or [])
+        if any(str(v.get("origin") or "") not in ("seed", "bootstrap", "sync_seed") for v in versioni):
+            return False
+        attesa = _json_hash(list(definition.get("rows") or []))
+        corrente = str((self._active_version(table) or {}).get("data_hash") or "")
+        return bool(attesa) and attesa != corrente
+
+    def _riallinea_al_seed(
+        self, table: Dict[str, Any], definition: Mapping[str, Any], now: datetime
+    ) -> None:
+        """Pubblica una nuova versione della tabella con i dati del seed corretto."""
+        versione = self._build_version_payload(definition, now, origin="sync_seed")
+        versione["label"] = f"Allineamento al seed {SEED_REVISION}"
+        for precedente in table.get("versions") or []:
+            precedente["status"] = "superseded"
+        table.setdefault("versions", []).append(versione)
+        table["rows"] = list(versione.get("rows") or [])
+        table["defaults"] = dict(definition.get("defaults") or {})
+        table["description"] = definition.get("description", table.get("description", ""))
+        table["source_codes"] = list(definition.get("source_codes") or [])
+        table["sync_status"] = "sincronizzata"
+        table["last_synced_at"] = _now_iso(now)
 
     def _append_sync_run(self, payload: Dict[str, Any]) -> None:
         self._data.setdefault("sync_runs", []).append(payload)
@@ -2194,16 +2236,63 @@ class GestioneTabelleNormative:
 
     # ── Helper: ISTAT ────────────────────────────────────────────────────────
 
-    def istat_index(self, kind: str, year: int, month: int) -> Optional[float]:
-        """Indice ISTAT (FOI o NIC) per il mese indicato. Restituisce None se non disponibile."""
+    def _riga_istat(self, kind: str, year: int, month: int) -> Optional[Dict[str, Any]]:
         table_id = "istat_foi" if kind == "foi" else "istat_nic"
         try:
             for row in self.rows(table_id):
                 if int(row.get("year", 0)) == year and int(row.get("month", 0)) == month:
-                    return float(row["index"])
+                    return dict(row)
         except Exception:
             pass
         return None
+
+    def istat_coefficiente_raccordo(self, kind: str) -> float:
+        """Coefficiente che raccorda la base corrente alla base storica 2015=100."""
+        table_id = "istat_foi" if kind == "foi" else "istat_nic"
+        try:
+            defaults = self.get_table(table_id).get("defaults") or {}
+            return float(defaults.get("coefficiente_raccordo_2015_2025") or 1.0)
+        except Exception:
+            return 1.0
+
+    def istat_index_pubblicato(self, kind: str, year: int, month: int) -> Optional[Dict[str, Any]]:
+        """Indice come pubblicato, con la base a cui si riferisce."""
+        riga = self._riga_istat(kind, year, month)
+        if riga is None:
+            return None
+        return {"index": float(riga["index"]), "base": int(riga.get("base", 2015))}
+
+    def istat_index(self, kind: str, year: int, month: int) -> Optional[float]:
+        """Indice ISTAT riportato alla base 2015=100, confrontabile su tutta la serie.
+
+        Da gennaio 2026 l'ISTAT pubblica il FOI in base 2025=100. Un rapporto fra
+        un indice della vecchia base e uno della nuova sarebbe sbagliato di un
+        fattore pari al coefficiente di raccordo: la conversione avviene qui, una
+        volta sola, cosi' che tutti i calcoli di rivalutazione restino corretti a
+        cavallo del cambio di base.
+        """
+        riga = self._riga_istat(kind, year, month)
+        if riga is None:
+            return None
+        valore = float(riga["index"])
+        if int(riga.get("base", 2015)) == 2025:
+            valore *= self.istat_coefficiente_raccordo(kind)
+        return round(valore, 4)
+
+    def istat_media_annua(self, kind: str, year: int) -> Optional[float]:
+        """Media annua pubblicata dall'ISTAT, riportata alla base 2015=100.
+
+        L'ISTAT calcola la media sui dati non arrotondati: dove la media
+        ufficiale esiste va preferita a quella ricavata dai dodici indici
+        mensili gia' arrotondati.
+        """
+        table_id = "istat_foi" if kind == "foi" else "istat_nic"
+        try:
+            medie = (self.get_table(table_id).get("defaults") or {}).get("medie_annue") or {}
+            valore = medie.get(year, medie.get(str(year)))
+            return float(valore) if valore is not None else None
+        except Exception:
+            return None
 
     def istat_last_available(self, kind: str) -> Optional[Dict[str, Any]]:
         """Ultimo indice ISTAT disponibile nella tabella."""

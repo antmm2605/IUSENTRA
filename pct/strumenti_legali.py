@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from textwrap import dedent
 from typing import Any, Dict, List, Mapping, Optional
 
+from pct.calcolatori._base import messaggio_indice_istat_mancante as _messaggio_indice_istat_mancante
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
     catastale as calc_catastale,
@@ -366,7 +367,7 @@ class GestioneStrumentiLegali:
             "ctu_iva_perc": "22",
             # Rivalutazione ISTAT
             "riv_importo": prefill.get("valore_causa", ""),
-            "riv_tipo": "nic",
+            "riv_tipo": "foi",
             "riv_anno_base": "",
             "riv_mese_base": "",
             "riv_anno_fine": "",
@@ -1702,11 +1703,10 @@ class GestioneStrumentiLegali:
     # ── Nuovi strumenti intelligenti ─────────────────────────────────────────
 
     def calcola_rivalutazione_istat(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
-        """Rivalutazione monetaria con indici ISTAT FOI o NIC."""
+        """Rivalutazione monetaria con l'indice ISTAT FOI."""
         importo = _safe_float(payload.get("riv_importo"))
-        tipo = _clean_text(payload.get("riv_tipo") or "nic").lower()
-        if tipo not in ("foi", "nic"):
-            tipo = "nic"
+        tipo_richiesto = _clean_text(payload.get("riv_tipo") or "foi").lower()
+        tipo = "foi"
         anno_base = _safe_int(payload.get("riv_anno_base"))
         mese_base = _safe_int(payload.get("riv_mese_base"))
         anno_fine = _safe_int(payload.get("riv_anno_fine"))
@@ -1731,18 +1731,12 @@ class GestioneStrumentiLegali:
         notes: List[str] = []
 
         if indice_base is None:
-            last = self.norme.istat_last_available(tipo)
             raise ValueError(
-                f"Indice ISTAT {tipo.upper()} non disponibile per {mese_base:02d}/{anno_base}. "
-                f"Dati disponibili fino a {last.get('month', '?'):02d}/{last.get('year', '?') if last else '?'}. "
-                f"Aggiorna la tabella normativa {tipo.upper()} da /legal-intelligence."
+                _messaggio_indice_istat_mancante(self.norme, tipo, anno_base, mese_base, "periodo di riferimento")
             )
         if indice_fine is None:
-            last = self.norme.istat_last_available(tipo)
             raise ValueError(
-                f"Indice ISTAT {tipo.upper()} non disponibile per {mese_fine:02d}/{anno_fine}. "
-                f"Dati disponibili fino a {last.get('month', '?'):02d}/{last.get('year', '?') if last else '?'}. "
-                f"Aggiorna la tabella normativa {tipo.upper()} da /legal-intelligence."
+                _messaggio_indice_istat_mancante(self.norme, tipo, anno_fine, mese_fine, "periodo di rivalutazione")
             )
 
         variazione_perc = round(((indice_fine / indice_base) - 1) * 100, 4)
@@ -1754,15 +1748,28 @@ class GestioneStrumentiLegali:
         notes.append(
             f"Formula: {format_euro_it(importo)} × ({indice_fine} / {indice_base}) = {format_euro_it(importo_rivalutato)}."
         )
+        pubblicato_base = self.norme.istat_index_pubblicato(tipo, anno_base, mese_base) or {}
+        pubblicato_fine = self.norme.istat_index_pubblicato(tipo, anno_fine, mese_fine) or {}
         notes.append(
-            f"Indici ISTAT {tipo.upper()} base 2015=100: "
-            f"{mesi.get(mese_base,mese_base)}/{anno_base} = {indice_base}, "
-            f"{mesi.get(mese_fine,mese_fine)}/{anno_fine} = {indice_fine}."
+            "Indici ISTAT FOI pubblicati: "
+            f"{mesi.get(mese_base, mese_base)}/{anno_base} = {pubblicato_base.get('index')} "
+            f"(base {pubblicato_base.get('base')}=100), "
+            f"{mesi.get(mese_fine, mese_fine)}/{anno_fine} = {pubblicato_fine.get('index')} "
+            f"(base {pubblicato_fine.get('base')}=100)."
         )
-        if tipo == "nic":
-            notes.append("Indice NIC: rivalutazione monetaria generale, assegni divorzili (art. 9 L. 898/1970), liquidazioni.")
-        else:
-            notes.append("Indice FOI (al netto dei tabacchi): adeguamento canoni locazione (L. 431/1998 art. 24, L. 392/1978).")
+        if pubblicato_base.get("base") != pubblicato_fine.get("base"):
+            notes.append(
+                "I due indici appartengono a basi diverse: il rapporto e' calcolato dopo il "
+                f"raccordo con il coefficiente ufficiale {self.norme.istat_coefficiente_raccordo(tipo)}, "
+                "come indicato nel comunicato ISTAT."
+            )
+        notes.append(
+            "Indice FOI al netto dei tabacchi: e' l'indice prescritto per l'adeguamento dei "
+            "canoni di locazione (art. 81 L. 392/1978, art. 24 L. 431/1998) e per la "
+            "rivalutazione dei crediti di rilievo giuridico."
+        )
+        if tipo_richiesto == "nic":
+            warnings.append("L'indice NIC non e' disponibile: per la rivalutazione monetaria di rilievo giuridico la legge indica il FOI al netto dei tabacchi (art. 81 L. 392/1978 per le locazioni, art. 150 disp. att. c.p.c. e art. 429, comma 3, c.p.c. per i crediti di lavoro). Il calcolo e' stato eseguito con il FOI.")
 
         if variazione_perc < 0:
             warnings.append("La variazione e negativa (deflazione nel periodo): l'importo rivalutato e inferiore a quello originale.")
@@ -1811,12 +1818,13 @@ class GestioneStrumentiLegali:
         warnings: List[str] = []
         notes: List[str] = []
 
-        if indice_base is None or indice_fine is None:
-            last = self.norme.istat_last_available("foi")
-            last_label = f"{last.get('month', '?'):02d}/{last.get('year', '?')}" if last else "n/d"
+        if indice_base is None:
             raise ValueError(
-                f"Indici ISTAT FOI non disponibili per il periodo indicato (dati fino a {last_label}). "
-                "Aggiorna la tabella da /legal-intelligence."
+                _messaggio_indice_istat_mancante(self.norme, "foi", anno_base, mese_base, "mese di riferimento del canone")
+            )
+        if indice_fine is None:
+            raise ValueError(
+                _messaggio_indice_istat_mancante(self.norme, "foi", anno_fine, mese_fine, "mese di aggiornamento del canone")
             )
 
         variazione_foi = round(((indice_fine / indice_base) - 1) * 100, 4)

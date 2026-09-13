@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Mapping
 from pct.calcolatori._base import (
     clean_text,
     days_inclusive,
+    messaggio_indice_istat_mancante,
     safe_float,
     safe_int,
     year_denominator,
@@ -36,20 +37,15 @@ _BASI = {
 def _indice(norme: Any, tipo: str, anno: int, mese: int, contesto: str) -> float:
     indice = norme.istat_index(tipo, anno, mese)
     if indice is None:
-        last = norme.istat_last_available(tipo) or {}
-        raise ValueError(
-            f"Indice ISTAT {tipo.upper()} non disponibile per {mese:02d}/{anno} ({contesto}). "
-            f"Dati disponibili fino a {last.get('month', '?')}/{last.get('year', '?')}. "
-            f"Aggiorna la tabella normativa da /legal-intelligence."
-        )
+        raise ValueError(messaggio_indice_istat_mancante(norme, tipo, anno, mese, contesto))
     return float(indice)
 
 
 def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
     importo = safe_float(payload.get("md_importo"))
     tipo = clean_text(payload.get("md_tipo_indice")).lower() or "foi"
-    if tipo not in ("foi", "nic"):
-        tipo = "foi"
+    # La rivalutazione ex art. 1224, comma 2, c.c. si misura sul FOI.
+    tipo = "foi"
     base_interessi = clean_text(payload.get("md_base_interessi")) or "rivalutato_annuale"
     if base_interessi not in _BASI:
         raise ValueError("Base di calcolo degli interessi non riconosciuta.")

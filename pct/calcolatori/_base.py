@@ -76,3 +76,49 @@ def payload_get(payload: Mapping[str, Any], key: str, default: Any = "") -> Any:
         return payload.get(key, default)
     except AttributeError:
         return default
+
+
+_MESI_IT = (
+    "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+    "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
+)
+
+
+def mese_it(mese: int) -> str:
+    return _MESI_IT[mese - 1] if 1 <= mese <= 12 else str(mese)
+
+
+def messaggio_indice_istat_mancante(norme: Any, tipo: str, anno: int, mese: int, contesto: str = "") -> str:
+    """Spiega perche' un indice ISTAT manca e cosa puo' fare l'avvocato.
+
+    L'ISTAT pubblica l'indice di un mese circa due mesi dopo, con il comunicato
+    in Gazzetta Ufficiale: chiedere il mese in corso non e' un errore
+    dell'utente ne' un guasto, e il messaggio deve dirlo invece di limitarsi a
+    negare il dato.
+    """
+    ultimo = None
+    try:
+        ultimo = norme.istat_last_available(tipo)
+    except Exception:
+        ultimo = None
+    richiesto = f"{mese_it(mese)} {anno}"
+    dettaglio = f" ({contesto})" if contesto else ""
+    if not ultimo:
+        return (
+            f"Indice ISTAT {tipo.upper()} non disponibile per {richiesto}{dettaglio}: "
+            "la serie non e' caricata."
+        )
+    disponibile = f"{mese_it(int(ultimo.get('month', 0)))} {ultimo.get('year', '?')}"
+    posteriore = (anno, mese) > (int(ultimo.get("year", 0)), int(ultimo.get("month", 0)))
+    if posteriore:
+        return (
+            f"Indice ISTAT {tipo.upper()} non ancora pubblicato per {richiesto}{dettaglio}. "
+            f"L'ultimo indice pubblicato e' quello di {disponibile}: l'ISTAT diffonde ogni "
+            "mese con circa due mesi di ritardo, con il comunicato in Gazzetta Ufficiale. "
+            "Usa l'ultimo mese pubblicato, oppure attendi il comunicato successivo."
+        )
+    return (
+        f"Indice ISTAT {tipo.upper()} non disponibile per {richiesto}{dettaglio}: la serie "
+        f"caricata copre fino a {disponibile} e non risale piu' indietro. "
+        "Aggiorna la tabella normativa da /legal-intelligence."
+    )

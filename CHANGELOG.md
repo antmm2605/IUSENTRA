@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.302.0 - 13/09/2026
+
+Indici ISTAT: la serie usata per tutte le rivalutazioni era sbagliata e ferma a marzo 2025. Sostituita con quella pubblicata in Gazzetta Ufficiale, aggiornata a giugno 2026 e raccordata al cambio di base.
+
+- **La serie FOI non era quella pubblicata.** I valori in archivio si discostavano dai comunicati ISTAT di 1,5-2,3 punti, con lo scarto che cresceva negli anni: marzo 2025 risultava 123,3 contro il 121,4 ufficiale. Ogni rivalutazione — nota di precisazione del credito, maggior danno ex art. 1224 c.c., crediti di lavoro ex art. 429 c.p.c., adeguamento del canone — partiva da numeri non riscontrabili. Sostituita con la serie dei comunicati ISTAT in Gazzetta Ufficiale (**G.U. n. 103/2023, n. 122/2024, n. 117/2025 e n. 201 del 31/08/2026**), da marzo 2022 a giugno 2026, con le medie annue ufficiali dal 2020.
+- **Cambio di base 2015=100 → 2025=100.** Da gennaio 2026 l'ISTAT pubblica il FOI sulla nuova base. Senza raccordo un rapporto fra un indice del 2025 e uno del 2026 avrebbe sbagliato del 17 per cento. Gli indici vengono ora riportati alla base storica con il **coefficiente ufficiale 1,214** e la nota di calcolo mostra entrambi i valori pubblicati con la loro base.
+- **Le correzioni ai dati ufficiali ora raggiungono le installazioni esistenti.** Le tabelle normative venivano seminate una sola volta: una volta creato il file su disco, correggere un valore nel codice non cambiava nulla. Le tabelle `seed_mirror` si riallineano quando il seed cambia, pubblicando una nuova versione e conservando lo storico; le tabelle aggiornate da una sincronia esterna restano intatte.
+- **Indice NIC: astensione invece di dati non verificabili.** Non è pubblicato in Gazzetta Ufficiale e la serie in archivio non era riscontrabile. La tabella resta vuota e la scelta sparisce dai calcolatori: per la rivalutazione di rilievo giuridico la legge indica il FOI al netto dei tabacchi (art. 81 L. 392/1978, art. 150 disp. att. c.p.c., art. 429, comma 3, c.p.c.). Chi aveva salvato «NIC» ottiene il calcolo con il FOI e un avviso che lo dice.
+- **Messaggi utili quando l'indice manca.** Chiedere il mese in corso non è un errore: l'ISTAT pubblica con circa due mesi di ritardo. Il messaggio ora distingue il mese non ancora pubblicato (con l'ultimo disponibile e il suggerimento di usarlo) dal mese anteriore alla serie.
+- La **rivalutazione su media annua** usa le medie ufficiali pubblicate, calcolate dall'ISTAT sui dati non arrotondati, invece della media dei dodici indici già arrotondati.
+
 ## 2.301.0 - 13/09/2026
 
 Strumenti legali: quattro nuovi moduli sul danno alla persona e sull'abuso del processo, tutti dalle tabelle milanesi 2024 ufficiali. Il danno da perdita parentale, che usava valori inventati, ora segue la tabella pubblicata.

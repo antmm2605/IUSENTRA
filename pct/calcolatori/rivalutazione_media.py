@@ -28,12 +28,19 @@ from pct.calcolatori._base import clean_text, safe_float, safe_int
 
 _FONTE_ISTAT = {
     "code": "istat_foi",
-    "title": "ISTAT — Indici dei prezzi al consumo (FOI al netto dei tabacchi ex L. 81/1992 / NIC)",
-    "url": "https://www.istat.it/dati/banche-dati/",
+    "title": "ISTAT — Indici dei prezzi al consumo per le famiglie di operai e impiegati, al netto dei tabacchi (comunicati in Gazzetta Ufficiale)",
+    "url": "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2026-08-31&atto.codiceRedazionale=26A04494",
 }
 
 
 def _media_annua(norme: Any, tipo: str, anno: int) -> tuple[float, int]:
+    ufficiale = None
+    try:
+        ufficiale = norme.istat_media_annua(tipo, anno)
+    except AttributeError:
+        ufficiale = None
+    if ufficiale is not None:
+        return float(ufficiale), 12
     indici: List[float] = []
     for mese in range(1, 13):
         indice = norme.istat_index(tipo, anno, mese)
@@ -54,8 +61,11 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
 
     if importo <= 0:
         raise ValueError("Inserisci l'importo da rivalutare.")
-    if tipo not in ("foi", "nic"):
-        raise ValueError("Indice ammesso: FOI oppure NIC.")
+    if tipo != "foi":
+        raise ValueError(
+            "Indice ammesso: FOI al netto dei tabacchi, l'unico pubblicato in Gazzetta "
+            "Ufficiale ai fini della rivalutazione monetaria."
+        )
     if anno_base < 1947 or anno_target < 1947:
         raise ValueError("Gli anni devono essere dal 1947 in poi.")
     if anno_target < anno_base:

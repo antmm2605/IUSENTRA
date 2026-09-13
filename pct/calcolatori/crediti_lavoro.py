@@ -34,6 +34,7 @@ from pct.calcolatori._base import (
     clean_text,
     days_inclusive,
     fmt_date_it,
+    messaggio_indice_istat_mancante,
     parse_date,
     safe_float,
     year_denominator,
@@ -65,11 +66,8 @@ def _indice(norme: Any, tipo: str, giorno: date, contesto: str) -> float:
 
     indice = norme.istat_index(tipo, giorno.year, giorno.month)
     if indice is None:
-        ultimo = norme.istat_last_available(tipo) or {}
         raise ValueError(
-            f"Indice ISTAT {tipo.upper()} non disponibile per {giorno.month:02d}/{giorno.year} ({contesto}). "
-            f"Dati disponibili fino a {ultimo.get('month', '?')}/{ultimo.get('year', '?')}. "
-            f"Aggiorna la tabella normativa da /legal-intelligence."
+            messaggio_indice_istat_mancante(norme, tipo, giorno.year, giorno.month, contesto)
         )
     return float(indice)
 
@@ -93,8 +91,9 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         raise ValueError("Regime del rapporto di lavoro non riconosciuto.")
 
     tipo_indice = clean_text(payload.get("lav_tipo_indice")).lower() or "foi"
-    if tipo_indice not in ("foi", "nic"):
-        tipo_indice = "foi"
+    # Art. 429, comma 3, c.p.c. e art. 150 disp. att. c.p.c. rinviano agli indici
+    # dei prezzi al consumo per le famiglie di operai e impiegati: solo FOI.
+    tipo_indice = "foi"
 
     base_interessi = clean_text(payload.get("lav_base_interessi")) or "rivalutato_progressivo"
     if base_interessi not in _BASI_INTERESSI:

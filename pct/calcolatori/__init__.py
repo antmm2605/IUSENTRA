@@ -4,6 +4,9 @@ Ogni modulo copre una materia con base normativa dichiarata nel docstring:
 
 - ``interessi_acconti``: imputazione degli acconti ex art. 1194 c.c.
 - ``maggior_danno``: maggior danno da svalutazione ex art. 1224, comma 2, c.c.
+- ``danno_biologico``: liquidazione del danno biologico sulle tabelle vigenti
+  (art. 139 D.Lgs. 209/2005, tabella unica nazionale del D.P.R. 12/2025,
+  tabelle milanesi edizione 2024).
 - ``danno_parentale``: perdita del rapporto parentale (Tabelle Milano 2024).
 - ``usufrutto``: usufrutto vitalizio e nuda proprietà (D.P.R. 131/1986).
 - ``quote_riserva``: quote di riserva dei legittimari (artt. 536-556 c.c.).
@@ -33,6 +36,7 @@ from pct.calcolatori import (  # noqa: F401
     competenza_valore,
     compenso_a_tempo_calc,
     crediti_lavoro,
+    danno_biologico,
     danno_parentale,
     impugnazioni,
     interessi_acconti,
@@ -50,6 +54,7 @@ __all__ = [
     "competenza_valore",
     "compenso_a_tempo_calc",
     "crediti_lavoro",
+    "danno_biologico",
     "danno_parentale",
     "impugnazioni",
     "interessi_acconti",

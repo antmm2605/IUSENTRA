@@ -1,0 +1,138 @@
+{
+ "id": "art_139_cap",
+ "nome": "Danno biologico per lesioni di lieve entita' (1-9 punti)",
+ "riferimento_normativo": "Art. 139 D.Lgs. 7 settembre 2005 n. 209 (codice delle assicurazioni private)",
+ "url_ufficiale": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005-09-07;209~art139",
+ "data_consultazione": "2026-09-13",
+ "ambito": "Postumi pari o inferiori al 9 per cento da sinistri conseguenti alla circolazione di veicoli a motore e natanti; esteso alla responsabilita' sanitaria dall'art. 7 comma 4 L. 8 marzo 2017 n. 24.",
+ "coefficiente_moltiplicatore": {
+  "1": 1.0,
+  "2": 1.1,
+  "3": 1.2,
+  "4": 1.3,
+  "5": 1.5,
+  "6": 1.7,
+  "7": 1.9,
+  "8": 2.1,
+  "9": 2.3
+ },
+ "riduzione_eta_pct_annua": 0.5,
+ "riduzione_eta_dal_anno": 11,
+ "personalizzazione_massima_pct": 20,
+ "nota_personalizzazione": "Art. 139 comma 3: aumento fino al 20 per cento con equo e motivato apprezzamento, quando la menomazione incide in modo rilevante su specifici aspetti dinamico-relazionali documentati o ha causato sofferenza psico-fisica di particolare intensita'.",
+ "decreti_aggiornamento": [
+  {
+   "decorrenza": "2006-04-01",
+   "decreto": "D.M. 31 maggio 2006",
+   "gazzetta": "G.U. n. 129 del 6 giugno 2006",
+   "primo_punto": 688.28,
+   "giorno_inabilita_assoluta": 40.16
+  },
+  {
+   "decorrenza": "2007-04-01",
+   "decreto": "D.M. 12 giugno 2007",
+   "gazzetta": "G.U. n. 141 del 20 giugno 2007",
+   "primo_punto": 697.92,
+   "giorno_inabilita_assoluta": 40.72
+  },
+  {
+   "decorrenza": "2009-04-01",
+   "decreto": "D.M. 19 giugno 2009",
+   "gazzetta": "G.U. n. 157 del 9 luglio 2009",
+   "primo_punto": 728.16,
+   "giorno_inabilita_assoluta": 42.48
+  },
+  {
+   "decorrenza": "2010-04-01",
+   "decreto": "D.M. 27 maggio 2010",
+   "gazzetta": "G.U. n. 137 del 15 giugno 2010",
+   "primo_punto": 739.81,
+   "giorno_inabilita_assoluta": 43.16
+  },
+  {
+   "decorrenza": "2011-04-01",
+   "decreto": "D.M. 17 giugno 2011",
+   "gazzetta": "G.U. n. 147 del 27 giugno 2011",
+   "primo_punto": 759.04,
+   "giorno_inabilita_assoluta": 44.28
+  },
+  {
+   "decorrenza": "2012-04-01",
+   "decreto": "D.M. 15 giugno 2012",
+   "gazzetta": "G.U. n. 149 del 28 giugno 2012",
+   "primo_punto": 783.33,
+   "giorno_inabilita_assoluta": 45.7
+  },
+  {
+   "decorrenza": "2013-04-01",
+   "decreto": "D.M. 6 giugno 2013",
+   "gazzetta": "G.U. n. 138 del 14 giugno 2013",
+   "primo_punto": 791.95,
+   "giorno_inabilita_assoluta": 46.2
+  },
+  {
+   "decorrenza": "2014-04-01",
+   "decreto": "D.M. 20 giugno 2014",
+   "gazzetta": "G.U. n. 153 del 4 luglio 2014",
+   "primo_punto": 795.91,
+   "giorno_inabilita_assoluta": 46.43
+  },
+  {
+   "decorrenza": "2015-04-01",
+   "decreto": "D.M. 25 giugno 2015",
+   "gazzetta": "G.U. n. 162 del 15 luglio 2015",
+   "primo_punto": 793.52,
+   "giorno_inabilita_assoluta": 46.29
+  },
+  {
+   "decorrenza": "2016-04-01",
+   "decreto": "D.M. 19 luglio 2016",
+   "gazzetta": "G.U. n. 189 del 13 agosto 2016",
+   "primo_punto": 790.35,
+   "giorno_inabilita_assoluta": 46.1
+  },
+  {
+   "decorrenza": "2017-04-01",
+   "decreto": "D.M. 17 luglio 2017",
+   "gazzetta": "G.U. n. 196 del 23 agosto 2017",
+   "primo_punto": 803.79,
+   "giorno_inabilita_assoluta": 46.88
+  },
+  {
+   "decorrenza": "2018-04-01",
+   "decreto": "D.M. 9 gennaio 2019",
+   "gazzetta": "G.U. n. 29 del 4 febbraio 2019",
+   "primo_punto": 807.01,
+   "giorno_inabilita_assoluta": 47.07
+  },
+  {
+   "decorrenza": "2019-04-01",
+   "decreto": "D.M. 22 luglio 2019",
+   "gazzetta": "G.U. n. 189 del 13 agosto 2019",
+   "primo_punto": 814.27,
+   "giorno_inabilita_assoluta": 47.49
+  },
+  {
+   "decorrenza": "2022-04-01",
+   "decreto": "D.M. 8 giugno 2022",
+   "gazzetta": "G.U. n. 144 del 22 giugno 2022",
+   "primo_punto": 870.97,
+   "giorno_inabilita_assoluta": 50.79
+  },
+  {
+   "decorrenza": "2023-04-01",
+   "decreto": "D.M. 16 ottobre 2023",
+   "gazzetta": "G.U. n. 247 del 21 ottobre 2023",
+   "primo_punto": 939.78,
+   "giorno_inabilita_assoluta": 54.8
+  },
+  {
+   "decorrenza": "2026-04-01",
+   "decreto": "D.M. 20 luglio 2026",
+   "gazzetta": "G.U. n. 173 del 28 luglio 2026 (26A03765)",
+   "primo_punto": 988.45,
+   "giorno_inabilita_assoluta": 57.64
+  }
+ ],
+ "nota_serie_decreti": "Ogni decreto resta in vigore finche' non interviene il successivo, quindi la ricerca prende l'ultimo decreto con decorrenza non successiva alla data di liquidazione. Gli anni 2008, 2020, 2021, 2024 e 2025 non compaiono: per quelle annualita' non e' stato reperito il testo ufficiale del decreto, e i valori applicabili restano quelli del decreto precedente presente in elenco."
+}

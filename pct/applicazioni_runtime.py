@@ -297,25 +297,39 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     },
     "danno_biologico": {
         "title": "Danno biologico",
-        "subtitle": "Stima operativa con IP, ITT, ITP, morale e personalizzazione.",
+        "subtitle": "Art. 139 cod. ass., tabella unica nazionale D.P.R. 12/2025, tabelle milanesi 2024.",
         "submit_label": "Calcola danno",
         "method": "calcola_danno_biologico",
         "fields": [
+            {
+                "name": "db_ambito",
+                "label": "Ambito del danno",
+                "type": "select",
+                "options": [
+                    {"value": "circolazione", "label": "Circolazione di veicoli a motore o natanti"},
+                    {"value": "sanitaria", "label": "Responsabilita sanitaria"},
+                    {"value": "civile", "label": "Altra responsabilita civile"},
+                ],
+            },
+            {"name": "db_data_sinistro", "label": "Data del sinistro", "type": "date"},
+            {"name": "db_data_liquidazione", "label": "Data di liquidazione", "type": "date"},
             {"name": "db_eta", "label": "Eta", "type": "number", "step": "1", "min": "0"},
-            {"name": "db_perc_ip", "label": "Invalidita permanente %", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "db_perc_ip", "label": "Invalidita permanente %", "type": "number", "step": "1", "min": "0", "max": "100"},
             {"name": "db_giorni_itt", "label": "Giorni ITT", "type": "number", "step": "1", "min": "0"},
             {"name": "db_giorni_itp", "label": "Giorni ITP", "type": "number", "step": "1", "min": "0"},
             {"name": "db_perc_itp", "label": "Percentuale ITP", "type": "number", "step": "0.01", "min": "0", "max": "100"},
-            {"name": "db_personalizzazione", "label": "Personalizzazione %", "type": "number", "step": "0.01", "min": "0"},
             {
-                "name": "db_includi_morale",
-                "label": "Danno morale",
+                "name": "db_morale_livello",
+                "label": "Danno morale (tabella unica nazionale)",
                 "type": "select",
                 "options": [
-                    {"value": "1", "label": "Includi"},
-                    {"value": "0", "label": "Escludi"},
+                    {"value": "minimo", "label": "Incremento minimo"},
+                    {"value": "medio", "label": "Incremento medio"},
+                    {"value": "massimo", "label": "Incremento massimo"},
+                    {"value": "nessuno", "label": "Nessun incremento"},
                 ],
             },
+            {"name": "db_personalizzazione", "label": "Personalizzazione %", "type": "number", "step": "0.01", "min": "0"},
         ],
     },
     "imposta_registro": {
@@ -937,10 +951,10 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
         ]
     elif tool_id == "danno_biologico":
         metrics = [
-            _metric("Eta", str(result.get("eta") or "")),
-            _metric("Danno IP", f"{_fmt_money(result.get('danno_ip'))}"),
-            _metric("Totale biologico", f"{_fmt_money(result.get('totale_biologico'))}"),
-            _metric("Totale complessivo", f"{_fmt_money(result.get('totale_comprensivo'))}"),
+            _metric("Tabella applicata", str(result.get("regime_label") or "")),
+            _metric("Danno permanente", f"{_fmt_money(result.get('danno_permanente'))}"),
+            _metric("Danno morale", f"{_fmt_money(result.get('danno_morale'))}"),
+            _metric("Totale complessivo", f"{_fmt_money(result.get('totale'))}"),
         ]
     elif tool_id == "imposta_registro":
         metrics = [

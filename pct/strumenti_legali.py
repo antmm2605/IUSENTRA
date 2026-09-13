@@ -16,6 +16,7 @@ from pct.calcolatori import (
     compenso_a_tempo_calc as calc_compenso_a_tempo,
     compravendita_imposte as calc_compravendita,
     crediti_lavoro as calc_crediti_lavoro,
+    danno_biologico as calc_danno_biologico,
     danno_parentale as calc_danno_parentale,
     fiscale_detrazioni as calc_fiscale_detrazioni,
     fiscale_irpef as calc_fiscale_irpef,
@@ -173,7 +174,7 @@ class GestioneStrumentiLegali:
             {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation", "categoria": "Credito"},
             {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternita: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge", "categoria": "Previdenza"},
             {"id": "prescrizione", "title": "Prescrizione civile", "subtitle": "Termini ordinari, brevi e gestione dell eventuale atto interruttivo.", "icon": "bi-hourglass-bottom", "categoria": "Processo"},
-            {"id": "danno_biologico", "title": "Danno biologico", "subtitle": "Stima operativa con IP, ITT, ITP, personalizzazione e quota morale.", "icon": "bi-heart-pulse", "categoria": "Danni"},
+            {"id": "danno_biologico", "title": "Danno biologico", "subtitle": "Art. 139 cod. ass., tabella unica nazionale D.P.R. 12/2025, tabelle milanesi 2024.", "icon": "bi-heart-pulse", "categoria": "Danni"},
             {"id": "imposta_registro", "title": "Imposta di registro", "subtitle": "Atti giudiziari con minimo fisso, aliquota e quota per parte.", "icon": "bi-receipt", "categoria": "Fiscale"},
             {"id": "tfr", "title": "TFR", "subtitle": "Quota maturata, rivalutazione annuale e residuo operativo del trattamento di fine rapporto.", "icon": "bi-wallet2", "categoria": "Lavoro"},
             {"id": "onorari_forensi", "title": "Onorari Forensi", "subtitle": "Parametri DM 55/2014 e DM 147/2022 con fasi, complessità e bonus telematico.", "icon": "bi-briefcase", "categoria": "Professione"},
@@ -385,13 +386,16 @@ class GestioneStrumentiLegali:
             "presc_atto_interruttivo": "",
             "presc_descrizione": prefill.get("oggetto", ""),
             # Danno biologico
+            "db_ambito": "circolazione",
+            "db_data_sinistro": "",
+            "db_data_liquidazione": today,
             "db_eta": "",
             "db_perc_ip": "",
             "db_giorni_itt": "",
             "db_giorni_itp": "",
             "db_perc_itp": "50",
+            "db_morale_livello": "medio",
             "db_personalizzazione": "0",
-            "db_includi_morale": "1",
             # Imposta di registro
             "reg_tipo_atto": "sentenza_condanna",
             "reg_valore": prefill.get("valore_causa", ""),
@@ -2148,145 +2152,16 @@ class GestioneStrumentiLegali:
         }
 
     # ------------------------------------------------------------------ #
-    #  NUOVO — Liquidazione danno biologico (Tabelle Milano 2024)         #
+    #  Liquidazione del danno biologico sulle tabelle vigenti             #
     # ------------------------------------------------------------------ #
-    # Valore del punto per IP% (per fascia), età base 30 anni, anno 2024.
-    # Fonte: Osservatorio per la giustizia civile di Milano, aggiornamento 2024.
-    _PUNTI_IP_FASCIA: List[tuple] = [
-        (5,   5_797),
-        (10,  6_482),
-        (20,  7_164),
-        (30,  8_513),
-        (40, 10_261),
-        (50, 12_439),
-        (60, 14_618),
-        (70, 17_484),
-        (80, 20_349),
-        (90, 24_562),
-        (100,29_462),
-    ]
-    _VALORE_GIORNO_ITT: float = 103.0    # € per giorno ITT (2024)
-    _COEFF_ITP: Dict[int, float] = {75: 0.75, 50: 0.50, 25: 0.25}
-
-    def _valore_punto_ip(self, percentuale: int) -> float:
-        for limite, valore in self._PUNTI_IP_FASCIA:
-            if percentuale <= limite:
-                return float(valore)
-        return float(self._PUNTI_IP_FASCIA[-1][1])
-
-    def _coeff_eta(self, eta: int) -> float:
-        """Coefficiente correttivo per età (±0,5% per anno rispetto a 30)."""
-        if eta <= 20:
-            return 1.30
-        elif eta <= 25:
-            return 1.20
-        elif eta <= 30:
-            return 1.10
-        elif eta <= 35:
-            return 1.00
-        elif eta <= 40:
-            return 0.95
-        elif eta <= 45:
-            return 0.90
-        elif eta <= 50:
-            return 0.85
-        elif eta <= 55:
-            return 0.80
-        elif eta <= 60:
-            return 0.75
-        elif eta <= 65:
-            return 0.70
-        elif eta <= 70:
-            return 0.65
-        else:
-            return 0.60
-
     def calcola_danno_biologico(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
-        """Liquidazione danno biologico con Tabelle Milano 2024."""
-        eta = _safe_int(payload.get("db_eta"))
-        perc_ip = _safe_int(payload.get("db_perc_ip"))
-        giorni_itt = _safe_int(payload.get("db_giorni_itt"))
-        giorni_itp = _safe_int(payload.get("db_giorni_itp"))
-        perc_itp = _safe_int(payload.get("db_perc_itp", 50))
-        personalizzazione = _safe_float(payload.get("db_personalizzazione", 0))
-        includi_morale = str(payload.get("db_includi_morale", "1")).strip() == "1"
+        """Delega al pacchetto ``pct.calcolatori.danno_biologico``.
 
-        warnings: List[str] = []
-        notes: List[str] = []
-
-        if eta <= 0 or eta > 120:
-            raise ValueError("Indica l'età della vittima al momento del fatto.")
-        if not (0 <= perc_ip <= 100):
-            raise ValueError("La percentuale di invalidità permanente deve essere tra 0 e 100.")
-        if perc_itp not in (25, 50, 75):
-            perc_itp = 50
-
-        coeff = self._coeff_eta(eta)
-
-        # Danno biologico per IP
-        danno_ip = 0.0
-        if perc_ip > 0:
-            for p in range(1, perc_ip + 1):
-                danno_ip += self._valore_punto_ip(p) * coeff
-        danno_ip = round(danno_ip, 2)
-
-        # Danno biologico temporaneo
-        valore_itt = round(giorni_itt * self._VALORE_GIORNO_ITT, 2)
-        coeff_itp = self._COEFF_ITP.get(perc_itp, 0.50)
-        valore_itp = round(giorni_itp * self._VALORE_GIORNO_ITT * coeff_itp, 2)
-
-        subtotale = round(danno_ip + valore_itt + valore_itp, 2)
-
-        # Personalizzazione (max +25% di norma)
-        personalizzazione = max(0.0, min(personalizzazione, 50.0))
-        importo_personalizzazione = round(subtotale * personalizzazione / 100.0, 2)
-
-        totale_biologico = round(subtotale + importo_personalizzazione, 2)
-
-        # Danno morale (liquidazione autonoma — c.d. Sezioni Unite 2008 + Cass. 2019)
-        danno_morale = round(totale_biologico * 0.25, 2) if includi_morale else 0.0
-        totale_comprensivo = round(totale_biologico + danno_morale, 2)
-
-        if perc_ip >= 10:
-            notes.append(
-                "Per lesioni macro-permanenti (IP ≥ 10%) il danno morale si liquida autonomamente "
-                "in misura orientativamente pari al 25-50% del danno biologico (Cass. SS.UU. 26972/2008; Cass. 7513/2018)."
-            )
-        notes.append(
-            "Valori calcolati con le Tabelle di Milano 2024 (approssimazione operativa). "
-            "Il coefficiente età è calcolato su base 30 anni (±0,5%/anno). "
-            "La personalizzazione (0-25%) va giustificata con specifiche circostanze del caso concreto."
-        )
-        if personalizzazione > 25:
-            warnings.append("La personalizzazione supera il 25%: le Tabelle di Milano la prevedono in via eccezionale e motivata.")
-
-        sources = [
-            {"title": "Tabelle Milano 2024", "url": "https://www.tribunale.milano.it/tabelle-di-liquidazione-del-danno"},
-            {"title": "Cass. SS.UU. 26972/2008", "url": "https://www.normattiva.it"},
-        ]
-
-        return {
-            "eta": eta,
-            "perc_ip": perc_ip,
-            "giorni_itt": giorni_itt,
-            "giorni_itp": giorni_itp,
-            "perc_itp": perc_itp,
-            "coeff_eta": round(coeff, 2),
-            "danno_ip": danno_ip,
-            "valore_giorno_itt": self._VALORE_GIORNO_ITT,
-            "valore_itt": valore_itt,
-            "valore_itp": valore_itp,
-            "subtotale": subtotale,
-            "personalizzazione_pct": personalizzazione,
-            "importo_personalizzazione": importo_personalizzazione,
-            "totale_biologico": totale_biologico,
-            "includi_morale": includi_morale,
-            "danno_morale": danno_morale,
-            "totale_comprensivo": totale_comprensivo,
-            "notes": notes,
-            "warnings": warnings,
-            "sources": sources,
-        }
+        La scelta della tabella (art. 139 cod. ass., tabella unica nazionale del
+        D.P.R. 12/2025, tabelle milanesi) e i valori di liquidazione vivono nel
+        pacchetto dedicato: qui resta solo l'ingresso applicativo.
+        """
+        return calc_danno_biologico.calcola(payload)
 
     # ------------------------------------------------------------------ #
     #  NUOVO — Imposta di registro atti giudiziari (DPR 131/1986)         #

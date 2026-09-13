@@ -1,0 +1,817 @@
+{
+ "id": "milano_2024",
+ "nome": "Tabelle milanesi del danno non patrimoniale — edizione 2024",
+ "riferimento_normativo": "Osservatorio sulla giustizia civile di Milano, riunione del 21 maggio 2024; valori aggiornati all'1.1.2024. Parametro nazionale di riferimento per la liquidazione equitativa ex art. 1226 c.c. (Cass. 7 giugno 2011 n. 12408).",
+ "pubblicazione": "Tribunale di Milano, area 'Tabelle Milano', documento P. 7599/24 del 4 giugno 2024",
+ "url_ufficiale": "https://tribunale-milano.giustizia.it/cmsresources/cms/documents/P._7599_24.pdf",
+ "data_consultazione": "2026-09-13",
+ "ambito": "Danno non patrimoniale da lesione dell'integrita' psico-fisica fuori dall'ambito coperto dagli artt. 138 e 139 del codice delle assicurazioni private.",
+ "valore_giorno_inabilita_totale": 115.0,
+ "valore_giorno_inabilita_totale_biologico": 84.0,
+ "valore_giorno_inabilita_totale_sofferenza": 31.0,
+ "personalizzazione_massima_temporanea_pct": 50,
+ "punti": {
+  "1": {
+   "biologico": 1393.28,
+   "sofferenza": 348.32,
+   "sofferenza_pct": 25,
+   "totale": 1741.6,
+   "personalizzazione_massima_pct": 50
+  },
+  "2": {
+   "biologico": 1480.36,
+   "sofferenza": 370.09,
+   "sofferenza_pct": 25,
+   "totale": 1850.45,
+   "personalizzazione_massima_pct": 50
+  },
+  "3": {
+   "biologico": 1567.44,
+   "sofferenza": 391.86,
+   "sofferenza_pct": 25,
+   "totale": 1959.3,
+   "personalizzazione_massima_pct": 50
+  },
+  "4": {
+   "biologico": 1654.52,
+   "sofferenza": 413.63,
+   "sofferenza_pct": 25,
+   "totale": 2068.15,
+   "personalizzazione_massima_pct": 50
+  },
+  "5": {
+   "biologico": 1741.6,
+   "sofferenza": 435.4,
+   "sofferenza_pct": 25,
+   "totale": 2177.0,
+   "personalizzazione_massima_pct": 50
+  },
+  "6": {
+   "biologico": 1915.76,
+   "sofferenza": 478.94,
+   "sofferenza_pct": 25,
+   "totale": 2394.7,
+   "personalizzazione_massima_pct": 50
+  },
+  "7": {
+   "biologico": 2089.92,
+   "sofferenza": 522.48,
+   "sofferenza_pct": 25,
+   "totale": 2612.4,
+   "personalizzazione_massima_pct": 50
+  },
+  "8": {
+   "biologico": 2264.08,
+   "sofferenza": 566.02,
+   "sofferenza_pct": 25,
+   "totale": 2830.1,
+   "personalizzazione_massima_pct": 50
+  },
+  "9": {
+   "biologico": 2438.24,
+   "sofferenza": 609.56,
+   "sofferenza_pct": 25,
+   "totale": 3047.8,
+   "personalizzazione_massima_pct": 50
+  },
+  "10": {
+   "biologico": 2612.4,
+   "sofferenza": 679.22,
+   "sofferenza_pct": 26,
+   "totale": 3291.62,
+   "personalizzazione_massima_pct": 49
+  },
+  "11": {
+   "biologico": 2732.57,
+   "sofferenza": 737.79,
+   "sofferenza_pct": 27,
+   "totale": 3470.36,
+   "personalizzazione_massima_pct": 48
+  },
+  "12": {
+   "biologico": 2851.87,
+   "sofferenza": 798.52,
+   "sofferenza_pct": 28,
+   "totale": 3650.39,
+   "personalizzazione_massima_pct": 47
+  },
+  "13": {
+   "biologico": 2972.04,
+   "sofferenza": 861.89,
+   "sofferenza_pct": 29,
+   "totale": 3833.93,
+   "personalizzazione_massima_pct": 46
+  },
+  "14": {
+   "biologico": 3091.34,
+   "sofferenza": 927.4,
+   "sofferenza_pct": 30,
+   "totale": 4018.74,
+   "personalizzazione_massima_pct": 45
+  },
+  "15": {
+   "biologico": 3211.51,
+   "sofferenza": 995.57,
+   "sofferenza_pct": 31,
+   "totale": 4207.08,
+   "personalizzazione_massima_pct": 44
+  },
+  "16": {
+   "biologico": 3330.81,
+   "sofferenza": 1065.86,
+   "sofferenza_pct": 32,
+   "totale": 4396.67,
+   "personalizzazione_massima_pct": 43
+  },
+  "17": {
+   "biologico": 3450.98,
+   "sofferenza": 1138.82,
+   "sofferenza_pct": 33,
+   "totale": 4589.8,
+   "personalizzazione_massima_pct": 42
+  },
+  "18": {
+   "biologico": 3570.28,
+   "sofferenza": 1213.9,
+   "sofferenza_pct": 34,
+   "totale": 4784.18,
+   "personalizzazione_massima_pct": 41
+  },
+  "19": {
+   "biologico": 3690.45,
+   "sofferenza": 1291.66,
+   "sofferenza_pct": 35,
+   "totale": 4982.11,
+   "personalizzazione_massima_pct": 40
+  },
+  "20": {
+   "biologico": 3809.75,
+   "sofferenza": 1371.51,
+   "sofferenza_pct": 36,
+   "totale": 5181.26,
+   "personalizzazione_massima_pct": 39
+  },
+  "21": {
+   "biologico": 3929.92,
+   "sofferenza": 1454.07,
+   "sofferenza_pct": 37,
+   "totale": 5383.99,
+   "personalizzazione_massima_pct": 38
+  },
+  "22": {
+   "biologico": 4049.22,
+   "sofferenza": 1538.7,
+   "sofferenza_pct": 38,
+   "totale": 5587.92,
+   "personalizzazione_massima_pct": 37
+  },
+  "23": {
+   "biologico": 4169.39,
+   "sofferenza": 1626.06,
+   "sofferenza_pct": 39,
+   "totale": 5795.45,
+   "personalizzazione_massima_pct": 36
+  },
+  "24": {
+   "biologico": 4288.69,
+   "sofferenza": 1715.48,
+   "sofferenza_pct": 40,
+   "totale": 6004.17,
+   "personalizzazione_massima_pct": 35
+  },
+  "25": {
+   "biologico": 4408.86,
+   "sofferenza": 1807.63,
+   "sofferenza_pct": 41,
+   "totale": 6216.49,
+   "personalizzazione_massima_pct": 34
+  },
+  "26": {
+   "biologico": 4528.16,
+   "sofferenza": 1901.83,
+   "sofferenza_pct": 42,
+   "totale": 6429.99,
+   "personalizzazione_massima_pct": 33
+  },
+  "27": {
+   "biologico": 4648.33,
+   "sofferenza": 1998.78,
+   "sofferenza_pct": 43,
+   "totale": 6647.11,
+   "personalizzazione_massima_pct": 32
+  },
+  "28": {
+   "biologico": 4767.63,
+   "sofferenza": 2097.76,
+   "sofferenza_pct": 44,
+   "totale": 6865.39,
+   "personalizzazione_massima_pct": 31
+  },
+  "29": {
+   "biologico": 4887.8,
+   "sofferenza": 2199.51,
+   "sofferenza_pct": 45,
+   "totale": 7087.31,
+   "personalizzazione_massima_pct": 30
+  },
+  "30": {
+   "biologico": 5007.1,
+   "sofferenza": 2303.27,
+   "sofferenza_pct": 46,
+   "totale": 7310.37,
+   "personalizzazione_massima_pct": 29
+  },
+  "31": {
+   "biologico": 5127.27,
+   "sofferenza": 2409.82,
+   "sofferenza_pct": 47,
+   "totale": 7537.09,
+   "personalizzazione_massima_pct": 28
+  },
+  "32": {
+   "biologico": 5246.57,
+   "sofferenza": 2518.35,
+   "sofferenza_pct": 48,
+   "totale": 7764.92,
+   "personalizzazione_massima_pct": 27
+  },
+  "33": {
+   "biologico": 5366.74,
+   "sofferenza": 2629.7,
+   "sofferenza_pct": 49,
+   "totale": 7996.44,
+   "personalizzazione_massima_pct": 26
+  },
+  "34": {
+   "biologico": 5486.04,
+   "sofferenza": 2743.02,
+   "sofferenza_pct": 50,
+   "totale": 8229.06,
+   "personalizzazione_massima_pct": 25
+  },
+  "35": {
+   "biologico": 5606.21,
+   "sofferenza": 2803.11,
+   "sofferenza_pct": 50,
+   "totale": 8409.32,
+   "personalizzazione_massima_pct": 25
+  },
+  "36": {
+   "biologico": 5725.51,
+   "sofferenza": 2862.76,
+   "sofferenza_pct": 50,
+   "totale": 8588.27,
+   "personalizzazione_massima_pct": 25
+  },
+  "37": {
+   "biologico": 5845.68,
+   "sofferenza": 2922.84,
+   "sofferenza_pct": 50,
+   "totale": 8768.52,
+   "personalizzazione_massima_pct": 25
+  },
+  "38": {
+   "biologico": 5964.98,
+   "sofferenza": 2982.49,
+   "sofferenza_pct": 50,
+   "totale": 8947.47,
+   "personalizzazione_massima_pct": 25
+  },
+  "39": {
+   "biologico": 6085.15,
+   "sofferenza": 3042.58,
+   "sofferenza_pct": 50,
+   "totale": 9127.73,
+   "personalizzazione_massima_pct": 25
+  },
+  "40": {
+   "biologico": 6204.45,
+   "sofferenza": 3102.23,
+   "sofferenza_pct": 50,
+   "totale": 9306.68,
+   "personalizzazione_massima_pct": 25
+  },
+  "41": {
+   "biologico": 6324.62,
+   "sofferenza": 3162.31,
+   "sofferenza_pct": 50,
+   "totale": 9486.93,
+   "personalizzazione_massima_pct": 25
+  },
+  "42": {
+   "biologico": 6443.92,
+   "sofferenza": 3221.96,
+   "sofferenza_pct": 50,
+   "totale": 9665.88,
+   "personalizzazione_massima_pct": 25
+  },
+  "43": {
+   "biologico": 6564.09,
+   "sofferenza": 3282.05,
+   "sofferenza_pct": 50,
+   "totale": 9846.14,
+   "personalizzazione_massima_pct": 25
+  },
+  "44": {
+   "biologico": 6683.39,
+   "sofferenza": 3341.7,
+   "sofferenza_pct": 50,
+   "totale": 10025.09,
+   "personalizzazione_massima_pct": 25
+  },
+  "45": {
+   "biologico": 6803.56,
+   "sofferenza": 3401.78,
+   "sofferenza_pct": 50,
+   "totale": 10205.34,
+   "personalizzazione_massima_pct": 25
+  },
+  "46": {
+   "biologico": 6922.86,
+   "sofferenza": 3461.43,
+   "sofferenza_pct": 50,
+   "totale": 10384.29,
+   "personalizzazione_massima_pct": 25
+  },
+  "47": {
+   "biologico": 7043.03,
+   "sofferenza": 3521.52,
+   "sofferenza_pct": 50,
+   "totale": 10564.55,
+   "personalizzazione_massima_pct": 25
+  },
+  "48": {
+   "biologico": 7162.33,
+   "sofferenza": 3581.17,
+   "sofferenza_pct": 50,
+   "totale": 10743.5,
+   "personalizzazione_massima_pct": 25
+  },
+  "49": {
+   "biologico": 7282.5,
+   "sofferenza": 3641.25,
+   "sofferenza_pct": 50,
+   "totale": 10923.75,
+   "personalizzazione_massima_pct": 25
+  },
+  "50": {
+   "biologico": 7401.8,
+   "sofferenza": 3700.9,
+   "sofferenza_pct": 50,
+   "totale": 11102.7,
+   "personalizzazione_massima_pct": 25
+  },
+  "51": {
+   "biologico": 7517.62,
+   "sofferenza": 3758.81,
+   "sofferenza_pct": 50,
+   "totale": 11276.42,
+   "personalizzazione_massima_pct": 25
+  },
+  "52": {
+   "biologico": 7629.08,
+   "sofferenza": 3814.54,
+   "sofferenza_pct": 50,
+   "totale": 11443.62,
+   "personalizzazione_massima_pct": 25
+  },
+  "53": {
+   "biologico": 7737.06,
+   "sofferenza": 3868.53,
+   "sofferenza_pct": 50,
+   "totale": 11605.59,
+   "personalizzazione_massima_pct": 25
+  },
+  "54": {
+   "biologico": 7840.68,
+   "sofferenza": 3920.34,
+   "sofferenza_pct": 50,
+   "totale": 11761.02,
+   "personalizzazione_massima_pct": 25
+  },
+  "55": {
+   "biologico": 7940.83,
+   "sofferenza": 3970.41,
+   "sofferenza_pct": 50,
+   "totale": 11911.24,
+   "personalizzazione_massima_pct": 25
+  },
+  "56": {
+   "biologico": 8037.48,
+   "sofferenza": 4018.74,
+   "sofferenza_pct": 50,
+   "totale": 12056.23,
+   "personalizzazione_massima_pct": 25
+  },
+  "57": {
+   "biologico": 8129.79,
+   "sofferenza": 4064.89,
+   "sofferenza_pct": 50,
+   "totale": 12194.68,
+   "personalizzazione_massima_pct": 25
+  },
+  "58": {
+   "biologico": 8218.61,
+   "sofferenza": 4109.31,
+   "sofferenza_pct": 50,
+   "totale": 12327.92,
+   "personalizzazione_massima_pct": 25
+  },
+  "59": {
+   "biologico": 8303.95,
+   "sofferenza": 4151.97,
+   "sofferenza_pct": 50,
+   "totale": 12455.92,
+   "personalizzazione_massima_pct": 25
+  },
+  "60": {
+   "biologico": 8385.8,
+   "sofferenza": 4192.9,
+   "sofferenza_pct": 50,
+   "totale": 12578.71,
+   "personalizzazione_massima_pct": 25
+  },
+  "61": {
+   "biologico": 8464.18,
+   "sofferenza": 4232.09,
+   "sofferenza_pct": 50,
+   "totale": 12696.26,
+   "personalizzazione_massima_pct": 25
+  },
+  "62": {
+   "biologico": 8538.19,
+   "sofferenza": 4269.1,
+   "sofferenza_pct": 50,
+   "totale": 12807.29,
+   "personalizzazione_massima_pct": 25
+  },
+  "63": {
+   "biologico": 8609.6,
+   "sofferenza": 4304.8,
+   "sofferenza_pct": 50,
+   "totale": 12914.4,
+   "personalizzazione_massima_pct": 25
+  },
+  "64": {
+   "biologico": 8678.39,
+   "sofferenza": 4339.2,
+   "sofferenza_pct": 50,
+   "totale": 13017.59,
+   "personalizzazione_massima_pct": 25
+  },
+  "65": {
+   "biologico": 8742.83,
+   "sofferenza": 4371.42,
+   "sofferenza_pct": 50,
+   "totale": 13114.25,
+   "personalizzazione_massima_pct": 25
+  },
+  "66": {
+   "biologico": 8804.66,
+   "sofferenza": 4402.33,
+   "sofferenza_pct": 50,
+   "totale": 13206.99,
+   "personalizzazione_massima_pct": 25
+  },
+  "67": {
+   "biologico": 8863.0,
+   "sofferenza": 4431.5,
+   "sofferenza_pct": 50,
+   "totale": 13294.5,
+   "personalizzazione_massima_pct": 25
+  },
+  "68": {
+   "biologico": 8918.73,
+   "sofferenza": 4459.37,
+   "sofferenza_pct": 50,
+   "totale": 13378.1,
+   "personalizzazione_massima_pct": 25
+  },
+  "69": {
+   "biologico": 8971.85,
+   "sofferenza": 4485.93,
+   "sofferenza_pct": 50,
+   "totale": 13457.78,
+   "personalizzazione_massima_pct": 25
+  },
+  "70": {
+   "biologico": 9021.49,
+   "sofferenza": 4510.74,
+   "sofferenza_pct": 50,
+   "totale": 13532.23,
+   "personalizzazione_massima_pct": 25
+  },
+  "71": {
+   "biologico": 9068.51,
+   "sofferenza": 4534.26,
+   "sofferenza_pct": 50,
+   "totale": 13602.77,
+   "personalizzazione_massima_pct": 25
+  },
+  "72": {
+   "biologico": 9112.92,
+   "sofferenza": 4556.46,
+   "sofferenza_pct": 50,
+   "totale": 13669.38,
+   "personalizzazione_massima_pct": 25
+  },
+  "73": {
+   "biologico": 9153.85,
+   "sofferenza": 4576.92,
+   "sofferenza_pct": 50,
+   "totale": 13730.77,
+   "personalizzazione_massima_pct": 25
+  },
+  "74": {
+   "biologico": 9193.04,
+   "sofferenza": 4596.52,
+   "sofferenza_pct": 50,
+   "totale": 13789.55,
+   "personalizzazione_massima_pct": 25
+  },
+  "75": {
+   "biologico": 9229.61,
+   "sofferenza": 4614.8,
+   "sofferenza_pct": 50,
+   "totale": 13844.41,
+   "personalizzazione_massima_pct": 25
+  },
+  "76": {
+   "biologico": 9263.57,
+   "sofferenza": 4631.79,
+   "sofferenza_pct": 50,
+   "totale": 13895.36,
+   "personalizzazione_massima_pct": 25
+  },
+  "77": {
+   "biologico": 9294.92,
+   "sofferenza": 4647.46,
+   "sofferenza_pct": 50,
+   "totale": 13942.38,
+   "personalizzazione_massima_pct": 25
+  },
+  "78": {
+   "biologico": 9325.4,
+   "sofferenza": 4662.7,
+   "sofferenza_pct": 50,
+   "totale": 13988.1,
+   "personalizzazione_massima_pct": 25
+  },
+  "79": {
+   "biologico": 9351.52,
+   "sofferenza": 4675.76,
+   "sofferenza_pct": 50,
+   "totale": 14027.28,
+   "personalizzazione_massima_pct": 25
+  },
+  "80": {
+   "biologico": 9376.77,
+   "sofferenza": 4688.39,
+   "sofferenza_pct": 50,
+   "totale": 14065.16,
+   "personalizzazione_massima_pct": 25
+  },
+  "81": {
+   "biologico": 9399.42,
+   "sofferenza": 4699.71,
+   "sofferenza_pct": 50,
+   "totale": 14099.12,
+   "personalizzazione_massima_pct": 25
+  },
+  "82": {
+   "biologico": 9420.31,
+   "sofferenza": 4710.16,
+   "sofferenza_pct": 50,
+   "totale": 14130.47,
+   "personalizzazione_massima_pct": 25
+  },
+  "83": {
+   "biologico": 9440.34,
+   "sofferenza": 4720.17,
+   "sofferenza_pct": 50,
+   "totale": 14160.51,
+   "personalizzazione_massima_pct": 25
+  },
+  "84": {
+   "biologico": 9457.76,
+   "sofferenza": 4728.88,
+   "sofferenza_pct": 50,
+   "totale": 14186.64,
+   "personalizzazione_massima_pct": 25
+  },
+  "85": {
+   "biologico": 9473.43,
+   "sofferenza": 4736.72,
+   "sofferenza_pct": 50,
+   "totale": 14210.15,
+   "personalizzazione_massima_pct": 25
+  },
+  "86": {
+   "biologico": 9487.37,
+   "sofferenza": 4743.68,
+   "sofferenza_pct": 50,
+   "totale": 14231.05,
+   "personalizzazione_massima_pct": 25
+  },
+  "87": {
+   "biologico": 9500.43,
+   "sofferenza": 4750.21,
+   "sofferenza_pct": 50,
+   "totale": 14250.64,
+   "personalizzazione_massima_pct": 25
+  },
+  "88": {
+   "biologico": 9511.75,
+   "sofferenza": 4755.87,
+   "sofferenza_pct": 50,
+   "totale": 14267.62,
+   "personalizzazione_massima_pct": 25
+  },
+  "89": {
+   "biologico": 9522.2,
+   "sofferenza": 4761.1,
+   "sofferenza_pct": 50,
+   "totale": 14283.3,
+   "personalizzazione_massima_pct": 25
+  },
+  "90": {
+   "biologico": 9530.91,
+   "sofferenza": 4765.45,
+   "sofferenza_pct": 50,
+   "totale": 14296.36,
+   "personalizzazione_massima_pct": 25
+  },
+  "91": {
+   "biologico": 9538.74,
+   "sofferenza": 4769.37,
+   "sofferenza_pct": 50,
+   "totale": 14308.11,
+   "personalizzazione_massima_pct": 25
+  },
+  "92": {
+   "biologico": 9545.71,
+   "sofferenza": 4772.85,
+   "sofferenza_pct": 50,
+   "totale": 14318.56,
+   "personalizzazione_massima_pct": 25
+  },
+  "93": {
+   "biologico": 9551.81,
+   "sofferenza": 4775.9,
+   "sofferenza_pct": 50,
+   "totale": 14327.71,
+   "personalizzazione_massima_pct": 25
+  },
+  "94": {
+   "biologico": 9557.03,
+   "sofferenza": 4778.52,
+   "sofferenza_pct": 50,
+   "totale": 14335.55,
+   "personalizzazione_massima_pct": 25
+  },
+  "95": {
+   "biologico": 9561.38,
+   "sofferenza": 4780.69,
+   "sofferenza_pct": 50,
+   "totale": 14342.08,
+   "personalizzazione_massima_pct": 25
+  },
+  "96": {
+   "biologico": 9565.74,
+   "sofferenza": 4782.87,
+   "sofferenza_pct": 50,
+   "totale": 14348.61,
+   "personalizzazione_massima_pct": 25
+  },
+  "97": {
+   "biologico": 9569.22,
+   "sofferenza": 4784.61,
+   "sofferenza_pct": 50,
+   "totale": 14353.83,
+   "personalizzazione_massima_pct": 25
+  },
+  "98": {
+   "biologico": 9572.7,
+   "sofferenza": 4786.35,
+   "sofferenza_pct": 50,
+   "totale": 14359.06,
+   "personalizzazione_massima_pct": 25
+  },
+  "99": {
+   "biologico": 9575.32,
+   "sofferenza": 4787.66,
+   "sofferenza_pct": 50,
+   "totale": 14362.98,
+   "personalizzazione_massima_pct": 25
+  },
+  "100": {
+   "biologico": 9578.8,
+   "sofferenza": 4789.4,
+   "sofferenza_pct": 50,
+   "totale": 14368.2,
+   "personalizzazione_massima_pct": 25
+  }
+ },
+ "demoltiplicatore_eta": {
+  "1": 1.0,
+  "2": 0.995,
+  "3": 0.99,
+  "4": 0.985,
+  "5": 0.98,
+  "6": 0.975,
+  "7": 0.97,
+  "8": 0.965,
+  "9": 0.96,
+  "10": 0.955,
+  "11": 0.95,
+  "12": 0.945,
+  "13": 0.94,
+  "14": 0.935,
+  "15": 0.93,
+  "16": 0.925,
+  "17": 0.92,
+  "18": 0.915,
+  "19": 0.91,
+  "20": 0.905,
+  "21": 0.9,
+  "22": 0.895,
+  "23": 0.89,
+  "24": 0.885,
+  "25": 0.88,
+  "26": 0.875,
+  "27": 0.87,
+  "28": 0.865,
+  "29": 0.86,
+  "30": 0.855,
+  "31": 0.85,
+  "32": 0.845,
+  "33": 0.84,
+  "34": 0.835,
+  "35": 0.83,
+  "36": 0.825,
+  "37": 0.82,
+  "38": 0.815,
+  "39": 0.81,
+  "40": 0.805,
+  "41": 0.8,
+  "42": 0.795,
+  "43": 0.79,
+  "44": 0.785,
+  "45": 0.78,
+  "46": 0.775,
+  "47": 0.77,
+  "48": 0.765,
+  "49": 0.76,
+  "50": 0.755,
+  "51": 0.75,
+  "52": 0.745,
+  "53": 0.74,
+  "54": 0.735,
+  "55": 0.73,
+  "56": 0.725,
+  "57": 0.72,
+  "58": 0.715,
+  "59": 0.71,
+  "60": 0.705,
+  "61": 0.7,
+  "62": 0.695,
+  "63": 0.69,
+  "64": 0.685,
+  "65": 0.68,
+  "66": 0.675,
+  "67": 0.67,
+  "68": 0.665,
+  "69": 0.66,
+  "70": 0.655,
+  "71": 0.65,
+  "72": 0.645,
+  "73": 0.64,
+  "74": 0.635,
+  "75": 0.63,
+  "76": 0.625,
+  "77": 0.62,
+  "78": 0.615,
+  "79": 0.61,
+  "80": 0.605,
+  "81": 0.6,
+  "82": 0.595,
+  "83": 0.59,
+  "84": 0.585,
+  "85": 0.58,
+  "86": 0.575,
+  "87": 0.57,
+  "88": 0.565,
+  "89": 0.56,
+  "90": 0.555,
+  "91": 0.55,
+  "92": 0.545,
+  "93": 0.54,
+  "94": 0.535,
+  "95": 0.53,
+  "96": 0.525,
+  "97": 0.52,
+  "98": 0.515,
+  "99": 0.51,
+  "100": 0.505
+ }
+}

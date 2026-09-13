@@ -354,13 +354,43 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
     "danno_biologico": {
         "azione": "Calcola danno",
         "campi": [
-            _intero("db_eta", "Età", minimo=0, massimo=120),
-            _numero("db_perc_ip", "Invalidità permanente %"),
+            _scelta(
+                "db_ambito",
+                "Ambito del danno",
+                [
+                    ("circolazione", "Circolazione di veicoli a motore o natanti"),
+                    ("sanitaria", "Responsabilità sanitaria"),
+                    ("civile", "Altra responsabilità civile"),
+                ],
+                aiuto="Determina se si applicano le tabelle di legge (artt. 138 e 139 cod. ass.) o le tabelle milanesi.",
+            ),
+            _data(
+                "db_data_sinistro",
+                "Data del sinistro",
+                aiuto="Obbligatoria: la tabella unica nazionale vale solo per i sinistri dal 5 marzo 2025.",
+            ),
+            _data(
+                "db_data_liquidazione",
+                "Data di liquidazione",
+                aiuto="Determina il decreto ministeriale applicabile. Vuota significa oggi.",
+            ),
+            _intero("db_eta", "Età", minimo=0, massimo=120, aiuto="Età della persona lesa alla data del sinistro."),
+            _intero("db_perc_ip", "Invalidità permanente %", minimo=0, massimo=100),
             _intero("db_giorni_itt", "Giorni di inabilità totale"),
             _intero("db_giorni_itp", "Giorni di inabilità parziale"),
             _scelta("db_perc_itp", "Percentuale ITP", [("25", "25%"), ("50", "50%"), ("75", "75%")]),
+            _scelta(
+                "db_morale_livello",
+                "Danno morale (tabella unica nazionale)",
+                [
+                    ("minimo", "Incremento minimo"),
+                    ("medio", "Incremento medio"),
+                    ("massimo", "Incremento massimo"),
+                    ("nessuno", "Nessun incremento"),
+                ],
+                aiuto="Tavola 2 del D.P.R. 12/2025. Nelle tabelle milanesi la sofferenza è già compresa nel valore del punto.",
+            ),
             _numero("db_personalizzazione", "Personalizzazione %"),
-            _si_no("db_includi_morale", "Includi danno morale"),
         ],
     },
     "imposta_registro": {

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.300.0 - 13/09/2026
+
+Danno biologico: il calcolatore usa le tabelle oggi in vigore, non più una stima approssimata. La tabella si sceglie da sola in base all'ambito del danno e alla data del sinistro.
+
+- **Tabella unica nazionale (D.P.R. 13 gennaio 2025 n. 12).** Macrolesioni da 10 a 100 punti per i sinistri dal 5 marzo 2025 (art. 5 del decreto). Tavola 1.A (coefficiente moltiplicatore biologico del punto), tavola 1.B (coefficiente di riduzione per l'età, 1-100 anni) e tavola 2 (danno morale minimo, medio e massimo) sono caricate dall'allegato I pubblicato in Gazzetta Ufficiale. Il calcolo riproduce esattamente le celle dell'allegato II: 8.100 celle confrontate una a una, nessuna differenza.
+- **Art. 139 codice delle assicurazioni private.** Lesioni di lieve entità da 1 a 9 punti, con i coefficienti del comma 6, la riduzione dello 0,5 per cento l'anno dall'undicesimo anno di età e gli importi del decreto ministeriale vigente. Valori correnti dal **D.M. 20 luglio 2026** (G.U. n. 173 del 28 luglio 2026): primo punto **988,45 €**, inabilità assoluta **57,64 €** al giorno. In archivio la serie dei decreti dal 2006, ciascuno con la propria Gazzetta: il decreto applicabile è l'ultimo con decorrenza non successiva alla data di liquidazione.
+- **Tabelle milanesi edizione 2024.** Tutti i 100 punti con la componente biologico/dinamico-relazionale e quella di sofferenza soggettiva, i 100 demoltiplicatori per età, il valore pro die di 115,00 € e la percentuale massima di personalizzazione per punto, dal documento P. 7599/24 del Tribunale di Milano. Si applicano fuori dagli artt. 138 e 139 del codice delle assicurazioni (Cass. 12408/2011) e alle macrolesioni da sinistro anteriore al 5 marzo 2025.
+- **Data del sinistro obbligatoria.** È il criterio che decide quale tabella si applica; la data di liquidazione, separata, decide quale decreto ministeriale fornisce gli importi (il debito risarcitorio è debito di valore).
+- **Personalizzazione con il tetto della tabella applicata:** 20 per cento nell'art. 139 (comma 3), 30 per cento nella tabella unica nazionale (art. 138, comma 3), la percentuale per punto nelle tabelle milanesi; sul danno temporaneo resta il tetto dell'art. 139. Se la richiesta eccede, il calcolo la riduce e lo dice.
+- **Ogni voce dichiara il proprio criterio** (valore del punto, coefficiente, età) e ogni tabella la propria fonte: riferimento normativo, Gazzetta Ufficiale o documento del Tribunale, URL ufficiale e data di consultazione.
+- Nuovo pacchetto `pct/calcolatori/danno_biologico/` (fonti, tabelle, art139, tun, milano, regime, calcolo) con i dati in `pct/data/tabelle_danno/`; `pct/strumenti_legali.py` delega.
+- Rimossa la stima precedente: undici fasce di valore inventate, coefficiente per età a scaglioni di cinque anni e danno morale fisso al 25 per cento non corrispondevano ad alcuna tabella pubblicata.
+
 ## 2.299.0 - 11/09/2026
 
 Editor atti: colori della barra di nuovo visibili, acquisizione di documenti in PDF da scanner, webcam o fotocamera con OCR facoltativo, zoom a due dita sul foglio da telefono.

@@ -550,28 +550,69 @@
     {% endcall %}
 
     {% set risultato_db = results.get('danno_biologico') %}
-    {% call tool_section('danno_biologico', 'Danno biologico', 'bi-heart-pulse', 'Liquidazione operativa con IP, ITT, ITP, personalizzazione e danno morale.') %}
+    {% call tool_section('danno_biologico', 'Danno biologico', 'bi-heart-pulse', 'Tabelle vigenti: art. 139 cod. ass., tabella unica nazionale D.P.R. 12/2025, tabelle milanesi 2024.') %}
       <form method="post" class="row g-3 tool-form-grid">
         {{ tool_hidden('danno_biologico', fascicolo_sel) }}
-        <div class="col-md-2"><label class="form-label">Eta</label><input type="number" min="1" max="120" name="db_eta" class="form-control" value="{{ form_state.db_eta }}"></div>
+        <div class="col-md-4">
+          <label class="form-label">Ambito del danno</label>
+          <select name="db_ambito" class="form-select">
+            <option value="circolazione" {{ 'selected' if form_state.db_ambito == 'circolazione' }}>Circolazione di veicoli a motore o natanti</option>
+            <option value="sanitaria" {{ 'selected' if form_state.db_ambito == 'sanitaria' }}>Responsabilita sanitaria</option>
+            <option value="civile" {{ 'selected' if form_state.db_ambito == 'civile' }}>Altra responsabilita civile</option>
+          </select>
+        </div>
+        <div class="col-md-2"><label class="form-label">Data del sinistro</label><input type="date" name="db_data_sinistro" class="form-control" value="{{ form_state.db_data_sinistro }}" required></div>
+        <div class="col-md-2"><label class="form-label">Data di liquidazione</label><input type="date" name="db_data_liquidazione" class="form-control" value="{{ form_state.db_data_liquidazione }}"></div>
+        <div class="col-md-2"><label class="form-label">Eta</label><input type="number" min="0" max="120" name="db_eta" class="form-control" value="{{ form_state.db_eta }}"></div>
         <div class="col-md-2"><label class="form-label">IP %</label><input type="number" min="0" max="100" name="db_perc_ip" class="form-control" value="{{ form_state.db_perc_ip }}"></div>
         <div class="col-md-2"><label class="form-label">Giorni ITT</label><input type="number" min="0" name="db_giorni_itt" class="form-control" value="{{ form_state.db_giorni_itt }}"></div>
         <div class="col-md-2"><label class="form-label">Giorni ITP</label><input type="number" min="0" name="db_giorni_itp" class="form-control" value="{{ form_state.db_giorni_itp }}"></div>
         <div class="col-md-2"><label class="form-label">Percentuale ITP</label><select name="db_perc_itp" class="form-select"><option value="25" {{ 'selected' if form_state.db_perc_itp == '25' }}>25%</option><option value="50" {{ 'selected' if form_state.db_perc_itp == '50' }}>50%</option><option value="75" {{ 'selected' if form_state.db_perc_itp == '75' }}>75%</option></select></div>
-        <div class="col-md-2"><label class="form-label">Personalizzazione %</label><input type="number" step="0.01" min="0" max="50" name="db_personalizzazione" class="form-control" value="{{ form_state.db_personalizzazione }}"></div>
-        <div class="col-md-3"><label class="form-label">Includi danno morale</label><select name="db_includi_morale" class="form-select"><option value="1" {{ 'selected' if form_state.db_includi_morale == '1' }}>Sì</option><option value="0" {{ 'selected' if form_state.db_includi_morale != '1' }}>No</option></select></div>
+        <div class="col-md-3">
+          <label class="form-label">Danno morale (tabella unica nazionale)</label>
+          <select name="db_morale_livello" class="form-select">
+            <option value="minimo" {{ 'selected' if form_state.db_morale_livello == 'minimo' }}>Incremento minimo</option>
+            <option value="medio" {{ 'selected' if form_state.db_morale_livello == 'medio' }}>Incremento medio</option>
+            <option value="massimo" {{ 'selected' if form_state.db_morale_livello == 'massimo' }}>Incremento massimo</option>
+            <option value="nessuno" {{ 'selected' if form_state.db_morale_livello == 'nessuno' }}>Nessun incremento</option>
+          </select>
+        </div>
+        <div class="col-md-3"><label class="form-label">Personalizzazione %</label><input type="number" step="0.01" min="0" max="50" name="db_personalizzazione" class="form-control" value="{{ form_state.db_personalizzazione }}"></div>
         <div class="col-12"><button class="btn btn-primary"><i class="bi bi-activity me-2"></i>Calcola danno</button></div>
       </form>
       {% if risultato_db %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Danno IP', risultato_db.danno_ip|euro, 'Coeff. eta ' ~ risultato_db.coeff_eta) }}
-        {{ metric_box('Danno temporaneo', (risultato_db.valore_itt + risultato_db.valore_itp)|euro) }}
+        {{ metric_box('Danno permanente', risultato_db.danno_permanente|euro, risultato_db.regime_label) }}
         {{ metric_box('Danno morale', risultato_db.danno_morale|euro) }}
-        {{ metric_box('Totale complessivo', risultato_db.totale_comprensivo|euro) }}
+        {{ metric_box('Inabilita temporanea', risultato_db.danno_temporaneo|euro) }}
+        {{ metric_box('Totale complessivo', risultato_db.totale|euro) }}
       </div>
       <div class="row g-3 mt-3">
-        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Danno temporaneo</div><div>ITT: {{ risultato_db.valore_itt|euro }}</div><div>ITP: {{ risultato_db.valore_itp|euro }}</div></div></div>
-        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Personalizzazione</div><div>{{ risultato_db.personalizzazione_pct }}% = {{ risultato_db.importo_personalizzazione|euro }}</div><div class="small text-muted">Totale biologico: {{ risultato_db.totale_biologico|euro }}</div></div></div>
+        <div class="col-md-7">
+          <div class="tool-soft-panel h-100">
+            <div class="tool-soft-title">Voci di liquidazione</div>
+            {% for voce in risultato_db.dettaglio %}
+            <div class="d-flex justify-content-between gap-3">
+              <span>{{ voce.voce }}</span><span class="fw-semibold">{{ voce.importo|euro }}</span>
+            </div>
+            <div class="small text-muted mb-2">{{ voce.criterio }}</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-md-5">
+          <div class="tool-soft-panel h-100">
+            <div class="tool-soft-title">Tabella applicata</div>
+            {% for tabella in risultato_db.tabelle_applicate %}
+            <div class="mb-2">
+              <div class="fw-semibold">{{ tabella.nome }}</div>
+              <div class="small text-muted">{{ tabella.riferimento_normativo }}</div>
+              {% if tabella.pubblicazione %}<div class="small text-muted">{{ tabella.pubblicazione }}</div>{% endif %}
+              <div class="small text-muted">Consultata il {{ tabella.data_consultazione|fmt_data }}</div>
+            </div>
+            {% endfor %}
+            <div class="small text-muted">Personalizzazione {{ risultato_db.personalizzazione_pct }}% = {{ risultato_db.importo_personalizzazione|euro }} (massimo {{ risultato_db.personalizzazione_massima_permanente_pct }}% sul permanente, {{ risultato_db.personalizzazione_massima_temporanea_pct }}% sul temporaneo)</div>
+          </div>
+        </div>
       </div>
       {{ render_messages(risultato_db.notes, risultato_db.warnings) }}
       {{ render_sources(risultato_db.sources) }}

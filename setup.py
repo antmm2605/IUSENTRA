@@ -20,6 +20,7 @@ setup(
             "data/*.json",
             "data/*.sqlite",
             "data/cataloghi/*.json",
+            "data/tabelle_danno/*.json",
             "data/legal_knowledge_base_modules/*.json",
             "sql/*.sql",
             "template_atti_catalogo_data/*.json",

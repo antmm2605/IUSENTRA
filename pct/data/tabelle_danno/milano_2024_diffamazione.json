@@ -1,0 +1,98 @@
+{
+ "id": "milano_2024_diffamazione",
+ "nome": "Danno da diffamazione a mezzo stampa e altri mezzi di comunicazione di massa — Milano 2024",
+ "riferimento_normativo": "Osservatorio sulla giustizia civile di Milano, edizione 2024, su 89 sentenze degli anni 2014-2017; proposta approvata dall'Assemblea nazionale degli Osservatori (Roma, maggio 2017). Artt. 2043 e 2059 c.c.; art. 595 c.p.; L. 8 febbraio 1948 n. 47.",
+ "pubblicazione": "Tribunale di Milano, area 'Tabelle Milano', documento P. 7599/24 del 4 giugno 2024",
+ "url_ufficiale": "https://tribunale-milano.giustizia.it/cmsresources/cms/documents/P._7599_24.pdf",
+ "data_consultazione": "2026-09-13",
+ "ambito": "Danno non patrimoniale da diffamazione a mezzo stampa, radio, televisione e altri mezzi di comunicazione di massa.",
+ "nota_rivalutazione": "Importi dell'edizione 2018 rivalutati secondo gli indici ISTAT dall'1.1.2018 all'1.1.2024, con coefficiente di rivalutazione 1,174901.",
+ "importo_medio_liquidato": 30888.0,
+ "riparazione_pecuniaria_quota_minima": 0.125,
+ "riparazione_pecuniaria_quota_massima": 0.3333,
+ "nota_riparazione": "La riparazione pecuniaria dell'art. 12 della legge sulla stampa (L. 47/1948) risulta tendenzialmente liquidata fra un ottavo e un terzo del danno riconosciuto.",
+ "parametri": [
+  "Notorieta' del diffamante",
+  "Carica pubblica, ruolo istituzionale o professionale del diffamato",
+  "Natura della condotta diffamatoria (sfera personale o professionale, verita', continenza e pertinenza, espressioni ingiuriose, rilievo penale)",
+  "Condotte reiterate o campagne stampa",
+  "Collocazione dell'articolo e spazio occupato dalla notizia",
+  "Intensita' dell'elemento psicologico (animus diffamandi, dolo eventuale)",
+  "Mezzo usato e sua diffusione, anche nell'edizione online",
+  "Risonanza mediatica imputabile al diffamante",
+  "Conseguenze sull'attivita' professionale e sulla vita del diffamato",
+  "Reputazione gia' compromessa",
+  "Limitata riconoscibilita' del diffamato",
+  "Ampio lasso temporale fra il fatto e la domanda giudiziale",
+  "Rettifica o spazio dato a dichiarazioni correttive, oppure loro rifiuto",
+  "Pubblicazione della sentenza"
+ ],
+ "fasce": [
+  {
+   "id": "tenue",
+   "label": "Tenue gravita'",
+   "minimo": 1175.0,
+   "massimo": 11750.0,
+   "criteri": [
+    "Notorieta' del diffamante limitata o assente",
+    "Tenuita' dell'offesa nel contesto di riferimento",
+    "Diffusione del mezzo minima o limitata",
+    "Spazio della notizia minimo o limitato",
+    "Risonanza mediatica assente",
+    "Tenue intensita' dell'elemento soggettivo",
+    "Intervento riparatorio o rettifica del convenuto"
+   ]
+  },
+  {
+   "id": "modesta",
+   "label": "Modesta gravita'",
+   "minimo": 11750.0,
+   "massimo": 23498.0,
+   "criteri": [
+    "Notorieta' del diffamante limitata o modesta",
+    "Un episodio diffamatorio a diffusione limitata",
+    "Modesto spazio della notizia",
+    "Risonanza mediatica modesta o assente",
+    "Modesta intensita' dell'elemento soggettivo"
+   ]
+  },
+  {
+   "id": "media",
+   "label": "Media gravita'",
+   "minimo": 23498.0,
+   "massimo": 35247.0,
+   "criteri": [
+    "Media notorieta' del diffamante",
+    "Offese di significativa gravita' sul piano personale o professionale",
+    "Uno o piu' episodi diffamatori",
+    "Diffusione nazionale o significativa nell'ambiente locale",
+    "Eventuale pregiudizio personale e professionale",
+    "Natura eventuale del dolo"
+   ]
+  },
+  {
+   "id": "elevata",
+   "label": "Elevata gravita'",
+   "minimo": 35247.0,
+   "massimo": 58745.0,
+   "criteri": [
+    "Elevata notorieta' del diffamante",
+    "Uno o piu' episodi di ampia diffusione nazionale",
+    "Notevole discredito, con eventuale rilevanza penale o disciplinare dei fatti attribuiti",
+    "Eventuale uso di espressioni dequalificanti, denigratorie o ingiuriose",
+    "Elevato pregiudizio personale, professionale e istituzionale",
+    "Risonanza mediatica della notizia",
+    "Elevata intensita' dell'elemento soggettivo"
+   ]
+  },
+  {
+   "id": "eccezionale",
+   "label": "Eccezionale gravita'",
+   "minimo": 58745.0,
+   "massimo": null,
+   "criteri": [
+    "Gravita' eccedente i parametri della fascia elevata, da motivare sul caso concreto"
+   ]
+  }
+ ]
+}

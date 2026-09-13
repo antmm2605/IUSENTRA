@@ -228,3 +228,138 @@ def test_l_articolo_96_richiede_il_compenso_liquidato():
 
     with pytest.raises(ValueError, match="compenso"):
         lite_temeraria.calcola({"lt_compenso": 0})
+
+
+# ── Consenso informato ───────────────────────────────────────────────────
+
+
+def test_le_quattro_fasce_del_consenso_informato():
+    from pct.calcolatori.danno_biologico import fasce, tabelle as tab
+
+    voci = fasce.fasce(tab.MILANO_2024_CONSENSO)
+    assert [v["id"] for v in voci] == ["lieve", "media", "grave", "eccezionale"]
+    assert (voci[0]["minimo"], voci[0]["massimo"]) == (1162.00, 4649.00)
+    assert (voci[1]["minimo"], voci[1]["massimo"]) == (4650.00, 10460.00)
+    assert (voci[2]["minimo"], voci[2]["massimo"]) == (10461.00, 23245.00)
+    assert (voci[3]["minimo"], voci[3]["massimo"]) == (23246.00, None)
+    # Le fasce si susseguono senza sovrapporsi.
+    for prima, dopo in zip(voci, voci[1:]):
+        assert dopo["minimo"] > prima["massimo"] or dopo["minimo"] == prima["massimo"] + 1
+
+
+def test_il_consenso_informato_posiziona_nella_fascia():
+    from pct.calcolatori import consenso_informato
+
+    minimo = consenso_informato.calcola({"ci_fascia": "media", "ci_posizione": 0})
+    massimo = consenso_informato.calcola({"ci_fascia": "media", "ci_posizione": 100})
+    meta = consenso_informato.calcola({"ci_fascia": "media", "ci_posizione": 50})
+    assert minimo["importo_proposto"] == 4650.00
+    assert massimo["importo_proposto"] == 10460.00
+    assert meta["importo_proposto"] == pytest.approx((4650.00 + 10460.00) / 2, abs=0.01)
+
+
+def test_la_fascia_eccezionale_del_consenso_non_ha_tetto():
+    from pct.calcolatori import consenso_informato
+
+    risultato = consenso_informato.calcola({"ci_fascia": "eccezionale", "ci_importo_eccezionale": 50000})
+    assert risultato["importo_massimo"] is None
+    assert risultato["importo_proposto"] == 50000.00
+    assert any("non ha un tetto" in avviso for avviso in risultato["warnings"])
+
+
+# ── Diffamazione ─────────────────────────────────────────────────────────
+
+
+def test_le_cinque_fasce_della_diffamazione():
+    from pct.calcolatori.danno_biologico import fasce, tabelle as tab
+
+    voci = fasce.fasce(tab.MILANO_2024_DIFFAMAZIONE)
+    attese = [
+        ("tenue", 1175.00, 11750.00),
+        ("modesta", 11750.00, 23498.00),
+        ("media", 23498.00, 35247.00),
+        ("elevata", 35247.00, 58745.00),
+        ("eccezionale", 58745.00, None),
+    ]
+    assert [(v["id"], v["minimo"], v.get("massimo")) for v in voci] == attese
+
+
+def test_la_riparazione_pecuniaria_va_da_un_ottavo_a_un_terzo():
+    from pct.calcolatori import diffamazione
+
+    risultato = diffamazione.calcola({"df_fascia": "media", "df_posizione": 50, "df_riparazione": "1"})
+    importo = risultato["importo_proposto"]
+    assert risultato["riparazione_pecuniaria"]["minimo"] == pytest.approx(importo / 8, abs=0.02)
+    assert risultato["riparazione_pecuniaria"]["massimo"] == pytest.approx(importo / 3, abs=1.0)
+
+
+def test_la_diffamazione_riporta_la_media_del_campione():
+    from pct.calcolatori import diffamazione
+
+    assert diffamazione.calcola({"df_fascia": "tenue"})["importo_medio_campione"] == 30888.00
+
+
+# ── Capitalizzazione di una rendita ──────────────────────────────────────
+
+
+def test_le_tabelle_di_capitalizzazione_coprono_tutte_le_eta():
+    from pct.calcolatori import capitalizzazione_rendita as cr
+    from pct.calcolatori.danno_biologico import tabelle as tab
+
+    coefficienti = tab.carica(tab.MILANO_2024_CAPITALIZZAZIONE)["coefficienti"]
+    for sesso in ("maschi", "femmine"):
+        assert sorted(int(e) for e in coefficienti[sesso]) == list(range(0, 101))
+
+
+def test_il_coefficiente_cresce_con_gli_anni_e_cala_con_l_eta():
+    from pct.calcolatori import capitalizzazione_rendita as cr
+
+    for sesso in ("maschi", "femmine"):
+        serie = [cr.coefficiente(sesso, 40, anni) for anni in range(1, 40)]
+        assert all(serie[i] < serie[i + 1] for i in range(len(serie) - 1))
+        per_eta = [cr.coefficiente(sesso, eta, 20) for eta in range(40, 80)]
+        assert all(per_eta[i] >= per_eta[i + 1] for i in range(len(per_eta) - 1))
+
+
+def test_la_donna_ha_coefficienti_non_inferiori_all_uomo():
+    """Sopravvivenza attesa maggiore: la tabella femminile non puo' stare sotto."""
+    from pct.calcolatori import capitalizzazione_rendita as cr
+
+    for eta in (20, 40, 60, 80):
+        for anni in (5, 10, 20):
+            maschile = cr.coefficiente("maschi", eta, anni)
+            femminile = cr.coefficiente("femmine", eta, anni)
+            if maschile is not None and femminile is not None:
+                assert femminile >= maschile - 0.01, (eta, anni)
+
+
+def test_la_capitalizzazione_ricava_la_durata_dall_eta_finale():
+    from pct.calcolatori import capitalizzazione_rendita as cr
+
+    risultato = cr.calcola({"cr_sesso": "maschi", "cr_eta": 45, "cr_eta_finale": 67, "cr_reddito": 24000})
+    assert risultato["anni_applicati"] == 22
+    assert risultato["coefficiente"] == cr.coefficiente("maschi", 45, 22)
+    assert risultato["capitale"] == round(24000 * risultato["coefficiente"], 2)
+
+
+def test_la_capitalizzazione_si_ferma_all_orizzonte_della_tabella():
+    from pct.calcolatori import capitalizzazione_rendita as cr
+
+    risultato = cr.calcola({"cr_sesso": "maschi", "cr_eta": 80, "cr_anni": 40, "cr_reddito": 20000})
+    assert risultato["anni_applicati"] == cr.orizzonte_massimo("maschi", 80)
+    assert any("si ferma" in avviso for avviso in risultato["warnings"])
+
+
+def test_la_quota_riduce_il_capitale():
+    from pct.calcolatori import capitalizzazione_rendita as cr
+
+    intero = cr.calcola({"cr_sesso": "femmine", "cr_eta": 30, "cr_anni": 20, "cr_reddito": 30000})
+    meta = cr.calcola({"cr_sesso": "femmine", "cr_eta": 30, "cr_anni": 20, "cr_reddito": 30000, "cr_quota_perc": 50})
+    assert meta["capitale_quota"] == pytest.approx(intero["capitale"] / 2, abs=0.01)
+
+
+def test_la_capitalizzazione_richiede_la_durata():
+    from pct.calcolatori import capitalizzazione_rendita as cr
+
+    with pytest.raises(ValueError, match="quanti anni"):
+        cr.calcola({"cr_sesso": "maschi", "cr_eta": 40, "cr_reddito": 20000})

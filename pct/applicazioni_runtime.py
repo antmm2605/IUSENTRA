@@ -667,6 +667,80 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
             },
         ],
     },
+    "consenso_informato": {
+        "title": "Consenso informato",
+        "subtitle": "Danno al diritto di autodeterminazione: quattro fasce Milano 2024 (Cass. 28985/2019).",
+        "submit_label": "Calcola danno",
+        "method": "calcola_consenso_informato",
+        "fields": [
+            {
+                "name": "ci_fascia",
+                "label": "Gravità della lesione del diritto",
+                "type": "select",
+                "options": [
+                    {"value": "lieve", "label": "Lieve — 1.162 / 4.649 €"},
+                    {"value": "media", "label": "Media — 4.650 / 10.460 €"},
+                    {"value": "grave", "label": "Grave — 10.461 / 23.245 €"},
+                    {"value": "eccezionale", "label": "Eccezionale — oltre 23.246 €"},
+                ],
+            },
+            {"name": "ci_posizione", "label": "Posizione nella fascia %", "type": "number", "step": "1", "min": "0", "max": "100"},
+            {"name": "ci_importo_eccezionale", "label": "Importo per la fascia eccezionale", "type": "number", "step": "0.01", "min": "0"},
+            {
+                "name": "ci_trattamento_estetico",
+                "label": "Trattamento di tipo estetico",
+                "type": "select",
+                "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Sì"}],
+            },
+        ],
+    },
+    "diffamazione": {
+        "title": "Diffamazione a mezzo stampa",
+        "subtitle": "Cinque fasce Milano 2024 e riparazione pecuniaria ex art. 12 L. 47/1948.",
+        "submit_label": "Calcola danno",
+        "method": "calcola_diffamazione",
+        "fields": [
+            {
+                "name": "df_fascia",
+                "label": "Gravità della diffamazione",
+                "type": "select",
+                "options": [
+                    {"value": "tenue", "label": "Tenue — 1.175 / 11.750 €"},
+                    {"value": "modesta", "label": "Modesta — 11.750 / 23.498 €"},
+                    {"value": "media", "label": "Media — 23.498 / 35.247 €"},
+                    {"value": "elevata", "label": "Elevata — 35.247 / 58.745 €"},
+                    {"value": "eccezionale", "label": "Eccezionale — oltre 58.745 €"},
+                ],
+            },
+            {"name": "df_posizione", "label": "Posizione nella fascia %", "type": "number", "step": "1", "min": "0", "max": "100"},
+            {"name": "df_importo_eccezionale", "label": "Importo per la fascia eccezionale", "type": "number", "step": "0.01", "min": "0"},
+            {
+                "name": "df_riparazione",
+                "label": "Calcola la riparazione pecuniaria",
+                "type": "select",
+                "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Sì"}],
+            },
+        ],
+    },
+    "capitalizzazione_rendita": {
+        "title": "Capitalizzazione di una rendita",
+        "subtitle": "Attualizzazione del reddito perduto con i coefficienti Milano 2024 (Cass. 9002/2022).",
+        "submit_label": "Calcola capitale",
+        "method": "calcola_capitalizzazione_rendita",
+        "fields": [
+            {
+                "name": "cr_sesso",
+                "label": "Sesso del danneggiato",
+                "type": "select",
+                "options": [{"value": "maschi", "label": "Uomo"}, {"value": "femmine", "label": "Donna"}],
+            },
+            {"name": "cr_eta", "label": "Età del danneggiato", "type": "number", "step": "1", "min": "0", "max": "100"},
+            {"name": "cr_reddito", "label": "Reddito annuo perduto", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "cr_eta_finale", "label": "Età finale del periodo", "type": "number", "step": "1", "min": "0", "max": "110"},
+            {"name": "cr_anni", "label": "Anni di perdita", "type": "number", "step": "1", "min": "0"},
+            {"name": "cr_quota_perc", "label": "Quota da risarcire %", "type": "number", "step": "0.01", "min": "0", "max": "100"},
+        ],
+    },
     "lite_temeraria": {
         "title": "Lite temeraria — art. 96 comma 3 c.p.c.",
         "subtitle": "Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.",
@@ -1221,6 +1295,32 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                 ],
             }
         )
+    elif tool_id in ("consenso_informato", "diffamazione"):
+        metrics = [
+            _metric("Fascia", str(result.get("fascia_label") or "")),
+            _metric("Minimo", f"{_fmt_money(result.get('importo_minimo'))}"),
+            _metric(
+                "Massimo",
+                f"{_fmt_money(result.get('importo_massimo'))}" if result.get("importo_massimo") else "senza tetto",
+            ),
+            _metric("Importo proposto", f"{_fmt_money(result.get('importo_proposto'))}"),
+        ]
+        tables.append(
+            {
+                "title": "Circostanze della fascia",
+                "headers": ["Circostanza"],
+                "rows": [[str(voce)] for voce in list(result.get("criteri") or [])],
+            }
+        )
+    elif tool_id == "capitalizzazione_rendita":
+        metrics = [
+            _metric("Coefficiente", str(result.get("coefficiente") or ""),
+                    f"{result.get('sesso_label', '')}, {result.get('eta', '')} anni"),
+            _metric("Anni applicati", str(result.get("anni_applicati") or ""), str(result.get("periodo") or "")),
+            _metric("Capitale", f"{_fmt_money(result.get('capitale'))}"),
+            _metric("Quota da risarcire", f"{_fmt_money(result.get('capitale_quota'))}",
+                    f"{result.get('quota_perc', 100)}%"),
+        ]
     elif tool_id == "lite_temeraria":
         metrics = [
             _metric("Compenso liquidato", f"{_fmt_money(result.get('compenso'))}"),

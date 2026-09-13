@@ -222,6 +222,82 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             ),
         ],
     },
+    "consenso_informato": {
+        "azione": "Calcola danno",
+        "campi": [
+            _scelta(
+                "ci_fascia",
+                "Gravità della lesione del diritto",
+                [
+                    ("lieve", "Lieve — 1.162 / 4.649 €"),
+                    ("media", "Media — 4.650 / 10.460 €"),
+                    ("grave", "Grave — 10.461 / 23.245 €"),
+                    ("eccezionale", "Eccezionale — oltre 23.246 €"),
+                ],
+                aiuto="Le quattro fasce dell'Osservatorio di Milano su un campione di 102 sentenze.",
+            ),
+            _numero(
+                "ci_posizione",
+                "Posizione nella fascia %",
+                aiuto="0 sul minimo della fascia, 100 sul massimo.",
+            ),
+            _numero(
+                "ci_importo_eccezionale",
+                "Importo per la fascia eccezionale",
+                aiuto="Solo per la fascia eccezionale, che non ha tetto tabellare.",
+            ),
+            _si_no("ci_trattamento_estetico", "Trattamento di tipo estetico"),
+        ],
+    },
+    "diffamazione": {
+        "azione": "Calcola danno",
+        "campi": [
+            _scelta(
+                "df_fascia",
+                "Gravità della diffamazione",
+                [
+                    ("tenue", "Tenue — 1.175 / 11.750 €"),
+                    ("modesta", "Modesta — 11.750 / 23.498 €"),
+                    ("media", "Media — 23.498 / 35.247 €"),
+                    ("elevata", "Elevata — 35.247 / 58.745 €"),
+                    ("eccezionale", "Eccezionale — oltre 58.745 €"),
+                ],
+                aiuto="Le cinque fasce dell'Osservatorio di Milano su 89 sentenze.",
+            ),
+            _numero("df_posizione", "Posizione nella fascia %", aiuto="0 sul minimo della fascia, 100 sul massimo."),
+            _numero(
+                "df_importo_eccezionale",
+                "Importo per la fascia eccezionale",
+                aiuto="Solo per la fascia eccezionale, che non ha tetto tabellare.",
+            ),
+            _si_no(
+                "df_riparazione",
+                "Calcola la riparazione pecuniaria",
+                aiuto="Art. 12 L. 47/1948: da un ottavo a un terzo del danno liquidato.",
+            ),
+        ],
+    },
+    "capitalizzazione_rendita": {
+        "azione": "Calcola capitale",
+        "campi": [
+            _scelta("cr_sesso", "Sesso del danneggiato", [("maschi", "Uomo"), ("femmine", "Donna")],
+                    aiuto="La tabella è distinta perché cambia la sopravvivenza attesa."),
+            _intero("cr_eta", "Età del danneggiato", massimo=100),
+            _numero("cr_reddito", "Reddito annuo perduto"),
+            _intero(
+                "cr_eta_finale",
+                "Età finale del periodo",
+                massimo=110,
+                aiuto="Per esempio l'età pensionabile o quella della presumibile indipendenza economica.",
+            ),
+            _intero("cr_anni", "Anni di perdita", aiuto="Da compilare solo se non si indica l'età finale."),
+            _numero(
+                "cr_quota_perc",
+                "Quota da risarcire %",
+                aiuto="Percentuale di invalidità lavorativa o quota di sostegno perduta. Vuoto significa 100%.",
+            ),
+        ],
+    },
     "lite_temeraria": {
         "azione": "Calcola importo",
         "campi": [

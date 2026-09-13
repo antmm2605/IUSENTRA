@@ -21,6 +21,9 @@ MILANO_2024 = "milano_2024"
 MILANO_2024_PREMORIENZA = "milano_2024_premorienza"
 MILANO_2024_TERMINALE = "milano_2024_terminale"
 MILANO_2024_PARENTALE = "milano_2024_parentale"
+MILANO_2024_CONSENSO = "milano_2024_consenso_informato"
+MILANO_2024_DIFFAMAZIONE = "milano_2024_diffamazione"
+MILANO_2024_CAPITALIZZAZIONE = "milano_2024_capitalizzazione"
 
 
 @lru_cache(maxsize=None)

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.303.0 - 13/09/2026
+
+Completate le tabelle milanesi 2024: tre nuovi strumenti dalle ultime sezioni del documento ufficiale. Il catalogo degli Strumenti legali arriva a 70 moduli.
+
+- **Consenso informato** (nuovo). Danno al diritto di autodeterminazione in ambito sanitario, autonomo rispetto al danno alla salute (Cass. 28985/2019). Quattro fasce ricavate dall'Osservatorio su 102 sentenze — da **1.162 €** a oltre **23.246 €** — ciascuna con le cinque circostanze che vi collocano il caso: entità dei postumi, sofferenza interiore, vulnerabilità del paziente, invasività e urgenza dell'intervento, gravità della violazione informativa. Nota dedicata ai trattamenti estetici.
+- **Diffamazione a mezzo stampa** (nuovo). Cinque fasce su 89 sentenze di Milano, Roma e altri dodici tribunali, da **1.175 €** a oltre **58.745 €**, con i quattordici parametri usati dalla giurisprudenza e la media del campione (30.888 € all'1.1.2024). Calcola anche la **riparazione pecuniaria dell'art. 12 L. 47/1948**, che il campione mostra liquidata fra un ottavo e un terzo del danno.
+- **Capitalizzazione di una rendita** (nuovo). Attualizza il reddito perduto — perdita di capacità lavorativa o del sostegno economico — con i coefficienti 2024 costruiti su mortalità ISTAT 2022, tassi EIOPA al 30/11/2023 e previsione MEF. **10.694 coefficienti** per età (0-100) e anni di perdita, distinti per sesso. La durata si ricava dall'età finale (pensione, indipendenza economica) e il calcolo si ferma all'orizzonte che la tabella espone, dicendolo. Sostituisce i coefficienti del r.d. 1403/1922 che la Cassazione esclude (Cass. 4186/2004, 20615/2015, 9002/2022).
+- Le tabelle estratte sono verificate per struttura: coefficienti crescenti negli anni, non crescenti con l'età, e serie femminile mai inferiore alla maschile, come impone la maggiore sopravvivenza attesa.
+- Gli esempi di calcolo che la relazione riporta citano ancora i coefficienti dell'edizione 2023 (23,55 e 10,48): i valori caricati sono quelli delle tabelle 2024 stampate nello stesso documento, e il modulo lo segnala per evitare confronti fuorvianti.
+
 ## 2.302.0 - 13/09/2026
 
 Indici ISTAT: la serie usata per tutte le rivalutazioni era sbagliata e ferma a marzo 2025. Sostituita con quella pubblicata in Gazzetta Ufficiale, aggiornata a giugno 2026 e raccordata al cambio di base.

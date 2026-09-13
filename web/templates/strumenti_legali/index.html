@@ -995,6 +995,82 @@
       {% endif %}
     {% endcall %}
 
+    {% set risultato_ci = results.get('consenso_informato') %}
+    {% call tool_section('consenso_informato', 'Consenso informato', 'bi-clipboard-heart', 'Danno al diritto di autodeterminazione: quattro fasce Milano 2024 (Cass. 28985/2019).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('consenso_informato', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Gravita della lesione del diritto</label><select name="ci_fascia" class="form-select">{% for value, label in [('lieve','Lieve — 1.162 / 4.649 €'),('media','Media — 4.650 / 10.460 €'),('grave','Grave — 10.461 / 23.245 €'),('eccezionale','Eccezionale — oltre 23.246 €')] %}<option value="{{ value }}" {{ 'selected' if form_state.ci_fascia == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Posizione nella fascia %</label><input type="number" step="1" min="0" max="100" name="ci_posizione" class="form-control" value="{{ form_state.ci_posizione }}"></div>
+        <div class="col-md-2"><label class="form-label">Importo eccezionale</label><input type="number" step="0.01" min="0" name="ci_importo_eccezionale" class="form-control" value="{{ form_state.ci_importo_eccezionale }}"></div>
+        <div class="col-md-2"><label class="form-label">Trattamento estetico</label><select name="ci_trattamento_estetico" class="form-select"><option value="0" {{ 'selected' if form_state.ci_trattamento_estetico != '1' }}>No</option><option value="1" {{ 'selected' if form_state.ci_trattamento_estetico == '1' }}>Si</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-clipboard-heart me-2"></i>Calcola danno</button></div>
+      </form>
+      {% if risultato_ci %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Fascia', risultato_ci.fascia_label) }}
+        {{ metric_box('Minimo', risultato_ci.importo_minimo|euro) }}
+        {{ metric_box('Massimo', risultato_ci.importo_massimo|euro if risultato_ci.importo_massimo else 'senza tetto') }}
+        {{ metric_box('Importo proposto', risultato_ci.importo_proposto|euro) }}
+      </div>
+      <div class="tool-soft-panel mt-3"><div class="tool-soft-title">Circostanze della fascia</div><ul class="mb-0">{% for c in risultato_ci.criteri %}<li>{{ c }}</li>{% endfor %}</ul></div>
+      {{ render_tabelle(risultato_ci.tabelle_applicate) }}
+      {{ render_messages(risultato_ci.notes, risultato_ci.warnings) }}
+      {{ render_sources(risultato_ci.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_df = results.get('diffamazione') %}
+    {% call tool_section('diffamazione', 'Diffamazione a mezzo stampa', 'bi-newspaper', 'Cinque fasce Milano 2024 e riparazione pecuniaria ex art. 12 L. 47/1948.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('diffamazione', fascicolo_sel) }}
+        <div class="col-md-5"><label class="form-label">Gravita della diffamazione</label><select name="df_fascia" class="form-select">{% for value, label in [('tenue','Tenue — 1.175 / 11.750 €'),('modesta','Modesta — 11.750 / 23.498 €'),('media','Media — 23.498 / 35.247 €'),('elevata','Elevata — 35.247 / 58.745 €'),('eccezionale','Eccezionale — oltre 58.745 €')] %}<option value="{{ value }}" {{ 'selected' if form_state.df_fascia == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Posizione nella fascia %</label><input type="number" step="1" min="0" max="100" name="df_posizione" class="form-control" value="{{ form_state.df_posizione }}"></div>
+        <div class="col-md-2"><label class="form-label">Importo eccezionale</label><input type="number" step="0.01" min="0" name="df_importo_eccezionale" class="form-control" value="{{ form_state.df_importo_eccezionale }}"></div>
+        <div class="col-md-2"><label class="form-label">Riparazione pecuniaria</label><select name="df_riparazione" class="form-select"><option value="0" {{ 'selected' if form_state.df_riparazione != '1' }}>No</option><option value="1" {{ 'selected' if form_state.df_riparazione == '1' }}>Si</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-newspaper me-2"></i>Calcola danno</button></div>
+      </form>
+      {% if risultato_df %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Fascia', risultato_df.fascia_label) }}
+        {{ metric_box('Importo proposto', risultato_df.importo_proposto|euro, 'media del campione ' ~ risultato_df.importo_medio_campione|euro) }}
+        {{ metric_box('Riparazione minima', risultato_df.riparazione_pecuniaria.minimo|euro, 'un ottavo') }}
+        {{ metric_box('Riparazione massima', risultato_df.riparazione_pecuniaria.massimo|euro, 'un terzo') }}
+      </div>
+      <div class="row g-3 mt-3">
+        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Circostanze della fascia</div><ul class="mb-0">{% for c in risultato_df.criteri %}<li>{{ c }}</li>{% endfor %}</ul></div></div>
+        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Parametri usati dalla giurisprudenza</div><ul class="mb-0 small">{% for c in risultato_df.parametri_giurisprudenziali %}<li>{{ c }}</li>{% endfor %}</ul></div></div>
+      </div>
+      {{ render_tabelle(risultato_df.tabelle_applicate) }}
+      {{ render_messages(risultato_df.notes, risultato_df.warnings) }}
+      {{ render_sources(risultato_df.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_cr = results.get('capitalizzazione_rendita') %}
+    {% call tool_section('capitalizzazione_rendita', 'Capitalizzazione di una rendita', 'bi-graph-up', 'Attualizzazione del reddito perduto con i coefficienti Milano 2024 (Cass. 9002/2022).') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('capitalizzazione_rendita', fascicolo_sel) }}
+        <div class="col-md-2"><label class="form-label">Sesso</label><select name="cr_sesso" class="form-select"><option value="maschi" {{ 'selected' if form_state.cr_sesso == 'maschi' }}>Uomo</option><option value="femmine" {{ 'selected' if form_state.cr_sesso == 'femmine' }}>Donna</option></select></div>
+        <div class="col-md-2"><label class="form-label">Eta</label><input type="number" min="0" max="100" name="cr_eta" class="form-control" value="{{ form_state.cr_eta }}"></div>
+        <div class="col-md-3"><label class="form-label">Reddito annuo perduto</label><input type="number" step="0.01" min="0" name="cr_reddito" class="form-control" value="{{ form_state.cr_reddito }}"></div>
+        <div class="col-md-2"><label class="form-label">Eta finale</label><input type="number" min="0" max="110" name="cr_eta_finale" class="form-control" value="{{ form_state.cr_eta_finale }}"></div>
+        <div class="col-md-2"><label class="form-label">Anni di perdita</label><input type="number" min="0" name="cr_anni" class="form-control" value="{{ form_state.cr_anni }}"></div>
+        <div class="col-md-2"><label class="form-label">Quota da risarcire %</label><input type="number" step="0.01" min="0" max="100" name="cr_quota_perc" class="form-control" value="{{ form_state.cr_quota_perc }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-graph-up me-2"></i>Calcola capitale</button></div>
+      </form>
+      {% if risultato_cr %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Coefficiente', risultato_cr.coefficiente, risultato_cr.sesso_label ~ ', ' ~ risultato_cr.eta ~ ' anni') }}
+        {{ metric_box('Anni applicati', risultato_cr.anni_applicati, risultato_cr.periodo) }}
+        {{ metric_box('Capitale', risultato_cr.capitale|euro) }}
+        {{ metric_box('Quota da risarcire', risultato_cr.capitale_quota|euro, risultato_cr.quota_perc ~ '%') }}
+      </div>
+      {{ render_tabelle(risultato_cr.tabelle_applicate) }}
+      {{ render_messages(risultato_cr.notes, risultato_cr.warnings) }}
+      {{ render_sources(risultato_cr.sources) }}
+      {% endif %}
+    {% endcall %}
+
     {% set risultato_lt = results.get('lite_temeraria') %}
     {% call tool_section('lite_temeraria', 'Lite temeraria — art. 96 comma 3 c.p.c.', 'bi-exclamation-diamond', 'Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.') %}
       <form method="post" class="row g-3 tool-form-grid">

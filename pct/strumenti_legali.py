@@ -20,7 +20,10 @@ from pct.calcolatori import (
     danno_biologico as calc_danno_biologico,
     danno_parentale as calc_danno_parentale,
     danno_premorienza as calc_danno_premorienza,
+    capitalizzazione_rendita as calc_capitalizzazione,
+    consenso_informato as calc_consenso_informato,
     danno_terminale as calc_danno_terminale,
+    diffamazione as calc_diffamazione,
     lite_temeraria as calc_lite_temeraria,
     fiscale_detrazioni as calc_fiscale_detrazioni,
     fiscale_irpef as calc_fiscale_irpef,
@@ -194,6 +197,9 @@ class GestioneStrumentiLegali:
             {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabelle integrate a punti Milano 2024, con i cinque parametri di Cass. 10579/2021.", "icon": "bi-people", "categoria": "Danni"},
             {"id": "danno_premorienza", "title": "Danno da premorienza", "subtitle": "Menomazione permanente e morte per causa diversa prima della liquidazione (Milano 2024).", "icon": "bi-hourglass", "categoria": "Danni"},
             {"id": "lite_temeraria", "title": "Lite temeraria — art. 96 comma 3 c.p.c.", "subtitle": "Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.", "icon": "bi-exclamation-diamond", "categoria": "Processo"},
+            {"id": "consenso_informato", "title": "Consenso informato", "subtitle": "Danno al diritto di autodeterminazione: quattro fasce Milano 2024 (Cass. 28985/2019).", "icon": "bi-clipboard-heart", "categoria": "Danni"},
+            {"id": "diffamazione", "title": "Diffamazione a mezzo stampa", "subtitle": "Cinque fasce Milano 2024 e riparazione pecuniaria ex art. 12 L. 47/1948.", "icon": "bi-newspaper", "categoria": "Danni"},
+            {"id": "capitalizzazione_rendita", "title": "Capitalizzazione di una rendita", "subtitle": "Attualizzazione del reddito perduto con i coefficienti Milano 2024 (Cass. 9002/2022).", "icon": "bi-graph-up", "categoria": "Danni"},
             {"id": "danno_terminale", "title": "Danno terminale", "subtitle": "Sofferenza fra lesioni e decesso, tabella Milano 2024 (Cass. S.U. 15350/2015).", "icon": "bi-heartbreak", "categoria": "Danni"},
             {"id": "usufrutto", "title": "Usufrutto e nuda proprietà", "subtitle": "Valore fiscale con le fasce d'età del D.P.R. 131/1986 e il tasso legale corrente.", "icon": "bi-house-heart", "categoria": "Patrimonio"},
             {"id": "quote_riserva", "title": "Quote di riserva legittimari", "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.", "icon": "bi-shield-check", "categoria": "Patrimonio"},
@@ -399,6 +405,23 @@ class GestioneStrumentiLegali:
             "dp_convivenza": "convivenza",
             "dp_superstiti": "0",
             "dp_qualita_relazione": "ordinaria",
+            # Consenso informato
+            "ci_fascia": "media",
+            "ci_posizione": "50",
+            "ci_importo_eccezionale": "",
+            "ci_trattamento_estetico": "0",
+            # Diffamazione
+            "df_fascia": "media",
+            "df_posizione": "50",
+            "df_importo_eccezionale": "",
+            "df_riparazione": "0",
+            # Capitalizzazione di una rendita
+            "cr_sesso": "maschi",
+            "cr_eta": "",
+            "cr_reddito": "",
+            "cr_eta_finale": "",
+            "cr_anni": "",
+            "cr_quota_perc": "100",
             # Somma equitativa art. 96 comma 3 c.p.c.
             "lt_compenso": "",
             "lt_parti": "1",
@@ -1542,6 +1565,15 @@ class GestioneStrumentiLegali:
 
     def calcola_lite_temeraria(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_lite_temeraria.calcola(payload)
+
+    def calcola_consenso_informato(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_consenso_informato.calcola(payload)
+
+    def calcola_diffamazione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_diffamazione.calcola(payload)
+
+    def calcola_capitalizzazione_rendita(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_capitalizzazione.calcola(payload)
 
     def calcola_usufrutto(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_usufrutto.calcola(payload, self.norme)

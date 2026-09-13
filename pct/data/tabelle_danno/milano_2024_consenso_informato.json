@@ -1,0 +1,73 @@
+{
+ "id": "milano_2024_consenso_informato",
+ "nome": "Danno da mancato o carente consenso informato — Milano 2024",
+ "riferimento_normativo": "Osservatorio sulla giustizia civile di Milano, edizione 2024, su un campione di 102 sentenze di merito. Diritto all'autodeterminazione in ambito sanitario: art. 32 Cost., artt. 1 e 3 L. 22 dicembre 2017 n. 219; autonomia del danno da lesione del diritto di autodeterminarsi rispetto al danno alla salute (Cass. civ. n. 28985/2019).",
+ "pubblicazione": "Tribunale di Milano, area 'Tabelle Milano', documento P. 7599/24 del 4 giugno 2024",
+ "url_ufficiale": "https://tribunale-milano.giustizia.it/cmsresources/cms/documents/P._7599_24.pdf",
+ "data_consultazione": "2026-09-13",
+ "ambito": "Danno al diritto di autodeterminazione per trattamento sanitario non preceduto da consenso valido.",
+ "nota_rivalutazione": "Importi rivalutati secondo gli indici ISTAT dall'1.1.2021 all'1.1.2024, con coefficiente di rivalutazione 1,162268.",
+ "nota_estetica": "Per i trattamenti di tipo estetico il campione mostra una media di 6.000,00 € su nove sentenze, con quattro casi nella prima fascia, tre nella seconda e due nella terza: la non necessita' del trattamento per la salute accentua il rilievo del consenso.",
+ "fasce": [
+  {
+   "id": "lieve",
+   "label": "Lieve entita'",
+   "minimo": 1162.0,
+   "massimo": 4649.0,
+   "quota_campione_pct": 27.5,
+   "sentenze": 28,
+   "criteri": [
+    "Postumi e sofferenze fisiche irrilevanti o molto modesti, senza necessita' di trattamenti riparatori",
+    "Tenue sofferenza interiore per gli esiti e per la lesione del diritto",
+    "Paziente non vulnerabile per eta', stato di salute o condizioni personali",
+    "Intervento poco invasivo, molto urgente o senza alternative terapeutiche",
+    "Violazione modesta dell'obbligo informativo (informazione fornita con carenze lievi)"
+   ]
+  },
+  {
+   "id": "media",
+   "label": "Media entita'",
+   "minimo": 4650.0,
+   "massimo": 10460.0,
+   "quota_campione_pct": 28.5,
+   "sentenze": 29,
+   "criteri": [
+    "Postumi e sofferenze di media entita', con un trattamento riparatorio non invasivo",
+    "Sofferenza interiore di media entita'",
+    "Paziente non particolarmente vulnerabile",
+    "Intervento di media invasivita', abbastanza urgente, con poche alternative",
+    "Violazione degli obblighi informativi di media entita' (informazione con carenze importanti)"
+   ]
+  },
+  {
+   "id": "grave",
+   "label": "Grave entita'",
+   "minimo": 10461.0,
+   "massimo": 23245.0,
+   "quota_campione_pct": 34.0,
+   "sentenze": 35,
+   "criteri": [
+    "Postumi e sofferenze gravi, con uno o piu' trattamenti riparatori anche invasivi",
+    "Grave sofferenza interiore (per esempio frustrazione di aspettative procreative)",
+    "Paziente vulnerabile per eta', storia clinica o condizioni personali",
+    "Intervento invasivo, non urgente, con diverse alternative terapeutiche",
+    "Grave violazione dell'obbligo informativo (informazione del tutto assente)"
+   ]
+  },
+  {
+   "id": "eccezionale",
+   "label": "Eccezionale entita'",
+   "minimo": 23246.0,
+   "massimo": null,
+   "quota_campione_pct": 10.0,
+   "sentenze": 10,
+   "criteri": [
+    "Sofferenze o postumi di notevole entita' o irreversibili, fino al decesso del paziente",
+    "Gravissima sofferenza interiore (per esempio trasfusione a paziente Testimone di Geova)",
+    "Paziente molto vulnerabile, anche per stato di minorazione psichica",
+    "Intervento molto invasivo, per nulla urgente, con molte alternative terapeutiche",
+    "Gravissima violazione dell'obbligo informativo (nessuna informazione per piu' trattamenti)"
+   ]
+  }
+ ]
+}

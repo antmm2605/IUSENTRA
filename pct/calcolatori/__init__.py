@@ -10,6 +10,12 @@ Ogni modulo copre una materia con base normativa dichiarata nel docstring:
 - ``danno_parentale``: perdita del rapporto parentale (Tabelle Milano 2024).
 - ``danno_premorienza``: lesione del bene salute definita da premorienza
   (Tabelle Milano 2024).
+- ``consenso_informato``: danno al diritto di autodeterminazione in ambito
+  sanitario (Tabelle Milano 2024; Cass. 28985/2019).
+- ``diffamazione``: danno da diffamazione a mezzo stampa e riparazione
+  pecuniaria ex art. 12 L. 47/1948 (Tabelle Milano 2024).
+- ``capitalizzazione_rendita``: attualizzazione della rendita perduta
+  (Tabelle Milano 2024; Cass. 9002/2022).
 - ``lite_temeraria``: somma equitativa per abuso del processo (art. 96,
   comma 3, c.p.c.; criteri Osservatorio di Milano 2024).
 - ``danno_terminale``: sofferenza fra lesioni e decesso (Tabelle Milano 2024;
@@ -39,11 +45,14 @@ L'orchestrazione applicativa resta in ``pct.strumenti_legali``.
 """
 from pct.calcolatori import (  # noqa: F401
     assegno_mantenimento,
+    capitalizzazione_rendita,
+    consenso_informato,
     competenza_valore,
     compenso_a_tempo_calc,
     crediti_lavoro,
     danno_biologico,
     danno_parentale,
+    diffamazione,
     danno_premorienza,
     danno_terminale,
     impugnazioni,
@@ -60,11 +69,14 @@ from pct.calcolatori import (  # noqa: F401
 
 __all__ = [
     "assegno_mantenimento",
+    "capitalizzazione_rendita",
+    "consenso_informato",
     "competenza_valore",
     "compenso_a_tempo_calc",
     "crediti_lavoro",
     "danno_biologico",
     "danno_parentale",
+    "diffamazione",
     "danno_premorienza",
     "danno_terminale",
     "impugnazioni",

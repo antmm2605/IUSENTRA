@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.305.1 - 13/09/2026
+
+Correzione del rilevamento del foglio introdotto nella 2.305.0, mai arrivata in produzione perché la CI l'ha fermata.
+
+- **L'appiattimento dell'illuminazione cancellava il foglio su scrivania chiara.** Il raggio con cui si stima lo sfondo era un ottavo del lato corto, quindi più piccolo del foglio inquadrato: lo «sfondo» stimato coincideva con la pagina stessa e dopo la sottrazione restavano solo le righe di testo, così il riquadro si chiudeva su una striscia interna invece che sul foglio. Il raggio è ora metà del lato corto — la luce varia sulla scala dell'inquadratura, la pagina no — e la sfocatura a box è a somma scorrevole, quindi un raggio grande non costa più di uno piccolo.
+- **Nuovo test di regressione sulla luce laterale**, il caso che nessun test copriva: foglio ripreso con una lampada su un lato, su scrivania scura, molto scura e chiara. Sull'ultima combinazione il codice precedente alla 2.305.0 non trovava affatto il foglio; ora l'errore massimo sugli angoli resta sotto i 25 px.
+- **Il gate locale ora esegue tutto ciò che esegue la CI sul frontend.** Mancavano la suite `node --test` (acquisizione, cattura documenti, elenco documenti) e tre controlli (`check-notifiche-legali-presidi`, `check-studio-voice-assistant`, `check-storybook-page-coverage`): è per questo che una regressione del rilevamento ha superato il gate locale ed è stata fermata solo dalla CI.
+
 ## 2.305.0 - 13/09/2026
 
 Acquisizione documenti dall'editor degli atti: rilevamento del foglio da telefono, riconoscimento del testo di livello professionale, revisione modificabile prima di portare il testo nell'atto e ricerca del fascicolo per nome del cliente.

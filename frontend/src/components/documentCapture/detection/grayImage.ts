@@ -94,7 +94,12 @@ export function otsuThreshold(values: ArrayLike<number>): number {
  * globale la metà in ombra finisce fuori dal foglio.
  */
 export function flattenIllumination(image: GrayImage): GrayImage {
-  const radius = Math.max(6, Math.round(Math.min(image.width, image.height) / 8))
+  // Il raggio deve essere piu' grande del foglio, non piu' piccolo: la luce
+  // varia sulla scala dell'inquadratura, la pagina no. Con un raggio corto lo
+  // sfondo stimato coincide con la pagina stessa e la pagina sparisce, restando
+  // solo le righe di testo. La sfocatura a box e' a somma scorrevole, quindi un
+  // raggio grande non costa piu' di uno piccolo.
+  const radius = Math.max(6, Math.round(Math.min(image.width, image.height) / 2))
   const background = boxBlur(boxBlur(image, radius), radius)
   const data = new Uint8ClampedArray(image.width * image.height)
   for (let index = 0; index < data.length; index += 1) {

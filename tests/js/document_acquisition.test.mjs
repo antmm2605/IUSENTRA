@@ -25,7 +25,9 @@ function inside(point, quad) {
   return true
 }
 
-function syntheticFrame(width, height, quad, background, paper) {
+// `caduta` simula la luce di lato: la scena si scurisce progressivamente verso
+// destra, come con una lampada da scrivania su un lato del foglio.
+function syntheticFrame(width, height, quad, background, paper, caduta = 0) {
   const data = new Uint8ClampedArray(width * height * 4)
   let seed = 11
   const noise = () => { seed = (seed * 16807) % 2147483647; return (seed / 2147483647) - 0.5 }
@@ -36,6 +38,7 @@ function syntheticFrame(width, height, quad, background, paper) {
       let value = onPaper ? paper : background
       if (onPaper && y % 14 < 2 && x % 40 < 30) value = 40
       value += noise() * 18
+      value -= caduta * (x / width)
       data[offset] = value; data[offset + 1] = value; data[offset + 2] = value; data[offset + 3] = 255
     }
   }
@@ -50,6 +53,22 @@ test('rilevamento: trova i quattro angoli del foglio su sfondi scuri e chiari', 
     assert.ok(found, `foglio non rilevato su sfondo ${background}`)
     found.quad.forEach((point, index) => {
       assert.ok(Math.hypot((point.x * 2) - quad[index].x, (point.y * 2) - quad[index].y) < tolerance, `angolo ${index} fuori tolleranza`)
+    })
+  }
+})
+
+// La ripresa da telefono e' quasi sempre a luce laterale: senza l'appiattimento
+// dell'illuminazione la meta' in ombra finisce fuori dal foglio, e su una
+// scrivania chiara il foglio non viene proprio trovato.
+test('rilevamento: regge la luce di lato, anche su scrivania chiara', () => {
+  const quad = [{ x: 150, y: 60 }, { x: 500, y: 90 }, { x: 470, y: 430 }, { x: 120, y: 400 }]
+  for (const [background, paper, caduta] of [[90, 235, 120], [60, 230, 190], [190, 245, 150]]) {
+    const gray = rgbaToGray(syntheticFrame(640, 480, quad, background, paper, caduta), 640, 480, 320)
+    const found = detectDocumentQuad(gray)
+    assert.ok(found, `foglio non rilevato con caduta di luce ${caduta} su sfondo ${background}`)
+    found.quad.forEach((point, index) => {
+      const scostamento = Math.hypot((point.x * 2) - quad[index].x, (point.y * 2) - quad[index].y)
+      assert.ok(scostamento < 25, `angolo ${index} fuori tolleranza con caduta ${caduta}: ${scostamento.toFixed(1)} px`)
     })
   }
 })

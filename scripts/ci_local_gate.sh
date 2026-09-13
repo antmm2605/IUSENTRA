@@ -138,11 +138,19 @@ step "Governance repo"           python3 tools/check_repo_governance.py
 # 2. Gate frontend — la CI esegue TUTTI questi script, non solo i contratti
 #    (pnpm --filter @iusentra/studio test)
 # ---------------------------------------------------------------------------
+# Suite `node --test` eseguita dalla CI dentro `pnpm --filter @iusentra/studio
+# test`: copre rilevamento del foglio, acquisizione, OCR ed elenco documenti.
+# Lezione del 13/09/2026: il gate locale non la eseguiva e una regressione del
+# rilevamento su sfondo chiaro e' arrivata fino alla CI.
+step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs tests/js/fascicolo_document_list.test.mjs tests/js/document_acquisition.test.mjs
 step "React contracts"           node frontend/scripts/check-react-contracts.mjs
+step "Presidi notifiche legali"  node frontend/scripts/check-notifiche-legali-presidi.mjs
 step "UI preset sequence"        node scripts/react-migration/audit-ui-preset-sequence.mjs
 step "Design system governance"  node scripts/react-migration/check-design-system-governance.mjs
 step "App V2 frontend"           node frontend/scripts/check-app-v2-frontend.mjs
+step "Assistente vocale studio"  node frontend/scripts/check-studio-voice-assistant.mjs
 step "Legal skills"              node frontend/scripts/check-legal-skills.mjs
+step "Storybook page coverage"   node frontend/scripts/check-storybook-page-coverage.mjs
 step "UI coverage"               python3 scripts/validate_ui_coverage.py
 step "TypeScript typecheck"      npm --prefix frontend run typecheck --silent
 step "Vite build"                npm --prefix frontend run build:vite --silent

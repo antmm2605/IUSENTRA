@@ -161,6 +161,13 @@ def build_signature_evidence_pack(
     return payload
 
 
+JPEG_MAGIC = b"\xff\xd8\xff"
+
+
+def is_jpeg_bytes(data: bytes) -> bool:
+    return bool(data) and data[:3] == JPEG_MAGIC
+
+
 def apply_visible_signature_stamp(
     pdf_bytes: bytes,
     *,
@@ -172,11 +179,14 @@ def apply_visible_signature_stamp(
     y_mm: float = 12.0,
     width_mm: float = 85.0,
     height_mm: float = 26.0,
+    signature_image: bytes = b"",
 ) -> bytes:
     """Applica un timbro di firma visibile su una nuova copia del PDF.
 
     - Non muta i byte originali (input trattato come immutabile).
     - Produce una nuova versione con riquadro firma su una pagina (default ultima).
+    - `signature_image` opzionale: tratto firma come JPEG (unico formato che
+      ReportLab decodifica senza Pillow); immagine non valida → timbro solo testo.
     - Fallisce in modo sicuro su PDF cifrato/corrotto/non valido.
     """
 
@@ -210,22 +220,49 @@ def apply_visible_signature_stamp(
     except Exception as exc:  # pragma: no cover - dipende dall'ambiente
         raise SignatureProviderError("Libreria di rendering non disponibile per la firma.") from exc
 
+    # Il riquadro deve restare dentro la pagina anche con coordinate scelte dal
+    # cliente: clamp difensivo prima del disegno.
+    w = max(20.0 * mm, min(width_mm * mm, page_w - 2 * mm))
+    h = max(12.0 * mm, min(height_mm * mm, page_h - 2 * mm))
+    x = max(1.0 * mm, min(x_mm * mm, page_w - w - 1.0 * mm))
+    y = max(1.0 * mm, min(y_mm * mm, page_h - h - 1.0 * mm))
+
     overlay_buffer = io.BytesIO()
     pdf_canvas = canvas.Canvas(overlay_buffer, pagesize=(page_w, page_h))
-    x = x_mm * mm
-    y = y_mm * mm
-    w = width_mm * mm
-    h = height_mm * mm
     pdf_canvas.setLineWidth(0.8)
     pdf_canvas.rect(x, y, w, h, stroke=1, fill=0)
     pdf_canvas.setFont("Helvetica-Bold", 8)
     pdf_canvas.drawString(x + 4, y + h - 11, "Firma elettronica del cliente")
+    image_applied = False
+    if signature_image and is_jpeg_bytes(signature_image):
+        try:
+            from reportlab.lib.utils import ImageReader
+
+            image = ImageReader(io.BytesIO(signature_image))
+            image_area_y = y + 14
+            image_area_h = max(h - 26, 8)
+            pdf_canvas.drawImage(
+                image,
+                x + 4,
+                image_area_y,
+                width=w - 8,
+                height=image_area_h,
+                preserveAspectRatio=True,
+                anchor="sw",
+            )
+            image_applied = True
+        except Exception:
+            # Immagine illeggibile: si degrada al timbro solo testo, mai errore.
+            image_applied = False
     pdf_canvas.setFont("Helvetica", 7)
-    pdf_canvas.drawString(x + 4, y + h - 21, (signer_name or "")[:60])
+    if not image_applied:
+        pdf_canvas.drawString(x + 4, y + h - 21, (signer_name or "")[:60])
+    else:
+        pdf_canvas.drawString(x + 4, y + h - 19, (signer_name or "")[:60])
     if when_label:
-        pdf_canvas.drawString(x + 4, y + 12, when_label[:60])
+        pdf_canvas.drawString(x + 4, y + 8, when_label[:60])
     if reference:
-        pdf_canvas.drawString(x + 4, y + 4, ("Rif. " + reference)[:60])
+        pdf_canvas.drawString(x + 4, y + 2, ("Rif. " + reference)[:60])
     pdf_canvas.showPage()
     pdf_canvas.save()
     overlay_buffer.seek(0)
@@ -277,17 +314,31 @@ class InternalGraphicSignatureProvider:
         user_agent: str = "",
         token: str = "",
         signature_coordinates: dict[str, Any] | None = None,
+        signature_image: bytes = b"",
         **_: Any,
     ) -> SignatureResult:
         original_sha = sha256_hex(pdf_bytes) if pdf_bytes else ""
         signed_pdf = None
         signed_sha = ""
+        coordinates = dict(signature_coordinates or {})
+        usable_image = signature_image if is_jpeg_bytes(signature_image) else b""
+        extra: dict[str, Any] = {}
+        if signature_image and not usable_image:
+            extra["stampFallback"] = "testo"
+        if usable_image:
+            extra["signatureImageSha256"] = sha256_hex(usable_image)
         if pdf_bytes:
             signed_pdf = apply_visible_signature_stamp(
                 pdf_bytes,
                 signer_name=signer_name or "Cliente",
                 when_label=when_label,
                 reference=reference,
+                page_index=int(coordinates.get("pageIndex", -1) or -1),
+                x_mm=float(coordinates.get("xMm", 110.0) or 110.0),
+                y_mm=float(coordinates.get("yMm", 12.0) or 12.0),
+                width_mm=float(coordinates.get("widthMm", 85.0) or 85.0),
+                height_mm=float(coordinates.get("heightMm", 26.0) or 26.0),
+                signature_image=usable_image,
             )
             signed_sha = sha256_hex(signed_pdf)
         evidence = build_signature_evidence_pack(
@@ -303,10 +354,11 @@ class InternalGraphicSignatureProvider:
             declaration=declaration,
             original_sha256=original_sha,
             signed_sha256=signed_sha,
-            signature_coordinates=signature_coordinates,
+            signature_coordinates=coordinates,
             ip=ip,
             user_agent=user_agent,
             token=token,
+            extra=extra,
         )
         return SignatureResult(
             provider=self.name,
@@ -454,6 +506,7 @@ __all__ = [
     "QualifiedSignatureProviderStub",
     "build_signature_evidence_pack",
     "apply_visible_signature_stamp",
+    "is_jpeg_bytes",
     "redact_ip",
     "token_reference",
     "sha256_hex",

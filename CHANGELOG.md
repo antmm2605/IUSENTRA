@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.306.1 - 13/09/2026
+
+Verifica e chiusura operativa del workflow firma nel Portale Cliente, mantenuto nascosto in produzione finché il flag `routes.appV2.clientPortal.signingWorkflow` resta spento.
+
+- **Portale Cliente:** il riepilogo del percorso completato permette di riaprire le sezioni già concluse, inclusa identità e conferimento, così ricevuta, documento e firma restano verificabili anche dopo la chiusura del flusso.
+- **Documento di identità:** il documento caricato durante il workflow firma soddisfa la richiesta standard “Documento di identità”, aggiorna le azioni aperte e mostra allo studio lo stato reale fino ad “Approvato” invece di duplicare il file tra i documenti non richiesti.
+- **Preventivo:** gli importi esposti nel passaggio di accettazione usano il formato italiano con simbolo euro, coerente con il resto di IUSENTRA.
+- **Test:** estesa la suite del Portale Cliente per coprire upload identità, stato richiesta, conteggio azioni aperte e approvazione lato studio.
+
 ## 2.305.2 - 13/09/2026
 
 Allineati alla riscrittura dell'OCR i due moduli di test che ancora si aspettavano l'interfaccia precedente, e chiuso il buco del gate locale che li aveva lasciati passare.

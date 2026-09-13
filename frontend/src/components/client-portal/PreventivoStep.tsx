@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Download, FileCheck2, FileX2 } from 'lucide-react'
 import { clientPortalDocumentUrl } from '../../clientPortalData'
 import { acceptPreventivo, declinePreventivo, type PreventivoSummary, type SigningConsentsPayload } from '../../clientPortalSigning'
+import { formatEuroIt } from '../../formatting'
 
 type PreventivoStepProps = {
   preventivi: PreventivoSummary[]
@@ -10,7 +11,7 @@ type PreventivoStepProps = {
 }
 
 function euro(value: number): string {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value || 0)
+  return formatEuroIt(value || 0)
 }
 
 const STATO_LABEL: Record<string, string> = {

@@ -529,11 +529,43 @@ def test_identita_richiede_consenso_poi_upload_e_review(tmp_path: Path):
 
     secondo = _upload()
     assert secondo.status_code == 200
+    secondo_id = secondo.get_json()["item"]["id"]
     with sqlite3.connect(_portal_db_path(tmp_path)) as conn:
         status_primo = conn.execute(
             "SELECT status FROM client_portal_documents WHERE id = ?", (primo_id,)
         ).fetchone()[0]
     assert status_primo == "sostituito"
+
+    dashboard = client.get(
+        "/api/v1/ui/client-portal/public/dashboard",
+        headers=_headers(token),
+    )
+    dashboard_payload = dashboard.get_json()
+    identity_request = next(
+        item for item in dashboard_payload["documentRequests"] if item["title"] == "Documento di identità"
+    )
+    assert identity_request["status"] == "ricevuto"
+    assert identity_request["document_id"] == secondo_id
+    assert identity_request["document_request_id"] == "documento-identita"
+    assert dashboard_payload["activityCenter"]["openItems"] == (
+        len([item for item in dashboard_payload["consents"] if not int(item.get("accepted") or 0)])
+        + len([item for item in dashboard_payload["questionnaires"] if item.get("status") == "aperto"])
+    )
+
+    review = client.post(
+        f"/api/v1/ui/client-portal/studio/documents/{secondo_id}/review",
+        json={"decision": "approvato", "note": "Documento leggibile."},
+    )
+    assert review.status_code == 200
+    dashboard_approvato = client.get(
+        "/api/v1/ui/client-portal/public/dashboard",
+        headers=_headers(token),
+    ).get_json()
+    identity_request_approvata = next(
+        item for item in dashboard_approvato["documentRequests"] if item["title"] == "Documento di identità"
+    )
+    assert identity_request_approvata["status"] == "approvato"
+    assert identity_request_approvata["document_status"] == "approvato"
 
     formato = client.post(
         "/api/v1/ui/client-portal/public/signing/identity-document",

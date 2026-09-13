@@ -8,6 +8,7 @@ import hmac
 import mimetypes
 import re
 import secrets
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -41,6 +42,8 @@ CLIENT_PORTAL_ENV_KEYS = ("IUSENTRA_CLIENT_PORTAL_DATABASE_URL", "CLIENT_PORTAL_
 ROME = ZoneInfo("Europe/Rome")
 NON_OPERATIONAL_PORTAL_WORDS = ("demo", "sample", "mock")
 CLIENT_PORTAL_PUBLIC_ERROR = "Accesso cliente non valido o non più disponibile."
+SIGNING_IDENTITY_DOCUMENT_REQUEST_ID = "documento-identita"
+CLIENT_DOCUMENT_SATISFIED_STATUSES = {"caricato", "generato", "in_revisione", "approvato", "firmato_definitivo"}
 
 
 def _text(value: Any, default: str = "") -> str:
@@ -367,6 +370,64 @@ def _public_rows(rows: list[dict[str, Any]], *, include_private: bool = False) -
     return [_public_row(row, include_private=include_private) for row in rows]
 
 
+def _normalized_portal_label(value: Any) -> str:
+    normalized = unicodedata.normalize("NFKD", _text(value).casefold())
+    return "".join(char for char in normalized if not unicodedata.combining(char))
+
+
+def _is_identity_document_request(row: dict[str, Any]) -> bool:
+    label = _normalized_portal_label(f"{row.get('title', '')} {row.get('description', '')}")
+    return "identita" in label and ("documento" in label or "carta" in label)
+
+
+def _document_satisfies_request(document: dict[str, Any], request_row: dict[str, Any]) -> bool:
+    if _text(document.get("matter_id")) != _text(request_row.get("matter_id")):
+        return False
+    if _text(document.get("status")) not in CLIENT_DOCUMENT_SATISFIED_STATUSES:
+        return False
+    request_id = _text(request_row.get("id"))
+    document_request_id = _text(document.get("request_id"))
+    if request_id and document_request_id == request_id:
+        return True
+    return document_request_id == SIGNING_IDENTITY_DOCUMENT_REQUEST_ID and _is_identity_document_request(request_row)
+
+
+def _matching_document_for_request(request_row: dict[str, Any], documents: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return next((document for document in documents if _document_satisfies_request(document, request_row)), None)
+
+
+def _shape_document_requests(
+    requests_rows: list[dict[str, Any]],
+    documents: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    shaped: list[dict[str, Any]] = []
+    for request_row in requests_rows:
+        item = dict(request_row or {})
+        document = _matching_document_for_request(item, documents)
+        if document:
+            document_status = _text(document.get("status"))
+            item["document_id"] = _text(document.get("id"))
+            item["document_filename"] = _text(document.get("filename"))
+            item["document_status"] = document_status
+            item["document_request_id"] = _text(document.get("request_id"))
+            if document_status == "approvato":
+                item["status"] = "approvato"
+            elif _text(item.get("status")) == "richiesto":
+                item["status"] = "ricevuto"
+        shaped.append(item)
+    return shaped
+
+
+def _pending_document_requests(requests_rows: list[dict[str, Any]], documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    done_statuses = {"caricato", "ricevuto", "approvato"}
+    return [
+        item
+        for item in requests_rows
+        if _text(item.get("status")) not in done_statuses
+        and _matching_document_for_request(item, documents) is None
+    ]
+
+
 def _features_payload() -> dict[str, bool]:
     keys = (
         "routes.appV2.clientPortal.enabled",
@@ -381,18 +442,22 @@ def _features_payload() -> dict[str, bool]:
 
 def _shape_dashboard(snapshot: dict[str, Any]) -> dict[str, Any]:
     profiles = {_text(row.get("client_id")): _public_row(row, include_private=True) for row in snapshot.get("profiles", [])}
+    documents = list(snapshot.get("documents", []) or [])
+    document_requests = _shape_document_requests(list(snapshot.get("documentRequests", []) or []), documents)
+    summary = dict(snapshot.get("summary", {}) or {})
+    summary["pendingDocuments"] = len(_pending_document_requests(document_requests, documents))
     matters = []
     for matter in snapshot.get("matters", []):
         shaped = _public_row(matter, include_private=True)
         shaped["client"] = profiles.get(_text(matter.get("client_id")), {})
         matters.append(shaped)
     return {
-        "summary": snapshot.get("summary", {}),
+        "summary": summary,
         "clients": list(profiles.values()),
         "matters": matters,
         "invites": _public_rows(snapshot.get("invites", []), include_private=True),
-        "documentRequests": _public_rows(snapshot.get("documentRequests", []), include_private=True),
-        "documents": _public_rows(snapshot.get("documents", []), include_private=True),
+        "documentRequests": _public_rows(document_requests, include_private=True),
+        "documents": _public_rows(documents, include_private=True),
         "signatures": _public_rows(snapshot.get("signatures", []), include_private=True),
         "messages": _public_rows(snapshot.get("messages", []), include_private=True),
         "appointments": _public_rows(snapshot.get("appointments", []), include_private=True),
@@ -862,8 +927,10 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
         invite, repo = _invite_and_repo(resolved)
         snapshot = repo.client_snapshot_by_invite(invite)
         matter_id = _text(invite.get("matter_id"))
+        documents = list(snapshot.get("documents") or [])
+        document_requests = _shape_document_requests(list(snapshot.get("documentRequests") or []), documents)
         activity_count = (
-            len(snapshot.get("documentRequests") or [])
+            len(_pending_document_requests(document_requests, documents))
             + len([item for item in snapshot.get("signatures") or [] if _text(item.get("status")) != "firmato"])
             + len([item for item in snapshot.get("consents") or [] if not int(item.get("accepted") or 0)])
             + len([item for item in snapshot.get("questionnaires") or [] if _text(item.get("status")) == "aperto"])
@@ -881,8 +948,8 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
             "client": _public_row(snapshot.get("profile", {})),
             "matter": _public_row(snapshot.get("matter", {})),
             "steps": _public_rows(snapshot.get("steps", [])),
-            "documentRequests": _public_rows(snapshot.get("documentRequests", [])),
-            "documents": _public_rows(snapshot.get("documents", [])),
+            "documentRequests": _public_rows(document_requests),
+            "documents": _public_rows(documents),
             "signatures": _public_rows(snapshot.get("signatures", [])),
             "consents": _public_rows(snapshot.get("consents", [])),
             "messages": _public_rows(snapshot.get("messages", [])),

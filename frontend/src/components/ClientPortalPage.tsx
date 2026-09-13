@@ -64,6 +64,9 @@ type GeneratedInviteLink = {
   clientPhone: string
 }
 
+const SIGNING_IDENTITY_DOCUMENT_REQUEST_ID = 'documento-identita'
+const DOCUMENT_SATISFIED_STATUSES = new Set(['caricato', 'generato', 'in_revisione', 'approvato', 'firmato_definitivo'])
+
 function text(value: unknown, fallback = ''): string {
   const cleaned = String(value ?? '').trim()
   return cleaned || fallback
@@ -80,6 +83,32 @@ function initialStudioPortalClientId(): string {
 
 function rowId(row: PortalRow | undefined): string {
   return text(row?.id)
+}
+
+function normalizedPortalLabel(value: unknown): string {
+  return text(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+function isIdentityDocumentRequest(row: PortalRow): boolean {
+  const label = normalizedPortalLabel(`${text(row.title)} ${text(row.description)}`)
+  return label.includes('identita') && (label.includes('documento') || label.includes('carta'))
+}
+
+function documentSatisfiesRequest(document: PortalRow, requestItem: PortalRow): boolean {
+  if (!DOCUMENT_SATISFIED_STATUSES.has(text(document.status))) return false
+  const requestId = rowId(requestItem)
+  const documentRequestId = text(document.request_id)
+  if (requestId && documentRequestId === requestId) return true
+  if (text(requestItem.document_id) && rowId(document) === text(requestItem.document_id)) return true
+  return documentRequestId === SIGNING_IDENTITY_DOCUMENT_REQUEST_ID && isIdentityDocumentRequest(requestItem)
+}
+
+function documentForRequest(documents: PortalRow[], requestItem: PortalRow): PortalRow | undefined {
+  return documents.find((doc) => documentSatisfiesRequest(doc, requestItem))
+}
+
+function documentRequestDone(requestItem: PortalRow, documents: PortalRow[]): boolean {
+  return ['caricato', 'ricevuto', 'approvato'].includes(text(requestItem.status)) || Boolean(documentForRequest(documents, requestItem))
 }
 
 function statusLabel(value: unknown): string {
@@ -250,7 +279,7 @@ function ClientPortalStudio() {
     // esclude i PDF caricati dallo studio per le firme, le copie interne del
     // workflow (PDF materializzati) e gli upload già agganciati a una richiesta
     if (requestId === 'firma-studio' || requestId.startsWith('preventivo-pdf:') || requestId.startsWith('conferimento-pdf:') || requestId === 'ricevuta-firma') return false
-    return !selectedDocumentRequests.some((item) => rowId(item) === requestId)
+    return !selectedDocumentRequests.some((item) => documentSatisfiesRequest(doc, item))
   })
   const documentsInReview = selectedClientDocuments.filter((doc) => text(doc.status) === 'in_revisione')
   const selectedSignatures = payload.signatures.filter((item) => text(item.matter_id) === rowId(selectedMatter))
@@ -608,11 +637,11 @@ function ClientPortalStudio() {
                 <button type="submit" disabled={!requestTitle.trim()}><UploadCloud size={16} aria-hidden="true"/>Richiedi al cliente</button>
                 {selectedDocumentRequests.length === 0 ? <span className="iu-client-portal-muted">Nessuna richiesta documento per questa pratica.</span> : null}
                 {selectedDocumentRequests.map((item) => {
-                  const uploaded = selectedClientDocuments.find((doc) => text(doc.request_id) === rowId(item))
+                  const uploaded = documentForRequest(selectedClientDocuments, item)
                   return (
                     <span className="iu-client-portal-doc-line" key={rowId(item)}>
                       <strong>{text(item.title)}</strong>
-                      <PortalBadge value={uploaded ? 'ricevuto' : item.status}/>
+                      <PortalBadge value={uploaded ? text(item.document_status || uploaded.status || 'ricevuto') : item.status}/>
                       {uploaded ? (
                         <a href={studioPortalDocumentUrl(rowId(uploaded))} title={`Scarica ${text(uploaded.filename)}`}>
                           <Download size={14} aria-hidden="true"/>{text(uploaded.filename)}
@@ -1010,15 +1039,14 @@ function ClientPortalClient() {
   // record statico: il cliente vede subito cosa ha completato e dove andare.
   const consentsDone = (payload.consents || []).length > 0 && (payload.consents || []).every((item) => numberValue(item.accepted) > 0)
   const documentsDone = (payload.documentRequests || []).length > 0 && (payload.documentRequests || []).every((item) => (
-    ['caricato', 'ricevuto', 'approvato'].includes(text(item.status)) ||
-    (payload.documents || []).some((doc) => text(doc.request_id) === rowId(item))
+    documentRequestDone(item, payload.documents || [])
   ))
   const signaturesDone = (payload.signatures || []).length > 0 && (payload.signatures || []).every((item) => text(item.status) === 'firmato')
   const appointmentsDone = (payload.appointments || []).some((item) => text(item.status) === 'confermato')
   const checklist = [
     { key: 'privacy', title: 'Privacy e consensi', anchor: '#panel-privacy', done: consentsDone, pending: (payload.consents || []).filter((item) => !numberValue(item.accepted)).length },
     { key: 'anagrafica', title: 'Anagrafica cliente', anchor: '#panel-anagrafica', done: Boolean(completion?.complete), pending: completion ? completion.total - completion.filled : 0 },
-    { key: 'documenti', title: 'Documenti richiesti', anchor: '#panel-documenti', done: documentsDone, pending: (payload.documentRequests || []).filter((item) => !['caricato', 'ricevuto', 'approvato'].includes(text(item.status)) && !(payload.documents || []).some((doc) => text(doc.request_id) === rowId(item))).length },
+    { key: 'documenti', title: 'Documenti richiesti', anchor: '#panel-documenti', done: documentsDone, pending: (payload.documentRequests || []).filter((item) => !documentRequestDone(item, payload.documents || [])).length },
     { key: 'firme', title: 'Documenti da firmare', anchor: '#panel-firme', done: signaturesDone, pending: (payload.signatures || []).filter((item) => text(item.status) !== 'firmato').length },
     { key: 'appuntamenti', title: 'Appuntamento o videocall', anchor: '#panel-appuntamenti', done: appointmentsDone, pending: (payload.appointments || []).filter((item) => text(item.status) === 'proposto').length },
   ]
@@ -1124,7 +1152,7 @@ function ClientPortalClient() {
           ) : null}
           {(payload.documentRequests || []).length === 0 ? <span className="iu-client-portal-muted">Lo studio non ha ancora richiesto documenti.</span> : null}
           {(payload.documentRequests || []).map((requestItem) => {
-            const uploaded = (payload.documents || []).find((doc) => text(doc.request_id) === rowId(requestItem))
+            const uploaded = documentForRequest(payload.documents || [], requestItem)
             return (
               <article className="iu-client-portal-action-row" key={rowId(requestItem)}>
                 <div>

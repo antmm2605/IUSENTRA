@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { FileSignature } from 'lucide-react'
 import { IusWizardStepper, type IusWizardStep } from '../iusentra/IusWizardStepper'
 import {
@@ -16,6 +16,8 @@ type SigningWorkflowPanelProps = {
   onNotice: (tone: 'success' | 'warning', text: string) => void
 }
 
+type SigningSectionKey = '' | 'preventivo' | 'identita' | 'conferimento' | 'ricevuta'
+
 function stepperState(step: SigningStep, currentKey: string): IusWizardStep['state'] {
   if (step.status === 'completato') return 'done'
   if (step.status === 'rifiutato' || step.status === 'in_revisione') return 'warning'
@@ -32,6 +34,15 @@ function currentStepKey(overview: SigningOverview): string {
   return 'riepilogo'
 }
 
+function preferredSectionKey(overview: SigningOverview): SigningSectionKey {
+  if (overview.signature.firmaEseguita) return 'ricevuta'
+  const current = currentStepKey(overview)
+  if (current === 'preventivo') return 'preventivo'
+  if (current === 'identita') return 'identita'
+  if (current === 'conferimento' || current === 'firma') return 'conferimento'
+  return 'ricevuta'
+}
+
 /**
  * Percorso guidato «Incarico e firma»: preventivo → documento d'identità →
  * conferimento → firma → ricevuta. Visibile solo con il feature flag
@@ -40,6 +51,7 @@ function currentStepKey(overview: SigningOverview): string {
 export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
   const [overview, setOverview] = useState<SigningOverview>(emptySigningOverview)
   const [loading, setLoading] = useState(true)
+  const [activeSection, setActiveSection] = useState<SigningSectionKey>('preventivo')
 
   const reload = async () => {
     setLoading(true)
@@ -51,6 +63,10 @@ export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
     void reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (overview.ok) setActiveSection(preferredSectionKey(overview))
+  }, [overview])
 
   const onResult = (ok: boolean, message: string, nextOverview?: unknown) => {
     onNotice(ok ? 'success' : 'warning', message)
@@ -87,6 +103,10 @@ export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
     state: stepperState(step, current),
   }))
   const signedOrReview = overview.signature.firmaEseguita
+  const toggleSection = (section: Exclude<SigningSectionKey, ''>) => (event: MouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    setActiveSection((currentSection) => (currentSection === section ? '' : section))
+  }
 
   return (
     <section className="iu-client-portal-panel iu-signing-panel" id="panel-incarico">
@@ -96,13 +116,13 @@ export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
       </div>
       <IusWizardStepper steps={stepperSteps} className="iu-signing-stepper" />
 
-      <details className="iu-signing-section" open={!signedOrReview && current === 'preventivo'}>
-        <summary><h3>1. Preventivo</h3></summary>
+      <details className="iu-signing-section" open={activeSection === 'preventivo'}>
+        <summary onClick={toggleSection('preventivo')}><h3>1. Preventivo</h3></summary>
         <PreventivoStep preventivi={overview.preventivi} consents={overview.consents} onResult={onResult} />
       </details>
 
-      <details className="iu-signing-section" open={current === 'identita'}>
-        <summary><h3>2. Documento d’identità</h3></summary>
+      <details className="iu-signing-section" open={activeSection === 'identita'}>
+        <summary onClick={toggleSection('identita')}><h3>2. Documento d’identità</h3></summary>
         <IdentityCaptureStep
           identity={overview.identity}
           consents={overview.consents}
@@ -111,8 +131,8 @@ export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
         />
       </details>
 
-      <details className="iu-signing-section" open={!signedOrReview && (current === 'conferimento' || current === 'firma')}>
-        <summary><h3>3. Conferimento incarico e firma</h3></summary>
+      <details className="iu-signing-section" open={activeSection === 'conferimento'}>
+        <summary onClick={toggleSection('conferimento')}><h3>3. Conferimento incarico e firma</h3></summary>
         <ConferimentoSignStep
           conferimento={overview.conferimento}
           signature={overview.signature}
@@ -123,8 +143,8 @@ export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
       </details>
 
       {signedOrReview ? (
-        <details className="iu-signing-section" open>
-          <summary><h3>4. Riepilogo e ricevuta</h3></summary>
+        <details className="iu-signing-section" open={activeSection === 'ricevuta'}>
+          <summary onClick={toggleSection('ricevuta')}><h3>4. Riepilogo e ricevuta</h3></summary>
           <ReceiptStep />
         </details>
       ) : null}

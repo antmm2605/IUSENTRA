@@ -1,6 +1,6 @@
 # Portale Cliente — Workflow firma documenti (firma elettronica con evidence pack)
 
-Aggiornato: 2026-07-10. Questo documento descrive il modello di firma del
+Aggiornato: 2026-09-13. Questo documento descrive il modello di firma del
 Portale Cliente e i suoi limiti, in modo che non venga mai presentato come
 qualcosa che non è.
 
@@ -29,6 +29,42 @@ d'identità → firma su PDF → ricevuta) è governato dal flag dedicato
 con il flag disattivato tutti gli endpoint `/public/signing/*` e
 `/studio/documents/<id>/review` rispondono `feature_disabled` (403). Nessuna
 migrazione distruttiva: attivazione/disattivazione senza toccare i dati.
+
+### Verifica locale 2026-09-13
+
+Per la release `2.306.1` il workflow è stato provato sulla copia reale
+`http://127.0.0.1:8080` con browser visibile e flag acceso solo per il collaudo
+locale. Dati usati: invito controllato del tenant di studio, cliente di prova e
+pratica dedicata; il token non è versionato nella repository.
+
+Percorso cliente osservato:
+
+1. apertura invito dal Portale Cliente;
+2. accettazione preventivo con importi in formato italiano;
+3. acquisizione documento d'identità tramite upload file, con sostituzione del
+   primo caricamento e stato sincronizzato sulla richiesta standard;
+4. apertura materiale della sezione webcam/fotocamera, senza completare una
+   cattura fisica perché la prova non disponeva di uno stream webcam reale;
+5. accettazione conferimento incarico;
+6. firma grafica su canvas;
+7. ricevuta finale con preventivo, conferimento, documento identità, hash e PDF
+   firmato scaricabile.
+
+Percorso studio osservato:
+
+- dashboard pratica con `Azioni aperte` a zero dopo il completamento;
+- `Documento di identità` mostrato una sola volta nella richiesta standard,
+  prima come ricevuto e poi come approvato dallo studio;
+- altri documenti senza duplicato del documento d'identità;
+- firma del conferimento visibile come completata;
+- pacchetto finale preparabile dallo studio.
+
+Chiusura di sicurezza: rimosso l'override locale usato per il collaudo,
+ricostruita la copia Docker reale e verificato che
+`/api/v1/ui/client-portal/public/signing/overview` risponda con stato `403` e
+codice `feature_disabled` quando
+`routes.appV2.clientPortal.signingWorkflow` è spento. La produzione resta quindi
+**default-off/fail-closed** finché lo studio non attiva deliberatamente il flag.
 
 ## Workflow del cliente (flag `signingWorkflow` attivo)
 

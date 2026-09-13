@@ -159,7 +159,16 @@ step "Vite build"                npm --prefix frontend run build:vite --silent
 # 3. Pytest dei gate (salta con --fast)
 # ---------------------------------------------------------------------------
 if [ "$FAST" -eq 0 ]; then
+  # Raccolta dell'INTERA suite: non esegue i test ma importa ogni modulo, quindi
+  # scopre in 8 secondi cio' che altrimenti si vede solo nei 75 job sharded della
+  # CI — un simbolo rimosso da un modulo e ancora importato da un test.
+  # Lezione del 13/09/2026: la riscrittura di web/services/document_ocr.py ha
+  # tolto `paragraphs_from_pdf` e 11 shard core sono andati rossi in CI.
+  step "Raccolta pytest completa"  python3 -m pytest -q --collect-only tests/ --tb=short
   step "Pytest contratti openapi"  python3 -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short
+  # Acquisizione documenti (editor atti): OCR, impaginazione, contratti React,
+  # ricerca del fascicolo. Sono i moduli piu' toccati e i piu' veloci da eseguire.
+  step "Pytest acquisizione/OCR"   python3 -m pytest -q tests/test_document_ocr.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_editor_acquisition_contract.py tests/test_ocr_impaginazione.py tests/test_ricerca_cliente_fascicolo.py --tb=short
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short
   # Replica dello step CI "RBAC tenant App V2 security gates" (ci.yml, job

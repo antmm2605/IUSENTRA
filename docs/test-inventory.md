@@ -17,8 +17,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | E2E | 11 |
 | Frontend static gate | 1 |
 | Frontend/UI | 201 |
-| RBAC | 63 |
-| Security | 39 |
+| RBAC | 64 |
+| Security | 38 |
 | Smoke CLI | 6 |
 | Tenant isolation | 151 |
 
@@ -424,12 +424,12 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Frontend/UI | tests/test_lex_documenti_cache.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | RBAC | tests/test_document_catalog_fields.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_document_intelligence_catalog_api.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | RBAC | tests/test_document_ocr.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_fascicolo_document_catalog.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_fascicolo_registry_document.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_client_document_reader.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_intelligence_api.py | 403/RBAC, tenant, feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_intelligence_frontend.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| File/document security | Security | tests/test_document_ocr.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_tools.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_backfill_fascicolo_document_texts.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_auto_indexing.py | 403/RBAC, tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

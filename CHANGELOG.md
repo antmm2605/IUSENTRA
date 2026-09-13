@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.305.2 - 13/09/2026
+
+Allineati alla riscrittura dell'OCR i due moduli di test che ancora si aspettavano l'interfaccia precedente, e chiuso il buco del gate locale che li aveva lasciati passare.
+
+- **`tests/test_document_ocr.py` importava `paragraphs_from_pdf`**, funzione rimossa con la 2.305.0: i paragrafi non si ricavano più rileggendo il livello di testo del PDF, ma dalla posizione delle parole riconosciute — la stessa struttura che alimenta la revisione modificabile, così le due viste non possono divergere. Undici shard della CI erano rossi per questo. Il test è stato riscritto sul nuovo percorso, con in più un caso sulle tabelle nel testo lineare.
+- **Il test sulla rotazione** verificava che il motore ricevesse una sola configurazione. Ora la pagina viene letta con quattro configurazioni e vince quella con più testo sicuro: il test verifica che siano provate tutte, che il PDF venga generato con la stessa configurazione vincente, che la rotazione oraria arrivi al motore e che la pagina sia portata ad almeno 300 dpi.
+- **Il contratto dell'editor** pretendeva ancora l'inserimento come testo piatto. Ora verifica l'inserimento come struttura dopo la revisione, e due nuovi contratti coprono la revisione modificabile (testo, natura del blocco, celle di tabella, eliminazione, avviso sulle figure) e la ricerca del fascicolo per nome del cliente.
+- **Il gate locale raccoglie l'intera suite di test prima di ogni push** (`pytest --collect-only`): non li esegue, ma importa ogni modulo, così un simbolo rimosso e ancora importato da un test si vede in otto secondi invece che nei 75 job della CI. Aggiunta anche l'esecuzione completa dei moduli di acquisizione e OCR. Gate da 31 a 33 passi.
+
 ## 2.305.1 - 13/09/2026
 
 Correzione del rilevamento del foglio introdotto nella 2.305.0, mai arrivata in produzione perché la CI l'ha fermata.

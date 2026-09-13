@@ -54,7 +54,10 @@ def test_editor_apre_acquisizione_caricata_solo_su_richiesta():
     assert "Acquisisci\n" in page
     assert "matters={data.selectors.fascicoli}" in page
     assert "defaultMatterId={contextFascicoloId}" in page
-    assert "insertEditorHtml(plainTextToParagraphs(paragraphs.join" in page
+    # Il testo riconosciuto entra nel documento come struttura (titoli, elenchi,
+    # tabelle), non come blocco piatto, e solo dopo la revisione dell'avvocato.
+    assert "onInsertHtml={insertAcquiredHtml}" in page
+    assert "insertEditorHtml(html, 'Testo acquisito inserito nel documento con la struttura riconosciuta.')" in page
     # Regole del contratto React per TemplateAttiPage restano rispettate.
     for forbidden in ("style={{", "dangerouslySetInnerHTML"):
         assert forbidden not in page
@@ -118,7 +121,11 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
         "components/documentCapture/detection/enhance.ts": 250,
         "components/documentCapture/detection/grayImage.ts": 250,
         "components/documentCapture/detection/pageProcessing.ts": 250,
+        "components/documentCapture/OcrReview.tsx": 250,
+        "components/documentCapture/MatterPicker.tsx": 250,
+        "components/documentCapture/ocrBlocks.ts": 250,
         "services/documentOcr.ts": 250,
+        "services/fascicoloSearch.ts": 180,
     }
     for path, limit in budgets.items():
         text = source(path)
@@ -127,3 +134,33 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
     governance = json.loads((ROOT / "scripts/react-migration/design-system-governance.json").read_text(encoding="utf-8"))
     assert "frontend/src/components/documentCapture/acquisition.css" in governance["approvedCssFiles"]
     assert (ROOT / "web/services/document_ocr.py").read_text(encoding="utf-8").count("\n") <= 500
+
+
+def test_il_testo_riconosciuto_si_rivede_prima_di_entrare_nell_atto():
+    """Nessun inserimento cieco: l'avvocato corregge l'OCR prima dell'atto.
+
+    Un riconoscimento sbagliato non corretto diventa un errore depositato, quindi
+    la revisione e' obbligata: testo modificabile blocco per blocco, natura del
+    blocco correggibile, celle di tabella modificabili, blocchi eliminabili.
+    """
+    review = source("components/documentCapture/OcrReview.tsx")
+    result = source("components/documentCapture/AcquisitionResult.tsx")
+    blocks = source("components/documentCapture/ocrBlocks.ts")
+    assert "<OcrReview" in result
+    assert "onInsertHtml(blocksToHtml(ocr.blocks))" in result
+    assert "updateBlockText" in review and "updateBlockCell" in review and "changeBlockKind" in review and "removeBlock" in review
+    # Le tabelle e i grafici riconosciuti non si perdono nel passaggio all'editor.
+    assert "<table" in blocks and "<ul>" in blocks
+    assert "figures" in review
+
+
+def test_il_fascicolo_si_cerca_per_nome_e_cognome_del_cliente():
+    """Con l'archivio di uno studio reale un elenco a tendina non e' consultabile."""
+    picker = source("components/documentCapture/MatterPicker.tsx")
+    search = source("services/fascicoloSearch.ts")
+    result = source("components/documentCapture/AcquisitionResult.tsx")
+    assert "<MatterPicker" in result
+    assert "Cerca per nome e cognome del cliente" in picker
+    assert "'/api/v1/ui/document-tools/fascicoli?q='" in search.replace('`', "'").replace('${encodeURIComponent(testo)}', "")
+    # La ricerca non parte a ogni tasto: si aspetta che l'avvocato smetta di digitare.
+    assert "ATTESA_DIGITAZIONE" in picker and "AbortController" in picker

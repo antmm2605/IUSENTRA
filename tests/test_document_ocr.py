@@ -15,8 +15,9 @@ from pypdf import PdfReader
 
 from web.blueprints import api_v1_document_tools as blueprint_module
 from web.blueprints.api_v1_document_tools import api_v1_document_tools
+from legal_ocr.page_layout import Blocco, analizza_pagina
 from web.services import document_ocr
-from web.services.document_ocr import OcrPageResult, page_dpi, paragraphs_from_pdf
+from web.services.document_ocr import OcrPageResult, page_dpi
 from web.services.document_tools import DocumentToolError, UploadedDocument, images_to_pdf
 
 
@@ -63,18 +64,42 @@ def test_page_dpi_fa_rientrare_la_pagina_in_a4():
     assert page_dpi(20000, 28000) == 600
 
 
-def test_paragrafi_uniscono_righe_vicine_e_ricompongono_la_sillabazione():
-    pdf = _text_pdf([
-        (72, 100, "TRIBUNALE DI BARI"),
-        (72, 160, "Il sottoscritto chiede la fissa-"),
-        (72, 174, "zione dell'udienza."),
-        (72, 240, "Procura alle liti."),
-    ])
-    assert paragraphs_from_pdf(pdf) == [
+def _parola(testo: str, sinistra: int, alto: int, larghezza: int = 90, altezza: int = 20, riga: int = 1) -> dict:
+    return {
+        "text": testo, "left": sinistra, "top": alto, "width": larghezza, "height": altezza,
+        "conf": 0.95, "block": 1, "par": 1, "line": riga,
+    }
+
+
+def test_i_paragrafi_nascono_dalla_struttura_riconosciuta_non_dal_pdf():
+    """Capoversi, sillabazione e tabelle nel testo lineare offerto all'editor.
+
+    I paragrafi si ricavano dalla posizione delle parole (`legal_ocr.page_layout`),
+    non rileggendo il livello di testo del PDF: e' la stessa struttura che
+    alimenta la revisione modificabile, quindi le due viste non possono divergere.
+    """
+    parole = [
+        _parola("TRIBUNALE", 100, 100, 200, 26, riga=1),
+        _parola("DI", 310, 100, 40, 26, riga=1),
+        _parola("BARI", 360, 100, 110, 26, riga=1),
+        _parola("Il", 100, 160, 20, 18, riga=2),
+        _parola("sottoscritto", 130, 160, 130, 18, riga=2),
+        _parola("chiede", 270, 160, 80, 18, riga=2),
+        _parola("la", 360, 160, 20, 18, riga=2),
+        _parola("fissa-", 390, 160, 60, 18, riga=2),
+        _parola("zione", 100, 182, 60, 18, riga=3),
+        _parola("dell'udienza.", 170, 182, 140, 18, riga=3),
+    ]
+    blocchi = analizza_pagina(parole)
+    assert document_ocr._blocchi_in_paragrafi(blocchi) == [
         "TRIBUNALE DI BARI",
         "Il sottoscritto chiede la fissazione dell'udienza.",
-        "Procura alle liti.",
     ]
+
+
+def test_le_tabelle_entrano_nel_testo_lineare_riga_per_riga():
+    tabella = Blocco(tipo="tabella", righe=[["Voce", "Importo"], ["Diritti", "150,00"]])
+    assert document_ocr._blocchi_in_paragrafi([tabella]) == ["Voce | Importo", "Diritti | 150,00"]
 
 
 @pytest.mark.parametrize(
@@ -99,30 +124,64 @@ def test_dizionario_italiano_mancante_blocca_senza_ripiegare_su_altre_lingue(mon
         document_ocr.recognize_page(_jpeg())
 
 
-def test_rotazione_oraria_e_dpi_passati_al_motore(monkeypatch):
-    seen = {}
+def _dati_motore(parole: list[dict]) -> dict:
+    """Risposta di `image_to_data` nella forma che Tesseract restituisce."""
+    return {
+        "text": [parola["text"] for parola in parole],
+        "conf": [str(round(parola["conf"] * 100)) for parola in parole],
+        "left": [parola["left"] for parola in parole],
+        "top": [parola["top"] for parola in parole],
+        "width": [parola["width"] for parola in parole],
+        "height": [parola["height"] for parola in parole],
+        "block_num": [parola["block"] for parola in parole],
+        "par_num": [parola["par"] for parola in parole],
+        "line_num": [parola["line"] for parola in parole],
+    }
+
+
+def test_rotazione_oraria_e_configurazione_migliore_passate_al_motore(monkeypatch):
+    """La rotazione arriva al motore e il PDF si genera con la stessa lettura scelta.
+
+    Le configurazioni vengono provate tutte e vince quella con piu' testo sicuro:
+    qui la lettura «colonne» riconosce due parole certe contro una, quindi e' la
+    sua configurazione a dover generare anche il PDF, non un'altra.
+    """
+    letture = {}
+    pdf_richiesto = {}
 
     class FakeTesseract:
         @staticmethod
+        def image_to_data(image, lang, config, output_type, timeout):
+            letture[config] = letture.get(config, 0) + 1
+            if "--psm 4" in config:
+                return _dati_motore([_parola("Pagina", 100, 100), _parola("riconosciuta", 200, 100)])
+            return _dati_motore([_parola("Pagina", 100, 100)])
+
+        @staticmethod
         def image_to_pdf_or_hocr(image, lang, extension, config, timeout):
-            seen.update(size=image.size, lang=lang, extension=extension, config=config, timeout=timeout)
+            pdf_richiesto.update(size=image.size, lang=lang, extension=extension, config=config)
             return _text_pdf([(72, 100, "Pagina riconosciuta")])
 
     monkeypatch.setattr(document_ocr, "_tesseract", lambda: FakeTesseract)
-    result = document_ocr.recognize_page(_jpeg(827, 1169), rotation=90)
-    assert seen["size"] == (1169, 827)
-    assert seen["lang"] == "ita" and seen["extension"] == "pdf"
-    assert seen["config"] == f"--dpi {page_dpi(1169, 827)}"
+    result = document_ocr.recognize_page(_jpeg(827, 1169), rotation=90, raddrizza=False)
+    assert len(letture) == len(document_ocr.CONFIGURAZIONI)
+    assert pdf_richiesto["lang"] == "ita" and pdf_richiesto["extension"] == "pdf"
+    assert "--psm 4" in pdf_richiesto["config"] and f"--dpi {result.dpi}" in pdf_richiesto["config"]
+    # La rotazione oraria arriva al motore: la pagina verticale diventa orizzontale.
+    assert pdf_richiesto["size"][0] > pdf_richiesto["size"][1]
+    # La pagina viene portata alla densita' minima leggibile prima della lettura.
+    assert result.dpi >= 300
     assert result.paragraphs == ["Pagina riconosciuta"]
     assert result.characters == len("Paginariconosciuta")
+    assert result.engine.endswith("colonne")
 
 
 def test_api_ocr_pagina_restituisce_pdf_e_paragrafi_senza_salvare(monkeypatch):
     pdf = _text_pdf([(72, 100, "Atto acquisito")])
     calls = []
 
-    def fake_recognize(data, rotation):
-        calls.append((len(data), rotation))
+    def fake_recognize(data, rotation, *, raddrizza=True):
+        calls.append((len(data), rotation, raddrizza))
         return OcrPageResult(pdf=pdf, paragraphs=["Atto acquisito"], dpi=200)
 
     monkeypatch.setattr(blueprint_module, "recognize_page", fake_recognize)
@@ -136,7 +195,7 @@ def test_api_ocr_pagina_restituisce_pdf_e_paragrafi_senza_salvare(monkeypatch):
     assert response.headers["Cache-Control"] == "no-store"
     assert payload["ok"] is True and payload["paragraphs"] == ["Atto acquisito"]
     assert base64.b64decode(payload["pdf_base64"]).startswith(b"%PDF-")
-    assert calls == [(len(_jpeg()), 90)]
+    assert calls == [(len(_jpeg()), 90, True)]
 
 
 def test_api_ocr_pagina_senza_file_risponde_errore_leggibile():

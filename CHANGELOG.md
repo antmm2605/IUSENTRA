@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.304.0 - 13/09/2026
+
+Verificati contro la Gazzetta Ufficiale tutti i dati che si aggiornano da soli nel tempo. Due erano indietro, e ora gli strumenti dicono da soli quando un periodo non è più coperto.
+
+- **Tassi soglia antiusura: aggiunto il terzo trimestre 2026.** L'archivio arrivava al trimestre aprile-giugno mentre è in vigore quello luglio-settembre (D.M. MEF, **G.U. n. 149 del 30 giugno 2026**). Tutte e 24 le categorie aggiornate; i valori già presenti erano corretti.
+- **Mora commerciale: aggiunto il secondo semestre 2026.** Tasso di riferimento **2,40%**, quindi **10,40%** con la maggiorazione di otto punti dell'art. 5 D.Lgs. 231/2002 (comunicato MEF, **G.U. n. 163 del 16 luglio 2026**). L'archivio si fermava al 30 giugno.
+- **Saggio degli interessi legali: confermato l'1,60%** per il 2026 (D.M. MEF 10 dicembre 2025, **G.U. n. 289 del 13 dicembre 2025**). Il valore era corretto; ora la tabella cita il decreto e la Gazzetta invece di un riferimento generico.
+- **Contributo unificato: confermati** tutti gli scaglioni contro il testo vigente dell'art. 13 D.P.R. 115/2002 su Normattiva (43 / 98 / 237 / 518 / 759 / 1.214 / 1.686 €).
+- **Tasso BCE di riferimento** portato a 2,40% dal 1° luglio 2026, con la decorrenza attestata dal comunicato MEF: la data della decisione BCE non è verificabile su una fonte raggiungibile e il modulo lo dichiara invece di inventarla.
+- **Vacazioni CTU:** gli importi (14,68 € e 8,15 €) restano quelli del D.M. 30 maggio 2002, ora citato. Aggiunta la nota che l'art. 54 D.P.R. 115/2002 impone l'adeguamento triennale, così l'avvocato sa che va verificata l'esistenza di un decreto successivo.
+- **Gli strumenti avvisano quando i dati periodici sono scaduti.** Prima, chiesta una data fuori dai periodi caricati, la verifica antiusura rispondeva in silenzio con l'ultimo trimestre disponibile. Ora la riga è marcata alla fonte e il messaggio dice fin dove arriva la tabella, con quale cadenza il dato si aggiorna e che va confermato in Gazzetta. Vale anche per il saggio legale e per la mora commerciale.
+- **Nuova guardia permanente sulle soglie antiusura:** un test verifica che ogni soglia rispetti la formula dell'art. 2, comma 4, L. 108/1996 — TEGM più un quarto più quattro punti, con il tetto degli otto punti — su tutti i trimestri caricati. Un valore trascritto male non passa più.
+
 ## 2.303.0 - 13/09/2026
 
 Completate le tabelle milanesi 2024: tre nuovi strumenti dalle ultime sezioni del documento ufficiale. Il catalogo degli Strumenti legali arriva a 70 moduli.

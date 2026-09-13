@@ -122,3 +122,18 @@ def messaggio_indice_istat_mancante(norme: Any, tipo: str, anno: int, mese: int,
         f"caricata copre fino a {disponibile} e non risale piu' indietro. "
         "Aggiorna la tabella normativa da /legal-intelligence."
     )
+
+
+def messaggio_periodo_scaduto(copertura: Mapping[str, Any], cosa: str, cadenza: str) -> str:
+    """Avviso quando la tabella a periodi non copre la data di calcolo."""
+    fine = copertura.get("ultimo_fine") or copertura.get("ultimo_inizio")
+    if fine:
+        try:
+            fine = datetime.strptime(str(fine), "%Y-%m-%d").strftime("%d/%m/%Y")
+        except ValueError:
+            pass
+    return (
+        f"{cosa}: la tabella caricata arriva al {fine} e non copre la data indicata. "
+        f"Il dato e' aggiornato {cadenza}: il valore mostrato e' quello dell'ultimo periodo "
+        "disponibile e va confermato sulla Gazzetta Ufficiale prima dell'uso in atti."
+    )

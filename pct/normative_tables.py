@@ -414,6 +414,51 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=26A00172&atto.dataPubblicazioneGazzetta=2026-01-20&tipoSerie=serie_generale&tipoVigenza=originario",
         note="Comunicazione ex art. 5 D.Lgs. 231/2002: tasso di riferimento 2,15%.",
     ),
+    "mora_231_2026_h2": FonteOperativa(
+        code="mora_231_2026_h2",
+        title="G.U. n. 163/2026 - tasso di riferimento 1 luglio / 31 dicembre 2026",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=26A03514&atto.dataPubblicazioneGazzetta=2026-07-16"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note="Comunicato MEF ex art. 5 D.Lgs. 231/2002: tasso di riferimento 2,40%.",
+    ),
+    "mef_tassi_usura_2026_q3": FonteOperativa(
+        code="mef_tassi_usura_2026_q3",
+        title="G.U. n. 149/2026 - tassi soglia usura Q3 2026",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=26A03259&atto.dataPubblicazioneGazzetta=2026-06-30"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note=(
+            "D.M. MEF: rilevazione 1 gennaio - 31 marzo 2026, "
+            "applicazione dal 1 luglio al 30 settembre 2026."
+        ),
+    ),
+    "interesse_legale_2026_dm": FonteOperativa(
+        code="interesse_legale_2026_dm",
+        title="G.U. n. 289/2025 - saggio degli interessi legali per il 2026",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=25A06705&atto.dataPubblicazioneGazzetta=2025-12-13"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note="D.M. MEF 10 dicembre 2025: saggio ex art. 1284 c.c. all'1,60% dal 1 gennaio 2026.",
+    ),
+    "dm_onorari_ausiliari_2002": FonteOperativa(
+        code="dm_onorari_ausiliari_2002",
+        title="D.M. 30 maggio 2002 - onorari degli ausiliari del magistrato",
+        url=(
+            "https://www.normattiva.it/uri-res/N2Ls?"
+            "urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art54"
+        ),
+        note=(
+            "Tabelle degli onorari ex artt. 50 e 54 D.P.R. 115/2002. L'art. 54 prevede "
+            "l'adeguamento triennale con decreto dirigenziale del Ministero della giustizia."
+        ),
+    ),
     "art_545_cpc": FonteOperativa(
         code="art_545_cpc",
         title="Codice di procedura civile - art. 545 (Normattiva)",
@@ -830,6 +875,38 @@ def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
             ],
         ),
         (
+            "2026-Q3",
+            "2026-07-01",
+            "2026-09-30",
+            "mef_tassi_usura_2026_q3",
+            [
+                ("aperture_credito_cc_fino_5000", 10.57, 17.2125),
+                ("aperture_credito_cc_oltre_5000", 8.90, 15.1250),
+                ("scoperti_senza_affidamento_fino_1500", 15.75, 23.6875),
+                ("scoperti_senza_affidamento_oltre_1500", 15.88, 23.8500),
+                ("anticipi_sconti_crediti_fino_50000", 8.12, 14.1500),
+                ("anticipi_sconti_crediti_50000_200000", 6.53, 12.1625),
+                ("anticipi_sconti_crediti_oltre_200000", 5.02, 10.2750),
+                ("credito_personale", 11.68, 18.6000),
+                ("credito_finalizzato", 10.97, 17.7125),
+                ("factoring_fino_50000", 6.31, 11.8875),
+                ("factoring_oltre_50000", 4.77, 9.9625),
+                ("leasing_immobiliare_fisso", 6.36, 11.9500),
+                ("leasing_immobiliare_variabile", 5.51, 10.8875),
+                ("leasing_aeronavale_autoveicoli_fino_25000", 9.29, 15.6125),
+                ("leasing_aeronavale_autoveicoli_oltre_25000", 8.24, 14.3000),
+                ("leasing_strumentale_fino_25000", 9.93, 16.4125),
+                ("leasing_strumentale_oltre_25000", 7.20, 13.0000),
+                ("mutui_ipotecari_fisso", 4.21, 9.2625),
+                ("mutui_ipotecari_variabile", 4.07, 9.0875),
+                ("cessione_quinto_fino_15000", 13.87, 21.3375),
+                ("cessione_quinto_oltre_15000", 9.57, 15.9625),
+                ("credito_revolving", 16.21, 24.2100),
+                ("carte_credito", 11.86, 18.8250),
+                ("altri_finanziamenti", 14.48, 22.1000),
+            ],
+        ),
+        (
             "2026-Q2",
             "2026-04-01",
             "2026-06-30",
@@ -969,7 +1046,9 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "rows": [
                 {"start": "2024-01-01", "end": "2024-12-31", "rate": 2.50, "label": "Interesse legale 2024", "source_code": "interesse_legale_2024"},
                 {"start": "2025-01-01", "end": "2025-12-31", "rate": 2.00, "label": "Interesse legale 2025", "source_code": "interesse_legale_2025"},
-                {"start": "2026-01-01", "end": "2026-12-31", "rate": 1.60, "label": "Interesse legale 2026", "source_code": "interesse_legale_2026"},
+                {"start": "2026-01-01", "end": "2026-12-31", "rate": 1.60, "label": "Interesse legale 2026",
+                 "source_code": "interesse_legale_2026", "decreto": "D.M. MEF 10 dicembre 2025",
+                 "gazzetta": "G.U. Serie generale n. 289 del 13 dicembre 2025 (25A06705)"},
             ],
             "published_at": "2025-12-31",
             "effective_from": "2024-01-01",
@@ -980,12 +1059,13 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "category": "tassi",
             "description": "Tassi di mora commerciale per semestre con riferimento BCE.",
             "strategy": "seed_mirror",
-            "source_codes": ["mora_231_2025_h1", "mora_231_2025_h2", "mora_231_2026_h1"],
+            "source_codes": ["mora_231_2025_h1", "mora_231_2025_h2", "mora_231_2026_h1", "mora_231_2026_h2"],
             "watch_source_ids": ["gazzetta_ufficiale"],
             "rows": [
                 {"start": "2025-01-01", "end": "2025-06-30", "rate": 11.15, "reference_rate": 3.15, "label": "Mora commerciale 1 semestre 2025", "source_code": "mora_231_2025_h1"},
                 {"start": "2025-07-01", "end": "2025-12-31", "rate": 10.15, "reference_rate": 2.15, "label": "Mora commerciale 2 semestre 2025", "source_code": "mora_231_2025_h2"},
                 {"start": "2026-01-01", "end": "2026-06-30", "rate": 10.15, "reference_rate": 2.15, "label": "Mora commerciale 1 semestre 2026", "source_code": "mora_231_2026_h1"},
+                {"start": "2026-07-01", "end": "2026-12-31", "rate": 10.40, "reference_rate": 2.40, "label": "Mora commerciale 2 semestre 2026", "source_code": "mora_231_2026_h2"},
             ],
             "published_at": "2026-01-20",
             "effective_from": "2025-01-01",
@@ -1032,8 +1112,10 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "source_codes": ["l_319_1980", "dm_30_05_2002"],
             "watch_source_ids": ["gazzetta_ufficiale", "normattiva"],
             "rows": [
-                {"kind": "prima", "amount": 14.68},
-                {"kind": "successiva", "amount": 8.15},
+                {"kind": "prima", "amount": 14.68, "decreto": "D.M. 30 maggio 2002",
+                 "note": "Onorario per la prima vacazione. L'art. 54 D.P.R. 115/2002 prevede l'adeguamento triennale con decreto dirigenziale del Ministero della giustizia: verificare l'esistenza di un decreto successivo."},
+                {"kind": "successiva", "amount": 8.15, "decreto": "D.M. 30 maggio 2002",
+                 "note": "Onorario per ciascuna vacazione successiva alla prima."},
             ],
             "published_at": "2002-08-05",
             "effective_from": "2002-08-05",
@@ -1386,8 +1468,15 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                  "label": "BCE operazioni principali rifinanziamento — dal 06/03/2025"},
                 {"start": "2025-04-17", "end": "2025-06-10", "rate": 2.40,
                  "label": "BCE operazioni principali rifinanziamento — dal 17/04/2025"},
-                {"start": "2025-06-11", "end": None, "rate": 2.15,
+                {"start": "2025-06-11", "end": "2026-06-30", "rate": 2.15,
                  "label": "BCE operazioni principali rifinanziamento — dal 11/06/2025"},
+                # Il comunicato MEF del 16 luglio 2026 attesta il tasso di riferimento al
+                # 2,40% per il secondo semestre 2026. La data della decisione BCE non e'
+                # verificabile su una fonte ufficiale raggiungibile: il periodo parte dal
+                # 1 luglio 2026, che e' la decorrenza attestata dal comunicato.
+                {"start": "2026-07-01", "end": None, "rate": 2.40,
+                 "label": "BCE operazioni principali rifinanziamento — riferimento attestato dal 01/07/2026",
+                 "source_code": "mora_231_2026_h2"},
             ],
             "defaults": {
                 "note": (
@@ -2350,13 +2439,45 @@ class GestioneTabelleNormative:
             ]
             if valid:
                 return valid[0]
-            # Fallback al più recente per categoria
+            # Nessun trimestre copre la data: si ripiega sul piu' recente, ma la
+            # riga viene marcata perche' chi la usa possa dirlo all'avvocato
+            # invece di spacciare per vigente un trimestre superato.
             candidates = [r for r in rows if r.get("category") == category]
             if candidates:
-                return max(candidates, key=lambda r: r.get("quarter", ""))
+                recente = dict(max(candidates, key=lambda r: r.get("quarter", "")))
+                recente["fuori_periodo"] = True
+                return recente
         except Exception:
             pass
         return None
+
+    def periodo_coperto(self, table_id: str, on_date: Optional[date] = None) -> Dict[str, Any]:
+        """Dice se la tabella copre la data e qual e' l'ultimo periodo caricato.
+
+        Le tabelle a periodi — trimestri dell'usura, semestri della mora
+        commerciale, anni del saggio legale — invecchiano da sole: senza questo
+        controllo lo strumento continuerebbe a rispondere con l'ultimo periodo
+        caricato senza segnalare che non e' piu' quello vigente.
+        """
+        target = on_date or date.today()
+        try:
+            rows = self.rows(table_id)
+        except Exception:
+            rows = []
+        if not rows:
+            return {"coperto": False, "ultimo_inizio": None, "ultimo_fine": None, "righe": 0}
+        copre = any(
+            (_parse_date(r.get("start")) or date.min) <= target
+            and (not r.get("end") or (_parse_date(r.get("end")) or date.max) >= target)
+            for r in rows
+        )
+        ultima = max(rows, key=lambda r: str(r.get("start") or ""))
+        return {
+            "coperto": copre,
+            "ultimo_inizio": ultima.get("start"),
+            "ultimo_fine": ultima.get("end"),
+            "righe": len(rows),
+        }
 
     # ── Helper: Tassi BCE ─────────────────────────────────────────────────────
 

@@ -10,6 +10,7 @@ from textwrap import dedent
 from typing import Any, Dict, List, Mapping, Optional
 
 from pct.calcolatori._base import messaggio_indice_istat_mancante as _messaggio_indice_istat_mancante
+from pct.calcolatori._base import messaggio_periodo_scaduto as _messaggio_periodo_scaduto
 from pct.calcolatori import (
     assegno_mantenimento as calc_assegno_mantenimento,
     catastale as calc_catastale,
@@ -1075,6 +1076,19 @@ class GestioneStrumentiLegali:
         if mode == "mora_commerciale":
             warnings.append("Il tasso moratorio e calcolato come tasso BCE di riferimento maggiorato di 8 punti, salvo diverse pattuizioni valide nei limiti di legge.")
 
+        tabella_tassi = "mora_commerciale" if mode == "mora_commerciale" else "interesse_legale"
+        copertura = self.norme.periodo_coperto(tabella_tassi, data_fine)
+        if not copertura.get("coperto"):
+            warnings.append(
+                _messaggio_periodo_scaduto(
+                    copertura,
+                    "Tasso moratorio commerciale" if mode == "mora_commerciale" else "Saggio degli interessi legali",
+                    "ogni semestre con comunicato del Ministero dell'economia"
+                    if mode == "mora_commerciale"
+                    else "ogni anno con decreto del Ministero dell'economia",
+                )
+            )
+
         return {
             "mode": mode,
             "label": label,
@@ -1921,6 +1935,7 @@ class GestioneStrumentiLegali:
             "mef_decreto_usura",
             "mef_tassi_usura_2026_q1",
             "mef_tassi_usura_2026_q2",
+            "mef_tassi_usura_2026_q3",
         )
         warnings: List[str] = []
         notes: List[str] = []
@@ -1941,6 +1956,15 @@ class GestioneStrumentiLegali:
         margine = round(soglia - tasso_applicato, 4)
         esito = "USURARIO" if supera_soglia else "REGOLARE"
         esito_classe = "danger" if supera_soglia else "success"
+
+        if soglia_data.get("fuori_periodo"):
+            warnings.append(
+                _messaggio_periodo_scaduto(
+                    self.norme.periodo_coperto("tasso_usura", data_operazione),
+                    "Tassi soglia antiusura",
+                    "ogni trimestre con decreto del Ministero dell'economia",
+                )
+            )
 
         if categoria_input != categoria:
             notes.append(

@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { ArrowDownUp, Search, X } from 'lucide-react'
+import { ArrowDownUp, BookmarkCheck, RotateCcw, Search, X } from 'lucide-react'
 import { DOCUMENT_SORT_OPTIONS, isDocumentSortKey } from './documentListOrdering'
 import type { DocumentListControls, DocumentStatusFilter } from './useDocumentListControls'
 import './documentListToolbar.css'
@@ -25,6 +25,8 @@ export function DocumentListToolbar<T>({
   const sortId = useId()
   const hintId = useId()
   const { query, setQuery, sort, setSort, section, setSection, status, setStatus, searchRef, total, sectionCounts, statusCounts, filtersActive, resetFilters, searchMode, relevanceActive } = controls
+  const { vistaConfigurata, vistaModificata, vistaStato, vistaMessaggio, salvaVista, ripristinaVista } = controls
+  const vistaOccupata = vistaStato !== 'inattivo'
   const orderLabel = relevanceActive ? 'ordinati per pertinenza' : DOCUMENT_SORT_OPTIONS.find((option) => option.value === sort)?.label.toLowerCase()
   const sectionTotal = Array.from(sectionCounts.values()).reduce((sum, value) => sum + value, 0)
   const availableSections = sections.filter((option) => (sectionCounts.get(option.id) || 0) > 0 || option.id === section)
@@ -82,6 +84,36 @@ export function DocumentListToolbar<T>({
             {option.label} <b>{statusCounts[option.id]}</b>
           </button>
         ))}
+      </div>
+      <div className="iu-doclist-toolbar__vista">
+        {/* La vista salvata vale per tutti i fascicoli: si salva quando l'avvocato
+            lo chiede, non si registra da sola mentre naviga. */}
+        <button
+          type="button"
+          className="iu-doclist-toolbar__save"
+          disabled={vistaOccupata || !vistaModificata}
+          onClick={() => { void salvaVista() }}
+          title={vistaModificata ? 'Apri i fascicoli con ordinamento e filtri attuali' : 'La vista a schermo è già quella salvata'}
+        >
+          <BookmarkCheck size={15} aria-hidden="true"/>
+          {vistaStato === 'salvo' ? 'Salvataggio…' : 'Salva impostazioni'}
+        </button>
+        {vistaConfigurata ? (
+          <button
+            type="button"
+            className="iu-doclist-toolbar__reset-view"
+            disabled={vistaOccupata}
+            onClick={() => { void ripristinaVista() }}
+            title="Torna alla vista predefinita di IUSENTRA"
+          >
+            <RotateCcw size={14} aria-hidden="true"/>Ripristina predefinita
+          </button>
+        ) : null}
+        <span className="iu-doclist-toolbar__vista-nota" role="status" aria-live="polite">
+          {vistaMessaggio || (vistaConfigurata
+            ? (vistaModificata ? 'Vista modificata rispetto a quella salvata.' : 'Vista dello studio applicata.')
+            : 'Salva ordinamento e filtri come vista predefinita dello studio.')}
+        </span>
       </div>
       <p id={hintId} className="iu-doclist-toolbar__result" aria-live="polite">
         <span>

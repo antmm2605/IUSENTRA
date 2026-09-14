@@ -7,6 +7,12 @@ import {
   type DocumentSortKey,
 } from './documentListOrdering'
 import { buildDocumentSearchIndex, searchDocumentIndex, type DocumentSearchMode } from './documentSearch'
+import {
+  dimenticaVistaDocumenti,
+  leggiVistaDocumenti,
+  salvaVistaDocumenti,
+  VISTA_DOCUMENTI_PREDEFINITA,
+} from '../../services/vistaDocumentiPreferenze'
 
 export type DocumentStatusFilter = 'tutti' | 'da_firmare' | 'da_verificare'
 
@@ -21,6 +27,10 @@ export type DocumentListEntry<T> = {
 
 const SORT_STORAGE_KEY = 'iusentra.fascicolo.documenti.ordinamento'
 
+/** Sezioni ammesse: le stesse dichiarate dal catalogo documentale. */
+const SEZIONI_AMMESSE = new Set(['tutte', 'atti', 'provvedimenti', 'comunicazioni', 'pagamenti', 'allegati', 'da-verificare'])
+const STATI_AMMESSI = new Set<DocumentStatusFilter>(['tutti', 'da_firmare', 'da_verificare'])
+
 function readStoredSort(): DocumentSortKey {
   try {
     const stored = window.localStorage.getItem(SORT_STORAGE_KEY)
@@ -28,6 +38,10 @@ function readStoredSort(): DocumentSortKey {
   } catch {
     return DEFAULT_DOCUMENT_SORT
   }
+}
+
+function isStatusFilter(value: string): value is DocumentStatusFilter {
+  return STATI_AMMESSI.has(value as DocumentStatusFilter)
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -48,6 +62,31 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
   const [status, setStatus] = useState<DocumentStatusFilter>('tutti')
   const searchRef = useRef<HTMLInputElement>(null)
   const deferredQuery = useDeferredValue(query)
+
+  // Vista salvata dallo studio: si applica all'apertura e resta il riferimento
+  // per capire se quella a schermo e' gia' quella salvata.
+  const [vistaSalvata, setVistaSalvata] = useState(VISTA_DOCUMENTI_PREDEFINITA)
+  const [vistaConfigurata, setVistaConfigurata] = useState(false)
+  const [vistaStato, setVistaStato] = useState<'inattivo' | 'carico' | 'salvo'>('carico')
+  const [vistaMessaggio, setVistaMessaggio] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    leggiVistaDocumenti(controller.signal)
+      .then((salvata) => {
+        if (controller.signal.aborted) return
+        setVistaSalvata(salvata.preferences)
+        setVistaConfigurata(salvata.configured)
+        if (!salvata.configured) return
+        // La preferenza dello studio prevale sull'ordinamento locale del browser.
+        if (isDocumentSortKey(salvata.preferences.sort)) setSortState(salvata.preferences.sort)
+        if (SEZIONI_AMMESSE.has(salvata.preferences.section)) setSection(salvata.preferences.section)
+        if (isStatusFilter(salvata.preferences.status)) setStatus(salvata.preferences.status)
+      })
+      .catch(() => { /* vista non leggibile: restano i predefiniti */ })
+      .finally(() => { if (!controller.signal.aborted) setVistaStato('inattivo') })
+    return () => controller.abort()
+  }, [])
 
   const setSort = useCallback((next: DocumentSortKey) => {
     setSortState(next)
@@ -123,6 +162,47 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
     return () => window.removeEventListener('keydown', listener)
   }, [])
 
+  // La ricerca non entra nella vista salvata: e' una domanda del momento, non
+  // un modo di guardare l'archivio.
+  const vistaCorrente = useMemo(() => ({ sort, section, status }), [sort, section, status])
+  const vistaModificata =
+    vistaCorrente.sort !== vistaSalvata.sort ||
+    vistaCorrente.section !== vistaSalvata.section ||
+    vistaCorrente.status !== vistaSalvata.status
+
+  const salvaVista = useCallback(async () => {
+    setVistaStato('salvo')
+    setVistaMessaggio('')
+    try {
+      const salvata = await salvaVistaDocumenti(vistaCorrente)
+      setVistaSalvata(salvata.preferences)
+      setVistaConfigurata(salvata.configured)
+      setVistaMessaggio('Vista salvata: i prossimi fascicoli si apriranno così.')
+    } catch (errore) {
+      setVistaMessaggio(errore instanceof Error ? errore.message : 'Vista non salvata. Riprova.')
+    } finally {
+      setVistaStato('inattivo')
+    }
+  }, [vistaCorrente])
+
+  const ripristinaVista = useCallback(async () => {
+    setVistaStato('salvo')
+    setVistaMessaggio('')
+    try {
+      const salvata = await dimenticaVistaDocumenti()
+      setVistaSalvata(salvata.preferences)
+      setVistaConfigurata(false)
+      setSortState(DEFAULT_DOCUMENT_SORT)
+      setSection('tutte')
+      setStatus('tutti')
+      setVistaMessaggio('Vista riportata ai valori predefiniti.')
+    } catch (errore) {
+      setVistaMessaggio(errore instanceof Error ? errore.message : 'Vista non ripristinata. Riprova.')
+    } finally {
+      setVistaStato('inattivo')
+    }
+  }, [])
+
   return {
     query,
     setQuery,
@@ -141,6 +221,12 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
     statusCounts,
     filtersActive,
     resetFilters,
+    vistaConfigurata,
+    vistaModificata,
+    vistaStato,
+    vistaMessaggio,
+    salvaVista,
+    ripristinaVista,
   }
 }
 

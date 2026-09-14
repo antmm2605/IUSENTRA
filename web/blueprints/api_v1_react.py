@@ -8294,6 +8294,53 @@ def fascicoli_react_save_filter_preferences():
     return jsonify(result), status_code
 
 
+@api_v1_react.get("/fascicoli/preferenze-vista-documenti")
+@_richiedi_auth
+def fascicolo_documenti_react_view_preferences():
+    """Vista preferita dell'elenco documenti del fascicolo."""
+    from web.services import vista_documenti_preferenze as vista
+
+    try:
+        ancora = tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True)
+        return jsonify(vista.carica(ancora))
+    except TenantDataPathError as exc:
+        return _tenant_data_path_error(exc)
+    except Exception as exc:
+        current_app.logger.exception("Lettura vista documenti non riuscita: %s", exc)
+        return jsonify({
+            "ok": True,
+            "configured": False,
+            "updatedAt": "",
+            "preferences": vista.preferenze_predefinite(),
+        })
+
+
+@api_v1_react.post("/fascicoli/preferenze-vista-documenti")
+@_richiedi_auth
+def fascicolo_documenti_react_save_view_preferences():
+    from web.services import vista_documenti_preferenze as vista
+
+    payload, error = _request_json_object()
+    if error:
+        return error
+    try:
+        ancora = tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True)
+        azzera = str(payload.get("reset") or "").strip().lower() in {"1", "true", "si", "sì", "yes"}
+        result = vista.dimentica(ancora) if azzera else vista.salva(ancora, payload)
+    except TenantDataPathError as exc:
+        return _tenant_data_path_error(exc)
+    except Exception as exc:
+        current_app.logger.exception("Salvataggio vista documenti non riuscito: %s", exc)
+        return jsonify({"ok": False, "message": "Vista non salvata. Riprova."}), 200
+    _audit_event(
+        "fascicoli.vista_documenti_salvata",
+        "fascicoli",
+        "preferenze-vista-documenti",
+        "Vista dell'elenco documenti aggiornata.",
+    )
+    return jsonify(result)
+
+
 def _fascicoli_list_cache_key() -> tuple | None:
     if not _FASCICOLI_LIST_PAYLOAD_CACHE.enabled:
         return None

@@ -32,3 +32,23 @@
   .iu-doclist-toolbar__chips button{min-height:38px}
   .iu-doclist-toolbar__result{flex-direction:column;align-items:flex-start}
 }
+
+/* Vista salvata dello studio: salvataggio esplicito, mai automatico. */
+.iu-doclist-toolbar__vista { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.iu-doclist-toolbar__save,
+.iu-doclist-toolbar__reset-view {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px;
+  border: 1px solid var(--iu-border, #dce2e9); border-radius: 999px;
+  background: var(--iu-surface, #ffffff); color: inherit;
+  font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer;
+}
+.iu-doclist-toolbar__save:hover:not(:disabled),
+.iu-doclist-toolbar__reset-view:hover:not(:disabled) { border-color: var(--iu-primary, #2563eb); background: var(--iu-surface-subtle, #eef2f7); }
+.iu-doclist-toolbar__save:disabled,
+.iu-doclist-toolbar__reset-view:disabled { cursor: not-allowed; opacity: .55; }
+.iu-doclist-toolbar__reset-view { font-weight: 550; }
+.iu-doclist-toolbar__vista-nota { color: var(--iu-slate-600, #475569); font-size: 12px; }
+@media (max-width: 640px) {
+  .iu-doclist-toolbar__vista { gap: 6px; }
+  .iu-doclist-toolbar__vista-nota { flex-basis: 100%; }
+}

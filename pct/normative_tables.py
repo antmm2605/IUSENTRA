@@ -2344,6 +2344,37 @@ class GestioneTabelleNormative:
         except Exception:
             return 1.0
 
+    def istat_fattore_verso_2015(self, kind: str, base: int) -> float:
+        """Fattore che porta un indice di quella base alla base 2015=100.
+
+        A ogni cambio di base l'ISTAT pubblica in Gazzetta Ufficiale un
+        «coefficiente di raccordo tra le basi» che converte un indice della base
+        NUOVA in un indice della base VECCHIA: il 2015 valeva 107,1 in base
+        2010=100 e 100 in base 2015=100, quindi il coefficiente 1,071 moltiplica
+        i valori in base 2015 per riportarli in base 2010. Per normalizzare tutta
+        la serie sulla base 2015 si moltiplica quando la base e' piu' recente e
+        si divide quando e' piu' vecchia.
+
+        Senza questa conversione il rapporto fra due indici a cavallo di un
+        cambio di base sbaglia di un fattore intero, e la rivalutazione con esso.
+        """
+        if base == 2015:
+            return 1.0
+        table_id = "istat_foi" if kind == "foi" else "istat_nic"
+        try:
+            defaults = self.get_table(table_id).get("defaults") or {}
+            coefficienti = dict(defaults.get("coefficienti_raccordo") or {})
+        except Exception:
+            coefficienti = {}
+        if not coefficienti:
+            # Compatibilita' con le tabelle che dichiarano il solo raccordo 2015-2025.
+            return self.istat_coefficiente_raccordo(kind) if base == 2025 else 1.0
+        if base > 2015:
+            coefficiente = coefficienti.get(f"2015_{base}")
+            return float(coefficiente) if coefficiente else 1.0
+        coefficiente = coefficienti.get(f"{base}_2015")
+        return 1.0 / float(coefficiente) if coefficiente else 1.0
+
     def istat_index_pubblicato(self, kind: str, year: int, month: int) -> Optional[Dict[str, Any]]:
         """Indice come pubblicato, con la base a cui si riferisce."""
         riga = self._riga_istat(kind, year, month)
@@ -2364,8 +2395,9 @@ class GestioneTabelleNormative:
         if riga is None:
             return None
         valore = float(riga["index"])
-        if int(riga.get("base", 2015)) == 2025:
-            valore *= self.istat_coefficiente_raccordo(kind)
+        base = int(riga.get("base", 2015))
+        if base != 2015:
+            valore *= self.istat_fattore_verso_2015(kind, base)
         return round(valore, 4)
 
     def istat_media_annua(self, kind: str, year: int) -> Optional[float]:

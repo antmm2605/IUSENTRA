@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BX-unSY1.js";export{e as ImpostazioniPage};

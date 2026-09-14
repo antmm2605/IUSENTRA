@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.308.0 - 14/09/2026
+
+L'elenco documenti del fascicolo si apre come preferisce lo studio.
+
+- **«Salva impostazioni» nella catalogazione documentale.** Ordinamento, sezione e stato scelti diventano la vista predefinita con cui si aprono **tutti** i fascicoli: chi lavora sulle scadenze riapre sui «Da firmare», chi controlla la catalogazione sui «Senza sezione», chi segue il deposito sull'ultimo caricato. Prima la scelta andava rifatta a ogni fascicolo, e con molti fascicoli era lavoro perso.
+- **Il salvataggio è esplicito.** La vista si registra quando l'avvocato lo chiede, non mentre naviga: un filtro messo per cercare una cosa sola non diventa il modo in cui si apriranno i fascicoli di domani. Il pulsante si attiva solo quando la vista a schermo è diversa da quella salvata, e la barra dice sempre a che punto sei — «Vista dello studio applicata», «Vista modificata rispetto a quella salvata».
+- **«Ripristina predefinita»** compare quando una vista è salvata e riporta tutto ai valori di IUSENTRA.
+- **La ricerca non entra nella vista.** È una domanda del momento, non un modo di guardare l'archivio: salvare anche quella significherebbe riaprire i fascicoli filtrati su una parola cercata settimane prima.
+- La preferenza vive nell'archivio dello studio (`ui_preferences`), accanto a quella già usata per i filtri dell'elenco fascicoli, e vale su tutti i dispositivi: la scelta fatta dal computer dello studio vale anche dal telefono. Un valore fuori catalogo — per un dato corrotto o una sezione non più esistente — torna al predefinito invece di aprire i fascicoli su una vista vuota.
+
+14 nuovi test, fra cui quello che verifica che le due viste salvate (filtri dei fascicoli e documenti del fascicolo) convivano nello stesso archivio senza sovrascriversi.
+
 ## 2.307.1 - 14/09/2026
 
 Provata a mano ogni funzione della pagina Strumenti forensi, dal percorso HTTP reale. Un modulo era rotto in pagina pur avendo il codice di dominio corretto.

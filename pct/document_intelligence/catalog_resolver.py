@@ -59,7 +59,7 @@ PROFILE_SOURCES: dict[str, tuple[str, ...]] = {
     "VGS": ("normattiva_codice_civile", "normattiva_cpc", "snapshot:vg-dm-2024", "snapshot:vg-specifiche-2023", "snapshot:successione-certificato-giustizia-2026"),
     "FAM": ("normattiva_codice_civile", "normattiva_cpc", "normattiva_d_lgs_149_2022_cartabia_civile", "corte_cassazione_sentenzeweb"),
     "PEN": ("normattiva_cpp", "normattiva_d_lgs_150_2022_cartabia_penale", "pst_pdp_penale", "pst_specifiche_penale_2024", "corte_cassazione_sentenzeweb"),
-    "TRIB": ("normattiva_d_lgs_546_1992_tributario", "normattiva_dm_163_2013_ptt", "snapshot:ptt-specifiche-2015-gu", "snapshot:ptt-modifica-2017-gu", "snapshot:ptt-modifica-2023-gu", "snapshot:ptt-circolare-2019", "giustizia_tributaria_def_giurisprudenza"),
+    "TRIB": ("normattiva_d_lgs_175_2024_tu_giustizia_tributaria", "normattiva_d_lgs_546_1992_tributario", "normattiva_dm_163_2013_ptt", "snapshot:ptt-specifiche-2015-gu", "snapshot:ptt-modifica-2017-gu", "snapshot:ptt-modifica-2023-gu", "snapshot:ptt-circolare-2019", "giustizia_tributaria_def_giurisprudenza"),
     "STD": ("normattiva_l_247_2012_ordinamento_forense", "cnf_codice_deontologico_forense", "normattiva_dm_55_2014_parametri_forensi", "snapshot:agid-gestione-documentale-2026"),
     "IPD": ("normattiva_cpi_30_2005", "uibm_deposito_telematico_proprieta_industriale", "normattiva_diritto_autore_633_1941", "snapshot:uibm-marchi-disegni-2026"),
     "IMM": ("normattiva_tu_immigrazione_286_1998", "normattiva_d_lgs_25_2008_protezione_internazionale", "interno_protezione_internazionale_commissioni", "snapshot:protezione-internazionale-guida-2024"),

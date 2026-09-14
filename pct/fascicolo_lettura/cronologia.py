@@ -37,6 +37,16 @@ ESITI = {
 }
 
 
+_ACQUISIZIONI_TECNICHE = ("acquisizione file ufficiali", "download ufficiale completo", "acquisiti localmente da polisweb", "acquisizione guidata da polisweb")
+
+
+def _acquisizione_tecnica(voce: dict[str, Any]) -> bool:
+    """Sincronizzazioni e download dal portale: eventi tecnici, non fatti della causa."""
+    tipo = pulisci(voce.get("tipo")).upper()
+    testo = f"{pulisci(voce.get('titolo'))} {pulisci(voce.get('descrizione'))}".lower()
+    return tipo in {"CONSULTAZIONE", "SINCRONIZZAZIONE", "IMPORTAZIONE"} and any(marker in testo for marker in _ACQUISIZIONI_TECNICHE)
+
+
 def _chiave(data: str) -> str:
     giorno = data_da(data)
     return giorno.isoformat() if giorno else "0000-00-00"
@@ -55,6 +65,8 @@ def cronologia(
         tipo = pulisci(voce.get("tipo")).upper()
         if tipo == "NOTIFICA":
             continue  # le notifiche entrano dalla loro lettura, con lo stato di perfezionamento
+        if _acquisizione_tecnica(voce):
+            continue
         esito = ESITI.get(pulisci(voce.get("esito")).upper(), "")
         eventi.append(Evento(
             data=pulisci(voce.get("data"))[:10],
@@ -66,6 +78,8 @@ def cronologia(
             fonte_id=pulisci(voce.get("id")),
         ))
     for deposito in depositi_letti:
+        if deposito.get("importato"):
+            continue  # gli atti del fascicolo d'ufficio sono già nelle attività importate
         eventi.append(Evento(
             data=_chiave(deposito["data"]) if deposito["data"] else "",
             categoria="deposito",

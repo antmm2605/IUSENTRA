@@ -8807,6 +8807,16 @@ def fascicolo_react_lex(id_fasc: str):
     ))
 
 
+# La lettura costa qualche decina di millisecondi a caldo ma la pagina del
+# fascicolo la chiede a ogni apertura: entro il TTL la risposta gia' serializzata
+# viene riusata; «aggiorna=1» (pulsante Aggiorna) la ricostruisce sempre.
+_LETTURA_CACHE = ReactPayloadTTLCache(ttl_seconds=20.0, max_entries=64)
+
+
+def _lettura_cache_key(id_fasc: str) -> tuple:
+    return ("lettura", str(getattr(g, "tenant_id", "") or getattr(g, "studio_id", "") or ""), str(id_fasc))
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/lettura")
 @_richiedi_auth
 def fascicolo_react_lettura(id_fasc: str):
@@ -8814,10 +8824,32 @@ def fascicolo_react_lettura(id_fasc: str):
     try:
         from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
 
+        aggiorna = str(request.args.get("aggiorna") or "").strip().lower() in {"1", "true", "si", "sì"}
+        chiave = _lettura_cache_key(id_fasc)
+        if not aggiorna:
+            in_cache = _LETTURA_CACHE.get(chiave)
+            if in_cache is not None:
+                return current_app.response_class(in_cache, mimetype="application/json")
         lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc)
         if not lettura:
             return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
-        return _jsonify_public_payload({"ok": True, "lettura": lettura})
+        # I presìdi verificano da soli (ricevute, PEC, notifiche, documenti): il
+        # thread parte qui, la risposta non aspetta e dichiara che le verifiche sono in corso.
+        try:
+            from web.services.fascicolo_lettura_verifiche import avvia_verifiche_in_background
+
+            avviate = avvia_verifiche_in_background(
+                current_app._get_current_object(), id_fasc,
+                paths=dict(getattr(g, "data_paths", {}) or {}), tenant_slug=str(getattr(g, "tenant_context_slug", "") or ""), forza=aggiorna,
+            )
+        except Exception as exc:
+            current_app.logger.warning("Verifiche automatiche non avviate per %s: %s", id_fasc, exc)
+            avviate = False
+        if avviate:
+            lettura["verifiche"] = {**dict(lettura.get("verifiche") or {}), "in_corso": True}
+        risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
+        _LETTURA_CACHE.set(chiave, risposta.get_data())
+        return risposta, 200
     except Exception as exc:
         current_app.logger.exception("Lettura del fascicolo %s non completata: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Lettura del fascicolo non completata."}, 200)

@@ -1,14 +1,18 @@
 """Le notifiche: presidi, attività e prove di perfezionamento.
 
-Una notifica in proprio a mezzo PEC (L. 53/1994, art. 3-bis) è perfezionata
-per il notificante al momento della ricevuta di accettazione e per il
-destinatario con la ricevuta di avvenuta consegna. Senza la consegna, la
-notifica non è provata: la lettura lo dice senza giri di parole.
+Una notifica in proprio a mezzo PEC (L. 53/1994, art. 3-bis; art. 147 c.p.c.)
+è perfezionata per il notificante al momento della ricevuta di accettazione e
+per il destinatario con la ricevuta di avvenuta consegna (se generata fra le 21
+e le 7, alle ore 7). Senza la consegna, la notifica non è provata: la lettura
+lo dice senza giri di parole e colloca ogni presidio nella fase della scheda
+di `pct/procedura_fasi/notifiche.py`, con le norme che la governano.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+from pct.procedura_fasi.notifiche import canale_notifica, fase_notifica
 
 from ._testo import data_it, dataora_it, elenco, pulisci
 
@@ -32,9 +36,15 @@ def _leggi_presidio(presidio: dict[str, Any]) -> dict[str, Any]:
     stato = pulisci(presidio.get("status")).upper()
     destinatari = [pulisci(voce.get("name")) for voce in list(presidio.get("recipients") or []) if pulisci(voce.get("name"))]
     documento = presidio.get("document") or {}
+    canale = canale_notifica(presidio.get("channel") or presidio.get("channel_label")) or "pec"
+    fase = fase_notifica(canale, stato)
     return {
         "id": pulisci(presidio.get("id")),
         "origine": "presidio",
+        "canale_codice": canale,
+        "fase_procedurale": fase.get("nome", ""),
+        "prova_attesa": fase.get("prova", ""),
+        "fonti_procedurali": list(fase.get("fonti") or []),
         "atto": pulisci((documento or {}).get("name") or (documento or {}).get("label") or presidio.get("notification_case_label")) or "atto da notificare",
         "canale": pulisci(presidio.get("channel_label")),
         "destinatari": destinatari,
@@ -54,6 +64,10 @@ def _leggi_attivita(attivita: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": pulisci(attivita.get("id")),
         "origine": "attivita",
+        "canale_codice": "",
+        "fase_procedurale": "",
+        "prova_attesa": "",
+        "fonti_procedurali": [],
         "atto": pulisci(attivita.get("titolo")) or "notifica",
         "canale": "",
         "destinatari": [],

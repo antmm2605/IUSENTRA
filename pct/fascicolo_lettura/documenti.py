@@ -51,7 +51,10 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> d
             "data": _data(documento),
             "data_it": data_it(_data(documento)),
             "firmato": bool(documento.get("firmato")),
-            "indicizzato": bool(documento.get("lex_read")),
+            # Letto dal presidio documentale: testo indicizzato o record Document AI indicizzato.
+            "indicizzato": bool(documento.get("lex_read")) or bool(voce.get("indexed")),
+            # Censito dal portale ma non scaricato: il presidio non può leggerlo finché non è nel fascicolo.
+            "da_acquisire": bool(documento.get("da_acquisire")),
             "deposito": pulisci(documento.get("id_deposito_pct")),
         })
     letti.sort(key=lambda voce: voce["data"])
@@ -76,7 +79,8 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> d
         "catalogati": sum(1 for voce in letti if voce["stato_catalogo"] in {"proposed", "confirmed"}),
         "confermati": sum(1 for voce in letti if voce["stato_catalogo"] == "confirmed"),
         "da_verificare": [voce for voce in letti if voce["sezione"] == "da-verificare"],
-        "non_indicizzati": [voce for voce in letti if not voce["indicizzato"]],
+        "non_indicizzati": [voce for voce in letti if not voce["indicizzato"] and not voce["da_acquisire"]],
+        "da_acquisire": [voce for voce in letti if voce["da_acquisire"]],
         "atto_introduttivo": primo({"atto_principale"}),
         "ultimo_atto_di_parte": ultimo(sezione="atti"),
         "ultimo_provvedimento": ultimo(sezione="provvedimenti"),

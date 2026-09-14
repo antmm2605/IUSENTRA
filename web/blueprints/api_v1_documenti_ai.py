@@ -238,6 +238,20 @@ def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
         return _handle_error(exc)
 
 
+@api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/catalogazione-documentale/conferma-proposte")
+@_richiedi_auth
+def conferma_proposte_catalogazione_documentale(fascicolo_id: str):
+    """Conferma tutte le proposte con prova letta dal contenuto; le altre restano proposte e vengono elencate."""
+    try:
+        from web.services.document_catalog_conferma import conferma_proposte_catalogo
+
+        esito = conferma_proposte_catalogo(fascicolo_id, user_context=_user_context())
+        catalog = build_document_catalog_payload(fascicolo_id, process=False)
+        return jsonify({"mock_fallback": False, **esito, **catalog})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
 @api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/documenti-ai/<documento_id>/catalogazione-documentale/revisione")
 @_richiedi_auth
 def revisione_catalogazione_documentale(fascicolo_id: str, documento_id: str):

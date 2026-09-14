@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   Bell,
+  BookOpen,
   BrainCircuit,
   BriefcaseBusiness,
   Building2,
@@ -154,6 +155,7 @@ import { formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
+import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
 import { useFileDropTarget } from './fascicoloDocumenti/useFileDropTarget'
@@ -1912,6 +1914,8 @@ function CatalogazioneDocumentalePanel({
   const [reviewedEvidenceDocumentIds, setReviewedEvidenceDocumentIds] = useState<Set<string>>(() => new Set())
   const [error, setError] = useState('')
   const [catalogOpen, setCatalogOpen] = useState(true)
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkAttested, setBulkAttested] = useState(false)
   const endpoint = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/catalogazione-documentale`
   const documentsById = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents])
   const documentRevision = documents.map((document) => `${document.id}:${document.hash || ''}`).join('|')
@@ -2019,6 +2023,35 @@ function CatalogazioneDocumentalePanel({
     }
   }
 
+  // Conferma in blocco: vale come attestazione di lettura delle prove per tutte
+  // le proposte che una prova ce l'hanno; le altre restano proposte e vengono elencate.
+  const confirmAllProposals = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(`${endpoint}/conferma-proposte`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ evidence_acknowledged: true }),
+      })
+      const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string; message?: string; senza_prova?: { document_label: string }[]; errori?: { document_label: string; errore: string }[] }
+      if (!response.ok || !Array.isArray(next.documents)) throw new Error(next.detail || next.error || 'Conferma delle proposte non completata.')
+      setPayload(next)
+      setBulkOpen(false)
+      setBulkAttested(false)
+      setReviewedEvidenceDocumentIds(new Set())
+      onDone(next.message || 'Proposte confermate nel fascicolo.')
+      if (next.errori?.length) setError(`Non confermate: ${next.errori.map((item) => `${item.document_label} (${item.errore})`).join('; ')}`)
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Conferma delle proposte non completata.'
+      setError(message)
+      onError(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const confirm = async (documentId: string, status: 'confirmed' | 'review_required', evidenceAcknowledged = false) => {
     setBusy(true)
     setError('')
@@ -2091,6 +2124,7 @@ function CatalogazioneDocumentalePanel({
         <div className="iu-fas-catalog__header-actions">
           <Badge tone={summary?.errors ? 'danger' : summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.errors ? 'Aggiornamento parziale' : summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
           <button type="button" disabled={busy} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw className={busy ? 'iu-spin' : ''} size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
+          <button type="button" disabled={busy || !summary?.proposed} onClick={() => { setBulkOpen((current) => !current); setBulkAttested(false) }} title={summary?.proposed ? `Conferma in blocco le ${summary.proposed} proposte con prova letta dal contenuto` : 'Nessuna proposta da confermare'} aria-expanded={bulkOpen}><CheckCircle2 size={15}/> Conferma tutte le proposte{summary?.proposed ? ` (${summary.proposed})` : ''}</button>
           <button
             type="button"
             className="iu-fas-catalog__toggle"
@@ -2105,6 +2139,17 @@ function CatalogazioneDocumentalePanel({
         </div>
       </header>
       {catalogOpen ? <div id="catalogazione-documentale-contenuto" className="iu-fas-catalog__content">
+        {bulkOpen && summary?.proposed ? (
+          <div className="iu-fas-catalog__bulk" role="group" aria-label="Conferma di tutte le proposte">
+            <strong>Confermi in blocco {summary.proposed} propost{summary.proposed === 1 ? 'a' : 'e'}?</strong>
+            <span>Vengono confermate solo le proposte che hanno una prova letta dal contenuto; le altre restano proposte e ti vengono elencate. Ogni conferma è registrata nella revisione del fascicolo.</span>
+            <label className="iu-fas-catalog__check"><input type="checkbox" checked={bulkAttested} onChange={(event) => setBulkAttested(event.currentTarget.checked)}/> Ho letto le prove delle proposte e attesto la conferma</label>
+            <div>
+              <button type="button" disabled={busy || !bulkAttested} onClick={() => void confirmAllProposals()}><CheckCircle2 size={14}/> {busy ? 'Conferma in corso…' : `Conferma ${summary.proposed} propost${summary.proposed === 1 ? 'a' : 'e'}`}</button>
+              <button type="button" disabled={busy} onClick={() => { setBulkOpen(false); setBulkAttested(false) }}>Annulla</button>
+            </div>
+          </div>
+        ) : null}
         <dl>
           <div><dt>Documenti</dt><dd>{summary?.source_documents ?? 0}</dd></div>
           <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
@@ -9733,7 +9778,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -9752,6 +9797,9 @@ function DetailPage({ id }:{id:string}) {
             loading={lazyStatus.regia === 'loading'}
             auditStatus={lazyStatus.audit}
           />
+          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen>
+            <LetturaFascicoloPanel fascicoloId={f.id || id} onError={failDetail}/>
+          </DetailSection>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>

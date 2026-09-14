@@ -29,6 +29,10 @@ class DatiLettura:
     regia: dict[str, Any] = field(default_factory=dict)
     economico: dict[str, Any] = field(default_factory=dict)
     parti: list[dict[str, Any]] = field(default_factory=list)
+    # Messaggi del presidio PEC che riguardano la pratica (collegati, per RG o per nome del cliente).
+    pec: list[dict[str, Any]] = field(default_factory=list)
+    # Esito delle verifiche automatiche dei presìdi (registro di web/services/fascicolo_lettura_verifiche).
+    verifiche: dict[str, Any] = field(default_factory=dict)
     oggi: date | None = None
 
 
@@ -58,16 +62,31 @@ class Evento:
 
 @dataclass
 class Passo:
-    """Un prossimo passaggio, con la sua urgenza e la ragione che lo sostiene."""
+    """Un prossimo passaggio: urgenza, ragione, norma che lo fonda e dove agire."""
 
     urgenza: int  # 0 = scaduto/bloccante, 1 = entro pochi giorni, 2 = prossimo, 3 = di governo
     azione: str
     motivo: str = ""
     entro: str = ""
-    fonte: str = ""
+    fonte: str = ""  # il presidio da cui il passo nasce (scadenziario, deposito PCT, presidio PEC…)
+    fonti: tuple[str, ...] = ()  # identificativi del registro pct/procedura_fasi/fonti.py
+    href: str = ""  # dove agire nella pagina del fascicolo o nell'applicazione
+    template: str = ""  # template del motore dei termini, se il passo ha un termine calcolabile
 
     def come_dizionario(self) -> dict[str, Any]:
-        return {"urgenza": self.urgenza, "azione": self.azione, "motivo": self.motivo, "entro": self.entro, "fonte": self.fonte}
+        from pct.procedura_fasi.fonti import fonti, norme
+
+        return {
+            "urgenza": self.urgenza,
+            "azione": self.azione,
+            "motivo": self.motivo,
+            "entro": self.entro,
+            "fonte": self.fonte,
+            "norma": norme(self.fonti),
+            "fonti": fonti(self.fonti),
+            "href": self.href,
+            "template": self.template,
+        }
 
 
 __all__ = ["DatiLettura", "Evento", "Passo"]

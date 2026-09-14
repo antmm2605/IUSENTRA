@@ -45,6 +45,7 @@ def intestazione(fascicolo: dict[str, Any], parti: list[dict[str, Any]], catalog
         "codice_oggetto_pst": pulisci(fascicolo.get("codice_oggetto_pst")),
         "stato": STATI_FASCICOLO.get(stato_codice, stato_codice.lower()),
         "stato_codice": stato_codice,
+        "da_archiviare": bool(fascicolo.get("archivio_pronto")) and stato_codice == "DEFINITO",
         "valore_causa": euro(fascicolo.get("valore_causa")),
         "data_apertura": data_it(fascicolo.get("data_apertura")),
         "avvocato": pulisci(fascicolo.get("avvocato_referente")),

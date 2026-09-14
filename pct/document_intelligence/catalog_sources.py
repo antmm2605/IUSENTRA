@@ -76,6 +76,12 @@ CATALOG_SOURCES: dict[str, dict[str, Any]] = {
         "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
         "source_type": "normativa",
     },
+    "normattiva_d_lgs_175_2024_tu_giustizia_tributaria": {
+        "label": "D.Lgs. 175/2024, Testo unico della giustizia tributaria: ricorso (art. 64), termine di sessanta giorni (art. 67), costituzione del ricorrente (art. 68) e del resistente (art. 69); gli artt. 18-23 del D.Lgs. 546/1992 sono abrogati",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-11-14;175~art64",
+        "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
+        "source_type": "normativa",
+    },
     # Fonti delle regole d'identità dal titolo, per area (verificate su Normattiva).
     **FONTI_TITOLI,
 }
@@ -108,7 +114,7 @@ def document_source_ids(nature: str, section: str, profile_id: str | None) -> tu
     if (section == "comunicazioni" and nature != "corrispondenza_stragiudiziale") or nature.startswith("ricevuta_pec"):
         return common + ("catalog_pec_ricevute", "catalog_pec_specifiche")
     if section in {"procure", "provvedimenti", "atti"}:
-        procedural = {"PEN": "normattiva_cpp", "PAT": "normattiva_cpa", "TRIB": "normattiva_d_lgs_546_1992_tributario"}.get(profile_id or "")
+        procedural = {"PEN": "normattiva_cpp", "PAT": "normattiva_cpa", "TRIB": "normattiva_d_lgs_175_2024_tu_giustizia_tributaria"}.get(profile_id or "")
         if not procedural and profile_id and (profile_id.startswith("CIV-") or profile_id in {"LAV", "FAM", "VGS", "LOC", "RCD", "SOC", "BAN", "CONC"}):
             procedural = "normattiva_cpc"
         return common + ((procedural,) if procedural else ())

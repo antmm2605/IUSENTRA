@@ -59,12 +59,15 @@ def fase(
         descrizione = f"atto notificato ({ultima['atto']}, {ultima['data']}): in attesa di iscrizione a ruolo o costituzione"
         prove.append(f"notifica perfezionata: {ultima['atto']} del {ultima['data']}")
 
-    if depositi_letti["perfezionati"] or intestazione.get("rg"):
+    importati = depositi_letti.get("importati") or []
+    if depositi_letti["perfezionati"] or importati or intestazione.get("rg"):
         codice = CODICE_FASE_ISCRITTA
         descrizione = "causa iscritta a ruolo, in attesa della prima udienza"
         if depositi_letti["perfezionati"]:
             ultimo = depositi_letti["perfezionati"][-1]
             prove.append(f"deposito accettato dalla cancelleria: {ultimo['atto']} del {ultimo['data']}")
+        elif importati:
+            prove.append(f"fascicolo d'ufficio consultato: {len(importati)} atti acquisiti da PolisWeb/PST")
         if intestazione.get("rg"):
             prove.append(f"numero di ruolo {intestazione['rg']}")
 

@@ -1,15 +1,19 @@
 """I depositi telematici, letti fase per fase.
 
-Un deposito PCT attraversa fasi precise (D.M. 44/2011, artt. 13-16; Specifiche
-tecniche DGSIA): invio, ricevuta di accettazione PEC, ricevuta di consegna,
-esito dei controlli automatici, accettazione o rifiuto della cancelleria. Il
-deposito è perfezionato solo con l'accettazione della cancelleria: prima di
-quel momento l'atto non è nel fascicolo d'ufficio, e l'avvocato deve saperlo.
+Un deposito telematico civile attraversa fasi precise (D.M. 44/2011, art. 13;
+art. 196-sexies disp. att. c.p.c.; Specifiche tecniche DGSIA 7/8/2024, art.
+17): invio, ricevuta di accettazione PEC, ricevuta di avvenuta consegna — il
+momento in cui il deposito si ha per avvenuto — esito dei controlli automatici,
+accettazione o rifiuto della cancelleria. Solo con l'accettazione l'atto è nel
+fascicolo d'ufficio, e l'avvocato deve saperlo. Le fasi degli altri canali
+(PDP, PAT, PTT) sono nelle schede di `pct/procedura_fasi/depositi.py`.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+from pct.procedura_fasi.depositi import canale_deposito, fase_deposito
 
 from ._testo import data_it, dataora_it, pulisci
 
@@ -24,9 +28,17 @@ FASI = {
 }
 
 
-def leggi_deposito(deposito: dict[str, Any]) -> dict[str, Any]:
+def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]:
     stato = pulisci(deposito.get("stato")).upper() or "INVIATO"
-    fase, attesa, perfezionato = FASI.get(stato, (stato.lower().replace("_", " "), "", False))
+    # Gli atti importati dal fascicolo d'ufficio (PolisWeb/PST) non sono depositi
+    # dello studio in attesa di ricevute: sono atti già nel fascicolo d'ufficio.
+    importato = stato.startswith("IMPORTATO")
+    if importato:
+        fase, attesa, perfezionato = ("acquisito dal fascicolo d'ufficio", "", True)
+    else:
+        fase, attesa, perfezionato = FASI.get(stato, (stato.lower().replace("_", " "), "", False))
+    canale_letto = canale_deposito(deposito.get("fonte_portale") or deposito.get("servizio_portale") or canale) or "PCT_TELEMATICO"
+    fase_procedurale = fase_deposito(canale_letto, stato)
     esito_controlli = pulisci(deposito.get("esito_controlli")).upper()
     ricevute = [
         etichetta
@@ -55,18 +67,26 @@ def leggi_deposito(deposito: dict[str, Any]) -> dict[str, Any]:
         "portale": pulisci(deposito.get("fonte_portale")),
         "messaggio": pulisci(deposito.get("messaggio"))[:200],
         "destinatario": pulisci(deposito.get("pec_destinatario")),
+        "canale": canale_letto,
+        "importato": importato,
+        # La fase della scheda procedurale: nome, prova attesa e norme che la governano.
+        "fase_procedurale": fase_procedurale.get("nome", ""),
+        "prova_attesa": fase_procedurale.get("prova", ""),
+        "fonti_procedurali": list(fase_procedurale.get("fonti") or []),
     }
 
 
-def depositi(elenco: list[dict[str, Any]]) -> dict[str, Any]:
-    letti = [leggi_deposito(voce) for voce in elenco]
+def depositi(elenco: list[dict[str, Any]], canale: str = "") -> dict[str, Any]:
+    letti = [leggi_deposito(voce, canale) for voce in elenco]
     letti.sort(key=lambda voce: pulisci(voce["data_ora"]) or "", reverse=False)
-    perfezionati = [voce for voce in letti if voce["perfezionato"]]
+    importati = [voce for voce in letti if voce["importato"]]
+    perfezionati = [voce for voce in letti if voce["perfezionato"] and not voce["importato"]]
     in_corso = [voce for voce in letti if not voce["perfezionato"] and voce["stato"] not in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}]
     falliti = [voce for voce in letti if voce["stato"] in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}]
     return {
         "tutti": letti,
         "totale": len(letti),
+        "importati": importati,
         "perfezionati": perfezionati,
         "in_corso": in_corso,
         "falliti": falliti,

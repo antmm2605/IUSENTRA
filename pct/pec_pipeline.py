@@ -5662,6 +5662,10 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
     }
 
 
+# Stati di collegamento PEC→fascicolo che il linker automatico non deve sovrascrivere.
+LINK_STATI_CERTIFICATI = frozenset({"ruolo_certificato_ufficio", "manuale"})
+
+
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any]:
     return dict(row) if row is not None else {}
 
@@ -9312,6 +9316,14 @@ class PecAuditRepository:
             rg_only = bool(best) and reasons == {"RG coincidente"}
             fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
             status = "automatico" if fascicolo_id else "rg_non_sufficiente" if rg_only else "proposte" if candidates else "nessun_candidato"
+            # Un collegamento certificato (numero di ruolo citato da un ufficio
+            # giudiziario, stabilito dalla lettura del fascicolo) non viene
+            # sovrascritto dal ricalcolo automatico dei candidati.
+            esistente = self.latest_link(conn, message_id)
+            if str(esistente.get("status") or "") in LINK_STATI_CERTIFICATI and str(esistente.get("fascicolo_id") or ""):
+                fascicolo_id = str(esistente["fascicolo_id"])
+                status = str(esistente["status"])
+                score = max(score, float(esistente.get("score") or 1.0))
             link_id = uuid.uuid4().hex
             conn.execute(
                 """

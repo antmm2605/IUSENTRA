@@ -35,7 +35,8 @@ def _lettura_di_prova() -> dict:
 def test_sezioni_per_domanda_segue_il_fuoco_della_domanda():
     assert formato.sezioni_per_domanda("riassumi il fascicolo") == ORDINE_SEZIONI
     assert formato.sezioni_per_domanda("") == ORDINE_SEZIONI
-    assert formato.sezioni_per_domanda("a che punto siamo con le notifiche?") == ("quadro", "depositi_notifiche", "prossimi_passi", "lacune", "fase", "cronologia")
+    assert formato.sezioni_per_domanda("a che punto siamo con le notifiche?") == ("quadro", "depositi_notifiche", "prossimi_passi", "verifiche", "lacune", "fase", "cronologia")
+    assert formato.sezioni_per_domanda("quali verifiche automatiche risultano?") == ("quadro", "verifiche", "prossimi_passi", "lacune")
     assert formato.sezioni_per_domanda("cosa devo fare adesso") == ("quadro", "fase", "prossimi_passi", "lacune")
     assert formato.sezioni_per_domanda("di cosa tratta la causa") == ("quadro", "oggetto", "documenti", "fase")
     assert formato.sezioni_per_domanda("ciao") == ORDINE_SEZIONI
@@ -132,3 +133,28 @@ def test_endpoint_lettura_non_propaga_errori(tmp_path, monkeypatch):
         risposta = client.get("/api/v1/ui/fascicoli/F1/lettura", headers=HEADERS)
         assert risposta.status_code == 200
         assert risposta.get_json() == {"ok": False, "errore": "Lettura del fascicolo non completata."}
+
+
+def test_endpoint_lettura_usa_la_cache_breve_e_la_salta_con_aggiorna(tmp_path, monkeypatch):
+    import lex.context.fascicolo_lettura_context as modulo
+    from web.blueprints import api_v1_react
+
+    chiamate = {"n": 0}
+
+    def finta_lettura(**_kwargs):
+        chiamate["n"] += 1
+        return {"intestazione": {"rg": "1/2026"}, "narrativa": "Quadro della pratica", "generata_il": "14/09/2026", "prossimi_passi": [], "stato_passi": {"attivi": True, "motivo": ""}}
+
+    monkeypatch.setattr(modulo, "load_fascicolo_lettura_context", finta_lettura)
+    api_v1_react._LETTURA_CACHE.clear()
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        prima = client.get("/api/v1/ui/fascicoli/FX/lettura", headers=HEADERS)
+        seconda = client.get("/api/v1/ui/fascicoli/FX/lettura", headers=HEADERS)
+        terza = client.get("/api/v1/ui/fascicoli/FX/lettura?aggiorna=1", headers=HEADERS)
+        altra = client.get("/api/v1/ui/fascicoli/FY/lettura", headers=HEADERS)
+    assert prima.status_code == seconda.status_code == terza.status_code == altra.status_code == 200
+    assert prima.get_json()["lettura"]["intestazione"]["rg"] == "1/2026"
+    assert seconda.get_data() == prima.get_data()
+    assert chiamate["n"] == 3  # prima, aggiorna=1, altro fascicolo
+    api_v1_react._LETTURA_CACHE.clear()

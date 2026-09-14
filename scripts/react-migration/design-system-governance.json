@@ -22,7 +22,8 @@
     "frontend/src/components/mediazione/mediazione.css": "Procedimento nel fascicolo e compilazione del modulo originale richiesti dall'utente: form, stati e zoom/fullscreen del foglio con proporzioni preservate; nessun tema alternativo.",
     "frontend/src/components/MediazioneOrganismoDetail.css": "Scheda organismo e sedi inline richiesta dall'utente: layout e token condivisi, nessun tema alternativo, nessuno stile inline.",
     "frontend/src/components/MediazioneRegistryResponsive.css": "Adattamento della stessa tabella mediazione a tablet e mobile, mantenendo tutti i campi e i comandi senza scorrimento orizzontale.",
-    "frontend/src/components/templateEditor/templateEditor.css": "Editor atti tipo Word richiesto dall'utente: fogli A4 reali con margini fisici, timbro ripetuto in intestazione, zoom e pannelli a scomparsa su mobile, barra di stato e stampa fedele; token e superfici del preset, nessuno stile inline."
+    "frontend/src/components/templateEditor/templateEditor.css": "Editor atti tipo Word richiesto dall'utente: fogli A4 reali con margini fisici, timbro ripetuto in intestazione, zoom e pannelli a scomparsa su mobile, barra di stato e stampa fedele; token e superfici del preset, nessuno stile inline.",
+    "frontend/src/components/fascicoli/letturaFascicolo.css": "Pannello «Lettura del fascicolo» richiesto dall'utente: prossimi passaggi con urgenza, norma e fonte, card dei presìdi (documenti, depositi, notifiche, PEC, scadenze, economico), oggetto, cronologia e schede procedurali con fonti ufficiali; token condivisi, nessuno stile inline, nessuna superficie modale."
   },
   "approvedCssFiles": [
     "frontend/src/components/AdminDatabasePage.css",
@@ -39,8 +40,8 @@
     "frontend/src/components/CompensiForensiPage.css",
     "frontend/src/components/CrmPage.css",
     "frontend/src/components/DocumentEditorPage.css",
-    "frontend/src/components/DocumentiAIPage.css",
     "frontend/src/components/DocumentToolsPage.css",
+    "frontend/src/components/DocumentiAIPage.css",
     "frontend/src/components/EditorProfessionalePage.css",
     "frontend/src/components/EmailPecPage.css",
     "frontend/src/components/FascicoliPage.css",
@@ -53,8 +54,8 @@
     "frontend/src/components/MediazioneOrganismoDetail.css",
     "frontend/src/components/MediazioneRegistryResponsive.css",
     "frontend/src/components/MessaggiPage.css",
-    "frontend/src/components/NotiziarioPanel.css",
     "frontend/src/components/NotificheLegaliPage.css",
+    "frontend/src/components/NotiziarioPanel.css",
     "frontend/src/components/NuovaScadenzaPage.css",
     "frontend/src/components/NuovoAppuntamentoPage.css",
     "frontend/src/components/NuovoClientePage.css",
@@ -84,10 +85,12 @@
     "frontend/src/components/TimesheetPage.css",
     "frontend/src/components/UtentiPage.css",
     "frontend/src/components/WizardProPage.css",
-    "frontend/src/components/layout/TopBar.css",
+    "frontend/src/components/documentCapture/acquisition.css",
     "frontend/src/components/documentCapture/documentCapture.css",
     "frontend/src/components/documentCapture/fascicoloOcr.css",
+    "frontend/src/components/fascicoli/letturaFascicolo.css",
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css",
+    "frontend/src/components/layout/TopBar.css",
     "frontend/src/components/mediazione/mediazione.css",
     "frontend/src/components/templateEditor/templateEditor.css",
     "frontend/src/features/impostazioni/ImpostazioniPage.css",
@@ -101,24 +104,27 @@
     "frontend/src/features/procedure-completion/procedure-completion.css",
     "frontend/src/index.css",
     "frontend/src/shell/shell.css",
-    "frontend/src/styles/iusentra-design-system.css",
     "frontend/src/stories/storybook.css",
+    "frontend/src/styles/iusentra-design-system.css",
     "frontend/src/theme/impeccable-open-design.css",
     "frontend/src/theme/layout.css",
     "frontend/src/theme/legal-ui.css",
     "frontend/src/theme/tokens.css",
-    "frontend/src/ui/ui.css",
-    "frontend/src/components/documentCapture/acquisition.css"
+    "frontend/src/ui/ui.css"
   ],
   "allowedInlineStyles": [
     {
       "file": "frontend/src/components/documentCapture/DocumentCapture.tsx",
-      "snippets": ["style={{ transform: `rotate(${preview.rotation}deg)` }}"],
+      "snippets": [
+        "style={{ transform: `rotate(${preview.rotation}deg)` }}"
+      ],
       "reason": "Rotazione dell'anteprima determinata dalla scelta dell'avvocato; la stessa rotazione è inviata alla generazione del PDF."
     },
     {
       "file": "frontend/src/components/mediazione/PdfModulo.tsx",
-      "snippets": ["style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}"],
+      "snippets": [
+        "style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}"
+      ],
       "reason": "Rapporto del foglio originale e zoom scelto dall'avvocato, senza deformare il PDF né la posizione dei campi."
     },
     {

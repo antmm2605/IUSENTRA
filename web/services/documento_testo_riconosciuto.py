@@ -33,6 +33,12 @@ from web.services.document_tools import DocumentToolError
 TAG_CONSENTITI = {
     "p",
     "br",
+    # Interruzione di pagina: e' impaginazione del documento riconosciuto.
+    "hr",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
     "strong",
     "em",
     "u",
@@ -46,13 +52,25 @@ TAG_CONSENTITI = {
     "th",
     "td",
 }
-TAG_VUOTI = {"br"}
+TAG_VUOTI = {"br", "hr"}
 # Il contenuto di questi elementi non e' testo del documento: va scartato con
 # l'elemento, altrimenti il codice di una pagina finirebbe nell'atto come testo.
 TAG_MUTI = {"script", "style", "head", "title"}
 # Attributi della sola tabella: servono a renderla leggibile nel documento.
+# Sui capoversi passa il solo allineamento, perche' e' formato del documento e
+# non decorazione: `pct/editor.html_to_docx` lo traduce nell'allineamento Word.
 ATTRIBUTI_CONSENTITI = {
     "table": {"border", "cellspacing", "cellpadding"},
+    "p": {"style"},
+    "hr": {"class", "data-iu-page-break"},
+}
+
+# Nessun altro stile passa: solo l'allineamento, e solo nei valori previsti.
+STILI_CONSENTITI = {
+    "text-align:center": "text-align:center",
+    "text-align:right": "text-align:right",
+    "text-align:justify": "text-align:justify",
+    "text-align:left": "text-align:left",
 }
 
 MAX_HTML_CARATTERI = 4_000_000
@@ -76,9 +94,21 @@ class _Ripulitore(HTMLParser):
         if tag not in TAG_CONSENTITI:
             return
         ammessi = ATTRIBUTI_CONSENTITI.get(tag, set())
-        coppie = "".join(
-            f' {nome}="{_attributo(valore)}"' for nome, valore in attrs if nome in ammessi and valore is not None
-        )
+        pezzi: list[str] = []
+        for nome, valore in attrs:
+            if nome not in ammessi or valore is None:
+                continue
+            if nome == "class" and str(valore).strip() != "iu-ted-page-break":
+                continue
+            if nome == "data-iu-page-break" and str(valore).strip().lower() not in {"true", "1"}:
+                continue
+            if nome == "style":
+                stile = STILI_CONSENTITI.get(str(valore).replace(" ", "").rstrip(";").lower())
+                if stile:
+                    pezzi.append(f' style="{stile}"')
+                continue
+            pezzi.append(f' {nome}="{_attributo(valore)}"')
+        coppie = "".join(pezzi)
         if tag in TAG_VUOTI:
             self.pezzi.append(f"<{tag}{coppie}/>")
             return

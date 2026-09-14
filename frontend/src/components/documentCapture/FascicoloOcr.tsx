@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClipboardCheck, Download, FileSearch, FileText, PenLine, RefreshCw, ScanText, Square, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FileSearch, RefreshCw, ScanText, Square, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import {
   blocksToHtml,
@@ -9,13 +9,18 @@ import {
   type OcrFigure,
 } from './ocrBlocks'
 import { OcrReview } from './OcrReview'
+import { OcrPageViewer } from './OcrPageViewer'
+import { OcrSaveChoices, type DestinazioneOcr } from './OcrSaveChoices'
 import {
   documentoModificabile,
   elencaDocumentiRiconoscibili,
   indirizzoEditor,
   nomeCopiaRicercabile,
+  nomeFileRiconosciuto,
   riconosciPagina,
   salvaNelFascicolo,
+  scaricaSulComputer,
+  ETICHETTE_CORREZIONI,
   type DocumentoRiconoscibile,
   type PaginaRiconosciuta,
   type SorgenteOcr,
@@ -38,15 +43,15 @@ function etichettaDocumento(documento: DocumentoRiconoscibile): string {
 /**
  * Riconoscimento del testo di un documento del fascicolo o di un file caricato.
  *
- * L'acquisizione da scanner e fotocamera porta nel fascicolo delle immagini; qui
- * si fa il passo dopo, e sui documenti che nel fascicolo ci sono già: leggerne
- * il testo per poterlo cercare, citare e riscrivere. Le pagine che hanno già un
- * livello di testo non vengono riconosciute due volte — si legge quello, che è
- * il testo esatto dell'autore — e l'OCR resta per le pagine che sono immagini.
+ * Il percorso è sempre lo stesso, e dichiarato: si sceglie il documento, si
+ * legge, si controlla il testo accanto alla pagina, si decide dove salvarlo.
+ * Nessun passaggio avviene da solo, perché ogni esito — un documento nuovo nel
+ * fascicolo di un cliente, un file sul computer dell'avvocato — è una decisione
+ * sua e non una conseguenza automatica del riconoscimento.
  *
- * Il testo riconosciuto non entra da nessuna parte senza che l'avvocato lo
- * abbia riletto: la revisione è modificabile e solo da lì partono il documento
- * per l'editor, la copia del testo e la copia PDF ricercabile.
+ * Le pagine che hanno già un livello di testo non vengono riconosciute di
+ * nuovo: si legge quello, che è il testo esatto dell'autore, e il motore ottico
+ * resta per le pagine che sono immagini.
  */
 export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError }: {
   fascicoloId: string
@@ -61,6 +66,9 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [file, setFile] = useState<File | null>(null)
   const [nome, setNome] = useState('')
   const [pagine, setPagine] = useState<PaginaRiconosciuta[]>([])
+  const [paginaAttiva, setPaginaAttiva] = useState(1)
+  const [sovrapposizione, setSovrapposizione] = useState(true)
+  const [selezionato, setSelezionato] = useState('')
   const [totale, setTotale] = useState(0)
   const [blocchi, setBlocchi] = useState<OcrBlock[]>([])
   const [figure, setFigure] = useState<OcrFigure[]>([])
@@ -71,7 +79,6 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [avviso, setAvviso] = useState('')
   const vivo = useRef(true)
   const interruzione = useRef<AbortController | null>(null)
-  const fileInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
 
@@ -93,7 +100,8 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   useEffect(() => { if (aperto) void caricaDocumenti() }, [aperto, caricaDocumenti])
 
   const azzera = () => {
-    setPagine([]); setBlocchi([]); setFigure([]); setTotale(0); setAvanzamento(''); setAvviso(''); setErrore('')
+    setPagine([]); setBlocchi([]); setFigure([]); setTotale(0)
+    setAvanzamento(''); setAvviso(''); setErrore(''); setSelezionato(''); setPaginaAttiva(1)
   }
 
   const sorgente = (): SorgenteOcr | null => {
@@ -113,8 +121,8 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     setRiconoscendo(true)
     setOccupato('Riconoscimento in corso…')
     const lette: PaginaRiconosciuta[] = []
+    let attese = 1
     try {
-      let attese = 1
       for (let numero = 1; numero <= attese; numero += 1) {
         if (controllo.signal.aborted) break
         setAvanzamento(`Pagina ${numero}${attese > 1 ? ` di ${attese}` : ''} in lettura…`)
@@ -145,63 +153,77 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     }
   }
 
-  const apriNellEditor = async () => {
-    setOccupato('Preparazione del documento per l’editor…')
-    setErrore('')
-    try {
-      const documento = await documentoModificabile(blocksToHtml(blocchi), nome || reference)
-      const salvato = await salvaNelFascicolo(fascicoloId, documento)
-      onSaved(`${documento.name}: ${salvato.messaggio}`)
-      window.location.assign(indirizzoEditor(fascicoloId, salvato.documentoId))
-    } catch (causa) {
-      if (!vivo.current) return
-      const testo = messaggio(causa, 'Documento per l’editor non creato.')
-      setErrore(testo); onError(testo)
-    } finally {
-      if (vivo.current) setOccupato('')
+  const daOcr = useMemo(() => pagine.filter((pagina) => pagina.origine === 'ocr'), [pagine])
+  const correzioni = useMemo(() => {
+    const somma = new Map<string, number>()
+    for (const pagina of pagine) {
+      for (const voce of pagina.correzioni) somma.set(voce.regola, (somma.get(voce.regola) || 0) + voce.occorrenze)
     }
-  }
+    return [...somma.entries()].map(([regola, occorrenze]) => ({ regola, occorrenze }))
+  }, [pagine])
 
-  const copiaTesto = async () => {
-    try {
-      await navigator.clipboard.writeText(blocksToPlainText(blocchi))
-      setAvviso('Testo copiato negli appunti.')
-    } catch {
-      setErrore('Il browser non ha consentito la copia: seleziona il testo nella revisione e copialo a mano.')
+  const documentoWord = async (): Promise<File> => documentoModificabile(blocksToHtml(blocchi), nome || reference)
+
+  const copiaRicercabile = async (): Promise<GeneratedDocument> => {
+    const filename = nomeCopiaRicercabile(nome || reference)
+    if (pagine.length === 1) {
+      const blob = pagine[0].pdf
+      return { blob, filename, objectUrl: URL.createObjectURL(blob), pages: 1, files: 1 }
     }
+    const file_ = pagine.map((pagina, indice) => new File([pagina.pdf], `pagina-${indice + 1}.pdf`, { type: 'application/pdf' }))
+    return generateDocument('merge', file_, filename, [], [])
   }
 
-  const scaricaTesto = () => {
-    const blob = new Blob([blocksToPlainText(blocchi)], { type: 'text/plain;charset=utf-8' })
-    const indirizzo = URL.createObjectURL(blob)
-    const collegamento = document.createElement('a')
-    collegamento.href = indirizzo
-    collegamento.download = `${(nome || 'documento').replace(/\.[^.]+$/, '')} - testo riconosciuto.txt`
-    collegamento.click()
-    window.setTimeout(() => URL.revokeObjectURL(indirizzo), 2000)
-    setAvviso('Testo scaricato sul dispositivo.')
-  }
-
-  const salvaCopiaRicercabile = async () => {
-    setOccupato('Creazione della copia con testo ricercabile…')
-    setErrore('')
+  const salva = async (destinazione: DestinazioneOcr) => {
+    setErrore(''); setAvviso('')
+    const attesa: Record<DestinazioneOcr, string> = {
+      editor: 'Preparazione del documento per l’editor…',
+      'fascicolo-documento': 'Salvataggio del documento nel fascicolo…',
+      'fascicolo-pdf': 'Creazione della copia con testo ricercabile…',
+      'computer-documento': 'Preparazione del documento Word…',
+      'computer-pdf': 'Preparazione del PDF con testo ricercabile…',
+      'computer-testo': 'Preparazione del testo…',
+    }
+    setOccupato(attesa[destinazione])
     let generato: GeneratedDocument | null = null
     try {
-      const filename = nomeCopiaRicercabile(nome || reference)
-      if (pagine.length === 1) {
-        const blob = pagine[0].pdf
-        generato = { blob, filename, objectUrl: URL.createObjectURL(blob), pages: 1, files: 1 }
-      } else {
-        const file_ = pagine.map((pagina, indice) => new File([pagina.pdf], `pagina-${indice + 1}.pdf`, { type: 'application/pdf' }))
-        generato = await generateDocument('merge', file_, filename, [], [])
+      if (destinazione === 'editor' || destinazione === 'fascicolo-documento') {
+        const documento = await documentoWord()
+        const salvato = await salvaNelFascicolo(fascicoloId, documento)
+        onSaved(`${documento.name}: ${salvato.messaggio}`)
+        if (destinazione === 'editor') {
+          window.location.assign(indirizzoEditor(fascicoloId, salvato.documentoId))
+          return
+        }
+        if (vivo.current) setAvviso(`${documento.name} salvato nei documenti del fascicolo.`)
+        return
       }
-      const esito = await saveGeneratedDocument(fascicoloId, generato)
-      if (!vivo.current) return
-      setAvviso(`${generato.filename}: ${esito}`)
-      onSaved(esito)
+      if (destinazione === 'fascicolo-pdf') {
+        generato = await copiaRicercabile()
+        const esito = await saveGeneratedDocument(fascicoloId, generato)
+        if (!vivo.current) return
+        setAvviso(`${generato.filename}: ${esito}`)
+        onSaved(esito)
+        return
+      }
+      if (destinazione === 'computer-documento') {
+        const documento = await documentoWord()
+        scaricaSulComputer(documento, documento.name)
+        if (vivo.current) setAvviso(`${documento.name} scaricato sul dispositivo.`)
+        return
+      }
+      if (destinazione === 'computer-pdf') {
+        generato = await copiaRicercabile()
+        scaricaSulComputer(generato.blob, generato.filename)
+        if (vivo.current) setAvviso(`${generato.filename} scaricato sul dispositivo.`)
+        return
+      }
+      const nomeTesto = nomeFileRiconosciuto(nome || reference, 'txt')
+      scaricaSulComputer(new Blob([blocksToPlainText(blocchi)], { type: 'text/plain;charset=utf-8' }), nomeTesto)
+      if (vivo.current) setAvviso(`${nomeTesto} scaricato sul dispositivo.`)
     } catch (causa) {
       if (!vivo.current) return
-      const testo = messaggio(causa, 'Copia con testo ricercabile non salvata.')
+      const testo = messaggio(causa, 'Operazione non completata.')
       setErrore(testo); onError(testo)
     } finally {
       if (generato) URL.revokeObjectURL(generato.objectUrl)
@@ -209,18 +231,16 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     }
   }
 
-  const daOcr = pagine.filter((pagina) => pagina.origine === 'ocr')
-  const daTesto = pagine.length - daOcr.length
-  const fiducia = daOcr.length ? daOcr.reduce((somma, pagina) => somma + pagina.confidence, 0) / daOcr.length : 0
   const caratteri = countCharacters(blocchi)
   const lavorando = Boolean(occupato)
+  const fiducia = daOcr.length ? daOcr.reduce((somma, pagina) => somma + pagina.confidence, 0) / daOcr.length : 0
 
   if (!aperto) {
     return (
       <section className="iu-fascicolo-ocr iu-fascicolo-ocr--chiuso" aria-label="Riconoscimento del testo dei documenti">
         <div>
           <strong>Riconoscimento del testo</strong>
-          <span>Leggi il testo di un documento già nel fascicolo o di un file da caricare: revisione, editor e copia ricercabile.</span>
+          <span>Leggi il testo di un documento del fascicolo o di un file: pagina e testo affiancati, formato conservato, poi scegli dove salvarlo.</span>
         </div>
         <Button type="button" tone="neutral" onClick={() => setAperto(true)}><ScanText size={17} aria-hidden="true"/>Riconosci il testo</Button>
       </section>
@@ -232,12 +252,18 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
       <header className="iu-fascicolo-ocr__testata">
         <div>
           <h3>Riconoscimento del testo</h3>
-          <p>Fascicolo {reference}. Le pagine con testo già presente non vengono riconosciute di nuovo: si legge il testo originale.</p>
+          <p>Fascicolo {reference}. Scegli il documento, controlla il testo accanto alla pagina, decidi dove salvarlo.</p>
         </div>
         <Button type="button" tone="neutral" disabled={lavorando} onClick={() => { interruzione.current?.abort(); azzera(); setAperto(false) }}>
           <X size={16} aria-hidden="true"/>Chiudi
         </Button>
       </header>
+
+      <ol className="iu-ocr-passi">
+        <li className={pagine.length ? 'is-fatto' : 'is-corrente'}>1. Documento</li>
+        <li className={pagine.length ? 'is-corrente' : ''}>2. Controllo e correzione</li>
+        <li className={pagine.length ? 'is-corrente' : ''}>3. Salvataggio</li>
+      </ol>
 
       <fieldset className="iu-fascicolo-ocr__sorgente" disabled={lavorando}>
         <legend>Documento da riconoscere</legend>
@@ -267,14 +293,13 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
           <label className="iu-fascicolo-ocr__campo">
             <span>File da riconoscere</span>
             <input
-              ref={fileInput}
               type="file"
               accept=".pdf,.p7m,image/jpeg,image/png,image/webp,image/tiff"
               disabled={lavorando}
               onChange={(evento) => { setFile(evento.target.files?.[0] || null); azzera() }}
             />
           </label>
-          <small className="iu-acq-hint">PDF, immagini e atti firmati <code>.p7m</code>. Il file non viene salvato nel fascicolo: serve solo a leggerne il testo.</small>
+          <small className="iu-acq-hint">PDF, immagini e atti firmati <code>.p7m</code>. Il file non entra nel fascicolo: serve solo a leggerne il testo.</small>
         </div>
       )}
 
@@ -294,31 +319,49 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
         <>
           <dl className="iu-fascicolo-ocr__riepilogo">
             <div><dt>Pagine lette</dt><dd>{pagine.length}{totale > pagine.length ? ` di ${totale}` : ''}</dd></div>
-            <div><dt>Dal testo del documento</dt><dd>{daTesto}</dd></div>
-            <div><dt>Con riconoscimento ottico</dt><dd>{daOcr.length}{fiducia ? ` · ${Math.round(fiducia * 100)}% di confidenza` : ''}</dd></div>
+            <div><dt>Dal testo del documento</dt><dd>{pagine.length - daOcr.length}</dd></div>
+            <div><dt>Con riconoscimento ottico</dt><dd>{daOcr.length}{fiducia ? ` · ${Math.round(fiducia * 100)}%` : ''}</dd></div>
             <div><dt>Caratteri riconosciuti</dt><dd>{caratteri.toLocaleString('it-IT')}</dd></div>
           </dl>
-          <OcrReview blocks={blocchi} figures={figure} disabled={lavorando} onChange={setBlocchi}/>
-          <div className="iu-fascicolo-ocr__comandi">
-            <Button type="button" disabled={lavorando || !blocchi.length} onClick={() => void apriNellEditor()}>
-              <PenLine size={16} aria-hidden="true"/>Apri nell’editor del fascicolo
-            </Button>
-            <Button type="button" tone="neutral" disabled={lavorando || !blocchi.length} onClick={() => void copiaTesto()}>
-              <ClipboardCheck size={15} aria-hidden="true"/>Copia il testo
-            </Button>
-            <Button type="button" tone="neutral" disabled={lavorando || !blocchi.length} onClick={scaricaTesto}>
-              <Download size={15} aria-hidden="true"/>Scarica il testo
-            </Button>
-            {daOcr.length ? (
-              <Button type="button" tone="neutral" disabled={lavorando} onClick={() => void salvaCopiaRicercabile()}>
-                <FileText size={15} aria-hidden="true"/>Salva la copia con testo ricercabile
-              </Button>
-            ) : null}
+
+          {correzioni.length ? (
+            <p className="iu-acq-hint">
+              Correzioni forensi applicate automaticamente: {correzioni.map((voce) => `${ETICHETTE_CORREZIONI[voce.regola] || voce.regola} (${voce.occorrenze})`).join(', ')}.
+            </p>
+          ) : null}
+
+          <div className="iu-ocr-affiancato">
+            <OcrPageViewer
+              pagine={pagine}
+              paginaAttiva={paginaAttiva}
+              onPagina={setPaginaAttiva}
+              blocchi={blocchi}
+              selezionato={selezionato}
+              onSeleziona={setSelezionato}
+              sovrapposizione={sovrapposizione}
+              onSovrapposizione={setSovrapposizione}
+            />
+            <div className="iu-ocr-affiancato__testo">
+              <OcrReview
+                blocks={blocchi}
+                figures={figure}
+                disabled={lavorando}
+                onChange={setBlocchi}
+                selectedId={selezionato}
+                onSelect={setSelezionato}
+              />
+            </div>
           </div>
+
+          <OcrSaveChoices
+            disabled={lavorando || !blocchi.length}
+            copiaRicercabileDisponibile={daOcr.length > 0}
+            onScegli={(destinazione) => void salva(destinazione)}
+          />
+
           <p className="iu-acq-hint">
-            «Apri nell’editor» salva nel fascicolo un documento di lavoro con il testo che hai corretto qui e lo apre subito per la modifica.
-            La copia con testo ricercabile conserva invece la pagina com’è e vi aggiunge il testo riconosciuto dalla macchina, senza le tue correzioni.
-            In nessun caso il documento originale viene modificato o sostituito: la trascrizione è materiale di lavoro, non una copia conforme.
+            Il documento originale non viene mai modificato né sostituito: la copia per immagine resta l’atto che fa fede
+            (D.Lgs. 82/2005, art. 22) e il testo riconosciuto è materiale di lavoro, non una copia conforme.
           </p>
         </>
       ) : null}

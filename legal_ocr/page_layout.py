@@ -159,7 +159,14 @@ def righe_da_parole(parole: Iterable[dict[str, Any]]) -> list[Riga]:
         )
     righe = [Riga(sorted(gruppi[chiave], key=lambda parola: parola.sinistra)) for chiave in ordine]
     righe = [riga for riga in righe if riga.parole]
-    righe.sort(key=lambda riga: (round(riga.alto / max(1.0, riga.altezza * 0.6)), riga.sinistra))
+    # L'ordine di lettura si misura con un'unita' della pagina, non con
+    # l'altezza della singola riga: usando l'altezza propria, una riga piu' in
+    # basso ma scritta in corpo grande finiva in una banda piu' alta e veniva
+    # letta prima di righe che stanno sopra di lei. Su un atto, dove titoli e
+    # rubriche sono sempre piu' grandi del corpo, questo rimescolava il testo.
+    unita = statistics.median([riga.altezza for riga in righe]) if righe else 1.0
+    banda = max(1.0, unita * 0.6)
+    righe.sort(key=lambda riga: (round(riga.alto / banda), riga.sinistra))
     return righe
 
 

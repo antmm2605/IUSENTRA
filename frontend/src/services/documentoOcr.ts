@@ -26,6 +26,23 @@ export type DocumentoRiconoscibile = {
   firmato: boolean
 }
 
+/** Immagine della pagina da affiancare al testo, con la scala dei riquadri. */
+export type AnteprimaPagina = {
+  url: string
+  larghezza: number
+  altezza: number
+  scala: number
+}
+
+export type CorrezioneApplicata = { regola: string; occorrenze: number }
+
+export type RiferimentiPagina = {
+  numeroRuolo: string[]
+  uffici: string[]
+  date: string[]
+  importi: string[]
+}
+
 export type PaginaRiconosciuta = {
   numero: number
   origine: OrigineTesto
@@ -37,6 +54,17 @@ export type PaginaRiconosciuta = {
   figures: OcrFigure[]
   confidence: number
   engine: string
+  anteprima: AnteprimaPagina | null
+  correzioni: CorrezioneApplicata[]
+  riferimenti: RiferimentiPagina
+}
+
+/** Nome leggibile delle regole di correzione forense applicate dal server. */
+export const ETICHETTE_CORREZIONI: Record<string, string> = {
+  'punct.art.v1': 'spaziatura di «art.»',
+  'punct.n.v1': 'spaziatura di «N.»',
+  'ocr.rg.zero.v1': 'numero di ruolo letto male',
+  'space.pec.v1': 'spazi nell\'indirizzo PEC',
 }
 
 export type EsitoPagina = { nome: string; pagineTotali: number; pagina: PaginaRiconosciuta }
@@ -88,6 +116,44 @@ export async function elencaDocumentiRiconoscibili(fascicoloId: string, signal?:
   })
 }
 
+function anteprimaDaPayload(value: unknown): AnteprimaPagina | null {
+  if (!value || typeof value !== 'object') return null
+  const voce = value as Record<string, unknown>
+  const codificato = String(voce.immagine_base64 ?? '')
+  if (!codificato) return null
+  const tipo = String(voce.tipo ?? 'image/jpeg')
+  return {
+    url: `data:${tipo};base64,${codificato}`,
+    larghezza: Number(voce.larghezza ?? 0) || 0,
+    altezza: Number(voce.altezza ?? 0) || 0,
+    scala: Number(voce.scala ?? 1) || 1,
+  }
+}
+
+function testiDaPayload(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => String(item ?? '').trim()).filter(Boolean) : []
+}
+
+function correzioniDaPayload(value: unknown): CorrezioneApplicata[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((raw) => {
+    const voce = (raw ?? {}) as Record<string, unknown>
+    const regola = String(voce.regola ?? '').trim()
+    if (!regola) return []
+    return [{ regola, occorrenze: Number(voce.occorrenze ?? 0) || 0 }]
+  })
+}
+
+function riferimentiDaPayload(value: unknown): RiferimentiPagina {
+  const voce = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
+  return {
+    numeroRuolo: testiDaPayload(voce.numero_ruolo),
+    uffici: testiDaPayload(voce.uffici),
+    date: testiDaPayload(voce.date),
+    importi: testiDaPayload(voce.importi),
+  }
+}
+
 function paginaDaPayload(raw: Record<string, unknown> | undefined, richiesta: number): PaginaRiconosciuta {
   const voce = raw ?? {}
   const codificato = String(voce.pdf_base64 ?? '')
@@ -108,6 +174,9 @@ function paginaDaPayload(raw: Record<string, unknown> | undefined, richiesta: nu
     figures: parseFigures(voce.figures, numero),
     confidence: Number(voce.confidence ?? 0) || 0,
     engine: String(voce.engine ?? ''),
+    anteprima: anteprimaDaPayload(voce.anteprima),
+    correzioni: correzioniDaPayload(voce.correzioni),
+    riferimenti: riferimentiDaPayload(voce.riferimenti),
   }
 }
 
@@ -191,4 +260,26 @@ export async function salvaNelFascicolo(fascicoloId: string, file: File): Promis
 /** Indirizzo dell'editor del fascicolo per il documento appena creato. */
 export function indirizzoEditor(fascicoloId: string, documentoId: string): string {
   return `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(documentoId)}/editor`
+}
+
+/** Salva un file sul computer dell'avvocato, senza passare dal server. */
+export function scaricaSulComputer(blob: Blob, nomeFile: string): void {
+  const indirizzo = URL.createObjectURL(blob)
+  const collegamento = document.createElement('a')
+  collegamento.href = indirizzo
+  collegamento.download = nomeFile
+  document.body.appendChild(collegamento)
+  collegamento.click()
+  collegamento.remove()
+  window.setTimeout(() => URL.revokeObjectURL(indirizzo), 2000)
+}
+
+/** Nome del file di lavoro con l'estensione richiesta. */
+export function nomeFileRiconosciuto(nome: string, estensione: string): string {
+  const gambo = String(nome || 'documento')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return `${(gambo || 'documento').slice(0, 100)} - testo riconosciuto.${estensione}`
 }

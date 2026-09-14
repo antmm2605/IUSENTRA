@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from legal_ocr.page_layout import Blocco, analizza_pagina
+from web.services.document_ocr_anteprima import ANTEPRIMA_ASSENTE, Anteprima, anteprima_da_immagine
+from web.services.document_ocr_formato import blocchi_con_formato, densita_parole
 from web.services.document_ocr_image import densita_pagina, prepara_pagina, regioni_grafiche
 from web.services.document_tools import DocumentToolError
 
@@ -60,6 +62,9 @@ class OcrPageResult:
     confidence: float = 0.0
     engine: str = ""
     steps: tuple[str, ...] = ()
+    # Immagine della pagina da affiancare al testo: serve a controllare il
+    # riconoscimento, non a conservare il documento.
+    anteprima: Anteprima = ANTEPRIMA_ASSENTE
 
     @property
     def characters(self) -> int:
@@ -237,6 +242,11 @@ def recognize_page(data: bytes, rotation: int = 0, *, raddrizza: bool = True) ->
             figure = regioni_grafiche(immagine, parole)
         except Exception:
             figure = []
+        # Misure sull'immagine finche' e' in memoria: il grassetto si vede
+        # dall'inchiostro, e l'anteprima e' la stessa pagina che il motore ha
+        # letto, non l'originale storto.
+        densita_parole(immagine, parole)
+        anteprima = anteprima_da_immagine(immagine)
     finally:
         _OCR_SLOTS.release()
         if preparata is not None and preparata.immagine is not originale:
@@ -254,9 +264,10 @@ def recognize_page(data: bytes, rotation: int = 0, *, raddrizza: bool = True) ->
         pdf=pdf,
         paragraphs=_blocchi_in_paragrafi(blocchi),
         dpi=preparata.dpi,
-        blocks=[blocco.come_dizionario() for blocco in blocchi],
+        blocks=blocchi_con_formato(blocchi, parole),
         figures=figure,
         confidence=round(_confidenza_media(parole), 4),
         engine=f"tesseract · lettura {etichetta}",
         steps=preparata.passaggi,
+        anteprima=anteprima,
     )

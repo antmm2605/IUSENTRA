@@ -28,3 +28,42 @@
   .iu-fascicolo-ocr__comandi .iu-btn { flex: 1 1 auto; }
   .iu-fascicolo-ocr__campo { flex-basis: 100%; }
 }
+
+/* Passi dichiarati: l'avvocato sa sempre dove si trova nel percorso. */
+.iu-ocr-passi { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; padding: 0; list-style: none; }
+.iu-ocr-passi li { padding: 5px 10px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 999px; background: var(--iu-surface, #ffffff); color: var(--iu-slate-600, #475569); font-size: 12px; font-weight: 800; }
+.iu-ocr-passi li.is-corrente { border-color: var(--iu-primary, #2563eb); color: var(--iu-primary, #2563eb); }
+.iu-ocr-passi li.is-fatto { background: var(--iu-surface-subtle, #eef2f7); }
+
+/* Pagina e testo affiancati: il controllo del riconoscimento si fa confrontando. */
+.iu-ocr-affiancato { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-block: 14px; align-items: start; }
+.iu-ocr-affiancato__testo { min-width: 0; }
+.iu-ocr-viewer { min-width: 0; display: grid; gap: 10px; }
+.iu-ocr-viewer__barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.iu-ocr-viewer__pagine { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; }
+.iu-ocr-viewer__origine { flex: 1 1 auto; color: var(--iu-slate-600, #475569); font-size: 12px; font-weight: 760; }
+.iu-ocr-viewer__foglio { position: relative; max-height: 62dvh; overflow: auto; border: 1px solid var(--iu-border, #dce2e9); border-radius: 10px; background: var(--iu-surface-subtle, #f1f4f8); }
+.iu-ocr-viewer__foglio img { display: block; width: 100%; height: auto; }
+.iu-ocr-viewer__riquadri { position: absolute; inset: 0; width: 100%; height: 100%; }
+.iu-ocr-viewer__riquadro { fill: rgba(37, 99, 235, .10); stroke: rgba(37, 99, 235, .55); stroke-width: 2; cursor: pointer; }
+.iu-ocr-viewer__riquadro:hover { fill: rgba(37, 99, 235, .18); }
+.iu-ocr-viewer__riquadro.is-selected { fill: rgba(37, 99, 235, .26); stroke: var(--iu-primary, #2563eb); stroke-width: 3; }
+.iu-ocr-viewer__riferimenti { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 0; }
+.iu-ocr-viewer__riferimenti > div { padding: 7px 10px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 9px; background: var(--iu-surface, #ffffff); }
+.iu-ocr-viewer__riferimenti dt { font-size: 11px; font-weight: 800; color: var(--iu-slate-600, #475569); }
+.iu-ocr-viewer__riferimenti dd { margin: 2px 0 0; font-size: 13px; font-weight: 800; }
+
+/* Dove salvare: due gruppi distinti, ciascuno dice cosa produce. */
+.iu-ocr-destinazioni { display: grid; gap: 12px; margin-block: 14px; padding: 12px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 12px; background: var(--iu-surface, #ffffff); }
+.iu-ocr-destinazioni h4 { margin: 0; font-size: 15px; }
+.iu-ocr-destinazioni h5 { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; font-size: 13px; color: var(--iu-slate-600, #475569); }
+.iu-ocr-destinazioni__gruppo { padding: 10px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 10px; background: var(--iu-surface-subtle, #f8fafc); }
+.iu-ocr-destinazioni__voci { display: flex; flex-wrap: wrap; gap: 8px; }
+.iu-ocr-destinazioni__voci .iu-btn { min-height: 40px; white-space: normal; }
+.iu-ocr-destinazioni .iu-acq-hint { margin: 8px 0 0; }
+
+@media (max-width: 900px) {
+  .iu-ocr-affiancato { grid-template-columns: minmax(0, 1fr); }
+  .iu-ocr-viewer__foglio { max-height: 48dvh; }
+  .iu-ocr-destinazioni__voci .iu-btn { flex: 1 1 auto; }
+}

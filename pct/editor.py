@@ -721,112 +721,176 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         doc.save(buf)
         return buf.getvalue()
 
-    body = root.find(".//body") or root.find(".//div") or root
+    # `find()` restituisce un elemento la cui verita' dipende dal numero di
+    # figli: usare `or` qui scartava il <body> quando conteneva un solo nodo.
+    body = root.find(".//body")
+    if body is None:
+        body = root.find(".//div")
+    if body is None:
+        body = root
 
-    def _process_node(el, paragraph=None):
-        tag = (el.tag or "").lower().split("}")[-1]
+    TAG_INLINE = {"strong", "b", "em", "i", "u", "span", "a", "code", "sub", "sup", "font", "mark", "small"}
+    TAG_CONTENITORE = {"div", "section", "article", "blockquote", "body", "html", "main", "header", "footer"}
+    ALLINEAMENTI = {
+        "center": WD_ALIGN_PARAGRAPH.CENTER,
+        "right": WD_ALIGN_PARAGRAPH.RIGHT,
+        "justify": WD_ALIGN_PARAGRAPH.JUSTIFY,
+        "left": WD_ALIGN_PARAGRAPH.LEFT,
+    }
 
-        if tag in ("h1", "h2", "h3", "h4"):
-            level = int(tag[1])
-            hdg_style = f"Heading {level}"
-            p = doc.add_paragraph(style=hdg_style)
-            _add_runs(p, el)
-            return
+    def _nome(el) -> str:
+        return (el.tag or "").lower().split("}")[-1] if isinstance(el.tag, str) else ""
 
-        if tag in ("ul", "ol"):
-            for li in el.findall("li"):
-                p = doc.add_paragraph(style="List Bullet" if tag == "ul" else "List Number")
-                _add_runs(p, li)
-            return
-
-        if tag == "table":
-            rows = el.findall(".//tr")
-            if not rows:
+    def _allinea(paragraph, el) -> None:
+        stile = (el.get("style") or "").lower()
+        for chiave, valore in ALLINEAMENTI.items():
+            if f"text-align:{chiave}" in stile.replace(" ", "") or f"align={chiave}" in stile:
+                paragraph.alignment = valore
                 return
-            cols = max(len(r.findall("td") + r.findall("th")) for r in rows)
-            tbl = doc.add_table(rows=len(rows), cols=cols)
-            tbl.style = "Table Grid"
-            for ri, row in enumerate(rows):
-                cells = row.findall("th") + row.findall("td")
-                for ci, cell in enumerate(cells[:cols]):
-                    tbl.rows[ri].cells[ci].text = _strip_tags(
-                        ET.tostring(cell, encoding="unicode", method="text")
-                    )
-            return
+        allineamento = (el.get("align") or "").lower()
+        if allineamento in ALLINEAMENTI:
+            paragraph.alignment = ALLINEAMENTI[allineamento]
 
-        if tag in ("p", "div"):
-            p = doc.add_paragraph()
-            # allineamento
-            align = (el.get("style") or "")
-            if "center" in align:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            elif "right" in align:
-                p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            elif "justify" in align:
-                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            _add_runs(p, el)
-            return
+    def _colore(el):
+        m = re.search(r"color:\s*#([0-9a-fA-F]{6})", el.get("style") or "")
+        return m.group(1) if m else ""
 
-        if tag in ("br",):
+    def _stato_figlio(stato: dict, el) -> dict:
+        tag = _nome(el)
+        nuovo_stato = dict(stato)
+        if tag in ("strong", "b"):
+            nuovo_stato["bold"] = True
+        elif tag in ("em", "i"):
+            nuovo_stato["italic"] = True
+        elif tag == "u":
+            nuovo_stato["underline"] = True
+        colore = _colore(el)
+        if colore:
+            nuovo_stato["color"] = colore
+        return nuovo_stato
+
+    def _scrivi(paragraph, testo: str, stato: dict) -> None:
+        if not testo:
+            return
+        run = paragraph.add_run(testo)
+        run.bold = True if stato.get("bold") else None
+        run.italic = True if stato.get("italic") else None
+        run.underline = True if stato.get("underline") else None
+        colore = stato.get("color")
+        if colore:
+            valore = int(colore, 16)
+            run.font.color.rgb = RGBColor((valore >> 16) & 0xFF, (valore >> 8) & 0xFF, valore & 0xFF)
+
+    def _add_runs(paragraph, el, stato: dict | None = None) -> None:
+        """Testo dell'elemento nel paragrafo, conservando la formattazione annidata.
+
+        La ricorsione serve: <strong><em>testo</em></strong> e' normale in un
+        atto, e leggendo solo il primo livello il corsivo andrebbe perso.
+        """
+        corrente = dict(stato or {})
+        _scrivi(paragraph, el.text or "", corrente)
+        for figlio in el:
+            tag = _nome(figlio)
+            if tag == "br":
+                paragraph.add_run().add_break()
+            elif tag in TAG_INLINE or tag in TAG_CONTENITORE:
+                _add_runs(paragraph, figlio, _stato_figlio(corrente, figlio))
+            else:
+                _add_runs(paragraph, figlio, corrente)
+            _scrivi(paragraph, figlio.tail or "", corrente)
+
+    def _voci_elenco(el, ordinato: bool, livello: int = 0) -> None:
+        stile = "List Number" if ordinato else "List Bullet"
+        if livello:
+            stile = f"{stile} {min(livello + 1, 3)}"
+        for voce in el:
+            if _nome(voce) != "li":
+                continue
+            annidati = [figlio for figlio in voce if _nome(figlio) in ("ul", "ol")]
+            try:
+                paragraph = doc.add_paragraph(style=stile)
+            except KeyError:
+                paragraph = doc.add_paragraph(style="List Number" if ordinato else "List Bullet")
+            _scrivi(paragraph, voce.text or "", {})
+            for figlio in voce:
+                if _nome(figlio) in ("ul", "ol"):
+                    continue
+                _add_runs(paragraph, figlio, _stato_figlio({}, figlio))
+                _scrivi(paragraph, figlio.tail or "", {})
+            for annidato in annidati:
+                _voci_elenco(annidato, _nome(annidato) == "ol", livello + 1)
+
+    def _tabella(el) -> None:
+        righe = el.findall(".//tr")
+        if not righe:
+            return
+        colonne = max(len(riga.findall("td") + riga.findall("th")) for riga in righe)
+        if colonne < 1:
+            return
+        tabella = doc.add_table(rows=len(righe), cols=colonne)
+        try:
+            tabella.style = "Table Grid"
+        except KeyError:
+            pass
+        for indice_riga, riga in enumerate(righe):
+            celle = riga.findall("th") + riga.findall("td")
+            for indice_cella, cella in enumerate(celle[:colonne]):
+                destinazione = tabella.rows[indice_riga].cells[indice_cella]
+                destinazione.text = ""
+                _add_runs(destinazione.paragraphs[0], cella, {"bold": True} if _nome(cella) == "th" else {})
+
+    def _process_node(el) -> None:
+        tag = _nome(el)
+        if not tag:
+            return
+        if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            livello = min(4, int(tag[1]))
+            try:
+                paragraph = doc.add_paragraph(style=f"Heading {livello}")
+            except KeyError:
+                paragraph = doc.add_paragraph()
+            _allinea(paragraph, el)
+            _add_runs(paragraph, el)
+            return
+        if tag in ("ul", "ol"):
+            _voci_elenco(el, tag == "ol")
+            return
+        if tag == "table":
+            _tabella(el)
+            return
+        if tag == "br":
             doc.add_paragraph()
             return
-
-        # Fallback: processa figli
-        for child in el:
-            _process_node(child)
-
-    def _add_runs(paragraph, el):
-        """Aggiunge runs al paragrafo con formattazione inline."""
-        # Testo diretto nell'elemento
-        if el.text and el.text.strip():
-            r = paragraph.add_run(el.text)
-            _apply_inline(r, el.tag.lower())
-
-        for child in el:
-            child_tag = (child.tag or "").lower().split("}")[-1]
-            if child_tag in ("strong", "b"):
-                r = paragraph.add_run(child.text_content() if hasattr(child, 'text_content') else "")
-                r.bold = True
-            elif child_tag in ("em", "i"):
-                r = paragraph.add_run(child.text_content() if hasattr(child, 'text_content') else "")
-                r.italic = True
-            elif child_tag in ("u",):
-                r = paragraph.add_run(child.text_content() if hasattr(child, 'text_content') else "")
-                r.underline = True
-            elif child_tag == "span":
-                r = paragraph.add_run(child.text_content() if hasattr(child, 'text_content') else "")
-                # Colore testo da style inline
-                style = child.get("style", "")
-                m = re.search(r"color:\s*#([0-9a-fA-F]{6})", style)
-                if m:
-                    rgb = int(m.group(1), 16)
-                    r.font.color.rgb = RGBColor(
-                        (rgb >> 16) & 0xFF,
-                        (rgb >> 8) & 0xFF,
-                        rgb & 0xFF
-                    )
+        if tag == "hr":
+            # Stesso marcatore usato dall'editor e riconosciuto dall'export PDF:
+            # l'interruzione di pagina e' formato del documento, non decorazione.
+            if el.get("data-iu-page-break") is not None or "iu-ted-page-break" in (el.get("class") or "").split():
+                doc.add_page_break()
             else:
-                txt = child.text_content() if hasattr(child, 'text_content') else (child.text or "")
-                if txt:
-                    paragraph.add_run(txt)
-            # tail (testo dopo il tag inline)
-            if child.tail and child.tail.strip():
-                paragraph.add_run(child.tail)
+                doc.add_paragraph()
+            return
+        if tag in TAG_CONTENITORE:
+            # Un contenitore non e' un capoverso: i suoi figli vanno trattati
+            # ciascuno per quello che e', altrimenti titoli, elenchi e tabelle
+            # finirebbero appiattiti in un unico paragrafo.
+            figli = [figlio for figlio in el if _nome(figlio)]
+            if figli:
+                if (el.text or "").strip():
+                    paragraph = doc.add_paragraph()
+                    _allinea(paragraph, el)
+                    _scrivi(paragraph, el.text, {})
+                for figlio in figli:
+                    _process_node(figlio)
+                    if (figlio.tail or "").strip():
+                        coda = doc.add_paragraph()
+                        _scrivi(coda, figlio.tail, {})
+                return
+        paragraph = doc.add_paragraph()
+        _allinea(paragraph, el)
+        _add_runs(paragraph, el)
 
-    def _apply_inline(run, tag):
-        if tag in ("strong", "b"):
-            run.bold = True
-        elif tag in ("em", "i"):
-            run.italic = True
-        elif tag == "u":
-            run.underline = True
-
-    # Processa tutti i figli del body
     for child in (body if body is not None else []):
-        try:
-            _process_node(child)
-        except Exception:
-            pass
+        _process_node(child)
 
     buf = io.BytesIO()
     doc.save(buf)

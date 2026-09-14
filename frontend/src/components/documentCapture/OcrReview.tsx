@@ -1,10 +1,12 @@
-import { Rows3, Trash2, Type } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Rows3, Trash2, Type } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import {
   changeBlockKind,
   removeBlock,
   updateBlockCell,
+  updateBlockFormat,
   updateBlockText,
+  type OcrAlignment,
   type OcrBlock,
   type OcrBlockKind,
   type OcrFigure,
@@ -15,7 +17,24 @@ type Props = {
   figures: OcrFigure[]
   disabled: boolean
   onChange: (blocks: OcrBlock[]) => void
+  /** Blocco evidenziato sull'immagine della pagina, quando la vista è affiancata. */
+  selectedId?: string
+  onSelect?: (id: string) => void
 }
+
+const LIVELLI: { value: number; label: string }[] = [
+  { value: 0, label: 'Testo del documento' },
+  { value: 1, label: 'Titolo principale' },
+  { value: 2, label: 'Titolo' },
+  { value: 3, label: 'Sottotitolo' },
+  { value: 4, label: 'Rubrica' },
+]
+
+const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLeft }[] = [
+  { value: 'sinistra', label: 'Allinea a sinistra', Icona: AlignLeft },
+  { value: 'centro', label: 'Centra', Icona: AlignCenter },
+  { value: 'destra', label: 'Allinea a destra', Icona: AlignRight },
+]
 
 const ETICHETTE: Record<OcrBlockKind, string> = {
   titolo: 'Titolo',
@@ -37,7 +56,7 @@ function fiducia(valore: number): string {
  * ogni blocco, cambiarne la natura quando il motore l'ha classificato male e
  * togliere quello che non serve, prima che il contenuto entri nell'editor.
  */
-export function OcrReview({ blocks, figures, disabled, onChange }: Props) {
+export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect }: Props) {
   if (!blocks.length) {
     return <p className="iu-acq-hint">Nessun testo riconosciuto in questa acquisizione.</p>
   }
@@ -48,7 +67,11 @@ export function OcrReview({ blocks, figures, disabled, onChange }: Props) {
       </p>
       <ol className="iu-ocr-review__list">
         {blocks.map((block) => (
-          <li key={block.id} className={`iu-ocr-block iu-ocr-block--${block.kind}`}>
+          <li
+            key={block.id}
+            className={`iu-ocr-block iu-ocr-block--${block.kind}${selectedId === block.id ? ' is-selected' : ''}`}
+            onFocusCapture={() => onSelect?.(block.id)}
+          >
             <div className="iu-ocr-block__bar">
               <label className="iu-ocr-block__kind">
                 <span className="iu-sr-only">Tipo di blocco</span>
@@ -75,6 +98,53 @@ export function OcrReview({ blocks, figures, disabled, onChange }: Props) {
                 <Trash2 size={14} aria-hidden="true" />
               </Button>
             </div>
+            {block.kind === 'tabella' ? null : (
+              <div className="iu-ocr-block__formato">
+                <label>
+                  <span className="iu-sr-only">Livello del testo</span>
+                  <select
+                    value={block.format.livello}
+                    disabled={disabled}
+                    onChange={(event) => onChange(updateBlockFormat(blocks, block.id, { livello: Number(event.target.value) }))}
+                  >
+                    {LIVELLI.map((voce) => <option key={voce.value} value={voce.value}>{voce.label}</option>)}
+                  </select>
+                </label>
+                <Button
+                  type="button"
+                  tone="neutral"
+                  disabled={disabled}
+                  aria-pressed={block.format.grassetto}
+                  aria-label="Grassetto"
+                  onClick={() => onChange(updateBlockFormat(blocks, block.id, { grassetto: !block.format.grassetto }))}
+                >
+                  <Bold size={14} aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  tone="neutral"
+                  disabled={disabled}
+                  aria-pressed={block.format.corsivo}
+                  aria-label="Corsivo"
+                  onClick={() => onChange(updateBlockFormat(blocks, block.id, { corsivo: !block.format.corsivo }))}
+                >
+                  <Italic size={14} aria-hidden="true" />
+                </Button>
+                {ALLINEAMENTI.map(({ value, label, Icona }) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    tone="neutral"
+                    disabled={disabled}
+                    aria-pressed={block.format.allineamento === value}
+                    aria-label={label}
+                    onClick={() => onChange(updateBlockFormat(blocks, block.id, { allineamento: value }))}
+                  >
+                    <Icona size={14} aria-hidden="true" />
+                  </Button>
+                ))}
+              </div>
+            )}
             {block.kind === 'tabella' ? (
               <div className="iu-ocr-block__grid">
                 <table>

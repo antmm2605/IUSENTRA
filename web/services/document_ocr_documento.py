@@ -28,12 +28,18 @@ from __future__ import annotations
 
 import base64
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from legal_ocr.page_layout import analizza_pagina
-from web.services.document_ocr import _blocchi_in_paragrafi, recognize_page
+from web.services.document_ocr import recognize_page
+from web.services.document_ocr_anteprima import ANTEPRIMA_ASSENTE, Anteprima, anteprima_da_pdf
+from web.services.document_ocr_anteprima import come_payload as anteprima_payload
+from web.services.document_ocr_correzioni import correggi_blocchi
+from web.services.document_ocr_formato import blocchi_con_formato
+from web.services.document_ocr_riferimenti import riferimenti_del_testo
 from web.services.document_tools import DocumentToolError
 
 # Un fascicolo puo' contenere allegati molto grandi: oltre questa soglia il
@@ -77,6 +83,11 @@ class PaginaRiconosciuta:
     figures: list[dict[str, Any]] = field(default_factory=list)
     confidence: float = 0.0
     engine: str = ""
+    anteprima: Anteprima = ANTEPRIMA_ASSENTE
+    # Correzioni forensi applicate e riferimenti giuridici leggibili nella
+    # pagina: servono all'avvocato per controllare il riconoscimento.
+    correzioni: list[dict[str, Any]] = field(default_factory=list)
+    riferimenti: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def characters(self) -> int:
@@ -162,14 +173,93 @@ def conta_pagine(data: bytes, nome: str) -> int:
         documento.close()
 
 
+def _stile_span(span: dict[str, Any]) -> tuple[bool, bool]:
+    """Grassetto e corsivo dichiarati dal PDF per quel pezzo di riga.
+
+    PyMuPDF espone sia i flag del carattere (bit 4 grassetto, bit 1 corsivo) sia
+    il nome del font: i due si controllano insieme perche' molti PDF prodotti da
+    Word dichiarano lo stile solo nel nome ("TimesNewRoman-Bold").
+    """
+    bandiere = int(span.get("flags") or 0)
+    nome = str(span.get("font") or "").lower()
+    grassetto = bool(bandiere & 16) or "bold" in nome or "black" in nome or "heavy" in nome
+    corsivo = bool(bandiere & 2) or "italic" in nome or "oblique" in nome
+    return grassetto, corsivo
+
+
+def _parole_dello_span(
+    span: dict[str, Any], scala: float, blocco: int, riga: int, indice: int
+) -> list[dict[str, Any]]:
+    """Parole di uno span, nella stessa forma che produce il motore OCR.
+
+    Il PDF descrive pezzi di riga, non parole: la riga viene divisa sugli spazi e
+    a ogni parola si assegna la porzione di larghezza proporzionale ai suoi
+    caratteri. E' un'approssimazione di pochi pixel, sufficiente per struttura e
+    allineamento, mentre corpo e stile restano quelli dichiarati.
+    """
+    testo = str(span.get("text") or "")
+    if not testo.strip():
+        return []
+    riquadro = span.get("bbox") or (0.0, 0.0, 0.0, 0.0)
+    x0, y0, x1, y1 = (float(valore) for valore in riquadro)
+    larghezza_totale = max(0.0, x1 - x0)
+    caratteri = len(testo) or 1
+    passo = larghezza_totale / caratteri
+    grassetto, corsivo = _stile_span(span)
+    corpo = float(span.get("size") or 0.0)
+
+    parole: list[dict[str, Any]] = []
+    posizione = 0
+    for pezzo in testo.split(" "):
+        if pezzo.strip():
+            inizio = x0 + posizione * passo
+            fine = inizio + len(pezzo) * passo
+            parole.append(
+                {
+                    "text": pezzo.strip(),
+                    "left": round(inizio * scala),
+                    "top": round(y0 * scala),
+                    "width": max(1, round((fine - inizio) * scala)),
+                    "height": max(1, round((y1 - y0) * scala)),
+                    # Il testo dell'autore non e' una lettura probabilistica.
+                    "conf": 1.0,
+                    "block": blocco + 1,
+                    "par": blocco + 1,
+                    "line": riga + 1,
+                    "word": indice + len(parole) + 1,
+                    # Formato dichiarato dal documento: prevale su ogni stima.
+                    "corpo": corpo,
+                    "grassetto": grassetto,
+                    "corsivo": corsivo,
+                }
+            )
+        posizione += len(pezzo) + 1
+    return parole
+
+
 def _parole_native(pagina, scala: float) -> list[dict[str, Any]]:
-    """Parole del livello di testo, nella stessa forma che produce il motore OCR.
+    """Parole del livello di testo, con corpo e stile dichiarati dal PDF.
 
     Le coordinate del PDF sono in punti tipografici: vengono portate alla scala
     dei pixel usata dall'OCR perche' l'analisi della struttura ragiona su
     larghezze di carattere e distanze fra righe.
     """
+    try:
+        # `sort=True`: i blocchi arrivano in ordine di lettura e non nell'ordine
+        # in cui il PDF li ha scritti. Senza, un atto composto da piu' oggetti di
+        # testo (le formule di chiusura, le firme) si ricostruisce alla rovescia.
+        contenuto = pagina.get_text("dict", sort=True) or {}
+    except Exception:
+        contenuto = {}
     parole: list[dict[str, Any]] = []
+    for numero_blocco, blocco in enumerate(contenuto.get("blocks") or []):
+        for numero_riga, riga in enumerate(blocco.get("lines") or []):
+            for span in riga.get("spans") or []:
+                parole.extend(_parole_dello_span(span, scala, numero_blocco, numero_riga, len(parole)))
+    if parole:
+        return parole
+    # Un PDF senza struttura dichiarata (raro, ma capita nei tracciati vecchi)
+    # espone comunque le parole: meglio senza formato che senza testo.
     for voce in pagina.get_text("words") or []:
         if len(voce) < 8:
             continue
@@ -184,8 +274,6 @@ def _parole_native(pagina, scala: float) -> list[dict[str, Any]]:
                 "top": round(float(y0) * scala),
                 "width": max(1, round((float(x1) - float(x0)) * scala)),
                 "height": max(1, round((float(y1) - float(y0)) * scala)),
-                # Il testo dell'autore non e' una lettura probabilistica: la
-                # confidenza e' piena e la pagina non va riletta dall'OCR.
                 "conf": 1.0,
                 "block": int(blocco) + 1,
                 "par": int(blocco) + 1,
@@ -223,6 +311,31 @@ def _caratteri(parole: list[dict[str, Any]]) -> int:
     return sum(len(str(parola.get("text") or "")) for parola in parole)
 
 
+def _paragrafi(blocchi: Sequence[dict[str, Any]]) -> list[str]:
+    """Testo lineare dei blocchi gia' corretti, con le tabelle riga per riga."""
+    paragrafi: list[str] = []
+    for blocco in blocchi:
+        if blocco.get("tipo") == "tabella":
+            paragrafi.extend(
+                " | ".join(str(cella) for cella in riga) for riga in blocco.get("righe") or [] if any(riga)
+            )
+        elif blocco.get("testo"):
+            paragrafi.append(str(blocco["testo"]))
+    return paragrafi
+
+
+def _rifinisci(blocchi: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]], dict[str, list[str]]]:
+    """Applica le correzioni forensi e legge i riferimenti giuridici della pagina.
+
+    Le due cose stanno insieme perche' i riferimenti vanno cercati nel testo
+    gia' normalizzato: un numero di ruolo spezzato dagli spazi dell'OCR non
+    verrebbe riconosciuto prima della correzione.
+    """
+    corretti, applicate = correggi_blocchi(blocchi)
+    paragrafi = _paragrafi(corretti)
+    return corretti, paragrafi, applicate, riferimenti_del_testo("\n".join(paragrafi))
+
+
 def riconosci_pagina(
     data: bytes,
     nome: str,
@@ -240,15 +353,19 @@ def riconosci_pagina(
         if numero != 1:
             raise DocumentToolError("Questa immagine ha una sola pagina.")
         esito = recognize_page(data, 0, raddrizza=raddrizza)
+        blocks, paragrafi, correzioni, riferimenti = _rifinisci(esito.blocks)
         return PaginaRiconosciuta(
             numero=1,
             origine=ORIGINE_OCR,
             pdf=esito.pdf,
-            paragraphs=list(esito.paragraphs),
-            blocks=list(esito.blocks),
+            paragraphs=paragrafi,
+            blocks=blocks,
             figures=list(esito.figures),
             confidence=esito.confidence,
             engine=esito.engine,
+            anteprima=esito.anteprima,
+            correzioni=correzioni,
+            riferimenti=riferimenti,
         )
 
     documento = _apri(sorgente)
@@ -260,30 +377,38 @@ def riconosci_pagina(
         parole = _parole_native(pagina, DPI_RASTERIZZAZIONE / 72.0)
         if _caratteri(parole) >= CARATTERI_TESTO_NATIVO_MINIMI:
             blocchi = analizza_pagina(parole, pagina=numero)
+            blocks, paragrafi, correzioni, riferimenti = _rifinisci(blocchi_con_formato(blocchi, parole))
             return PaginaRiconosciuta(
                 numero=numero,
                 origine=ORIGINE_TESTO,
                 pdf=_pagina_pdf(documento, indice),
-                paragraphs=_blocchi_in_paragrafi(blocchi),
-                blocks=[blocco.come_dizionario() for blocco in blocchi],
+                paragraphs=paragrafi,
+                blocks=blocks,
                 figures=[],
                 confidence=1.0,
                 engine="testo del documento",
+                anteprima=anteprima_da_pdf(pagina, DPI_RASTERIZZAZIONE / 72.0),
+                correzioni=correzioni,
+                riferimenti=riferimenti,
             )
         immagine = _immagine_pagina(pagina)
     finally:
         documento.close()
 
     esito = recognize_page(immagine, 0, raddrizza=raddrizza)
+    blocks, paragrafi, correzioni, riferimenti = _rifinisci(esito.blocks)
     return PaginaRiconosciuta(
         numero=numero,
         origine=ORIGINE_OCR,
         pdf=esito.pdf,
-        paragraphs=list(esito.paragraphs),
-        blocks=list(esito.blocks),
+        paragraphs=paragrafi,
+        blocks=blocks,
         figures=list(esito.figures),
         confidence=esito.confidence,
         engine=esito.engine,
+        anteprima=esito.anteprima,
+        correzioni=correzioni,
+        riferimenti=riferimenti,
     )
 
 
@@ -300,6 +425,9 @@ def come_payload(pagina: PaginaRiconosciuta) -> dict[str, Any]:
         "figures": pagina.figures,
         "confidence": round(float(pagina.confidence), 4),
         "engine": pagina.engine,
+        "anteprima": anteprima_payload(pagina.anteprima),
+        "correzioni": list(pagina.correzioni),
+        "riferimenti": dict(pagina.riferimenti),
     }
 
 

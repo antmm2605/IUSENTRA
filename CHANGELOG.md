@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.311.0 - 14/09/2026
+
+L'OCR si vede, conserva la forma del documento, si corregge e si salva dove decide l'avvocato. Nel farlo sono emersi due difetti veri, già in produzione, ed entrambi sono corretti.
+
+**Difetto corretto — ogni documento salvato dall'editor come `.docx` perdeva tutta la formattazione.** L'HTML dell'editor veniva avvolto in un contenitore che il convertitore trattava come un capoverso: il risultato era un unico paragrafo con il testo incollato («ATTO DI CITAZIONEIl sottoscritto…»), senza titoli, senza grassetto, senza corsivo, senza elenchi e **senza tabelle**. Riguardava sia «salva nel fascicolo» sia «scarica .docx» dall'editor documenti. Ora titoli, grassetto e corsivo anche annidati, elenchi puntati e numerati (compresi quelli su più livelli), tabelle con intestazione e allineamento dei capoversi arrivano tutti nel documento Word. La conversione non ingoia più gli errori in silenzio: prima un blocco che falliva spariva senza dire nulla. 9 test bloccano il difetto per sempre — prima non ce n'era nessuno su questa conversione.
+
+**Difetto corretto — il testo riconosciuto si ricomponeva rimescolato.** L'ordine di lettura delle righe si misurava con l'altezza della riga stessa: una riga più in basso ma scritta in corpo grande finiva in una banda più alta e veniva letta **prima** di righe che stavano sopra di lei. Su un atto, dove titoli e rubriche sono sempre più grandi del corpo, il testo usciva in disordine. Ora l'unità di misura è della pagina, non della singola riga. Il difetto era nel motore condiviso (`legal_ocr/page_layout`), quindi la correzione vale per tutte le strade dell'OCR, non solo per quella nuova.
+
+**Vedere il riconoscimento.** La pagina compare accanto al testo: si sfoglia pagina per pagina e i riquadri dei blocchi riconosciuti si sovrappongono all'immagine. Cliccando un riquadro si seleziona il blocco corrispondente nel testo, e viceversa: così si vede subito se un capoverso è stato letto per intero, se una tabella è stata spezzata o se un timbro è stato scambiato per testo. L'anteprima pesa poche centinaia di kilobyte, non i megabyte della pagina a piena risoluzione.
+
+**Conservare la forma del documento.** Il formato non viene indovinato, si misura: la **dimensione** dall'altezza della riga rispetto al corpo della pagina, il **grassetto** dalla densità d'inchiostro della parola (il grassetto è letteralmente più inchiostro sulla stessa area), l'**allineamento** dalla posizione della riga fra i margini del testo. Il **corsivo** si dichiara solo quando è il documento a dirlo: dall'immagine non è misurabile e non viene inventato. Quando il documento porta già il proprio formato — un PDF nativo dichiara carattere, corpo e stile di ogni parola — quel dato prevale sempre sulla stima. Intestazione centrata, rubriche in grassetto, formula «P.Q.M.» al centro e sottoscrizione a destra tornano come erano sul foglio, e arrivano così nel documento Word.
+
+**Le pagine restano pagine.** Il passaggio da una pagina all'altra dell'originale diventa un'interruzione di pagina nel documento, con lo stesso marcatore che l'editor usa già e che l'export PDF riconosceva: ora lo riconosce anche la conversione in Word, dove prima non esisteva affatto.
+
+**Correggere.** Ogni blocco si rilegge e si corregge nel testo, nel tipo (titolo, capoverso, elenco, tabella) e ora anche nel formato: livello del titolo, grassetto, corsivo, allineamento.
+
+**Le funzioni OCR già presenti sono state unificate, non duplicate.** Le correzioni forensi deterministiche della pipeline probatoria (`legal_ocr.postprocess`) ora si applicano anche al riconoscimento in pagina: «art .» → «art.», «N .» → «N.», gli spazi dentro l'indirizzo PEC, il numero di ruolo letto come «RG0». Ogni correzione applicata viene **dichiarata**, altrimenti il testo non sarebbe più verificabile contro la pagina. Gli estrattori giuridici (`legal_ocr.ner_legal`) leggono numero di ruolo, ufficio e date e li mostrano in cima: è la risposta rapida alla prima domanda dopo ogni riconoscimento, «è il documento giusto?». Una data come «12/03/2026» contiene «12/03», che ha la forma di un numero di ruolo: quei falsi riferimenti vengono scartati.
+
+**Salvare dove vuole l'avvocato.** Un passaggio finale esplicito con due gruppi distinti. **Nel fascicolo**: apri subito nell'editor, salva il documento modificabile, salva la copia PDF con testo ricercabile. **Sul computer**: scarica il documento Word, il PDF con testo ricercabile o il testo semplice. Ogni voce dice cosa produce, perché salvare nel fascicolo di un cliente non è un gesto neutro e non deve capitare per sbaglio. La copia ricercabile si offre solo quando l'OCR ha effettivamente aggiunto qualcosa, e la pagina spiega la differenza: il Word riporta il testo con le correzioni dell'avvocato, la copia PDF conserva la pagina com'è con sotto il testo letto dalla macchina.
+
+**L'originale non si tocca mai.** Quello che si salva è sempre un documento in più: la copia per immagine resta l'atto che fa fede (D.Lgs. 82/2005, art. 22) e lo strato di testo non la trasforma in atto nativo digitale (Specifiche DGSIA D.M. 44/2011, art. 15, comma 1, lett. c).
+
+28 nuovi test sul formato e sulla conversione: la dimensione che diventa livello di titolo, l'inchiostro che diventa grassetto, i margini che diventano allineamento, lo stile dichiarato dal PDF che prevale sulla stima, il corsivo che non si inventa, i margini che non si spostano per un numero di pagina a bordo foglio, l'ordine di lettura, la formattazione che sopravvive al `.docx` e l'interruzione di pagina che non si confonde con una linea orizzontale qualunque.
+
 ## 2.310.0 - 14/09/2026
 
 Il riconoscimento del testo entra nel fascicolo: si legge un documento che c'è già, si rilegge quello che la macchina ha capito, e da lì si apre l'editor.

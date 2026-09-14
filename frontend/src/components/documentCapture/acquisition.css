@@ -138,3 +138,11 @@
   .iu-matter-picker__list { max-height: none; }
   .iu-matter-picker__search input { padding: 11px 0; font-size: 16px; }
 }
+
+/* Comandi di formato nella revisione: il testo riconosciuto conserva la forma
+   che aveva sul foglio, e l'avvocato può correggerla dove il motore ha sbagliato. */
+.iu-ocr-block__formato { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.iu-ocr-block__formato select { padding: 3px 6px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; font: inherit; font-size: 12px; }
+.iu-ocr-block__formato .iu-btn { min-height: 30px; padding-inline: 8px; }
+.iu-ocr-block__formato .iu-btn[aria-pressed="true"] { border-color: var(--iu-primary, #2563eb); color: var(--iu-primary, #2563eb); }
+.iu-ocr-block.is-selected { border-color: var(--iu-primary, #2563eb); box-shadow: 0 0 0 2px rgba(37, 99, 235, .16); }

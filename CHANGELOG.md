@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.309.0 - 14/09/2026
+
+La rivalutazione monetaria ISTAT copre quindici anni invece di quattro. La serie è stata ricostruita dai comunicati ISTAT pubblicati in Gazzetta Ufficiale, uno per uno.
+
+- **Serie FOI da gennaio 2011 a giugno 2026, 186 mesi senza buchi.** Prima partiva da marzo 2022: rivalutare un credito del 2015 o un danno del 2012 non era possibile e lo strumento rispondeva dicendo fin dove arrivava la tabella. Ora si può.
+- **Due cambi di base attraversati correttamente.** La serie passa da 2010=100 a 2015=100 a gennaio 2016 e da 2015=100 a 2025=100 a gennaio 2026. Confrontare un indice di una base con uno di un'altra sbaglia di un fattore intero: il **coefficiente di raccordo 2010→2015 è 1,071**, pubblicato dall'ISTAT nel comunicato in **G.U. Serie Generale n. 65 del 18 marzo 2016** (16A02165) insieme alla serie del 2015. Il codice ora legge i coefficienti pubblicati da una mappa, invece di averne uno solo cablato.
+- **Ogni mese è stato riscontrato prima di entrare nella serie**: l'indice deve quadrare con la variazione tendenziale pubblicata nello stesso comunicato. Il controllo ha trovato due **refusi nel testo della Gazzetta** — l'ottobre 2011 stampato come 107,6 invece di 103,6 e il marzo 2012 come 105,7 invece di 105,2 — che altrove comparivano corretti: è prevalso il valore che quadra con il tendenziale, e i due mesi lo dichiarano nel commento della tabella. La sovrapposizione con la serie già in produzione (marzo e aprile 2022) coincide al decimale, conferma indipendente della ricostruzione.
+- La correzione raggiunge anche le installazioni esistenti: la tabella è `seed_mirror`, e il riallineamento pubblica una nuova versione quando il seed cambia.
+
+19 nuovi test sulla serie come dato: continuità mensile, base dichiarata per ogni mese, cambi di base nei mesi giusti, coefficienti uguali a quelli pubblicati, nessuno scalino di conversione fra un mese e il successivo — la soglia lascia passare il massimo salto realmente avvenuto, ottobre 2022 con +3,3% sulla crisi energetica, e fermerebbe uno scalino di base, che sarebbe almeno del 7%.
+
+Nota di perimetro: la serie parte dal 2011 e non dal 2010 per scelta. Il 2010 fu pubblicato in base 1995=100 e includerlo richiederebbe un secondo coefficiente di raccordo a catena, con l'errore di arrotondamento che si moltiplica. Per rivalutazioni anteriori al 2011 serve una verifica manuale sui comunicati dell'epoca.
+
 ## 2.308.0 - 14/09/2026
 
 L'elenco documenti del fascicolo si apre come preferisce lo studio.

@@ -20,7 +20,7 @@ from pct.tariffario_catalogo import (
 )
 
 MAX_SYNC_RUNS = 200
-SEED_REVISION = "2026-04-01"
+SEED_REVISION = "2026-09-14"
 
 
 def _now_iso(now: Optional[datetime] = None) -> str:
@@ -1504,10 +1504,153 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "source_codes": ["istat_indici_prezzi", "legge_431_1998_locazioni"],
             "watch_source_ids": ["istat", "normattiva"],
             "rows": [
-                # Serie pubblicata nei comunicati ISTAT in Gazzetta Ufficiale:
-                # G.U. n. 103 del 04/05/2023 (23A02556), n. 122 del 27/05/2024 (24A02620),
-                # n. 117 del 22/05/2025 (25A03038) e n. 201 del 31/08/2026 (26A04494).
-                # Base 2015=100 fino a dicembre 2025; base 2025=100 da gennaio 2026.
+                # Serie ricavata dai comunicati mensili ISTAT pubblicati in Gazzetta
+                # Ufficiale ai sensi dell'art. 81 L. 392/1978 e dell'art. 54 L. 449/1997:
+                # ogni comunicato riporta la tabella dei tredici mesi precedenti.
+                # Fra gli altri: G.U. n. 65 del 18/03/2016 (16A02165, che pubblica anche
+                # il coefficiente di raccordo fra le basi 2010 e 2015), n. 103 del
+                # 04/05/2023 (23A02556), n. 122 del 27/05/2024 (24A02620), n. 117 del
+                # 22/05/2025 (25A03038) e n. 201 del 31/08/2026 (26A04494).
+                # Basi: 2010=100 fino a dicembre 2015, 2015=100 fino a dicembre 2025,
+                # 2025=100 da gennaio 2026. Ogni mese e' stato riscontrato con la
+                # variazione tendenziale pubblicata nello stesso comunicato; dove due
+                # pubblicazioni divergevano per un refuso della Gazzetta (l'ottobre 2011
+                # come 107,6 invece di 103,6, il marzo 2012 come 105,7 invece di 105,2)
+                # ha prevalso il valore che quadra con il tendenziale.
+                {"year": 2011, "month": 1, "index": 101.2, "variation_yoy": 2.2, "base": 2010},
+                {"year": 2011, "month": 2, "index": 101.5, "variation_yoy": 2.3, "base": 2010},
+                {"year": 2011, "month": 3, "index": 101.9, "variation_yoy": 2.5, "base": 2010},
+                {"year": 2011, "month": 4, "index": 102.4, "variation_yoy": 2.6, "base": 2010},
+                {"year": 2011, "month": 5, "index": 102.5, "variation_yoy": 2.6, "base": 2010},
+                {"year": 2011, "month": 6, "index": 102.6, "variation_yoy": 2.7, "base": 2010},
+                {"year": 2011, "month": 7, "index": 102.9, "variation_yoy": 2.7, "base": 2010},
+                {"year": 2011, "month": 8, "index": 103.2, "variation_yoy": 2.8, "base": 2010},
+                {"year": 2011, "month": 9, "index": 103.2, "variation_yoy": 3.0, "base": 2010},
+                {"year": 2011, "month": 10, "index": 103.6, "variation_yoy": 3.2, "base": 2010},
+                {"year": 2011, "month": 11, "index": 103.7, "variation_yoy": 3.2, "base": 2010},
+                {"year": 2011, "month": 12, "index": 104.0, "variation_yoy": 3.2, "base": 2010},
+                {"year": 2012, "month": 1, "index": 104.4, "variation_yoy": 3.2, "base": 2010},
+                {"year": 2012, "month": 2, "index": 104.8, "variation_yoy": 3.3, "base": 2010},
+                {"year": 2012, "month": 3, "index": 105.2, "variation_yoy": 3.2, "base": 2010},
+                {"year": 2012, "month": 4, "index": 105.7, "variation_yoy": 3.2, "base": 2010},
+                {"year": 2012, "month": 5, "index": 105.6, "variation_yoy": 3.0, "base": 2010},
+                {"year": 2012, "month": 6, "index": 105.8, "variation_yoy": 3.1, "base": 2010},
+                {"year": 2012, "month": 7, "index": 105.9, "variation_yoy": 2.9, "base": 2010},
+                {"year": 2012, "month": 8, "index": 106.4, "variation_yoy": 3.1, "base": 2010},
+                {"year": 2012, "month": 9, "index": 106.4, "variation_yoy": 3.1, "base": 2010},
+                {"year": 2012, "month": 10, "index": 106.4, "variation_yoy": 2.7, "base": 2010},
+                {"year": 2012, "month": 11, "index": 106.2, "variation_yoy": 2.4, "base": 2010},
+                {"year": 2012, "month": 12, "index": 106.5, "variation_yoy": 2.4, "base": 2010},
+                {"year": 2013, "month": 1, "index": 106.7, "variation_yoy": 2.2, "base": 2010},
+                {"year": 2013, "month": 2, "index": 106.7, "variation_yoy": 1.8, "base": 2010},
+                {"year": 2013, "month": 3, "index": 106.9, "variation_yoy": 1.6, "base": 2010},
+                {"year": 2013, "month": 4, "index": 106.9, "variation_yoy": 1.1, "base": 2010},
+                {"year": 2013, "month": 5, "index": 106.9, "variation_yoy": 1.2, "base": 2010},
+                {"year": 2013, "month": 6, "index": 107.1, "variation_yoy": 1.2, "base": 2010},
+                {"year": 2013, "month": 7, "index": 107.2, "variation_yoy": 1.2, "base": 2010},
+                {"year": 2013, "month": 8, "index": 107.6, "variation_yoy": 1.1, "base": 2010},
+                {"year": 2013, "month": 9, "index": 107.2, "variation_yoy": 0.8, "base": 2010},
+                {"year": 2013, "month": 10, "index": 107.1, "variation_yoy": 0.7, "base": 2010},
+                {"year": 2013, "month": 11, "index": 106.8, "variation_yoy": 0.6, "base": 2010},
+                {"year": 2013, "month": 12, "index": 107.1, "variation_yoy": 0.6, "base": 2010},
+                {"year": 2014, "month": 1, "index": 107.3, "variation_yoy": 0.6, "base": 2010},
+                {"year": 2014, "month": 2, "index": 107.2, "variation_yoy": 0.5, "base": 2010},
+                {"year": 2014, "month": 3, "index": 107.2, "variation_yoy": 0.3, "base": 2010},
+                {"year": 2014, "month": 4, "index": 107.4, "variation_yoy": 0.5, "base": 2010},
+                {"year": 2014, "month": 5, "index": 107.3, "variation_yoy": 0.4, "base": 2010},
+                {"year": 2014, "month": 6, "index": 107.4, "variation_yoy": 0.3, "base": 2010},
+                {"year": 2014, "month": 7, "index": 107.3, "variation_yoy": 0.1, "base": 2010},
+                {"year": 2014, "month": 8, "index": 107.5, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2014, "month": 9, "index": 107.1, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2014, "month": 10, "index": 107.2, "variation_yoy": 0.1, "base": 2010},
+                {"year": 2014, "month": 11, "index": 107.0, "variation_yoy": 0.2, "base": 2010},
+                {"year": 2014, "month": 12, "index": 107.0, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2015, "month": 1, "index": 106.5, "variation_yoy": -0.7, "base": 2010},
+                {"year": 2015, "month": 2, "index": 106.8, "variation_yoy": -0.4, "base": 2010},
+                {"year": 2015, "month": 3, "index": 107.0, "variation_yoy": -0.2, "base": 2010},
+                {"year": 2015, "month": 4, "index": 107.1, "variation_yoy": -0.3, "base": 2010},
+                {"year": 2015, "month": 5, "index": 107.2, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2015, "month": 6, "index": 107.3, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2015, "month": 7, "index": 107.2, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2015, "month": 8, "index": 107.4, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2015, "month": 9, "index": 107.0, "variation_yoy": -0.1, "base": 2010},
+                {"year": 2015, "month": 10, "index": 107.2, "variation_yoy": 0.0, "base": 2010},
+                {"year": 2015, "month": 11, "index": 107.0, "variation_yoy": 0.0, "base": 2010},
+                {"year": 2015, "month": 12, "index": 107.0, "variation_yoy": 0.0, "base": 2010},
+                {"year": 2016, "month": 1, "index": 99.7, "variation_yoy": 0.3, "base": 2015},
+                {"year": 2016, "month": 2, "index": 99.5, "variation_yoy": -0.2, "base": 2015},
+                {"year": 2016, "month": 3, "index": 99.6, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 4, "index": 99.6, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 5, "index": 99.7, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 6, "index": 99.9, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 7, "index": 100.0, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 8, "index": 100.2, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 9, "index": 100.0, "variation_yoy": 0.1, "base": 2015},
+                {"year": 2016, "month": 10, "index": 100.0, "variation_yoy": None, "base": 2015},
+                {"year": 2016, "month": 11, "index": 100.0, "variation_yoy": 0.1, "base": 2015},
+                {"year": 2016, "month": 12, "index": 100.3, "variation_yoy": 0.4, "base": 2015},
+                {"year": 2017, "month": 1, "index": 100.6, "variation_yoy": 0.9, "base": 2015},
+                {"year": 2017, "month": 2, "index": 101.0, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2017, "month": 3, "index": 101.0, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2017, "month": 4, "index": 101.3, "variation_yoy": 1.7, "base": 2015},
+                {"year": 2017, "month": 5, "index": 101.1, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2017, "month": 6, "index": 101.0, "variation_yoy": 1.1, "base": 2015},
+                {"year": 2017, "month": 7, "index": 101.0, "variation_yoy": 1.0, "base": 2015},
+                {"year": 2017, "month": 8, "index": 101.4, "variation_yoy": 1.2, "base": 2015},
+                {"year": 2017, "month": 9, "index": 101.1, "variation_yoy": 1.1, "base": 2015},
+                {"year": 2017, "month": 10, "index": 100.9, "variation_yoy": 0.9, "base": 2015},
+                {"year": 2017, "month": 11, "index": 100.8, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2017, "month": 12, "index": 101.1, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2018, "month": 1, "index": 101.5, "variation_yoy": 0.9, "base": 2015},
+                {"year": 2018, "month": 2, "index": 101.5, "variation_yoy": 0.5, "base": 2015},
+                {"year": 2018, "month": 3, "index": 101.7, "variation_yoy": 0.7, "base": 2015},
+                {"year": 2018, "month": 4, "index": 101.7, "variation_yoy": 0.4, "base": 2015},
+                {"year": 2018, "month": 5, "index": 102.0, "variation_yoy": 0.9, "base": 2015},
+                {"year": 2018, "month": 6, "index": 102.2, "variation_yoy": 1.2, "base": 2015},
+                {"year": 2018, "month": 7, "index": 102.5, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2018, "month": 8, "index": 102.9, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2018, "month": 9, "index": 102.4, "variation_yoy": 1.3, "base": 2015},
+                {"year": 2018, "month": 10, "index": 102.4, "variation_yoy": 1.5, "base": 2015},
+                {"year": 2018, "month": 11, "index": 102.2, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2018, "month": 12, "index": 102.1, "variation_yoy": 1.0, "base": 2015},
+                {"year": 2019, "month": 1, "index": 102.2, "variation_yoy": 0.7, "base": 2015},
+                {"year": 2019, "month": 2, "index": 102.3, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2019, "month": 3, "index": 102.5, "variation_yoy": 0.8, "base": 2015},
+                {"year": 2019, "month": 4, "index": 102.6, "variation_yoy": 0.9, "base": 2015},
+                {"year": 2019, "month": 5, "index": 102.7, "variation_yoy": 0.7, "base": 2015},
+                {"year": 2019, "month": 6, "index": 102.7, "variation_yoy": 0.5, "base": 2015},
+                {"year": 2019, "month": 7, "index": 102.7, "variation_yoy": 0.2, "base": 2015},
+                {"year": 2019, "month": 8, "index": 103.2, "variation_yoy": 0.3, "base": 2015},
+                {"year": 2019, "month": 9, "index": 102.5, "variation_yoy": 0.1, "base": 2015},
+                {"year": 2019, "month": 10, "index": 102.4, "variation_yoy": 0.0, "base": 2015},
+                {"year": 2019, "month": 11, "index": 102.3, "variation_yoy": 0.1, "base": 2015},
+                {"year": 2019, "month": 12, "index": 102.5, "variation_yoy": 0.4, "base": 2015},
+                {"year": 2020, "month": 1, "index": 102.7, "variation_yoy": 0.5, "base": 2015},
+                {"year": 2020, "month": 2, "index": 102.5, "variation_yoy": 0.2, "base": 2015},
+                {"year": 2020, "month": 3, "index": 102.6, "variation_yoy": 0.1, "base": 2015},
+                {"year": 2020, "month": 4, "index": 102.5, "variation_yoy": -0.1, "base": 2015},
+                {"year": 2020, "month": 5, "index": 102.3, "variation_yoy": -0.4, "base": 2015},
+                {"year": 2020, "month": 6, "index": 102.4, "variation_yoy": -0.3, "base": 2015},
+                {"year": 2020, "month": 7, "index": 102.3, "variation_yoy": -0.4, "base": 2015},
+                {"year": 2020, "month": 8, "index": 102.5, "variation_yoy": -0.7, "base": 2015},
+                {"year": 2020, "month": 9, "index": 101.9, "variation_yoy": -0.6, "base": 2015},
+                {"year": 2020, "month": 10, "index": 102.0, "variation_yoy": -0.4, "base": 2015},
+                {"year": 2020, "month": 11, "index": 102.0, "variation_yoy": -0.3, "base": 2015},
+                {"year": 2020, "month": 12, "index": 102.3, "variation_yoy": -0.2, "base": 2015},
+                {"year": 2021, "month": 1, "index": 102.9, "variation_yoy": 0.2, "base": 2015},
+                {"year": 2021, "month": 2, "index": 103.0, "variation_yoy": 0.5, "base": 2015},
+                {"year": 2021, "month": 3, "index": 103.3, "variation_yoy": 0.7, "base": 2015},
+                {"year": 2021, "month": 4, "index": 103.7, "variation_yoy": 1.2, "base": 2015},
+                {"year": 2021, "month": 5, "index": 103.6, "variation_yoy": 1.3, "base": 2015},
+                {"year": 2021, "month": 6, "index": 103.8, "variation_yoy": 1.4, "base": 2015},
+                {"year": 2021, "month": 7, "index": 104.2, "variation_yoy": 1.9, "base": 2015},
+                {"year": 2021, "month": 8, "index": 104.7, "variation_yoy": 2.1, "base": 2015},
+                {"year": 2021, "month": 9, "index": 104.5, "variation_yoy": 2.6, "base": 2015},
+                {"year": 2021, "month": 10, "index": 105.1, "variation_yoy": 3.0, "base": 2015},
+                {"year": 2021, "month": 11, "index": 105.7, "variation_yoy": 3.6, "base": 2015},
+                {"year": 2021, "month": 12, "index": 106.2, "variation_yoy": 3.8, "base": 2015},
+                {"year": 2022, "month": 1, "index": 107.7, "variation_yoy": 4.7, "base": 2015},
+                {"year": 2022, "month": 2, "index": 108.8, "variation_yoy": 5.6, "base": 2015},
                 {"year": 2022, "month": 3, "index": 109.9, "variation_yoy": 6.4, "base": 2015},
                 {"year": 2022, "month": 4, "index": 109.7, "variation_yoy": 5.8, "base": 2015},
                 {"year": 2022, "month": 5, "index": 110.6, "variation_yoy": 6.8, "base": 2015},
@@ -1565,17 +1708,27 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "base_year": 2015,
                 "base_year_corrente": 2025,
                 "coefficiente_raccordo_2015_2025": 1.214,
+                # Coefficienti pubblicati dall'ISTAT a ogni cambio di base: convertono
+                # un indice della base nuova in uno della base vecchia (il 2015 vale
+                # 107,1 in base 2010 e 100 in base 2015).
+                "coefficienti_raccordo": {"2010_2015": 1.071, "2015_2025": 1.214},
+                "fonti_raccordo": {
+                    "2010_2015": "G.U. Serie Generale n. 65 del 18/03/2016, comunicato ISTAT 16A02165",
+                    "2015_2025": "G.U. Serie Generale n. 201 del 31/08/2026, comunicato ISTAT 26A04494",
+                },
                 "medie_annue": {2020: 102.3, 2021: 104.2, 2022: 112.6, 2023: 118.7, 2024: 119.7, 2025: 121.4},
                 "note": (
                     "Indice al netto dei tabacchi, come pubblicato dai comunicati ISTAT in "
                     "Gazzetta Ufficiale ai sensi dell'art. 81 L. 392/1978 e dell'art. 54 "
-                    "L. 449/1997. Da gennaio 2026 la base passa da 2015=100 a 2025=100: il "
-                    "coefficiente di raccordo fra le basi e' 1,214."
+                    "L. 449/1997. La serie copre da gennaio 2011 e attraversa due cambi di "
+                    "base: da gennaio 2016 da 2010=100 a 2015=100 (coefficiente di raccordo "
+                    "1,071) e da gennaio 2026 da 2015=100 a 2025=100 (coefficiente 1,214). "
+                    "Gli indici sono riportati alla base 2015=100 prima di ogni confronto."
                 ),
                 "aggiornamento": "mensile",
             },
             "published_at": "2026-08-31",
-            "effective_from": "2022-03-01",
+            "effective_from": "2011-01-01",
         },
         # ── ISTAT NIC ─────────────────────────────────────────────────────────
         "istat_nic": {

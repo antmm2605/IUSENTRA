@@ -57,7 +57,6 @@ from pct.normative_tables import (
     _normalize_usura_category,
 )
 from pct.tariffario import (
-    ComplessitaStimata,
     Fase,
     Grado,
     Materia,
@@ -226,6 +225,7 @@ class GestioneStrumentiLegali:
             {"id": "assegno_mantenimento", "title": "Assegno di mantenimento", "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.", "icon": "bi-house-down", "categoria": "Famiglia"},
             {"id": "patrocinio_spese_stato", "title": "Patrocinio a spese dello Stato", "subtitle": "Limiti di reddito ex art. 76 D.P.R. 115/2002, con cumulo dei conviventi ed elevazione penale (art. 92).", "icon": "bi-people-fill", "categoria": "Processo"},
             {"id": "competenza_valore", "title": "Competenza per valore", "subtitle": "Giudice di pace o tribunale secondo l'art. 7 c.p.c., con le soglie elevate dalla riforma Cartabia.", "icon": "bi-signpost-split", "categoria": "Competenza"},
+            {"id": "ocr_documento_word", "title": "Da scansione a Word o PDF (riconoscimento del testo)", "subtitle": "Immagini e PDF letti dal motore OCR dello studio: testo con la sua forma, revisione a fianco della pagina, salvataggio sul computer o nel fascicolo del cliente.", "icon": "bi-file-earmark-text", "categoria": "Utility", "componente": "ocr-documento"},
             {"id": "termini_processuali", "title": "Termini processuali e sospensione feriale", "subtitle": "Scadenza dei termini con computo ex art. 155 c.p.c. e sospensione dal 1 al 31 agosto (L. 742/1969).", "icon": "bi-calendar-check", "categoria": "Processo"},
             {"id": "impugnazioni", "title": "Termini di impugnazione", "subtitle": "Termine breve (art. 325 c.p.c.) e termine lungo (art. 327 c.p.c.) a confronto, con sospensione feriale.", "icon": "bi-arrow-up-right-square", "categoria": "Processo"},
             {"id": "ravvedimento_operoso", "title": "Ravvedimento operoso", "subtitle": "Sanzione ridotta e interessi legali, con i due regimi prima e dal 1 settembre 2024 (D.Lgs. 87/2024).", "icon": "bi-cash-coin", "categoria": "Fiscale"},
@@ -2245,8 +2245,7 @@ class GestioneStrumentiLegali:
 
     def calcola_prescrizione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         """Calcola termini di prescrizione con gestione atti interruttivi."""
-        from datetime import date as _date, timedelta
-        import calendar as _calendar
+        from datetime import date as _date
 
         tipo = str(payload.get("presc_tipo", "ordinaria_10")).strip()
         data_decorrenza_raw = payload.get("presc_data_decorrenza", "")

@@ -281,39 +281,29 @@ def _estrai_testo_pymupdf(data: bytes, page_index: int) -> str:
 
 
 def _ocr_pagina(data: bytes, page_index: int, pagina=None) -> str:
-    """OCR su pagina PDF via pytesseract, con renderer PDF robusto."""
+    """OCR di una pagina PDF con il motore unico dello studio (`legal_ocr.motore`)."""
     try:
-        import pytesseract
+        from legal_ocr.motore.testo import testo_da_immagine, testo_da_pdf
     except ImportError:
         return ""
 
     if pagina is not None:
         try:
-            img = pagina.to_image(resolution=220).original
-            testo = pytesseract.image_to_string(img, lang="ita").strip()
+            img = pagina.to_image(resolution=300).original
+            testo = testo_da_immagine(img, raddrizza=False).testo.strip()
             if testo:
                 return testo
         except Exception:
             pass
 
     try:
-        import pypdfium2 as pdfium
-        pdf = pdfium.PdfDocument(data)
-        page = pdf[page_index]
-        bitmap = page.render(scale=2.3)
-        try:
-            img = bitmap.to_pil()
-            return pytesseract.image_to_string(img, lang="ita").strip()
-        finally:
-            for obj in (bitmap, page, pdf):
-                close = getattr(obj, "close", None)
-                if callable(close):
-                    try:
-                        close()
-                    except Exception:
-                        pass
+        pagine = testo_da_pdf(data, solo_immagini=True)
     except Exception:
         return ""
+    for voce in pagine:
+        if voce.numero == page_index + 1:
+            return voce.testo.strip()
+    return ""
 
 
 def _html_pdf_non_modificabile(numero_pagina: int, motivo: str, *, visuale: bool = False) -> str:
@@ -799,18 +789,57 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
                 _add_runs(paragraph, figlio, corrente)
             _scrivi(paragraph, figlio.tail or "", corrente)
 
+    def _marcatore_esplicito(el, ordinato: bool, posizione: int) -> str:
+        """Il segno della voce quando l'elenco dichiara tipo o numero di partenza.
+
+        Word numera da solo gli elenchi con lo stile «List Number», ma non sa
+        ripartire da 3 ne' usare lettere o numeri romani: in quei casi il
+        marcatore va scritto nel testo, com'era nell'atto riconosciuto.
+        """
+        if not ordinato:
+            return ""
+        tipo = str(el.get("type") or "1").strip()
+        try:
+            inizio = int(el.get("start") or 1)
+        except (TypeError, ValueError):
+            inizio = 1
+        if tipo == "1" and inizio == 1:
+            return ""
+        valore = inizio + posizione
+        if tipo in ("a", "A"):
+            lettera = chr(ord("a") + (valore - 1) % 26)
+            return f"{lettera if tipo == 'a' else lettera.upper()})"
+        if tipo in ("i", "I"):
+            coppie = ((1000, "m"), (900, "cm"), (500, "d"), (400, "cd"), (100, "c"), (90, "xc"), (50, "l"), (40, "xl"), (10, "x"), (9, "ix"), (5, "v"), (4, "iv"), (1, "i"))
+            resto, romano = valore, ""
+            for peso, lettere in coppie:
+                while resto >= peso:
+                    romano += lettere
+                    resto -= peso
+            return f"{romano if tipo == 'i' else romano.upper()}."
+        return f"{valore}."
+
     def _voci_elenco(el, ordinato: bool, livello: int = 0) -> None:
         stile = "List Number" if ordinato else "List Bullet"
         if livello:
             stile = f"{stile} {min(livello + 1, 3)}"
+        posizione = 0
         for voce in el:
             if _nome(voce) != "li":
                 continue
             annidati = [figlio for figlio in voce if _nome(figlio) in ("ul", "ol")]
-            try:
-                paragraph = doc.add_paragraph(style=stile)
-            except KeyError:
-                paragraph = doc.add_paragraph(style="List Number" if ordinato else "List Bullet")
+            marcatore = _marcatore_esplicito(el, ordinato, posizione)
+            posizione += 1
+            if marcatore:
+                paragraph = doc.add_paragraph()
+                paragraph.paragraph_format.left_indent = Inches(0.35 + 0.25 * livello)
+                paragraph.paragraph_format.first_line_indent = Inches(-0.3)
+                paragraph.add_run(f"{marcatore}\t")
+            else:
+                try:
+                    paragraph = doc.add_paragraph(style=stile)
+                except KeyError:
+                    paragraph = doc.add_paragraph(style="List Number" if ordinato else "List Bullet")
             _scrivi(paragraph, voce.text or "", {})
             for figlio in voce:
                 if _nome(figlio) in ("ul", "ol"):
@@ -1173,12 +1202,24 @@ def html_to_pdf(
 
         if tag in ("ul", "ol"):
             items = []
+            # Tipo e numero di partenza dichiarati dall'elenco: lettere, numeri
+            # romani e liste che ripartono da un numero restano com'erano.
+            tipo_elenco = "bullet" if tag == "ul" else (str(el.get("type") or "1").strip() or "1")
+            if tipo_elenco not in ("bullet", "1", "a", "A", "i", "I"):
+                tipo_elenco = "1"
+            try:
+                inizio_elenco = max(1, int(el.get("start") or 1))
+            except (TypeError, ValueError):
+                inizio_elenco = 1
             for li in el.findall("li"):
                 rich = _node_to_rich(li)
-                items.append(ListItem(Paragraph(rich, st_li), bulletType="bullet" if tag == "ul" else "1"))
+                items.append(ListItem(Paragraph(rich, st_li), bulletType=tipo_elenco))
             if items:
-                story.append(ListFlowable(items, bulletType="bullet" if tag == "ul" else "1",
-                                          leftIndent=18, bulletFontSize=10))
+                opzioni = {"bulletType": tipo_elenco, "leftIndent": 18, "bulletFontSize": 10}
+                if tipo_elenco != "bullet":
+                    opzioni["start"] = inizio_elenco
+                    opzioni["bulletFormat"] = "%s."
+                story.append(ListFlowable(items, **opzioni))
             return
 
         if tag == "hr" and (el.get("data-iu-page-break") is not None or "iu-ted-page-break" in (el.get("class") or "").split()):

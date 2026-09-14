@@ -19,18 +19,29 @@ def compute_metrics(tokens: list[dict[str, Any]], *, language_confidence: float 
 
 
 def apply_deterministic_corrections(text: str, *, user: str = "system") -> tuple[str, list[dict[str, Any]]]:
+    """Il formulario legale applicato al testo: ogni regola intervenuta e' registrata.
+
+    La storia riporta, per ogni regola, il testo prima e dopo: e' l'evidenza
+    che rende verificabile la correzione contro la lettura grezza.
+    """
+    from .formulario import REGOLE, applica_regole
+
     corrected = str(text or "")
     history: list[dict[str, Any]] = []
-    for rule_id, pattern, replacement, reason in [
-        ("punct.art.v1", re.compile(r"\bart\s+\.", re.I), "art.", "Normalizzazione forense art."),
-        ("punct.n.v1", re.compile(r"\bN\s+\.", re.I), "N.", "Normalizzazione N."),
-        ("ocr.rg.zero.v1", re.compile(r"\bR\s*[G6]\s*0\b", re.I), "RG n.", "Correzione OCR comune per RG n."),
-        ("space.pec.v1", re.compile(r"\s+@\s+"), "@", "Rimozione spazi in indirizzo PEC."),
-    ]:
-        next_text = pattern.sub(replacement, corrected)
-        if next_text != corrected:
-            history.append({"timestamp": datetime.now(timezone.utc).isoformat(), "user": user, "from": corrected, "to": next_text, "reason": reason, "rule_id": rule_id})
-            corrected = next_text
+    for regola in REGOLE:
+        esito = applica_regole(corrected, (regola,))
+        if esito.occorrenze and esito.testo != corrected:
+            history.append({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user": user,
+                "from": corrected,
+                "to": esito.testo,
+                "reason": regola.motivo,
+                "rule_id": regola.id,
+                "label": regola.etichetta,
+                "occurrences": esito.occorrenze[0][1],
+            })
+            corrected = esito.testo
     return corrected, history
 
 

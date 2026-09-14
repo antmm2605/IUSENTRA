@@ -17,11 +17,14 @@ import statistics
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
+from .formulario.elenchi import Marcatore, continua, marcatore_di, senza_marcatore
+
 TITOLO = "titolo"
 PARAGRAFO = "paragrafo"
 ELENCO = "elenco"
 TABELLA = "tabella"
 FIGURA = "figura"
+NUMERO_PAGINA = "numero_pagina"
 
 # Un vuoto orizzontale piu' largo di questo multiplo della larghezza media di un
 # carattere separa due celle; sotto, e' lo spazio fra parole della stessa cella.
@@ -33,10 +36,17 @@ _RIENTRO_CAPOVERSO = 1.6
 _ALTEZZA_TITOLO = 1.18
 _PAROLE_MASSIME_TITOLO = 14
 
-_MARCATORE_ELENCO = re.compile(
-    r"^(?:[-•·–—*]|\(?[a-zA-Z]\)|\(?[ivxIVX]{1,4}\)|\d{1,3}[.)])\s+",
-)
 _FINE_PERIODO = re.compile(r"[.:;!?»\"']\s*$")
+# Quanto puo' rientrare la riga di continuazione di una voce di elenco rispetto
+# al marcatore, in altezze di riga: e' il rientro sporgente («hanging indent»).
+_RIENTRO_VOCE = 4.0
+# Fascia in testa e in coda alla pagina, in quota dell'estensione verticale del
+# testo, entro cui un numero da solo e' il numero di pagina.
+_FASCIA_PIEDE = 0.08
+_NUMERO_PAGINA = re.compile(
+    r"^(?:(?:pag|pagina|p|foglio|fg)\.?\s*)?[-–—]?\s*\d{1,4}\s*(?:(?:/|di|su)\s*\d{1,4})?\s*[-–—]?$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(slots=True)
@@ -101,6 +111,12 @@ class Blocco:
     riquadro: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
     confidenza: float = 0.0
     pagina: int = 1
+    # Solo per le voci di elenco: il segno che le apre e il testo senza di esso.
+    marcatore: Marcatore | None = None
+
+    @property
+    def voce(self) -> str:
+        return senza_marcatore(self.testo, self.marcatore) if self.marcatore else self.testo
 
     def come_dizionario(self) -> dict[str, Any]:
         voce: dict[str, Any] = {
@@ -114,6 +130,9 @@ class Blocco:
             voce["colonne"] = len(self.righe[0]) if self.righe else 0
         else:
             voce["testo"] = self.testo
+        if self.marcatore is not None:
+            voce["marcatore"] = self.marcatore.come_dizionario()
+            voce["voce"] = self.voce
         return voce
 
 
@@ -295,9 +314,9 @@ def _unisci_righe(righe: Sequence[Riga]) -> str:
     return re.sub(r"\s+", " ", testo).strip()
 
 
-def _tipo_testuale(righe: Sequence[Riga], altezza_tipica: float) -> str:
+def _tipo_testuale(righe: Sequence[Riga], altezza_tipica: float, marcatore: Marcatore | None = None) -> str:
     testo = _unisci_righe(righe)
-    if _MARCATORE_ELENCO.match(testo):
+    if marcatore is not None:
         return ELENCO
     if len(righe) == 1:
         parole = testo.split()
@@ -308,33 +327,68 @@ def _tipo_testuale(righe: Sequence[Riga], altezza_tipica: float) -> str:
     return PARAGRAFO
 
 
-def _capoversi(righe: Sequence[Riga], altezza_tipica: float, pagina: int) -> list[Blocco]:
+def _blocco_testuale(righe: Sequence[Riga], altezza_tipica: float, pagina: int, marcatore: Marcatore | None) -> Blocco:
+    return Blocco(
+        _tipo_testuale(righe, altezza_tipica, marcatore),
+        testo=_unisci_righe(righe),
+        riquadro=_riquadro(righe),
+        confidenza=_confidenza(righe),
+        pagina=pagina,
+        marcatore=marcatore,
+    )
+
+
+def _capoversi(righe: Sequence[Riga], altezza_tipica: float, pagina: int, ultimo_marcatore: Marcatore | None = None) -> list[Blocco]:
     blocchi: list[Blocco] = []
     corrente: list[Riga] = []
+    marcatore_corrente: Marcatore | None = None
+    precedente_marcatore = ultimo_marcatore
     for riga in righe:
+        marcatore_riga = marcatore_di(riga.testo, precedente=marcatore_corrente or precedente_marcatore)
         if corrente:
             precedente = corrente[-1]
             salto = riga.alto - precedente.basso
-            rientro = abs(riga.sinistra - corrente[0].sinistra)
+            rientro = riga.sinistra - corrente[0].sinistra
+            # La riga di continuazione di una voce di elenco rientra rispetto
+            # al marcatore («hanging indent»): resta nella stessa voce.
+            rientro_ammesso = altezza_tipica * (_RIENTRO_VOCE if marcatore_corrente is not None and rientro > 0 else _RIENTRO_CAPOVERSO)
             nuovo = (
                 salto > altezza_tipica * _SALTO_CAPOVERSO
-                or rientro > altezza_tipica * _RIENTRO_CAPOVERSO
-                or bool(_MARCATORE_ELENCO.match(riga.testo))
+                or abs(rientro) > rientro_ammesso
+                or marcatore_riga is not None
                 or (_FINE_PERIODO.search(precedente.testo) and precedente.destra < corrente[0].sinistra + (riga.destra - riga.sinistra) * 0.72)
             )
             if nuovo:
-                blocchi.append(
-                    Blocco(_tipo_testuale(corrente, altezza_tipica), testo=_unisci_righe(corrente),
-                           riquadro=_riquadro(corrente), confidenza=_confidenza(corrente), pagina=pagina)
-                )
+                blocchi.append(_blocco_testuale(corrente, altezza_tipica, pagina, marcatore_corrente))
+                if marcatore_corrente is not None:
+                    precedente_marcatore = marcatore_corrente
                 corrente = []
+                marcatore_corrente = None
+        if not corrente:
+            marcatore_corrente = marcatore_riga
         corrente.append(riga)
     if corrente:
-        blocchi.append(
-            Blocco(_tipo_testuale(corrente, altezza_tipica), testo=_unisci_righe(corrente),
-                   riquadro=_riquadro(corrente), confidenza=_confidenza(corrente), pagina=pagina)
-        )
+        blocchi.append(_blocco_testuale(corrente, altezza_tipica, pagina, marcatore_corrente))
     return [blocco for blocco in blocchi if blocco.testo]
+
+
+def _numeri_di_pagina(blocchi: list[Blocco], righe: Sequence[Riga]) -> list[Blocco]:
+    """Il numero di pagina in testa o in coda diventa un blocco a se', fuori dal testo."""
+    if not righe:
+        return blocchi
+    alto = min(riga.alto for riga in righe)
+    basso = max(riga.basso for riga in righe)
+    estensione = max(1.0, basso - alto)
+    for blocco in blocchi:
+        if blocco.tipo == TABELLA or "\n" in blocco.testo or len(blocco.testo) > 24:
+            continue
+        if not _NUMERO_PAGINA.match(blocco.testo.strip()):
+            continue
+        centro = (blocco.riquadro[1] + blocco.riquadro[3]) / 2
+        if centro <= alto + estensione * _FASCIA_PIEDE or centro >= basso - estensione * _FASCIA_PIEDE:
+            blocco.tipo = NUMERO_PAGINA
+            blocco.marcatore = None
+    return blocchi
 
 
 def analizza_pagina(parole: Iterable[dict[str, Any]], *, pagina: int = 1) -> list[Blocco]:
@@ -348,11 +402,38 @@ def analizza_pagina(parole: Iterable[dict[str, Any]], *, pagina: int = 1) -> lis
 
     blocchi: list[Blocco] = []
     cursore = 0
+    ultimo_marcatore: Marcatore | None = None
     for inizio, fine in intervalli:
         if inizio > cursore:
-            blocchi.extend(_capoversi(righe[cursore:inizio], altezza_tipica, pagina))
+            blocchi.extend(_capoversi(righe[cursore:inizio], altezza_tipica, pagina, ultimo_marcatore))
+            ultimo_marcatore = _ultimo_marcatore(blocchi, ultimo_marcatore)
         blocchi.append(_tabella(righe[inizio:fine], soglia_colonna, pagina))
         cursore = fine
     if cursore < len(righe):
-        blocchi.extend(_capoversi(righe[cursore:], altezza_tipica, pagina))
-    return blocchi
+        blocchi.extend(_capoversi(righe[cursore:], altezza_tipica, pagina, ultimo_marcatore))
+    return _numeri_di_pagina(blocchi, righe)
+
+
+def _ultimo_marcatore(blocchi: Sequence[Blocco], predefinito: Marcatore | None) -> Marcatore | None:
+    for blocco in reversed(blocchi):
+        if blocco.tipo == ELENCO and blocco.marcatore is not None:
+            return blocco.marcatore
+        if blocco.tipo in {PARAGRAFO, TITOLO}:
+            return None
+    return predefinito
+
+
+def gruppi_di_elenco(blocchi: Sequence[Blocco]) -> list[list[int]]:
+    """Indici dei blocchi che formano lo stesso elenco: voci consecutive dello stesso tipo."""
+    gruppi: list[list[int]] = []
+    precedente: Marcatore | None = None
+    for indice, blocco in enumerate(blocchi):
+        if blocco.tipo != ELENCO or blocco.marcatore is None:
+            precedente = None
+            continue
+        if gruppi and precedente is not None and (continua(precedente, blocco.marcatore) or (precedente.tipo == blocco.marcatore.tipo == "puntato")):
+            gruppi[-1].append(indice)
+        else:
+            gruppi.append([indice])
+        precedente = blocco.marcatore
+    return gruppi

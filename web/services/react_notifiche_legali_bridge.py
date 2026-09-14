@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import re
 import subprocess
-import tempfile
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
@@ -479,28 +478,14 @@ def _extract_first_page_text(path: Path) -> str:
     except (OSError, subprocess.SubprocessError):
         extracted = ""
     if not extracted:
-        with tempfile.TemporaryDirectory(prefix="iusentra-doc-label-") as tmpdir:
-            image_prefix = str(Path(tmpdir) / "page")
-            try:
-                subprocess.run(
-                    ["pdftoppm", "-f", "1", "-l", "1", "-png", "-r", "140", str(path), image_prefix],
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                image_path = Path(f"{image_prefix}-1.png")
-                if image_path.exists():
-                    result = subprocess.run(
-                        ["tesseract", str(image_path), "stdout", "-l", "ita", "--psm", "6"],
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                        timeout=18,
-                    )
-                    extracted = _text(result.stdout)
-            except (OSError, subprocess.SubprocessError):
-                extracted = ""
+        # PDF senza livello di testo: prima pagina letta dal motore unico dello studio.
+        try:
+            from legal_ocr.motore.testo import testo_da_pdf
+
+            pagine = testo_da_pdf(path.read_bytes(), max_pagine=1)
+            extracted = _text(pagine[0].testo) if pagine else ""
+        except Exception:
+            extracted = ""
     if cache_key:
         _LEGACY_IMPORT_CONTENT_LABEL_CACHE[cache_key] = extracted
     return extracted

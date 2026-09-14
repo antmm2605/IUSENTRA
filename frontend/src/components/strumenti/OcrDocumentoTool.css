@@ -1,0 +1,18 @@
+/* Utility «Da scansione a Word o PDF»: riusa i pattern del riconoscimento del fascicolo. */
+.iu-ocr-tool { display: grid; gap: 6px; min-width: 0; }
+.iu-ocr-tool__intro { max-width: 82ch; margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: var(--iu-slate-600, #475569); }
+.iu-ocr-tool__fascicolo { margin-block: 6px 10px; padding: 10px 12px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 10px; background: var(--iu-surface, #ffffff); }
+.iu-ocr-tool [role=alert] { padding: 10px 12px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 8px; color: var(--iu-danger, #9f2525); }
+.iu-ocr-tool__formato { display: grid; gap: 10px; margin-block: 12px; padding: 12px; border: 1px solid rgba(37, 99, 235, .20); border-radius: 12px; background: rgba(248, 251, 255, .92); }
+.iu-ocr-tool__formato h4 { margin: 0; font-size: 14px; }
+.iu-ocr-tool__formati { display: flex; flex-wrap: wrap; gap: 14px; }
+.iu-ocr-tool__formati label { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
+.iu-ocr-tool__conferma { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--iu-primary, #2563eb); border-radius: 10px; background: var(--iu-surface, #ffffff); }
+.iu-ocr-tool__conferma p { margin: 0; font-size: 13px; line-height: 1.5; }
+.iu-ocr-tool__conferma-azioni { display: flex; flex-wrap: wrap; gap: 8px; }
+.iu-ocr-tool__esito { margin: 0; font-size: 13px; font-weight: 700; }
+.iu-matter-picker__stato { color: var(--iu-slate-600, #475569); font-size: 11.5px; font-weight: 700; }
+.iu-ocr-al--giustificato { text-align: justify; }
+@media (max-width: 700px) {
+  .iu-ocr-tool__conferma-azioni .iu-btn { flex: 1 1 auto; }
+}

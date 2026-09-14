@@ -469,6 +469,24 @@ class SignatureValidator:
         }
 
 
+def _leggi_con_motore_unico(data: bytes, *, filename: str, immagine: bool) -> tuple[str, str, list[str]]:
+    """Il motore unico dello studio (`legal_ocr.motore`) per immagini e PDF scansionati."""
+    try:
+        from legal_ocr.motore.testo import testo_da_immagine_bytes, testo_da_pdf
+    except Exception as exc:  # pragma: no cover - dipendenza del runtime
+        return "", "", [f"Motore OCR non disponibile: {exc}"]
+    try:
+        if immagine:
+            letto = testo_da_immagine_bytes(data)
+            return letto.testo, letto.motore or "legal-ocr-motore", list(letto.avvisi)
+        pagine = testo_da_pdf(data)
+        testo = "\n\n".join(pagina.testo for pagina in pagine if pagina.testo)
+        avvisi = [avviso for pagina in pagine for avviso in pagina.avvisi]
+        return testo, "legal-ocr-motore", avvisi
+    except Exception as exc:
+        return "", "", [f"Lettura OCR non completata per {filename}: {exc}"]
+
+
 class LightweightOcrEngine:
     """OCR leggero e deterministico per test e ambienti senza Tesseract."""
 
@@ -508,14 +526,20 @@ class LightweightOcrEngine:
             text = _extract_pdf_text_heuristic(data)
             if text:
                 return text, "pdf-native-heuristic", []
-            return "", self.engine_name, ["PDF senza testo leggibile nel runtime leggero."]
+            letto, motore, errori = _leggi_con_motore_unico(data, filename=filename, immagine=False)
+            if letto:
+                return letto, motore, []
+            return "", self.engine_name, errori or ["PDF senza testo leggibile nel runtime leggero."]
         if ext in {".docx", ".xlsx", ".pptx"}:
             text = _extract_ooxml_text_heuristic(data)
             if text:
                 return text, "ooxml-native-heuristic", []
             return "", self.engine_name, ["Documento Office senza testo leggibile nel runtime leggero."]
         if mime.startswith("image/"):
-            return "", self.engine_name, ["Immagine da inviare al worker OCR completo."]
+            letto, motore, errori = _leggi_con_motore_unico(data, filename=filename, immagine=True)
+            if letto:
+                return letto, motore, []
+            return "", self.engine_name, errori or ["Immagine senza testo leggibile."]
         return "", self.engine_name, ["Formato non gestito dal runtime OCR leggero."]
 
 

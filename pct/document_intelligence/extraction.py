@@ -1017,77 +1017,28 @@ def _extract_scanned_pdf_with_ocr(
 
 
 def _configure_tesseract_runtime(pytesseract: Any) -> str:
-    command = _resolve_tesseract_command()
-    pytesseract_module = getattr(pytesseract, "pytesseract", None)
-    if command and pytesseract_module is not None and hasattr(pytesseract_module, "tesseract_cmd"):
-        pytesseract_module.tesseract_cmd = command
-    tessdata_dir = _resolve_tessdata_dir(command)
-    if tessdata_dir:
-        os.environ["TESSDATA_PREFIX"] = tessdata_dir
-    return ""
+    """Compatibilita': il runtime e' quello unico in `legal_ocr.motore.runtime`."""
+    from legal_ocr.motore import runtime
+
+    return runtime.configura(pytesseract, comando=_resolve_tesseract_command())
 
 
 def _resolve_tesseract_command() -> str:
-    configured = str(os.environ.get("IUSENTRA_TESSERACT_CMD") or os.environ.get("TESSERACT_CMD") or "").strip()
-    if configured and Path(configured).is_file():
-        return configured
-    discovered = which("tesseract")
-    if discovered:
-        return discovered
-    if os.name == "nt":
-        for root in (
-            os.environ.get("ProgramFiles"),
-            os.environ.get("ProgramFiles(x86)"),
-            r"C:\Program Files",
-            r"C:\Program Files (x86)",
-        ):
-            if not root:
-                continue
-            candidate = Path(root) / "Tesseract-OCR" / "tesseract.exe"
-            if candidate.is_file():
-                return str(candidate)
-    return ""
+    from legal_ocr.motore import runtime
+
+    return runtime.comando_tesseract()
 
 
 def _resolve_tessdata_dir(command: str) -> str:
-    candidates: list[Path] = []
-    for name in ("IUSENTRA_TESSDATA_PREFIX", "TESSDATA_PREFIX"):
-        configured = str(os.environ.get(name) or "").strip().strip('"')
-        if configured:
-            candidates.append(Path(configured))
-    local_app_data = str(os.environ.get("LOCALAPPDATA") or "").strip()
-    if local_app_data:
-        candidates.append(Path(local_app_data) / "IUSENTRA" / "tessdata")
-    if command:
-        candidates.append(Path(command).resolve().parent / "tessdata")
-    for candidate in candidates:
-        if candidate.is_dir() and any(candidate.glob("*.traineddata")):
-            return str(candidate)
-    return ""
+    from legal_ocr.motore import runtime
+
+    return runtime.cartella_tessdata(command)
 
 
 def _resolve_tesseract_language(pytesseract: Any, preferred: str, config: str) -> str:
-    requested = [part for part in str(preferred or "ita").split("+") if part]
-    get_languages = getattr(pytesseract, "get_languages", None)
-    if not callable(get_languages):
-        return "+".join(requested) or "ita"
-    try:
-        available = set(get_languages(config=config))
-    except TypeError:
-        try:
-            available = set(get_languages())
-        except Exception:
-            return "+".join(requested) or "ita"
-    except Exception:
-        return "+".join(requested) or "ita"
-    selected = [lang for lang in requested if lang in available]
-    if selected:
-        return "+".join(selected)
-    if "ita" in available:
-        return "ita"
-    if "eng" in available:
-        return "eng"
-    return "+".join(requested) or "ita"
+    from legal_ocr.motore import runtime
+
+    return runtime.lingua_disponibile(pytesseract, preferred, config)
 
 
 def _read_tesseract_text_best(
@@ -1098,218 +1049,38 @@ def _read_tesseract_text_best(
     base_config: str,
     page_number: int,
 ) -> tuple[str, list[str]]:
-    warnings: list[str] = []
+    """La pagina letta dal motore unico (`legal_ocr.motore`), solo testo.
+
+    Preparazione leggera (ritaglio del bordo, scala di grigi, contrasto),
+    strategia di lettura del motore (prima passata sicura, altre
+    configurazioni e binarizzazione solo se serve) e formulario legale.
+    """
+    from legal_ocr.formulario import applica_formulario
+    from legal_ocr.motore.lettura import leggi_immagine
+
     prepared = _preprocess_ocr_image(image)
-    image_to_data = getattr(pytesseract, "image_to_data", None)
-    if not callable(image_to_data):
-        return _read_tesseract_text_fallback(pytesseract, prepared, lang=lang, config=base_config, page_number=page_number)
-    output = getattr(pytesseract, "Output", None)
-    if output is None:
-        try:
-            from pytesseract import Output as output  # type: ignore
-        except Exception:
-            return _read_tesseract_text_fallback(
-                pytesseract,
-                prepared,
-                lang=lang,
-                config=base_config,
-                page_number=page_number,
-            )
-    output_dict = getattr(output, "DICT", "dict")
-    candidates: list[tuple[float, str]] = []
-    for config_name, config in _document_ai_tesseract_configs(base_config):
-        try:
-            data = image_to_data(prepared, lang=lang, config=config, output_type=output_dict)
-        except TypeError:
-            try:
-                data = image_to_data(prepared, lang=lang, output_type=output_dict)
-            except Exception as exc:
-                warnings.append(f"Pagina {page_number}: OCR {config_name} non completato ({exc}).")
-                continue
-        except Exception as exc:
-            warnings.append(f"Pagina {page_number}: OCR {config_name} non completato ({exc}).")
-            continue
-        text, avg_confidence = _text_from_tesseract_data(data)
-        candidates.append((_score_document_ai_ocr_text(text, avg_confidence), text))
-    if candidates:
-        best_text = max(candidates, key=lambda item: item[0])[1].strip()
-        if len(best_text) >= 40:
-            return best_text, warnings
-    for variant_name, variant in _low_contrast_ocr_variants(prepared):
-        for config_name, config in _document_ai_tesseract_configs(base_config):
-            try:
-                data = image_to_data(variant, lang=lang, config=config, output_type=output_dict)
-            except TypeError:
-                try:
-                    data = image_to_data(variant, lang=lang, output_type=output_dict)
-                except Exception as exc:
-                    warnings.append(
-                        f"Pagina {page_number}: OCR {variant_name}/{config_name} non completato ({exc})."
-                    )
-                    continue
-            except Exception as exc:
-                warnings.append(f"Pagina {page_number}: OCR {variant_name}/{config_name} non completato ({exc}).")
-                continue
-            text, avg_confidence = _text_from_tesseract_data(data)
-            candidates.append((_score_document_ai_ocr_text(text, avg_confidence), text))
-    if candidates:
-        return max(candidates, key=lambda item: item[0])[1].strip(), warnings
-    text, fallback_warnings = _read_tesseract_text_fallback(
-        pytesseract,
-        prepared,
-        lang=lang,
-        config=base_config,
-        page_number=page_number,
-    )
-    warnings.extend(fallback_warnings)
-    return text, warnings
-
-
-def _read_tesseract_text_fallback(
-    pytesseract: Any,
-    image: Any,
-    *,
-    lang: str,
-    config: str,
-    page_number: int,
-) -> tuple[str, list[str]]:
-    image_to_string = getattr(pytesseract, "image_to_string", None)
-    if not callable(image_to_string):
-        return "", [f"Pagina {page_number}: runtime Tesseract senza image_to_string."]
     try:
-        return str(image_to_string(image, lang=lang, config=config) or "").strip(), []
-    except TypeError:
-        try:
-            return str(image_to_string(image, lang=lang) or "").strip(), []
-        except Exception as exc:
-            return "", [f"Pagina {page_number}: OCR fallback non completato ({exc})."]
+        lettura = leggi_immagine(prepared, pytesseract=pytesseract, lingua=lang or "ita", con_pdf=False)
     except Exception as exc:
-        return "", [f"Pagina {page_number}: OCR fallback non completato ({exc})."]
+        return "", [f"Pagina {page_number}: OCR non completato ({exc})."]
+    warnings = [f"Pagina {page_number}: {avviso}" for avviso in lettura.avvisi]
+    return applica_formulario(lettura.testo).testo.strip(), warnings
 
 
 def _preprocess_ocr_image(image: Any) -> Any:
+    """Ritaglio del bordo, scala di grigi e contrasto: la preparazione veloce per l'indice."""
     try:
-        from PIL import Image, ImageChops, ImageEnhance, ImageOps  # type: ignore
+        from PIL import ImageEnhance, ImageOps  # type: ignore
 
-        gray = ImageOps.grayscale(image)
-        white = Image.new("L", gray.size, 255)
-        difference = ImageChops.difference(gray, white)
-        content_mask = difference.point(lambda pixel: 255 if pixel > 10 else 0)
-        content_box = content_mask.getbbox()
-        if content_box:
-            left, top, right, bottom = content_box
-            content_width = right - left
-            content_height = bottom - top
-            removes_margin = content_width < gray.width * 0.9 or content_height < gray.height * 0.9
-            preserves_page = content_width >= gray.width * 0.35 and content_height >= gray.height * 0.35
-            if removes_margin and preserves_page:
-                padding = max(8, int(min(gray.size) * 0.015))
-                gray = gray.crop(
-                    (
-                        max(0, left - padding),
-                        max(0, top - padding),
-                        min(gray.width, right + padding),
-                        min(gray.height, bottom + padding),
-                    )
-                )
+        from legal_ocr.motore.immagine import ritaglia_bordo
+
+        ritagliata, _ = ritaglia_bordo(image)
+        gray = ImageOps.grayscale(ritagliata)
         gray = ImageOps.autocontrast(gray, cutoff=1)
         gray = ImageEnhance.Sharpness(gray).enhance(1.8)
         return ImageEnhance.Contrast(gray).enhance(1.08)
     except Exception:
         return image
-
-
-def _low_contrast_ocr_variants(image: Any) -> list[tuple[str, Any]]:
-    try:
-        from PIL import ImageOps  # type: ignore
-
-        gray = ImageOps.grayscale(image)
-        histogram = gray.histogram()
-        total = sum(histogram)
-        if total <= 0:
-            return []
-        weighted_total = sum(index * count for index, count in enumerate(histogram))
-        background_weight = 0
-        background_sum = 0
-        best_threshold = 0
-        best_variance = -1.0
-        for threshold, count in enumerate(histogram):
-            background_weight += count
-            if background_weight <= 0:
-                continue
-            foreground_weight = total - background_weight
-            if foreground_weight <= 0:
-                break
-            background_sum += threshold * count
-            background_mean = background_sum / background_weight
-            foreground_mean = (weighted_total - background_sum) / foreground_weight
-            variance = background_weight * foreground_weight * (background_mean - foreground_mean) ** 2
-            if variance > best_variance:
-                best_variance = variance
-                best_threshold = threshold
-        thresholds = {
-            max(48, min(210, round(best_threshold * 0.45))),
-            max(48, min(210, round(best_threshold * 0.70))),
-        }
-        return [
-            (
-                f"contrasto-{threshold}",
-                gray.point(lambda pixel, limit=threshold: 0 if pixel < limit else 255, mode="1"),
-            )
-            for threshold in sorted(thresholds)
-        ]
-    except Exception:
-        return []
-
-
-def _document_ai_tesseract_configs(base_config: str) -> list[tuple[str, str]]:
-    prefix = (base_config.strip() + " ") if str(base_config or "").strip() else ""
-    return [
-        ("psm6", prefix + "--oem 1 --psm 6 -c preserve_interword_spaces=1"),
-        ("psm4", prefix + "--oem 1 --psm 4 -c preserve_interword_spaces=1"),
-        ("psm3", prefix + "--oem 1 --psm 3 -c preserve_interword_spaces=1"),
-        ("psm11", prefix + "--oem 1 --psm 11 -c preserve_interword_spaces=1"),
-    ]
-
-
-def _text_from_tesseract_data(data: Any) -> tuple[str, float]:
-    if not isinstance(data, dict):
-        return "", 0.0
-    words: list[str] = []
-    confidences: list[float] = []
-    raw_texts = list(data.get("text") or [])
-    raw_confidences = list(data.get("conf") or [])
-    for index, raw in enumerate(raw_texts):
-        token = str(raw or "").strip()
-        if not token:
-            continue
-        words.append(token)
-        try:
-            confidence = float(raw_confidences[index]) / 100.0
-        except (IndexError, TypeError, ValueError):
-            confidence = 0.0
-        if confidence >= 0:
-            confidences.append(max(0.0, min(1.0, confidence)))
-    average = sum(confidences) / len(confidences) if confidences else 0.0
-    return " ".join(words), average
-
-
-def _score_document_ai_ocr_text(text: str, avg_confidence: float) -> float:
-    normalized = str(text or "")
-    score = min(len(normalized), 2500) / 120.0 + max(0.0, min(1.0, avg_confidence)) * 25.0
-    patterns = [
-        (r"\btribunale\s+di\s+[a-zàèéìòù' ]+", 8),
-        (r"\b(proc\.?\s*n\.?|r\.?\s*g\.?|rgac)\s*[\w./-]+", 14),
-        (r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b", 12),
-        (r"\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b", 14),
-        (r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b", 8),
-        (r"\b(?:euro|€)\s*[\.,]?\s*\d", 8),
-        (r"\b(?:art\.?|dpr|c\.p\.c\.|c\.c\.)\b", 8),
-    ]
-    for pattern, weight in patterns:
-        score += len(re.findall(pattern, normalized, flags=re.IGNORECASE)) * weight
-    score -= len(re.findall(r"[|~{}_\[\]]", normalized)) * 0.75
-    return score
 
 
 def _extract_docx(content: bytes) -> ExtractionResult:

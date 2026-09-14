@@ -78,3 +78,30 @@ L'export Lex include solo token con confidenza almeno 0.75 e registra quante por
 - ABBYY e provider cloud sono implementabili tramite la stessa interfaccia `OcrEngine`, ma non vengono chiamati se il tenant è local-first.
 - Il fallback cloud va abilitato esplicitamente per tenant e deve essere coperto da consenso e audit.
 - La verifica giuridica del contenuto resta responsabilità professionale: il sistema prepara evidenze, alert e revisione, senza sostituire il controllo dell'avvocato.
+
+## Motore unico di lettura (2.315.0)
+
+Dal 14/09/2026 esiste un solo motore di lettura del testo, `legal_ocr/motore`, usato da
+tutti i punti del gestionale che leggono immagini o PDF scansionati: riconoscimento nel
+fascicolo e nell'editor professionale (`web/services/document_ocr*.py`), indice di ricerca
+(`pct/ocr.py`, worker OCR), Document AI (`pct/document_intelligence/extraction.py`), editor
+(`pct/editor.py`), Lex (`lex/tools/_doc_extractor.py`), pipeline probatoria
+(`legal_ocr/engines.py`), presidio PEC (`pct/pec_ocr_pipeline.py`), etichette delle notifiche
+legali, campi in riquadro del PDF inspector.
+
+| Modulo | Ruolo |
+|---|---|
+| `legal_ocr/motore/runtime.py` | Percorso di Tesseract, dizionari, lingua; `OMP_THREAD_LIMIT=1` (un thread per processo, parallelismo per pagina/configurazione) |
+| `legal_ocr/motore/immagine.py` | Raddrizzamento, luce uniforme, ritaglio del bordo, densità 300-400 dpi, binarizzazione Otsu per le copie sbiadite, zone grafiche |
+| `legal_ocr/motore/lettura.py` | Strategia: prima passata `--psm 6`; se confidenza ≥ 0,90 e testo sufficiente ci si ferma; altrimenti `psm 4/3/11` in parallelo; poi la pagina binarizzata; PDF ricercabile con la configurazione vincente |
+| `legal_ocr/motore/consenso.py` | Secondo lettore PDF Inspector (PP-OCR ONNX, `/opt/iusentra/ocr/models` o `IUSENTRA_PDF_OCR_MODEL_DIR`), in parallelo; sostituisce solo le parole con confidenza Tesseract < 0,85 quando la sua pagina ha confidenza ≥ 0,90 e la riga è la stessa; `IUSENTRA_OCR_SECONDO_LETTORE=0` lo disattiva |
+| `legal_ocr/motore/pagina.py` | Il percorso completo: lettura, consenso, impaginazione (`page_layout`), formato (`formato`), correzioni del formulario, riferimenti giuridici |
+| `legal_ocr/motore/testo.py` | Solo testo: `testo_da_immagine`, `testo_da_immagine_bytes`, `testo_da_pdf` (nativo dove affidabile, ottico altrove) |
+| `legal_ocr/motore/provisioning.py` | Dizionario `ita.traineddata` (tessdata_fast 4.1.0) scaricato e verificato con SHA-256 se manca; `IUSENTRA_OCR_AUTOPROVISION=0` lo disattiva; Windows: `scripts/installa_tesseract_windows.ps1` |
+| `legal_ocr/formulario/` | Formulario legale di post-lettura: caratteri, abbreviazioni, punteggiatura, cifre, numeri romani, euro, accenti, marcatori degli elenchi; ogni regola con id, etichetta e motivo |
+
+Misure locali su pagina A4 sintetica a 300 dpi (Tesseract 5.3, un thread): circa 1 s per
+passata, lettura al 100% su testo pulito e al 99,95% su pagina ruotata di 1,5° e sfocata;
+PDF Inspector al 99,7-100% in 1-1,3 s a 150 dpi. Le misure si ripetono con
+`tests/test_document_ocr.py::test_ocr_reale_in_italiano_produce_pdf_a4_ricercabile` e con lo
+script di benchmark riportato nel changelog 2.315.0.

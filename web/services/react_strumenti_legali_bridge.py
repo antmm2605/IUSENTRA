@@ -13,6 +13,10 @@ from typing import Any, Dict, Iterable, List, Mapping
 
 from pct.calcolatori.schema import schema_calcolatore
 
+# Strumenti che non sono un modulo di calcolo ma una pagina propria della shell
+# React: il catalogo li dichiara con `componente`, la pagina monta quel componente.
+COMPONENTI_DEDICATI: frozenset[str] = frozenset({"ocr-documento"})
+
 
 def sorgenti_opzioni(gestore: Any) -> Dict[str, List[Dict[str, str]]]:
     """Cataloghi di opzioni già esposti dal dominio, indicizzati per nome.
@@ -80,6 +84,9 @@ def build_react_strumenti_legali_payload(
             not campo.get("options_from") or cataloghi_opzioni.get(str(campo["options_from"]))
             for campo in campi
         )
+        componente = str(voce.get("componente") or "").strip()
+        if componente not in COMPONENTI_DEDICATI:
+            componente = ""
         strumenti.append(
             {
                 "id": tool_id,
@@ -87,7 +94,8 @@ def build_react_strumenti_legali_payload(
                 "subtitle": str(voce.get("subtitle") or ""),
                 "categoria": str(voce.get("categoria") or "Altro"),
                 "icon": str(voce.get("icon") or ""),
-                "reso_in_react": bool(campi) and risolvibile,
+                "reso_in_react": (bool(campi) and risolvibile) or bool(componente),
+                "componente": componente,
                 "azione": str(schema.get("azione") or "Calcola") if schema else "",
                 "campi": [
                     _campo_risolto(campo, form_state, cataloghi_opzioni)

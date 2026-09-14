@@ -142,7 +142,7 @@ step "Governance repo"           python3 tools/check_repo_governance.py
 # test`: copre rilevamento del foglio, acquisizione, OCR ed elenco documenti.
 # Lezione del 13/09/2026: il gate locale non la eseguiva e una regressione del
 # rilevamento su sfondo chiaro e' arrivata fino alla CI.
-step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs tests/js/fascicolo_document_list.test.mjs tests/js/document_acquisition.test.mjs tests/js/lettura_fascicolo.test.mjs
+step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs tests/js/fascicolo_document_list.test.mjs tests/js/document_acquisition.test.mjs tests/js/lettura_fascicolo.test.mjs tests/js/ocr_blocks.test.mjs
 step "React contracts"           node frontend/scripts/check-react-contracts.mjs
 step "Presidi notifiche legali"  node frontend/scripts/check-notifiche-legali-presidi.mjs
 step "UI preset sequence"        node scripts/react-migration/audit-ui-preset-sequence.mjs
@@ -172,7 +172,7 @@ if [ "$FAST" -eq 0 ]; then
   # schema dei moduli e default del dominio e i termini processuali. Il contratto
   # si rompe ogni volta che si aggiunge un campo senza il suo default.
   step "Pytest strumenti legali"   python3 -m pytest -q tests/test_strumenti_legali.py tests/test_strumenti_legali_end_to_end.py tests/test_strumenti_processuali.py tests/test_termini_processuali.py tests/test_normative_tables.py tests/test_istat_serie_storica.py tests/test_vista_documenti_preferenze.py tests/test_tariffario.py --tb=short
-  step "Pytest acquisizione/OCR"   python3 -m pytest -q tests/test_document_ocr.py tests/test_document_ocr_documento.py tests/test_document_ocr_formato.py tests/test_editor_html_docx.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_editor_acquisition_contract.py tests/test_ocr_impaginazione.py tests/test_ricerca_cliente_fascicolo.py --tb=short
+  step "Pytest acquisizione/OCR"   python3 -m pytest -q tests/test_document_ocr.py tests/test_document_ocr_documento.py tests/test_document_ocr_formato.py tests/test_editor_html_docx.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_editor_acquisition_contract.py tests/test_ocr_impaginazione.py tests/test_ricerca_cliente_fascicolo.py tests/test_formulario_legale.py tests/test_motore_ocr_unico.py tests/test_ocr_utility_word.py tests/test_document_intelligence_extraction.py tests/test_document_intelligence_service.py tests/test_ocr_pipeline_adapter.py tests/test_pdf_inspector_engine.py tests/test_legal_ocr_pipeline.py tests/test_legal_ocr_structured.py tests/test_pec_ocr_pipeline.py tests/test_strumenti_legali_end_to_end.py --tb=short
   # Catalogazione dal titolo (141 regole con fonte Normattiva) e lettura del
   # fascicolo di Lex: sono il cuore del fascicolo e non hanno dipendenze lente.
   step "Pytest catalogo/lettura"   python3 -m pytest -q tests/test_document_catalog_titoli.py tests/test_document_catalog_fields.py tests/test_document_catalog_structural_identity.py tests/test_fascicolo_lettura.py tests/test_lex_lettura_fascicolo.py tests/test_procedura_fasi.py tests/test_fascicolo_pec_presidio.py tests/test_fascicolo_lettura_verifiche.py tests/test_fascicolo_bonifico_ricevuto.py tests/test_document_catalog_conferma.py --tb=short

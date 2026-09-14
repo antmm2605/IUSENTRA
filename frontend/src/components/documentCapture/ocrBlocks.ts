@@ -7,9 +7,9 @@
  * tabelle arrivino nel documento con la forma che avevano sul foglio.
  */
 
-export type OcrBlockKind = 'titolo' | 'paragrafo' | 'elenco' | 'tabella'
+export type OcrBlockKind = 'titolo' | 'paragrafo' | 'elenco' | 'tabella' | 'numero_pagina'
 
-export type OcrAlignment = 'sinistra' | 'centro' | 'destra'
+export type OcrAlignment = 'sinistra' | 'centro' | 'destra' | 'giustificato'
 
 /** Com'era scritto il blocco sul foglio: misurato dal server, non deciso qui. */
 export type OcrFormat = {
@@ -18,6 +18,14 @@ export type OcrFormat = {
   corsivo: boolean
   allineamento: OcrAlignment
   scala: number
+}
+
+/** Il segno che apre una voce di elenco, come lo ha letto il server. */
+export type OcrMarker = {
+  tipo: 'puntato' | 'numerato' | 'lettera' | 'romano' | 'decimale'
+  valore: number
+  testo: string
+  livello: number
 }
 
 export type OcrBlock = {
@@ -30,7 +38,15 @@ export type OcrBlock = {
   format: OcrFormat
   /** Riquadro sulla pagina, per ritrovare il blocco nell'immagine. */
   box: [number, number, number, number] | null
+  /** Marcatore della voce di elenco: il testo del blocco lo comprende ancora. */
+  marker: OcrMarker | null
 }
+
+import { attributiElenco, continuaElenco, markerOf, parseMarker, voceSenzaMarcatore } from './ocrMarkers'
+
+export { markerFromText, markerOf } from './ocrMarkers'
+// Elenchi nel documento: <ul> per le voci puntate, <ol type="a|I" start="n"> per lettere,
+// numeri romani e numeri che non partono da uno (vedi attributiElenco in ocrMarkers).
 
 export const FORMATO_PREDEFINITO: OcrFormat = {
   livello: 0,
@@ -40,12 +56,13 @@ export const FORMATO_PREDEFINITO: OcrFormat = {
   scala: 1,
 }
 
-const ALLINEAMENTI: OcrAlignment[] = ['sinistra', 'centro', 'destra']
+const ALLINEAMENTI: OcrAlignment[] = ['sinistra', 'centro', 'destra', 'giustificato']
 
 export const CLASSI_ALLINEAMENTO: Record<OcrAlignment, string> = {
   sinistra: 'iu-ocr-al--sinistra',
   centro: 'iu-ocr-al--centro',
   destra: 'iu-ocr-al--destra',
+  giustificato: 'iu-ocr-al--giustificato',
 }
 
 function parseFormat(value: unknown): OcrFormat {
@@ -70,7 +87,7 @@ function parseBox(value: unknown): [number, number, number, number] | null {
 
 export type OcrFigure = { page: number; box: [number, number, number, number]; coverage: number }
 
-const KINDS: OcrBlockKind[] = ['titolo', 'paragrafo', 'elenco', 'tabella']
+const KINDS: OcrBlockKind[] = ['titolo', 'paragrafo', 'elenco', 'tabella', 'numero_pagina']
 
 function newId(): string {
   try { return crypto.randomUUID() } catch { return `b${Math.random().toString(36).slice(2)}` }
@@ -103,6 +120,7 @@ export function parseBlocks(payload: unknown, page: number): OcrBlock[] {
       page,
       format: parseFormat(item.formato),
       box: parseBox(item.riquadro),
+      marker: kind === 'elenco' ? parseMarker(item.marcatore) : null,
     })
   }
   return blocks
@@ -143,18 +161,49 @@ function tableHtml(rows: string[][]): string {
  */
 export const INTERRUZIONE_PAGINA_HTML = '<hr class="iu-ted-page-break" data-iu-page-break="true">'
 
-/** HTML da inserire nell'editor: la struttura riconosciuta, non un testo piatto. */
+/**
+ * HTML da inserire nell'editor: la struttura riconosciuta, non un testo piatto.
+ *
+ * Le voci di elenco consecutive dello stesso tipo diventano un solo elenco,
+ * con il tipo (numeri, lettere, romani) e il numero di partenza dell'atto:
+ * cosi' «3) … 4) … 5)» non riparte da uno nel documento.
+ */
 export function blocksToHtml(blocks: OcrBlock[]): string {
+  const pezzi: string[] = []
   let paginaPrecedente = blocks[0]?.page ?? 1
-  return blocks
-    .map((block) => {
-      const cambioPagina = block.page !== paginaPrecedente
+  let elencoAperto: { tag: 'ul' | 'ol'; marker: OcrMarker | null } | null = null
+  const chiudiElenco = () => {
+    if (elencoAperto) pezzi.push(`</${elencoAperto.tag}>`)
+    elencoAperto = null
+  }
+  for (const block of blocks) {
+    if (block.kind === 'numero_pagina') continue
+    if (block.page !== paginaPrecedente) {
+      chiudiElenco()
+      pezzi.push(INTERRUZIONE_PAGINA_HTML)
       paginaPrecedente = block.page
-      const separatore = cambioPagina ? INTERRUZIONE_PAGINA_HTML : ''
-      return separatore + blockHtml(block)
-    })
-    .filter(Boolean)
-    .join('')
+    }
+    if (block.kind === 'elenco') {
+      const testo = block.text.trim()
+      if (!testo) continue
+      const marker = markerOf(block)
+      if (!elencoAperto || !continuaElenco(elencoAperto.marker, marker)) {
+        chiudiElenco()
+        const { tag, attrs } = attributiElenco(marker)
+        pezzi.push(`<${tag}${attrs}>`)
+        elencoAperto = { tag, marker }
+      } else {
+        elencoAperto = { tag: elencoAperto.tag, marker }
+      }
+      pezzi.push(`<li>${inlineHtml(voceSenzaMarcatore(testo, marker), block.format || FORMATO_PREDEFINITO)}</li>`)
+      continue
+    }
+    chiudiElenco()
+    const html = blockHtml(block)
+    if (html) pezzi.push(html)
+  }
+  chiudiElenco()
+  return pezzi.join('')
 }
 
 function blockHtml(block: OcrBlock): string {
@@ -162,9 +211,6 @@ function blockHtml(block: OcrBlock): string {
   const text = block.text.trim()
   if (!text) return ''
   const formato = block.format || FORMATO_PREDEFINITO
-  if (block.kind === 'elenco') {
-    return `<ul><li>${inlineHtml(text.replace(/^(?:[-•·–—*]|\(?[a-zA-Z0-9]{1,3}[.)])\s+/, ''), formato)}</li></ul>`
-  }
   const contenuto = inlineHtml(text, formato)
   if (formato.livello >= 1 && formato.livello <= 4) return `<h${formato.livello}>${contenuto}</h${formato.livello}>`
   // Il titolo riconosciuto senza misura di corpo resta in grassetto.
@@ -184,47 +230,17 @@ function inlineHtml(text: string, formato: OcrFormat): string {
 function allineamentoHtml(formato: OcrFormat): string {
   if (formato.allineamento === 'centro') return ' style="text-align:center"'
   if (formato.allineamento === 'destra') return ' style="text-align:right"'
+  if (formato.allineamento === 'giustificato') return ' style="text-align:justify"'
   return ''
 }
 
-/** Testo semplice, per l'anteprima e per il conteggio dei caratteri. */
-export function blocksToPlainText(blocks: OcrBlock[]): string {
-  return blocks
-    .map((block) => (block.kind === 'tabella' ? block.rows.map((row) => row.join(' | ')).join('\n') : block.text))
-    .filter(Boolean)
-    .join('\n\n')
-}
-
-export function countCharacters(blocks: OcrBlock[]): number {
-  return blocksToPlainText(blocks).replace(/\s+/g, '').length
-}
-
-export function updateBlockText(blocks: OcrBlock[], id: string, text: string): OcrBlock[] {
-  return blocks.map((block) => (block.id === id ? { ...block, text } : block))
-}
-
-export function updateBlockCell(blocks: OcrBlock[], id: string, row: number, column: number, value: string): OcrBlock[] {
-  return blocks.map((block) => {
-    if (block.id !== id) return block
-    const rows = block.rows.map((cells, index) => (index === row ? cells.map((cell, position) => (position === column ? value : cell)) : cells))
-    return { ...block, rows }
-  })
-}
-
-export function changeBlockKind(blocks: OcrBlock[], id: string, kind: OcrBlockKind): OcrBlock[] {
-  return blocks.map((block) => (block.id === id ? { ...block, kind } : block))
-}
-
-export function removeBlock(blocks: OcrBlock[], id: string): OcrBlock[] {
-  return blocks.filter((block) => block.id !== id)
-}
-
-/** Cambia il formato di un blocco durante la revisione. */
-export function updateBlockFormat(blocks: OcrBlock[], id: string, patch: Partial<OcrFormat>): OcrBlock[] {
-  return blocks.map((block) => (block.id === id ? { ...block, format: { ...block.format, ...patch } } : block))
-}
-
-/** Blocchi di una pagina, per la vista affiancata all'immagine. */
-export function blocksOfPage(blocks: OcrBlock[], page: number): OcrBlock[] {
-  return blocks.filter((block) => block.page === page)
-}
+export {
+  blocksOfPage,
+  blocksToPlainText,
+  changeBlockKind,
+  countCharacters,
+  removeBlock,
+  updateBlockCell,
+  updateBlockFormat,
+  updateBlockText,
+} from './ocrBlockEdits'

@@ -41,7 +41,9 @@ def _client(tmp_path):
 def catalogo():
     from pct.strumenti_legali import GestioneStrumentiLegali
 
-    return [voce["id"] for voce in GestioneStrumentiLegali().catalogo_moduli()]
+    # Gli strumenti con un componente React dedicato (riconoscimento del testo)
+    # non sono moduli di calcolo: non hanno schema, metodo ne' dati di prova.
+    return [voce["id"] for voce in GestioneStrumentiLegali().catalogo_moduli() if not voce.get("componente")]
 
 
 def test_ogni_strumento_del_catalogo_ha_dati_di_prova(catalogo):
@@ -111,13 +113,19 @@ def test_il_catalogo_react_espone_tutti_gli_strumenti(tmp_path, catalogo):
     client = _client(tmp_path)
     payload = client.get("/api/v1/ui/strumenti-legali").get_json()
 
-    assert payload["totale"] == len(catalogo)
-    assert payload["totale_in_react"] == len(catalogo), "qualche strumento non e' compilabile in pagina"
-    esposti = {voce["id"] for voce in payload["strumenti"]}
+    dedicati = [voce for voce in payload["strumenti"] if voce.get("componente")]
+    moduli = [voce for voce in payload["strumenti"] if not voce.get("componente")]
+    assert payload["totale"] == len(catalogo) + len(dedicati)
+    assert payload["totale_in_react"] == payload["totale"], "qualche strumento non e' compilabile in pagina"
+    esposti = {voce["id"] for voce in moduli}
     assert esposti == set(catalogo)
-    for voce in payload["strumenti"]:
+    for voce in moduli:
         assert voce["campi"], f"{voce['id']}: nessun campo nel modulo"
         assert voce["title"] and voce["categoria"], f"{voce['id']}: voce di catalogo incompleta"
+    # La utility di riconoscimento del testo e' una pagina propria, nella categoria Utility.
+    ocr = next(voce for voce in dedicati if voce["id"] == "ocr_documento_word")
+    assert ocr["componente"] == "ocr-documento" and ocr["categoria"] == "Utility" and ocr["reso_in_react"]
+    assert "Utility" in payload["categorie"]
 
 
 @pytest.mark.parametrize("tool", sorted(PAYLOAD_STRUMENTI))

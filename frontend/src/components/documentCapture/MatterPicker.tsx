@@ -119,6 +119,7 @@ export function MatterPicker({ matters, value, disabled, onChange }: Props) {
             <button type="button" disabled={disabled} onClick={() => scegli(match.value, match.label)}>
               <strong>{match.cliente || etichettaBreve(match)}</strong>
               <span>{etichettaBreve(match)}</span>
+              {match.stato ? <span className="iu-matter-picker__stato">Stato: {match.stato}</span> : null}
               {match.certo ? <em className="iu-matter-picker__sure">corrispondenza esatta</em> : null}
             </button>
           </li>

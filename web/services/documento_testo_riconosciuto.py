@@ -63,7 +63,11 @@ ATTRIBUTI_CONSENTITI = {
     "table": {"border", "cellspacing", "cellpadding"},
     "p": {"style"},
     "hr": {"class", "data-iu-page-break"},
+    # Tipo e numero di partenza dell'elenco: sono forma del documento
+    # riconosciuto (a), b), c); I., II.; 3., 4.), non decorazione.
+    "ol": {"type", "start"},
 }
+TIPI_ELENCO = {"1", "a", "A", "i", "I"}
 
 # Nessun altro stile passa: solo l'allineamento, e solo nei valori previsti.
 STILI_CONSENTITI = {
@@ -106,6 +110,10 @@ class _Ripulitore(HTMLParser):
                 stile = STILI_CONSENTITI.get(str(valore).replace(" ", "").rstrip(";").lower())
                 if stile:
                     pezzi.append(f' style="{stile}"')
+                continue
+            if nome == "type" and str(valore).strip() not in TIPI_ELENCO:
+                continue
+            if nome == "start" and not str(valore).strip().isdigit():
                 continue
             pezzi.append(f' {nome}="{_attributo(valore)}"')
         coppie = "".join(pezzi)
@@ -198,4 +206,30 @@ def docx_da_testo(html: str, nome: str) -> tuple[bytes, str]:
     return dati, nome_file_documento(nome)
 
 
-__all__ = ["docx_da_testo", "html_consentito", "nome_file_documento", "titolo_documento"]
+def nome_file_pdf(nome: str) -> str:
+    """Nome del PDF di lavoro: il testo riconosciuto e corretto, impaginato."""
+    return nome_file_documento(nome)[: -len(".docx")] + ".pdf"
+
+
+def pdf_da_testo(html: str, nome: str) -> tuple[bytes, str]:
+    """PDF del testo riconosciuto e corretto: e' il testo impaginato, non la scansione.
+
+    Serve quando l'avvocato vuole consegnare o archiviare il testo corretto in
+    un formato non modificabile. La copia per immagine dell'originale resta
+    l'atto che fa fede: questo PDF e' materiale di lavoro come il `.docx`.
+    """
+    from pct.editor import html_to_pdf
+
+    pulito = html_consentito(html)
+    try:
+        dati = html_to_pdf(pulito, titolo_documento(nome), None, None)
+    except ImportError as exc:  # pragma: no cover - dipendenza del runtime Docker
+        raise DocumentToolError("La conversione in PDF non è disponibile su questa installazione.") from exc
+    except Exception as exc:
+        raise DocumentToolError("Il testo riconosciuto non è stato convertito in PDF. Riprova.") from exc
+    if not dati:
+        raise DocumentToolError("Il testo riconosciuto non è stato convertito in PDF. Riprova.")
+    return dati, nome_file_pdf(nome)
+
+
+__all__ = ["docx_da_testo", "html_consentito", "nome_file_documento", "nome_file_pdf", "pdf_da_testo", "titolo_documento"]

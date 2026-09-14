@@ -34,7 +34,7 @@ export type AnteprimaPagina = {
   scala: number
 }
 
-export type CorrezioneApplicata = { regola: string; occorrenze: number }
+export type CorrezioneApplicata = { regola: string; occorrenze: number; etichetta: string }
 
 export type RiferimentiPagina = {
   numeroRuolo: string[]
@@ -57,14 +57,22 @@ export type PaginaRiconosciuta = {
   anteprima: AnteprimaPagina | null
   correzioni: CorrezioneApplicata[]
   riferimenti: RiferimentiPagina
+  /** Parole confermate o corrette dal secondo lettore, e quale lettore era. */
+  consenso: number
+  secondoLettore: string
 }
 
 /** Nome leggibile delle regole di correzione forense applicate dal server. */
 export const ETICHETTE_CORREZIONI: Record<string, string> = {
-  'punct.art.v1': 'spaziatura di «art.»',
-  'punct.n.v1': 'spaziatura di «N.»',
+  'punct.art.v1': 'scrittura di «art.»',
+  'punct.n.v1': 'scrittura di «n.»',
   'ocr.rg.zero.v1': 'numero di ruolo letto male',
   'space.pec.v1': 'spazi nell\'indirizzo PEC',
+}
+
+/** Nome leggibile di una correzione: quello dichiarato dal server, o il ripiego locale. */
+export function etichettaCorrezione(voce: CorrezioneApplicata): string {
+  return voce.etichetta || ETICHETTE_CORREZIONI[voce.regola] || voce.regola
 }
 
 export type EsitoPagina = { nome: string; pagineTotali: number; pagina: PaginaRiconosciuta }
@@ -140,7 +148,7 @@ function correzioniDaPayload(value: unknown): CorrezioneApplicata[] {
     const voce = (raw ?? {}) as Record<string, unknown>
     const regola = String(voce.regola ?? '').trim()
     if (!regola) return []
-    return [{ regola, occorrenze: Number(voce.occorrenze ?? 0) || 0 }]
+    return [{ regola, occorrenze: Number(voce.occorrenze ?? 0) || 0, etichetta: String(voce.etichetta ?? '').trim() }]
   })
 }
 
@@ -177,6 +185,8 @@ function paginaDaPayload(raw: Record<string, unknown> | undefined, richiesta: nu
     anteprima: anteprimaDaPayload(voce.anteprima),
     correzioni: correzioniDaPayload(voce.correzioni),
     riferimenti: riferimentiDaPayload(voce.riferimenti),
+    consenso: Number(voce.consenso ?? 0) || 0,
+    secondoLettore: String(voce.secondo_lettore ?? '').trim(),
   }
 }
 
@@ -215,11 +225,14 @@ export function nomeCopiaRicercabile(nome: string): string {
   return `${(gambo || 'documento').slice(0, 100)} - testo ricercabile.pdf`
 }
 
-/** Il testo riconosciuto e corretto, come documento `.docx` pronto per l'editor. */
-export async function documentoModificabile(html: string, nome: string): Promise<File> {
+export type FormatoDocumento = 'docx' | 'pdf'
+
+/** Il testo riconosciuto e corretto, come documento `.docx` (o PDF impaginato). */
+export async function documentoModificabile(html: string, nome: string, formato: FormatoDocumento = 'docx'): Promise<File> {
   const body = new FormData()
   body.append('html', html)
   body.append('nome', nome)
+  body.append('formato', formato)
   const response = await fetch('/api/v1/ui/document-tools/documento-testo-riconosciuto', {
     method: 'POST',
     credentials: 'same-origin',
@@ -233,8 +246,8 @@ export async function documentoModificabile(html: string, nome: string): Promise
   const blob = await response.blob()
   const intestazione = response.headers.get('Content-Disposition') || ''
   const dichiarato = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(intestazione)?.[1]
-  const nomeFile = decodeURIComponent(dichiarato || '') || 'testo riconosciuto.docx'
-  return new File([blob], nomeFile, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  const nomeFile = decodeURIComponent(dichiarato || '') || (formato === 'pdf' ? 'testo riconosciuto.pdf' : 'testo riconosciuto.docx')
+  return new File([blob], nomeFile, { type: formato === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
 }
 
 type SalvataggioPayload = { ok?: boolean; documento_id?: string; message?: string; messaggio?: string }

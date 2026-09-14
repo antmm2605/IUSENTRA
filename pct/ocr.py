@@ -8,8 +8,8 @@ Supporta:
 
 Le funzioni che accettano `bytes` lavorano su contenuto già decifrato
 (la crittografia AES-256-GCM è gestita a carico del chiamante).
-Le dipendenze OCR (pytesseract, Pillow) sono opzionali: se non disponibili
-restituisce stringa vuota senza sollevare eccezioni.
+Il riconoscimento ottico passa dal motore unico dello studio (`legal_ocr.motore`);
+se non disponibile restituisce stringa vuota senza sollevare eccezioni.
 """
 from __future__ import annotations
 
@@ -123,11 +123,12 @@ def _da_pdf(data: bytes, lang: str) -> str:
 
 
 def _ocr_pagina_pdf(pagina, lang: str) -> str:
-    """OCR su singola pagina PDF renderizzata come immagine."""
+    """OCR su singola pagina PDF renderizzata come immagine, con il motore unico."""
     try:
-        import pytesseract
-        img = pagina.to_image(resolution=200).original
-        return pytesseract.image_to_string(img, lang=lang).strip()
+        from legal_ocr.motore.testo import testo_da_immagine
+
+        img = pagina.to_image(resolution=300).original
+        return testo_da_immagine(img, lingua=lang, raddrizza=False).testo.strip()
     except Exception as e:
         logger.debug("OCR pagina PDF fallito: %s", e)
         return ""
@@ -137,10 +138,9 @@ def _ocr_pagina_pdf(pagina, lang: str) -> str:
 
 def _da_immagine(data: bytes, lang: str) -> str:
     try:
-        import pytesseract
-        from PIL import Image
-        img = Image.open(io.BytesIO(data))
-        return pytesseract.image_to_string(img, lang=lang).strip()
+        from legal_ocr.motore.testo import testo_da_immagine_bytes
+
+        return testo_da_immagine_bytes(data, lingua=lang).testo.strip()
     except Exception as e:
         logger.warning("Errore OCR immagine: %s", e)
         return ""

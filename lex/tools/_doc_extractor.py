@@ -11,7 +11,6 @@ import io
 import os
 import re
 from pathlib import Path
-from typing import Any
 
 _ENC_MAGIC = b"PCTENC\x01"
 _MAX_TEXT_CHARS = 12_000   # limite caratteri per singolo documento
@@ -79,11 +78,12 @@ def _pdf_to_text(data: bytes) -> str:
                 if text and not quality.cid_placeholders and quality.score >= 0.55:
                     lines.append(text)
                 else:
-                    # OCR fallback
+                    # Lettura ottica con il motore unico dello studio.
                     try:
-                        import pytesseract
-                        img = page.to_image(resolution=150).original
-                        ocr_text = pytesseract.image_to_string(img, lang="ita").strip()
+                        from legal_ocr.motore.testo import testo_da_immagine
+
+                        img = page.to_image(resolution=300).original
+                        ocr_text = testo_da_immagine(img, raddrizza=False).testo.strip()
                         if ocr_text:
                             lines.append(ocr_text)
                     except Exception:

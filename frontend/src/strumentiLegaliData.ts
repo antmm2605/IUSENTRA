@@ -19,6 +19,8 @@ export type StrumentoForense = {
   categoria: string
   icon: string
   reso_in_react: boolean
+  /** Componente React dedicato, per gli strumenti che non sono moduli di calcolo. */
+  componente?: string
   azione: string
   campi: CampoStrumento[]
 }

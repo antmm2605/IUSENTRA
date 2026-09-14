@@ -20,7 +20,7 @@ import {
   riconosciPagina,
   salvaNelFascicolo,
   scaricaSulComputer,
-  ETICHETTE_CORREZIONI,
+  etichettaCorrezione,
   type DocumentoRiconoscibile,
   type PaginaRiconosciuta,
   type SorgenteOcr,
@@ -159,8 +159,12 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     for (const pagina of pagine) {
       for (const voce of pagina.correzioni) somma.set(voce.regola, (somma.get(voce.regola) || 0) + voce.occorrenze)
     }
-    return [...somma.entries()].map(([regola, occorrenze]) => ({ regola, occorrenze }))
+    const etichette = new Map<string, string>()
+    for (const pagina of pagine) for (const voce of pagina.correzioni) if (voce.etichetta) etichette.set(voce.regola, voce.etichetta)
+    return [...somma.entries()].map(([regola, occorrenze]) => ({ regola, occorrenze, etichetta: etichette.get(regola) || '' }))
   }, [pagine])
+  const consenso = useMemo(() => pagine.reduce((somma, pagina) => somma + pagina.consenso, 0), [pagine])
+  const secondoLettore = useMemo(() => pagine.find((pagina) => pagina.secondoLettore)?.secondoLettore || '', [pagine])
 
   const documentoWord = async (): Promise<File> => documentoModificabile(blocksToHtml(blocchi), nome || reference)
 
@@ -322,11 +326,12 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
             <div><dt>Dal testo del documento</dt><dd>{pagine.length - daOcr.length}</dd></div>
             <div><dt>Con riconoscimento ottico</dt><dd>{daOcr.length}{fiducia ? ` · ${Math.round(fiducia * 100)}%` : ''}</dd></div>
             <div><dt>Caratteri riconosciuti</dt><dd>{caratteri.toLocaleString('it-IT')}</dd></div>
+            {secondoLettore ? <div><dt>Secondo lettore</dt><dd>{consenso ? `${consenso} ${consenso === 1 ? 'parola confermata' : 'parole confermate'}` : 'in accordo'}</dd></div> : null}
           </dl>
 
           {correzioni.length ? (
             <p className="iu-acq-hint">
-              Correzioni forensi applicate automaticamente: {correzioni.map((voce) => `${ETICHETTE_CORREZIONI[voce.regola] || voce.regola} (${voce.occorrenze})`).join(', ')}.
+              Correzioni del formulario legale applicate automaticamente: {correzioni.map((voce) => `${etichettaCorrezione(voce)} (${voce.occorrenze})`).join(', ')}.
             </p>
           ) : null}
 

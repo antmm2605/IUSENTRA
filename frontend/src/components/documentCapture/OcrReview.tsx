@@ -1,7 +1,8 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Rows3, Trash2, Type } from 'lucide-react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Hash, Italic, Rows3, Trash2, Type } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import {
   changeBlockKind,
+  markerOf,
   removeBlock,
   updateBlockCell,
   updateBlockFormat,
@@ -34,6 +35,7 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
   { value: 'sinistra', label: 'Allinea a sinistra', Icona: AlignLeft },
   { value: 'centro', label: 'Centra', Icona: AlignCenter },
   { value: 'destra', label: 'Allinea a destra', Icona: AlignRight },
+  { value: 'giustificato', label: 'Giustifica', Icona: AlignJustify },
 ]
 
 const ETICHETTE: Record<OcrBlockKind, string> = {
@@ -41,6 +43,15 @@ const ETICHETTE: Record<OcrBlockKind, string> = {
   paragrafo: 'Capoverso',
   elenco: 'Voce di elenco',
   tabella: 'Tabella',
+  numero_pagina: 'Numero di pagina',
+}
+
+const ETICHETTE_MARCATORE: Record<string, string> = {
+  puntato: 'elenco puntato',
+  numerato: 'elenco numerato',
+  lettera: 'elenco per lettere',
+  romano: 'elenco in numeri romani',
+  decimale: 'elenco a livelli',
 }
 
 function fiducia(valore: number): string {
@@ -75,19 +86,23 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             <div className="iu-ocr-block__bar">
               <label className="iu-ocr-block__kind">
                 <span className="iu-sr-only">Tipo di blocco</span>
-                {block.kind === 'tabella' ? <Rows3 size={14} aria-hidden="true" /> : <Type size={14} aria-hidden="true" />}
+                {block.kind === 'tabella' ? <Rows3 size={14} aria-hidden="true" /> : block.kind === 'numero_pagina' ? <Hash size={14} aria-hidden="true" /> : <Type size={14} aria-hidden="true" />}
                 <select
                   value={block.kind}
                   disabled={disabled || block.kind === 'tabella'}
                   onChange={(event) => onChange(changeBlockKind(blocks, block.id, event.target.value as OcrBlockKind))}
                 >
-                  {(['titolo', 'paragrafo', 'elenco'] as OcrBlockKind[]).map((kind) => (
+                  {(['titolo', 'paragrafo', 'elenco', 'numero_pagina'] as OcrBlockKind[]).map((kind) => (
                     <option key={kind} value={kind}>{ETICHETTE[kind]}</option>
                   ))}
                   {block.kind === 'tabella' ? <option value="tabella">{ETICHETTE.tabella}</option> : null}
                 </select>
               </label>
-              <span className="iu-ocr-block__meta">{fiducia(block.confidence)}</span>
+              <span className="iu-ocr-block__meta">
+                {block.kind === 'elenco' && markerOf(block) ? `${ETICHETTE_MARCATORE[markerOf(block)!.tipo]} · ` : ''}
+                {block.kind === 'numero_pagina' ? 'escluso dal documento · ' : ''}
+                {fiducia(block.confidence)}
+              </span>
               <Button
                 type="button"
                 tone="neutral"

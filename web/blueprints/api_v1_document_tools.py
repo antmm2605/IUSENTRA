@@ -12,7 +12,7 @@ from web.blueprints.api_v1_react import _audit_event, _richiedi_auth
 from web.helpers import get_clienti, get_fascicoli
 from web.services.document_ocr import recognize_page
 from web.services.document_ocr_documento import come_payload, conta_pagine, riconosci_pagina
-from web.services.documento_testo_riconosciuto import docx_da_testo
+from web.services.documento_testo_riconosciuto import docx_da_testo, pdf_da_testo
 from web.services.document_tools import (
     DocumentToolError,
     UploadedDocument,
@@ -276,6 +276,10 @@ def build_recognised_text_document():
     try:
         html = str(request.form.get("html") or "")
         nome = str(request.form.get("nome") or "documento")
+        formato = str(request.form.get("formato") or "docx").strip().lower()
+        if formato == "pdf":
+            dati, filename = pdf_da_testo(html, nome)
+            return _download(dati, filename, "application/pdf", X_Iusentra_Operation="documento-testo-riconosciuto-pdf")
         dati, filename = docx_da_testo(html, nome)
         return _download(
             dati,

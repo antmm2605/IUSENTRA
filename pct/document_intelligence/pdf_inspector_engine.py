@@ -139,6 +139,9 @@ def _small_box_values(image, existing: str) -> tuple[list[str], list[str]]:
     import pytesseract
     from PIL import ImageOps
 
+    from legal_ocr.motore.errori import ErroreLettura
+    from legal_ocr.motore.lettura import leggi_testo
+
     width, height = image.size
     boxes = _boxed_regions(image)
     additions, warnings = [], []
@@ -149,11 +152,12 @@ def _small_box_values(image, existing: str) -> tuple[list[str], list[str]]:
             continue
         enlarged = ImageOps.expand(inner.resize((inner.width*3, inner.height*3)), border=35, fill='white')
         try:
-            data = pytesseract.image_to_data(enlarged, lang='ita', config='--psm 7', output_type=pytesseract.Output.DICT, timeout=15)
-        except RuntimeError:
+            # Una riga sola (psm 7) letta dal motore unico dello studio.
+            parole = leggi_testo(enlarged, pytesseract=pytesseract, opzioni='--oem 1 --psm 7', timeout=15)
+        except (RuntimeError, ErroreLettura):
             warnings.append(f'Riquadro alla posizione {x/width:.3f}, {y/height:.3f}: lettura non riuscita, controllare nell’originale.')
             continue
-        tokens = [(str(t).strip(), float(c)) for t, c in zip(data['text'], data['conf']) if str(t).strip()]
+        tokens = [(str(p.get('text') or '').strip(), float(p.get('conf') or 0.0) * 100) for p in parole if str(p.get('text') or '').strip()]
         if not tokens:
             continue
         value = ' '.join(t for t, _ in tokens)

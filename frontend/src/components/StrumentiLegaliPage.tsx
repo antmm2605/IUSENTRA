@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Building2, Mail, MapPin, Phone } from 'lucide-react'
 import {
   caricaStrumentiLegali,
@@ -14,6 +14,8 @@ import {
   type StrumentoForense,
 } from '../strumentiLegaliData'
 import './StrumentiLegaliPage.css'
+
+const OcrDocumentoTool = lazy(() => import('./strumenti/OcrDocumentoTool'))
 
 function toolDallUrl(): string {
   if (typeof window === 'undefined') return ''
@@ -240,6 +242,15 @@ function PannelloStrumento({
   onCampo: (name: string, value: string) => void
   onCalcola: () => void
 }) {
+  if (strumento.componente === 'ocr-documento') {
+    return (
+      <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>
+        <Suspense fallback={<p aria-live="polite">Caricamento dello strumento…</p>}>
+          <OcrDocumentoTool />
+        </Suspense>
+      </section>
+    )
+  }
   if (!strumento.reso_in_react) {
     return (
       <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>

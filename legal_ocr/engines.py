@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import os
+import os  # noqa: F401 - i test controllano la variabile TESSDATA_PREFIX tramite questo modulo
 import re
-from pathlib import Path
-from shutil import which
 from typing import Protocol
 
 from .models import EngineRun, PageArtifact
+from .motore import runtime as _runtime
+from .motore.lettura import leggi_immagine as _leggi_immagine
 from .unlimited_ocr import UnlimitedOcrEngine
 
 
@@ -299,78 +299,27 @@ def build_engine(name: str) -> OcrEngine:
 
 
 def _version(pytesseract: object) -> str:
-    try:
-        return f"tesseract:{pytesseract.get_tesseract_version()}"
-    except Exception:
-        raise
-
-
-def _configure_tesseract_runtime(pytesseract: object) -> str:
-    command = _resolve_tesseract_command()
-    pytesseract_module = getattr(pytesseract, "pytesseract", None)
-    if command and pytesseract_module is not None and hasattr(pytesseract_module, "tesseract_cmd"):
-        pytesseract_module.tesseract_cmd = command
-    tessdata_dir = _resolve_tessdata_dir(command)
-    if tessdata_dir:
-        os.environ["TESSDATA_PREFIX"] = tessdata_dir
-    return ""
+    versione = _runtime.versione(pytesseract)
+    if not versione:
+        raise RuntimeError("Tesseract non disponibile")
+    return versione
 
 
 def _resolve_tesseract_command() -> str:
-    configured = os.environ.get("IUSENTRA_TESSERACT_CMD", "").strip()
-    if configured and Path(configured).is_file():
-        return configured
-    discovered = which("tesseract")
-    if discovered:
-        return discovered
-    for root in (
-        os.environ.get("ProgramFiles", ""),
-        os.environ.get("ProgramFiles(x86)", ""),
-        os.environ.get("LOCALAPPDATA", ""),
-    ):
-        if not root:
-            continue
-        candidate = Path(root) / "Tesseract-OCR" / "tesseract.exe"
-        if candidate.is_file():
-            return str(candidate)
-    return ""
+    return _runtime.comando_tesseract()
 
 
 def _resolve_tessdata_dir(command: str) -> str:
-    candidates: list[Path] = []
-    for name in ("IUSENTRA_TESSDATA_PREFIX", "TESSDATA_PREFIX"):
-        configured = os.environ.get(name, "").strip().strip('"')
-        if configured:
-            candidates.append(Path(configured))
-    local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
-    if local_app_data:
-        candidates.append(Path(local_app_data) / "IUSENTRA" / "tessdata")
-    if command:
-        candidates.append(Path(command).resolve().parent / "tessdata")
-    for candidate in candidates:
-        if candidate.is_dir() and any(candidate.glob("*.traineddata")):
-            return str(candidate)
-    return ""
+    return _runtime.cartella_tessdata(command)
+
+
+def _configure_tesseract_runtime(pytesseract: object) -> str:
+    """Compatibilita': il runtime e' quello unico in `legal_ocr.motore.runtime`."""
+    return _runtime.configura(pytesseract, comando=_resolve_tesseract_command())
 
 
 def _resolve_tesseract_language(pytesseract: object, preferred: str, config: str) -> str:
-    clean = str(preferred or "ita").strip() or "ita"
-    get_languages = getattr(pytesseract, "get_languages", None)
-    if not callable(get_languages):
-        return clean
-    try:
-        languages = set(get_languages(config=config))
-    except TypeError:
-        languages = set(get_languages())
-    except Exception:
-        return clean
-    if clean in languages:
-        return clean
-    if clean.startswith("it") and "ita" in languages:
-        return "ita"
-    if "eng" in languages:
-        return "eng"
-    return next(iter(sorted(languages)), clean)
+    return _runtime.lingua_disponibile(pytesseract, preferred, config)
 
 
 def _native_text_is_good(text: str) -> bool:
@@ -408,99 +357,47 @@ def _read_tesseract_page_best(
     offset: int,
     line_prefix: str,
 ) -> dict[str, object]:
-    candidates: list[dict[str, object]] = []
-    warnings: list[str] = []
-    for config_name, config in _tesseract_config_variants(base_config):
-        try:
-            data = pytesseract.image_to_data(page.image_path, lang=lang, config=config, output_type=output_type.DICT)
-        except TypeError:
-            data = pytesseract.image_to_data(page.image_path, lang=lang, output_type=output_type.DICT)
-        except Exception as exc:
-            warnings.append(f"Pagina {page.page}: Tesseract {config_name} non completato ({exc}).")
-            continue
-        candidate = _candidate_from_tesseract_data(
-            data,
-            page=page.page,
-            offset=offset,
-            line_id=f"p{page.page}-{line_prefix}-{config_name}",
-        )
-        candidate["config"] = config_name
-        candidate["score"] = _score_ocr_text(str(candidate.get("text") or ""), candidate.get("avg_confidence", 0.0))
-        candidates.append(candidate)
-    if not candidates:
-        return {"text": "", "tokens": [], "warnings": warnings}
-    best = max(candidates, key=lambda item: float(item.get("score") or 0.0))
-    if not best.get("tokens"):
-        warnings.append(f"Pagina {page.page}: nessuna configurazione Tesseract ha prodotto token.")
-    return {"text": best.get("text") or "", "tokens": best.get("tokens") or [], "warnings": warnings}
-
-
-def _tesseract_config_variants(base_config: str) -> list[tuple[str, str]]:
-    prefix = (base_config.strip() + " ") if base_config.strip() else ""
-    return [
-        ("psm6", prefix + "--oem 1 --psm 6 -c preserve_interword_spaces=1"),
-        ("psm4", prefix + "--oem 1 --psm 4 -c preserve_interword_spaces=1"),
-        ("psm3", prefix + "--oem 1 --psm 3 -c preserve_interword_spaces=1"),
-        ("psm11", prefix + "--oem 1 --psm 11 -c preserve_interword_spaces=1"),
-    ]
-
-
-def _candidate_from_tesseract_data(data: dict, *, page: int, offset: int, line_id: str) -> dict[str, object]:
+    """La pagina letta dal motore unico, nella forma dei token della pipeline probatoria."""
+    try:
+        from PIL import Image
+    except ImportError as exc:  # pragma: no cover - dipendenza del runtime Docker
+        return {"text": "", "tokens": [], "warnings": [f"Pagina {page.page}: Pillow non disponibile ({exc})."]}
+    try:
+        with Image.open(page.image_path) as immagine:
+            lettura = _leggi_immagine(immagine.convert("L"), pytesseract=pytesseract, lingua=lang, con_pdf=False)
+    except Exception as exc:
+        return {"text": "", "tokens": [], "warnings": [f"Pagina {page.page}: Tesseract non completato ({exc})."]}
+    warnings = [f"Pagina {page.page}: {avviso}" for avviso in lettura.avvisi]
     tokens: list[dict] = []
     words: list[str] = []
-    confidences: list[float] = []
-    texts = list(data.get("text") or [])
-    for index, raw in enumerate(texts):
-        token = str(raw or "").strip()
-        if not token:
-            continue
-        try:
-            conf = max(0.0, min(1.0, float(data.get("conf", ["-1"])[index]) / 100.0))
-        except (TypeError, ValueError):
-            conf = 0.0
+    for parola in lettura.parole:
+        token = str(parola.get("text") or "")
         start = offset + len(" ".join(words)) + (1 if words else 0)
         words.append(token)
-        confidences.append(conf)
         tokens.append(
             {
                 "token": token,
                 "start": start,
                 "end": start + len(token),
-                "confidence": conf,
-                "bbox": [
-                    int(data.get("left", [0])[index]),
-                    int(data.get("top", [0])[index]),
-                    int(data.get("width", [0])[index]),
-                    int(data.get("height", [0])[index]),
-                ],
-                "line_id": f"{line_id}-{data.get('line_num', [0])[index]}",
-                "page": page,
+                "confidence": float(parola.get("conf") or 0.0),
+                "bbox": [int(parola.get("left") or 0), int(parola.get("top") or 0), int(parola.get("width") or 0), int(parola.get("height") or 0)],
+                "line_id": f"p{page.page}-{line_prefix}-{lettura.configurazione.replace(' ', '_')}-{parola.get('line', 0)}",
+                "page": page.page,
             }
         )
-    text = " ".join(words)
-    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-    return {"text": text, "tokens": tokens, "avg_confidence": avg_confidence}
+    if not tokens:
+        warnings.append(f"Pagina {page.page}: nessuna configurazione Tesseract ha prodotto token.")
+    return {"text": " ".join(words), "tokens": tokens, "warnings": warnings}
 
 
 def _score_ocr_text(text: str, avg_confidence: object) -> float:
+    """Compatibilita': il punteggio di una lettura e' quello del motore unico."""
+    from .motore.punteggio import bonus_forense
+
     normalized = str(text or "")
-    lower = normalized.lower()
     score = min(len(normalized), 2500) / 120.0
     try:
         score += float(avg_confidence or 0.0) * 25.0
     except (TypeError, ValueError):
         pass
-    weighted_patterns = [
-        (r"\btribunale\s+di\s+[a-zàèéìòù' ]+", 8),
-        (r"\b(proc\.?\s*n\.?|r\.?\s*g\.?|rgac)\s*[\w./-]+", 14),
-        (r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b", 12),
-        (r"\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b", 14),
-        (r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b", 8),
-        (r"\b(?:euro|€)\s*\d", 8),
-        (r"\b(?:art\.?|dpr|c\.p\.c\.|c\.c\.)\b", 8),
-    ]
-    for pattern, weight in weighted_patterns:
-        score += len(re.findall(pattern, normalized, flags=re.IGNORECASE)) * weight
-    score -= len(re.findall(r"[|~{}_\[\]]", normalized)) * 0.75
-    score -= len(re.findall(r"\b[bcdfghjklmnpqrstvwxyz]{7,}\b", lower)) * 0.5
-    return score
+    return score + bonus_forense(normalized)

@@ -1587,6 +1587,8 @@ def test_tutti_i_calcolatori_della_suite_sono_migrati_in_react(tmp_path):
 
     from pct.calcolatori.schema import SCHEMI_CALCOLATORI
 
-    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli()}
+    # Gli strumenti con un componente React dedicato (riconoscimento del testo)
+    # non sono calcolatori: hanno una pagina propria, non uno schema di modulo.
+    catalogo = {voce["id"] for voce in _gestore(tmp_path).catalogo_moduli() if not voce.get("componente")}
     fuori_schema = catalogo - set(SCHEMI_CALCOLATORI)
     assert fuori_schema == set()

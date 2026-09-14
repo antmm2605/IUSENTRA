@@ -8,9 +8,11 @@ import json
 
 from flask import Blueprint, Response, current_app, jsonify, request, send_file
 
-from web.blueprints.api_v1_react import _richiedi_auth
+from web.blueprints.api_v1_react import _audit_event, _richiedi_auth
 from web.helpers import get_clienti, get_fascicoli
 from web.services.document_ocr import recognize_page
+from web.services.document_ocr_documento import come_payload, conta_pagine, riconosci_pagina
+from web.services.documento_testo_riconosciuto import docx_da_testo
 from web.services.document_tools import (
     DocumentToolError,
     UploadedDocument,
@@ -19,6 +21,7 @@ from web.services.document_tools import (
     merge_pdfs,
     safe_output_name,
 )
+from web.services.fascicolo_documento_ocr import documenti_riconoscibili, leggi_documento
 from web.services.fascicolo_lookup import cerca_fascicoli_per_cliente
 
 
@@ -194,5 +197,91 @@ def search_matters():
         response = jsonify({"ok": True, "results": risultati})
         response.headers["Cache-Control"] = "no-store"
         return response
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.get("/fascicoli/<id_fasc>/documenti-riconoscibili")
+@_richiedi_auth
+def list_recognisable_documents(id_fasc: str):
+    """Documenti gia' nel fascicolo su cui si puo' riconoscere il testo."""
+    try:
+        response = jsonify({"ok": True, "documents": documenti_riconoscibili(get_fascicoli(), id_fasc)})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.post("/ocr-documento")
+@_richiedi_auth
+def recognize_document_page_of_file():
+    """Riconosce una pagina di un documento del fascicolo o di un file caricato.
+
+    Una pagina per richiesta: un atto di quaranta pagine non puo' stare in una
+    sola risposta senza far scadere la richiesta, e cosi' l'avvocato vede
+    l'avanzamento e puo' fermarsi appena ha quello che gli serve. Nessun
+    contenuto viene salvato: la copia ricercabile nasce solo se la conferma.
+    """
+    try:
+        try:
+            pagina = int(request.form.get("pagina") or 1)
+        except (TypeError, ValueError):
+            pagina = 1
+        raddrizza = str(request.form.get("deskew") or "1").strip() not in {"0", "false", "no"}
+
+        fascicolo_id = str(request.form.get("fascicolo_id") or "").strip()
+        documento_id = str(request.form.get("documento_id") or "").strip()
+        uploaded = request.files.get("file")
+        if fascicolo_id and documento_id:
+            nome, contenuto = leggi_documento(get_fascicoli(), fascicolo_id, documento_id)
+            if pagina <= 1:
+                _audit_event(
+                    "fascicoli.documento.riconoscimento_testo",
+                    "fascicolo",
+                    fascicolo_id,
+                    f"doc {documento_id} — {nome}",
+                )
+        elif uploaded is not None:
+            nome = str(uploaded.filename or "documento.pdf")
+            contenuto = uploaded.read()
+        else:
+            raise DocumentToolError("Scegli un documento del fascicolo oppure carica un file.")
+
+        totale = conta_pagine(contenuto, nome)
+        esito = riconosci_pagina(contenuto, nome, pagina, raddrizza=raddrizza)
+        response = jsonify(
+            {
+                "ok": True,
+                "nome": nome,
+                "pagine_totali": totale,
+                "pagina": come_payload(esito),
+            }
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.post("/documento-testo-riconosciuto")
+@_richiedi_auth
+def build_recognised_text_document():
+    """Il testo riconosciuto e corretto diventa un `.docx` apribile nell'editor.
+
+    La revisione serve a correggere; l'editor serve a lavorare. Il passaggio fra
+    le due cose e' un documento vero, non un appunto: quello che l'avvocato ha
+    corretto qui e' esattamente quello che si aprira' nell'editor del fascicolo.
+    """
+    try:
+        html = str(request.form.get("html") or "")
+        nome = str(request.form.get("nome") or "documento")
+        dati, filename = docx_da_testo(html, nome)
+        return _download(
+            dati,
+            filename,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            X_Iusentra_Operation="documento-testo-riconosciuto",
+        )
     except Exception as exc:
         return _handle_error(exc)

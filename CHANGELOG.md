@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.310.0 - 14/09/2026
+
+Il riconoscimento del testo entra nel fascicolo: si legge un documento che c'è già, si rilegge quello che la macchina ha capito, e da lì si apre l'editor.
+
+- **Riconoscimento da un documento già nel fascicolo o da un file da caricare.** Nella sezione documenti del fascicolo, accanto all'acquisizione da scanner e fotocamera, c'è ora «Riconosci il testo»: si sceglie un atto già archiviato — l'elenco propone solo i formati leggibili, PDF, immagini e atti firmati `.p7m` — oppure un file dal computer. Prima l'unico modo di avere il testo di un atto ricevuto era rileggerlo e ribatterlo.
+- **Le pagine che hanno già il testo non vengono riconosciute di nuovo.** Un atto nativo digitale, una copia di cortesia, un decreto scaricato dal portale: il testo è quello esatto dell'autore e passarlo all'OCR lo peggiorerebbe, oltre a costare minuti. Il riconoscimento legge il livello di testo dove c'è e chiama il motore ottico solo sulle pagine che sono davvero immagini. Un ricorso nativo di quaranta pagine si legge in pochi secondi e senza errori di trascrizione; una scansione paga l'OCR solo dove serve. Il riepilogo dice sempre quante pagine vengono da quale strada.
+- **Una pagina per richiesta, con avanzamento e interruzione.** Un atto lungo non può stare in una risposta sola senza far scadere la richiesta: le pagine arrivano una alla volta, l'avvocato vede a che punto è e si ferma appena ha il passaggio che gli serve.
+- **Revisione modificabile prima di ogni uso.** Titoli, capoversi, elenchi e tabelle si rileggono e si correggono: la struttura della pagina viene ricostruita dalla posizione delle parole, nello stesso modo sia per il testo nativo sia per l'OCR.
+- **«Apri nell'editor del fascicolo».** Il testo corretto diventa un `.docx` salvato nel fascicolo e si apre subito nell'editor già esistente, pronto per essere lavorato. Il documento nasce **senza il timbro dello studio**: trascrive un atto altrui e un'intestazione dello studio lo farebbe sembrare un atto proprio. L'HTML che torna dal browser viene ridotto ai soli elementi della revisione prima di diventare un documento.
+- **In alternativa: copia del testo, scarico in `.txt`, copia PDF con testo ricercabile.** La copia ricercabile si offre solo quando l'OCR ha effettivamente aggiunto qualcosa, e conserva la pagina com'è.
+- **L'originale non si tocca mai.** Quello che si salva è sempre un documento in più: la copia per immagine resta il documento che fa fede (D.Lgs. 82/2005, art. 22) e lo strato di testo non la trasforma in atto nativo digitale (Specifiche tecniche DGSIA D.M. 44/2011, art. 15, comma 1, lett. c). La trascrizione è materiale di lavoro, non una copia conforme, e la pagina lo dice all'avvocato.
+
+32 nuovi test sulle decisioni che rendono la funzione usabile su atti veri: una pagina con testo non passa dall'OCR, una filigrana non basta a considerarla leggibile, una busta `.p7m` viene aperta, un PDF protetto da password lo dice in italiano, un documento di un altro fascicolo non si legge, e il testo corretto arriva all'editor senza portarsi dietro codice arrivato dal browser.
+
 ## 2.309.0 - 14/09/2026
 
 La rivalutazione monetaria ISTAT copre quindici anni invece di quattro. La serie è stata ricostruita dai comunicati ISTAT pubblicati in Gazzetta Ufficiale, uno per uno.

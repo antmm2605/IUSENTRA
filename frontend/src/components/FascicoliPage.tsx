@@ -73,6 +73,7 @@ import { ContropartiRegistriField, type ControparteCandidata } from '../features
 import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import DocumentCapture from './documentCapture/DocumentCapture'
+import FascicoloOcr from './documentCapture/FascicoloOcr'
 import {
   IusentraContextFilters,
   IusentraDataSurface,
@@ -7973,6 +7974,7 @@ function DocumentUploadWorkspace({
   return (
     <section className="iu-fas-doc-workspace" aria-label="Documenti e atti del fascicolo">
       <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
+      <FascicoloOcr key={`ocr-${data.fascicolo.id}`} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone} onError={onError}/>
       <form className={`iu-fas-doc-upload${dragging ? ' is-dragging' : ''}`} onSubmit={submit} encType="multipart/form-data" {...dropHandlers}>
         <input type="hidden" name="classificazione_modalita" value={mode}/>
         <label className="iu-fas-field iu-fas-field--wide">

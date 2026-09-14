@@ -71,6 +71,20 @@ def fmt_date_it(value: Any) -> str:
     return parsed.strftime("%d/%m/%Y") if parsed else clean_text(value)
 
 
+def fmt_eur(valore: Any, decimali: int = 2) -> str:
+    """Importo in formato italiano: punto per le migliaia, virgola per i decimali.
+
+    Esiste qui perche' il formato di Python e' l'inverso di quello italiano e la
+    sostituzione ingenua (`replace(",", ".")`) produce «30.000.00»: un numero che
+    in un atto non si puo' scrivere.
+    """
+    try:
+        numero = float(valore)
+    except (TypeError, ValueError):
+        return clean_text(valore)
+    return f"{numero:,.{max(0, int(decimali))}f}".replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
+
 def payload_get(payload: Mapping[str, Any], key: str, default: Any = "") -> Any:
     try:
         return payload.get(key, default)

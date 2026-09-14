@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.306.0 - 14/09/2026
+
+Verificati uno per uno tutti gli strumenti forensi e aggiunti tre moduli su lacune che si pagano in scadenza. Il catalogo passa da 70 a 73 moduli.
+
+**Verifica dell'esistente.** Ho eseguito tutti i 70 strumenti con dati plausibili, passando dallo stesso percorso che usa la pagina. Un solo difetto reale: **la prescrizione penale usciva dal calendario** con un errore interno (`OverflowError`) su valori fuori scala, e l'avvocato vedeva soltanto «Calcolo non riuscito». Ora i valori implausibili sono respinti con un messaggio che dice perché, citando l'art. 23 c.p. per la pena temporanea e l'art. 161, secondo comma, c.p. per i limiti dell'interruzione (un quarto, la metà, due terzi, il doppio).
+
+**Prescrizione penale, migliorata.** Due regole che mancavano: il **raddoppio dei termini** dell'art. 157, commi 6 e 7, c.p. — applicato al termine già portato al minimo di legge, non al massimo edittale — e l'**ergastolo**, per cui la prescrizione non estingue il reato (art. 157, ultimo comma, c.p.): il modulo lo dichiara invece di calcolare una data. Aggiunta la nota sul dies a quo dell'art. 158 c.p. per il tentativo e il reato permanente.
+
+**Nuovo — Perfezionamento della notifica** (Processo). Il termine non decorre dalla spedizione ma dal perfezionamento, che cade in momenti diversi per il notificante e per il destinatario e cambia con il canale. Il modulo li calcola entrambi e da lì ricava la scadenza:
+- **PEC**: notificante alla ricevuta di accettazione, destinatario alla ricevuta di avvenuta consegna; se la RdAC è generata **fra le 21 e le 7 il perfezionamento per il destinatario slitta alle 7** (art. 147, comma 3, c.p.c., testo vigente dal 1° gennaio 2023);
+- **posta**: notificante alla consegna del plico all'ufficiale giudiziario (art. 149 c.p.c.), destinatario alla consegna o per **compiuta giacenza, dieci giorni dalla spedizione della raccomandata di avviso** — non dal deposito del piego — salvo ritiro anteriore (art. 8, commi 4 e 5, L. 890/1982);
+- **art. 140 c.p.c.**: ricevimento della raccomandata informativa o dieci giorni dalla spedizione (Corte cost. 3/2010);
+- **art. 143 c.p.c.**: ventesimo giorno dalle formalità;
+- **consegna a mani**, con segnalazione se l'orario della relata è fuori dalla fascia 7-21.
+
+**Nuovo — Valore della causa** (Competenza). Determinazione ai fini della competenza secondo gli artt. 10-17 c.p.c.: somme e beni mobili (art. 14), quote di obbligazione valutate sull'**intera** obbligazione (art. 11), rapporto obbligatorio e divisione (art. 12), alimenti periodici a due annualità e rendite a venti o fino a dieci (art. 13), immobili con i moltiplicatori 200/100/50 sulla rendita **non rivalutata** (art. 15), esecuzione forzata (art. 17). Somma gli accessori anteriori alla domanda come impone l'art. 10, secondo comma, e dice espressamente che quelli maturati dopo non entrano nel valore.
+
+**Nuovo — Condizione di procedibilità: mediazione o negoziazione** (ADR). Date la materia e il procedimento, dice se la domanda è procedibile e per quale via: le ventun materie dell'art. 5, comma 1, D.Lgs. 28/2010; le esclusioni dell'art. 5, comma 6, con i **limiti temporali** (lo sfratto fino al mutamento del rito, l'ingiunzione fino alla pronuncia sulla provvisoria esecuzione); la negoziazione assistita obbligatoria per il danno da circolazione e per le domande di pagamento **fino a 50.000 €**, esclusi i contratti con i consumatori (art. 3 D.L. 132/2014). Con i termini: primo incontro fra 20 e 40 giorni dal deposito e durata di **sei** mesi non soggetta a sospensione feriale (artt. 6 e 8 D.Lgs. 28/2010), trenta giorni per la risposta all'invito e convenzione da uno a tre mesi (artt. 2 e 4 D.L. 132/2014). I due elenchi di esclusioni non coincidono, e il modulo lo rispetta: lo sfratto esclude la mediazione ma non la negoziazione.
+
+**Termini processuali, due modelli in più**: costituzione dell'attore entro dieci giorni dalla notificazione (art. 165, primo comma, c.p.c.) e costituzione del convenuto con comparsa di risposta almeno settanta giorni prima dell'udienza (art. 166 c.p.c.), a ritroso e con l'agosto escluso dal computo.
+
+**Importi in formato italiano.** Nuovo `fmt_eur` condiviso: il formato di Python è l'inverso di quello italiano e la sostituzione ingenua produceva «30.000.00», un numero che in un atto non si può scrivere.
+
+Tutti i testi di legge citati sono stati riletti su Normattiva prima di scrivere il codice. Una verifica ha corretto un errore che stavo per introdurre: la durata della mediazione è di **sei** mesi, non tre. 50 nuovi test.
+
 ## 2.305.2 - 13/09/2026
 
 Allineati alla riscrittura dell'OCR i due moduli di test che ancora si aspettavano l'interfaccia precedente, e chiuso il buco del gate locale che li aveva lasciati passare.

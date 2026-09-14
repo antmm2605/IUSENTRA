@@ -168,6 +168,10 @@ if [ "$FAST" -eq 0 ]; then
   step "Pytest contratti openapi"  python3 -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short
   # Acquisizione documenti (editor atti): OCR, impaginazione, contratti React,
   # ricerca del fascicolo. Sono i moduli piu' toccati e i piu' veloci da eseguire.
+  # Strumenti forensi: 73 calcolatori con base normativa, il contratto fra
+  # schema dei moduli e default del dominio e i termini processuali. Il contratto
+  # si rompe ogni volta che si aggiunge un campo senza il suo default.
+  step "Pytest strumenti legali"   python3 -m pytest -q tests/test_strumenti_legali.py tests/test_strumenti_processuali.py tests/test_termini_processuali.py tests/test_normative_tables.py tests/test_tariffario.py --tb=short
   step "Pytest acquisizione/OCR"   python3 -m pytest -q tests/test_document_ocr.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_editor_acquisition_contract.py tests/test_ocr_impaginazione.py tests/test_ricerca_cliente_fascicolo.py --tb=short
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short

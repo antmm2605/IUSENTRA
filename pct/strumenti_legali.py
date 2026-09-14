@@ -35,6 +35,8 @@ from pct.calcolatori import (
     maggior_danno as calc_maggior_danno,
     patrocinio_spese_stato as calc_patrocinio_spese_stato,
     pena_riti_alternativi as calc_pena_riti_alternativi,
+    perfezionamento_notifica as calc_perfezionamento_notifica,
+    procedibilita_adr as calc_procedibilita_adr,
     quote_riserva as calc_quote_riserva,
     ravvedimento_operoso as calc_ravvedimento,
     reversibilita as calc_reversibilita,
@@ -46,6 +48,7 @@ from pct.calcolatori import (
     termini_scadenza as calc_termini_scadenza,
     titoli_rendimenti as calc_titoli_rendimenti,
     usufrutto as calc_usufrutto,
+    valore_causa as calc_valore_causa,
 )
 from pct.normative_tables import (
     FONTI_OPERATIVE,
@@ -240,6 +243,9 @@ class GestioneStrumentiLegali:
             {"id": "detrazione_canone", "title": "Detrazione canoni di locazione", "subtitle": "Abitazione principale: ordinario, concordato, giovani e trasferiti (art. 16 TUIR).", "icon": "bi-house-check", "categoria": "Fiscale"},
             {"id": "regime_forfettario", "title": "Regime forfettario", "subtitle": "Coefficienti di redditivita' allegato 4 L. 190/2014, imposta sostitutiva 15% o 5%.", "icon": "bi-percent", "categoria": "Fiscale"},
             {"id": "fattura_agente", "title": "Fattura agente con Enasarco", "subtitle": "Ritenuta sul 50% o 20% delle provvigioni (art. 25-bis D.P.R. 600/1973) e quota Enasarco 8,5%.", "icon": "bi-receipt-cutoff", "categoria": "Professione"},
+            {"id": "perfezionamento_notifica", "title": "Perfezionamento della notifica", "subtitle": "Quando si perfeziona per notificante e destinatario e da quando decorre il termine (artt. 140, 143, 147 e 149 c.p.c., art. 8 L. 890/1982).", "icon": "bi-envelope-check", "categoria": "Processo"},
+            {"id": "valore_causa", "title": "Valore della causa", "subtitle": "Determinazione ai fini della competenza secondo gli artt. 10-17 c.p.c., con le addizioni dell'art. 10 comma 2.", "icon": "bi-rulers", "categoria": "Competenza"},
+            {"id": "procedibilita_adr", "title": "Condizione di procedibilita': mediazione o negoziazione", "subtitle": "Materie dell'art. 5 D.Lgs. 28/2010 ed art. 3 D.L. 132/2014, con esclusioni e termini.", "icon": "bi-signpost-2", "categoria": "ADR"},
             {"id": "prestazione_occasionale", "title": "Ricevuta prestazione occasionale", "subtitle": "Ritenuta 20%, bollo oltre 77,47 euro e netto percepito, con avvisi su abitualita'.", "icon": "bi-file-earmark-check", "categoria": "Professione"},
         ]
 
@@ -483,11 +489,39 @@ class GestioneStrumentiLegali:
             "custodia_data_decisione_riesame": "",
             # Prescrizione penale
             "presc_data_fatto": today,
+            "presc_ergastolo": "0",
             "presc_massimo_edittale_anni": "6",
             "presc_massimo_edittale_mesi": "0",
             "presc_contravvenzione": "0",
+            "presc_raddoppio": "0",
             "presc_coeff_interruzione": "1.25",
             "presc_giorni_sospensione": "0",
+            # Perfezionamento della notifica
+            "not_canale": "pec",
+            "not_data_invio": today,
+            "not_ora_invio": "",
+            "not_data_consegna": today,
+            "not_ora_consegna": "",
+            "not_esito_posta": "consegnato",
+            "not_data_avviso": "",
+            "not_data_ritiro": "",
+            "not_termine_durata": "",
+            "not_termine_unita": "giorni",
+            "not_sospensione_feriale": "applica",
+            # Valore della causa
+            "val_criterio": "somma_mobili",
+            "val_importo": prefill.get("valore_causa", ""),
+            "val_annualita": "",
+            "val_diritto": "proprieta",
+            "val_altre_domande": "",
+            "val_interessi_scaduti": "",
+            "val_spese_danni": "",
+            # Condizione di procedibilita' (mediazione o negoziazione assistita)
+            "adr_materia": "condominio",
+            "adr_procedimento": "ordinario",
+            "adr_valore": prefill.get("valore_causa", ""),
+            "adr_consumatore": "0",
+            "adr_data_avvio": "",
             # Successione legittima
             "successione_asse": "",
             "successione_coniuge": "0",
@@ -1610,6 +1644,15 @@ class GestioneStrumentiLegali:
     def calcola_grado_parentela(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_grado_parentela.calcola(payload)
 
+    def calcola_perfezionamento_notifica(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_perfezionamento_notifica.calcola(payload)
+
+    def calcola_valore_causa(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_valore_causa.calcola(payload)
+
+    def calcola_procedibilita_adr(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_procedibilita_adr.calcola(payload)
+
     def calcola_reversibilita(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_reversibilita.calcola(payload)
 
@@ -2645,31 +2688,133 @@ class GestioneStrumentiLegali:
             "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale"),
         }
 
+    # Limiti di plausibilita' del calcolo della prescrizione penale. Non sono
+    # soglie di legge ma confini oltre i quali l'input non descrive piu' un
+    # reato: senza di essi un valore digitato male faceva uscire la data dal
+    # calendario e il modulo rispondeva con un errore generico.
+    PRESC_MASSIMO_EDITTALE_ANNI = 50
+    PRESC_COEFF_MASSIMO = 4.0
+    PRESC_SOSPENSIONE_MASSIMA_GIORNI = 7305  # vent'anni
+
     def calcola_prescrizione_penale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         data_fatto = _parse_date(payload.get("presc_data_fatto"))
+        if not data_fatto:
+            raise ValueError("Inserisci una data del fatto valida.")
+
+        ergastolo = _safe_bool(payload.get("presc_ergastolo"))
+        contravvenzione = _safe_bool(payload.get("presc_contravvenzione"))
+        raddoppio = _safe_bool(payload.get("presc_raddoppio"))
         massimo_anni = max(0, _safe_int(payload.get("presc_massimo_edittale_anni")))
         massimo_mesi = max(0, _safe_int(payload.get("presc_massimo_edittale_mesi")))
-        contravvenzione = _safe_bool(payload.get("presc_contravvenzione"))
         coeff_interruzione = max(1.0, _safe_float(payload.get("presc_coeff_interruzione"), 1.25))
         giorni_sospensione = max(0, _safe_int(payload.get("presc_giorni_sospensione")))
 
-        if not data_fatto:
-            raise ValueError("Inserisci una data del fatto valida.")
+        if massimo_anni > self.PRESC_MASSIMO_EDITTALE_ANNI:
+            raise ValueError(
+                f"Il massimo edittale indicato ({massimo_anni} anni) non corrisponde a una pena "
+                "detentiva temporanea: la reclusione arriva a ventiquattro anni (art. 23 c.p.), "
+                "elevabili dalle aggravanti ad effetto speciale. Se il reato e' punito con "
+                "l'ergastolo seleziona l'apposita opzione: la prescrizione non lo estingue "
+                "(art. 157, ultimo comma, c.p.)."
+            )
+        if coeff_interruzione > self.PRESC_COEFF_MASSIMO:
+            raise ValueError(
+                "Coefficiente di interruzione non plausibile. L'art. 161, secondo comma, c.p. "
+                "limita l'aumento a un quarto (1,25), alla meta' (1,50), a due terzi (1,67) o al "
+                "doppio (2,00) secondo i casi; il limite non opera per i reati dell'art. 51, commi "
+                "3-bis e 3-quater, c.p.p."
+            )
+        if giorni_sospensione > self.PRESC_SOSPENSIONE_MASSIMA_GIORNI:
+            raise ValueError(
+                "I giorni di sospensione indicati superano i vent'anni: verifica il dato, perche' "
+                "la sospensione si somma al termine e ne sposta la scadenza."
+            )
+
+        notes: List[str] = []
+        warnings: List[str] = []
+
+        if ergastolo:
+            # Art. 157, ultimo comma, c.p.: nessuna data da calcolare.
+            return {
+                "data_fatto": data_fatto.isoformat(),
+                "data_fatto_it": _fmt_date_it(data_fatto),
+                "contravvenzione": False,
+                "regime_label": "Delitto punito con l'ergastolo",
+                "imprescrittibile": True,
+                "massimo_edittale_anni": 0.0,
+                "termine_base_anni": 0.0,
+                "coeff_interruzione": round(coeff_interruzione, 2),
+                "giorni_sospensione": giorni_sospensione,
+                "data_prescrizione_base": "",
+                "data_prescrizione_base_it": "",
+                "data_prescrizione_massima": "",
+                "data_prescrizione_massima_it": "",
+                "notes": [
+                    "La prescrizione non estingue i reati per i quali la legge prevede la pena "
+                    "dell'ergastolo, anche come effetto dell'applicazione di circostanze "
+                    "aggravanti (art. 157, ultimo comma, c.p.).",
+                ],
+                "warnings": [
+                    "Verifica che l'ergastolo sia effettivamente previsto per il fatto contestato: "
+                    "se la pena e' temporanea il termine va calcolato sul massimo edittale.",
+                ],
+                "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale"),
+            }
 
         massimo_edittale = massimo_anni + (massimo_mesi / 12.0)
         minimo_legale = 4.0 if contravvenzione else 6.0
         termine_base_anni = max(massimo_edittale, minimo_legale)
+        if massimo_edittale < minimo_legale:
+            notes.append(
+                f"Massimo edittale inferiore al minimo di legge: applicato il termine di "
+                f"{minimo_legale:.0f} anni previsto dall'art. 157, primo comma, c.p. "
+                f"per {'le contravvenzioni' if contravvenzione else 'i delitti'}."
+            )
+        if raddoppio:
+            # Art. 157, commi 6 e 7, c.p.: il raddoppio opera sul termine, non
+            # sul massimo edittale, quindi va applicato dopo il minimo di legge.
+            termine_base_anni *= 2
+            notes.append(
+                "Termine raddoppiato ai sensi dell'art. 157, commi 6 e 7, c.p. (fra gli altri: "
+                "artt. 449, 589, commi 2 e 3, 589-bis, 572, delitti del titolo VI-bis, reati "
+                "dell'art. 51, commi 3-bis e 3-quater, c.p.p. e reati sessuali ivi richiamati)."
+            )
+
         base_core_days = round(termine_base_anni * 365.25)
         base_days = base_core_days + giorni_sospensione
         massimo_days = round(base_core_days * coeff_interruzione) + giorni_sospensione
         data_prescrizione_base = data_fatto + timedelta(days=base_days)
         data_prescrizione_massima = data_fatto + timedelta(days=massimo_days)
 
+        notes.extend(
+            [
+                "Termine base calcolato sul massimo edittale indicato, con la soglia minima di sei "
+                "anni per i delitti e quattro per le contravvenzioni (art. 157, primo comma, c.p.).",
+                "Il termine massimo applica il coefficiente di interruzione e somma i giorni di "
+                "sospensione indicati (artt. 159 e 161 c.p.).",
+                "Il termine decorre dal giorno della consumazione; per il reato tentato dal giorno "
+                "dell'ultimo atto, per il permanente dalla cessazione della permanenza "
+                "(art. 158 c.p.): la data indicata va scelta di conseguenza.",
+            ]
+        )
+        warnings.append(
+            "Verificare sempre discipline speciali, recidiva, atti interruttivi effettivi e "
+            "sospensioni normativamente tipizzate: il modulo applica i parametri dichiarati, non "
+            "ricostruisce il procedimento."
+        )
+        if not raddoppio:
+            warnings.append(
+                "Raddoppio dei termini non applicato: controlla se il reato rientra fra quelli "
+                "dell'art. 157, commi 6 e 7, c.p."
+            )
+
         return {
             "data_fatto": data_fatto.isoformat(),
             "data_fatto_it": _fmt_date_it(data_fatto),
             "contravvenzione": contravvenzione,
             "regime_label": "Contravvenzione" if contravvenzione else "Delitto",
+            "imprescrittibile": False,
+            "raddoppio": raddoppio,
             "massimo_edittale_anni": round(massimo_edittale, 2),
             "termine_base_anni": round(termine_base_anni, 2),
             "coeff_interruzione": round(coeff_interruzione, 2),
@@ -2678,12 +2823,8 @@ class GestioneStrumentiLegali:
             "data_prescrizione_base_it": _fmt_date_it(data_prescrizione_base),
             "data_prescrizione_massima": data_prescrizione_massima.isoformat(),
             "data_prescrizione_massima_it": _fmt_date_it(data_prescrizione_massima),
-            "notes": [
-                "Termine base calcolato assumendo il massimo edittale indicato, con soglia minima di 6 anni per i delitti e 4 anni per le contravvenzioni.",
-                "Il termine massimo applica il coefficiente di interruzione indicato e somma i giorni di sospensione segnalati.",
-                "Verificare sempre discipline speciali, recidiva, atti interruttivi effettivi e sospensioni normativamente tipizzate.",
-            ],
-            "warnings": [],
+            "notes": notes,
+            "warnings": warnings,
             "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale"),
         }
 

@@ -221,6 +221,21 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         metadata={"source_event": "notifica_decreto"},
     ),
     DeadlineTemplate(
+        code="CIV_COSTITUZIONE_ATTORE_165",
+        name="Costituzione dell'attore",
+        base_value=10,
+        reference_law="Art. 165, primo comma, c.p.c.",
+        metadata={"source_event": "notifica_citazione"},
+    ),
+    DeadlineTemplate(
+        code="CIV_COSTITUZIONE_CONVENUTO_166",
+        name="Costituzione del convenuto e comparsa di risposta",
+        base_value=70,
+        direction="backward",
+        reference_law="Art. 166 c.p.c.",
+        metadata={"source_event": "udienza"},
+    ),
+    DeadlineTemplate(
         code="CIV_MEMORIA_171_TER_1",
         name="Memoria art. 171-ter n. 1",
         base_value=40,

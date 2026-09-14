@@ -1728,6 +1728,8 @@ assertContains(fascicoli, 'LetturaFascicoloPanel', 'lettura del fascicolo servit
 assertContains(fascicoli, 'Conferma tutte le proposte', 'catalogazione con conferma massiva delle proposte')
 assertContains(fascicoli, 'conferma-proposte', 'conferma massiva passa dall\'endpoint dedicato')
 assertContains(fascicoli, 'Ho letto le prove delle proposte e attesto la conferma', 'conferma massiva richiede attestazione di lettura delle prove')
+assertContains(fascicoli, 'Registra bonifico ricevuto', 'controllo economico registra il bonifico ricevuto in un passaggio')
+assertContains(fascicoli, 'bonifico-ricevuto', 'registrazione bonifico passa dall\'endpoint dedicato')
 assertContains(fascicoli, 'openQualityDestination', 'ogni esito qualità apre il relativo pannello del fascicolo')
 assertContains(fascicoli, 'openDetailSectionById(sectionId)', 'l’esito qualità apre anche i pannelli chiusi')
 assertContains(fascicoli, 'summary.focus({ preventScroll: true })', 'l’apertura qualità trasferisce il focus al pannello operativo')

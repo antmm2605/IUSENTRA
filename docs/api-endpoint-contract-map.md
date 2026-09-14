@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 346.
-- Endpoint P0/P1 contrattualizzati: 294.
+- Endpoint React API contrattualizzati: 347.
+- Endpoint P0/P1 contrattualizzati: 295.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 322.
+- Endpoint con provider verification auth-error: 323.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 24.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -112,6 +112,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/attivita` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/audit` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/bonifico-ricevuto` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/checklist` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/depositi` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/depositi/{deposito_id}/evidence-pack` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

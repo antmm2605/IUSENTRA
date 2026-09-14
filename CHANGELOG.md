@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.314.0 - 14/09/2026
+
+**«Registra bonifico ricevuto» nel controllo economico del fascicolo.** Quando la somma liquidata dal giudice (o comunque dovuta) arriva sul conto dello studio, l'avvocato la registra dal fascicolo in un passaggio solo: dal presidio economico, pulsante **«Registra bonifico ricevuto»** con importo (precompilato con la liquidazione letta dalla sentenza), data e nota. Il software segna pagata la parcella aperta del fascicolo con metodo bonifico e data (se ci sono più parcelle aperte chiede quale; se non ce n'è nessuna la crea dal presidio economico come bozza da completare fiscalmente e la segna pagata), porta la voce **«Liquidazione giudice»** del controllo pagamenti a **«Pagato»** con la stessa data e il riferimento della parcella, e registra l'evento in audit. Fatturazione, controllo economico e Lettura del fascicolo leggono lo stesso record: la Lettura passa a «bonificata sul conto dello studio» e il passo di riscossione sparisce. Endpoint dedicato `POST /api/v1/ui/fascicoli/<id>/bonifico-ricevuto` (permesso fatturazione o fascicoli in scrittura); rifiuta importi mancanti e date future. 4 test (parcella aperta, parcella creata, errori, endpoint) e contratti React aggiornati.
+
 ## 2.313.0 - 14/09/2026
 
 Il fascicolo dice da solo a che punto è e che cosa fare: un pannello «Lettura del fascicolo» in cima alla pagina, la conferma in blocco delle proposte di catalogazione e una conoscenza procedurale versionata — fasi, termini e norme di ogni tipo di deposito e di notifica che il software gestisce — verificata oggi sulle fonti ufficiali.

@@ -8528,6 +8528,28 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
     return redacted_json_response(result, status)
 
 
+@api_v1_react.post("/fascicoli/<id_fasc>/bonifico-ricevuto")
+@_richiedi_auth
+def fascicolo_react_bonifico_ricevuto(id_fasc: str):
+    """Registra in un passaggio il bonifico ricevuto: parcella pagata (creata se manca) e liquidazione a «Pagato»."""
+    if not (_api_key_valida() or _session_user_can("fatturazione.scrivi") or _session_user_can("fascicoli.scrivi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    from web.services.fascicolo_bonifico_ricevuto import registra_bonifico_ricevuto
+
+    result, status = registra_bonifico_ricevuto(
+        get_fascicoli=_fascicoli_loader(),
+        get_fatturazione=get_fatturazione,
+        id_fasc=id_fasc,
+        payload=_request_payload(),
+        actor=_actor_label(),
+    )
+    if result.get("ok"):
+        _clear_fascicoli_list_payload_cache()
+        _LETTURA_CACHE.clear()
+        _audit_event("fascicoli.bonifico_registrato", "fascicolo", id_fasc, str(result.get("message") or "Bonifico registrato."))
+    return redacted_json_response(result, status)
+
+
 @api_v1_react.post("/fascicoli/<id_fasc>/proforma/genera")
 @_richiedi_auth
 def fascicolo_react_genera_proforma(id_fasc: str):

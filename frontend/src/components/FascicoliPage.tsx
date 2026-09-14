@@ -6498,6 +6498,43 @@ function EconomicControlModal({
   onCalculateContribution: () => void
 }) {
   const [editing, setEditing] = useState(false)
+  const [bonificoOpen, setBonificoOpen] = useState(false)
+  const [bonificoBusy, setBonificoBusy] = useState(false)
+  const [bonificoError, setBonificoError] = useState('')
+  const [bonificoDone, setBonificoDone] = useState<{ message: string; href: string } | null>(null)
+  const [bonifico, setBonifico] = useState({ importo: '', data: '', note: '' })
+  const liquidazioneItem = data.fascicolo.paymentSummary.items.liquidazione_giudice
+  const importoSuggerito = liquidazioneItem.importo != null && liquidazioneItem.status !== 'pagato' ? String(liquidazioneItem.importo) : data.fascicolo.paymentSummary.items.parcella.importo != null ? String(data.fascicolo.paymentSummary.items.parcella.importo) : ''
+  const openBonifico = () => {
+    setBonifico({ importo: importoSuggerito, data: new Date().toISOString().slice(0, 10), note: '' })
+    setBonificoError('')
+    setBonificoDone(null)
+    setBonificoOpen(true)
+  }
+  // Un passaggio solo: parcella pagata (creata se manca) e liquidazione a «Pagato», la stessa fonte di Fatturazione.
+  const submitBonifico = async () => {
+    setBonificoBusy(true)
+    setBonificoError('')
+    try {
+      const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(data.fascicolo.id)}/bonifico-ricevuto`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ importo: bonifico.importo, data_pagamento: bonifico.data, note: bonifico.note }),
+      })
+      const result = await response.json().catch(() => ({})) as { ok?: boolean; message?: string; errors?: Record<string, string>; paymentSummary?: FascicoloRow['paymentSummary']; redirectHref?: string }
+      if (!response.ok || !result.ok) throw new Error(result.message || Object.values(result.errors || {})[0] || 'Bonifico non registrato.')
+      if (result.paymentSummary) onPaymentSaved(data.fascicolo.id, result.paymentSummary, result.message)
+      setBonificoDone({ message: result.message || 'Bonifico registrato.', href: result.redirectHref || '/fatturazione' })
+      setBonificoOpen(false)
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Bonifico non registrato.'
+      setBonificoError(message)
+      onError(message)
+    } finally {
+      setBonificoBusy(false)
+    }
+  }
   useEffect(() => {
     if (!open) setEditing(false)
   }, [open])
@@ -6650,7 +6687,25 @@ function EconomicControlModal({
             </aside>
           </>
         )}
+        {bonificoOpen ? (
+          <section className="iu-fas-economic-control-modal__bonifico" aria-label="Registra bonifico ricevuto">
+            <strong>Registra bonifico ricevuto</strong>
+            <span>La parcella aperta del fascicolo viene segnata pagata con metodo bonifico e data; se manca, viene creata dal presidio economico e segnata pagata. La voce «Liquidazione giudice» passa a «Pagato». Fatturazione e fascicolo leggono lo stesso record.</span>
+            <div>
+              <label>Importo ricevuto (€)<input type="text" inputMode="decimal" value={bonifico.importo} onChange={(event) => setBonifico((current) => ({ ...current, importo: event.currentTarget.value }))} placeholder="es. 4500,00"/></label>
+              <label>Data del bonifico<input type="date" value={bonifico.data} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setBonifico((current) => ({ ...current, data: event.currentTarget.value }))}/></label>
+              <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => setBonifico((current) => ({ ...current, note: event.currentTarget.value }))} placeholder="es. banca, causale"/></label>
+            </div>
+            {bonificoError ? <p role="alert">{bonificoError}</p> : null}
+            <div>
+              <button type="button" disabled={bonificoBusy || !bonifico.importo} onClick={() => void submitBonifico()}><CheckCircle2 size={15}/> {bonificoBusy ? 'Registrazione…' : 'Conferma bonifico ricevuto'}</button>
+              <button type="button" disabled={bonificoBusy} onClick={() => setBonificoOpen(false)}>Annulla</button>
+            </div>
+          </section>
+        ) : null}
+        {bonificoDone ? <p className="iu-fas-economic-control-modal__done" role="status"><CheckCircle2 size={15}/> {bonificoDone.message} <a href={bonificoDone.href}>Apri in Fatturazione</a></p> : null}
         <footer>
+          <button type="button" className="is-primary" onClick={openBonifico} disabled={bonificoBusy} title="Segna pagata la parcella del fascicolo con il bonifico ricevuto e aggiorna la liquidazione"><Landmark size={15}/> Registra bonifico ricevuto</button>
           <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo</button>
           <button type="button" onClick={onOpenPagoPa}><Euro size={15}/> PagoPA nuovo pagamento</button>
           <a href={importHref}><UploadCloud size={15}/> Import pratiche</a>

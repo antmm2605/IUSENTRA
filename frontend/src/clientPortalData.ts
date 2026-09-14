@@ -43,6 +43,7 @@ export type ClientPortalStudioPayload = {
   summary: Record<string, number>
   clientOptions: PortalOption[]
   matterOptions: PortalOption[]
+  preventivoOptions?: PortalOption[]
   clients: PortalRow[]
   matters: PortalRow[]
   invites: PortalRow[]

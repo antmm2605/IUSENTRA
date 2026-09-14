@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.306.0 - 14/09/2026
+## 2.307.0 - 14/09/2026
 
 Verificati uno per uno tutti gli strumenti forensi e aggiunti tre moduli su lacune che si pagano in scadenza. Il catalogo passa da 70 a 73 moduli.
 
@@ -24,6 +24,15 @@ Verificati uno per uno tutti gli strumenti forensi e aggiunti tre moduli su lacu
 **Importi in formato italiano.** Nuovo `fmt_eur` condiviso: il formato di Python è l'inverso di quello italiano e la sostituzione ingenua produceva «30.000.00», un numero che in un atto non si può scrivere.
 
 Tutti i testi di legge citati sono stati riletti su Normattiva prima di scrivere il codice. Una verifica ha corretto un errore che stavo per introdurre: la durata della mediazione è di **sei** mesi, non tre. 50 nuovi test.
+
+## 2.306.1 - 13/09/2026
+
+Verifica e chiusura operativa del workflow firma nel Portale Cliente, mantenuto nascosto in produzione finché il flag `routes.appV2.clientPortal.signingWorkflow` resta spento.
+
+- **Portale Cliente:** il riepilogo del percorso completato permette di riaprire le sezioni già concluse, inclusa identità e conferimento, così ricevuta, documento e firma restano verificabili anche dopo la chiusura del flusso.
+- **Documento di identità:** il documento caricato durante il workflow firma soddisfa la richiesta standard “Documento di identità”, aggiorna le azioni aperte e mostra allo studio lo stato reale fino ad “Approvato” invece di duplicare il file tra i documenti non richiesti.
+- **Preventivo:** gli importi esposti nel passaggio di accettazione usano il formato italiano con simbolo euro, coerente con il resto di IUSENTRA.
+- **Test:** estesa la suite del Portale Cliente per coprire upload identità, stato richiesta, conteggio azioni aperte e approvazione lato studio.
 
 ## 2.305.2 - 13/09/2026
 

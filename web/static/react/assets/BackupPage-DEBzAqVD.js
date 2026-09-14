@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-2_-HNKNn.js";import{t}from"./ImpostazioniPage-2WA026p3.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

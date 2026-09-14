@@ -39,6 +39,18 @@ from web.services.react_client_portal_bridge import (
     studio_upload_signature_document,
     update_settings_from_payload,
 )
+from web.services.client_portal_signing_bridge import (
+    client_accept_preventivo,
+    client_decline_preventivo,
+    client_sign_conferimento,
+    client_signing_otp_start,
+    client_signing_otp_verify,
+    client_signing_overview,
+    client_signing_receipt,
+    client_upload_identity_document,
+    client_upload_signed_conferimento,
+    studio_review_document,
+)
 from web.services.tenant_api_auth import api_key_valid_for_request
 
 
@@ -273,3 +285,70 @@ def public_survey_submit():
 def public_conversation_export():
     token = str(request.headers.get("X-Client-Portal-Token") or "")
     return _json(export_conversation(str(request.args.get("matterId") or ""), token=token))
+
+
+# ---------------------------------------------------------------- workflow firma
+# Flusso professionale preventivo → conferimento → firma, governato dal flag
+# default-off routes.appV2.clientPortal.signingWorkflow (fail-closed).
+
+
+@api_v1_client_portal.get("/public/signing/overview")
+def public_signing_overview():
+    return _json(client_signing_overview())
+
+
+@api_v1_client_portal.post("/public/signing/preventivi/<preventivo_id>/accept")
+def public_signing_preventivo_accept(preventivo_id: str):
+    return _json(client_accept_preventivo(preventivo_id, _json_body()))
+
+
+@api_v1_client_portal.post("/public/signing/preventivi/<preventivo_id>/decline")
+def public_signing_preventivo_decline(preventivo_id: str):
+    return _json(client_decline_preventivo(preventivo_id, _json_body()))
+
+
+@api_v1_client_portal.post("/public/signing/conferimento/<conferimento_id>/sign")
+def public_signing_conferimento_sign(conferimento_id: str):
+    return _json(client_sign_conferimento(conferimento_id, _json_body()))
+
+
+@api_v1_client_portal.post("/public/signing/conferimento/<conferimento_id>/upload-signed")
+def public_signing_conferimento_upload_signed(conferimento_id: str):
+    form = {key: request.form.get(key) for key in request.form}
+    consents = {
+        key: str(request.form.get(f"consents[{key}]") or request.form.get(key) or "").lower() in {"1", "true", "on"}
+        for key in (
+            "firma_lettura_documento",
+            "firma_accettazione_contenuto",
+            "firma_autorizzazione_applicazione",
+            "firma_conferma_dati",
+        )
+    }
+    form["consents"] = consents
+    return _json(client_upload_signed_conferimento(conferimento_id, request.files.get("file"), form))
+
+
+@api_v1_client_portal.post("/public/signing/identity-document")
+def public_signing_identity_document():
+    return _json(client_upload_identity_document(request.files.get("file")))
+
+
+@api_v1_client_portal.post("/public/signing/otp/start")
+def public_signing_otp_start():
+    return _json(client_signing_otp_start())
+
+
+@api_v1_client_portal.post("/public/signing/otp/verify")
+def public_signing_otp_verify():
+    return _json(client_signing_otp_verify(_json_body()))
+
+
+@api_v1_client_portal.get("/public/signing/receipt")
+def public_signing_receipt():
+    return _json(client_signing_receipt())
+
+
+@api_v1_client_portal.post("/studio/documents/<document_id>/review")
+@_studio_auth_required
+def studio_document_review(document_id: str):
+    return _json(studio_review_document(document_id, _json_body()))

@@ -44,6 +44,8 @@ import {
   type ClientPortalStudioPayload,
   type PortalRow,
 } from '../clientPortalData'
+import { reviewStudioDocument } from '../clientPortalSigning'
+import { SigningWorkflowPanel } from './client-portal/SigningWorkflowPanel'
 
 type ClientPortalPageProps = {
   mode?: 'studio' | 'client'
@@ -62,6 +64,9 @@ type GeneratedInviteLink = {
   clientPhone: string
 }
 
+const SIGNING_IDENTITY_DOCUMENT_REQUEST_ID = 'documento-identita'
+const DOCUMENT_SATISFIED_STATUSES = new Set(['caricato', 'generato', 'in_revisione', 'approvato', 'firmato_definitivo'])
+
 function text(value: unknown, fallback = ''): string {
   const cleaned = String(value ?? '').trim()
   return cleaned || fallback
@@ -78,6 +83,32 @@ function initialStudioPortalClientId(): string {
 
 function rowId(row: PortalRow | undefined): string {
   return text(row?.id)
+}
+
+function normalizedPortalLabel(value: unknown): string {
+  return text(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+function isIdentityDocumentRequest(row: PortalRow): boolean {
+  const label = normalizedPortalLabel(`${text(row.title)} ${text(row.description)}`)
+  return label.includes('identita') && (label.includes('documento') || label.includes('carta'))
+}
+
+function documentSatisfiesRequest(document: PortalRow, requestItem: PortalRow): boolean {
+  if (!DOCUMENT_SATISFIED_STATUSES.has(text(document.status))) return false
+  const requestId = rowId(requestItem)
+  const documentRequestId = text(document.request_id)
+  if (requestId && documentRequestId === requestId) return true
+  if (text(requestItem.document_id) && rowId(document) === text(requestItem.document_id)) return true
+  return documentRequestId === SIGNING_IDENTITY_DOCUMENT_REQUEST_ID && isIdentityDocumentRequest(requestItem)
+}
+
+function documentForRequest(documents: PortalRow[], requestItem: PortalRow): PortalRow | undefined {
+  return documents.find((doc) => documentSatisfiesRequest(doc, requestItem))
+}
+
+function documentRequestDone(requestItem: PortalRow, documents: PortalRow[]): boolean {
+  return ['caricato', 'ricevuto', 'approvato'].includes(text(requestItem.status)) || Boolean(documentForRequest(documents, requestItem))
 }
 
 function statusLabel(value: unknown): string {
@@ -192,7 +223,7 @@ function ClientPortalStudio() {
   const [generatedInvite, setGeneratedInvite] = useState<GeneratedInviteLink | null>(null)
   const [selectedMatterId, setSelectedMatterId] = useState('')
   const [clientSearch, setClientSearch] = useState('')
-  const [inviteForm, setInviteForm] = useState({ clientId: '', matterId: '', message: '', expiresDays: 14 })
+  const [inviteForm, setInviteForm] = useState({ clientId: '', matterId: '', preventivoId: '', message: '', expiresDays: 14 })
   const [messageBody, setMessageBody] = useState('')
   const [requestTitle, setRequestTitle] = useState('')
   const [signatureTitle, setSignatureTitle] = useState('')
@@ -201,6 +232,7 @@ function ClientPortalStudio() {
   const [appointmentStart, setAppointmentStart] = useState('')
   const [appointmentVideoUrl, setAppointmentVideoUrl] = useState('')
   const [settingsDays, setSettingsDays] = useState(14)
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
   const studioChatRef = useRef<HTMLDivElement | null>(null)
 
   const load = async () => {
@@ -244,9 +276,12 @@ function ClientPortalStudio() {
   const selectedClientDocuments = (payload.documents || []).filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const unrequestedClientDocuments = selectedClientDocuments.filter((doc) => {
     const requestId = text(doc.request_id)
-    // esclude i PDF caricati dallo studio per le firme e gli upload già agganciati a una richiesta
-    return requestId !== 'firma-studio' && !selectedDocumentRequests.some((item) => rowId(item) === requestId)
+    // esclude i PDF caricati dallo studio per le firme, le copie interne del
+    // workflow (PDF materializzati) e gli upload già agganciati a una richiesta
+    if (requestId === 'firma-studio' || requestId.startsWith('preventivo-pdf:') || requestId.startsWith('conferimento-pdf:') || requestId === 'ricevuta-firma') return false
+    return !selectedDocumentRequests.some((item) => documentSatisfiesRequest(doc, item))
   })
+  const documentsInReview = selectedClientDocuments.filter((doc) => text(doc.status) === 'in_revisione')
   const selectedSignatures = payload.signatures.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedAppointments = payload.appointments.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedInvites = payload.invites.filter((item) => text(item.matter_id) === rowId(selectedMatter))
@@ -262,9 +297,20 @@ function ClientPortalStudio() {
     () => payload.matterOptions.filter((item) => !inviteForm.clientId || text(item.clientId) === inviteForm.clientId),
     [inviteForm.clientId, payload.matterOptions],
   )
+  const linkedPreventivoOptions = useMemo(
+    () => (payload.preventivoOptions || []).filter((item) => inviteForm.clientId && text(item.clientId) === inviteForm.clientId),
+    [inviteForm.clientId, payload.preventivoOptions],
+  )
   const selectedClientOption = payload.clientOptions.find((item) => item.id === inviteForm.clientId)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
   const videoCallsEnabled = payload.featureFlags['routes.appV2.clientPortal.videoCalls'] !== false
+  const signingWorkflowEnabled = payload.featureFlags['routes.appV2.clientPortal.signingWorkflow'] === true
+
+  const reviewDocument = async (documentId: string, decision: 'approvato' | 'respinto', note = '') => {
+    const response = await reviewStudioDocument(documentId, decision, note)
+    setNotice({ tone: response.ok ? 'success' : 'warning', text: text(response.message, response.ok ? 'Revisione registrata.' : 'Revisione non registrata.') })
+    if (response.ok) await load()
+  }
 
   useEffect(() => {
     if (!inviteForm.clientId) return
@@ -324,7 +370,7 @@ function ClientPortalStudio() {
 
   function updateInviteClient(clientId: string) {
     const nextMatter = payload.matterOptions.find((item) => text(item.clientId) === clientId)
-    setInviteForm((current) => ({ ...current, clientId, matterId: text(nextMatter?.id) }))
+    setInviteForm((current) => ({ ...current, clientId, matterId: text(nextMatter?.id), preventivoId: '' }))
   }
 
   const createInviteForMatter = async (matter: PortalRow | undefined) => {
@@ -337,6 +383,7 @@ function ClientPortalStudio() {
     const requestPayload = {
       clientId,
       matterId: fascicoloId,
+      preventivoId: '',
       message: '',
       expiresDays: numberValue(settingsDays) || numberValue(payload.settings?.inviteExpiresDays) || 14,
     }
@@ -492,6 +539,15 @@ function ClientPortalStudio() {
             ) : (
               <p className="iu-client-portal-muted">Nessun fascicolo collegato al cliente selezionato.</p>
             )}
+            {signingWorkflowEnabled && linkedPreventivoOptions.length > 0 ? (
+              <label>
+                Preventivo da proporre (facoltativo)
+                <select value={inviteForm.preventivoId} onChange={(event) => setInviteForm((current) => ({ ...current, preventivoId: event.target.value }))}>
+                  <option value="">Nessun preventivo in evidenza</option>
+                  {linkedPreventivoOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </select>
+              </label>
+            ) : null}
             <label>
               Validità invito
               <input type="number" min={1} max={90} value={inviteForm.expiresDays} onChange={(event) => setInviteForm((current) => ({ ...current, expiresDays: Number(event.target.value) }))}/>
@@ -581,11 +637,11 @@ function ClientPortalStudio() {
                 <button type="submit" disabled={!requestTitle.trim()}><UploadCloud size={16} aria-hidden="true"/>Richiedi al cliente</button>
                 {selectedDocumentRequests.length === 0 ? <span className="iu-client-portal-muted">Nessuna richiesta documento per questa pratica.</span> : null}
                 {selectedDocumentRequests.map((item) => {
-                  const uploaded = selectedClientDocuments.find((doc) => text(doc.request_id) === rowId(item))
+                  const uploaded = documentForRequest(selectedClientDocuments, item)
                   return (
                     <span className="iu-client-portal-doc-line" key={rowId(item)}>
                       <strong>{text(item.title)}</strong>
-                      <PortalBadge value={uploaded ? 'ricevuto' : item.status}/>
+                      <PortalBadge value={uploaded ? text(item.document_status || uploaded.status || 'ricevuto') : item.status}/>
                       {uploaded ? (
                         <a href={studioPortalDocumentUrl(rowId(uploaded))} title={`Scarica ${text(uploaded.filename)}`}>
                           <Download size={14} aria-hidden="true"/>{text(uploaded.filename)}
@@ -603,6 +659,30 @@ function ClientPortalStudio() {
                           <Download size={14} aria-hidden="true"/>{text(doc.filename)}
                         </a>
                         <em>{text(doc.uploaded_at_label)}</em>
+                      </span>
+                    ))}
+                  </>
+                ) : null}
+                {signingWorkflowEnabled && documentsInReview.length ? (
+                  <>
+                    <h4 className="iu-client-portal-doc-subtitle">Documenti in revisione</h4>
+                    {documentsInReview.map((doc) => (
+                      <span className="iu-client-portal-doc-line iu-client-portal-doc-line--review" key={`review-${rowId(doc)}`}>
+                        <a href={studioPortalDocumentUrl(rowId(doc))} title="Scarica documento">
+                          <Download size={14} aria-hidden="true"/>{text(doc.filename)}
+                        </a>
+                        <input
+                          value={reviewNotes[rowId(doc)] || ''}
+                          onChange={(event) => setReviewNotes((current) => ({ ...current, [rowId(doc)]: event.target.value }))}
+                          placeholder="Nota per il cliente (facoltativa)"
+                          aria-label="Nota di revisione"
+                        />
+                        <button type="button" onClick={() => void reviewDocument(rowId(doc), 'approvato', reviewNotes[rowId(doc)] || '')}>
+                          <Check size={14} aria-hidden="true"/>Approva
+                        </button>
+                        <button type="button" className="danger" onClick={() => void reviewDocument(rowId(doc), 'respinto', reviewNotes[rowId(doc)] || '')}>
+                          Respingi
+                        </button>
                       </span>
                     ))}
                   </>
@@ -844,6 +924,7 @@ function ClientPortalClient() {
   const token = readClientPortalToken()
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
+  const signingWorkflowEnabled = payload.featureFlags['routes.appV2.clientPortal.signingWorkflow'] === true
 
   const load = async () => {
     setLoading(true)
@@ -958,15 +1039,14 @@ function ClientPortalClient() {
   // record statico: il cliente vede subito cosa ha completato e dove andare.
   const consentsDone = (payload.consents || []).length > 0 && (payload.consents || []).every((item) => numberValue(item.accepted) > 0)
   const documentsDone = (payload.documentRequests || []).length > 0 && (payload.documentRequests || []).every((item) => (
-    ['caricato', 'ricevuto', 'approvato'].includes(text(item.status)) ||
-    (payload.documents || []).some((doc) => text(doc.request_id) === rowId(item))
+    documentRequestDone(item, payload.documents || [])
   ))
   const signaturesDone = (payload.signatures || []).length > 0 && (payload.signatures || []).every((item) => text(item.status) === 'firmato')
   const appointmentsDone = (payload.appointments || []).some((item) => text(item.status) === 'confermato')
   const checklist = [
     { key: 'privacy', title: 'Privacy e consensi', anchor: '#panel-privacy', done: consentsDone, pending: (payload.consents || []).filter((item) => !numberValue(item.accepted)).length },
     { key: 'anagrafica', title: 'Anagrafica cliente', anchor: '#panel-anagrafica', done: Boolean(completion?.complete), pending: completion ? completion.total - completion.filled : 0 },
-    { key: 'documenti', title: 'Documenti richiesti', anchor: '#panel-documenti', done: documentsDone, pending: (payload.documentRequests || []).filter((item) => !['caricato', 'ricevuto', 'approvato'].includes(text(item.status)) && !(payload.documents || []).some((doc) => text(doc.request_id) === rowId(item))).length },
+    { key: 'documenti', title: 'Documenti richiesti', anchor: '#panel-documenti', done: documentsDone, pending: (payload.documentRequests || []).filter((item) => !documentRequestDone(item, payload.documents || [])).length },
     { key: 'firme', title: 'Documenti da firmare', anchor: '#panel-firme', done: signaturesDone, pending: (payload.signatures || []).filter((item) => text(item.status) !== 'firmato').length },
     { key: 'appuntamenti', title: 'Appuntamento o videocall', anchor: '#panel-appuntamenti', done: appointmentsDone, pending: (payload.appointments || []).filter((item) => text(item.status) === 'proposto').length },
   ]
@@ -1020,6 +1100,10 @@ function ClientPortalClient() {
           </div>
         </div>
 
+        {signingWorkflowEnabled ? (
+          <SigningWorkflowPanel onNotice={(tone, text) => setNotice({ tone, text })} />
+        ) : null}
+
         <form className="iu-client-portal-panel iu-client-portal-form" onSubmit={saveProfile} id="panel-anagrafica">
           <div className="iu-client-portal-panel__head">
             <h2>Anagrafica</h2>
@@ -1068,7 +1152,7 @@ function ClientPortalClient() {
           ) : null}
           {(payload.documentRequests || []).length === 0 ? <span className="iu-client-portal-muted">Lo studio non ha ancora richiesto documenti.</span> : null}
           {(payload.documentRequests || []).map((requestItem) => {
-            const uploaded = (payload.documents || []).find((doc) => text(doc.request_id) === rowId(requestItem))
+            const uploaded = documentForRequest(payload.documents || [], requestItem)
             return (
               <article className="iu-client-portal-action-row" key={rowId(requestItem)}>
                 <div>

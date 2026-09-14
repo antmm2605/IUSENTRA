@@ -122,6 +122,71 @@ def test_firma_grafica_interna_produce_pdf_firmato_senza_mutare_originale() -> N
     assert len(reader.pages) >= 1
 
 
+def _minimal_jpeg() -> bytes:
+    from reportlab.pdfgen import canvas as _c  # noqa: F401 - assicura reportlab presente
+
+    # JPEG 1x1 minimale generato una volta (nessuna dipendenza da Pillow nei test).
+    import base64
+
+    return base64.b64decode(
+        "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRof"
+        "Hh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAAB"
+        "AAAAAAAAAAAAAAAAAAAACv/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q=="
+    )
+
+
+def test_firma_grafica_con_immagine_jpeg_e_coordinate() -> None:
+    original = _minimal_pdf()
+    provider = get_signature_provider("internal_graphic")
+    coordinates = {"pageIndex": 0, "xMm": 20.0, "yMm": 30.0, "widthMm": 60.0, "heightMm": 25.0}
+    result = provider.create_signature_request(
+        _request(),
+        pdf_bytes=original,
+        signer_name="Mario Rossi",
+        signature_coordinates=coordinates,
+        signature_image=_minimal_jpeg(),
+    )
+    assert result.status == "firmato"
+    assert result.signed_pdf is not None and result.signed_pdf != original
+    assert result.evidence["signatureCoordinates"] == coordinates
+    assert result.evidence["signatureImageSha256"] == sha256_hex(_minimal_jpeg())
+    assert "stampFallback" not in result.evidence
+
+
+def test_firma_grafica_immagine_non_jpeg_degrada_a_timbro_testo() -> None:
+    original = _minimal_pdf()
+    provider = get_signature_provider("internal_graphic")
+    png_like = b"\x89PNG\r\n\x1a\n" + b"0" * 32
+    result = provider.create_signature_request(
+        _request(),
+        pdf_bytes=original,
+        signer_name="Mario Rossi",
+        signature_image=png_like,
+    )
+    # Nessuna eccezione: fallback tracciato in evidence, firma comunque valida.
+    assert result.status == "firmato"
+    assert result.signed_pdf is not None
+    assert result.evidence.get("stampFallback") == "testo"
+    assert "signatureImageSha256" not in result.evidence
+
+
+def test_timbro_con_coordinate_fuori_pagina_viene_riportato_dentro() -> None:
+    original = _minimal_pdf()
+    stamped = apply_visible_signature_stamp(
+        original,
+        signer_name="Mario Rossi",
+        page_index=0,
+        x_mm=5000.0,
+        y_mm=5000.0,
+        width_mm=500.0,
+        height_mm=500.0,
+    )
+    from pypdf import PdfReader
+
+    reader = PdfReader(io.BytesIO(stamped))
+    assert len(reader.pages) >= 1
+
+
 def test_firma_grafica_fallisce_in_modo_sicuro_su_pdf_corrotto() -> None:
     provider = get_signature_provider("internal_graphic")
     with pytest.raises(SignatureProviderError):

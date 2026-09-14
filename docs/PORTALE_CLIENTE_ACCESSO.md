@@ -5,6 +5,12 @@ il Portale Cliente, costruito con la stessa filosofia del login guard dello
 studio. L'invio dell'OTP sul canale (email/SMS/PEC) e l'aggancio alla sessione
 del portale sono il wiring successivo; la primitiva qui è completa e testata.
 
+Nota 2026-07-10: le primitive di hashing/anti-bruteforce di questo modulo sono
+riusate dallo **step-up OTP della firma** nel workflow del Portale Cliente
+(`web/services/client_portal_signing_bridge.py`, setting `signatures.otpStepUp`,
+invio codice via email, fail-closed): vedi `docs/portale-cliente-firma.md`.
+Il magic-link monouso per l'accesso resta una predisposizione non ancora cablata.
+
 ## Flusso
 
 ```

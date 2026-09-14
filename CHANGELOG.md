@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.307.1 - 14/09/2026
+
+Provata a mano ogni funzione della pagina Strumenti forensi, dal percorso HTTP reale. Un modulo era rotto in pagina pur avendo il codice di dominio corretto.
+
+- **«Maggior danno da svalutazione» non funzionava nella pagina React.** Il menu «Base degli interessi» offriva *Capitale rivalutato* e *Capitale nominale*, ma il calcolatore accetta soltanto *rivalutato anno per anno* (Cass. S.U. 1712/1995), *semisomma* e *capitale originario*: qualunque scelta l'avvocato facesse, il modulo rispondeva «Base di calcolo degli interessi non riconosciuta». Ora il menu dichiara le tre basi davvero implementate, con le etichette che ne citano il criterio. Tolto anche il selettore «Indice ISTAT», che non aveva effetto: l'art. 1224, comma 2, c.c. si misura sul FOI e il calcolatore lo impone.
+- **Codice fiscale e Calcolo percentuali restituivano un numero e basta.** Il primo ora cita il **D.M. 23 dicembre 1976** e avverte che l'algoritmo non risolve le omocodie — in caso di omonimia l'Agenzia delle Entrate attribuisce un codice diverso — e che il risultato va riscontrato prima di finire in un atto. Il secondo dichiara come arrotonda: quota ai centesimi, incidenza e variazione a quattro decimali.
+- **Nuova prova di funzionamento dell'intera pagina** (`tests/test_strumenti_legali_end_to_end.py`, 80 test). Apre l'applicazione, fa il login e chiama gli stessi due endpoint della pagina per tutti e 73 gli strumenti, con dati di prova plausibili raccolti in `tests/dati_strumenti_legali.py`. Verifica che ognuno sia collegato all'endpoint, che ogni campo dichiarato abbia un valore iniziale, che **ogni opzione offerta da un menu a tendina sia accettata dal calcolatore** — il controllo che ha trovato il difetto sopra — e che ogni risultato porti con sé fonti o note. Uno strumento nuovo senza dati di prova fa fallire la suite.
+
+Nota su un limite dei dati, non del codice: la serie ISTAT FOI caricata parte da metà 2022, quindi le rivalutazioni con anno base anteriore rispondono con un messaggio che dice fin dove arriva la tabella. Per estenderla serve una fonte ISTAT raggiungibile.
+
 ## 2.307.0 - 14/09/2026
 
 Verificati uno per uno tutti gli strumenti forensi e aggiunti tre moduli su lacune che si pagano in scadenza. Il catalogo passa da 70 a 73 moduli.

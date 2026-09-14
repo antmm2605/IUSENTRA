@@ -146,8 +146,16 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
         "azione": "Calcola maggior danno",
         "campi": [
             _numero("md_importo", "Importo del credito"),
-            _scelta("md_tipo_indice", "Indice ISTAT", [("FOI", "FOI"), ("NIC", "NIC")]),
-            _scelta("md_base_interessi", "Base degli interessi", [("rivalutato", "Capitale rivalutato"), ("nominale", "Capitale nominale")]),
+            # Le basi sono quelle che il calcolatore implementa davvero: le due
+            # voci precedenti («rivalutato», «nominale») non erano riconosciute e
+            # rendevano lo strumento inutilizzabile dalla pagina React.
+            # L'indice non e' una scelta: l'art. 1224, comma 2, c.c. si misura sul
+            # FOI, e il calcolatore lo impone.
+            _scelta("md_base_interessi", "Base degli interessi", [
+                ("rivalutato_annuale", "Capitale rivalutato anno per anno (Cass. S.U. 1712/1995)"),
+                ("semisomma", "Semisomma tra capitale originario e capitale rivalutato"),
+                ("originario", "Capitale originario"),
+            ]),
             _intero("md_anno_base", "Anno iniziale", minimo=1947),
             _intero("md_mese_base", "Mese iniziale", minimo=1, massimo=12),
             _intero("md_anno_fine", "Anno finale", minimo=1947),

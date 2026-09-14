@@ -157,6 +157,20 @@ def _add_months(day: date, months: int) -> date:
     return date(year, month, month_day)
 
 
+# Il codice fiscale e' costruito con le regole del D.M. 23 dicembre 1976
+# (Sistema di codificazione dei soggetti da iscrivere all'anagrafe tributaria):
+# l'algoritmo e' deterministico ma non risolve le omocodie, che l'Agenzia delle
+# Entrate assegna caso per caso. Per questo il risultato va sempre riscontrato.
+_NOTE_CODICE_FISCALE: tuple[str, ...] = (
+    "Algoritmo del D.M. 23 dicembre 1976 sul sistema di codificazione dei soggetti da iscrivere "
+    "all'anagrafe tributaria.",
+    "Il codice calcolato non tiene conto delle omocodie: in caso di omonimia l'Agenzia delle "
+    "Entrate attribuisce un codice diverso da quello ricavabile dall'algoritmo.",
+    "Prima di inserirlo in un atto va riscontrato sul tesserino o sul servizio di verifica "
+    "dell'Agenzia delle Entrate.",
+)
+
+
 class GestioneStrumentiLegali:
     def __init__(self, normative_db_path: str = "./intelligence/tabelle_normative.json"):
         self.norme = GestioneTabelleNormative(db_path=normative_db_path)
@@ -1220,6 +1234,12 @@ class GestioneStrumentiLegali:
             raise ValueError(
                 "Inserisci base e percentuale (per la quota) oppure base e parte (per incidenza e variazione)."
             )
+        risultato["notes"] = [
+            "La quota e' arrotondata ai centesimi; incidenza e variazione a quattro decimali, "
+            "per non perdere precisione nei riparti su molte voci.",
+            "La variazione e' calcolata sulla base indicata: un valore negativo segnala una "
+            "diminuzione rispetto alla base.",
+        ]
         return risultato
 
     def calcola_codice_fiscale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1236,7 +1256,13 @@ class GestioneStrumentiLegali:
             esito = cf_mod.decodifica(cf_input)
             if not esito:
                 raise ValueError("Codice fiscale non valido o malformato (16 caratteri attesi).")
-            return {"operazione": "decodifica", "codice_fiscale": cf_input, **esito}
+            return {
+                "operazione": "decodifica",
+                "codice_fiscale": cf_input,
+                **esito,
+                "notes": list(_NOTE_CODICE_FISCALE),
+                "sources": self._sources_for_codes("normattiva_portale"),
+            }
         esito = cf_mod.calcola(
             cognome=_clean_text(payload.get("cf_cognome")),
             nome=_clean_text(payload.get("cf_nome")),
@@ -1250,7 +1276,12 @@ class GestioneStrumentiLegali:
                 "Dati insufficienti o Comune non riconosciuto: servono cognome, nome, sesso, "
                 "data e luogo di nascita presenti nei codici catastali."
             )
-        return {"operazione": "calcolo", **esito}
+        return {
+            "operazione": "calcolo",
+            **esito,
+            "notes": list(_NOTE_CODICE_FISCALE),
+            "sources": self._sources_for_codes("normattiva_portale"),
+        }
 
     def tabella_variazioni_istat(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         """Vista tabellare degli indici FOI/NIC e variazioni % (dati versionati)."""

@@ -8807,6 +8807,22 @@ def fascicolo_react_lex(id_fasc: str):
     ))
 
 
+@api_v1_react.get("/fascicoli/<id_fasc>/lettura")
+@_richiedi_auth
+def fascicolo_react_lettura(id_fasc: str):
+    """La lettura del fascicolo: che cosa tratta, che cosa e' stato fatto, a che punto siamo, che cosa fare."""
+    try:
+        from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
+
+        lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc)
+        if not lettura:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        return _jsonify_public_payload({"ok": True, "lettura": lettura})
+    except Exception as exc:
+        current_app.logger.exception("Lettura del fascicolo %s non completata: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Lettura del fascicolo non completata."}, 200)
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")
 @_richiedi_auth
 def fascicolo_regia_operativa(id_fasc: str):

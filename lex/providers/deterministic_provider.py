@@ -154,6 +154,17 @@ def _format_euro(value: Any) -> str:
 
 
 def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> str:
+    # La lettura del fascicolo, quando c'e', e' la risposta: intestazione,
+    # oggetto, cronologia, depositi, notifiche, documenti, fase e prossimi
+    # passi, tutti ricavati dai dati. Il testo generico che segue resta per i
+    # fascicoli di cui la lettura non e' disponibile.
+    lettura = _context_dict(context, "lettura_fascicolo")
+    if lettura.get("intestazione"):
+        from lex.formatting.lettura_fascicolo import testo_lettura_per_domanda
+
+        testo = testo_lettura_per_domanda(question, lettura)
+        if testo:
+            return testo
     fascicolo = _context_section(context, "fascicolo") or {}
     documenti = list(_context_section(context, "documenti") or [])
     fascicolo_sezioni = dict(_context_section(context, "fascicolo_sezioni") or {})

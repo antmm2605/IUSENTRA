@@ -247,9 +247,28 @@ def _build_fascicolo_context(fascicolo_id: str) -> str:
             lines.append(
                 f"- Prossima udienza: {_truncate(getattr(fascicolo, 'data_prossima_udienza', ''), 60)}"
             )
+        lettura = _lettura_fascicolo(fascicolo_id)
+        if lettura:
+            lines.extend(["", "Lettura del fascicolo (dati reali, da usare come unica fonte sui fatti della pratica):", lettura])
         return "\n".join(lines)
     except Exception:
         return ""
+
+
+_LETTURA_MAX_CARATTERI = 6000
+
+
+def _lettura_fascicolo(fascicolo_id: str) -> str:
+    """La lettura completa del fascicolo, entro il limite del contesto del modello."""
+    try:
+        from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
+
+        testo = str((load_fascicolo_lettura_context(fascicolo_id=fascicolo_id) or {}).get("narrativa") or "").strip()
+    except Exception:
+        return ""
+    if len(testo) <= _LETTURA_MAX_CARATTERI:
+        return testo
+    return testo[:_LETTURA_MAX_CARATTERI].rsplit("\n", 1)[0] + "\n…"
 
 
 def build_assistente_prompt(

@@ -192,6 +192,22 @@ def search_fascicolo_sources(pratica_id: str, message: str, context: dict[str, A
                 )
             )
 
+    lettura = dict(structured.get("lettura_fascicolo") or {})
+    if lettura.get("narrativa"):
+        # La lettura e' evidenza: le sue frasi e i riferimenti che contiene
+        # (fasi del deposito, termini di legge) sono ricavati dai dati del
+        # fascicolo, e le guardie devono poterli riscontrare.
+        rows.append(
+            LexSource(
+                source_type="lettura_fascicolo",
+                source_id=f"{pratica_id}:lettura",
+                title="Lettura del fascicolo",
+                excerpt=str(lettura.get("narrativa"))[:6000],
+                score=0.98,
+                metadata={"fase": dict(lettura.get("fase") or {}).get("codice", ""), "versione": lettura.get("versione", "")},
+            )
+        )
+
     counts = dict(fascicolo_sections.get("counts") or {})
     for section_key, _title in _SECTION_LABELS.items():
         items = list(

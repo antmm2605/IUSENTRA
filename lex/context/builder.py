@@ -9,6 +9,7 @@ from .agenda_context import load_agenda_context
 from .anagrafica_context import load_anagrafica_context
 from .document_context import load_document_context
 from .fascicolo_context import load_fascicolo_context
+from .fascicolo_lettura_context import load_fascicolo_lettura_context
 from .fascicolo_sections_context import load_fascicolo_sections_context
 from .operational_context import (
     load_economic_context,
@@ -151,6 +152,15 @@ class LexContextBuilder:
                 fallback={"clienti": [], "soggetti": []},
                 pratica_id=pratica_id,
             )
+            # La lettura completa: che cosa tratta, che cosa e' stato fatto, a
+            # che punto siamo, che cosa resta da fare. E' la risposta di Lex
+            # sul fascicolo, costruita dai dati e non da un modello.
+            sanitized["lettura_fascicolo"] = self._safe_section(
+                load_fascicolo_lettura_context,
+                fallback={},
+                pratica_id=pratica_id,
+                fascicolo_id=str(request.fascicolo_id or "").strip(),
+            )
         if request.document_id:
             sanitized["documento"] = {"document_id": str(request.document_id)}
         return sanitized
@@ -221,6 +231,12 @@ class LexContextBuilder:
                 "agenda": self._safe_section(load_agenda_context, fallback=[], pratica_id=pratica_id),
                 "scadenze": self._safe_section(load_scadenze_context, fallback=[], pratica_id=pratica_id),
                 "anagrafica": self._safe_section(load_anagrafica_context, fallback={"clienti": [], "soggetti": []}, pratica_id=pratica_id),
+                "lettura_fascicolo": self._safe_section(
+                    load_fascicolo_lettura_context,
+                    fallback={},
+                    pratica_id=pratica_id,
+                    fascicolo_id=fascicolo_id,
+                ) if (pratica_id or fascicolo_id) else {},
                 "mode": str(mode or "").strip(),
             }
         )

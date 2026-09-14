@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .titoli.fonti import FONTI_TITOLI
+
 CATALOG_SOURCES: dict[str, dict[str, Any]] = {
     "catalog_pst_xsd": {
         "label": "Ministero della Giustizia: catalogo ufficiale degli oggetti e schemi XSD",
@@ -44,16 +46,61 @@ CATALOG_SOURCES: dict[str, dict[str, Any]] = {
         "verification_status": "guida ufficiale consultata; la classificazione non verifica emissione, consegna SdI o pagamento",
         "source_type": "documentale",
     },
+    "normattiva_dpr_445_2000_documentazione_amministrativa": {
+        "label": "D.P.R. 445/2000: documenti di identità (art. 35), certificati (art. 40), dichiarazioni sostitutive (artt. 46 e 47)",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2000-12-28;445~art46",
+        "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_dpr_605_1973_codice_fiscale": {
+        "label": "D.P.R. 605/1973, art. 2: codice fiscale e sua composizione",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1973-09-29;605~art2",
+        "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_esecuzione_forzata": {
+        "label": "c.p.c., artt. 480 (precetto), 492 e 543 (pignoramento): atti dell'esecuzione forzata",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art480",
+        "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_consulenza_tecnica": {
+        "label": "c.p.c., artt. 191-201: consulente tecnico d'ufficio, relazione e consulenti di parte",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art191",
+        "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_art_189_precisazione_conclusioni": {
+        "label": "c.p.c., art. 189: precisazione delle conclusioni e rimessione al collegio",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art189",
+        "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
+        "source_type": "normativa",
+    },
+    # Fonti delle regole d'identità dal titolo, per area (verificate su Normattiva).
+    **FONTI_TITOLI,
 }
 
 
 def catalog_source_row(source_id: str) -> dict[str, Any] | None:
     source = CATALOG_SOURCES.get(source_id)
-    return {"id": source_id, "last_verified_at": "2026-09-06", "snapshot_sha256": "", **source} if source else None
+    if not source:
+        return None
+    verificata = "2026-09-14" if "14/09/2026" in str(source.get("verification_status") or "") else "2026-09-06"
+    return {"id": source_id, "last_verified_at": verificata, "snapshot_sha256": "", **source}
 
 
 def document_source_ids(nature: str, section: str, profile_id: str | None) -> tuple[str, ...]:
     common = ("catalog_agid_metadati",)
+    # Nature riconosciute dal titolo dell'atto (catalog_titoli): ognuna porta la
+    # norma che definisce quel documento.
+    if nature in {"dichiarazione_sostitutiva", "documento_identita", "certificato_anagrafico"}:
+        return common + ("normattiva_dpr_445_2000_documentazione_amministrativa",)
+    if nature == "atto_esecutivo":
+        return common + ("normattiva_cpc_esecuzione_forzata",)
+    if nature in {"relazione_peritale_ctu", "perizia_di_parte"}:
+        return common + ("normattiva_cpc_consulenza_tecnica",)
+    if nature == "ricevuta_deposito":
+        return common + ("catalog_pec_ricevute", "catalog_pec_specifiche")
     if nature in {"fattura", "fattura_xml", "proforma"}:
         return common + ("catalog_fatturapa", "catalog_fattura_emissione")
     if nature in {"verbale_mediazione", "modulo_mediazione", "accordo_mediazione", "modulo_procura_mediazione", "procura_mediazione"}:

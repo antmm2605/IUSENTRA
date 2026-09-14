@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import SimpleNamespace
 from typing import Any, Iterable
 
@@ -18,6 +18,7 @@ from pct.fascicolo_document_catalog import DocumentCatalogClassification, classi
 from pct.presidio_processuale_ruleset import presidio_rule_hits
 from pct.template_atti_legal_sources import REGISTRY_VERSION, TEMPLATE_ATTI_LEGAL_SOURCES
 from .catalog_identity import structural_identity
+from .catalog_titoli import identita_dal_titolo
 from .catalog_fields import document_fields
 from .catalog_context import enrich_official_context
 from .catalog_sources import CATALOG_SOURCES, catalog_source_row, document_source_ids
@@ -33,7 +34,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.09.08.catalogo-fascicolo.v24"
+RESOLVER_VERSION = "2026.09.14.catalogo-fascicolo.v25"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -167,6 +168,16 @@ class CatalogResolution:
     review: DocumentCatalogReview | None
 
 
+# Identità strutturali di ripiego: valgono solo se nessun titolo dice di più.
+_IDENTITA_STRUTTURALI_GENERICHE = frozenset({
+    "Provvedimento dell’ufficio giudiziario",
+    "Decreto dell’ufficio giudiziario",
+    "Ordinanza dell’ufficio giudiziario",
+    "Intimazione a comparire",
+    "Intimazione a comparire con documentazione di notifica",
+})
+
+
 @dataclass(frozen=True, slots=True)
 class ContentIdentity:
     """Identità forte ricavata dal documento, distinta dal presidio.
@@ -178,6 +189,8 @@ class ContentIdentity:
 
     classification: DocumentCatalogClassification
     excerpt: str
+    # Fonte normativa dichiarata dalla regola d'identità, quando c'è.
+    fonte: str = ""
 
 
 def _unindexed_content_classification(current: DocumentCatalogClassification) -> DocumentCatalogClassification:
@@ -329,6 +342,18 @@ def _content_identity(
         )
 
     structural = structural_identity(raw)
+    if structural is not None and str(structural.get("label") or "") not in _IDENTITA_STRUTTURALI_GENERICHE:
+        return result(**structural)
+
+    # Il titolo dell'atto con un segnale di conferma: precede la ricerca di
+    # parole nel corpo, che scambia le citazioni per l'identità del documento,
+    # e batte le identità strutturali generiche («Provvedimento dell'ufficio»,
+    # «Intimazione a comparire») quando l'atto dichiara di essere qualcosa di
+    # più preciso.
+    dal_titolo = identita_dal_titolo(raw)
+    if dal_titolo is not None:
+        fonte = str(dal_titolo.pop("fonte", "") or "")
+        return replace(result(**dal_titolo), fonte=fonte)
     if structural is not None:
         return result(**structural)
 

@@ -173,6 +173,9 @@ if [ "$FAST" -eq 0 ]; then
   # si rompe ogni volta che si aggiunge un campo senza il suo default.
   step "Pytest strumenti legali"   python3 -m pytest -q tests/test_strumenti_legali.py tests/test_strumenti_legali_end_to_end.py tests/test_strumenti_processuali.py tests/test_termini_processuali.py tests/test_normative_tables.py tests/test_istat_serie_storica.py tests/test_vista_documenti_preferenze.py tests/test_tariffario.py --tb=short
   step "Pytest acquisizione/OCR"   python3 -m pytest -q tests/test_document_ocr.py tests/test_document_ocr_documento.py tests/test_document_ocr_formato.py tests/test_editor_html_docx.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_editor_acquisition_contract.py tests/test_ocr_impaginazione.py tests/test_ricerca_cliente_fascicolo.py --tb=short
+  # Catalogazione dal titolo (141 regole con fonte Normattiva) e lettura del
+  # fascicolo di Lex: sono il cuore del fascicolo e non hanno dipendenze lente.
+  step "Pytest catalogo/lettura"   python3 -m pytest -q tests/test_document_catalog_titoli.py tests/test_document_catalog_fields.py tests/test_document_catalog_structural_identity.py tests/test_fascicolo_lettura.py tests/test_lex_lettura_fascicolo.py --tb=short
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short
   # Replica dello step CI "RBAC tenant App V2 security gates" (ci.yml, job

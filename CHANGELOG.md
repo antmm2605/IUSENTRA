@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.320.1 — 15/09/2026
+- L'archivio delle letture allega a ogni fatto consegnabile anche la prova di
+  governance: base normativa digitale e procedura interna del registro, così i
+  presìdi ricevono dato, fonti e criterio operativo insieme.
+- Il motore PEC espone nei fatti le basi normative specifiche delle ricevute e
+  dei termini indicati dal presidio, senza cambiare i verdetti già calcolati.
+- Chiusi gli alert Dependabot del lockfile Node aggiornando gli override di
+  `fast-uri`, `qs`, `hono` e `js-yaml` alle versioni non vulnerabili indicate
+  da GitHub.
+
 ## 2.320.0 — 15/09/2026
 
 - Archivio letture: aggiunta la vista canonica dei fatti, che fonde documento e PEC quando riportano la stessa informazione mantenendo tutte le fonti nelle prove.

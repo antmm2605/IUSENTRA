@@ -76,7 +76,9 @@ def test_il_collaudo_decide_verificata_plausibile_respinta():
 
     ocr = per_data(leggi_testo(DECRETO, origine="ocr", contesto=_contesto()))
     assert ocr[("termine", "2026-10-31")].verifica == "plausibile"  # letto dall'OCR, nessun riscontro
-    assert [p["codice"] for p in ocr[("termine", "2026-10-31")].prove] == ["calendario", "forma", "ancoraggio", "orizzonte", "concordanza"]
+    prove_termine = [p["codice"] for p in ocr[("termine", "2026-10-31")].prove]
+    assert prove_termine[:5] == ["calendario", "forma", "ancoraggio", "orizzonte", "concordanza"]
+    assert {"base_normativa", "procedura"} <= set(prove_termine)
     # Con l'agenda che conosce la data, l'udienza letta dall'OCR è verificata.
     con_agenda = per_data(leggi_testo(DECRETO, origine="ocr", contesto=_contesto(date_note={"2026-11-10": ["agenda"]})))
     udienza = con_agenda[("udienza", "2026-11-10")]
@@ -109,6 +111,9 @@ def test_il_motore_pec_traduce_il_presidio_in_fatti():
     assert per[("data", "udienza", "2026-09-01")].verifica == "respinta"  # prima della PEC che la comunica
     assert per[("data", "decorrenza", "2026-09-10")].verifica == "plausibile"  # il presidio la vuole rivedere
     assert per[("evento", "fissazione_udienza", "udienza")].verifica == "verificata"
+    prove_decorrenza = per[("data", "decorrenza", "2026-09-10")].prove
+    assert any(prova.get("codice") == "base_normativa" and "171-ter" in prova.get("dettaglio", "") for prova in prove_decorrenza)
+    assert any(prova.get("codice") == "procedura" and "REGISTRO_LETTURE" in prova.get("dettaglio", "") for prova in prove_decorrenza)
 
 
 def test_le_viste_per_i_presidi():

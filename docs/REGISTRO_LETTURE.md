@@ -193,6 +193,12 @@ prova o lo stesso importo, i presìdi ricevono un solo fatto canonico con tutte
 le fonti nelle prove. Questo evita che due letture equivalenti producano due
 righe operative.
 
+**Fonti normative e procedurali**. Ogni fatto collaudato porta anche una prova
+`base_normativa` e una prova `procedura`: i presìdi non ricevono solo il dato,
+ma anche la base digitale usata per governarlo e il riferimento alla procedura
+interna del registro. Le PEC aggiungono, quando pertinente, la base normativa
+specifica della ricevuta o del termine comunicato.
+
 **La consegna** (`pct/archivio_letture/distribuzione.py`, tabella
 `letture_consegne`). L'archivio sa quali presìdi usano quali fatti, li offre una
 volta sola e tiene il conto di che cosa il presidio ne ha fatto: `consegnato`

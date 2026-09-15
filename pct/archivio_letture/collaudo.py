@@ -27,6 +27,14 @@ from pct.registro_letture.verifica_date import interpreta_data, valuta_data
 ORIGINI_NON_OTTICHE = {"nativo", "pec_xml", "pec_testo", "pec_intestazioni", "metadati", "presidio_pec", "portale"}
 CAMPI_FUTURI = {"udienza", "termine", "costituzione"}
 CAMPI_CONSEGUENTI = {"udienza", "termine", "costituzione", "notifica", "consegna", "accettazione", "deposito"}
+BASE_NORMATIVA_DIGITALE = (
+    "D.M. 44/2011 art. 3 e CAD art. 20: impronta, integrità e tracciabilità "
+    "della fonte digitale"
+)
+PROCEDURA_ARCHIVIO_LETTURE = (
+    "docs/REGISTRO_LETTURE.md: lettura incrementale, collaudo automatico e "
+    "consegna ai presìdi dall'archivio"
+)
 
 
 @dataclass(slots=True)
@@ -53,6 +61,18 @@ class Contesto:
 
 def _prova(codice: str, esito: str, dettaglio: str) -> dict[str, str]:
     return {"codice": codice, "esito": esito, "dettaglio": dettaglio}
+
+
+def _con_prove_governance(fatto: Fatto) -> Fatto:
+    """Aggiunge fonti normative e procedurali senza alterare il verdetto."""
+    prove = list(fatto.prove)
+    codici = {str(prova.get("codice") or "") for prova in prove}
+    if "base_normativa" not in codici:
+        prove.append(_prova("base_normativa", "ok", BASE_NORMATIVA_DIGITALE))
+    if "procedura" not in codici:
+        prove.append(_prova("procedura", "ok", PROCEDURA_ARCHIVIO_LETTURE))
+    fatto.prove = prove
+    return fatto
 
 
 def _collauda_data(fatto: Fatto, contesto: Contesto, secondarie: set[str]) -> Fatto:
@@ -172,18 +192,18 @@ def _collauda_importo(fatto: Fatto, contesto: Contesto) -> Fatto:
 def collauda(fatto: Fatto, contesto: Contesto, *, secondarie: set[str] | None = None) -> Fatto:
     """Il fatto con le sue prove e il verdetto del software."""
     if fatto.verifica in {"corretta", "ignorata"}:
-        return fatto
+        return _con_prove_governance(fatto)
     if fatto.categoria == "data":
-        return _collauda_data(fatto, contesto, secondarie if secondarie is not None else contesto.date_del_secondario())
+        return _con_prove_governance(_collauda_data(fatto, contesto, secondarie if secondarie is not None else contesto.date_del_secondario()))
     if fatto.categoria == "ruolo":
-        return _collauda_ruolo(fatto, contesto)
+        return _con_prove_governance(_collauda_ruolo(fatto, contesto))
     if fatto.categoria == "prova_notifica":
-        return _collauda_prova_notifica(fatto, contesto)
+        return _con_prove_governance(_collauda_prova_notifica(fatto, contesto))
     if fatto.categoria == "importo":
-        return _collauda_importo(fatto, contesto)
+        return _con_prove_governance(_collauda_importo(fatto, contesto))
     if fatto.verifica not in {"verificata", "plausibile", "respinta"}:
         fatto.verifica = "plausibile"
-    return fatto
+    return _con_prove_governance(fatto)
 
 
 def collauda_tutti(fatti: Iterable[Fatto], contesto: Contesto) -> list[Fatto]:
@@ -208,4 +228,8 @@ def contesto_da_fascicolo(fascicolo: Any, *, oggi: date | None = None, date_note
     )
 
 
-__all__ = ["CAMPI_CONSEGUENTI", "CAMPI_FUTURI", "ORIGINI_NON_OTTICHE", "Contesto", "collauda", "collauda_tutti", "contesto_da_fascicolo"]
+__all__ = [
+    "BASE_NORMATIVA_DIGITALE", "CAMPI_CONSEGUENTI", "CAMPI_FUTURI",
+    "ORIGINI_NON_OTTICHE", "PROCEDURA_ARCHIVIO_LETTURE", "Contesto",
+    "collauda", "collauda_tutti", "contesto_da_fascicolo",
+]

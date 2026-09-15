@@ -24,6 +24,10 @@ _RICEVUTE = (
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),
     ("errore_consegna", "errore_consegna", re.compile(r"^\s*(?:avviso di mancata consegna|mancata consegna|errore di consegna)\b", re.IGNORECASE)),
 )
+_BASE_NORMATIVA_PEC = (
+    "D.P.R. 68/2005 art. 6 e L. 53/1994 art. 3-bis: data certificata e "
+    "ricevute PEC nella notifica telematica"
+)
 
 
 def _testo(valore: Any) -> str:
@@ -51,7 +55,10 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
         fatti.append(Fatto(
             categoria="prova_notifica", campo=campo, valore=campo, valore_letto=oggetto[:120], etichetta={"rac": "Ricevuta di accettazione", "rdac": "Ricevuta di avvenuta consegna", "errore_consegna": "Avviso di mancata consegna"}[campo],
             contesto=f"{oggetto} — da {mittente}"[:300], origine="pec_intestazioni", confidenza=1.0,
-            prove=[{"codice": "segnali", "esito": "ok", "dettaglio": "oggetto certificato dal gestore PEC"}],
+            prove=[
+                {"codice": "segnali", "esito": "ok", "dettaglio": "oggetto certificato dal gestore PEC"},
+                {"codice": "base_normativa", "esito": "ok", "dettaglio": _BASE_NORMATIVA_PEC},
+            ],
         ))
         if ricevuta_il and campo != "errore_consegna":
             ora = _ora(messaggio.get("received_at"))
@@ -59,7 +66,11 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
                 categoria="data", campo=campo_data, valore=ricevuta_il + (f"T{ora}" if ora else ""), valore_letto=_testo(messaggio.get("received_at"))[:25],
                 etichetta=f"{'Accettazione' if campo == 'rac' else 'Avvenuta consegna'} del {ricevuta_il[8:10]}/{ricevuta_il[5:7]}/{ricevuta_il[:4]}" + (f" ore {ora}" if ora else ""),
                 contesto=oggetto[:300], origine="pec_intestazioni", confidenza=1.0,
-                prove=[{"codice": "calendario", "esito": "ok", "dettaglio": "data di ricezione certificata"}, {"codice": "ancoraggio", "esito": "ok", "dettaglio": "oggetto della ricevuta"}],
+                prove=[
+                    {"codice": "calendario", "esito": "ok", "dettaglio": "data di ricezione certificata"},
+                    {"codice": "ancoraggio", "esito": "ok", "dettaglio": "oggetto della ricevuta"},
+                    {"codice": "base_normativa", "esito": "ok", "dettaglio": _BASE_NORMATIVA_PEC},
+                ],
             ))
     for udienza in list(messaggio.get("udienze") or []):
         giorno = _giorno(udienza.get("hearing_date"))
@@ -77,11 +88,18 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
         if not giorno:
             continue
         tipo = _testo(termine.get("deadline_type")).replace("_", " ")
+        norma = _testo(termine.get("norm_ref"))
         rivedere = bool(termine.get("human_review_required"))
+        prove = [
+            {"codice": "ancoraggio", "esito": "ok", "dettaglio": "termine estratto dal presidio PEC"},
+            {"codice": "forma", "esito": "attenzione" if rivedere else "ok", "dettaglio": "da rivedere per il presidio" if rivedere else "nessuna correzione"},
+        ]
+        if norma:
+            prove.append({"codice": "base_normativa", "esito": "ok", "dettaglio": f"riferimento indicato dal presidio: {norma}"})
         fatti.append(Fatto(
             categoria="data", campo="decorrenza", valore=giorno, valore_letto=giorno, etichetta=f"Decorrenza del termine {tipo} dal {giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}" + (f" ({_testo(termine.get('norm_ref'))})" if _testo(termine.get("norm_ref")) else ""),
             contesto=f"termine {tipo} dalla PEC «{oggetto}» del {ricevuta_il}"[:300], origine="presidio_pec", confidenza=0.7 if rivedere else 0.95,
-            prove=[{"codice": "ancoraggio", "esito": "ok", "dettaglio": "termine estratto dal presidio PEC"}, {"codice": "forma", "esito": "attenzione" if rivedere else "ok", "dettaglio": "da rivedere per il presidio" if rivedere else "nessuna correzione"}],
+            prove=prove,
         ))
     for evento in list(messaggio.get("eventi") or []):
         primario = _testo(evento.get("primary_event"))
@@ -97,6 +115,7 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
             prove=[
                 {"codice": "classificazione", "esito": "ok", "dettaglio": f"priorità {_testo(evento.get('priority')) or 'n.d.'}"},
                 {"codice": "data", "esito": "ok" if ricevuta_il else "attenzione", "dettaglio": ricevuta_il or "PEC senza data di ricezione"},
+                {"codice": "base_normativa", "esito": "ok", "dettaglio": _BASE_NORMATIVA_PEC},
             ],
         ))
     contesto_pec = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note)

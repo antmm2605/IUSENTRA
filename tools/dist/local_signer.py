@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.131"
+VERSION = "1.6.132"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -6619,6 +6619,11 @@ def _windows_pin_prompt_candidate_score(
     title_norm = (title or "").casefold()
     class_norm = (class_name or "").casefold()
     child_norm = (child_text or "").casefold()
+    # Finestra tecnica del middleware: il nome contiene "bit4id", ma non è
+    # il dialogo PIN. ShowWindow la renderebbe una pagina bianca visibile.
+    notification_window = "bit4id_universal_mw_notification_window"
+    if notification_window in {title_norm.strip(), class_norm.strip()}:
+        return 0
     score = 0
     if title_norm and any(keyword in title_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
         score += 8

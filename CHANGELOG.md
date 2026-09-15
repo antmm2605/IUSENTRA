@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.319.3 — 15/09/2026
+
+- Local Signer 1.6.132: il richiamo del PIN esclude la finestra tecnica vuota Bit4id; la diagnostica si apre soltanto su richiesta esplicita.
+- Preservati il pacchetto accettato 1.6.131, firma multipla, firme esistenti, PEC locale e tabelle Cassazione v21.
+- Riallineato il guardrail React alla selezione esplicita dei documenti da firmare. Collaudo con token del cliente ancora aperto.
+
 ## [2.319.2] — 15/09/2026
 
 ### Deposito accettato e Local Signer 1.6.131

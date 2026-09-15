@@ -300,7 +300,8 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "new AbortController()" in source
     assert "signal: controller.signal" in source
     assert "Local Signer non ha risposto entro 45 secondi" in source
-    assert "Firma ${documents.length} documenti" in source
+    assert "Firma ${signableDocuments.length}" in source
+    assert "signableDocuments.length === 1 ? 'documento' : 'documenti'" in source
     assert "pinInputRef.current?.focus()" in source
     assert "recoverLocalSignerAutomatically" in source
     assert "localSignerOutdated" in source
@@ -315,8 +316,11 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Prima riavvia e riverifica Local Signer." not in source
     assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function documentHasSignedContainerExtension")]
     assert "Versione firmata tramite firma multipla deposito" in source
-    assert "replace_existing_signature: requiresCadesBesRefresh(doc)" in source
-    assert "if (replaceExistingSignature) form.append('confirm_resign', '1')" in source
+    assert "replace_existing_signature: false" in source
+    assert "additionalSignatureIds.includes(doc.id) || requiresPackageSignature(doc)" in source
+    assert "Aggiungi anche la mia firma" in source
+    assert "if (additionalSignatureIds.includes(doc.id)) form.append('add_signature', '1')" in source
+    assert "else if (replaceExistingSignature) form.append('confirm_resign', '1')" in source
     assert "Firma CAdES-BES da aggiornare" in source
     assert "Da rifirmare in PAdES" not in source
     assert "function requiresStudioTelematicoPadesNormalization" not in source

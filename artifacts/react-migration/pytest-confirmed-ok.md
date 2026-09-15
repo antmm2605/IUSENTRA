@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## Verifiche aggiuntive ripristino — 15/09/2026
+
+Guardrail su Windows/Python 3.14: intero `test_local_signer.py` 266 superati prima della correzione finestra; deposito 31, busta 42, catalogo 19 (audit generale 254 secondi), anagrafica ministeriale 20, PolisWeb 109 su gruppi separati. `test_regia_ui_react.py`: 26 superati dopo aggiornamento delle aspettative obsolete del contatore documenti e della firma aggiuntiva esplicita.
+
+Il test PolisWeb inizialmente fallito dipendeva dalla libreria dichiarata `pdf-inspector==1.17.0` assente dal Python locale: installata, test specifico superato senza modificare il codice PolisWeb. Le prove automatizzate non sostituiscono la firma fisica con token.
+
 ## Ripristino deposito accettato / Local Signer 1.6.131 — 15/09/2026 — 2.319.2
 
 Guardrail tecnici sulla macchina locale Windows/Python 3.14; non sostituiscono la prova con token.
@@ -6481,3 +6487,5 @@ La prova visiva materiale locale e in produzione resta registrata separatamente 
 | Test backup nuovo e storico | OK | `tests/test_hetzner_structured_backup.py` 4/4 e `tests/test_hetzner_backup_retention.py` 6/6; Ruff, py_compile, parsing YAML e governance repository superati. |
 | Push, CI e deploy automatico `2.278.85` | OK | Commit `2e647b3c96cd717685e36b09b3a6376e2f877612` sincronizzato sui branch gemelli. Il workflow Codex `33492860732` ha atteso `70/70` job CI positivi, eseguito davvero il backup preventivo e distribuito la release; il workflow gemello `33492888505` ha riconosciuto lo stesso commit, saltando in modo idempotente backup e rebuild. |
 | Verifica post-deploy indipendente | OK | Produzione `versione=2.278.85`, un solo container `iusentra-app` healthy, un solo snapshot `iusentra-structured-20260901_095103_746498`, `retention_count=1`, due database e `11.682.848.768` byte di backup; SHA-256 coincidente e `quick_check=ok` per entrambi, cache Docker ripulita e `/opt/iusentra/tmp-backup-snapshot` assente. |
+
+Verifica finale correzione 1.6.132: intero `test_local_signer.py` 269 superati; installer atomico, build pacchetti, guardrail React e versione impostazioni 44 superati. Confini Local Signer, packaging e Ruff positivi; typecheck/build frontend 2,04 secondi.

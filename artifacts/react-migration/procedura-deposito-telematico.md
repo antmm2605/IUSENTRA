@@ -1,5 +1,13 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 15/09/2026 — ripristino e finestra Bit4id
+
+Ripristinato il deposito accettato con Local Signer 1.6.131, conservando Cassazione v21. Firma esistente mantenuta; firma aggiuntiva solo selezionando **Aggiungi anche la mia firma**; lotto e PIN riutilizzano il flusso accettato. Nessun ripristino dati o invio PEC.
+
+La successiva richiesta sulla finestra tecnica Bit4id è trattata dalla 1.6.132: escluso il solo identificatore della finestra tecnica dal richiamo del PIN, diagnostica aperta solo con `--diagnosi` o indirizzo locale esplicito. Pacchetto 1.6.131 conservato con SHA-256 originale. Installazione locale 1.6.132 e readiness positive.
+
+**Assenza della finestra durante il PIN e firma multipla non verificate su macchina reale in questa sessione**: manca il token, il browser locale dopo la ricostruzione richiede accesso. Rapporto e procedura di collaudo: [ripristino e verifiche](ripristino-deposito-1.6.131-20260915.md).
+
 ## Aggiornamento 24/08/2026 — selezione verificabile dei documenti
 
 Prima di scegliere i documenti per il deposito, l’avvocato può ora aprire

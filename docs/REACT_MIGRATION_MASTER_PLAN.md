@@ -3213,3 +3213,6 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il catalogo comandi è governato in `frontend/src/studioVoiceCommands.json`: 40 comandi base dell'utente, 290 frasi aggiunte, 330 frasi totali e 59 destinazioni operative.
 - `Studio nuovo cliente` usa un flusso guidato con soli campi obbligatori, rilettura e conferma; il salvataggio passa da `POST /api/v1/ui/clienti/voce/crea` con permesso `clienti.scrivi`, validazioni, audit e sincronizzazione.
 - Verifiche locali confermate: catalogo, pytest mirati, UTF-8, typecheck, test React, build Vite, contratti OpenAPI, Docker reale `127.0.0.1:8080` con `/api/pronto` `2.253.1`, audit CDP voce/PIN/cliente/59 destinazioni e visual load audit desktop/tablet/mobile.
+# Rilascio 2.319.3 — 15/09/2026
+
+Ripristino deposito accettato consolidato in `2e1ea5912f`; successiva richiesta sulla finestra Bit4id trattata da Local Signer 1.6.132. Escluso il solo identificatore tecnico dal richiamo del PIN; diagnostica aperta solo su richiesta. Firma multipla, PEC locale e Cassazione v21 preservate. Rapporto in `artifacts/react-migration/ripristino-deposito-1.6.131-20260915.md`; collaudo fisico con token ancora aperto.

@@ -1125,6 +1125,60 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "if (AW_PST_DOWNLOAD_OPERATION_PROMISE) return AW_PST_DOWNLOAD_OPERATION_PROMISE" in download_fn
 
 
+@pytest.mark.parametrize("pin_present", [False, True])
+def test_richiamo_pin_non_mostra_finestra_tecnica_bit4id(monkeypatch, pin_present):
+    import ctypes
+
+    module = _load_local_signer()
+    titles = {1: "bit4id_universal_mw_notification_window"}
+    if pin_present:
+        titles[2] = "Bit4id - Inserisci il PIN"
+    shown = []
+    focused = []
+
+    def window_text(hwnd, buffer, _length):
+        buffer.value = titles[hwnd]
+        return len(buffer.value)
+
+    def window_class(hwnd, buffer, _length):
+        buffer.value = "Bit4id" if hwnd == 1 else "#32770"
+        return len(buffer.value)
+
+    user32 = SimpleNamespace(
+        EnumWindows=lambda callback, arg: [callback(hwnd, arg) for hwnd in titles],
+        EnumChildWindows=lambda *args: None,
+        GetWindowTextLengthW=lambda hwnd: len(titles[hwnd]),
+        GetWindowTextW=window_text,
+        GetClassNameW=window_class,
+        IsWindowVisible=lambda hwnd: False,
+        IsIconic=lambda hwnd: False,
+        AllowSetForegroundWindow=lambda pid: True,
+        ShowWindow=lambda hwnd, state: shown.append(hwnd),
+        SetForegroundWindow=lambda hwnd: focused.append(hwnd) or True,
+    )
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(ctypes, "windll", SimpleNamespace(user32=user32), raising=False)
+    monkeypatch.setattr(ctypes, "WINFUNCTYPE", lambda *args: lambda fn: fn, raising=False)
+    owned = set()
+    assert module._windows_try_foreground_pin_prompt_once(set(), owned) is pin_present
+    assert shown == focused == ([2] if pin_present else [])
+    assert owned == ({2} if pin_present else set())
+    # Anche un provider che usa il nome tecnico come classe resta escluso.
+    assert module._windows_pin_prompt_candidate_score(
+        "Bit4id", "BIT4ID_UNIVERSAL_MW_NOTIFICATION_WINDOW", "PIN"
+    ) == 0
+
+
+def test_avvio_local_signer_apre_diagnosi_solo_su_richiesta():
+    root = Path(__file__).resolve().parents[1]
+    for relative in ("tools/avvia_local_signer.bat", "tools/installa_local_signer_locale.ps1"):
+        source = (root / relative).read_text(encoding="utf-8")
+        assert 'set "DIAGNOSTIC_MODE=0"' in source
+        assert 'if /I "%~1"=="--diagnosi" set "DIAGNOSTIC_MODE=1"' in source
+        for section in source.split('start "" "http://127.0.0.1:27272/diagnosi"')[:-1]:
+            assert 'if "%DIAGNOSTIC_MODE%"=="0" exit /b 0' in section
+
+
 def test_local_signer_pst_curl_usa_prompt_nativo_senza_blocco_browser_o_input_sintetico():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")

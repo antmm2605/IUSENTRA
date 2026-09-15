@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Rilascio 2.319.3 / Signer 1.6.132 — 15/09/2026
+
+- Firma multipla e assenza della finestra Bit4id durante il PIN: **non verificate su macchina reale**; token assente. Browser locale su schermata di accesso dopo ricostruzione.
+- Suite del ripristino precedentemente interrotte: eseguite per gruppi; deposito 31, catalogo 19 e PolisWeb 109 superati. Dipendenza locale pdf-inspector riallineata alle requirements.
+- CI del commit `2e1ea5912f`: unico errore primario nel guardrail statico React, che attendeva firma automatica e contatore precedente. Corrette le aspettative preservando il flusso accettato; 26 test locali superati. Deploy fermato dai gate. Il nuovo commit richiede CI e deploy propri.
+
 ## Ripristino deposito / firma 1.6.131 — 15/09/2026 — 2.319.2
 
 - Prova materiale della firma multipla con PIN, più file salvati e prosecuzione deposito: **non verificata su macchina reale** in questa sessione; il controllo dispositivo segnala token PKCS#11 assente. L'utente ha successivamente richiesto commit e deploy. Nessun invio PEC effettuato.

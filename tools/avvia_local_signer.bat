@@ -11,10 +11,12 @@ set "INSTALLER_PS1=%~dp0installa_local_signer_locale.ps1"
 set "APPDATA_STARTER=%APPDATA%\IUSENTRA\LocalSigner\start_local_signer.cmd"
 set "BACKGROUND_MODE=0"
 set "SILENT_MODE=0"
+set "DIAGNOSTIC_MODE=0"
 set "FORCE_RESTART=0"
 
 if /I "%~1"=="--background" set "BACKGROUND_MODE=1"
 if /I "%~1"=="--silent" set "SILENT_MODE=1"
+if /I "%~1"=="--diagnosi" set "DIAGNOSTIC_MODE=1"
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 
 echo.
@@ -29,6 +31,7 @@ if not errorlevel 1 (
         if not errorlevel 1 (
             if "%BACKGROUND_MODE%"=="1" exit /b 0
             if "%SILENT_MODE%"=="1" exit /b 0
+            if "%DIAGNOSTIC_MODE%"=="0" exit /b 0
             start "" "http://127.0.0.1:27272/diagnosi"
             exit /b 0
         )
@@ -40,6 +43,7 @@ if not errorlevel 1 (
     schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
     if "%BACKGROUND_MODE%"=="1" exit /b 0
     if "%SILENT_MODE%"=="1" exit /b 0
+    if "%DIAGNOSTIC_MODE%"=="0" exit /b 0
     timeout /t 2 >nul
     start "" "http://127.0.0.1:27272/diagnosi"
     exit /b 0
@@ -50,6 +54,7 @@ if exist "%APPDATA_STARTER%" (
     call "%APPDATA_STARTER%" --background
     if "%BACKGROUND_MODE%"=="1" exit /b 0
     if "%SILENT_MODE%"=="1" exit /b 0
+    if "%DIAGNOSTIC_MODE%"=="0" exit /b 0
     timeout /t 2 >nul
     start "" "http://127.0.0.1:27272/diagnosi"
     exit /b 0
@@ -75,5 +80,6 @@ if errorlevel 1 (
 
 if "%BACKGROUND_MODE%"=="1" exit /b 0
 if "%SILENT_MODE%"=="1" exit /b 0
+if "%DIAGNOSTIC_MODE%"=="0" exit /b 0
 timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"

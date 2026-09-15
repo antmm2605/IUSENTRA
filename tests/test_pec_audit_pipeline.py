@@ -6621,6 +6621,36 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     assert deposit["pecAudit"]["depositLifecycle"]["current_stage"]["id"] in {"accettazione_pec", "consegna_pec"}
 
 
+def test_react_email_bridge_limita_payload_iniziale_senza_perdere_totali(tmp_path):
+    from pct.email_client import CartellaEmail
+    from web.services.react_email_bridge import build_react_email_payload
+
+    email_db = tmp_path / "email" / "casella.json"
+    gestore = GestioneEmailRicevute(str(email_db))
+    for index in range(120):
+        gestore.aggiungi(
+            EmailRicevuta(
+                id=f"MAIL-PAGE-{index:03d}",
+                cartella=CartellaEmail.INBOX,
+                stato=StatoEmail.NON_LETTA,
+                mittente="cancelleria@example.test",
+                oggetto=f"Comunicazione veloce {index:03d}",
+                data=f"2026-05-{(index % 28) + 1:02d}T09:00:00",
+            )
+        )
+
+    first = build_react_email_payload(db_path=str(email_db), tenant_id="default")
+    assert first["summary"]["total"] == 120
+    assert first["summary"]["filtered"] == 120
+    assert len(first["items"]) == 80
+
+    second = build_react_email_payload(db_path=str(email_db), tenant_id="default", limit=25, offset=80)
+    assert second["summary"]["total"] == 120
+    assert second["summary"]["filtered"] == 120
+    assert len(second["items"]) == 25
+    assert second["items"][0]["id"] not in {item["id"] for item in first["items"]}
+
+
 def test_react_email_bridge_normalizza_evento_storico_del_tribunale():
     from web.services.react_email_bridge import _pec_audit_payload
 

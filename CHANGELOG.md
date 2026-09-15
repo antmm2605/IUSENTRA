@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.3 — 15/09/2026
+- La pagina React `Email PEC` carica il primo blocco di 80 messaggi mantenendo i conteggi globali, evitando di serializzare tutta la casella e tutto il presidio PEC prima del primo render.
+- L'API `/api/v1/ui/email` e la casella ordinaria accettano `limit` e `offset` con tetto governato, così ogni studio resta sul proprio payload tenant-aware senza carichi monolitici.
+
 ## 2.320.2 — 15/09/2026
 - Il runtime del presidio PEC ora apre il repository con lo slug del tenant
   corrente, quindi i motori delle letture vedono le PEC registrate dallo stesso

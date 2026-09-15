@@ -69,6 +69,7 @@ import './EmailPecPage.css'
 type MailboxMode = 'pec' | 'ordinaria'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 type JsonRecord = Record<string, unknown>
+const MAILBOX_PAGE_LIMIT = 80
 
 const sortLabels: Record<SortKey, string> = {
   recenti: 'Più recenti',
@@ -1607,6 +1608,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     pst: copy.includeTelematic ? onlyPst : false,
     conAllegati: onlyAttachments,
     statoPct: copy.includeTelematic ? pctStatus : '',
+    limit: MAILBOX_PAGE_LIMIT,
+    offset: 0,
   }
 
   useEffect(() => {
@@ -1675,6 +1678,10 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const bulkActionKind = folder === 'CESTINO' ? 'delete' : 'trash'
   const bulkActionLabel = folder === 'CESTINO' ? 'Elimina selezione' : 'Sposta nel cestino'
   const selectedAudit = detail?.pecAudit ?? selected?.pecAudit
+  const loadedRows = data.items.length
+  const listCountLabel = data.summary.filtered > loadedRows
+    ? `${visible.length} visibili su ${loadedRows} caricati (${data.summary.filtered} filtrati)`
+    : `${visible.length} messaggi`
 
   const selectMessage = (id: string) => {
     markReadOnOpen(data.items.find((item) => item.id === id) || detail?.item)
@@ -1933,7 +1940,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       <section className="iu-mail-layout" data-iusentra-sequence-slot="main-content">
         <div className="iu-mail-list-card">
           <header>
-            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
+            <div><strong>{listCountLabel}</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
             <a href={`${data.actions.operationalInbox}?cartella=${folder}`}><Download size={15} /> Apri cartella</a>
           </header>
           {visible.length ? (

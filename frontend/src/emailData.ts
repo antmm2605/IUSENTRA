@@ -175,6 +175,8 @@ export type EmailPecParams = {
   pst?: boolean
   conAllegati?: boolean
   statoPct?: string
+  limit?: number
+  offset?: number
 }
 
 const emptySummary: EmailPecSummary = {
@@ -775,6 +777,8 @@ async function fetchEmailPage(endpoint: string, fallback: EmailPecPageData, para
   if (params.pst) query.set('pst', '1')
   if (params.conAllegati) query.set('con_allegati', '1')
   if (params.statoPct) query.set('stato_pct', params.statoPct)
+  if (params.limit && params.limit > 0) query.set('limit', String(params.limit))
+  if (params.offset && params.offset > 0) query.set('offset', String(params.offset))
   query.set('_ts', String(Date.now()))
   try {
     const url = `${endpoint}${query.toString() ? `?${query.toString()}` : ''}`

@@ -30,6 +30,8 @@ from pct.pec_pipeline import (
 )
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+DEFAULT_EMAIL_PAGE_LIMIT = 80
+MAX_EMAIL_PAGE_LIMIT = 300
 
 
 def _iso_now() -> str:
@@ -50,6 +52,24 @@ def _short_text(value: Any, limit: int = 180) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "..."
+
+
+def _page_limit(value: Any, default: int = DEFAULT_EMAIL_PAGE_LIMIT) -> int:
+    try:
+        limit = int(value)
+    except (TypeError, ValueError):
+        limit = int(default)
+    if limit <= 0:
+        return int(default)
+    return min(limit, MAX_EMAIL_PAGE_LIMIT)
+
+
+def _page_offset(value: Any) -> int:
+    try:
+        offset = int(value)
+    except (TypeError, ValueError):
+        offset = 0
+    return max(0, offset)
 
 
 def _clean_multiline_text(value: Any, *, limit: int = 200000) -> str:
@@ -1205,11 +1225,15 @@ def build_react_email_payload(
     data_da: str = "",
     data_a: str = "",
     tenant_id: str = "default",
+    limit: int = DEFAULT_EMAIL_PAGE_LIMIT,
+    offset: int = 0,
 ) -> dict[str, Any]:
     gestore = GestioneEmailRicevute(db_path=db_path)
     _sync_inviati_da_messaggi(gestore, messaggi_db)
     base = "/" + str(base_path or "/email").strip("/")
     sync_href = sync_path or f"{base}/sincronizza"
+    page_limit = _page_limit(limit)
+    page_offset = _page_offset(offset)
 
     folder_valida = _normalise_folder(folder)
     emails = gestore.tutte(
@@ -1227,6 +1251,9 @@ def build_react_email_payload(
     all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
     stats = gestore.statistiche()
     large_mailbox = len(all_emails) > 80
+    email_page_start = min(page_offset, len(emails))
+    email_page_end = min(len(emails), email_page_start + page_limit)
+    page_emails = emails[email_page_start:email_page_end]
     persisted_audit_summaries = _pec_audit_summaries(
         db_path,
         all_emails,
@@ -1234,11 +1261,11 @@ def build_react_email_payload(
         include_telematic=include_telematic,
         include_details=not large_mailbox,
     )
-    if large_mailbox and len(emails) <= 80:
+    if large_mailbox and page_emails and len(page_emails) <= 80:
         persisted_audit_summaries.update(
             _pec_audit_summaries(
                 db_path,
-                emails,
+                page_emails,
                 tenant_id=tenant_id,
                 include_telematic=include_telematic,
                 include_details=True,
@@ -1259,10 +1286,10 @@ def build_react_email_payload(
             return dict(presidiati_by_message[audit_message_id])
         return {}
 
-    provisional_audit_enabled = include_telematic and len(emails) <= 80
+    provisional_audit_enabled = include_telematic and len(page_emails) <= 80
     audit_summaries = dict(persisted_audit_summaries)
     if provisional_audit_enabled:
-        for email_obj in emails:
+        for email_obj in page_emails:
             header = str(getattr(email_obj, "message_id", "") or "").strip()
             email_id = str(getattr(email_obj, "id", "") or "").strip()
             if (header and header in audit_summaries) or (email_id and email_id in audit_summaries):
@@ -1281,6 +1308,24 @@ def build_react_email_payload(
         )
         if str(item.get("message_id_header") or "").strip() not in email_headers
     ]
+    audit_only_filtered_summaries = [
+        item
+        for item in audit_only_summaries
+        if _pec_audit_matches_filters(
+            item,
+            folder=folder_valida,
+            query=query,
+            stato=stato,
+            solo_pst=solo_pst,
+            con_allegati=con_allegati,
+            stato_pct=stato_pct,
+        )
+    ]
+    remaining_page_slots = max(0, page_limit - len(page_emails))
+    audit_only_page_offset = max(0, page_offset - len(emails))
+    audit_only_page_summaries = audit_only_filtered_summaries[
+        audit_only_page_offset : audit_only_page_offset + remaining_page_slots
+    ]
     rows = [
         _email_row(
             email_obj,
@@ -1292,7 +1337,7 @@ def build_react_email_payload(
             pec_presidio=_presidio_for_email(email_obj),
             include_provisional_audit=False,
         )
-        for email_obj in emails
+        for email_obj in page_emails
     ]
     rows.extend(
         _pec_audit_virtual_row(
@@ -1300,16 +1345,7 @@ def build_react_email_payload(
             base_path=base,
             pec_presidio=presidiati_by_message.get(str(item.get("id") or "").strip()) if isinstance(presidiati_by_message, dict) else {},
         )
-        for item in audit_only_summaries
-        if _pec_audit_matches_filters(
-            item,
-            folder=folder_valida,
-            query=query,
-            stato=stato,
-            solo_pst=solo_pst,
-            con_allegati=con_allegati,
-            stato_pct=stato_pct,
-        )
+        for item in audit_only_page_summaries
     )
     pct_counts = Counter(
         str(getattr(email_obj, "stato_pct", "") or "")
@@ -1354,7 +1390,7 @@ def build_react_email_payload(
         "contracts": {"mock_fallback": False, "read_only": True},
         "summary": {
             "total": int(stats.get("totale", len(all_emails)) or 0) + len(audit_only_summaries),
-            "filtered": len(rows),
+            "filtered": len(emails) + len(audit_only_filtered_summaries),
             "inbox": int(stats.get("inbox", 0) or 0) + len(audit_only_summaries),
             "unread": stats.get("non_lette", 0),
             "sent": stats.get("inviati", 0),

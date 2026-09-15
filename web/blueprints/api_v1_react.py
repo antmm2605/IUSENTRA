@@ -3189,6 +3189,8 @@ def email_react_list():
         data_da=request.args.get("data_da", "").strip(),
         data_a=request.args.get("data_a", "").strip(),
         tenant_id=_tenant_runtime_label(),
+        limit=request.args.get("limit", ""),
+        offset=request.args.get("offset", ""),
     ))
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
@@ -3314,6 +3316,8 @@ def email_ordinaria_react_list():
         origine=request.args.get("origine", "").strip().upper(),
         data_da=request.args.get("data_da", "").strip(),
         data_a=request.args.get("data_a", "").strip(),
+        limit=request.args.get("limit", ""),
+        offset=request.args.get("offset", ""),
     ))
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response

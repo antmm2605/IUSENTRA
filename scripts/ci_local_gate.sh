@@ -177,6 +177,15 @@ if [ "$FAST" -eq 0 ]; then
   # fascicolo di Lex: sono il cuore del fascicolo e non hanno dipendenze lente.
   step "Pytest catalogo/lettura"   python3 -m pytest -q tests/test_document_catalog_titoli.py tests/test_document_catalog_fields.py tests/test_document_catalog_structural_identity.py tests/test_fascicolo_lettura.py tests/test_lex_lettura_fascicolo.py tests/test_procedura_fasi.py tests/test_fascicolo_pec_presidio.py tests/test_fascicolo_lettura_verifiche.py tests/test_fascicolo_bonifico_ricevuto.py tests/test_document_catalog_conferma.py --tb=short
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short
+  # Shell React e bridge di dominio: e' la suite che esercita ogni
+  # `react_*_bridge.py`, cioe' il punto in cui cade quasi ogni modifica ai
+  # presidi. La raccolta completa qui sopra non basta: uno stub di test con la
+  # firma vecchia si importa benissimo e fallisce solo quando gira.
+  # Lezione del 15/09/2026: l'aggiunta di `fatti_archivio=` alla chiamata del
+  # presidio documentale ha lasciato uno stub a tre argomenti in
+  # tests/test_react_shell.py e la CI e' andata rossa a gate locale verde,
+  # bloccando la sincronizzazione del branch gemello e il deploy.
+  step "Pytest shell React"        python3 -m pytest -q tests/test_react_shell.py --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short
   # Replica dello step CI "RBAC tenant App V2 security gates" (ci.yml, job
   # "Lint + syntax"): senza questi il gate locale era cieco sui contratti

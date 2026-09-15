@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.319.1 - 15/09/2026
+
+**Il gate locale non vedeva la suite della shell React, e la CI è andata rossa a gate verde.** L'aggiunta dei fatti dell'archivio alla chiamata del presidio documentale (`fatti_archivio=`) ha lasciato in `tests/test_react_shell.py` uno stub di test con la firma vecchia a tre argomenti: la raccolta completa non se ne accorge — uno stub si importa benissimo — e il difetto è uscito solo nello shard 5/10 della CI, bloccando la sincronizzazione del branch gemello e il deploy su Hetzner. Corretto lo stub e, soprattutto, chiuso il buco: `scripts/ci_local_gate.sh` esegue ora anche `tests/test_react_shell.py`, la suite che esercita ogni `react_*_bridge.py`, cioè il punto in cui cade quasi ogni modifica ai presìdi. 217 test in più prima di ogni push.
+
 ## 2.319.0 - 16/09/2026
 
 **Il ciclo della lettura si chiude e si ferma.** I due motori leggevano, l'archivio registrava, ma il giro non finiva mai: ogni dieci minuti ogni fascicolo veniva riesaminato da capo — inventario, PEC, riconvalida — anche quando non era cambiato nulla. Ora il ciclo ha i suoi stati dichiarati (`pct/archivio_letture/ciclo.py`): **fermo** quando tutto è letto e l'archivio ha confermato, **da leggere** quando un documento è nuovo o è cambiato, quando arriva una PEC, quando cambiano le regole di un motore, **in errore** quando l'ultimo giro non è riuscito. A ciclo fermo non si allinea nemmeno l'inventario: non si apre un file, non si tocca il disco. L'impronta si calcola dal fascicolo vivo — identificativi, hash e dimensioni che i documenti già portano — e si confronta con quella che l'archivio ha confermato.

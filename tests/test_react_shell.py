@@ -7589,7 +7589,9 @@ def test_prossima_scadenza_documentale_non_espone_un_termine_gia_trascorso(monke
     monkeypatch.setattr(
         bridge,
         "analyze_fascicolo_document_texts",
-        lambda item, texts, metadata: {"actions": []},
+        # Il presidio riceve anche le correzioni dell'avvocato e i fatti
+        # dell'archivio: lo stub li accetta senza usarli.
+        lambda item, texts, metadata, **altri: {"actions": []},
     )
     monkeypatch.setattr(bridge, "_document_text_matches_fascicolo", lambda item, value: True)
 

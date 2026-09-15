@@ -17,10 +17,13 @@ repository_allowed() {
 
 main() {
   local active_ids_file
+  local active_refs_file
   active_ids_file="$(mktemp)"
-  trap "rm -f '$active_ids_file'" EXIT
+  active_refs_file="$(mktemp)"
+  trap "rm -f '$active_ids_file' '$active_refs_file'" EXIT
 
   docker ps -q | xargs -r docker inspect --format '{{.Image}}' | sort -u > "$active_ids_file"
+  docker ps --format '{{.Image}}' | sort -u > "$active_refs_file"
 
   local repository
   local tag
@@ -41,6 +44,11 @@ main() {
     fi
 
     reference="${repository}:${tag}"
+    if grep -qx "$reference" "$active_refs_file"; then
+      skipped=$((skipped + 1))
+      continue
+    fi
+
     if docker image rm "$reference"; then
       removed=$((removed + 1))
     else

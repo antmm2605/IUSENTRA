@@ -188,6 +188,10 @@ if [[ "${1:-}" == "ps" && "${2:-}" == "-q" ]]; then
   printf 'running-app\\n'
   exit 0
 fi
+if [[ "${1:-}" == "ps" && "${2:-}" == "--format" ]]; then
+  printf 'iusentra-app:active\\n'
+  exit 0
+fi
 if [[ "${1:-}" == "inspect" && "${2:-}" == "--format" ]]; then
   printf 'active-image-id\\n'
   exit 0

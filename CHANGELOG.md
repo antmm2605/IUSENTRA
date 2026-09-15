@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.7 — 16/09/2026
+- Il deploy Hetzner ricontrolla sempre che il commit sia ancora la testa del branch prima di toccare Portainer, anche quando la CI del commit superato è diventata verde, così un run arretrato non può riportare online un'immagine precedente.
+- La pulizia Docker conserva anche il tag del commit atteso e il tag del checkout server, oltre alle immagini già usate dai container attivi. Questo evita che una pulizia eseguita durante una sostituzione Portainer cancelli la nuova immagine verificata.
+
 ## 2.320.6 — 15/09/2026
 - La Panoramica non costruisce più il payload completo di `Incassi e Pagamenti` per mostrare cinque parcelle aperte: legge solo fatturazione e clienti già memoizzati, riducendo il carico su apertura dashboard.
 - Il job `archivio_letture_automatico` restituisce sempre contatori completi anche quando il fascicolo è già invariato, evitando il blocco sul campo `senza_testo` durante i giri scheduler.

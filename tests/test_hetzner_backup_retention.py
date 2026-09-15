@@ -200,6 +200,8 @@ if [[ "${1:-}" == "images" && "${2:-}" == "--format" ]]; then
   printf 'iusentra-app\\tactive\\tactive-image-id\\n'
   printf 'iusentra-app\\told\\told-app-id\\n'
   printf 'iusentra-scheduler-worker\\told\\told-worker-id\\n'
+  printf 'iusentra-app\\t1111111111111111111111111111111111111111\\texpected-release-id\\n'
+  printf 'iusentra-app\\t2222222222222222222222222222222222222222\\thead-release-id\\n'
   printf 'postgres\\t16-alpine\\tpostgres-id\\n'
   exit 0
 fi
@@ -219,23 +221,45 @@ exit 64
         newline="\n",
     )
     fake_docker.chmod(0o755)
+    fake_git = bin_dir / "git"
+    fake_git.write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "-C" && "${3:-}" == "rev-parse" && "${4:-}" == "HEAD" ]]; then
+  printf '2222222222222222222222222222222222222222\\n'
+  exit 0
+fi
+echo "unexpected git call: $*" >&2
+exit 64
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+    fake_git.chmod(0o755)
+    repo_dir = tmp_path / "repo"
+    (repo_dir / ".git").mkdir(parents=True)
     subprocess.run(["bash", "-lc", f"chmod +x {shlex.quote(_bash_path(fake_docker))}"], check=True)
+    subprocess.run(["bash", "-lc", f"chmod +x {shlex.quote(_bash_path(fake_git))}"], check=True)
 
     script = REPO_ROOT / "deploy" / "hetzner" / "cleanup_docker_images.sh"
     command = " ".join(
         [
             f"PATH={shlex.quote(f'{_bash_path(bin_dir)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin')}",
             f"DOCKER_LOG={shlex.quote(_bash_path(log_path))}",
+            f"IUSENTRA_REPO_DIR={shlex.quote(_bash_path(repo_dir))}",
+            "EXPECTED_SHA=1111111111111111111111111111111111111111",
             f"bash {shlex.quote(_bash_path(script))}",
         ]
     )
     result = subprocess.run(["bash", "-lc", command], text=True, capture_output=True, check=True)
     calls = log_path.read_text(encoding="utf-8").splitlines()
 
-    assert "Pulizia immagini IUSENTRA: rimosse=2, attive_conservate=1" in result.stdout
+    assert "Pulizia immagini IUSENTRA: rimosse=2, conservate=3" in result.stdout
     assert "image rm iusentra-app:old" in calls
     assert "image rm iusentra-scheduler-worker:old" in calls
     assert "image rm iusentra-app:active" not in calls
+    assert "image rm iusentra-app:1111111111111111111111111111111111111111" not in calls
+    assert "image rm iusentra-app:2222222222222222222222222222222222222222" not in calls
     assert "image rm postgres:16-alpine" not in calls
     assert "image prune --force" in calls
     assert "builder prune --all --force" in calls

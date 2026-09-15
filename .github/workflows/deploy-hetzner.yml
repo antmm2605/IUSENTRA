@@ -94,29 +94,26 @@ jobs:
             --report-md artifacts/ci/deploy-required-gates.md \
             --report-json artifacts/ci/deploy-required-gates.json
 
-      # Un commit spinto mentre questo deploy aspettava la propria CI annulla
-      # quella CI (il gruppo di concorrenza di ci.yml cancella la run
-      # precedente sullo stesso ref). Il deploy del commit superato trovava
-      # allora dei check "cancelled" e falliva, pur senza nulla di rotto: il
-      # codice arriva in produzione con il deploy del commit piu' recente.
-      # Qui quel caso diventa una sosta dichiarata, non un fallimento; la CI
-      # non verde su un commit ancora in testa al branch resta rossa.
+      # Un commit spinto mentre questo deploy aspettava la propria CI non deve
+      # mai poter riportare Portainer a una release precedente. Il controllo
+      # della testa del branch viene quindi eseguito sempre, anche se la CI del
+      # commit ormai superato e' diventata verde.
       - name: Esito CI richiesta
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ "${{ steps.ci_gate.outcome }}" = "success" ]; then
-            echo "superato=false" >> "$GITHUB_OUTPUT"
-            echo "CI richiesta verde su ${GITHUB_SHA::7}."
-            exit 0
-          fi
           testa="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${DEPLOY_BRANCH}" \
             --jq '.object.sha' 2>/dev/null || true)"
           if [ -n "${testa}" ] && [ "${testa}" != "${GITHUB_SHA}" ]; then
             echo "superato=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Commit ${GITHUB_SHA::7} superato da ${testa::7} su ${DEPLOY_BRANCH}: il deploy si ferma qui, in produzione va il commit piu' recente."
+            exit 0
+          fi
+          if [ "${{ steps.ci_gate.outcome }}" = "success" ]; then
+            echo "superato=false" >> "$GITHUB_OUTPUT"
+            echo "CI richiesta verde su ${GITHUB_SHA::7}."
             exit 0
           fi
           echo "superato=false" >> "$GITHUB_OUTPUT"

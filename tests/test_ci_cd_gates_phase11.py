@@ -193,6 +193,14 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     assert "deploy-required-gates.md" in deploy_workflow
     assert "Setup chiave SSH e known_hosts" in deploy_workflow
     assert deploy_workflow.index("Attendi CI richiesta dello SHA corrente") < deploy_workflow.index("Setup chiave SSH e known_hosts")
+    esito_ci = deploy_workflow[
+        deploy_workflow.index("- name: Esito CI richiesta") :
+        deploy_workflow.index("- name: Registra riferimento immutabile per Portainer")
+    ]
+    assert "Commit ${GITHUB_SHA::7} superato" in esito_ci
+    assert esito_ci.index('if [ -n "${testa}" ] && [ "${testa}" != "${GITHUB_SHA}" ]; then') < esito_ci.index(
+        'if [ "${{ steps.ci_gate.outcome }}" = "success" ]; then'
+    )
     assert "paths:" not in frontend_workflow
 
 

@@ -17,13 +17,36 @@ repository_allowed() {
 
 main() {
   local active_ids_file
-  local active_refs_file
+  local protected_refs_file
   active_ids_file="$(mktemp)"
-  active_refs_file="$(mktemp)"
-  trap "rm -f '$active_ids_file' '$active_refs_file'" EXIT
+  protected_refs_file="$(mktemp)"
+  trap "rm -f '$active_ids_file' '$protected_refs_file'" EXIT
 
   docker ps -q | xargs -r docker inspect --format '{{.Image}}' | sort -u > "$active_ids_file"
-  docker ps --format '{{.Image}}' | sort -u > "$active_refs_file"
+  docker ps --format '{{.Image}}' | sort -u > "$protected_refs_file"
+
+  protect_release_tag() {
+    local sha="${1:-}"
+    local repo
+    if [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+      for repo in $IMAGE_REPOSITORIES; do
+        printf '%s:%s\n' "$repo" "$sha" >> "$protected_refs_file"
+      done
+    fi
+  }
+
+  protect_release_tag "${EXPECTED_SHA:-}"
+  protect_release_tag "${GITHUB_SHA:-}"
+  protect_release_tag "${RELEASE_SHA:-}"
+
+  local repo_dir
+  local head_sha
+  repo_dir="${IUSENTRA_REPO_DIR:-$(pwd)}"
+  if command -v git >/dev/null 2>&1 && [ -d "$repo_dir/.git" ]; then
+    head_sha="$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || true)"
+    protect_release_tag "$head_sha"
+  fi
+  sort -u -o "$protected_refs_file" "$protected_refs_file"
 
   local repository
   local tag
@@ -44,7 +67,7 @@ main() {
     fi
 
     reference="${repository}:${tag}"
-    if grep -qx "$reference" "$active_refs_file"; then
+    if grep -qx "$reference" "$protected_refs_file"; then
       skipped=$((skipped + 1))
       continue
     fi
@@ -59,7 +82,7 @@ main() {
   docker image prune --force >/dev/null || echo "Attenzione: pulizia immagini dangling non completata." >&2
   docker builder prune --all --force || echo "Attenzione: pulizia cache build Docker non completata." >&2
 
-  echo "Pulizia immagini IUSENTRA: rimosse=${removed}, attive_conservate=${skipped}"
+  echo "Pulizia immagini IUSENTRA: rimosse=${removed}, conservate=${skipped}"
 }
 
 main "$@"

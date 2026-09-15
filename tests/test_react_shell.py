@@ -3604,7 +3604,8 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "Governance" not in page_source
     assert "Salute sistema" not in page_source
     assert "'X-CSRF-Token': csrfToken()" in page_source
-    assert "<JsonPostForm action={logoutAction}>" in app_source
+    assert 'className="iu-sidebar__logout-form" method="post" action={logoutAction}' in app_source
+    assert "<JsonPostForm action={logoutAction}>" not in app_source
     assert ".iu-db-page" in css_source
     assert "@media(max-width:900px)" in css_source
     assert "build_react_admin_database_payload" in bridge_source

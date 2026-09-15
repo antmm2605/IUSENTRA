@@ -287,6 +287,11 @@
   .iu-shell.iu-shell--mobile-menu-open .iu-main{
     pointer-events:none;
   }
+  body.react-shell-page.iu-mobile-menu-open #pct-ai-widget,
+  body.react-shell-page.iu-mobile-menu-open #pct-ai-fab{
+    display:none!important;
+    pointer-events:none!important;
+  }
   .iu-shell.iu-shell--mobile-menu-open .iu-sidebar,
   .iu-shell.iu-shell--mobile-menu-open .iu-sidebar-scrim{
     pointer-events:auto;

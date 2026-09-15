@@ -57,7 +57,6 @@ import { useDashboardData } from './hooks/useDashboardData'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
 import { IusAppSidebar, IusentraRoutePresetFrame } from './components/iusentra'
-import { JsonPostForm } from './components/JsonPostForm'
 import { NotiziarioPanel } from './components/NotiziarioPanel'
 import { TopBar } from './components/layout/TopBar'
 import { sanitizeDisplayText } from './displayText'
@@ -998,10 +997,10 @@ function SidebarUser({ bootstrap }: { bootstrap: ShellBootstrap }) {
       </div>
       {bootstrap.actions.profile ? <a href={bootstrap.actions.profile} aria-label="Profilo" title="Profilo"><UserRound size={16}/></a> : null}
       {logoutAction ? (
-        <JsonPostForm action={logoutAction}>
+        <form className="iu-sidebar__logout-form" method="post" action={logoutAction}>
           <input type="hidden" name="_csrf_token" value={csrfToken()}/>
           <button type="submit" aria-label="Esci" title="Esci"><LogOut size={16}/></button>
-        </JsonPostForm>
+        </form>
       ) : null}
     </div>
   )

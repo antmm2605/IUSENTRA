@@ -56,3 +56,5 @@ def test_mobile_sidebar_overlays_topbar_and_hides_bottom_nav() -> None:
         css,
         re.S,
     )
+    assert "body.react-shell-page.iu-mobile-menu-open #pct-ai-widget" in css
+    assert "body.react-shell-page.iu-mobile-menu-open #pct-ai-fab" in css

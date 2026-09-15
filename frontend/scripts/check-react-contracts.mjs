@@ -1544,7 +1544,8 @@ for (const [label, source] of [
 }
 assertContains(app, "readShellBootstrap", 'bootstrap profilo reale shell react')
 assertContains(app, "profile.displayName", 'nome profilo reale in sidebar react')
-assertContains(app, '<JsonPostForm action={logoutAction}>', 'logout react via submit JSON reale')
+assertContains(app, 'className="iu-sidebar__logout-form" method="post" action={logoutAction}', 'logout react via form POST reale')
+assertNotContains(app, '<JsonPostForm action={logoutAction}>', 'logout react non usa submit JSON')
 assertContains(app, "findStudioModule(route)", 'contesto lex blocco finale')
 assertContains(app, "const OPEN_LEX_WIDGET_HREF = '#lex'", 'cta lex usa widget flottante')
 assertNotContains(app, legacyLexContextHref, 'shell react senza link funzionali /lex')

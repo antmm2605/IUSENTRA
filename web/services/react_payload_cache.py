@@ -59,6 +59,19 @@ class ReactPayloadTTLCache:
         with self._lock:
             self._entries.clear()
 
+    def invalidate(self, key: tuple) -> None:
+        """Rimuove una sola voce: la prossima richiesta ricostruisce il payload."""
+        with self._lock:
+            self._entries.pop(key, None)
+
+    def invalidate_where(self, predicate) -> int:
+        """Rimuove le voci la cui chiave soddisfa il predicato; restituisce quante."""
+        with self._lock:
+            da_rimuovere = [key for key in self._entries if predicate(key)]
+            for key in da_rimuovere:
+                self._entries.pop(key, None)
+        return len(da_rimuovere)
+
     def __len__(self) -> int:
         with self._lock:
             return len(self._entries)

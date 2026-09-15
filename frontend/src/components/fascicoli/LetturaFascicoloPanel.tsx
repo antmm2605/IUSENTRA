@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
+import { LettureFascicoloSection } from './LettureFascicoloSection'
 import {
   etichettaFase,
   etichettaUrgenza,
@@ -189,6 +190,8 @@ export function LetturaFascicoloPanel({ fascicoloId, onError }: { fascicoloId: s
           </ul>
         ) : null}
       </section>
+
+      <LettureFascicoloSection fascicoloId={fascicoloId} onAggiornato={() => void load(true)}/>
 
       <section className="iu-fas-lettura__blocco iu-fas-lettura__economico" aria-label="Presidio economico del fascicolo">
         <div className="iu-fas-lettura__section-head">

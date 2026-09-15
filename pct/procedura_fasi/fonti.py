@@ -164,11 +164,20 @@ FONTI: dict[str, dict[str, Any]] = {
     "cpa_92": _norma("art. 92 c.p.a.", "Termini per le impugnazioni", _CPA, "92",
         "Le impugnazioni si propongono con ricorso e devono essere notificate entro il termine perentorio di sessanta giorni decorrenti dalla notificazione della sentenza."),
     "cpa_dpcm_40_2016": {
-        "norma": "D.P.C.M. 16 febbraio 2016, n. 40",
-        "titolo": "Regole tecnico-operative del processo amministrativo telematico (PAT)",
-        "url": "https://www.giustizia-amministrativa.it/",
-        "verifica": "riferimento noto dal catalogo del software; il sito giustizia-amministrativa.it non era raggiungibile dalla rete di sviluppo il 14/09/2026, quindi il testo non è citato letteralmente",
-        "estratto": "",
+        "norma": "D.P.C.M. 16 febbraio 2016, n. 40; d.P.C.S. 28 luglio 2021, mod. d.P.C.S. 9 maggio 2025",
+        "titolo": "Regole tecnico-operative del processo amministrativo telematico (PAT): deposito con Formweb e moduli PEC",
+        "url": "https://www.giustizia-amministrativa.it/documents/20142/74204502/Pubblicazione%2BRegole%2Btecnico-operative%2BPAT.pdf/db2b8d35-4e88-c32a-a7c6-15715348d34b?t=1748969121419",
+        "verifica": (
+            "documento ufficiale della Giustizia amministrativa «Nuove regole tecnico-operative del PAT» (d.P.C.S. 9 maggio 2025), "
+            "PDF scaricato il 24/08/2026 e conservato in docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf "
+            "(SHA-256 ceba3e41…d075); consultato il 15/09/2026"
+        ),
+        "estratto": (
+            "accanto al consueto uso dei moduli di deposito trasmessi tramite posta elettronica certificata – i quali, nella fase a regime, "
+            "come individuata dal d.P.C.S. 9 maggio 2025, rivestiranno una valenza residuale – per l'incardinamento dei ricorsi e per la "
+            "produzione di atti aggiuntivi è prevista l'esecuzione dei depositi online attraverso una procedura che guida l'avvocato nella "
+            "compilazione di un Formweb. […] Resta ferma la necessità della sottoscrizione digitale prima dell'invio per il deposito da parte del soggetto legittimato."
+        ),
     },
     # ── Processo tributario: Testo unico D.Lgs. 175/2024 (gli artt. 18-23 D.Lgs. 546/1992 sono abrogati) ──
     "tu175_art61": _norma("D.Lgs. 175/2024, art. 61", "Comunicazioni, notificazioni e depositi telematici (ex art. 16-bis D.Lgs. 546/1992)", _TU_TRIB, "61",

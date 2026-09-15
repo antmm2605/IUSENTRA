@@ -8,21 +8,24 @@ per l'avvocato e un motivo, e il risultato dice quali regole sono intervenute e
 quante volte. Cosi' il testo corretto resta verificabile contro la pagina.
 
 Ordine di applicazione: prima i caratteri (legature, apostrofi, invisibili),
-poi le abbreviazioni forensi, la punteggiatura, le cifre, i numeri romani, gli importi
+poi le abbreviazioni forensi, la punteggiatura, le strutture a forma fissa
+(codice fiscale, partita IVA, CAP, IBAN, numero di ruolo, parole), le date, le cifre, i numeri romani, gli importi
 in euro e infine gli accenti, che lavorano su parole gia' ripulite.
 """
 
 from __future__ import annotations
 
-from . import abbreviazioni, accenti, caratteri, numeri, numeri_romani, punteggiatura, valuta
+from . import abbreviazioni, accenti, caratteri, confusioni, date, numeri, numeri_romani, punteggiatura, valuta
 from .regola import Esito, Regola, applica_regole
 
-VERSIONE_FORMULARIO = "2026.09.14.formulario-legale.v1"
+VERSIONE_FORMULARIO = "2026.09.15.formulario-legale.v2"
 
 REGOLE: tuple[Regola, ...] = (
     *caratteri.REGOLE,
     *abbreviazioni.REGOLE,
     *punteggiatura.REGOLE,
+    *confusioni.REGOLE,
+    *date.REGOLE,
     *numeri.REGOLE,
     *numeri_romani.REGOLE,
     *valuta.REGOLE,

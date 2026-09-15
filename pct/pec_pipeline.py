@@ -8387,7 +8387,14 @@ class PecAuditRepository:
         _ctx, payloads = self._attachment_payloads_for_message(conn, message_id)
         processed: list[dict[str, Any]] = []
         for item in payloads:
-            text, coverage = extract_text_with_coverage(item)
+            # Registro delle letture: un allegato con la stessa impronta gia'
+            # letto in questo studio (stesso decreto inoltrato due volte, stessa
+            # ricevuta) riusa il testo invece di rifare l'OCR.
+            riuso = self._ocr_gia_letto_per_impronta(conn, message_id, item)
+            if riuso is not None:
+                text, coverage = riuso
+            else:
+                text, coverage = extract_text_with_coverage(item)
             conn.execute(
                 """
                 UPDATE pec_attachments
@@ -8396,7 +8403,7 @@ class PecAuditRepository:
                 """,
                 (text, coverage, message_id, item.index),
             )
-            processed.append({"filename": item.filename, "coverage": coverage, "chars": len(text)})
+            processed.append({"filename": item.filename, "coverage": coverage, "chars": len(text), "riuso": riuso is not None})
         self.append_audit(
             conn,
             action=action,
@@ -8406,6 +8413,33 @@ class PecAuditRepository:
             actor=actor,
         )
         return processed
+
+    def _ocr_gia_letto_per_impronta(self, conn: sqlite3.Connection, message_id: str, item: AttachmentPayload) -> tuple[str, float] | None:
+        """Testo e copertura di un allegato identico gia' letto nello studio; None se va letto."""
+        try:
+            digest = sha256_bytes(bytes(item.data or b""))
+        except Exception:
+            return None
+        if not digest or not item.data:
+            return None
+        row = conn.execute(
+            """
+            SELECT a.ocr_text, a.ocr_coverage
+            FROM pec_attachments a
+            JOIN pec_messages m ON m.id = a.message_id
+            WHERE m.tenant_id = ? AND a.sha256 = ? AND a.message_id <> ?
+              AND a.ocr_text <> '' AND a.ocr_coverage > 0
+            ORDER BY a.created_at DESC
+            LIMIT 1
+            """,
+            (self.tenant_id, digest, message_id),
+        ).fetchone()
+        if row is None:
+            return None
+        text = str(row["ocr_text"] or "")
+        if _is_stale_zip_ocr_text(item.filename, item.content_type, text):
+            return None
+        return text, float(row["ocr_coverage"] or 0.0)
 
     def ocr_attachments(self, message_id: str, *, actor: str = "pec-ocr") -> dict[str, Any]:
         with self.connect() as conn:

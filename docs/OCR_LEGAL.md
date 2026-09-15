@@ -105,3 +105,25 @@ passata, lettura al 100% su testo pulito e al 99,95% su pagina ruotata di 1,5° 
 PDF Inspector al 99,7-100% in 1-1,3 s a 150 dpi. Le misure si ripetono con
 `tests/test_document_ocr.py::test_ocr_reale_in_italiano_produce_pdf_a4_ricercabile` e con lo
 script di benchmark riportato nel changelog 2.315.0.
+
+## Confusioni tipiche dichiarate (2.316.0)
+
+Le confusioni del lettore ottico stanno in una tabella sola,
+`legal_ocr/formulario/confusioni.py`: lettere lette al posto delle cifre
+(O/o→0, I/l/|/Ì→1, Z→2, S→5, B→8; con struttura certa anche D/Q→0, G→6, T→7,
+q/g→9) e cifre lette al posto delle lettere (0→O, 1→I, 2→Z, 5→S, 6→G, 8→B). Le
+regole che la usano correggono solo dove la forma dice che cosa deve esserci:
+
+| Regola | Struttura |
+|---|---|
+| `num.data.v1`, `num.data_iso.v1` | date giorno/mese/anno e anno-mese-giorno |
+| `num.data_estesa.v1` | «1O rnarzo 2O26» → 10 marzo 2026: giorno e anno a cifre, mese letto male o abbreviato riportato al nome, «primo»/«1º» → 1 |
+| `num.ora.v1` | «ore 9.30» → ore 9:30 |
+| `num.sequenza.v1`, `num.riferimento.v1`, `num.anno.v1` | importi, numeri di ruolo, anni, cifre dopo art./n./co. |
+| `conf.codice_fiscale.v1`, `conf.codice_fiscale_nudo.v1` | sedici caratteri nelle posizioni lettera/cifra del codice fiscale, accettati solo se il carattere di controllo torna |
+| `conf.partita_iva.v1`, `conf.cap.v1`, `conf.iban.v1`, `conf.numero_ruolo.v1` | undici cifre dopo P.IVA, cinque cifre del CAP davanti alla località, IBAN italiano nella sua struttura, numero e anno dopo R.G. |
+| `conf.parola.v1` | «R0MA», «MILAN0», «Mi1ano»: cifre dentro una parola; l'uno maiuscolo (I o L?) solo con il lessico degli atti («TRIBUNA1E» → TRIBUNALE) |
+
+Le date lette passano poi alla verifica del registro delle letture
+(`docs/REGISTRO_LETTURE.md`): calendario, orizzonte del fascicolo, coerenza con
+la PEC o con il portale, giorno e mese invertiti.

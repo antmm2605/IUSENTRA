@@ -64,6 +64,8 @@ def test_le_parole_comuni_non_vengono_scambiate_per_abbreviazioni() -> None:
     ("letto", "atteso"),
     [
         ("il 12/O3/2O24 e l'anno 2Ol9", "il 12/03/2024 e l'anno 2019"),
+        ("udienza del 1O/O3/2O26, termine al 3l.l2.2O25, dal 2O26-O3-1O; SOS/OS/OO resta", "udienza del 10/03/2026, termine al 31.12.2025, dal 2026-03-10; SOS/OS/OO resta"),
+        ("notificato il 1S/O8/2O2S e il 2Z/1l/2O24", "notificato il 15/08/2025 e il 22/11/2024"),
         ("art. l e art. 2O43 e n. l2", "art. 1 e art. 2043 e n. 12"),
         ("Sez. Vl civile, Libro lll, Titolo lV, capo Xl, comma l", "Sez. VI civile, Libro III, Titolo IV, capo XI, comma 1"),
         ("la causa di lll grado in Sez. lll", "la causa di III grado in Sez. III"),
@@ -76,6 +78,37 @@ def test_le_parole_comuni_non_vengono_scambiate_per_abbreviazioni() -> None:
 )
 def test_cifre_romani_e_valuta(letto: str, atteso: str) -> None:
     assert corretto(letto) == atteso
+
+
+# ── Confusioni tipiche dichiarate: strutture a forma fissa ───────────────
+
+
+@pytest.mark.parametrize(
+    ("letto", "atteso"),
+    [
+        ("C.F. RSSMRA8OAO1F2O5X e P.IVA O1234S67891", "C.F. RSSMRA80A01F205X e P.IVA 01234567891"),
+        ("codice fiscale: BNCNNA85C41L219K resta", "codice fiscale: BNCNNA85C41L219K resta"),
+        ("il sig. R0SSI di R0MA, TRIBUNA1E di MILAN0, via C0RTE 5, 2O121 Milano, Mi1ano", "il sig. ROSSI di ROMA, TRIBUNALE di MILANO, via CORTE 5, 20121 Milano, Milano"),
+        ("IBAN IT6O X054 2811 1010 0000 0123 456", "IBAN IT60X0542811101000000123456"),
+        ("R.G. n. 12S4/2O26 e N.R.G. 77/26", "R.G. n. 1254/2026 e N.R.G. 77/26"),
+        ("udienza del 1O rnarzo 2O26 alle ore 9.30, Milano, lì primo Aprile 2026, ore 14,15", "udienza del 10 marzo 2026 alle ore 9:30, Milano, lì 1 Aprile 2026, ore 14:15"),
+        ("il 12 settembrc 2O25 e il 3 sett. 2026, notificato il 1S/O8/2O2S e il 2Z/1l/2O24", "il 12 settembre 2025 e il 3 settembre 2026, notificato il 15/08/2025 e il 22/11/2024"),
+        ("lotto 1058 e 5 ottobre e SOS/OS/OO e Sez. X1V", "lotto 1058 e 5 ottobre e SOS/OS/OO e Sez. XIV"),
+    ],
+)
+def test_confusioni_tipiche_dichiarate(letto: str, atteso: str) -> None:
+    assert corretto(letto) == atteso
+
+
+def test_la_tabella_delle_confusioni_e_unica_e_dichiarata() -> None:
+    from legal_ocr.formulario import confusioni, date, numeri
+
+    assert confusioni.LETTERA_PER_CIFRA["O"] == "0" and confusioni.LETTERA_PER_CIFRA["l"] == "1" and confusioni.CIFRA_PER_LETTERA["0"] == "O"
+    assert set(confusioni.LETTERA_PER_CIFRA_SICURE) == set("OoIl|ÌSsBZz")
+    assert date.a_cifre is confusioni.a_cifre and numeri.a_cifre is confusioni.a_cifre
+    assert confusioni.correggi_codice_fiscale("RSSMRA8OAO1F2O5X") == "RSSMRA80A01F205X"
+    assert confusioni.correggi_codice_fiscale("RSSMRA80A01F205Y") == "RSSMRA80A01F205Y"  # controllo sbagliato: non si tocca
+    assert {regola.id for regola in confusioni.REGOLE} <= {regola.id for regola in REGOLE}
 
 
 def test_numeri_romani_ben_formati() -> None:

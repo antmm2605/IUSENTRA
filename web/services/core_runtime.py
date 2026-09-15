@@ -347,6 +347,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "notifiche", "log.json"),
         ),
     )
+    app.config["REGISTRO_LETTURE_DB"] = cfg.get(
+        "REGISTRO_LETTURE_DB",
+        os.getenv(
+            "PCT_REGISTRO_LETTURE_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "registro_letture.db"),
+        ),
+    )
     app.config["NOTIFICATIONS_DB"] = cfg.get(
         "NOTIFICATIONS_DB",
         os.getenv(

@@ -10,18 +10,13 @@ from __future__ import annotations
 
 import re
 
+from .confusioni import a_cifre
 from .regola import Regola, regola_regex
-
-_CONFUSE = {"O": "0", "o": "0", "I": "1", "l": "1", "|": "1", "Ì": "1"}
 # Una sequenza numerica per forma: almeno una cifra, almeno una lettera confusa,
 # nient'altro che cifre, lettere confuse e separatori di numeri.
 _SEQUENZA = re.compile(r"(?<![\w€])(?=[\dOoIl|.,/\-]*\d)(?=[\dOoIl|.,/\-]*[OoIl|])([\dOoIl|]+(?:[.,/\-][\dOoIl|]+)*)(?![\w])")
 _DOPO_RIFERIMENTO = re.compile(r"\b((?:[aA]rtt?|[nN]|[cC]o|[cC]omma|[lL]ett|[nN]n|[pP]ag|[pP]agg)\.?\s+)([lIO|][\dOIl|]*|[\dOIl|]*[lIO|][\dOIl|]*)(?=\b|-)")
 _ANNO = re.compile(r"\b(1[89]|2[O0])([\dOoIl|]{2})\b")
-
-
-def _cifre(valore: str) -> str:
-    return "".join(_CONFUSE.get(carattere, carattere) for carattere in valore)
 
 
 def _sequenza(match: re.Match[str]) -> str:
@@ -30,15 +25,15 @@ def _sequenza(match: re.Match[str]) -> str:
     # separatore, altrimenti si sta guardando un pezzo di parola.
     if len(grezzo) < 3 and not any(separatore in grezzo for separatore in ".,/-"):
         return grezzo
-    return _cifre(grezzo)
+    return a_cifre(grezzo)
 
 
 def _dopo_riferimento(match: re.Match[str]) -> str:
-    return f"{match.group(1)}{_cifre(match.group(2))}"
+    return f"{match.group(1)}{a_cifre(match.group(2))}"
 
 
 def _anno(match: re.Match[str]) -> str:
-    return f"{_cifre(match.group(1))}{_cifre(match.group(2))}"
+    return f"{a_cifre(match.group(1))}{a_cifre(match.group(2))}"
 
 
 REGOLE: tuple[Regola, ...] = (

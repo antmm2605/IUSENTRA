@@ -29,6 +29,8 @@ class OCRJob:
     tipo_doc: str
     index_path: str
     attempts: int = 0
+    tenant_id: str = ""
+    registro_path: str = ""
 
 
 class OCRJobStore:
@@ -71,6 +73,8 @@ class OCRJobStore:
         nome_doc: str,
         tipo_doc: str,
         index_path: str,
+        tenant_id: str = "",
+        registro_path: str = "",
     ) -> int:
         conn = self.conn
         now = datetime.now().isoformat()
@@ -104,10 +108,12 @@ class OCRJobStore:
                 attempts,
                 created_at,
                 updated_at,
-                last_error
-            ) VALUES ('pending', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, '')
+                last_error,
+                tenant_id,
+                registro_path
+            ) VALUES ('pending', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, '', ?, ?)
             """,
-            (percorso, hash_sha256, id_fasc, id_doc, nome_doc, tipo_doc, index_path, now, now),
+            (percorso, hash_sha256, id_fasc, id_doc, nome_doc, tipo_doc, index_path, now, now, str(tenant_id or ""), str(registro_path or "")),
         )
         conn.commit()
         return int(cursor.lastrowid)
@@ -170,6 +176,8 @@ class OCRJobStore:
             tipo_doc=str(claimed["tipo_doc"] or ""),
             index_path=str(claimed["index_path"] or ""),
             attempts=int(claimed["attempts"] or 0),
+            tenant_id=str(claimed["tenant_id"] or "") if "tenant_id" in claimed.keys() else "",
+            registro_path=str(claimed["registro_path"] or "") if "registro_path" in claimed.keys() else "",
         )
 
     def complete(self, job_id: int) -> None:
@@ -290,4 +298,10 @@ class OCRJobStore:
                 ON ocr_jobs(hash_sha256, id_fasc, id_doc);
             """
         )
+        # Il registro delle letture: il worker segna l'esito nello studio giusto.
+        for colonna in ("tenant_id", "registro_path"):
+            try:
+                conn.execute(f"ALTER TABLE ocr_jobs ADD COLUMN {colonna} TEXT NOT NULL DEFAULT ''")
+            except sqlite3.OperationalError:
+                pass
         conn.commit()

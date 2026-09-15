@@ -1,6 +1,6 @@
 # Job incrementali e memoria persistente
 
-Aggiornato: 2026-06-26.
+Aggiornato: 2026-09-15.
 
 ## Regola operativa
 
@@ -16,6 +16,7 @@ La memoria non vive nella chat e non è volatile: ogni cursore, hash o deduplica
 | Email ordinaria | `EMAIL_ORDINARIA_DB` sotto `/data/tenants/<studio>/email`, UID IMAP e `Message-ID` | stesso contratto PEC: solo nuovi messaggi; riparazione storico solo da motore basso livello con flag esplicito |
 | PEC audit-grade | `pec_audit.sqlite`, tabelle `pec_messages`, `pec_local_acquire_runs`, `pec_local_acquire_items` | l'acquisizione locale salva cursore `pec_local_acquire_v2`; dopo bootstrap/backlog legge nuovi arrivi e boundary, non tutta la casella |
 | Worker PEC | `pec_jobs` in `pec_audit.sqlite` | i worker processano solo job pendenti/dovuti, a budget per tick |
+| Registro delle letture (tutti i lettori) | `intelligence/registro_letture.db` per studio, tabelle `letture_oggetti`, `letture`, `letture_fascicoli`, `letture_viste`, `letture_anomalie` | impronta SHA-256 per documento/PEC/allegato e per fascicolo; OCR, indice documentale, RAG, presidio PEC, presidio economico e proforma automatica leggono solo gli oggetti nuovi o cambiati (`docs/REGISTRO_LETTURE.md`) |
 | Documenti fascicolo Lex | `pec_audit_log` con azione `pec.document_presidio.checked` e indice `idx_pec_audit_action_resource` | marker calcolato da fascicolo, documento e hash SHA-256; se hash invariato il documento non viene riletto |
 | Documenti AI | repository Document AI tenant-aware e mirror `fascicoli/documenti_ai` | se il documento ha già `hash_sha256`, la sorgente non riapre il file solo per ricalcolare l'hash |
 | Dataset Lex studio | `/data/tenants/<studio>/intelligence/lex_dataset/latest_job.json`, `jobs.json`, `source_index.json` | fingerprint su path, dimensione, `mtime_ns` e opzioni; se invariato restituisce `skipped_unchanged` senza rileggere `documenti_ai.json` |

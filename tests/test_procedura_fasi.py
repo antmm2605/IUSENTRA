@@ -39,9 +39,20 @@ def test_ogni_fonte_ha_norma_url_ufficiale_data_di_verifica_ed_estratto():
         assert voce["norma"] and voce["titolo"], identificativo
         assert voce["url"].startswith("https://"), identificativo
         assert "2026" in voce["verifica"], identificativo
+        assert len(voce["estratto"]) > 60, identificativo
         if identificativo != "cpa_dpcm_40_2016":
-            assert len(voce["estratto"]) > 60, identificativo
             assert "normattiva.it" in voce["url"] or "pst.giustizia.it" in voce["url"], identificativo
+
+
+def test_le_regole_pat_sono_citate_dal_documento_ufficiale_archiviato():
+    """Il buco dichiarato il 14/09/2026 e' chiuso dalla copia ufficiale conservata nel repository."""
+    from pathlib import Path
+
+    voce = FONTI["cpa_dpcm_40_2016"]
+    assert "giustizia-amministrativa.it" in voce["url"]
+    assert "Formweb" in voce["estratto"] and "sottoscrizione digitale" in voce["estratto"]
+    assert "docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf" in voce["verifica"]
+    assert Path("docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf").exists()
 
 
 def test_le_norme_di_normattiva_usano_l_urn_del_testo_vigente():

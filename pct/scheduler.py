@@ -738,6 +738,21 @@ def start_scheduler(app):
             "calendar_sync_db": app.config.get("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json"),
         }
 
+    def _registro_letture_per_target(target: dict):
+        """Registro delle letture dello studio del target (stesso identificativo dell'indice documentale)."""
+        def _risolvi():
+            try:
+                from pct.registro_letture import RegistroLetture
+
+                fascicoli_db = Path(str(target.get("fascicoli_db") or "")).resolve()
+                percorso = fascicoli_db.parent.parent / "intelligence" / "registro_letture.db"
+                etichetta = str(target.get("label") or "")
+                tenant = etichetta if etichetta and etichetta != "default" else "single-studio"
+                return RegistroLetture(percorso), tenant
+            except Exception:
+                return None
+        return _risolvi
+
     def _workspace_intelligence_targets():
         if app.config.get("MULTI_TENANT"):
             try:
@@ -1730,6 +1745,7 @@ def start_scheduler(app):
                         app_root=str(Path(__file__).resolve().parents[1]),
                         models_path=target["local_ai_models_dir"],
                     )
+                    service.registro_letture = _registro_letture_per_target(target)
                     fascicoli = None
                     if os.path.exists(target["fascicoli_db"]):
                         fascicoli = GestioneFascicoli(

@@ -1596,6 +1596,7 @@ class GestioneTenant:
             "CRM_DB":            f"{base}/crm/leads.json",
             "ANTIRICICLAGGIO_DB": f"{base}/antiriciclaggio/verifiche.json",
             "SEARCH_INDEX":      f"{base}/search/index.db",
+            "REGISTRO_LETTURE_DB": f"{base}/intelligence/registro_letture.db",
             "PRIVACY_DB":        f"{base}/privacy/registro.json",
             "PORTALE_DB":        f"{base}/portale/portali.json",
             "PORTALE_UPLOADS":   f"{base}/portale/uploads",

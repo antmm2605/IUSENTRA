@@ -122,6 +122,12 @@ def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
             eseguiti = int(esito.get("processed") or 0)
         except Exception as exc:  # il collegamento resta valido anche se il worker non gira ora
             logger.warning("Presidio PEC: job non eseguiti subito per %s: %s", getattr(fascicolo, "id", ""), exc)
+        try:
+            from web.services.registro_letture_runtime import pec_collegata
+
+            pec_collegata(_clean(getattr(fascicolo, "id", "")))
+        except Exception as exc:
+            logger.debug("Registro letture non aggiornato dopo il collegamento PEC: %s", exc)
     return {"esaminate": len(messaggi), "collegate": len(collegate), "job_eseguiti": eseguiti, "da_confermare": da_confermare[:6]}
 
 

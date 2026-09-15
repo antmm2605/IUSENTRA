@@ -48,6 +48,14 @@ def register_fascicoli_editor_routes(
             )
         return str(app.config[key])
 
+    def _registra_documento_aggiornato(id_fasc: str, documento: Any) -> None:
+        try:
+            from web.services.registro_letture_runtime import documento_aggiornato
+
+            documento_aggiornato(id_fasc, documento)
+        except Exception as exc:
+            app.logger.debug("Registro letture non aggiornato per %s: %s", id_fasc, exc)
+
     def _indicizza_salvataggio_editor(*, id_fasc: str, document_id: str, filename: str, content: bytes) -> None:
         try:
             from pct.document_intelligence.sources import source_from_uploaded_document
@@ -285,6 +293,7 @@ def register_fascicoli_editor_routes(
                 tipo_doc=doc_salvato.tipo.value,
                 index_path=_cfg_data_path("SEARCH_INDEX"),
             )
+            _registra_documento_aggiornato(id_fasc, doc_salvato)
             _indicizza_salvataggio_editor(
                 id_fasc=id_fasc,
                 document_id=doc_salvato.id,
@@ -364,6 +373,7 @@ def register_fascicoli_editor_routes(
                 tipo_doc=doc_salvato.tipo.value,
                 index_path=_cfg_data_path("SEARCH_INDEX"),
             )
+            _registra_documento_aggiornato(id_fasc, doc_salvato)
             _indicizza_salvataggio_editor(
                 id_fasc=id_fasc,
                 document_id=doc_salvato.id,

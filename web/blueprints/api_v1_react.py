@@ -8831,12 +8831,13 @@ def fascicolo_react_lex(id_fasc: str):
 
 # La lettura costa qualche decina di millisecondi a caldo ma la pagina del
 # fascicolo la chiede a ogni apertura: entro il TTL la risposta gia' serializzata
-# viene riusata; «aggiorna=1» (pulsante Aggiorna) la ricostruisce sempre.
-_LETTURA_CACHE = ReactPayloadTTLCache(ttl_seconds=20.0, max_entries=64)
+# viene riusata; «aggiorna=1» (pulsante Aggiorna) la ricostruisce sempre. La
+# cache vive in web/services/lettura_cache.py: documenti e PEC la invalidano.
+from web.services.lettura_cache import LETTURA_CACHE as _LETTURA_CACHE, chiave_lettura as _chiave_lettura  # noqa: E402
 
 
 def _lettura_cache_key(id_fasc: str) -> tuple:
-    return ("lettura", str(getattr(g, "tenant_id", "") or getattr(g, "studio_id", "") or ""), str(id_fasc))
+    return _chiave_lettura(str(getattr(g, "tenant_id", "") or getattr(g, "studio_id", "") or ""), str(id_fasc))
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/lettura")
@@ -8875,6 +8876,65 @@ def fascicolo_react_lettura(id_fasc: str):
     except Exception as exc:
         current_app.logger.exception("Lettura del fascicolo %s non completata: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Lettura del fascicolo non completata."}, 200)
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/letture")
+@_richiedi_auth
+def fascicolo_react_letture(id_fasc: str):
+    """Il registro delle letture del fascicolo: che cosa è stato letto, che cosa no, novità e anomalie da confermare."""
+    try:
+        from web.services.registro_letture_runtime import stato_letture_payload
+
+        fascicolo = _fascicoli_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        segna = str(request.args.get("visto") or "1").strip().lower() not in {"0", "false", "no"}
+        return _jsonify_public_payload({"ok": True, "letture": stato_letture_payload(fascicolo, segna_visto=segna)})
+    except Exception as exc:
+        current_app.logger.exception("Registro letture del fascicolo %s non disponibile: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Registro delle letture non disponibile."}, 200)
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/letture/aggiorna")
+@_richiedi_auth
+def fascicolo_react_letture_aggiorna(id_fasc: str):
+    """Legge solo ciò che manca: indice documentale per i documenti nuovi o cambiati, OCR per i testi non ancora estratti."""
+    try:
+        from web.services.registro_letture_runtime import leggi_i_nuovi, stato_letture_payload
+
+        fascicolo = _fascicoli_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        esito = leggi_i_nuovi(fascicolo)
+        _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
+        _audit_event("fascicoli.letture.aggiorna", "fascicolo", id_fasc, esito.get("messaggio") or "Letture aggiornate.")
+        return _jsonify_public_payload({"ok": True, "esito": esito, "letture": stato_letture_payload(fascicolo, segna_visto=False)})
+    except Exception as exc:
+        current_app.logger.exception("Aggiornamento letture del fascicolo %s non completato: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Aggiornamento delle letture non completato."}, 200)
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/letture/anomalie/<anomalia_id>")
+@_richiedi_auth
+def fascicolo_react_letture_anomalia(id_fasc: str, anomalia_id: str):
+    """L'avvocato conferma, corregge o ignora un dato letto giudicato dubbio."""
+    try:
+        from pct.registro_letture import RegistroLettureError
+        from web.services.registro_letture_runtime import risolvi_anomalia
+
+        payload = _request_payload()
+        esito = str(payload.get("esito") or "").strip().lower()
+        valore = str(payload.get("valore") or "").strip()
+        try:
+            anomalia = risolvi_anomalia(anomalia_id, esito=esito, valore=valore)
+        except RegistroLettureError as errore:
+            return _jsonify_public_payload({"ok": False, "errore": str(errore)}, 200)
+        _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
+        _audit_event("fascicoli.letture.anomalia", "fascicolo", id_fasc, f"{anomalia.get('campo')} {anomalia.get('valore_letto')} → {esito}{(' ' + valore) if valore else ''}")
+        return _jsonify_public_payload({"ok": True, "anomalia": anomalia})
+    except Exception as exc:
+        current_app.logger.exception("Anomalia di lettura %s non risolta: %s", anomalia_id, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Anomalia non risolta."}, 200)
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")

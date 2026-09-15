@@ -50,8 +50,11 @@ class OCRRuntime:
         tipo_doc: str,
         index_path: str,
     ) -> None:
-        """Accoda un job OCR persistente se il file e' di un tipo supportato."""
+        """Accoda un job OCR persistente se il file e' di un tipo supportato e non e' gia' stato letto."""
         if not ocr_supportato(nome_doc):
+            return
+        tenant_id, registro_path = _registro_per_job(id_fasc, id_doc, hash_sha256)
+        if tenant_id is None:
             return
         self.store.enqueue(
             percorso=percorso,
@@ -61,6 +64,8 @@ class OCRRuntime:
             nome_doc=nome_doc,
             tipo_doc=tipo_doc,
             index_path=index_path,
+            tenant_id=tenant_id,
+            registro_path=registro_path,
         )
 
     def status_snapshot(self) -> dict[str, Any]:
@@ -84,6 +89,25 @@ class OCRRuntime:
         )
         self._embedded_thread.start()
         return True
+
+
+def _registro_per_job(id_fasc: str, id_doc: str, hash_sha256: str) -> tuple[str | None, str]:
+    """Studio e percorso del registro per il job; (None, "") se il documento e' gia' letto dall'OCR."""
+    try:
+        from pct.registro_letture import Oggetto
+        from web.services.registro_letture_runtime import percorso_registro, registro_corrente, tenant_corrente
+
+        tenant = tenant_corrente()
+        registro = registro_corrente()
+        oggetto = registro.oggetto(tenant, id_fasc, "documento", id_doc)
+        if oggetto is None:
+            oggetto = Oggetto(tipo="documento", oggetto_id=str(id_doc), sha256_archivio=str(hash_sha256 or ""))
+        if str(hash_sha256 or "").strip().lower() == str(oggetto.sha256_archivio or "").strip().lower():
+            if not registro.da_leggere(tenant, id_fasc, "ocr", oggetti=[oggetto]):
+                return None, ""
+        return tenant, percorso_registro()
+    except Exception:
+        return "", ""
 
 
 class _NullLock:

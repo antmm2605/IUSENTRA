@@ -75,8 +75,19 @@ def get_local_ai_service() -> LocalAIService:
             app_root=cfg["app_root"],
             models_path=cfg["models_path"],
         )
+        service.registro_letture = _registro_letture_corrente
         registry[key] = service
         return service
+
+
+def _registro_letture_corrente():
+    """Il registro delle letture dello studio della richiesta corrente; None fuori da Flask."""
+    try:
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        return registro_corrente(), tenant_corrente()
+    except Exception:
+        return None
 
 
 __all__ = ["get_local_ai_service"]

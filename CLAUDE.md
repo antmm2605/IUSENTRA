@@ -824,3 +824,10 @@ STUDIO_NOME / STUDIO_CF / STUDIO_PIVA  # Dati studio
 - **GDPR**: registro trattamenti dati in `privacy.py`, informative PDF per clienti
 - **Session cookie**: `SECRET_KEY` + `SESSION_COOKIE_SECURE=True` in produzione
 - **mTLS**: connessioni PDP/PAT autenticate con certificato client (P12/PEM)
+
+## Registro delle letture — REGOLA OBBLIGATORIA (letture incrementali)
+
+- Ogni lettore di documenti e PEC (OCR/indice di ricerca, indice documentale, catalogo, RAG locale, presidio PEC, presidio economico, proforma automatica, lettura del fascicolo) passa dal **registro delle letture** `pct/registro_letture/` (`docs/REGISTRO_LETTURE.md`): consulta `da_leggere`/`fascicolo_invariato` prima di leggere, legge solo gli oggetti nuovi o con impronta SHA-256 cambiata, registra l'esito con `segna_letto`/`segna_fascicolo`. Un lettore nuovo si censisce in `pct/registro_letture/lettori.py` con etichetta italiana e versione.
+- **Vietato rileggere per abitudine**: nessun job periodico o endpoint può decifrare, estrarre o indicizzare tutti i documenti di un fascicolo se il registro dice che l'inventario è invariato. Chi cambia un documento o collega una PEC chiama gli eventi di `web/services/registro_letture_runtime.py` (`documento_aggiornato`, `documento_rimosso`, `pec_collegata`), che allineano l'inventario e invalidano la lettura in cache.
+- **Verifica dei dati letti**: le date estratte da documenti e PEC passano da `pct/registro_letture/verifica_date.py`; le anomalie (data non di calendario, fuori orizzonte, incoerente con PEC o portale, giorno/mese invertiti, lettere al posto delle cifre) si registrano con `registra_anomalie` e restano aperte finché l'avvocato le conferma o corregge dal pannello «Letture e verifiche»; le correzioni (`correzioni`) prevalgono sul valore letto. Le confusioni tipiche dell'OCR si dichiarano solo in `legal_ocr/formulario/confusioni.py`.
+- Base normativa: art. 3 D.M. 44/2011 e art. 20 CAD (impronta e integrità dei documenti informatici).

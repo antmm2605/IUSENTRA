@@ -6,7 +6,10 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable
 
+from legal_ocr.formulario.date import normalizza_data_ocr
 from pct.formatting import format_date_it
+from pct.registro_letture.verifica import verifica_date_lette
+from pct.registro_letture.verifica_date import interpreta_data, orizzonte_fascicolo
 
 
 _DATE_RE = re.compile(r"\b(?P<day>[0-3]?\d)[./-](?P<month>[01]?\d)[./-](?P<year>(?:19|20)\d{2})\b")
@@ -222,12 +225,14 @@ def _make_action(
     peremptory: bool = False,
     time_value: str = "",
     requires_communication_date: bool = False,
+    raw_date: str = "",
 ) -> dict[str, Any]:
     date_label = _date_label(due)
     if time_value and date_label:
         date_label = f"{date_label} {time_value}"
     return {
         "id": f"{action_type}-{document_id}-{_date_iso(due) or 'senza-data'}",
+        "rawDate": _text(raw_date),
         "type": action_type,
         "title": title,
         "label": title,
@@ -449,6 +454,9 @@ def _analyze_generic_procedural_text(text: str, *, source: str, document_id: str
     folded = _fold(text)
     if "127 ter" in folded.replace("-", " ") or "127 bis" in folded.replace("-", " "):
         return actions
+    # Le date con lettere al posto delle cifre («1O/O3/2O26») si leggono dopo la
+    # normalizzazione del formulario; il valore grezzo resta nell'azione per la verifica.
+    text = normalizza_data_ocr(text)
     for match in _DATE_RE.finditer(text):
         due = _parse_date(match.group(0))
         if not due:
@@ -487,9 +495,58 @@ def _analyze_generic_procedural_text(text: str, *, source: str, document_id: str
                 tone=tone,
                 priority="important",
                 description=description,
+                raw_date=match.group(0),
             )
         )
     return actions[:3]
+
+
+_CAMPO_PER_TIPO = {"udienza_documento": "udienza", "termine_documento": "termine"}
+
+
+def _applica_correzioni_date(actions: list[dict[str, Any]], correzioni: dict[tuple[str, str, str], str] | None) -> list[dict[str, Any]]:
+    """Le date che l'avvocato ha corretto nel registro delle letture sostituiscono quelle lette."""
+    if not correzioni:
+        return actions
+    esito: list[dict[str, Any]] = []
+    for action in actions:
+        campo = _CAMPO_PER_TIPO.get(_text(action.get("type")), "")
+        letto = _text(action.get("rawDate"))
+        giusto = correzioni.get((_text(action.get("documentId")), campo, letto)) if campo and letto else ""
+        data = interpreta_data(giusto) if giusto else None
+        if data is None:
+            esito.append(action)
+            continue
+        corretta = dict(action)
+        corretta["dateIso"] = data.isoformat()
+        corretta["date"] = _date_label(data)
+        corretta["id"] = f"{action['type']}-{action['documentId']}-{data.isoformat()}"
+        corretta["dateCorrected"] = True
+        corretta["description"] = _short(f"{action.get('description', '')} Data confermata dall'avvocato: {_date_label(data)}.", 260)
+        esito.append(corretta)
+    return esito
+
+
+def _anomalie_date(actions: list[dict[str, Any]], fascicolo: Any, today: date) -> list[dict[str, Any]]:
+    """Le date lette dai documenti che i controlli giudicano dubbie, pronte per il registro."""
+    voci = []
+    for action in actions:
+        campo = _CAMPO_PER_TIPO.get(_text(action.get("type")), "")
+        if not campo or action.get("dateCorrected"):
+            continue
+        voci.append({
+            "valore": _text(action.get("rawDate")) or _text(action.get("dateIso")),
+            "campo": campo,
+            "contesto": _text(action.get("description")),
+            "documentId": _text(action.get("documentId")),
+        })
+    anomalie: list[dict[str, Any]] = []
+    contesto = orizzonte_fascicolo(fascicolo, oggi=today)
+    for voce in voci:
+        for anomalia in verifica_date_lette([voce], contesto):
+            anomalia["documentId"] = voce["documentId"]
+            anomalie.append(anomalia)
+    return anomalie
 
 
 def analyze_fascicolo_document_texts(
@@ -498,6 +555,7 @@ def analyze_fascicolo_document_texts(
     metadata_by_document: dict[str, dict[str, Any]] | None = None,
     *,
     today: date | None = None,
+    correzioni: dict[tuple[str, str, str], str] | None = None,
 ) -> dict[str, Any]:
     today = today or date.today()
     metadata_by_document = metadata_by_document or {}
@@ -540,6 +598,8 @@ def analyze_fascicolo_document_texts(
             warnings.extend(local_warnings)
         procedural_actions.extend(_analyze_generic_procedural_text(text, source=source, document_id=document_id))
 
+    procedural_actions = _applica_correzioni_date(procedural_actions, correzioni)
+    anomalie_date = _anomalie_date(procedural_actions, fascicolo, today)
     deduped: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for action in [*procedural_actions, *review_actions]:
@@ -584,6 +644,8 @@ def analyze_fascicolo_document_texts(
         "actions": deduped[:12],
         "warnings": warnings[:8],
         "sources": sources[:8],
+        # Le date lette che non convincono: l'avvocato le conferma o le corregge nel registro delle letture.
+        "dateAnomalie": anomalie_date[:12],
     }
 
 

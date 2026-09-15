@@ -53,6 +53,34 @@ def _mark_document_ocr_extracted(job) -> None:
         )
 
 
+def _registra_lettura_ocr(job, testo: str, *, stato: str, errore: str = "") -> None:
+    """Segna nel registro delle letture l'esito dell'OCR e verifica le date lette."""
+    registro_path = str(getattr(job, "registro_path", "") or "").strip()
+    if not registro_path:
+        return
+    try:
+        from pct.registro_letture import Oggetto, RegistroLetture
+        from pct.registro_letture.verifica import verifica_lettura
+        from pct.registro_letture.verifica_date import date_nel_testo
+
+        registro = RegistroLetture(registro_path)
+        tenant = str(getattr(job, "tenant_id", "") or "")
+        oggetto = registro.oggetto(tenant, job.id_fasc, "documento", job.id_doc)
+        if oggetto is None:
+            oggetto = Oggetto(tipo="documento", oggetto_id=job.id_doc, nome=job.nome_doc, sha256_archivio=job.hash_sha256)
+            registro.registra_inventario(tenant, job.id_fasc, [oggetto], tipi=())
+        esito = {"caratteri": len(testo), "errore": errore[:200]} if errore else {"caratteri": len(testo)}
+        if stato == "letto":
+            esito["date"] = date_nel_testo(testo)[:40]
+        registro.segna_letto(tenant, job.id_fasc, oggetto, "ocr", stato=stato, esito=esito)
+        if stato == "letto" and esito.get("date"):
+            anomalie = verifica_lettura({"date": esito["date"]}, {})
+            if anomalie:
+                registro.registra_anomalie(tenant, job.id_fasc, oggetto, "ocr", anomalie)
+    except Exception as exc:
+        logger.debug("Registro letture non aggiornato per il job OCR %s: %s", getattr(job, "id", ""), exc)
+
+
 def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event) -> None:
     while not stop_event.is_set():
         job = store.claim_next(worker_id=worker_id)
@@ -70,9 +98,11 @@ def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event
             if testo:
                 idx.indicizza_documento(job.id_fasc, job.id_doc, job.nome_doc, testo, job.tipo_doc)
                 _mark_document_ocr_extracted(job)
+            _registra_lettura_ocr(job, testo or "", stato="letto" if testo else "non_leggibile")
             store.complete(job.id)
         except Exception as exc:
             logger.warning("Errore OCR su job %s (%s/%s): %s", job.id, job.id_fasc, job.id_doc, exc)
+            _registra_lettura_ocr(job, "", stato="errore", errore=str(exc))
             store.fail(job.id, str(exc))
 
 

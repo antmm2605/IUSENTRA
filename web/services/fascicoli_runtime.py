@@ -1433,6 +1433,12 @@ def build_fascicoli_runtime(
             tipo_doc=tipo_doc.value,
             index_path=app.config["SEARCH_INDEX"],
         )
+        try:
+            from web.services.registro_letture_runtime import documento_aggiornato
+
+            documento_aggiornato(id_fasc, doc)
+        except Exception as exc:  # il registro non deve mai bloccare il caricamento
+            app.logger.debug("Registro letture non aggiornato per %s: %s", id_fasc, exc)
         return doc
 
     def _leggi_staging_documenti_portale(fasc: Fascicolo) -> tuple[list[dict], Path]:

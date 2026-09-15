@@ -21,7 +21,7 @@ from .lacune import lacune_conoscenza, riferimenti_nel_testo
 from .notifiche import SCHEDE_NOTIFICA, canale_notifica, fase_notifica, scheda_notifica
 from .riti import SCHEDE_RITO, rito_per_fascicolo, scheda_rito
 
-VERSIONE_CONOSCENZA = "2026.09.14.fasi-procedurali.v1"
+VERSIONE_CONOSCENZA = "2026.09.15.fasi-procedurali.v2"
 
 
 def _con_fonti(scheda: dict[str, Any]) -> dict[str, Any]:

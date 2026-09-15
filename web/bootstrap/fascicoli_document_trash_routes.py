@@ -9,6 +9,7 @@ from flask import Flask, flash, g, jsonify, request, url_for
 
 from web.bootstrap.fascicoli_document_helpers import redirect_to_documenti_section, wants_json_response
 from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
+from web.services.registro_letture_runtime import documento_aggiornato, documento_rimosso
 
 
 def register_fascicoli_document_trash_routes(
@@ -29,6 +30,7 @@ def register_fascicoli_document_trash_routes(
                 or ""
             ).strip()
             get_fascicoli().rimuovi_documento(id_fasc, id_doc, eliminato_da=eliminato_da)
+            documento_rimosso(id_fasc, id_doc)
             msg = "Documento spostato nel cestino."
             flash(msg, "success")
             audit("fascicoli.documento.cestino", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
@@ -59,6 +61,7 @@ def register_fascicoli_document_trash_routes(
     def ripristina_documento(id_fasc, id_doc):
         try:
             get_fascicoli().ripristina_documento(id_fasc, id_doc)
+            documento_aggiornato(id_fasc)
             msg = "Documento ripristinato nel fascicolo."
             flash(msg, "success")
             audit("fascicoli.documento.ripristina", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
@@ -83,6 +86,7 @@ def register_fascicoli_document_trash_routes(
     def elimina_documento_definitivamente(id_fasc, id_doc):
         try:
             get_fascicoli().elimina_documento_definitivamente(id_fasc, id_doc)
+            documento_rimosso(id_fasc, id_doc)
             msg = "Documento eliminato definitivamente."
             flash(msg, "success")
             audit("fascicoli.documento.elimina_definitiva", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
@@ -116,6 +120,7 @@ def register_fascicoli_document_trash_routes(
         for id_doc in dict.fromkeys(ids_doc):
             try:
                 gestore_fascicoli.rimuovi_documento(id_fasc, id_doc)
+                documento_rimosso(id_fasc, id_doc)
                 rimossi += 1
             except KeyError as exc:
                 app.logger.warning("Documento da eliminare non trovato id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)

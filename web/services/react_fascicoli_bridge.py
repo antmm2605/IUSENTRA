@@ -6,6 +6,8 @@ lettura tramite API React, scritture demandate ai servizi Flask già auditati.
 
 from __future__ import annotations
 
+import logging as _logging
+
 
 from pct.formatting import format_euro_it
 import json
@@ -2595,6 +2597,43 @@ def _presidio_documenti_da_leggere(
     )
 
 
+def _registro_letture_fascicolo(fascicolo: Any, lettore: str) -> dict[str, Any]:
+    """Registro delle letture per un lettore: impronta dell'inventario e stato «invariato»."""
+    try:
+        from pct.registro_letture import impronta_inventario
+        from web.services.registro_letture_runtime import inventario_fascicolo, registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        oggetti = inventario_fascicolo(fascicolo, con_pec=False)
+        impronta = impronta_inventario(oggetti)
+        fid = _text(getattr(fascicolo, "id", ""))
+        return {
+            "registro": registro, "tenant": tenant, "fascicolo_id": fid, "lettore": lettore, "oggetti": oggetti,
+            "impronta": impronta, "invariato": registro.fascicolo_invariato(tenant, fid, lettore, impronta),
+        }
+    except Exception:
+        return {"invariato": False}
+
+
+def _segna_registro_letture_fascicolo(registro: dict[str, Any], *, esito: dict[str, Any] | None = None, letti: Iterable[str] | None = None) -> None:
+    """Segna il fascicolo letto per il lettore del registro (e i singoli documenti, se indicati)."""
+    repo = registro.get("registro")
+    if repo is None:
+        return
+    try:
+        tenant = str(registro.get("tenant") or "")
+        fid = str(registro.get("fascicolo_id") or "")
+        lettore = str(registro.get("lettore") or "")
+        oggetti = list(registro.get("oggetti") or [])
+        if letti is not None:
+            ids = {str(v) for v in letti}
+            repo.segna_letti(tenant, fid, [o for o in oggetti if o.oggetto_id in ids], lettore)
+        repo.segna_fascicolo(tenant, fid, lettore, impronta=str(registro.get("impronta") or ""), oggetti_totali=len(oggetti), oggetti_letti=len(oggetti) if letti is None else len({str(v) for v in letti}), esito=esito)
+    except Exception as exc:
+        _logging.getLogger(__name__).debug("Registro letture non aggiornato (%s): %s", registro.get("lettore"), exc)
+
+
 _ECONOMIC_AUTO_SOURCES_CACHE: OrderedDict[str, tuple[float, dict[str, dict[str, Any]]]] = OrderedDict()
 
 
@@ -4463,6 +4502,12 @@ def _ensure_auto_proforma_for_fascicolo(
     ]
     if existing:
         return {"status": "existing", "count": len(existing)}
+    # Registro delle letture: la proforma automatica rileggeva i PDF dal disco
+    # ogni quindici minuti, per sempre. Se l'inventario del fascicolo e' lo
+    # stesso dell'ultimo giro non c'e' nulla di nuovo da cui trarre una proforma.
+    registro_proforma = _registro_letture_fascicolo(fascicolo, "proforma_automatica")
+    if registro_proforma.get("invariato"):
+        return {"status": "unchanged", "reason": "Nessun documento nuovo dall'ultima lettura per la proforma.", "readComplete": True}
     try:
         from pct.fascicolo_sentenza_economica import apply_sentenza_tribunale_automation
     except Exception:
@@ -4496,6 +4541,7 @@ def _ensure_auto_proforma_for_fascicolo(
                 actor=actor,
             )
             if _text(getattr(outcome, "proforma_id", "")):
+                _segna_registro_letture_fascicolo(registro_proforma, esito={"proforma": _text(getattr(outcome, "proforma_id", ""))})
                 return {
                     "status": "created",
                     "source": "sentenza",
@@ -4503,6 +4549,7 @@ def _ensure_auto_proforma_for_fascicolo(
                     "proformaNumber": _text(getattr(outcome, "proforma_number", "")),
                     "message": _text(getattr(outcome, "message", "")),
                 }
+    _segna_registro_letture_fascicolo(registro_proforma, esito={"proforma": ""})
     amount, amount_source = _fascicolo_auto_proforma_amount(fascicolo)
     if amount is not None:
         created = _create_review_proforma_from_fascicolo_amount(
@@ -4739,6 +4786,13 @@ def _ensure_contributo_unificato_for_fascicolo(
             "del contributo unificato leggibile."
         )
     payments["_presidio_documentale"] = marker
+    # Lo stesso inventario delle letture finisce nel registro delle letture, dove
+    # l'avvocato lo vede insieme a OCR, indice e catalogo.
+    _segna_registro_letture_fascicolo(
+        _registro_letture_fascicolo(fascicolo, "presidio_economico"),
+        esito={"stato": marker.get("status"), "documenti_letti": int(marker.get("readDocumentCount") or 0)},
+        letti=list(letture.keys()),
+    )
     updater = getattr(fascicoli_repository, "aggiorna", None)
     if persist and not callable(updater):
         return {"status": "error", "reason": "Repository fascicoli non scrivibile.", "analysisUpdated": False}
@@ -5397,7 +5451,41 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
             "sources": [],
         }
     metadata_by_document = {document_id: _document_metadata_for_id(fascicolo, document_id) for document_id in texts}
-    return analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document)
+    presidio = analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document, correzioni=_correzioni_letture(fascicolo))
+    _registra_anomalie_letture(fascicolo, presidio.get("dateAnomalie") or [], lettore="indice_documentale")
+    return presidio
+
+
+def _correzioni_letture(fascicolo: Any) -> dict[tuple[str, str, str], str]:
+    """Le date corrette o confermate dall'avvocato nel registro delle letture."""
+    try:
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        return registro_corrente().correzioni(tenant_corrente(), _text(getattr(fascicolo, "id", "")))
+    except Exception:
+        return {}
+
+
+def _registra_anomalie_letture(fascicolo: Any, anomalie: list[dict[str, Any]], *, lettore: str) -> None:
+    """Le date dubbie lette dai documenti finiscono nel registro, una volta sola per documento e valore."""
+    if not anomalie:
+        return
+    try:
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        fid = _text(getattr(fascicolo, "id", ""))
+        per_documento: dict[str, list[dict[str, Any]]] = {}
+        for anomalia in anomalie:
+            per_documento.setdefault(_text(anomalia.get("documentId")), []).append(anomalia)
+        for document_id, voci in per_documento.items():
+            oggetto = registro.oggetto(tenant, fid, "documento", document_id)
+            if oggetto is None:
+                continue
+            registro.registra_anomalie(tenant, fid, oggetto, lettore, voci)
+    except Exception as exc:
+        _logging.getLogger(__name__).debug("Anomalie di lettura non registrate per %s: %s", getattr(fascicolo, "id", ""), exc)
 
 
 def _next_deadline(

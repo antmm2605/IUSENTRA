@@ -128,6 +128,7 @@ def collect_fascicolo_document_sources(
     fascicolo: Any,
     documents_root: str | Path,
     decrypt: Callable[[bytes], bytes] | None = None,
+    impronte: Any = None,
 ) -> list[DocumentAISource]:
     root = Path(documents_root)
     sources: list[DocumentAISource] = []
@@ -138,6 +139,7 @@ def collect_fascicolo_document_sources(
             document=document,
             documents_root=root,
             decrypt=decrypt,
+            impronte=impronte,
         )
         if source is not None:
             document_type = getattr(document, "tipo", "")
@@ -197,6 +199,28 @@ def _fascicolo_retrieval_metadata(
     }
 
 
+def _impronta_contenuto_nota(document: Any, decrypt: Callable[[bytes], bytes] | None, impronte: Any) -> str:
+    """L'impronta del contenuto in chiaro senza aprire il file, quando e' certa.
+
+    Senza cifratura il file conservato e' il contenuto. Con la cifratura vale
+    `hash_contenuto_sha256` solo se differisce dall'impronta del file (chi lo
+    ha caricato l'ha calcolata sul contenuto in chiaro); altrimenti risponde il
+    registro delle letture, che l'ha imparata alla prima lettura.
+    """
+    archivio = str(getattr(document, "hash_sha256", "") or "").strip().lower()
+    contenuto = str(getattr(document, "hash_contenuto_sha256", "") or "").strip().lower()
+    if decrypt is None:
+        return contenuto or archivio
+    if contenuto and archivio and contenuto != archivio:
+        return contenuto
+    if impronte is not None and archivio:
+        try:
+            return str(impronte.nota(document) or "").strip().lower()
+        except Exception:
+            return ""
+    return ""
+
+
 def source_from_fascicolo_document(
     *,
     tenant_id: str,
@@ -204,6 +228,7 @@ def source_from_fascicolo_document(
     document: Any,
     documents_root: str | Path,
     decrypt: Callable[[bytes], bytes] | None = None,
+    impronte: Any = None,
 ) -> DocumentAISource | None:
     filename = Path(str(getattr(document, "nome", "") or "")).name
     if not filename:
@@ -228,7 +253,16 @@ def source_from_fascicolo_document(
     content: bytes | None = None
     size_bytes = int(getattr(document, "dimensione_bytes", 0) or 0)
     sha256 = str(getattr(document, "hash_sha256", "") or "").strip()
-    should_read_content = bool(supported and content_path and content_path.exists() and (not sha256 or decrypt is not None))
+    impronta_nota = _impronta_contenuto_nota(document, decrypt, impronte)
+    # Se l'impronta del contenuto e' gia' certa il file non si apre e non si
+    # decifra: il contenuto resta pigro (content_path + decrypt) per chi deve
+    # davvero indicizzarlo. Prima ogni chiamata decifrava tutti i documenti del
+    # fascicolo solo per ricalcolare un hash gia' noto.
+    should_read_content = bool(
+        supported and content_path and content_path.exists() and not impronta_nota and (not sha256 or decrypt is not None)
+    )
+    if impronta_nota:
+        sha256 = impronta_nota
     if should_read_content:
         try:
             content = content_path.read_bytes()
@@ -236,6 +270,11 @@ def source_from_fascicolo_document(
                 content = decrypt(content)
             size_bytes = len(content)
             sha256 = compute_sha256_bytes(content)
+            if impronte is not None and decrypt is not None:
+                try:
+                    impronte.impara(document, sha256, size_bytes)
+                except Exception:
+                    pass
         except Exception:
             content = None
     if not sha256 and content:

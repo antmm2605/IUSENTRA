@@ -2228,6 +2228,34 @@ class LocalAIService:
                 "language": parsed.get("language"),
             }
 
+    # Registro delle letture: callable che restituisce (RegistroLetture, tenant_id)
+    # oppure None; lo imposta chi costruisce il servizio dentro l'applicazione.
+    registro_letture: Any = None
+
+    def _registra_lettura_rag(self, fascicolo: Any, doc: Any, outcome: dict[str, Any]) -> None:
+        risolutore = getattr(self, "registro_letture", None)
+        if not callable(risolutore):
+            return
+        try:
+            coppia = risolutore()
+            if not coppia:
+                return
+            registro, tenant = coppia
+            from pct.registro_letture.inventario import oggetto_da_documento
+
+            oggetto = registro.oggetto(tenant, str(getattr(fascicolo, "id", "") or ""), "documento", str(getattr(doc, "id", "") or ""))
+            if oggetto is None:
+                oggetto = oggetto_da_documento(doc, fascicolo, cifratura_attiva=bool(_doc_key()))
+            if oggetto is None:
+                return
+            stato = str(outcome.get("status") or "")
+            if stato in {"indexed", "skipped"}:
+                registro.segna_letto(tenant, str(getattr(fascicolo, "id", "") or ""), oggetto, "rag_locale", esito={"chunk": int(outcome.get("chunk_count") or 0)})
+            elif stato == "unsupported":
+                registro.segna_letto(tenant, str(getattr(fascicolo, "id", "") or ""), oggetto, "rag_locale", stato="non_leggibile", esito={"motivo": str(outcome.get("reason") or "")[:160]})
+        except Exception as exc:
+            logger.debug("Registro letture non aggiornato per il RAG locale: %s", exc)
+
     def index_fascicolo_documents(self, fascicolo: Any, documents_dir: str, *, force: bool = False, limit: int | None = None) -> dict[str, Any]:
         results = {
             "indexed": 0,
@@ -2256,6 +2284,7 @@ class LocalAIService:
                     original_detached_path=str(detached_candidate) if detached_candidate else None,
                 )
                 results[outcome["status"]] = results.get(outcome["status"], 0) + 1
+                self._registra_lettura_rag(fascicolo, doc, outcome)
                 if outcome["status"] == "indexed":
                     results["indexed_items"].append(
                         {

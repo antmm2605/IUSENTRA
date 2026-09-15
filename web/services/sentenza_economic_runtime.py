@@ -198,12 +198,18 @@ def _is_sentenza_candidate(documento: Any) -> bool:
 
 
 def _already_analyzed(audits: list[dict[str, Any]], documento: Any) -> bool:
+    """Gia' analizzato se un audit porta la stessa impronta; a parita' di id conta il contenuto.
+
+    Un documento sostituito sotto lo stesso id (nuova versione della sentenza)
+    ha un'impronta diversa e va rianalizzato: l'id da solo non basta.
+    """
     doc_id = _document_id(documento)
     doc_hash = _document_hash(documento)
     for audit in audits:
-        if doc_id and str(audit.get("documento_id") or "") == doc_id:
+        audit_hash = str(audit.get("document_hash_sha256") or "").strip().lower()
+        if doc_hash and audit_hash == doc_hash.lower():
             return True
-        if doc_hash and str(audit.get("document_hash_sha256") or "") == doc_hash:
+        if doc_id and str(audit.get("documento_id") or "") == doc_id and (not doc_hash or not audit_hash):
             return True
     return False
 
@@ -274,8 +280,8 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
 
     repo = _repo()
     audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=str(getattr(fascicolo, "id", "") or ""))
-    document_ai_texts = _document_texts_for_fascicolo(fascicolo, tenant_id)
     report = {"ok": True, "analyzed": 0, "skipped": 0, "missing_text": 0, "errors": 0, "candidates": 0}
+    da_analizzare: list[Any] = []
     for documento in getattr(fascicolo, "documenti", []) or []:
         if not _is_sentenza_candidate(documento):
             continue
@@ -283,6 +289,13 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
         if _already_analyzed(audits, documento):
             report["skipped"] += 1
             continue
+        da_analizzare.append(documento)
+    if not da_analizzare:
+        # Tutte le sentenze candidate sono gia' state analizzate con questa impronta:
+        # i testi del catalogo non si caricano nemmeno.
+        return report
+    document_ai_texts = _document_texts_for_fascicolo(fascicolo, tenant_id)
+    for documento in da_analizzare:
         doc_id = _document_id(documento)
         if not doc_id:
             continue

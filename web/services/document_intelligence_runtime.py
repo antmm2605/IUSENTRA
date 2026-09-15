@@ -104,12 +104,19 @@ def collect_document_ai_sources_for_fascicolo(
         from web.services.document_crypto import decrypt_doc
     except Exception:
         decrypt_doc = None
+    try:
+        from web.services.registro_letture_runtime import impronte_contenuto
+
+        impronte = impronte_contenuto(str(fascicolo_id or "").strip())
+    except Exception:
+        impronte = None
     return collect_fascicolo_document_sources(
         tenant_id=tenant_id or document_ai_tenant_id(),
         fascicolo_id=str(fascicolo_id or "").strip(),
         fascicolo=fascicolo,
         documents_root=getattr(gestore, "documents_dir", Path(".")),
         decrypt=decrypt_doc,
+        impronte=impronte,
     )
 
 
@@ -182,6 +189,7 @@ def build_document_catalog_payload(
                 "assignment": _catalog_assignment_payload(service.repository, assignment, source_urls=source_urls_by_rule.get(assignment.rule_set_id)) if assignment else None,
             }
         )
+    _registra_catalogo(fascicolo_id, sources, by_document)
     current = [item["assignment"] for item in documents if item["assignment"]]
     summary = {
         "total": len(current),
@@ -387,12 +395,27 @@ def build_lex_indexing_summary_payload(
     retry_errors: bool = False,
     user_context: object | None = None,
     apply_automations: bool = True,
+    forza: bool = False,
 ) -> dict[str, Any]:
+    """Stato dell'indice Lex del fascicolo; con `process` indicizza ciò che manca.
+
+    Il registro delle letture ferma l'elaborazione se l'inventario e' invariato
+    dall'ultimo giro (anche quando quel giro ha lasciato documenti non
+    leggibili: un errore identico non si ripete da solo); `forza=True` la
+    richiede comunque, ed e' il pulsante «Leggi i nuovi» a usarlo.
+    """
     assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
     service = build_document_ai_service()
     sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id)
+    registro = _registro_indice_documentale(fascicolo_id, sources)
+    if forza:
+        registro["invariato"] = False
+    if process and registro.get("invariato"):
+        # Il registro delle letture sa che ogni documento del fascicolo e' gia'
+        # stato indicizzato con questa impronta e questo motore: non si rilegge.
+        process = False
     if process:
         result = service.process_lex_indexing_sources(
             tenant_id,
@@ -402,6 +425,7 @@ def build_lex_indexing_summary_payload(
             retry_errors=retry_errors,
         )
         payload = result.summary.to_dict()
+        _registra_indice_documentale(registro, result.summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context)
         if not apply_automations:
             return payload
         payload.update(
@@ -415,10 +439,12 @@ def build_lex_indexing_summary_payload(
         )
         return payload
     summary: LexIndexingSummary = service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context)
+    if not registro.get("invariato"):
+        _registra_indice_documentale(registro, summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context)
     if not apply_automations:
         # Lettura dello stato SQL senza avviare OCR o automazioni estranee.
         return summary.to_dict()
-    if _lex_summary_needs_automatic_processing(summary, sources):
+    if not registro.get("invariato") and _lex_summary_needs_automatic_processing(summary, sources):
         result = service.process_lex_indexing_sources(
             tenant_id,
             fascicolo_id,
@@ -427,6 +453,7 @@ def build_lex_indexing_summary_payload(
             retry_errors=True,
         )
         payload = result.summary.to_dict()
+        _registra_indice_documentale(registro, result.summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context)
         payload.update(
             _apply_ready_document_automations(
                 service=service,
@@ -448,6 +475,133 @@ def build_lex_indexing_summary_payload(
         )
     )
     return payload
+
+
+def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_document: dict[tuple[str, str], Any]) -> None:
+    """Nel registro delle letture un documento con assegnazione di catalogo (stessa impronta) risulta catalogato."""
+    try:
+        from pct.registro_letture import Oggetto
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        letti: list[Oggetto] = []
+        non_leggibili: list[Oggetto] = []
+        for source in sources:
+            document_id = str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or "")
+            oggetto = Oggetto(tipo="documento", oggetto_id=document_id, nome=str(source.filename or ""), sha256=str(source.sha256 or ""), dimensione=int(source.size_bytes or 0))
+            assignment = by_document.get((document_id, source.sha256))
+            if assignment is not None:
+                letti.append(oggetto)
+            elif not source.supported:
+                non_leggibili.append(oggetto)
+        fid = str(fascicolo_id or "")
+        if letti:
+            da_segnare = registro.da_leggere(tenant, fid, "catalogo", oggetti=letti)
+            registro.segna_letti(tenant, fid, da_segnare, "catalogo", esito={"fonte": "assegnazione di catalogo"})
+        if non_leggibili:
+            da_segnare = registro.da_leggere(tenant, fid, "catalogo", oggetti=non_leggibili)
+            registro.segna_letti(tenant, fid, da_segnare, "catalogo", stato="non_leggibile", esito={"motivo": "formato non supportato"})
+    except Exception as exc:
+        current_app.logger.debug("Registro letture non aggiornato per il catalogo: %s", exc)
+
+
+def _registro_indice_documentale(fascicolo_id: str, sources: list[DocumentAISource]) -> dict[str, Any]:
+    """Il registro delle letture per l'indice documentale: impronta del fascicolo e stato «invariato»."""
+    try:
+        from pct.registro_letture import Oggetto, impronta_inventario
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        oggetti = [
+            Oggetto(
+                tipo="documento",
+                oggetto_id=str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or ""),
+                nome=str(source.filename or ""),
+                sha256=str(source.sha256 or ""),
+                dimensione=int(source.size_bytes or 0),
+            )
+            for source in sources
+        ]
+        impronta = impronta_inventario(oggetti)
+        return {
+            "registro": registro,
+            "tenant": tenant,
+            "fascicolo_id": str(fascicolo_id or ""),
+            "oggetti": oggetti,
+            "impronta": impronta,
+            "invariato": bool(oggetti) and registro.fascicolo_invariato(tenant, str(fascicolo_id or ""), "indice_documentale", impronta),
+        }
+    except Exception as exc:
+        current_app.logger.debug("Registro letture non disponibile per l'indice documentale: %s", exc)
+        return {"invariato": False}
+
+
+def _registra_indice_documentale(
+    registro: dict[str, Any],
+    summary: LexIndexingSummary,
+    sources: list[DocumentAISource],
+    *,
+    service: DocumentAIService,
+    tenant_id: str,
+    fascicolo_id: str,
+    user_context: object,
+) -> None:
+    """Segna nel registro i documenti indicizzati e, se tutto e' pronto, il fascicolo completo."""
+    repo = registro.get("registro")
+    if repo is None:
+        return
+    try:
+        from pct.document_intelligence.indexer import _state_for_source
+
+        tenant = str(registro.get("tenant") or "")
+        oggetti = list(registro.get("oggetti") or [])
+        records = list(service.list_fascicolo_documents(tenant_id, fascicolo_id, user_context) or [])
+        stati = {}
+        for source in sources:
+            identificativo = str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or "")
+            if identificativo:
+                stati[identificativo] = str(_state_for_source(source, records) or "")
+        supportati = {
+            str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or ""): bool(source.supported)
+            for source in sources
+        }
+        # Gli errori di lettura arrivano come avvisi «nome file: motivo»: si
+        # registrano sul documento, cosi' un errore identico non si ripete da solo.
+        errori_per_nome: dict[str, str] = {}
+        for avviso in list(getattr(summary, "warnings", []) or []):
+            testo = str(avviso or "")
+            if ":" in testo:
+                nome, motivo = testo.split(":", 1)
+                errori_per_nome[nome.strip().casefold()] = motivo.strip()[:200]
+        letti = 0
+        registrati = 0
+        for oggetto in oggetti:
+            stato = stati.get(oggetto.oggetto_id, "")
+            errore = errori_per_nome.get(str(oggetto.nome or "").casefold(), "")
+            if stato == "ready":
+                repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", esito={"stato": stato})
+                letti += 1
+                registrati += 1
+            elif not supportati.get(oggetto.oggetto_id, True):
+                # Formato non indicizzabile (binari, archivi): non e' un errore da ritentare.
+                repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="non_leggibile", esito={"stato": stato, "motivo": "formato non supportato"})
+                letti += 1
+                registrati += 1
+            elif stato == "error" or errore:
+                repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="errore", esito={"stato": stato or "error", "motivo": errore})
+                registrati += 1
+        # Il giro e' completo quando ogni documento ha un esito registrato con questa
+        # impronta, leggibile o no: la Lettura non riproverà da sola gli stessi errori.
+        completa = bool(oggetti) and registrati == len(oggetti)
+        repo.segna_fascicolo(
+            tenant, fascicolo_id, "indice_documentale", impronta=str(registro.get("impronta") or ""),
+            oggetti_totali=len(oggetti), oggetti_letti=letti, stato="completa" if completa else "parziale",
+            esito={"pronti": int(summary.ready or 0), "errori": len(list(summary.errors or []))},
+        )
+    except Exception as exc:
+        current_app.logger.debug("Registro letture non aggiornato per l'indice documentale: %s", exc)
 
 
 def _lex_summary_needs_automatic_processing(summary: LexIndexingSummary, sources: list[DocumentAISource]) -> bool:

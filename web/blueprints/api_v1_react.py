@@ -8937,6 +8937,28 @@ def fascicolo_react_letture_anomalia(id_fasc: str, anomalia_id: str):
         return _jsonify_public_payload({"ok": False, "errore": "Anomalia non risolta."}, 200)
 
 
+@api_v1_react.post("/fascicoli/<id_fasc>/letture/fatti/<fatto_id>")
+@_richiedi_auth
+def fascicolo_react_letture_fatto(id_fasc: str, fatto_id: str):
+    """L'avvocato conferma, corregge o ignora un fatto dell'archivio delle letture (udienza o termine da confermare)."""
+    try:
+        from web.services.archivio_letture_runtime import decidi_fatto
+
+        payload = _request_payload()
+        esito = str(payload.get("esito") or "").strip().lower()
+        valore = str(payload.get("valore") or "").strip()
+        try:
+            fatto = decidi_fatto(fatto_id, esito=esito, valore=valore)
+        except ValueError as errore:
+            return _jsonify_public_payload({"ok": False, "errore": str(errore)}, 200)
+        _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
+        _audit_event("fascicoli.letture.fatto", "fascicolo", id_fasc, f"{fatto.get('campo')} {fatto.get('valore_letto')} → {fatto.get('verifica')}{(' ' + valore) if valore else ''}")
+        return _jsonify_public_payload({"ok": True, "fatto": fatto})
+    except Exception as exc:
+        current_app.logger.exception("Fatto dell'archivio %s non deciso: %s", fatto_id, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Decisione non registrata."}, 200)
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")
 @_richiedi_auth
 def fascicolo_regia_operativa(id_fasc: str):

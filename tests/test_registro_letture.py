@@ -210,6 +210,8 @@ def test_date_ocr_si_normalizzano_solo_dentro_i_token_a_forma_di_data():
     assert interpreta_data("2026-03-12T10:00:00") == date(2026, 3, 12)
     assert interpreta_data("31/02/2026") is None
     assert date_nel_testo("il 1O/O3/2O26 e il 12 marzo 2026; art. 10/2020 no") == ["1O/O3/2O26", "12 marzo 2026"]
+    # Quello che non diventa una data vera non e' una data: niente anomalie inutili per l'avvocato.
+    assert date_nel_testo("IS/OB/ZOZS, SOS/OS/OO, l/S/BZ, prot. 12/3/26, vers. 1.2.34, 3O/O2/2O26") == []
 
 
 def test_giudizio_sulle_date_lette():

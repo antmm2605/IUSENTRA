@@ -15,6 +15,7 @@ documenti informatici) e art. 20 CAD D.Lgs. 82/2005 (impronta del documento).
 
 from __future__ import annotations
 
+from .fatti_repository import CATEGORIE, MOTORI, VERIFICHE, VERIFICHE_UTILI, Fatto, chiave_fatto
 from .lettori import LETTORI, etichetta_lettore, versione_lettore
 from .modello import (
     Anomalia,
@@ -31,8 +32,14 @@ VERSIONE_REGISTRO = "2026.09.15.registro-letture.v1"
 
 __all__ = [
     "VERSIONE_REGISTRO",
+    "CATEGORIE",
     "LETTORI",
+    "MOTORI",
+    "VERIFICHE",
+    "VERIFICHE_UTILI",
     "Anomalia",
+    "Fatto",
+    "chiave_fatto",
     "Lettura",
     "Oggetto",
     "RegistroLetture",

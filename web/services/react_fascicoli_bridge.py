@@ -5417,6 +5417,11 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
         if ensure_missing
         else _document_ai_texts_for_fascicolo(fascicolo, documents=deadline_documents)
     )
+    fatti_archivio = _fatti_archivio(fascicolo, categoria="data")
+    if not texts and fatti_archivio:
+        # L'archivio ha già letto e collaudato i documenti: il presidio non aspetta l'indice.
+        presidio = analyze_fascicolo_document_texts(fascicolo, {}, {}, correzioni=_correzioni_letture(fascicolo), fatti_archivio=fatti_archivio)
+        return presidio
     if not texts:
         candidate_sources = [
             {
@@ -5451,9 +5456,30 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
             "sources": [],
         }
     metadata_by_document = {document_id: _document_metadata_for_id(fascicolo, document_id) for document_id in texts}
-    presidio = analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document, correzioni=_correzioni_letture(fascicolo))
+    presidio = analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document, correzioni=_correzioni_letture(fascicolo), fatti_archivio=fatti_archivio)
     _registra_anomalie_letture(fascicolo, presidio.get("dateAnomalie") or [], lettore="indice_documentale")
     return presidio
+
+
+def _fatti_archivio(fascicolo: Any, **filtri: Any) -> list[Any]:
+    """I fatti collaudati dell'archivio delle letture (documenti e allegati PEC): mai una lettura qui."""
+    try:
+        from web.services.archivio_letture_runtime import fatti_fascicolo
+
+        return [fatto for fatto in fatti_fascicolo(fascicolo, **filtri) if fatto.tipo in {"documento", "allegato_pec"}]
+    except Exception:
+        return []
+
+
+def _prove_notifica_archivio(fascicolo: Any) -> dict[str, str]:
+    """Per ogni documento la prova di notifica letta dai motori nel contenuto (non solo nei metadati)."""
+    try:
+        from pct.archivio_letture.presidi import prove_notifica_per_oggetto
+
+        prove = prove_notifica_per_oggetto(_fatti_archivio(fascicolo, categoria="prova_notifica"))
+        return {oggetto_id: str(voce.get("kind") or "") for oggetto_id, voce in prove.items() if voce.get("tipo") == "documento"}
+    except Exception:
+        return {}
 
 
 def _correzioni_letture(fascicolo: Any) -> dict[tuple[str, str, str], str]:
@@ -7174,6 +7200,15 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         or ("notifica" in _doc_haystack(doc) and any(token in _doc_haystack(doc) for token in ("sentenza", "ordinanza", "decreto", "provvedimento")))
     ]
     notification_kinds = {id(doc): _notification_proof_kind_for_document(doc) for doc in local_documents}
+    # L'archivio delle letture ha letto il contenuto: una relata, una ricevuta o un
+    # atto notificato riconosciuti nel testo valgono anche se il nome del file non lo dice.
+    prove_archivio = _prove_notifica_archivio(fascicolo)
+    for doc in local_documents:
+        if notification_kinds.get(id(doc)):
+            continue
+        kind = prove_archivio.get(_document_id(doc))
+        if kind in {"relata", "rac", "rdac", "atto_notificato", "attestazione", "deposito_prova"}:
+            notification_kinds[id(doc)] = kind
     relata_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "relata"]
     notified_act_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "atto_notificato"]
     signed_relata = [

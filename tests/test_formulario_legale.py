@@ -100,6 +100,43 @@ def test_confusioni_tipiche_dichiarate(letto: str, atteso: str) -> None:
     assert corretto(letto) == atteso
 
 
+@pytest.mark.parametrize(
+    "letto",
+    [
+        "SOS/OS/OO",             # nessuna cifra vera
+        "IS/OB/ZOZS",            # una cifra vera su otto
+        "l/S/BZ",                # anno a due segni con lettere
+        "1S/OB/ZOZS",            # anno con una sola cifra vera
+        "prot. 12/3/26",         # protocollo: resta com'e'
+        "vers. 1.2.34",          # versione: resta com'e'
+        "art. 10/2020",          # non ha tre componenti
+        "R.G. 1234/2026",        # numero di ruolo
+        "31/02/2026",            # non e' nel calendario
+        "3O/O2/2O26",            # 30 febbraio: non si corregge in una data falsa
+        "1O/1S/2O26",            # mese 15 non esiste
+    ],
+)
+def test_i_token_che_non_sono_date_non_diventano_date(letto: str) -> None:
+    from legal_ocr.formulario.date import normalizza_data_ocr, trova_date
+
+    assert normalizza_data_ocr(letto) == letto
+    assert [voce for voce in trova_date(letto) if voce.sostituzioni] == []
+
+
+def test_trova_date_da_posizione_correzione_e_forma() -> None:
+    from datetime import date
+
+    from legal_ocr.formulario.date import trova_date
+
+    trovate = trova_date("udienza del 1O/O3/2O26 alle ore 9.30 e termine il 12 marzo 2026, dal 2O26-O3-1O")
+    assert [(voce.letto, voce.scritto, voce.data, voce.forma, voce.sostituzioni) for voce in trovate] == [
+        ("1O/O3/2O26", "10/03/2026", date(2026, 3, 10), "numerica", 3),
+        ("12 marzo 2026", "12 marzo 2026", date(2026, 3, 12), "estesa", 0),
+        ("2O26-O3-1O", "2026-03-10", date(2026, 3, 10), "iso", 3),
+    ]
+    assert trovate[0].inizio == 12 and trovate[0].fine == 22
+
+
 def test_la_tabella_delle_confusioni_e_unica_e_dichiarata() -> None:
     from legal_ocr.formulario import confusioni, date, numeri
 

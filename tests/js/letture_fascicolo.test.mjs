@@ -4,8 +4,11 @@ import { test } from 'node:test'
 import {
   anomalieOrdinate,
   etichettaCampo,
+  fraseCollaudo,
+  fraseLetturaAutomatica,
   fraseNovita,
   oggettiInAttesa,
+  riassuntoArchivio,
   riassuntoLetture,
   tonoGravita,
 } from '../../frontend/src/components/fascicoli/lettureFascicolo.ts'
@@ -50,4 +53,28 @@ test('anomalie: gravità in tono e ordine, campi con etichetta', () => {
   const base = { id: '', tipo: 'documento', oggetto_id: 'd', oggetto: 'b.pdf', lettore: 'ocr', lettore_etichetta: '', campo: 'udienza', valore_letto: '', valore_proposto: '', contesto: '', motivo: '', codice: '', stato: 'aperta', creata_il_it: '' }
   const ordinate = anomalieOrdinate([{ ...base, id: '1', gravita: 'bassa' }, { ...base, id: '2', gravita: 'alta', oggetto: 'z.pdf' }, { ...base, id: '3', gravita: 'alta', oggetto: 'a.pdf' }])
   assert.deepEqual(ordinate.map((voce) => voce.id), ['3', '2', '1'])
+})
+
+const archivio = (overrides = {}) => ({ totale: 5, per_verifica: { verificata: 3, plausibile: 1, respinta: 1, corretta: 0, ignorata: 0 }, udienze: 1, termini: 2, notifiche: 0, prove_notifica: 1, ruoli: 1, eventi: 0, per_motore: { documenti: 4, pec: 1 }, da_confermare: [], lettura_automatica: { in_corso: false, da_leggere: 0, completa: true, ultima_lettura: '2026-09-16T05:00:00Z', ultima_lettura_it: '16/09/2026 07:00' }, collaudo_lettore: { eseguito: true, superato: true, corretti: 3, totali: 3, eseguito_il_it: '16/09/2026 04:10' }, ...overrides })
+
+test('archivio: riassunto dei dati verificati, da confermare, in attesa di lettura', () => {
+  const pieno = riassuntoArchivio(archivio())
+  assert.equal(pieno.tono, 'success')
+  assert.equal(pieno.testo, '3 dati verificati dal software (1 udienza, 2 termini, 1 prova di notifica, 1 numero di ruolo), nessuno da confermare.')
+  const conferme = riassuntoArchivio(archivio({ da_confermare: [{ id: 'f1', campo: 'udienza', etichetta: 'Udienza del 10/11/2026', valore: '2026-11-10', valore_letto: '1O/11/2O26', oggetto_id: 'd1', tipo: 'documento', contesto: '', prove: [] }] }))
+  assert.equal(conferme.tono, 'warning')
+  assert.match(conferme.testo, /1 da confermare\.$/)
+  assert.equal(riassuntoArchivio(archivio({ totale: 0, lettura_automatica: { in_corso: true, da_leggere: 3, completa: false, ultima_lettura: '', ultima_lettura_it: '' } })).tono, 'info')
+  assert.equal(riassuntoArchivio(archivio({ totale: 0, lettura_automatica: { in_corso: false, da_leggere: 3, completa: false, ultima_lettura: '', ultima_lettura_it: '' } })).testo, 'Lettura automatica in attesa: 3 oggetti da leggere.')
+  assert.equal(riassuntoArchivio(undefined).tono, 'neutral')
+})
+
+test('collaudo del lettore e lettura automatica in frasi italiane', () => {
+  assert.equal(fraseCollaudo(archivio().collaudo_lettore).testo, 'Collaudo del lettore superato il 16/09/2026 04:10: 3/3 pagine di prova lette correttamente.')
+  const fallito = fraseCollaudo({ eseguito: true, superato: false, corretti: 2, totali: 3, eseguito_il_it: '', casi_falliti: ['Relata con dati anagrafici'] })
+  assert.equal(fallito.tono, 'danger')
+  assert.match(fallito.testo, /NON superato: 2\/3 pagine corrette\. Non superato: Relata con dati anagrafici\./)
+  assert.equal(fraseCollaudo(undefined).tono, 'neutral')
+  assert.equal(fraseLetturaAutomatica(archivio().lettura_automatica), 'Tutto letto e collaudato; ultima lettura automatica 16/09/2026 07:00. Si rilegge solo ciò che cambia.')
+  assert.equal(fraseLetturaAutomatica({ in_corso: false, da_leggere: 1, completa: false, ultima_lettura: '', ultima_lettura_it: '' }), 'Lettura automatica: 1 oggetto ancora da leggere (il prossimo giro parte da solo).')
 })

@@ -58,6 +58,18 @@ LETTORI: dict[str, dict[str, Any]] = {
         "livello": "fascicolo",
         "tipi": ("documento",),
     },
+    "motore_documenti": {
+        "etichetta": "Motore documenti (archivio)",
+        "descrizione": "Date, ruoli e prove di notifica letti dai documenti e collaudati per l'archivio",
+        "livello": "oggetto",
+        "tipi": ("documento",),
+    },
+    "motore_pec": {
+        "etichetta": "Motore PEC (archivio)",
+        "descrizione": "Udienze, termini, ricevute ed eventi dei messaggi PEC e dei loro allegati per l'archivio",
+        "livello": "oggetto",
+        "tipi": ("pec", "allegato_pec"),
+    },
 }
 
 
@@ -86,6 +98,18 @@ def _versione_presidio_pec() -> str:
     return str(PEC_ATTACHMENT_EXTRACTION_VERSION)
 
 
+def _versione_motore_documenti() -> str:
+    from pct.archivio_letture import VERSIONE_MOTORE_DOCUMENTI
+
+    return str(VERSIONE_MOTORE_DOCUMENTI)
+
+
+def _versione_motore_pec() -> str:
+    from pct.archivio_letture import VERSIONE_MOTORE_PEC
+
+    return str(VERSIONE_MOTORE_PEC)
+
+
 def _versione_presidio_economico() -> str:
     from web.services.react_fascicoli_bridge import ECONOMIC_DOCUMENT_ANALYSIS_VERSION
 
@@ -100,6 +124,8 @@ _VERSIONI: dict[str, Callable[[], str]] = {
     "presidio_pec": _versione_presidio_pec,
     "presidio_economico": _versione_presidio_economico,
     "proforma_automatica": _versione_presidio_economico,
+    "motore_documenti": _versione_motore_documenti,
+    "motore_pec": _versione_motore_pec,
 }
 
 

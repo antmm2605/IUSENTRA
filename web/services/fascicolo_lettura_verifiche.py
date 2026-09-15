@@ -212,6 +212,21 @@ def verifica_documenti(fascicolo_id: str, tenant_slug: str = "") -> dict[str, An
     }
 
 
+def verifica_archivio(fascicolo: Any) -> dict[str, Any]:
+    """I due motori dell'archivio leggono ciò che manca (mai ciò che è già letto) e collaudano i fatti."""
+    from web.services.archivio_letture_runtime import leggi_fascicolo
+
+    esito = leggi_fascicolo(fascicolo)
+    documenti, pec = esito.get("documenti") or {}, esito.get("pec") or {}
+    return {
+        "documenti_letti": int(documenti.get("letti") or 0), "pec_lette": int(pec.get("letti") or 0),
+        "fatti": int(documenti.get("fatti") or 0) + int(pec.get("fatti") or 0),
+        "verificati": int(documenti.get("verificati") or 0) + int(pec.get("verificati") or 0),
+        "senza_testo": int(documenti.get("senza_testo") or 0), "restano": int(esito.get("restano") or 0),
+        "esito": "archivio_aggiornato" if (documenti.get("letti") or pec.get("letti")) else "archivio_invariato",
+    }
+
+
 def verifica_depositi(app: Any, fascicolo: Any, paths: dict[str, Any]) -> dict[str, Any]:
     """Controlla le ricevute dei depositi in corso con il polling PEC/PDP dello studio."""
     pendenti = [
@@ -288,6 +303,7 @@ def esegui_verifiche(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | Non
             ("notifiche", lambda: verifica_notifiche(fascicolo_id)),
             ("depositi", lambda: verifica_depositi(app, fascicolo, paths)),
             ("documenti", lambda: verifica_documenti(fascicolo_id, tenant_slug)),
+            ("archivio", lambda: verifica_archivio(fascicolo)),
         )
         for nome, funzione in passi:
             try:
@@ -336,5 +352,5 @@ def avvia_verifiche_in_background(app: Any, fascicolo_id: str, *, paths: dict[st
 
 __all__ = [
     "INTERVALLO_MINUTI", "avvia_verifiche_in_background", "esegui_verifiche", "lacune_conoscenza_del_fascicolo", "leggi_registro",
-    "registro_path", "scrivi_registro", "verifica_depositi", "verifica_documenti", "verifica_notifiche", "verifica_pec", "verifiche_necessarie",
+    "registro_path", "scrivi_registro", "verifica_archivio", "verifica_depositi", "verifica_documenti", "verifica_notifiche", "verifica_pec", "verifiche_necessarie",
 ]

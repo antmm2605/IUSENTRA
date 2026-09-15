@@ -1,0 +1,53 @@
+"""Il motore documenti: da un testo ai fatti collaudati.
+
+Non apre file e non sa nulla di Flask: riceve il testo (nativo, OCR o
+dell'indice documentale), il nome del documento, l'origine e il contesto del
+fascicolo; restituisce i fatti già collaudati, senza doppioni, i più solidi
+per primi. La versione cambia quando cambiano le regole di estrazione o di
+collaudo: il registro rimette allora da leggere tutto per questo motore.
+"""
+
+from __future__ import annotations
+
+from typing import Iterable
+
+from legal_ocr.formulario import VERSIONE_FORMULARIO
+from pct.registro_letture.fatti_repository import Fatto
+
+from .collaudo import Contesto, collauda_tutti
+from .estrazione_date import estrai_date
+from .estrazione_notifiche import estrai_prove_notifica
+from .estrazione_ruolo import estrai_ruoli
+
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.16.motore-documenti.v1+{VERSIONE_FORMULARIO}"
+FATTI_MASSIMI = 80
+ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
+
+
+def _senza_doppioni(fatti: Iterable[Fatto]) -> list[Fatto]:
+    visti: set[str] = set()
+    esito: list[Fatto] = []
+    for fatto in fatti:
+        if fatto.chiave in visti:
+            continue
+        visti.add(fatto.chiave)
+        esito.append(fatto)
+    return esito
+
+
+def leggi_testo(testo: str, *, origine: str, contesto: Contesto, nome: str = "", con_ruoli: bool = True, con_notifiche: bool = True) -> list[Fatto]:
+    """I fatti del testo, collaudati: date ancorate, prove di notifica, numeri di ruolo."""
+    testo = str(testo or "")
+    if not testo.strip():
+        return []
+    fatti: list[Fatto] = estrai_date(testo, origine=origine)
+    if con_notifiche:
+        fatti.extend(estrai_prove_notifica(testo, origine=origine, nome=nome))
+    if con_ruoli:
+        fatti.extend(estrai_ruoli(testo, origine=origine))
+    collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
+    collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
+    return collaudati[:FATTI_MASSIMI]
+
+
+__all__ = ["FATTI_MASSIMI", "VERSIONE_MOTORE_DOCUMENTI", "leggi_testo"]

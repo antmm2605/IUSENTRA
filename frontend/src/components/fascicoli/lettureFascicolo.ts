@@ -56,6 +56,33 @@ export interface NovitaLetture {
   rimossi: { tipo: string; oggetto_id: string }[]
 }
 
+export interface FattoDaConfermare {
+  id: string
+  campo: string
+  etichetta: string
+  valore: string
+  valore_letto: string
+  oggetto_id: string
+  tipo: string
+  contesto: string
+  prove: { codice: string; esito: string; dettaglio: string }[]
+}
+
+export interface ArchivioLetture {
+  totale: number
+  per_verifica: Record<'verificata' | 'plausibile' | 'respinta' | 'corretta' | 'ignorata', number>
+  udienze: number
+  termini: number
+  notifiche: number
+  prove_notifica: number
+  ruoli: number
+  eventi: number
+  per_motore: { documenti: number; pec: number }
+  da_confermare: FattoDaConfermare[]
+  lettura_automatica: { in_corso: boolean; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string }
+  collaudo_lettore: { eseguito: boolean; superato?: boolean; corretti?: number; totali?: number; eseguito_il_it?: string; casi_falliti?: string[] }
+}
+
 export interface LettureFascicolo {
   impronta: string
   oggetti: number
@@ -65,6 +92,7 @@ export interface LettureFascicolo {
   novita: NovitaLetture
   anomalie: AnomaliaLettura[]
   anomalie_aperte: number
+  archivio?: ArchivioLetture
 }
 
 export interface EsitoAggiornamentoLetture {
@@ -132,4 +160,39 @@ export function oggettiInAttesa(letture: LettureFascicolo): { oggetto: OggettoLe
 export function anomalieOrdinate(anomalie: AnomaliaLettura[]): AnomaliaLettura[] {
   const peso = { alta: 0, media: 1, bassa: 2 }
   return [...anomalie].sort((a, b) => peso[a.gravita] - peso[b.gravita] || a.oggetto.localeCompare(b.oggetto))
+}
+
+
+// L'archivio in una riga: quanti dati i motori hanno letto e verificato, quanti aspettano conferma.
+export function riassuntoArchivio(archivio: ArchivioLetture | undefined): { testo: string; tono: TonoLettura } {
+  if (!archivio || !archivio.totale) {
+    if (archivio?.lettura_automatica?.in_corso) return { testo: 'Lettura automatica in corso: i motori stanno leggendo documenti e PEC.', tono: 'info' }
+    if (archivio?.lettura_automatica?.da_leggere) return { testo: `Lettura automatica in attesa: ${archivio.lettura_automatica.da_leggere} oggetti da leggere.`, tono: 'warning' }
+    return { testo: 'Nessun dato letto: i motori non hanno ancora trovato date, ruoli o prove di notifica.', tono: 'neutral' }
+  }
+  const verificati = archivio.per_verifica.verificata + archivio.per_verifica.corretta
+  const pezzi: string[] = []
+  if (archivio.udienze) pezzi.push(`${archivio.udienze} udienz${archivio.udienze === 1 ? 'a' : 'e'}`)
+  if (archivio.termini) pezzi.push(`${archivio.termini} termin${archivio.termini === 1 ? 'e' : 'i'}`)
+  if (archivio.prove_notifica) pezzi.push(`${archivio.prove_notifica} prov${archivio.prove_notifica === 1 ? 'a' : 'e'} di notifica`)
+  if (archivio.ruoli) pezzi.push(`${archivio.ruoli} numer${archivio.ruoli === 1 ? 'o' : 'i'} di ruolo`)
+  const dettaglio = pezzi.length ? ` (${pezzi.join(', ')})` : ''
+  const daConfermare = archivio.da_confermare.length
+  if (daConfermare) return { testo: `${verificati} dati verificati dal software${dettaglio} · ${daConfermare} da confermare.`, tono: 'warning' }
+  return { testo: `${verificati} dati verificati dal software${dettaglio}, nessuno da confermare.`, tono: verificati ? 'success' : 'neutral' }
+}
+
+export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | undefined): { testo: string; tono: TonoLettura } {
+  if (!collaudo || !collaudo.eseguito) return { testo: 'Collaudo del lettore non ancora eseguito: gira ogni notte con l\'OCR reale su pagine di prova.', tono: 'neutral' }
+  const quando = collaudo.eseguito_il_it ? ` il ${collaudo.eseguito_il_it}` : ''
+  if (collaudo.superato) return { testo: `Collaudo del lettore superato${quando}: ${collaudo.corretti}/${collaudo.totali} pagine di prova lette correttamente.`, tono: 'success' }
+  const falliti = collaudo.casi_falliti?.length ? ` Non superato: ${collaudo.casi_falliti.join('; ')}.` : ''
+  return { testo: `Collaudo del lettore NON superato${quando}: ${collaudo.corretti}/${collaudo.totali} pagine corrette.${falliti} Le date lette dall'OCR vanno controllate.`, tono: 'danger' }
+}
+
+export function fraseLetturaAutomatica(stato: ArchivioLetture['lettura_automatica'] | undefined): string {
+  if (!stato) return ''
+  if (stato.in_corso) return 'Lettura automatica in corso.'
+  if (stato.da_leggere) return `Lettura automatica: ${stato.da_leggere} oggett${stato.da_leggere === 1 ? 'o' : 'i'} ancora da leggere (il prossimo giro parte da solo).`
+  return stato.ultima_lettura_it ? `Tutto letto e collaudato; ultima lettura automatica ${stato.ultima_lettura_it}. Si rilegge solo ciò che cambia.` : 'Tutto letto: si rilegge solo ciò che cambia.'
 }

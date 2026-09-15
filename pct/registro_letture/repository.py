@@ -16,6 +16,7 @@ from typing import Any, Iterable
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
+from .fatti_repository import COLONNE_FATTI, FattiMixin
 from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
 from .modello import (
     GRAVITA,
@@ -34,7 +35,7 @@ from .modello import (
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
 
-TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie")
+TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
 COLONNE: dict[str, tuple[str, ...]] = {
     "letture_oggetti": (
@@ -56,6 +57,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
         "valore_proposto", "valore_confermato", "contesto", "motivo", "codice", "gravita", "stato", "creata_il",
         "risolta_il", "risolta_da",
     ),
+    "letture_fatti": COLONNE_FATTI,
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -130,8 +132,8 @@ def _lettore(valore: str) -> str:
     return lettore
 
 
-class RegistroLetture:
-    """Il registro delle letture di uno studio."""
+class RegistroLetture(FattiMixin):
+    """Il registro delle letture di uno studio (con l'archivio dei fatti letti dai motori)."""
 
     def __init__(self, db_path: str | Path = "", *, postgres_dsn: str = "") -> None:
         self.postgres_dsn = _testo(postgres_dsn)
@@ -146,6 +148,14 @@ class RegistroLetture:
                 conn.executescript(SCHEMA_SQLITE.read_text(encoding="utf-8"))
 
     # ---- primitive ---------------------------------------------------------
+
+    @staticmethod
+    def _adesso() -> str:
+        return _adesso()
+
+    @staticmethod
+    def _nuovo_id(prefisso: str) -> str:
+        return _nuovo_id(prefisso)
 
     def connection(self):
         if self._pg is not None:
@@ -586,7 +596,12 @@ class RegistroLetture:
         valori = {"stato": esito, "valore_confermato": valore_confermato, "risolta_il": _adesso(), "risolta_da": _testo(utente_id)}
         with self.connection() as conn:
             self._aggiorna(conn, "letture_anomalie", valori, "tenant_id = ? AND id = ?", (tenant, _testo(anomalia_id)))
-        return self._anomalia({**riga, **valori})
+        anomalia = self._anomalia({**riga, **valori})
+        try:
+            self.allinea_fatti_da_anomalia(tenant, anomalia, utente_id=_testo(utente_id))
+        except Exception:
+            pass
+        return anomalia
 
     def correzioni(self, tenant_id: str, fascicolo_id: str) -> dict[tuple[str, str, str], str]:
         """Le correzioni dell'avvocato: (oggetto_id, campo, valore_letto) → valore giusto."""

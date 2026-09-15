@@ -450,55 +450,59 @@ def _analyze_127_bis(text: str, *, source: str, document_id: str) -> tuple[list[
 
 
 def _analyze_generic_procedural_text(text: str, *, source: str, document_id: str) -> list[dict[str, Any]]:
+    """Udienze e termini letti dal testo con il motore dell'archivio: date vere, ancorate, mai in tabella.
+
+    Stessa estrazione dei motori (formulario stretto + ancoraggio): il presidio
+    non propone una data che l'archivio non proporrebbe. Il valore grezzo
+    resta nell'azione per la verifica.
+    """
+    from pct.archivio_letture.estrazione_date import estrai_date
+
     actions: list[dict[str, Any]] = []
     folded = _fold(text)
     if "127 ter" in folded.replace("-", " ") or "127 bis" in folded.replace("-", " "):
         return actions
-    # Le date con lettere al posto delle cifre («1O/O3/2O26») si leggono dopo la
-    # normalizzazione del formulario; il valore grezzo resta nell'azione per la verifica.
-    text = normalizza_data_ocr(text)
-    for match in _DATE_RE.finditer(text):
-        due = _parse_date(match.group(0))
-        if not due:
+    for fatto in estrai_date(text, origine="indice"):
+        if fatto.campo not in {"udienza", "termine", "costituzione"}:
             continue
-        window = text[max(0, match.start() - 130) : min(len(text), match.end() + 130)]
-        folded_window = _fold(window)
-        if _is_identity_document_expiry(window):
+        due = _parse_date(fatto.valore.split("T")[0])
+        if not due or _is_identity_document_expiry(fatto.contesto):
             continue
-        if "udienza" in folded_window:
-            action_type = "udienza_documento"
-            title = "Udienza letta dai documenti del fascicolo"
-            tone = "warning"
-        elif any(token in folded_window for token in ("termine", "deposito", "costituzione", "notifica", "scadenza")):
-            action_type = "termine_documento"
-            title = "Termine processuale letto dai documenti del fascicolo"
-            tone = "warning"
-        else:
-            continue
-        if action_type == "udienza_documento":
+        if fatto.campo == "udienza":
+            action_type, title = "udienza_documento", "Udienza letta dai documenti del fascicolo"
             description = (
                 "Data di udienza rilevata in un documento indicizzato del fascicolo; "
                 "verificare rito, modalità di trattazione e adempimenti prima di aggiornare agenda o scadenziario."
             )
         else:
+            action_type, title = "termine_documento", "Termine processuale letto dai documenti del fascicolo"
             description = (
                 "Termine processuale rilevato in un documento indicizzato del fascicolo; "
                 "verificare atto, parte onerata e decorrenza prima di registrare l'adempimento."
             )
-        actions.append(
-            _make_action(
-                action_type=action_type,
-                title=title,
-                due=due,
-                source=source,
-                document_id=document_id,
-                tone=tone,
-                priority="important",
-                description=description,
-                raw_date=match.group(0),
-            )
+        action = _make_action(
+            action_type=action_type, title=title, due=due, source=source, document_id=document_id, tone="warning",
+            priority="important", description=description, raw_date=fatto.valore_letto,
         )
+        if "T" in fatto.valore:
+            action["time"] = fatto.valore.split("T")[1]
+        actions.append(action)
     return actions[:3]
+
+
+def _actions_from_archivio(fatti: Iterable[Any], *, source_by_document: dict[str, str]) -> list[dict[str, Any]]:
+    """Le udienze e i termini già collaudati dall'archivio, nella forma delle azioni del presidio."""
+    from pct.archivio_letture.presidi import udienze_e_termini
+
+    actions: list[dict[str, Any]] = []
+    for voce in udienze_e_termini(fatti):
+        action = _make_action(
+            action_type=voce["type"], title=voce["title"], due=_parse_date(voce["dateIso"]), source=source_by_document.get(voce["documentId"], voce.get("source") or "archivio delle letture"),
+            document_id=voce["documentId"], tone=voce["tone"], priority=voce["priority"], description=voce["description"], raw_date=voce["rawDate"],
+        )
+        action.update({"time": voce.get("time", ""), "verifica": voce["verifica"], "verificaLabel": voce["verificaLabel"], "requiresConfirmation": voce["requiresConfirmation"], "fromArchivio": True, "dateCorrected": voce["dateCorrected"]})
+        actions.append(action)
+    return actions
 
 
 _CAMPO_PER_TIPO = {"udienza_documento": "udienza", "termine_documento": "termine"}
@@ -532,7 +536,8 @@ def _anomalie_date(actions: list[dict[str, Any]], fascicolo: Any, today: date) -
     voci = []
     for action in actions:
         campo = _CAMPO_PER_TIPO.get(_text(action.get("type")), "")
-        if not campo or action.get("dateCorrected"):
+        # Le date dell'archivio sono già collaudate dai motori: nessuna anomalia doppia.
+        if not campo or action.get("dateCorrected") or action.get("fromArchivio"):
             continue
         voci.append({
             "valore": _text(action.get("rawDate")) or _text(action.get("dateIso")),
@@ -556,19 +561,35 @@ def analyze_fascicolo_document_texts(
     *,
     today: date | None = None,
     correzioni: dict[tuple[str, str, str], str] | None = None,
+    fatti_archivio: Iterable[Any] | None = None,
 ) -> dict[str, Any]:
+    """`fatti_archivio`: i fatti già collaudati dall'archivio delle letture; per i
+    documenti che l'archivio ha letto le date vengono da lì, senza rileggere il testo."""
     today = today or date.today()
     metadata_by_document = metadata_by_document or {}
     procedural_actions: list[dict[str, Any]] = []
     review_actions: list[dict[str, Any]] = []
     warnings: list[str] = []
     sources: list[dict[str, str]] = []
+    fatti_per_documento: dict[str, list[Any]] = {}
+    for fatto in list(fatti_archivio or []):
+        fatti_per_documento.setdefault(_text(getattr(fatto, "oggetto_id", "")), []).append(fatto)
+    source_by_document = {document_id: _document_source(metadata_by_document.get(document_id) or {}, document_id) for document_id in list(texts_by_document or {})}
+    for document_id, fatti in fatti_per_documento.items():
+        if document_id not in source_by_document:
+            source_by_document[document_id] = _document_source(metadata_by_document.get(document_id) or {}, document_id)
+            sources.append({"documentId": document_id, "name": source_by_document[document_id]})
+    procedural_actions.extend(_actions_from_archivio([fatto for fatti in fatti_per_documento.values() for fatto in fatti], source_by_document=source_by_document))
     for document_id, raw_text in (texts_by_document or {}).items():
         text = _text(raw_text)
         if not text:
             continue
         metadata = metadata_by_document.get(document_id) or {}
         source = _document_source(metadata, document_id)
+        if document_id in fatti_per_documento:
+            # Letto e collaudato dai motori: l'archivio ha già le sue date.
+            sources.append({"documentId": document_id, "name": source})
+            continue
         # Il testo proviene già da un documento associato a questo fascicolo. La
         # mancanza di R.G./parti nel testo non autorizza a scartarlo: impedisce
         # solo di trasformare automaticamente una data in termine processuale.

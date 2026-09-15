@@ -1449,6 +1449,56 @@ def start_scheduler(app):
                 logger.error("[scheduler] Presidio fascicoli/economia fallito: %s", e)
                 return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
 
+    @scheduler.scheduled_job(
+        CronTrigger(minute="3-58/10"),
+        id="archivio_letture_automatico",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=120,
+    )
+    def _archivio_letture_automatico():
+        with app.app_context():
+            try:
+                from web.services.archivio_letture_runtime import lettura_automatica_per_tutti
+
+                limite = _parse_positive_int(
+                    app.config.get("IUSENTRA_ARCHIVIO_LETTURE_LIMITE")
+                    or os.getenv("IUSENTRA_ARCHIVIO_LETTURE_LIMITE"),
+                    150,
+                )
+                report = lettura_automatica_per_tutti(app, limite_oggetti=limite)
+                totali = report.get("totals") or {}
+                logger.info(
+                    "[scheduler] Lettura automatica dei fascicoli: %d fascicoli esaminati, %d documenti e %d PEC letti, %d fatti (%d verificati), %d in attesa",
+                    int(totali.get("esaminati") or 0), int(totali.get("documenti_letti") or 0), int(totali.get("pec_lette") or 0),
+                    int(totali.get("fatti") or 0), int(totali.get("verificati") or 0), int(totali.get("restano") or 0),
+                )
+                return report
+            except Exception as e:
+                logger.error("[scheduler] Lettura automatica dei fascicoli fallita: %s", e)
+                return {"ok": False, "job": "archivio_letture_automatico", "error": str(e)}
+
+    @scheduler.scheduled_job(
+        CronTrigger(hour=4, minute=10),
+        id="collaudo_lettore",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=600,
+    )
+    def _collaudo_lettore():
+        with app.app_context():
+            try:
+                from legal_ocr.collaudo import esegui_collaudo, salva_esito
+                from web.services.archivio_letture_runtime import percorso_collaudo
+
+                esito = esegui_collaudo()
+                salva_esito(percorso_collaudo(), esito)
+                logger.info("[scheduler] Collaudo del lettore: %s (%d/%d casi corretti)", "superato" if esito.get("superato") else "NON superato", int(esito.get("corretti") or 0), int(esito.get("totali") or 0))
+                return {"ok": bool(esito.get("superato")), "job": "collaudo_lettore", **{k: v for k, v in esito.items() if k != "casi"}}
+            except Exception as e:
+                logger.error("[scheduler] Collaudo del lettore fallito: %s", e)
+                return {"ok": False, "job": "collaudo_lettore", "error": str(e)}
+
     def _daily_plan_enabled() -> bool:
         try:
             from web.services.feature_flags import is_feature_enabled

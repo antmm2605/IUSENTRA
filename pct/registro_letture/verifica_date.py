@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from legal_ocr.formulario.date import mese_canonico, normalizza_data_ocr
+from legal_ocr.formulario.date import mese_canonico, normalizza_data_ocr, trova_date
 
 MESI = {
     "gen": 1, "gennaio": 1, "feb": 2, "febbraio": 2, "mar": 3, "marzo": 3, "apr": 4, "aprile": 4,
@@ -29,7 +29,6 @@ MESI = {
 _DATA_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
 _DATA_NUMERICA = re.compile(r"^(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})$")
 _DATA_ESTESA = re.compile(r"^(\d{1,2}|primo|1[º°])\s+([a-zà-ù]+)\.?\s+(\d{4})$", re.IGNORECASE)
-_DATA_NEL_TESTO = re.compile(r"(?<![\w€])[\dOoIl|ÌSsBZz]{1,2}\s*[./-]\s*[\dOoIl|ÌSsBZz]{1,2}\s*[./-]\s*[\dOoIl|ÌSsBZz]{2,4}(?![\w])")
 ORIZZONTE_FUTURO_ANNI = 3
 ORIZZONTE_PASSATO_ANNI = 30
 TOLLERANZA_CONFRONTO_GIORNI = 0
@@ -190,19 +189,21 @@ def valuta_data(
 
 
 def date_nel_testo(testo: str) -> list[str]:
-    """Le date scritte nel testo, numeriche o estese, nell'ordine in cui compaiono (senza correggerle)."""
-    trovate: list[str] = []
-    for match in _DATA_NEL_TESTO.finditer(str(testo or "")):
-        if any(carattere.isdigit() for carattere in match.group(0)):
-            trovate.append(match.group(0))
-    for match in re.finditer(r"\b(\d{1,2}|primo)\s+(" + "|".join(sorted(MESI, key=len, reverse=True)) + r")\.?\s+(\d{4})\b", str(testo or ""), re.IGNORECASE):
-        trovate.append(re.sub(r"\s+", " ", match.group(0)))
-    visti: set[str] = set()
+    """Le date vere scritte nel testo, nell'ordine in cui compaiono (com'erano scritte).
+
+    Un token a forma di data che con le regole del formulario non diventa una
+    data del calendario con l'anno a quattro cifre non e' una data: non si
+    restituisce e non si segnala.
+    """
     uniche: list[str] = []
-    for voce in trovate:
-        if voce not in visti:
-            visti.add(voce)
-            uniche.append(voce)
+    visti: set[str] = set()
+    for voce in trova_date(testo):
+        if voce.forma == "numerica" and len(re.split(r"[./-]", voce.scritto)[-1]) != 4:
+            continue
+        letto = re.sub(r"\s+", " ", voce.letto)
+        if letto not in visti:
+            visti.add(letto)
+            uniche.append(letto)
     return uniche
 
 

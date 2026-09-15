@@ -33,6 +33,8 @@ class DatiLettura:
     pec: list[dict[str, Any]] = field(default_factory=list)
     # Esito delle verifiche automatiche dei presìdi (registro di web/services/fascicolo_lettura_verifiche).
     verifiche: dict[str, Any] = field(default_factory=dict)
+    # L'archivio delle letture: riassunto dei fatti, azioni (udienze/termini), ruoli, stato della lettura automatica.
+    archivio: dict[str, Any] = field(default_factory=dict)
     oggi: date | None = None
 
 

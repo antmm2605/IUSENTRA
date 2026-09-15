@@ -156,6 +156,17 @@ def documento_aggiornato(fascicolo_id: str, documento: Any = None) -> None:
     except Exception as exc:  # il registro non deve mai bloccare il caricamento
         logger.warning("Registro letture non aggiornato per il fascicolo %s: %s", fascicolo_id, exc)
     invalida_lettura(fascicolo_id)
+    _lettura_dopo_evento(fascicolo_id)
+
+
+def _lettura_dopo_evento(fascicolo_id: str) -> None:
+    """I motori dell'archivio leggono l'oggetto nuovo in un thread: mai nella richiesta."""
+    try:
+        from web.services.archivio_letture_runtime import lettura_dopo_evento
+
+        lettura_dopo_evento(fascicolo_id)
+    except Exception as exc:
+        logger.debug("Lettura in sfondo non avviata per %s: %s", fascicolo_id, exc)
 
 
 def documento_rimosso(fascicolo_id: str, documento_id: str) -> None:
@@ -180,6 +191,7 @@ def pec_collegata(fascicolo_id: str) -> None:
     except Exception as exc:
         logger.warning("Registro letture: PEC collegata non registrata per %s: %s", fascicolo_id, exc)
     invalida_lettura(fascicolo_id)
+    _lettura_dopo_evento(fascicolo_id)
 
 
 # ---- impronte del contenuto per l'indice documentale ----------------------------
@@ -340,11 +352,19 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         dati = voce.to_dict()
         dati["ultima_lettura_it"] = format_datetime_it(voce.ultima_lettura) if voce.ultima_lettura else ""
         lettori.append(dati)
+    try:
+        from web.services.archivio_letture_runtime import stato_archivio_payload
+
+        archivio = stato_archivio_payload(fascicolo, registro=registro)
+    except Exception as exc:
+        logger.debug("Stato dell'archivio non disponibile per %s: %s", fascicolo_id, exc)
+        archivio = {}
     return {
         "impronta": stato.impronta,
         "oggetti": stato.oggetti,
         "tutto_letto": stato.tutto_letto,
         "lettori": lettori,
+        "archivio": archivio,
         "per_oggetto": [{**v, "etichetta": _oggetto_etichetta(v)} for v in stato.per_oggetto],
         "novita": {
             "prima_vista": bool(novita.get("prima_vista")),
@@ -409,7 +429,13 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
                 esito["ocr_accodati"] += 1
     except Exception as exc:
         esito["ocr"] = {"errore": str(exc)[:160]}
-    stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("indice_documentale", "ocr"))
+    try:
+        from web.services.archivio_letture_runtime import leggi_fascicolo
+
+        esito["archivio"] = leggi_fascicolo(fascicolo, forza=True, registro=registro)
+    except Exception as exc:
+        esito["archivio"] = {"errore": str(exc)[:160]}
+    stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("indice_documentale", "ocr", "motore_documenti", "motore_pec"))
     restano = sum(voce.da_leggere for voce in stato.lettori)
     esito["restano"] = restano
     esito["messaggio"] = (

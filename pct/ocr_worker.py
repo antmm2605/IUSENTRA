@@ -81,6 +81,18 @@ def _registra_lettura_ocr(job, testo: str, *, stato: str, errore: str = "") -> N
         logger.debug("Registro letture non aggiornato per il job OCR %s: %s", getattr(job, "id", ""), exc)
 
 
+def _alimenta_archivio(job, testo: str) -> None:
+    """A testo pronto il motore documenti legge il documento e alimenta l'archivio: nessuna rilettura a valle."""
+    if not testo:
+        return
+    try:
+        from web.services.archivio_letture_runtime import registra_lettura_ocr_nell_archivio
+
+        registra_lettura_ocr_nell_archivio(job, testo)
+    except Exception as exc:
+        logger.debug("Archivio non alimentato dal job OCR %s: %s", getattr(job, "id", ""), exc)
+
+
 def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event) -> None:
     while not stop_event.is_set():
         job = store.claim_next(worker_id=worker_id)
@@ -99,6 +111,7 @@ def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event
                 idx.indicizza_documento(job.id_fasc, job.id_doc, job.nome_doc, testo, job.tipo_doc)
                 _mark_document_ocr_extracted(job)
             _registra_lettura_ocr(job, testo or "", stato="letto" if testo else "non_leggibile")
+            _alimenta_archivio(job, testo or "")
             store.complete(job.id)
         except Exception as exc:
             logger.warning("Errore OCR su job %s (%s/%s): %s", job.id, job.id_fasc, job.id_doc, exc)

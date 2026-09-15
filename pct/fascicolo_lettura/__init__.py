@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 from pct.procedura_fasi import lacune_conoscenza, schede_per_fascicolo
 
 from ._testo import data_it, pulisci
+from .archivio import archivio
 from .cronologia import cronologia
 from .depositi import depositi
 from .documenti import documenti
@@ -38,7 +39,7 @@ from .pec import pec
 from .prossimi_passi import prossimi_passi
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.09.14.lettura-fascicolo.v2"
+VERSIONE_LETTURA = "2026.09.16.lettura-fascicolo.v3"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -70,6 +71,13 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
     if documenti_letti["non_indicizzati"]:
         quanti = len(documenti_letti["non_indicizzati"])
         voci.append(f"{quanti} document{'o' if quanti == 1 else 'i'} in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto")
+    archivio_letto = lettura.get("archivio") or {}
+    if archivio_letto.get("da_confermare"):
+        quanti = len(archivio_letto["da_confermare"])
+        voci.append(f"{quanti} dat{'a letta' if quanti == 1 else 'e lette'} dai documenti senza riscontro in un'altra fonte: il riquadro «Letture e verifiche» chiede conferma")
+    if archivio_letto.get("lettura_automatica", {}).get("da_leggere"):
+        quanti = archivio_letto["lettura_automatica"]["da_leggere"]
+        voci.append(f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo")
     return voci[:8]
 
 
@@ -121,6 +129,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         "stato_passi": stato,
         "conoscenza": conoscenza,
         "verifiche": dict(dati.verifiche or {}),
+        "archivio": archivio(dati.archivio),
     }
     lettura["lacune"] = _lacune(lettura)
     lettura["narrativa"] = narrativa(lettura)

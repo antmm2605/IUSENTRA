@@ -107,3 +107,41 @@ CREATE TABLE IF NOT EXISTS letture_anomalie (
 
 CREATE INDEX IF NOT EXISTS idx_letture_anomalie_fascicolo_stato
     ON letture_anomalie (tenant_id, fascicolo_id, stato, gravita);
+
+-- Archivio di alimentazione (2.317.0): i fatti letti dai due motori — motore
+-- documenti e motore PEC — con la prova del collaudo automatico. I presìdi
+-- (documentale, notifiche, economico, lettura del fascicolo) leggono da qui e
+-- non rileggono i documenti. `verifica`: verificata (il software ha riscontrato
+-- il dato con almeno una prova indipendente), plausibile (ben formato e
+-- ancorato ma senza riscontro), respinta (non supera i controlli: non si
+-- mostra), corretta/ignorata (decisione dell'avvocato).
+CREATE TABLE IF NOT EXISTS letture_fatti (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    tipo TEXT NOT NULL CHECK (tipo IN ('documento', 'pec', 'allegato_pec')),
+    oggetto_id TEXT NOT NULL,
+    sha256 TEXT NOT NULL DEFAULT '',
+    motore TEXT NOT NULL CHECK (motore IN ('documenti', 'pec')),
+    versione_motore TEXT NOT NULL DEFAULT '',
+    categoria TEXT NOT NULL CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento')),
+    campo TEXT NOT NULL,
+    valore_letto TEXT NOT NULL DEFAULT '',
+    valore TEXT NOT NULL DEFAULT '',
+    etichetta TEXT NOT NULL DEFAULT '',
+    contesto TEXT NOT NULL DEFAULT '',
+    posizione INTEGER NOT NULL DEFAULT 0,
+    origine TEXT NOT NULL DEFAULT '',
+    confidenza REAL NOT NULL DEFAULT 0,
+    verifica TEXT NOT NULL CHECK (verifica IN ('verificata', 'plausibile', 'respinta', 'corretta', 'ignorata')),
+    prove_json TEXT NOT NULL DEFAULT '[]',
+    chiave TEXT NOT NULL,
+    letto_il TEXT NOT NULL,
+    aggiornato_il TEXT NOT NULL,
+    risolta_da TEXT NOT NULL DEFAULT '',
+    risolta_il TEXT NOT NULL DEFAULT '',
+    UNIQUE (tenant_id, tipo, oggetto_id, sha256, motore, chiave)
+);
+
+CREATE INDEX IF NOT EXISTS idx_letture_fatti_fascicolo
+    ON letture_fatti (tenant_id, fascicolo_id, categoria, verifica);

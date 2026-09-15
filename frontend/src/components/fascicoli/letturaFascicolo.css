@@ -133,3 +133,11 @@
 .iu-fas-letture__correzione{display:flex;align-items:end;gap:6px;flex-wrap:wrap}
 .iu-fas-letture__correzione label{display:grid;gap:3px;color:#41617a;font-size:11px;font-weight:850}
 .iu-fas-letture__correzione input{min-height:30px;width:130px;padding:0 8px;border:1px solid var(--iu-border);border-radius:8px;font-size:12.5px;font-weight:800}
+
+/* Archivio delle letture: riga di riassunto, lettura automatica e collaudo del lettore. */
+.iu-fas-letture__archivio { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.35rem 0 0.5rem; padding: 0.45rem 0.6rem; border-radius: 0.5rem; background: var(--iu-surface-2, #f6f7f9); }
+.iu-fas-letture__archivio p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.86rem; }
+.iu-fas-letture__archivio small { color: var(--iu-text-muted, #5c6470); font-size: 0.78rem; }
+.iu-fas-letture__archivio small.is-danger { color: var(--iu-danger, #b42318); font-weight: 600; }
+.iu-fas-letture__archivio small.is-success { color: var(--iu-success, #1f7a3a); }
+.iu-fas-letture__fatti h5 { margin-top: 0.4rem; }

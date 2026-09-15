@@ -1,6 +1,6 @@
 # Registro delle letture
 
-Aggiornato: 15/09/2026 (versione 2.316.0).
+Aggiornato: 16/09/2026 (versione 2.317.0).
 
 ## Che cosa fa
 
@@ -77,5 +77,62 @@ PEC. Le anomalie compaiono nel pannello «Letture e verifiche» del fascicolo co
 - `POST /api/v1/ui/fascicoli/<id>/letture/anomalie/<anomalia_id>` —
   `{"esito": "confermata|corretta|ignorata", "valore": "gg/mm/aaaa"}`.
 
+## Archivio di alimentazione (2.317.0)
+
+Due motori leggono, i presìdi consultano. Il **motore documenti**
+(`pct/archivio_letture/motore_documenti.py`) legge il testo di ogni documento
+del fascicolo — nativo dal PDF, OCR dalla cache dell'indice di ricerca, indice
+documentale — ed estrae i *fatti*: date con il loro campo (udienza, termine,
+costituzione, notifica, deposito, accettazione, consegna, comunicazione,
+provvedimento, data dell'atto), numeri di ruolo, prove di notifica (relata,
+ricevuta di accettazione, ricevuta di avvenuta consegna, attestazione di
+conformità, atto notificato, comunicazione di cancelleria, deposito della
+prova). Il **motore PEC** (`motore_pec.py`) traduce ciò che il presidio PEC ha
+già letto (udienze, termini, eventi, ricevute riconosciute dall'oggetto
+certificato dal gestore) e legge gli allegati con il motore documenti.
+
+Una data è un fatto solo se è **vera** (formulario stretto: correzione O/l/S/B/Z
+solo se ne esce una data del calendario con almeno metà dei segni già cifre),
+**ancorata** (il testo dice che cos'è: «udienza del», «entro il», «notificato
+il», «ricevuta di avvenuta consegna … ore»; un'ancora vale per la prima data che
+la segue, mai per una tabella; date di nascita, documenti d'identità,
+protocolli, versioni, periodi «dal…al» e date di leggi sono ancore negative) e
+supera il **collaudo** (`collaudo.py`): calendario, forma, ancoraggio,
+orizzonte del fascicolo, doppia lettura (la stessa data in una seconda
+estrazione indipendente dello stesso documento), concordanza con agenda,
+scadenziario, PEC del presidio e portale. Verdetto del software: `verificata`
+(riscontro indipendente o origine non ottica senza correzioni), `plausibile`
+(ben formata e ancorata, nessun riscontro: le sole udienze e termini plausibili
+vengono chiesti in conferma nel pannello), `respinta` (smentita: resta
+nell'archivio con le prove, non si propone). L'avvocato può rendere un fatto
+`corretta` o `ignorata`: la decisione sopravvive alle riletture dello stesso
+contenuto (`POST /api/v1/ui/fascicoli/<id>/letture/fatti/<fatto_id>`).
+
+Tabella `letture_fatti` (stesso database del registro, schema gemello
+SQLite/PostgreSQL; `pct/registro_letture/fatti_repository.py`). I lettori
+`motore_documenti` e `motore_pec` sono censiti nel registro: un oggetto già
+letto con la stessa impronta non si rilegge; cambia il contenuto o la versione
+del motore, si rilegge solo quello.
+
+**Chi alimenta**: la lettura automatica dello scheduler («Lettura automatica dei
+fascicoli», ogni 10 minuti, `IUSENTRA_ARCHIVIO_LETTURE_LIMITE` oggetti per giro,
+prima i fascicoli aperti; a fascicolo invariato non fa nulla); il caricamento o
+la sostituzione di un documento e il collegamento di una PEC (thread di sfondo,
+mai nella richiesta); il worker OCR a testo pronto; le verifiche automatiche
+all'apertura della Lettura; «Leggi i nuovi». **Chi consuma**: il presidio
+documentale (udienze e termini dall'archivio, senza rileggere i testi), il
+presidio notifiche (relata, ricevute, atto notificato riconosciuti nel
+contenuto e non solo nel nome del file), la Lettura del fascicolo (sezione
+`archivio`), il pannello «Letture e verifiche».
+
+**Collaudo del lettore** (`legal_ocr/collaudo/`): un corpus di pagine di prova
+(decreto di fissazione, relata con dati anagrafici e documento d'identità,
+comunicazione con tabella di date e protocolli) viene renderizzato e letto con
+l'OCR reale ogni notte (job «Collaudo del lettore», 04:10) e a ogni esecuzione
+dei test; l'esito (`intelligence/collaudo_lettore.json`) compare nel pannello.
+Se il collaudo non passa, il pannello lo dice: non è l'avvocato a dover
+controllare il lettore.
+
 Test: `tests/test_registro_letture.py`, `tests/test_registro_letture_runtime.py`,
-`tests/js/letture_fascicolo.test.mjs`.
+`tests/test_archivio_letture.py`, `tests/test_archivio_letture_runtime.py`,
+`tests/test_collaudo_lettore.py`, `tests/js/letture_fascicolo.test.mjs`.

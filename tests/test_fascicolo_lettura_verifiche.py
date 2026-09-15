@@ -120,3 +120,21 @@ def test_endpoint_lettura_avvia_le_verifiche_in_sfondo(tmp_path: Path, monkeypat
     assert risposta.get_json()["lettura"]["verifiche"]["in_corso"] is True
     assert avvii == [(fascicolo.id, True)]
     api_v1_react._LETTURA_CACHE.clear()
+
+
+def test_endpoint_lettura_apertura_normale_non_avvia_verifiche_pesanti(tmp_path: Path, monkeypatch):
+    from pct.fascicoli import TipoFascicolo
+    from web.blueprints import api_v1_react
+
+    avvii: list[str] = []
+    monkeypatch.setattr(servizio, "avvia_verifiche_in_background", lambda _app, fascicolo_id, **_kwargs: avvii.append(fascicolo_id) or True)
+    api_v1_react._LETTURA_CACHE.clear()
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo = app.extensions["core_runtime"]["get_fascicoli"]().nuovo("Gialli / Rossi", TipoFascicolo.CIVILE, nome_cliente="Studio Test")
+    with app.test_client() as client:
+        risposta = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/lettura", headers=HEADERS)
+    assert risposta.status_code == 200
+    assert risposta.get_json()["ok"] is True
+    assert avvii == []
+    api_v1_react._LETTURA_CACHE.clear()

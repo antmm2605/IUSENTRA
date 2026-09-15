@@ -9858,7 +9858,10 @@ function DetailPage({ id }:{id:string}) {
       setLazyStatus((current) => ({ ...current, documenti: 'loaded', lex: 'loaded' }))
     }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento documenti non riuscito.' }))
   }
-  const failDetail = (message: string) => setToast({ tone: 'danger', message })
+  const failDetail = useCallback((message: string) => setToast({ tone: 'danger', message }), [])
+  const clearLetturaError = useCallback(() => setToast((current) => (
+    current?.tone === 'danger' && /^Lettura del fascicolo/i.test(current.message) ? null : current
+  )), [])
   const handleDetailPaymentSaved = useCallback((savedId: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {
     setData((current) => {
       const currentId = current.fascicolo.id || id
@@ -9908,7 +9911,7 @@ function DetailPage({ id }:{id:string}) {
             auditStatus={lazyStatus.audit}
           />
           <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen>
-            <LetturaFascicoloPanel fascicoloId={f.id || id} onError={failDetail}/>
+            <LetturaFascicoloPanel fascicoloId={f.id || id} onError={failDetail} onReady={clearLetturaError}/>
           </DetailSection>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>

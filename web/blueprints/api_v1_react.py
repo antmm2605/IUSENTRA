@@ -8833,10 +8833,11 @@ def fascicolo_react_lex(id_fasc: str):
     ))
 
 
-# La lettura costa qualche decina di millisecondi a caldo ma la pagina del
-# fascicolo la chiede a ogni apertura: entro il TTL la risposta gia' serializzata
-# viene riusata; «aggiorna=1» (pulsante Aggiorna) la ricostruisce sempre. La
-# cache vive in web/services/lettura_cache.py: documenti e PEC la invalidano.
+# La lettura della pagina deve restare solo consultiva: usa archivio, registro e
+# indice gia' materializzati. L'aggiornamento esplicito puo' avviare i presidi in
+# sfondo; l'apertura ordinaria non deve rilanciare OCR/catalogazione o controlli
+# lunghi. La cache vive in web/services/lettura_cache.py: documenti e PEC la
+# invalidano.
 from web.services.lettura_cache import LETTURA_CACHE as _LETTURA_CACHE, chiave_lettura as _chiave_lettura  # noqa: E402
 
 
@@ -8860,22 +8861,25 @@ def fascicolo_react_lettura(id_fasc: str):
         lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc)
         if not lettura:
             return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
-        # I presìdi verificano da soli (ricevute, PEC, notifiche, documenti): il
-        # thread parte qui, la risposta non aspetta e dichiara che le verifiche sono in corso.
-        try:
-            from web.services.fascicolo_lettura_verifiche import avvia_verifiche_in_background
+        avviate = False
+        if aggiorna:
+            # Il pulsante Aggiorna chiede un riallineamento in sfondo; la
+            # risposta resta immediata e i successivi poll leggeranno il registro.
+            try:
+                from web.services.fascicolo_lettura_verifiche import avvia_verifiche_in_background
 
-            avviate = avvia_verifiche_in_background(
-                current_app._get_current_object(), id_fasc,
-                paths=dict(getattr(g, "data_paths", {}) or {}), tenant_slug=str(getattr(g, "tenant_context_slug", "") or ""), forza=aggiorna,
-            )
-        except Exception as exc:
-            current_app.logger.warning("Verifiche automatiche non avviate per %s: %s", id_fasc, exc)
-            avviate = False
+                avviate = avvia_verifiche_in_background(
+                    current_app._get_current_object(), id_fasc,
+                    paths=dict(getattr(g, "data_paths", {}) or {}), tenant_slug=str(getattr(g, "tenant_context_slug", "") or ""), forza=True,
+                )
+            except Exception as exc:
+                current_app.logger.warning("Verifiche automatiche non avviate per %s: %s", id_fasc, exc)
+                avviate = False
         if avviate:
             lettura["verifiche"] = {**dict(lettura.get("verifiche") or {}), "in_corso": True}
         risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
-        _LETTURA_CACHE.set(chiave, risposta.get_data())
+        if not bool((lettura.get("verifiche") or {}).get("in_corso")):
+            _LETTURA_CACHE.set(chiave, risposta.get_data())
         return risposta, 200
     except Exception as exc:
         current_app.logger.exception("Lettura del fascicolo %s non completata: %s", id_fasc, exc)

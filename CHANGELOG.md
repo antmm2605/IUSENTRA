@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.5 — 15/09/2026
+- La pagina del fascicolo non avvia più indicizzazione, catalogazione o verifiche pesanti durante l'apertura: la Lettura del fascicolo usa solo registro, archivio e indice già materializzati; il lavoro parte da scheduler, eventi documento/PEC o pulsante `Aggiorna`.
+- Il pannello Lettura rimuove l'avviso transitorio quando la lettura arriva correttamente, evitando messaggi “non disponibile” accanto a contenuto già caricato.
+
 ## 2.320.4 — 15/09/2026
 - Le liste del repository audit PEC non leggono più il BLOB `original_mime`: la pagina `Email PEC` mantiene anteprime e contatori, mentre il MIME completo viene caricato solo quando si apre il dettaglio/fonte.
 

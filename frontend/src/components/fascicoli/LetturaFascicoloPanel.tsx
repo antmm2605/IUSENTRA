@@ -30,7 +30,15 @@ function isScheda(valore: SchedaProcedurale | Record<string, never> | undefined)
 // punto siamo e che cosa fare adesso, con la norma di ogni passo. I dati
 // arrivano da /api/v1/ui/fascicoli/<id>/lettura (cache breve lato server):
 // il pannello li mostra, non li calcola.
-export function LetturaFascicoloPanel({ fascicoloId, onError }: { fascicoloId: string; onError?: (message: string) => void }) {
+export function LetturaFascicoloPanel({
+  fascicoloId,
+  onError,
+  onReady,
+}: {
+  fascicoloId: string
+  onError?: (message: string) => void
+  onReady?: () => void
+}) {
   const [lettura, setLettura] = useState<LetturaFascicolo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,6 +57,7 @@ export function LetturaFascicoloPanel({ fascicoloId, onError }: { fascicoloId: s
       if (!response.ok || !payload.ok || !payload.lettura) throw new Error(payload.errore || 'Lettura del fascicolo non disponibile.')
       setLettura(payload.lettura)
       setFontiAperte(new Set())
+      onReady?.()
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Lettura del fascicolo non disponibile.'
       setError(message)
@@ -56,7 +65,7 @@ export function LetturaFascicoloPanel({ fascicoloId, onError }: { fascicoloId: s
     } finally {
       setLoading(false)
     }
-  }, [fascicoloId, onError])
+  }, [fascicoloId, onError, onReady])
 
   useEffect(() => { void load() }, [load])
 

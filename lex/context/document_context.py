@@ -35,13 +35,18 @@ def _truncate_text(value: Any, *, max_chars: int = 2400) -> str:
     return text[:max_chars].rstrip() + "..."
 
 
-def _document_ai_snapshot(fascicolo_id: str) -> dict[str, Any]:
-    """Prepara l'indice Lex del fascicolo e restituisce testi indicizzati per documento.
+def _document_ai_snapshot(
+    fascicolo_id: str,
+    *,
+    process_index: bool = False,
+    apply_automations: bool = False,
+) -> dict[str, Any]:
+    """Restituisce testi e stato Document AI già disponibili per documento.
 
-    Il contesto Lex non deve limitarsi ai metadati del fascicolo: prima tenta
-    l'indicizzazione Document AI di tutti i documenti leggibili, poi passa a Lex
-    estratti e stato reale. Se manca il contesto Flask, resta un fallback
-    conservativo per non rompere chiamate di test o job offline.
+    L'apertura del fascicolo deve essere rapida: qui non si avvia OCR,
+    indicizzazione o automazioni. I job di sfondo e il comando esplicito
+    «Leggi i nuovi» popolano l'archivio; questa lettura usa soltanto ciò che è
+    già pronto.
     """
     target_id = _clean_spaces(fascicolo_id)
     if not target_id:
@@ -63,9 +68,10 @@ def _document_ai_snapshot(fascicolo_id: str) -> dict[str, Any]:
         user_context = document_ai_user_context()
         summary = build_lex_indexing_summary_payload(
             target_id,
-            process=True,
-            retry_errors=True,
+            process=process_index,
+            retry_errors=process_index,
             user_context=user_context,
+            apply_automations=apply_automations,
         )
         service = build_document_ai_service()
         sources = collect_document_ai_sources_for_fascicolo(target_id, tenant_id=tenant_id)
@@ -171,6 +177,7 @@ def load_document_context(
     pratica_id: str = "",
     fascicolo_id: str = "",
     limit: int | None = None,
+    process_index: bool = False,
 ) -> list[dict[str, Any]]:
     target_id = _clean_spaces(pratica_id) or _clean_spaces(fascicolo_id)
     if not target_id:
@@ -179,7 +186,7 @@ def load_document_context(
     fascicolo = gestore.get(target_id)
     if not fascicolo:
         return []
-    lex_documents = _document_ai_snapshot(target_id)
+    lex_documents = _document_ai_snapshot(target_id, process_index=process_index, apply_automations=process_index)
     rows: list[dict[str, Any]] = []
     for doc in _apply_limit(list(fascicolo.documenti or []), limit):
         signed_snapshot = None

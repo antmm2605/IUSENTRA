@@ -284,6 +284,46 @@ def test_lex_document_context_marca_p7m_detached_come_ai_readable_se_esiste_orig
     assert rows[0]["ai_readable"] is True
 
 
+def test_lex_document_context_non_indicizza_durante_apertura_fascicolo(tmp_path: Path, monkeypatch):
+    from web.services import document_intelligence_runtime as runtime
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    with app.app_context():
+        fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
+        fascicolo = fascicoli.nuovo("RG 401/2026", TipoFascicolo.CIVILE)
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "memoria.pdf",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            b"%PDF-1.4\n%%EOF",
+            caricato_da="admin",
+        )
+
+    chiamate: list[dict[str, object]] = []
+
+    def riepilogo(_fascicolo_id: str, **kwargs):
+        chiamate.append(dict(kwargs))
+        return {"total_documents": 1, "ready": 0, "not_indexed": 1, "warnings": []}
+
+    class Service:
+        def list_fascicolo_documents(self, *_args, **_kwargs):
+            return []
+
+    monkeypatch.setattr(runtime, "build_lex_indexing_summary_payload", riepilogo)
+    monkeypatch.setattr(runtime, "build_document_ai_service", lambda: Service())
+    monkeypatch.setattr(runtime, "collect_document_ai_sources_for_fascicolo", lambda *_args, **_kwargs: [])
+
+    with app.test_request_context("/fascicoli/lettura"):
+        rows = load_document_context(fascicolo_id=fascicolo.id)
+
+    assert [row["nome"] for row in rows] == ["memoria.pdf"]
+    assert chiamate
+    assert chiamate[0]["process"] is False
+    assert chiamate[0]["retry_errors"] is False
+    assert chiamate[0]["apply_automations"] is False
+
+
 def _seed_lex_fascicolo_workspace(tmp_path: Path) -> tuple[object, str]:
     from pct.agenda import TipoAppuntamento
     from pct.scadenziario import TipoTermine

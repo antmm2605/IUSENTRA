@@ -22,6 +22,7 @@ notifica a mezzo PEC; art. 136 c.p.c. per le comunicazioni di cancelleria.
 from __future__ import annotations
 
 from .collaudo import Contesto, collauda
+from .deduplica import fatti_canonici
 from .motore_documenti import VERSIONE_MOTORE_DOCUMENTI, leggi_testo
 from .motore_pec import VERSIONE_MOTORE_PEC, fatti_da_allegato, fatti_da_messaggio
 from .presidi import CAMPI_DA_CONFERMARE, da_confermare_ora, eventi_letti, importi_letti, prove_notifica_per_oggetto, riassunto_archivio, ruoli_letti, udienze_e_termini
@@ -36,6 +37,7 @@ __all__ = [
     "collauda",
     "fatti_da_allegato",
     "fatti_da_messaggio",
+    "fatti_canonici",
     "leggi_testo",
     "prove_notifica_per_oggetto",
     "CAMPI_DA_CONFERMARE",

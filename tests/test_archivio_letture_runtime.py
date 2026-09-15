@@ -130,6 +130,10 @@ def test_il_motore_pec_alimenta_l_archivio_dal_presidio_pec(tmp_path: Path):
         # La stessa udienza letta dal decreto (nativo) e dalla PEC: concordanza fra i due motori.
         documenti = {f.valore.split("T")[0]: f for f in fatti_fascicolo(fascicolo, motore="documenti", campo="udienza")}
         assert any(p["codice"] == "concordanza" and "presidio PEC" in p["dettaglio"] for p in documenti["2026-11-10"].prove)
+        canoniche = [f for f in fatti_fascicolo(fascicolo, campo="udienza") if f.valore.startswith("2026-11-10")]
+        assert len(canoniche) == 1
+        assert canoniche[0].motore == "documenti+pec"
+        assert any(p.get("codice") == "fonti_unite" for p in canoniche[0].prove)
         assert leggi_fascicolo(fascicolo)["pec"]["letti"] == 0
 
 

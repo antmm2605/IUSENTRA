@@ -186,6 +186,13 @@ stesso direbbe sempre «invariato». Un ricontrollo periodico (`RICONCILIAZIONE_
 = 24`) riesamina anche i fascicoli fermi, perché un evento perso non lasci un
 fascicolo indietro per sempre.
 
+**La fusione canonica** (`pct/archivio_letture/deduplica.py`). I fatti grezzi
+restano nel registro per audit, ma prima di arrivare ai presìdi vengono fusi:
+se documento e PEC riportano la stessa udienza, lo stesso termine, la stessa
+prova o lo stesso importo, i presìdi ricevono un solo fatto canonico con tutte
+le fonti nelle prove. Questo evita che due letture equivalenti producano due
+righe operative.
+
 **La consegna** (`pct/archivio_letture/distribuzione.py`, tabella
 `letture_consegne`). L'archivio sa quali presìdi usano quali fatti, li offre una
 volta sola e tiene il conto di che cosa il presidio ne ha fatto: `consegnato`
@@ -200,10 +207,16 @@ Si consegnano solo i fatti `verificata` e `corretta`: un fatto soltanto
 |---|---|---|
 | Scadenziario | date di `termine` e `costituzione` | **scrive** una scadenza da confermare |
 | Agenda | date di `udienza` | **scrive** un appuntamento |
+| Calendario | date di `udienza`, `termine`, `costituzione` | consulta agenda e scadenziario alimentati dall'archivio |
 | Presidio notifiche | `prova_notifica` | consulta |
+| Presidio del fascicolo | date, ruoli, prove di notifica, eventi | consulta |
+| Catalogo documentale fascicolo | date, ruoli, prove di notifica, importi | consulta |
 | Presidio economico | `importo` | consulta |
+| Contesto economico | `importo`, `evento` | consulta |
+| Fatture e proforme | `importo` | consulta |
 | Dati del fascicolo | `ruolo` | consulta |
 | Lettura del fascicolo (cronologia) | `evento` | consulta |
+| Lettura fascicolo | date, ruoli, prove di notifica, importi, eventi | consulta |
 | Presidio documentale | date di udienza, termine, costituzione, provvedimento, notifica | consulta |
 
 Un presidio nuovo si censisce aggiungendo una riga: senza riga non riceve

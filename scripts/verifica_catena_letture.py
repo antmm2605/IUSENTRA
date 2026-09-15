@@ -38,23 +38,27 @@ def _testo(valore: Any) -> str:
 
 
 def _stato_fascicolo(fascicolo: Any, registro: Any, tenant: str) -> dict[str, Any]:
+    from pct.archivio_letture import fatti_canonici
     from web.services.archivio_letture_runtime import stato_ciclo_fascicolo, _impronta_viva
 
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     stato = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
-    fatti = registro.fatti(tenant, fascicolo_id, verifiche=None)
+    fatti_grezzi = registro.fatti(tenant, fascicolo_id, verifiche=None)
+    fatti = fatti_canonici(fatti_grezzi)
     return {
         "id": fascicolo_id,
         "titolo": _testo(getattr(fascicolo, "titolo", ""))[:60],
         "ciclo": stato.stato,
         "motivo": stato.motivo,
         "fatti": len(fatti),
+        "fatti_grezzi": len(fatti_grezzi),
         "_fatti": fatti,
     }
 
 
 def verifica(fascicolo_id: str = "") -> dict[str, Any]:
     """Lo stato reale della catena per lo studio corrente."""
+    from pct.archivio_letture import fatti_canonici
     from pct.archivio_letture.distribuzione import PRESIDI, categorie_senza_presidio, distribuzione_attesa
     from web.helpers import get_fascicoli
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
@@ -77,7 +81,7 @@ def verifica(fascicolo_id: str = "") -> dict[str, Any]:
         return esito
 
     per_categoria: dict[str, dict[str, int]] = {}
-    tutti_fatti: list[Any] = []
+    tutti_fatti_grezzi: list[Any] = []
     conteggi_ciclo = {"fermo": 0, "da_leggere": 0, "in_errore": 0}
     for fascicolo in fascicoli:
         try:
@@ -87,8 +91,8 @@ def verifica(fascicolo_id: str = "") -> dict[str, Any]:
             esito["problemi"].append(f"Fascicolo {_testo(getattr(fascicolo, 'id', ''))}: stato del ciclo non leggibile ({type(exc).__name__}: {exc}).")
             continue
         conteggi_ciclo[riga["ciclo"]] = conteggi_ciclo.get(riga["ciclo"], 0) + 1
-        for fatto in riga.pop("_fatti"):
-            tutti_fatti.append(fatto)
+        for fatto in fatti_canonici(riga.pop("_fatti")):
+            tutti_fatti_grezzi.append(fatto)
             voce = per_categoria.setdefault(str(fatto.categoria), {})
             voce[str(fatto.verifica)] = voce.get(str(fatto.verifica), 0) + 1
         esito["fascicoli"].append(riga)
@@ -101,17 +105,20 @@ def verifica(fascicolo_id: str = "") -> dict[str, Any]:
             if riga["ciclo"] == "in_errore":
                 esito["problemi"].append(f"Fascicolo {riga['id']} in errore nel ciclo: {riga['motivo']}")
 
+    tutti_fatti = fatti_canonici(tutti_fatti_grezzi)
     attesa = distribuzione_attesa(tutti_fatti)
     for presidio in PRESIDI:
         spettanti = attesa.get(presidio.nome) or []
         da_prendere = 0
-        for fascicolo in fascicoli:
-            fid = _testo(getattr(fascicolo, "id", ""))
-            suoi = [f for f in spettanti if _testo(getattr(f, "fascicolo_id", "")) == fid]
-            if suoi:
-                da_prendere += len(registro.da_consegnare(tenant, fid, presidio.nome, suoi))
+        if presidio.scrive:
+            for fascicolo in fascicoli:
+                fid = _testo(getattr(fascicolo, "id", ""))
+                suoi = [f for f in spettanti if _testo(getattr(f, "fascicolo_id", "")) == fid]
+                if suoi:
+                    da_prendere += len(registro.da_consegnare(tenant, fid, presidio.nome, suoi))
         esito["presidi"][presidio.nome] = {
             "etichetta": presidio.etichetta,
+            "modo": presidio.modo,
             "spettanti": len(spettanti),
             "da_prendere": da_prendere,
             "presi": len(spettanti) - da_prendere,

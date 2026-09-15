@@ -24,6 +24,7 @@ from pct.archivio_letture.distribuzione import (
     distribuzione_attesa,
     fatti_per_presidio,
 )
+from pct.archivio_letture.deduplica import fatti_canonici
 from pct.fascicoli import TipoDocumento, TipoFascicolo
 from pct.archivio_letture.presidi import eventi_letti
 from pct.registro_letture import Fatto
@@ -68,6 +69,56 @@ def test_ogni_presidio_dichiara_che_cosa_usa_e_se_scrive():
         assert presidio.modo in {"scrive", "consulta"}
         assert presidio.descrizione, f"{presidio.nome} non dichiara che cosa ne fa"
     assert {p.nome for p in PRESIDI_CHE_SCRIVONO} == {"scadenziario", "agenda"}
+    nomi = {p.nome for p in PRESIDI}
+    assert {
+        "agenda", "scadenziario", "calendario", "presidio_fascicolo",
+        "catalogo_documentale", "lettura_fascicolo", "presidio_economico",
+        "contesto_economico", "fatture_proforme", "presidio_notifiche",
+    } <= nomi
+
+
+def test_documento_e_pec_con_stessa_informazione_diventano_un_fatto_canonico():
+    documento = Fatto(
+        categoria="data", campo="udienza", valore="2026-12-16T09:30",
+        verifica="verificata", id="doc-u1", motore="documenti", tipo="documento",
+        oggetto_id="D1", origine="nativo", contesto="decreto di fissazione",
+        prove=[{"codice": "ancoraggio", "esito": "ok", "dettaglio": "udienza del"}],
+    )
+    pec = Fatto(
+        categoria="data", campo="udienza", valore="2026-12-16T09:30",
+        verifica="verificata", id="pec-u1", motore="pec", tipo="pec",
+        oggetto_id="M1", origine="presidio_pec", contesto="PEC di cancelleria",
+        prove=[{"codice": "concordanza", "esito": "ok", "dettaglio": "presidio PEC"}],
+    )
+
+    canonici = fatti_canonici([documento, pec])
+
+    assert len(canonici) == 1
+    fuso = canonici[0]
+    assert fuso.id.startswith("canon-")
+    assert fuso.motore == "documenti+pec"
+    assert fuso.valore == "2026-12-16T09:30"
+    assert any(prova.get("codice") == "fonti_unite" and "documento:D1" in prova.get("dettaglio", "") and "pec:M1" in prova.get("dettaglio", "") for prova in fuso.prove)
+    assert [f.id for f in fatti_per_presidio([documento, pec], "agenda")] == [fuso.id]
+
+
+def test_la_fusione_canonica_non_attraversa_fascicoli_diversi():
+    primo = Fatto(
+        categoria="data", campo="udienza", valore="2026-12-16T09:30",
+        verifica="verificata", id="doc-u1", motore="documenti", tipo="documento",
+        oggetto_id="D1", fascicolo_id="FASC-1",
+    )
+    secondo = Fatto(
+        categoria="data", campo="udienza", valore="2026-12-16T09:30",
+        verifica="verificata", id="pec-u2", motore="pec", tipo="pec",
+        oggetto_id="M2", fascicolo_id="FASC-2",
+    )
+
+    canonici = fatti_canonici([primo, secondo])
+
+    assert len(canonici) == 2
+    assert {fatto.fascicolo_id for fatto in canonici} == {"FASC-1", "FASC-2"}
+    assert len({fatto.id for fatto in canonici}) == 2
 
 
 def test_un_fatto_solo_plausibile_non_si_consegna():
@@ -92,8 +143,12 @@ def test_ogni_presidio_riceve_solo_i_suoi_fatti():
     assert [f.id for f in attesa["agenda"]] == ["u1"]
     assert [f.id for f in attesa["scadenziario"]] == ["t1"]
     assert [f.id for f in attesa["presidio_economico"]] == ["i1"]
+    assert [f.id for f in attesa["contesto_economico"]] == ["i1"]
+    assert [f.id for f in attesa["fatture_proforme"]] == ["i1"]
     assert [f.id for f in attesa["intestazione_fascicolo"]] == ["r1"]
     assert [f.id for f in attesa["presidio_notifiche"]] == ["p1"]
+    assert [f.id for f in attesa["calendario"]] == ["u1", "t1"]
+    assert [f.id for f in attesa["lettura_fascicolo"]] == ["u1", "t1", "i1", "r1", "p1"]
 
 
 def test_nessuna_categoria_prodotta_resta_senza_presidio():

@@ -22,6 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from .deduplica import fatti_canonici
+
 # I verdetti che autorizzano la consegna: il software li ha riscontrati, oppure
 # l'avvocato li ha corretti. Un «plausibile» non si consegna: si chiede.
 VERIFICHE_CONSEGNABILI = frozenset({"verificata", "corretta"})
@@ -85,9 +87,29 @@ PRESIDI: tuple[Presidio, ...] = (
         descrizione="relate, ricevute e atti notificati riconosciuti nel contenuto",
     ),
     Presidio(
+        "presidio_fascicolo", "Presidio del fascicolo", "2026.09.16.v1",
+        categorie=frozenset({"data", "ruolo", "prova_notifica", "evento"}),
+        descrizione="regia del fascicolo, checklist e prossime azioni senza rileggere i documenti",
+    ),
+    Presidio(
+        "catalogo_documentale", "Catalogo documentale fascicolo", "2026.09.16.v1",
+        categorie=frozenset({"data", "ruolo", "prova_notifica", "importo"}),
+        descrizione="metadati e segnali documentali esposti nel catalogo del fascicolo",
+    ),
+    Presidio(
         "presidio_economico", "Presidio economico", "2026.09.16.v1",
         categorie=frozenset({"importo"}),
         descrizione="contributo unificato, compenso liquidato, spese ed esborsi",
+    ),
+    Presidio(
+        "contesto_economico", "Contesto economico", "2026.09.16.v1",
+        categorie=frozenset({"importo", "evento"}),
+        descrizione="quadro economico letto dal fascicolo per Lex e per la regia",
+    ),
+    Presidio(
+        "fatture_proforme", "Fatture e proforme", "2026.09.16.v1",
+        categorie=frozenset({"importo"}),
+        descrizione="proposte economiche e proforme alimentate dagli importi letti",
     ),
     Presidio(
         "intestazione_fascicolo", "Dati del fascicolo", "2026.09.16.v1",
@@ -95,9 +117,19 @@ PRESIDI: tuple[Presidio, ...] = (
         descrizione="il numero di ruolo letto in un provvedimento",
     ),
     Presidio(
+        "calendario", "Calendario", "2026.09.16.v1",
+        categorie=frozenset({"data"}), campi=frozenset({"udienza", "termine", "costituzione"}),
+        descrizione="sincronizzazione calendario alimentata da agenda e scadenziario, senza riletture proprie",
+    ),
+    Presidio(
         "cronologia", "Lettura del fascicolo", "2026.09.16.v1",
         categorie=frozenset({"evento"}),
         descrizione="gli eventi processuali comunicati dalle PEC entrano in cronologia",
+    ),
+    Presidio(
+        "lettura_fascicolo", "Lettura fascicolo", "2026.09.16.v1",
+        categorie=frozenset({"data", "ruolo", "prova_notifica", "importo", "evento"}),
+        descrizione="sintesi del fascicolo costruita dall'archivio, non dai file",
     ),
     Presidio(
         "presidio_documentale", "Presidio documentale", "2026.09.16.v1",
@@ -117,7 +149,7 @@ def fatti_per_presidio(fatti: Iterable[Any], nome: str) -> list[Any]:
     voce = presidio(nome)
     if voce is None:
         return []
-    return [fatto for fatto in fatti if voce.gli_serve(fatto)]
+    return [fatto for fatto in fatti_canonici(fatti) if voce.gli_serve(fatto)]
 
 
 PRESIDI_CHE_SCRIVONO: tuple[Presidio, ...] = tuple(voce for voce in PRESIDI if voce.scrive)
@@ -125,7 +157,7 @@ PRESIDI_CHE_SCRIVONO: tuple[Presidio, ...] = tuple(voce for voce in PRESIDI if v
 
 def distribuzione_attesa(fatti: Iterable[Any]) -> dict[str, list[Any]]:
     """Per ogni presidio censito, i fatti che gli spettano."""
-    elenco = list(fatti)
+    elenco = fatti_canonici(fatti)
     return {voce.nome: [fatto for fatto in elenco if voce.gli_serve(fatto)] for voce in PRESIDI}
 
 

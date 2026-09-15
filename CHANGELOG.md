@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.320.0 — 15/09/2026
+
+- Archivio letture: aggiunta la vista canonica dei fatti, che fonde documento e PEC quando riportano la stessa informazione mantenendo tutte le fonti nelle prove.
+- Censiti i presìdi mancanti: calendario, presidio fascicolo, catalogo documentale, lettura fascicolo, contesto economico e fatture/proforme.
+- Audit catena letture aggiornato: i presìdi consultivi non risultano falsamente in attesa di consegna; agenda e scadenziario restano gli unici presìdi che scrivono righe proprie.
+- Aggiunto il piano operativo in `docs/ARCHIVIO_LETTURE_PRESIDI_WORKPLAN.md`.
+
 ## 2.319.3 — 15/09/2026
 
 - Local Signer 1.6.132: il richiamo del PIN esclude la finestra tecnica vuota Bit4id; la diagnostica si apre soltanto su richiesta esplicita.

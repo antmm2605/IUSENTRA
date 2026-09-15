@@ -464,8 +464,14 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
 
 def fatti_fascicolo(fascicolo: Any, **filtri: Any) -> list[Fatto]:
     """I fatti utili del fascicolo dall'archivio (mai una lettura in questa chiamata)."""
+    canonico = bool(filtri.pop("canonico", True))
     try:
-        return registro_corrente().fatti(tenant_corrente(), _testo(getattr(fascicolo, "id", "")), **filtri)
+        fatti = registro_corrente().fatti(tenant_corrente(), _testo(getattr(fascicolo, "id", "")), **filtri)
+        if not canonico or filtri.get("motore") or filtri.get("tipo"):
+            return fatti
+        from pct.archivio_letture import fatti_canonici
+
+        return fatti_canonici(fatti)
     except Exception as exc:
         logger.debug("Archivio delle letture non disponibile per %s: %s", getattr(fascicolo, "id", ""), exc)
         return []
@@ -513,7 +519,9 @@ def stato_archivio_payload(fascicolo: Any, *, registro: RegistroLetture | None =
     registro = registro or registro_corrente()
     tenant = tenant_corrente()
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    fatti = registro.fatti(tenant, fascicolo_id, verifiche=None)
+    from pct.archivio_letture import fatti_canonici
+
+    fatti = fatti_canonici(registro.fatti(tenant, fascicolo_id, verifiche=None))
     riassunto = riassunto_archivio(fatti)
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC))
     lettori = {voce.lettore: voce for voce in stato.lettori}

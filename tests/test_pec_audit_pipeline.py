@@ -428,6 +428,24 @@ def test_pec_pipeline_ingests_synthetic_dataset_with_audit_grade_storage(tmp_pat
     assert all(row["entry_hash"] for row in audit_rows)
 
 
+def test_pec_list_messages_non_carica_mime_originale_pesante(tmp_path):
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    _label, raw_mime = synthetic_pec_messages()[0]
+    result = repo.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="1")
+    heavy_mime = b"x" * (2 * 1024 * 1024)
+    with repo.connect() as conn:
+        conn.execute(
+            "UPDATE pec_messages SET original_mime=? WHERE tenant_id=? AND id=?",
+            (heavy_mime, repo.tenant_id, result["id"]),
+        )
+
+    row = repo.list_messages(limit=1, include_details=False)[0]
+    assert "original_mime" not in row
+    assert row["id"] == result["id"]
+    raw, _meta = repo.original_mime(result["id"])
+    assert raw == heavy_mime
+
+
 def test_pec_pipeline_deduplicates_by_message_id_and_mime_hash(tmp_path):
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     _label, raw_mime = synthetic_pec_messages()[0]

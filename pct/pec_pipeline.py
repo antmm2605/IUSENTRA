@@ -11721,7 +11721,14 @@ class PecAuditRepository:
         q: str = "",
         include_details: bool = True,
     ) -> list[dict[str, Any]]:
-        query = "SELECT * FROM pec_messages WHERE tenant_id=?"
+        columns = """
+            id, tenant_id, account_email, folder, imap_uid, message_id_header,
+            mime_sha256, mime_size, received_at, ingested_at, status,
+            quality_status, signature_status, linked_fascicolo_id,
+            linked_fascicolo_score, retention_policy_id, retention_until,
+            metadata_json
+        """
+        query = f"SELECT {columns} FROM pec_messages WHERE tenant_id=?"
         params: list[Any] = [self.tenant_id]
         if folder:
             query += " AND folder=?"
@@ -11735,7 +11742,6 @@ class PecAuditRepository:
         with self.connect() as conn:
             for row in conn.execute(query, tuple(params)).fetchall():
                 item = _row_to_dict(row)
-                item.pop("original_mime", None)
                 item["metadata"] = json.loads(item.pop("metadata_json") or "{}")
                 if include_details:
                     item["validation_report"] = self.latest_report(conn, item["id"])

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.320.4 — 15/09/2026
+- Le liste del repository audit PEC non leggono più il BLOB `original_mime`: la pagina `Email PEC` mantiene anteprime e contatori, mentre il MIME completo viene caricato solo quando si apre il dettaglio/fonte.
+
 ## 2.320.3 — 15/09/2026
 - La pagina React `Email PEC` carica il primo blocco di 80 messaggi mantenendo i conteggi globali, evitando di serializzare tutta la casella e tutto il presidio PEC prima del primo render.
 - L'API `/api/v1/ui/email` e la casella ordinaria accettano `limit` e `offset` con tetto governato, così ogni studio resta sul proprio payload tenant-aware senza carichi monolitici.

@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 672.
+- File pytest censiti: 673.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 73 |
 | Security | 39 |
 | Smoke CLI | 6 |
-| Tenant isolation | 158 |
+| Tenant isolation | 159 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 67 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 173 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 232 |
+| 09-misc | Test non classificati dalle fasi principali | 233 |
 
 ## Suite CI aggiuntive
 
@@ -393,6 +393,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_studio_site_public_blocks.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_support_remote.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_utf8_integrity.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_verifica_catena_letture.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_web_bootstrap.py | 401 anonimo, tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_workspace_intelligente.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | API contract | lex/tests/unit/test_sentenze_clienti_fix.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

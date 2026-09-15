@@ -25,6 +25,7 @@ Esce con codice 0 se la catena è integra, 1 se qualcosa la rompe.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -134,7 +135,97 @@ def verifica(fascicolo_id: str = "") -> dict[str, Any]:
     return esito
 
 
+def _slug_studio(studio: Any) -> str:
+    return _testo(getattr(studio, "slug", "")).lower()
+
+
+def _riduci_fascicoli_json(esito: dict[str, Any]) -> dict[str, Any]:
+    """Evita output JSON enormi quando lo studio ha centinaia di fascicoli."""
+    ridotto = copy.deepcopy(esito)
+    fascicoli = ridotto.get("fascicoli") or []
+    if len(fascicoli) > 50:
+        ridotto["fascicoli_campionati"] = fascicoli[:50]
+        ridotto["fascicoli_omessi"] = len(fascicoli) - 50
+        ridotto.pop("fascicoli", None)
+    return ridotto
+
+
+def verifica_tutti(app: Any, *, fascicolo_id: str = "", tenant_slug: str = "") -> dict[str, Any]:
+    """Verifica la catena su tutti gli studi attivi, senza mescolare contesti tenant."""
+    tenant_slug = _testo(tenant_slug).lower()
+    if app.config.get("MULTI_TENANT"):
+        from pct.tenant import GestioneTenant
+        from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
+
+        attivi = _active_tenants(app)
+        if tenant_slug:
+            attivi = [studio for studio in attivi if _slug_studio(studio) == tenant_slug]
+        if not attivi:
+            return {
+                "ok": False,
+                "problemi": [f"Studio {tenant_slug} non trovato o non attivo." if tenant_slug else "Nessuno studio attivo nel registro tenant."],
+                "tenants": [],
+                "totali": {"tenants": 0, "fascicoli": 0, "fermo": 0, "da_leggere": 0, "in_errore": 0},
+            }
+        manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+        tenants: list[dict[str, Any]] = []
+        problemi: list[str] = []
+        totali = {"tenants": 0, "fascicoli": 0, "fermo": 0, "da_leggere": 0, "in_errore": 0}
+        for studio in attivi:
+            slug = _slug_studio(studio)
+            with app.test_request_context(f"/__verifica-catena-letture/{slug}"):
+                _attach_tenant_context(manager, studio)
+                esito = verifica(fascicolo_id)
+            esito["studio"] = {"slug": slug, "nome": _testo(getattr(studio, "nome", ""))}
+            tenants.append(esito)
+            totali["tenants"] += 1
+            totali["fascicoli"] += len(esito.get("fascicoli") or [])
+            ciclo = esito.get("ciclo") or {}
+            for chiave in ("fermo", "da_leggere", "in_errore"):
+                totali[chiave] += int(ciclo.get(chiave) or 0)
+            for problema in esito.get("problemi") or []:
+                problemi.append(f"{slug}: {problema}")
+        return {"ok": all(bool(t.get("ok")) for t in tenants), "problemi": problemi, "tenants": tenants, "totali": totali}
+
+    with app.test_request_context("/__verifica-catena-letture"):
+        esito = verifica(fascicolo_id)
+    esito["tenants"] = [{**esito, "studio": {"slug": "single-studio", "nome": "Studio locale"}}]
+    esito["totali"] = {
+        "tenants": 1,
+        "fascicoli": len(esito.get("fascicoli") or []),
+        "fermo": int((esito.get("ciclo") or {}).get("fermo") or 0),
+        "da_leggere": int((esito.get("ciclo") or {}).get("da_leggere") or 0),
+        "in_errore": int((esito.get("ciclo") or {}).get("in_errore") or 0),
+    }
+    return esito
+
+
 def stampa(esito: dict[str, Any]) -> None:
+    if "tenants" in esito:
+        print("=" * 78)
+        print("CATENA DELLE LETTURE — stato reale degli studi attivi")
+        print("=" * 78)
+        totali = esito.get("totali") or {}
+        print(
+            f"\nStudi verificati: {totali.get('tenants', 0)} · fascicoli: {totali.get('fascicoli', 0)} · "
+            f"fermi: {totali.get('fermo', 0)} · da leggere: {totali.get('da_leggere', 0)} · "
+            f"in errore: {totali.get('in_errore', 0)}"
+        )
+        for tenant in esito.get("tenants") or []:
+            studio = tenant.get("studio") or {}
+            print("\n" + "#" * 78)
+            print(f"STUDIO: {studio.get('slug') or 'single-studio'} — {studio.get('nome') or ''}".strip())
+            singolo = dict(tenant)
+            singolo.pop("tenants", None)
+            singolo.pop("studio", None)
+            stampa(singolo)
+        problemi = esito.get("problemi") or []
+        if problemi:
+            print("PROBLEMI COMPLESSIVI:")
+            for problema in problemi:
+                print(f"  · {problema}")
+        return
+
     registro = esito.get("registro") or {}
     print("=" * 78)
     print("CATENA DELLE LETTURE — stato reale dello studio")
@@ -192,17 +283,19 @@ def stampa(esito: dict[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Autocontrollo della catena delle letture sui dati reali.")
     parser.add_argument("--fascicolo", default="", help="limita l'esame a un solo fascicolo")
+    parser.add_argument("--tenant", default="", help="verifica un solo studio attivo per slug")
     parser.add_argument("--json", action="store_true", help="esito in JSON invece che leggibile")
     argomenti = parser.parse_args()
 
     from web.app import create_app
 
     app = create_app()
-    with app.test_request_context("/__verifica-catena-letture"):
-        esito = verifica(argomenti.fascicolo.strip())
-    esito.pop("fascicoli", None) if argomenti.json and len(esito.get("fascicoli") or []) > 50 else None
+    esito = verifica_tutti(app, fascicolo_id=argomenti.fascicolo.strip(), tenant_slug=argomenti.tenant.strip())
     if argomenti.json:
-        print(json.dumps(esito, ensure_ascii=False, indent=2, default=str))
+        json_esito = _riduci_fascicoli_json(esito)
+        if "tenants" in json_esito:
+            json_esito["tenants"] = [_riduci_fascicoli_json(t) for t in json_esito.get("tenants") or []]
+        print(json.dumps(json_esito, ensure_ascii=False, indent=2, default=str))
     else:
         stampa(esito)
     return 0 if esito.get("ok") else 1

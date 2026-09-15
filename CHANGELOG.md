@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.11 — 16/09/2026
+
+- Letture fascicoli/PEC: lo script `scripts/verifica_catena_letture.py` verifica ora tutti gli studi attivi tenant per tenant, con opzione `--tenant`, evitando il falso esito sul fallback `single-studio` quando in produzione ci sono più studi e centinaia di fascicoli reali.
+
 ## 2.320.10 — 16/09/2026
 - Mobile React: nascosto anche il widget Lex durante l'apertura del menu laterale, così il drawer resta l'unico livello interattivo sopra Fascicoli ed Email.
 - Shell React: il pulsante `Esci` usa di nuovo il POST HTML reale verso `/logout`, chiudendo la sessione anche da desktop e mobile senza passare dal salvataggio JSON.

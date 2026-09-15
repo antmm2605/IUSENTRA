@@ -87,4 +87,6 @@ def fascicolo_catalog_context(fascicolo: Any) -> dict[str, Any]:
         "tipo_fascicolo": getattr(getattr(fascicolo, "tipo", ""), "value", getattr(fascicolo, "tipo", "")),
         "codice_oggetto_pst": getattr(fascicolo, "codice_oggetto_pst", "") or code.get("codice_oggetto_pst") or "",
         "oggetto": getattr(fascicolo, "oggetto", ""),
+        # Il cliente del fascicolo: serve a riconoscere il suo documento d'identità dal contenuto.
+        "cliente": str(getattr(fascicolo, "nome_cliente", "") or ""),
     })

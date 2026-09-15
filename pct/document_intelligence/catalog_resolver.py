@@ -17,6 +17,7 @@ from pct.fascicoli import TipoDocumento
 from pct.fascicolo_document_catalog import DocumentCatalogClassification, classify_fascicolo_document
 from pct.presidio_processuale_ruleset import presidio_rule_hits
 from pct.template_atti_legal_sources import REGISTRY_VERSION, TEMPLATE_ATTI_LEGAL_SOURCES
+from .catalog_identita_personale import documento_identita_dal_nome, documento_identita_personale
 from .catalog_identity import structural_identity
 from .catalog_titoli import identita_dal_titolo
 from .catalog_fields import document_fields
@@ -34,7 +35,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.09.14.catalogo-fascicolo.v25"
+RESOLVER_VERSION = "2026.09.16.catalogo-fascicolo.v26"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -277,6 +278,8 @@ def _content_excerpt(text: str, pattern: str) -> str:
 
 def _content_identity(
     extracted_text: str,
+    *,
+    cliente: str = "",
 ) -> ContentIdentity | None:
     """Riconosce solo identità documentali espresse dal singolo contenuto.
 
@@ -354,6 +357,14 @@ def _content_identity(
     if dal_titolo is not None:
         fonte = str(dal_titolo.pop("fonte", "") or "")
         return replace(result(**dal_titolo), fonte=fonte)
+    # La scansione di un documento di riconoscimento non ha un titolo su una
+    # riga: si riconosce dai suoi campi e, quando c'è, dal cliente del fascicolo.
+    personale = documento_identita_personale(raw, cliente=cliente)
+    if personale is not None:
+        fonte = str(personale.pop("fonte", "") or "")
+        personale.pop("tipo_identita", None)
+        personale.pop("titolare", None)
+        return replace(result(**personale), fonte=fonte)
     if structural is not None:
         return result(**structural)
 
@@ -777,7 +788,23 @@ def resolve_document_catalog(
         tipo=metadata.get("tipo_documento", ""),
     )
     has_extracted_text = bool(str(extracted_text or "").strip())
-    identity = _content_identity(extracted_text) if has_extracted_text else None
+    cliente = str(context.get("cliente") or metadata.get("cliente") or "").strip()
+    identity = _content_identity(extracted_text, cliente=cliente) if has_extracted_text else None
+    # Il nome del file non cataloga; l'unica eccezione dichiarata è il documento di
+    # riconoscimento, che è una scansione per natura e il cui nome («Carta
+    # d'identità.PDF») non può dire altro: si propone come tale finché il
+    # contenuto letto non lo conferma o lo smentisce.
+    identita_dal_nome = documento_identita_dal_nome(filename) or documento_identita_dal_nome(str(metadata.get("nome_originale") or ""))
+    if identity is None and identita_dal_nome and (not has_extracted_text or len(str(extracted_text or "").strip()) < 400):
+        identity = ContentIdentity(
+            classification=DocumentCatalogClassification(
+                role="documento_identita", label=identita_dal_nome + (f" di {cliente}" if cliente else ""), section="allegati", confidence=78,
+                evidence=("nome del file inequivoco di un documento di riconoscimento (scansione): il contenuto non è ancora leggibile" if not has_extracted_text else "nome del file inequivoco di un documento di riconoscimento (scansione): il testo letto è troppo breve per confermarlo") + " (art. 35 D.P.R. 445/2000)",
+                tipo_documento=TipoDocumento.ALLEGATO, deposit_role="allegato", deposit_candidate=True,
+            ),
+            excerpt=filename[:240],
+        )
+        has_extracted_text = True  # l'esito nasce dal nome dichiarato, non dal testo: lo dice l'evidenza
     if not has_extracted_text:
         classification = _unindexed_content_classification(metadata_classification)
     else:

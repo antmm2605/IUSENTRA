@@ -6,8 +6,11 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+from flask import Flask, g
+
 from pct.pec_pipeline import PecAuditRepository
 from web.services.fascicolo_pec_presidio import chiavi_cliente, chiavi_ruolo, messaggi_pec_per_fascicolo
+from web.services.pec_pipeline_runtime import repository_for_current_request
 
 
 def _repository(tmp_path: Path) -> PecAuditRepository:
@@ -71,3 +74,18 @@ def test_registro_assente_non_rompe_la_lettura(tmp_path: Path):
 
     assert messaggi_pec_per_fascicolo(SimpleNamespace(id="F1", numero_rg="1", anno_rg=2026, nome_cliente="A B"), repository=Rotto()) == []
     assert messaggi_pec_per_fascicolo(SimpleNamespace(id="", numero_rg="1", anno_rg=2026, nome_cliente="A B"), repository=Rotto()) == []
+
+
+def test_repository_corrente_usa_lo_slug_tenant_della_richiesta(tmp_path: Path):
+    app = Flask(__name__)
+    email_db = tmp_path / "tenant-a" / "email" / "casella.json"
+    email_db.parent.mkdir(parents=True)
+
+    with app.app_context():
+        g.data_paths = {"EMAIL_CASELLA_DB": str(email_db)}
+        g.tenant_context_slug = "studio-a"
+
+        repository = repository_for_current_request()
+
+    assert repository.tenant_id == "studio-a"
+    assert repository.db_path == email_db.parent / "pec_audit.sqlite"

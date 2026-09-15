@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.320.2 — 15/09/2026
+- Il runtime del presidio PEC ora apre il repository con lo slug del tenant
+  corrente, quindi i motori delle letture vedono le PEC registrate dallo stesso
+  backfill e non interrogano più per errore il tenant `default`.
+
 ## 2.320.1 — 15/09/2026
 - L'archivio delle letture allega a ogni fatto consegnabile anche la prova di
   governance: base normativa digitale e procedura interna del registro, così i

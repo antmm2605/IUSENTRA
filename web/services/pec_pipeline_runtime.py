@@ -51,9 +51,21 @@ def repository_from_paths(paths: Mapping[str, Any], *, tenant_label: str = "defa
     )
 
 
+def tenant_label_for_current_request(default: str = "default") -> str:
+    if has_app_context():
+        slug = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+        if slug:
+            return slug
+        tenant = getattr(g, "tenant", None)
+        slug = str(getattr(tenant, "slug", "") or "").strip().lower()
+        if slug:
+            return slug
+    return str(default or "default").strip() or "default"
+
+
 def repository_for_current_request() -> PecAuditRepository:
     paths = getattr(g, "data_paths", {}) if has_app_context() else {}
-    return repository_from_paths(paths or {}, tenant_label="default")
+    return repository_from_paths(paths or {}, tenant_label=tenant_label_for_current_request())
 
 
 def run_workers_for_paths(

@@ -1261,16 +1261,6 @@ def build_react_email_payload(
         include_telematic=include_telematic,
         include_details=not large_mailbox,
     )
-    if large_mailbox and page_emails and len(page_emails) <= 80:
-        persisted_audit_summaries.update(
-            _pec_audit_summaries(
-                db_path,
-                page_emails,
-                tenant_id=tenant_id,
-                include_telematic=include_telematic,
-                include_details=True,
-            )
-        )
     presidio_index = _pec_presidio_index(db_path, tenant_id=tenant_id, include_telematic=include_telematic)
     presidiati_by_email = presidio_index.get("by_email_id") if isinstance(presidio_index.get("by_email_id"), dict) else {}
     presidiati_by_message = presidio_index.get("by_message_id") if isinstance(presidio_index.get("by_message_id"), dict) else {}
@@ -1286,7 +1276,10 @@ def build_react_email_payload(
             return dict(presidiati_by_message[audit_message_id])
         return {}
 
-    provisional_audit_enabled = include_telematic and len(page_emails) <= 80
+    # Su caselle reali con migliaia di PEC la lista deve restare leggera: il
+    # profilo completo, fonti normative, allegati e controlli sono caricati
+    # dal dettaglio del messaggio selezionato.
+    provisional_audit_enabled = include_telematic and not large_mailbox and len(page_emails) <= 80
     audit_summaries = dict(persisted_audit_summaries)
     if provisional_audit_enabled:
         for email_obj in page_emails:

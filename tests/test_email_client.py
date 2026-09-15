@@ -661,6 +661,61 @@ def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_p
     assert trash_payload["items"][0]["folder"] == CartellaEmail.CESTINO
 
 
+def test_email_react_payload_casella_grande_non_calcola_audit_dettagliato(tmp_path, monkeypatch):
+    import web.services.react_email_bridge as bridge
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    for index in range(81):
+        ge.aggiungi(
+            EmailRicevuta(
+                id=f"PEC-LARGE-{index:03d}",
+                cartella=CartellaEmail.INBOX,
+                stato=StatoEmail.NON_LETTA,
+                mittente="tribunale.palmi@civile.ptel.giustiziacert.it",
+                oggetto=f"POSTA CERTIFICATA: COMUNICAZIONE RG {index}/2026",
+                data=f"2026-04-08T10:{index % 60:02d}:00+02:00",
+                corpo_testo="Comunicazione ministeriale " + ("testo " * 700),
+                allegati=[{"nome": "Comunicazione.xml", "size": 2048, "mime": "application/xml"}],
+                message_id=f"<pec-large-{index}@giustiziacert.it>",
+                stato_pct="COMUNICAZIONE_CANCELLERIA",
+            )
+        )
+
+    detail_flags: list[bool] = []
+
+    def fake_summaries(*_args, include_details=True, **_kwargs):
+        detail_flags.append(include_details)
+        if include_details:
+            raise AssertionError("La lista PEC grande non deve caricare audit dettagliato.")
+        return {}
+
+    def fake_all_summaries(*_args, include_details=True, **_kwargs):
+        if include_details:
+            raise AssertionError("La lista PEC grande non deve caricare audit-only dettagliati.")
+        return []
+
+    def fail_provisional(*_args, **_kwargs):
+        raise AssertionError("La lista PEC grande non deve ricostruire il profilo PEC provvisorio.")
+
+    monkeypatch.setattr(bridge, "_pec_audit_summaries", fake_summaries)
+    monkeypatch.setattr(bridge, "_pec_audit_all_summaries", fake_all_summaries)
+    monkeypatch.setattr(bridge, "_provisional_pec_audit_summary", fail_provisional)
+
+    payload = bridge.build_react_email_payload(
+        db_path=cfg["EMAIL_CASELLA_DB"],
+        messaggi_db=cfg["MESSAGGI_DB"],
+        limit=80,
+    )
+
+    encoded = json.dumps(payload, ensure_ascii=False)
+    assert detail_flags == [False]
+    assert payload["summary"]["filtered"] == 81
+    assert len(payload["items"]) == 80
+    assert all("pecAudit" not in item for item in payload["items"])
+    assert len(encoded.encode("utf-8")) < 160_000
+
+
 def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
     from web.app import create_app
 

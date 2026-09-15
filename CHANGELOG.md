@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.320.8 — 16/09/2026
+- La lista React `Email PEC` resta leggera sulle caselle grandi: non carica più audit/profilo PEC dettagliato per le 80 righe iniziali, lasciando fonti, normative, allegati e procedure complete al dettaglio del messaggio selezionato.
+
 ## 2.320.7 — 16/09/2026
 - Il deploy Hetzner ricontrolla sempre che il commit sia ancora la testa del branch prima di toccare Portainer, anche quando la CI del commit superato è diventata verde, così un run arretrato non può riportare online un'immagine precedente.
 - La pulizia Docker conserva anche il tag del commit atteso e il tag del checkout server, oltre alle immagini già usate dai container attivi. Questo evita che una pulizia eseguita durante una sostituzione Portainer cancelli la nuova immagine verificata.

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.320.9 — 16/09/2026
+- Corretto il mobile React dopo i nuovi bundle: in `Fascicoli` le card statistiche tornano in griglia a due colonne senza carosello orizzontale, `Email PEC` resta compatta anche con il preset globale attivo, e il menu laterale mobile copre correttamente topbar e contenuto nascondendo la bottom navigation.
+
 ## 2.320.8 — 16/09/2026
 - La lista React `Email PEC` resta leggera sulle caselle grandi: non carica più audit/profilo PEC dettagliato per le 80 righe iniziali, lasciando fonti, normative, allegati e procedure complete al dettaglio del messaggio selezionato.
 

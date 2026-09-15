@@ -2138,20 +2138,24 @@
 @media(max-width:760px){
   .iu-email-page{gap:10px}
   .iu-mail-compose-page{gap:10px}
-  .iu-mail-hero{padding:14px;border-radius:16px}
+  .iu-mail-hero{padding:12px;border-radius:14px;gap:10px}
   .iu-mail-compose-hero{padding:14px;border-radius:16px}
-  .iu-mail-hero h1{font-size:23px}
+  .iu-mail-hero h1{font-size:21px;line-height:1.14;margin:7px 0 0}
   .iu-mail-compose-hero h1{font-size:23px}
-  .iu-mail-hero p{font-size:12.5px}
+  .iu-mail-hero p{display:none}
   .iu-mail-compose-hero p{font-size:12.5px}
-  .iu-mail-hero__actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .iu-mail-hero__actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;width:100%}
   .iu-mail-compose-hero__actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
-  .iu-mail-hero__actions>a,.iu-mail-hero__actions>button{width:100%}
+  .iu-mail-hero__actions>a,.iu-mail-hero__actions>button{width:100%;min-height:34px;padding:0 7px;gap:4px;font-size:10px;line-height:1.1;white-space:nowrap}
   .iu-mail-compose-hero__actions>a,.iu-mail-compose-hero__actions>button{width:100%}
-  .iu-mail-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .iu-mail-stat{min-height:86px;padding:10px;border-radius:13px}
-  .iu-mail-stat>div{width:32px;height:32px;border-radius:10px}
-  .iu-mail-stat strong{font-size:20px}
+  .iu-mail-stats,
+  .iusentra-preset-active .iu-email-page .iu-mail-stats,
+  .iusentra-route-preset--active .iu-email-page .iu-mail-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .iu-mail-stat{min-height:70px;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto auto;grid-template-areas:"icon label" "icon value" "icon note";align-items:center;gap:1px 8px;padding:8px;border-radius:12px}
+  .iu-mail-stat>div{grid-area:icon;width:30px;height:30px;border-radius:10px}
+  .iu-mail-stat span{grid-area:label;align-self:end}
+  .iu-mail-stat strong{grid-area:value;font-size:18px;align-self:center}
+  .iu-mail-stat small{grid-area:note;align-self:start;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
   .iu-mail-stat span,.iu-mail-stat small{font-size:10.5px}
   .iu-mail-toolbar{grid-template-columns:1fr auto;gap:8px;padding:8px;border-radius:14px}
   .iu-mail-folders{grid-column:1 / -1;padding-bottom:4px}

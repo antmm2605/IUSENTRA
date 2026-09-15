@@ -1522,9 +1522,18 @@ export default function App() {
     window.dispatchEvent(new CustomEvent('iusentra:lex-context', { detail }))
     window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex', { detail }))
   }
+  useEffect(() => {
+    const className = 'iu-mobile-menu-open'
+    if (mobileMenuOpen && !embeddedViewer) {
+      document.body.classList.add(className)
+      return () => document.body.classList.remove(className)
+    }
+    document.body.classList.remove(className)
+    return undefined
+  }, [embeddedViewer, mobileMenuOpen])
   return (
     <AppErrorBoundary>
-      <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''} ${guidePanelExpanded && isFascicoliPage?'iu-shell--guide-open':''} ${isPresetExcludedPage?'iusentra-preset-excluded':'iusentra-preset-active'} ${embeddedViewer?'iu-shell--embedded-viewer':''}`} data-iusentra-preset-root={isPresetExcludedPage?'excluded':'active'}>
+      <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''} ${mobileMenuOpen&&!embeddedViewer?'iu-shell--mobile-menu-open':''} ${guidePanelExpanded && isFascicoliPage?'iu-shell--guide-open':''} ${isPresetExcludedPage?'iusentra-preset-excluded':'iusentra-preset-active'} ${embeddedViewer?'iu-shell--embedded-viewer':''}`} data-iusentra-preset-root={isPresetExcludedPage?'excluded':'active'}>
         {!embeddedViewer?<Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)} bootstrap={shellBootstrap} appV2Navigation={appV2FlagProtectedPath}/>:null}
         {!embeddedViewer&&mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
@@ -1535,7 +1544,7 @@ export default function App() {
             </IusentraRoutePresetFrame>
           </Suspense>
         </div>
-        {!embeddedViewer?<nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
+        {!embeddedViewer&&!mobileMenuOpen?<nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
           <div id="iu-mobile-links" className="iu-mobile__rail" hidden={mobileNavCollapsed}>
             <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/><span>Panoramica</span></a>
             <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/><span>Ricerca</span></a>

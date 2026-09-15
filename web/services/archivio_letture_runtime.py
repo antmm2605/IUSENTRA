@@ -420,7 +420,9 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         prima = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
         if not prima.da_leggere:
             return {
-                "inventario": {}, "documenti": {"da_leggere": 0, "letti": 0}, "pec": {"da_leggere": 0, "letti": 0},
+                "inventario": {},
+                "documenti": {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0},
+                "pec": {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0},
                 "promossi": 0, "riconvalidati": {"anomalie": 0, "fatti": 0}, "restano": 0,
                 "fermo": True, "ciclo": prima.to_dict(),
             }
@@ -666,14 +668,19 @@ def lettura_automatica_corrente(*, limite_oggetti: int = 150) -> dict[str, Any]:
             logger.warning("Lettura automatica non completata per il fascicolo %s: %s", getattr(fascicolo, "id", ""), exc)
             continue
         report["esaminati"] += 1
-        letti = int(esito["documenti"]["letti"]) + int(esito["pec"]["letti"])
-        residuo -= letti + int(esito["documenti"]["senza_testo"])
-        report["documenti_letti"] += int(esito["documenti"]["letti"])
-        report["pec_lette"] += int(esito["pec"]["letti"])
-        report["fatti"] += int(esito["documenti"]["fatti"]) + int(esito["pec"]["fatti"])
-        report["verificati"] += int(esito["documenti"]["verificati"]) + int(esito["pec"]["verificati"])
+        documenti = esito.get("documenti") or {}
+        pec = esito.get("pec") or {}
+        documenti_letti = int(documenti.get("letti") or 0)
+        pec_lette = int(pec.get("letti") or 0)
+        senza_testo = int(documenti.get("senza_testo") or 0)
+        letti = documenti_letti + pec_lette
+        residuo -= letti + senza_testo
+        report["documenti_letti"] += documenti_letti
+        report["pec_lette"] += pec_lette
+        report["fatti"] += int(documenti.get("fatti") or 0) + int(pec.get("fatti") or 0)
+        report["verificati"] += int(documenti.get("verificati") or 0) + int(pec.get("verificati") or 0)
         report["promossi"] += int(esito["promossi"])
-        report["senza_testo"] += int(esito["documenti"]["senza_testo"])
+        report["senza_testo"] += senza_testo
         report["restano"] += int(esito["restano"])
     return report
 

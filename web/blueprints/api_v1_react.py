@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import base64
 import mimetypes
-from pct.formatting import format_euro_it
+from pct.formatting import format_date_it, format_euro_it
 import hashlib
 import io
 import ipaddress
@@ -2397,43 +2397,57 @@ def _notification_presidia_rows(limit: int = 5) -> list[dict[str, Any]]:
 
 
 def _billing_work_rows(limit: int = 5) -> list[dict[str, Any]]:
-    """Parcelle da incassare lette dallo stesso bridge di Incassi e Pagamenti."""
+    """Parcelle da incassare per la Panoramica, senza costruire tutta la pagina Incassi."""
 
-    payload = build_react_incassi_pagamenti_payload(
-        get_fatturazione=fabbrica_panoramica(get_fatturazione),
-        get_pagamenti=fabbrica_panoramica(get_pagamenti),
-        get_clienti=fabbrica_panoramica(get_clienti),
-        current_user=g.get("utente_corrente"),
-        query={},
+    parcelle = list(gestore_panoramica(get_fatturazione).tutte())
+    try:
+        clienti = {
+            str(getattr(cliente, "id", "") or ""): cliente
+            for cliente in gestore_panoramica(get_clienti).tutti()
+        }
+    except Exception:
+        clienti = {}
+
+    def cliente_label(id_cliente: Any) -> str:
+        cliente = clienti.get(str(id_cliente or ""))
+        return (
+            str(getattr(cliente, "nome_completo", "") or "").strip()
+            or str(getattr(cliente, "denominazione", "") or "").strip()
+            or str(getattr(cliente, "nome", "") or "").strip()
+            or "Cliente non indicato"
+        )
+
+    stati_aperti = {StatoParcella.EMESSA.value, StatoParcella.SCADUTA.value}
+    candidate = [
+        parcella
+        for parcella in parcelle
+        if str(getattr(parcella, "id", "") or "").strip()
+        and _enum_value(getattr(parcella, "stato", "")) in stati_aperti
+    ]
+    candidate.sort(
+        key=lambda parcella: (
+            0 if _enum_value(getattr(parcella, "stato", "")) == StatoParcella.SCADUTA.value else 1,
+            str(getattr(parcella, "data_scadenza", "") or "9999-12-31"),
+            str(getattr(parcella, "data_emissione", "") or ""),
+        )
     )
     rows: list[dict[str, Any]] = []
-    for item in payload.get("records") or []:
-        invoice_id = str(item.get("invoiceId") or "").strip()
-        invoice_number = str(item.get("invoiceNumber") or "").strip()
-        customer = str(item.get("customerName") or "Cliente non indicato").strip()
-        amount = str(item.get("amountDisplay") or "").strip()
-        state_label = str(item.get("stateLabel") or "Da verificare").strip()
-        state = str(item.get("state") or "").upper()
-        tone = (
-            "danger"
-            if state in {"SCADUTA", "FALLITO"}
-            else "warning"
-            if state not in {"PAGATO", "CONFERMATO"}
-            else "success"
-        )
+    for parcella in candidate:
+        invoice_id = str(getattr(parcella, "id", "") or "").strip()
+        invoice_number = str(getattr(parcella, "numero", "") or "").strip()
+        amount = _euro(float(getattr(parcella, "netto_a_pagare", 0.0) or getattr(parcella, "totale", 0.0) or 0.0))
+        state = _enum_value(getattr(parcella, "stato", "")).upper()
+        state_label = "Scaduta" if state == StatoParcella.SCADUTA.value else "Da incassare"
+        due_at = format_date_it(getattr(parcella, "data_scadenza", "")) or str(getattr(parcella, "data_scadenza", "") or "")
         rows.append(
             {
-                "id": f"incasso-{invoice_id or item.get('id') or len(rows)}",
+                "id": f"incasso-{invoice_id or len(rows)}",
                 "title": f"Parcella {invoice_number}" if invoice_number else "Parcella da incassare",
-                "subtitle": " · ".join(part for part in (customer, amount) if part),
-                "time": str(item.get("dueAt") or "").strip(),
+                "subtitle": " · ".join(part for part in (cliente_label(getattr(parcella, "id_cliente", "")), amount) if part),
+                "time": due_at,
                 "badge": state_label,
-                "tone": tone,
-                "href": (
-                    f"/incassi-pagamenti?{urlencode({'id_parcella': invoice_id})}#registra-incasso"
-                    if invoice_id
-                    else "/incassi-pagamenti"
-                ),
+                "tone": "danger" if state == StatoParcella.SCADUTA.value else "warning",
+                "href": f"/incassi-pagamenti?{urlencode({'id_parcella': invoice_id})}#registra-incasso",
             }
         )
         if len(rows) >= limit:

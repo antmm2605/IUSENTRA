@@ -1,6 +1,7 @@
 """Contratti della pagina React Controllo Studio."""
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from flask import Flask, g
 
@@ -65,23 +66,36 @@ def test_controllo_studio_espone_presidio_notifica_reale(monkeypatch):
 
 
 def test_controllo_studio_espone_parcella_e_azione_incasso(monkeypatch):
+    def bridge_non_usato(**_kwargs):
+        raise AssertionError("La Panoramica non deve costruire il bridge completo Incassi e Pagamenti.")
+
     monkeypatch.setattr(
         dashboard_api,
         "build_react_incassi_pagamenti_payload",
-        lambda **_kwargs: {
-            "records": [
-                {
-                    "id": "pagamento-1",
-                    "invoiceId": "parcella-1",
-                    "invoiceNumber": "12/2026",
-                    "customerName": "Cliente Demo",
-                    "amountDisplay": "€ 1.250,00",
-                    "state": "ATTESO",
-                    "stateLabel": "Da incassare",
-                    "dueAt": "31/08/2026",
-                }
+        bridge_non_usato,
+    )
+    monkeypatch.setattr(
+        dashboard_api,
+        "get_fatturazione",
+        lambda: SimpleNamespace(
+            tutte=lambda: [
+                SimpleNamespace(
+                    id="parcella-1",
+                    numero="12/2026",
+                    id_cliente="cliente-1",
+                    stato="EMESSA",
+                    netto_a_pagare=1250.0,
+                    totale=1250.0,
+                    data_scadenza="2026-08-31",
+                    data_emissione="2026-08-01",
+                )
             ]
-        },
+        ),
+    )
+    monkeypatch.setattr(
+        dashboard_api,
+        "get_clienti",
+        lambda: SimpleNamespace(tutti=lambda: [SimpleNamespace(id="cliente-1", denominazione="Cliente Demo")]),
     )
     app = Flask(__name__)
     with app.app_context():

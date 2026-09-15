@@ -82,6 +82,8 @@ def test_il_motore_documenti_alimenta_l_archivio_una_volta_sola_e_i_presidi_atti
         # Secondo giro: nulla da leggere, nulla riletto.
         secondo = leggi_fascicolo(fascicolo)
         assert secondo["documenti"]["da_leggere"] == 0 and secondo["documenti"]["letti"] == 0
+        assert secondo["documenti"]["senza_testo"] == 0 and secondo["documenti"]["assenti"] == 0
+        assert secondo["pec"]["assenti"] == 0 and secondo["pec"]["fatti"] == 0
         stato = registro_corrente().stato_fascicolo(tenant_corrente(), fascicolo_id, lettori=("motore_documenti",))
         assert stato.lettori[0].letti == 2 and stato.lettori[0].completa
         # Il presidio documentale legge dall'archivio, senza testi indicizzati.

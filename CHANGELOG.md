@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.6 — 15/09/2026
+- La Panoramica non costruisce più il payload completo di `Incassi e Pagamenti` per mostrare cinque parcelle aperte: legge solo fatturazione e clienti già memoizzati, riducendo il carico su apertura dashboard.
+- Il job `archivio_letture_automatico` restituisce sempre contatori completi anche quando il fascicolo è già invariato, evitando il blocco sul campo `senza_testo` durante i giri scheduler.
+
 ## 2.320.5 — 15/09/2026
 - La pagina del fascicolo non avvia più indicizzazione, catalogazione o verifiche pesanti durante l'apertura: la Lettura del fascicolo usa solo registro, archivio e indice già materializzati; il lavoro parte da scheduler, eventi documento/PEC o pulsante `Aggiorna`.
 - Il pannello Lettura rimuove l'avviso transitorio quando la lettura arriva correttamente, evitando messaggi “non disponibile” accanto a contenuto già caricato.

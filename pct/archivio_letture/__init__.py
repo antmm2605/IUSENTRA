@@ -24,7 +24,7 @@ from __future__ import annotations
 from .collaudo import Contesto, collauda
 from .motore_documenti import VERSIONE_MOTORE_DOCUMENTI, leggi_testo
 from .motore_pec import VERSIONE_MOTORE_PEC, fatti_da_allegato, fatti_da_messaggio
-from .presidi import CAMPI_DA_CONFERMARE, da_confermare_ora, prove_notifica_per_oggetto, riassunto_archivio, ruoli_letti, udienze_e_termini
+from .presidi import CAMPI_DA_CONFERMARE, da_confermare_ora, eventi_letti, importi_letti, prove_notifica_per_oggetto, riassunto_archivio, ruoli_letti, udienze_e_termini
 
 VERSIONE_ARCHIVIO = "2026.09.16.archivio-letture.v1"
 
@@ -40,7 +40,9 @@ __all__ = [
     "prove_notifica_per_oggetto",
     "CAMPI_DA_CONFERMARE",
     "da_confermare_ora",
+    "importi_letti",
     "riassunto_archivio",
+    "eventi_letti",
     "ruoli_letti",
     "udienze_e_termini",
 ]

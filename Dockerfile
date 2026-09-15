@@ -123,13 +123,15 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.318.0" \
+      org.opencontainers.image.version="2.319.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
 # Solo le librerie runtime strettamente necessarie
-# hunspell-it: vocabolario italiano per il correttore di lettura (legal_ocr/lessico);
-# il gestionale funziona anche senza, solo su meno parole
+# hunspell + hunspell-it: il dizionario italiano (/usr/share/hunspell/it_IT.aff e .dic)
+# che il correttore di lettura legge direttamente (legal_ocr/lessico/hunspell.py);
+# l'eseguibile serve per verificare il dizionario dal container, non al codice;
+# il gestionale funziona anche senza, sulle sole parole dichiarate nel repository
 # libpcsclite1 + opensc: firma PKCS#11 in-device (Aruba Key) - il demone pcscd
 # gira sul HOST; il container lo raggiunge via socket montato in docker-compose
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -138,6 +140,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxslt1.1 \
         tesseract-ocr \
         tesseract-ocr-ita \
+        hunspell \
         hunspell-it \
         poppler-utils \
         ghostscript \

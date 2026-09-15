@@ -120,22 +120,28 @@ def _candidati(parola: str) -> set[str]:
     return trovati
 
 
+def _sa(parola: str, lessico: frozenset[str] | None) -> bool:
+    """Se la parola esiste: nel lessico passato, oppure nel dizionario italiano con le flessioni."""
+    if lessico is not None:
+        return parola in lessico
+    from .italiano import conosce
+
+    return conosce(parola)
+
+
 def correggi_parola(parola: str, *, lessico: frozenset[str] | None = None) -> str:
     """La parola corretta, oppure la parola letta se non c'è una sola forma giusta."""
-    from .italiano import parole_conosciute
-
     grezza = str(parola or "")
     lettere = sum(1 for carattere in grezza if carattere.isalpha())
     if len(grezza) < LUNGHEZZA_MINIMA or lettere < LETTERE_MINIME or lettere <= sum(1 for carattere in grezza if carattere.isdigit()):
         return grezza
-    conosciute = lessico if lessico is not None else parole_conosciute()
     piatta = grezza.casefold()
-    if piatta in conosciute:
+    if _sa(piatta, lessico):
         return grezza
     candidati = {
         candidato.casefold()
         for candidato in _candidati(piatta)
-        if _SOLO_LETTERE.match(candidato) and candidato.casefold() in conosciute
+        if _SOLO_LETTERE.match(candidato) and _sa(candidato.casefold(), lessico)
     }
     if len(candidati) != 1:
         return grezza
@@ -145,12 +151,11 @@ def correggi_parola(parola: str, *, lessico: frozenset[str] | None = None) -> st
 def correggi_testo(testo: str, *, lessico: frozenset[str] | None = None) -> tuple[str, int]:
     """Il testo con le parole riportate al lessico, e quante parole sono cambiate."""
     from legal_ocr.formulario.riferimenti_normativi import e_riferimento_normativo
-    from .italiano import parole_conosciute
 
     grezzo = str(testo or "")
     if not grezzo.strip():
         return grezzo, 0
-    conosciute = lessico if lessico is not None else parole_conosciute()
+    conosciute = lessico
     cambiate = 0
     pezzi: list[str] = []
     ultimo = 0

@@ -137,6 +137,94 @@ def da_confermare_ora(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
     return sorted(richieste, key=lambda voce: str(voce["valore"]))
 
 
+def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
+    """Gli importi letti dai documenti, uno per campo: il più solido e il più recente.
+
+    Il presidio economico consulta questa vista invece di riaprire i PDF: per
+    ogni voce (contributo unificato, compenso liquidato, spese ed esborsi, fondo
+    spese, beneficio) restituisce l'importo, il verdetto del collaudo, il
+    documento da cui viene e la norma che lo governa.
+    """
+    from .estrazione_importi import CAMPI_IMPORTO
+
+    migliori: dict[str, dict[str, Any]] = {}
+    for fatto in fatti:
+        if fatto.categoria != "importo" or fatto.verifica not in VERIFICHE_UTILI or fatto.campo not in CAMPI_IMPORTO:
+            continue
+        try:
+            importo = float(fatto.valore)
+        except (TypeError, ValueError):
+            continue
+        norma = next((str(prova.get("dettaglio") or "") for prova in fatto.prove if prova.get("codice") == "norma"), "")
+        natura = next((str(prova.get("dettaglio") or "") for prova in fatto.prove if prova.get("codice") == "natura"), "")
+        voce = {
+            "campo": fatto.campo, "importo": importo, "valore": fatto.valore,
+            "etichetta": fatto.etichetta, "titolo": fatto.valore_letto, "contesto": fatto.contesto,
+            "verifica": fatto.verifica, "verifica_etichetta": etichetta_verifica(fatto.verifica),
+            "documento_id": fatto.oggetto_id, "tipo": fatto.tipo, "origine": fatto.origine,
+            "norma": norma, "natura": natura, "fatto_id": fatto.id,
+        }
+        corrente = migliori.get(fatto.campo)
+        if corrente is None or _forza_verifica(fatto.verifica) > _forza_verifica(str(corrente["verifica"])):
+            migliori[fatto.campo] = voce
+    return migliori
+
+
+# Gli eventi che il presidio PEC riconosce sono fatti della causa: il rinvio
+# d'ufficio, la fissazione, il deposito del provvedimento. Entrano in cronologia
+# con il giorno della PEC che li comunica.
+ETICHETTE_EVENTO = {
+    "rinvio": "rinvio", "fissazione_udienza": "fissazione di udienza", "deposito_provvedimento": "deposito del provvedimento",
+    "comunicazione_cancelleria": "comunicazione di cancelleria", "notifica": "notifica", "iscrizione_a_ruolo": "iscrizione a ruolo",
+    "sentenza": "sentenza", "ordinanza": "ordinanza", "decreto": "decreto", "termine": "termine",
+}
+
+
+def eventi_letti(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[dict[str, Any]]:
+    """Gli eventi processuali letti dalle PEC, datati e pronti per la cronologia.
+
+    Il motore PEC li produce dalla classificazione del presidio (famiglia ed
+    evento primario) e vi allega il giorno di ricezione certificato: qui
+    diventano voci con una data, così non restano un numero nel riassunto.
+    Un evento senza data non si mostra: in cronologia non avrebbe posto.
+    """
+    oggi = oggi or date.today()
+    voci: list[dict[str, Any]] = []
+    visti: set[tuple[str, str]] = set()
+    for fatto in fatti:
+        if fatto.categoria != "evento" or fatto.verifica not in VERIFICHE_UTILI:
+            continue
+        grezza = next((str(prova.get("dettaglio") or "") for prova in fatto.prove if prova.get("codice") == "data"), "")
+        giorno = _giorno(grezza)
+        if giorno is None:
+            continue
+        chiave = (fatto.campo, giorno.isoformat())
+        if chiave in visti:
+            continue
+        visti.add(chiave)
+        voci.append({
+            "id": fatto.id or f"evento-{fatto.oggetto_id}-{giorno.isoformat()}",
+            "campo": fatto.campo,
+            "famiglia": fatto.valore,
+            "etichetta": ETICHETTE_EVENTO.get(fatto.campo, fatto.etichetta or fatto.campo.replace("_", " ")),
+            "data_iso": giorno.isoformat(),
+            "data": giorno.strftime("%d/%m/%Y"),
+            "contesto": fatto.contesto,
+            "oggetto_id": fatto.oggetto_id,
+            "tipo": fatto.tipo,
+            "origine": fatto.origine,
+            "verifica": fatto.verifica,
+            "verifica_etichetta": etichetta_verifica(fatto.verifica),
+            "passato": giorno <= oggi,
+        })
+    voci.sort(key=lambda voce: (voce["data_iso"], voce["campo"]))
+    return voci
+
+
+def _forza_verifica(verifica: str) -> int:
+    return {"corretta": 3, "verificata": 2, "plausibile": 1}.get(verifica, 0)
+
+
 def riassunto_archivio(fatti: Iterable[Fatto], *, oggi: date | None = None) -> dict[str, Any]:
     """Il riassunto per il pannello: quanti fatti per verdetto, udienze, termini, prove, ruoli, conferme utili."""
     elenco = list(fatti)
@@ -154,9 +242,10 @@ def riassunto_archivio(fatti: Iterable[Fatto], *, oggi: date | None = None) -> d
         "prove_notifica": sum(1 for fatto in utili if fatto.categoria == "prova_notifica"),
         "ruoli": len(ruoli_letti(utili)),
         "eventi": sum(1 for fatto in utili if fatto.categoria == "evento"),
+        "importi": len(importi_letti(utili)),
         "per_motore": {"documenti": sum(1 for fatto in utili if fatto.motore == "documenti"), "pec": sum(1 for fatto in utili if fatto.motore == "pec")},
         "da_confermare": da_confermare[:12],
     }
 
 
-__all__ = ["CAMPI_DA_CONFERMARE", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]
+__all__ = ["CAMPI_DA_CONFERMARE", "ETICHETTE_EVENTO", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "eventi_letti", "importi_letti", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]

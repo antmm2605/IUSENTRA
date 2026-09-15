@@ -59,6 +59,7 @@ def cronologia(
     documenti_letti: list[dict[str, Any]],
     appuntamenti: list[dict[str, Any]],
     oggi: Any,
+    archivio_letto: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     eventi: list[Evento] = []
     for voce in attivita:
@@ -110,6 +111,37 @@ def cronologia(
                 fonte="documento catalogato",
                 fonte_id=documento["id"],
             ))
+    # Le udienze e i termini che i due motori hanno letto nei documenti sono fatti
+    # come gli altri: prima restavano nell'archivio senza entrare in cronologia.
+    for voce in list((archivio_letto or {}).get("udienze") or []) + list((archivio_letto or {}).get("termini") or []):
+        giorno = pulisci(voce.get("data_iso"))[:10]
+        if not giorno:
+            continue
+        eventi.append(Evento(
+            data=giorno,
+            categoria="udienza" if pulisci(voce.get("tipo")) == "udienza" else "termine",
+            titolo=pulisci(voce.get("descrizione")) or pulisci(voce.get("tipo")) or "data letta dai documenti",
+            dettaglio=f"letta dai documenti · {pulisci(voce.get('verifica_etichetta')) or pulisci(voce.get('verifica'))}",
+            esito="",
+            fonte="archivio delle letture",
+            fonte_id=pulisci(voce.get("documento_id")) or giorno,
+        ))
+    # Gli eventi processuali che le PEC comunicano (rinvio d'ufficio, fissazione,
+    # deposito del provvedimento) sono fatti della causa: il motore PEC li legge
+    # e li data, qui prendono il loro posto nel tempo.
+    for voce in list((archivio_letto or {}).get("eventi") or []):
+        giorno = pulisci(voce.get("data_iso"))[:10]
+        if not giorno:
+            continue
+        eventi.append(Evento(
+            data=giorno,
+            categoria="comunicazione",
+            titolo=pulisci(voce.get("etichetta")) or "evento comunicato dalla cancelleria",
+            dettaglio=f"letto dalla PEC · {pulisci(voce.get('verifica_etichetta')) or pulisci(voce.get('verifica'))}",
+            esito="",
+            fonte="archivio delle letture",
+            fonte_id=f"evento:{pulisci(voce.get('oggetto_id')) or giorno}:{pulisci(voce.get('etichetta'))}",
+        ))
     giorno_oggi = data_da(oggi)
     giorni_udienza = {_chiave(evento.data) for evento in eventi if evento.categoria == "udienza"}
     for appuntamento in appuntamenti:

@@ -22,6 +22,7 @@ from typing import Any, Iterable
 from flask import current_app, g, has_app_context
 
 from pct.archivio_letture import VERSIONE_MOTORE_DOCUMENTI, VERSIONE_MOTORE_PEC, fatti_da_allegato, fatti_da_messaggio, leggi_testo, riassunto_archivio
+from pct.archivio_letture.ciclo import StatoCiclo, stato_ciclo
 from pct.archivio_letture.collaudo import Contesto, contesto_da_fascicolo
 from pct.registro_letture import Fatto, Oggetto, RegistroLetture
 from web.services.lettura_cache import invalida_lettura
@@ -158,6 +159,42 @@ def date_note_fascicolo(fascicolo: Any, *, messaggi_pec: Iterable[dict[str, Any]
     return note
 
 
+def importi_noti_fascicolo(fascicolo: Any) -> dict[str, list[str]]:
+    """Gli importi che il fascicolo già registra: servono al collaudo come riscontro.
+
+    Un importo letto in una sentenza che coincide con un pagamento registrato o
+    con una parcella non è più una proposta: è un dato confermato da un'altra
+    fonte, e il collaudo lo verifica.
+    """
+    noti: dict[str, list[str]] = {}
+
+    def aggiungi(valore: Any, fonte: str) -> None:
+        try:
+            numero = float(valore)
+        except (TypeError, ValueError):
+            return
+        if numero <= 0:
+            return
+        elenco = noti.setdefault(f"{round(numero, 2):.2f}", [])
+        if fonte not in elenco:
+            elenco.append(fonte)
+
+    for voce in list(getattr(fascicolo, "pagamenti", []) or []):
+        dati = voce if isinstance(voce, dict) else getattr(voce, "__dict__", {})
+        for chiave in ("importo", "importo_previsto", "importo_pagato"):
+            aggiungi(dati.get(chiave) if isinstance(dati, dict) else getattr(voce, chiave, None), "pagamenti del fascicolo")
+    try:
+        from web.helpers import get_fatturazione
+
+        for parcella in get_fatturazione().tutte():
+            if _testo(getattr(parcella, "id_fascicolo", "")) == _testo(getattr(fascicolo, "id", "")):
+                aggiungi(getattr(parcella, "totale", None), "parcella")
+    except Exception:
+        pass
+    aggiungi(getattr(fascicolo, "valore_causa", None), "valore della causa")
+    return noti
+
+
 def _messaggi_pec(fascicolo: Any) -> list[dict[str, Any]]:
     try:
         from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
@@ -203,10 +240,11 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "nessun testo disponibile: in attesa dell'OCR"}, versione=VERSIONE_MOTORE_DOCUMENTI)
             continue
         origine, testo = letture[0]
-        contesto_documento = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note)
+        contesto_documento = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note, importi_noti=contesto.importi_noti)
         if len(letture) > 1:
             contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
-        fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome), oggetto, "documenti")
+        metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
+        fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
         registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
         conteggi["letti"] += 1
@@ -305,27 +343,122 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict
     return esito
 
 
+def _impronta_viva(fascicolo: Any) -> str:
+    """L'impronta dell'inventario corrente: documenti e PEC collegate, senza aprire file.
+
+    Si basa sui metadati che il fascicolo già porta (identificativo, impronta
+    SHA-256 del documento, dimensione) e sulle PEC collegate: cambia appena un
+    documento viene aggiunto, sostituito o rimosso, o appena arriva una PEC.
+    """
+    from pct.registro_letture import impronta_inventario
+    from web.services.registro_letture_runtime import inventario_fascicolo
+
+    try:
+        return impronta_inventario(inventario_fascicolo(fascicolo, con_pec=True))
+    except Exception as exc:
+        logger.debug("Impronta del fascicolo non calcolata per %s: %s", getattr(fascicolo, "id", ""), exc)
+        return ""
+
+
+def stato_ciclo_fascicolo(fascicolo_id: str, registro: RegistroLetture, tenant: str, *, impronta: str = "") -> StatoCiclo:
+    """Dove sta il fascicolo nel ciclo dei due motori: fermo, da leggere o in errore."""
+    riga = dict(registro.impronta_fascicolo(tenant, fascicolo_id, LETTORE_DOCUMENTI) or {})
+    if riga.get("esito_json") and "esito" not in riga:
+        import json
+
+        try:
+            riga["esito"] = json.loads(str(riga.get("esito_json") or "{}"))
+        except (TypeError, ValueError):
+            riga["esito"] = {}
+    return stato_ciclo(riga or None, versione_attesa=VERSIONE_MOTORE_DOCUMENTI, impronta_attesa=impronta)
+
+
+def _segna_ciclo(registro: RegistroLetture, tenant: str, fascicolo_id: str, *, impronta: str, totali: int, letti: int, stato: str, motivo: str = "") -> None:
+    """Scrive nell'archivio dove è arrivato il ciclo: è la conferma che chiude il giro."""
+    try:
+        registro.segna_fascicolo(
+            tenant, fascicolo_id, LETTORE_DOCUMENTI,
+            impronta=impronta, oggetti_totali=totali, oggetti_letti=letti,
+            stato=stato, versione=VERSIONE_MOTORE_DOCUMENTI,
+            esito={"motivo": motivo} if motivo else {},
+        )
+    except Exception as exc:
+        logger.debug("Stato del ciclo non registrato per %s: %s", fascicolo_id, exc)
+
+
+def _consegna_ai_presidi(fascicolo: Any, registro: RegistroLetture) -> dict[str, Any]:
+    """L'archivio consegna ai presìdi che scrivono; un guasto qui non ferma il ciclo."""
+    try:
+        from web.services.consegna_presidi_runtime import consegna_fascicolo
+
+        return consegna_fascicolo(fascicolo, registro=registro)
+    except Exception as exc:
+        logger.exception("Consegna ai presìdi non riuscita per il fascicolo %s", getattr(fascicolo, "id", ""))
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200], "consegnati": 0, "non_pertinenti": 0, "rifiutati": 0}
+
+
 def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None) -> dict[str, Any]:
-    """I due motori leggono solo ciò che il registro dice non letto; l'archivio si aggiorna; la lettura in cache si invalida."""
+    """Un giro del ciclo: i motori leggono solo ciò che manca, l'archivio conferma, poi ci si ferma.
+
+    Il ciclo è chiuso: quando tutto è letto e l'archivio ha confermato, il
+    fascicolo resta **fermo** e questa funzione non apre più nulla. Si riattiva
+    su un documento nuovo, su un documento cambiato, su una PEC nuova, quando
+    cambiano le regole di un motore, o al ricontrollo periodico che fa da rete
+    di sicurezza se un evento è andato perso.
+    """
     registro = registro or registro_corrente()
     tenant = tenant_corrente()
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     if not fascicolo_id:
-        return {"documenti": {}, "pec": {}, "promossi": 0}
-    inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
-    messaggi = _messaggi_pec(fascicolo)
-    contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
-    riconvalidati = _riconvalida(fascicolo, registro, tenant)
-    documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite)
-    pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
-    promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
+        return {"documenti": {}, "pec": {}, "promossi": 0, "ciclo": {}}
+    if not forza:
+        # L'impronta si calcola dal fascicolo vivo — dai metadati dei documenti e
+        # dalle PEC collegate, senza aprire alcun file — e si confronta con quella
+        # che l'archivio ha confermato: se coincidono il ciclo è fermo e qui non
+        # si fa nulla. Confrontare l'archivio con sé stesso non vedrebbe mai un
+        # documento nuovo.
+        prima = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
+        if not prima.da_leggere:
+            return {
+                "inventario": {}, "documenti": {"da_leggere": 0, "letti": 0}, "pec": {"da_leggere": 0, "letti": 0},
+                "promossi": 0, "riconvalidati": {"anomalie": 0, "fatti": 0}, "restano": 0,
+                "fermo": True, "ciclo": prima.to_dict(),
+            }
+    try:
+        inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
+        messaggi = _messaggi_pec(fascicolo)
+        contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
+        contesto.importi_noti = importi_noti_fascicolo(fascicolo)
+        riconvalidati = _riconvalida(fascicolo, registro, tenant)
+        documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite)
+        pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
+        promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
+    except Exception as exc:
+        # Il fascicolo non esce dal ciclo: resta in errore dichiarato e si riprova.
+        logger.exception("Giro del ciclo non riuscito per il fascicolo %s", fascicolo_id)
+        _segna_ciclo(registro, tenant, fascicolo_id, impronta="", totali=0, letti=0, stato="errore", motivo=f"{type(exc).__name__}: {exc}"[:300])
+        raise
+    # Seconda gamba della catena: l'archivio consegna ai presìdi che scrivono, e
+    # loro confermano. Un fatto già consegnato non viene riproposto.
+    consegne = _consegna_ai_presidi(fascicolo, registro)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"]:
         invalida_lettura(fascicolo_id)
     chiusi_documenti = documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
     chiusi_pec = pec["letti"] + pec["assenti"]
+    restano = max(0, documenti["da_leggere"] - chiusi_documenti) + max(0, pec["da_leggere"] - chiusi_pec)
+    # L'archivio conferma: il ciclo si chiude quando non resta nulla da leggere.
+    impronta = _impronta_viva(fascicolo)
+    _segna_ciclo(
+        registro, tenant, fascicolo_id,
+        impronta=impronta, totali=len(registro.oggetti(tenant, fascicolo_id)),
+        letti=chiusi_documenti + chiusi_pec,
+        stato="completa" if restano == 0 else "parziale",
+        motivo="" if restano == 0 else f"{restano} oggetti oltre il tetto di questo giro",
+    )
+    dopo = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=impronta)
     return {
         "inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "riconvalidati": riconvalidati,
-        "restano": max(0, documenti["da_leggere"] - chiusi_documenti) + max(0, pec["da_leggere"] - chiusi_pec),
+        "consegne": consegne, "restano": restano, "fermo": restano == 0, "ciclo": dopo.to_dict(),
     }
 
 
@@ -603,7 +736,7 @@ def registra_lettura_ocr_nell_archivio(job: Any, testo: str) -> int:
 
 
 __all__ = [
-    "LETTORE_DOCUMENTI", "LETTORE_PEC", "avvia_lettura_in_background", "collaudo_lettore_payload", "date_note_fascicolo", "decidi_fatto", "fatti_fascicolo",
+    "LETTORE_DOCUMENTI", "LETTORE_PEC", "avvia_lettura_in_background", "collaudo_lettore_payload", "date_note_fascicolo", "decidi_fatto", "fatti_fascicolo", "importi_noti_fascicolo",
     "leggi_fascicolo", "lettura_automatica_corrente", "lettura_automatica_per_tutti", "lettura_dopo_evento", "percorso_collaudo",
     "registra_lettura_ocr_nell_archivio", "stato_archivio_payload", "testi_documento",
 ]

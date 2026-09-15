@@ -44,6 +44,19 @@ def archivio(dati: dict[str, Any]) -> dict[str, Any]:
         "prove_notifica": int(riassunto.get("prove_notifica") or 0),
         "notifiche_datate": int(riassunto.get("notifiche") or 0),
         "ruoli": [pulisci(voce.get("valore")) for voce in list(dati.get("ruoli") or [])],
+        "eventi": [
+            {
+                "etichetta": pulisci(voce.get("etichetta")),
+                "famiglia": pulisci(voce.get("famiglia")),
+                "data": pulisci(voce.get("data")) or data_it(voce.get("data_iso")),
+                "data_iso": pulisci(voce.get("data_iso")),
+                "verifica": pulisci(voce.get("verifica")),
+                "verifica_etichetta": pulisci(voce.get("verifica_etichetta")),
+                "oggetto_id": pulisci(voce.get("oggetto_id")),
+                "contesto": pulisci(voce.get("contesto"))[:200],
+            }
+            for voce in list(dati.get("eventi") or [])
+        ],
         "da_confermare": [
             {"id": pulisci(voce.get("id")), "campo": ETICHETTE_CAMPO.get(pulisci(voce.get("campo")), pulisci(voce.get("campo"))), "etichetta": pulisci(voce.get("etichetta")), "valore": pulisci(voce.get("valore")), "letto": pulisci(voce.get("valore_letto")), "oggetto_id": pulisci(voce.get("oggetto_id"))}
             for voce in list(riassunto.get("da_confermare") or [])
@@ -73,6 +86,8 @@ def descrivi(archivio_letto: dict[str, Any]) -> str:
         pezzi.append(f"{len(archivio_letto['termini'])} termini letti")
     if archivio_letto["prove_notifica"]:
         pezzi.append(f"{archivio_letto['prove_notifica']} prove di notifica")
+    if archivio_letto.get("eventi"):
+        pezzi.append(f"{len(archivio_letto['eventi'])} eventi comunicati dalle PEC")
     return ", ".join(pezzi)
 
 

@@ -8891,8 +8891,17 @@ def fascicolo_react_letture(id_fasc: str):
         segna = str(request.args.get("visto") or "1").strip().lower() not in {"0", "false", "no"}
         return _jsonify_public_payload({"ok": True, "letture": stato_letture_payload(fascicolo, segna_visto=segna)})
     except Exception as exc:
+        # Il motivo si dichiara: «non disponibile» senza spiegazione non permette
+        # all'avvocato né a chi assiste di capire che cosa non ha funzionato.
         current_app.logger.exception("Registro letture del fascicolo %s non disponibile: %s", id_fasc, exc)
-        return _jsonify_public_payload({"ok": False, "errore": "Registro delle letture non disponibile."}, 200)
+        return _jsonify_public_payload(
+            {
+                "ok": False,
+                "errore": f"Registro delle letture non disponibile: {type(exc).__name__}: {exc}"[:400],
+                "motivoTecnico": f"{type(exc).__name__}: {exc}"[:400],
+            },
+            200,
+        )
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/letture/aggiorna")

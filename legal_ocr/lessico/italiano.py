@@ -95,12 +95,36 @@ def dizionario_di_sistema() -> tuple[str, frozenset[str]]:
 
 
 @lru_cache(maxsize=1)
-def parole_conosciute() -> frozenset[str]:
-    """Tutte le parole che il correttore può proporre: forense + italiano + dizionario di sistema."""
+def parole_dichiarate() -> frozenset[str]:
+    """Le parole dichiarate nel repository: nucleo italiano più lessico forense."""
     from .forense import LESSICO
 
+    return frozenset(parola.casefold() for parola in ITALIANO_NUCLEO) | LESSICO
+
+
+@lru_cache(maxsize=1)
+def parole_conosciute() -> frozenset[str]:
+    """Le sole radici: si conserva per compatibilità, ma la verifica passa da `conosce`."""
     _percorso, sistema = dizionario_di_sistema()
-    return frozenset(parola.casefold() for parola in ITALIANO_NUCLEO) | LESSICO | sistema
+    return parole_dichiarate() | sistema
 
 
-__all__ = ["ITALIANO_NUCLEO", "PERCORSI_DIZIONARIO", "RIGHE_MASSIME", "dizionario_di_sistema", "parole_conosciute"]
+def conosce(parola: str) -> bool:
+    """Se la parola esiste: lessico dichiarato oppure dizionario italiano con le sue flessioni.
+
+    Il dizionario di sistema contiene radici e regole: «udienze» non c'è, ma
+    nasce da «udienza» con la regola dichiarata nel `.aff`. Per questo la
+    verifica passa da `legal_ocr.lessico.hunspell`, che applica le regole al
+    contrario invece di fermarsi alle radici.
+    """
+    piatta = str(parola or "").casefold()
+    if not piatta:
+        return False
+    if piatta in parole_dichiarate():
+        return True
+    from .hunspell import dizionario_italiano
+
+    return dizionario_italiano().conosce(piatta)
+
+
+__all__ = ["ITALIANO_NUCLEO", "PERCORSI_DIZIONARIO", "RIGHE_MASSIME", "conosce", "dizionario_di_sistema", "parole_conosciute", "parole_dichiarate"]

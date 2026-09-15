@@ -144,3 +144,31 @@ CREATE TABLE IF NOT EXISTS letture_fatti (
 
 CREATE INDEX IF NOT EXISTS idx_letture_fatti_fascicolo
     ON letture_fatti (tenant_id, fascicolo_id, categoria, verifica);
+
+-- Consegne ai presìdi (2.319.0): l'archivio non si limita a conservare i fatti,
+-- li consegna ai presìdi che li usano e tiene il conto di che cosa ha già dato.
+-- È la seconda gamba del ciclo: il motore legge e scrive nell'archivio,
+-- l'archivio consegna al presidio, il presidio scrive nel proprio registro
+-- (scadenziario, agenda, pagamenti, notifiche) e conferma; da quel momento
+-- l'archivio non ripropone più quel fatto a quel presidio, e tutto si ferma.
+-- `stato`: da_consegnare (mai offerto o offerto e non ancora scritto),
+-- consegnato (il presidio ha scritto e confermato, con il riferimento della
+-- riga creata), non_pertinente (il presidio lo ha valutato e non lo usa),
+-- rifiutato (il presidio non ha potuto scriverlo: il motivo resta).
+CREATE TABLE IF NOT EXISTS letture_consegne (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    fatto_id TEXT NOT NULL,
+    presidio TEXT NOT NULL,
+    stato TEXT NOT NULL CHECK (stato IN ('da_consegnare', 'consegnato', 'non_pertinente', 'rifiutato')),
+    riferimento TEXT NOT NULL DEFAULT '',
+    motivo TEXT NOT NULL DEFAULT '',
+    versione_presidio TEXT NOT NULL DEFAULT '',
+    consegnato_il TEXT NOT NULL DEFAULT '',
+    aggiornato_il TEXT NOT NULL,
+    UNIQUE (tenant_id, fatto_id, presidio)
+);
+
+CREATE INDEX IF NOT EXISTS idx_letture_consegne_fascicolo
+    ON letture_consegne (tenant_id, fascicolo_id, presidio, stato);

@@ -145,3 +145,22 @@ CREATE TABLE IF NOT EXISTS letture_fatti (
 
 CREATE INDEX IF NOT EXISTS idx_letture_fatti_fascicolo
     ON letture_fatti (tenant_id, fascicolo_id, categoria, verifica);
+
+-- Consegne ai presìdi (2.319.0): vedi lo schema SQLite gemello.
+CREATE TABLE IF NOT EXISTS letture_consegne (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    fatto_id TEXT NOT NULL,
+    presidio TEXT NOT NULL,
+    stato TEXT NOT NULL CHECK (stato IN ('da_consegnare', 'consegnato', 'non_pertinente', 'rifiutato')),
+    riferimento TEXT NOT NULL DEFAULT '',
+    motivo TEXT NOT NULL DEFAULT '',
+    versione_presidio TEXT NOT NULL DEFAULT '',
+    consegnato_il TEXT NOT NULL DEFAULT '',
+    aggiornato_il TEXT NOT NULL,
+    UNIQUE (tenant_id, fatto_id, presidio)
+);
+
+CREATE INDEX IF NOT EXISTS idx_letture_consegne_fascicolo
+    ON letture_consegne (tenant_id, fascicolo_id, presidio, stato);

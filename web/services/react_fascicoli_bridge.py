@@ -2030,6 +2030,43 @@ def _cache_document_ai_texts_for_fascicolo(
         cache[all_key] = merged
 
 
+def _avvia_lettura_archivio_in_sfondo(fascicolo: Any) -> None:
+    """Chiede ai motori di leggere quello che manca, fuori dalla richiesta."""
+    try:
+        from flask import current_app
+
+        from web.services.archivio_letture_runtime import avvia_lettura_in_background
+        from web.services.registro_letture_runtime import tenant_corrente
+
+        from flask import g
+
+        avvia_lettura_in_background(
+            current_app._get_current_object(),
+            _text(getattr(fascicolo, "id", "")),
+            paths=dict(getattr(g, "data_paths", {}) or {}),
+            tenant_slug=_text(getattr(g, "tenant_context_slug", "")) or tenant_corrente(),
+        )
+    except Exception:
+        return
+
+
+def _indicizzazione_consentita_qui() -> bool:
+    """Se è lecito indicizzare adesso: mai dentro la richiesta dell'avvocato.
+
+    L'indicizzazione e l'OCR sono letture: appartengono ai motori, allo
+    scheduler e ai thread di sfondo. Farle dentro una richiesta significa far
+    aspettare l'avvocato per un lavoro che il registro delle letture fa una
+    volta sola. Fuori da una richiesta HTTP (job, worker, thread di sfondo) la
+    stessa funzione continua a lavorare come prima.
+    """
+    from flask import has_request_context
+
+    try:
+        return not has_request_context()
+    except Exception:
+        return True
+
+
 def _ensure_economic_document_ai_texts_for_fascicolo(
     fascicolo: Any,
     documents: Iterable[Any],
@@ -2062,6 +2099,11 @@ def _ensure_economic_document_ai_texts_for_fascicolo(
             if _text(getattr(source, "source_id", "")) in wanted_ids
         ]
         if not sources:
+            return {}
+        if not _indicizzazione_consentita_qui():
+            # Nella richiesta si usa solo ciò che è già indicizzato: gli importi
+            # mancanti li leggeranno i motori in sfondo, una volta sola.
+            _avvia_lettura_archivio_in_sfondo(fascicolo)
             return {}
         service = build_document_ai_service()
         service.process_lex_indexing_sources(
@@ -2151,6 +2193,11 @@ def _ensure_deadline_document_ai_texts_for_fascicolo(
             )
         ]
         if not sources:
+            return existing
+        if not _indicizzazione_consentita_qui():
+            # Nella richiesta si usa solo ciò che è già indicizzato: il resto lo
+            # leggono i motori in sfondo e sarà disponibile al giro successivo.
+            _avvia_lettura_archivio_in_sfondo(fascicolo)
             return existing
         service = build_document_ai_service()
         service.process_lex_indexing_sources(
@@ -3228,6 +3275,61 @@ def _payment_source_needs_automatic_value(payments: Any, kind: str) -> bool:
     return False
 
 
+# Le voci economiche del presidio e i campi dell'archivio che le alimentano.
+_IMPORTO_ARCHIVIO_PER_VOCE: dict[str, tuple[str, str]] = {
+    "contributo_unificato": ("contributo_unificato", "Contributo unificato"),
+    "liquidazione_giudice": ("liquidazione_giudice", "Liquidazione del giudice"),
+    "spese_esborsi": ("spese_esborsi", "Spese/esborsi"),
+}
+
+
+def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str, Any]]:
+    """Le voci economiche che l'archivio ha già letto e collaudato, pronte per il presidio.
+
+    Il presidio economico apriva i PDF dal disco a ogni richiesta per ricavare
+    contributo unificato, compenso liquidato e spese. Gli stessi importi sono
+    letti una volta sola dai due motori e collaudati (`categoria` «importo»):
+    qui si consultano, con la loro prova e la norma che li governa.
+    """
+    try:
+        from pct.archivio_letture.presidi import importi_letti
+    except Exception:
+        return {}
+    letti = importi_letti(_fatti_archivio(fascicolo, categoria="importo"))
+    if not letti:
+        return {}
+    esito: dict[str, dict[str, Any]] = {}
+    for kind, (campo, etichetta) in _IMPORTO_ARCHIVIO_PER_VOCE.items():
+        voce = letti.get(campo)
+        if not voce or not _payment_source_needs_automatic_value(payments, kind):
+            continue
+        importo = _payment_amount_value(voce.get("importo"))
+        if importo is None:
+            continue
+        da_confermare = _text(voce.get("verifica")) == "plausibile"
+        nota = f"Letto dai motori di lettura ({voce.get('verifica_etichetta') or voce.get('verifica')})"
+        if voce.get("norma"):
+            nota += f", {voce['norma']}"
+        esito[kind] = {
+            "kind": kind,
+            "label": etichetta,
+            "natura": _text(voce.get("natura")) or "archivio_letture",
+            "status": "da_confermare" if da_confermare else "pagato" if kind == "contributo_unificato" else "previsto",
+            "previsto": True,
+            "pagato": kind == "contributo_unificato" and not da_confermare,
+            "importo": importo,
+            "valuta": "EUR",
+            "data_pagamento": "",
+            "documento_fonte": _readable_document_source(voce.get("documento_id")),
+            "origine": "Archivio delle letture",
+            "updated_by": "IUSENTRA automatico",
+            "note": nota + ".",
+            "richiedeConferma": da_confermare,
+            "fattoId": _text(voce.get("fatto_id")),
+        }
+    return esito
+
+
 def _automatic_payment_sources_for_fascicolo(
     fascicolo: Any,
     payments: Any,
@@ -3249,6 +3351,15 @@ def _automatic_payment_sources_for_fascicolo(
     if not need_contributo and not need_sentenza:
         return {}
     auto: dict[str, dict[str, Any]] = {}
+    # Prima l'archivio: gli importi che i due motori hanno già letto e collaudato
+    # non si rileggono aprendo di nuovo i PDF dentro la richiesta dell'avvocato.
+    auto.update(_importi_dall_archivio(fascicolo, payments))
+    if auto.get("contributo_unificato"):
+        need_contributo = False
+    if need_sentenza and all(auto.get(kind) or not _payment_source_needs_automatic_value(payments, kind) for kind in ("spese_esborsi", "liquidazione_giudice")):
+        need_sentenza = False
+    if not need_contributo and not need_sentenza:
+        return auto
     try:
         from pct.fascicolo_sentenza_economica import (
             analyze_sentenza_tribunale_text,
@@ -5262,11 +5373,47 @@ def _rg_source_label(fascicolo: Any) -> str:
     return "Dato processuale da completare"
 
 
+def _ruolo_dall_archivio(fascicolo: Any) -> dict[str, str]:
+    """Il numero di ruolo che i motori hanno letto in un provvedimento, se c'è.
+
+    I motori producono fatti `ruolo` leggendo i documenti, ma il fascicolo
+    continuava a dire «RG da acquisire» perché nessuno li consultava. Qui si
+    propone quello letto, dichiarando che viene da una lettura e non dal
+    portale: la registrazione nel fascicolo resta una scelta dell'avvocato.
+    """
+    try:
+        from pct.archivio_letture.presidi import ruoli_letti
+    except Exception:
+        return {}
+    for voce in ruoli_letti(_fatti_archivio(fascicolo, categoria="ruolo")):
+        numero, _, anno = _text(voce.get("valore")).partition("/")
+        if numero.strip() and anno.strip():
+            oggetti = [str(o) for o in (voce.get("oggetti") or []) if str(o or "").strip()]
+            return {
+                "numero": numero.strip(), "anno": anno.strip(),
+                "verifica": _text(voce.get("verifica")), "documento_id": oggetti[0] if oggetti else "",
+            }
+    return {}
+
+
 def _rg_meta(fascicolo: Any) -> dict[str, Any]:
     missing = _rg_missing(fascicolo)
     raw = _rg(fascicolo)
     internal = _text(getattr(fascicolo, "numero", ""))
     if missing:
+        letto = _ruolo_dall_archivio(fascicolo)
+        if letto:
+            proposto = f"{letto['numero']}/{letto['anno']}"
+            return {
+                "ref": f"RG {proposto} (letto)",
+                "rg": proposto,
+                "rgMissing": True,
+                "rgLetto": proposto,
+                "rgLettoVerifica": letto.get("verifica", ""),
+                "rgLettoDocumentoId": letto.get("documento_id", ""),
+                "rgStatusLabel": f"RG {proposto} letto da un documento: da confermare",
+                "rgSourceLabel": "archivio delle letture",
+            }
         return {
             "ref": "RG da acquisire",
             "rg": "Da acquisire",
@@ -5319,16 +5466,27 @@ def _rg_order_from_item(item: dict[str, Any]) -> tuple[int, int, int, str, str]:
 
 
 def _automatic_next_deadline_from_documents(fascicolo: Any) -> Any | None:
+    """La prossima scadenza dedotta dai documenti: prima l'archivio, poi il resto.
+
+    Questa funzione gira nella lista dei fascicoli, cioè nel percorso caldo
+    dell'avvocato. Chiamava `analyze_fascicolo_document_texts` **senza** i fatti
+    dell'archivio: ogni documento ricadeva nel parsing immediato e le date già
+    lette e collaudate dai due motori venivano ignorate e ricalcolate.
+    """
+    fatti_archivio = _fatti_archivio(fascicolo, categoria="data")
     deadline_documents = _document_candidates_for_hints(
         fascicolo,
         _document_may_contain_procedural_deadline,
         metadata_matcher=_document_metadata_may_contain_procedural_deadline,
     )
     texts = _document_ai_texts_for_fascicolo(fascicolo, documents=deadline_documents)
-    if not texts:
+    if not texts and not fatti_archivio:
         return None
     metadata_by_document = {document_id: _document_metadata_for_id(fascicolo, document_id) for document_id in texts}
-    document_presidio = analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document)
+    document_presidio = analyze_fascicolo_document_texts(
+        fascicolo, texts, metadata_by_document,
+        correzioni=_correzioni_letture(fascicolo), fatti_archivio=fatti_archivio,
+    )
     try:
         from pct.pec_pipeline import _procedural_date_kind, extract_procedural_dates
     except Exception:
@@ -5477,7 +5635,9 @@ def _prove_notifica_archivio(fascicolo: Any) -> dict[str, str]:
         from pct.archivio_letture.presidi import prove_notifica_per_oggetto
 
         prove = prove_notifica_per_oggetto(_fatti_archivio(fascicolo, categoria="prova_notifica"))
-        return {oggetto_id: str(voce.get("kind") or "") for oggetto_id, voce in prove.items() if voce.get("tipo") == "documento"}
+        # Anche un allegato PEC è una prova letta: scartarlo perdeva le relate e le
+        # ricevute che arrivano dentro un messaggio invece che come documento.
+        return {oggetto_id: str(voce.get("kind") or "") for oggetto_id, voce in prove.items() if voce.get("tipo") in {"documento", "allegato_pec"}}
     except Exception:
         return {}
 
@@ -7207,7 +7367,7 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         if notification_kinds.get(id(doc)):
             continue
         kind = prove_archivio.get(_document_id(doc))
-        if kind in {"relata", "rac", "rdac", "atto_notificato", "attestazione", "deposito_prova"}:
+        if kind in {"relata", "rac", "rdac", "atto_notificato", "attestazione", "deposito_prova", "comunicazione_cancelleria"}:
             notification_kinds[id(doc)] = kind
     relata_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "relata"]
     notified_act_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "atto_notificato"]

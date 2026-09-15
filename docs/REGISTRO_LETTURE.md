@@ -168,3 +168,56 @@ Test: `tests/test_registro_letture.py`, `tests/test_registro_letture_runtime.py`
 `tests/test_archivio_letture.py`, `tests/test_archivio_letture_runtime.py`,
 `tests/test_riconvalida_letture.py`, `tests/test_collaudo_lettore.py`,
 `tests/js/letture_fascicolo.test.mjs`.
+
+## Il ciclo e la consegna ai presìdi (2.319.0)
+
+**Il ciclo** (`pct/archivio_letture/ciclo.py`). La lettura non è un lavoro
+continuo: è un ciclo con tre stati dichiarati.
+
+| Stato | Quando | Che cosa fa il software |
+|---|---|---|
+| `fermo` | tutto letto, impronta del fascicolo uguale a quella confermata dall'archivio, versione dei motori invariata | nulla: non apre un file, non allinea l'inventario, non tocca il disco |
+| `da_leggere` | un documento nuovo o cambiato, una PEC arrivata, una versione di motore diversa, un fascicolo mai letto | i due motori leggono **solo** gli oggetti nuovi o cambiati e scrivono i fatti nell'archivio |
+| `in_errore` | l'ultimo giro non è riuscito | il fascicolo resta dichiarato con il motivo e il giro successivo riprende |
+
+L'impronta si calcola dal fascicolo vivo (identificativi, hash e dimensioni che
+i documenti già portano), non dal registro: confrontare il registro con se
+stesso direbbe sempre «invariato». Un ricontrollo periodico (`RICONCILIAZIONE_ORE
+= 24`) riesamina anche i fascicoli fermi, perché un evento perso non lasci un
+fascicolo indietro per sempre.
+
+**La consegna** (`pct/archivio_letture/distribuzione.py`, tabella
+`letture_consegne`). L'archivio sa quali presìdi usano quali fatti, li offre una
+volta sola e tiene il conto di che cosa il presidio ne ha fatto: `consegnato`
+con il riferimento della riga creata, `non_pertinente`, `rifiutato` con il
+motivo (torna al giro dopo). Un fatto consegnato non viene più riproposto: è
+questa contabilità che impedisce i doppioni.
+
+Si consegnano solo i fatti `verificata` e `corretta`: un fatto soltanto
+`plausibile` si chiede nel riquadro delle conferme, non si scrive.
+
+| Presidio | Prende | Modo |
+|---|---|---|
+| Scadenziario | date di `termine` e `costituzione` | **scrive** una scadenza da confermare |
+| Agenda | date di `udienza` | **scrive** un appuntamento |
+| Presidio notifiche | `prova_notifica` | consulta |
+| Presidio economico | `importo` | consulta |
+| Dati del fascicolo | `ruolo` | consulta |
+| Lettura del fascicolo (cronologia) | `evento` | consulta |
+| Presidio documentale | date di udienza, termine, costituzione, provvedimento, notifica | consulta |
+
+Un presidio nuovo si censisce aggiungendo una riga: senza riga non riceve
+nulla, ed è voluto — nessun dato raggiunge una superficie che non lo ha
+dichiarato. All'opposto, **nessuna categoria prodotta dai motori può restare
+senza un presidio che la usa**: `categorie_senza_presidio()` lo misura e un test
+lo impedisce, perché un motore che legge un dato che nessuno mostra lavora per
+niente.
+
+**Autocontrollo sui dati veri**. Sul server, non con dati inventati:
+
+    docker compose exec app python scripts/verifica_catena_letture.py
+    docker compose exec app python scripts/verifica_catena_letture.py --fascicolo <ID>
+
+Riporta se il registro si apre, dove sta il ciclo di ogni fascicolo e perché,
+che cosa hanno scritto i motori per categoria e verdetto, quanto ogni presidio
+ha preso e quanto gli resta, quali categorie nessun presidio usa.

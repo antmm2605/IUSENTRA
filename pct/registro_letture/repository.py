@@ -16,6 +16,7 @@ from typing import Any, Iterable
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
+from .consegne import COLONNE_CONSEGNE, ConsegneMixin
 from .fatti_repository import COLONNE_FATTI, FattiMixin
 from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
 from .modello import (
@@ -35,7 +36,7 @@ from .modello import (
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
 
-TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti")
+TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
 COLONNE: dict[str, tuple[str, ...]] = {
     "letture_oggetti": (
@@ -58,6 +59,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
         "risolta_il", "risolta_da",
     ),
     "letture_fatti": COLONNE_FATTI,
+    "letture_consegne": COLONNE_CONSEGNE,
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -132,7 +134,7 @@ def _lettore(valore: str) -> str:
     return lettore
 
 
-class RegistroLetture(FattiMixin):
+class RegistroLetture(FattiMixin, ConsegneMixin):
     """Il registro delle letture di uno studio (con l'archivio dei fatti letti dai motori)."""
 
     def __init__(self, db_path: str | Path = "", *, postgres_dsn: str = "") -> None:

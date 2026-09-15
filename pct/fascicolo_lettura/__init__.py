@@ -88,7 +88,10 @@ def _lacuna_conferme(richieste: list[dict[str, Any]]) -> str:
     nomi = []
     for voce in richieste[:3]:
         etichetta = pulisci(voce.get("etichetta")) or pulisci(voce.get("campo")) or "data"
-        nomi.append(f"{etichetta.lower()} del {data_it(pulisci(voce.get('valore'))[:10])}")
+        giorno = data_it(pulisci(voce.get("valore"))[:10])
+        # L'etichetta del fatto porta spesso già la data («Termine del 22/11/2026»):
+        # ripeterla produce «termine del 22/11/2026 del 22/11/2026».
+        nomi.append(etichetta.lower() if not giorno or giorno in etichetta else f"{etichetta.lower()} del {giorno}")
     quanti = len(richieste)
     elenco = ", ".join(nomi) + (f" e altre {quanti - 3}" if quanti > 3 else "")
     return (
@@ -116,7 +119,8 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     notifiche_lette = notifiche(dati.notifiche, dati.attivita)
     pec_letto = pec(dati.pec)
     economico_letto = economico(dati.economico, oggi)
-    eventi = cronologia(dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"], dati.appuntamenti, oggi)
+    archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}
+    eventi = cronologia(dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"], dati.appuntamenti, oggi, archivio_letto)
     fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi)
     passi, stato = prossimi_passi(
         intestazione=testata, fase_letta=fase_letta, depositi_letti=depositi_letti, notifiche_lette=notifiche_lette,
@@ -155,7 +159,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         "stato_passi": stato,
         "conoscenza": conoscenza,
         "verifiche": dict(dati.verifiche or {}),
-        "archivio": archivio(dati.archivio),
+        "archivio": archivio_letto,
     }
     lettura["lacune"] = _lacune(lettura)
     lettura["narrativa"] = narrativa(lettura)

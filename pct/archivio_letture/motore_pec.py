@@ -87,11 +87,17 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
         primario = _testo(evento.get("primary_event"))
         if not primario:
             continue
+        # L'evento porta con sé il giorno della PEC che lo comunica: senza data
+        # resterebbe un dato senza posto nel tempo, e la cronologia non potrebbe
+        # mostrarlo. La data certa è quella di ricezione (D.P.R. 68/2005 art. 6).
         fatti.append(Fatto(
             categoria="evento", campo=primario, valore=_testo(evento.get("family")) or primario, valore_letto=primario, etichetta=primario.replace("_", " "),
             contesto=f"evento della PEC «{oggetto}» del {ricevuta_il}"[:300], origine="presidio_pec", confidenza=0.7 if evento.get("human_review_required") else 0.95,
             verifica="plausibile" if evento.get("human_review_required") else "verificata",
-            prove=[{"codice": "classificazione", "esito": "ok", "dettaglio": f"priorità {_testo(evento.get('priority')) or 'n.d.'}"}],
+            prove=[
+                {"codice": "classificazione", "esito": "ok", "dettaglio": f"priorità {_testo(evento.get('priority')) or 'n.d.'}"},
+                {"codice": "data", "esito": "ok" if ricevuta_il else "attenzione", "dettaglio": ricevuta_il or "PEC senza data di ricezione"},
+            ],
         ))
     contesto_pec = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note)
     ricevuta = None

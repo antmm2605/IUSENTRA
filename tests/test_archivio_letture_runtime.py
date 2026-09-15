@@ -11,6 +11,8 @@ import io
 import json
 from pathlib import Path
 
+import pytest
+
 from pct.fascicoli import TipoDocumento, TipoFascicolo
 from tests.test_react_shell import _app
 
@@ -180,3 +182,76 @@ def test_il_caricamento_di_un_documento_fa_leggere_solo_quello(tmp_path: Path):
         from web.services.archivio_letture_runtime import fatti_fascicolo
 
         assert {(f.oggetto_id, f.valore) for f in fatti_fascicolo(_fascicolo(app, fascicolo_id), campo="udienza")} >= {(nuovo.id, "2027-01-20T10:00")}
+
+
+# ── Il ciclo chiuso: legge tutto, si ferma, riparte solo sugli eventi ────────
+
+def test_il_ciclo_si_ferma_a_lettura_confermata_e_non_riapre_nulla(tmp_path: Path):
+    """Secondo giro a fascicolo invariato: nessun inventario, nessun file aperto."""
+    app = _app(tmp_path)
+    fascicolo_id, _decreto_id, _relata_id = _seed(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+
+        primo = runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        assert primo["documenti"]["letti"] >= 1
+        assert primo["restano"] == 0
+        assert primo["ciclo"]["stato"] == "fermo"
+
+        # Il ciclo è fermo: il secondo giro non deve nemmeno toccare l'inventario.
+        chiamate: list[str] = []
+        originale = runtime.aggiorna_inventario
+        runtime.aggiorna_inventario = lambda *a, **k: chiamate.append("inventario") or originale(*a, **k)
+        try:
+            secondo = runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        finally:
+            runtime.aggiorna_inventario = originale
+        assert secondo["fermo"] is True
+        assert secondo["ciclo"]["stato"] == "fermo"
+        assert secondo["documenti"]["letti"] == 0
+        assert chiamate == [], "a ciclo fermo non si allinea nemmeno l'inventario"
+
+
+def test_un_documento_nuovo_riattiva_il_ciclo_e_lo_richiude(tmp_path: Path):
+    app = _app(tmp_path)
+    fascicolo_id, _decreto_id, _relata_id = _seed(app)
+    with app.app_context():
+        from web.services.archivio_letture_runtime import leggi_fascicolo
+
+        leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        assert leggi_fascicolo(_fascicolo(app, fascicolo_id))["fermo"] is True
+
+        app.extensions["core_runtime"]["get_fascicoli"]().aggiungi_documento(
+            fascicolo_id, nome_file="ordinanza.pdf", tipo=TipoDocumento.ALTRO,
+            contenuto=_pdf(["TRIBUNALE DI TORINO - R.G. 777/2026", "Il Giudice rinvia l'udienza al 20/01/2027 ore 10.00."]),
+        )
+        risveglio = leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        assert risveglio["documenti"]["letti"] == 1, "il documento nuovo deve risvegliare il ciclo"
+        assert risveglio["ciclo"]["stato"] == "fermo", "letto il documento nuovo, il ciclo si richiude"
+        assert leggi_fascicolo(_fascicolo(app, fascicolo_id))["fermo"] is True
+
+
+def test_un_giro_fallito_lascia_il_fascicolo_nel_ciclo_dichiarato_in_errore(tmp_path: Path):
+    """Il ciclo non si spezza: un guasto si registra e si riprova, non sparisce."""
+    app = _app(tmp_path)
+    fascicolo_id, _decreto_id, _relata_id = _seed(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        originale = runtime._leggi_documenti
+        runtime._leggi_documenti = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("PDF illeggibile"))
+        try:
+            with pytest.raises(RuntimeError):
+                runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        finally:
+            runtime._leggi_documenti = originale
+
+        stato = runtime.stato_ciclo_fascicolo(fascicolo_id, registro_corrente(), tenant_corrente())
+        assert stato.stato == "in_errore"
+        assert "PDF illeggibile" in stato.motivo
+        assert stato.da_leggere is True, "un fascicolo in errore resta nel ciclo e si riprova"
+
+        # Il giro successivo riprende e richiude il ciclo.
+        ripreso = runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        assert ripreso["ciclo"]["stato"] == "fermo"

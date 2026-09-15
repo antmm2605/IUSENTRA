@@ -43,6 +43,9 @@ class Contesto:
     # una seconda lettura indipendente dello stesso oggetto (testo nativo, OCR, indice)
     testo_secondario: str = ""
     etichetta_secondario: str = ""
+    # importo (due decimali, come stringa) -> etichette delle fonti che lo conoscono
+    # (pagamenti registrati nel fascicolo, parcelle, preventivi)
+    importi_noti: dict[str, list[str]] = field(default_factory=dict)
 
     def date_del_secondario(self) -> set[str]:
         return {voce.data.isoformat() for voce in trova_date(self.testo_secondario)} if self.testo_secondario else set()
@@ -132,6 +135,40 @@ def _collauda_prova_notifica(fatto: Fatto, contesto: Contesto) -> Fatto:
     return fatto
 
 
+def _collauda_importo(fatto: Fatto, contesto: Contesto) -> Fatto:
+    """Un importo è un fatto se è un numero sensato e la regola che l'ha letto è dichiarata.
+
+    Le regole economiche stanno in `pct/fascicolo_sentenza_economica.py` e citano
+    già la norma che governa l'importo (contributo unificato, compenso liquidato,
+    spese): il collaudo qui verifica la forma del numero, l'origine della lettura
+    e la concordanza con quanto il fascicolo già registra. Un importo che
+    coincide con un pagamento registrato è verificato; un importo letto da un
+    testo ottico senza riscontro resta da confermare.
+    """
+    prove = list(fatto.prove)
+    try:
+        numero = float(fatto.valore)
+    except (TypeError, ValueError):
+        numero = 0.0
+    if numero <= 0:
+        fatto.verifica = "respinta"
+        fatto.prove = prove + [_prova("forma", "errore", "importo non leggibile come numero positivo")]
+        return fatto
+    prove.append(_prova("forma", "ok", f"importo {fatto.valore} ben formato"))
+    fonti = contesto.importi_noti.get(fatto.valore) or []
+    if fonti:
+        fatto.verifica = "verificata"
+        fatto.prove = prove + [_prova("concordanza", "ok", f"lo stesso importo risulta da {', '.join(fonti)}")]
+        return fatto
+    if fatto.origine in ORIGINI_NON_OTTICHE:
+        fatto.verifica = "verificata"
+        fatto.prove = prove + [_prova("origine", "ok", f"letto da {fatto.origine}, non da riconoscimento ottico")]
+        return fatto
+    fatto.verifica = "plausibile"
+    fatto.prove = prove + [_prova("origine", "attenzione", f"letto da {fatto.origine or 'origine ignota'}: nessun riscontro nel fascicolo")]
+    return fatto
+
+
 def collauda(fatto: Fatto, contesto: Contesto, *, secondarie: set[str] | None = None) -> Fatto:
     """Il fatto con le sue prove e il verdetto del software."""
     if fatto.verifica in {"corretta", "ignorata"}:
@@ -142,6 +179,8 @@ def collauda(fatto: Fatto, contesto: Contesto, *, secondarie: set[str] | None = 
         return _collauda_ruolo(fatto, contesto)
     if fatto.categoria == "prova_notifica":
         return _collauda_prova_notifica(fatto, contesto)
+    if fatto.categoria == "importo":
+        return _collauda_importo(fatto, contesto)
     if fatto.verifica not in {"verificata", "plausibile", "respinta"}:
         fatto.verifica = "plausibile"
     return fatto

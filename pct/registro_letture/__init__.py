@@ -26,11 +26,14 @@ from .modello import (
     impronta_inventario,
     impronta_oggetto,
 )
+from .consegne import Consegna, STATI_CONSEGNA
 from .repository import RegistroLetture, RegistroLettureError
 
 VERSIONE_REGISTRO = "2026.09.15.registro-letture.v1"
 
 __all__ = [
+    "Consegna",
+    "STATI_CONSEGNA",
     "VERSIONE_REGISTRO",
     "CATEGORIE",
     "LETTORI",

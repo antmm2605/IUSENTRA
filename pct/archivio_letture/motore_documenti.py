@@ -16,10 +16,11 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .collaudo import Contesto, collauda_tutti
 from .estrazione_date import estrai_date
+from .estrazione_importi import estrai_importi
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.16.motore-documenti.v1+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.16.motore-documenti.v2+{VERSIONE_FORMULARIO}"
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -35,8 +36,12 @@ def _senza_doppioni(fatti: Iterable[Fatto]) -> list[Fatto]:
     return esito
 
 
-def leggi_testo(testo: str, *, origine: str, contesto: Contesto, nome: str = "", con_ruoli: bool = True, con_notifiche: bool = True) -> list[Fatto]:
-    """I fatti del testo, collaudati: date ancorate, prove di notifica, numeri di ruolo."""
+def leggi_testo(
+    testo: str, *, origine: str, contesto: Contesto, nome: str = "",
+    con_ruoli: bool = True, con_notifiche: bool = True, con_importi: bool = True,
+    metadata: dict[str, object] | None = None,
+) -> list[Fatto]:
+    """I fatti del testo, collaudati: date ancorate, prove di notifica, ruoli, importi."""
     testo = str(testo or "")
     if not testo.strip():
         return []
@@ -45,6 +50,10 @@ def leggi_testo(testo: str, *, origine: str, contesto: Contesto, nome: str = "",
         fatti.extend(estrai_prove_notifica(testo, origine=origine, nome=nome))
     if con_ruoli:
         fatti.extend(estrai_ruoli(testo, origine=origine))
+    if con_importi:
+        # Gli importi economici (contributo unificato, compenso liquidato, spese)
+        # si leggono qui una volta sola: il presidio economico li consulta.
+        fatti.extend(estrai_importi(testo, metadata={**(metadata or {}), "filename": nome}, origine=origine))
     collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
     collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
     return collaudati[:FATTI_MASSIMI]

@@ -271,7 +271,7 @@ def raccogli_dati_lettura(fascicolo_id: str) -> DatiLettura | None:
 
 def _archivio(fascicolo: Any) -> dict[str, Any]:
     """L'archivio delle letture come lo espone la lettura: mai una lettura, solo ciò che i motori hanno già collaudato."""
-    from pct.archivio_letture import riassunto_archivio, ruoli_letti, udienze_e_termini
+    from pct.archivio_letture import eventi_letti, riassunto_archivio, ruoli_letti, udienze_e_termini
     from web.services.archivio_letture_runtime import fatti_fascicolo, stato_archivio_payload
 
     fatti = fatti_fascicolo(fascicolo, verifiche=None)
@@ -279,6 +279,7 @@ def _archivio(fascicolo: Any) -> dict[str, Any]:
     return {
         "riassunto": riassunto_archivio(fatti),
         "azioni": udienze_e_termini(fatti),
+        "eventi": eventi_letti(fatti),
         "ruoli": ruoli_letti(fatti),
         "stato": dict(stato.get("lettura_automatica") or {}),
         "collaudo": dict(stato.get("collaudo_lettore") or {}),

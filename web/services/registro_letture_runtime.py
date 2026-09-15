@@ -332,16 +332,37 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     registro = registro or registro_corrente()
     tenant = tenant_corrente()
     fascicolo_id = str(getattr(fascicolo, "id", "") or "").strip()
+    # Ogni passo accessorio è isolato: un presidio che inciampa su un fascicolo
+    # reale non deve far sparire l'intero registro dal pannello, come è successo
+    # in produzione il 15/09/2026. Ciò che non riesce si dichiara, non si nasconde.
+    degradato: list[dict[str, str]] = []
+
+    def passo(nome: str, azione: Any, valore_di_riserva: Any = None) -> Any:
+        try:
+            return azione()
+        except Exception as exc:
+            logger.exception("Registro letture del fascicolo %s: passo «%s» non riuscito", fascicolo_id, nome)
+            degradato.append({"passo": nome, "motivo": f"{type(exc).__name__}: {exc}"[:300]})
+            return valore_di_riserva
+
     # L'inventario si allinea qui (documenti e PEC collegate): è la vista dell'avvocato.
-    righe_pec = _righe_pec_collegate(fascicolo_id)
-    oggetti = oggetti_da_fascicolo(fascicolo, cifratura_attiva=cifratura_attiva()) + oggetti_da_pec(righe_pec, fascicolo)
-    registro.registra_inventario(tenant, fascicolo_id, oggetti)
-    _sincronizza_presidio_pec(fascicolo, registro, tenant, righe_pec)
-    _verifica_date_pec(fascicolo, registro, tenant)
+    righe_pec = passo("PEC collegate", lambda: _righe_pec_collegate(fascicolo_id), []) or []
+    oggetti = passo(
+        "inventario del fascicolo",
+        lambda: oggetti_da_fascicolo(fascicolo, cifratura_attiva=cifratura_attiva()) + oggetti_da_pec(righe_pec, fascicolo),
+        [],
+    ) or []
+    if oggetti:
+        passo("registrazione dell'inventario", lambda: registro.registra_inventario(tenant, fascicolo_id, oggetti))
+    passo("allineamento del presidio PEC", lambda: _sincronizza_presidio_pec(fascicolo, registro, tenant, righe_pec))
+    passo("verifica delle date lette dalle PEC", lambda: _verifica_date_pec(fascicolo, registro, tenant))
     stato = registro.stato_fascicolo(tenant, fascicolo_id)
     utente = utente_corrente_id()
-    novita = registro.novita_e_segna_visto(tenant, fascicolo_id, utente, segna=segna_visto and bool(utente)) if utente else {"prima_vista": True, "visto_il": "", "nuovi": [], "cambiati": [], "rimossi": []}
-    anomalie = [a.to_dict() for a in registro.anomalie(tenant, fascicolo_id, stato="aperta")]
+    novita = (
+        passo("novità dall'ultima apertura", lambda: registro.novita_e_segna_visto(tenant, fascicolo_id, utente, segna=segna_visto and bool(utente)))
+        if utente else None
+    ) or {"prima_vista": True, "visto_il": "", "nuovi": [], "cambiati": [], "rimossi": []}
+    anomalie = passo("anomalie aperte", lambda: [a.to_dict() for a in registro.anomalie(tenant, fascicolo_id, stato="aperta")], []) or []
     nomi = {(str(v.get("tipo")), str(v.get("oggetto_id"))): _oggetto_etichetta(v) for v in stato.per_oggetto}
     for anomalia in anomalie:
         anomalia["oggetto"] = nomi.get((anomalia["tipo"], anomalia["oggetto_id"]), anomalia["oggetto_id"])
@@ -352,17 +373,17 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         dati = voce.to_dict()
         dati["ultima_lettura_it"] = format_datetime_it(voce.ultima_lettura) if voce.ultima_lettura else ""
         lettori.append(dati)
-    try:
+    def _archivio() -> dict[str, Any]:
         from web.services.archivio_letture_runtime import stato_archivio_payload
 
-        archivio = stato_archivio_payload(fascicolo, registro=registro)
-    except Exception as exc:
-        logger.debug("Stato dell'archivio non disponibile per %s: %s", fascicolo_id, exc)
-        archivio = {}
+        return stato_archivio_payload(fascicolo, registro=registro)
+
+    archivio = passo("archivio delle letture", _archivio, {}) or {}
     return {
         "impronta": stato.impronta,
         "oggetti": stato.oggetti,
         "tutto_letto": stato.tutto_letto,
+        "degradato": degradato,
         "lettori": lettori,
         "archivio": archivio,
         "per_oggetto": [{**v, "etichetta": _oggetto_etichetta(v)} for v in stato.per_oggetto],

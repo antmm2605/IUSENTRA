@@ -281,3 +281,61 @@ $payload | ConvertTo-Json -Compress
         "correct_task_action": True,
         "wrong_task_action": False,
     }
+
+
+def test_staging_installa_anche_le_dipendenze_firma_pdf(tmp_path):
+    result = _run_harness(
+        tmp_path,
+        r'''
+param([string]$InstallerPath, [string]$SandboxRoot)
+$ErrorActionPreference = "Stop"
+$env:APPDATA = $SandboxRoot
+. $InstallerPath -LibraryOnly
+New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+$script:pipPackages = @()
+function Find-PythonCommand { return "python" }
+function Test-Path { return $true }
+function Test-PythonWorks { return $true }
+function Copy-Item {}
+function Invoke-Pip {
+    param([string]$PythonPath, [array]$Arguments, [string]$FailureMessage)
+    $script:pipPackages += $Arguments
+    return $true
+}
+Initialize-LocalSignerStageRuntime -StageRoot (Join-Path $SandboxRoot "stage") | Out-Null
+@{ packages = $script:pipPackages } | ConvertTo-Json -Compress
+''',
+    )
+    assert "pyhanko>=0.20.0" in result["packages"]
+    assert "pyhanko-certvalidator>=0.26.0" in result["packages"]
+
+
+@pytest.mark.parametrize("missing_module", ["pyhanko", "pyhanko_certvalidator"])
+def test_staging_rifiuta_runtime_senza_import_operativi_firma(tmp_path, missing_module):
+    result = _run_harness(
+        tmp_path,
+        r'''
+param([string]$InstallerPath, [string]$SandboxRoot)
+$ErrorActionPreference = "Stop"
+$env:APPDATA = $SandboxRoot
+. $InstallerPath -LibraryOnly
+$script:dependencyCommand = ""
+function Test-Path { return $true }
+function Get-ChildItem { return @() }
+function fake-python {
+    $global:LASTEXITCODE = 0
+    if ($args[0] -eq "-c") {
+        $script:dependencyCommand = [string]$args[1]
+        if ($script:dependencyCommand -match "__MISSING__") { $global:LASTEXITCODE = 1 }
+    }
+}
+$blocked = $false
+try {
+    Test-LocalSignerPreparedStage -StageRoot (Join-Path $SandboxRoot "stage") -StagePythonExe "fake-python" | Out-Null
+} catch { $blocked = $true }
+@{ blocked = $blocked; command = $script:dependencyCommand } | ConvertTo-Json -Compress
+'''.replace("__MISSING__", missing_module),
+    )
+    assert result["blocked"] is True
+    assert "IncrementalPdfFileWriter" in result["command"]
+    assert "SimpleCertificateStore" in result["command"]

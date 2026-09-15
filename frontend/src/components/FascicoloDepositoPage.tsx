@@ -1631,7 +1631,11 @@ async function submitJsonPayload(endpoint: string, payload: Record<string, unkno
   })
   const data = await response.json().catch(() => ({})) as Record<string, unknown>
   if (!response.ok || data.ok === false) {
-    throw new Error(String(data.message || data.errore || data.error || 'Non ho potuto salvare la classificazione deposito.'))
+    const unavailable = [502, 503, 504].includes(response.status)
+    const fallback = unavailable
+      ? 'Servizio temporaneamente non disponibile. La selezione resta in questa pagina: attendi qualche secondo e riprova. Il salvataggio non è confermato.'
+      : 'Salvataggio non confermato. La selezione resta in questa pagina: riprova.'
+    throw new Error(String(data.message || data.errore || data.error || fallback))
   }
   return data
 }
@@ -2046,6 +2050,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const [pecBodyEdited, setPecBodyEdited] = useState(false)
   const [pecBodyEditorOpen, setPecBodyEditorOpen] = useState(false)
   const [selectedDepositTypeKey, setSelectedDepositTypeKey] = useState('')
+  const [additionalSignatureIds, setAdditionalSignatureIds] = useState<string[]>([])
+  useEffect(() => { setAdditionalSignatureIds([]) }, [id])
   const [depositSpecificData, setDepositSpecificData] = useState<DepositSpecificData>({})
   const [depositProofInvalidated, setDepositProofInvalidated] = useState(false)
   const depositSpecificDataHydrationRef = useRef('')
@@ -2373,6 +2379,7 @@ function DepositPreparePage({ id }:{id:string}) {
       id: doc.id,
       role: effectiveDepositClassificationById[doc.id]?.role || '',
       signature: Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature),
+      additionalSignature: additionalSignatureIds.includes(doc.id),
     })),
     data: depositSpecificData,
     pecBody: pecBodyDraft,
@@ -2397,7 +2404,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
     const mandatory = defaultSignatureRequiredForDepositRole(doc, role)
     const requested = mandatory || Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
-    return requested && requiresPackageSignature(doc)
+    return additionalSignatureIds.includes(doc.id) || (requested && requiresPackageSignature(doc))
   })
   const unsignedCandidateDocuments = unsignedPackageDocuments.length
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
@@ -2810,13 +2817,16 @@ function DepositPreparePage({ id }:{id:string}) {
     datiatto_extra: depositSpecificData,
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
-      const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
+      const role = doc.id === mainActDocument?.id
+        ? 'atto_principale'
+        : effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
       const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, role)
       const requestedSignature = selected && Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
       return {
         document_id: doc.id,
         selected,
         role: normaliseDepositRoleForUi(role),
+        role_confirmed: selected && doc.id === mainActDocument?.id,
         studio_document_type: effectiveDepositClassificationById[doc.id]?.studioDocumentType || '',
         already_signed: Boolean(doc.signed),
         requires_signature: Boolean(mandatorySignature || requestedSignature),
@@ -3158,7 +3168,7 @@ function DepositPreparePage({ id }:{id:string}) {
       href: '#inventario-fascicolo',
       index: '5',
       title: 'Inventario',
-      state: documentsToClassify.length ? 'Da classificare' : 'Letto',
+      state: documentsToClassify.length ? 'Da classificare' : 'Catalogato',
       detail: `${data.documents.length} documenti nel fascicolo`,
       tone: documentsToClassify.length ? 'warning' : 'success',
     },
@@ -3569,7 +3579,7 @@ function DepositPreparePage({ id }:{id:string}) {
                         <strong>{doc.name}</strong>
                         <span>{[roleDisplayLabel, depositStatusLabel, doc.size].filter(Boolean).join(' - ')}</span>
                         {requiresCadesBesRefresh(doc)
-                          ? <em>Firma presente: il software rigenera il CAdES-BES dal documento originale.</em>
+                          ? <em>Firma presente con profilo da aggiornare: scegli esplicitamente se aggiungere la tua firma.</em>
                           : doc.signed ? <em>Firma digitale verificata</em> : null}
                         {selected && signatureRequested ? <small>IUSENTRA lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
@@ -3651,13 +3661,33 @@ function DepositPreparePage({ id }:{id:string}) {
               <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima del pacchetto' : 'I documenti selezionati non richiedono altre firme'}</strong>
               <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e prepara il pacchetto.' : 'Durante la prova il dispositivo firma i dati del deposito, poi il software genera indice e pacchetto.'}</span>
             </div>
+            {packageDocuments.filter((doc) => doc.signed).map((doc) => (
+              <div className="iu-fas-signature-alert iu-fas-signature-alert--ok" key={doc.id}>
+                <CheckCircle2 size={16}/>
+                <div>
+                  <strong>{doc.name}: firma digitale presente</strong>
+                  <p>Il documento viene mantenuto con la firma esistente.</p>
+                  <label className="iu-fas-deposit-selection__signed">
+                    <input type="checkbox" checked={additionalSignatureIds.includes(doc.id)}
+                      onChange={(event) => {
+                        const checked = event.currentTarget.checked
+                        setAdditionalSignatureIds((current) => checked
+                          ? [...current.filter((value) => value !== doc.id), doc.id]
+                          : current.filter((value) => value !== doc.id))
+                      }}/>
+                    <span>Aggiungi anche la mia firma</span>
+                  </label>
+                </div>
+              </div>
+            ))}
             {signatureBatchRequired ? (
               <DepositBatchSignaturePanel
                 fascicoloId={f.id || id}
                 documents={unsignedPackageDocuments}
+                additionalSignatureIds={additionalSignatureIds}
                 signature={data.signature}
                 registerAction={activeDepositPanel === 'firma-busta' ? registerBatchSignatureAction : undefined}
-                onDone={refreshDetail}
+                onDone={(message) => { setAdditionalSignatureIds([]); refreshDetail(message) }}
                 onError={failDetail}
               />
             ) : null}
@@ -4241,6 +4271,7 @@ function DepositPreparePage({ id }:{id:string}) {
 function DepositBatchSignaturePanel({
   fascicoloId,
   documents,
+  additionalSignatureIds = [],
   signature,
   registerAction,
   onDone,
@@ -4248,6 +4279,7 @@ function DepositBatchSignaturePanel({
 }: {
   fascicoloId: string
   documents: FascicoloDocument[]
+  additionalSignatureIds?: string[]
   signature: FascicoloDetailData['signature']
   registerAction?: (action: BatchSignatureAction | null) => void
   onDone: (message?: string) => void
@@ -4274,7 +4306,7 @@ function DepositBatchSignaturePanel({
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
-  const signableDocuments = documents.filter(requiresPackageSignature)
+  const signableDocuments = documents.filter((doc) => additionalSignatureIds.includes(doc.id) || requiresPackageSignature(doc))
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
@@ -4344,7 +4376,8 @@ function DepositBatchSignaturePanel({
     form.append('visible_signature_mode', visibleSignatureMode)
     form.append('visible_signature_place', visibleSignaturePlace)
     form.append('visible_signature_datetime_mode', visibleSignatureDatetimeMode)
-    if (replaceExistingSignature) form.append('confirm_resign', '1')
+    if (additionalSignatureIds.includes(doc.id)) form.append('add_signature', '1')
+    else if (replaceExistingSignature) form.append('confirm_resign', '1')
     const action = doc.actions.sign || `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(doc.id)}/firma`
     const uploadResponse = await fetch(action, {
       method: 'POST',
@@ -4359,12 +4392,17 @@ function DepositBatchSignaturePanel({
   }
 
   const signAll = async (refreshAfter = true) => {
-    const targetDocuments = documents.filter(requiresPackageSignature)
+    const targetDocuments = documents.filter((doc) => additionalSignatureIds.includes(doc.id) || requiresPackageSignature(doc))
     if (!targetDocuments.length) {
       const message = 'Nessun documento da firmare: tutti i documenti selezionati hanno già una firma digitale verificata.'
       setMessage(message)
       onDone(message)
       return undefined
+    }
+    if (additionalSignatureIds.length && compareLocalSignerVersions(localSignerVersion, '1.6.129') < 0) {
+      const message = 'Per aggiungere una firma conservando quelle presenti, aggiorna Local Signer alla versione 1.6.129 e poi premi Riverifica.'
+      setError(message)
+      throw signatureInputRequired(message)
     }
     if (restartSuggested || localSignerOutdated) {
       const next = await checkLocalSigner(true)
@@ -4413,7 +4451,7 @@ function DepositBatchSignaturePanel({
           documento: arrayBufferToBase64(await response.arrayBuffer()),
           nome: doc.name,
           formato: studioTelematicoSignatureFormat(doc),
-          replace_existing_signature: requiresCadesBesRefresh(doc),
+          replace_existing_signature: false,
         }
       }))
       const controller = new AbortController()
@@ -4466,7 +4504,7 @@ function DepositBatchSignaturePanel({
             doc,
             String(result.firmato_b64),
             String(result.formato || studioTelematicoSignatureFormat(doc)) === 'pades' ? 'pades' : 'cades',
-            requiresCadesBesRefresh(doc),
+            false,
           )
           saved += 1
         } catch (exc) {
@@ -4544,6 +4582,8 @@ function DepositBatchSignaturePanel({
         {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - lettore {displayToken.slot_id}</small> : null}
         {selectedWindowsCertificate?.codice_fiscale && !restartSuggested ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
         {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
+        {additionalSignatureIds.length > 0 && compareLocalSignerVersions(localSignerVersion, '1.6.129') < 0
+          ? <a className="iu-fas-mini-action" href="/polisWeb/local-signer/setup/windows">Aggiorna Local Signer per aggiungere la firma</a> : null}
       </div>
       {restartSuggested || localSignerOutdated || !localSignerReachable ? (
         <div className="iu-fas-signer-actions">
@@ -4592,7 +4632,7 @@ function DepositBatchSignaturePanel({
           </div>
           <div className="iu-fas-batch-signature__actions">
             <button className="iu-fas-submit" type="button" onClick={() => { void signAll().catch(() => undefined) }} disabled={busy}>
-              <ShieldCheck size={16}/> {busy ? 'Firma multipla...' : `Firma ${documents.length} documenti`}
+              <ShieldCheck size={16}/> {busy ? 'Firma multipla...' : `Firma ${signableDocuments.length} ${signableDocuments.length === 1 ? 'documento' : 'documenti'}`}
             </button>
             <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>
           </div>
@@ -4723,7 +4763,7 @@ function notificationCommunicationDetail(doc: FascicoloDocument): string {
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
-  return !doc.signed || requiresCadesBesRefresh(doc)
+  return !doc.signed
 }
 
 function requiresCadesBesRefresh(doc: FascicoloDocument | undefined): boolean {
@@ -5787,12 +5827,15 @@ function localSignerInstalledVersion(status?: LocalSignerStatus | null): string 
 }
 
 function localSignerStatusOutdated(status?: LocalSignerStatus | null): boolean {
-  const latest = localSignerLatestVersion()
+  // La versione pubblicata non è un requisito: 1.6.128 supporta la firma ordinaria
+  // e DatiAtto. Solo l'aggiunta di una firma PDF richiede 1.6.129 nel suo comando.
   const installed = localSignerInstalledVersion(status)
-  return Boolean(latest && installed && compareLocalSignerVersions(installed, latest) < 0)
+  return Boolean(installed && compareLocalSignerVersions(installed, '1.6.128') < 0)
 }
 
 function localSignerNeedsRestart(status?: LocalSignerStatus | null): boolean {
+  // Il certificato Windows è già un canale primario utilizzabile per la firma.
+  if (localSignerWindowsCertificate(status)) return false
   return Boolean((status?.token_probe_fresh?.length && !status?.token?.length) || (status?.riavvio_signer_consigliato && !status?.token?.length))
 }
 

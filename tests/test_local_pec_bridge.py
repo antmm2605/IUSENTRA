@@ -285,3 +285,133 @@ def test_invio_pec_locale_accetta_atto_enc_cms(tmp_path):
     assert result["ok"] is True
     sent_message, _, _ = _FakeSmtp.instances[0].sent[0]
     assert any(part.get_filename() == "Atto.enc" for part in sent_message.iter_attachments())
+
+
+class _Utf8Smtp(_FakeSmtp):
+    mechanism = "PLAIN"
+    reject_auth = False
+
+    def __init__(self, *args, **kwargs):
+        self.local_hostname = kwargs.pop("local_hostname", "")
+        super().__init__(*args, **kwargs)
+        self.esmtp_features = {"auth": self.mechanism}
+        self.commands = []
+
+    def ehlo_or_helo_if_needed(self):
+        pass
+
+    def docmd(self, command, args=""):
+        (command + args).encode("ascii")  # Il protocollo resta ASCII, i dati sono base64 UTF-8.
+        self.commands.append((command, args))
+        if self.reject_auth:
+            return 535, b"Authentication failed"
+        if self.mechanism == "PLAIN":
+            return 235, b"authenticated"
+        return (235, b"authenticated") if len(self.commands) == 3 else (334, b"challenge")
+
+    def login(self, username, password):
+        password.encode("ascii")  # Riproduce il limite reale di smtplib.login.
+        return super().login(username, password)
+
+
+def test_smtp_locale_autentica_utf8_plain_senza_alterare_password():
+    _FakeSmtp.instances.clear()
+    secret = "  password-ò-con-spazi  "
+    result = _test_pec_smtp_local(_payload(password=secret), smtp_ssl_factory=_Utf8Smtp)
+    smtp = _FakeSmtp.instances[-1]
+    assert result["ok"] is True
+    command, value = smtp.commands[0]
+    assert command == "AUTH"
+    assert value.startswith("PLAIN ")
+    assert base64.b64decode(value.split(" ", 1)[1]) == ("\0studio@example.test\0" + secret).encode("utf-8")
+    assert secret not in str(result)
+    assert not smtp.sent
+    assert smtp.quit_called
+
+
+def test_invio_locale_utf8_login_con_accenti_in_messaggio_e_password():
+    class LoginSmtp(_Utf8Smtp):
+        mechanism = "LOGIN"
+
+    _FakeSmtp.instances.clear()
+    secret = "ò password "
+    result = send_pec_local(_payload(password=secret, destinatario="ufficio@example.test",
+        oggetto="DEPOSITO - Produzione attività", corpo="È la documentazione richiesta."), smtp_ssl_factory=LoginSmtp)
+    smtp = _FakeSmtp.instances[-1]
+    assert result["ok"] is True
+    assert result["canale"] == "locale"
+    assert smtp.commands[0] == ("AUTH", "LOGIN")
+    assert base64.b64decode(smtp.commands[1][0]).decode("utf-8") == "studio@example.test"
+    assert base64.b64decode(smtp.commands[2][0]).decode("utf-8") == secret
+    assert len(smtp.sent) == 1
+    assert "attività" in str(smtp.sent[0][0]["Subject"])
+    assert "È la documentazione" in smtp.sent[0][0].get_content()
+    assert secret not in str(result)
+
+
+def test_invio_locale_utf8_errore_auth_non_invia_e_non_ritenta():
+    class RejectSmtp(_Utf8Smtp):
+        reject_auth = True
+
+    _FakeSmtp.instances.clear()
+    result = send_pec_local(_payload(password="esempio-ò", destinatario="ufficio@example.test"), smtp_ssl_factory=RejectSmtp)
+    assert result["ok"] is False
+    assert "Autenticazione SMTP PEC locale non riuscita" in result["messaggio"]
+    assert len(_FakeSmtp.instances) == 1
+    assert len(_FakeSmtp.instances[0].commands) == 1
+    assert not _FakeSmtp.instances[0].sent
+    assert _FakeSmtp.instances[0].quit_called
+
+
+def test_smtp_locale_hostname_internazionale_usa_idna(monkeypatch):
+    monkeypatch.setattr(socket, "getfqdn", lambda: "pc-nicolò.example.test")
+    _FakeSmtp.instances.clear()
+    result = _test_pec_smtp_local(_payload(), smtp_ssl_factory=_Utf8Smtp)
+    assert result["ok"] is True
+    assert _FakeSmtp.instances[-1].local_hostname == "pc-nicolò.example.test".encode("idna").decode("ascii")
+
+
+def test_invio_locale_serializza_smtp_reale_con_nome_pc_accentato(monkeypatch):
+    from email import policy
+    from email.parser import BytesParser
+
+    class SerializedSmtp(_Utf8Smtp):
+        send_message = smtplib.SMTP.send_message
+
+        def sendmail(self, sender, recipients, message, mail_options=(), rcpt_options=()):
+            assert isinstance(message, bytes)
+            self.sent.append((message, sender, recipients))
+            return {}
+
+    monkeypatch.setattr(socket, "getfqdn", lambda: "pc-nicol\u00f2.example.test")
+    _FakeSmtp.instances.clear()
+    subject = "DEPOSITO - Attivit\u00e0"
+    body = "\u00c8 gi\u00e0 firmato, pu\u00f2 essere depositato."
+    content = b"Contenuto allegato invariato"
+    filename = "Attivit\u00e0.pdf"
+    result = send_pec_local(_payload(password="prova-\u00f2", destinatario="ufficio@example.test",
+        oggetto=subject, corpo=body, allegati=[{"filename":filename,
+        "content_base64":base64.b64encode(content).decode("ascii"),"mime_type":"application/pdf"}]),
+        smtp_ssl_factory=SerializedSmtp)
+    assert result["ok"] is True, result
+    smtp = _FakeSmtp.instances[-1]
+    assert len(smtp.sent) == 1
+    parsed = BytesParser(policy=policy.default).parsebytes(smtp.sent[0][0])
+    assert str(parsed["Subject"]) == subject
+    assert parsed.get_body().get_content().strip() == body
+    assert str(parsed["Message-ID"]).isascii()
+    assert result["message_id"] == parsed["Message-ID"]
+    assert "@xn--pc-nicol-t3a.example.test>" in str(parsed["Message-ID"])
+    attached = list(parsed.iter_attachments())
+    assert attached[0].get_filename() == filename
+    assert attached[0].get_payload(decode=True) == content
+    assert smtp.quit_called
+
+
+def test_message_id_ascii_preserva_dominio_pc_esistente(monkeypatch):
+    from local_signer_mod.pec_bridge import _build_message, _payload_config
+    monkeypatch.setattr(socket, "getfqdn", lambda: "studio.example.test")
+    payload = _payload(destinatario="ufficio@example.test", oggetto="DEPOSITO - Prova")
+    message, _ = _build_message(payload, _payload_config(payload))
+    assert str(message["Message-ID"]).endswith("@studio.example.test>")
+    assert isinstance(message.as_bytes(), bytes)

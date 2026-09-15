@@ -1,5 +1,21 @@
 # Pytest shard confermati OK
 
+## Ripristino deposito accettato / Local Signer 1.6.131 — 15/09/2026 — 2.319.2
+
+Guardrail tecnici sulla macchina locale Windows/Python 3.14; non sostituiscono la prova con token.
+
+- `python -m pytest tests/test_cassazione_datiatto_schemi_esercizio.py tests/test_cassazione_atti_v21_predisposti.py tests/test_deposito_destination_tables.py tests/test_local_pec_bridge.py -q --tb=short`: positivo.
+- `python -m pytest tests/test_local_signer.py -k "firma_batch or windows_store_pades or batch_signature" -q --tb=short`: positivo, compresa doppia firma PDF controllata e riuso sessione.
+- `python -m pytest tests/test_local_signer_installer_atomic.py tests/test_build_dist.py tests/test_cades_signed_attrs.py tests/test_visible_signature.py -q --tb=short`: positivo.
+- `python -m pytest tests/test_firma_pkcs11.py -o addopts= -q --tb=short`: 11 superati dopo correzione registrazione ESSCertIDv2.
+- `python -m pytest tests/test_deposito_guidato.py -o addopts= -v --tb=short`: 20 superati in 63 secondi.
+- Test separati `test_fascicoli_signature_options.py` (2), `test_digital_signature_workflow.py` (1), `test_impostazioni_firma_local_signer_versione_react.py` (1): superati.
+- `npm --prefix frontend run build`: typecheck e build positivi, Vite 2,04 secondi.
+- Contratti React, `tools/check_local_signer_boundaries.py`, `tools/sync_packaging_files.py --check`, Ruff E9/F63/F7/F82 sui file modificati: positivi.
+- Integrità dei 17 file v21 verificata prima e dopo il riallineamento del repository. Runtime locale e Hetzner indicano `v21`.
+
+Rapporto: `ripristino-deposito-1.6.131-20260915.md`; log fuori repository nella cartella di backup del ripristino. Eventuali suite ancora in corso e prova fisica sono dichiarate nel registro aperto.
+
 ## Editor atti: colori, acquisizione PDF con OCR, zoom a due dita (2.299.0) — 11/09/2026
 
 Ambiente cloud con Python 3.12 (venv con `requirements.txt` e `requirements-dev.txt`), Node 22, Tesseract 5 con dizionario `ita`. Non è la macchina dello studio: scanner, webcam e telefono reali restano da provare.

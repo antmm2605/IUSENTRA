@@ -1015,7 +1015,7 @@ function Initialize-LocalSignerStageRuntime {
     }
 
     Write-Step "Installo le dipendenze Local Signer nell'ambiente di staging..."
-    if (-not (Invoke-Pip -PythonPath $stagePythonExe -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0", "reportlab>=4.0.0", "pillow>=10.0.0") -FailureMessage "impossibile installare le dipendenze base nell'ambiente di staging.")) {
+    if (-not (Invoke-Pip -PythonPath $stagePythonExe -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "pyhanko>=0.20.0", "pyhanko-certvalidator>=0.26.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0", "reportlab>=4.0.0", "pillow>=10.0.0") -FailureMessage "impossibile installare le dipendenze base nell'ambiente di staging.")) {
         throw "Preparazione dipendenze interrotta. La versione Local Signer attiva resta invariata."
     }
 
@@ -1078,7 +1078,7 @@ function Test-LocalSignerPreparedStage {
         if ($LASTEXITCODE -ne 0) {
             throw "Validazione sintattica del Local Signer di staging non riuscita."
         }
-        & $StagePythonExe -c "import asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf, reportlab, PIL, pkcs11"
+        & $StagePythonExe -c "import asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf, reportlab, PIL, pkcs11; from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter; from pyhanko.sign import fields, signers, pkcs11 as pyhanko_pkcs11; from pyhanko.stamp import TextStampStyle; from pyhanko_certvalidator.registry import SimpleCertificateStore"
         if ($LASTEXITCODE -ne 0) {
             throw "Validazione delle dipendenze Local Signer di staging non riuscita."
         }

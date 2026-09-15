@@ -214,7 +214,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_legal_update_surface_jobs.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_legal_update_surface_truth.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_legal_updates_backfill_official_context.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Backend domain | Frontend/UI | tests/test_local_pec_bridge.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_local_pec_bridge.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_local_signer.py | 401 anonimo, 403/RBAC, tenant, feature flag, contratto, file, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_login_brute_force_guard.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_motore_preventivo.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.127"
+VERSION = "1.6.131"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3972,8 +3972,10 @@ def _firma_documento_windows_store_pades(
 
     reader = PdfReader(io.BytesIO(pdf_payload))
     page_width = int(float(reader.pages[-1].mediabox.width))
+    from visible_signature import next_pdf_signature_field_name
+    signature_field_name = next_pdf_signature_field_name(reader)
     metadata = signers.PdfSignatureMetadata(
-        field_name="Signature1",
+        field_name=signature_field_name,
         md_algorithm="sha256",
         location=visible_signature_place,
         reason="Per autentica e sottoscrizione",
@@ -3989,7 +3991,7 @@ def _firma_documento_windows_store_pades(
             timestamp_format="%d/%m/%Y ore %H:%M",
         ),
         new_field_spec=fields.SigFieldSpec(
-            sig_field_name="Signature1",
+            sig_field_name=signature_field_name,
             on_page=-1,
             box=(20, 10, max(40, page_width - 20), 55),
         ),
@@ -4333,8 +4335,10 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
                 key_id=cert_id,
                 embed_roots=False,
             )
+            from visible_signature import next_pdf_signature_field_name
+            signature_field_name = next_pdf_signature_field_name(reader)
             metadata = signers.PdfSignatureMetadata(
-                field_name="Signature1",
+                field_name=signature_field_name,
                 md_algorithm="sha256",
                 location=visible_signature_place,
                 reason="Per autentica e sottoscrizione",
@@ -4342,7 +4346,7 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
                 subfilter=fields.SigSeedSubFilter.PADES,
             )
             field = fields.SigFieldSpec(
-                sig_field_name="Signature1",
+                sig_field_name=signature_field_name,
                 on_page=-1,
                 box=(20, 10, max(40, page_width - 20), 55),
             )

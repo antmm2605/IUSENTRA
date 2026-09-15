@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## Ripristino deposito / firma 1.6.131 — 15/09/2026 — 2.319.2
+
+- Prova materiale della firma multipla con PIN, più file salvati e prosecuzione deposito: **non verificata su macchina reale** in questa sessione; il controllo dispositivo segnala token PKCS#11 assente. L'utente ha successivamente richiesto commit e deploy. Nessun invio PEC effettuato.
+- Prima suite combinata deposito/busta/cataloghi interrotta al limite di 5 minuti, dopo 72 test senza failure; rilancio suddiviso per file con limite 290 secondi. Non viene conteggiata come suite superata.
+- Test PKCS#11 isolato inizialmente fallito per cache ASN.1 priva del nome `signing_certificate_v2`: causa riprodotta e corretta usando la registrazione del Signer accettato. Rilancio: 11 superati.
+- La firma aggiuntiva è stata verificata nell'interfaccia reale: firma esistente conservata inizialmente; la scelta esplicita aggiunge un documento al lotto; prova crittografica fisica ancora aperta.
+- Controlli GitHub, ricostruzione Docker finale e deploy si verificano sul commit prodotto, senza dedurli dagli esiti locali. La chiusura funzionale resta subordinata al collaudo con il dispositivo dello studio.
+
 ## Scadenza selezionata su desktop e mobile (2.296.2) — 11/09/2026
 
 - Da verificare dopo rebuild Docker locale su `127.0.0.1:8080`: apertura reale di una scadenza selezionata desktop/mobile, scroll completo della finestra, barra azioni sticky e assenza di dati tecnici nei dettagli Agenda/Scadenziario.

@@ -1032,3 +1032,15 @@ def _draw_visible_signature_seal(
     overlay.circle(center_x, center_y, radius * 0.88, stroke=1, fill=0)
     overlay.circle(center_x, center_y, radius * 0.56, stroke=1, fill=0)
     overlay.restoreState()
+
+
+def next_pdf_signature_field_name(reader) -> str:
+    """Choose a fresh field without renaming or clearing any existing field."""
+    occupied = set((reader.get_fields() or {}).keys())
+    index = 1
+    while any(
+        name == f"Signature{index}" or name.startswith(f"Signature{index}.")
+        for name in occupied
+    ):
+        index += 1
+    return f"Signature{index}"

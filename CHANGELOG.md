@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.319.2] — 15/09/2026
+
+### Deposito accettato e Local Signer 1.6.131
+
+Ripristinati dal backup accettato il flusso di firma multipla, la firma aggiuntiva esplicita, la conservazione delle firme esistenti e i pacchetti Local Signer 1.6.131. Recuperate le correzioni PEC locale AUTH UTF-8/Message-ID IDNA e la verifica PDF senza alterare documenti firmati. Preservati tabelle Cassazione v21, dati dello studio e aggiornamenti fino alla 2.319.1. Allineata al Signer la registrazione ASN.1 ESSCertIDv2 nel backend PKCS#11, verificata con un test sull'ordine CAdES/PAdES. Prova reale con token ancora da ripetere: il dispositivo non è collegato. Dettagli in `artifacts/react-migration/ripristino-deposito-1.6.131-20260915.md`.
+
 ## 2.319.1 - 15/09/2026
 
 **Il gate locale non vedeva la suite della shell React, e la CI è andata rossa a gate verde.** L'aggiunta dei fatti dell'archivio alla chiamata del presidio documentale (`fatti_archivio=`) ha lasciato in `tests/test_react_shell.py` uno stub di test con la firma vecchia a tre argomenti: la raccolta completa non se ne accorge — uno stub si importa benissimo — e il difetto è uscito solo nello shard 5/10 della CI, bloccando la sincronizzazione del branch gemello e il deploy su Hetzner. Corretto lo stub e, soprattutto, chiuso il buco: `scripts/ci_local_gate.sh` esegue ora anche `tests/test_react_shell.py`, la suite che esercita ogni `react_*_bridge.py`, cioè il punto in cui cade quasi ogni modifica ai presìdi. 217 test in più prima di ogni push.

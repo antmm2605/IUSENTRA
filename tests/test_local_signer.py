@@ -6619,6 +6619,27 @@ def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypat
     assert info["windows_cert_store"] is True
     assert info["formato"] == "pades"
 
+    # A second signature must preserve the first revision and CMS value.
+    from pct.document_signature_state import verify_additional_signature
+    from pct.firma import analizza_firma_documento
+
+    second, _ = module._firma_documento_windows_store_pades(
+        firmato, visible_signature_place="Taurianova",
+    )
+    assert second.startswith(firmato)
+    second_fields = PdfReader(BytesIO(second)).get_fields()
+    assert set(second_fields) == {"Signature1", "Signature2"}
+    assert second_fields["Signature1"]["/V"]["/Contents"] == field["/V"]["/Contents"]
+    evidence = analizza_firma_documento(second, "test.pdf")
+    assert len(evidence) == 2
+    assert all(item["content_digest_verified"] and item["cryptographic_signature_verified"] for item in evidence)
+    verify_additional_signature(firmato, second, "test.pdf")
+    import pytest
+    with pytest.raises(ValueError, match="nuova firma"):
+        verify_additional_signature(firmato, firmato, "test.pdf")
+    with pytest.raises(ValueError, match="non conserva"):
+        verify_additional_signature(firmato, pdf.getvalue(), "test.pdf")
+
 
 def test_firma_windows_store_error_message_non_espone_stack_tecnico():
     module = _load_local_signer()

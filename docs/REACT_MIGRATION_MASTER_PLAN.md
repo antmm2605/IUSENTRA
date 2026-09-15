@@ -1,5 +1,9 @@
 # Migrazione progressiva Flask + React
 
+## Ripristino deposito accettato — 15/09/2026 — 2.319.2
+
+Recupero mirato della pagina React di deposito accettata, integrata mantenendo i successivi campi e schemi v21. Firma aggiuntiva esplicita e firma multipla recuperate insieme al backend e al pacchetto 1.6.131. [Rapporto di ripristino](../artifacts/react-migration/ripristino-deposito-1.6.131-20260915.md). Accettazione fisica della firma multipla ancora aperta per token assente; commit e deploy richiesti esplicitamente.
+
 ## Deposito telematico - qualifica professionista dedicata - 12/08/2026 - 2.278.17
 
 Il form React del deposito espone la stessa scelta dedicata `DepositoTelematicoRole` del programma sorgente. Il valore è salvato nel fascicolo e nella configurazione tenant-aware, validato sui codici ricavati dal binario e mantenuto nel contesto della busta; nei depositi Cassazione viene inoltre scritto in `DatiAtto.xml` come `tipoDifensore` (`DI` o `DD`). Il campo anagrafico libero `qualifica_professionale` non governa più il ruolo ministeriale e nei tracciati ordinari non viene inventato alcun elemento XML estraneo allo schema. Restano invariati catalogo documenti, contributo unificato, firma locale e invio PEC dal PC dell'avvocato. Test mirati e typecheck sono positivi; la chiusura resta subordinata alla prova reale post-deploy sul fascicolo `B494AAB9`.

@@ -697,7 +697,14 @@ def _analizza_pades(data: bytes) -> list[dict]:
         risultati = []
         for sig in embedded:
             try:
-                cert = sig.signer_cert  # cryptography.x509.Certificate
+                cert = x509.load_der_x509_certificate(sig.signer_cert.dump())
+                from pyhanko.sign.validation.generic_cms import validate_sig_integrity
+
+                intact, valid = validate_sig_integrity(
+                    sig.signer_info, sig.signer_cert,
+                    expected_content_type="data",
+                    actual_digest=sig.compute_digest(),
+                )
                 not_after = cert.not_valid_after_utc
                 not_before = cert.not_valid_before_utc
                 delta = (not_after - now).days
@@ -725,7 +732,12 @@ def _analizza_pades(data: bytes) -> list[dict]:
                     "seriale": format(cert.serial_number, "X"),
                     "algoritmo": "RSA + SHA-256",
                     "formato": "PAdES",
-                    "data_firma": "",
+                    "data_firma": sig.self_reported_timestamp.isoformat() if sig.self_reported_timestamp else "",
+                    "field": sig.field_name,
+                    "content_digest_verified": bool(intact),
+                    "cryptographic_signature_verified": bool(valid),
+                    "certificate_chain_trust_checked": False,
+                    "revocation_checked": False,
                 })
             except Exception:
                 continue

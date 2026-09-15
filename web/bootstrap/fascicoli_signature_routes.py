@@ -495,7 +495,8 @@ def register_fascicoli_signature_routes(
                 "sì",
                 "yes",
             }
-            if gia_firmato and not conferma_rifirma:
+            aggiunta_firma = request.form.get("add_signature") == "1"
+            if gia_firmato and not (conferma_rifirma or aggiunta_firma):
                 return _chiudi_risposta(
                     False,
                     (
@@ -542,11 +543,23 @@ def register_fascicoli_signature_routes(
                     signature_metadata = _metadata_firma_cades(file.filename, source="upload")
                 else:
                     firme = analizza_firma_documento(payload_firmato, file.filename)
-                    if not firme:
+                    if not firme or not all(
+                        item.get("content_digest_verified") and item.get("cryptographic_signature_verified")
+                        for item in firme
+                    ):
                         raise ValueError(
                             "Il PDF caricato resta .PDF ma non contiene una firma PAdES interna verificabile. Carica un .pdf.p7m CAdES oppure un PDF PAdES valido."
                         )
                     signature_metadata = _metadata_firma_pades(file.filename, firme, source="upload")
+                if aggiunta_firma:
+                    from pct.document_signature_state import verify_additional_signature
+
+                    original_path = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+                    original_bytes = decrypt_doc(Path(original_path).read_bytes())
+                    verify_additional_signature(original_bytes, payload_firmato, file.filename)
+                    signature_metadata["additional_signature"] = True
+                    signature_metadata["previous_content_sha256"] = hashlib.sha256(original_bytes).hexdigest()
+                signature_metadata["content_sha256"] = hashlib.sha256(payload_firmato).hexdigest()
                 note = nota_con_firma_visibile(
                     request.form.get("note", "Versione firmata per deposito").strip(),
                     visible_signature_mode,

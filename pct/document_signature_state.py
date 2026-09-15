@@ -154,7 +154,11 @@ def document_bytes_have_real_digital_signature(data: bytes, *display_names: Any)
             from pct.firma import analizza_firma_documento
 
             filename = next((_text(name) for name in display_names if _text(name)), "")
-            return bool(analizza_firma_documento(data, filename))
+            return any(
+                item.get("content_digest_verified") is True
+                and item.get("cryptographic_signature_verified") is True
+                for item in analizza_firma_documento(data, filename)
+            )
         except Exception:
             return False
     return False
@@ -167,3 +171,33 @@ __all__ = [
     "document_has_real_digital_signature",
     "is_signed_container_name",
 ]
+
+
+def verify_additional_signature(original: bytes, signed: bytes, filename: str) -> None:
+    """Reject replacements and unchanged files when the user requested addition."""
+    if not original or original == signed:
+        raise ValueError("Il file non contiene una nuova firma.")
+    if original.startswith(b"%PDF-") and signed.startswith(original):
+        import io
+        from pyhanko.pdf_utils.reader import PdfFileReader
+        from pct.firma import analizza_firma_documento
+
+        before = PdfFileReader(io.BytesIO(original)).embedded_signatures
+        after = PdfFileReader(io.BytesIO(signed)).embedded_signatures
+        preserved = {
+            (item.field_name, bytes(item.sig_object["/Contents"])) for item in before
+        }
+        actual = {
+            (item.field_name, bytes(item.sig_object["/Contents"])) for item in after
+        }
+        evidence = analizza_firma_documento(signed, filename)
+        if (before and len(after) > len(before) and preserved.issubset(actual)
+                and len(evidence) == len(after)
+                and all(item.get("content_digest_verified") and item.get("cryptographic_signature_verified")
+                        for item in evidence)):
+            return
+    elif is_signed_container_name(filename):
+        from pct.firma import busta_cades_valida, estrai_contenuto_cades
+        if busta_cades_valida(signed) and estrai_contenuto_cades(signed) == original:
+            return
+    raise ValueError("La nuova firma non conserva integralmente il documento e le firme precedenti.")

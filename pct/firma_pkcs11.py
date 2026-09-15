@@ -777,11 +777,18 @@ class FirmaPKCS11:
         visible_signature_datetime_mode: str = "data_ora",
     ) -> bytes:
         """Firma il PDF in PAdES come Studio Telematico, mantenendo l'estensione .PDF."""
-        from asn1crypto import x509 as asn1_x509
+        from asn1crypto import cms, x509 as asn1_x509
         from pypdf import PdfReader
         from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
         from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
         from pyhanko.stamp import TextStampStyle
+
+        # Stessa registrazione del Local Signer accettato: una firma CAdES
+        # precedente può aver inizializzato la mappa prima dell'import di tsp.
+        oid = "1.2.840.113549.1.9.16.2.47"
+        cms.CMSAttributeType("content_type")
+        cms.CMSAttributeType._map[oid] = "signing_certificate_v2"
+        cms.CMSAttributeType._reverse_map["signing_certificate_v2"] = oid
 
         pdf_payload = self._pdf_da_firmare(documento)
         reader = PdfReader(io.BytesIO(pdf_payload))
@@ -803,8 +810,10 @@ class FirmaPKCS11:
             key_id=self._cert_id,
             embed_roots=False,
         )
+        from visible_signature import next_pdf_signature_field_name
+        signature_field_name = next_pdf_signature_field_name(reader)
         metadata = signers.PdfSignatureMetadata(
-            field_name="Signature1",
+            field_name=signature_field_name,
             md_algorithm="sha256",
             location=location,
             reason="Per autentica e sottoscrizione",
@@ -812,7 +821,7 @@ class FirmaPKCS11:
             subfilter=fields.SigSeedSubFilter.PADES,
         )
         field = fields.SigFieldSpec(
-            sig_field_name="Signature1",
+            sig_field_name=signature_field_name,
             on_page=-1,
             box=(20, 10, max(40, page_width - 20), 55),
         )

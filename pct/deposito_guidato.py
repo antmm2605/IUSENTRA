@@ -150,7 +150,49 @@ def _verify_document_pdfa(doc: dict[str, Any], path: Path) -> dict[str, Any]:
         with tempfile.TemporaryDirectory(prefix="iusentra-pdfa-") as tmp:
             pdf_path = Path(tmp) / "atto-principale.pdf"
             pdf_path.write_bytes(data)
-            return verifica_pdfa(str(pdf_path))
+            result = verifica_pdfa(str(pdf_path))
+            # Art. 15 delle specifiche DGSIA 7 agosto 2024 ammette PDF o PDF/A.
+            # Inspect the existing bytes; never convert a signed original.
+            if data.startswith(b"%PDF-") and not result.get("cifrato"):
+                try:
+                    from io import BytesIO
+                    from pypdf import PdfReader
+                    from pypdf.generic import ArrayObject, DictionaryObject, IndirectObject
+
+                    reader = PdfReader(BytesIO(data))
+                    pending = [reader.trailer["/Root"]]
+                    visited = set()
+                    active = False
+                    while pending and len(visited) < 50000:
+                        item = pending.pop()
+                        if isinstance(item, IndirectObject):
+                            key = ("ref", item.idnum, item.generation)
+                            if key in visited:
+                                continue
+                            visited.add(key)
+                            item = item.get_object()
+                        if isinstance(item, (DictionaryObject, ArrayObject)):
+                            key = ("object", id(item))
+                            if key in visited:
+                                continue
+                            visited.add(key)
+                        if isinstance(item, DictionaryObject):
+                            if any(key in item for key in ("/JS", "/JavaScript", "/AA", "/XFA", "/RichMedia")):
+                                active = True
+                                break
+                            if item.get("/S") in ("/JavaScript", "/Launch", "/SubmitForm", "/ImportData"):
+                                active = True
+                                break
+                            pending.extend(item.values())
+                        elif isinstance(item, ArrayObject):
+                            pending.extend(item)
+                    result["pdf_pct_ammesso"] = bool(
+                        not pending and not active and not reader.is_encrypted
+                        and len(reader.pages) and any((page.extract_text() or "").strip() for page in reader.pages)
+                    )
+                except Exception:
+                    result["pdf_pct_ammesso"] = False
+            return result
     except Exception as exc:
         return {
             "conforme": None,
@@ -1497,7 +1539,9 @@ class DocumentValidator:
                         )
                     )
                 pdfa = _verify_document_pdfa(doc, path)
-                if pdfa.get("conforme") is False:
+                if pdfa.get("conforme") is False and not (
+                    profile.channel == "PCT_TELEMATICO" and pdfa.get("pdf_pct_ammesso")
+                ):
                     issues.append(
                         ValidationIssue(
                             service=SERVICE_DOCUMENTALE,

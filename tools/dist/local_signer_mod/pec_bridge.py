@@ -118,6 +118,32 @@ def _payload_config(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _smtp_login_utf8(client: Any, username: str, password: str) -> Any:
+    """Preserva login ASCII; AUTH PLAIN/LOGIN usa UTF-8 (RFC 4616/4954)."""
+    if username.isascii() and password.isascii():
+        return client.login(username, password)
+    if "\x00" in username or "\x00" in password:
+        raise PecBridgeValidationError("Le credenziali PEC contengono un carattere nullo non ammesso.")
+    client.ehlo_or_helo_if_needed()
+    methods = str(client.esmtp_features.get("auth", "")).upper().split()
+    if "PLAIN" in methods:
+        response = base64.b64encode(("\0" + username + "\0" + password).encode("utf-8")).decode("ascii")
+        code, message = client.docmd("AUTH", "PLAIN " + response)
+        if code == 334:
+            code, message = client.docmd(response)
+    elif "LOGIN" in methods:
+        code, message = client.docmd("AUTH", "LOGIN")
+        if code == 334:
+            code, message = client.docmd(base64.b64encode(username.encode("utf-8")).decode("ascii"))
+        if code == 334:
+            code, message = client.docmd(base64.b64encode(password.encode("utf-8")).decode("ascii"))
+    else:
+        raise smtplib.SMTPNotSupportedError("Il server PEC non propone PLAIN o LOGIN per l'autenticazione UTF-8.")
+    if code not in (235, 503):
+        raise smtplib.SMTPAuthenticationError(code, message)
+    return code, message
+
+
 def _connect_and_login(
     config: dict[str, Any],
     *,
@@ -125,21 +151,26 @@ def _connect_and_login(
     smtp_ssl_factory: Any = smtplib.SMTP_SSL,
 ) -> Any:
     context = ssl.create_default_context()
+    hostname_options: dict[str, str] = {}
+    hostname = socket.getfqdn()
+    if not hostname.isascii():
+        hostname_options["local_hostname"] = hostname.encode("idna").decode("ascii")
     if config["use_ssl"]:
         client = smtp_ssl_factory(
             config["host"],
             config["port"],
             timeout=config["timeout"],
             context=context,
+            **hostname_options,
         )
     else:
-        client = smtp_factory(config["host"], config["port"], timeout=config["timeout"])
+        client = smtp_factory(config["host"], config["port"], timeout=config["timeout"], **hostname_options)
     try:
         client.ehlo()
         if not config["use_ssl"] and config["use_tls"]:
             client.starttls(context=context)
             client.ehlo()
-        client.login(config["username"], config["password"])
+        _smtp_login_utf8(client, config["username"], config["password"])
         return client
     except Exception:
         _close_smtp(client)
@@ -285,7 +316,8 @@ def _build_message(payload: dict[str, Any], config: dict[str, Any]) -> tuple[Ema
         msg["Cc"] = ", ".join(cc_recipients)
     msg["Subject"] = subject
     msg["Date"] = formatdate(localtime=True)
-    msg["Message-ID"] = make_msgid()
+    # Message-ID must stay ASCII even when the Windows PC name contains accents.
+    msg["Message-ID"] = make_msgid(domain=socket.getfqdn().encode("idna").decode("ascii"))
     msg.set_content(body)
 
     total_attachment_bytes = 0

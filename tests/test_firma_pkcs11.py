@@ -185,6 +185,11 @@ def test_firma_pades_pkcs11_riproduce_profilo_studio_telematico(monkeypatch):
     pdf.drawString(72, 720, "Ricorso")
     pdf.save()
 
+    # Riproduce la cache ASN.1 inizializzata prima degli attributi ESS:
+    # il flusso deve funzionare anche dopo una precedente firma CAdES.
+    from asn1crypto import cms
+    cms.CMSAttributeType("content_type")
+    monkeypatch.delitem(cms.CMSAttributeType._reverse_map, "signing_certificate_v2", raising=False)
     signed = signer.firma_pades(source.getvalue(), visible_signature_place="Taurianova")
     fields = PdfReader(io.BytesIO(signed)).get_fields()
     signature = fields["Signature1"]["/V"]

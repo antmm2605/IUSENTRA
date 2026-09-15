@@ -706,6 +706,9 @@ export type RegiaOperativaData = {
     workflow: string
     operationalState: string
     completion: number
+    completionDetail: Record<string, unknown>
+    depositPhase: Record<string, unknown>
+    deposit: Record<string, unknown>
     nextAction: string
   }
   profile: Record<string, unknown>
@@ -715,6 +718,8 @@ export type RegiaOperativaData = {
   validation: {
     status: string
     ready: boolean
+    phase: Record<string, unknown>
+    message: string
     lastCheck: string
     blockers: Array<Record<string, unknown>>
     warnings: Array<Record<string, unknown>>
@@ -1319,13 +1324,16 @@ export const emptyRegiaOperativa: RegiaOperativaData = {
     workflow: '',
     operationalState: '',
     completion: 0,
+    completionDetail: {},
+    depositPhase: {},
+    deposit: {},
     nextAction: '',
   },
   profile: {},
   economics: {},
   checklist: [],
   documentSlots: [],
-  validation: { status: '', ready: false, lastCheck: '', blockers: [], warnings: [], results: [] },
+  validation: { status: '', ready: false, phase: {}, message: '', lastCheck: '', blockers: [], warnings: [], results: [] },
   deposit: {},
   timeline: [],
   evidencePack: {},
@@ -2014,6 +2022,9 @@ function normalizeRegia(value: unknown): RegiaOperativaData {
       workflow: text(header.workflow),
       operationalState: text(header.operationalState),
       completion: number(header.completion),
+      completionDetail: isRecord(header.completionDetail) ? header.completionDetail : {},
+      depositPhase: isRecord(header.depositPhase) ? header.depositPhase : {},
+      deposit: isRecord(header.deposit) ? header.deposit : {},
       nextAction: text(header.nextAction),
     },
     profile: isRecord(value.profile) ? value.profile : {},
@@ -2023,6 +2034,8 @@ function normalizeRegia(value: unknown): RegiaOperativaData {
     validation: {
       status: text(validation.status),
       ready: bool(validation.ready),
+      phase: isRecord(validation.phase) ? validation.phase : {},
+      message: text(validation.message),
       lastCheck: text(validation.lastCheck),
       blockers: asArray(validation.blockers).map((entry) => isRecord(entry) ? entry : {}),
       warnings: asArray(validation.warnings).map((entry) => isRecord(entry) ? entry : {}),

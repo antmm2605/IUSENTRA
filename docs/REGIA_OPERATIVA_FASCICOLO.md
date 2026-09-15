@@ -80,6 +80,28 @@ Accettazione PEC, consegna PEC e controlli automatici OK non bastano per dichiar
 
 Il predeposito valuta dati, slot documentali, firme, PDF/A, dimensione, busta e canale. L'invio reale fallisce chiuso se non esiste un adapter autorizzato configurato. Una busta `.enc` prodotta come simulazione tecnica non viene dichiarata busta ministeriale reale.
 
+## Fase di deposito (2.318.0)
+
+I controlli della busta telematica valgono quando c'e' una busta. `pct/practice_engine/fase_deposito.py` dichiara la fase del fascicolo:
+
+| Fase | Quando | Effetto sui controlli della busta |
+|---|---|---|
+| `preparazione` | l'avvocato ha scelto i documenti della busta (`profilo_deposito.preparazione_busta`) o il tipo di deposito telematico | si eseguono, sui documenti scelti |
+| `in_corso` | sessione di deposito aperta o deposito inviato in attesa di esito | si eseguono e restano visibili come storia del deposito |
+| `non_richiesta` | procedura non depositabile, fascicolo definito o archiviato, deposito gia' eseguito, fascicolo importato dal portale, nessuna busta preparata | non si eseguono e non bloccano: restano dichiarati come rinviati (`NOT_APPLICABLE`, `status: NON_IN_DEPOSITO`) con il motivo in italiano |
+
+Fuori dalla fase di deposito i documenti richiesti risultano collegati o non applicabili, mai «da correggere»: un fascicolo importato dal portale contiene copie di atti gia' depositati da altri, che non devono essere PDF/A ne' firmati da noi. Base normativa dei controlli rinviati: D.M. 44/2011 artt. 12 e 14 e Specifiche tecniche DGSIA; art. 196-quater disp. att. c.p.c.
+
+## Voci della checklist e completamento (2.318.0)
+
+Ogni voce della checklist dichiara i controlli che riassume (`pct/practice_engine/voci_checklist.py`): «Codice oggetto PST ufficiale» → `codice_oggetto_pst_valido`; «Classificazione atti e allegati» → atto principale e tipo documento; «Firma digitale e busta ministeriale» → firma, busta generabile, limiti, DatiAtto.xml; «Verifica dati cliente e parti» → cliente, codice fiscale, ufficio, registro. Lo stato della voce e' `COMPLETATO` quando i suoi controlli sono verdi, `BLOCCATO` con il messaggio del controllo che blocca, `NON_PERTINENTE` quando riguarda la busta e non si sta depositando, `DA_COMPLETARE` quando resta una verifica dell'avvocato.
+
+La percentuale (`pct/practice_engine/completamento.py`) conta solo le verifiche che il software puo' misurare ora: voci misurate superate piu' documenti richiesti pertinenti collegati e validi. Il payload porta `header.completionDetail` (verifiche superate, totale, misurate, rinviate, manuali) perche' la percentuale sia spiegabile.
+
+## Stato reale del deposito (2.318.0)
+
+Lo stato del deposito non si deduce dalla sola sessione della regia: `deposito_reale(fascicolo)` legge `depositi_pct` e riporta lo stato con l'etichetta del flusso ufficiale PCT (accettato dal gestore PEC, consegnato al sistema ministeriale, controlli automatici superati/con avvisi/con errori, accettato o rifiutato dalla cancelleria). Il payload porta `deposit.statusLabel` e `deposit.lastDeposit`; lo stato operativo del fascicolo segue il deposito reale. Un deposito inviato e accettato non puo' risultare «non inviato».
+
 ## UI
 
 La sezione `Regia Operativa` vive nel dettaglio fascicolo React e mostra dati di repository reale:

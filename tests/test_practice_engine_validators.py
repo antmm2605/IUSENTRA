@@ -6,7 +6,7 @@ from pct.practice_engine.models import SlotType, ValidatorStatus
 from pct.practice_engine.profiles import get_profile
 from pct.practice_engine.validators import ValidationContext, run_validator
 
-from tests.regia_test_utils import encrypted_pdf_bytes, link_required_documents, make_simple_fascicolo, pdfa_bytes
+from tests.regia_test_utils import encrypted_pdf_bytes, link_required_documents, make_simple_fascicolo, pdfa_bytes, prepara_busta
 
 
 def _ctx(tmp_path):
@@ -60,6 +60,7 @@ def test_documenti_obbligatori_pdfa_firma_e_dimensione(tmp_path):
 
 def test_predeposito_restituisce_blocchi_warning_e_not_applicable(tmp_path):
     gf, repo, fascicolo, profile, cliente = _ctx(tmp_path)
+    fascicolo = prepara_busta(gf, fascicolo)
     readiness = run_predeposit_check(repo, fascicolo=fascicolo, profile=profile, cliente=cliente, fascicoli_manager=gf)
     assert readiness["ready"] is False
     assert any(item.status == ValidatorStatus.BLOCK.value for item in readiness["blockers"])
@@ -125,6 +126,7 @@ def test_predeposito_non_collega_documento_richiesto_come_ricorso_se_non_certo(t
         pdfa_bytes(),
         firmato=True,
     )
+    prepara_busta(gf, gf.get(fascicolo.id))
 
     readiness = run_predeposit_check(repo, fascicolo=gf.get(fascicolo.id), profile=profile, cliente=cliente, fascicoli_manager=gf)
     slots = {slot.slot_key: slot for slot in readiness["slots"]}

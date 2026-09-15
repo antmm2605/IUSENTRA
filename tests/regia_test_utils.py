@@ -128,3 +128,22 @@ def link_required_documents(gf: GestioneFascicoli, repo: PracticeEngineRepositor
         )
         repo.link_slot(fascicolo.id, "PROCURA", procura_doc.id, actor="test")
     return atto, procura_doc
+
+
+def prepara_busta(gf: GestioneFascicoli, fascicolo, *, documenti=(), tipo_deposito: str = "RicorsoLavoro"):
+    """Porta il fascicolo in fase di deposito: la busta è in preparazione.
+
+    I controlli della busta (PDF/A, firma, dimensioni) valgono solo quando
+    l'avvocato sta preparando un deposito: senza questa scelta il presidio non
+    li esegue, come non li esegue il percorso di deposito reale.
+    """
+    profilo = dict(getattr(fascicolo, "profilo_deposito", {}) or {})
+    profilo["preparazione_busta"] = {
+        "tipo_deposito_telematico_key": tipo_deposito,
+        "documents": [
+            {"documentId": str(getattr(documento, "id", documento)), "selected": True, "role": "allegato"}
+            for documento in documenti
+            if documento is not None
+        ],
+    }
+    return gf.aggiorna_preparazione_deposito(fascicolo.id, document_updates=[], profilo_deposito=profilo)

@@ -1,6 +1,6 @@
 # Registro delle letture
 
-Aggiornato: 16/09/2026 (versione 2.317.0).
+Aggiornato: 16/09/2026 (versione 2.318.0).
 
 ## Che cosa fa
 
@@ -133,6 +133,38 @@ dei test; l'esito (`intelligence/collaudo_lettore.json`) compare nel pannello.
 Se il collaudo non passa, il pannello lo dice: non è l'avvocato a dover
 controllare il lettore.
 
+## Riconvalida e conferme mirate (2.318.0)
+
+**Riconvalida** (`pct/registro_letture/riconvalida.py`). Le regole di lettura si
+stringono nel tempo: quando una regola nuova stabilisce che un testo non è una
+data, le anomalie e i fatti che quella lettura aveva già prodotto restano
+registrati e continuano a chiedere conferme che il software non chiederebbe
+più. A ogni giro di lettura (`web/services/archivio_letture_runtime._riconvalida`)
+le anomalie **aperte** si ripassano con le regole correnti: quelle che oggi non
+nascerebbero si chiudono da sole con il motivo che dichiara la regola superata e
+l'autore «riconvalida automatica»; la riga resta nel registro, perché la
+chiusura è tracciata e non cancellata (art. 20 CAD). I fatti dell'archivio che
+oggi si riconoscono come riferimenti normativi vengono respinti, con la prova
+`riconvalida`. Le decisioni dell'avvocato (`confermata`, `corretta`,
+`ignorata`) non si toccano mai.
+
+**Conferme mirate** (`pct/archivio_letture/presidi.da_confermare_ora`). Si chiede
+conferma solo per le date che, confermate, cambiano qualcosa: udienze, termini e
+costituzioni **future**, una volta sola per data. Una data già passata non si
+chiede — l'udienza si è tenuta, il termine è scaduto — e una data d'atto o di
+documento non produce alcuna azione. Le lacune della Lettura del fascicolo dicono
+*quali* date attendono conferma e *quale* oggetto la lettura automatica deve
+ancora leggere, con il motivo.
+
+**Nessun oggetto resta in attesa per sempre.** Un oggetto dell'inventario che non
+corrisponde più a un documento del fascicolo o a una PEC collegata veniva saltato
+a ogni giro e restava «da leggere» all'infinito. Ora la sua lettura si chiude
+come `non_leggibile` con il motivo («documento non più presente nel fascicolo»,
+«messaggio PEC non più collegato al fascicolo», «allegato non più presente nella
+PEC collegata») e il pannello elenca gli oggetti ancora in attesa
+(`lettura_automatica.in_attesa`) con il motore che li aspetta e il perché.
+
 Test: `tests/test_registro_letture.py`, `tests/test_registro_letture_runtime.py`,
 `tests/test_archivio_letture.py`, `tests/test_archivio_letture_runtime.py`,
-`tests/test_collaudo_lettore.py`, `tests/js/letture_fascicolo.test.mjs`.
+`tests/test_riconvalida_letture.py`, `tests/test_collaudo_lettore.py`,
+`tests/js/letture_fascicolo.test.mjs`.

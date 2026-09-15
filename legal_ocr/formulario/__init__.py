@@ -10,15 +10,16 @@ quante volte. Cosi' il testo corretto resta verificabile contro la pagina.
 Ordine di applicazione: prima i caratteri (legature, apostrofi, invisibili),
 poi le abbreviazioni forensi, la punteggiatura, le strutture a forma fissa
 (codice fiscale, partita IVA, CAP, IBAN, numero di ruolo, parole), le date, le cifre, i numeri romani, gli importi
-in euro e infine gli accenti, che lavorano su parole gia' ripulite.
+in euro, gli accenti, che lavorano su parole gia' ripulite, e per ultimo il
+lessico, che riporta al vocabolario le parole che non esistono.
 """
 
 from __future__ import annotations
 
-from . import abbreviazioni, accenti, caratteri, confusioni, date, numeri, numeri_romani, punteggiatura, valuta
+from . import abbreviazioni, accenti, caratteri, confusioni, date, lessico, numeri, numeri_romani, punteggiatura, valuta
 from .regola import Esito, Regola, applica_regole
 
-VERSIONE_FORMULARIO = "2026.09.15.formulario-legale.v2"
+VERSIONE_FORMULARIO = "2026.09.15.formulario-legale.v3"
 
 REGOLE: tuple[Regola, ...] = (
     *caratteri.REGOLE,
@@ -30,6 +31,7 @@ REGOLE: tuple[Regola, ...] = (
     *numeri_romani.REGOLE,
     *valuta.REGOLE,
     *accenti.REGOLE,
+    *lessico.REGOLE,
 )
 
 REGOLE_PER_ID: dict[str, Regola] = {regola.id: regola for regola in REGOLE}

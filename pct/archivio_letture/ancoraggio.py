@@ -41,6 +41,19 @@ _NEGATIVE = re.compile(
     re.IGNORECASE,
 )
 _ORA = re.compile(r"(?:ore|alle ore|alle|h\.?)\s*(?P<ora>[01]?\d|2[0-3])\s*[:.,]\s*(?P<minuti>[0-5]\d)", re.IGNORECASE)
+# Fine di una frase: punto seguito da spazio e da una maiuscola. Le abbreviazioni
+# («art. 3-bis», «Prot. n.», «L. 53/1994») non chiudono la frase: dopo il loro
+# punto non c'è una maiuscola d'inizio frase o prima c'è una sola lettera.
+_FINE_FRASE = re.compile(r"(?<![A-Za-z])(?<!\bart)(?<!\bn)[^\s.][.!?]\s+(?=[A-ZÀ-Ý])")
+
+
+def inizio_frase(testo: str, inizio: int, limite: int = 0) -> int:
+    """L'inizio della frase in cui sta il token: un'ancora non attraversa il punto fermo."""
+    finestra = testo[max(0, limite):inizio]
+    ultimo = 0
+    for match in _FINE_FRASE.finditer(finestra):
+        ultimo = match.end()
+    return max(0, limite) + ultimo
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +75,7 @@ def ancora_per(testo: str, inizio: int, fine: int, *, limite: int = 0, limite_do
     sfilza di date in tabella; l'ancora che segue la data vale solo sulla
     stessa riga e prima del punto.
     """
-    prima = testo[max(0, inizio - FINESTRA_PRIMA, limite):inizio]
+    prima = testo[max(0, inizio - FINESTRA_PRIMA, limite, inizio_frase(testo, inizio, limite)):inizio]
     if _NEGATIVE.search(prima[-FINESTRA_NEGATIVA:]):
         return None
     migliore: Ancora | None = None
@@ -98,4 +111,4 @@ def brano(testo: str, inizio: int, fine: int, *, raggio: int = 90) -> str:
     return _spazi(testo[max(0, inizio - raggio):min(len(testo), fine + raggio)])
 
 
-__all__ = ["ANCORE", "Ancora", "ancora_per", "brano", "ora_vicina"]
+__all__ = ["ANCORE", "Ancora", "ancora_per", "brano", "inizio_frase", "ora_vicina"]

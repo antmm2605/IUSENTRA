@@ -4,7 +4,7 @@ from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
 from pct.config_studio import GestioneConfigStudio
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.storage import StudioDB
-from tests.regia_test_utils import pdfa_bytes
+from tests.regia_test_utils import pdfa_bytes, prepara_busta
 from tests.test_web_bootstrap import _cfg_web
 from web.app import create_app
 from web.services.storage_runtime import resolve_storage_runtime
@@ -114,7 +114,11 @@ def test_api_regia_payload_completo_e_mock_false(tmp_path):
     assert payload["header"]["title"] == "Regia API"
     assert payload["checklist"]
     assert payload["documentSlots"]
-    assert payload["validation"]["blockers"]
+    # Fuori dalla fase di deposito i controlli della busta non bloccano il fascicolo:
+    # si eseguono quando l'avvocato prepara la busta (D.M. 44/2011 artt. 12 e 14).
+    assert payload["validation"]["status"] == "NON_IN_DEPOSITO"
+    assert payload["validation"]["blockers"] == []
+    assert payload["header"]["depositPhase"]["inDeposito"] is False
     delivery = payload["deposit"]["deliveryPolicy"]
     assert delivery["mode"] == "direct_pec"
     assert delivery["allowsDirectPec"] is True
@@ -129,6 +133,22 @@ def test_api_regia_payload_completo_e_mock_false(tmp_path):
     assert "Atto.enc" in delivery["missingOperationalStep"]
     assert "AES256" in delivery["missingOperationalStep"]
     assert any("Atto.enc" in action and "AES256" in action for action in delivery["guidedNextActions"])
+
+
+def test_api_regia_blocca_quando_la_busta_e_in_preparazione(tmp_path):
+    app, _gf, fascicolo = _app_with_fascicolo(tmp_path)
+    client = app.test_client()
+    _conferma_profilo_regia(app, client, fascicolo)
+    with app.app_context():
+        gestore = app.extensions["core_runtime"]["get_fascicoli"]()
+        prepara_busta(gestore, gestore.get(fascicolo.id))
+
+    risposta = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers={"X-API-Key": "regia-test-key"})
+    assert risposta.status_code == 200
+    payload = risposta.get_json()
+    assert payload["header"]["depositPhase"]["inDeposito"] is True
+    assert payload["validation"]["status"] == "BLOCCANTE"
+    assert payload["validation"]["blockers"]
 
 
 def test_api_predeposito_non_blocca_dati_commerciali_o_referente(tmp_path):

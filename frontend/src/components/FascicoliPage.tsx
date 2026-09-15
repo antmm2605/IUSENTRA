@@ -6761,6 +6761,20 @@ function regiaOperationalStateLabel(value: string): string {
     DEPOSITO_IN_PREPARAZIONE: 'Deposito in preparazione',
     DEPOSITO_INVIATO: 'Deposito inviato',
     IN_ATTESA_RICEVUTE: 'In attesa delle ricevute',
+    FASCICOLO_APERTO: 'Fascicolo in lavorazione',
+    ACCETTATO_PEC: 'Accettato dal gestore PEC',
+    CONSEGNATO: 'Consegnato al sistema ministeriale',
+    IN_ATTESA_CONTROLLI: 'In attesa dei controlli automatici',
+    CONTROLLI_OK: 'Controlli automatici superati',
+    CONTROLLI_WARNING: 'Controlli automatici con avvisi',
+    CONTROLLI_ERRORE: 'Controlli automatici con errori',
+    IN_ATTESA_CANCELLERIA: 'In attesa della cancelleria',
+    ACCETTATO_DA_CANCELLERIA: 'Accettato dalla cancelleria',
+    RIFIUTATO_DA_CANCELLERIA: 'Rifiutato dalla cancelleria',
+    ACQUISITO: 'Deposito acquisito',
+    FASE_SUCCESSIVA: 'Fase successiva della pratica',
+    DEFINITO: 'Procedimento definito',
+    ARCHIVIATO: 'Fascicolo archiviato',
   }
   return labels[technical] || String(value || 'Da verificare').replace(/_/g, ' ')
 }
@@ -6773,12 +6787,25 @@ function regiaWorkflowLabel(value: string): string {
   return labels[technical] || String(value || '').replace(/_/g, ' ')
 }
 
+function regiaValidationStatusLabel(value: string): string {
+  const technical = String(value || '').trim().toUpperCase()
+  const labels: Record<string, string> = {
+    OK: 'Verifiche superate',
+    BLOCCANTE: 'Requisiti mancanti',
+    DA_COMPLETARE: 'Verifiche da completare',
+    NON_IN_DEPOSITO: 'Nessun deposito in preparazione',
+    NON_ESEGUITO: 'Verifica non ancora eseguita',
+  }
+  return labels[technical] || String(value || 'Da verificare').replace(/_/g, ' ')
+}
+
 function regiaChecklistStatusLabel(value: string): string {
   const technical = String(value || '').trim().toUpperCase()
   const labels: Record<string, string> = {
     BLOCCATO: 'Bloccato',
     COMPLETATO: 'Completato',
     DA_COMPLETARE: 'Da completare',
+    NON_PERTINENTE: 'Non richiesto ora',
   }
   return labels[technical] || String(value || 'Da completare').replace(/_/g, ' ')
 }
@@ -6987,12 +7014,38 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
   const validationHasRun = Boolean(regia.validation.lastCheck || regia.validation.results.length || regia.validation.blockers.length || regia.validation.warnings.length)
   const validationMessage = regia.validation.blockers[0]
     ? recordText(regia.validation.blockers[0], 'message')
-    : regia.validation.warnings[0]
-      ? recordText(regia.validation.warnings[0], 'message')
-      : validationHasRun
-        ? 'Verifica completata: nessun blocco critico rilevato.'
-        : 'Avvia una verifica per controllare dati, documenti e deposito.'
-  const statusTone: FascicoloRow['tone'] = regia.validation.ready ? 'success' : regia.validation.blockers.length ? 'danger' : 'warning'
+    : regia.validation.message
+      ? regia.validation.message
+      : regia.validation.warnings[0]
+        ? recordText(regia.validation.warnings[0], 'message')
+        : validationHasRun
+          ? 'Verifica completata: nessun blocco critico rilevato.'
+          : 'Avvia una verifica per controllare dati, documenti e deposito.'
+  const depositPhaseActive = recordBool(h.depositPhase, 'inDeposito')
+  const lastDeposit = (deposit.lastDeposit && typeof deposit.lastDeposit === 'object' ? deposit.lastDeposit : {}) as Record<string, unknown>
+  const depositAcquired = recordText(lastDeposit, 'statoOperativo') === 'ACQUISITO' || recordText(deposit, 'status') === 'ACQUISITO'
+  const depositTone: FascicoloRow['tone'] = depositAcquired ? 'success' : blocked ? 'danger' : ready ? 'success' : recordBool(lastDeposit, 'presente') ? 'primary' : 'warning'
+  const completionDetail = h.completionDetail
+  // La percentuale conta solo ciò che il software misura: le voci lasciate
+  // all'avvocato e quelle rinviate al deposito si dichiarano accanto al numero.
+  const completionManual = recordNumber(completionDetail, 'manual')
+  const completionDeferred = recordNumber(completionDetail, 'deferred')
+  const completionNote = recordNumber(completionDetail, 'total')
+    ? [
+        `${recordNumber(completionDetail, 'checked')} verifiche superate su ${recordNumber(completionDetail, 'total')}`,
+        completionManual ? `${completionManual} da completare a mano` : '',
+        completionDeferred ? `${completionDeferred} al deposito` : '',
+      ].filter(Boolean).join(' · ')
+    : 'completamento'
+  const statusTone: FascicoloRow['tone'] = depositAcquired
+    ? 'success'
+    : regia.validation.ready
+      ? 'success'
+      : regia.validation.blockers.length
+        ? 'danger'
+        : depositPhaseActive
+          ? 'warning'
+          : 'neutral'
   const operational = data.operationalPresidio
   const operationalNext = operational.nextAction || operational.actions[0]
   const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)
@@ -7046,6 +7099,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           <div className="iu-fas-regia__progress" aria-label="Completamento Presidio del fascicolo">
             <strong>{h.completion}%</strong>
             <span>completamento</span>
+            <small>{completionNote}</small>
           </div>
         </header>
         {metaItems.length ? (
@@ -7092,7 +7146,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           </article>
           <article>
             <h4>Validazione</h4>
-            <Badge tone={statusTone}>{regia.validation.status || 'Da verificare'}</Badge>
+            <Badge tone={statusTone}>{regiaValidationStatusLabel(regia.validation.status)}</Badge>
             <p>{validationMessage}</p>
             <div className="iu-fas-regia__actions">
               {predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Verifica operativa</PostAction> : null}
@@ -7106,7 +7160,8 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
             <div className="iu-fas-regia-list">
               {regia.checklist.map((item) => {
                 const itemStatus = recordText(item, 'status')
-                return <article key={recordText(item, 'id') || recordText(item, 'key')}><Badge tone={itemStatus === 'BLOCCATO' ? 'danger' : itemStatus === 'COMPLETATO' ? 'success' : 'warning'}>{regiaChecklistStatusLabel(itemStatus)}</Badge><strong>{recordText(item, 'label')}</strong><span>{recordText(item, 'message')}</span><small>{recordText(item, 'suggestedAction')}</small></article>
+                const itemTone: FascicoloRow['tone'] = itemStatus === 'BLOCCATO' ? 'danger' : itemStatus === 'COMPLETATO' ? 'success' : itemStatus === 'NON_PERTINENTE' ? 'neutral' : 'warning'
+                return <article key={recordText(item, 'id') || recordText(item, 'key')}><Badge tone={itemTone}>{regiaChecklistStatusLabel(itemStatus)}</Badge><strong>{recordText(item, 'label')}</strong><span>{recordText(item, 'message')}</span><small>{recordText(item, 'suggestedAction')}</small></article>
               })}
               {!regia.checklist.length ? <div className="iu-fas-regia-empty-card"><strong>Checklist da creare</strong><span>La Regia genera i controlli dopo il profilo operativo del fascicolo.</span>{recalculateAction ? <PostAction action={recalculateAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Aggiorna Regia</PostAction> : null}</div> : null}
             </div>
@@ -7131,7 +7186,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
         </div>
         <div className="iu-fas-regia__deposit">
           <div>
-              <Badge tone={recordText(deposit, 'status') === 'ACQUISITO' ? 'success' : blocked ? 'danger' : ready ? 'success' : 'warning'}>{depositStatusLabel(recordText(deposit, 'status', 'Da preparare'))}</Badge>
+              <Badge tone={depositTone}>{recordText(deposit, 'statusLabel') || depositStatusLabel(recordText(deposit, 'status', 'Da preparare'))}</Badge>
             <strong>{recordText(deposit, 'label', 'Deposito')}</strong>
             <p>{recordText(deposit, 'message') || blockReasons[0] || 'Stato deposito non avviato.'}</p>
             {blockReasons.length ? <ul>{blockReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}

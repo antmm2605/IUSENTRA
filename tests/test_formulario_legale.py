@@ -123,6 +123,51 @@ def test_i_token_che_non_sono_date_non_diventano_date(letto: str) -> None:
     assert [voce for voce in trova_date(letto) if voce.sostituzioni] == []
 
 
+@pytest.mark.parametrize(
+    "letto",
+    [
+        "ai sensi della l. 5/2026",      # legge 5 del 2026, non il 1° maggio
+        "l. 12/2026",
+        "l. 69/2023",
+        "l. 22/2020",
+        "art. 2.3.2026",
+        "D.Lgs. 1/2/2026",
+        "D.M. 55/2014",
+        "n. 10/11/2026",
+        "prot. 12/3/26",
+        "vers. 1.2.34",
+        "Reg. UE 2016/679",
+        "comma 1.5.2026",
+        "R.G. 1234/2026",
+        "sent. 15350/2015",
+    ],
+)
+def test_un_riferimento_normativo_non_e_mai_una_data(letto: str) -> None:
+    from legal_ocr.formulario.date import normalizza_data_ocr, trova_date
+
+    assert normalizza_data_ocr(letto) == letto
+    assert trova_date(letto) == []
+
+
+@pytest.mark.parametrize(
+    ("letto", "attesa"),
+    [
+        ("udienza del 10/11/2026", "10/11/2026"),
+        ("Milano, lì 20/09/2026", "20/09/2026"),
+        ("notificato il 15/08/2026", "15/08/2026"),
+        ("entro il 31/10/2026", "31/10/2026"),
+        ("scadenza al 31/12/2026", "31/12/2026"),
+        ("decreto n. 123 del 10/11/2026", "10/11/2026"),
+        ("sentenza n. 88/2026 pubblicata il 05/09/2026", "05/09/2026"),
+        ("ai sensi della l. 53/1994, notificato il 15/08/2026", "15/08/2026"),
+    ],
+)
+def test_la_data_annunciata_da_una_preposizione_resta_una_data(letto: str, attesa: str) -> None:
+    from legal_ocr.formulario.date import trova_date
+
+    assert [voce.scritto for voce in trova_date(letto)] == [attesa]
+
+
 def test_trova_date_da_posizione_correzione_e_forma() -> None:
     from datetime import date
 

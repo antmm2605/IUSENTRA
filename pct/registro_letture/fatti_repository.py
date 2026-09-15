@@ -236,6 +236,41 @@ class FattiMixin:
             allineati += 1
         return allineati
 
+    def riconvalida_fatti(self, tenant_id: str, fascicolo_id: str) -> list[Fatto]:
+        """Respinge i fatti che le regole correnti non estrarrebbero più.
+
+        Un fatto registrato prima che una regola si stringesse resta
+        nell'archivio e continua ad alimentare i presìdi: una data che oggi il
+        lettore riconosce come riferimento normativo («l. 69/2023») va respinta,
+        non lasciata a chiedere conferma. Le decisioni dell'avvocato
+        (corretta, ignorata) non si toccano mai.
+        """
+        from legal_ocr.formulario.riferimenti_normativi import e_riferimento_normativo
+
+        tenant = _testo(tenant_id)
+        respinti: list[Fatto] = []
+        adesso = self._adesso()  # type: ignore[attr-defined]
+        for fatto in self.fatti(tenant, fascicolo_id, verifiche=("plausibile", "verificata")):
+            if fatto.categoria != "data":
+                continue
+            letto = _testo(fatto.valore_letto)
+            riferimento = e_riferimento_normativo(letto, 0, len(letto)) if letto else ""
+            if not riferimento:
+                continue
+            prove = list(fatto.prove) + [{
+                "codice": "riconvalida",
+                "esito": "respinta",
+                "dettaglio": f"«{letto}» è un riferimento normativo ({riferimento}), non una data",
+            }]
+            with self.connection() as conn:  # type: ignore[attr-defined]
+                conn.execute(
+                    'UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE "tenant_id" = ? AND "id" = ?',
+                    ("respinta", json.dumps(prove, ensure_ascii=False, sort_keys=True), adesso, tenant, fatto.id),
+                )
+            fatto.verifica, fatto.prove = "respinta", prove
+            respinti.append(fatto)
+        return respinti
+
     def riassunto_fatti(self, tenant_id: str, fascicolo_id: str) -> dict[str, Any]:
         """Quanti fatti, per verdetto e per categoria; per i presìdi e per il pannello."""
         per_verifica = {chiave: 0 for chiave in VERIFICHE}

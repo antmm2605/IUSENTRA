@@ -11,6 +11,9 @@ nell'anno (che deve avere almeno due cifre vere): cosi' «1O/O3/2O26» e
 numero di protocollo non lo diventano mai. Fuori dai token a forma di data
 non si tocca nulla.
 
+Un riferimento normativo non è mai una data: «l. 69/2023» è la legge 69 del
+2023 e «l. 5/2026» non è il 1° maggio 2026 (vedi `riferimenti_normativi.py`).
+
 Formato di riferimento: giorno/mese/anno, come nei provvedimenti e nelle
 comunicazioni di cancelleria (D.M. 44/2011, specifiche DGSIA: DataDeposito e
 DataUdienza sono giorno-mese-anno).
@@ -24,6 +27,7 @@ from datetime import date
 
 from .confusioni import LETTERA_PER_CIFRA_SICURE, a_cifre
 from .regola import Regola, regola_regex
+from .riferimenti_normativi import e_riferimento_normativo
 
 _SEGNO = r"[\dOoIl|ÌSsBZz]"
 _DATA_GREZZA = re.compile(rf"(?<![\w€])({_SEGNO}{{1,2}})\s*([./-])\s*({_SEGNO}{{1,2}})\s*[./-]\s*({_SEGNO}{{2,4}})(?![\w])")
@@ -98,6 +102,8 @@ def data_da_componenti(giorno: str, mese: str, anno: str, *, separatore: str = "
 
 def _normalizza_token(match: re.Match[str]) -> str:
     grezzo = match.group(0)
+    if e_riferimento_normativo(match.string, match.start(), match.end()):
+        return grezzo
     esito = data_da_componenti(match.group(1), match.group(3), match.group(4), separatore=match.group(2))
     if esito is None or _sostituzioni(grezzo) == 0:
         return grezzo
@@ -106,6 +112,8 @@ def _normalizza_token(match: re.Match[str]) -> str:
 
 def _normalizza_iso(match: re.Match[str]) -> str:
     grezzo = match.group(0)
+    if e_riferimento_normativo(match.string, match.start(), match.end()):
+        return grezzo
     esito = data_da_componenti(match.group(3), match.group(2), match.group(1), iso=True)
     if esito is None or _sostituzioni(grezzo) == 0:
         return grezzo
@@ -196,19 +204,19 @@ def trova_date(testo: str) -> list[DataCorretta]:
 
     for match in _ISO_GREZZA.finditer(testo):
         esito = data_da_componenti(match.group(3), match.group(2), match.group(1), iso=True)
-        if esito is None:
+        if esito is None or e_riferimento_normativo(testo, match.start(), match.end()):
             continue
         trovate.append(DataCorretta(match.group(0), esito[0], esito[1], match.start(), match.end(), _sostituzioni(match.group(0)), "iso"))
         occupate.append((match.start(), match.end()))
     for match in _DATA_ESTESA_GREZZA.finditer(testo):
         esito = data_estesa_da_componenti(match.group("giorno"), match.group("mese"), match.group("anno"))
-        if esito is None or not libera(match.start(), match.end()):
+        if esito is None or not libera(match.start(), match.end()) or e_riferimento_normativo(testo, match.start(), match.end()):
             continue
         trovate.append(DataCorretta(match.group(0), esito[0], esito[1], match.start(), match.end(), _sostituzioni(match.group("giorno") + match.group("anno")), "estesa"))
         occupate.append((match.start(), match.end()))
     for match in _DATA_GREZZA.finditer(testo):
         esito = data_da_componenti(match.group(1), match.group(3), match.group(4), separatore=match.group(2))
-        if esito is None or not libera(match.start(), match.end()):
+        if esito is None or not libera(match.start(), match.end()) or e_riferimento_normativo(testo, match.start(), match.end()):
             continue
         trovate.append(DataCorretta(match.group(0), esito[0], esito[1], match.start(), match.end(), _sostituzioni(match.group(0)), "numerica"))
         occupate.append((match.start(), match.end()))

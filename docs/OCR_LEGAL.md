@@ -127,3 +127,42 @@ regole che la usano correggono solo dove la forma dice che cosa deve esserci:
 Le date lette passano poi alla verifica del registro delle letture
 (`docs/REGISTRO_LETTURE.md`): calendario, orizzonte del fascicolo, coerenza con
 la PEC o con il portale, giorno e mese invertiti.
+
+## I riferimenti normativi non sono date (2.318.0)
+
+`legal_ocr/formulario/riferimenti_normativi.py` dichiara le abbreviazioni
+forensi in un punto solo: leggi e decreti (L., D.Lgs., D.L., D.P.R., D.M.,
+D.P.C.M., R.D., D.P.C.S.G.A.), articoli e commi (art., artt., comma, co.,
+lett.), numerazioni (n., nn., num.), provvedimenti (sent., ord., decr.,
+Cass., Sez.), numeri di ruolo (R.G., R.G.N.R., N.R.G., proc.), fonti europee
+(Reg. UE, Dir.) e numerazioni d'ufficio (prot., fattura, vers.). Dentro un
+riferimento normativo il formulario non corregge nulla e il lettore non trova
+date: «l. 69/2023» è la legge 69 del 2023, non il 1° giugno 2023.
+
+Due confini obbligatori tengono la regola stretta: l'abbreviazione non può
+essere preceduta da una lettera (altrimenti la «l» di «del», «al», «il»
+verrebbe letta come «legge» e «udienza del 10/11/2026» non sarebbe più una
+data) e deve essere chiusa da un punto o da uno spazio (altrimenti «con» si
+leggerebbe come «co.» + «n.»). Una data annunciata da una preposizione — «del
+10/11/2026», «in data 05/09/2026», «lì 20/09/2026» — resta una data.
+
+## Correttore di lettura e lessico (2.318.0)
+
+`legal_ocr/lessico/` corregge le parole che il lettore ottico ha sbagliato,
+con una regola sola: la parola letta non è nel lessico e **una sola** parola
+del lessico si ottiene applicando le confusioni dichiarate. Se le parole
+candidate sono due non si corregge, perché scegliere fra due parole esistenti
+sarebbe interpretare il testo.
+
+| File | Contenuto |
+|---|---|
+| `legal_ocr/lessico/forense.py` | Il lessico degli atti: istituti, formule, soggetti del processo, riti (dal linguaggio dei codici e delle leggi che il gestionale già cita) |
+| `legal_ocr/lessico/italiano.py` | Il nucleo italiano dichiarato più il dizionario di sistema (`hunspell-it`, installato nell'immagine): senza dizionario di sistema il correttore funziona su meno parole e nulla si blocca |
+| `legal_ocr/lessico/correttore.py` | Le confusioni ammesse (cifre lette al posto di lettere, coppie fuse rn/m, cl/d, ii/n, vv/w, accento in mezzo alla parola), i limiti (almeno 4 caratteri e 3 lettere, al più 2 sostituzioni) e la conservazione delle maiuscole |
+| `legal_ocr/formulario/lessico.py` | La regola `lessico.parola.v1`, ultima del formulario: si applica quando caratteri, abbreviazioni, numeri e accenti hanno già sistemato il resto |
+
+Non si tocca nulla dentro un riferimento normativo, un numero, una data o un
+codice: quelle forme hanno già le loro regole. Esempi: «cornparsa» →
+comparsa, «istan2a» → istanza, «u1teriore» → ulteriore, «perentorìo» →
+perentorio; «Rossi», «Palmi», «2026», «€ 1.250,00» e «art. 163 c.p.c.»
+restano intatti.

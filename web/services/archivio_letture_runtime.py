@@ -179,7 +179,7 @@ def _attribuisci(fatti: Iterable[Fatto], oggetto: Oggetto, motore: str) -> list[
 
 def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, *, forza: bool, limite: int) -> dict[str, int]:
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "fatti": 0, "verificati": 0}
+    conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_DOCUMENTI, tipi=("documento",))
     if forza:
         letti_prima = {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI) if l.stato == "non_leggibile"}
@@ -191,6 +191,11 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
     for oggetto in da_leggere[:limite]:
         documento = documenti.get(oggetto.oggetto_id)
         if documento is None:
+            # L'oggetto è nell'inventario ma il documento non c'è più: senza questa
+            # chiusura resterebbe «da leggere» per sempre e la lettura automatica
+            # non risulterebbe mai completa.
+            conteggi["assenti"] += 1
+            registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "documento non più presente nel fascicolo"}, versione=VERSIONE_MOTORE_DOCUMENTI)
             continue
         letture = testi_documento(fascicolo, documento)
         if not letture:
@@ -212,7 +217,7 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
 
 def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, messaggi: list[dict[str, Any]], *, limite: int) -> dict[str, int]:
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    conteggi = {"da_leggere": 0, "letti": 0, "fatti": 0, "verificati": 0}
+    conteggi = {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
     conteggi["da_leggere"] = len(da_leggere)
     per_id = {str(m.get("id")): m for m in messaggi}
@@ -225,13 +230,20 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
         if oggetto.tipo == "pec":
             messaggio = per_id.get(oggetto.oggetto_id)
             if messaggio is None:
+                # Il messaggio non è più collegato al fascicolo: si chiude la lettura
+                # invece di lasciare l'oggetto in attesa a ogni giro.
+                conteggi["assenti"] += 1
+                registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, stato="non_leggibile", esito={"motivo": "messaggio PEC non più collegato al fascicolo"}, versione=VERSIONE_MOTORE_PEC)
                 continue
             fatti = _attribuisci(fatti_da_messaggio(messaggio, contesto), oggetto, "pec")
         else:
             allegato = allegati.get(oggetto.oggetto_id)
             testo = str((allegato or {}).get("ocr_text") or "")
             if not testo.strip():
-                registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, stato="non_leggibile", esito={"motivo": "allegato senza testo letto dal presidio PEC"}, versione=VERSIONE_MOTORE_PEC)
+                motivo = "allegato senza testo letto dal presidio PEC" if allegato is not None else "allegato non più presente nella PEC collegata"
+                if allegato is None:
+                    conteggi["assenti"] += 1
+                registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, stato="non_leggibile", esito={"motivo": motivo}, versione=VERSIONE_MOTORE_PEC)
                 continue
             fatti = _attribuisci(fatti_da_allegato(testo, nome=oggetto.nome, contesto=contesto), oggetto, "pec")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "pec", fatti, versione=VERSIONE_MOTORE_PEC)
@@ -270,6 +282,29 @@ def _ricollauda_plausibili(fascicolo: Any, registro: RegistroLetture, tenant: st
     return promossi
 
 
+def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
+    """Le regole di oggi ripassano ciò che è già registrato: niente resta aperto per una regola superata.
+
+    Chi ha già letto un documento non lo rilegge; ma le anomalie e i fatti
+    registrati con regole più larghe vanno riportati alle regole correnti,
+    altrimenti l'avvocato continua a vedere conferme che il software oggi non
+    chiederebbe più.
+    """
+    from pct.registro_letture.riconvalida import contesto_riconvalida
+
+    fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+    esito = {"anomalie": 0, "fatti": 0}
+    try:
+        esito["anomalie"] = len(registro.chiudi_anomalie_superate(tenant, fascicolo_id, contesto=contesto_riconvalida(fascicolo)))
+    except Exception as exc:
+        logger.debug("Riconvalida delle anomalie non riuscita per %s: %s", fascicolo_id, exc)
+    try:
+        esito["fatti"] = len(registro.riconvalida_fatti(tenant, fascicolo_id))
+    except Exception as exc:
+        logger.debug("Riconvalida dei fatti non riuscita per %s: %s", fascicolo_id, exc)
+    return esito
+
+
 def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None) -> dict[str, Any]:
     """I due motori leggono solo ciò che il registro dice non letto; l'archivio si aggiorna; la lettura in cache si invalida."""
     registro = registro or registro_corrente()
@@ -280,12 +315,18 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
     messaggi = _messaggi_pec(fascicolo)
     contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
+    riconvalidati = _riconvalida(fascicolo, registro, tenant)
     documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite)
     pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
     promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
-    if documenti["letti"] or pec["letti"] or promossi:
+    if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"]:
         invalida_lettura(fascicolo_id)
-    return {"inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "restano": max(0, documenti["da_leggere"] - documenti["letti"] - documenti["senza_testo"]) + max(0, pec["da_leggere"] - pec["letti"])}
+    chiusi_documenti = documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
+    chiusi_pec = pec["letti"] + pec["assenti"]
+    return {
+        "inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "riconvalidati": riconvalidati,
+        "restano": max(0, documenti["da_leggere"] - chiusi_documenti) + max(0, pec["da_leggere"] - chiusi_pec),
+    }
 
 
 def fatti_fascicolo(fascicolo: Any, **filtri: Any) -> list[Fatto]:
@@ -295,6 +336,41 @@ def fatti_fascicolo(fascicolo: Any, **filtri: Any) -> list[Fatto]:
     except Exception as exc:
         logger.debug("Archivio delle letture non disponibile per %s: %s", getattr(fascicolo, "id", ""), exc)
         return []
+
+
+MOTIVI_IN_ATTESA = {
+    "da_leggere": "non ancora letto dai motori",
+    "da_rileggere": "il contenuto è cambiato: va riletto",
+    "in_corso": "lettura in corso",
+    "errore": "la lettura precedente è fallita",
+}
+
+
+def oggetti_in_attesa(stato: Any, *, letture: Iterable[Any] = ()) -> list[dict[str, str]]:
+    """Gli oggetti che i motori devono ancora leggere, con il motivo in italiano.
+
+    Il pannello deve poter dire *quale* oggetto manca e perché: «la lettura
+    automatica deve ancora leggere 1 oggetto» senza dire quale non è una
+    informazione utilizzabile dall'avvocato.
+    """
+    motivi_registrati = {
+        (lettura.tipo, lettura.oggetto_id, lettura.lettore): _testo((lettura.esito or {}).get("motivo"))
+        for lettura in letture
+    }
+    in_attesa: list[dict[str, str]] = []
+    for riga in list(getattr(stato, "per_oggetto", []) or []):
+        for lettore, stato_lettura in dict(riga.get("letture") or {}).items():
+            if lettore not in {LETTORE_DOCUMENTI, LETTORE_PEC} or stato_lettura not in MOTIVI_IN_ATTESA:
+                continue
+            registrato = motivi_registrati.get((str(riga.get("tipo") or ""), str(riga.get("oggetto_id") or ""), lettore))
+            in_attesa.append({
+                "tipo": str(riga.get("tipo") or ""),
+                "oggetto_id": str(riga.get("oggetto_id") or ""),
+                "nome": str(riga.get("nome") or "") or str(riga.get("oggetto_id") or ""),
+                "motore": "documenti" if lettore == LETTORE_DOCUMENTI else "PEC",
+                "motivo": registrato or MOTIVI_IN_ATTESA[stato_lettura],
+            })
+    return in_attesa
 
 
 def stato_archivio_payload(fascicolo: Any, *, registro: RegistroLetture | None = None) -> dict[str, Any]:
@@ -310,6 +386,7 @@ def stato_archivio_payload(fascicolo: Any, *, registro: RegistroLetture | None =
     lettori = {voce.lettore: voce for voce in stato.lettori}
     ultima = max([voce.ultima_lettura for voce in stato.lettori] + [""])
     da_leggere = sum(voce.da_leggere + voce.errori for voce in stato.lettori)
+    in_attesa = oggetti_in_attesa(stato, letture=registro.letture(tenant, fascicolo_id))
     with _LOCK:
         in_corso = fascicolo_id in _IN_CORSO
     riassunto.update({
@@ -322,6 +399,7 @@ def stato_archivio_payload(fascicolo: Any, *, registro: RegistroLetture | None =
             "ultima_lettura_it": format_datetime_it(ultima) if ultima else "",
             "documenti": {"letti": lettori[LETTORE_DOCUMENTI].letti, "da_leggere": lettori[LETTORE_DOCUMENTI].da_leggere} if LETTORE_DOCUMENTI in lettori else {},
             "pec": {"letti": lettori[LETTORE_PEC].letti, "da_leggere": lettori[LETTORE_PEC].da_leggere} if LETTORE_PEC in lettori else {},
+            "in_attesa": in_attesa,
         },
         "collaudo_lettore": collaudo_lettore_payload(),
     })

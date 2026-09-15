@@ -103,17 +103,48 @@ def ruoli_letti(fatti: Iterable[Fatto]) -> list[dict[str, Any]]:
     return sorted(visti.values(), key=lambda voce: (0 if voce["verifica"] == "verificata" else 1, voce["valore"]))
 
 
-def riassunto_archivio(fatti: Iterable[Fatto]) -> dict[str, Any]:
-    """Il riassunto per il pannello: quanti fatti per verdetto, udienze, termini, prove, ruoli, plausibili da confermare."""
+# Solo questi campi, se confermati, cambiano qualcosa per l'avvocato: entrano
+# nell'agenda o nello scadenziario. Una data d'atto o di documento letta da un
+# vecchio allegato non produce alcuna azione e non va chiesta.
+CAMPI_DA_CONFERMARE = frozenset({"udienza", "termine", "costituzione"})
+
+
+def da_confermare_ora(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[dict[str, Any]]:
+    """Le sole date che, confermate, cambiano l'agenda o lo scadenziario.
+
+    Una data plausibile già passata non si chiede: l'udienza si è tenuta e il
+    termine è scaduto, quindi la conferma non produrrebbe alcuna azione. Così
+    il riquadro chiede due conferme utili invece di dodici indistinte.
+    """
+    oggi = oggi or date.today()
+    richieste: list[dict[str, Any]] = []
+    visti: set[tuple[str, str]] = set()
+    for fatto in fatti:
+        if fatto.verifica != "plausibile" or fatto.categoria != "data" or fatto.campo not in CAMPI_DA_CONFERMARE:
+            continue
+        giorno = _giorno(fatto.valore)
+        if giorno is None or giorno < oggi:
+            continue
+        chiave = (fatto.campo, giorno.isoformat())
+        if chiave in visti:
+            continue
+        visti.add(chiave)
+        richieste.append({
+            "id": fatto.id, "campo": fatto.campo, "etichetta": fatto.etichetta, "valore": fatto.valore,
+            "valore_letto": fatto.valore_letto, "oggetto_id": fatto.oggetto_id, "tipo": fatto.tipo,
+            "contesto": fatto.contesto, "prove": list(fatto.prove),
+        })
+    return sorted(richieste, key=lambda voce: str(voce["valore"]))
+
+
+def riassunto_archivio(fatti: Iterable[Fatto], *, oggi: date | None = None) -> dict[str, Any]:
+    """Il riassunto per il pannello: quanti fatti per verdetto, udienze, termini, prove, ruoli, conferme utili."""
     elenco = list(fatti)
     per_verifica = {"verificata": 0, "plausibile": 0, "respinta": 0, "corretta": 0, "ignorata": 0}
     for fatto in elenco:
         per_verifica[fatto.verifica] = per_verifica.get(fatto.verifica, 0) + 1
     utili = [fatto for fatto in elenco if fatto.verifica in VERIFICHE_UTILI]
-    da_confermare = [
-        {"id": fatto.id, "campo": fatto.campo, "etichetta": fatto.etichetta, "valore": fatto.valore, "valore_letto": fatto.valore_letto, "oggetto_id": fatto.oggetto_id, "tipo": fatto.tipo, "contesto": fatto.contesto, "prove": list(fatto.prove)}
-        for fatto in elenco if fatto.verifica == "plausibile" and fatto.categoria == "data" and fatto.campo in {"udienza", "termine", "costituzione"}
-    ]
+    da_confermare = da_confermare_ora(elenco, oggi=oggi)
     return {
         "totale": len(elenco),
         "per_verifica": per_verifica,
@@ -128,4 +159,4 @@ def riassunto_archivio(fatti: Iterable[Fatto]) -> dict[str, Any]:
     }
 
 
-__all__ = ["FORZA_PROVA", "etichetta_verifica", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]
+__all__ = ["CAMPI_DA_CONFERMARE", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]

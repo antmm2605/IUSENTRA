@@ -78,3 +78,19 @@ test('collaudo del lettore e lettura automatica in frasi italiane', () => {
   assert.equal(fraseLetturaAutomatica(archivio().lettura_automatica), 'Tutto letto e collaudato; ultima lettura automatica 16/09/2026 07:00. Si rilegge solo ciò che cambia.')
   assert.equal(fraseLetturaAutomatica({ in_corso: false, da_leggere: 1, completa: false, ultima_lettura: '', ultima_lettura_it: '' }), 'Lettura automatica: 1 oggetto ancora da leggere (il prossimo giro parte da solo).')
 })
+
+test('lettura automatica: dice quale oggetto manca e perché', () => {
+  const stato = {
+    in_corso: false, da_leggere: 1, completa: false, ultima_lettura: '', ultima_lettura_it: '',
+    in_attesa: [{ tipo: 'documento', oggetto_id: 'd1', nome: 'Ricorso.pdf', motore: 'documenti', motivo: 'non ancora letto dai motori' }],
+  }
+  assert.equal(
+    fraseLetturaAutomatica(stato),
+    'Lettura automatica: 1 oggetto ancora da leggere: «Ricorso.pdf» (non ancora letto dai motori) (il prossimo giro parte da solo).',
+  )
+  const molti = {
+    in_corso: false, da_leggere: 5, completa: false, ultima_lettura: '', ultima_lettura_it: '',
+    in_attesa: ['a', 'b', 'c', 'd', 'e'].map((nome) => ({ tipo: 'documento', oggetto_id: nome, nome, motore: 'documenti', motivo: 'il contenuto è cambiato: va riletto' })),
+  }
+  assert.match(fraseLetturaAutomatica(molti), /«a».*«b».*«c».*e altri 2/)
+})

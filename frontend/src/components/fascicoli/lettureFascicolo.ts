@@ -79,8 +79,17 @@ export interface ArchivioLetture {
   eventi: number
   per_motore: { documenti: number; pec: number }
   da_confermare: FattoDaConfermare[]
-  lettura_automatica: { in_corso: boolean; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string }
+  lettura_automatica: { in_corso: boolean; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[] }
   collaudo_lettore: { eseguito: boolean; superato?: boolean; corretti?: number; totali?: number; eseguito_il_it?: string; casi_falliti?: string[] }
+}
+
+// Un oggetto del fascicolo che i motori devono ancora leggere, con il perché.
+export interface OggettoInAttesa {
+  tipo: string
+  oggetto_id: string
+  nome: string
+  motore: string
+  motivo: string
 }
 
 export interface LettureFascicolo {
@@ -193,6 +202,11 @@ export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | un
 export function fraseLetturaAutomatica(stato: ArchivioLetture['lettura_automatica'] | undefined): string {
   if (!stato) return ''
   if (stato.in_corso) return 'Lettura automatica in corso.'
-  if (stato.da_leggere) return `Lettura automatica: ${stato.da_leggere} oggett${stato.da_leggere === 1 ? 'o' : 'i'} ancora da leggere (il prossimo giro parte da solo).`
+  if (stato.da_leggere) {
+    // Quale oggetto manca, non solo quanti: «1 oggetto da leggere» non dice all'avvocato che cosa fare.
+    const attesa = (stato.in_attesa ?? []).slice(0, 3).map((voce) => `«${voce.nome}» (${voce.motivo})`).join(', ')
+    const quali = attesa ? `: ${attesa}${(stato.in_attesa ?? []).length > 3 ? ` e altri ${(stato.in_attesa ?? []).length - 3}` : ''}` : ''
+    return `Lettura automatica: ${stato.da_leggere} oggett${stato.da_leggere === 1 ? 'o' : 'i'} ancora da leggere${quali} (il prossimo giro parte da solo).`
+  }
   return stato.ultima_lettura_it ? `Tutto letto e collaudato; ultima lettura automatica ${stato.ultima_lettura_it}. Si rilegge solo ciò che cambia.` : 'Tutto letto: si rilegge solo ciò che cambia.'
 }

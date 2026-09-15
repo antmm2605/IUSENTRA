@@ -42,7 +42,10 @@ CARATTERI_MINIMI = 40
 TIMEOUT_SECONDI = 180
 LINGUA = "ita"
 
-_LINGUA_VERIFICATA: dict[int, str] = {}
+# La lingua verificata per ogni adattatore. Si conserva anche l'oggetto: senza,
+# l'identificativo di un adattatore raccolto dal garbage collector verrebbe
+# riassegnato a un adattatore nuovo, che salterebbe il controllo del dizionario.
+_LINGUA_VERIFICATA: dict[int, tuple[object, str]] = {}
 _VERIFICA = threading.Lock()
 
 
@@ -127,9 +130,9 @@ def motore_pronto(pytesseract: object, *, lingua: str = LINGUA) -> str:
     """Configura il runtime e controlla che il dizionario richiesto esista."""
     identita = id(pytesseract)
     with _VERIFICA:
-        pronta = _LINGUA_VERIFICATA.get(identita)
-    if pronta:
-        return pronta
+        voce = _LINGUA_VERIFICATA.get(identita)
+    if voce is not None and voce[0] is pytesseract:
+        return voce[1]
     configura(pytesseract)
     try:
         lingue = lingue_installate(pytesseract)
@@ -156,7 +159,7 @@ def motore_pronto(pytesseract: object, *, lingua: str = LINGUA) -> str:
                 )
             lingua = lingua_disponibile(pytesseract, lingua, "")
     with _VERIFICA:
-        _LINGUA_VERIFICATA[identita] = lingua
+        _LINGUA_VERIFICATA[identita] = (pytesseract, lingua)
     return lingua
 
 

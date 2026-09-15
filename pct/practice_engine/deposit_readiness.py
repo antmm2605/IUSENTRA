@@ -9,9 +9,11 @@ from typing import Any
 from pct.document_signature_state import document_has_real_digital_signature
 from pct.fascicolo_document_catalog import classify_fascicolo_document
 
-from .models import SlotStatus, SlotType, ValidatorStatus
+from .fase_deposito import fase_deposito
+from .models import SlotStatus, SlotType, ValidationResult, ValidatorStatus
 from .repository import PracticeEngineRepository
 from .validators import ValidationContext, run_validators, validate_slot
+from .voci_checklist import CONTROLLI_DI_DEPOSITO
 
 
 NEGATIVE_DEPOSIT_HINTS = (
@@ -253,6 +255,18 @@ def _auto_link_deposit_slots(
     return repository.list_slots(fascicolo_id) if changed else updated_slots
 
 
+def _non_pertinente(chiave: str, motivo: str) -> ValidationResult:
+    """Un controllo della busta fuori dalla fase di deposito: dichiarato, non bloccante."""
+    return ValidationResult(
+        key=chiave,
+        status=ValidatorStatus.NOT_APPLICABLE.value,
+        severity="info",
+        message=motivo,
+        suggested_action="Prepara il deposito per eseguire questo controllo.",
+        source="practice_engine.fase_deposito",
+    )
+
+
 def run_predeposit_check(
     repository: PracticeEngineRepository,
     *,
@@ -265,7 +279,15 @@ def run_predeposit_check(
     fascicoli_manager: Any | None = None,
     deposito_session: Any | None = None,
 ) -> dict[str, Any]:
+    """I controlli del fascicolo; quelli della busta solo quando c'è un deposito da preparare.
+
+    Fuori dalla fase di deposito i controlli della busta (PDF/A, firma, limiti)
+    non si eseguono sui documenti del fascicolo — che possono essere copie
+    importate dal portale — e non bloccano nulla: restano dichiarati come
+    rinviati al momento in cui l'avvocato prepara il deposito.
+    """
     fascicolo_id = str(getattr(fascicolo, "id", "") or "")
+    fase = fase_deposito(fascicolo, profilo=profile, sessione=deposito_session)
     slots = repository.ensure_slots(fascicolo_id, profile)
     slots = _auto_link_deposit_slots(
         repository,
@@ -289,23 +311,42 @@ def run_predeposit_check(
     slot_results = []
     updated_slots = []
     for slot in slots:
-        if slot.required or slot.document_id:
-            updated, results = validate_slot(slot, ctx)
-            repository.upsert_slot(updated)
-            repository.save_validation_results(fascicolo_id, results, scope="slot", slot_key=slot.slot_key)
-            updated_slots.append(updated)
-            slot_results.extend(results)
+        if not (slot.required or slot.document_id):
+            continue
+        if not fase.in_deposito:
+            # Il documento resta collegato e visibile, ma non si valida come atto da depositare.
+            slot.status = SlotStatus.VALIDO.value if slot.document_id else SlotStatus.NON_APPLICABILE.value
+            slot.message = "Documento collegato." if slot.document_id else "Documento richiesto solo per il deposito."
+            slot.suggested_action = "" if slot.document_id else "Collega il documento quando prepari il deposito."
+            repository.upsert_slot(slot)
+            updated_slots.append(slot)
+            slot_results.extend(_non_pertinente(chiave, fase.motivo) for chiave in slot.validators)
+            continue
+        updated, results = validate_slot(slot, ctx)
+        repository.upsert_slot(updated)
+        repository.save_validation_results(fascicolo_id, results, scope="slot", slot_key=slot.slot_key)
+        updated_slots.append(updated)
+        slot_results.extend(results)
     general_keys = list(dict.fromkeys((profile.blocking_validators or []) + (profile.warning_validators or [])))
-    general_results = run_validators(general_keys, ctx)
+    if fase.in_deposito:
+        general_results = run_validators(general_keys, ctx)
+    else:
+        da_eseguire = [chiave for chiave in general_keys if chiave not in CONTROLLI_DI_DEPOSITO]
+        general_results = run_validators(da_eseguire, ctx)
+        general_results += [_non_pertinente(chiave, fase.motivo) for chiave in general_keys if chiave in CONTROLLI_DI_DEPOSITO]
     repository.save_validation_results(fascicolo_id, general_results, scope="predeposito")
     all_results = general_results + slot_results
     blockers = [item for item in all_results if item.status in {ValidatorStatus.BLOCK.value, ValidatorStatus.ERROR.value}]
     warnings = [item for item in all_results if item.status == ValidatorStatus.WARNING.value]
     pending = [item for item in all_results if item.status == ValidatorStatus.PENDING.value]
-    status = "OK" if not blockers and not pending else ("BLOCCANTE" if blockers else "DA_COMPLETARE")
+    if not fase.in_deposito:
+        status = "NON_IN_DEPOSITO"
+    else:
+        status = "OK" if not blockers and not pending else ("BLOCCANTE" if blockers else "DA_COMPLETARE")
     return {
         "status": status,
         "ready": status == "OK",
+        "fase": fase,
         "blockers": [item for item in blockers],
         "warnings": [item for item in warnings],
         "pending": [item for item in pending],

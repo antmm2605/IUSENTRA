@@ -5,7 +5,11 @@ import json
 from typing import Any
 from urllib.parse import urlencode
 from legal_deposit.policies import AmbiguousChannelError, UnknownChannelError, channel_profile_for
+from .completamento import completamento, stato_operativo
+from .payload_regia import _checklist_payload, _slots_payload, _timeline_payload
 from .deposit_readiness import run_predeposit_check
+from .fase_deposito import deposito_reale
+from .voci_checklist import controlli_della_voce, stato_voce
 from .evidence_pack import generate_evidence_pack
 from .messages import DEPOSIT_ACQUIRED, DEPOSIT_SENT_NOT_ACQUIRED, NO_REAL_TRANSPORT
 from .models import DepositStatus, SlotStatus, ValidatorStatus
@@ -13,6 +17,7 @@ from .profiles import get_profile
 from pct.pst_catalog import PST_BUSTA_ENCRYPTION_ALGORITHM
 from .repository import PracticeEngineRepository
 from .resolver import resolve_practice_profile
+from .models import PracticeState
 from .state_machine import derive_state
 def _enum_value(value: Any) -> str:
     return str(getattr(value, "value", value) or "")
@@ -394,75 +399,6 @@ def _economic_summary(
         ],
     }
 
-def _checklist_payload(rows: list[Any], results: list[Any]) -> list[dict[str, Any]]:
-    blocking_messages = {item.key: item for item in results if item.blocking}
-    payload = []
-    for item in rows:
-        blocker = blocking_messages.get(item.key.lower()) or blocking_messages.get(item.key)
-        status = "BLOCCATO" if blocker else ("COMPLETATO" if not item.required else "DA_COMPLETARE")
-        payload.append(
-            {
-                "id": item.id,
-                "key": item.key,
-                "label": item.label,
-                "required": item.required,
-                "blocking": item.blocking,
-                "status": status,
-                "message": blocker.message if blocker else (item.message or "Controllo operativo da presidiare."),
-                "suggestedAction": blocker.suggested_action if blocker else (item.suggested_action or "Completa il requisito quando applicabile."),
-                "source": item.source,
-            }
-        )
-    return payload
-
-def _slots_payload(slots: list[Any]) -> list[dict[str, Any]]:
-    return [
-        {
-            "id": slot.id,
-            "slotKey": slot.slot_key,
-            "label": slot.label,
-            "type": slot.type,
-            "required": slot.required,
-            "blocking": slot.blocking,
-            "documentId": slot.document_id,
-            "status": slot.status,
-            "validators": list(slot.validators),
-            "lastValidationAt": slot.last_validation_at,
-            "message": slot.message or ("Documento richiesto mancante." if slot.required and not slot.document_id else ""),
-            "suggestedAction": slot.suggested_action or ("Carica o collega il documento richiesto." if slot.required and not slot.document_id else ""),
-            "sortOrder": slot.sort_order,
-            "linkAction": "",
-            "validateAction": "",
-        }
-        for slot in slots
-    ]
-
-def _timeline_payload(events: list[Any], receipts: list[Any]) -> list[dict[str, Any]]:
-    rows = [
-        {
-            "id": event.id,
-            "type": event.event_type,
-            "status": event.status,
-            "message": event.message,
-            "createdAt": event.created_at,
-            "evidenceRef": event.evidence_ref,
-        }
-        for event in events
-    ]
-    if not rows and receipts:
-        rows.extend(
-            {
-                "id": receipt.id,
-                "type": receipt.receipt_type,
-                "status": receipt.status,
-                "message": receipt.message,
-                "createdAt": receipt.imported_at,
-                "evidenceRef": receipt.id,
-            }
-            for receipt in receipts
-        )
-    return rows
-
 def build_regia_payload(
     repository: PracticeEngineRepository,
     *,
@@ -547,15 +483,28 @@ def build_regia_payload(
     receipts = repository.list_receipts(session.id) if session else []
     timeline = repository.list_timeline(session.id) if session else []
     evidence = repository.get_evidence_pack(session.id) if session else None
+    fase = readiness.get("fase")
+    in_deposito = bool(getattr(fase, "in_deposito", True))
+    motivo_fase = str(getattr(fase, "motivo", ""))
+    deposito = deposito_reale(fascicolo)
     missing_slots = any(slot.required and slot.status in {SlotStatus.MANCANTE.value, SlotStatus.NON_VALIDO.value} for slot in slots)
-    operational_state = session.status if session else derive_state(depositable=profile.depositable, validation_results=readiness["results"], slots_missing=missing_slots)
+    checklist_payload = _checklist_payload(checklist, readiness["results"], in_deposito=in_deposito, motivo_rinvio=motivo_fase)
     blockers = [item for item in readiness["blockers"] if item.status != ValidatorStatus.NOT_APPLICABLE.value]
     warnings = list(readiness["warnings"])
-    completion_den = max(1, len(checklist) + len([slot for slot in slots if slot.required]))
-    completed = len([item for item in checklist if item.status == "COMPLETATO"]) + len([slot for slot in slots if slot.status in {SlotStatus.VALIDO.value, SlotStatus.NON_APPLICABILE.value}])
-    completion = int(round(min(1.0, completed / completion_den) * 100))
+    operational_state = stato_operativo(
+        sessione=session, deposito=deposito, in_deposito=in_deposito,
+        stato_derivato=derive_state(depositable=profile.depositable, validation_results=readiness["results"], slots_missing=missing_slots),
+        stato_fascicolo_aperto=PracticeState.FASCICOLO_APERTO.value,
+    )
+    completion, completion_detail = completamento(checklist_payload, slots, in_deposito=in_deposito, motivo_fase=motivo_fase)
     if blockers:
         next_action = blockers[0].suggested_action or blockers[0].message
+    elif deposito.presente and deposito.stato in {"ACCETTATO_CANCELLERIA"}:
+        next_action = DEPOSIT_ACQUIRED
+    elif deposito.presente and deposito.stato in {"INVIATO", "ACCETTATO", "ACCETTATO_PEC", "CONSEGNATO", "CONTROLLI_OK", "WARN_CONTROLLI"}:
+        next_action = DEPOSIT_SENT_NOT_ACQUIRED
+    elif not in_deposito:
+        next_action = motivo_fase or "Prosegui con la fase successiva della pratica."
     elif profile.depositable and not session:
         next_action = "Esegui il check di predeposito e prepara la sessione deposito."
     elif session and session.status == DepositStatus.ACQUISITO.value:
@@ -586,6 +535,9 @@ def build_regia_payload(
             "workflow": profile.workflow_code,
             "operationalState": operational_state,
             "completion": completion,
+            "completionDetail": completion_detail,
+            "depositPhase": fase.to_dict() if fase is not None else {},
+            "deposit": deposito.to_dict(),
             "nextAction": next_action,
         },
         "profile": {
@@ -602,11 +554,13 @@ def build_regia_payload(
             "depositable": profile.depositable,
         },
         "economics": _economic_summary(preventivo, conferimento, parcelle, repository, fascicolo_id, fascicolo=fascicolo),
-        "checklist": _checklist_payload(checklist, readiness["results"]),
+        "checklist": checklist_payload,
         "documentSlots": _slots_payload(slots),
         "validation": {
             "status": readiness["status"],
             "ready": readiness["ready"],
+            "phase": fase.to_dict() if fase is not None else {},
+            "message": motivo_fase if not in_deposito else "",
             "lastCheck": readiness["results"][0].created_at if readiness["results"] else "",
             "blockers": [item.__dict__ for item in blockers],
             "warnings": [item.__dict__ for item in warnings],
@@ -616,13 +570,20 @@ def build_regia_payload(
             "label": deposit_label,
             "depositable": profile.depositable,
             "ready": readiness["ready"],
-            "blocked": bool(blockers) or not profile.depositable,
-            "blockReasons": [item.message for item in blockers] or ([] if profile.depositable else ["Questa procedura non prevede deposito telematico."]),
+            "blocked": bool(blockers) or (not profile.depositable and in_deposito),
+            "blockReasons": list(dict.fromkeys(item.message for item in blockers)) or ([] if profile.depositable else ["Questa procedura non prevede deposito telematico."]),
+            "phase": fase.to_dict() if fase is not None else {},
+            "lastDeposit": deposito.to_dict(),
             "sessionId": session.id if session else "",
-            "status": session.status if session else DepositStatus.NON_INVIATO.value,
+            "status": session.status if session else (deposito.stato or DepositStatus.NON_INVIATO.value),
+            "statusLabel": (session.status.replace("_", " ").capitalize() if session else (deposito.etichetta or "Non inviato")),
             "transportMode": session.transport_mode if session else "non_configurato",
             "realTransport": bool(session.real_transport) if session else False,
-            "message": (session.messages[0] if session and session.messages else (NO_REAL_TRANSPORT if profile.depositable else "Procedura non depositabile.")),
+            "message": (
+                session.messages[0] if session and session.messages
+                else (f"Deposito del {deposito.data_it}: {deposito.etichetta.lower()}." if deposito.presente
+                      else (NO_REAL_TRANSPORT if profile.depositable and in_deposito else (motivo_fase or "Procedura non depositabile.")))
+            ),
             "prepareAction": f"/api/v1/ui/fascicoli/{fascicolo_id}/depositi/prepara",
             "sendAction": f"/api/v1/ui/fascicoli/{fascicolo_id}/depositi/invia",
             "timelineAction": f"/api/v1/ui/fascicoli/{fascicolo_id}/depositi/{session.id}/timeline" if session else "",

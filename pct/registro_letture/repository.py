@@ -603,6 +603,29 @@ class RegistroLetture(FattiMixin):
             pass
         return anomalia
 
+    def chiudi_anomalie_superate(self, tenant_id: str, fascicolo_id: str, *, contesto: dict[str, Any]) -> list[Anomalia]:
+        """Chiude le anomalie aperte che le regole correnti non produrrebbero più.
+
+        La chiusura è registrata, non cancellata: resta il valore letto, il
+        contesto e il motivo che dichiara quale regola l'ha superata, con
+        l'autore «riconvalida automatica» per distinguerla da una decisione
+        dell'avvocato.
+        """
+        from .riconvalida import AUTORE_RICONVALIDA, anomalie_superate
+
+        tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
+        chiuse: list[Anomalia] = []
+        adesso = _adesso()
+        superate = anomalie_superate(self.anomalie(tenant, fascicolo, stato="aperta"), contesto=contesto)
+        if not superate:
+            return chiuse
+        with self.connection() as conn:
+            for anomalia, motivo in superate:
+                valori = {"stato": "ignorata", "motivo": motivo[:600], "risolta_il": adesso, "risolta_da": AUTORE_RICONVALIDA}
+                self._aggiorna(conn, "letture_anomalie", valori, "tenant_id = ? AND id = ?", (tenant, anomalia.id))
+                chiuse.append(self._anomalia({**anomalia.to_dict(), **valori}))
+        return chiuse
+
     def correzioni(self, tenant_id: str, fascicolo_id: str) -> dict[tuple[str, str, str], str]:
         """Le correzioni dell'avvocato: (oggetto_id, campo, valore_letto) → valore giusto."""
         esito: dict[tuple[str, str, str], str] = {}

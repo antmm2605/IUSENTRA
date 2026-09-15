@@ -73,12 +73,38 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
         voci.append(f"{quanti} document{'o' if quanti == 1 else 'i'} in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto")
     archivio_letto = lettura.get("archivio") or {}
     if archivio_letto.get("da_confermare"):
-        quanti = len(archivio_letto["da_confermare"])
-        voci.append(f"{quanti} dat{'a letta' if quanti == 1 else 'e lette'} dai documenti senza riscontro in un'altra fonte: il riquadro «Letture e verifiche» chiede conferma")
-    if archivio_letto.get("lettura_automatica", {}).get("da_leggere"):
+        voci.append(_lacuna_conferme(archivio_letto["da_confermare"]))
+    in_attesa = list((archivio_letto.get("lettura_automatica") or {}).get("in_attesa") or [])
+    if in_attesa:
+        voci.append(_lacuna_letture(in_attesa))
+    elif (archivio_letto.get("lettura_automatica") or {}).get("da_leggere"):
         quanti = archivio_letto["lettura_automatica"]["da_leggere"]
         voci.append(f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo")
     return voci[:8]
+
+
+def _lacuna_conferme(richieste: list[dict[str, Any]]) -> str:
+    """Quali date attendono conferma, non solo quante: l'avvocato deve sapere su che cosa decidere."""
+    nomi = []
+    for voce in richieste[:3]:
+        etichetta = pulisci(voce.get("etichetta")) or pulisci(voce.get("campo")) or "data"
+        nomi.append(f"{etichetta.lower()} del {data_it(pulisci(voce.get('valore'))[:10])}")
+    quanti = len(richieste)
+    elenco = ", ".join(nomi) + (f" e altre {quanti - 3}" if quanti > 3 else "")
+    return (
+        f"{quanti} dat{'a' if quanti == 1 else 'e'} in attesa di conferma ({elenco}): "
+        "nessun'altra fonte le conferma e cambiano agenda o scadenziario, il riquadro «Letture e verifiche» le chiede"
+    )
+
+
+def _lacuna_letture(in_attesa: list[dict[str, Any]]) -> str:
+    """Quale oggetto la lettura automatica deve ancora leggere, e perché."""
+    nomi = [f"«{pulisci(voce.get('nome'))}» ({pulisci(voce.get('motivo'))})" for voce in in_attesa[:3] if pulisci(voce.get("nome"))]
+    quanti = len(in_attesa)
+    elenco = ", ".join(nomi) + (f" e altri {quanti - 3}" if quanti > 3 else "")
+    return f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo: {elenco}" if nomi else (
+        f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo"
+    )
 
 
 def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:

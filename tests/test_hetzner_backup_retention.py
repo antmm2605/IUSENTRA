@@ -103,12 +103,18 @@ def test_env_hetzner_documenta_guardrail_backup():
 def test_deploy_pulisce_container_compose_temporanei_senza_toccare_dati():
     deploy_script = (REPO_ROOT / "deploy" / "hetzner" / "deploy.sh").read_text(encoding="utf-8")
     cleanup_script = (REPO_ROOT / "deploy" / "hetzner" / "cleanup_compose_conflicts.sh").read_text(encoding="utf-8")
+    image_cleanup_script = (REPO_ROOT / "deploy" / "hetzner" / "cleanup_docker_images.sh").read_text(encoding="utf-8")
     workflow = (REPO_ROOT / ".github" / "workflows" / "deploy-hetzner.yml").read_text(encoding="utf-8")
 
     assert "cleanup_compose_conflict_containers" in deploy_script
     assert "compose_up_with_cleanup" in deploy_script
     assert "pulisco container temporanei e riprovo una volta" in deploy_script
+    assert "cleanup_docker_images.sh" in deploy_script
+    assert "IUSENTRA_DOCKER_IMAGE_REPOSITORIES" in image_cleanup_script
+    assert "docker image rm \"$reference\"" in image_cleanup_script
+    assert "docker builder prune --all --force" in image_cleanup_script
     assert "cleanup_compose_conflicts.sh" in workflow
+    assert "cleanup_docker_images.sh" in workflow
     assert "IUSENTRA_CLEANUP_RUNNING_TEMP=1" in workflow
     assert "docker rm -f \"$container_id\"" in cleanup_script
     assert "docker ps -a --format" in cleanup_script
@@ -166,6 +172,71 @@ exit 64
     assert "audit-postgres" not in result.stdout
 
 
+def test_cleanup_docker_images_rimuove_solo_immagini_iusentra_non_attive(tmp_path: Path):
+    if not shutil.which("bash"):
+        pytest.skip("bash non disponibile")
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log_path = tmp_path / "docker.log"
+    fake_docker = bin_dir / "docker"
+    fake_docker.write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' "$*" >> "${DOCKER_LOG}"
+if [[ "${1:-}" == "ps" && "${2:-}" == "-q" ]]; then
+  printf 'running-app\\n'
+  exit 0
+fi
+if [[ "${1:-}" == "inspect" && "${2:-}" == "--format" ]]; then
+  printf 'active-image-id\\n'
+  exit 0
+fi
+if [[ "${1:-}" == "images" && "${2:-}" == "--format" ]]; then
+  printf 'iusentra-app\\tactive\\tactive-image-id\\n'
+  printf 'iusentra-app\\told\\told-app-id\\n'
+  printf 'iusentra-scheduler-worker\\told\\told-worker-id\\n'
+  printf 'postgres\\t16-alpine\\tpostgres-id\\n'
+  exit 0
+fi
+if [[ "${1:-}" == "image" && "${2:-}" == "rm" ]]; then
+  exit 0
+fi
+if [[ "${1:-}" == "image" && "${2:-}" == "prune" ]]; then
+  exit 0
+fi
+if [[ "${1:-}" == "builder" && "${2:-}" == "prune" ]]; then
+  exit 0
+fi
+echo "unexpected docker call: $*" >&2
+exit 64
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+    fake_docker.chmod(0o755)
+    subprocess.run(["bash", "-lc", f"chmod +x {shlex.quote(_bash_path(fake_docker))}"], check=True)
+
+    script = REPO_ROOT / "deploy" / "hetzner" / "cleanup_docker_images.sh"
+    command = " ".join(
+        [
+            f"PATH={shlex.quote(f'{_bash_path(bin_dir)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin')}",
+            f"DOCKER_LOG={shlex.quote(_bash_path(log_path))}",
+            f"bash {shlex.quote(_bash_path(script))}",
+        ]
+    )
+    result = subprocess.run(["bash", "-lc", command], text=True, capture_output=True, check=True)
+    calls = log_path.read_text(encoding="utf-8").splitlines()
+
+    assert "Pulizia immagini IUSENTRA: rimosse=2, attive_conservate=1" in result.stdout
+    assert "image rm iusentra-app:old" in calls
+    assert "image rm iusentra-scheduler-worker:old" in calls
+    assert "image rm iusentra-app:active" not in calls
+    assert "image rm postgres:16-alpine" not in calls
+    assert "image prune --force" in calls
+    assert "builder prune --all --force" in calls
+
+
 def test_backup_script_non_archivia_ollama_rigenerabile(tmp_path: Path):
     if not shutil.which("bash"):
         pytest.skip("bash non disponibile")
@@ -193,6 +264,7 @@ def test_backup_script_non_archivia_ollama_rigenerabile(tmp_path: Path):
             "IUSENTRA_BACKUP_RETENTION_DAYS=0",
             "IUSENTRA_BACKUP_RETENTION_COUNT=0",
             "IUSENTRA_BACKUP_RETENTION_MAX_GIB=0",
+            "IUSENTRA_BACKUP_MIN_FREE_GIB=0",
             "IUSENTRA_BACKUP_ZSTD_LEVEL=1",
             f"bash {shlex.quote(_bash_path(script))}",
         ]

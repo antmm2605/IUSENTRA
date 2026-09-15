@@ -162,10 +162,10 @@ curl -I https://iusentra.tuodominio.it/ricerca-legale
 Pulizia obbligatoria dopo build/deploy:
 
 ```bash
-docker builder prune --all --force
+bash deploy/hetzner/cleanup_docker_images.sh
 ```
 
-La cache di build Docker e' rigenerabile e non contiene dati degli studi. Dopo ogni deploy Hetzner va eliminata per evitare che il disco del server venga saturato da layer di compilazione non piu' necessari. Non usare comandi che rimuovono volumi o dati applicativi.
+Le immagini IUSENTRA vecchie non piu' usate dai container attivi e la cache di build Docker sono rigenerabili e non contengono dati degli studi. Dopo ogni deploy Hetzner vanno eliminate per evitare che il disco del server venga saturato da build precedenti. Non usare comandi che rimuovono volumi o dati applicativi.
 
 Le ultime tre `curl` verificano il routing canonico di Ricerca legale (da v2.242.0): `/ricerca-legale` e i suoi sotto-path sono serviti dalla shell React come superficie principale, mentre `/legal-intelligence/` e `/legal-intelligence/ricerca` devono rispondere `301` verso i corrispondenti path `/ricerca-legale/*`. Restano serviti dal blueprint Flask solo il download `/ricerca-legale/fonte/<id>/scarica` e il diff `/ricerca-legale/daily/*`.
 
@@ -215,7 +215,7 @@ Il backup completo produce archivio e checksum in /opt/iusentra/backups e verifi
 
 I backup .tar.zst usano zstd a budget server e partono con nice/ionice prudenti. Ollama, modelli locali e download rigenerabili sono esclusi. Host e container applicativi usano Europe/Rome.
 
-Dopo ogni deploy Hetzner il deploy esegue `docker builder prune --all --force` e rimuove `/opt/iusentra/tmp-backup-snapshot` se presente. La posta multi-studio non deve essere sincronizzata in `/data/email`: scheduler e route devono usare solo `/data/tenants/<studio>/email`.
+Dopo ogni deploy Hetzner il deploy esegue `bash deploy/hetzner/cleanup_docker_images.sh` e rimuove `/opt/iusentra/tmp-backup-snapshot` se presente. La posta multi-studio non deve essere sincronizzata in `/data/email`: scheduler e route devono usare solo `/data/tenants/<studio>/email`.
 
 La retention dell'archivio completo resta governata da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`. Gli allegati PEC/email nuovi possono usare `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`; il lettore resta compatibile con i file storici sciolti.
 

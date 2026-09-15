@@ -203,7 +203,7 @@ Lo script applica anche la retention: conserva al massimo 3 backup applicativi, 
 
 I backup .tar.zst usano zstd a budget server e vengono avviati con priorità bassa. Prima della compressione lo script verifica lo spazio libero richiesto; se il margine non basta, fallisce chiuso. Ollama, modelli locali e download rigenerabili sono esclusi e verificati.
 
-Dopo ogni deploy Hetzner il deploy elimina la cache build Docker rigenerabile e l'eventuale /opt/iusentra/tmp-backup-snapshot non operativo. In multi-studio la sincronizzazione PEC/email ordinaria deve fallire chiusa se non risolve un path tenant sotto /data/tenants/<studio>/email; /data/email non va popolato da scheduler o route operative.
+Dopo ogni deploy Hetzner il deploy elimina le immagini IUSENTRA obsolete non usate dai container attivi, la cache build Docker rigenerabile e l'eventuale /opt/iusentra/tmp-backup-snapshot non operativo. In multi-studio la sincronizzazione PEC/email ordinaria deve fallire chiusa se non risolve un path tenant sotto /data/tenants/<studio>/email; /data/email non va popolato da scheduler o route operative.
 
 ### Compattazione dello storage live
 
@@ -248,7 +248,7 @@ Il workflow `.github/workflows/deploy-hetzner.yml` esegue il deploy sul server H
 7. Stampa un summary GitHub Actions con commit, host, esito.
 8. Cancella la chiave SSH dal runner (`shred`).
 
-`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli. Se il secondo push dei branch gemelli trova gia' lo stesso commit su `/opt/iusentra/repo`, il workflow salta backup e rebuild, mantiene le verifiche post-deploy ed esegue comunque la pulizia rigenerabile con `docker builder prune --all --force` e rimozione di `/opt/iusentra/tmp-backup-snapshot`.
+`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli. Se il secondo push dei branch gemelli trova gia' lo stesso commit su `/opt/iusentra/repo`, il workflow salta backup e rebuild, mantiene le verifiche post-deploy ed esegue comunque `deploy/hetzner/cleanup_docker_images.sh`, cioe' pulizia delle immagini IUSENTRA vecchie non attive, `docker builder prune --all --force` e rimozione di `/opt/iusentra/tmp-backup-snapshot`.
 
 ### Setup una tantum
 

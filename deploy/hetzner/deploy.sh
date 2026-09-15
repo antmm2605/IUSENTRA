@@ -268,10 +268,15 @@ docker compose \
   ps || true
 
 # ---------------------------------------------------------------------------
-# 8. Pulizia cache build Docker
+# 8. Pulizia immagini e cache build Docker
 # ---------------------------------------------------------------------------
-echo "Pulizia cache build Docker rigenerabile..."
-docker builder prune --all --force || echo "Attenzione: pulizia cache build Docker non completata."
+echo "Pulizia immagini IUSENTRA obsolete e cache build Docker rigenerabile..."
+if [ -f "$REPO_DIR/deploy/hetzner/cleanup_docker_images.sh" ]; then
+  bash "$REPO_DIR/deploy/hetzner/cleanup_docker_images.sh" || \
+    echo "Attenzione: pulizia immagini Docker non completata."
+else
+  docker builder prune --all --force || echo "Attenzione: pulizia cache build Docker non completata."
+fi
 if [ -d "$IUSENTRA_HOME/tmp-backup-snapshot" ]; then
   echo "Pulizia snapshot temporaneo non operativo..."
   rm -rf -- "$IUSENTRA_HOME/tmp-backup-snapshot" || echo "Attenzione: snapshot temporaneo non rimosso."

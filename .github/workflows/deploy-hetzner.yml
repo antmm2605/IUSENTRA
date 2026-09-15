@@ -397,7 +397,7 @@ jobs:
             check_public_route "${path}"
           done
 
-      - name: Pulizia cache build Docker
+      - name: Pulizia immagini e cache build Docker
         if: ${{ always() && steps.setup_ssh.outcome == 'success' }}
         run: |
           set -euo pipefail
@@ -407,7 +407,7 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              'docker builder prune --all --force && rm -rf /opt/iusentra/tmp-backup-snapshot'
+              'cd /opt/iusentra/repo 2>/dev/null && if [ -f deploy/hetzner/cleanup_docker_images.sh ]; then bash deploy/hetzner/cleanup_docker_images.sh; else docker builder prune --all --force; fi; rm -rf /opt/iusentra/tmp-backup-snapshot'
 
       - name: Summary deploy
         if: always()

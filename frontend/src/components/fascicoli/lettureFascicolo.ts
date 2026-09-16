@@ -112,6 +112,7 @@ export interface EsitoAggiornamentoLetture {
 }
 
 const CAMPI: Record<string, string> = { udienza: 'data di udienza', termine: 'termine', data: 'data', scadenza: 'scadenza', deposito: 'data di deposito', notifica: 'data di notifica' }
+const LETTORI_ARCHIVIO = new Set(['motore_documenti', 'motore_pec'])
 
 export function etichettaCampo(campo: string): string {
   return CAMPI[campo] || campo.replace(/_/g, ' ')
@@ -126,6 +127,13 @@ export function tonoGravita(gravita: AnomaliaLettura['gravita']): TonoLettura {
 // Il riassunto in una riga: «tutto letto», oppure quanti oggetti aspettano quali lettori.
 export function riassuntoLetture(letture: LettureFascicolo): { testo: string; tono: TonoLettura } {
   if (!letture.oggetti) return { testo: 'Nessun documento o PEC da leggere.', tono: 'neutral' }
+  const automatica = letture.archivio?.lettura_automatica
+  if (automatica?.completa) {
+    return { testo: `Tutto letto e collaudato: ${letture.oggetti} tra documenti e PEC. Si rilegge solo ciò che cambia.`, tono: 'success' }
+  }
+  if (automatica?.da_leggere) {
+    return { testo: `Da leggere nell'archivio: ${automatica.da_leggere} oggett${automatica.da_leggere === 1 ? 'o' : 'i'}.`, tono: 'warning' }
+  }
   const inAttesa = letture.lettori.filter((voce) => voce.da_leggere > 0 || voce.errori > 0)
   if (!inAttesa.length) return { testo: `Tutto letto: ${letture.oggetti} tra documenti e PEC, nessuna rilettura necessaria.`, tono: 'success' }
   const errori = inAttesa.reduce((totale, voce) => totale + voce.errori, 0)
@@ -155,6 +163,7 @@ export function fraseNovita(novita: NovitaLetture): string {
 
 // Gli oggetti che aspettano almeno un lettore, con l'elenco dei lettori mancanti.
 export function oggettiInAttesa(letture: LettureFascicolo): { oggetto: OggettoLettura; lettori: string[] }[] {
+  if (letture.archivio?.lettura_automatica?.completa) return []
   const etichette = new Map(letture.lettori.map((voce) => [voce.lettore, voce.etichetta]))
   return letture.per_oggetto
     .map((oggetto) => ({
@@ -164,6 +173,12 @@ export function oggettiInAttesa(letture: LettureFascicolo): { oggetto: OggettoLe
         .map(([lettore]) => etichette.get(lettore) || lettore),
     }))
     .filter((voce) => voce.lettori.length)
+}
+
+export function lettoriDaMostrare(letture: LettureFascicolo): LettoreStato[] {
+  if (!letture.archivio?.lettura_automatica?.completa) return letture.lettori
+  const archivio = letture.lettori.filter((voce) => LETTORI_ARCHIVIO.has(voce.lettore))
+  return archivio.length ? archivio : letture.lettori.filter((voce) => !voce.da_leggere || voce.letti)
 }
 
 export function anomalieOrdinate(anomalie: AnomaliaLettura[]): AnomaliaLettura[] {

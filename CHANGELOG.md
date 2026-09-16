@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.320.14 — 16/09/2026
+
+- Lettura fascicolo: cache condivisa tra worker per evitare il ricalcolo del payload a ogni apertura dei fascicoli già letti.
+- Registro letture: quando il nuovo archivio documenti/PEC è completo, il pannello mostra i motori archivio come stato operativo e non presenta più i vecchi lettori tecnici come lavoro aperto.
+
 ## 2.320.13 — 16/09/2026
 
 - Audit duplicati presidi: i gruppi con solo titolo generico e senza numero RG non sono più considerati bonificabili in automatico, evitando fusioni tra fascicoli diversi quando la PEC non contiene un identificativo di causa sicuro.

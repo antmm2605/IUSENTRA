@@ -7,6 +7,7 @@ import {
   fraseCollaudo,
   fraseLetturaAutomatica,
   fraseNovita,
+  lettoriDaMostrare,
   oggettiInAttesa,
   riassuntoArchivio,
   riassuntoLetture,
@@ -56,6 +57,24 @@ test('anomalie: gravità in tono e ordine, campi con etichetta', () => {
 })
 
 const archivio = (overrides = {}) => ({ totale: 5, per_verifica: { verificata: 3, plausibile: 1, respinta: 1, corretta: 0, ignorata: 0 }, udienze: 1, termini: 2, notifiche: 0, prove_notifica: 1, ruoli: 1, eventi: 0, per_motore: { documenti: 4, pec: 1 }, da_confermare: [], lettura_automatica: { in_corso: false, da_leggere: 0, completa: true, ultima_lettura: '2026-09-16T05:00:00Z', ultima_lettura_it: '16/09/2026 07:00' }, collaudo_lettore: { eseguito: true, superato: true, corretti: 3, totali: 3, eseguito_il_it: '16/09/2026 04:10' }, ...overrides })
+
+test('archivio completo: il registro non mostra vecchi lettori come lavoro aperto', () => {
+  const stato = letture({
+    oggetti: 42,
+    archivio: archivio({ per_motore: { documenti: 42, pec: 0 } }),
+    lettori: [
+      lettore({ lettore: 'ocr', etichetta: 'Testo e ricerca', da_leggere: 42 }),
+      lettore({ lettore: 'catalogo', etichetta: 'Catalogo dal contenuto', da_leggere: 41 }),
+      lettore({ lettore: 'motore_documenti', etichetta: 'Motore documenti (archivio)', letti: 42 }),
+      lettore({ lettore: 'motore_pec', etichetta: 'Motore PEC (archivio)', letti: 0 }),
+    ],
+    per_oggetto: [oggetto({ letture: { ocr: 'da_leggere', catalogo: 'da_leggere', motore_documenti: 'letto' } })],
+  })
+  assert.equal(riassuntoLetture(stato).tono, 'success')
+  assert.match(riassuntoLetture(stato).testo, /Tutto letto e collaudato: 42/)
+  assert.deepEqual(oggettiInAttesa(stato), [])
+  assert.deepEqual(lettoriDaMostrare(stato).map((voce) => voce.lettore), ['motore_documenti', 'motore_pec'])
+})
 
 test('archivio: riassunto dei dati verificati, da confermare, in attesa di lettura', () => {
   const pieno = riassuntoArchivio(archivio())

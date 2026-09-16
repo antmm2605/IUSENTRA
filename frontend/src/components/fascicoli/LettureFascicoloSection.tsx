@@ -7,6 +7,7 @@ import {
   fraseCollaudo,
   fraseLetturaAutomatica,
   fraseNovita,
+  lettoriDaMostrare,
   oggettiInAttesa,
   riassuntoArchivio,
   riassuntoLetture,
@@ -100,6 +101,7 @@ export function LettureFascicoloSection({ fascicoloId, onAggiornato }: { fascico
   const archivio = useMemo(() => (letture ? riassuntoArchivio(letture.archivio) : null), [letture])
   const collaudo = useMemo(() => (letture ? fraseCollaudo(letture.archivio?.collaudo_lettore) : null), [letture])
   const letturaAutomatica = useMemo(() => (letture ? fraseLetturaAutomatica(letture.archivio?.lettura_automatica) : ''), [letture])
+  const lettoriVisibili = useMemo(() => (letture ? lettoriDaMostrare(letture) : []), [letture])
   const daConfermare = letture?.archivio?.da_confermare ?? []
   const novita = useMemo(() => (letture ? fraseNovita(letture.novita) : ''), [letture])
   const inAttesa = useMemo(() => (letture ? oggettiInAttesa(letture) : []), [letture])
@@ -154,7 +156,7 @@ export function LettureFascicoloSection({ fascicoloId, onAggiornato }: { fascico
       ) : null}
       {letture ? (
         <ul className="iu-fas-letture__lettori">
-          {letture.lettori.map((voce) => (
+          {lettoriVisibili.map((voce) => (
             <li className={voce.errori ? 'is-danger' : voce.da_leggere ? 'is-warning' : voce.letti ? 'is-success' : ''} key={voce.lettore} title={voce.versione ? `Versione del lettore: ${voce.versione}` : undefined}>
               <b>{voce.etichetta}</b>
               <span>{voce.letti} lett{voce.letti === 1 ? 'o' : 'i'}{voce.da_leggere ? ` · ${voce.da_leggere} da leggere` : ''}{voce.errori ? ` · ${voce.errori} non leggibili` : ''}</span>

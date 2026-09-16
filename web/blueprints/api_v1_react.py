@@ -8856,7 +8856,7 @@ from web.services.lettura_cache import LETTURA_CACHE as _LETTURA_CACHE, chiave_l
 
 
 def _lettura_cache_key(id_fasc: str) -> tuple:
-    return _chiave_lettura(str(getattr(g, "tenant_id", "") or getattr(g, "studio_id", "") or ""), str(id_fasc))
+    return _chiave_lettura(_tenant_runtime_label(), str(id_fasc))
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/lettura")

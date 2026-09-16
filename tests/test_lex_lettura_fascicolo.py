@@ -160,6 +160,18 @@ def test_endpoint_lettura_usa_la_cache_breve_e_la_salta_con_aggiorna(tmp_path, m
     api_v1_react._LETTURA_CACHE.clear()
 
 
+def test_endpoint_lettura_cache_key_isola_versione_applicativa(tmp_path):
+    from web.blueprints import api_v1_react
+
+    app = _app(tmp_path)
+    with app.test_request_context("/"):
+        chiave = api_v1_react._lettura_cache_key("FX")
+
+    assert chiave[0] == "lettura"
+    assert chiave[1].endswith(f"@{api_v1_react.APP_VERSION}")
+    assert chiave[2] == "FX"
+
+
 def test_context_archivio_completo_non_ricostruisce_catalogo_pesante(monkeypatch):
     import lex.context.fascicolo_lettura_context as modulo
 

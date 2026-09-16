@@ -218,6 +218,36 @@ def test_il_ciclo_si_ferma_a_lettura_confermata_e_non_riapre_nulla(tmp_path: Pat
         assert chiamate == [], "a ciclo fermo non si allinea nemmeno l'inventario"
 
 
+def test_il_ciclo_fermo_ma_con_oggetti_mancanti_si_riapre(tmp_path: Path):
+    """Una riga fascicolo completa non deve bloccare motori mai arrivati sugli oggetti."""
+    app = _app(tmp_path)
+    fascicolo_id, _decreto_id, _relata_id = _seed(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+        from web.services.registro_letture_runtime import aggiorna_inventario, registro_corrente, tenant_corrente
+
+        fascicolo = _fascicolo(app, fascicolo_id)
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
+        registro.segna_fascicolo(
+            tenant,
+            fascicolo_id,
+            runtime.LETTORE_DOCUMENTI,
+            impronta=runtime._impronta_viva(fascicolo),
+            oggetti_totali=2,
+            oggetti_letti=2,
+            stato="completa",
+        )
+
+        esito = runtime.leggi_fascicolo(fascicolo)
+
+        assert esito["fermo"] is True
+        assert esito["documenti"]["da_leggere"] == 2
+        assert esito["documenti"]["letti"] == 2
+        assert registro.stato_fascicolo(tenant, fascicolo_id, lettori=(runtime.LETTORE_DOCUMENTI,)).lettori[0].da_leggere == 0
+
+
 def test_un_documento_nuovo_riattiva_il_ciclo_e_lo_richiude(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id, _decreto_id, _relata_id = _seed(app)

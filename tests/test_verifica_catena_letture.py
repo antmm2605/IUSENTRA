@@ -87,3 +87,31 @@ def test_verifica_catena_letture_filtra_tenant(monkeypatch, tmp_path):
 
     assert esito["totali"]["tenants"] == 1
     assert esito["tenants"][0]["studio"]["slug"] == "studio-b"
+
+
+def test_stato_fascicolo_segnala_ciclo_incoerente(monkeypatch):
+    class RegistroFinto:
+        def stato_fascicolo(self, tenant, fascicolo_id, *, lettori):
+            return SimpleNamespace(
+                lettori=[
+                    SimpleNamespace(lettore="motore_documenti", da_leggere=3, errori=0),
+                    SimpleNamespace(lettore="motore_pec", da_leggere=0, errori=1),
+                ]
+            )
+
+        def fatti(self, tenant, fascicolo_id, verifiche=None):
+            return []
+
+    monkeypatch.setattr(
+        "web.services.archivio_letture_runtime.stato_ciclo_fascicolo",
+        lambda fascicolo_id, registro, tenant, impronta="": SimpleNamespace(stato="fermo", motivo="tutto letto"),
+    )
+    monkeypatch.setattr("web.services.archivio_letture_runtime._impronta_viva", lambda fascicolo: "impronta")
+    monkeypatch.setattr("pct.archivio_letture.fatti_canonici", lambda fatti: fatti)
+
+    riga = verifica_catena._stato_fascicolo(SimpleNamespace(id="F1", titolo="Pratica"), RegistroFinto(), "studio")
+
+    assert riga["ciclo"] == "da_leggere"
+    assert riga["oggetti_da_leggere"] == 3
+    assert riga["oggetti_errori"] == 1
+    assert "dettaglio dei motori" in riga["motivo"]

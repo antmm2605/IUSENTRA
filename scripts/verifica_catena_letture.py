@@ -40,17 +40,30 @@ def _testo(valore: Any) -> str:
 
 def _stato_fascicolo(fascicolo: Any, registro: Any, tenant: str) -> dict[str, Any]:
     from pct.archivio_letture import fatti_canonici
-    from web.services.archivio_letture_runtime import stato_ciclo_fascicolo, _impronta_viva
+    from web.services.archivio_letture_runtime import LETTORE_DOCUMENTI, LETTORE_PEC, stato_ciclo_fascicolo, _impronta_viva
 
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     stato = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
+    stato_oggetti = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC))
+    oggetti_da_leggere = sum(int(voce.da_leggere or 0) for voce in stato_oggetti.lettori)
+    oggetti_errori = sum(int(voce.errori or 0) for voce in stato_oggetti.lettori)
+    ciclo = stato.stato
+    motivo = stato.motivo
+    if ciclo == "fermo" and (oggetti_da_leggere or oggetti_errori):
+        ciclo = "da_leggere"
+        motivo = (
+            "la riga del ciclo è ferma, ma il dettaglio dei motori indica "
+            f"{oggetti_da_leggere} oggetti da leggere e {oggetti_errori} errori"
+        )
     fatti_grezzi = registro.fatti(tenant, fascicolo_id, verifiche=None)
     fatti = fatti_canonici(fatti_grezzi)
     return {
         "id": fascicolo_id,
         "titolo": _testo(getattr(fascicolo, "titolo", ""))[:60],
-        "ciclo": stato.stato,
-        "motivo": stato.motivo,
+        "ciclo": ciclo,
+        "motivo": motivo,
+        "oggetti_da_leggere": oggetti_da_leggere,
+        "oggetti_errori": oggetti_errori,
         "fatti": len(fatti),
         "fatti_grezzi": len(fatti_grezzi),
         "_fatti": fatti,

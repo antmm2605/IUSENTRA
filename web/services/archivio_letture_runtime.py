@@ -373,6 +373,18 @@ def stato_ciclo_fascicolo(fascicolo_id: str, registro: RegistroLetture, tenant: 
     return stato_ciclo(riga or None, versione_attesa=VERSIONE_MOTORE_DOCUMENTI, impronta_attesa=impronta)
 
 
+def _mancanti_motori(registro: RegistroLetture, tenant: str, fascicolo_id: str) -> tuple[int, int]:
+    """Oggetti ancora non letti dai due motori, anche se la riga ciclo dice fermo."""
+    try:
+        stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC))
+    except Exception as exc:
+        logger.debug("Stato oggetti dei motori non leggibile per %s: %s", fascicolo_id, exc)
+        return 0, 0
+    mancanti = sum(int(voce.da_leggere or 0) for voce in stato.lettori)
+    errori = sum(int(voce.errori or 0) for voce in stato.lettori)
+    return mancanti, errori
+
+
 def _segna_ciclo(registro: RegistroLetture, tenant: str, fascicolo_id: str, *, impronta: str, totali: int, letti: int, stato: str, motivo: str = "") -> None:
     """Scrive nell'archivio dove è arrivato il ciclo: è la conferma che chiude il giro."""
     try:
@@ -418,7 +430,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         # si fa nulla. Confrontare l'archivio con sé stesso non vedrebbe mai un
         # documento nuovo.
         prima = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
-        if not prima.da_leggere:
+        mancanti_motori, errori_motori = _mancanti_motori(registro, tenant, fascicolo_id)
+        if not prima.da_leggere and not mancanti_motori and not errori_motori:
             return {
                 "inventario": {},
                 "documenti": {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0},
@@ -426,6 +439,11 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
                 "promossi": 0, "riconvalidati": {"anomalie": 0, "fatti": 0}, "restano": 0,
                 "fermo": True, "ciclo": prima.to_dict(),
             }
+        if not prima.da_leggere:
+            logger.info(
+                "Ciclo letture riaperto per %s: riga fascicolo ferma ma oggetti mancanti=%s errori=%s",
+                fascicolo_id, mancanti_motori, errori_motori,
+            )
     try:
         inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
         messaggi = _messaggi_pec(fascicolo)

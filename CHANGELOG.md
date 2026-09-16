@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.320.16 — 16/09/2026
+
+- Archivio letture: il ciclo non si fida più della sola riga “fascicolo completo” se il dettaglio oggetti dei motori documenti/PEC indica ancora letture mancanti o in errore.
+- Audit catena letture: `scripts/verifica_catena_letture.py` segnala l’incoerenza fra ciclo fermo e oggetti non letti, evitando falsi positivi prima delle prove reali sul server.
+
 ## 2.320.15 — 16/09/2026
 
 - Lettura fascicolo: quando l'archivio automatico documenti/PEC è completo, l'apertura usa un riepilogo leggero già letto e non ricostruisce catalogo e indice documentale nella richiesta UI.

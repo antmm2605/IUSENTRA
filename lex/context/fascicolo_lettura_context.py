@@ -62,6 +62,52 @@ def _contesto_di_sistema() -> dict[str, Any]:
     return {"user": None, "user_id": "lettura-fascicolo", "skip_permission_check": True}
 
 
+def _archivio_completo(archivio: dict[str, Any]) -> bool:
+    return bool(((archivio or {}).get("stato") or {}).get("completa"))
+
+
+def _documento_leggero(documento: Any) -> dict[str, Any]:
+    identificativo = _clean(getattr(documento, "id", "") or getattr(documento, "document_id", ""))
+    nome = _clean(
+        getattr(documento, "nome", "")
+        or getattr(documento, "nome_file", "")
+        or getattr(documento, "filename", "")
+        or getattr(documento, "titolo", "")
+        or identificativo
+    )
+    return {
+        "id": identificativo,
+        "nome": nome,
+        "tipo": _enum(getattr(documento, "tipo", "")) or "Documento",
+        "data_documento": _clean(getattr(documento, "data_documento", "") or getattr(documento, "data_caricamento", "") or getattr(documento, "creato_il", ""))[:10],
+        "data_caricamento": _clean(getattr(documento, "data_caricamento", "") or getattr(documento, "creato_il", ""))[:10],
+        "firmato": bool(getattr(documento, "firmato", False)),
+        "lex_read": True,
+        "id_deposito_pct": _clean(getattr(documento, "id_deposito_pct", "")),
+    }
+
+
+def _catalogo_da_archivio(documenti: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    catalogo: list[dict[str, Any]] = []
+    for documento in documenti:
+        identificativo = _clean(documento.get("id"))
+        if not identificativo:
+            continue
+        tipo = _clean(documento.get("tipo")).replace("_", " ").title() or "Documento"
+        catalogo.append({
+            "document_id": identificativo,
+            "indexed": True,
+            "supported": True,
+            "document_label": tipo,
+            "document_section": "allegati",
+            "document_nature": "",
+            "status": "confirmed",
+            "confidence": 100,
+            "legal_area": "",
+        })
+    return catalogo
+
+
 def _catalogo(fascicolo_id: str) -> list[dict[str, Any]]:
     """Il catalogo dal contenuto, documento per documento, con il flag «letto dal presidio» (indexed)."""
     try:
@@ -239,19 +285,26 @@ def raccogli_dati_lettura(fascicolo_id: str) -> DatiLettura | None:
     fascicolo = _sicuro(lambda: get_fascicoli().get(target), None)
     if not fascicolo:
         return None
-    documenti = [dict(voce) for voce in list(_sicuro(lambda: load_document_context(fascicolo_id=target, limit=None), []) or [])]
+    archivio = _sicuro(lambda: _archivio(fascicolo), {})
+    if _archivio_completo(archivio):
+        documenti = [_documento_leggero(voce) for voce in list(getattr(fascicolo, "documenti", []) or [])]
+        catalogo = _catalogo_da_archivio(documenti)
+    else:
+        documenti = [dict(voce) for voce in list(_sicuro(lambda: load_document_context(fascicolo_id=target, limit=None), []) or [])]
+        catalogo = _catalogo(target)
     verifiche = _verifiche(target)
     # I documenti censiti dal portale ma non scaricati: dagli avvisi dell'indice o dall'ultima verifica automatica.
-    non_scaricati = set(_documenti_non_scaricati(target)) | {
-        _clean(nome) for nome in list(((verifiche.get("esiti") or {}).get("documenti") or {}).get("non_scaricati") or [])
-    }
-    for voce in documenti:
-        voce["da_acquisire"] = _clean(voce.get("nome")) in non_scaricati
+    if not _archivio_completo(archivio):
+        non_scaricati = set(_documenti_non_scaricati(target)) | {
+            _clean(nome) for nome in list(((verifiche.get("esiti") or {}).get("documenti") or {}).get("non_scaricati") or [])
+        }
+        for voce in documenti:
+            voce["da_acquisire"] = _clean(voce.get("nome")) in non_scaricati
     regia = _regia(target)
     return DatiLettura(
         fascicolo=_fascicolo_dict(fascicolo),
         documenti=list(documenti or []),
-        catalogo=_catalogo(target),
+        catalogo=catalogo,
         attivita=[_serialize_attivita(voce) for voce in list(getattr(fascicolo, "attivita", []) or [])],
         depositi=[_deposito_dict(voce) for voce in list(getattr(fascicolo, "depositi_pct", []) or [])],
         notifiche=_presidi_notifiche(target),
@@ -265,7 +318,7 @@ def raccogli_dati_lettura(fascicolo_id: str) -> DatiLettura | None:
         parti=_parti(target),
         pec=_sicuro(lambda: messaggi_pec_per_fascicolo(fascicolo), []),
         verifiche=verifiche,
-        archivio=_sicuro(lambda: _archivio(fascicolo), {}),
+        archivio=archivio,
     )
 
 

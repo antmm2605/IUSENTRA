@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.320.15 — 16/09/2026
+
+- Lettura fascicolo: quando l'archivio automatico documenti/PEC è completo, l'apertura usa un riepilogo leggero già letto e non ricostruisce catalogo e indice documentale nella richiesta UI.
+- Aggiunto un test anti-regressione per impedire che il percorso rapido richiami di nuovo il loader documentale pesante.
+
 ## 2.320.14 — 16/09/2026
 
 - Lettura fascicolo: cache condivisa tra worker per evitare il ricalcolo del payload a ogni apertura dei fascicoli già letti.

@@ -158,3 +158,38 @@ def test_endpoint_lettura_usa_la_cache_breve_e_la_salta_con_aggiorna(tmp_path, m
     assert seconda.get_data() == prima.get_data()
     assert chiamate["n"] == 3  # prima, aggiorna=1, altro fascicolo
     api_v1_react._LETTURA_CACHE.clear()
+
+
+def test_context_archivio_completo_non_ricostruisce_catalogo_pesante(monkeypatch):
+    import lex.context.fascicolo_lettura_context as modulo
+
+    fascicolo = SimpleNamespace(
+        id="F1",
+        numero="2026/1",
+        titolo="Rossi / Bianchi",
+        documenti=[SimpleNamespace(id="D1", nome="Atto introduttivo.pdf", tipo="ATTO", data_caricamento="2026-09-10")],
+    )
+
+    def vietato(*_args, **_kwargs):
+        raise AssertionError("il percorso rapido con archivio completo non deve richiamare il catalogo documentale pesante")
+
+    monkeypatch.setattr(modulo, "get_fascicoli", lambda: SimpleNamespace(get=lambda _id: fascicolo))
+    monkeypatch.setattr(modulo, "_archivio", lambda _fascicolo: {"stato": {"completa": True, "da_leggere": 0}, "riassunto": {"totale": 1, "per_motore": {"documenti": 1}}})
+    monkeypatch.setattr(modulo, "load_document_context", vietato)
+    monkeypatch.setattr(modulo, "_catalogo", vietato)
+    monkeypatch.setattr(modulo, "_documenti_non_scaricati", vietato)
+    monkeypatch.setattr(modulo, "_verifiche", lambda _id: {})
+    monkeypatch.setattr(modulo, "_regia", lambda _id: {})
+    monkeypatch.setattr(modulo, "_economico", lambda _id: {})
+    monkeypatch.setattr(modulo, "_parti", lambda _id: [])
+    monkeypatch.setattr(modulo, "_presidi_notifiche", lambda _id: [])
+    monkeypatch.setattr(modulo, "messaggi_pec_per_fascicolo", lambda _fascicolo: [])
+
+    dati = modulo.raccogli_dati_lettura("F1")
+
+    assert dati is not None
+    assert dati.documenti[0]["id"] == "D1"
+    assert dati.documenti[0]["lex_read"] is True
+    assert dati.catalogo[0]["document_id"] == "D1"
+    assert dati.catalogo[0]["indexed"] is True
+    assert dati.catalogo[0]["status"] == "confirmed"

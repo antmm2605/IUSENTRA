@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.12 — 16/09/2026
+
+- Audit duplicati presidi: la chiave di fusione riconosce solo numeri RG con contesto `RG/R.G.` o valori puri, evitando di scambiare riferimenti normativi come `1/2007` o `14/2009` per ruoli di causa e rendendo più sicura la lista dei duplicati PEC/documenti.
+
 ## 2.320.11 — 16/09/2026
 
 - Letture fascicoli/PEC: lo script `scripts/verifica_catena_letture.py` verifica ora tutti gli studi attivi tenant per tenant, con opzione `--tenant`, evitando il falso esito sul fallback `single-studio` quando in produzione ci sono più studi e centinaia di fascicoli reali.

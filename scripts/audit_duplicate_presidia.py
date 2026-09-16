@@ -170,36 +170,49 @@ def _time_key(*values: Any) -> str:
     return ""
 
 
-def _normal_rg(value: str) -> str:
-    match = re.search(r"\b(\d{1,7})\s*/\s*(\d{2,4})(?:/[A-Z]{2,5})?\b", str(value or ""), flags=re.I)
-    if not match:
-        return ""
+_RG_WITH_CONTEXT_RE = re.compile(
+    r"\b(?:r\.?\s*g\.?|rg|ruolo\s+generale)\s*(?:n\.?\s*)?(\d{1,7})\s*/\s*(\d{2,4})(?:/[A-Z]{2,5})?\b",
+    flags=re.I,
+)
+_RG_EXACT_RE = re.compile(r"^\s*(\d{1,7})\s*/\s*(\d{2,4})(?:/[A-Z]{2,5})?\s*$", flags=re.I)
+
+
+def _format_rg(match: re.Match[str]) -> str:
     year = match.group(2)
     if len(year) == 2:
         year = f"20{year}"
     return f"{int(match.group(1))}/{year}"
 
 
+def _normal_rg(value: str) -> str:
+    text = str(value or "")
+    match = _RG_WITH_CONTEXT_RE.search(text) or _RG_EXACT_RE.search(text)
+    if not match:
+        return ""
+    return _format_rg(match)
+
+
 def _extract_rgs(*texts: Any) -> tuple[str, ...]:
     values: set[str] = set()
     for text in texts:
-        for match in re.finditer(r"\b(\d{1,7})\s*/\s*(\d{2,4})(?:/[A-Z]{2,5})?\b", str(text or ""), flags=re.I):
-            year = match.group(2)
-            if len(year) == 2:
-                year = f"20{year}"
-            values.add(f"{int(match.group(1))}/{year}")
+        raw = str(text or "")
+        for match in _RG_WITH_CONTEXT_RE.finditer(raw):
+            values.add(_format_rg(match))
+        exact = _RG_EXACT_RE.search(raw)
+        if exact:
+            values.add(_format_rg(exact))
     return tuple(sorted(values))
 
 
 def _case_key(*values: Any) -> str:
     for value in values:
-        clean = _text(value, 120)
-        if clean:
-            return clean
-    for value in values:
         rg = _normal_rg(str(value or ""))
         if rg:
             return rg
+    for value in values:
+        clean = _text(value, 120)
+        if clean:
+            return clean
     return ""
 
 

@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
-from scripts.audit_duplicate_presidia import apply_paths, audit_paths
+from scripts.audit_duplicate_presidia import _case_key, _extract_rgs, apply_paths, audit_paths
 
 
 def _paths(tmp_path):
@@ -123,3 +123,11 @@ def test_audit_duplicate_presidia_esclude_pec_ricevute_e_voci_manuali(tmp_path):
 
     audit = audit_paths("studio-test", paths)
     assert audit["summary"] == {"suspect_groups": 0, "repairable_groups": 0, "review_groups": 0}
+
+
+def test_audit_duplicate_presidia_rg_non_confonde_fonti_normative():
+    title = "Deposito note scritte ex art. 127-ter c.p.c. - 14/09/2026 - RG 5478/2025"
+    note = "Fonti: art. 1/2007 e D.M. 14/2009. Numero ruolo corretto: R.G. 5478/2025."
+
+    assert _case_key("", title, note) == "5478/2025"
+    assert _extract_rgs(title, note) == ("5478/2025",)

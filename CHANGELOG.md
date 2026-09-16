@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.17 — 16/09/2026
+
+- Fascicoli: la sezione “Comunicazioni, PEC e notifica” non apre più automaticamente carichi pesanti quando la notifica è già gestita; documenti, depositi e catalogazione partono solo su sezione richiesta o azione pendente.
+
 ## 2.320.16 — 16/09/2026
 
 - Archivio letture: il ciclo non si fida più della sola riga “fascicolo completo” se il dettaglio oggetti dei motori documenti/PEC indica ancora letture mancanti o in errore.

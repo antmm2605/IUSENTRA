@@ -9694,6 +9694,12 @@ function DetailPage({ id }:{id:string}) {
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
   const displayedCommunicationTotal = communicationTotal || data.quickCounts.comunicazioni || 0
   const operationalPresidio = data.operationalPresidio
+  const shouldAutoOpenCommunications =
+    activeHashSection === 'cancelleria'
+    || activeHashSection === 'comunicazioni-notifica'
+    || activeHashSection === 'relata-notifica'
+    || notificationRelata.releaseDetected
+    || ['da_preparare', 'da_firmare', 'pronta_invio'].includes(notificationRelata.status)
   const auditNavigation = lazyStatus.audit === 'loaded'
     ? { value: String(data.auditTrail.summary.total), label: data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze audit registrate` : 'Nessuna evidenza audit registrata' }
     : lazyStatus.audit === 'loading'
@@ -9949,7 +9955,7 @@ function DetailPage({ id }:{id:string}) {
           <DocumentPresidioPanel data={data} fascicoloId={f.id} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} onDone={refreshDocuments} onError={failDetail}/>
             <div className="iu-fas-two-cols"><div><h3>Scadenze</h3>{data.deadlines.map((deadline) => <DeadlineRow deadline={deadline} key={deadline.id}/>)}{lazyStatus.scadenze === 'loaded' && !data.deadlines.length ? <p className="iu-empty">Nessuna scadenza collegata.</p> : null}<a className="iu-fas-inline-link" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuova scadenza</a></div><div><h3>Agenda</h3>{data.appointments.map((app) => <a className="iu-fas-deadline-row" href={app.href} key={app.id}><Badge tone={app.tone}>{app.type || 'agenda'}</Badge><strong>{app.title}</strong><span>{app.date} {app.time} {app.place}</span></a>)}{lazyStatus.scadenze === 'loaded' && !data.appointments.length ? <p className="iu-empty">Nessun appuntamento trovato.</p> : null}<a className="iu-fas-inline-link" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo appuntamento</a></div></div>
           </DetailSection>
-          <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal + notificationRelataCount} defaultOpen={activeHashSection === 'cancelleria' || activeHashSection === 'comunicazioni-notifica' || activeHashSection === 'relata-notifica' || notificationRelata.releaseDetected || !['monitoraggio', 'nessuna_notifica'].includes(notificationRelata.status)} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>
+          <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal + notificationRelataCount} defaultOpen={shouldAutoOpenCommunications} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>
             <span id="cancelleria" className="iu-fas-anchor-alias" aria-hidden="true"/>
             <span id="relata-notifica" className="iu-fas-anchor-alias" aria-hidden="true"/>
             <NotificationRelataMonitor data={data}/>

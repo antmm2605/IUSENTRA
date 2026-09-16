@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.320.13 — 16/09/2026
+
+- Audit duplicati presidi: i gruppi con solo titolo generico e senza numero RG non sono più considerati bonificabili in automatico, evitando fusioni tra fascicoli diversi quando la PEC non contiene un identificativo di causa sicuro.
+
 ## 2.320.12 — 16/09/2026
 
 - Audit duplicati presidi: la chiave di fusione riconosce solo numeri RG con contesto `RG/R.G.` o valori puri, evitando di scambiare riferimenti normativi come `1/2007` o `14/2009` per ruoli di causa e rendendo più sicura la lista dei duplicati PEC/documenti.

@@ -131,3 +131,22 @@ def test_audit_duplicate_presidia_rg_non_confonde_fonti_normative():
 
     assert _case_key("", title, note) == "5478/2025"
     assert _extract_rgs(title, note) == ("5478/2025",)
+
+
+def test_audit_duplicate_presidia_non_bonifica_titoli_generici_senza_rg(tmp_path):
+    paths = _paths(tmp_path)
+    due_day = (date.today() + timedelta(days=10)).isoformat()
+    title = "Opposizione alla trattazione scritta ex art. 127-ter c.p.c."
+
+    deadlines = GestioneScadenziario(paths["SCADENZIARIO_DB"])
+    for message_id in ("pec-uno", "pec-due"):
+        deadlines.nuova(
+            titolo=title,
+            tipo=TipoTermine.ADEMPIMENTO,
+            data_scadenza=due_day,
+            note=f"PEC_AUDIT:{message_id}\nComunicazione senza numero RG nel testo.",
+            source_event_type="comunicazione_cancelleria",
+        )
+
+    audit = audit_paths("studio-test", paths)
+    assert audit["summary"] == {"suspect_groups": 1, "repairable_groups": 0, "review_groups": 1}

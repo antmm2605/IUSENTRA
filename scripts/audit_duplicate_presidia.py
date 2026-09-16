@@ -322,7 +322,8 @@ def _group_payload(records: list[PresidioRecord]) -> dict[str, Any]:
     sources = sorted({row.source for row in active})
     rg_values = sorted({rg for row in active for rg in row.rg_values})
     case_rg = _normal_rg(records[0].case_key)
-    ambiguous = bool(len(rg_values) > 1 and (not case_rg or any(rg != case_rg for rg in rg_values)))
+    generic_title_case = bool(active) and not rg_values and all(row.case_key == row.title for row in active)
+    ambiguous = generic_title_case or bool(len(rg_values) > 1 and (not case_rg or any(rg != case_rg for rg in rg_values)))
     repairable = (
         not ambiguous
         and bool(active)

@@ -51,6 +51,17 @@ def test_le_date_sono_fatti_solo_se_ancorate_e_vere():
     assert not valori & {"1980-03-12", "2020-02-03", "2020-01-01", "2021-02-02", "2022-03-03", "2026-02-01", "2026-02-28", "2034-02-01"}
 
 
+def test_la_citazione_della_carta_non_rende_identita_un_decreto():
+    from pct.archivio_letture.pertinenza_documentale import natura_documentale
+
+    assert natura_documentale(DECRETO, "1234", "2026") == ("", "")
+    scansione = (
+        "REPUBBLICA ITALIANA MINISTERO DELL'INTERNO\nCARTA DI IDENTITA' / IDENTITY CARD\n"
+        "COGNOME ROSSI NOME MARIO CITTADINANZA ITALIANA SCADENZA 01/01/2030"
+    )
+    assert natura_documentale(scansione, "", "")[0] == "documento_identita"
+
+
 def test_ancore_negative_e_ancora_consumata():
     testo = "ai sensi della legge 21 gennaio 1994 n. 53, udienza del 10/03/2026 e 11/03/2026"
     assert ancora_per(testo, testo.index("21 gennaio"), testo.index("21 gennaio") + 15) is None

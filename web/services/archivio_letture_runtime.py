@@ -15,7 +15,10 @@ documento o al collegamento di una PEC, e nel worker OCR a testo pronto.
 from __future__ import annotations
 
 import logging
+import json
+import os
 import threading
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -29,6 +32,7 @@ from web.services.lettura_cache import invalida_lettura
 from web.services.registro_letture_runtime import (
     _righe_pec_collegate,
     aggiorna_inventario,
+    percorso_registro,
     registro_corrente,
     registro_per_percorsi,
     tenant_corrente,
@@ -42,10 +46,132 @@ BYTE_MASSIMI_EMAIL = 128 * 1024 * 1024
 VERSIONE_ESTRAZIONE_FORMATI = "2026.09.17.v4"
 _LOCK = threading.Lock()
 _IN_CORSO: set[str] = set()
+_SCHEDULER_IDLE_MARKER = "archivio_letture_scheduler_idle.json"
+_SCHEDULER_IDLE_ORE_DEFAULT = 24
 
 
 def _testo(valore: Any) -> str:
     return " ".join(str(valore or "").split()).strip()
+
+
+def _adesso_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _iso_utc(valore: datetime) -> str:
+    return valore.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _leggi_iso_utc(valore: Any) -> datetime | None:
+    testo = str(valore or "").strip()
+    if not testo:
+        return None
+    try:
+        letto = datetime.fromisoformat(testo.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return letto if letto.tzinfo else letto.replace(tzinfo=timezone.utc)
+
+
+def _scheduler_idle_ore(app: Any | None = None) -> int:
+    raw = ""
+    try:
+        raw = str((getattr(app, "config", {}) or {}).get("IUSENTRA_ARCHIVIO_LETTURE_IDLE_ORE") or "")
+    except Exception:
+        raw = ""
+    raw = raw or os.getenv("IUSENTRA_ARCHIVIO_LETTURE_IDLE_ORE", "")
+    try:
+        ore = int(str(raw or "").strip())
+    except (TypeError, ValueError):
+        ore = _SCHEDULER_IDLE_ORE_DEFAULT
+    return max(0, ore)
+
+
+def _scheduler_idle_path(paths: dict[str, Any] | None = None) -> Path:
+    registro_path = Path(percorso_registro(paths or {})).resolve()
+    return registro_path.parent / _SCHEDULER_IDLE_MARKER
+
+
+def _scheduler_idle_attivo(app: Any, paths: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """Vero quando il giro schedulato può saltare la scansione pesante.
+
+    Il marker è volutamente tenant-aware e vive accanto al registro delle
+    letture: non è fonte di dati processuali, è solo il semaforo che evita di
+    riesaminare ogni dieci minuti fascicoli già confermati.
+    """
+    if _scheduler_idle_ore(app) <= 0:
+        return None
+    percorso = _scheduler_idle_path(paths)
+    try:
+        dati = json.loads(percorso.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if dati.get("versione_documenti") != VERSIONE_MOTORE_DOCUMENTI or dati.get("versione_pec") != VERSIONE_MOTORE_PEC:
+        return None
+    fino_a = _leggi_iso_utc(dati.get("fino_a"))
+    if fino_a is None or fino_a <= _adesso_utc():
+        return None
+    return dati
+
+
+def _scrivi_scheduler_idle(app: Any, paths: dict[str, Any] | None, report: dict[str, Any]) -> None:
+    percorso = _scheduler_idle_path(paths)
+    deve_restare_attivo = (
+        int(report.get("documenti_letti") or 0) == 0
+        and int(report.get("pec_lette") or 0) == 0
+        and int(report.get("senza_testo") or 0) == 0
+        and int(report.get("promossi") or 0) == 0
+        and int(report.get("restano") or 0) == 0
+    )
+    if not deve_restare_attivo or _scheduler_idle_ore(app) <= 0:
+        try:
+            percorso.unlink(missing_ok=True)
+        except Exception:
+            logger.debug("Marker inattività letture non rimosso: %s", percorso, exc_info=True)
+        return
+    adesso = _adesso_utc()
+    dati = {
+        "stato": "fermo",
+        "ultimo_giro": _iso_utc(adesso),
+        "fino_a": _iso_utc(adesso + timedelta(hours=_scheduler_idle_ore(app))),
+        "versione_documenti": VERSIONE_MOTORE_DOCUMENTI,
+        "versione_pec": VERSIONE_MOTORE_PEC,
+        "fascicoli": int(report.get("fascicoli") or 0),
+        "esaminati_ultimo_giro": int(report.get("esaminati") or 0),
+    }
+    try:
+        percorso.parent.mkdir(parents=True, exist_ok=True)
+        temporaneo = percorso.with_suffix(percorso.suffix + ".tmp")
+        temporaneo.write_text(json.dumps(dati, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporaneo.replace(percorso)
+    except Exception:
+        logger.debug("Marker inattività letture non scritto: %s", percorso, exc_info=True)
+
+
+def riattiva_scheduler_letture(paths: dict[str, Any] | None = None) -> None:
+    """Rimuove il marker di inattività quando un evento reale cambia il fascicolo."""
+    try:
+        _scheduler_idle_path(paths).unlink(missing_ok=True)
+    except Exception:
+        logger.debug("Marker inattività letture non riattivato", exc_info=True)
+
+
+def _report_scheduler_saltato(marker: dict[str, Any]) -> dict[str, Any]:
+    fascicoli = int(marker.get("fascicoli") or 0)
+    return {
+        "fascicoli": fascicoli,
+        "esaminati": 0,
+        "documenti_letti": 0,
+        "pec_lette": 0,
+        "fatti": 0,
+        "verificati": 0,
+        "promossi": 0,
+        "senza_testo": 0,
+        "restano": 0,
+        "saltati": fascicoli,
+        "fermo": True,
+        "prossimo_controllo": str(marker.get("fino_a") or ""),
+    }
 
 
 # ---- i testi di un documento --------------------------------------------------
@@ -64,10 +190,10 @@ def _bytes_documento(fascicolo_id: str, documento: Any) -> bytes:
         from pct.document_crypto import decrypt_doc
         from web.helpers import get_fascicoli
 
-        manager = getattr(g, "_archivio_fascicoli_manager", None)
-        if manager is None:
-            manager = get_fascicoli()
-            g._archivio_fascicoli_manager = manager
+        # Non riusare un manager messo in cache in una lettura precedente della
+        # stessa richiesta: un documento appena caricato o sostituito deve essere
+        # visibile subito e letto solo lui.
+        manager = get_fascicoli()
         percorso = manager.percorso_documento_lettura(fascicolo_id, str(documento.id))
         limit = BYTE_MASSIMI_EMAIL
         if not percorso.exists() or percorso.stat().st_size > limit:
@@ -803,8 +929,14 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
 
                 fascicolo = get_fascicoli().get(fascicolo_id)
                 if fascicolo is not None:
-                    leggi_fascicolo(fascicolo, forza=forza)
+                    esito = leggi_fascicolo(fascicolo, forza=forza)
+                    if int(esito.get("restano") or 0) > 0:
+                        # Solo se la lettura puntuale non chiude tutto si
+                        # riattiva il giro di sicurezza. Una PEC nuova già
+                        # letta qui non deve risvegliare tutti i fascicoli.
+                        riattiva_scheduler_letture(paths)
         except Exception:
+            riattiva_scheduler_letture(paths)
             logger.exception("Lettura in sfondo del fascicolo %s interrotta", fascicolo_id)
         finally:
             with _LOCK:
@@ -832,13 +964,19 @@ def lettura_dopo_evento(fascicolo_id: str) -> bool:
         return False
 
 
-def lettura_automatica_corrente(*, limite_oggetti: int = 150) -> dict[str, Any]:
+def lettura_automatica_corrente(*, limite_oggetti: int = 150, usa_marker_scheduler: bool = False) -> dict[str, Any]:
     """Tutti i fascicoli dello studio corrente: legge solo ciò che manca, entro un tetto di oggetti per giro."""
     from web.helpers import get_fascicoli
 
+    paths, _slug = _contesto_corrente()
+    app_obj = current_app._get_current_object() if has_app_context() else None
+    if usa_marker_scheduler:
+        marker = _scheduler_idle_attivo(app_obj, paths)
+        if marker:
+            return _report_scheduler_saltato(marker)
     registro = registro_corrente()
     fascicoli = list(get_fascicoli().tutti(archiviati=True))
-    report = {"fascicoli": len(fascicoli), "esaminati": 0, "documenti_letti": 0, "pec_lette": 0, "fatti": 0, "verificati": 0, "promossi": 0, "senza_testo": 0, "restano": 0}
+    report = {"fascicoli": len(fascicoli), "esaminati": 0, "documenti_letti": 0, "pec_lette": 0, "fatti": 0, "verificati": 0, "promossi": 0, "senza_testo": 0, "restano": 0, "saltati": 0}
     residuo = max(1, int(limite_oggetti))
     # Prima i fascicoli aperti, poi gli archiviati.
     fascicoli.sort(key=lambda f: (1 if _testo(getattr(getattr(f, "stato", ""), "value", getattr(f, "stato", ""))).upper() == "ARCHIVIATO" else 0, _testo(getattr(f, "id", ""))))
@@ -866,14 +1004,16 @@ def lettura_automatica_corrente(*, limite_oggetti: int = 150) -> dict[str, Any]:
         report["promossi"] += int(esito["promossi"])
         report["senza_testo"] += senza_testo
         report["restano"] += int(esito["restano"])
+    if usa_marker_scheduler:
+        _scrivi_scheduler_idle(app_obj, paths, report)
     return report
 
 
-def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150) -> dict[str, Any]:
+def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150, usa_marker_scheduler: bool = False) -> dict[str, Any]:
     """Il job dello scheduler: ogni studio attivo, con il suo contesto tenant-aware."""
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
 
-    totali = {"fascicoli": 0, "esaminati": 0, "documenti_letti": 0, "pec_lette": 0, "fatti": 0, "verificati": 0, "promossi": 0, "senza_testo": 0, "restano": 0}
+    totali = {"fascicoli": 0, "esaminati": 0, "documenti_letti": 0, "pec_lette": 0, "fatti": 0, "verificati": 0, "promossi": 0, "senza_testo": 0, "restano": 0, "saltati": 0}
     studi: list[dict[str, Any]] = []
     attivi = _active_tenants(app)
     if attivi:
@@ -884,7 +1024,7 @@ def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150) -> dict
             slug = _testo(getattr(studio, "slug", "")).lower()
             with app.test_request_context(f"/__scheduler/archivio-letture/{slug}"):
                 _attach_tenant_context(manager, studio)
-                report = lettura_automatica_corrente(limite_oggetti=limite_oggetti)
+                report = lettura_automatica_corrente(limite_oggetti=limite_oggetti, usa_marker_scheduler=usa_marker_scheduler)
             studi.append({"tenant": slug, **report})
     elif app.config.get("MULTI_TENANT"):
         return {"ok": False, "job": "archivio_letture_automatico", "error": "nessuno studio attivo: la lettura automatica non ha fascicoli su cui lavorare", "tenants": [], "totals": totali}
@@ -893,11 +1033,14 @@ def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150) -> dict
             g.multi_tenant_enabled = False
             g.tenant_context_missing = False
             g.tenant_context_slug = ""
-            report = lettura_automatica_corrente(limite_oggetti=limite_oggetti)
+            report = lettura_automatica_corrente(limite_oggetti=limite_oggetti, usa_marker_scheduler=usa_marker_scheduler)
         studi.append({"tenant": "default", **report})
     for voce in studi:
         for chiave in totali:
             totali[chiave] += int(voce.get(chiave) or 0)
+    prossimi = sorted(str(voce.get("prossimo_controllo") or "") for voce in studi if voce.get("prossimo_controllo"))
+    if prossimi:
+        totali["prossimo_controllo"] = prossimi[0]
     return {"ok": True, "job": "archivio_letture_automatico", "tenants": studi, "totals": totali}
 
 

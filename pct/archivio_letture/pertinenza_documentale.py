@@ -3,11 +3,45 @@ from __future__ import annotations
 import re
 from pct.registro_letture.fatti_repository import Fatto
 
+def _documento_identita_strutturale(head: str) -> bool:
+    """Riconosce il documento personale vero, non un atto che lo cita."""
+    porzione = head[:1800]
+    tipo = re.search(
+        r"(?:carta\s+d[’'i]?\s*identit[aà]|carta\s+di\s+identit[aà]|identity\s+card|passaporto|passport|patente\s+di\s+guida|permesso\s+di\s+soggiorno)",
+        porzione,
+        re.I,
+    )
+    if not tipo:
+        return False
+    intestazione_forte = re.search(
+        r"(?:repubblica\s+italiana|ministero\s+dell['’]interno|comune\s+di|questura|passport|identity\s+card)",
+        porzione[:350],
+        re.I,
+    )
+    campi = sum(
+        1
+        for pattern in (
+            r"\bcognome\b|\bsurname\b",
+            r"\bnome\b|\bname\b",
+            r"\bcittadinanza\b|\bnazionalit[aà]\b|\bnationality\b",
+            r"\bscadenza\b|data\s+di\s+scadenza|date\s+of\s+expiry",
+            r"\bstatura\b|\bsesso\b|\bsex\b",
+            r"\bIDITA|P<ITA|CA\d{4,}[A-Z]{0,3}\b|[A-Z]{2}\s*\d{6,}\b",
+        )
+        if re.search(pattern, porzione, re.I)
+    )
+    if intestazione_forte and campi >= 2:
+        return True
+    # Una scansione cartacea può iniziare direttamente con «Carta d'identità»,
+    # ma deve comunque mostrare più campi propri del documento.
+    return bool(tipo.start() < 250 and campi >= 3)
+
+
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "") -> tuple[str, str]:
     head = " ".join(str(testo or "").split())[:4000]
     if re.search(r"(?:contratto individuale di lavoro|contratto di lavoro a tempo determinato)", head[:1800], re.I):
         return "contratto_lavoro", "Il documento disciplina il rapporto di lavoro: le sue date non sono termini processuali."
-    if re.search(r"(?:carta d.identit|identity card|EMISSIONE/ISSUING)", head, re.I):
+    if _documento_identita_strutturale(head):
         return "documento_identita", "Date di emissione, scadenza e nascita del documento di identità."
     if re.search(r"(?:io sottoscritt|procura alle liti)", head[:600], re.I) and re.search(r"(?:difensore e procuratore|conferisco.{0,35}(?:potere|mandato)|nomino.{0,100}difensore)", head, re.I):
         return "procura", "Formula di conferimento della rappresentanza processuale riconosciuta nel contenuto."

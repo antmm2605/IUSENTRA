@@ -1466,12 +1466,14 @@ def start_scheduler(app):
                     or os.getenv("IUSENTRA_ARCHIVIO_LETTURE_LIMITE"),
                     150,
                 )
-                report = lettura_automatica_per_tutti(app, limite_oggetti=limite)
+                report = lettura_automatica_per_tutti(app, limite_oggetti=limite, usa_marker_scheduler=True)
                 totali = report.get("totals") or {}
                 logger.info(
-                    "[scheduler] Lettura automatica dei fascicoli: %d fascicoli esaminati, %d documenti e %d PEC letti, %d fatti (%d verificati), %d in attesa",
-                    int(totali.get("esaminati") or 0), int(totali.get("documenti_letti") or 0), int(totali.get("pec_lette") or 0),
-                    int(totali.get("fatti") or 0), int(totali.get("verificati") or 0), int(totali.get("restano") or 0),
+                    "[scheduler] Lettura automatica dei fascicoli: %d fascicoli esaminati, %d saltati perché fermi, %d documenti e %d PEC letti, %d fatti (%d verificati), %d in attesa",
+                    int(totali.get("esaminati") or 0), int(totali.get("saltati") or 0),
+                    int(totali.get("documenti_letti") or 0), int(totali.get("pec_lette") or 0),
+                    int(totali.get("fatti") or 0), int(totali.get("verificati") or 0),
+                    int(totali.get("restano") or 0),
                 )
                 return report
             except Exception as e:

@@ -6,7 +6,9 @@ notifica, deposito, accettazione, consegna, comunicazione), un numero di
 ruolo, una prova di notifica, un importo, un evento. Ogni fatto porta la
 prova del collaudo automatico e il verdetto: `verificata`, `plausibile`,
 `respinta`; l'avvocato può renderlo `corretta` o `ignorata` e quella decisione
-sopravvive alle riletture dello stesso contenuto.
+sopravvive alle riletture dello stesso contenuto. Un fatto che la rilettura
+non trova più viene tolto dalla vista operativa, così non alimenta presìdi,
+scadenze o avvisi con dati ormai assenti.
 
 Il mixin non legge file e non estrae nulla: registra ciò che i motori hanno
 letto e lo restituisce ai presìdi. Tabella `letture_fatti` (schema gemello
@@ -168,11 +170,7 @@ class FattiMixin:
                 if chiave in visti or str(riga.get("verifica") or "") in {"corretta", "ignorata"} or riga.get("risolta_da"):
                     continue
                 conteggi["rimossi"] += 1
-                prove = json.loads(riga.get("prove_json") or "[]")
-                prova = {"codice": "riconvalida", "esito": "respinta", "dettaglio": "La lettura corrente non conferma più questo dato: mantenuto solo nello storico delle evidenze."}
-                if prova not in prove:
-                    prove.append(prova)
-                conn.execute('UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE "tenant_id" = ? AND "id" = ?', ("respinta", json.dumps(prove, ensure_ascii=False), adesso, tenant, riga["id"]))
+                conn.execute('DELETE FROM "letture_fatti" WHERE "tenant_id" = ? AND "id" = ?', (tenant, riga["id"]))
         return conteggi
 
     def fatti(self, tenant_id: str, fascicolo_id: str, *, categoria: str = "", campo: str = "", verifiche: Iterable[str] | None = VERIFICHE_UTILI, motore: str = "", tipo: str = "") -> list[Fatto]:

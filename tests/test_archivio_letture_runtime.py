@@ -267,6 +267,47 @@ def test_un_documento_nuovo_riattiva_il_ciclo_e_lo_richiude(tmp_path: Path):
         assert leggi_fascicolo(_fascicolo(app, fascicolo_id))["fermo"] is True
 
 
+def test_scheduler_salta_studio_fermo_ma_evento_legge_solo_il_fascicolo_cambiato(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    fascicolo_a, _decreto_a, _relata_a = _seed(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+
+        primo = runtime.lettura_automatica_corrente(limite_oggetti=50, usa_marker_scheduler=True)
+        assert primo["esaminati"] == 1 and primo["documenti_letti"] >= 2
+
+        quieto = runtime.lettura_automatica_corrente(limite_oggetti=50, usa_marker_scheduler=True)
+        assert quieto["esaminati"] == 1
+        assert quieto["documenti_letti"] == 0 and quieto["pec_lette"] == 0 and quieto["restano"] == 0
+
+        chiamati: list[str] = []
+        originale = runtime.leggi_fascicolo
+
+        def conta(fascicolo, *args, **kwargs):
+            chiamati.append(str(getattr(fascicolo, "id", "")))
+            return originale(fascicolo, *args, **kwargs)
+
+        monkeypatch.setattr(runtime, "leggi_fascicolo", conta)
+        saltato = runtime.lettura_automatica_corrente(limite_oggetti=50, usa_marker_scheduler=True)
+        assert saltato["esaminati"] == 0 and saltato["saltati"] == 1
+        assert chiamati == [], "il cron non deve richiamare i fascicoli quando lo studio è fermo"
+
+        app.extensions["core_runtime"]["get_fascicoli"]().aggiungi_documento(
+            fascicolo_a,
+            nome_file="nuova-pec-o-documento.pdf",
+            tipo=TipoDocumento.ALTRO,
+            contenuto=_pdf(["TRIBUNALE DI TORINO - R.G. 777/2026", "Comunicazione nuova del 21/01/2027 ore 10.00."]),
+        )
+        evento = runtime.leggi_fascicolo(_fascicolo(app, fascicolo_a))
+        assert evento["documenti"]["letti"] == 1
+        assert chiamati == [fascicolo_a], "l'evento deve leggere solo il fascicolo cambiato"
+
+        chiamati.clear()
+        dopo_evento = runtime.lettura_automatica_corrente(limite_oggetti=50, usa_marker_scheduler=True)
+        assert dopo_evento["esaminati"] == 0 and dopo_evento["saltati"] == 1
+        assert chiamati == [], "una lettura puntuale riuscita non deve svegliare il giro globale"
+
+
 def test_un_giro_fallito_lascia_il_fascicolo_nel_ciclo_dichiarato_in_errore(tmp_path: Path):
     """Il ciclo non si spezza: un guasto si registra e si riprova, non sparisce."""
     app = _app(tmp_path)

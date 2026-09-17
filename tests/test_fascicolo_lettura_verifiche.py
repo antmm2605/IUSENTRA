@@ -73,6 +73,50 @@ def test_verifica_pec_non_collega_il_ruolo_se_il_mittente_non_e_un_ufficio(tmp_p
     assert esito["collegate"] == 0 and [voce["corrispondenza"] for voce in esito["da_confermare"]] == ["rg"]
 
 
+def test_verifica_pec_collega_rg_da_profilo_ufficio_anche_con_mittente_legalmail(tmp_path: Path):
+    repository = _repository(tmp_path)
+    with repository.connect() as conn:
+        metadata = {"headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 777/2026/LAV", "from": "posta-certificata@legalmail.it"}}
+        conn.execute(
+            "INSERT INTO pec_messages (id, tenant_id, account_email, folder, mime_sha256, mime_size, original_mime, received_at, ingested_at, status, quality_status, signature_status, linked_fascicolo_id, metadata_json) "
+            "VALUES ('M10','default','studio@pec.it','INBOX','sha10',10,X'00','2026-09-01T09:00:00','2026-09-01T09:00:00','link_candidates','giallo','non_applicabile','',?)",
+            (json.dumps(metadata),),
+        )
+        parsed = {
+            "procedural_profile": {
+                "numero_rg": "777/2026",
+                "codice_ufficio": "001",
+                "ufficio": "Ufficio giudiziario civile",
+                "giudice": "GIUDICE TEST",
+                "cancelleria": "CANCELLERIA TEST",
+                "oggetto_evento": "COMUNICAZIONE DI CANCELLERIA",
+            }
+        }
+        conn.execute(
+            "INSERT INTO pec_parsed_versions (id, message_id, version, parser_version, parsed_json, parsed_sha256, created_at) VALUES ('v10','M10',1,'1',?,'p10','2026-09-01T09:05:00')",
+            (json.dumps(parsed),),
+        )
+        repository._insert_validation_report(
+            conn,
+            message_id="M10",
+            parsed_version_id="v10",
+            report={
+                "event_type": "pct_deposito",
+                "severity": "warning",
+                "issues": [],
+            },
+            actor="test",
+        )
+        conn.commit()
+
+    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi"), repository=repository)
+
+    assert esito["esaminate"] == 1 and esito["collegate"] == 1 and esito["da_confermare"] == []
+    with repository.connect() as conn:
+        riga = conn.execute("SELECT linked_fascicolo_id, status FROM pec_messages WHERE id='M10'").fetchone()
+        assert riga["linked_fascicolo_id"] == "F1" and riga["status"] == "linked"
+
+
 def test_esegui_verifiche_registra_gli_esiti_e_le_lacune(tmp_path: Path, monkeypatch):
     from pct.fascicoli import TipoFascicolo
 
@@ -94,14 +138,15 @@ def test_esegui_verifiche_registra_gli_esiti_e_le_lacune(tmp_path: Path, monkeyp
     letto = servizio.leggi_registro(fascicolo.id, paths={"FASCICOLI_DB": app.config["FASCICOLI_DB"]})
     assert letto["esiti"]["pec"]["collegate"] == 1 and letto["completata_il"]
 
-    # La lettura del fascicolo espone gli esiti e li racconta.
+    # La lettura del fascicolo non deve più fondarsi sui checkpoint JSON storici:
+    # gli esiti visibili arrivano dal nuovo archivio SQL dei motori.
     with app.app_context():
         from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
 
         lettura = load_fascicolo_lettura_context(fascicolo_id=fascicolo.id)
-    assert lettura["verifiche"]["esiti"]["pec"]["collegate"] == 1
-    assert "1 messaggi esaminati, 1 collegati automaticamente" in lettura["narrativa"]
-    assert "Verifica documenti non completata: OCR non disponibile" in lettura["narrativa"]
+    assert lettura["verifiche"]["source_of_truth"] == "archivio_letture_sql"
+    assert lettura["verifiche"]["esiti"].get("pec", {}).get("collegate", 0) == 0
+    assert "1 messaggi esaminati, 1 collegati automaticamente" not in lettura["narrativa"]
 
 
 def test_endpoint_lettura_avvia_le_verifiche_in_sfondo(tmp_path: Path, monkeypatch):

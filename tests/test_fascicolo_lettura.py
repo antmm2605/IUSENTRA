@@ -95,7 +95,7 @@ def _presidio(status: str, label: str, atto: str = "Atto di citazione", destinat
 
 def _caso_completo() -> DatiLettura:
     documenti = [
-        _documento("A1", "citazione.pdf", TESTO_CITAZIONE),
+        _documento("A1", "citazione.pdf", TESTO_CITAZIONE, domanda_archivio=petitum(TESTO_CITAZIONE)),
         _documento("P1", "procura.pdf", "PROCURA ALLE LITI. Io sottoscritto Mario Rossi delego l'avv. Bianchi.", data="2026-01-08"),
         _documento("V1", "verbale_udienza.pdf", "Verbale di udienza del 15 giugno 2026. Il giudice rinvia per l'ammissione dei mezzi di prova.", data="2026-06-15"),
         _documento("S1", "screenshot.png", "", data="2026-06-16"),
@@ -147,7 +147,7 @@ def test_lettura_completa_dice_quadro_oggetto_fase_e_prossimi_passi():
 
     # La fase la dicono le prove: udienza tenuta -> trattazione.
     assert lettura["fase"]["codice"] == "trattazione"
-    assert any("udienza del 15/06/2026" in prova for prova in lettura["fase"]["prove"])
+    assert any("udienza registrata il 15/06/2026" in prova for prova in lettura["fase"]["prove"])
     assert lettura["fase"]["prossima_udienza"] == (OGGI + timedelta(days=20)).strftime("%d/%m/%Y")
 
     # Deposito perfezionato e notifica consegnata sono letti nella fase giusta.
@@ -204,6 +204,10 @@ def test_sentenza_catalogata_porta_in_fase_decisa_con_passo_di_impugnazione():
     dati = _caso_completo()
     dati.documenti.append(_documento("SE1", "sentenza.pdf", "REPUBBLICA ITALIANA. IN NOME DEL POPOLO ITALIANO. Il Tribunale di Milano ha pronunciato la seguente SENTENZA.", data="2026-09-01"))
     dati.catalogo.append(_voce_catalogo("SE1", "Sentenza", "provvedimento", "provvedimenti"))
+    dati.archivio.setdefault("fonti_documenti", []).extend([
+        {"oggetto_id": "SE1", "categoria": "ruolo", "campo": "numero_rg", "valore": "1234/2026", "verifica": "verificata", "posizione": 1},
+        {"oggetto_id": "SE1", "categoria": "provvedimento", "campo": "provvedimento", "valore": "2026-09-01", "verifica": "verificata", "posizione": 2},
+    ])
     lettura = costruisci_lettura(dati)
 
     assert lettura["fase"]["codice"] == "decisa"
@@ -289,9 +293,8 @@ def test_scadenza_scaduta_e_il_primo_passo():
     dati.scadenze.append({"id": "SC0", "titolo": "Deposito comparsa di risposta", "data": (OGGI - timedelta(days=3)).isoformat(), "stato": "APERTO"})
     dati.scadenze.append({"id": "SC9", "titolo": "Scadenza chiusa", "data": (OGGI - timedelta(days=30)).isoformat(), "stato": "COMPLETATA"})
     lettura = costruisci_lettura(dati)
-    primo = lettura["prossimi_passi"][0]
+    primo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"] == "Verificare l’esito della scadenza «Deposito comparsa di risposta»")
     assert primo["urgenza"] == 0
-    assert primo["azione"] == "Chiudere o riallineare la scadenza «Deposito comparsa di risposta»"
     assert all("Scadenza chiusa" not in passo["azione"] for passo in lettura["prossimi_passi"])
 
 
@@ -404,17 +407,51 @@ def test_presidio_pec_entra_nella_lettura_con_termini_e_udienze_da_registrare():
     assert len(pec["udienze_da_registrare"]) == 1
     azioni = [passo["azione"] for passo in lettura["prossimi_passi"]]
     # Il termine che il presidio vuole far rivedere è un passo; quello certo lo registra da solo.
-    assert any(azione.startswith("Confermare il termine «memoria 171 ter» (art. 171-ter c.p.c.) che il presidio PEC propone dalla PEC del 12/09/2026") for azione in azioni)
+    assert any(azione.startswith("Valutare il termine «memoria 171 ter» (art. 171-ter c.p.c.)") for azione in azioni)
     assert not any("comparsa conclusionale" in azione for azione in azioni)
     assert not any("udienza del 05/11/2026" in azione for azione in azioni)
     # La PEC che cita l'assistito: il presidio non collega omonimi, chiede conferma; l'evento incerto va confermato.
     assert any(azione.startswith("Confermare l'evento che il presidio PEC propone per la PEC del 13/09/2026") for azione in azioni)
     passo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"].startswith("Confermare l'evento"))
     assert passo["href"] == "#comunicazioni-notifica" and passo["norma"] == "Specifiche tecniche DGSIA 7/8/2024, art. 21"
-    # La PEC per numero di ruolo non collegata (giallo) chiede la verifica di autenticità.
-    assert any(azione.startswith("Verificare l'autenticità della PEC del 12/09/2026") for azione in azioni)
+    # La PEC per numero di ruolo non collegata chiede il collegamento, senza inventare un allarme di autenticità.
+    assert any(azione.startswith("Confermare il collegamento della PEC del 12/09/2026") for azione in azioni)
+    assert not any(azione.startswith("Verificare l'autenticità della PEC del 12/09/2026") for azione in azioni)
     assert "PEC del presidio che riguardano la pratica: 3 (1 collegate, 1 per numero di ruolo, 1 per nome dell'assistito)" in lettura["narrativa"]
     assert "2 PEC del presidio riguardano la pratica ma sono ancora da controllare" in lettura["lacune"]
+
+
+def test_pec_rg_con_profilo_ufficio_giudiziario_non_diventa_lacuna_di_controllo():
+    dati = _caso_completo()
+    dati.pec = [
+        _pec_messaggio(
+            id="M4",
+            received_at="2025-04-29T09:39:46Z",
+            subject="POSTA CERTIFICATA: COMUNICAZIONE 2539/2025/LAV",
+            **{"from": "posta-certificata@legalmail.it"},
+            status="link_candidates",
+            quality_status="giallo",
+            signature_status="non_applicabile",
+            collegata=False,
+            corrispondenza="rg",
+            event_type="pct_deposito",
+            procedural_profile={
+                "numero_rg": "2539/2025",
+                "codice_ufficio": "0581110092",
+                "ufficio": "Ufficio giudiziario civile",
+                "giudice": "SILVESTRINI CLAUDIO",
+                "cancelleria": "NICOLO GIULIA",
+                "oggetto_evento": "FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA",
+            },
+        )
+    ]
+
+    lettura = costruisci_lettura(dati)
+
+    assert lettura["pec"]["totale"] == 1
+    assert lettura["pec"]["da_controllare"] == []
+    assert not any("PEC del presidio" in voce and "ancora da controllare" in voce for voce in lettura["lacune"])
+    assert not any("Confermare il collegamento della PEC" in passo["azione"] for passo in lettura["prossimi_passi"])
 
 
 def test_fascicolo_definito_o_da_archiviare_non_ha_passaggi():

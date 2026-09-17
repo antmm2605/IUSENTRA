@@ -28,6 +28,39 @@ CORRISPONDENZE = {
 }
 
 
+def _profilo_da_ufficio_giudiziario(messaggio: dict[str, Any]) -> bool:
+    profilo = dict(messaggio.get("procedural_profile") or {})
+    testo = " ".join(
+        pulisci(profilo.get(chiave)).lower()
+        for chiave in (
+            "ufficio",
+            "codice_ufficio",
+            "cancelleria",
+            "giudice",
+            "numero_rg",
+            "oggetto_evento",
+            "descrizione_evento",
+        )
+    )
+    if not pulisci(profilo.get("numero_rg")):
+        return False
+    ha_ufficio = bool(
+        pulisci(profilo.get("codice_ufficio"))
+        or "ufficio giudiziario" in testo
+        or "tribunale" in testo
+        or "corte" in testo
+        or "giudice" in testo
+        or "cancelleria" in testo
+    )
+    ha_atto_processuale = bool(
+        pulisci(profilo.get("giudice"))
+        or pulisci(profilo.get("cancelleria"))
+        or pulisci(profilo.get("oggetto_evento"))
+        or pulisci(profilo.get("descrizione_evento"))
+    )
+    return ha_ufficio and ha_atto_processuale
+
+
 def _leggi_termine(termine: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": pulisci(termine.get("id")),
@@ -75,9 +108,13 @@ def leggi_messaggio(messaggio: dict[str, Any]) -> dict[str, Any]:
         motivi.append("firma non valida")
     if messaggio.get("event_type") != "pct_deposito" and any(voce["da_rivedere"] for voce in eventi):
         motivi.append("evento da confermare")
-    if not messaggio.get("collegata"):
-        motivi.append("non collegata al fascicolo")
     corrispondenza = pulisci(messaggio.get("corrispondenza")) or ("collegamento" if messaggio.get("collegata") else "")
+    collegamento_mancante_da_rivedere = (
+        not messaggio.get("collegata")
+        and not (corrispondenza == "rg" and _profilo_da_ufficio_giudiziario(messaggio))
+    )
+    if collegamento_mancante_da_rivedere:
+        motivi.append("non collegata al fascicolo")
     return {
         "id": pulisci(messaggio.get("id")),
         "oggetto": pulisci(messaggio.get("subject"))[:160] or "(senza oggetto)",

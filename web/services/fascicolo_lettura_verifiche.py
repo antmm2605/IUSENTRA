@@ -96,6 +96,39 @@ def _mittente_ufficiale(indirizzo: str) -> bool:
     return any(dominio in testo for dominio in DOMINI_UFFICIALI)
 
 
+def _profilo_da_ufficio_giudiziario(messaggio: dict[str, Any]) -> bool:
+    profilo = dict(messaggio.get("procedural_profile") or {})
+    testo = " ".join(
+        _clean(profilo.get(chiave)).lower()
+        for chiave in (
+            "ufficio",
+            "codice_ufficio",
+            "cancelleria",
+            "giudice",
+            "numero_rg",
+            "oggetto_evento",
+            "descrizione_evento",
+        )
+    )
+    if not _clean(profilo.get("numero_rg")):
+        return False
+    ha_ufficio = bool(
+        _clean(profilo.get("codice_ufficio"))
+        or "ufficio giudiziario" in testo
+        or "tribunale" in testo
+        or "corte" in testo
+        or "giudice" in testo
+        or "cancelleria" in testo
+    )
+    ha_atto_processuale = bool(
+        _clean(profilo.get("giudice"))
+        or _clean(profilo.get("cancelleria"))
+        or _clean(profilo.get("oggetto_evento"))
+        or _clean(profilo.get("descrizione_evento"))
+    )
+    return ha_ufficio and ha_atto_processuale
+
+
 def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
     """Collega le PEC che citano il ruolo con mittente ufficiale e fa ripartire il presidio su di esse."""
     from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
@@ -110,8 +143,15 @@ def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
     for messaggio in messaggi:
         if messaggio.get("collegata"):
             continue
-        if messaggio.get("corrispondenza") == "rg" and _mittente_ufficiale(messaggio.get("from", "")):
-            if _collega_per_ruolo(repository, messaggio["id"], _clean(getattr(fascicolo, "id", ""))):
+        if messaggio.get("corrispondenza") == "rg" and (
+            _mittente_ufficiale(messaggio.get("from", "")) or _profilo_da_ufficio_giudiziario(messaggio)
+        ):
+            if _collega_per_ruolo(
+                repository,
+                messaggio["id"],
+                _clean(getattr(fascicolo, "id", "")),
+                motivo="numero di ruolo e profilo di ufficio giudiziario riconosciuti",
+            ):
                 collegate.append(messaggio["id"])
             continue
         da_confermare.append({"id": messaggio["id"], "oggetto": messaggio.get("subject", ""), "corrispondenza": messaggio.get("corrispondenza", "")})
@@ -131,7 +171,7 @@ def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
     return {"esaminate": len(messaggi), "collegate": len(collegate), "job_eseguiti": eseguiti, "da_confermare": da_confermare[:6]}
 
 
-def _collega_per_ruolo(repository: Any, message_id: str, fascicolo_id: str) -> bool:
+def _collega_per_ruolo(repository: Any, message_id: str, fascicolo_id: str, *, motivo: str = "numero di ruolo citato da un ufficio giudiziario") -> bool:
     from pct.pec_pipeline import canonical_json, iso_now
     import uuid
 
@@ -141,10 +181,10 @@ def _collega_per_ruolo(repository: Any, message_id: str, fascicolo_id: str) -> b
             versione = parsed["id"] if parsed is not None else ""
             conn.execute(
                 "INSERT INTO pec_fascicolo_links (id, message_id, parsed_version_id, fascicolo_id, score, status, seeds_json, candidates_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (uuid.uuid4().hex, message_id, versione, fascicolo_id, 1.0, "ruolo_certificato_ufficio", canonical_json({"rg": "numero di ruolo del fascicolo citato da un ufficio giudiziario"}), canonical_json([{"id": fascicolo_id, "score": 1.0, "reasons": ["RG coincidente", "mittente ufficio giudiziario"]}]), iso_now()),
+                (uuid.uuid4().hex, message_id, versione, fascicolo_id, 1.0, "ruolo_certificato_ufficio", canonical_json({"rg": motivo}), canonical_json([{"id": fascicolo_id, "score": 1.0, "reasons": ["RG coincidente", motivo]}]), iso_now()),
             )
             conn.execute("UPDATE pec_messages SET linked_fascicolo_id=?, linked_fascicolo_score=?, status=? WHERE id=?", (fascicolo_id, 1.0, "linked", message_id))
-            repository.append_audit(conn, action="pec.fascicolo.collegata_dalla_lettura", resource_type="pec_message", resource_id=message_id, payload={"fascicolo_id": fascicolo_id, "motivo": "numero di ruolo citato da mittente ufficiale"}, actor=ATTORE)
+            repository.append_audit(conn, action="pec.fascicolo.collegata_dalla_lettura", resource_type="pec_message", resource_id=message_id, payload={"fascicolo_id": fascicolo_id, "motivo": motivo}, actor=ATTORE)
             if versione:
                 repository.enqueue_job(conn, "validate", message_id=message_id, priority=20, actor=ATTORE)
         return True

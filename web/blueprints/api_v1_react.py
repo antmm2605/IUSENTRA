@@ -8856,7 +8856,13 @@ from web.services.lettura_cache import LETTURA_CACHE as _LETTURA_CACHE, chiave_l
 
 
 def _lettura_cache_key(id_fasc: str) -> tuple:
-    tenant_versionato = f"{_tenant_runtime_label()}@{APP_VERSION}"
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+    registro = registro_corrente()
+    # Il worker OCR e l'app hanno cache distinte: la revisione SQL rende
+    # immediatamente visibile il completamento anche fra container diversi.
+    ciclo = registro.impronta_fascicolo(tenant_corrente(), str(id_fasc), "motore_documenti")
+    revisione = str(ciclo.get("aggiornato_il") or "")
+    tenant_versionato = f"{_tenant_runtime_label()}@{APP_VERSION}@{revisione}"
     return _chiave_lettura(tenant_versionato, str(id_fasc))
 
 
@@ -9028,6 +9034,9 @@ def fascicolo_regia_applica_profilo(id_fasc: str):
         fascicoli_manager=ctx["gf"],
         actor=_actor_label(),
     )
+    from web.services.lettura_cache import invalida_lettura
+
+    invalida_lettura(id_fasc)
     return _jsonify_public_payload({"ok": True, "mock_fallback": False, "message": "Profilo pratica applicato e checklist rigenerata.", "regia": result})
 
 
@@ -15302,6 +15311,9 @@ def _serve_email_source_preview(
         if page_value:
             try:
                 page_number = int(page_value)
+                if request.args.get("reader_text") == "1":
+                    from web.services.pdf_reader_text import page_text_response
+                    return page_text_response(preview_data, page_number)
                 png_payload = render_pdf_page_png(preview_data, page_number)
             except Exception as exc:
                 current_app.logger.warning(
@@ -15342,6 +15354,7 @@ def _serve_email_source_preview(
             )
             return preview_error_html(download_url)
         return pdf_mobile_preview_html(
+            pdf_payload=preview_data,
             nome_documento=preview_name or original_name,
             page_urls=page_urls,
             scarica_url=download_url,
@@ -15516,6 +15529,9 @@ def email_source_attachment(message_id: str):
             if page_value:
                 try:
                     page_number = int(page_value)
+                    if request.args.get("reader_text") == "1":
+                        from web.services.pdf_reader_text import page_text_response
+                        return page_text_response(preview_data, page_number)
                     png_payload = render_pdf_page_png(preview_data, page_number)
                 except Exception as exc:
                     current_app.logger.warning(
@@ -15556,6 +15572,7 @@ def email_source_attachment(message_id: str):
                 )
                 return preview_error_html(download_url)
             return pdf_mobile_preview_html(
+                pdf_payload=preview_data,
                 nome_documento=preview_name or original_name,
                 page_urls=page_urls,
                 scarica_url=download_url,
@@ -15653,3 +15670,10 @@ def agenda_nuovo_defaults():
             "avvocato": nome or username,
         }
     )
+
+
+@api_v1_react.get("/fonti-procedurali/<source_id>/visualizza")
+@_richiedi_auth
+def fonte_procedurale_reader(source_id: str):
+    from web.services.fonti_procedurali_reader import visualizza_fonte
+    return visualizza_fonte(source_id)

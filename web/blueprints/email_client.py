@@ -130,6 +130,9 @@ def _serve_attachment_pdf_reader(
     if page_value:
         try:
             page_number = int(page_value)
+            if request.args.get("reader_text") == "1":
+                from web.services.pdf_reader_text import page_text_response
+                return page_text_response(preview_data, page_number)
             png_payload = render_pdf_page_png(preview_data, page_number)
         except Exception as exc:
             current_app.logger.warning(
@@ -170,6 +173,7 @@ def _serve_attachment_pdf_reader(
         )
         return preview_error_html(download_url)
     return pdf_mobile_preview_html(
+        pdf_payload=preview_data,
         nome_documento=preview_name,
         page_urls=page_urls,
         scarica_url=download_url,

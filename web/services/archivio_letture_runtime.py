@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 LETTORE_DOCUMENTI = "motore_documenti"
 LETTORE_PEC = "motore_pec"
 BYTE_MASSIMI_PDF = 8_000_000
+BYTE_MASSIMI_EMAIL = 128 * 1024 * 1024
+VERSIONE_ESTRAZIONE_FORMATI = "2026.09.17.v4"
 _LOCK = threading.Lock()
 _IN_CORSO: set[str] = set()
 
@@ -48,13 +50,27 @@ def _testo(valore: Any) -> str:
 
 # ---- i testi di un documento --------------------------------------------------
 
+def _formato_documento(documento: Any) -> str:
+    # Il titolo della PEC non è il nome fisico del file acquisito.
+    for campo in ("percorso", "nome_originale", "nome"):
+        estensione = Path(str(getattr(documento, campo, "") or "")).suffix.lower()
+        if estensione in {".eml", ".pdf", ".zip", ".p7m", ".xml", ".docx", ".doc", ".txt", ".rtf"}:
+            return estensione
+    return ""
+
+
 def _bytes_documento(fascicolo_id: str, documento: Any) -> bytes:
     try:
         from pct.document_crypto import decrypt_doc
         from web.helpers import get_fascicoli
 
-        percorso = get_fascicoli().percorso_documento_lettura(fascicolo_id, str(documento.id))
-        if not percorso.exists() or percorso.stat().st_size > BYTE_MASSIMI_PDF:
+        manager = getattr(g, "_archivio_fascicoli_manager", None)
+        if manager is None:
+            manager = get_fascicoli()
+            g._archivio_fascicoli_manager = manager
+        percorso = manager.percorso_documento_lettura(fascicolo_id, str(documento.id))
+        limit = BYTE_MASSIMI_EMAIL
+        if not percorso.exists() or percorso.stat().st_size > limit:
             return b""
         return decrypt_doc(percorso.read_bytes())
     except Exception:
@@ -62,8 +78,27 @@ def _bytes_documento(fascicolo_id: str, documento: Any) -> bytes:
 
 
 def _testo_nativo(fascicolo_id: str, documento: Any) -> str:
-    nome = _testo(getattr(documento, "nome", "")).lower()
-    if not nome.endswith(".pdf"):
+    formato = _formato_documento(documento)
+    if formato == ".eml" or str(getattr(documento, "mime_type", "")) == "message/rfc822":
+        from email import policy
+        from email.parser import BytesParser
+        data = _bytes_documento(fascicolo_id, documento)
+        if not data:
+            return ""
+        message = BytesParser(policy=policy.default).parsebytes(data)
+        if not message.get("From") or not message.get("Subject"):
+            return ""
+        body = message.get_body(preferencelist=("plain", "html"))
+        text = str(body.get_content()) if body else ""
+        if body is not None and body.get_content_type() == "text/html":
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(text, "html.parser")
+            for elemento in soup(["script", "style"]):
+                elemento.decompose()
+            text = soup.get_text(" ", strip=True)
+        pec = "posta certificata" in str(message.get("Subject", "")).lower() or bool(message.get("X-Trasporto"))
+        return f"Tipo contenuto: messaggio {'PEC' if pec else 'email'}\nMittente: {message.get('From', '')}\nOggetto: {message.get('Subject', '')}\n\n{text}"
+    if formato != ".pdf":
         return ""
     dati = _bytes_documento(fascicolo_id, documento)
     if not dati:
@@ -77,7 +112,7 @@ def _testo_nativo(fascicolo_id: str, documento: Any) -> str:
 
         pagine: list[str] = []
         with pdfplumber.open(io.BytesIO(dati)) as pdf:
-            for pagina in pdf.pages[:12]:
+            for pagina in pdf.pages:
                 pagine.append(pagina.extract_text() or "")
         testo = "\n\n".join(parte for parte in pagine if parte.strip()).strip()
         return testo if _testo_nativo_affidabile(testo) else ""
@@ -94,13 +129,42 @@ def _testo_ocr(documento: Any) -> str:
         return ""
 
 
-def _testo_indice(fascicolo: Any, documento: Any) -> str:
-    try:
-        from web.services.react_fascicoli_bridge import _document_ai_texts_for_fascicolo
+def testi_indice_archivio(fascicolo: Any) -> dict[str, str]:
+    """Testo SQL corrente, abbinato all'impronta del contenuto: nessun nome o JSON storico."""
+    from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
+    from web.services.registro_letture_runtime import impronte_contenuto
+    fid = str(fascicolo.id)
+    cache = getattr(g, "_archivio_testi_sql", {}) if has_app_context() else {}
+    if fid in cache:
+        return cache[fid]
+    repository = build_document_ai_service().repository
+    tenant = document_ai_tenant_id()
+    records = sorted(repository.list_documents(tenant, fid), key=lambda r: str(r.updated_at or ""), reverse=True)
+    by_sha = {}
+    for record in records:
+        if str(record.status) == "ready" and record.sha256:
+            by_sha.setdefault(record.sha256, record)
+    hashes = impronte_contenuto(fid)
+    text_by_sha, result = {}, {}
+    for doc in fascicolo.documenti:
+        sha = str(getattr(doc, "hash_contenuto_sha256", "") or "") or (hashes.nota(doc) if hashes else "") or str(getattr(doc, "hash_sha256", "") or "")
+        record = by_sha.get(sha)
+        if record is None:
+            continue
+        if sha not in text_by_sha:
+            extracted = repository.get_extracted_text(tenant, fid, record.id, record.current_version_id)
+            text = str(getattr(extracted, "text", "") or "")
+            text_by_sha[sha] = "" if text.lstrip().startswith("PCTENC") else text
+        if text_by_sha[sha].strip():
+            result[str(doc.id)] = text_by_sha[sha]
+    if has_app_context():
+        cache[fid] = result
+        g._archivio_testi_sql = cache
+    return result
 
-        return str((_document_ai_texts_for_fascicolo(fascicolo, documents=[documento]) or {}).get(str(documento.id)) or "")
-    except Exception:
-        return ""
+
+def _testo_indice(fascicolo: Any, documento: Any) -> str:
+    return testi_indice_archivio(fascicolo).get(str(documento.id), "")
 
 
 def testi_documento(fascicolo: Any, documento: Any) -> list[tuple[str, str]]:
@@ -114,6 +178,8 @@ def testi_documento(fascicolo: Any, documento: Any) -> list[tuple[str, str]]:
     if ocr.strip():
         letture.append(("ocr", ocr))
     indice = _testo_indice(fascicolo, documento)
+    if indice.lstrip().startswith("PCTENC"):
+        indice = ""  # encrypted storage is never readable evidence
     if indice.strip() and indice.strip() != ocr.strip():
         letture.append(("indice", indice))
     return letture
@@ -218,11 +284,17 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_DOCUMENTI, tipi=("documento",))
-    if forza:
-        letti_prima = {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI) if l.stato == "non_leggibile"}
-        for oggetto in registro.oggetti(tenant, fascicolo_id):
-            if oggetto.tipo == "documento" and (oggetto.oggetto_id, oggetto.impronta) in letti_prima and oggetto not in da_leggere:
-                da_leggere.append(oggetto)
+    documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
+    # Ritenta le sole email escluse dall'estrattore precedente, senza invalidare
+    # le letture valide di tutti gli altri documenti.
+    letti_prima = {
+        (l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
+        if l.stato == "non_leggibile" and (forza or (
+            (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI))
+    }
+    for oggetto in registro.oggetti(tenant, fascicolo_id):
+        if oggetto.tipo == "documento" and (oggetto.oggetto_id, oggetto.impronta) in letti_prima and oggetto not in da_leggere:
+            da_leggere.append(oggetto)
     conteggi["da_leggere"] = len(da_leggere)
     documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
     for oggetto in da_leggere[:limite]:
@@ -236,27 +308,87 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             continue
         letture = testi_documento(fascicolo, documento)
         if not letture:
-            conteggi["senza_testo"] += 1
-            registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "nessun testo disponibile: in attesa dell'OCR"}, versione=VERSIONE_MOTORE_DOCUMENTI)
-            continue
+            from web.services.archivio_testo_contenitori import estrai_contenuto
+            data = _bytes_documento(fascicolo_id, documento)
+            nome = str(getattr(documento, "percorso", "") or oggetto.nome)
+            estratto = estrai_contenuto(data, nome)
+            if estratto.testo.strip() and not estratto.errori:
+                letture = [(estratto.origine, estratto.testo)]
+            else:
+                conteggi["senza_testo"] += 1
+                motivo = "; ".join(estratto.errori) or "Il file è leggibile ma non contiene testo estraibile."
+                registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": motivo, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI}, versione=VERSIONE_MOTORE_DOCUMENTI)
+                continue
+        oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oggetto.oggetto_id) or oggetto
         origine, testo = letture[0]
         contesto_documento = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note, importi_noti=contesto.importi_noti)
         if len(letture) > 1:
             contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
         metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
+        from web.services.sentenza_economic_runtime import _cu_tiers
+        metadata.update(fascicolo=fascicolo, documento_id=documento.id,
+                        document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=_cu_tiers())
         fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
-        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
+        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
         conteggi["letti"] += 1
         conteggi["fatti"] += len(fatti)
         conteggi["verificati"] += sum(1 for f in fatti if f.verifica == "verificata")
     return conteggi
 
 
+def _bytes_allegato_pec(oggetto: Any, repository: Any, cache: dict[str, bytes]) -> bytes:
+    import hashlib
+    from email import policy
+    from email.parser import BytesParser
+    if oggetto.origine not in cache:
+        raw, row = repository.original_mime(oggetto.origine)
+        if hashlib.sha256(raw).hexdigest() != row["mime_sha256"]:
+            raise ValueError("Impronta del messaggio originale non corrispondente.")
+        cache[oggetto.origine] = raw
+    for part in BytesParser(policy=policy.default).parsebytes(cache[oggetto.origine]).walk():
+        payload = part.get_payload(decode=True)
+        if isinstance(payload, bytes) and payload and hashlib.sha256(payload).hexdigest() == oggetto.sha256:
+            return payload
+    raise ValueError("Allegato non ritrovato nel messaggio originale con la stessa impronta.")
+
+
+def _allegato_tecnico(oggetto: Any, repository: Any, cache: dict[str, bytes]) -> dict[str, Any] | None:
+    """Ispeziona il contenitore binario reale; non certifica la firma né decifra la busta."""
+    import hashlib
+    from email import policy
+    from email.parser import BytesParser
+    from asn1crypto.cms import ContentInfo
+    if not str(oggetto.nome).lower().endswith((".p7s", ".enc")):
+        return None
+    if oggetto.origine not in cache:
+        raw, row = repository.original_mime(oggetto.origine)
+        if hashlib.sha256(raw).hexdigest() != row["mime_sha256"]:
+            return None
+        cache[oggetto.origine] = raw
+    for part in BytesParser(policy=policy.default).parsebytes(cache[oggetto.origine]).walk():
+        raw = part.get_payload(decode=True) or b""
+        if not raw or hashlib.sha256(raw).hexdigest() != oggetto.sha256:
+            continue
+        try:
+            cms = ContentInfo.load(raw, strict=True)
+            kind = cms["content_type"].native
+            if kind == "signed_data" and cms["content"]["encap_content_info"]["content"].native is None:
+                return {"analisi": "metadati_tecnici", "tipo": "firma_separata", "motivo": "Firma PEC separata: struttura CMS letta; nessun testo autonomo. La validità crittografica resta nel presidio firme."}
+            if kind == "enveloped_data":
+                cms["content"]["encrypted_content_info"]["content_encryption_algorithm"].native
+                return {"analisi": "metadati_tecnici", "tipo": "busta_cifrata", "motivo": "Busta cifrata: struttura CMS letta; contenuto riservato al destinatario. Atti e ricevute sono letti dalle rispettive fonti."}
+        except (ValueError, TypeError, KeyError):
+            return None
+    return None
+
+
 def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, messaggi: list[dict[str, Any]], *, limite: int) -> dict[str, int]:
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     conteggi = {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
+    falliti = {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_PEC) if l.tipo == "allegato_pec" and l.stato == "non_leggibile" and (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI}
+    da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "allegato_pec" and (o.oggetto_id, o.impronta) in falliti and o not in da_leggere)
     conteggi["da_leggere"] = len(da_leggere)
     per_id = {str(m.get("id")): m for m in messaggi}
     allegati: dict[str, dict[str, Any]] = {}
@@ -264,6 +396,9 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
         for riga in _righe_pec_collegate(fascicolo_id):
             for allegato in list(riga.get("allegati") or []):
                 allegati[str(allegato.get("id") or "")] = allegato
+    from web.services.pec_pipeline_runtime import repository_for_current_request
+    repository_pec = repository_for_current_request()
+    mime_cache: dict[str, bytes] = {}
     for oggetto in da_leggere[:limite]:
         if oggetto.tipo == "pec":
             messaggio = per_id.get(oggetto.oggetto_id)
@@ -278,14 +413,28 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
             allegato = allegati.get(oggetto.oggetto_id)
             testo = str((allegato or {}).get("ocr_text") or "")
             if not testo.strip():
-                motivo = "allegato senza testo letto dal presidio PEC" if allegato is not None else "allegato non più presente nella PEC collegata"
-                if allegato is None:
+                tecnico = _allegato_tecnico(oggetto, repository_pec, mime_cache) if allegato is not None else None
+                if tecnico:
+                    registro.registra_fatti(tenant, fascicolo_id, oggetto, "pec", [], versione=VERSIONE_MOTORE_PEC)
+                    registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, esito=tecnico, versione=VERSIONE_MOTORE_PEC)
+                    conteggi["letti"] += 1
+                    continue
+                motivo = "Allegato non più presente nella PEC collegata."
+                if allegato is not None:
+                    from web.services.archivio_testo_contenitori import estrai_contenuto
+                    try:
+                        estratto = estrai_contenuto(_bytes_allegato_pec(oggetto, repository_pec, mime_cache), oggetto.nome)
+                        testo = estratto.testo if not estratto.errori else ""
+                        motivo = "; ".join(estratto.errori) or "Allegato privo di testo estraibile."
+                    except (ValueError, OSError) as exc:
+                        motivo = str(exc)
+                if not testo.strip():
                     conteggi["assenti"] += 1
-                registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, stato="non_leggibile", esito={"motivo": motivo}, versione=VERSIONE_MOTORE_PEC)
-                continue
+                    registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, stato="non_leggibile", esito={"motivo": motivo, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI}, versione=VERSIONE_MOTORE_PEC)
+                    continue
             fatti = _attribuisci(fatti_da_allegato(testo, nome=oggetto.nome, contesto=contesto), oggetto, "pec")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "pec", fatti, versione=VERSIONE_MOTORE_PEC)
-        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, esito={"fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_PEC)
+        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, esito={"estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_PEC)
         conteggi["letti"] += 1
         conteggi["fatti"] += len(fatti)
         conteggi["verificati"] += sum(1 for f in fatti if f.verifica == "verificata")
@@ -333,11 +482,18 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     esito = {"anomalie": 0, "fatti": 0}
     try:
-        esito["anomalie"] = len(registro.chiudi_anomalie_superate(tenant, fascicolo_id, contesto=contesto_riconvalida(fascicolo)))
+        contesto = contesto_riconvalida(fascicolo)
+        contesti_date: dict[tuple[str, str], list[str]] = {}
+        for fatto in registro.fatti(tenant, fascicolo_id, verifiche=None):
+            if fatto.categoria == "data" and fatto.contesto:
+                contesti_date.setdefault((fatto.oggetto_id, fatto.valore_letto), []).append(fatto.contesto)
+        contesto["contesti_date"] = contesti_date
+        esito["anomalie"] = len(registro.chiudi_anomalie_superate(tenant, fascicolo_id, contesto=contesto))
     except Exception as exc:
         logger.debug("Riconvalida delle anomalie non riuscita per %s: %s", fascicolo_id, exc)
     try:
-        esito["fatti"] = len(registro.riconvalida_fatti(tenant, fascicolo_id))
+        esclusioni = {f.oggetto_id: f.contesto for f in registro.fatti(tenant, fascicolo_id, verifiche=("verificata", "corretta")) if f.campo == "natura_documentale" and f.valore in {"contratto_lavoro", "documento_identita", "precedente_giurisprudenziale"}}
+        esito["fatti"] = len(registro.riconvalida_fatti(tenant, fascicolo_id, esclusioni_oggetto=esclusioni))
     except Exception as exc:
         logger.debug("Riconvalida dei fatti non riuscita per %s: %s", fascicolo_id, exc)
     return esito
@@ -378,8 +534,8 @@ def _mancanti_motori(registro: RegistroLetture, tenant: str, fascicolo_id: str) 
     try:
         stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC))
     except Exception as exc:
-        logger.debug("Stato oggetti dei motori non leggibile per %s: %s", fascicolo_id, exc)
-        return 0, 0
+        logger.exception("Stato oggetti dei motori non leggibile per %s", fascicolo_id)
+        raise RuntimeError("Stato della lettura non disponibile: il ciclo resta aperto.") from exc
     mancanti = sum(int(voce.da_leggere or 0) for voce in stato.lettori)
     errori = sum(int(voce.errori or 0) for voce in stato.lettori)
     return mancanti, errori
@@ -431,7 +587,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         # documento nuovo.
         prima = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
         mancanti_motori, errori_motori = _mancanti_motori(registro, tenant, fascicolo_id)
-        if not prima.da_leggere and not mancanti_motori and not errori_motori:
+        if not prima.da_leggere and not mancanti_motori:
             return {
                 "inventario": {},
                 "documenti": {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0},
@@ -441,12 +597,15 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
             }
         if not prima.da_leggere:
             logger.info(
-                "Ciclo letture riaperto per %s: riga fascicolo ferma ma oggetti mancanti=%s errori=%s",
+                "Ciclo letture riaperto per %s: riga fascicolo ferma ma oggetti mancanti=%s errori storici=%s",
                 fascicolo_id, mancanti_motori, errori_motori,
             )
     try:
-        inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
         messaggi = _messaggi_pec(fascicolo)
+        from web.services.correlazioni_ricevute_archivio import prepara_correlazioni
+        from web.services.pec_pipeline_runtime import repository_for_current_request
+        prepara_correlazioni(fascicolo, messaggi, repository_for_current_request())
+        inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
         contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
         riconvalidati = _riconvalida(fascicolo, registro, tenant)
@@ -461,6 +620,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     # Seconda gamba della catena: l'archivio consegna ai presìdi che scrivono, e
     # loro confermano. Un fatto già consegnato non viene riproposto.
     consegne = _consegna_ai_presidi(fascicolo, registro)
+    from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
+    economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"]:
         invalida_lettura(fascicolo_id)
     chiusi_documenti = documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
@@ -478,7 +639,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     dopo = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=impronta)
     return {
         "inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "riconvalidati": riconvalidati,
-        "consegne": consegne, "restano": restano, "fermo": restano == 0, "ciclo": dopo.to_dict(),
+        "consegne": consegne, "economia": economia, "restano": restano, "fermo": restano == 0, "ciclo": dopo.to_dict(),
     }
 
 
@@ -493,15 +654,17 @@ def fatti_fascicolo(fascicolo: Any, **filtri: Any) -> list[Fatto]:
 
         return fatti_canonici(fatti)
     except Exception as exc:
-        logger.debug("Archivio delle letture non disponibile per %s: %s", getattr(fascicolo, "id", ""), exc)
-        return []
+        logger.exception("Archivio delle letture non disponibile per %s", getattr(fascicolo, "id", ""))
+        raise RuntimeError("Archivio delle letture non disponibile: impossibile verificare i dati del fascicolo.") from exc
 
 
 MOTIVI_IN_ATTESA = {
     "da_leggere": "non ancora letto dai motori",
     "da_rileggere": "il contenuto è cambiato: va riletto",
+    "regole_aggiornate": "regole di lettura aggiornate: verifica automatica in corso",
     "in_corso": "lettura in corso",
     "errore": "la lettura precedente è fallita",
+    "non_leggibile": "contenuto non leggibile: verificare il motivo registrato",
 }
 
 
@@ -517,9 +680,10 @@ def oggetti_in_attesa(stato: Any, *, letture: Iterable[Any] = ()) -> list[dict[s
         for lettura in letture
     }
     in_attesa: list[dict[str, str]] = []
+    stati_in_attesa = {"da_leggere", "da_rileggere", "regole_aggiornate", "in_corso"}
     for riga in list(getattr(stato, "per_oggetto", []) or []):
         for lettore, stato_lettura in dict(riga.get("letture") or {}).items():
-            if lettore not in {LETTORE_DOCUMENTI, LETTORE_PEC} or stato_lettura not in MOTIVI_IN_ATTESA:
+            if lettore not in {LETTORE_DOCUMENTI, LETTORE_PEC} or stato_lettura not in stati_in_attesa:
                 continue
             registrato = motivi_registrati.get((str(riga.get("tipo") or ""), str(riga.get("oggetto_id") or ""), lettore))
             in_attesa.append({
@@ -527,7 +691,7 @@ def oggetti_in_attesa(stato: Any, *, letture: Iterable[Any] = ()) -> list[dict[s
                 "oggetto_id": str(riga.get("oggetto_id") or ""),
                 "nome": str(riga.get("nome") or "") or str(riga.get("oggetto_id") or ""),
                 "motore": "documenti" if lettore == LETTORE_DOCUMENTI else "PEC",
-                "motivo": registrato or MOTIVI_IN_ATTESA[stato_lettura],
+                "motivo": MOTIVI_IN_ATTESA[stato_lettura] if stato_lettura == "regole_aggiornate" else registrato or MOTIVI_IN_ATTESA[stato_lettura],
             })
     return in_attesa
 
@@ -546,7 +710,8 @@ def stato_archivio_payload(fascicolo: Any, *, registro: RegistroLetture | None =
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC))
     lettori = {voce.lettore: voce for voce in stato.lettori}
     ultima = max([voce.ultima_lettura for voce in stato.lettori] + [""])
-    da_leggere = sum(voce.da_leggere + voce.errori for voce in stato.lettori)
+    da_leggere = sum(voce.da_leggere for voce in stato.lettori)
+    errori = sum(voce.errori for voce in stato.lettori)
     in_attesa = oggetti_in_attesa(stato, letture=registro.letture(tenant, fascicolo_id))
     with _LOCK:
         in_corso = fascicolo_id in _IN_CORSO
@@ -555,6 +720,7 @@ def stato_archivio_payload(fascicolo: Any, *, registro: RegistroLetture | None =
         "lettura_automatica": {
             "in_corso": in_corso,
             "da_leggere": da_leggere,
+            "errori": errori,
             "completa": da_leggere == 0 and not in_corso,
             "ultima_lettura": ultima,
             "ultima_lettura_it": format_datetime_it(ultima) if ultima else "",

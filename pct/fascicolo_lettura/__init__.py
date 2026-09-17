@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 from pct.procedura_fasi import lacune_conoscenza, schede_per_fascicolo
 
-from ._testo import data_it, pulisci
+from ._testo import data_da, data_it, pulisci
 from .archivio import archivio
 from .cronologia import cronologia
 from .depositi import depositi
@@ -39,7 +39,7 @@ from .pec import pec
 from .prossimi_passi import prossimi_passi
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.09.16.lettura-fascicolo.v3"
+VERSIONE_LETTURA = "2026.09.16.lettura-fascicolo.v10"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -68,9 +68,6 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
     if documenti_letti.get("da_acquisire"):
         quanti = len(documenti_letti["da_acquisire"])
         voci.append(f"{quanti} document{'o censito' if quanti == 1 else 'i censiti'} dal portale ma non scaricat{'o' if quanti == 1 else 'i'}: il presidio potrà leggerl{'o' if quanti == 1 else 'i'} solo dopo l'acquisizione")
-    if documenti_letti["non_indicizzati"]:
-        quanti = len(documenti_letti["non_indicizzati"])
-        voci.append(f"{quanti} document{'o' if quanti == 1 else 'i'} in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto")
     archivio_letto = lettura.get("archivio") or {}
     if archivio_letto.get("da_confermare"):
         voci.append(_lacuna_conferme(archivio_letto["da_confermare"]))
@@ -80,6 +77,9 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
     elif (archivio_letto.get("lettura_automatica") or {}).get("da_leggere"):
         quanti = archivio_letto["lettura_automatica"]["da_leggere"]
         voci.append(f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo")
+    elif documenti_letti["non_indicizzati"]:
+        quanti = len(documenti_letti["non_indicizzati"])
+        voci.append(f"{quanti} document{'o' if quanti == 1 else 'i'} in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto")
     return voci[:8]
 
 
@@ -114,9 +114,10 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     """La lettura completa del fascicolo, come dati e come testo."""
     oggi = dati.oggi or datetime.now(ROME_TZ).date()
     testata = intestazione(dati.fascicolo, dati.parti, dati.catalogo)
-    documenti_letti = documenti(dati.documenti, dati.catalogo)
+    documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=(dati.archivio or {}).get("fonti_documenti", []))
     depositi_letti = depositi(dati.depositi, pulisci(dati.fascicolo.get("canale_operativo")))
     notifiche_lette = notifiche(dati.notifiche, dati.attivita)
+    notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
     pec_letto = pec(dati.pec)
     economico_letto = economico(dati.economico, oggi)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}
@@ -142,6 +143,14 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         riferimenti=[f"{pulisci(voce.get('titolo'))} {pulisci(voce.get('descrizione'))}" for voce in dati.scadenze]
         + [pulisci(termine.get("norma")) for voce in pec_letto["tutte"] for termine in voce.get("termini", [])],
     )
+    scadenze_aperte = [s for s in dati.scadenze if pulisci(s.get("stato")).upper() in {"APERTO", "APERTA", "IN_CORSO"}]
+    giorni_scadenza = [d for s in scadenze_aperte if (d := data_da(s.get("data_scadenza") or s.get("data")))]
+    riepilogo_scadenze = {
+        "totale": len(scadenze_aperte),
+        "scadute": sum(d < oggi for d in giorni_scadenza),
+        "prossimi30": sum(0 <= (d - oggi).days <= 30 for d in giorni_scadenza),
+        "successive": sum((d - oggi).days > 30 for d in giorni_scadenza),
+    }
     lettura: dict[str, Any] = {
         "versione": VERSIONE_LETTURA,
         "generata_il": data_it(oggi),
@@ -152,6 +161,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         "notifiche": notifiche_lette,
         "pec": pec_letto,
         "documenti": documenti_letti,
+        "scadenze": riepilogo_scadenze,
         "conformita": dict(dati.conformita or {}),
         "economico": economico_letto,
         "fase": fase_letta,

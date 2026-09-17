@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import io
+import threading
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
@@ -29,6 +31,7 @@ from web.bootstrap.fascicoli_document_helpers import (
 from web.bootstrap.fascicoli_document_trash_routes import register_fascicoli_document_trash_routes
 from web.services.fascicoli_document_rename import rinomina_documento_response
 from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
+from web.services.document_tools import DocumentToolError, rotate_pdf_bytes
 from web.services.signed_document_runtime import build_document_signed_snapshot_from_bytes, build_document_version_candidates
 
 def register_fascicoli_document_routes(
@@ -101,6 +104,7 @@ def register_fascicoli_document_routes(
         content: bytes,
         source_type: str,
         metadata: dict[str, Any] | None = None,
+        blocking: bool = True,
     ) -> None:
         try:
             from web.services.document_intelligence_runtime import (
@@ -109,23 +113,40 @@ def register_fascicoli_document_routes(
                 document_ai_user_context,
             )
             tenant_id = document_ai_tenant_id()
-            source = source_from_uploaded_document(
-                tenant_id=tenant_id,
-                fascicolo_id=id_fasc,
-                document_id=document_id,
-                filename=filename,
-                content=content,
-                source_type=source_type,
-                metadata=metadata or {},
-            )
-            service = build_document_ai_service()
-            service.process_lex_indexing_sources(
-                tenant_id,
-                id_fasc,
-                [source],
-                document_ai_user_context(),
-                retry_errors=True,
-            )
+            user_context = document_ai_user_context()
+            app_obj = app._get_current_object() if hasattr(app, "_get_current_object") else app
+
+            def _process() -> None:
+                try:
+                    with app_obj.app_context():
+                        source = source_from_uploaded_document(
+                            tenant_id=tenant_id,
+                            fascicolo_id=id_fasc,
+                            document_id=document_id,
+                            filename=filename,
+                            content=content,
+                            source_type=source_type,
+                            metadata=metadata or {},
+                        )
+                        service = build_document_ai_service()
+                        service.process_lex_indexing_sources(
+                            tenant_id,
+                            id_fasc,
+                            [source],
+                            user_context,
+                            retry_errors=True,
+                        )
+                except Exception as exc:
+                    app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
+
+            if blocking:
+                _process()
+            else:
+                threading.Thread(
+                    target=_process,
+                    name=f"lex-index-document-{id_fasc}-{document_id}",
+                    daemon=True,
+                ).start()
         except Exception as exc:
             app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
@@ -263,6 +284,105 @@ def register_fascicoli_document_routes(
         )
         clear_react_fascicoli_list_cache()
         return response
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/ruota", methods=["POST"])
+    def salva_rotazione_documento(id_fasc, id_doc):
+        gestore_fascicoli = get_fascicoli()
+        try:
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento:
+                return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
+            payload = request.get_json(silent=True) or request.form or {}
+            rotation = int(payload.get("rotation") or payload.get("angolo") or 0) % 360
+            if rotation not in {90, 180, 270}:
+                return jsonify({"ok": False, "messaggio": "Scegli una rotazione di 90, 180 o 270 gradi."}), 400
+            percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+            data = decrypt_doc(percorso.read_bytes())
+            operational_name = nome_documento_operativo(documento, percorso, data)
+            lower_name = operational_name.casefold()
+            if lower_name.endswith((".p7m", ".enc")) or bool(getattr(documento, "firmato_digitalmente", False)):
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": (
+                            "Il documento è firmato o imbustato: puoi ruotarlo per leggerlo, "
+                            "ma IUSENTRA non altera la firma salvando una copia modificata."
+                        ),
+                    }
+                ), 400
+            if not data.lstrip().startswith(b"%PDF-"):
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": "La rotazione salvata è disponibile per PDF non firmati.",
+                    }
+                ), 400
+            rotated_payload, pages = rotate_pdf_bytes(data, angle=rotation, name=operational_name)
+            stem = Path(operational_name).stem or Path(str(getattr(documento, "nome", "") or "documento")).stem or "documento"
+            rotated_name = f"{stem} - ruotato {rotation} gradi.pdf"
+            utente = getattr(g, "utente_corrente", None)
+            tags = list(dict.fromkeys([*(getattr(documento, "tags", []) or []), "rotazione"]))
+            rotated_doc = salva_documento_fascicolo(
+                gf=gestore_fascicoli,
+                id_fasc=id_fasc,
+                nome_file=rotated_name,
+                raw=rotated_payload,
+                tipo_doc=getattr(documento, "tipo", TipoDocumento.ALLEGATO) or TipoDocumento.ALLEGATO,
+                note=f"Copia ruotata di {rotation} gradi da «{operational_name}».",
+                tags=tags,
+                data_documento=str(getattr(documento, "data_documento", "") or ""),
+                firmato=False,
+                caricato_da=getattr(utente, "username", "") if utente else "",
+                fonte_documento="COPIA_RUOTATA_DA_LETTORE",
+                nome_originale=rotated_name,
+                pdfa_profile="2b",
+                preserva_contenuto_originale=True,
+            )
+            _indicizza_documento_lex(
+                id_fasc=id_fasc,
+                document_id=getattr(rotated_doc, "id", "") or rotated_name,
+                filename=rotated_name,
+                content=rotated_payload,
+                source_type="documenti_fascicolo",
+                metadata={
+                    "trigger": "salva_rotazione_lettore",
+                    "source_document_id": id_doc,
+                    "rotation": rotation,
+                },
+                blocking=False,
+            )
+            audit(
+                "fascicoli.documento.ruota",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"doc {id_doc} -> {getattr(rotated_doc, 'id', '')} rotazione {rotation}",
+            )
+            clear_react_fascicoli_list_cache()
+            preview_url = url_for("visualizza_documento", id_fasc=id_fasc, id_doc=getattr(rotated_doc, "id", ""))
+            return jsonify(
+                {
+                    "ok": True,
+                    "messaggio": f"Copia ruotata salvata nel fascicolo ({pages} pagine).",
+                    "documento_id": getattr(rotated_doc, "id", ""),
+                    "nome": rotated_name,
+                    "preview_url": url_for(
+                        "visualizza_documento",
+                        id_fasc=id_fasc,
+                        id_doc=getattr(rotated_doc, "id", ""),
+                        viewer="mobile",
+                    ),
+                    "desktop_preview_url": preview_url,
+                    "download_url": url_for("scarica_documento", id_fasc=id_fasc, id_doc=getattr(rotated_doc, "id", "")),
+                }
+            )
+        except DocumentToolError as exc:
+            return jsonify({"ok": False, "messaggio": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Errore salva_rotazione_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
+            return jsonify({"ok": False, "messaggio": "Rotazione non salvata. Verifica il documento e riprova."}), 500
     @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
     def importa_documenti_portale(id_fasc):
         gestore_fascicoli = get_fascicoli()

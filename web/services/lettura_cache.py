@@ -56,14 +56,11 @@ class LetturaPayloadCache:
         return directory / f"{name}.json", directory / f"{name}.meta.json"
 
     def get(self, key: tuple) -> bytes | None:
-        payload = self._memory.get(key)
-        if payload is not None:
-            return payload
         if not self.enabled:
             return None
         paths = self._paths(key)
         if paths is None:
-            return None
+            return self._memory.get(key)
         data_path, meta_path = paths
         try:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -152,7 +149,9 @@ LETTURA_CACHE = LetturaPayloadCache(ttl_seconds=24 * 60 * 60.0, max_entries=512)
 
 
 def chiave_lettura(tenant_id: str, fascicolo_id: str) -> tuple:
-    return ("lettura", str(tenant_id or ""), str(fascicolo_id or ""))
+    from pct.fascicolo_lettura import VERSIONE_LETTURA
+
+    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}", str(fascicolo_id or ""))
 
 
 def invalida_lettura(fascicolo_id: str) -> int:

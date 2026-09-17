@@ -151,7 +151,11 @@ def _sector(
 
 def _document_sector(document_presidio: dict[str, Any], *, fid: str, today: date) -> dict[str, Any]:
     actions: list[dict[str, Any]] = []
-    for index, item in enumerate(list(document_presidio.get("actions") or [])[:8]):
+    for index, item in enumerate(document_presidio.get("actions") or []):
+        if item.get("fromArchivio") and item.get("historical"):
+            continue
+        if len(actions) >= 8:
+            break
         priority = "P1"
         due = _parse_date(item.get("dateIso"))
         is_connection_review = _text(item.get("type")) == "verifica_collegamento_documento"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import logging
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from .catalog_resolver import (
     REGISTRY_VERSION,
@@ -52,8 +52,11 @@ class FascicoloDocumentCatalogPipeline:
     mirror JSON a fonte dei risultati. L'estrazione viene prima da Document AI.
     """
 
-    def __init__(self, repository: DocumentAIRepository) -> None:
+    def __init__(self, repository: DocumentAIRepository, *, text_provider: Callable[[str], str] | None = None, client_name: str = "", client_id: str = "") -> None:
         self.repository = repository
+        self.text_provider = text_provider
+        self.client_name = client_name
+        self.client_id = client_id
 
     def ensure_rule_inventory(self, tenant_id: str) -> str:
         rule_set_id = self.repository.ensure_catalog_rule_set(
@@ -144,15 +147,19 @@ class FascicoloDocumentCatalogPipeline:
                 current_record = records_by_sha.get(sha)
                 if current_record is None or str(getattr(record, "updated_at", "") or "") > str(getattr(current_record, "updated_at", "") or ""):
                     records_by_sha[sha] = record
-        existing_assignments = {
-            (str(item.document_id or ""), str(item.document_sha256 or "")): item
-            for item in self.repository.list_catalog_assignments(tenant_id, fid, include_superseded=True)
-        }
+        existing_assignments = {}
+        for item in self.repository.list_catalog_assignments(tenant_id, fid):
+            key = (str(item.document_id or ""), str(item.document_sha256 or ""))
+            prior = existing_assignments.get(key)
+            if prior is None or str(item.updated_at or "") > str(prior.updated_at or ""):
+                existing_assignments[key] = item
         open_review_assignment_ids = {
             str(review.assignment_id or "")
             for review in self.repository.list_catalog_reviews(tenant_id, fid)
         }
         context = _fascicolo_context(fascicolo)
+        if self.client_name:
+            context["cliente"] = self.client_name
         logging.getLogger(__name__).info("Catalogo: contesto pronto, sorgenti=%s", len(document_sources))
         extracted_by_record_id: dict[str, str] = {}
         profile_id, _ = resolve_profile(context)
@@ -189,7 +196,7 @@ class FascicoloDocumentCatalogPipeline:
                 result.waiting_for_index += 1
                 continue
             existing = existing_assignments.get((document_id, str(source.sha256 or "")))
-            if existing and str(existing.source_state or "") == "manual_override":
+            if existing and (str(existing.source_state or "") == "manual_override" or existing.status == "confirmed"):
                 # La correzione dell'avvocato è prevalente anche dopo un
                 # aggiornamento del resolver: il nuovo motore non può
                 # sovrascrivere un esito umano già tracciato nel fascicolo.
@@ -261,7 +268,9 @@ class FascicoloDocumentCatalogPipeline:
         self.repository.mark_catalog_job(tenant_id=tenant_id, job_id=job_id, status="processing")
         document_id = str(source.source_id or source.metadata.get("documento_id") or "").strip()
         try:
-            if extracted_text is None:
+            if self.text_provider is not None:
+                text = self.text_provider(document_id)
+            elif extracted_text is None:
                 extracted = self.repository.get_extracted_text(
                     tenant_id, fascicolo_id, str(getattr(record, "id", "") or ""), str(getattr(record, "current_version_id", "") or "") or None
                 )
@@ -275,9 +284,14 @@ class FascicoloDocumentCatalogPipeline:
                 document_sha256=str(source.sha256 or getattr(record, "sha256", "") or ""),
                 filename=source.filename,
                 extracted_text=text,
-                document_metadata=dict(source.metadata or {}),
+                document_metadata={**dict(source.metadata or {}), "archive_reading": self.text_provider is not None},
                 fascicolo_context=context,
             )
+            from .catalog_identita_personale import documento_identita_personale
+            identity = documento_identita_personale(text, cliente=self.client_name) or {}
+            from hashlib import sha256
+            from .catalog_identita_personale import normalizza
+            identity_text_hash = sha256(normalizza(text).encode("utf-8")).hexdigest() if identity else ""
             now = utc_now()
             assignment = DocumentCatalogAssignment(
                 id=new_id("catalog-assignment"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
@@ -293,6 +307,12 @@ class FascicoloDocumentCatalogPipeline:
                 status=resolution.status, confidence=resolution.confidence, source_state=resolution.source_state,
                 resolver_version=RESOLVER_VERSION, rule_set_id=rule_set_id, reason=resolution.reason,
                 metadata={
+                    "automatic_classification": bool(self.text_provider is not None and resolution.status == "proposed" and resolution.confidence >= 95),
+                    "identity_holder": identity.get("titolare", ""),
+                    "identity_client_id": self.client_id if identity.get("titolare") else "",
+                    "identity_type": identity.get("tipo_identita", ""),
+                    "identity_content_sha256": identity_text_hash,
+                    "reading_source": "archivio_letture" if self.text_provider else "document_ai_sql",
                     "filename": source.filename,
                     "source_type": source.source_type,
                     "document_ai_status": str(getattr(record, "status", "") or ""),

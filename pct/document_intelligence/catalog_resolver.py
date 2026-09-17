@@ -35,7 +35,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.09.16.catalogo-fascicolo.v26"
+RESOLVER_VERSION = "2026.09.16.catalogo-fascicolo.v28-contenuto-20260916"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -280,6 +280,8 @@ def _content_identity(
     extracted_text: str,
     *,
     cliente: str = "",
+    numero_rg: str = "",
+    anno_rg: str = "",
 ) -> ContentIdentity | None:
     """Riconosce solo identità documentali espresse dal singolo contenuto.
 
@@ -332,7 +334,7 @@ def _content_identity(
         (r"\bavviso di non accettazione\b", "Avviso PEC di non accettazione"),
         (r"\bricevuta di presa in carico\b", "Ricevuta PEC di presa in carico"),
     ):
-        match = re.search(r"^\s*(?:(?:subject|oggetto):\s*)?" + formula, raw[:600], re.I | re.M)
+        match = re.search(r"^\s*(?:--\s*)?(?:(?:subject|oggetto):\s*)?" + formula, raw[:600], re.I | re.M)
         if match:
             receipt_matches.append((match.start(), formula, label))
     if receipt_matches and re.search(r"\b(?:posta certificata|identificativo messaggio|gestore|pec)\b", receipt_head):
@@ -344,6 +346,30 @@ def _content_identity(
             deposit_candidate=False, excerpt_pattern=formula,
         )
 
+    if re.match(r"Oggetto:", raw, re.I) and re.search(r"(?m)^Mittente:", raw[:1200]) and re.search(r"(?m)^Destinatari:", raw[:1200]) and "Corpo email:" in raw[:1800]:
+        return result(role="comunicazione", label="Messaggio PEC" if re.search(r"posta certificata|messaggio di posta certificata", raw[:1200], re.I) else "Messaggio email", section="comunicazioni", confidence=99, evidence="Intestazioni e corpo del messaggio; gli allegati restano documenti distinti.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Oggetto:")
+
+    from pct.archivio_letture.pertinenza_documentale import natura_documentale
+    nature, reason = natura_documentale(raw, numero_rg, anno_rg)
+    if nature == "contratto_lavoro":
+        return result(role="contratto", label="Contratto di lavoro", section="contratti", confidence=98, evidence=reason, tipo_documento=TipoDocumento.CONTRATTO, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"contratto (?:individuale di lavoro|di lavoro)")
+    if nature == "procura":
+        return result(role="procura", label="Procura alle liti", section="procure", confidence=98, evidence=reason, tipo_documento=TipoDocumento.PROCURA, deposit_role="procura", deposit_candidate=True, excerpt_pattern=r"io sottoscritt|procura alle liti")
+    if nature == "precedente_giurisprudenziale":
+        return result(role="precedente_giurisprudenziale", label="Sentenza di altro procedimento — precedente", section="allegati", confidence=98, evidence=reason, tipo_documento=TipoDocumento.SENTENZA, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"repubblica italiana|sentenza")
+    if re.search(r"(?im)^tipo contenuto: messaggio (?:pec|email)", raw[:400]):
+        return result(role="comunicazione", label="Messaggio PEC" if "messaggio pec" in raw[:100].lower() else "Messaggio email", section="comunicazioni", confidence=99, evidence="Messaggio MIME originale: intestazioni e corpo separati dagli allegati.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"(?im)^oggetto:.*")
+    if re.search(r"^MIME-Version:", raw, re.I) and all(re.search(rf"\b{h}:", raw[:1500], re.I) for h in ("From", "To", "Subject", "Content-Type")):
+        return result(role="comunicazione", label="Messaggio email", section="comunicazioni", confidence=99, evidence="Intestazioni MIME complete del messaggio originale; gli allegati non cambiano la natura della busta email.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Subject:")
+    if re.search(r"^fissazione udienza", head[:120]) and re.search(r"tribunale", head[:400]) and re.search(r"letto il ricorso.{0,180}fissa", head[:900]):
+        return result(role="provvedimento", label="Decreto di fissazione udienza", section="provvedimenti", confidence=99, evidence="Intestazione Fissazione udienza e disposizione FISSA del giudice dopo la lettura del ricorso.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Fissazione udienza")
+    if re.search(r"^tribunale", head) and re.search(r"successivamente oggi.{0,120}avanti al giudice", head[:700]) and re.search(r"il giudice.{0,70}(?:rinvia|dispone|assegna)", head[:1500]):
+        return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=99, evidence="Ufficio, data della comparizione davanti al giudice e sua disposizione nel verbale.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Successivamente oggi")
+    if re.search(r"studio legale", head[:250]) and re.search(r"oggetto richiesta pagamento", head[:1300]) and not re.search(r"^tribunale", head):
+        return result(role="comunicazione", label="Richiesta stragiudiziale di pagamento", section="comunicazioni", confidence=97, evidence="Carta intestata dello studio, destinatari e oggetto Richiesta pagamento espressi nella lettera.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"Oggetto: Richiesta pagamento")
+    if re.search(r"\bverbale\s+(?:della\s+causa|d[’']?udienza|di\s+udienza)\b", head[:1200]) and re.search(r"\b(?:giudice|tribunale)\b", head[:1200]):
+        return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=98, evidence="Intestazione del verbale e ufficio giudiziario nel contenuto.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"verbale")
+
     structural = structural_identity(raw)
     if structural is not None and str(structural.get("label") or "") not in _IDENTITA_STRUTTURALI_GENERICHE:
         return result(**structural)
@@ -353,10 +379,6 @@ def _content_identity(
     # e batte le identità strutturali generiche («Provvedimento dell'ufficio»,
     # «Intimazione a comparire») quando l'atto dichiara di essere qualcosa di
     # più preciso.
-    dal_titolo = identita_dal_titolo(raw)
-    if dal_titolo is not None:
-        fonte = str(dal_titolo.pop("fonte", "") or "")
-        return replace(result(**dal_titolo), fonte=fonte)
     # La scansione di un documento di riconoscimento non ha un titolo su una
     # riga: si riconosce dai suoi campi e, quando c'è, dal cliente del fascicolo.
     personale = documento_identita_personale(raw, cliente=cliente)
@@ -365,6 +387,10 @@ def _content_identity(
         personale.pop("tipo_identita", None)
         personale.pop("titolare", None)
         return replace(result(**personale), fonte=fonte)
+    dal_titolo = identita_dal_titolo(raw)
+    if dal_titolo is not None:
+        fonte = str(dal_titolo.pop("fonte", "") or "")
+        return replace(result(**dal_titolo), fonte=fonte)
     if structural is not None:
         return result(**structural)
 
@@ -789,7 +815,7 @@ def resolve_document_catalog(
     )
     has_extracted_text = bool(str(extracted_text or "").strip())
     cliente = str(context.get("cliente") or metadata.get("cliente") or "").strip()
-    identity = _content_identity(extracted_text, cliente=cliente) if has_extracted_text else None
+    identity = _content_identity(extracted_text, cliente=cliente, numero_rg=str(context.get("numero_rg") or ""), anno_rg=str(context.get("anno_rg") or "")) if has_extracted_text else None
     # Il nome del file non cataloga; l'unica eccezione dichiarata è il documento di
     # riconoscimento, che è una scansione per natura e il cui nome («Carta
     # d'identità.PDF») non può dire altro: si propone come tale finché il
@@ -798,7 +824,7 @@ def resolve_document_catalog(
     if identity is None and identita_dal_nome and (not has_extracted_text or len(str(extracted_text or "").strip()) < 400):
         identity = ContentIdentity(
             classification=DocumentCatalogClassification(
-                role="documento_identita", label=identita_dal_nome + (f" di {cliente}" if cliente else ""), section="allegati", confidence=78,
+                role="documento_identita", label=identita_dal_nome, section="identita", confidence=78,
                 evidence=("nome del file inequivoco di un documento di riconoscimento (scansione): il contenuto non è ancora leggibile" if not has_extracted_text else "nome del file inequivoco di un documento di riconoscimento (scansione): il testo letto è troppo breve per confermarlo") + " (art. 35 D.P.R. 445/2000)",
                 tipo_documento=TipoDocumento.ALLEGATO, deposit_role="allegato", deposit_candidate=True,
             ),
@@ -899,7 +925,7 @@ def resolve_document_catalog(
             excerpt=identity.excerpt if identity is not None else "Testo estratto disponibile e valutato dal resolver; il contenuto resta nel lettore interno.",
             weight=100 if identity is not None else 40, content_sha256=document_sha256 or None, created_at=now,
         ))
-        for signal in _procedural_signal_evidence(extracted_text):
+        for signal in ([] if metadata.get("archive_reading") else _procedural_signal_evidence(extracted_text)):
             signal.tenant_id = tenant_id
             signal.fascicolo_id = fascicolo_id
             signal.content_sha256 = document_sha256 or None

@@ -103,6 +103,16 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         return result
 
     ext = str(file_type or "").lower().lstrip(".")
+    if ext in {"enc", "p7s"}:
+        from .container_metadata import extract_cms_metadata
+        return extract_cms_metadata(content)
+    if ext == "bin":
+        # Le importazioni storiche possono conservare l'oggetto della PEC
+        # come nome file. Il MIME si riconosce dalle intestazioni reali.
+        from email.parser import BytesHeaderParser
+        headers = BytesHeaderParser(policy=policy.default).parsebytes(content[:65536])
+        if headers.get("From") and headers.get("Subject") and headers.get("MIME-Version"):
+            return _extract_eml(content)
     if ext == "pdf":
         if not _looks_like_pdf(content):
             # Gli archivi storici possono conservare una busta CAdES con
@@ -775,7 +785,7 @@ def _extract_eml(content: bytes) -> ExtractionResult:
         ok=True,
         text="\n\n".join(chunk for chunk in chunks if chunk.strip()),
         pages=[],
-        extraction_engine="email.message",
+        extraction_engine="email.message.v2",
         warnings=warnings,
     )
 

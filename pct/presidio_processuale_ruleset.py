@@ -122,7 +122,7 @@ PRESIDIO_RULES: tuple[PresidioRule, ...] = (
         label="Liquidazione spese e compensi",
         legal_basis=("art. 91 c.p.c.", "D.M. 55/2014 art. 2"),
         patterns=(
-            r"\bcondanna\s+(?:.+\s+)?alle\s+spese\b",
+            r"\bcondanna\b[^.;\n]{0,1000}?\balle\s+spese\b",
             r"\brifusione\s+delle\s+spese\b",
             r"\bliquida\b",
             r"\bliquidando\b",

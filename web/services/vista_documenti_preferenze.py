@@ -36,7 +36,7 @@ ORDINAMENTI = {
 ORDINAMENTO_PREDEFINITO = "data_documento_desc"
 
 # Sezioni dichiarate in FascicoliPage.tsx (documentListSectionOptions).
-SEZIONI = {"tutte", "atti", "provvedimenti", "comunicazioni", "pagamenti", "allegati", "da-verificare"}
+SEZIONI = {"tutte", "atti", "provvedimenti", "comunicazioni", "pagamenti", "identita", "allegati", "da-verificare"}
 SEZIONE_PREDEFINITA = "tutte"
 
 STATI = {"tutti", "da_firmare", "da_verificare"}

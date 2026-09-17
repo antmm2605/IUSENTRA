@@ -49,14 +49,14 @@ class OCRRuntime:
         nome_doc: str,
         tipo_doc: str,
         index_path: str,
-    ) -> None:
+    ) -> int | None:
         """Accoda un job OCR persistente se il file e' di un tipo supportato e non e' gia' stato letto."""
         if not ocr_supportato(nome_doc):
             return
         tenant_id, registro_path = _registro_per_job(id_fasc, id_doc, hash_sha256)
         if tenant_id is None:
             return
-        self.store.enqueue(
+        return self.store.enqueue(
             percorso=percorso,
             hash_sha256=hash_sha256,
             id_fasc=id_fasc,

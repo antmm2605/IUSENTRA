@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from html import unescape
 from datetime import date, datetime
 from typing import Any
 
@@ -10,7 +11,7 @@ MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", 
 
 
 def pulisci(valore: Any) -> str:
-    return " ".join(str(valore or "").split()).strip()
+    return " ".join(unescape(str(valore or "")).split()).strip()
 
 
 def data_da(valore: Any) -> date | None:

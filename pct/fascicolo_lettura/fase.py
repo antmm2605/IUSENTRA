@@ -51,7 +51,7 @@ def fase(
         descrizione = "atto di parte redatto, da notificare o depositare"
         atto = documenti_letti.get("atto_introduttivo") or documenti_letti.get("ultimo_atto_di_parte")
         if atto:
-            prove.append(f"{atto['etichetta']} ({atto['nome']})")
+            prove.append(atto["etichetta"])
 
     if notifiche_lette["perfezionate"]:
         codice = CODICE_FASE_NOTIFICATA
@@ -65,7 +65,7 @@ def fase(
         descrizione = "causa iscritta a ruolo, in attesa della prima udienza"
         if depositi_letti["perfezionati"]:
             ultimo = depositi_letti["perfezionati"][-1]
-            prove.append(f"deposito accettato dalla cancelleria: {ultimo['atto']} del {ultimo['data']}")
+            prove.append("deposito accettato dalla cancelleria" + (f" il {ultimo['data_accettazione']}" if ultimo.get("data_accettazione") else f" (inviato il {ultimo['data']})"))
         elif importati:
             prove.append(f"fascicolo d'ufficio consultato: {len(importati)} atti acquisiti da PolisWeb/PST")
         if intestazione.get("rg"):
@@ -77,9 +77,9 @@ def fase(
     ]
     if udienze_passate or any("comparsa" in etichetta or "memoria" in etichetta for etichetta in etichette):
         codice = CODICE_FASE_TRATTAZIONE
-        descrizione = "fase di trattazione: le parti si sono costituite o si è tenuta udienza"
+        descrizione = "fase di trattazione: risultano atti di trattazione o un’udienza fissata in data trascorsa"
         if udienze_passate:
-            prove.append(f"udienza del {udienze_passate[-1]['data_it']}: {udienze_passate[-1]['titolo']}")
+            prove.append(f"udienza registrata il {udienze_passate[-1]['data_it']}")
 
     if any(voce["natura"] in _ISTRUTTORIA for voce in atti) or any(evento["categoria"] == "CTU" for evento in cronologia_letta) or any("prov" in etichetta and "ordinanza" in etichetta for etichetta in etichette):
         codice = CODICE_FASE_ISTRUTTORIA

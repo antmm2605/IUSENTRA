@@ -10,7 +10,7 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from flask import current_app, redirect, request, send_file, url_for
+from flask import current_app, g, redirect, request, send_file, url_for
 
 from pct.fascicoli import TipoDocumento
 from pct.fascicolo_document_catalog import catalog_tipo_documento_per_nome
@@ -141,11 +141,13 @@ def preview_eml_html(
     html_body: str,
     meta: dict[str, Any],
     scarica_url: str,
+    pdf_payload: bytes | None = None,
 ) -> tuple[str, int, dict[str, str]]:
     attachments = meta.get("allegati") if isinstance(meta, dict) else []
     count = len(attachments) if isinstance(attachments, list) else 0
     html = (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        f'<meta name="csrf-token" content="{escape(str(getattr(g, "csrf_token", "") or ""), quote=True)}">'
         "<style>"
         "body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f8fb;color:#172033}"
         ".wrap{max-width:980px;margin:24px auto;padding:0 18px}"
@@ -174,6 +176,7 @@ def preview_text_html(
     nome_documento: str,
     text: str,
     scarica_url: str,
+    pdf_payload: bytes | None = None,
 ) -> tuple[str, int, dict[str, str]]:
     paragraphs = []
     current: list[str] = []
@@ -189,6 +192,7 @@ def preview_text_html(
     body = "\n".join(paragraphs) if paragraphs else "<p><em>Documento di testo vuoto.</em></p>"
     html = (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        f'<meta name="csrf-token" content="{escape(str(getattr(g, "csrf_token", "") or ""), quote=True)}">'
         "<style>"
         "body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f8fb;color:#172033}"
         ".wrap{max-width:980px;margin:24px auto;padding:0 18px}"
@@ -271,18 +275,26 @@ def pdf_mobile_preview_html(
     nome_documento: str,
     page_urls: list[str],
     scarica_url: str,
+    rotation_save_url: str = "",
+    pdf_payload: bytes | None = None,
 ) -> tuple[str, int, dict[str, str]]:
+    from web.services.pdf_reader_text import text_layers
+
+    layers = text_layers(pdf_payload) if pdf_payload else []
     escaped_name = escape(nome_documento)
     escaped_download = escape(scarica_url, quote=True)
+    escaped_rotation_save = escape(rotation_save_url, quote=True)
     viewer_script = escape(url_for("static", filename="js/mobile-pdf-viewer.js"), quote=True)
     if page_urls:
         pages = "".join(
             '<figure class="page">'
             f'<figcaption>Pagina {index}</figcaption>'
+            '<div class="reader-page-surface">'
+            '<div class="reader-page-rotator">'
             f'<img src="{escape(url, quote=True)}" alt="Pagina {index} di {escaped_name}" '
             f'loading="{"eager" if index == 1 else "lazy"}" decoding="async"'
             f'{" fetchpriority=\"high\"" if index == 1 else ""}>'
-            "</figure>"
+            f'{layers[index - 1] if index <= len(layers) else ""}</div></div></figure>'
             for index, url in enumerate(page_urls, start=1)
         )
     else:
@@ -296,6 +308,7 @@ def pdf_mobile_preview_html(
         '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover">'
         f"<title>{escaped_name}</title>"
+        f'<meta name="csrf-token" content="{escape(str(getattr(g, "csrf_token", "") or ""), quote=True)}">'
         "<style>"
         ":root{color-scheme:light}"
         "*{box-sizing:border-box}"
@@ -309,16 +322,25 @@ def pdf_mobile_preview_html(
         ".reader-toolbar a{color:#1d4ed8}.reader-toolbar button:disabled{opacity:.42;cursor:not-allowed}"
         ".reader-toolbar a:focus-visible,.reader-toolbar button:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px;border-color:#2563eb}"
         ".reader-toolbar__zoom{min-width:54px;color:#334155;font-variant-numeric:tabular-nums;text-align:center}"
-        ".reader-download-status{grid-column:1/-1;min-height:0;color:#475569;font-size:11px;font-weight:760;line-height:1.3;overflow-wrap:anywhere}"
-        ".pages{--zoom:1;min-width:0;width:100%;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;scrollbar-gutter:stable}"
+        ".reader-toolbar__rotation{min-width:38px;color:#334155;font-variant-numeric:tabular-nums;text-align:center}"
+        ".reader-download-status{grid-column:1/-1;min-height:15px;color:#475569;font-size:11px;font-weight:760;line-height:1.3;overflow-wrap:anywhere}"
+        ".pages{--zoom:1;--reader-rotation:0deg;min-width:0;width:100%;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;scrollbar-gutter:stable}"
         ".page{width:calc(100% * var(--zoom));min-width:0;max-width:none;margin:0;display:grid;gap:6px;justify-self:start}"
         ".page figcaption{color:#475569;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}"
-        ".page img{width:100%;max-width:none;height:auto;aspect-ratio:1/1.414;display:block;border:1px solid #d7dde8;border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12);user-select:none;-webkit-user-drag:none}"
+        ".page img{width:100%;max-width:none;height:auto;display:block;background:#fff;user-select:none;-webkit-user-drag:none}"
         ".empty{min-height:70vh;display:grid;place-content:center;gap:6px;text-align:center;color:#475569}"
         ".empty strong{color:#111827;font-size:15px}"
-        "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.page img{border-radius:10px}}"
+        "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.reader-page-surface{border-radius:10px}}"
         "@media(max-width:520px){header{grid-template-columns:1fr}header strong{white-space:normal}.reader-toolbar{justify-content:stretch}.reader-toolbar a{margin-left:auto}.reader-toolbar a,.reader-toolbar button{min-height:40px}}"
-        "@media print{@page{margin:8mm}html,body,.reader,.pages{height:auto;max-height:none;overflow:visible;display:block;background:white;width:100%;max-width:none;padding:0;margin:0}header,.page figcaption{display:none}.page{display:block;width:100%;break-after:page;margin:0}.page:last-child{break-after:auto}.page img{width:100%;height:auto;max-height:275mm;object-fit:contain;border:0;border-radius:0;box-shadow:none}}"
+        "@media print{@page{margin:8mm}html,body,.reader,.pages{height:auto;max-height:none;overflow:visible;display:block;background:white;width:100%;max-width:none;padding:0;margin:0}header,.page figcaption{display:none}.page{display:block;width:100%;break-after:page;margin:0}.page:last-child{break-after:auto}.reader-page-surface{border:0;border-radius:0;box-shadow:none}.reader-page-rotator{transform:none!important}.page img{width:100%;height:auto;max-height:275mm;object-fit:contain;border:0;border-radius:0;box-shadow:none}}"
+        ".reader-toolbar{flex-wrap:wrap}.reader-toolbar button:hover{background:#eff6ff;color:#1d4ed8}"
+        ".reader-page-surface{position:relative;min-width:0;overflow:hidden;background:#fff;border:1px solid #d7dde8;border-radius:8px;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
+        ".reader-page-rotator{position:absolute;inset:0;transform:rotate(var(--reader-rotation));transform-origin:center center}"
+        ".reader-text-layer{position:absolute;inset:0;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text}"
+        ".reader-word{position:absolute;display:block;color:transparent;white-space:pre;line-height:1;transform-origin:0 0}.reader-word>span{display:inline-block;transform-origin:0 0}"
+        ".reader-word ::selection{color:transparent;background:rgba(37,99,235,.32)}.reader-word.is-highlighted{background:rgba(250,204,21,.4);border-radius:2px}"
+        ".reader-no-text{display:block;padding:6px;color:#475569;font-size:12px}.pages:focus-visible{outline:2px solid #2563eb;outline-offset:-3px}"
+        "@media print{.reader-text-layer,.reader-no-text{display:none}}"
         "</style></head><body>"
         '<main class="reader">'
         f"<header><strong>{escaped_name}</strong>"
@@ -327,15 +349,22 @@ def pdf_mobile_preview_html(
         '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
         '<output class="reader-toolbar__zoom" data-zoom-value aria-live="polite">100%</output>'
         '<button type="button" data-zoom-in title="Ingrandisci" aria-label="Ingrandisci documento">+</button>'
+        '<button type="button" data-rotate-left title="Ruota a sinistra" aria-label="Ruota documento a sinistra">↺</button>'
+        '<button type="button" data-rotate-right title="Ruota a destra" aria-label="Ruota documento a destra">↻</button>'
+        '<output class="reader-toolbar__rotation" data-rotation-value aria-live="polite">0°</output>'
+        f'<button type="button" data-document-save-rotation="{escaped_rotation_save}" disabled title="Salva una copia ruotata nel fascicolo">Salva rotazione</button>'
+        '<button type="button" data-document-copy disabled title="Copia il testo selezionato">Copia</button>'
+        '<button type="button" data-document-highlight disabled title="Evidenzia la selezione durante questa lettura">Evidenzia</button>'
+        '<button type="button" data-document-clear disabled title="Rimuovi le evidenziazioni della sessione">Rimuovi evidenziazioni</button>'
         '<button type="button" data-document-print title="Stampa tutte le pagine del documento">Stampa</button>'
         f'<a href="{escaped_download}" download data-document-download title="Scarica documento">Scarica</a>'
         "</nav>"
         '<span class="reader-download-status" data-download-status aria-live="polite"></span>'
         "</header>"
-        f'<section class="pages" data-document-pages>{pages}</section>'
+        f'<section class="pages" data-document-pages tabindex="0" aria-label="Pagine del documento: seleziona il testo da copiare">{pages}</section>'
         f'</main><script src="{viewer_script}" defer></script></body></html>'
     )
-    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    return html, 200, {"Content-Type": "text/html; charset=utf-8", "X-Iusentra-Pdf-Reader": "1"}
 
 
 def mobile_pdf_preview_response(
@@ -354,6 +383,9 @@ def mobile_pdf_preview_response(
     if raw_page:
         try:
             page_number = int(raw_page)
+            if request.args.get("reader_text") == "1":
+                from web.services.pdf_reader_text import page_text_response
+                return page_text_response(preview_payload, page_number)
             png_payload = render_pdf_page_png(preview_payload, page_number)
         except Exception as exc:
             current_app.logger.warning(
@@ -400,6 +432,8 @@ def mobile_pdf_preview_response(
         nome_documento=nome_download or documento.nome,
         page_urls=page_urls,
         scarica_url=scarica_url,
+        rotation_save_url=url_for("salva_rotazione_documento", id_fasc=id_fasc, id_doc=id_doc),
+        pdf_payload=preview_payload,
     )
 
 

@@ -241,8 +241,16 @@ def register_security_runtime(app: Flask) -> None:
         if not app.config.get("ENABLE_SECURITY_HEADERS", True):
             return response
         response = apply_core_security_headers(response, app)
-        if request.endpoint in _DOCUMENT_PREVIEW_ENDPOINTS:
-            response.headers["Content-Security-Policy"] = DOCUMENT_PREVIEW_CSP
+        pdf_reader = response.headers.pop("X-Iusentra-Pdf-Reader", None) == "1"
+        if request.endpoint in _DOCUMENT_PREVIEW_ENDPOINTS or pdf_reader:
+            csp = DOCUMENT_PREVIEW_CSP
+            if pdf_reader:
+                # Solo il nostro HTML PDF interno può chiamare endpoint autenticati
+                # same-origin: OCR pagina, salvataggio rotazione e futuri comandi
+                # del lettore. Le anteprime di terzi restano isolate.
+                source = request.host_url.rstrip("/")
+                csp = csp.replace("connect-src 'none'", "connect-src " + source)
+            response.headers["Content-Security-Policy"] = csp
             response.headers["Referrer-Policy"] = "no-referrer"
         return response
 

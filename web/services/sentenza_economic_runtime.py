@@ -61,6 +61,14 @@ def run_analysis(
         cu_tiers=cu_tiers,
         cu_evidence=cu_evidence,
     )
+    return _save_audit(audit, fascicolo=fascicolo, repo=repo, fonte=fonte,
+        documento_id=documento_id, document_hash_sha256=document_hash_sha256,
+        message_id=message_id, actor_id=actor_id, tenant_id=tenant_id)
+
+
+def _save_audit(audit: Any, *, fascicolo: Any, repo: Any, fonte: str,
+                documento_id: str, document_hash_sha256: str,
+                message_id: str = "", actor_id: str = "", tenant_id: str = "") -> dict[str, Any]:
     audit_dict = audit.to_dict()
     fascicolo_id = str(getattr(fascicolo, "id", "") or "")
 
@@ -215,26 +223,8 @@ def _already_analyzed(audits: list[dict[str, Any]], documento: Any) -> bool:
 
 
 def _document_texts_for_fascicolo(fascicolo: Any, tenant_id: str) -> dict[str, str]:
-    try:
-        from web.services.tenant_paths import tenant_data_path
-        from web.services.storage_runtime import get_request_studio_db
-        from pct.fascicolo_document_catalog import document_ai_texts_for_catalog
-
-        fascicoli_db_path = tenant_data_path("FASCICOLI_DB", require_tenant=True)
-        try:
-            structured_db = get_request_studio_db(fascicoli_db_path)
-        except Exception:
-            structured_db = None
-        return document_ai_texts_for_catalog(
-            tenant_ids=[tenant_id],
-            fascicolo_id=str(getattr(fascicolo, "id", "") or ""),
-            documents=getattr(fascicolo, "documenti", []) or [],
-            fascicoli_db_path=fascicoli_db_path,
-            structured_db=structured_db,
-            storage_root=tenant_data_path("DOCUMENTI_AI_DIR", require_tenant=True),
-        )
-    except Exception:
-        return {}
+    from web.services.archivio_letture_runtime import testi_indice_archivio
+    return testi_indice_archivio(fascicolo)
 
 
 def _document_text(fascicolo: Any, documento_id: str, document_ai_texts: dict[str, str] | None = None) -> tuple[str, str]:
@@ -250,22 +240,7 @@ def _document_text(fascicolo: Any, documento_id: str, document_ai_texts: dict[st
     document_ai_text = (document_ai_texts or {}).get(documento_id) or ""
     if document_ai_text.strip():
         return document_ai_text, hash_doc
-    try:
-        from web.services.tenant_paths import tenant_data_path
-        from pct.search_index import IndiceRicerca
-
-        index_path = tenant_data_path("SEARCH_INDEX", require_tenant=True)
-        indice = IndiceRicerca(index_path)
-        testo = indice.get_ocr_cache(hash_doc) or ""
-        if not testo.strip() and documento_id:
-            row = indice._conn.execute(
-                "SELECT corpo FROM documenti WHERE tipo = ? AND entity_id = ? LIMIT 1",
-                ("documento", f"{getattr(fascicolo, 'id', '')}:{documento_id}"),
-            ).fetchone()
-            testo = row["corpo"] if row else ""
-    except Exception:
-        testo = ""
-    return testo, hash_doc
+    return "", hash_doc
 
 
 def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, Any]:
@@ -281,12 +256,14 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
     repo = _repo()
     audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=str(getattr(fascicolo, "id", "") or ""))
     report = {"ok": True, "analyzed": 0, "skipped": 0, "missing_text": 0, "errors": 0, "candidates": 0}
+    from web.services.archivio_letture_runtime import fatti_fascicolo
+    esclusi = {f.oggetto_id for f in fatti_fascicolo(fascicolo, canonico=False) if f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale"}
     da_analizzare: list[Any] = []
     for documento in getattr(fascicolo, "documenti", []) or []:
-        if not _is_sentenza_candidate(documento):
+        if _document_id(documento) in esclusi or not _is_sentenza_candidate(documento):
             continue
         report["candidates"] += 1
-        if _already_analyzed(audits, documento):
+        if _already_analyzed([a for a in audits if a.get("fonte") == "ARCHIVIO_LETTURE"], documento):
             report["skipped"] += 1
             continue
         da_analizzare.append(documento)
@@ -294,36 +271,38 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
         # Tutte le sentenze candidate sono gia' state analizzate con questa impronta:
         # i testi del catalogo non si caricano nemmeno.
         return report
-    document_ai_texts = _document_texts_for_fascicolo(fascicolo, tenant_id)
+    import json
+    from pct.sentenza_economic_audit import (
+        SentenzaEconomicAudit, SentenzaIdentityMatch, SentenzaEconomicExtraction,
+        SpeseLiquidate, ContributoUnificatoAudit, EconomicAction,
+    )
+    fatti = fatti_fascicolo(fascicolo, canonico=False, verifiche=("verificata", "corretta", "plausibile"))
+    correnti = {f.oggetto_id: f for f in fatti if f.campo == "controllo_economico"}
     for documento in da_analizzare:
         doc_id = _document_id(documento)
-        if not doc_id:
-            continue
-        testo, doc_hash = _document_text(fascicolo, doc_id, document_ai_texts)
-        if not testo.strip():
+        fatto = correnti.get(doc_id)
+        prova = next((p for p in fatto.prove if p.get("codice") == "audit_economico"), None) if fatto else None
+        if not prova:
             report["missing_text"] += 1
             continue
         try:
-            try:
-                actor_id = _actor_id() or "sentenza-auto"
-            except Exception:
-                actor_id = "sentenza-auto"
-            result = run_analysis(
-                fascicolo=fascicolo,
-                testo=testo,
-                repo=repo,
-                cu_tiers=_cu_tiers(),
-                fonte="FASCICOLO_AUTO",
-                documento_id=doc_id,
-                document_hash_sha256=doc_hash,
-                valore_causa=float(getattr(fascicolo, "valore_causa", 0.0) or 0.0),
-                actor_id=actor_id,
-                tenant_id=tenant_id,
-            )
+            data = json.loads(prova["dettaglio"])
+            data["match"] = SentenzaIdentityMatch(**data["match"])
+            sentenza = data["sentenza"]
+            sentenza["spese_liquidate"] = SpeseLiquidate(**sentenza["spese_liquidate"])
+            data["sentenza"] = SentenzaEconomicExtraction(**sentenza)
+            data["contributo_unificato"] = ContributoUnificatoAudit(**data["contributo_unificato"])
+            data["azioni"] = [EconomicAction(**a) for a in data["azioni"]]
+            result = _save_audit(SentenzaEconomicAudit(**data),
+                fascicolo=fascicolo, repo=repo, fonte="ARCHIVIO_LETTURE",
+                documento_id=doc_id, document_hash_sha256=_document_hash(documento),
+                actor_id=_actor_id() or "archivio-letture", tenant_id=tenant_id)
             if result.get("ok"):
                 report["analyzed"] += 1
-                audits.append(result.get("audit") or {"documento_id": doc_id, "document_hash_sha256": doc_hash})
+                audits.append(result["audit"])
         except Exception:
+            from flask import current_app
+            current_app.logger.exception("Consegna economica dall’archivio non riuscita")
             report["errors"] += 1
     return report
 
@@ -368,13 +347,24 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
     tenant_id = _tenant_id()
     if not tenant_id:
         return {"ok": False, "code": "tenant_context_required", "message": "Contesto studio non disponibile."}
-    try:
-        auto_report = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id) if str(fascicolo_id or "").strip() else {"ok": True, "analyzed": 0}
-    except Exception:
-        auto_report = {"ok": False, "code": "auto_analysis_error", "analyzed": 0}
+    # Reading is performed by the motors' job, never by this GET projection.
+    auto_report = {"ok":True, "source":"archivio_letture", "analyzed":0}
     repo = _repo()
     audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=fascicolo_id)
     events = repo.list_economic_events(tenant_id, fascicolo_id=fascicolo_id)
+    from web.services.archivio_letture_runtime import fatti_fascicolo
+    fascicolo = _resolve_fascicolo(fascicolo_id) if fascicolo_id else None
+    if fascicolo is not None:
+        fatti = fatti_fascicolo(fascicolo, canonico=False)
+        esclusi = {f.oggetto_id for f in fatti if f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale"}
+        impronte = {_document_id(d): _document_hash(d) for d in getattr(fascicolo, "documenti", [])}
+        audits = [a for a in audits if str(a.get("documento_id") or "") not in esclusi
+                  and (a.get("fonte") not in {"FASCICOLO_AUTO", "ARCHIVIO_LETTURE"}
+                       or (a.get("fonte") == "ARCHIVIO_LETTURE"
+                           and a.get("document_hash_sha256") == impronte.get(str(a.get("documento_id") or ""))))]
+
+        validi = {a["id"] for a in audits}
+        events = [e for e in events if e.get("source_type") != "sentenza_economic_audit" or e.get("source_id") in validi]
     summary = build_sentenze_economiche_summary(audits, events)
     return {"ok": True, "fascicoloId": fascicolo_id, "audits": audits, "eventi": events, "summary": summary, "autoAnalysis": auto_report}
 

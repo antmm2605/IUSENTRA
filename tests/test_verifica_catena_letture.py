@@ -115,3 +115,32 @@ def test_stato_fascicolo_segnala_ciclo_incoerente(monkeypatch):
     assert riga["oggetti_da_leggere"] == 3
     assert riga["oggetti_errori"] == 1
     assert "dettaglio dei motori" in riga["motivo"]
+
+
+
+def test_stato_fascicolo_non_riapre_per_soli_errori_storici(monkeypatch):
+    class RegistroFinto:
+        def stato_fascicolo(self, tenant, fascicolo_id, *, lettori):
+            return SimpleNamespace(
+                lettori=[
+                    SimpleNamespace(lettore="motore_documenti", da_leggere=0, errori=3),
+                    SimpleNamespace(lettore="motore_pec", da_leggere=0, errori=6),
+                ]
+            )
+
+        def fatti(self, tenant, fascicolo_id, verifiche=None):
+            return []
+
+    monkeypatch.setattr(
+        "web.services.archivio_letture_runtime.stato_ciclo_fascicolo",
+        lambda fascicolo_id, registro, tenant, impronta="": SimpleNamespace(stato="fermo", motivo="tutto letto"),
+    )
+    monkeypatch.setattr("web.services.archivio_letture_runtime._impronta_viva", lambda fascicolo: "impronta")
+    monkeypatch.setattr("pct.archivio_letture.fatti_canonici", lambda fatti: fatti)
+
+    riga = verifica_catena._stato_fascicolo(SimpleNamespace(id="F1", titolo="Pratica"), RegistroFinto(), "studio")
+
+    assert riga["ciclo"] == "fermo"
+    assert riga["oggetti_da_leggere"] == 0
+    assert riga["oggetti_errori"] == 9
+    assert "tutto letto" in riga["motivo"]

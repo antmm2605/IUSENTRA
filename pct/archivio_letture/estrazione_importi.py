@@ -21,6 +21,7 @@ compenso e rimborso forfettario), art. 91 c.p.c. (condanna alle spese).
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from pct.registro_letture.fatti_repository import Fatto
 
@@ -114,6 +115,13 @@ def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None 
         return []
     if not isinstance(evidenza, dict):
         return []
+    if evidenza.get("esente") is True and re.search(r"contributo\s+unificato", grezzo, re.I) and re.search(r"esenzion|esent", grezzo, re.I):
+        # This proves the document declares an exemption, not eligibility.
+        return [Fatto(categoria="evento", campo="esenzione_cu_dichiarata", valore="dichiarazione_presente",
+            etichetta="Dichiarazione di esenzione dal contributo unificato",
+            contesto=_testo(evidenza.get("titolo") or "Esenzione dichiarata nel documento"),
+            origine=origine, verifica="verificata" if origine == "nativo" else "plausibile",
+            prove=[{"codice":"dichiarazione_esenzione", "esito":"ok", "dettaglio":"Dichiarazione presente; nessuna attestazione automatica dei requisiti reddituali."}])]
     importo = _importo(evidenza.get("importo"))
     if importo is None:
         return []

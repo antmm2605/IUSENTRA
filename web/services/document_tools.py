@@ -193,3 +193,27 @@ def images_to_pdf(
     output = io.BytesIO()
     writer.write(output)
     return output.getvalue(), pages
+
+
+def rotate_pdf_bytes(data: bytes, *, angle: int, name: str = "documento.pdf") -> tuple[bytes, int]:
+    """Restituisce una copia PDF ruotata di tutte le pagine.
+
+    L'operazione è intenzionalmente separata dal salvataggio nel fascicolo: qui
+    si trasformano solo byte PDF chiari, mentre la route decide se e come
+    registrarli nel repository tenant-aware.
+    """
+
+    normalized = int(angle or 0) % 360
+    if normalized not in {90, 180, 270}:
+        raise DocumentToolError("Scegli una rotazione di 90, 180 o 270 gradi.")
+    reader = _pdf_reader(UploadedDocument(name=name, data=data))
+    if len(reader.pages) > MAX_PAGES:
+        raise DocumentToolError(f"Il documento supera {MAX_PAGES} pagine.")
+    writer = PdfWriter()
+    for page in reader.pages:
+        page.rotate(normalized)
+        writer.add_page(page)
+    writer.add_metadata({"/Producer": "IUSENTRA", "/Creator": "IUSENTRA"})
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue(), len(reader.pages)

@@ -129,7 +129,7 @@ def test_stato_fascicolo_per_lettore_e_per_oggetto(tmp_path: Path):
     per_oggetto = {voce["oggetto_id"]: voce["letture"] for voce in stato.per_oggetto}
     assert per_oggetto["d1"]["ocr"] == "letto" and per_oggetto["d2"]["ocr"] == "da_leggere"
     # Versione del catalogo cambiata: «da rileggere», non «letto», e solo per quel lettore.
-    assert per_oggetto["d1"]["catalogo"] == "da_rileggere" and per_lettore["catalogo"].da_leggere == 2
+    assert per_oggetto["d1"]["catalogo"] == "regole_aggiornate" and per_lettore["catalogo"].da_leggere == 2
     registro.segna_letto(T, "F1", d2, "ocr")
     assert registro.stato_fascicolo(T, "F1", lettori=["ocr"]).tutto_letto is True
 

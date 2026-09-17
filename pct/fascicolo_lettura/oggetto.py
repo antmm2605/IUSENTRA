@@ -17,7 +17,7 @@ _FORMULE_DOMANDA = re.compile(
     r"\b(?:chiede|chiedono|chiedendo|conclude|concludono|voglia|vogliano|si\s+chiede|ingiunge|intima)\b",
     re.IGNORECASE,
 )
-_NATURE_PRINCIPALI = {"atto_principale", "atto_difensivo", "provvedimento", "atto_esecutivo"}
+_NATURE_PRINCIPALI = {"atto_principale", "atto_difensivo", "atto_esecutivo"}
 LUNGHEZZA_MASSIMA_PETITUM = 420
 
 
@@ -53,14 +53,23 @@ def oggetto(fascicolo: dict[str, Any], documenti: list[dict[str, Any]], catalogo
         natura = pulisci((voce or {}).get("document_nature"))
         etichetta = pulisci((voce or {}).get("document_label"))
         tipo = pulisci(documento.get("tipo")).upper()
-        if natura in _NATURE_PRINCIPALI or tipo in {"RICORSO", "CITAZIONE", "COMPARSA", "MEMORIA"}:
+        if natura in _NATURE_PRINCIPALI or (not voce and tipo in {"RICORSO", "CITAZIONE", "COMPARSA", "MEMORIA"}):
             principali.append({
                 "id": pulisci(documento.get("id")),
                 "nome": pulisci(documento.get("nome")),
                 "etichetta": etichetta or tipo.title(),
                 "data": pulisci(documento.get("data_documento") or documento.get("data_caricamento"))[:10],
-                "petitum": petitum(_testo_documento(documento)),
+                "petitum": pulisci(documento.get("domanda_archivio")),
+                "content_sha256": pulisci(documento.get("content_sha256")),
             })
+    visti: set[str] = set()
+    unici = []
+    for voce in principali:
+        chiave = voce["content_sha256"] or voce["id"]
+        if chiave not in visti:
+            visti.add(chiave)
+            unici.append(voce)
+    principali = unici
     principali.sort(key=lambda voce: voce["data"])
     con_domanda = [voce for voce in principali if voce["petitum"]]
     return {

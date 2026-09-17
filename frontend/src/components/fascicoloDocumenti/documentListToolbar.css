@@ -52,3 +52,8 @@
   .iu-doclist-toolbar__vista { gap: 6px; }
   .iu-doclist-toolbar__vista-nota { flex-basis: 100%; }
 }
+
+.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="false"]{background:#fff;color:#334155;border-color:#d5e0ea}
+.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"],.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"]:hover,.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"]:focus-visible{background:#0756d6;color:#fff;border-color:#0756d6}
+.iu-fas-catalog .iu-doclist-toolbar__chips button[aria-pressed="true"] b{color:#fff}
+.iu-fas-catalog .iu-doclist-toolbar__chips--status button[aria-pressed="true"]{background:#0f6478;border-color:#0f6478}

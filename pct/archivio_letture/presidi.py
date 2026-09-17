@@ -27,7 +27,9 @@ def etichetta_verifica(verifica: str) -> str:
 
 def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[dict[str, Any]]:
     """Le date di udienza e i termini letti, nella forma delle azioni del presidio documentale."""
+    from .adempimenti import perentorieta_documentata
     oggi = oggi or date.today()
+    fatti = list(fatti)
     azioni: list[dict[str, Any]] = []
     visti: set[tuple[str, str, str]] = set()
     for fatto in fatti:
@@ -40,13 +42,15 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
         if chiave in visti:
             continue
         visti.add(chiave)
-        tipo = "udienza_documento" if fatto.campo == "udienza" else "termine_documento"
-        ora = fatto.valore.split("T")[1] if "T" in fatto.valore else ""
+        note_scritte = any(p.get("codice") == "modalita_note" and p.get("esito") == "ok" for p in fatto.prove) or (fatto.campo == "termine" and "note in sostituzione" in fatto.etichetta.lower())
+        tipo = "udienza_documento" if fatto.campo == "udienza" and not note_scritte else "termine_documento"
+        ora = fatto.valore.split("T")[1] if "T" in fatto.valore and not note_scritte else ""
         azioni.append({
             "id": f"{tipo}-{fatto.oggetto_id}-{giorno.isoformat()}",
             "type": tipo,
             "title": "Udienza letta dai documenti del fascicolo" if tipo == "udienza_documento" else "Termine processuale letto dai documenti del fascicolo",
-            "description": f"{fatto.etichetta}: {fatto.contesto[:160]}" if fatto.contesto else fatto.etichetta,
+            "description": f"Deposito note in sostituzione udienza del {giorno.strftime('%d/%m/%Y')}" if note_scritte else fatto.etichetta,
+            "sourceContext": fatto.contesto,
             "dateIso": giorno.isoformat(),
             "date": giorno.strftime("%d/%m/%Y"),
             "time": ora,
@@ -54,14 +58,17 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
             "documentId": fatto.oggetto_id,
             "objectType": fatto.tipo,
             "source": fatto.origine,
-            "tone": "warning" if fatto.verifica != "plausibile" else "neutral",
-            "priority": "important" if fatto.verifica != "plausibile" else "normal",
+            "tone": "neutral" if giorno < oggi else "warning" if fatto.verifica != "plausibile" else "neutral",
+            "priority": "normal" if giorno < oggi else "important" if fatto.verifica != "plausibile" else "normal",
             "verifica": fatto.verifica,
             "verificaLabel": etichetta_verifica(fatto.verifica),
             "prove": list(fatto.prove),
-            "overdue": giorno < oggi,
+            "fattoId": fatto.id,
+            "overdue": False,
+            "historical": giorno < oggi,
             "dateCorrected": fatto.verifica == "corretta",
             "requiresConfirmation": fatto.verifica == "plausibile",
+            "peremptory": perentorieta_documentata(fatto),
         })
     azioni.sort(key=lambda voce: (voce["dateIso"], voce["type"]))
     return azioni
@@ -118,14 +125,14 @@ def da_confermare_ora(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
     """
     oggi = oggi or date.today()
     richieste: list[dict[str, Any]] = []
-    visti: set[tuple[str, str]] = set()
+    visti: set[tuple[str, str, str]] = set()
     for fatto in fatti:
         if fatto.verifica != "plausibile" or fatto.categoria != "data" or fatto.campo not in CAMPI_DA_CONFERMARE:
             continue
         giorno = _giorno(fatto.valore)
         if giorno is None or giorno < oggi:
             continue
-        chiave = (fatto.campo, giorno.isoformat())
+        chiave = (fatto.campo, giorno.isoformat(), fatto.oggetto_id)
         if chiave in visti:
             continue
         visti.add(chiave)
@@ -133,6 +140,7 @@ def da_confermare_ora(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
             "id": fatto.id, "campo": fatto.campo, "etichetta": fatto.etichetta, "valore": fatto.valore,
             "valore_letto": fatto.valore_letto, "oggetto_id": fatto.oggetto_id, "tipo": fatto.tipo,
             "contesto": fatto.contesto, "prove": list(fatto.prove),
+            "fattoId": fatto.id,
         })
     return sorted(richieste, key=lambda voce: str(voce["valore"]))
 
@@ -163,6 +171,7 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
             "verifica": fatto.verifica, "verifica_etichetta": etichetta_verifica(fatto.verifica),
             "documento_id": fatto.oggetto_id, "tipo": fatto.tipo, "origine": fatto.origine,
             "norma": norma, "natura": natura, "fatto_id": fatto.id,
+            "stato_prova": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "stato" and p.get("esito") == "ok"), ""),
         }
         corrente = migliori.get(fatto.campo)
         if corrente is None or _forza_verifica(fatto.verifica) > _forza_verifica(str(corrente["verifica"])):
@@ -174,6 +183,7 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
 # d'ufficio, la fissazione, il deposito del provvedimento. Entrano in cronologia
 # con il giorno della PEC che li comunica.
 ETICHETTE_EVENTO = {
+    "fissazione_note": "Fissazione del termine per note scritte", "riassegnazione_note": "Riassegnazione del termine per note scritte",
     "rinvio": "rinvio", "fissazione_udienza": "fissazione di udienza", "deposito_provvedimento": "deposito del provvedimento",
     "comunicazione_cancelleria": "comunicazione di cancelleria", "notifica": "notifica", "iscrizione_a_ruolo": "iscrizione a ruolo",
     "sentenza": "sentenza", "ordinanza": "ordinanza", "decreto": "decreto", "termine": "termine",
@@ -190,7 +200,7 @@ def eventi_letti(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[di
     """
     oggi = oggi or date.today()
     voci: list[dict[str, Any]] = []
-    visti: set[tuple[str, str]] = set()
+    visti: set[tuple[str, str, str]] = set()
     for fatto in fatti:
         if fatto.categoria != "evento" or fatto.verifica not in VERIFICHE_UTILI:
             continue
@@ -198,7 +208,7 @@ def eventi_letti(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[di
         giorno = _giorno(grezza)
         if giorno is None:
             continue
-        chiave = (fatto.campo, giorno.isoformat())
+        chiave = (fatto.campo, giorno.isoformat(), fatto.oggetto_id)
         if chiave in visti:
             continue
         visti.add(chiave)

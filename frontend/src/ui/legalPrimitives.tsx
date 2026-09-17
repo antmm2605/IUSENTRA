@@ -51,6 +51,8 @@ function useManagedDialog<TElement extends HTMLElement>(open: boolean, onClose: 
     }, 0)
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      const activeDialog = document.activeElement?.closest('[role="dialog"]')
+      if (activeDialog && activeDialog !== panelRef.current?.closest('[role="dialog"]')) return
       if (event.key === 'Escape') {
         event.preventDefault()
         onClose()

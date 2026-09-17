@@ -1,0 +1,28 @@
+.iu-mail-pagination {
+  flex-shrink: 0;
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--iu-border);
+  color: var(--iu-slate-600);
+  font-size: 12px;
+}
+.iu-mail-pagination > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.iu-mail-pagination button {
+  flex: 1;
+  min-height: 44px;
+}
+.iu-mail-pagination button:disabled {
+  opacity: 1;
+  color: var(--iu-slate-500);
+  background: var(--iu-surface);
+  cursor: not-allowed;
+}
+.iu-mail-pagination button:focus-visible {
+  outline: 2px solid var(--iu-blue-600);
+  outline-offset: 2px;
+}

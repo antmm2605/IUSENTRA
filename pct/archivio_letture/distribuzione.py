@@ -70,13 +70,13 @@ class Presidio:
 # I presìdi censiti e ciò che ciascuno prende dall'archivio.
 PRESIDI: tuple[Presidio, ...] = (
     Presidio(
-        "scadenziario", "Scadenziario", "2026.09.16.v1",
+        "scadenziario", "Scadenziario", "2026.09.16.v2",
         categorie=frozenset({"data"}), campi=frozenset({"termine", "costituzione"}),
         descrizione="i termini letti diventano scadenze da confermare",
         modo="scrive",
     ),
     Presidio(
-        "agenda", "Agenda", "2026.09.16.v1",
+        "agenda", "Agenda", "2026.09.16.v2",
         categorie=frozenset({"data"}), campi=frozenset({"udienza"}),
         descrizione="le udienze lette diventano appuntamenti",
         modo="scrive",

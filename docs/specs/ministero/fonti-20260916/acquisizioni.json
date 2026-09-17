@@ -1,0 +1,42 @@
+{
+  "cpc_127ter": {
+    "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.articolo.numero=3&atto.articolo.sottoArticolo=1&atto.articolo.tipoArticolo=0&atto.codiceRedazionale=24G00183&atto.dataPubblicazioneGazzetta=2024-11-11",
+    "file": "cpc_127ter.txt",
+    "sha256": "1d0a6f9b855b3af86c248c765d8082b2cf947d610da71302c86635c9385352fb",
+    "verificato_il": "2026-09-16",
+    "modalita": "Testo integrale trascritto dalla consultazione Normattiva delle note all’art. 3 D.Lgs. 164/2024; confronto dei cinque commi, con le modifiche del correttivo.",
+    "errore_acquisizione_automatica": "<urlopen error timed out>"
+  },
+  "cpc_309": {
+    "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+309&codiceOrdinamento=0000000000003090000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B57BBB567-1573-4FC0-BD87-BE4D68CB1B5F%7D",
+    "url_finale": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+309&codiceOrdinamento=0000000000003090000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B57BBB567-1573-4FC0-BD87-BE4D68CB1B5F%7D",
+    "file": "cpc_309.pdf",
+    "sha256": "b68880ca9a6b60ea12af30a2bd00f4ee37a75f53f5d164be9fa5b2fa022cd5da",
+    "bytes": 2657,
+    "verificato_il": "2026-09-16"
+  },
+  "dgsia_2024": {
+    "url": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.07082024.0004292.ID_SPECIFICHETECNICHE_DM_44_2011_FINALE_31_.pdf",
+    "url_finale": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.07082024.0004292.ID_SPECIFICHETECNICHE_DM_44_2011_FINALE_31_.pdf",
+    "file": "dgsia_2024.pdf",
+    "sha256": "eb08225f91aaf9900ed1b291b034cdfc2a98a0618a85fdc85828bdf6b195039b",
+    "bytes": 368489,
+    "verificato_il": "2026-09-16"
+  },
+  "dgsia_modifica_art27": {
+    "url": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.16092024.0004740.ID_20240912_Modifica_art._27_comma_1_ST_V.pdf",
+    "url_finale": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.16092024.0004740.ID_20240912_Modifica_art._27_comma_1_ST_V.pdf",
+    "file": "dgsia_modifica_art27.pdf",
+    "sha256": "f12532eb5ce0ea87cfc9ce305fac924c75c6ae48313b1d04619dd5cca965401c",
+    "bytes": 676332,
+    "verificato_il": "2026-09-16"
+  },
+  "dgsia_rettifica": {
+    "url": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.30102024.0005785.ID_RettificaSpecificheTecniche_v2_signed.pdf",
+    "url_finale": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.30102024.0005785.ID_RettificaSpecificheTecniche_v2_signed.pdf",
+    "file": "dgsia_rettifica.pdf",
+    "sha256": "c7aef9bf9fef40576a5e6620631e4088e1cdf4aa8495e6c078aac8b4c7b9c431",
+    "bytes": 250066,
+    "verificato_il": "2026-09-16"
+  }
+}

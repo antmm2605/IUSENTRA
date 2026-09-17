@@ -18,7 +18,7 @@ from pct.registro_letture.fatti_repository import Fatto
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
 
-VERSIONE_MOTORE_PEC = "2026.09.16.motore-pec.v1"
+VERSIONE_MOTORE_PEC = "2026.09.16.motore-pec.v8"
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),
@@ -72,15 +72,24 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
                     {"codice": "base_normativa", "esito": "ok", "dettaglio": _BASE_NORMATIVA_PEC},
                 ],
             ))
-    for udienza in list(messaggio.get("udienze") or []):
+    udienze = list(messaggio.get("udienze") or [])
+    profile = messaggio.get("procedural_profile") or {}
+    descrizione_evento = _testo(profile.get("descrizione_evento"))
+    proposta = messaggio.get("deadline_proposal") or {}
+    data_proposta = proposta.get("detected_procedural_date") or {}
+    note_xml = bool(re.search(r"(?:FISSATO|RIASSEGNATO) TERMINE PER NOTE IN SOSTITUZIONE UDIENZA", descrizione_evento, re.I)) and "Comunicazione.xml" in str(data_proposta.get("source") or "") and bool(messaggio.get("collegata"))
+    if note_xml and not udienze and data_proposta.get("date"):
+        udienze = [{"hearing_date": data_proposta["date"], "hearing_time":"", "mode":"note_scritte", "human_review_required":False}]
+    for udienza in udienze:
         giorno = _giorno(udienza.get("hearing_date"))
         if not giorno:
             continue
-        ora = _testo(udienza.get("hearing_time"))[:5]
+        scritta = _testo(udienza.get("mode")) in {"note_scritte", "trattazione scritta"}
+        ora = "" if scritta else _testo(udienza.get("hearing_time"))[:5]
         rivedere = bool(udienza.get("human_review_required"))
         fatti.append(Fatto(
-            categoria="data", campo="udienza", valore=giorno + (f"T{ora}" if ora else ""), valore_letto=giorno, etichetta=f"Udienza del {giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}" + (f" ore {ora}" if ora else "") + (f" ({_testo(udienza.get('mode'))})" if _testo(udienza.get("mode")) else ""),
-            contesto=f"udienza comunicata con la PEC «{oggetto}» del {ricevuta_il}"[:300], origine="presidio_pec", confidenza=0.7 if rivedere else 0.95,
+            categoria="data", campo="termine" if scritta else "udienza", valore=giorno + (f"T{ora}" if ora else ""), valore_letto=giorno, etichetta=("Deposito note in sostituzione udienza del " if scritta else "Udienza del ") + f"{giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}" + (f" ore {ora}" if ora else "") + (f" ({_testo(udienza.get('mode'))})" if _testo(udienza.get("mode")) else ""),
+            contesto=(descrizione_evento if note_xml else f"{'Termine per note scritte' if scritta else 'Udienza'} comunicato con la PEC «{oggetto}» del {ricevuta_il}")[:300], origine="presidio_pec", confidenza=0.7 if rivedere else 0.95,
             prove=[{"codice": "ancoraggio", "esito": "ok", "dettaglio": "udienza estratta dal presidio PEC"}, {"codice": "forma", "esito": "attenzione" if rivedere else "ok", "dettaglio": "da rivedere per il presidio" if rivedere else "nessuna correzione"}],
         ))
     for termine in list(messaggio.get("termini") or []):
@@ -102,6 +111,9 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
             prove=prove,
         ))
     for evento in list(messaggio.get("eventi") or []):
+        evento = dict(evento)
+        if note_xml:
+            evento.update(primary_event="riassegnazione_note" if "RIASSEGNATO" in descrizione_evento.upper() else "fissazione_note", human_review_required=False)
         primario = _testo(evento.get("primary_event"))
         if not primario:
             continue
@@ -129,7 +141,33 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
     if ricevuta is not None:
         # Un'udienza o una decorrenza comunicate con una PEC non possono precederla.
         contesto_pec.data_minima = max(filter(None, [contesto.data_minima, ricevuta]))
-    return collauda_tutti(fatti, contesto_pec)
+    collaudati = collauda_tutti(fatti, contesto_pec)
+    from .termini_pec import scadenza_proposta
+    if messaggio.get("event_type") != "pct_deposito":
+        for termine in messaggio.get("termini") or []:
+            proposta_termine = scadenza_proposta(termine)
+            if proposta_termine is not None:
+                collaudati.append(proposta_termine)
+    lifecycle = messaggio.get("deposit_lifecycle") or {}
+    stage = lifecycle.get("current_stage") or {}
+    correlation = lifecycle.get("correlation") or {}
+    receipt = lifecycle.get("receipt") or {}
+    deposito_id = messaggio.get("archive_deposito_id")
+    final = stage.get("id") in {"accettazione_deposito", "rifiuto_deposito"}
+    if deposito_id and stage.get("id") and (not final or receipt.get("outcome_code") is not None):
+        collaudati.append(Fatto(
+            categoria="evento", campo="esito_deposito", valore=str(deposito_id),
+            etichetta=str(stage.get("label") or "Ricevuta deposito"),
+            contesto="Ricevuta collegata all'invio mediante gli identificativi originali.",
+            origine="pec_identificativi", confidenza=1.0, verifica="verificata",
+            prove=[{"codice":"correlazione_ricevuta", "esito":"ok", "deposito_id":deposito_id,
+                    "message_id":messaggio.get("id"), "mime_sha256":messaggio.get("mime_sha256"),
+                    "receipt_message_id":messaggio.get("header_message_id"),
+                    "stage":stage.get("id"), "label":stage.get("label"),
+                    "idbusta":correlation.get("idbusta"), "source_message_id":correlation.get("source_message_id"),
+                    "occurred_at":receipt.get("occurred_at") or messaggio.get("received_at"),
+                    "outcome_code":receipt.get("outcome_code"), "reference":messaggio.get("archive_receipt_reference") or {}}]))
+    return collaudati
 
 
 def fatti_da_allegato(testo: str, *, nome: str, contesto: Contesto) -> list[Fatto]:

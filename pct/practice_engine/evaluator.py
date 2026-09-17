@@ -468,6 +468,7 @@ def build_regia_payload(
         }
     readiness = run_predeposit_check(
         repository,
+        solo_presidio=True,
         fascicolo=fascicolo,
         profile=profile,
         cliente=cliente,
@@ -500,7 +501,7 @@ def build_regia_payload(
     if blockers:
         next_action = blockers[0].suggested_action or blockers[0].message
     elif deposito.presente and deposito.stato in {"ACCETTATO_CANCELLERIA"}:
-        next_action = DEPOSIT_ACQUIRED
+        next_action = f"Deposito del {deposito.data_it} accettato dalla cancelleria, come registrato nel fascicolo."
     elif deposito.presente and deposito.stato in {"INVIATO", "ACCETTATO", "ACCETTATO_PEC", "CONSEGNATO", "CONTROLLI_OK", "WARN_CONTROLLI"}:
         next_action = DEPOSIT_SENT_NOT_ACQUIRED
     elif not in_deposito:

@@ -482,7 +482,7 @@ def _analyze_generic_procedural_text(text: str, *, source: str, document_id: str
             )
         action = _make_action(
             action_type=action_type, title=title, due=due, source=source, document_id=document_id, tone="warning",
-            priority="important", description=description, raw_date=fatto.valore_letto,
+            priority="important", description=fatto.contesto or description, raw_date=fatto.valore_letto,
         )
         if "T" in fatto.valore:
             action["time"] = fatto.valore.split("T")[1]
@@ -500,7 +500,7 @@ def _actions_from_archivio(fatti: Iterable[Any], *, source_by_document: dict[str
             action_type=voce["type"], title=voce["title"], due=_parse_date(voce["dateIso"]), source=source_by_document.get(voce["documentId"], voce.get("source") or "archivio delle letture"),
             document_id=voce["documentId"], tone=voce["tone"], priority=voce["priority"], description=voce["description"], raw_date=voce["rawDate"],
         )
-        action.update({"time": voce.get("time", ""), "verifica": voce["verifica"], "verificaLabel": voce["verificaLabel"], "requiresConfirmation": voce["requiresConfirmation"], "fromArchivio": True, "dateCorrected": voce["dateCorrected"]})
+        action.update({"time": voce.get("time", ""), "verifica": voce["verifica"], "verificaLabel": voce["verificaLabel"], "requiresConfirmation": voce["requiresConfirmation"], "fromArchivio": True, "peremptory": bool(voce.get("peremptory")), "objectType": voce.get("objectType", ""), "fattoId": voce.get("fattoId", ""), "historical": bool(voce.get("historical")), "dateCorrected": voce["dateCorrected"]})
         actions.append(action)
     return actions
 

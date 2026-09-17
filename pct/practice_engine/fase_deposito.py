@@ -208,3 +208,29 @@ def deposito_reale(fascicolo: Any) -> DepositoReale:
 
 
 __all__ = ["DepositoReale", "ETICHETTE_DEPOSITO", "FaseDeposito", "MESSAGGIO_NON_RICHIESTA", "STATI_DEPOSITO_APERTI", "STATI_DEPOSITO_CHIUSI", "deposito_reale", "fase_deposito"]
+
+
+def fase_presidio(fascicolo: Any, fase: FaseDeposito) -> FaseDeposito:
+    """Read-only scope: an already sent envelope is monitored, not prepared again.
+
+    This does not change the actual deposit workflow or its validators.
+    A preparation saved after the latest transmission remains a new draft.
+    """
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    def istante(value: Any) -> float:
+        try:
+            dt = datetime.fromisoformat(_testo(value).replace("Z", "+00:00"))
+            return (dt if dt.tzinfo else dt.replace(tzinfo=ZoneInfo("Europe/Rome"))).timestamp()
+        except (ValueError, TypeError):
+            return 0.0
+    depositi = [d for d in _depositi_ordinati(fascicolo) if _testo(getattr(d, "stato", "")) in ETICHETTE_DEPOSITO]
+    if not depositi:
+        return fase
+    ultimo = depositi[-1]
+    if istante(_preparazione(fascicolo).get("updated_at")) > istante(getattr(ultimo, "timestamp", "")):
+        return fase
+    stato = _testo(getattr(ultimo, "stato", ""))
+    data = DepositoReale(presente=True, data=_testo(getattr(ultimo, "timestamp", ""))).data_it
+    etichetta = ETICHETTE_DEPOSITO[stato][0]
+    return FaseDeposito("monitoraggio", f"Deposito del {data}: {etichetta.lower()}. I controlli di firma e dimensione si riferiscono alla busta inviata; saranno ripetuti quando prepari un nuovo deposito.", fase.documenti_busta)

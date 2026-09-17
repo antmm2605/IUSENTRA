@@ -984,11 +984,16 @@ class DocumentAIRepository:
             INSERT INTO document_catalog_rule_sets (
                 id, resolver_version, registry_version, tenant_id, description, created_at
             ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (tenant_id, resolver_version, registry_version) DO NOTHING
             """,
             (rule_set_id, resolver_version, registry_version, tenant_id, description, utc_now()),
         )
         self._commit()
-        return rule_set_id
+        row = conn.execute(
+            "SELECT id FROM document_catalog_rule_sets WHERE tenant_id = ? AND resolver_version = ? AND registry_version = ?",
+            (tenant_id, resolver_version, registry_version),
+        ).fetchone()
+        return str(self._dict_row(row)["id"])
 
     def upsert_catalog_source_snapshot(
         self,
@@ -1054,6 +1059,13 @@ class DocumentAIRepository:
                     verification_status, snapshot_sha256, last_verified_at,
                     source_metadata_json, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (tenant_id, rule_set_id, profile_id, source_id) DO UPDATE SET
+                    official_url = excluded.official_url,
+                    verification_status = excluded.verification_status,
+                    snapshot_sha256 = excluded.snapshot_sha256,
+                    last_verified_at = excluded.last_verified_at,
+                    source_metadata_json = excluded.source_metadata_json,
+                    updated_at = excluded.updated_at
                 """,
                 (
                     new_id("catalog-source"), tenant_id, rule_set_id, profile_id, source_id,
@@ -1433,11 +1445,11 @@ class DocumentAIRepository:
         clean_note = str(note or "").strip()
         allowed_sections = {
             "atti", "provvedimenti", "procure", "notifiche", "comunicazioni",
-            "contratti", "pagamenti", "allegati", "da-verificare",
+            "contratti", "pagamenti", "identita", "allegati", "da-verificare",
         }
         allowed_natures = {
             "atto_principale", "atto_processuale", "provvedimento", "procura", "notifica",
-            "comunicazione", "contratto", "economico", "allegato", "da_verificare",
+            "comunicazione", "contratto", "economico", "documento_identita", "allegato", "da_verificare",
         }
         allowed_deposit_roles = {
             "atto_principale", "procura", "allegato", "prova_notifica",

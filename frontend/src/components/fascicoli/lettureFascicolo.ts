@@ -4,7 +4,7 @@
 
 import type { TonoLettura } from './letturaFascicolo'
 
-export type StatoLetturaOggetto = 'letto' | 'da_leggere' | 'da_rileggere' | 'errore' | 'in_corso' | 'non_leggibile'
+export type StatoLetturaOggetto = 'letto' | 'da_leggere' | 'da_rileggere' | 'regole_aggiornate' | 'errore' | 'in_corso' | 'non_leggibile'
 
 export interface LettoreStato {
   lettore: string

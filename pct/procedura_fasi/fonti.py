@@ -202,6 +202,27 @@ FONTI: dict[str, dict[str, Any]] = {
 }
 
 
+# Snapshot istituzionali consultabili nel lettore interno; URL e impronte sono
+# conservati nel manifesto di acquisizione, separati dalla sintesi operativa.
+FONTI.update({
+    "cpc_127ter": _norma("art. 127-ter c.p.c.", "Deposito di note scritte in sostituzione dell’udienza", _CPC, "127ter",
+        "Il giudice dispone la sostituzione dell’udienza e assegna il termine per le note. L’opposizione decorre dalla comunicazione del provvedimento, non dalla ricevuta di un deposito. Il termine delle note è considerato data di udienza.",
+        verifica="Testo integrale consultato su Normattiva, note all’art. 3 D.Lgs. 164/2024, il 16/09/2026."),
+    "cpc_309": _norma("art. 309 c.p.c.", "Mancata comparizione all’udienza", _CPC, "309",
+        "Se nel corso del processo nessuna delle parti si presenta all’udienza, il giudice provvede a norma del primo comma dell’articolo 181.",
+        verifica="Testo acquisito dalla banca dati normativa istituzionale MEF il 16/09/2026."),
+    "dgsia_2024": {"norma": "Specifiche tecniche DGSIA 7/8/2024", "titolo": "Testo integrale delle specifiche tecniche", "estratto": "Documento ufficiale, da leggere con le rettifiche del 16/09/2024 e del 30/10/2024.", "verifica": "PDF ufficiale PST acquisito e confrontato il 16/09/2026.", "url": _PST_DOWNLOAD},
+    "dgsia_modifica_art27": {"norma": "Rettifica DGSIA 16/09/2024", "titolo": "Rettifica degli artt. 17, comma 4, e 27, comma 1", "estratto": "Corregge il riferimento all’art. 196-undecies disp. att. c.p.c. e sostituisce «la busta telematica» con «l’atto.enc» nell’art. 17, comma 4.", "verifica": "PDF ufficiale PST acquisito e confrontato il 16/09/2026.", "url": _PST_DOWNLOAD},
+    "dgsia_rettifica": {"norma": "Rettifica DGSIA 30/10/2024", "titolo": "Rettifica dell’art. 19, comma 12, lettera c)", "estratto": "Per denuncia, querela e istanza di procedimento l’accoglimento equivale al ricevimento nel ReGeWEB; è eliminato il riferimento all’iscrizione.", "verifica": "PDF ufficiale PST acquisito e confrontato il 16/09/2026.", "url": _PST_DOWNLOAD},
+})
+for _id in ("cpc_127ter", "cpc_309", "dgsia_2024", "dgsia_modifica_art27", "dgsia_rettifica"):
+    FONTI[_id]["reader_url"] = f"/api/v1/ui/fonti-procedurali/{_id}/visualizza"
+for _id, _voce in FONTI.items():
+    if _id.startswith("dgsia_") and not _voce.get("reader_url"):
+        _voce["reader_url"] = "/api/v1/ui/fonti-procedurali/dgsia_2024/visualizza"
+        _voce["verifica"] = "PDF ufficiale PST, con rettifiche del 16/09/2024 e 30/10/2024; consultato il 16/09/2026."
+
+
 def fonte(identificativo: str) -> dict[str, Any]:
     """La voce del registro, o un dizionario vuoto se l'identificativo non esiste."""
     voce = FONTI.get(str(identificativo or "").strip())

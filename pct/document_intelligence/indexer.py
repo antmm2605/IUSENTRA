@@ -157,6 +157,11 @@ def _ready_source_has_extracted_text(
             if any(name.endswith(('.pdf', '.pdf.p7m')) for name in source_names) and ENGINE_VERSION not in str(getattr(extracted, 'extraction_engine', '') or ''):
                 continue
 
+            engine = str(getattr(extracted, "extraction_engine", "") or "")
+            if engine == "email.message" or (engine == "bin.binary-best-effort" and str(extracted.text).startswith("MIME-Version:")):
+                # Corregge una sola volta i vecchi indici che includevano
+                # base64 o byte cifrati come se fossero testo dell'atto.
+                continue
             pages = list(getattr(extracted, "pages", []) or [])
             texts = [str(getattr(page, "text", "") or "") for page in pages] or [extracted.text]
             if not any(has_only_signature_text(text) for text in texts):

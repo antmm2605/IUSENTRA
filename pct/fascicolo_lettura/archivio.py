@@ -16,6 +16,8 @@ ETICHETTE_CAMPO = {"udienza": "udienza", "termine": "termine", "costituzione": "
 
 def _azione(voce: dict[str, Any]) -> dict[str, Any]:
     return {
+        "id": pulisci(voce.get("id")),
+        "prove": list(voce.get("prove") or []),
         "tipo": "udienza" if pulisci(voce.get("type")) == "udienza_documento" else "termine",
         "data": pulisci(voce.get("date")) or data_it(voce.get("dateIso")),
         "data_iso": pulisci(voce.get("dateIso")),
@@ -35,6 +37,7 @@ def archivio(dati: dict[str, Any]) -> dict[str, Any]:
     stato = dict(dati.get("stato") or {})
     return {
         "disponibile": bool(dati),
+        "ricevute": list(dati.get("ricevute") or []),
         "totale": int(riassunto.get("totale") or 0),
         "verificati": int(per_verifica.get("verificata") or 0) + int(per_verifica.get("corretta") or 0),
         "plausibili": int(per_verifica.get("plausibile") or 0),

@@ -759,6 +759,10 @@ export type FascicoloDocumentPresidioAction = {
   requiresCommunicationDate: boolean
   source: string
   documentId: string
+  historical?: boolean
+  requiresConfirmation?: boolean
+  sourceHref?: string
+  registeredHref?: string
   description: string
 }
 
@@ -2228,6 +2232,10 @@ function normalizeDocumentPresidioAction(value: unknown, index: number): Fascico
     requiresCommunicationDate: bool(row.requiresCommunicationDate ?? row.requires_communication_date),
     source: text(row.source ?? row.fonte, 'Documento fascicolo'),
     documentId: text(row.documentId ?? row.document_id),
+    historical: bool(row.historical),
+    requiresConfirmation: bool(row.requiresConfirmation),
+    sourceHref: text(row.sourceHref),
+    registeredHref: text(row.registeredHref),
     description: text(row.description ?? row.descrizione),
   }
 }
@@ -2954,6 +2962,26 @@ async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fa
   return fallback
 }
 
+async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T): Promise<T> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      if (response.ok) return normalizer(await response.json())
+      const errorPayload = await response.json().catch(() => ({}))
+      const serverMessage = isRecord(errorPayload) ? text(errorPayload.message ?? errorPayload.messaggio ?? errorPayload.errore ?? errorPayload.error) : ''
+      if (!transientFetchStatuses.has(response.status) || attempt === 2) {
+        throw new Error(serverMessage || `Dati non caricati dal server (${response.status}).`)
+      }
+    } catch (error) {
+      if (attempt === 2) {
+        throw error instanceof Error ? error : new Error('Dati non caricati dal server.')
+      }
+    }
+    await retryDelay(attempt)
+  }
+  throw new Error('Dati non caricati dal server.')
+}
+
 function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   const query = new URLSearchParams()
   if (params.page) query.set('page', String(params.page))
@@ -3078,16 +3106,15 @@ export function getFascicoloDetail(id: string, options: { include?: 'all' | Fasc
 
 export function getFascicoloDetailSection(id: string, section: FascicoloDetailSection): Promise<FascicoloDetailData> {
   if (section === 'regia') {
-    return safeFetch(
+    return strictFetch(
       `/api/v1/ui/fascicoli/${encodeURIComponent(id)}/regia`,
       (payload) => ({ ...emptyFascicoloDetail, regia: normalizeRegia(payload) }),
-      emptyFascicoloDetail,
     )
   }
   if (section === 'relata' || section === 'audit' || section === 'lex') {
-    return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload, emptyFascicoloDetail)
+    return strictFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload)
   }
-  return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload, emptyFascicoloDetail)
+  return strictFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload)
 }
 
 export function getFascicoloForm(id?: string, query = ''): Promise<FascicoloFormData> {

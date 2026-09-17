@@ -99,7 +99,7 @@ def documento_identita_personale(testo: str, *, cliente: str = "") -> dict[str, 
     evidenza += f"; cognome e nome coincidono con il cliente del fascicolo ({titolare})" if titolare else "; titolare non riscontrato con il cliente del fascicolo"
     evidenza += " (art. 35 D.P.R. 445/2000)"
     return dict(
-        label=label, role="documento_identita", section="allegati", tipo_documento=TipoDocumento.ALLEGATO,
+        label=label, role="documento_identita", section="identita", tipo_documento=TipoDocumento.ALLEGATO,
         confidence=confidenza, evidence=evidenza, deposit_role="allegato", deposit_candidate=True,
         excerpt_pattern=r"carta\s+d.{0,3}identit\w*|identity\s+card|passaporto|passport|patente|permesso\s+di\s+soggiorno|cognome|surname",
         fonte=FONTE, tipo_identita=chiave, titolare=titolare,

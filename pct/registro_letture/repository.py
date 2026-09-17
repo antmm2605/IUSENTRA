@@ -269,6 +269,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                         "oggetto_id": chiave[1], "censito_il": adesso, "aggiornato_il": adesso, **valori,
                     })
                     continue
+                # A lightweight inventory must not erase the plaintext hash
+                # learned from this exact stored file. A changed stored hash
+                # invalidates the association and must be read again.
+                if not valori["sha256"] and valori["sha256_archivio"] and valori["sha256_archivio"] == str(riga.get("sha256_archivio") or ""):
+                    valori["sha256"] = str(riga.get("sha256") or "")
                 if not int(riga.get("presente") or 0):
                     conteggi["ripristinati"] += 1
                 elif impronta_oggetto(riga) != impronta_oggetto(valori):
@@ -370,7 +375,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             lettura = letti.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta))
             if lettura is None or lettura.stato in {"errore", "in_corso"}:
                 mancanti.append(oggetto)
-            elif lettura.stato == "letto" and versione_corrente and lettura.versione_lettore != versione_corrente:
+            elif versione_corrente and lettura.versione_lettore != versione_corrente:
                 mancanti.append(oggetto)
         return mancanti
 
@@ -473,7 +478,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                     stato = "da_leggere"
                     mancanti += 1
                 elif lettura.stato == "letto" and versione and lettura.versione_lettore != versione:
-                    stato = "da_rileggere"
+                    stato = "regole_aggiornate"
                     mancanti += 1
                 elif lettura.stato == "letto":
                     stato = "letto"
@@ -481,7 +486,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                     ultima = max(ultima, lettura.letto_il)
                 elif lettura.stato == "non_leggibile":
                     stato = "non_leggibile"
-                    letti += 1
+                    errori += 1
                 else:
                     stato = lettura.stato
                     errori += 1 if lettura.stato == "errore" else 0
@@ -509,7 +514,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             if isinstance(voce, dict):
                 visti[(str(voce.get("tipo") or ""), str(voce.get("oggetto_id") or ""))] = str(voce.get("impronta") or "")
         nuovi = [o.to_dict() for o in oggetti if (o.tipo, o.oggetto_id) not in visti]
-        cambiati = [o.to_dict() for o in oggetti if (o.tipo, o.oggetto_id) in visti and visti[(o.tipo, o.oggetto_id)] != o.impronta]
+        cambiati = [o.to_dict() for o in oggetti if (o.tipo, o.oggetto_id) in visti and visti[(o.tipo, o.oggetto_id)] not in {o.impronta, o.sha256_archivio}]
         presenti = {(o.tipo, o.oggetto_id) for o in oggetti}
         rimossi = [{"tipo": tipo, "oggetto_id": oggetto_id} for (tipo, oggetto_id) in visti if (tipo, oggetto_id) not in presenti]
         prima_vista = not precedente

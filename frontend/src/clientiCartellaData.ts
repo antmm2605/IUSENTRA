@@ -60,6 +60,7 @@ export type CartellaClienteData = {
     invoices: number
   }
   matters: { active: CartellaClienteMatter[]; archived: CartellaClienteMatter[] }
+  identityDocuments: CartellaClienteItem[]
   deadlines: CartellaClienteItem[]
   appointments: CartellaClienteItem[]
   messages: CartellaClienteItem[]
@@ -133,6 +134,7 @@ export const emptyCartellaCliente: CartellaClienteData = {
     invoices: 0,
   },
   matters: { active: [], archived: [] },
+  identityDocuments: [],
   deadlines: [],
   appointments: [],
   messages: [],
@@ -230,6 +232,7 @@ function normalisePayload(payload: unknown): CartellaClienteData {
       active: Array.isArray(rawMatters.active) ? rawMatters.active.map(matter) : [],
       archived: Array.isArray(rawMatters.archived) ? rawMatters.archived.map(matter) : [],
     },
+    identityDocuments: Array.isArray(payload.identityDocuments) ? payload.identityDocuments.map(item) : [],
     deadlines: Array.isArray(payload.deadlines) ? payload.deadlines.map(item) : [],
     appointments: Array.isArray(payload.appointments) ? payload.appointments.map(item) : [],
     messages: Array.isArray(payload.messages) ? payload.messages.map(item) : [],

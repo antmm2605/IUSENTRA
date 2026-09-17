@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Download, Eye, FileDown, FileText, UserRound } from 'lucide-react'
 import { ApiClientError } from '@/lib/apiClient'
 import { formatDateTimeIt } from '@/formatting'
@@ -71,8 +72,8 @@ export default function PresidioDetailDrawer({
     }
   }
 
-  return (
-    <Drawer title={detail?.practice.label || 'Dettaglio presidio'} open={Boolean(id)} onClose={onClose}>
+  return createPortal(
+    <Drawer title={detail?.practice.client || detail?.practice.label || 'Dettaglio presidio'} open={Boolean(id)} onClose={onClose}>
       <div className="nlp-detail">
         {resource.status === 'loading' || resource.status === 'idle'
           ? <IusSkeletonTable rows={6} columns={2} />
@@ -214,6 +215,7 @@ export default function PresidioDetailDrawer({
           </>
         ) : null}
       </div>
-    </Drawer>
+    </Drawer>,
+    document.body,
   )
 }

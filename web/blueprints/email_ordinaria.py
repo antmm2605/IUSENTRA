@@ -167,6 +167,7 @@ def _serve_attachment_pdf_reader(
         )
         return preview_error_html(download_url)
     return pdf_mobile_preview_html(
+        pdf_payload=preview_data,
         nome_documento=preview_name,
         page_urls=page_urls,
         scarica_url=download_url,

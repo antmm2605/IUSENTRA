@@ -12,6 +12,7 @@ fascicolo d'ufficio, e l'avvocato deve saperlo. Le fasi degli altri canali
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from pct.procedura_fasi.depositi import canale_deposito, fase_deposito
 
@@ -21,11 +22,18 @@ FASI = {
     "INVIATO": ("inviato", "in attesa della ricevuta di accettazione PEC", False),
     "ACCETTATO_PEC": ("accettato dal gestore PEC", "in attesa della ricevuta di consegna", False),
     "CONSEGNATO": ("consegnato all'ufficio", "in attesa dell'esito dei controlli automatici", False),
+    "CONTROLLI_SUPERATI": ("controlli automatici superati", "in attesa dell’accettazione della cancelleria", False),
     "WARN_CONTROLLI": ("controlli automatici superati con avvisi", "in attesa dell'accettazione della cancelleria", False),
     "ERRORE_CONTROLLI": ("controlli automatici con errore", "il deposito non è stato accettato: va corretto e ripetuto", False),
     "ACCETTATO_CANCELLERIA": ("accettato dalla cancelleria", "deposito perfezionato", True),
     "RIFIUTATO_CANCELLERIA": ("rifiutato dalla cancelleria", "il deposito va ripetuto tenendo conto del motivo del rifiuto", False),
 }
+
+
+def titolo_atto(deposito: dict[str, Any]) -> str:
+    testo = pulisci(deposito.get("titolo") or deposito.get("nome_atto_principale") or deposito.get("tipo_atto")) or "deposito"
+    nome = re.match(r"^(.+?\.(?:pdf|docx?|p7m))(?:\s|$)", testo, re.I)
+    return nome.group(1) if nome else testo
 
 
 def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]:
@@ -52,10 +60,11 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
     ]
     return {
         "id": pulisci(deposito.get("id")),
-        "atto": pulisci(deposito.get("titolo") or deposito.get("nome_atto_principale") or deposito.get("tipo_atto")) or "deposito",
+        "atto": titolo_atto(deposito),
         "tipo_atto": pulisci(deposito.get("tipo_atto")),
         "data": data_it(deposito.get("timestamp")),
         "data_ora": dataora_it(deposito.get("timestamp")),
+        "data_accettazione": data_it(deposito.get("data_accettazione")),
         "stato": stato,
         "fase": fase,
         "attesa": attesa,
@@ -77,14 +86,16 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
 
 
 def depositi(elenco: list[dict[str, Any]], canale: str = "") -> dict[str, Any]:
-    letti = [leggi_deposito(voce, canale) for voce in elenco]
-    letti.sort(key=lambda voce: pulisci(voce["data_ora"]) or "", reverse=False)
+    letti = [leggi_deposito(voce, canale) for voce in sorted(elenco, key=lambda row: str(row.get("timestamp") or ""))]
+    prove = [voce for voce in letti if "PROVA" in voce["stato"] or "SIMUL" in voce["stato"]]
+    letti = [voce for voce in letti if voce not in prove]
     importati = [voce for voce in letti if voce["importato"]]
     perfezionati = [voce for voce in letti if voce["perfezionato"] and not voce["importato"]]
     in_corso = [voce for voce in letti if not voce["perfezionato"] and voce["stato"] not in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}]
     falliti = [voce for voce in letti if voce["stato"] in {"ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA"}]
     return {
         "tutti": letti,
+        "prove_senza_invio": prove,
         "totale": len(letti),
         "importati": importati,
         "perfezionati": perfezionati,

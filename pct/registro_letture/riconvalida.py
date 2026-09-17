@@ -50,6 +50,11 @@ def regola_superata(anomalia: Anomalia, *, contesto: dict[str, Any]) -> str:
     riferimento = e_riferimento_normativo(valore, 0, len(valore))
     if riferimento:
         return f"«{valore}» è un riferimento normativo ({riferimento}), non una data: la regola che l'aveva segnalato è superata."
+    from pct.archivio_letture.ancoraggio import esclusione_data_salvata
+    brani = contesto.get("contesti_date", {}).get((anomalia.oggetto_id, valore), [])
+    motivi = [esclusione_data_salvata(brano, valore) for brano in brani]
+    if anomalia.campo in {"termine", "decorrenza"} and motivi and all(motivi):
+        return f"La data «{valore}» riguarda una {motivi[0]}. Fonte: {brani[0][:350]}"
     rifatte = verifica_date_lette([{"valore": valore, "campo": anomalia.campo, "contesto": anomalia.contesto}], contesto)
     if not rifatte:
         return f"Con le regole correnti «{valore}» non produce più un'anomalia: il controllo che l'aveva segnalata è superato."

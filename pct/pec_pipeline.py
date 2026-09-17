@@ -5663,7 +5663,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
 
 
 # Stati di collegamento PEC→fascicolo che il linker automatico non deve sovrascrivere.
-LINK_STATI_CERTIFICATI = frozenset({"ruolo_certificato_ufficio", "manuale"})
+LINK_STATI_CERTIFICATI = frozenset({"ruolo_certificato_ufficio", "ricevuta_identificativi_verificati", "manuale"})
 
 
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any]:

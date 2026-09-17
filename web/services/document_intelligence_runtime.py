@@ -157,7 +157,15 @@ def build_document_catalog_payload(
         if isinstance(context, dict)
         else "catalogazione-documentale"
     )
-    pipeline = FascicoloDocumentCatalogPipeline(service.repository)
+    from web.services.archivio_letture_runtime import testi_indice_archivio
+    from web.helpers import get_clienti
+    client_id = str(getattr(fascicolo, "id_cliente", "") or "")
+    client = get_clienti().get(client_id) if client_id else None
+    client_name = str(getattr(client, "nome_completo", "") or getattr(fascicolo, "nome_cliente", "") or "")
+    # Le acquisizioni terminano prima della transazione di catalogazione: OCR
+    # e impronte possono usare repository verticali con connessioni proprie.
+    texts = testi_indice_archivio(fascicolo) if process else {}
+    pipeline = FascicoloDocumentCatalogPipeline(service.repository, text_provider=lambda document_id: texts.get(document_id, ""), client_name=client_name, client_id=client_id)
     run = pipeline.run(
         tenant_id=tenant_id,
         fascicolo=fascicolo,
@@ -192,9 +200,9 @@ def build_document_catalog_payload(
     _registra_catalogo(fascicolo_id, sources, by_document)
     current = [item["assignment"] for item in documents if item["assignment"]]
     summary = {
-        "total": len(current),
+        "total": sum(item["status"] in {"catalogued", "proposed", "confirmed"} for item in current),
         **{status: sum(item["status"] == status for item in current)
-           for status in ("proposed", "confirmed", "review_required")},
+           for status in ("catalogued", "proposed", "confirmed", "review_required")},
         "errors": len(run.errors),
     }
     summary["waiting_for_index"] = run.waiting_for_index
@@ -359,7 +367,7 @@ def _catalog_assignment_payload(repository: DocumentAIRepository, assignment: An
         "document_section": assignment.document_section,
         "deposit_role": assignment.deposit_role,
         "deposit_candidate": bool(assignment.deposit_candidate),
-        "status": assignment.status,
+        "status": "catalogued" if assignment.status == "proposed" and bool((assignment.metadata or {}).get("automatic_classification")) else assignment.status,
         "confidence": int(assignment.confidence),
         "source_state": assignment.source_state,
         "resolver_version": assignment.resolver_version,
@@ -412,7 +420,7 @@ def build_lex_indexing_summary_payload(
     registro = _registro_indice_documentale(fascicolo_id, sources)
     if forza:
         registro["invariato"] = False
-    if process and registro.get("invariato"):
+    if process and registro.get("invariato") and not retry_errors:
         # Il registro delle letture sa che ogni documento del fascicolo e' gia'
         # stato indicizzato con questa impronta e questo motore: non si rilegge.
         process = False
@@ -598,7 +606,7 @@ def _registra_indice_documentale(
         repo.segna_fascicolo(
             tenant, fascicolo_id, "indice_documentale", impronta=str(registro.get("impronta") or ""),
             oggetti_totali=len(oggetti), oggetti_letti=letti, stato="completa" if completa else "parziale",
-            esito={"pronti": int(summary.ready or 0), "errori": len(list(summary.errors or []))},
+            esito={"pronti": int(summary.ready or 0), "errori": int(summary.errors or 0)},
         )
     except Exception as exc:
         current_app.logger.debug("Registro letture non aggiornato per l'indice documentale: %s", exc)

@@ -21,6 +21,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
+import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyCartellaCliente,
@@ -82,7 +83,7 @@ function MatterCard({ item }:{item: CartellaClienteMatter}) {
       <p>{item.subtitle || item.counterparty || 'Fascicolo collegato al cliente'}</p>
       <footer>
         <span><FileText size={14}/> {item.documents} documenti</span>
-        <span><Clock3 size={14}/> {item.activities} attivita</span>
+        <span><Clock3 size={14}/> {item.activities} attività</span>
       </footer>
     </a>
   )
@@ -122,6 +123,7 @@ function ItemList({
 
 export function CartellaClientePage() {
   const idCliente = idClienteFromLocation()
+  const [identitySource, setIdentitySource] = useState<SourceDocument | null>(null)
   const [data, setData] = useState<CartellaClienteData>(emptyCartellaCliente)
   const [loading, setLoading] = useState(true)
   const [errore, setErrore] = useState('')
@@ -152,13 +154,17 @@ export function CartellaClientePage() {
     const warnings: string[] = []
     if (data.cliente.missingFields.length) warnings.push(`Anagrafica incompleta: ${data.cliente.missingFields.join(', ')}`)
     if (!data.cliente.privacyOk) warnings.push('Privacy e consenso trattamento da verificare.')
-    if (data.cliente.documentExpired) warnings.push('Documento di identita scaduto o da aggiornare.')
+    if (data.cliente.documentExpired) warnings.push('Documento d’identità scaduto o da aggiornare.')
     if (!data.cliente.email && !data.cliente.phone && !data.cliente.pec) warnings.push('Nessun recapito operativo registrato.')
     return warnings
   }, [data])
 
+  if (loading) return <main className="iu-content iu-cartella-cliente-page" aria-busy="true"><div className="iu-cart-loading" role="status"><RefreshCw size={18}/>Caricamento cartella cliente…</div></main>
+  if (errore) return <main className="iu-content iu-cartella-cliente-page"><div className="iu-cart-alert iu-cart-alert--danger" role="alert"><AlertTriangle size={18}/>{errore}</div><Button href={window.location.href} variant="secondary">Riprova</Button></main>
+
   return (
     <main className="iu-content iu-cartella-cliente-page">
+      <SourceDocumentModal source={identitySource} onClose={() => setIdentitySource(null)} />
       <div className="iu-cart-hero">
         <div>
           <span className="iu-cart-kicker">Cartella cliente</span>
@@ -196,6 +202,16 @@ export function CartellaClientePage() {
         <StatCard icon={<Euro size={18}/>} value={data.summary.invoices} label="Parcelle" tone="orange"/>
       </section>
 
+      <Panel title="Documenti d’identità" icon={<BadgeCheck size={17}/>} count={data.identityDocuments.length}>
+        {loading ? <p>Caricamento dei documenti d’identità…</p> : data.identityDocuments.length ? (
+          <div className="iu-cart-item-list">{data.identityDocuments.map((item) => (
+            <article key={item.id} className="iu-cart-row">
+              <div><strong>{item.title}</strong><p>{item.subtitle}</p></div>
+              <button type="button" className="iu-button iu-button--secondary" onClick={() => setIdentitySource({href: item.href, label: item.title, context: data.cliente.name})}>Visualizza documento</button>
+            </article>
+          ))}</div>
+        ) : <EmptyBlock>Nessun documento d’identità con titolare riscontrato è collegato ai fascicoli della cliente.</EmptyBlock>}
+      </Panel>
       <section className="iu-cart-grid">
         <div className="span4">
           <Panel title="Dati cliente" icon={<UserRound size={17}/>}>
@@ -208,7 +224,7 @@ export function CartellaClientePage() {
           </Panel>
         </div>
         <div className="span8">
-          <Panel title="Azioni rapide" icon={<Sparkles size={17}/>} subtitle="Operazioni collegate alla stessa anagrafica, senza reinserire dati gia presenti.">
+          <Panel title="Azioni rapide" icon={<Sparkles size={17}/>} subtitle="Operazioni collegate alla stessa anagrafica, senza reinserire dati già presenti.">
             <div className="iu-cart-actions">
               <a href={data.actions.newDeadline || '/scadenziario/nuova'}><CalendarDays size={17}/>Nuova scadenza</a>
               <a href={data.actions.newAppointment || '/agenda/nuovo'}><Clock3 size={17}/>Nuovo appuntamento</a>
@@ -275,7 +291,6 @@ export function CartellaClientePage() {
         secondaryHref={data.cliente.folderHref}
         secondaryLabel="Resta nella cartella"
       />
-      {loading ? <div className="iu-cart-loading"><RefreshCw size={18}/>Caricamento cartella cliente...</div> : null}
     </main>
   )
 }

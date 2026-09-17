@@ -33,7 +33,11 @@ def _compatibile(gruppo: list[Fatto], fatto: Fatto) -> bool:
     primo = gruppo[0]
     if _testo(primo.fascicolo_id) != _testo(fatto.fascicolo_id):
         return False
+    if (primo.verifica in {"respinta", "ignorata"}) != (fatto.verifica in {"respinta", "ignorata"}):
+        return False
     if primo.categoria != fatto.categoria or primo.campo != fatto.campo:
+        return False
+    if fatto.campo == "natura_documentale" and primo.oggetto_id != fatto.oggetto_id:
         return False
     if fatto.categoria == "data":
         giorno, ora = _giorno_ora(fatto)
@@ -85,6 +89,7 @@ def _unisci(gruppo: list[Fatto]) -> Fatto:
         return gruppo[0]
     base = _migliore(gruppo)
     identita = _identita(gruppo)
+    identita = (*identita, "esclusa" if base.verifica in {"respinta", "ignorata"} else "utile")
     identificativo = "canon-" + hashlib.sha256("|".join(identita).encode("utf-8")).hexdigest()[:24]
     fonti = _fonti(gruppo)
     prove: list[dict[str, object]] = []
@@ -96,6 +101,10 @@ def _unisci(gruppo: list[Fatto]) -> Fatto:
                 continue
             viste.add(chiave)
             prove.append(dict(prova))
+    from .adempimenti import perentorieta_documentata
+    for fatto in gruppo:
+        if perentorieta_documentata(fatto):
+            prove.append({"codice": "perentorieta_documentata", "esito": "ok", "dettaglio": fatto.contesto, "fatto_id": fatto.id, "sha256": fatto.sha256})
     prove.append({"codice": "fonti_unite", "esito": "ok", "dettaglio": "; ".join(fonti)})
     motori = "+".join(voce for voce in ("documenti", "pec") if any(fatto.motore == voce for fatto in gruppo))
     origini = "+".join(sorted({_testo(fatto.origine) for fatto in gruppo if _testo(fatto.origine)}))[:40]

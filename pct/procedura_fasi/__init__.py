@@ -35,6 +35,10 @@ def _con_fonti(scheda: dict[str, Any]) -> dict[str, Any]:
             identificativi.extend(adempimento.get("fonti", []))
     for voce in scheda.get("tempistiche", []):
         identificativi.extend(voce.get("fonti", []))
+    if scheda.get("codice") in {"lavoro", "ordinario"}:
+        identificativi.extend(["cpc_127ter", "cpc_309"])
+    if any(str(x).startswith("dgsia_") for x in identificativi):
+        identificativi.extend(["dgsia_2024", "dgsia_modifica_art27", "dgsia_rettifica"])
     return {**scheda, "fonti": fonti(identificativi), "versione": VERSIONE_CONOSCENZA}
 
 

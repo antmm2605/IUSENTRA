@@ -75,11 +75,14 @@ class Passo:
     href: str = ""  # dove agire nella pagina del fascicolo o nell'applicazione
     template: str = ""  # template del motore dei termini, se il passo ha un termine calcolabile
 
+    scaduto: bool = False
+
     def come_dizionario(self) -> dict[str, Any]:
         from pct.procedura_fasi.fonti import fonti, norme
 
         return {
             "urgenza": self.urgenza,
+            "scaduto": self.scaduto,
             "azione": self.azione,
             "motivo": self.motivo,
             "entro": self.entro,

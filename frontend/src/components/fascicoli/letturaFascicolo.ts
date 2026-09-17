@@ -10,6 +10,7 @@ export interface FonteLettura {
   titolo: string
   url: string
   verifica: string
+  reader_url?: string
   estratto: string
 }
 
@@ -18,6 +19,7 @@ export interface PassoLettura {
   azione: string
   motivo: string
   entro: string
+  scaduto?: boolean
   fonte: string
   norma: string
   fonti: FonteLettura[]
@@ -95,7 +97,8 @@ export interface LetturaFascicolo {
   oggetto: { oggetto_dichiarato: string; atti_principali: { etichetta: string; nome: string; data: string }[]; domanda: { etichetta: string; data: string; petitum: string } | null }
   cronologia: EventoLettura[]
   depositi: { totale: number; importati?: unknown[]; perfezionati: unknown[]; in_corso: unknown[]; falliti: unknown[]; tutti: { atto: string; data: string; fase: string; attesa: string; perfezionato: boolean; fase_procedurale: string; prova_attesa: string }[] }
-  notifiche: { totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
+  scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
+  notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
   pec: { totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: { data: string; oggetto: string; motivi_controllo: string[] }[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
   documenti: { totale: number; catalogati: number; confermati: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
   economico: {
@@ -147,7 +150,7 @@ export function righeVerifiche(verifiche: VerificheAutomatiche | undefined): Rig
   if (esiti.documenti) {
     righe.push({
       presidio: 'Presidio documentale',
-      esito: esiti.documenti.esito === 'tutti_letti' ? `tutti i ${esiti.documenti.documenti} documenti letti e catalogati` : `${esiti.documenti.letti ?? 0} letti su ${esiti.documenti.documenti} · ${esiti.documenti.indicizzati} indicizzati ora · ${esiti.documenti.errori} non leggibili${esiti.documenti.da_acquisire ? ` · ${esiti.documenti.da_acquisire} da acquisire dal portale` : ''}`,
+      esito: esiti.documenti.esito === 'tutti_letti' ? `tutti i ${esiti.documenti.documenti} documenti letti dall’archivio` : `${esiti.documenti.letti ?? 0} letti su ${esiti.documenti.documenti} · ${esiti.documenti.indicizzati} indicizzati ora · ${esiti.documenti.errori} non leggibili${esiti.documenti.da_acquisire ? ` · ${esiti.documenti.da_acquisire} da acquisire dal portale` : ''}`,
       tono: esiti.documenti.errori ? 'warning' : 'success',
     })
   }
@@ -210,7 +213,9 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
   const pec = lettura.pec
   const economico = lettura.economico
   const scadenzePassi = lettura.prossimi_passi.filter((passo) => passo.fonte === 'scadenziario')
-  const scadute = scadenzePassi.filter((passo) => passo.urgenza === 0).length
+  const scadute = lettura.scadenze?.scadute ?? scadenzePassi.filter((passo) => passo.scaduto).length
+  const totaleScadenze = lettura.scadenze?.totale ?? scadenzePassi.length
+  const proveNotifica = notifiche.prove_documentali || 0
   const daVerificare = documenti.da_verificare.length
   const daAcquisire = documenti.da_acquisire?.length || 0
   const daLeggere = documenti.non_indicizzati.length
@@ -219,7 +224,7 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
       id: 'documenti',
       titolo: 'Documentazione',
       valore: `${documenti.catalogati}/${documenti.totale}`,
-      nota: daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} in lettura dal presidio · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : documenti.totale ? `tutti letti e catalogati · ${documenti.confermati} confermati` : 'nessun documento',
+      nota: daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} in lettura dal presidio · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : documenti.totale ? 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '') : 'nessun documento',
       tono: daAcquisire || daVerificare ? 'warning' : daLeggere ? 'info' : documenti.totale ? 'success' : 'neutral',
       href: '#catalogazione-documentale',
     },
@@ -234,9 +239,9 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
     {
       id: 'notifiche',
       titolo: 'Presidio notifiche',
-      valore: String(notifiche.totale),
-      nota: notifiche.fallite.length ? `${notifiche.fallite.length} non consegnate · ${notifiche.aperte.length} aperte` : notifiche.aperte.length ? `${notifiche.aperte.length} aperte · ${notifiche.perfezionate.length} perfezionate` : notifiche.totale ? `${notifiche.perfezionate.length} perfezionate` : 'nessuna notifica',
-      tono: notifiche.fallite.length ? 'danger' : notifiche.aperte.length ? 'warning' : notifiche.totale ? 'success' : 'neutral',
+      valore: String(notifiche.totale || proveNotifica),
+      nota: notifiche.fallite.length ? `${notifiche.fallite.length} non consegnate · ${notifiche.aperte.length} aperte` : notifiche.aperte.length ? `${notifiche.aperte.length} aperte · ${notifiche.perfezionate.length} perfezionate` : notifiche.totale ? `${notifiche.perfezionate.length} perfezionate` : proveNotifica ? 'documenti di notifica presenti nell’archivio' : 'nessuna notifica registrata',
+      tono: notifiche.fallite.length ? 'danger' : notifiche.aperte.length ? 'warning' : notifiche.totale || proveNotifica ? 'success' : 'neutral',
       href: '#comunicazioni-notifica',
     },
     {
@@ -250,9 +255,11 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
     {
       id: 'scadenze',
       titolo: 'Scadenziario',
-      valore: String(scadenzePassi.length),
-      nota: scadute ? `${scadute} scadute · ${scadenzePassi.length - scadute} nei prossimi 30 giorni` : scadenzePassi.length ? 'nei prossimi 30 giorni' : lettura.fase.prossima_udienza ? `prossima udienza ${lettura.fase.prossima_udienza}` : 'nessuna scadenza vicina',
-      tono: scadute ? 'danger' : scadenzePassi.length ? 'warning' : 'success',
+      valore: String(totaleScadenze),
+      nota: lettura.scadenze
+        ? [scadute ? String(scadute) + (scadute === 1 ? ' scaduta' : ' scadute') : '', String(lettura.scadenze.prossimi30) + ' nei prossimi 30 giorni', lettura.scadenze.successive ? String(lettura.scadenze.successive) + ' successive' : ''].filter(Boolean).join(' · ')
+        : lettura.fase.prossima_udienza ? 'prossimo appuntamento o termine ' + lettura.fase.prossima_udienza : 'nessuna scadenza registrata',
+      tono: scadute ? 'danger' : totaleScadenze ? 'info' : 'neutral',
       href: '#udienze',
     },
     {
@@ -275,15 +282,17 @@ export function normeDelPasso(passo: PassoLettura): string {
 }
 
 export function passiOrdinati(lettura: LetturaFascicolo): PassoLettura[] {
-  return [...lettura.prossimi_passi].sort((a, b) => a.urgenza - b.urgenza)
+  return [...lettura.prossimi_passi].sort((a, b) => Number(Boolean(a.scaduto)) - Number(Boolean(b.scaduto)) || a.urgenza - b.urgenza)
 }
 
 export function riassuntoStatoPassi(lettura: LetturaFascicolo): string {
   if (!lettura.stato_passi.attivi) return lettura.stato_passi.motivo || 'Nessun passaggio da eseguire.'
   if (!lettura.prossimi_passi.length) return 'Nessun adempimento risulta aperto: il fascicolo è allineato.'
-  const subito = lettura.prossimi_passi.filter((passo) => passo.urgenza === 0).length
-  const pochiGiorni = lettura.prossimi_passi.filter((passo) => passo.urgenza === 1).length
-  const pezzi = [`${lettura.prossimi_passi.length} passaggi`]
+  const subito = lettura.prossimi_passi.filter((passo) => passo.urgenza === 0 && !passo.scaduto).length
+  const pochiGiorni = lettura.prossimi_passi.filter((passo) => passo.urgenza === 1 && !passo.scaduto).length
+  const pezzi = [`${lettura.prossimi_passi.length} ${lettura.prossimi_passi.length === 1 ? 'passaggio' : 'passaggi'}`]
+  const scaduti = lettura.prossimi_passi.filter((passo) => passo.scaduto).length
+  if (scaduti) pezzi.push(`${scaduti} ${scaduti === 1 ? 'scaduto' : 'scaduti'} da verificare`)
   if (subito) pezzi.push(`${subito} da fare subito`)
   if (pochiGiorni) pezzi.push(`${pochiGiorni} entro pochi giorni`)
   return pezzi.join(' · ')

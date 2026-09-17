@@ -9,7 +9,7 @@ source of truth.
 from __future__ import annotations
 
 
-from pct.formatting import format_euro_it
+from pct.formatting import format_euro_it, format_time_it
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Mapping
@@ -285,6 +285,7 @@ def _fascicolo_archiviato(fascicolo: Any) -> bool:
 
 
 def _matter_card(fascicolo: Any) -> dict[str, Any]:
+    from web.services.react_fascicoli_bridge import _activities
     item_id = _text(getattr(fascicolo, "id", ""))
     tipo = _enum_label(getattr(fascicolo, "tipo", ""))
     stato = _enum_label(getattr(fascicolo, "stato", ""))
@@ -301,7 +302,7 @@ def _matter_card(fascicolo: Any) -> dict[str, Any]:
         "type": tipo,
         "counterparty": _text(getattr(fascicolo, "controparte", "")),
         "documents": int(getattr(fascicolo, "documenti_count", 0) or len(getattr(fascicolo, "documenti", []) or [])),
-        "activities": int(getattr(fascicolo, "attivita_count", 0) or len(getattr(fascicolo, "attivita", []) or [])),
+        "activities": len(_activities(fascicolo)),
         "href": f"/fascicoli/{item_id}",
         "editHref": f"/fascicoli/{item_id}/modifica",
         "tone": "neutral" if _fascicolo_archiviato(fascicolo) else "primary",
@@ -318,7 +319,7 @@ def _deadline_card(scadenza: Any, fascicolo: Any | None = None) -> dict[str, Any
     return {
         "id": item_id,
         "title": _text(getattr(scadenza, "titolo", "")) or "Scadenza",
-        "subtitle": _text(getattr(scadenza, "descrizione", "")) or (_text(getattr(fascicolo, "titolo", "")) if fascicolo else ""),
+        "subtitle": _text(getattr(fascicolo, "titolo", "")) if fascicolo else _short(getattr(scadenza, "descrizione", ""), 180),
         "date": _date_label(data),
         "days": days,
         "priority": _enum_label(getattr(scadenza, "priorita", "")),
@@ -336,9 +337,9 @@ def _appointment_card(item: Any) -> dict[str, Any]:
     return {
         "id": item_id,
         "title": _text(getattr(item, "titolo", "")) or "Appuntamento",
-        "subtitle": " - ".join(part for part in [_text(getattr(item, "luogo", "")), _text(getattr(item, "tribunale", ""))] if part),
+        "subtitle": " - ".join(dict.fromkeys(part for part in [_text(getattr(item, "luogo", "")), _text(getattr(item, "tribunale", ""))] if part)),
         "date": _date_label(when),
-        "time": when[11:16] if len(when) >= 16 else "",
+        "time": format_time_it(when),
         "href": f"/agenda/{item_id}" if item_id else "/agenda",
         "tone": "primary",
     }
@@ -407,19 +408,16 @@ def _invoice_card(item: Any) -> dict[str, Any]:
 
 
 def _timeline_from_fascicoli(fascicoli: list[Any], limit: int = 12) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+    from lex.context.fascicolo_lettura_context import raccogli_dati_lettura
+    from pct.fascicolo_lettura import costruisci_lettura, lettura_come_payload
+    rows = []
     for fascicolo in fascicoli:
-        fascicolo_id = _text(getattr(fascicolo, "id", ""))
-        for attivita in getattr(fascicolo, "attivita", []) or []:
-            rows.append({
-                "id": f"{fascicolo_id}-{_text(getattr(attivita, 'id', 'attivita'))}",
-                "title": _text(getattr(attivita, "titolo", "")) or _text(getattr(attivita, "descrizione", "")) or "Attivita",
-                "subtitle": _text(getattr(fascicolo, "titolo", "")),
-                "date": _date_label(getattr(attivita, "data", "")),
-                "href": f"/fascicoli/{fascicolo_id}",
-                "tone": "neutral",
-            })
-    return sorted(rows, key=lambda row: row.get("date") or "", reverse=True)[:limit]
+        dati = raccogli_dati_lettura(fascicolo.id, solo_cronologia=True)
+        if dati is None:
+            continue
+        for evento in lettura_come_payload(costruisci_lettura(dati)).get("cronologia", []):
+            rows.append({"id": f"{fascicolo.id}-{evento.get('fonte_id', '')}-{evento.get('data', '')}", "title": evento.get("titolo", ""), "subtitle": evento.get("esito") or _text(getattr(fascicolo, "titolo", "")), "date": evento.get("data_it", ""), "order": evento.get("data", ""), "href": f"/fascicoli/{fascicolo.id}#lettura-fascicolo", "tone": "neutral"})
+    return sorted(rows, key=lambda row: row["order"], reverse=True)[:limit]
 
 
 def build_react_cliente_cartella_payload(
@@ -438,6 +436,8 @@ def build_react_cliente_cartella_payload(
         raise KeyError(id_cliente)
 
     fascicoli = _safe("fascicoli cliente", lambda: get_fascicoli().cerca(id_cliente=id_cliente, archiviati=True), [])
+    from web.services.identita_cliente_runtime import documenti_identita_cliente
+    identity_documents = documenti_identita_cliente(id_cliente, fascicoli)
     fascicoli_attivi = [item for item in fascicoli if not _fascicolo_archiviato(item)]
     fascicoli_archiviati = [item for item in fascicoli if _fascicolo_archiviato(item)]
     fascicoli_by_id = {_text(getattr(item, "id", "")): item for item in fascicoli}
@@ -450,12 +450,22 @@ def build_react_cliente_cartella_payload(
     )
     scadenze_aperte = [item for item in scadenze if getattr(item, "stato", None) == StatoTermine.APERTO]
     scadenze_scadute = [item for item in scadenze_aperte if (_parse_date(getattr(item, "data_scadenza", "")) or date.max) < date.today()]
-    appuntamenti = _safe(
-        "appuntamenti cliente",
-        lambda: get_agenda().per_cliente(id_cliente) or get_agenda().cerca(cliente=getattr(cliente, "nome_completo", "")),
-        [],
-    )
-    messaggi = _safe("messaggi cliente", lambda: get_messaggi().per_cliente(id_cliente), [])
+    from web.services.react_fascicoli_bridge import _agenda_for_fascicolo
+    from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
+    from pct.formatting import format_date_it, format_time_it
+    appuntamenti_by_id = {item.id: item for item in get_agenda().per_cliente(id_cliente)}
+    pec_by_id = {}
+    for fascicolo in fascicoli:
+        for item in _agenda_for_fascicolo(get_agenda, fascicolo):
+            appuntamenti_by_id[item.id] = item
+        for messaggio in messaggi_pec_per_fascicolo(fascicolo):
+            if messaggio.get("collegata"):
+                pec_by_id[messaggio["id"]] = {**messaggio, "fascicolo_id": fascicolo.id}
+    appuntamenti = [item for item in appuntamenti_by_id.values() if _enum_value(getattr(item, "stato", "")).upper() not in {"ANNULLATO", "CANCELLATO"}]
+    appuntamenti.sort(key=lambda item: _text(getattr(item, "data_ora", "")), reverse=True)
+    messaggi = get_messaggi().per_cliente(id_cliente)
+    comunicazioni = [_message_card(item) for item in messaggi]
+    comunicazioni.extend({"id": item["id"], "title": item["subject"], "subtitle": item["from"], "date": format_date_it(item["received_at"]), "time": format_time_it(item["received_at"]), "status": "PEC collegata", "channel": "PEC", "href": f"/fascicoli/{item['fascicolo_id']}#comunicazioni-notifica", "tone": "neutral"} for item in pec_by_id.values())
     preventivi = _safe("preventivi cliente", lambda: get_preventivi().preventivi_per_cliente(id_cliente), [])
     conferimenti = _safe("conferimenti cliente", lambda: get_preventivi().conferimenti_per_cliente(id_cliente), [])
     parcelle = _safe("parcelle cliente", lambda: get_fatturazione().per_cliente(id_cliente), [])
@@ -495,18 +505,19 @@ def build_react_cliente_cartella_payload(
             "deadlines": len(scadenze_aperte),
             "overdueDeadlines": len(scadenze_scadute),
             "appointments": len(appuntamenti),
-            "messages": len(messaggi),
+            "messages": len(comunicazioni),
             "quotes": len(preventivi),
             "engagements": len(conferimenti),
             "invoices": len(parcelle),
         },
+        "identityDocuments": identity_documents,
         "matters": {
             "active": [_matter_card(item) for item in fascicoli_attivi],
             "archived": [_matter_card(item) for item in fascicoli_archiviati[:12]],
         },
         "deadlines": [_deadline_card(item, fascicoli_by_id.get(_text(getattr(item, "id_fascicolo", "")))) for item in scadenze_aperte[:12]],
         "appointments": [_appointment_card(item) for item in appuntamenti[:8]],
-        "messages": [_message_card(item) for item in messaggi[:8]],
+        "messages": comunicazioni[:12],
         "quotes": [_quote_card(item) for item in preventivi[:8]],
         "engagements": [_engagement_card(item) for item in conferimenti[:8]],
         "invoices": [_invoice_card(item) for item in parcelle[:8]],

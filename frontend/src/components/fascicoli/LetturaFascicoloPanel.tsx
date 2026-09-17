@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
+import { formatDateIt } from '../../formatting'
+import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
 import { LettureFascicoloSection } from './LettureFascicoloSection'
 import {
   etichettaFase,
@@ -41,6 +43,7 @@ export function LetturaFascicoloPanel({
 }) {
   const [lettura, setLettura] = useState<LetturaFascicolo | null>(null)
   const [loading, setLoading] = useState(false)
+  const [registroRevision, setRegistroRevision] = useState(0)
   const [error, setError] = useState('')
   const [fontiAperte, setFontiAperte] = useState<Set<number>>(() => new Set())
   const [tuttiGliEventi, setTuttiGliEventi] = useState(false)
@@ -56,6 +59,7 @@ export function LetturaFascicoloPanel({
       const payload = await response.json().catch(() => ({})) as { ok?: boolean; lettura?: LetturaFascicolo; errore?: string }
       if (!response.ok || !payload.ok || !payload.lettura) throw new Error(payload.errore || 'Lettura del fascicolo non disponibile.')
       setLettura(payload.lettura)
+      if (aggiorna) setRegistroRevision((value) => value + 1)
       setFontiAperte(new Set())
       onReady?.()
     } catch (requestError) {
@@ -107,7 +111,7 @@ export function LetturaFascicoloPanel({
           <Badge tone={tonoFase(fase.codice)}>{etichettaFase(fase.codice)}</Badge>
           <h3>{fase.descrizione.charAt(0).toUpperCase() + fase.descrizione.slice(1)}</h3>
           {fase.prove.length ? <p>Lo dicono: {fase.prove.join('; ')}.</p> : null}
-          {fase.prossima_udienza ? <p><strong>Prossima udienza:</strong> {fase.prossima_udienza}</p> : null}
+          {fase.prossima_udienza ? <p><strong>Prossimo appuntamento o termine:</strong> {fase.prossima_udienza}</p> : null}
           {fase.incoerenze.map((voce) => <p className="iu-fas-lettura__attenzione" key={voce}><AlertTriangle size={14}/> {voce}.</p>)}
         </div>
         <div className="iu-fas-lettura__header-actions">
@@ -120,19 +124,30 @@ export function LetturaFascicoloPanel({
       <section className="iu-fas-lettura__passi" aria-label="Prossimi passaggi del fascicolo">
         <div className="iu-fas-lettura__section-head">
           <h4><Scale size={16}/> Prossimi passaggi</h4>
-          <span>{riassuntoStatoPassi(lettura)}</span>
+          {lettura.stato_passi.attivi ? <span>{riassuntoStatoPassi(lettura)}</span> : null}
         </div>
         {!lettura.stato_passi.attivi ? (
           <p className="iu-fas-lettura__nessun-passo">{lettura.stato_passi.motivo}</p>
         ) : passi.length ? (
           <ol className="iu-fas-lettura__lista">
-            {passi.map((passo, indice) => (
+            {passi.filter((passo) => !passo.scaduto).map((passo, indice) => (
               <PassoRow key={`${passo.azione}-${indice}`} passo={passo} indice={indice} fontiAperte={fontiAperte.has(indice)} onToggleFonti={() => setFontiAperte((current) => { const next = new Set(current); if (next.has(indice)) next.delete(indice); else next.add(indice); return next })}/>
             ))}
           </ol>
         ) : (
           <p className="iu-fas-lettura__nessun-passo">Nessun adempimento risulta aperto: il fascicolo è allineato.</p>
         )}
+        {passi.some((passo) => passo.scaduto) ? (
+          <details className="iu-fas-lettura__scaduti">
+            <summary>Scadenze passate da verificare ({passi.filter((passo) => passo.scaduto).length})</summary>
+            <p>Controlla il documento e l’eventuale adempimento già eseguito prima di aggiornare lo stato.</p>
+            <ol className="iu-fas-lettura__lista">
+              {passi.filter((passo) => passo.scaduto).map((passo, indice) => (
+                <PassoRow key={`${passo.azione}-${indice}`} passo={passo} indice={indice} fontiAperte={fontiAperte.has(indice + 100)} onToggleFonti={() => setFontiAperte((current) => { const next = new Set(current); if (next.has(indice + 100)) next.delete(indice + 100); else next.add(indice + 100); return next })}/>
+              ))}
+            </ol>
+          </details>
+        ) : null}
         {lettura.stato_passi.attivi && lettura.stato_passi.motivo ? <p className="iu-fas-lettura__nota">{lettura.stato_passi.motivo}</p> : null}
       </section>
 
@@ -152,19 +167,19 @@ export function LetturaFascicoloPanel({
           {lettura.oggetto.oggetto_dichiarato ? <p><strong>Oggetto:</strong> {lettura.oggetto.oggetto_dichiarato}</p> : null}
           {lettura.oggetto.domanda ? (
             <blockquote>
-              <span>Domanda, dal testo di «{lettura.oggetto.domanda.etichetta}»{lettura.oggetto.domanda.data ? ` (${lettura.oggetto.domanda.data})` : ''}:</span>
+              <span>Domanda, dal testo di «{lettura.oggetto.domanda.etichetta}»{lettura.oggetto.domanda.data ? ` (${formatDateIt(lettura.oggetto.domanda.data)})` : ''}:</span>
               «{lettura.oggetto.domanda.petitum}»
             </blockquote>
           ) : lettura.oggetto.atti_principali.length ? (
-            <p>Atti principali: {lettura.oggetto.atti_principali.map((atto) => atto.etichetta).join(', ')}. Il testo non è indicizzato: la domanda non può essere citata.</p>
+            <p>Atti principali: {lettura.oggetto.atti_principali.map((atto) => atto.etichetta).join(', ')}. La domanda non è ancora stata isolata con una citazione verificata.</p>
           ) : !lettura.oggetto.oggetto_dichiarato ? (
             <p>L'oggetto non è indicato e nessun atto principale è catalogato: la materia va dichiarata.</p>
           ) : null}
           {testata.cliente || testata.controparte ? <p><strong>Parti:</strong> {[testata.cliente, testata.controparte].filter(Boolean).join(' contro ')}{testata.ufficio ? ` · ${testata.ufficio}` : ''}{testata.valore_causa ? ` · valore ${testata.valore_causa}` : ''}</p> : null}
         </section>
 
-        <section className="iu-fas-lettura__blocco" aria-label="Che cosa è stato fatto">
-          <h4>Che cosa è stato fatto</h4>
+        <section className="iu-fas-lettura__blocco" aria-label="Eventi e attività">
+          <h4>Eventi e attività</h4>
           {eventi.length ? (
             <ul className="iu-fas-lettura__eventi">
               {eventi.map((evento, indice) => (
@@ -200,7 +215,7 @@ export function LetturaFascicoloPanel({
         ) : null}
       </section>
 
-      <LettureFascicoloSection fascicoloId={fascicoloId} onAggiornato={() => void load(true)}/>
+      <LettureFascicoloSection key={fascicoloId} fascicoloId={fascicoloId} refreshKey={registroRevision} onAggiornato={() => void load()}/>
 
       <section className="iu-fas-lettura__blocco iu-fas-lettura__economico" aria-label="Presidio economico del fascicolo">
         <div className="iu-fas-lettura__section-head">
@@ -240,7 +255,7 @@ export function LetturaFascicoloPanel({
 }
 
 function PassoRow({ passo, indice, fontiAperte, onToggleFonti }: { passo: PassoLettura; indice: number; fontiAperte: boolean; onToggleFonti: () => void }) {
-  const urgenza = etichettaUrgenza(passo.urgenza)
+  const urgenza = passo.scaduto ? { etichetta: 'Scaduta da verificare', tono: 'warning' as const } : etichettaUrgenza(passo.urgenza)
   const norma = normeDelPasso(passo)
   const calcolo = hrefCalcoloTermine(passo)
   return (
@@ -248,7 +263,7 @@ function PassoRow({ passo, indice, fontiAperte, onToggleFonti }: { passo: PassoL
       <span className="iu-fas-lettura__numero">{indice + 1}</span>
       <div className="iu-fas-lettura__passo-copy">
         <div className="iu-fas-lettura__passo-titolo">
-          <Badge tone={urgenza.tono}>{urgenza.etichetta}{passo.entro ? ` · entro ${passo.entro}` : ''}</Badge>
+          <Badge tone={urgenza.tono}>{urgenza.etichetta}{passo.entro ? ` · ${passo.scaduto ? 'il' : 'entro'} ${passo.entro}` : ''}</Badge>
           {passo.href ? <a href={passo.href}>{passo.azione}</a> : <strong>{passo.azione}</strong>}
         </div>
         {passo.motivo ? <p>{passo.motivo}.</p> : null}
@@ -264,16 +279,20 @@ function PassoRow({ passo, indice, fontiAperte, onToggleFonti }: { passo: PassoL
 }
 
 function FontiList({ fonti }: { fonti: FonteLettura[] }) {
+  const [source, setSource] = useState<SourceDocument | null>(null)
   return (
-    <ul className="iu-fas-lettura__fonti">
-      {fonti.map((fonte) => (
-        <li key={fonte.id}>
-          <b>{fonte.norma}</b> — {fonte.titolo}
-          {fonte.estratto ? <span>«{fonte.estratto}»</span> : null}
-          <small>{fonte.verifica}{fonte.url.startsWith('https://') ? <> · <a href={fonte.url} target="_blank" rel="noopener noreferrer">Testo ufficiale <ExternalLink size={11}/></a></> : null}</small>
-        </li>
-      ))}
-    </ul>
+    <>
+      <SourceDocumentModal source={source} onClose={() => setSource(null)} />
+      <ul className="iu-fas-lettura__fonti">
+        {fonti.map((fonte) => (
+          <li key={fonte.id}>
+            <b>{fonte.norma}</b> — {fonte.titolo}
+            {fonte.estratto ? <span>{fonte.estratto}</span> : null}
+            <small>{fonte.verifica} · {fonte.reader_url ? <button type="button" onClick={() => setSource({href: fonte.reader_url!, label: fonte.norma, context: fonte.titolo})}>Leggi il testo ufficiale</button> : fonte.url.startsWith('https://') ? <a href={fonte.url} target="_blank" rel="noopener noreferrer">Fonte ufficiale <ExternalLink size={11}/></a> : null}</small>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
 

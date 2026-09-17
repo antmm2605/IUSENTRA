@@ -49,11 +49,16 @@ def _stato_fascicolo(fascicolo: Any, registro: Any, tenant: str) -> dict[str, An
     oggetti_errori = sum(int(voce.errori or 0) for voce in stato_oggetti.lettori)
     ciclo = stato.stato
     motivo = stato.motivo
-    if ciclo == "fermo" and (oggetti_da_leggere or oggetti_errori):
+    if ciclo == "fermo" and oggetti_da_leggere:
         ciclo = "da_leggere"
         motivo = (
             "la riga del ciclo è ferma, ma il dettaglio dei motori indica "
-            f"{oggetti_da_leggere} oggetti da leggere e {oggetti_errori} errori"
+            f"{oggetti_da_leggere} oggetti da leggere e {oggetti_errori} errori storici"
+        )
+    elif ciclo == "fermo" and oggetti_errori:
+        motivo = (
+            motivo or
+            f"ciclo fermo: {oggetti_errori} oggetti già chiusi con esito non leggibile o errore storico"
         )
     fatti_grezzi = registro.fatti(tenant, fascicolo_id, verifiche=None)
     fatti = fatti_canonici(fatti_grezzi)

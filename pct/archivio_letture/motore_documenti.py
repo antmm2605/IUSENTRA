@@ -20,7 +20,7 @@ from .estrazione_importi import estrai_importi
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.16.motore-documenti.v2+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.16.motore-documenti.v7+{VERSIONE_FORMULARIO}"
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -45,7 +45,9 @@ def leggi_testo(
     testo = str(testo or "")
     if not testo.strip():
         return []
+    from .estrazione_domanda import estrai_domanda
     fatti: list[Fatto] = estrai_date(testo, origine=origine)
+    fatti.extend(estrai_domanda(testo, origine=origine, contesto=contesto))
     if con_notifiche:
         fatti.extend(estrai_prove_notifica(testo, origine=origine, nome=nome))
     if con_ruoli:
@@ -55,8 +57,14 @@ def leggi_testo(
         # si leggono qui una volta sola: il presidio economico li consulta.
         fatti.extend(estrai_importi(testo, metadata={**(metadata or {}), "filename": nome}, origine=origine))
     collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
+    from .pertinenza_documentale import applica_pertinenza
+
+    collaudati = applica_pertinenza(collaudati, testo, contesto=contesto, origine=origine)
+    if not any(f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale" for f in collaudati):
+        from .estrazione_economica import estrai_controllo_economico
+        collaudati.extend(estrai_controllo_economico(testo, origine=origine, metadata=metadata or {}))
     collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
-    return collaudati[:FATTI_MASSIMI]
+    return collaudati
 
 
 __all__ = ["FATTI_MASSIMI", "VERSIONE_MOTORE_DOCUMENTI", "leggi_testo"]

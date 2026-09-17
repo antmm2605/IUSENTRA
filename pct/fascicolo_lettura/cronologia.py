@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from ._testo import data_da, data_it, dataora_it, elenco, pulisci
 from .modello import Evento
@@ -62,10 +63,26 @@ def cronologia(
     archivio_letto: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     eventi: list[Evento] = []
+    archivio_disponibile = bool((archivio_letto or {}).get("disponibile"))
+    depositi_ids = {str(d.get("id")) for d in depositi_letti}
+    ricevute = list((archivio_letto or {}).get("ricevute") or [])
+    receipt_ids = {str(p.get("receipt_message_id") or "").strip().strip("<>").casefold(): p for p in ricevute if p.get("deposito_id") in depositi_ids and p.get("receipt_message_id")}
+
     for voce in attivita:
         tipo = pulisci(voce.get("tipo")).upper()
         if tipo == "NOTIFICA":
             continue  # le notifiche entrano dalla loro lettura, con lo stato di perfezionamento
+        titolo = pulisci(voce.get("titolo"))
+        note = pulisci(voce.get("note"))
+        mid = re.search(r"Message-ID:\s*<?([^<>\s]+@[^<>\s]+)>?", note, re.I)
+        if mid and mid.group(1).casefold() in receipt_ids:
+            continue
+        if "prova deposito" in titolo.lower() or "prova senza invio" in titolo.lower():
+            continue
+        if pulisci(voce.get("id_deposito_pct")) in depositi_ids:
+            continue
+        if archivio_disponibile and "PEC_DOCUMENT_PRESIDIO:" in note:
+            continue  # the same event is represented by current archive facts below
         if _acquisizione_tecnica(voce):
             continue
         esito = ESITI.get(pulisci(voce.get("esito")).upper(), "")
@@ -101,9 +118,11 @@ def cronologia(
             fonte_id=notifica["id"],
         ))
     for documento in documenti_letti:
+        if not documento.get("data_evento"):
+            continue  # upload dates do not establish that a procedural event occurred
         if documento["sezione"] in {"provvedimenti", "comunicazioni", "notifiche"} or documento["natura"] == "atto_principale":
             eventi.append(Evento(
-                data=documento["data"],
+                data=documento["data_evento"],
                 categoria={"provvedimenti": "provvedimento", "comunicazioni": "comunicazione", "notifiche": "prova di notifica"}.get(documento["sezione"], "atto"),
                 titolo=documento["etichetta"],
                 dettaglio=documento["nome"],
@@ -115,14 +134,14 @@ def cronologia(
     # come gli altri: prima restavano nell'archivio senza entrare in cronologia.
     for voce in list((archivio_letto or {}).get("udienze") or []) + list((archivio_letto or {}).get("termini") or []):
         giorno = pulisci(voce.get("data_iso"))[:10]
-        if not giorno:
+        if not giorno or voce.get("verifica") not in {"verificata", "corretta"}:
             continue
         eventi.append(Evento(
             data=giorno,
             categoria="udienza" if pulisci(voce.get("tipo")) == "udienza" else "termine",
             titolo=pulisci(voce.get("descrizione")) or pulisci(voce.get("tipo")) or "data letta dai documenti",
             dettaglio=f"letta dai documenti · {pulisci(voce.get('verifica_etichetta')) or pulisci(voce.get('verifica'))}",
-            esito="",
+            esito="data fissata dal provvedimento",
             fonte="archivio delle letture",
             fonte_id=pulisci(voce.get("documento_id")) or giorno,
         ))
@@ -131,7 +150,7 @@ def cronologia(
     # e li data, qui prendono il loro posto nel tempo.
     for voce in list((archivio_letto or {}).get("eventi") or []):
         giorno = pulisci(voce.get("data_iso"))[:10]
-        if not giorno:
+        if not giorno or voce.get("verifica") not in {"verificata", "corretta"}:
             continue
         eventi.append(Evento(
             data=giorno,
@@ -143,9 +162,23 @@ def cronologia(
             fonte_id=f"evento:{pulisci(voce.get('oggetto_id')) or giorno}:{pulisci(voce.get('etichetta'))}",
         ))
     giorno_oggi = data_da(oggi)
+    eventi = [evento for evento in eventi if not giorno_oggi or not data_da(evento.data) or data_da(evento.data) <= giorno_oggi]
+
     giorni_udienza = {_chiave(evento.data) for evento in eventi if evento.categoria == "udienza"}
+    eventi_pec = {str(v.get("oggetto_id") or "") for v in (archivio_letto or {}).get("eventi", [])}
+    fonti_agenda: dict[str, list[dict[str, Any]]] = {}
     for appuntamento in appuntamenti:
+        riferimento = re.search(r"PEC_RICEZIONE:([^\s]+)", str(appuntamento.get("descrizione") or ""))
+        if riferimento and riferimento.group(1) in eventi_pec:
+            fonti_agenda.setdefault(riferimento.group(1), []).append({
+                "fonte": "agenda", "fonte_id": pulisci(appuntamento.get("id")),
+                "dettaglio": "Registrazione della stessa PEC ricevuta",
+                "esito": pulisci(appuntamento.get("stato")).lower(),
+            })
+            continue
         quando = data_da(appuntamento.get("data_ora"))
+        if pulisci(appuntamento.get("stato")).upper() != "COMPLETATO":
+            continue  # a scheduled or cancelled appointment is not completed work
         if not quando or (giorno_oggi and quando > giorno_oggi):
             continue
         # L'udienza registrata come attivita' processuale e' gia' in cronologia:
@@ -163,17 +196,46 @@ def cronologia(
         ))
     # Ordine cronologico; i fatti senza data restano in coda, dichiarati tali.
     eventi.sort(key=lambda evento: (_chiave(evento.data) == "0000-00-00", _chiave(evento.data)))
-    visti: set[tuple[str, str]] = set()
+    visti: set[tuple[str, str, str, str]] = set()
     unici: list[dict[str, Any]] = []
     for evento in eventi:
-        chiave = (evento.fonte, evento.fonte_id or evento.titolo)
+        chiave = (evento.fonte, evento.fonte_id or evento.titolo, evento.data, evento.categoria)
         if chiave in visti:
             continue
         visti.add(chiave)
         voce = evento.come_dizionario()
         voce["data_it"] = data_it(evento.data)
         unici.append(voce)
-    return unici
+    raggruppati = _raggruppa(unici)
+    for voce in raggruppati:
+        fonte_id = str(voce.get("fonte_id") or "")
+        if fonte_id.startswith("evento:"):
+            oggetto_id = fonte_id.split(":", 2)[1]
+            voce["fonti"].extend(fonti_agenda.get(oggetto_id, []))
+    return raggruppati
 
 
 __all__ = ["ESITI", "TIPI_ATTIVITA", "cronologia"]
+
+
+def _titolo_base(titolo: str) -> str:
+    testo = pulisci(titolo).casefold()
+    testo = re.sub(r"^(?:pec: |posta certificata: |accettazione: |consegna: |esito controlli automatici |accettazione )+", "", testo)
+    testo = re.sub(r"\s+(?:rg[: .]|\[).*", "", testo)
+    return testo.rstrip(" .")
+
+
+def _raggruppa(eventi: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Combine identical facts across views, keeping every source reference."""
+    gruppi: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for evento in eventi:
+        categoria = str(evento.get("categoria") or "")
+        titolo = pulisci(evento.get("titolo")).casefold()
+        chiave = (str(evento.get("data") or ""), categoria, titolo, str(evento.get("fonte_id") or ""))
+        corrente = gruppi.get(chiave)
+        fonte = {k: evento.get(k, "") for k in ("fonte", "fonte_id", "dettaglio", "esito")}
+        if corrente is None:
+            gruppi[chiave] = {**evento, "fonti": [fonte]}
+        elif fonte not in corrente["fonti"]:
+            corrente["fonti"].append(fonte)
+    return list(gruppi.values())

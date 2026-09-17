@@ -54,6 +54,10 @@ def verifica_date_lette(date_lette: Iterable[Any], contesto: dict[str, Any]) -> 
             data_minima=data_minima if _campo_processuale(campo) else None,
             data_confronto=confronto, etichetta_confronto=etichetta_confronto,
         )
+        # Nascita, scadenza del documento e citazioni storiche non seguono
+        # l'orizzonte della causa. Restano controlli di calendario e concordanza.
+        if not _campo_processuale(campo) and set(giudizio.codici) <= {"anno_remoto", "anno_futuro"}:
+            continue
         if giudizio.stato == "valida":
             continue
         anomalie.append({

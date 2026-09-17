@@ -16,7 +16,7 @@ import re
 import sqlite3
 from typing import Any
 
-MASSIMO_MESSAGGI = 40
+MASSIMO_MESSAGGI = 0
 
 
 def _clean(value: Any) -> str:
@@ -62,10 +62,12 @@ def _messaggi(conn: sqlite3.Connection, tenant_id: str, fascicolo_id: str, ruolo
         condizioni.append("metadata_json LIKE ?")
         params.append(f"%{chiave}%")
     query = (
-        "SELECT id, received_at, status, quality_status, signature_status, linked_fascicolo_id, metadata_json "
-        f"FROM pec_messages WHERE tenant_id=? AND ({' OR '.join(condizioni)}) ORDER BY received_at DESC LIMIT ?"
+        "SELECT id, received_at, mime_sha256, status, quality_status, signature_status, linked_fascicolo_id, metadata_json "
+        f"FROM pec_messages WHERE tenant_id=? AND ({' OR '.join(condizioni)}) ORDER BY received_at DESC"
     )
-    params.append(int(limit))
+    if limit > 0:
+        query += " LIMIT ?"
+        params.append(int(limit))
     return [dict(row) for row in conn.execute(query, tuple(params)).fetchall()]
 
 
@@ -83,7 +85,7 @@ def _per_messaggio(conn: sqlite3.Connection, tenant_id: str, ids: list[str]) -> 
         eventi.setdefault(row["message_id"], []).append(dict(row))
     for row in conn.execute(
         "SELECT d.id, d.deadline_type, d.norm_ref, d.dies_a_quo_date, d.peremptory, d.deterministic_status, d.scadenziario_id, "
-        "d.human_review_required, e.message_id FROM pec_legal_deadlines d JOIN pec_legal_events e ON e.id=d.legal_event_id "
+        "d.human_review_required, d.duration_value, d.duration_unit, d.direction, e.message_id FROM pec_legal_deadlines d JOIN pec_legal_events e ON e.id=d.legal_event_id AND e.tenant_id=d.tenant_id "
         f"WHERE d.tenant_id=? AND e.message_id IN ({segnaposto})",
         (tenant_id, *ids),
     ).fetchall():
@@ -113,6 +115,12 @@ def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit:
         with repository.connect() as conn:
             righe = _messaggi(conn, tenant_id, fascicolo_id, ruolo, cliente, limit)
             eventi, termini, udienze = _per_messaggio(conn, tenant_id, [str(riga["id"]) for riga in righe])
+            reports = {str(row["id"]): repository.latest_report(conn, str(row["id"])) for row in righe}
+            parsed = {}
+            for row in righe:
+                version = repository.latest_parsed_row(conn, str(row["id"]))
+                parsed[str(row["id"])] = json.loads(version["parsed_json"] or "{}") if version else {}
+
     except Exception:
         # Presidio non ancora inizializzato o registro assente: la lettura non deve fallire.
         return []
@@ -127,7 +135,19 @@ def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit:
         if not corrispondenza:
             continue
         identificativo = str(riga["id"])
+        report = reports.get(identificativo, {})
+        reading = parsed.get(identificativo, {})
+        deposito = report.get("event_type") == "pct_deposito"
         messaggi.append({
+            "mime_sha256": _clean(riga.get("mime_sha256")),
+            "issues": list(report.get("issues") or []),
+            "event_type": report.get("event_type", ""),
+            "deposit_lifecycle": dict(report.get("deposit_lifecycle") or {}),
+            "pec_receipt": dict(reading.get("pec_receipt") or {}),
+            "archive_receipt_reference": dict(metadata.get("archive_receipt_reference") or {}),
+            "header_message_id": _clean(((reading.get("legal_workflow") or {}).get("correlation_inputs") or {}).get("message_id")),
+            "procedural_profile": dict(reading.get("procedural_profile") or {}),
+            "deadline_proposal": dict(report.get("deadline_proposal") or {}),
             "id": identificativo,
             "received_at": _clean(riga.get("received_at")),
             "subject": _clean(intestazioni.get("subject")),
@@ -138,9 +158,26 @@ def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit:
             "collegata": _clean(riga.get("linked_fascicolo_id")) == fascicolo_id,
             "corrispondenza": corrispondenza,
             "eventi": eventi.get(identificativo, []),
-            "termini": termini.get(identificativo, []),
-            "udienze": udienze.get(identificativo, []),
+            "termini": [] if deposito else termini.get(identificativo, []),
+            "udienze": [] if deposito else [h for h in udienze.get(identificativo, []) if h.get("hearing_date")],
         })
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+    from flask import has_app_context
+    if has_app_context():
+        registro = registro_corrente()
+        fatti = registro.fatti(tenant_corrente(), fascicolo_id, verifiche=("verificata", "corretta", "plausibile"))
+        for messaggio in messaggi:
+            for termine in messaggio["termini"]:
+                proposte = [f for f in fatti if f.tipo == "pec" and f.oggetto_id == messaggio["id"]
+                            and f.campo == "scadenza_proposta"
+                            and any(p.get("termine_id") == termine["id"] for p in f.prove)]
+                if proposte:
+                    termine["deadline"] = proposte[0].valore
+                    termine["fatto_id"] = proposte[0].id
+            eventi_correnti = [f for f in fatti if f.tipo == "pec" and f.oggetto_id == messaggio["id"] and f.categoria == "evento" and f.campo in {"fissazione_note", "riassegnazione_note"}]
+            if eventi_correnti:
+                messaggio["eventi"] = [{"primary_event":f.campo,"family":"comunicazione_lavoro","priority":"P1","human_review_required":False,"fatto_id":f.id} for f in eventi_correnti]
+                messaggio["udienze"] = []
     return messaggi
 
 

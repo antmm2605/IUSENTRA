@@ -34,6 +34,7 @@ def _leggi_termine(termine: dict[str, Any]) -> dict[str, Any]:
         "tipo": pulisci(termine.get("deadline_type")).replace("_", " "),
         "norma": pulisci(termine.get("norm_ref")),
         "decorrenza": data_it(termine.get("dies_a_quo_date")),
+        "scadenza": data_it(termine.get("deadline") or termine.get("deadline_date") or termine.get("calculated_date")),
         "stato": pulisci(termine.get("deterministic_status")),
         "registrato": bool(pulisci(termine.get("scadenziario_id"))),
         "perentorio": bool(termine.get("peremptory")),
@@ -67,11 +68,12 @@ def leggi_messaggio(messaggio: dict[str, Any]) -> dict[str, Any]:
     termini = [_leggi_termine(voce) for voce in list(messaggio.get("termini") or [])]
     udienze = [_leggi_udienza(voce) for voce in list(messaggio.get("udienze") or [])]
     motivi: list[str] = []
-    if qualita in QUALITA_DA_CONTROLLARE:
-        motivi.append(f"qualità {qualita.replace('_', ' ')}")
+    for issue in messaggio.get("issues") or []:
+        if issue.get("blocking"):
+            motivi.append(pulisci(issue.get("title") or issue.get("code")))
     if firma in FIRMA_NON_VALIDA:
         motivi.append("firma non valida")
-    if any(voce["da_rivedere"] for voce in eventi):
+    if messaggio.get("event_type") != "pct_deposito" and any(voce["da_rivedere"] for voce in eventi):
         motivi.append("evento da confermare")
     if not messaggio.get("collegata"):
         motivi.append("non collegata al fascicolo")
@@ -106,7 +108,7 @@ def pec(messaggi: list[dict[str, Any]]) -> dict[str, Any]:
     ]
     udienze_da_registrare = [
         {**udienza, "oggetto": voce["oggetto"], "data_pec": voce["data"], "messaggio_id": voce["id"]}
-        for voce in letti for udienza in voce["udienze"] if not udienza["registrata"]
+        for voce in letti for udienza in voce["udienze"] if udienza["data"] and not udienza["registrata"]
     ]
     return {
         "tutte": letti,

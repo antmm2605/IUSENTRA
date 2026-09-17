@@ -52,6 +52,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  RotateCw,
   Search,
   Send,
   ShieldAlert,
@@ -1806,12 +1807,13 @@ type CatalogDocumentView = {
 }
 
 type CatalogPayload = {
-  summary: { total: number; proposed: number; confirmed: number; review_required: number; errors: number; waiting_for_index: number; source_documents: number }
+  summary: { total: number; catalogued?: number; proposed: number; confirmed: number; review_required: number; errors: number; waiting_for_index: number; source_documents: number }
   run: { processed: number; proposed: number; review_required: number; waiting_for_index: number; errors: string[] }
   documents: CatalogDocumentView[]
 }
 
 function catalogTone(status: string): FascicoloRow['tone'] {
+  if (status === 'catalogued') return 'success'
   if (status === 'confirmed') return 'success'
   if (status === 'review_required') return 'warning'
   if (status === 'proposed') return 'info'
@@ -1819,6 +1821,7 @@ function catalogTone(status: string): FascicoloRow['tone'] {
 }
 
 function catalogStatusLabel(status: string): string {
+  if (status === 'catalogued') return 'Catalogato automaticamente'
   if (status === 'confirmed') return 'Confermato'
   if (status === 'review_required') return 'Da verificare'
   if (status === 'proposed') return 'Proposto'
@@ -1881,8 +1884,8 @@ function CatalogCorrectionForm({
     <form className="iu-fas-catalog__correction" onSubmit={(event) => { event.preventDefault(); onSubmit(draft) }}>
       <strong>Correggi la catalogazione nel fascicolo</strong>
       <label>Denominazione<input value={draft.document_label} maxLength={160} required onChange={(event) => update('document_label', event.currentTarget.value)} /></label>
-      <label>Sezione<select value={draft.document_section} onChange={(event) => update('document_section', event.currentTarget.value)}><option value="atti">Atti</option><option value="provvedimenti">Provvedimenti</option><option value="procure">Procure</option><option value="notifiche">Notifiche</option><option value="comunicazioni">Comunicazioni</option><option value="contratti">Contratti e incarichi</option><option value="pagamenti">Economia e pagamenti</option><option value="allegati">Allegati e supporti</option><option value="da-verificare">Da verificare</option></select></label>
-      <label>Natura<select value={draft.document_nature} onChange={(event) => update('document_nature', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="atto_processuale">Atto processuale</option><option value="provvedimento">Provvedimento</option><option value="procura">Procura</option><option value="notifica">Notifica</option><option value="comunicazione">Comunicazione</option><option value="contratto">Contratto o incarico</option><option value="economico">Documento economico</option><option value="allegato">Allegato</option><option value="da_verificare">Da verificare</option></select></label>
+      <label>Sezione<select value={draft.document_section} onChange={(event) => update('document_section', event.currentTarget.value)}><option value="atti">Atti</option><option value="provvedimenti">Provvedimenti</option><option value="procure">Procure</option><option value="notifiche">Notifiche</option><option value="comunicazioni">Comunicazioni</option><option value="contratti">Contratti e incarichi</option><option value="pagamenti">Economia e pagamenti</option><option value="identita">Documenti d’identità</option><option value="allegati">Allegati e supporti</option><option value="da-verificare">Da verificare</option></select></label>
+      <label>Natura<select value={draft.document_nature} onChange={(event) => update('document_nature', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="atto_processuale">Atto processuale</option><option value="provvedimento">Provvedimento</option><option value="procura">Procura</option><option value="notifica">Notifica</option><option value="comunicazione">Comunicazione</option><option value="contratto">Contratto o incarico</option><option value="economico">Documento economico</option><option value="documento_identita">Documento d’identità</option><option value="allegato">Allegato</option><option value="da_verificare">Da verificare</option></select></label>
       <label>Ruolo deposito<select value={draft.deposit_role} onChange={(event) => update('deposit_role', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="procura">Procura</option><option value="allegato">Allegato</option><option value="prova_notifica">Prova di notifica</option><option value="contributo_unificato">Contributo unificato</option><option value="fuori_busta">Fuori busta</option></select></label>
       <label className="iu-fas-catalog__check"><input type="checkbox" checked={draft.deposit_candidate} onChange={(event) => update('deposit_candidate', event.currentTarget.checked)} /> Valuta per il deposito</label>
       <label>Motivazione della correzione<textarea value={draft.note} maxLength={2000} onChange={(event) => update('note', event.currentTarget.value)} placeholder="Facoltativa: resta nella revisione del fascicolo." /></label>
@@ -2153,7 +2156,7 @@ function CatalogazioneDocumentalePanel({
         <dl>
           <div><dt>Documenti</dt><dd>{summary?.source_documents ?? 0}</dd></div>
           <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
-          <div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
+          <div><dt>Automatici</dt><dd>{summary?.catalogued ?? 0}</dd></div><div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
           <div><dt>Confermati</dt><dd>{summary?.confirmed ?? 0}</dd></div>
           <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
           <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
@@ -5626,6 +5629,19 @@ function mobilePreviewUrl(url: string): string {
   }
 }
 
+function documentRotationSaveUrl(url: string): string {
+  if (!url) return ''
+  try {
+    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+    if (typeof window !== 'undefined' && parsed.origin !== window.location.origin) return ''
+    const match = parsed.pathname.match(/^\/fascicoli\/([^/]+)\/documenti\/([^/]+)\/(?:visualizza|scarica)$/)
+    if (!match) return ''
+    return `/fascicoli/${encodeURIComponent(match[1])}/documenti/${encodeURIComponent(match[2])}/ruota`
+  } catch {
+    return ''
+  }
+}
+
 function downloadDocumentFile(downloadUrl: string, fallbackName: string): string {
   const href = downloadUrl.trim()
   if (!href) throw new Error('Download non disponibile: manca il collegamento al documento.')
@@ -5671,6 +5687,14 @@ function DocumentDownloadAction({ downloadUrl, name, onDone, onError }:{download
 function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview:PreviewDocument | null; onClose:()=>void; overDocumentFlow?:boolean}) {
   const [downloadState, setDownloadState] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const [readerUrl, setReaderUrl] = useState('')
+  const [readerDownloadUrl, setReaderDownloadUrl] = useState('')
+  const [readerName, setReaderName] = useState('')
+  const [rotation, setRotation] = useState(0)
+  const [savingRotation, setSavingRotation] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const rotationSaveUrl = documentRotationSaveUrl(readerUrl || preview?.url || readerDownloadUrl || preview?.downloadUrl || '')
+  const normalizedRotation = ((rotation % 360) + 360) % 360
   const startDownload = useCallback(async (downloadUrl = preview?.downloadUrl || '', fallbackName = preview?.name || 'documento') => {
     if (downloading || !downloadUrl) return false
     setDownloading(true)
@@ -5687,14 +5711,84 @@ function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview
     }
   }, [downloading, preview?.downloadUrl, preview?.name])
 
+  const pushRotationToReader = useCallback((value = normalizedRotation) => {
+    try {
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: 'iusentra.document.setRotation', rotation: value },
+        window.location.origin,
+      )
+    } catch {
+      // Se l'anteprima non è il lettore PDF interno, il comando resta innocuo.
+    }
+  }, [normalizedRotation])
+
+  const rotatePreview = useCallback((delta: number) => {
+    setRotation((value) => {
+      const next = ((value + delta) % 360 + 360) % 360
+      window.requestAnimationFrame(() => pushRotationToReader(next))
+      setDownloadState(next ? `Documento ruotato a ${next} gradi. Premi “Salva rotazione” per registrare una copia nel fascicolo.` : '')
+      return next
+    })
+  }, [pushRotationToReader])
+
+  const saveRotation = useCallback(async () => {
+    if (!rotationSaveUrl || !normalizedRotation || savingRotation) return
+    setSavingRotation(true)
+    setDownloadState('Salvataggio della copia ruotata nel fascicolo…')
+    try {
+      const response = await fetch(rotationSaveUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken(),
+        },
+        body: JSON.stringify({ rotation: normalizedRotation }),
+      })
+      const payload = await response.json().catch(() => ({})) as {
+        ok?: boolean
+        messaggio?: string
+        message?: string
+        errore?: string
+        nome?: string
+        desktop_preview_url?: string
+        preview_url?: string
+        download_url?: string
+      }
+      if (!response.ok || payload.ok === false) {
+        throw new Error(String(payload.messaggio || payload.errore || 'Rotazione non salvata.'))
+      }
+      if (payload.desktop_preview_url || payload.preview_url) setReaderUrl(String(payload.desktop_preview_url || payload.preview_url))
+      if (payload.download_url) setReaderDownloadUrl(String(payload.download_url))
+      if (payload.nome) setReaderName(String(payload.nome))
+      setRotation(0)
+      setDownloadState(String(payload.messaggio || payload.message || 'Copia ruotata salvata nel fascicolo.'))
+    } catch (error) {
+      setDownloadState(error instanceof Error ? error.message : 'Rotazione non salvata. Verifica il documento e riprova.')
+    } finally {
+      setSavingRotation(false)
+    }
+  }, [normalizedRotation, rotationSaveUrl, savingRotation])
+
   useEffect(() => {
     const objectUrl = preview?.objectUrl
+    setReaderUrl(preview?.url || '')
+    setReaderDownloadUrl(preview?.downloadUrl || '')
+    setReaderName(preview?.name || '')
+    setRotation(0)
     setDownloadState('')
     setDownloading(false)
+    setSavingRotation(false)
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [preview?.downloadUrl, preview?.objectUrl])
+  }, [preview?.downloadUrl, preview?.name, preview?.objectUrl, preview?.url])
+
+  useEffect(() => {
+    pushRotationToReader()
+  }, [pushRotationToReader])
 
   useEffect(() => {
     const receiveFrameDownload = (event: MessageEvent<unknown>) => {
@@ -5717,24 +5811,32 @@ function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview
   }, [preview?.name, startDownload])
 
   if (!preview) return null
-  const mobileUrl = preview.mobileUrl || mobilePreviewUrl(preview.url)
-  const viewerUrl = mobileUrl || preview.url
+  const activeName = readerName || preview.name
+  const activeUrl = readerUrl || preview.url
+  const activeDownloadUrl = readerDownloadUrl || preview.downloadUrl
+  const mobileUrl = preview.mobileUrl || mobilePreviewUrl(activeUrl)
+  const viewerUrl = mobileUrl || activeUrl
   const previewModalClassName = ['iu-fas-preview-modal', overDocumentFlow ? 'iu-fas-preview-modal--over-document-flow' : ''].filter(Boolean).join(' ')
   return (
-    <div className={previewModalClassName} role="dialog" aria-modal="true" aria-label={`Anteprima ${preview.name}`}>
+    <div className={previewModalClassName} role="dialog" aria-modal="true" aria-label={`Anteprima ${activeName}`}>
       <div className="iu-fas-preview-modal__box">
         <header>
           <div className="iu-fas-preview-modal__title">
             <span><Eye size={14}/> Lettore documento</span>
-            <strong>{preview.name}</strong>
+            <strong>{activeName}</strong>
             {downloadState ? <small className="iu-fas-preview-download-status" role="status">{downloadState}</small> : null}
           </div>
           <nav>
-            <button type="button" onClick={() => void startDownload()} disabled={downloading} aria-label={`Scarica ${preview.name}`}><Download size={15}/> {downloading ? 'Preparo…' : 'Scarica'}</button>
+            <button type="button" onClick={() => rotatePreview(-90)} aria-label={`Ruota ${activeName} a sinistra`} title="Ruota a sinistra"><RotateCcw size={15}/> Ruota sx</button>
+            <button type="button" onClick={() => rotatePreview(90)} aria-label={`Ruota ${activeName} a destra`} title="Ruota a destra"><RotateCw size={15}/> Ruota dx</button>
+            <button type="button" onClick={() => void saveRotation()} disabled={!normalizedRotation || !rotationSaveUrl || savingRotation} title={rotationSaveUrl ? 'Salva una copia ruotata nel fascicolo' : 'Salvataggio disponibile solo per documenti PDF del fascicolo'} aria-label={`Salva rotazione di ${activeName}`}>
+              <Save size={15}/> {savingRotation ? 'Salvo…' : 'Salva rotazione'}
+            </button>
+            <button type="button" onClick={() => void startDownload(activeDownloadUrl, activeName)} disabled={downloading} aria-label={`Scarica ${activeName}`}><Download size={15}/> {downloading ? 'Preparo…' : 'Scarica'}</button>
             <button type="button" onClick={onClose} aria-label="Chiudi anteprima">Chiudi</button>
           </nav>
         </header>
-        <iframe src={viewerUrl} title={`Anteprima documento ${preview.name}`}/>
+        <iframe ref={iframeRef} src={viewerUrl} title={`Anteprima documento ${activeName}`} onLoad={() => pushRotationToReader()}/>
       </div>
     </div>
   )
@@ -6416,7 +6518,7 @@ function EmbeddedRecordModal({
               </button>
             ) : null}
             <a href={record.externalHref || record.href} target="_blank" rel="noopener noreferrer">Apri fuori</a>
-            <button type="button" onClick={onClose} aria-label={`Chiudi ${record.title}`}>Chiudi</button>
+            <button type="button" onClick={onClose} aria-label={`Chiudi ${record.title}`}><X size={16}/> Chiudi</button>
           </nav>
         </header>
         <div className="iu-fas-embedded-modal__body">
@@ -6980,6 +7082,9 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
 
 function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, defaultOpen = false, loading = false, auditStatus = 'idle' }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; defaultOpen?:boolean; loading?:boolean; auditStatus?:LazySectionStatus}) {
   const regia = data.regia
+  if (loading || regia.page_state === 'lazy_non_caricata') {
+    return <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} defaultOpen={defaultOpen} onOpen={onOpen}><p className="iu-empty" role="status">Caricamento dei controlli del fascicolo…</p></DetailSection>
+  }
   if (regia.page_state === 'profilo_da_confermare') {
     return (
       <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={proceduralProfileCandidates(regia).length} defaultOpen={defaultOpen} onOpen={onOpen}>
@@ -7098,7 +7203,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           </div>
           <div className="iu-fas-regia__progress" aria-label="Completamento Presidio del fascicolo">
             <strong>{h.completion}%</strong>
-            <span>completamento</span>
+            <span>verifiche disponibili</span>
             <small>{completionNote}</small>
           </div>
         </header>
@@ -7113,7 +7218,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
             <RegiaActionCard label="Presìdi del fascicolo" value={operational.statusLabel || 'Da verificare'} note={operationalCardNote} href={operationalNext?.href || '#presidio-conformita'} tone={operational.tone}/>
             <RegiaActionCard label="Conformità e qualità" value={data.quality.some((item) => !item.ok) ? `${data.quality.filter((item) => !item.ok).length} verifiche` : 'Controlli attivi'} note="Esiti, qualità dei dati e comando di attivazione nello stesso presidio." href="#presidio-conformita" tone={data.quality.some((item) => !item.ok) ? 'warning' : 'success'}/>
             <RegiaActionCard label="Comunicazioni, PEC e notifica" value={notification.statusLabel || 'Da verificare'} note={notification.systemNotification || 'Controlla relata, ricevute e prova di notifica'} href="#comunicazioni-notifica" tone={notification.tone}/>
-            <RegiaActionCard label="Udienze e scadenze" value={nextDeadline?.date || 'Nessun evento aperto'} note={nextDeadline?.title || 'Registra o verifica i termini della pratica'} href="#udienze" tone={nextDeadline ? nextDeadline.tone : 'neutral'}/>
+            <RegiaActionCard label="Udienze e scadenze" value={nextDeadline?.date || (data.fascicolo.nextDeadlineIso ? data.fascicolo.nextDeadline : 'Apri calendario')} note={nextDeadline?.title || 'Consulta appuntamenti e termini della pratica'} href="#udienze" tone={nextDeadline ? nextDeadline.tone : 'neutral'}/>
             <RegiaActionCard label="Audit del fascicolo" value={auditValue} note={auditNote} href="#audit" tone={auditTone}/>
           </div>
         </section>
@@ -7328,6 +7433,7 @@ const documentAutoSectionOrder: Array<Omit<DocumentAutoSection, 'documents'>> = 
   { id: 'provvedimenti', title: 'Provvedimenti', note: 'Sentenze, ordinanze, decreti e verbali.', tone: 'purple' },
   { id: 'comunicazioni', title: 'Comunicazioni', note: 'PEC, cancelleria, notifiche e messaggi collegati.', tone: 'info' },
   { id: 'pagamenti', title: 'Pagamenti e contributi', note: 'Contributo unificato, PagoPA, bolli, parcelle e note spese.', tone: 'success' },
+  { id: 'identita', title: 'Documenti d’identità', note: 'Documenti di riconoscimento e dati del titolare.', tone: 'info' },
   { id: 'allegati', title: 'Allegati e supporti', note: 'Procure, contratti, parcelle e allegati di fascicolo.', tone: 'neutral' },
   { id: 'da-verificare', title: 'Da verificare', note: 'Documenti senza sezione certa da controllare.', tone: 'warning' },
 ]
@@ -7341,6 +7447,7 @@ const documentListSectionOptions: DocumentSectionOption[] = [
   { id: 'provvedimenti', label: 'Provvedimenti' },
   { id: 'comunicazioni', label: 'Comunicazioni' },
   { id: 'pagamenti', label: 'Pagamenti' },
+  { id: 'identita', label: 'Documenti d’identità' },
   { id: 'allegati', label: 'Allegati' },
   { id: 'da-verificare', label: 'Senza sezione' },
 ]
@@ -7942,7 +8049,8 @@ function buildPortalCatalogRows(data: FascicoloDetailData): PortalCatalogRow[] {
 }
 
 function documentAutoSectionId(doc: FascicoloDocument): string {
-  if (['atti', 'provvedimenti', 'comunicazioni', 'pagamenti', 'allegati', 'da-verificare'].includes(doc.catalogSection)) return doc.catalogSection
+  if (doc.catalogRole === 'documento_identita') return 'identita'
+  if (['atti', 'provvedimenti', 'comunicazioni', 'pagamenti', 'identita', 'allegati', 'da-verificare'].includes(doc.catalogSection)) return doc.catalogSection
   const text = documentSearchText(doc)
   if (/(pec|cancelleria|comunicazion|notifica|relata|busta|rdac|rac|esito|ricevut|accettazion)/.test(text)) return 'comunicazioni'
   if (/(sentenza|ordinanza|decreto|provvediment|verbale)/.test(text)) return 'provvedimenti'
@@ -8270,7 +8378,7 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
           {renameMessage ? <small>{renameMessage}</small> : null}
         </form>
       ) : null}
-      <div className="iu-fas-doc-badges"><Badge tone={doc.statusTone}>{doc.statusLabel || (doc.signed ? 'Firmato' : 'Da firmare')}</Badge>{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
+      <div className="iu-fas-doc-badges"><Badge tone={doc.signed ? doc.statusTone : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : 'Firma non verificata'}</Badge>{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-doc-actions" aria-label={`Azioni per ${doc.name}`}>
         {doc.actions.acquire ? <a className="iu-fas-doc-action" href={doc.actions.acquire} title="Acquisisci il file dal portale con sessione autenticata o Local Signer"><Download size={15}/><span>Acquisisci dal PST</span></a> : null}
         {doc.actions.preview ? <button type="button" className="iu-fas-doc-action" title="Apri il documento nel lettore interno" aria-label={`Apri ${doc.name} nel lettore interno`} onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/><span>Visualizza</span></button> : null}
@@ -9399,7 +9507,7 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
     <section className={`iu-fas-document-presidio iu-fas-document-presidio--${presidio.tone}`}>
       <header>
         <div>
-          <Badge tone={presidio.tone}>{actions.length ? `${actions.length} controlli` : 'Da controllare'}</Badge>
+          <Badge tone={presidio.tone}>{actions.length ? `${actions.length} date lette` : 'Nessuna data rilevata'}</Badge>
           <strong>{next?.title || 'Presidio documenti fascicolo'}</strong>
           {next?.date ? <span>{next.date}</span> : null}
         </div>
@@ -9409,7 +9517,7 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
         <div className="iu-fas-presidio-actions">
           {actions.slice(0, 6).map((action) => {
             const sourceDocument = data.documents.find((document) => document.id === action.documentId)
-            const canPrepareDeadline = Boolean(action.dateIso) && !action.requiresCommunicationDate
+            const canPrepareDeadline = Boolean(action.dateIso) && !action.requiresCommunicationDate && !action.requiresConfirmation && !action.historical && !action.registeredHref
             return (
               <article key={action.id}>
                 <Badge tone={action.tone}>{action.date || 'Data da confermare'}</Badge>
@@ -9421,11 +9529,14 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
                   {action.requiresCommunicationDate ? ' · serve data comunicazione' : ''}
                 </small>
                 <div className="iu-fas-presidio-action-links">
-                  {sourceDocument?.actions.preview ? (
+                  {action.sourceHref ? (
+                    <button type="button" className="iu-fas-inline-link" onClick={() => onPreview({ name: action.source, url: action.sourceHref!, downloadUrl: action.sourceHref! })}><Eye size={14}/> Apri fonte</button>
+                  ) : sourceDocument?.actions.preview ? (
                     <button type="button" className="iu-fas-inline-link" onClick={() => onPreview({ name: sourceDocument.name, url: sourceDocument.actions.preview, downloadUrl: sourceDocument.actions.download })}><Eye size={14}/> Apri fonte</button>
                   ) : (
                     <a className="iu-fas-inline-link" href="#documenti" onClick={onOpenDocuments}><FolderOpen size={14}/> Cerca la fonte</a>
                   )}
+                  {action.registeredHref ? <a className="iu-fas-inline-link" href={action.registeredHref}><CalendarDays size={14}/> Apri scadenza</a> : action.historical ? <span className="iu-muted">Data storica</span> : null}
                   {canPrepareDeadline ? <a className="iu-fas-inline-link" href={documentPresidioDeadlineHref(action, fascicoloId)}><CalendarDays size={14}/> Prepara scadenza</a> : null}
                 </div>
                 {action.requiresCommunicationDate ? <p className="iu-fas-presidio-action-note">La data di comunicazione non è stata letta: apri la fonte e registrala prima di predisporre il termine.</p> : null}
@@ -9662,7 +9773,7 @@ function DetailPage({ id }:{id:string}) {
   const exportPdfHref = data.actions.exportPdf || f.exportPdfHref
   const depositTelematicHref = data.telematic.find((item) => /deposito telematico/i.test(item.label))?.href || `/fascicoli/${encodedId}/deposito/prepara`
   const clientId = data.client?.id || f.clientId
-  const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
+  const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/cartella?embed=source` : '/clienti'
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
   const pagoPaEmbeddedHref = `${PAGOPA_PROXY_NEW_PAYMENT_URL}?iusentra_fascicolo=${encodedId}`
   const openPagoPaModal = useCallback(() => {
@@ -9893,7 +10004,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}

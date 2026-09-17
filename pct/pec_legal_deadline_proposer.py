@@ -157,6 +157,9 @@ def propose_legal_deadline(
 
     rules = ruleset or load_ruleset()
     text_norm = _norm(text)
+    if event_type in {"pct_deposito", "ricevuta_accettazione", "ricevuta_consegna", "esito_controlli", "accettazione_deposito"}:
+        return None  # a deposit receipt does not communicate a new judicial order
+
     sentence_decision_context = event_type in {"sentenza_a_verbale_429", "deposito_sentenza"} or _is_sentence_decision_context(text_norm)
     if (
         sentence_decision_context
@@ -185,6 +188,9 @@ def propose_legal_deadline(
     template = _TEMPLATES_BY_CODE.get(str(rule.get("template_code") or ""))
     if template is None:
         return None
+    if template.code == "CIV_OPPOSIZIONE_127_TER" and not _is_prospective_127_ter_context(text_norm):
+        return None
+
 
     if (
         sentence_decision_context
@@ -278,6 +284,9 @@ def propose_from_parsed(
     headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
     body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
     text = " ".join(str(value) for value in (headers.get("subject"), body.get("text"), body.get("ics_text")) if value)
+    subject = _norm(str(headers.get("subject") or ""))
+    if any(marker in subject for marker in ("esito controlli automatici", "accettazione deposito", "consegna: deposito", "accettazione: deposito")):
+        return None
     rule = _resolve_rule(_norm(text), rules)
     if rule is None:
         return propose_legal_deadline(text, dies_a_quo_date=comunicazione_date, event_type=event_type, ruleset=rules)

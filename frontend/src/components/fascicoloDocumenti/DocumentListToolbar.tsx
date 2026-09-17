@@ -8,7 +8,7 @@ export type DocumentSectionOption = { id: string; label: string }
 
 const STATUS_OPTIONS: ReadonlyArray<{ id: DocumentStatusFilter; label: string }> = [
   { id: 'tutti', label: 'Tutti gli stati' },
-  { id: 'da_firmare', label: 'Da firmare' },
+  { id: 'da_firmare', label: 'Firma non verificata' },
   { id: 'da_verificare', label: 'Da verificare' },
 ]
 

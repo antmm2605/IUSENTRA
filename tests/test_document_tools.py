@@ -15,6 +15,7 @@ from web.services.document_tools import (
     create_zip,
     images_to_pdf,
     merge_pdfs,
+    rotate_pdf_bytes,
     safe_output_name,
 )
 
@@ -111,6 +112,21 @@ def test_images_to_pdf_crea_documento_multipagina_e_applica_rotazione():
     assert reader.pages[0].rotation == 90
 
     assert reader.pages[1].rotation == 180
+
+
+def test_rotate_pdf_bytes_crea_copia_ruotata_e_valida_angolo():
+    result, pages = rotate_pdf_bytes(_pdf_bytes(), angle=270, name="documento.pdf")
+    reader = PdfReader(io.BytesIO(result))
+    assert pages == 1
+    assert len(reader.pages) == 1
+    assert reader.pages[0].rotation == 270
+
+    try:
+        rotate_pdf_bytes(_pdf_bytes(), angle=45, name="documento.pdf")
+    except DocumentToolError as exc:
+        assert "90, 180 o 270" in str(exc)
+    else:
+        raise AssertionError("La rotazione non ammessa doveva essere rifiutata.")
 
 def test_superficie_react_collega_scanner_locale_e_route_documentali():
     root = Path(__file__).resolve().parents[1]

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, BookOpenCheck, Check, Pencil, RefreshCw, X } from 'lucide-react'
 import { Badge } from '../dashboard'
 import {
@@ -25,7 +25,7 @@ const OGGETTI_VISIBILI = 6
 // letti che i controlli giudicano dubbi — le date prima di tutto — che
 // l'avvocato conferma o corregge. Legge /api/v1/ui/fascicoli/<id>/letture,
 // mai in cache: le novità sono personali.
-export function LettureFascicoloSection({ fascicoloId, onAggiornato }: { fascicoloId: string; onAggiornato?: () => void }) {
+export function LettureFascicoloSection({ fascicoloId, refreshKey = 0, onAggiornato }: { fascicoloId: string; refreshKey?: number; onAggiornato?: () => void }) {
   const [letture, setLetture] = useState<LettureFascicolo | null>(null)
   const [loading, setLoading] = useState(false)
   const [aggiornamento, setAggiornamento] = useState<EsitoAggiornamentoLetture | null>(null)
@@ -34,23 +34,42 @@ export function LettureFascicoloSection({ fascicoloId, onAggiornato }: { fascico
   const [correzioneFatto, setCorrezioneFatto] = useState<{ id: string; valore: string } | null>(null)
   const [tuttiGliOggetti, setTuttiGliOggetti] = useState(false)
 
+  const corrente = useRef<LettureFascicolo | null>(null)
+  const richiestaInCorso = useRef(false)
+  const notificaAggiornamento = useRef(onAggiornato)
+  notificaAggiornamento.current = onAggiornato
+
   const load = useCallback(async () => {
-    if (!fascicoloId) return
-    setLoading(true)
+    if (!fascicoloId || richiestaInCorso.current) return
+    richiestaInCorso.current = true
+    if (!corrente.current) setLoading(true)
     setError('')
     try {
-      const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/letture`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/letture${corrente.current ? '?visto=0' : ''}`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       const payload = await response.json().catch(() => ({})) as { ok?: boolean; letture?: LettureFascicolo; errore?: string }
       if (!response.ok || !payload.ok || !payload.letture) throw new Error(payload.errore || 'Registro delle letture non disponibile.')
-      setLetture(payload.letture)
+      const precedente = corrente.current
+      const aggiornate = precedente ? { ...payload.letture, novita: precedente.novita } : payload.letture
+      corrente.current = aggiornate
+      setLetture(aggiornate)
+      if (precedente && (precedente.impronta !== aggiornate.impronta || precedente.archivio?.lettura_automatica.ultima_lettura !== aggiornate.archivio?.lettura_automatica.ultima_lettura)) {
+        notificaAggiornamento.current?.()
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Registro delle letture non disponibile.')
     } finally {
+      richiestaInCorso.current = false
       setLoading(false)
     }
   }, [fascicoloId])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { void load() }, [load, refreshKey])
+  useEffect(() => {
+    const aggiornaSeVisibile = () => { if (document.visibilityState === 'visible') void load() }
+    const timer = window.setInterval(aggiornaSeVisibile, 15000)
+    window.addEventListener('focus', aggiornaSeVisibile)
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', aggiornaSeVisibile) }
+  }, [load])
 
   const aggiorna = useCallback(async () => {
     setLoading(true)
@@ -59,6 +78,7 @@ export function LettureFascicoloSection({ fascicoloId, onAggiornato }: { fascico
       const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/letture/aggiorna`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: '{}' })
       const payload = await response.json().catch(() => ({})) as { ok?: boolean; letture?: LettureFascicolo; esito?: EsitoAggiornamentoLetture; errore?: string }
       if (!response.ok || !payload.ok || !payload.letture) throw new Error(payload.errore || 'Aggiornamento delle letture non completato.')
+      corrente.current = payload.letture
       setLetture(payload.letture)
       setAggiornamento(payload.esito || null)
       onAggiornato?.()

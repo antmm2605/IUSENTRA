@@ -78,6 +78,10 @@ def ancora_per(testo: str, inizio: int, fine: int, *, limite: int = 0, limite_do
     prima = testo[max(0, inizio - FINESTRA_PRIMA, limite, inizio_frase(testo, inizio, limite)):inizio]
     if _NEGATIVE.search(prima[-FINESTRA_NEGATIVA:]):
         return None
+    if re.search(r"(?:contratto|rapporto|servizio|assunzione).{0,100}decorrenza\s+(?:dal|da|del)\s*$", prima, re.IGNORECASE | re.DOTALL):
+        return None
+    if motivo_non_processuale(testo, inizio, fine):
+        return None
     migliore: Ancora | None = None
     for campo, espressione in _ANCORE_RE:
         for match in espressione.finditer(prima):
@@ -112,3 +116,38 @@ def brano(testo: str, inizio: int, fine: int, *, raggio: int = 90) -> str:
 
 
 __all__ = ["ANCORE", "Ancora", "ancora_per", "brano", "inizio_frase", "ora_vicina"]
+
+
+def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
+    """Esclusione esplicita, verificabile anche sul brano storico salvato."""
+    prima = testo[max(0, inizio - 160):inizio]
+    if re.search(r"(?:contratto|rapporto|servizio|assunzione).{0,120}decorrenza\s+(?:dal|da|del)\s*$", prima, re.I | re.S):
+        return "decorrenza del rapporto di lavoro, non termine processuale"
+    if re.search(r"(?:termine|fine)\s+(?:delle?\s+)?(?:attività didattiche|anno scolastico).{0,25}$", prima, re.I | re.S):
+        return "periodo di servizio scolastico, non termine processuale"
+    dopo = testo[fine:fine + 130]
+    vicino = prima + testo[inizio:fine] + dopo
+    if re.search(r"decorrenza\s+dal\s*$", prima, re.I) and re.search(r"cessazione|ore settimanali|tipologia posto|lezione presso", vicino, re.I):
+        return "decorrenza del rapporto di lavoro, non termine processuale"
+    if re.search(r"supplenza|anno scolastico|attivit[àa]\s+(?:di\s+)?didattiche|costituzione della Carta", vicino, re.I):
+        if re.search(r"servizio|supplenza|costituzione della Carta", vicino, re.I):
+            return "periodo di servizio scolastico o beneficio, non termine processuale"
+    if re.search(r"cronol\.?(?:ogico)?\s*\d+/\d+\s+del\s*$", prima, re.I):
+        return "data di registrazione del provvedimento, non data di udienza"
+    if re.search(r"(?:Messina|Palmi|Vicenza|Roma|Milano|Napoli|Torino|Bologna|Firenze|Reggio Calabria),?\s*(?:l[iì]\s*)?$", prima, re.I) and re.match(r"\s*(?:Il|La)\s+Giudice", dopo, re.I):
+        return "data di redazione del provvedimento, non termine processuale"
+    if re.search(r"EMISSIONE/ISSUING|SCADENZA/EXPIRY|HOLDER.?S.?SIGNATURE", vicino, re.I):
+        return "data del documento di identità, non termine processuale"
+    if re.search(r"Corte di Giustizia\s*$", prima, re.I):
+        return "data di un precedente giurisprudenziale citato"
+    return ""
+
+
+def esclusione_data_salvata(testo: str, valore: str) -> str:
+    from legal_ocr.formulario.date import trova_date
+    from pct.registro_letture.verifica_date import interpreta_data
+
+    data = interpreta_data(valore.split("T")[0])
+    occorrenze = [d for d in trova_date(testo) if d.data == data]
+    motivi = [motivo_non_processuale(testo, d.inizio, d.fine) for d in occorrenze]
+    return motivi[0] if motivi and all(motivi) else ""

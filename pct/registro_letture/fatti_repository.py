@@ -142,7 +142,7 @@ class FattiMixin:
                 visti.add(chiave)
                 valori = {
                     "fascicolo_id": fascicolo, "versione_motore": _testo(versione), "categoria": fatto.categoria, "campo": _testo(fatto.campo),
-                    "valore_letto": _testo(fatto.valore_letto)[:120], "valore": _testo(fatto.valore)[:120], "etichetta": _testo(fatto.etichetta)[:120],
+                    "valore_letto": _testo(fatto.valore_letto)[:1200 if fatto.campo == "domanda_atto" else 120], "valore": _testo(fatto.valore)[:1200 if fatto.campo == "domanda_atto" else 120], "etichetta": _testo(fatto.etichetta)[:120],
                     "contesto": _testo(fatto.contesto)[:300], "posizione": int(fatto.posizione or 0), "origine": _testo(fatto.origine)[:40],
                     "confidenza": round(float(fatto.confidenza or 0), 3), "verifica": fatto.verifica,
                     "prove_json": json.dumps(list(fatto.prove or []), ensure_ascii=False, sort_keys=True, default=str), "aggiornato_il": adesso,
@@ -156,7 +156,7 @@ class FattiMixin:
                         (self._nuovo_id("fat"), tenant, tipo, oggetto_id, sha, motore, chiave, adesso, *valori.values()),  # type: ignore[attr-defined]
                     )
                     continue
-                if str(riga.get("verifica") or "") in {"corretta", "ignorata"}:
+                if str(riga.get("verifica") or "") in {"corretta", "ignorata"} or riga.get("risolta_da"):
                     conteggi["conservati"] += 1
                     continue
                 conteggi["aggiornati"] += 1
@@ -165,10 +165,14 @@ class FattiMixin:
                     (*valori.values(), tenant, riga["id"]),
                 )
             for chiave, riga in esistenti.items():
-                if chiave in visti or str(riga.get("verifica") or "") in {"corretta", "ignorata"}:
+                if chiave in visti or str(riga.get("verifica") or "") in {"corretta", "ignorata"} or riga.get("risolta_da"):
                     continue
                 conteggi["rimossi"] += 1
-                conn.execute('DELETE FROM "letture_fatti" WHERE "tenant_id" = ? AND "id" = ?', (tenant, riga["id"]))
+                prove = json.loads(riga.get("prove_json") or "[]")
+                prova = {"codice": "riconvalida", "esito": "respinta", "dettaglio": "La lettura corrente non conferma più questo dato: mantenuto solo nello storico delle evidenze."}
+                if prova not in prove:
+                    prove.append(prova)
+                conn.execute('UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE "tenant_id" = ? AND "id" = ?', ("respinta", json.dumps(prove, ensure_ascii=False), adesso, tenant, riga["id"]))
         return conteggi
 
     def fatti(self, tenant_id: str, fascicolo_id: str, *, categoria: str = "", campo: str = "", verifiche: Iterable[str] | None = VERIFICHE_UTILI, motore: str = "", tipo: str = "") -> list[Fatto]:
@@ -236,7 +240,7 @@ class FattiMixin:
             allineati += 1
         return allineati
 
-    def riconvalida_fatti(self, tenant_id: str, fascicolo_id: str) -> list[Fatto]:
+    def riconvalida_fatti(self, tenant_id: str, fascicolo_id: str, *, esclusioni_oggetto: dict[str, str] | None = None) -> list[Fatto]:
         """Respinge i fatti che le regole correnti non estrarrebbero più.
 
         Un fatto registrato prima che una regola si stringesse resta
@@ -251,16 +255,21 @@ class FattiMixin:
         respinti: list[Fatto] = []
         adesso = self._adesso()  # type: ignore[attr-defined]
         for fatto in self.fatti(tenant, fascicolo_id, verifiche=("plausibile", "verificata")):
-            if fatto.categoria != "data":
+            if fatto.categoria != "data" or any(p.get("codice") == "decisione_avvocato" for p in fatto.prove):
                 continue
             letto = _testo(fatto.valore_letto)
             riferimento = e_riferimento_normativo(letto, 0, len(letto)) if letto else ""
-            if not riferimento:
+            from pct.archivio_letture.ancoraggio import esclusione_data_salvata
+            esclusione = esclusione_data_salvata(fatto.contesto, fatto.valore) if fatto.campo in {"termine", "decorrenza", "udienza", "costituzione"} else ""
+            if fatto.campo in {"termine", "udienza", "costituzione"}:
+                esclusione = (esclusioni_oggetto or {}).get(fatto.oggetto_id) or esclusione
+            if not riferimento and not esclusione:
                 continue
+            motivo = f"«{letto}» è un riferimento normativo ({riferimento}), non una data" if riferimento else f"«{letto}»: {esclusione}"
             prove = list(fatto.prove) + [{
                 "codice": "riconvalida",
                 "esito": "respinta",
-                "dettaglio": f"«{letto}» è un riferimento normativo ({riferimento}), non una data",
+                "dettaglio": motivo,
             }]
             with self.connection() as conn:  # type: ignore[attr-defined]
                 conn.execute(

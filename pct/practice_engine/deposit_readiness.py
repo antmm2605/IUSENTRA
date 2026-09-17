@@ -9,7 +9,7 @@ from typing import Any
 from pct.document_signature_state import document_has_real_digital_signature
 from pct.fascicolo_document_catalog import classify_fascicolo_document
 
-from .fase_deposito import fase_deposito
+from .fase_deposito import fase_deposito, fase_presidio
 from .models import SlotStatus, SlotType, ValidationResult, ValidatorStatus
 from .repository import PracticeEngineRepository
 from .validators import ValidationContext, run_validators, validate_slot
@@ -278,6 +278,7 @@ def run_predeposit_check(
     parcelle: list[Any] | None = None,
     fascicoli_manager: Any | None = None,
     deposito_session: Any | None = None,
+    solo_presidio: bool = False,
 ) -> dict[str, Any]:
     """I controlli del fascicolo; quelli della busta solo quando c'è un deposito da preparare.
 
@@ -288,6 +289,8 @@ def run_predeposit_check(
     """
     fascicolo_id = str(getattr(fascicolo, "id", "") or "")
     fase = fase_deposito(fascicolo, profilo=profile, sessione=deposito_session)
+    if solo_presidio:
+        fase = fase_presidio(fascicolo, fase)
     slots = repository.ensure_slots(fascicolo_id, profile)
     slots = _auto_link_deposit_slots(
         repository,

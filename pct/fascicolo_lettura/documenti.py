@@ -12,8 +12,9 @@ from typing import Any
 
 from ._testo import data_it, pulisci
 
-SEZIONI = ("atti", "provvedimenti", "comunicazioni", "notifiche", "procure", "pagamenti", "contratti", "allegati", "da-verificare")
+SEZIONI = ("identita", "atti", "provvedimenti", "comunicazioni", "notifiche", "procure", "pagamenti", "contratti", "allegati", "da-verificare")
 ETICHETTE_SEZIONE = {
+    "identita": "Documenti d’identità",
     "atti": "atti di parte",
     "provvedimenti": "provvedimenti e verbali",
     "comunicazioni": "comunicazioni e ricevute",
@@ -30,7 +31,7 @@ def _data(documento: dict[str, Any]) -> str:
     return pulisci(documento.get("data_documento") or documento.get("data_caricamento"))[:10]
 
 
-def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> dict[str, Any]:
+def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, rg: str = "", fonti: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     per_documento = {pulisci(voce.get("document_id")): voce for voce in catalogo}
     letti: list[dict[str, Any]] = []
     for documento in elenco:
@@ -49,6 +50,7 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> d
             "stato_catalogo": stato or "non_catalogato",
             "confidenza": int(voce.get("confidence") or 0),
             "data": _data(documento),
+            "data_evento": "",
             "data_it": data_it(_data(documento)),
             "firmato": bool(documento.get("firmato")),
             # Letto dal presidio documentale: testo indicizzato o record Document AI indicizzato.
@@ -57,6 +59,28 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> d
             "da_acquisire": bool(documento.get("da_acquisire")),
             "deposito": pulisci(documento.get("id_deposito_pct")),
         })
+    for documento in letti:
+        prove = [f for f in (fonti or []) if f.get("oggetto_id") == documento["id"]]
+        nature = [f for f in prove if f.get("campo") == "natura_documentale" and f.get("verifica") in {"verificata", "corretta"}]
+        natura = nature[0].get("valore") if nature else ""
+        if natura == "procura":
+            documento.update(natura="procura", etichetta="Procura alle liti", sezione="procure")
+        elif natura == "precedente_giurisprudenziale":
+            documento.update(natura=natura, etichetta="Precedente giurisprudenziale", sezione="allegati", data_evento="")
+        ruoli = sorted((f for f in prove if f.get("categoria") == "ruolo"), key=lambda f: f.get("posizione", 0))
+        # È il ruolo dell'intestazione a identificare la causa, non una citazione
+        # nel corpo né l'etichetta «Sentenza» di un allegato di giurisprudenza.
+        documento["sentenza_pertinente"] = bool(ruoli and ruoli[0].get("valore") == rg and ruoli[0].get("verifica") in {"verificata", "corretta"})
+        date_evento = [f for f in prove if f.get("campo") == "provvedimento" and f.get("verifica") in {"verificata", "corretta"}]
+        if date_evento and documento["sezione"] == "provvedimenti" and documento["sentenza_pertinente"]:
+            documento["data_evento"] = str(sorted(date_evento, key=lambda f: f.get("posizione", 0))[0]["valore"])[:10]
+        if documento["etichetta"].lower().startswith("sentenza") and not documento["sentenza_pertinente"]:
+            documento["data_evento"] = ""
+        if documento["sentenza_pertinente"]:
+            date = sorted((f for f in prove if f.get("campo") == "provvedimento" and f.get("verifica") in {"verificata", "corretta"}), key=lambda f: f.get("posizione", 0))
+            # Una data di caricamento non è la data della sentenza.
+            documento["data"] = str(date[0]["valore"])[:10] if date else ""
+            documento["data_it"] = data_it(documento["data"])
     letti.sort(key=lambda voce: voce["data"])
     conteggi = {sezione: sum(1 for voce in letti if voce["sezione"] == sezione) for sezione in SEZIONI}
     conteggi = {chiave: valore for chiave, valore in conteggi.items() if valore}
@@ -76,7 +100,9 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> d
         "tutti": letti,
         "totale": len(letti),
         "conteggi": conteggi,
-        "catalogati": sum(1 for voce in letti if voce["stato_catalogo"] in {"proposed", "confirmed"}),
+        "catalogati": sum(1 for voce in letti if voce["stato_catalogo"] in {"catalogued", "proposed", "confirmed"}),
+        "proposti": sum(1 for voce in letti if voce["stato_catalogo"] == "proposed"),
+        "automatici": sum(1 for voce in letti if voce["stato_catalogo"] == "catalogued"),
         "confermati": sum(1 for voce in letti if voce["stato_catalogo"] == "confirmed"),
         "da_verificare": [voce for voce in letti if voce["sezione"] == "da-verificare"],
         "non_indicizzati": [voce for voce in letti if not voce["indicizzato"] and not voce["da_acquisire"]],
@@ -86,8 +112,8 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]]) -> d
         "ultimo_provvedimento": ultimo(sezione="provvedimenti"),
         "ultima_comunicazione": ultimo(sezione="comunicazioni"),
         "procura": ultimo({"procura"}),
-        "sentenza": ultimo({"provvedimento"}) if any(voce["etichetta"].lower().startswith("sentenza") for voce in letti) else None,
-        "sentenze": [voce for voce in letti if voce["etichetta"].lower().startswith("sentenza")],
+        "sentenza": next((voce for voce in reversed(letti) if voce["etichetta"].lower().startswith("sentenza") and voce["sentenza_pertinente"]), None),
+        "sentenze": [voce for voce in letti if voce["etichetta"].lower().startswith("sentenza") and voce["sentenza_pertinente"]],
     }
 
 

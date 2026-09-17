@@ -96,7 +96,7 @@ def _passi_scadenze(scadenze: list[dict[str, Any]], giorno_oggi: Any) -> list[Pa
         perentoria = " (termine perentorio)" if scadenza.get("perentorio") else ""
         distanza = (giorno - giorno_oggi).days
         if distanza < 0:
-            passi.append(Passo(0, f"Chiudere o riallineare la scadenza «{titolo}»", f"scaduta il {data_it(giorno)}{perentoria}", data_it(giorno), "scadenziario", fonti, HREF_SCADENZE, template))
+            passi.append(Passo(0, f"Verificare l’esito della scadenza «{titolo}»", f"scaduta il {data_it(giorno)}{perentoria}", data_it(giorno), "scadenziario", fonti, HREF_SCADENZE, template))
         elif distanza <= 7:
             passi.append(Passo(1, f"Adempiere a «{titolo}»", f"scade fra {distanza} giorni{perentoria}", data_it(giorno), "scadenziario", fonti, HREF_SCADENZE, template))
         elif distanza <= GIORNI_PROSSIMI:
@@ -113,7 +113,8 @@ def _passi_regia(regia: dict[str, Any], gia: list[Passo]) -> list[Passo]:
         if messaggio:
             passi.append(Passo(0, messaggio, "blocco della regia operativa", "", "presidio del fascicolo", (), HREF_PRESIDIO))
     azione_regia = pulisci(regia.get("next_action") or regia.get("nextAction"))
-    if azione_regia and not any(azione_regia == passo.azione for passo in gia + passi):
+    esito_acquisito = pulisci(regia.get("operational_state")) in {"deposito_acquisito", "deposito_accettato"} or bool(re.match(r"Deposito .+ accettato dalla cancelleria", azione_regia))
+    if azione_regia and not esito_acquisito and not any(azione_regia == passo.azione for passo in gia + passi):
         passi.append(Passo(2, azione_regia, "indicazione della regia operativa", "", "presidio del fascicolo", (), HREF_PRESIDIO))
     return passi
 
@@ -165,14 +166,19 @@ def _passi_notifiche(notifiche_lette: dict[str, Any]) -> list[Passo]:
     return passi
 
 
-def _passi_pec(pec_letto: dict[str, Any]) -> list[Passo]:
+def _passi_pec(pec_letto: dict[str, Any], giorno_oggi: Any = None) -> list[Passo]:
     """Il presidio PEC collega, estrae e registra da solo; all'avvocato restano autenticità, omonimie e revisioni."""
     passi: list[Passo] = []
     for termine in pec_letto.get("termini_da_registrare", []):
         if not termine.get("da_rivedere"):
             continue  # lo registra il presidio
+        scadenza = data_da(termine.get("scadenza"))
+        if giorno_oggi and scadenza and scadenza < giorno_oggi:
+            continue  # A historical, unconfirmed option is not an outstanding obligation.
         norma = f" ({termine['norma']})" if termine.get("norma") else ""
-        passi.append(Passo(1, f"Confermare il termine «{termine['tipo'] or 'termine'}»{norma} che il presidio PEC propone dalla PEC del {termine['data_pec']}", f"«{termine['oggetto']}»: il presidio chiede una revisione prima di registrarlo", termine.get("decorrenza", ""), "presidio PEC", ("dgsia_art21", "cpc_136"), HREF_COMUNICAZIONI))
+        titolo = f"Valutare l’eventuale opposizione alla trattazione scritta{norma}" if "127" in termine.get("norma", "") else f"Valutare il termine «{termine['tipo'] or 'termine'}»{norma}"
+        motivo = f"PEC del {termine['data_pec']}: proposta calcolata dalla comunicazione; l’opposizione è una scelta della parte" if scadenza else f"PEC del {termine['data_pec']}: manca una data di scadenza verificabile; nessuna urgenza è attribuita automaticamente"
+        passi.append(Passo(1 if scadenza else 3, titolo, motivo, termine.get("scadenza", ""), "presidio PEC", ("cpc_127ter",) if "127" in termine.get("norma", "") else ("cpc_136",), HREF_COMUNICAZIONI))
     for udienza in pec_letto.get("udienze_da_registrare", []):
         if not udienza.get("da_rivedere"):
             continue
@@ -243,7 +249,7 @@ def _passi_documenti(documenti_letti: dict[str, Any], verifiche: dict[str, Any])
     errori = int(esito.get("errori") or 0)
     if errori:
         passi.append(Passo(2, f"Fornire una copia leggibile di {errori} document{'o' if errori == 1 else 'i'}", "il presidio documentale non è riuscito a leggerli (riconoscimento del testo fallito)", "", "presidio documentale", (), HREF_DOCUMENTI))
-    proposte = int(documenti_letti.get("catalogati") or 0) - int(documenti_letti.get("confermati") or 0)
+    proposte = int(documenti_letti.get("proposti") or 0)
     if proposte > 0:
         passi.append(Passo(3, f"Confermare con un clic le {proposte} propost{'a' if proposte == 1 else 'e'} di catalogazione pronte", "il presidio ha identificato i documenti dal contenuto con la prova; la conferma resta dell'avvocato", "", "catalogazione", (), HREF_CATALOGO))
     if documenti_letti["totale"] and not documenti_letti.get("procura") and not non_indicizzati and not da_acquisire:
@@ -308,13 +314,16 @@ def prossimi_passi(
     passi.extend(_passi_regia(regia, passi))
     passi.extend(_passi_depositi(depositi_letti, verifiche, giorno_oggi))
     passi.extend(_passi_notifiche(notifiche_lette))
-    passi.extend(_passi_pec(pec_letto))
+    passi.extend(_passi_pec(pec_letto, giorno_oggi))
     passi.extend(_passi_conformita(conformita))
     passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti))
     passi.extend(_passi_documenti(documenti_letti, verifiche))
     passi.extend(_passi_economico(economico_letto))
 
-    passi.sort(key=lambda passo: passo.urgenza)
+    for passo in passi:
+        giorno = data_da(passo.entro)
+        passo.scaduto = bool(giorno and giorno_oggi and giorno < giorno_oggi)
+    passi.sort(key=lambda passo: (passo.scaduto, passo.urgenza))
     visti: set[str] = set()
     unici: list[dict[str, Any]] = []
     for passo in passi:
@@ -323,8 +332,6 @@ def prossimi_passi(
             continue
         visti.add(chiave)
         unici.append(passo.come_dizionario())
-        if len(unici) >= MASSIMO_PASSI:
-            break
     return unici, stato
 
 

@@ -112,6 +112,12 @@ def _righe_pec_collegate(fascicolo_id: str) -> list[dict[str, Any]]:
 
 def inventario_fascicolo(fascicolo: Any, *, con_pec: bool = True) -> list[Oggetto]:
     oggetti = oggetti_da_fascicolo(fascicolo, cifratura_attiva=cifratura_attiva())
+    # Reuse plaintext hashes in a single SQL read, without opening documents.
+    known = {(o.tipo, o.oggetto_id): o for o in registro_corrente().oggetti(tenant_corrente(), str(fascicolo.id))}
+    for oggetto in oggetti:
+        previous = known.get((oggetto.tipo, oggetto.oggetto_id))
+        if previous and not oggetto.sha256 and oggetto.sha256_archivio and previous.sha256_archivio == oggetto.sha256_archivio:
+            oggetto.sha256 = previous.sha256
     if con_pec:
         oggetti.extend(oggetti_da_pec(_righe_pec_collegate(str(getattr(fascicolo, "id", "") or "")), fascicolo))
     return oggetti
@@ -354,9 +360,9 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     ) or []
     if oggetti:
         passo("registrazione dell'inventario", lambda: registro.registra_inventario(tenant, fascicolo_id, oggetti))
-    passo("allineamento del presidio PEC", lambda: _sincronizza_presidio_pec(fascicolo, registro, tenant, righe_pec))
-    passo("verifica delle date lette dalle PEC", lambda: _verifica_date_pec(fascicolo, registro, tenant))
-    stato = registro.stato_fascicolo(tenant, fascicolo_id)
+    # Le letture operative provengono esclusivamente dai due motori SQL.
+    # I vecchi lettori restano diagnostica, senza ricalcolare date nelle GET.
+    stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("motore_documenti", "motore_pec"))
     utente = utente_corrente_id()
     novita = (
         passo("novità dall'ultima apertura", lambda: registro.novita_e_segna_visto(tenant, fascicolo_id, utente, segna=segna_visto and bool(utente)))
@@ -368,6 +374,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         anomalia["oggetto"] = nomi.get((anomalia["tipo"], anomalia["oggetto_id"]), anomalia["oggetto_id"])
         anomalia["lettore_etichetta"] = etichetta_lettore(anomalia["lettore"])
         anomalia["creata_il_it"] = format_datetime_it(anomalia.get("creata_il"))
+    esiti_tecnici = {(l.tipo, l.oggetto_id): dict(l.esito or {}) for l in registro.letture(tenant, fascicolo_id) if l.lettore == "motore_pec" and (l.esito or {}).get("analisi") == "metadati_tecnici"}
     lettori = []
     for voce in stato.lettori:
         dati = voce.to_dict()
@@ -386,7 +393,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         "degradato": degradato,
         "lettori": lettori,
         "archivio": archivio,
-        "per_oggetto": [{**v, "etichetta": _oggetto_etichetta(v)} for v in stato.per_oggetto],
+        "per_oggetto": [{**v, "etichetta": _oggetto_etichetta(v) + (" — metadati tecnici, senza testo" if (v.get("tipo"), v.get("oggetto_id")) in esiti_tecnici else ""), "esito_tecnico": esiti_tecnici.get((v.get("tipo"), v.get("oggetto_id")), {})} for v in stato.per_oggetto],
         "novita": {
             "prima_vista": bool(novita.get("prima_vista")),
             "visto_il": str(novita.get("visto_il") or ""),
@@ -423,7 +430,7 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
     try:
         from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
 
-        riepilogo = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=True, apply_automations=False, forza=True)
+        riepilogo = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=True, apply_automations=False, forza=False)
         esito["avvisi"] = [str(v)[:160] for v in list(riepilogo.get("warnings") or [])[:5]]
         esito["indice"] = {chiave: riepilogo.get(chiave) for chiave in ("total_documents", "ready", "queued", "indexing", "errors", "stale", "not_indexed") if chiave in riepilogo}
     except Exception as exc:
@@ -438,7 +445,7 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
                 documento = next((d for d in list(getattr(fascicolo, "documenti", []) or []) if str(getattr(d, "id", "")) == oggetto.oggetto_id), None)
                 if documento is None:
                     continue
-                ocr_runtime.enqueue(
+                accodato = ocr_runtime.enqueue(
                     percorso=str(gestore.percorso_documento(fascicolo_id, documento.id)),
                     hash_sha256=str(getattr(documento, "hash_sha256", "") or ""),
                     id_fasc=fascicolo_id,
@@ -447,21 +454,21 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
                     tipo_doc=str(getattr(getattr(documento, "tipo", None), "value", getattr(documento, "tipo", "")) or ""),
                     index_path=str(current_app.config.get("SEARCH_INDEX", "")),
                 )
-                esito["ocr_accodati"] += 1
+                esito["ocr_accodati"] += int(bool(accodato))
     except Exception as exc:
         esito["ocr"] = {"errore": str(exc)[:160]}
     try:
         from web.services.archivio_letture_runtime import leggi_fascicolo
 
-        esito["archivio"] = leggi_fascicolo(fascicolo, forza=True, registro=registro)
+        esito["archivio"] = leggi_fascicolo(fascicolo, forza=False, registro=registro)
     except Exception as exc:
         esito["archivio"] = {"errore": str(exc)[:160]}
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("indice_documentale", "ocr", "motore_documenti", "motore_pec"))
     restano = sum(voce.da_leggere for voce in stato.lettori)
     esito["restano"] = restano
     esito["messaggio"] = (
-        "Tutti i documenti sono letti." if not restano and stato.oggetti
-        else f"{restano} letture ancora in corso o in coda." if restano
+        "Archivio e indici aggiornati." if not restano and stato.oggetti
+        else f"Archivio aggiornato. Restano {restano} letture degli indici di supporto da completare." if restano
         else "Nessun documento da leggere."
     )
     return esito

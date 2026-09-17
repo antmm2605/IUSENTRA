@@ -366,7 +366,7 @@ def test_document_ai_extraction_eml_con_corpo_e_allegato_txt(tmp_path: Path):
     result = extract_document_text(target, "eml")
 
     assert result.error is None
-    assert result.extraction_engine == "email.message"
+    assert result.extraction_engine == "email.message.v2"
     assert "Oggetto: Diffida inviata" in result.text
     assert "Corpo email con termine per adempiere." in result.text
     assert "[Allegato: allegato.txt]" in result.text

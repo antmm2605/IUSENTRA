@@ -65,6 +65,7 @@ import { csrfToken, submitFormJson } from '../formSubmit'
 import { formatDateTimeIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import './EmailPecPage.css'
+import { MailboxPagination } from '../features/comunicazioni/MailboxPagination'
 
 type MailboxMode = 'pec' | 'ordinaria'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
@@ -1570,6 +1571,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const copy = mailboxCopy[mode]
   const [data, setData] = useState<EmailPecPageData>(copy.emptyData)
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState({ key: '', offset: 0 })
+  const listRef = useRef<HTMLDivElement>(null)
   // Deep-link: /email/?q=... apre la casella gia' filtrata (es. dal pannello
   // rapido del fascicolo: RG + cliente); ?cartella= seleziona la cartella.
   const initialParams = useMemo(() => new URLSearchParams(window.location.search), [])
@@ -1601,6 +1604,9 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const auditSelectionHandledRef = useRef('')
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
+  const pageKey = JSON.stringify([mode, folder, deferredQuery, status, onlyPst, onlyAttachments, pctStatus])
+  const pageOffset = page.key === pageKey ? page.offset : 0
+  useEffect(() => { setPage({ key: pageKey, offset: 0 }) }, [pageKey])
   const fetchParams = {
     folder,
     q: deferredQuery,
@@ -1609,7 +1615,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     conAllegati: onlyAttachments,
     statoPct: copy.includeTelematic ? pctStatus : '',
     limit: MAILBOX_PAGE_LIMIT,
-    offset: 0,
+    offset: pageOffset,
   }
 
   useEffect(() => {
@@ -1660,7 +1666,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       .then((payload) => { if (active) setData(payload) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [folder, status, onlyPst, onlyAttachments, pctStatus, deferredQuery])
+  }, [folder, status, onlyPst, onlyAttachments, pctStatus, deferredQuery, pageOffset])
 
   const visible = useMemo(
     () => sortRows(
@@ -1679,9 +1685,18 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const bulkActionLabel = folder === 'CESTINO' ? 'Elimina selezione' : 'Sposta nel cestino'
   const selectedAudit = detail?.pecAudit ?? selected?.pecAudit
   const loadedRows = data.items.length
-  const listCountLabel = data.summary.filtered > loadedRows
-    ? `${visible.length} visibili su ${loadedRows} caricati (${data.summary.filtered} filtrati)`
+  const listCountLabel = data.summary.filtered > loadedRows || pageOffset > 0
+    ? `Messaggi ${loadedRows ? pageOffset + 1 : 0}–${pageOffset + loadedRows} di ${data.summary.filtered}`
     : `${visible.length} messaggi`
+
+  const changePage = (offset: number) => {
+    if (loading) return
+    setLoading(true)
+    setSelectedIds(new Set())
+    setMobileReaderOpen(false)
+    setPage({ key: pageKey, offset })
+    listRef.current?.scrollTo({ top: 0 })
+  }
 
   const selectMessage = (id: string) => {
     markReadOnOpen(data.items.find((item) => item.id === id) || detail?.item)
@@ -1943,6 +1958,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
             <div><strong>{listCountLabel}</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
             <a href={`${data.actions.operationalInbox}?cartella=${folder}`}><Download size={15} /> Apri cartella</a>
           </header>
+          <MailboxPagination position="top" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} />
           {visible.length ? (
             <div className="iu-mail-list-select-all">
               <label>
@@ -1960,7 +1976,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
               </button>
             </div>
           ) : null}
-          <div className="iu-mail-list">
+          <div className="iu-mail-list" ref={listRef} aria-busy={loading}>
             {visible.map((item) => (
               <EmailListRow
                 item={item}
@@ -1981,6 +1997,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
               </div>
             ) : null}
           </div>
+          <MailboxPagination position="bottom" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} />
         </div>
         <div className={`iu-mail-reader-pane${mobileReaderOpen ? ' is-open' : ''}`} aria-label="Lettura email selezionata">
           <div className="iu-mail-reader-pane__bar">

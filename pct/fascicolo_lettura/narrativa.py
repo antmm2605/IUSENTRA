@@ -47,7 +47,7 @@ def di_cosa_tratta(lettura: dict[str, Any]) -> list[str]:
     if domanda:
         righe.append(f"- Domanda, dal testo di «{domanda['etichetta']}»{' del ' + data_it(domanda['data']) if domanda['data'] else ''}: «{domanda['petitum']}»")
     elif oggetto["atti_principali"]:
-        righe.append(f"- Atti principali presenti: {elenco([voce['etichetta'] for voce in oggetto['atti_principali'][:4]])}; il testo non è indicizzato, quindi la domanda non può essere citata.")
+        righe.append(f"- Atti principali presenti: {elenco([voce['etichetta'] for voce in oggetto['atti_principali'][:4]])}; la domanda non è ancora stata isolata con una citazione verificata.")
     if len(righe) == 1:
         righe.append("- L'oggetto non è indicato nel fascicolo e nessun atto principale è catalogato: la materia va dichiarata.")
     return righe

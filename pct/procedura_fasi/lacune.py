@@ -67,7 +67,7 @@ def lacune_conoscenza(
             if not chiave or chiave in viste:
                 continue
             viste.add(chiave)
-            if any(chiave in registrata or registrata in chiave for registrata in registrate):
+            if chiave in registrate:
                 continue
             lacune.append({
                 "tipo": "norma",

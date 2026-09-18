@@ -2313,10 +2313,19 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
 
 .iu-client-portal-panel__head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.iu-client-portal-panel__head h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -.012em;
 }
 
 .iu-client-portal-panel__head h2,
@@ -2409,10 +2418,35 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
   display: grid;
   gap: 10px;
   margin-bottom: 12px;
-  padding: 12px;
+  padding: 14px;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+  /* Le azioni sulla pratica si distinguono con la superficie del preset, non
+     con un accento laterale: quello è vietato dal design system. */
+  background: var(--cp-surface-soft);
+}
+
+.iu-client-portal-link-panel h3 {
+  font-size: 14px;
+  letter-spacing: -.01em;
+}
+
+.iu-client-portal-link-panel label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cp-muted);
+}
+
+.iu-client-portal-link-panel select {
+  min-height: 38px;
+  padding: 0 10px;
   border: 1px solid var(--cp-border);
   border-radius: 8px;
-  background: #f8fbff;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font-size: 13px;
 }
 
 .iu-client-portal-link-panel h3,
@@ -2628,8 +2662,11 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
 
 .iu-client-portal-workgrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  /* Le colonne si riducono da sole quando lo spazio non basta: sul tablet
+     diventano due, sul telefono una, senza salti bruschi né spazi morti. */
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .iu-client-portal-mini-form {

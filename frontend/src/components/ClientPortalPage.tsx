@@ -236,6 +236,7 @@ function ClientPortalStudio() {
   const [clientSearch, setClientSearch] = useState('')
   const [inviteForm, setInviteForm] = useState({ clientId: '', matterId: '', preventivoId: '', message: '', expiresDays: 14 })
   const [linkRecuperati, setLinkRecuperati] = useState<Record<string, { url: string; message: string }>>({})
+  const [preventivoDaFirmare, setPreventivoDaFirmare] = useState('')
   const [messageBody, setMessageBody] = useState('')
   const [requestTitle, setRequestTitle] = useState('')
   const [signatureTitle, setSignatureTitle] = useState('')
@@ -453,6 +454,27 @@ function ClientPortalStudio() {
     }))
   }
 
+  // Il percorso di firma è fail-closed: se lo studio non l'ha abilitato non si
+  // finge di poterlo usare, lo si dice.
+  const firmaIncaricoAttiva = payload.featureFlags?.['routes.appV2.clientPortal.signingWorkflow'] === true
+  const preventiviDelCliente = (payload.preventivoOptions || []).filter(
+    (voce) => text(voce.clientId) === text((selectedMatter?.client as PortalRow | undefined)?.id || selectedMatter?.client_id),
+  )
+
+  /** Manda preventivo e conferimento alla firma: riusa l'invito, che porta con
+   *  sé il preventivo e apre al cliente il percorso già collaudato. */
+  const mandaAllaFirma = async (matter: PortalRow | undefined) => {
+    if (!matter || !preventivoDaFirmare) return
+    const clientId = text((matter.client as PortalRow | undefined)?.id || matter.client_id)
+    await submitInvitePayload({
+      ...inviteForm,
+      clientId,
+      matterId: rowId(matter),
+      preventivoId: preventivoDaFirmare,
+    })
+    setPreventivoDaFirmare('')
+  }
+
   const focusMatterChat = (matter: PortalRow) => {
     setSelectedMatterId(rowId(matter))
     scrollToPanel('portale-clienti-chat')
@@ -643,6 +665,44 @@ function ClientPortalStudio() {
                 <FileCheck2 size={17} aria-hidden="true"/>Prepara pacchetto finale
               </button>
             </div>
+            <section className="iu-client-portal-link-panel" id="portale-clienti-firma-incarico" aria-label="Preventivo e conferimento alla firma">
+              <div>
+                <h3>Preventivo e conferimento incarico</h3>
+                <p>
+                  Manda al cliente il preventivo e la lettera di conferimento da firmare. Dal telefono firma sullo schermo;
+                  dal computer può anche scaricare, firmare a penna e rimandare con scansione, webcam o fotocamera.
+                </p>
+              </div>
+              {!firmaIncaricoAttiva ? (
+                <p className="iu-client-portal-muted">
+                  Il percorso di firma non è attivo per questo studio: si abilita dalle impostazioni (firma del Portale Cliente).
+                </p>
+              ) : preventiviDelCliente.length === 0 ? (
+                <p className="iu-client-portal-muted">
+                  Nessun preventivo disponibile per questo cliente: creane uno e torna qui per mandarlo alla firma.
+                </p>
+              ) : (
+                <>
+                  <label>
+                    Preventivo da mandare alla firma
+                    <select value={preventivoDaFirmare} onChange={(event) => setPreventivoDaFirmare(event.target.value)}>
+                      <option value="">Scegli il preventivo…</option>
+                      {preventiviDelCliente.map((voce) => (
+                        <option key={voce.id} value={voce.id}>{text(voce.label)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="iu-client-portal-button"
+                    type="button"
+                    disabled={!preventivoDaFirmare || !payload.canWrite}
+                    onClick={() => mandaAllaFirma(selectedMatter)}
+                  >
+                    <FileCheck2 size={17} aria-hidden="true"/>Manda alla firma
+                  </button>
+                </>
+              )}
+            </section>
             <section className="iu-client-portal-link-panel" id="portale-clienti-link-cliente" aria-label="Link cliente">
               <div>
                 <h3>Link cliente</h3>

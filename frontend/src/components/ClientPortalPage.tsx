@@ -934,6 +934,11 @@ function ClientPortalClient() {
     setLoading(false)
   }
 
+  // Quanti campi il cliente non ha mai scritto di suo e arrivano dalla scheda
+  // dello studio: vanno controllati e confermati, non dati per dichiarati.
+  const origineCampi = (payload.client?.anagrafica_origine || {}) as Record<string, string>
+  const daConfermare = Object.values(origineCampi).filter((valore) => valore === 'studio').length
+
   useEffect(() => {
     void load()
   }, [])
@@ -1113,6 +1118,11 @@ function ClientPortalClient() {
               </span>
             ) : <UserRound size={18} aria-hidden="true"/>}
           </div>
+          {daConfermare > 0 ? (
+            <p className="iu-client-portal-muted">
+              {daConfermare === 1 ? 'Un campo arriva' : `${daConfermare} campi arrivano`} dalla scheda che lo studio ha già: controlla{daConfermare === 1 ? 'lo' : 'li'} e conferma con «Salva anagrafica». Se un dato non è più corretto, correggilo: vale quello che scrivi tu.
+            </p>
+          ) : null}
           {!completion?.complete ? (
             <p className="iu-client-portal-muted">Compila tutti i campi obbligatori (*): lo studio riceverà conferma automatica appena la scheda è completa.</p>
           ) : null}

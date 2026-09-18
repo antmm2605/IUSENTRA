@@ -323,3 +323,51 @@ def test_public_row_non_espone_evidence_pack_al_cliente():
     assert client_view["status"] == "firmato"
     # Lato studio l'evidence resta disponibile per l'audit.
     assert studio_view["evidence"]["ipHash"] == "ipv:abc"
+
+
+def test_client_portal_anagrafica_parte_dalla_scheda_dello_studio(tmp_path: Path):
+    """Il cliente conferma i dati che lo studio ha gia', non li riscrive.
+
+    Prima il portale leggeva solo `preferences.anagrafica`, riempito unicamente
+    quando era il cliente a compilare: la scheda dello studio non arrivava mai
+    all'interessato e il contatore dei campi diceva il falso.
+
+    Base normativa: GDPR artt. 5 § 1 lett. d) e 16.
+    """
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.app_context():
+        clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+        clienti.aggiorna(cliente.id, data_nascita="1980-01-01", luogo_nascita="Milano")
+        clienti.aggiorna_indirizzo(
+            cliente.id,
+            "residenza",
+            via="Via Verdi",
+            civico="8",
+            cap="20121",
+            comune="Milano",
+            provincia="MI",
+        )
+    with app.test_client() as client:
+        _login(client)
+        token, _ = _create_invite(client, cliente.id, fascicolo.id)
+        client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        dashboard = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()
+
+    anagrafica = dashboard["client"]["preferences"]["anagrafica"]
+    assert anagrafica["birthPlace"] == "Milano"
+    assert anagrafica["address"] == "Via Verdi 8"
+    assert anagrafica["cap"] == "20121"
+    assert anagrafica["province"] == "MI"
+    assert dashboard["client"]["email"] == "mario.rossi@example.it"
+    # Il conteggio misura il dato reale, non solo quello riscritto dal cliente.
+    assert dashboard["profileCompletion"]["complete"] is True
+    assert dashboard["profileCompletion"]["missing"] == []
+    # Nessun campo risulta dichiarato dal cliente finche' il cliente non scrive.
+    origine = dashboard["client"]["anagrafica_origine"]
+    assert origine["address"] == "studio"
+    assert origine["profession"] == ""

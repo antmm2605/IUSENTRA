@@ -897,7 +897,7 @@ def invite_preview_payload(token: str) -> dict[str, Any]:
             "ok": True,
             "surface": "invite",
             "invite": _public_row(invite),
-            "client": _public_row(snapshot.get("profile", {})),
+            "client": _public_row(_profilo_con_scheda_studio(snapshot.get("profile", {}) or {})),
             "matter": _public_row(snapshot.get("matter", {})),
             "featureFlags": _features_payload(),
         }
@@ -945,7 +945,7 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
                 "nextAction": _text((snapshot.get("matter") or {}).get("next_action")) or "Controlla documenti, privacy e messaggi.",
             },
             "invite": _public_row(invite),
-            "client": _public_row(snapshot.get("profile", {})),
+            "client": _public_row(_profilo_con_scheda_studio(snapshot.get("profile", {}) or {})),
             "matter": _public_row(snapshot.get("matter", {})),
             "steps": _public_rows(snapshot.get("steps", [])),
             "documentRequests": _public_rows(document_requests),
@@ -960,7 +960,7 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
             "evidencePacks": _public_rows(snapshot.get("evidencePacks", [])),
             "settings": snapshot.get("settings") or DEFAULT_CLIENT_PORTAL_SETTINGS,
             "uploadLimits": _upload_limits(snapshot.get("settings") or DEFAULT_CLIENT_PORTAL_SETTINGS),
-            "profileCompletion": _profile_completion(snapshot.get("profile", {}) or {}),
+            "profileCompletion": _profile_completion(_profilo_con_scheda_studio(snapshot.get("profile", {}) or {})),
             "actions": {
                 "profile": "/api/v1/ui/client-portal/public/profile",
                 "consent": "/api/v1/ui/client-portal/public/consents",
@@ -1017,6 +1017,55 @@ def _profile_anagrafica(profile: dict[str, Any]) -> dict[str, Any]:
         preferences = json_loads(profile.get("preferences_json"), {})
     anagrafica = preferences.get("anagrafica") if isinstance(preferences, dict) else {}
     return dict(anagrafica) if isinstance(anagrafica, dict) else {}
+
+
+def _profilo_con_scheda_studio(profile: dict[str, Any]) -> dict[str, Any]:
+    """Il profilo del portale completato con cio' che lo studio gia' sa.
+
+    Non scrive nulla: e' la proiezione mostrata al cliente. Quello che il
+    cliente ha scritto di suo resta la sua parola e vince; la scheda dello
+    studio riempie il resto, cosi' l'interessato conferma invece di riscrivere
+    dati che il fascicolo ha gia' (GDPR artt. 5 § 1 lett. d e 16).
+    """
+    from pct.anagrafica_cliente_portale import (
+        anagrafica_dallo_studio,
+        origine_dei_campi,
+        unisci_anagrafica,
+    )
+
+    base = dict(profile or {})
+    dal_cliente = _profile_anagrafica(base)
+    for chiave, campo in (
+        ("display_name", "displayName"),
+        ("email", "email"),
+        ("phone", "phone"),
+        ("fiscal_code", "fiscalCode"),
+        ("identity_expires_at", "identityExpiresAt"),
+    ):
+        valore = _text(base.get(chiave))
+        if valore:
+            dal_cliente.setdefault(campo, valore)
+    try:
+        dallo_studio = anagrafica_dallo_studio(_cliente_by_id(_text(base.get("client_id"))))
+    except Exception:
+        # La scheda dello studio e' un di piu': se non si legge, il portale
+        # resta quello di prima invece di negare l'accesso all'anagrafica.
+        dallo_studio = {}
+    unita = unisci_anagrafica(dallo_studio=dallo_studio, dal_cliente=dal_cliente)
+    base["display_name"] = unita.get("displayName") or _text(base.get("display_name"))
+    base["email"] = unita.get("email", "")
+    base["phone"] = unita.get("phone", "")
+    base["fiscal_code"] = unita.get("fiscalCode", "")
+    base["identity_expires_at"] = unita.get("identityExpiresAt", "")
+    preferences = base.get("preferences")
+    if not isinstance(preferences, dict):
+        preferences = json_loads(base.get("preferences_json"), {})
+    preferences = dict(preferences) if isinstance(preferences, dict) else {}
+    preferences["anagrafica"] = unita
+    base["preferences"] = preferences
+    base.pop("preferences_json", None)
+    base["anagrafica_origine"] = origine_dei_campi(dallo_studio=dallo_studio, dal_cliente=dal_cliente)
+    return base
 
 
 def _profile_completion(profile: dict[str, Any]) -> dict[str, Any]:
@@ -1123,7 +1172,7 @@ def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
         return {
             "ok": True,
             "message": message,
-            "client": _public_row(profile),
+            "client": _public_row(_profilo_con_scheda_studio(profile)),
             "profileCompletion": completion,
             "dashboard": client_dashboard_payload(token=token),
         }
@@ -1136,7 +1185,7 @@ def client_update_preferences(payload: dict[str, Any]) -> dict[str, Any]:
         token = _current_client_token()
         invite, repo = _invite_and_repo(token)
         profile = repo.update_preferences(_text(invite.get("tenant_id")), client_id=_text(invite.get("client_id")), preferences=dict(payload.get("preferences") or payload))
-        return {"ok": True, "message": "Preferenze aggiornate.", "client": _public_row(profile), "dashboard": client_dashboard_payload(token=token)}
+        return {"ok": True, "message": "Preferenze aggiornate.", "client": _public_row(_profilo_con_scheda_studio(profile)), "dashboard": client_dashboard_payload(token=token)}
     except ClientPortalError:
         return _invalid_invite_payload()
 

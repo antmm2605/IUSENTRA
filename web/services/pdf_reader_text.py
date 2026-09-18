@@ -5,14 +5,30 @@ from html import escape
 
 
 def text_layers(data: bytes) -> list[str]:
-    import fitz
+    """Lo strato di testo selezionabile, pagina per pagina.
 
-    layers = []
-    with fitz.open(stream=data, filetype="pdf") as document:
+    E' un di piu' del lettore, non il lettore: se il PDF non si apre — un
+    allegato PEC malformato, una busta con un flusso troncato — le pagine
+    devono comunque comparire. Per questo un guasto qui non si propaga: si
+    torna senza strato di testo e il lettore mostra le immagini.
+    """
+    import pymupdf as fitz
+
+    layers: list[str] = []
+    try:
+        document = fitz.open(stream=data, filetype="pdf")
+    except Exception:
+        return []
+    with document:
         for page in document:
-            width, height = page.rect.width, page.rect.height
-            from pct.document_intelligence.pdf_quality import has_only_signature_text
-            words = [] if has_only_signature_text(page.get_text()) else page.get_text("words", sort=True)
+            try:
+                width, height = page.rect.width, page.rect.height
+                from pct.document_intelligence.pdf_quality import has_only_signature_text
+                words = [] if has_only_signature_text(page.get_text()) else page.get_text("words", sort=True)
+            except Exception:
+                # Una pagina illeggibile non toglie la selezione alle altre.
+                layers.append('<span class="reader-no-text">Pagina senza strato di testo: la selezione richiede una lettura OCR disponibile.</span>')
+                continue
             spans = []
             for word in words:
                 box = fitz.Rect(word[:4]) * page.rotation_matrix

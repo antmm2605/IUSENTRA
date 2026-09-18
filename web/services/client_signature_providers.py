@@ -168,6 +168,25 @@ def is_jpeg_bytes(data: bytes) -> bool:
     return bool(data) and data[:3] == JPEG_MAGIC
 
 
+def _firma_nei_campi_del_modulo(pdf_bytes: bytes, signature_image: bytes, *, nota: str = "") -> bytes:
+    """La firma appoggiata nei campi firma del modulo, quando ce ne sono.
+
+    Restituisce byte vuoti se il documento non e' un modulo, se manca il
+    tratto, o se qualcosa non riesce: la firma non deve mai fallire per questo,
+    il timbro di sempre resta il ripiego.
+    """
+    if not signature_image:
+        return b""
+    try:
+        from pct.firma_modulo import firma_nei_campi
+    except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
+        return b""
+    try:
+        return firma_nei_campi(pdf_bytes, signature_image, nota=nota) or b""
+    except Exception:  # pragma: no cover - mai bloccare la firma del cliente
+        return b""
+
+
 def apply_visible_signature_stamp(
     pdf_bytes: bytes,
     *,
@@ -192,6 +211,23 @@ def apply_visible_signature_stamp(
 
     if not pdf_bytes:
         raise SignatureProviderError("Documento PDF mancante.")
+
+    # Se il documento e' un modulo con i campi firma — un'autocertificazione,
+    # una procura alle liti, un ricorso — la firma va dentro il campo, sul rigo
+    # «Firma», non in un riquadro a coordinate fisse in fondo alla pagina: li'
+    # il modulo sembrerebbe non firmato. Se campi non ce ne sono (una lettera,
+    # un parere) si prosegue con il timbro di sempre.
+    nota = " · ".join(
+        pezzo for pezzo in (
+            "Firmato elettronicamente da " + (signer_name or "").strip()[:60] if signer_name else "",
+            (when_label or "").strip()[:60],
+            ("Rif. " + reference.strip()[:60]) if reference else "",
+        ) if pezzo
+    )
+    firmato = _firma_nei_campi_del_modulo(pdf_bytes, signature_image, nota=nota)
+    if firmato:
+        return firmato
+
     try:
         from pypdf import PdfReader, PdfWriter
     except Exception as exc:  # pragma: no cover - dipende dall'ambiente

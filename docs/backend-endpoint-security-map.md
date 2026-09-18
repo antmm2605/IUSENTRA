@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 305.
-- Endpoint con `_richiedi_auth`: 305/305.
+- Endpoint React API censiti: 306.
+- Endpoint con `_richiedi_auth`: 306/306.
 - Endpoint con metodo di scrittura o cancellazione: 160.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
@@ -150,6 +150,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/fatturazione/nuova` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fatturazione/nuova` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/feature-flags` | Feature flag | P0 | `sessione/API tenant-aware` | capability studio e abilitazioni | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/fonti-procedurali/<source_id>/visualizza` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/giurisprudenza` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/giurisprudenza/nuova` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/giurisprudenza/nuova` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

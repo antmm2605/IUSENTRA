@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.320.24 - 18/09/2026
+
+**La firma del cliente va nel campo firma del modulo, non in un angolo della pagina.** Il portale clienti timbrava la firma in un riquadro a coordinate fisse, in fondo a destra. Su un modulo con i campi firma — un'autocertificazione per il contributo unificato, una procura alle liti, un ricorso — la firma finiva cosi' lontano dal rigo «Firma», e il modulo sembrava non firmato. Ora `pct/firma_modulo/` (sette moduli, il piu' lungo 157 righe) trova i campi firma veri (i widget AcroForm) e ci appoggia sopra il tratto del cliente alla misura di una firma a penna: sale sopra il rigo con le maiuscole, scende sotto con i tratti discendenti, non tocca i bordi.
+
+**I moduli ministeriali portano piu' impaginazioni sovrapposte.** L'autocertificazione per il contributo unificato ne ha sette, una per numero di righe del nucleo familiare, e i widget delle varianti inutilizzate hanno il bit Hidden acceso. Firmare su un widget nascosto significa mettere la firma dove nessuno la vedra': si usa solo quello visibile.
+
+**Il modulo firmato non e' piu' compilabile.** Un modulo che resta modificabile puo' essere cambiato dopo la firma, e un documento del genere non prova nulla: art. 20 D.Lgs. 82/2005, integrita' del documento informatico. Dopo l'applicazione della firma il modulo viene appiattito.
+
+**Il tratto arriva in JPEG, che non ha trasparenza.** Incollato com'e' porterebbe con se' un rettangolo bianco a coprire il rigo del modulo e le parole prestampate attorno: lo sfondo viene reso trasparente prima di appoggiarlo.
+
+**Chi ha firmato e quando resta scritto sul documento.** Il registro delle prove del portale conserva gia' tutto, ma chi legge il documento fuori dallo studio non ha accesso al registro: una riga piccola e grigia nel margine basso dell'ultima pagina dichiara firmatario, data e riferimento, senza sembrare parte del modulo ministeriale.
+
+**Niente cambia per i documenti che moduli non sono.** Una lettera, un parere, una relazione non hanno campi firma: li firma il timbro di sempre, con lo stesso aspetto di prima. E se qualcosa non riesce — PyMuPDF assente, modulo illeggibile — si ricade sul timbro: la firma del cliente non deve mai fallire per questo.
+
+Test: firma sul modulo 9 (posizione nel campo, appiattimento, trasparenza del tratto, attribuzione visibile, ripiego sul timbro, guasto che non ferma la firma), su moduli PDF veri con widget AcroForm veri.
+
 ## 2.320.23 - 18/09/2026
 
 **Importazione fedele nell'editor atti.** Un PDF importato perdeva tutto quello che non fosse testo: le tabelle diventavano righe incolonnate da riscrivere a mano, le immagini e i loghi sparivano, grassetto, corsivo, colori, allineamenti, elenchi, formato e margini della pagina non arrivavano. Ora `pct/documento_fedele/` (nove moduli, nessuno oltre le 330 righe) ricostruisce un documento che **scorre** — paragrafi, tabelle e immagini restano modificabili — con l'aspetto dell'originale. La rotta e' quella di sempre, `/template-atti/api/importa-documento`: non cambia nulla per chi la chiama, e se PyMuPDF non c'e' resta il vecchio ripiego a righe. Le pagine scansionate le legge il **motore OCR unico** `legal_ocr/motore/`, non una copia locale: due lettori con tarature proprie leggono lo stesso atto in due modi diversi, ed e' peggio di uno solo (docs/OCR_LEGAL.md).

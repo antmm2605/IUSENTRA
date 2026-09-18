@@ -12,7 +12,7 @@ from typing import Optional
 
 from .taratura import Taratura, _pt
 from .modello import Elemento, Riga, Tratto
-from .lettura import _RE_SEGNO, _unisci_segni_elenco
+from .lettura import _RE_SEGNO
 
 
 # ===========================================================================

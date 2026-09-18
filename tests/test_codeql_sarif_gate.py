@@ -87,18 +87,48 @@ def test_eccezione_richiede_un_motivo_scritto(tmp_path: Path, monkeypatch: pytes
         gate.leggi_eccezioni(percorso)
 
 
-def test_eccezione_dichiarata_non_ferma(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def _deroghe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, voci: list[dict]) -> None:
     percorso = tmp_path / "eccezioni.json"
-    percorso.write_text(
-        json.dumps({"regole_non_bloccanti": [{"id": "py/path-injection", "motivo": "coperta da path_security"}]}),
-        encoding="utf-8",
-    )
+    percorso.write_text(json.dumps({"regole_non_bloccanti": voci}), encoding="utf-8")
     monkeypatch.setattr(gate, "ECCEZIONI", percorso)
+
+
+def _avviso(regola: str, percorso: str) -> dict:
+    return {
+        "ruleId": regola,
+        "level": "error",
+        "message": {"text": "x"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": percorso}, "region": {"startLine": 7}}}],
+    }
+
+
+def test_eccezione_dichiarata_non_ferma(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _deroghe(tmp_path, monkeypatch, [{"id": "py/path-injection", "motivo": "coperta da path_security"}])
     risultati = tmp_path / "sarif"
-    _scrivi(risultati, _sarif([{"ruleId": "py/path-injection", "level": "error", "message": {"text": "x"}}]))
+    _scrivi(risultati, _sarif([_avviso("py/path-injection", "pct/x.py")]))
     assert gate.main([str(risultati)]) == 0
 
 
+def test_deroga_limitata_al_file_vale_solo_li(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Una deroga su un file non deve spegnere la regola altrove."""
+    _deroghe(
+        tmp_path,
+        monkeypatch,
+        [{"id": "py/url-redirection", "file": "web/bootstrap/soggetti_routes.py", "motivo": "sanificatore non riconosciuto"}],
+    )
+    coperto = tmp_path / "coperto"
+    _scrivi(coperto, _sarif([_avviso("py/url-redirection", "web/bootstrap/soggetti_routes.py")]))
+    assert gate.main([str(coperto)]) == 0
+
+    altrove = tmp_path / "altrove"
+    _scrivi(altrove, _sarif([_avviso("py/url-redirection", "web/bootstrap/altro_routes.py")]))
+    assert gate.main([str(altrove)]) == 1
+
+
 def test_il_file_delle_eccezioni_del_progetto_e_valido() -> None:
-    """Le eccezioni reali del progetto restano leggibili e motivate."""
-    assert isinstance(gate.leggi_eccezioni(), dict)
+    """Le deroghe reali del progetto sono leggibili, motivate e circoscritte."""
+    deroghe = gate.leggi_eccezioni()
+    assert isinstance(deroghe, list)
+    for deroga in deroghe:
+        assert deroga["motivo"], f"deroga «{deroga['id']}» senza motivo"
+        assert deroga["file"], f"deroga «{deroga['id']}» non circoscritta a un file"

@@ -6,6 +6,8 @@ documento stesso riporta in allegato.
 """
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 import pytest
 
 from pct.calcolatori import danno_parentale, danno_premorienza, danno_terminale
@@ -87,7 +89,9 @@ def test_il_calcolo_parentale_dichiara_la_fonte():
         "dp_convivenza": "nessuna", "dp_superstiti": 1, "dp_qualita_relazione": "ordinaria",
     })
     assert risultato["tabelle_applicate"][0]["id"] == tabelle.MILANO_2024_PARENTALE
-    assert risultato["sources"][0]["url"].startswith("https://tribunale-milano.giustizia.it")
+    # Host confrontato per intero: «https://tribunale-milano.giustizia.it.altro»
+    # comincia allo stesso modo ma non e' il sito del Tribunale di Milano.
+    assert urlsplit(risultato["sources"][0]["url"]).netloc == "tribunale-milano.giustizia.it"
 
 
 # ── Premorienza ──────────────────────────────────────────────────────────

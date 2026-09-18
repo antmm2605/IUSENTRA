@@ -1,5 +1,11 @@
 {
-  "versione": 1,
-  "nota": "Regole CodeQL che non fermano la catena. Ogni voce richiede un motivo scritto e il presidio alternativo che copre quel rischio. Senza motivo il gate rifiuta la voce.",
-  "regole_non_bloccanti": []
+  "versione": 2,
+  "nota": "Regole CodeQL che non fermano la catena. Ogni voce richiede un motivo scritto e, salvo casi eccezionali, il file a cui si applica: senza «file» la deroga spegne la regola su tutto il progetto e un avviso vero nato altrove passerebbe inosservato. Il gate rifiuta una voce priva di motivo.",
+  "regole_non_bloccanti": [
+    {
+      "id": "py/url-redirection",
+      "file": "web/bootstrap/soggetti_routes.py",
+      "motivo": "Falso positivo: ogni redirect di questo modulo passa da _safe_internal_next_url, che delega a web.services.app_v2_routing.is_safe_internal_path. Quel controllo rifiuta schema, netloc, percorsi protocol-relative (//), backslash, caratteri di controllo, frammenti e segmenti '..', quindi la destinazione resta sempre un percorso interno. CodeQL non riconosce il sanificatore perche' e' importato dentro la funzione e applicato tramite un ritorno condizionato. Il comportamento e' coperto dai test su is_safe_internal_path."
+    }
+  ]
 }

@@ -39,7 +39,12 @@ RUOLI_AMMESSI = {
 _TIPI_PERSONA = {TipoSoggetto.PERSONA_FISICA, TipoSoggetto.PROFESSIONISTA}
 _CODICE_FISCALE_RE = re.compile(r"[A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]")
 _NUMERICO_11_RE = re.compile(r"[0-9]{11}")
-_EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+# Il dominio si scrive come etichette separate da punti, e nessuna etichetta
+# contiene un punto: cosi' il motore ha un solo modo di dividere l'indirizzo.
+# La forma precedente (`[^@\s]+\.[^@\s]+`) lasciava il punto dentro entrambe le
+# classi e su un indirizzo lungo inviato dall'utente il confronto rallentava in
+# modo quadratico. Gli indirizzi riconosciuti restano gli stessi.
+_EMAIL_RE = re.compile(r"[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+")
 
 
 @dataclass(frozen=True)

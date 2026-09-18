@@ -20,7 +20,10 @@ Cosa ferma la catena:
 
 Le eccezioni si dichiarano in `.github/codeql/eccezioni.json`, una per regola,
 con il motivo scritto e il presidio alternativo: come per le altre deroghe del
-progetto, non esiste esclusione senza motivazione leggibile.
+progetto, non esiste esclusione senza motivazione leggibile. Ogni eccezione
+puo' — e dovrebbe — indicare il **file** a cui si applica: una deroga senza
+`file` spegne la regola su tutto il progetto, e ci si accorgerebbe troppo tardi
+di un avviso vero nato altrove.
 """
 
 from __future__ import annotations
@@ -75,16 +78,16 @@ def _testo(risultato: dict[str, Any]) -> str:
     return " ".join(str(messaggio).split())
 
 
-def leggi_eccezioni(percorso: Path | None = None) -> dict[str, str]:
-    """Le regole escluse dal blocco, con il motivo dichiarato."""
+def leggi_eccezioni(percorso: Path | None = None) -> list[dict[str, str]]:
+    """Le deroghe dichiarate: regola, file a cui si applica, motivo scritto."""
     percorso = percorso or ECCEZIONI
     if not percorso.exists():
-        return {}
+        return []
     try:
         dati = json.loads(percorso.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as errore:
         raise SystemExit(f"[FAIL] {percorso} non leggibile: {errore}") from None
-    escluse: dict[str, str] = {}
+    deroghe: list[dict[str, str]] = []
     for voce in dati.get("regole_non_bloccanti") or []:
         identificativo = str(voce.get("id") or "").strip()
         motivo = " ".join(str(voce.get("motivo") or "").split())
@@ -92,8 +95,24 @@ def leggi_eccezioni(percorso: Path | None = None) -> dict[str, str]:
             continue
         if not motivo:
             raise SystemExit(f"[FAIL] Eccezione CodeQL «{identificativo}» senza motivo dichiarato.")
-        escluse[identificativo] = motivo
-    return escluse
+        deroghe.append({"id": identificativo, "file": str(voce.get("file") or "").strip(), "motivo": motivo})
+    return deroghe
+
+
+def _derogato(voce: dict[str, Any], deroghe: list[dict[str, str]]) -> bool:
+    """Vero se una deroga dichiarata copre questo avviso.
+
+    Una deroga senza `file` vale ovunque; con `file` vale solo per quel
+    percorso, cosi' lo stesso avviso nato altrove continua a fermare la catena.
+    """
+    posizione = str(voce.get("posizione") or "")
+    percorso = posizione.rsplit(":", 1)[0] if ":" in posizione else posizione
+    for deroga in deroghe:
+        if deroga["id"] != voce["id"]:
+            continue
+        if not deroga["file"] or percorso == deroga["file"]:
+            return True
+    return False
 
 
 def risultati_sarif(cartella: Path) -> list[dict[str, Any]]:
@@ -124,25 +143,26 @@ def risultati_sarif(cartella: Path) -> list[dict[str, Any]]:
     return trovati
 
 
-def bloccanti(trovati: list[dict[str, Any]], escluse: dict[str, str]) -> list[dict[str, Any]]:
+def bloccanti(trovati: list[dict[str, Any]], deroghe: list[dict[str, str]]) -> list[dict[str, Any]]:
     fermi: list[dict[str, Any]] = []
     for voce in trovati:
-        if voce["id"] in escluse:
+        if _derogato(voce, deroghe):
             continue
         if voce["livello"] in LIVELLI_BLOCCANTI or voce["gravita"] >= SOGLIA_GRAVITA:
             fermi.append(voce)
     return fermi
 
 
-def rapporto(trovati: list[dict[str, Any]], fermi: list[dict[str, Any]], escluse: dict[str, str]) -> str:
+def rapporto(trovati: list[dict[str, Any]], fermi: list[dict[str, Any]], deroghe: list[dict[str, str]]) -> str:
     righe = ["# Esito CodeQL", ""]
     righe.append(f"Risultati analizzati: {len(trovati)}")
     righe.append(f"Bloccanti: {len(fermi)}")
-    if escluse:
+    if deroghe:
         righe.append("")
-        righe.append("## Regole dichiarate non bloccanti")
-        for identificativo, motivo in sorted(escluse.items()):
-            righe.append(f"- `{identificativo}` — {motivo}")
+        righe.append("## Deroghe dichiarate")
+        for deroga in sorted(deroghe, key=lambda d: (d["id"], d["file"])):
+            dove = deroga["file"] or "tutto il progetto"
+            righe.append(f"- `{deroga['id']}` in {dove} — {deroga['motivo']}")
     if fermi:
         righe.append("")
         righe.append("## Da correggere")
@@ -176,11 +196,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[FAIL] Nessun file SARIF in {cartella}: l'analisi CodeQL non ha prodotto risultati.")
         return 1
 
-    escluse = leggi_eccezioni()
+    deroghe = leggi_eccezioni()
     trovati = risultati_sarif(cartella)
-    fermi = bloccanti(trovati, escluse)
+    fermi = bloccanti(trovati, deroghe)
 
-    testo = rapporto(trovati, fermi, escluse)
+    testo = rapporto(trovati, fermi, deroghe)
     if argomenti.report_md:
         destinazione = Path(argomenti.report_md)
         destinazione.parent.mkdir(parents=True, exist_ok=True)

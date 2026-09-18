@@ -7,6 +7,7 @@ non su HTML finto.
 
 from __future__ import annotations
 
+import os
 import re
 import tempfile
 from pathlib import Path
@@ -31,8 +32,20 @@ def _stile(nome: str = "Times-Roman", corpo: float = 11, allineamento: int = TA_
     )
 
 
+def _percorso_temporaneo(suffisso: str) -> str:
+    """Un percorso temporaneo creato in modo sicuro.
+
+    `tempfile.mktemp` restituisce un nome senza creare il file: fra il nome e
+    la scrittura qualcun altro puo' occuparlo. `mkstemp` lo crea subito, con
+    permessi ristretti, e restituisce il percorso gia' riservato.
+    """
+    descrittore, percorso = tempfile.mkstemp(suffix=suffisso)
+    os.close(descrittore)
+    return percorso
+
+
 def _pdf(flow, *, pagina=A4, margine: float = 25) -> str:
-    percorso = tempfile.mktemp(suffix=".pdf")
+    percorso = _percorso_temporaneo(".pdf")
     SimpleDocTemplate(
         percorso, pagesize=pagina,
         leftMargin=margine * mm, rightMargin=margine * mm,
@@ -141,7 +154,7 @@ def test_un_documento_senza_testo_non_fa_saltare_la_conversione():
 def _scansione(flow) -> str:
     """Lo stesso atto, ma solo immagine: nessun testo dentro il PDF."""
     originale = _pdf(flow)
-    percorso = tempfile.mktemp(suffix=".pdf")
+    percorso = _percorso_temporaneo(".pdf")
     sorgente, esito = fitz.open(originale), fitz.open()
     for pagina in sorgente:
         pix = pagina.get_pixmap(dpi=200)

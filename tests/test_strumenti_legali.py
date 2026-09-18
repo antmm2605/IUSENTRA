@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 
 from pct.strumenti_legali import GestioneStrumentiLegali
 
@@ -727,7 +728,9 @@ def test_pena_dichiara_sempre_le_fonti_normative(tmp_path):
     esito = _gestore(tmp_path).calcola_pena_riti_alternativi({"pena_anni": "2"})
 
     assert esito["sources"]
-    assert all(voce.get("url", "").startswith("https://www.normattiva.it") for voce in esito["sources"])
+    # Host confrontato per intero: un dominio che *comincia* per «normattiva.it»
+    # non e' Normattiva.
+    assert all(urlsplit(voce.get("url", "")).netloc == "www.normattiva.it" for voce in esito["sources"])
     assert all(passo.get("riferimento") for passo in esito["passaggi"])
 
 
@@ -752,7 +755,7 @@ def test_mediazione_riusa_le_tabelle_ministeriali_versionate(tmp_path):
 
     assert esito["totale_organismo"] == atteso["totale_organismo"]
     assert esito["scaglione"] == atteso["scaglione"]
-    assert esito["sources"][0]["url"].startswith("https://www.gazzettaufficiale.it")
+    assert urlsplit(esito["sources"][0]["url"]).netloc == "www.gazzettaufficiale.it"
 
 
 def test_mediazione_obbligatoria_riduce_le_spese(tmp_path):

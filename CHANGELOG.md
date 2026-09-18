@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.322.2 - 18/09/2026
+
+**Undici avvisi di sicurezza che nessuno aveva mai visto.** Appena il presidio della 2.322.1 ha cominciato a leggere davvero i risultati di CodeQL, ne ha trovati undici — tutti preesistenti, tutti invisibili finché l'analisi moriva nel caricamento verso una scheda che su questa repository non esiste. Sei nel codice di produzione, cinque nei test. Nessuno è stato messo a tacere.
+
+**Due espressioni regolari potevano bloccare il server** (ReDoS). Quella che riconosce i riferimenti normativi nel testo dei documenti (`pct/procedura_fasi/lacune.py`) poteva impiegare un tempo esponenziale: scriveva `\d+[\w-]*`, due modi di dividere la stessa cifra, e trattava la «e» come congiunzione anche attaccata ai numeri, così «1e0» diventava un elenco. Ora la cifra si legge in un modo solo e la congiunzione vale solo se separata da spazi — «artt. 1 e 2» e «artt. 1,2» restano riconosciuti, «1e0» no, e non lo è mai stato in una citazione forense. Il testo che entra in quella regex arriva da documenti e PEC: non è mai fidato. Quella dell'indirizzo di posta delle controparti (`web/services/fascicolo_controparti_aggiuntive.py`) rallentava in modo quadratico su un valore inviato dall'utente, perché il punto stava dentro entrambe le classi; ora il dominio si legge come etichette separate da punti, con un solo modo di dividerlo. Gli indirizzi accettati restano gli stessi, verificati caso per caso.
+
+**Tre segnalazioni di redirect aperto sono risultate false**, e non sono state chiuse in silenzio. I tre `redirect` di `web/bootstrap/soggetti_routes.py` passano già da `_safe_internal_next_url`, che rifiuta schema, netloc, percorsi protocol-relative, backslash, caratteri di controllo, frammenti e segmenti `..`: la destinazione resta sempre interna, ed è coperta da test. CodeQL non riconosce quel sanificatore perché è importato dentro la funzione. La deroga è scritta in `.github/codeql/eccezioni.json` con la motivazione per esteso — e **circoscritta a quel file**: il presidio ora accetta il campo `file`, così spegnere la regola dove è un falso positivo non la spegne dove sarebbe vera. Un test lo verifica proprio così: derogato nel file dichiarato, bloccante altrove.
+
+**Cinque rilievi nei test corretti invece che esclusi.** Due usavano `tempfile.mktemp`, che restituisce un nome senza creare il file e lascia una finestra fra il nome e la scrittura: sostituito con `mkstemp`. Tre verificavano la fonte di un calcolo con `startswith` sull'URL, che un dominio costruito ad arte può soddisfare; ora confrontano l'host per intero — un'asserzione anche più forte di prima.
+
+Test: presidio dell'analisi statica 9 (una in più: la deroga circoscritta al file).
+
 ## 2.322.1 - 18/09/2026
 
 **CodeQL torna verde senza rinunciare all'analisi.** Con il permesso ripristinato nella 2.322.0, il deploy ha finalmente potuto leggere i check della CI — e la prima cosa che ha letto è che `Analyze (python)` era rosso. Correttamente si è fermato. Ma il job non falliva per un difetto del codice: l'analisi girava fino in fondo (2.499 file Python scansionati, nessun rilievo) e moriva un passo dopo, nel pubblicare il risultato nella scheda «Security → Code scanning». Su una repository privata quella scheda esiste solo con GitHub Code Security attivo, e la risposta era sempre la stessa: «Code scanning is not enabled for this repository». Un controllo richiesto che nessun commit poteva soddisfare, e quindi una catena CI → sync Codex → deploy bloccata per sempre.

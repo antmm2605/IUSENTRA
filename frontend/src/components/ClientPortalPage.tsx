@@ -969,6 +969,9 @@ function ClientPortalClient() {
   const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM)
   const [questionnaireResponses, setQuestionnaireResponses] = useState<Record<string, string>>({})
   const [survey, setSurvey] = useState({ rating: 5, comment: '' })
+  // Si accetta solo dopo aver aperto l'informativa: un consenso prestato senza
+  // poter leggere non è informato (art. 7 GDPR).
+  const [informativaLetta, setInformativaLetta] = useState(false)
   const token = readClientPortalToken()
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
@@ -999,6 +1002,29 @@ function ClientPortalClient() {
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault()
     applyClientResponse(await clientPortalPost('/api/v1/ui/client-portal/public/profile', profileForm))
+  }
+
+  const informativa = (payload.privacyNotice || {}) as {
+    key?: string
+    version?: string
+    title?: string
+    declaration?: string
+    text?: string
+    sections?: { heading?: string; body?: string }[]
+    controller?: { nome?: string; indirizzo?: string; email?: string; telefono?: string }
+  }
+
+  /** Copia dell'informativa per l'interessato: conserva ciò che ha accettato. */
+  const scaricaInformativa = () => {
+    const contenuto = text(informativa.text)
+    if (!contenuto) return
+    const blob = new Blob([contenuto], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const collegamento = document.createElement('a')
+    collegamento.href = url
+    collegamento.download = `informativa-privacy-${text(informativa.version, 'portale')}.txt`
+    collegamento.click()
+    URL.revokeObjectURL(url)
   }
 
   const acceptConsent = async (key: string) => {
@@ -1199,12 +1225,56 @@ function ClientPortalClient() {
 
         <div className="iu-client-portal-panel" id="panel-privacy">
           <div className="iu-client-portal-panel__head"><h2>Privacy e consensi</h2><ShieldCheck size={18} aria-hidden="true"/></div>
-          {(payload.consents || []).map((consent) => (
-            <article className="iu-client-portal-action-row" key={rowId(consent)}>
-              <div><strong>{text(consent.consent_key, 'Informativa privacy').replace(/_/g, ' ')}</strong><span>{numberValue(consent.accepted) ? `Accettato il ${text(consent.accepted_at_label)}` : 'Da accettare'}</span></div>
-              <button type="button" onClick={() => acceptConsent(text(consent.consent_key))} disabled={Boolean(numberValue(consent.accepted))}>{numberValue(consent.accepted) ? 'Accettato ✓' : 'Accetta'}</button>
-            </article>
-          ))}
+          {(payload.consents || []).map((consent) => {
+            const chiave = text(consent.consent_key)
+            const accettato = Boolean(numberValue(consent.accepted))
+            const suaInformativa = Boolean(informativa.key) && chiave === text(informativa.key)
+            return (
+              <article className="iu-client-portal-consent" key={rowId(consent)}>
+                <div className="iu-client-portal-consent__head">
+                  <strong>{suaInformativa ? text(informativa.title, 'Informativa privacy') : chiave.replace(/_/g, ' ')}</strong>
+                  <span>{accettato ? `Accettato il ${text(consent.accepted_at_label)}` : 'Da accettare'}</span>
+                </div>
+                {suaInformativa ? (
+                  <>
+                    <details open={!accettato} onToggle={(event) => { if ((event.currentTarget as HTMLDetailsElement).open) setInformativaLetta(true) }}>
+                      <summary>{accettato ? 'Rileggi l’informativa' : 'Leggi l’informativa prima di accettare'}</summary>
+                      <div className="iu-client-portal-consent__testo">
+                        {(informativa.sections || []).map((sezione) => (
+                          <section key={text(sezione.heading)}>
+                            <h4>{text(sezione.heading)}</h4>
+                            <p>{text(sezione.body)}</p>
+                          </section>
+                        ))}
+                        <p className="iu-client-portal-muted">
+                          Titolare del trattamento: {text(informativa.controller?.nome, 'lo studio legale incaricato')}
+                          {text(informativa.controller?.indirizzo) ? `, ${text(informativa.controller?.indirizzo)}` : ''}
+                          {text(informativa.controller?.email) ? ` — ${text(informativa.controller?.email)}` : ''}
+                          {' '}· Versione {text(informativa.version)}
+                        </p>
+                      </div>
+                    </details>
+                    <p className="iu-client-portal-consent__dichiarazione">{text(informativa.declaration)}</p>
+                    <div className="iu-client-portal-consent__azioni">
+                      <button type="button" onClick={() => acceptConsent(chiave)} disabled={accettato || !informativaLetta}>
+                        {accettato ? 'Accettato ✓' : 'Accetto'}
+                      </button>
+                      <button className="iu-client-portal-inline" type="button" onClick={scaricaInformativa}>
+                        <Download size={14} aria-hidden="true"/>Scarica copia
+                      </button>
+                    </div>
+                    {!accettato && !informativaLetta ? (
+                      <span className="iu-client-portal-muted">Apri l’informativa qui sopra: si accetta solo dopo averla aperta.</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="iu-client-portal-consent__azioni">
+                    <button type="button" onClick={() => acceptConsent(chiave)} disabled={accettato}>{accettato ? 'Accettato ✓' : 'Accetta'}</button>
+                  </div>
+                )}
+              </article>
+            )
+          })}
         </div>
 
         <div className="iu-client-portal-panel" id="panel-documenti">

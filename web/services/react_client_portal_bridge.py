@@ -996,6 +996,7 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
             "documents": _public_rows(documents),
             "signatures": _public_rows(snapshot.get("signatures", [])),
             "consents": _public_rows(snapshot.get("consents", [])),
+            "privacyNotice": _informativa_privacy(),
             "messages": _public_rows(snapshot.get("messages", [])),
             "appointments": _public_rows(snapshot.get("appointments", [])),
             "notifications": _public_rows(snapshot.get("notifications", [])),
@@ -1061,6 +1062,16 @@ def _profile_anagrafica(profile: dict[str, Any]) -> dict[str, Any]:
         preferences = json_loads(profile.get("preferences_json"), {})
     anagrafica = preferences.get("anagrafica") if isinstance(preferences, dict) else {}
     return dict(anagrafica) if isinstance(anagrafica, dict) else {}
+
+
+def _informativa_privacy() -> dict[str, Any]:
+    """L'informativa che il cliente deve poter leggere prima di accettare."""
+    try:
+        from web.services.client_portal_privacy_testi import informativa_payload
+
+        return informativa_payload()
+    except Exception:
+        return {}
 
 
 def _profilo_con_scheda_studio(profile: dict[str, Any]) -> dict[str, Any]:
@@ -1238,14 +1249,37 @@ def client_set_consent(payload: dict[str, Any]) -> dict[str, Any]:
     try:
         token = _current_client_token()
         invite, repo = _invite_and_repo(token)
+        from web.services.client_portal_privacy_testi import (
+            CHIAVE_INFORMATIVA,
+            DICHIARAZIONE_INFORMATIVA,
+            VERSIONE_INFORMATIVA,
+            testo_informativa,
+        )
+
+        chiave = _text(payload.get("key")) or CHIAVE_INFORMATIVA
+        # La versione e il testo registrati sono quelli del server, mai quelli
+        # arrivati dal browser: la prova del consenso deve dire che cosa
+        # l'interessato aveva davanti, non che cosa il client dichiara.
+        # Art. 7 § 1 GDPR: il titolare deve poter dimostrare il consenso.
+        prova: dict[str, Any] = {"source": "portale_cliente"}
+        versione = _text(payload.get("version")) or "1"
+        if chiave == CHIAVE_INFORMATIVA:
+            versione = VERSIONE_INFORMATIVA
+            prova.update(
+                {
+                    "testo_informativa": testo_informativa(),
+                    "dichiarazione": DICHIARAZIONE_INFORMATIVA,
+                    "versione_informativa": VERSIONE_INFORMATIVA,
+                }
+            )
         consent = repo.set_consent(
             _text(invite.get("tenant_id")),
             client_id=_text(invite.get("client_id")),
             matter_id=_text(invite.get("matter_id")),
-            consent_key=_text(payload.get("key")) or "privacy_portale_cliente",
-            version=_text(payload.get("version")) or "1",
+            consent_key=chiave,
+            version=versione,
             accepted=bool(payload.get("accepted")),
-            payload={"source": "portale_cliente"},
+            payload=prova,
         )
         return {"ok": True, "message": "Consenso registrato.", "item": _public_row(consent), "dashboard": client_dashboard_payload(token=token)}
     except ClientPortalError:

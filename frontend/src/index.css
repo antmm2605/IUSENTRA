@@ -2464,6 +2464,67 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
   }
 }
 
+.iu-client-portal-consent {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+}
+
+.iu-client-portal-consent__head {
+  display: grid;
+  gap: 2px;
+}
+
+.iu-client-portal-consent > details > summary {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--cp-accent);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iu-client-portal-consent__testo {
+  display: grid;
+  gap: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: var(--cp-surface);
+}
+
+.iu-client-portal-consent__testo h4 {
+  margin: 0 0 3px;
+  font-size: 13px;
+}
+
+.iu-client-portal-consent__testo p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.iu-client-portal-consent__dichiarazione {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.iu-client-portal-consent__azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .iu-client-portal-matter-list {
   display: grid;
   gap: 8px;

@@ -77,6 +77,16 @@ export type ClientPortalClientPayload = {
   documents?: PortalRow[]
   signatures?: PortalRow[]
   consents?: PortalRow[]
+  /** L'informativa che il cliente deve poter leggere prima di accettare. */
+  privacyNotice?: {
+    key?: string
+    version?: string
+    title?: string
+    declaration?: string
+    text?: string
+    sections?: { heading?: string; body?: string }[]
+    controller?: { nome?: string; indirizzo?: string; email?: string; telefono?: string }
+  }
   messages?: PortalRow[]
   appointments?: PortalRow[]
   notifications?: PortalRow[]

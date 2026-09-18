@@ -9809,8 +9809,6 @@ function DetailPage({ id }:{id:string}) {
     activeHashSection === 'cancelleria'
     || activeHashSection === 'comunicazioni-notifica'
     || activeHashSection === 'relata-notifica'
-    || notificationRelata.releaseDetected
-    || ['da_preparare', 'da_firmare', 'pronta_invio'].includes(notificationRelata.status)
   const auditNavigation = lazyStatus.audit === 'loaded'
     ? { value: String(data.auditTrail.summary.total), label: data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze audit registrate` : 'Nessuna evidenza audit registrata' }
     : lazyStatus.audit === 'loading'
@@ -10027,11 +10025,11 @@ function DetailPage({ id }:{id:string}) {
             loading={lazyStatus.regia === 'loading'}
             auditStatus={lazyStatus.audit}
           />
-          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen>
+          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'}>
             <LetturaFascicoloPanel fascicoloId={f.id || id} onError={failDetail} onReady={clearLetturaError}/>
           </DetailSection>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
-          <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
+          <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen={activeHashSection === 'uffici-competenti'}>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>

@@ -3407,9 +3407,13 @@ def test_lettore_mobile_pdf_presidia_zoom_pinch_e_limiti():
     assert "event.preventDefault()" in script
     assert "pages.scrollLeft" in script
     assert "pages.scrollTop" in script
+    assert "data-reader-controls" in Path("web/bootstrap/fascicoli_document_helpers.py").read_text(encoding="utf-8")
+    assert "Chiudi comandi" in script
+    assert "Download avviato dal lettore IUSENTRA" in script
     assert "downloadLink?.addEventListener('click'" in script
-    assert "window.parent.postMessage" in script
-    assert "iusentra.document.download" in script
+    assert 'target="_top" data-document-download' in Path("web/bootstrap/fascicoli_document_helpers.py").read_text(encoding="utf-8")
+    assert "window.parent.postMessage" not in script
+    assert "iusentra.document.download" not in script
 
 
 def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path):

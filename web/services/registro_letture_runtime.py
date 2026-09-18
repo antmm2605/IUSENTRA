@@ -454,16 +454,26 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
         ocr_runtime = current_app.extensions.get("ocr_runtime") if has_app_context() else None
         gestore = get_fascicoli()
         if ocr_runtime is not None:
+            from pct.ocr import estensione_supportata as _ocr_supportato
+
             for oggetto in registro.da_leggere(tenant, fascicolo_id, "ocr", tipi=("documento",)):
                 documento = next((d for d in list(getattr(fascicolo, "documenti", []) or []) if str(getattr(d, "id", "")) == oggetto.oggetto_id), None)
                 if documento is None:
                     continue
+                percorso_doc = gestore.percorso_documento(fascicolo_id, documento.id)
+                nome_doc = str(getattr(documento, "nome", "") or "")
+                if not (_ocr_supportato(nome_doc) or _ocr_supportato(str(percorso_doc))):
+                    registro.segna_letto(
+                        tenant, fascicolo_id, oggetto, "ocr", stato="letto",
+                        esito={"motivo": "OCR non necessario: formato letto da indice documentale, PEC o lettore archivio"},
+                    )
+                    continue
                 accodato = ocr_runtime.enqueue(
-                    percorso=str(gestore.percorso_documento(fascicolo_id, documento.id)),
+                    percorso=str(percorso_doc),
                     hash_sha256=str(getattr(documento, "hash_sha256", "") or ""),
                     id_fasc=fascicolo_id,
                     id_doc=documento.id,
-                    nome_doc=str(getattr(documento, "nome", "") or ""),
+                    nome_doc=nome_doc,
                     tipo_doc=str(getattr(getattr(documento, "tipo", None), "value", getattr(documento, "tipo", "")) or ""),
                     index_path=str(current_app.config.get("SEARCH_INDEX", "")),
                 )

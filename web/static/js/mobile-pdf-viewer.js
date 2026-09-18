@@ -13,6 +13,9 @@
   const rotateRight = document.querySelector('[data-rotate-right]')
   const rotationValue = document.querySelector('[data-rotation-value]')
   const saveRotation = document.querySelector('[data-document-save-rotation]')
+  const readerControls = document.querySelector('[data-reader-controls]')
+  const readerControlsLabel = document.querySelector('[data-reader-controls-label]')
+  const readerControlsChevron = document.querySelector('[data-reader-controls-chevron]')
   if (!(pages instanceof HTMLElement) || !(zoomValue instanceof HTMLOutputElement)) return
 
   const copyButton = document.querySelector('[data-document-copy]')
@@ -21,13 +24,24 @@
   let selectedRange = null
   let selectedText = ''
   const status = (message) => { if (downloadStatus) downloadStatus.textContent = message }
+  const updateReaderControls = () => {
+    if (!(readerControls instanceof HTMLDetailsElement)) return
+    const open = readerControls.open
+    if (readerControlsLabel instanceof HTMLElement) readerControlsLabel.textContent = open ? 'Chiudi comandi' : 'Comandi'
+    if (readerControlsChevron instanceof HTMLElement) readerControlsChevron.textContent = open ? '▴' : '▾'
+  }
+  if (readerControls instanceof HTMLDetailsElement) {
+    if (window.matchMedia('(max-width: 640px)').matches) readerControls.open = false
+    readerControls.addEventListener('toggle', updateReaderControls)
+    updateReaderControls()
+  }
   const updateSelection = () => {
     const selection = window.getSelection()
     if (selection && selection.rangeCount && !selection.isCollapsed
       && pages.contains(selection.anchorNode) && pages.contains(selection.focusNode)) {
       selectedRange = selection.getRangeAt(0).cloneRange()
       selectedText = selection.toString().trim()
-    } else if (!document.activeElement?.closest('.reader-toolbar')) {
+    } else if (!document.activeElement?.closest('.reader-toolbar, .reader-controls')) {
       selectedRange = null
       selectedText = ''
     }
@@ -306,25 +320,16 @@
     }
   })
 
-  window.addEventListener('message', (event) => {
-    if (event.origin !== window.location.origin || !event.data || typeof event.data !== 'object') return
-    if (event.data.type !== 'iusentra.document.download.result') return
-    setDownloadStatus(String(event.data.message || (event.data.ok ? 'Download avviato dal lettore IUSENTRA.' : 'Download non riuscito.')))
-  })
-
   downloadLink?.addEventListener('click', (event) => {
-    if (!(downloadLink instanceof HTMLAnchorElement) || downloadLink.dataset.busy === 'true') return
-    if (window.parent === window) return
-    event.preventDefault()
+    if (!(downloadLink instanceof HTMLAnchorElement)) return
+    if (!downloadLink.href || downloadLink.dataset.busy === 'true') {
+      event.preventDefault()
+      return
+    }
     downloadLink.dataset.busy = 'true'
     downloadLink.setAttribute('aria-disabled', 'true')
     downloadLink.textContent = 'Preparo…'
-    setDownloadStatus('Richiesta inviata al lettore IUSENTRA…')
-    window.parent.postMessage({
-      type: 'iusentra.document.download',
-      url: downloadLink.href,
-      filename: document.querySelector('header strong')?.textContent?.trim() || 'documento',
-    }, window.location.origin)
+    setDownloadStatus('Download avviato dal lettore IUSENTRA…')
     window.setTimeout(() => {
       if (downloadLink.dataset.busy !== 'true') return
       downloadLink.dataset.busy = 'false'

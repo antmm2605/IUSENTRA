@@ -1,7 +1,6 @@
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FileSearch, Maximize2, Minimize2, RotateCw, Save } from 'lucide-react'
-import { csrfToken } from '../formSubmit'
+import { FileSearch, Maximize2, Minimize2 } from 'lucide-react'
 import { OperationalModal } from './OperationalModal'
 
 export type SourceDocument = {
@@ -59,22 +58,10 @@ function sourceIframeSandbox(href: string): string {
         || (normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza'))
       )
     return trustedInternalReader
-      ? 'allow-downloads allow-same-origin allow-scripts'
+      ? 'allow-downloads allow-same-origin allow-scripts allow-top-navigation-by-user-activation'
       : 'allow-downloads allow-scripts'
   } catch {
     return 'allow-downloads allow-scripts'
-  }
-}
-
-function sourceRotationSaveHref(href: string): string {
-  try {
-    const parsed = new URL(href, window.location.origin)
-    if (parsed.origin !== window.location.origin) return ''
-    const match = parsed.pathname.match(/^\/fascicoli\/([^/]+)\/documenti\/([^/]+)\/(?:visualizza|scarica)$/)
-    if (!match) return ''
-    return `/fascicoli/${encodeURIComponent(match[1])}/documenti/${encodeURIComponent(match[2])}/ruota`
-  } catch {
-    return ''
   }
 }
 
@@ -162,64 +149,11 @@ export function SourceDocumentReader({
 
 export function SourceDocumentModal({ source, onClose }:{source:SourceDocument | null; onClose:()=>void}) {
   const [fullscreen, setFullscreen] = useState(false)
-  const [rotation, setRotation] = useState(0)
-  const [readerHref, setReaderHref] = useState('')
-  const [readerRevision, setReaderRevision] = useState(0)
-  const [savingRotation, setSavingRotation] = useState(false)
-  const [saveNotice, setSaveNotice] = useState('')
   const originalHref = source ? sourceViewerHref(source, false) : ''
-  const rotationSaveHref = useMemo(() => sourceRotationSaveHref(readerHref || originalHref), [readerHref, originalHref])
 
   useEffect(() => {
     setFullscreen(false)
-    setRotation(0)
-    setReaderHref(source?.href || '')
-    setSaveNotice('')
-    setSavingRotation(false)
-    setReaderRevision(0)
   }, [source?.href])
-
-  const saveRotation = async () => {
-    if (!rotationSaveHref || !rotation || savingRotation) return
-    setSavingRotation(true)
-    setSaveNotice('Salvataggio della copia ruotata nel fascicolo…')
-    try {
-      const token = csrfToken()
-      const response = await fetch(rotationSaveHref, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          ...(token ? { 'X-CSRFToken': token } : {}),
-        },
-        body: JSON.stringify({ rotation }),
-      })
-      const payload = await response.json().catch(() => ({})) as {
-        ok?: boolean
-        messaggio?: string
-        message?: string
-        errore?: string
-        desktop_preview_url?: string
-        preview_url?: string
-      }
-      if (!response.ok || payload.ok === false) {
-        throw new Error(String(payload.messaggio || payload.errore || 'Rotazione non salvata.'))
-      }
-      const nextHref = payload.desktop_preview_url || payload.preview_url || ''
-      if (nextHref) {
-        setReaderHref(nextHref)
-        setReaderRevision((value) => value + 1)
-      }
-      setRotation(0)
-      setSaveNotice(String(payload.messaggio || payload.message || 'Copia ruotata salvata nel fascicolo.'))
-    } catch (error) {
-      setSaveNotice(error instanceof Error ? error.message : 'Rotazione non salvata. Verifica il documento e riprova.')
-    } finally {
-      setSavingRotation(false)
-    }
-  }
 
   return createPortal(
     <OperationalModal
@@ -230,24 +164,6 @@ export function SourceDocumentModal({ source, onClose }:{source:SourceDocument |
       subtitle={source?.context}
       actions={source ? (
         <>
-          <button
-            type="button"
-            onClick={() => setRotation((value) => (value + 90) % 360)}
-            aria-label={`Ruota documento. Orientamento attuale ${rotation} gradi`}
-            title="Ruota il documento di 90 gradi"
-          >
-            <RotateCw size={14} />
-            Ruota
-          </button>
-          <button
-            type="button"
-            onClick={saveRotation}
-            disabled={!rotation || !rotationSaveHref || savingRotation}
-            title={rotationSaveHref ? 'Salva una copia ruotata nel fascicolo' : 'Salvataggio disponibile solo per documenti del fascicolo'}
-          >
-            <Save size={14} />
-            {savingRotation ? 'Salvo…' : 'Salva rotazione'}
-          </button>
           <button
             type="button"
             onClick={() => setFullscreen((value) => !value)}
@@ -264,11 +180,9 @@ export function SourceDocumentModal({ source, onClose }:{source:SourceDocument |
     >
       {source ? (
         <SourceDocumentReader
-          key={`${readerHref || source.href}:${readerRevision}`}
-          href={readerHref || source.href}
+          key={source.href}
+          href={source.href}
           label={source.label}
-          rotation={rotation}
-          notice={saveNotice}
         />
       ) : null}
     </OperationalModal>,

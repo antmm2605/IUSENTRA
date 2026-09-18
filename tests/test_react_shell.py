@@ -947,7 +947,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "normalizedPath.startsWith('/api/v1/ui/email/source/')" in source_modal
     assert "normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza')" in source_modal
     assert "Usa “Apri originale” o “Scarica”" in source_modal
-    assert "'allow-downloads allow-same-origin allow-scripts'" in source_modal
+    assert "'allow-downloads allow-same-origin allow-scripts allow-top-navigation-by-user-activation'" in source_modal
     assert "'allow-downloads allow-scripts'" in source_modal
     assert "sandbox={sourceIframeSandbox(viewerHref)}" in source_modal
     assert 'referrerPolicy="no-referrer"' in source_modal

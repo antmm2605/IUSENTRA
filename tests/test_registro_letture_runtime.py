@@ -217,6 +217,35 @@ def test_anomalia_sulla_data_si_conferma_o_si_corregge_dall_endpoint(tmp_path: P
         assert registro.correzioni(tenant, fascicolo_id) == {(documento_id, "udienza", "1O/O3/2O26"): "11/03/2026"}
 
 
+
+
+def test_leggi_i_nuovi_chiude_ocr_sui_formati_non_ocr(tmp_path: Path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
+        fascicolo = fascicoli.nuovo("PEC / EML", TipoFascicolo.CIVILE, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", numero_rg="778", anno_rg=2026)
+        documento = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            nome_file="accettazione-deposito.eml",
+            tipo=TipoDocumento.COMUNICAZIONE,
+            contenuto=b"From: cancelleria@example.test\nSubject: ACCETTAZIONE DEPOSITO\n\nMessaggio PEC",
+            hash_contenuto_sha256="e" * 64,
+        )
+    with app.test_client() as client:
+        risposta = client.post(f"/api/v1/ui/fascicoli/{fascicolo.id}/letture/aggiorna", json={}, headers=HEADERS)
+        assert risposta.status_code == 200
+        payload = risposta.get_json()
+        assert payload["ok"] is True
+    with app.app_context():
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        stato = registro.stato_fascicolo(tenant_corrente(), fascicolo.id, lettori=("ocr",))
+        assert [(voce.letti, voce.da_leggere, voce.errori) for voce in stato.lettori] == [(1, 0, 0)]
+        lettura = next(l for l in registro.letture(tenant_corrente(), fascicolo.id, lettore="ocr") if l.oggetto_id == documento.id)
+        assert lettura.stato == "letto"
+        assert "OCR non necessario" in lettura.esito.get("motivo", "")
+
 def test_leggi_i_nuovi_accoda_solo_cio_che_manca(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id, _documento_id = _seed(app)

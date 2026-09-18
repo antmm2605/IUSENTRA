@@ -315,15 +315,21 @@ def pdf_mobile_preview_html(
         "html,body{width:100%;height:100%;max-width:100%;overflow:hidden}"
         "body{margin:0;background:#e5e7eb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}"
         ".reader{min-width:0;width:100%;height:100dvh;max-width:100vw;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}"
-        "header{z-index:2;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 10px;padding:8px 10px;border-bottom:1px solid #e2e8f0;background:#fff}"
-        "header strong{min-width:0;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
-        ".reader-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:6px}"
-        ".reader-toolbar a,.reader-toolbar button{flex:0 0 auto;min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d7dde8;border-radius:8px;background:#fff;color:#0f172a;padding:0 9px;font:850 12px/1 Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer}"
+        "header{z-index:2;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 8px;padding:6px 8px;border-bottom:1px solid #e2e8f0;background:#fff}"
+        "header strong{min-width:0;font-size:12px;line-height:1.16;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
+        ".reader-controls{min-width:0;justify-self:end}.reader-controls>summary{min-width:34px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid #d7dde8;border-radius:8px;background:#fff;color:#0f172a;padding:0 8px;font:850 11px/1 Inter,system-ui,sans-serif;cursor:pointer;list-style:none}.reader-controls>summary::-webkit-details-marker{display:none}.reader-controls__chevron{font-size:13px;line-height:1}.reader-controls[open]{grid-column:1/-1;justify-self:stretch}.reader-controls[open]>summary{margin-left:auto;margin-bottom:5px}.reader-controls:not([open])>.reader-toolbar{display:none}.reader-controls>summary:hover{background:#eff6ff;color:#1d4ed8}.reader-controls>summary:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px;border-color:#2563eb}"
+        ".reader-toolbar{min-width:0;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px}"
+        ".reader-toolbar__main{min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}"
+        ".reader-toolbar__main::-webkit-scrollbar{display:none}"
+        ".reader-toolbar a,.reader-toolbar button,.reader-toolbar__more>summary{flex:0 0 auto;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d7dde8;border-radius:8px;background:#fff;color:#0f172a;padding:0 8px;font:850 11px/1 Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer;white-space:nowrap}"
         ".reader-toolbar a{color:#1d4ed8}.reader-toolbar button:disabled{opacity:.42;cursor:not-allowed}"
-        ".reader-toolbar a:focus-visible,.reader-toolbar button:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px;border-color:#2563eb}"
-        ".reader-toolbar__zoom{min-width:54px;color:#334155;font-variant-numeric:tabular-nums;text-align:center}"
-        ".reader-toolbar__rotation{min-width:38px;color:#334155;font-variant-numeric:tabular-nums;text-align:center}"
-        ".reader-download-status{grid-column:1/-1;min-height:15px;color:#475569;font-size:11px;font-weight:760;line-height:1.3;overflow-wrap:anywhere}"
+        ".reader-toolbar a:focus-visible,.reader-toolbar button:focus-visible,.reader-toolbar__more>summary:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px;border-color:#2563eb}"
+        ".reader-toolbar__zoom{min-width:42px;color:#334155;font-variant-numeric:tabular-nums;text-align:center;font-size:12px}"
+        ".reader-toolbar__rotation{min-width:30px;color:#334155;font-variant-numeric:tabular-nums;text-align:center;font-size:12px}"
+        ".reader-toolbar__more{position:relative;justify-self:end}.reader-toolbar__more>summary{list-style:none}.reader-toolbar__more>summary::-webkit-details-marker{display:none}"
+        ".reader-toolbar__more-grid{display:none}.reader-toolbar__more[open]>.reader-toolbar__more-grid{position:absolute;right:0;top:calc(100% + 6px);z-index:7;display:grid;grid-template-columns:repeat(2,minmax(118px,1fr));gap:6px;width:min(312px,calc(100vw - 18px));padding:8px;border:1px solid #d7dde8;border-radius:10px;background:#fff;box-shadow:0 16px 34px rgba(15,23,42,.18)}"
+        ".reader-toolbar__more-grid button{width:100%;justify-content:center;min-height:34px}"
+        ".reader-download-status{grid-column:1/-1;min-height:13px;color:#475569;font-size:10px;font-weight:760;line-height:1.25;overflow-wrap:anywhere}.reader-download-status:empty{display:none}"
         ".pages{--zoom:1;--reader-rotation:0deg;min-width:0;width:100%;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;scrollbar-gutter:stable}"
         ".page{width:calc(100% * var(--zoom));min-width:0;max-width:none;margin:0;display:grid;gap:6px;justify-self:start}"
         ".page figcaption{color:#475569;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}"
@@ -331,10 +337,10 @@ def pdf_mobile_preview_html(
         ".empty{min-height:70vh;display:grid;place-content:center;gap:6px;text-align:center;color:#475569}"
         ".empty strong{color:#111827;font-size:15px}"
         "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.reader-page-surface{border-radius:10px}}"
-        "@media(max-width:520px){header{grid-template-columns:1fr}header strong{white-space:normal}.reader-toolbar{justify-content:stretch}.reader-toolbar a{margin-left:auto}.reader-toolbar a,.reader-toolbar button{min-height:40px}}"
+        "@media(max-width:520px){header{grid-template-columns:minmax(0,1fr) auto;align-items:center;padding:5px 6px}header strong{font-size:11px}.reader-controls[open]{grid-column:1/-1}.reader-toolbar{grid-template-columns:minmax(0,1fr) auto}.reader-toolbar__main{justify-content:flex-start}.reader-toolbar a,.reader-toolbar button,.reader-toolbar__more>summary{min-height:32px}.reader-toolbar__more[open]>.reader-toolbar__more-grid{right:0;grid-template-columns:1fr 1fr}}"
         "@media print{@page{margin:8mm}html,body,.reader,.pages{height:auto;max-height:none;overflow:visible;display:block;background:white;width:100%;max-width:none;padding:0;margin:0}header,.page figcaption{display:none}.page{display:block;width:100%;break-after:page;margin:0}.page:last-child{break-after:auto}.reader-page-surface{border:0;border-radius:0;box-shadow:none}.reader-page-rotator{transform:none!important}.page img{width:100%;height:auto;max-height:275mm;object-fit:contain;border:0;border-radius:0;box-shadow:none}}"
-        ".reader-toolbar{flex-wrap:wrap}.reader-toolbar button:hover{background:#eff6ff;color:#1d4ed8}"
-        ".reader-page-surface{position:relative;min-width:0;overflow:hidden;background:#fff;border:1px solid #d7dde8;border-radius:8px;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
+        ".reader-toolbar button:hover,.reader-toolbar a:hover,.reader-toolbar__more>summary:hover{background:#eff6ff;color:#1d4ed8}"
+        ".reader-page-surface{position:relative;min-width:0;aspect-ratio:1/1.414;overflow:hidden;background:#fff;border:1px solid #d7dde8;border-radius:8px;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
         ".reader-page-rotator{position:absolute;inset:0;transform:rotate(var(--reader-rotation));transform-origin:center center}"
         ".reader-text-layer{position:absolute;inset:0;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text}"
         ".reader-word{position:absolute;display:block;color:transparent;white-space:pre;line-height:1;transform-origin:0 0}.reader-word>span{display:inline-block;transform-origin:0 0}"
@@ -344,7 +350,10 @@ def pdf_mobile_preview_html(
         "</style></head><body>"
         '<main class="reader">'
         f"<header><strong>{escaped_name}</strong>"
+        '<details class="reader-controls" data-reader-controls open>'
+        '<summary data-reader-controls-summary><span data-reader-controls-label>Comandi</span><span class="reader-controls__chevron" data-reader-controls-chevron aria-hidden="true">▴</span></summary>'
         '<nav class="reader-toolbar" aria-label="Controlli del documento">'
+        '<div class="reader-toolbar__main" aria-label="Zoom, rotazione e download">'
         '<button type="button" data-zoom-out title="Riduci" aria-label="Riduci documento">&minus;</button>'
         '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
         '<output class="reader-toolbar__zoom" data-zoom-value aria-live="polite">100%</output>'
@@ -352,13 +361,18 @@ def pdf_mobile_preview_html(
         '<button type="button" data-rotate-left title="Ruota a sinistra" aria-label="Ruota documento a sinistra">↺</button>'
         '<button type="button" data-rotate-right title="Ruota a destra" aria-label="Ruota documento a destra">↻</button>'
         '<output class="reader-toolbar__rotation" data-rotation-value aria-live="polite">0°</output>'
+        f'<a href="{escaped_download}" download target="_top" data-document-download title="Scarica documento">Scarica</a>'
+        "</div>"
+        '<details class="reader-toolbar__more">'
+        '<summary title="Mostra altri comandi">Altro</summary>'
+        '<div class="reader-toolbar__more-grid">'
         f'<button type="button" data-document-save-rotation="{escaped_rotation_save}" disabled title="Salva una copia ruotata nel fascicolo">Salva rotazione</button>'
         '<button type="button" data-document-copy disabled title="Copia il testo selezionato">Copia</button>'
         '<button type="button" data-document-highlight disabled title="Evidenzia la selezione durante questa lettura">Evidenzia</button>'
         '<button type="button" data-document-clear disabled title="Rimuovi le evidenziazioni della sessione">Rimuovi evidenziazioni</button>'
         '<button type="button" data-document-print title="Stampa tutte le pagine del documento">Stampa</button>'
-        f'<a href="{escaped_download}" download data-document-download title="Scarica documento">Scarica</a>'
-        "</nav>"
+        "</div></details>"
+        "</nav></details>"
         '<span class="reader-download-status" data-download-status aria-live="polite"></span>'
         "</header>"
         f'<section class="pages" data-document-pages tabindex="0" aria-label="Pagine del documento: seleziona il testo da copiare">{pages}</section>'

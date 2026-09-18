@@ -1,9 +1,11 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useConversazioneViva, type MessaggioPortale } from '../hooks/useConversazioneViva'
+import { WebcamCapture } from './client-portal/WebcamCapture'
 import {
   Bell,
   CalendarDays,
+  Camera,
   Check,
   ClipboardList,
   Copy,
@@ -19,6 +21,7 @@ import {
   Settings2,
   ShieldCheck,
   UploadCloud,
+  Webcam,
   UserRound,
   UsersRound,
   Video,
@@ -972,6 +975,9 @@ function ClientPortalClient() {
   // Si accetta solo dopo aver aperto l'informativa: un consenso prestato senza
   // poter leggere non è informato (art. 7 GDPR).
   const [informativaLetta, setInformativaLetta] = useState(false)
+  // Quale richiesta sta usando la webcam: una sola per volta, e la camera
+  // parte solo dopo il consenso esplicito dentro WebcamCapture.
+  const [webcamPerRichiesta, setWebcamPerRichiesta] = useState('')
   const token = readClientPortalToken()
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
@@ -1291,14 +1297,48 @@ function ClientPortalClient() {
                   <strong>{text(requestItem.title)}</strong>
                   <span>{uploaded ? `Caricato: ${text(uploaded.filename)}` : statusLabel(requestItem.status)}</span>
                 </div>
-                <label className="iu-client-portal-file">
-                  <UploadCloud size={16} aria-hidden="true"/>{uploaded ? 'Sostituisci' : 'Carica'}
-                  <input
-                    type="file"
-                    accept={(uploadLimits?.allowedUploadTypes || []).join(',') || undefined}
-                    onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
-                  />
-                </label>
+                <div className="iu-client-portal-acquisizione">
+                  <label className="iu-client-portal-file">
+                    <UploadCloud size={16} aria-hidden="true"/>{uploaded ? 'Sostituisci' : 'Carica file'}
+                    <input
+                      type="file"
+                      accept={(uploadLimits?.allowedUploadTypes || []).join(',') || undefined}
+                      onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
+                    />
+                  </label>
+                  {/* Sul telefono apre direttamente la fotocamera posteriore;
+                      sul computer il browser propone comunque un file. */}
+                  <label className="iu-client-portal-file">
+                    <Camera size={16} aria-hidden="true"/>Scatta foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
+                    />
+                  </label>
+                  <button
+                    className="iu-client-portal-inline"
+                    type="button"
+                    onClick={() => setWebcamPerRichiesta(rowId(requestItem))}
+                  >
+                    <Webcam size={16} aria-hidden="true"/>Usa la webcam
+                  </button>
+                </div>
+                {webcamPerRichiesta === rowId(requestItem) ? (
+                  <div className="iu-client-portal-webcam">
+                    <WebcamCapture
+                      onCapture={(blob) => {
+                        setWebcamPerRichiesta('')
+                        void uploadDocument(
+                          new File([blob], `documento-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' }),
+                          rowId(requestItem),
+                        )
+                      }}
+                      onCancel={() => setWebcamPerRichiesta('')}
+                    />
+                  </div>
+                ) : null}
               </article>
             )
           })}

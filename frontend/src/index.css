@@ -2464,6 +2464,30 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
   }
 }
 
+.iu-client-portal-acquisizione {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.iu-client-portal-webcam {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .iu-client-portal-acquisizione {
+    justify-content: stretch;
+  }
+
+  .iu-client-portal-acquisizione > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
 .iu-client-portal-consent {
   display: grid;
   gap: 8px;

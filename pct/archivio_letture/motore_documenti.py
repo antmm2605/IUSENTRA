@@ -20,7 +20,12 @@ from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.18.motore-documenti.v11+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}"
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
+    VERSIONE_MOTORE_DOCUMENTI,
+    f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}",
+    f"2026.09.16.motore-documenti.v7+{VERSIONE_FORMULARIO}",
+)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -67,4 +72,4 @@ def leggi_testo(
     return collaudati
 
 
-__all__ = ["FATTI_MASSIMI", "VERSIONE_MOTORE_DOCUMENTI", "leggi_testo"]
+__all__ = ["FATTI_MASSIMI", "VERSIONE_MOTORE_DOCUMENTI", "VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI", "leggi_testo"]

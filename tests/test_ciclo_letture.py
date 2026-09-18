@@ -51,10 +51,21 @@ def test_un_documento_nuovo_riattiva_il_ciclo():
     assert "documenti o PEC nuovi" in stato.motivo
 
 
-def test_regole_nuove_di_un_motore_rimettono_tutto_da_leggere():
+def test_regole_nuove_non_compatibili_di_un_motore_rimettono_tutto_da_leggere():
     stato = stato_ciclo(_riga(versione_lettore="motore.v1"), versione_attesa=VERSIONE, impronta_attesa="abc", oggi=ORA)
     assert stato.stato == DA_LEGGERE
     assert "regole del motore sono cambiate" in stato.motivo
+
+
+def test_regole_compatibili_non_riaprono_un_fascicolo_invariato():
+    stato = stato_ciclo(
+        _riga(versione_lettore="motore.v1"),
+        versione_attesa=VERSIONE,
+        impronta_attesa="abc",
+        oggi=ORA,
+        versione_compatibile=lambda versione: versione == "motore.v1",
+    )
+    assert stato.stato == FERMO
 
 
 def test_una_lettura_parziale_non_chiude_il_ciclo():
@@ -71,12 +82,11 @@ def test_un_giro_fallito_resta_in_errore_e_si_riprova():
     assert "si riprova" in stato.etichetta
 
 
-def test_il_ricontrollo_periodico_recupera_un_evento_perso():
-    """Se un evento non arriva, il fascicolo non resta indietro per sempre."""
+def test_il_ricontrollo_periodico_non_riapre_un_inventario_invariato():
+    """Il server non deve rileggere fascicoli fermi solo perché passa il tempo."""
     vecchia = (ORA - timedelta(hours=RICONCILIAZIONE_ORE + 1)).isoformat().replace("+00:00", "Z")
     stato = stato_ciclo(_riga(aggiornato_il=vecchia), versione_attesa=VERSIONE, impronta_attesa="abc", oggi=ORA)
-    assert stato.stato == DA_LEGGERE
-    assert "evento potrebbe essere andato perso" in stato.motivo
+    assert stato.stato == FERMO
 
 
 def test_dentro_la_finestra_il_ciclo_resta_fermo():
@@ -86,7 +96,7 @@ def test_dentro_la_finestra_il_ciclo_resta_fermo():
 
 def test_una_data_illeggibile_non_blocca_il_ciclo():
     stato = stato_ciclo(_riga(aggiornato_il="non una data"), versione_attesa=VERSIONE, impronta_attesa="abc", oggi=ORA)
-    assert stato.stato == DA_LEGGERE
+    assert stato.stato == FERMO
 
 
 @pytest.mark.parametrize("stato_registrato", ["completa", "parziale", "errore"])

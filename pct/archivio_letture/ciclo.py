@@ -26,8 +26,8 @@ Base normativa della tracciabilità: art. 3 D.M. 44/2011 e art. 20 CAD.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, Callable
 
 # Gli stati del ciclo, in italiano, come li vede l'avvocato.
 FERMO = "fermo"
@@ -38,7 +38,9 @@ ETICHETTE: dict[str, str] = {
     DA_LEGGERE: "in attesa di lettura: i motori leggeranno al prossimo giro",
     IN_ERRORE: "l'ultimo giro non è riuscito: si riprova",
 }
-# Ogni quanto si ricontrolla anche un fascicolo fermo, per non perdere un evento mancato.
+# Storico: il ricontrollo periodico riapriva i fascicoli fermi.
+# Ora il controllo automatico resta fermo finché non cambia l'impronta viva
+# dell'inventario; questa costante resta esportata solo per compatibilità.
 RICONCILIAZIONE_ORE = 24
 # Quanti giri si riprova un fascicolo in errore prima di dichiararlo tale nel pannello.
 TENTATIVI_PRIMA_DI_DICHIARARE = 3
@@ -85,15 +87,22 @@ class StatoCiclo:
         }
 
 
-def stato_ciclo(riga: dict[str, Any] | None, *, versione_attesa: str, impronta_attesa: str = "", oggi: datetime | None = None) -> StatoCiclo:
+def stato_ciclo(
+    riga: dict[str, Any] | None,
+    *,
+    versione_attesa: str,
+    impronta_attesa: str = "",
+    oggi: datetime | None = None,
+    versione_compatibile: Callable[[str], bool] | None = None,
+) -> StatoCiclo:
     """Lo stato del ciclo per un motore, dalla riga del registro.
 
-    Nessuna riga significa «mai letto». Una versione diversa del motore rimette
-    tutto da leggere, perché le regole sono cambiate. Un'impronta diversa
-    significa che il fascicolo è cambiato. Una riga ferma da più di un giorno si
-    ricontrolla comunque: è la rete di sicurezza contro un evento perso.
+    Nessuna riga significa «mai letto». Una versione diversa del motore riapre
+    il ciclo solo se non è dichiarata compatibile con la lettura già registrata.
+    Un'impronta diversa significa che il fascicolo è cambiato: documento o PEC
+    nuovi/cambiati. A impronta invariata il ciclo resta fermo, senza scansioni
+    periodiche massive.
     """
-    adesso = oggi or _adesso()
     if not riga:
         return StatoCiclo(DA_LEGGERE, "il fascicolo non è mai stato letto dai motori")
     stato_registrato = str(riga.get("stato") or "")
@@ -101,7 +110,8 @@ def stato_ciclo(riga: dict[str, Any] | None, *, versione_attesa: str, impronta_a
     impronta = str(riga.get("impronta") or "")
     aggiornato = str(riga.get("aggiornato_il") or "")
     tentativi = int(riga.get("tentativi") or 0)
-    if versione != versione_attesa:
+    compatibile = bool(versione_compatibile and versione_compatibile(versione))
+    if versione != versione_attesa and not compatibile:
         return StatoCiclo(DA_LEGGERE, "le regole del motore sono cambiate: si rilegge", impronta, aggiornato, tentativi)
     if stato_registrato == "errore":
         return StatoCiclo(IN_ERRORE, str((riga.get("esito") or {}).get("motivo") or "l'ultimo giro non è riuscito"), impronta, aggiornato, tentativi)
@@ -109,9 +119,6 @@ def stato_ciclo(riga: dict[str, Any] | None, *, versione_attesa: str, impronta_a
         return StatoCiclo(DA_LEGGERE, "la lettura precedente è rimasta parziale", impronta, aggiornato, tentativi)
     if impronta_attesa and impronta != impronta_attesa:
         return StatoCiclo(DA_LEGGERE, "il fascicolo è cambiato: documenti o PEC nuovi", impronta, aggiornato, tentativi)
-    ultimo = _quando(aggiornato)
-    if ultimo is None or adesso - ultimo > timedelta(hours=RICONCILIAZIONE_ORE):
-        return StatoCiclo(DA_LEGGERE, "ricontrollo periodico: un evento potrebbe essere andato perso", impronta, aggiornato, tentativi)
     return StatoCiclo(FERMO, "tutto letto e confermato dall'archivio", impronta, aggiornato, tentativi)
 
 

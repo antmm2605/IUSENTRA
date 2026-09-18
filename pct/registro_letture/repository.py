@@ -18,7 +18,7 @@ from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
 from .fatti_repository import COLONNE_FATTI, FattiMixin
-from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
+from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_compatibile_lettore, versione_lettore
 from .modello import (
     GRAVITA,
     STATI_ANOMALIA,
@@ -375,7 +375,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             lettura = letti.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta))
             if lettura is None or lettura.stato in {"errore", "in_corso"}:
                 mancanti.append(oggetto)
-            elif versione_corrente and lettura.versione_lettore != versione_corrente:
+            elif versione_corrente and lettura.versione_lettore != versione_corrente and not versione_compatibile_lettore(lettore, lettura.versione_lettore, versione_corrente):
                 mancanti.append(oggetto)
         return mancanti
 
@@ -477,7 +477,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 if lettura is None:
                     stato = "da_leggere"
                     mancanti += 1
-                elif lettura.stato == "letto" and versione and lettura.versione_lettore != versione:
+                elif lettura.stato == "letto" and versione and lettura.versione_lettore != versione and not versione_compatibile_lettore(lettore, lettura.versione_lettore, versione):
                     stato = "regole_aggiornate"
                     mancanti += 1
                 elif lettura.stato == "letto":

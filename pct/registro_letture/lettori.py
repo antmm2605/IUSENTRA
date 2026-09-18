@@ -1,10 +1,10 @@
 """I lettori censiti dal registro, con etichetta italiana e versione.
 
-La versione di un lettore cambia quando cambia il modo in cui legge (motore
-OCR, formulario, risolutore del catalogo, analisi economica): un oggetto letto
-da una versione precedente torna «da leggere» per quel lettore, senza toccare
-gli altri. Le versioni si risolvono pigramente per non importare i motori
-dal registro.
+La versione di un lettore cambia quando cambia il modo in cui legge davvero
+il contenuto. Se una versione nuova è compatibile con letture già eseguite,
+il registro non deve riaprire tutti i fascicoli: il ciclo resta fermo e si
+riattiva solo su documento o PEC nuovi/cambiati. Le versioni si risolvono
+pigramente per non importare i motori dal registro.
 """
 
 from __future__ import annotations
@@ -104,6 +104,12 @@ def _versione_motore_documenti() -> str:
     return str(VERSIONE_MOTORE_DOCUMENTI)
 
 
+def _versioni_compatibili_motore_documenti() -> tuple[str, ...]:
+    from pct.archivio_letture.motore_documenti import VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+
+    return tuple(str(v or "") for v in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI if str(v or ""))
+
+
 def _versione_motore_pec() -> str:
     from pct.archivio_letture import VERSIONE_MOTORE_PEC
 
@@ -129,6 +135,11 @@ _VERSIONI: dict[str, Callable[[], str]] = {
 }
 
 
+_VERSIONI_COMPATIBILI: dict[str, Callable[[], tuple[str, ...]]] = {
+    "motore_documenti": _versioni_compatibili_motore_documenti,
+}
+
+
 def versione_lettore(lettore: str) -> str:
     """La versione corrente del lettore; stringa vuota se il lettore non è censito."""
     risolutore = _VERSIONI.get(str(lettore or ""))
@@ -138,6 +149,24 @@ def versione_lettore(lettore: str) -> str:
         return str(risolutore() or "")
     except Exception:
         return "sconosciuta"
+
+
+def versioni_compatibili_lettore(lettore: str, versione_corrente: str | None = None) -> tuple[str, ...]:
+    """Versioni che non impongono una rilettura massiva del contenuto."""
+    corrente = str(versione_corrente if versione_corrente is not None else versione_lettore(lettore) or "")
+    compatibili = {corrente} if corrente else set()
+    risolutore = _VERSIONI_COMPATIBILI.get(str(lettore or ""))
+    if risolutore is not None:
+        try:
+            compatibili.update(str(v or "") for v in risolutore() if str(v or ""))
+        except Exception:
+            pass
+    return tuple(sorted(compatibili))
+
+
+def versione_compatibile_lettore(lettore: str, versione_registrata: str, versione_corrente: str | None = None) -> bool:
+    versione = str(versione_registrata or "")
+    return bool(versione and versione in set(versioni_compatibili_lettore(lettore, versione_corrente)))
 
 
 def livello_lettore(lettore: str) -> str:
@@ -155,4 +184,7 @@ def etichetta_lettore(lettore: str) -> str:
     return voce["etichetta"] if voce else str(lettore or "")
 
 
-__all__ = ["LETTORI", "etichetta_lettore", "livello_lettore", "tipi_lettore", "versione_lettore"]
+__all__ = [
+    "LETTORI", "etichetta_lettore", "livello_lettore", "tipi_lettore",
+    "versione_compatibile_lettore", "versione_lettore", "versioni_compatibili_lettore",
+]

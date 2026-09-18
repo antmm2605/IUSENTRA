@@ -16,7 +16,7 @@ documenti informatici) e art. 20 CAD D.Lgs. 82/2005 (impronta del documento).
 from __future__ import annotations
 
 from .fatti_repository import CATEGORIE, MOTORI, VERIFICHE, VERIFICHE_UTILI, Fatto, chiave_fatto
-from .lettori import LETTORI, etichetta_lettore, versione_lettore
+from .lettori import LETTORI, etichetta_lettore, versione_compatibile_lettore, versione_lettore, versioni_compatibili_lettore
 from .modello import (
     Anomalia,
     Lettura,
@@ -52,5 +52,7 @@ __all__ = [
     "etichetta_lettore",
     "impronta_inventario",
     "impronta_oggetto",
+    "versione_compatibile_lettore",
     "versione_lettore",
+    "versioni_compatibili_lettore",
 ]

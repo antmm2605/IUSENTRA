@@ -644,6 +644,8 @@ def _impronta_viva(fascicolo: Any) -> str:
 
 def stato_ciclo_fascicolo(fascicolo_id: str, registro: RegistroLetture, tenant: str, *, impronta: str = "") -> StatoCiclo:
     """Dove sta il fascicolo nel ciclo dei due motori: fermo, da leggere o in errore."""
+    from pct.registro_letture import versione_compatibile_lettore
+
     riga = dict(registro.impronta_fascicolo(tenant, fascicolo_id, LETTORE_DOCUMENTI) or {})
     if riga.get("esito_json") and "esito" not in riga:
         import json
@@ -652,7 +654,12 @@ def stato_ciclo_fascicolo(fascicolo_id: str, registro: RegistroLetture, tenant: 
             riga["esito"] = json.loads(str(riga.get("esito_json") or "{}"))
         except (TypeError, ValueError):
             riga["esito"] = {}
-    return stato_ciclo(riga or None, versione_attesa=VERSIONE_MOTORE_DOCUMENTI, impronta_attesa=impronta)
+    return stato_ciclo(
+        riga or None,
+        versione_attesa=VERSIONE_MOTORE_DOCUMENTI,
+        impronta_attesa=impronta,
+        versione_compatibile=lambda versione: versione_compatibile_lettore(LETTORE_DOCUMENTI, versione, VERSIONE_MOTORE_DOCUMENTI),
+    )
 
 
 def _mancanti_motori(registro: RegistroLetture, tenant: str, fascicolo_id: str) -> tuple[int, int]:

@@ -29,10 +29,22 @@ def _text(value: Any, fallback: str = "") -> str:
 
 
 def _safe_internal_path(value: Any) -> str:
-    raw = _text(value)
-    if raw.startswith("/") and not raw.startswith("//"):
-        return raw
-    return ""
+    """Il «torna da dove sei arrivato» accettato solo se resta dentro il gestionale.
+
+    La regola e' una sola, dichiarata in `web/services/app_v2_routing.py`: qui
+    si delega invece di riscriverla. La versione locale che c'era prima
+    controllava solo la doppia barra e lasciava passare `/\\host.esterno` e i
+    percorsi con caratteri di controllo (una tabulazione dopo la barra, in
+    certi browser, diventa `//host`). Il momento in cui l'utente uscirebbe dal
+    gestionale e' subito dopo un salvataggio riuscito, cioe' quando si fida di
+    quello che vede.
+    """
+    from web.services.app_v2_routing import is_safe_internal_path
+
+    # sul valore grezzo, non su quello gia' normalizzato: `_text` schiaccia una
+    # tabulazione in uno spazio e nasconderebbe proprio il caso da respingere
+    grezzo = str(value or "").strip()
+    return grezzo if grezzo and is_safe_internal_path(grezzo) else ""
 
 
 def _short(value: Any, limit: int = 120) -> str:

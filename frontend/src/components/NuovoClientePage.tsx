@@ -36,6 +36,7 @@ import {
   type RegistryOption,
 } from '../clientiNuovoData'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { destinazioneDopoSalvataggio, destinazioneInterna, messaggioSalvataggio } from '../lib/salvataggioCliente'
 import { anagraficaDraftKey, useAnagraficaDraft, type AnagraficaDraftStatus } from '../features/anagrafiche/useAnagraficaDraft'
 import './NuovoClientePage.css'
 
@@ -1185,10 +1186,21 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     event.preventDefault()
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
     try {
-      const result = await submitFormJson(action, new FormData(event.currentTarget))
+      const formData = new FormData(event.currentTarget)
+      const result = await submitFormJson(action, formData)
       draft.clearAfterSave()
-      setSubmitState({ saving: false, tone: 'success', message: result.message || 'Cliente salvato.' })
-      redirectAfterSuccess(result, data.mode === 'edit' && data.query.idCliente ? `/clienti/${encodeURIComponent(data.query.idCliente)}` : '/clienti')
+      // In modifica si resta sulla scheda: chi sta correggendo un cliente non
+      // va buttato fuori dal modulo a ogni salvataggio. In creazione si va
+      // alla cartella del cliente appena nato; se la scheda e' stata aperta da
+      // un'altra pagina (`next_url`) si torna li'.
+      const destinazione = destinazioneInterna(result.redirect) ?? destinazioneDopoSalvataggio({
+        mode: data.mode,
+        query: { idCliente: data.query.idCliente },
+        nextUrl: (formData.get('next_url') as string | null) ?? data.query.nextUrl,
+        idSalvato: result.id || null,
+      })
+      setSubmitState({ saving: false, tone: 'success', message: messaggioSalvataggio(destinazione, result.message) })
+      if (destinazione) redirectAfterSuccess({ ...result, redirect: destinazione }, destinazione)
     } catch (error) {
       setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
     }

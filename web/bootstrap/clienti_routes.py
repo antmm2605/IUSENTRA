@@ -361,9 +361,13 @@ def register_clienti_routes(
                     if _richiede_json():
                         return jsonify({"ok": True, "id": id_cliente, "message": "Cliente aggiornato.", "redirect": next_url})
                     return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
-                target = url_for("dettaglio_cliente", id_cliente=id_cliente)
                 if _richiede_json():
-                    return jsonify({"ok": True, "id": id_cliente, "message": "Cliente aggiornato.", "redirect": target})
+                    # Chi corregge una scheda resta sulla scheda: senza questo
+                    # l'avvocato veniva buttato fuori dal modulo a ogni
+                    # salvataggio e doveva rientrare per continuare. La scheda
+                    # React resta dov'e'; il modulo HTML tradizionale non ha un
+                    # «dove sei» da conservare e va al dettaglio come prima.
+                    return jsonify({"ok": True, "id": id_cliente, "message": "Modifiche salvate."})
                 return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
             except (ValueError, KeyError) as exc:
                 if _richiede_json():

@@ -2446,6 +2446,37 @@ def _document_text_with_stamp(text: str, stamp: Any) -> str:
 
 
 def _pdf_layout_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:
+    """Il PDF importato nell'editor atti, fedele all'originale.
+
+    Conserva quello che l'importazione a righe perdeva: tabelle vere (non righe
+    di testo incolonnate), immagini e loghi, grassetto, corsivo, sottolineato,
+    colori, allineamenti, elenchi, formato e margini della pagina. Un atto
+    importato male l'avvocato deve riscriverlo: qui la fedelta' e' tempo di
+    lavoro, non estetica.
+
+    Se PyMuPDF non e' disponibile — o la conversione fedele non riesce — resta
+    il vecchio ripiego a righe: l'importazione non si ferma mai del tutto.
+    """
+    try:
+        from pct.documento_fedele import converti_bytes
+    except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
+        return _pdf_righe_html_from_bytes(data)
+    try:
+        documento = converti_bytes(data, "documento.pdf")
+    except Exception as errore:
+        current_app.logger.warning("Importazione fedele non riuscita, uso il ripiego a righe: %s", errore)
+        return _pdf_righe_html_from_bytes(data)
+    html = "".join(pagina.html for pagina in documento.pagine)
+    if not html.strip():
+        return _pdf_righe_html_from_bytes(data)
+    for avviso in documento.avvisi:
+        current_app.logger.info("Importazione documento: %s", avviso)
+    return html, sorted(documento.caratteri), True
+
+
+
+def _pdf_righe_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:
+    """Il ripiego a righe: usato solo se la conversione fedele non e' disponibile."""
     import io as _io
     import pdfplumber
 

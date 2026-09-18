@@ -202,6 +202,22 @@ export async function clientPortalPost<T = ClientPortalResponse>(
   })
 }
 
+export type LinkInvito = {
+  ok?: boolean
+  available?: boolean
+  url?: string
+  message?: string
+}
+
+/** Il link riservato di un invito, decifrato dal server per l'avvocato. */
+export async function caricaLinkInvito(inviteId: string): Promise<LinkInvito> {
+  if (!inviteId) return { ok: false, available: false, url: '' }
+  return apiJson<LinkInvito>(
+    `/api/v1/ui/client-portal/studio/invites/${encodeURIComponent(inviteId)}/link`,
+    { ok: false, available: false, url: '', message: 'Link non recuperabile.' },
+  )
+}
+
 export type ConversazionePortale = {
   ok?: boolean
   messages?: Record<string, unknown>[]

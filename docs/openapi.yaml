@@ -1612,7 +1612,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/dashboard'
-      description: 'Contratto fase 6 derivato da `studio_dashboard` in `web/blueprints/api_v1_client_portal.py:123`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_dashboard` in `web/blueprints/api_v1_client_portal.py:124`. Pagina/area
         collegata: Portale Clienti (/app/portale-clienti). I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_studio_dashboard_get
@@ -1659,7 +1659,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/appointments/{appointment_id}'
-      description: 'Contratto fase 6 derivato da `public_appointment_update` in `web/blueprints/api_v1_client_portal.py:289`.
+      description: 'Contratto fase 6 derivato da `public_appointment_update` in `web/blueprints/api_v1_client_portal.py:297`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_appointment_update_post
       security:
@@ -1713,7 +1713,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/consents'
-      description: 'Contratto fase 6 derivato da `public_consent_update` in `web/blueprints/api_v1_client_portal.py:251`.
+      description: 'Contratto fase 6 derivato da `public_consent_update` in `web/blueprints/api_v1_client_portal.py:259`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_consent_update_post
       security:
@@ -1761,7 +1761,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/conversation'
-      description: 'Contratto fase 6 derivato da `public_conversation` in `web/blueprints/api_v1_client_portal.py:261`. Pagina/area
+      description: 'Contratto fase 6 derivato da `public_conversation` in `web/blueprints/api_v1_client_portal.py:269`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_conversation_get
       security:
@@ -1806,7 +1806,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/conversation-export'
-      description: 'Contratto fase 6 derivato da `public_conversation_export` in `web/blueprints/api_v1_client_portal.py:309`.
+      description: 'Contratto fase 6 derivato da `public_conversation_export` in `web/blueprints/api_v1_client_portal.py:317`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_conversation_export_get
       security:
@@ -1851,7 +1851,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/dashboard'
-      description: 'Contratto fase 6 derivato da `public_dashboard` in `web/blueprints/api_v1_client_portal.py:236`. Pagina/area
+      description: 'Contratto fase 6 derivato da `public_dashboard` in `web/blueprints/api_v1_client_portal.py:244`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_dashboard_get
       security:
@@ -1896,7 +1896,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/documents'
-      description: 'Contratto fase 6 derivato da `public_document_upload` in `web/blueprints/api_v1_client_portal.py:267`.
+      description: 'Contratto fase 6 derivato da `public_document_upload` in `web/blueprints/api_v1_client_portal.py:275`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_document_upload_post
       security:
@@ -1948,7 +1948,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/documents/{document_id}/download'
-      description: 'Contratto fase 6 derivato da `public_document_file` in `web/blueprints/api_v1_client_portal.py:275`. Pagina/area
+      description: 'Contratto fase 6 derivato da `public_document_file` in `web/blueprints/api_v1_client_portal.py:283`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_document_file_get
       security:
@@ -1999,7 +1999,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/invites/{token}'
-      description: 'Contratto fase 6 derivato da `public_invite_preview` in `web/blueprints/api_v1_client_portal.py:226`.
+      description: 'Contratto fase 6 derivato da `public_invite_preview` in `web/blueprints/api_v1_client_portal.py:234`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_invite_preview_get
       security:
@@ -2050,7 +2050,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/invites/{token}/accept'
-      description: 'Contratto fase 6 derivato da `public_invite_accept` in `web/blueprints/api_v1_client_portal.py:231`. Pagina/area
+      description: 'Contratto fase 6 derivato da `public_invite_accept` in `web/blueprints/api_v1_client_portal.py:239`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_invite_accept_post
       security:
@@ -2104,7 +2104,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/messages'
-      description: 'Contratto fase 6 derivato da `public_message_create` in `web/blueprints/api_v1_client_portal.py:256`.
+      description: 'Contratto fase 6 derivato da `public_message_create` in `web/blueprints/api_v1_client_portal.py:264`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_message_create_post
       security:
@@ -2152,7 +2152,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/notifications/{notification_id}/read'
-      description: 'Contratto fase 6 derivato da `public_notification_read` in `web/blueprints/api_v1_client_portal.py:294`.
+      description: 'Contratto fase 6 derivato da `public_notification_read` in `web/blueprints/api_v1_client_portal.py:302`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_notification_read_post
       security:
@@ -2206,7 +2206,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/preferences'
-      description: 'Contratto fase 6 derivato da `public_preferences_update` in `web/blueprints/api_v1_client_portal.py:246`.
+      description: 'Contratto fase 6 derivato da `public_preferences_update` in `web/blueprints/api_v1_client_portal.py:254`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_preferences_update_post
       security:
@@ -2254,7 +2254,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/profile'
-      description: 'Contratto fase 6 derivato da `public_profile_update` in `web/blueprints/api_v1_client_portal.py:241`.
+      description: 'Contratto fase 6 derivato da `public_profile_update` in `web/blueprints/api_v1_client_portal.py:249`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_profile_update_post
       security:
@@ -2302,7 +2302,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/questionnaires/{questionnaire_id}'
-      description: 'Contratto fase 6 derivato da `public_questionnaire_submit` in `web/blueprints/api_v1_client_portal.py:299`.
+      description: 'Contratto fase 6 derivato da `public_questionnaire_submit` in `web/blueprints/api_v1_client_portal.py:307`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_questionnaire_submit_post
       security:
@@ -2356,7 +2356,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signatures/{signature_id}/complete'
-      description: 'Contratto fase 6 derivato da `public_signature_complete` in `web/blueprints/api_v1_client_portal.py:284`.
+      description: 'Contratto fase 6 derivato da `public_signature_complete` in `web/blueprints/api_v1_client_portal.py:292`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signature_complete_post
       security:
@@ -2410,7 +2410,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/conferimento/{conferimento_id}/sign'
-      description: 'Contratto fase 6 derivato da `public_signing_conferimento_sign` in `web/blueprints/api_v1_client_portal.py:335`.
+      description: 'Contratto fase 6 derivato da `public_signing_conferimento_sign` in `web/blueprints/api_v1_client_portal.py:343`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_conferimento_sign_post
       security:
@@ -2464,7 +2464,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/conferimento/{conferimento_id}/upload-signed'
-      description: 'Contratto fase 6 derivato da `public_signing_conferimento_upload_signed` in `web/blueprints/api_v1_client_portal.py:340`.
+      description: 'Contratto fase 6 derivato da `public_signing_conferimento_upload_signed` in `web/blueprints/api_v1_client_portal.py:348`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_conferimento_upload_signed_post
       security:
@@ -2522,7 +2522,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/identity-document'
-      description: 'Contratto fase 6 derivato da `public_signing_identity_document` in `web/blueprints/api_v1_client_portal.py:356`.
+      description: 'Contratto fase 6 derivato da `public_signing_identity_document` in `web/blueprints/api_v1_client_portal.py:364`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_identity_document_post
       security:
@@ -2570,7 +2570,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/otp/start'
-      description: 'Contratto fase 6 derivato da `public_signing_otp_start` in `web/blueprints/api_v1_client_portal.py:361`.
+      description: 'Contratto fase 6 derivato da `public_signing_otp_start` in `web/blueprints/api_v1_client_portal.py:369`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_otp_start_post
       security:
@@ -2618,7 +2618,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/otp/verify'
-      description: 'Contratto fase 6 derivato da `public_signing_otp_verify` in `web/blueprints/api_v1_client_portal.py:366`.
+      description: 'Contratto fase 6 derivato da `public_signing_otp_verify` in `web/blueprints/api_v1_client_portal.py:374`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_otp_verify_post
       security:
@@ -2666,7 +2666,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/signing/overview'
-      description: 'Contratto fase 6 derivato da `public_signing_overview` in `web/blueprints/api_v1_client_portal.py:320`.
+      description: 'Contratto fase 6 derivato da `public_signing_overview` in `web/blueprints/api_v1_client_portal.py:328`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_overview_get
       security:
@@ -2711,7 +2711,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/preventivi/{preventivo_id}/accept'
-      description: 'Contratto fase 6 derivato da `public_signing_preventivo_accept` in `web/blueprints/api_v1_client_portal.py:325`.
+      description: 'Contratto fase 6 derivato da `public_signing_preventivo_accept` in `web/blueprints/api_v1_client_portal.py:333`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_preventivo_accept_post
       security:
@@ -2765,7 +2765,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/signing/preventivi/{preventivo_id}/decline'
-      description: 'Contratto fase 6 derivato da `public_signing_preventivo_decline` in `web/blueprints/api_v1_client_portal.py:330`.
+      description: 'Contratto fase 6 derivato da `public_signing_preventivo_decline` in `web/blueprints/api_v1_client_portal.py:338`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_preventivo_decline_post
       security:
@@ -2819,7 +2819,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/public/signing/receipt'
-      description: 'Contratto fase 6 derivato da `public_signing_receipt` in `web/blueprints/api_v1_client_portal.py:371`.
+      description: 'Contratto fase 6 derivato da `public_signing_receipt` in `web/blueprints/api_v1_client_portal.py:379`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_signing_receipt_get
       security:
@@ -2864,7 +2864,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/public/surveys'
-      description: 'Contratto fase 6 derivato da `public_survey_submit` in `web/blueprints/api_v1_client_portal.py:304`. Pagina/area
+      description: 'Contratto fase 6 derivato da `public_survey_submit` in `web/blueprints/api_v1_client_portal.py:312`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_public_survey_submit_post
       security:
@@ -2912,7 +2912,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/appointments'
-      description: 'Contratto fase 6 derivato da `studio_appointment_create` in `web/blueprints/api_v1_client_portal.py:209`.
+      description: 'Contratto fase 6 derivato da `studio_appointment_create` in `web/blueprints/api_v1_client_portal.py:217`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_appointment_create_post
       security:
@@ -2961,7 +2961,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/conversation'
-      description: 'Contratto fase 6 derivato da `studio_conversation` in `web/blueprints/api_v1_client_portal.py:160`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_conversation` in `web/blueprints/api_v1_client_portal.py:168`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_conversation_get
       security:
@@ -3007,7 +3007,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/conversation-export'
-      description: 'Contratto fase 6 derivato da `studio_conversation_export` in `web/blueprints/api_v1_client_portal.py:221`.
+      description: 'Contratto fase 6 derivato da `studio_conversation_export` in `web/blueprints/api_v1_client_portal.py:229`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_conversation_export_get
       security:
@@ -3053,7 +3053,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/dashboard'
-      description: 'Contratto fase 6 derivato da `studio_dashboard` in `web/blueprints/api_v1_client_portal.py:123`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_dashboard` in `web/blueprints/api_v1_client_portal.py:124`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_dashboard_get
       security:
@@ -3099,7 +3099,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/document-requests'
-      description: 'Contratto fase 6 derivato da `studio_document_request_create` in `web/blueprints/api_v1_client_portal.py:174`.
+      description: 'Contratto fase 6 derivato da `studio_document_request_create` in `web/blueprints/api_v1_client_portal.py:182`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_document_request_create_post
       security:
@@ -3148,7 +3148,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/documents/{document_id}/download'
-      description: 'Contratto fase 6 derivato da `studio_document_file` in `web/blueprints/api_v1_client_portal.py:199`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_document_file` in `web/blueprints/api_v1_client_portal.py:207`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_document_file_get
       security:
@@ -3200,7 +3200,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/documents/{document_id}/review'
-      description: 'Contratto fase 6 derivato da `studio_document_review` in `web/blueprints/api_v1_client_portal.py:377`.
+      description: 'Contratto fase 6 derivato da `studio_document_review` in `web/blueprints/api_v1_client_portal.py:385`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_document_review_post
       security:
@@ -3255,7 +3255,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/evidence-packs'
-      description: 'Contratto fase 6 derivato da `studio_evidence_pack_create` in `web/blueprints/api_v1_client_portal.py:215`.
+      description: 'Contratto fase 6 derivato da `studio_evidence_pack_create` in `web/blueprints/api_v1_client_portal.py:223`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_evidence_pack_create_post
       security:
@@ -3304,7 +3304,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/invites'
-      description: 'Contratto fase 6 derivato da `studio_invite_create` in `web/blueprints/api_v1_client_portal.py:142`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_invite_create` in `web/blueprints/api_v1_client_portal.py:143`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_invite_create_post
       security:
@@ -3348,12 +3348,64 @@ paths:
             schema:
               $ref: '#/components/schemas/MutationRequest'
         description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/client-portal/studio/invites/{invite_id}/link:
+    get:
+      tags:
+      - Portale Cliente
+      summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/invites/{invite_id}/link'
+      description: 'Contratto fase 6 derivato da `studio_invite_link_read` in `web/blueprints/api_v1_client_portal.py:161`.
+        Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_studio_invite_link_read_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: invite_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Portale Cliente nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientPortalResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: clienti.leggi/scrivi oppure invito cliente valido
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
   /api/v1/ui/client-portal/studio/invites/{invite_id}/revoke:
     post:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/invites/{invite_id}/revoke'
-      description: 'Contratto fase 6 derivato da `studio_invite_revoke` in `web/blueprints/api_v1_client_portal.py:148`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_invite_revoke` in `web/blueprints/api_v1_client_portal.py:149`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_invite_revoke_post
       security:
@@ -3408,7 +3460,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/messages'
-      description: 'Contratto fase 6 derivato da `studio_message_create` in `web/blueprints/api_v1_client_portal.py:154`.
+      description: 'Contratto fase 6 derivato da `studio_message_create` in `web/blueprints/api_v1_client_portal.py:155`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_message_create_post
       security:
@@ -3457,7 +3509,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: GET /api/v1/ui/client-portal/studio/settings'
-      description: 'Contratto fase 6 derivato da `studio_settings` in `web/blueprints/api_v1_client_portal.py:129`. Pagina/area
+      description: 'Contratto fase 6 derivato da `studio_settings` in `web/blueprints/api_v1_client_portal.py:130`. Pagina/area
         collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_settings_get
       security:
@@ -3502,7 +3554,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/settings'
-      description: 'Contratto fase 6 derivato da `studio_settings_update` in `web/blueprints/api_v1_client_portal.py:136`.
+      description: 'Contratto fase 6 derivato da `studio_settings_update` in `web/blueprints/api_v1_client_portal.py:137`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_settings_update_post
       security:
@@ -3551,7 +3603,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/signature-requests'
-      description: 'Contratto fase 6 derivato da `studio_signature_request_create` in `web/blueprints/api_v1_client_portal.py:180`.
+      description: 'Contratto fase 6 derivato da `studio_signature_request_create` in `web/blueprints/api_v1_client_portal.py:188`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_signature_request_create_post
       security:
@@ -3600,7 +3652,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale Cliente: POST /api/v1/ui/client-portal/studio/signature-requests/upload'
-      description: 'Contratto fase 6 derivato da `studio_signature_request_upload` in `web/blueprints/api_v1_client_portal.py:186`.
+      description: 'Contratto fase 6 derivato da `studio_signature_request_upload` in `web/blueprints/api_v1_client_portal.py:194`.
         Pagina/area collegata: Portale Cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_studio_signature_request_upload_post
       security:

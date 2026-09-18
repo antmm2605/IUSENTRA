@@ -27,6 +27,7 @@ import {
   acceptInvite,
   clientPortalDocumentUrl,
   caricaConversazioneCliente,
+  caricaLinkInvito,
   caricaConversazioneStudio,
   clientPortalPost,
   clientPortalTokenFromPath,
@@ -228,6 +229,7 @@ function ClientPortalStudio() {
   const [selectedMatterId, setSelectedMatterId] = useState('')
   const [clientSearch, setClientSearch] = useState('')
   const [inviteForm, setInviteForm] = useState({ clientId: '', matterId: '', preventivoId: '', message: '', expiresDays: 14 })
+  const [linkRecuperati, setLinkRecuperati] = useState<Record<string, { url: string; message: string }>>({})
   const [messageBody, setMessageBody] = useState('')
   const [requestTitle, setRequestTitle] = useState('')
   const [signatureTitle, setSignatureTitle] = useState('')
@@ -429,6 +431,20 @@ function ClientPortalStudio() {
   const focusMatterLink = (matter: PortalRow) => {
     setSelectedMatterId(rowId(matter))
     scrollToPanel('portale-clienti-link-cliente')
+  }
+
+  // Il link non è conservato in chiaro: si chiede al server, che lo decifra
+  // solo per l'avvocato autenticato. Se non è recuperabile lo dice, invece di
+  // mostrare un collegamento finto.
+  const mostraLinkInvito = async (inviteId: string) => {
+    const risposta = await caricaLinkInvito(inviteId)
+    setLinkRecuperati((correnti) => ({
+      ...correnti,
+      [inviteId]: {
+        url: text(risposta.url),
+        message: risposta.available ? '' : text(risposta.message, 'Link non recuperabile: rigenera l\'invito.'),
+      },
+    }))
   }
 
   const focusMatterChat = (matter: PortalRow) => {
@@ -636,12 +652,30 @@ function ClientPortalStudio() {
               )}
               <div className="iu-client-portal-invite-list" aria-label="Inviti cliente">
                 {selectedInvites.length === 0 ? <span className="iu-client-portal-muted">Nessun invito registrato per questa pratica.</span> : null}
-                {selectedInvites.map((invite) => (
-                  <article key={rowId(invite)}>
-                    <strong>{statusLabel(invite.status)}</strong>
-                    <span>{text(invite.expires_at_label) ? `Scade il ${text(invite.expires_at_label)}` : 'Scadenza non disponibile'}</span>
-                  </article>
-                ))}
+                {selectedInvites.map((invite) => {
+                  const idInvito = rowId(invite)
+                  const recuperato = linkRecuperati[idInvito]
+                  return (
+                    <article key={idInvito}>
+                      <strong>{statusLabel(invite.status)}</strong>
+                      <span>{text(invite.expires_at_label) ? `Scade il ${text(invite.expires_at_label)}` : 'Scadenza non disponibile'}</span>
+                      {recuperato?.url ? (
+                        <>
+                          <input readOnly value={recuperato.url} onFocus={(event) => event.currentTarget.select()} aria-label={`Link cliente dell'invito ${idInvito}`}/>
+                          <button className="iu-client-portal-inline" type="button" onClick={() => copyInviteLink(recuperato.url)}>
+                            <Copy size={14} aria-hidden="true"/>Copia
+                          </button>
+                        </>
+                      ) : recuperato?.message ? (
+                        <span className="iu-client-portal-muted">{recuperato.message}</span>
+                      ) : (
+                        <button className="iu-client-portal-inline" type="button" onClick={() => mostraLinkInvito(idInvito)}>
+                          <Link2 size={14} aria-hidden="true"/>Mostra link
+                        </button>
+                      )}
+                    </article>
+                  )
+                })}
               </div>
             </section>
             <div className="iu-client-portal-workgrid">

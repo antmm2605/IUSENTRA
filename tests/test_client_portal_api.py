@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import io
 import sqlite3
 from pathlib import Path
@@ -471,3 +472,54 @@ def test_client_portal_conversazione_cliente_senza_token_non_espone_nulla(tmp_pa
         risposta = client.get("/api/v1/ui/client-portal/public/conversation").get_json()
 
     assert risposta["ok"] is False
+
+
+def test_client_portal_link_invito_si_rivede_cifrato_e_non_viaggia_nei_payload(tmp_path: Path, monkeypatch):
+    """L'avvocato rivede il link; il token cifrato non lascia il server.
+
+    Il database conserva del token solo l'impronta: senza una copia cifrata il
+    link esisterebbe solo nell'istante in cui nasce. La copia sta accanto
+    all'invito, protetta con la stessa chiave dei documenti, e si decifra solo
+    per l'avvocato autenticato.
+
+    Base normativa: GDPR art. 32 § 1 lett. a).
+    """
+    monkeypatch.setenv("PCT_DOC_KEY", "chiave-di-prova-per-il-portale")
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        token, invito = _create_invite(client, cliente.id, fascicolo.id)
+        invite_id = invito["invite"]["id"]
+
+        risposta = client.get(f"/api/v1/ui/client-portal/studio/invites/{invite_id}/link").get_json()
+        dashboard = client.get("/api/v1/ui/client-portal/dashboard").get_json()
+
+    assert risposta["ok"] is True
+    assert risposta["available"] is True
+    assert risposta["url"].endswith(f"/portale-cliente/invito/{token}")
+
+    # Il token cifrato resta sul server: nei payload non compare mai.
+    riga = next(voce for voce in dashboard["invites"] if voce["id"] == invite_id)
+    assert "token_cifrato" not in (riga.get("metadata") or {})
+    assert token not in json.dumps(dashboard)
+
+
+def test_client_portal_link_invito_senza_chiave_dice_di_rigenerare(tmp_path: Path, monkeypatch):
+    """Fail-closed: niente chiave, niente token conservato, e lo si dice."""
+    monkeypatch.delenv("PCT_DOC_KEY", raising=False)
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        _token, invito = _create_invite(client, cliente.id, fascicolo.id)
+        risposta = client.get(
+            f"/api/v1/ui/client-portal/studio/invites/{invito['invite']['id']}/link"
+        ).get_json()
+
+    assert risposta["ok"] is True
+    assert risposta["available"] is False
+    assert risposta["url"] == ""
+    assert "Rigenera" in risposta["message"] or "rigenera" in risposta["message"]

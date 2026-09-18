@@ -37,6 +37,7 @@ from web.services.react_client_portal_bridge import (
     studio_add_appointment,
     studio_add_document_request,
     studio_add_message,
+    studio_invite_link,
     studio_add_signature_request,
     studio_create_evidence_pack,
     studio_document_download,
@@ -153,6 +154,13 @@ def studio_invite_revoke(invite_id: str):
 @_studio_auth_required
 def studio_message_create():
     return _json(studio_add_message(_json_body()))
+
+
+@api_v1_client_portal.get("/studio/invites/<invite_id>/link")
+@_studio_auth_required
+def studio_invite_link_read(invite_id: str):
+    """Il link riservato di un invito, decifrato per l'avvocato autenticato."""
+    return _json(studio_invite_link({"inviteId": invite_id}))
 
 
 @api_v1_client_portal.get("/studio/conversation")

@@ -504,11 +504,40 @@ class ClientPortalRepository:
             "last_sent_at": now,
             "channel": channel or "email",
             "notes": notes,
-            "metadata_json": json_dumps(metadata or {}),
+            "metadata_json": json_dumps(self._metadata_con_token(metadata, token)),
         }
         self._insert("client_portal_invites", record)
         self.record_audit(tenant_id, "studio", actor_id, "client_portal.invite.create", "invite", record["id"], {"clientId": client_id, "matterId": matter_id})
         return {"invite": record, "token": token}
+
+    @staticmethod
+    def _metadata_con_token(metadata: dict[str, Any] | None, token: str) -> dict[str, Any]:
+        """Aggiunge il token cifrato ai metadati dell'invito, se si puo'.
+
+        Serve a rimostrare il link all'avvocato che lo ha generato: l'impronta
+        `token_hash` verifica ma non restituisce. La cifratura e' fail-closed —
+        senza chiave non si conserva nulla e il link resta solo rigenerabile.
+        """
+        from pct.client_portal_token_cifrato import cifra_token
+
+        dati = dict(metadata or {})
+        cifrato = cifra_token(token)
+        if cifrato:
+            dati["token_cifrato"] = cifrato
+        return dati
+
+    def invite_token_in_chiaro(self, invite: dict[str, Any] | None) -> str:
+        """Il link di un invito, per l'avvocato autenticato. Vuoto se perduto."""
+        from pct.client_portal_token_cifrato import decifra_token
+
+        if not invite:
+            return ""
+        metadata = invite.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = json_loads(invite.get("metadata_json"), {})
+        if not isinstance(metadata, dict):
+            return ""
+        return decifra_token(str(metadata.get("token_cifrato") or ""))
 
     def find_invite_by_token(self, token: str) -> dict[str, Any] | None:
         digest = token_hash(token)

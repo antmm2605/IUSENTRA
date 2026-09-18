@@ -353,6 +353,12 @@ def _public_row(row: dict[str, Any], *, include_private: bool = False) -> dict[s
         if key.endswith("_json"):
             cleaned[key[:-5]] = json_loads(value, {} if value == "{}" else [])
             cleaned.pop(key, None)
+    # Il token cifrato dell'invito resta sul server anche se e' cifrato: e' la
+    # credenziale d'accesso al portale del cliente e non ha motivo di viaggiare.
+    # Si rimostra solo su richiesta esplicita dell'avvocato autenticato.
+    metadata = cleaned.get("metadata")
+    if isinstance(metadata, dict) and "token_cifrato" in metadata:
+        cleaned["metadata"] = {chiave: valore for chiave, valore in metadata.items() if chiave != "token_cifrato"}
     for key in ("created_at", "updated_at", "uploaded_at", "accepted_at", "expires_at", "starts_at", "ends_at", "submitted_at", "completed_at", "read_at"):
         if key in cleaned:
             cleaned[f"{key}_label"] = _iso_to_rome_label(cleaned.get(key))
@@ -625,6 +631,44 @@ def studio_add_message(payload: dict[str, Any]) -> dict[str, Any]:
     message = repo.add_message(tenant_id, matter_id=matter_id, sender_type="studio", sender_id=_actor_id(), body=_text(payload.get("body")))
     repo.add_notification(tenant_id, client_id=_text(matter.get("client_id")), matter_id=matter_id, title="Nuovo messaggio dallo studio", body="Apri la chat della pratica.", kind="messaggio", href="/portale-cliente?tab=chat")
     return {"ok": True, "message": "Messaggio inviato.", "item": _public_row(message, include_private=True), "dashboard": build_studio_dashboard_payload()}
+
+
+def studio_invite_link(payload: dict[str, Any]) -> dict[str, Any]:
+    """Il link riservato di un invito, per l'avvocato che lo ha generato.
+
+    Il database conserva del token solo l'impronta; il link si rimostra perche'
+    accanto c'e' una copia cifrata con la chiave del server. Se manca — nessuna
+    chiave configurata, oppure invito creato prima di questa protezione — si
+    dice chiaramente che non e' recuperabile e va rigenerato, invece di
+    mostrare un link finto.
+    """
+    if not _can("clienti.leggi"):
+        return {"ok": False, "code": "forbidden", "message": "Permesso clienti.leggi richiesto."}
+    repo = repository_for_current_request()
+    tenant_id = _current_tenant_id()
+    invite_id = _text(payload.get("inviteId"))
+    invite = next(
+        (riga for riga in (repo.dashboard_snapshot(tenant_id).get("invites") or []) if _text(riga.get("id")) == invite_id),
+        None,
+    ) if invite_id else None
+    if not invite:
+        return {"ok": False, "code": "validation_error", "message": "Invito non trovato."}
+    token = repo.invite_token_in_chiaro(invite)
+    if not token:
+        from pct.client_portal_token_cifrato import cifratura_disponibile
+
+        motivo = (
+            "Il link non è più recuperabile: questo invito è stato creato prima che il token venisse conservato cifrato. Rigeneralo per averne uno nuovo."
+            if cifratura_disponibile()
+            else "Il link non è recuperabile perché il server non ha la chiave di cifratura (PCT_DOC_KEY). Rigenera l'invito quando serve inviarlo."
+        )
+        return {"ok": True, "available": False, "url": "", "message": motivo}
+    return {
+        "ok": True,
+        "available": True,
+        "url": _public_url(f"/portale-cliente/invito/{token}"),
+        "invite": _public_row(invite, include_private=True),
+    }
 
 
 def studio_add_document_request(payload: dict[str, Any]) -> dict[str, Any]:

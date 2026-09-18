@@ -2432,12 +2432,36 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
 
 .iu-client-portal-invite-list article {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   gap: 8px;
   align-items: center;
   min-height: 34px;
   border-top: 1px solid rgba(148, 163, 184, .22);
   padding-top: 7px;
+}
+
+/* Il link recuperato occupa la riga sotto stato e scadenza: su schermo stretto
+   un campo con un URL intero non sta accanto alle altre due colonne. */
+.iu-client-portal-invite-list article input {
+  grid-column: 1 / -1;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font-size: 12px;
+}
+
+.iu-client-portal-invite-list article > .iu-client-portal-muted {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .iu-client-portal-invite-list article {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .iu-client-portal-matter-list {

@@ -16,11 +16,13 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .collaudo import Contesto, collauda_tutti
 from .estrazione_date import estrai_date
+from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
+from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.18.motore-documenti.v11+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.18.motore-documenti.v12+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
     VERSIONE_MOTORE_DOCUMENTI,
     f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}",
@@ -51,7 +53,12 @@ def leggi_testo(
     if not testo.strip():
         return []
     from .estrazione_domanda import estrai_domanda
-    fatti: list[Fatto] = estrai_date(testo, origine=origine)
+    from .estrazione_istituti import qualifica_istituti
+    # La data non basta: «termine del 10/09/2026» non dice all'avvocato che cosa
+    # deve fare. Qui la data prende il nome del suo istituto — deposito di note
+    # ex art. 127-ter c.p.c. — e da quello nascono i termini che il decreto
+    # impone senza scriverne la data.
+    fatti: list[Fatto] = qualifica_istituti(estrai_date(testo, origine=origine), testo, origine=origine)
     fatti.extend(estrai_domanda(testo, origine=origine, contesto=contesto))
     if con_notifiche:
         fatti.extend(estrai_prove_notifica(testo, origine=origine, nome=nome))

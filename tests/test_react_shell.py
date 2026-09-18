@@ -7481,21 +7481,26 @@ def test_react_fascicolo_dettaglio_espone_presidio_documenti_udienza(monkeypatch
         b"%PDF-1.4\ndecreto\n%%EOF",
         note="Decreto fissazione udienza",
     )
-    monkeypatch.setattr(
-        bridge,
-        "_document_ai_texts_for_fascicolo",
-        lambda item, documents=None: {
-            decreto.id: (
-                "TRIBUNALE DI PALMI N. R.G. 1733/2026 Punturiero Rosa c. MIM. "
-                "Ai sensi dell'art. 127 ter c.p.c. in sostituzione dell'udienza "
-                "FISSA termine del 10/09/2026 per il deposito di note scritte. "
-                "ONERA parte ricorrente della notificazione entro e non oltre 30 giorni prima dell'udienza fissata. "
-                "ASSEGNA al resistente termine sino a 10 giorni prima della scadenza per la costituzione."
-            )
-        }
-        if getattr(item, "id", "") == fascicolo.id
-        else {},
+    # Il decreto l'hanno gia' letto i motori: dalla data hanno riconosciuto
+    # l'istituto (deposito di note ex art. 127-ter c.p.c.) e ne hanno fatto
+    # discendere i termini che il decreto impone senza scriverne la data.
+    from datetime import date as _date
+
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    testo_decreto = (
+        "TRIBUNALE DI PALMI N. R.G. 1733/2026 Punturiero Rosa c. MIM. "
+        "Ai sensi dell'art. 127 ter c.p.c. in sostituzione dell'udienza "
+        "FISSA termine del 10/09/2026 per il deposito di note scritte. "
+        "ONERA parte ricorrente della notificazione entro e non oltre 30 giorni prima dell'udienza fissata. "
+        "ASSEGNA al resistente termine sino a 10 giorni prima della scadenza per la costituzione."
     )
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    _semina_archivio(app, fascicolo.id, decreto, leggi_testo(
+        testo_decreto, origine="indice",
+        contesto=Contesto(oggi=_date(2026, 7, 12), numero_rg="1733", anno_rg="2026"),
+    ))
 
     response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()

@@ -335,3 +335,52 @@ def riepilogo_rt_allegate(
         "totale_eseguito": totale,
         "issues": issues,
     }
+
+
+# ---------------------------------------------------------------------------
+# Riconoscimento della ricevuta caricata dall'avvocato
+# ---------------------------------------------------------------------------
+
+#: oltre questa dimensione il file non e' una RT: la ricevuta e' un XML piccolo
+RT_MASSIMO_BYTE = 2 * 1024 * 1024
+
+
+def nota_ricevuta(rt: "RicevutaTelematica", *, marcatore: str = "") -> str:
+    """La nota che accompagna la ricevuta nel fascicolo: esito, importo, IUV, data.
+
+    L'avvocato deve poter leggere dal fascicolo che cosa prova quel file, senza
+    riaprirlo: la ricevuta e' la prova tecnica del pagamento nei servizi
+    telematici (il promemoria PDF non la sostituisce).
+    """
+    righe = [marcatore] if marcatore else []
+    righe += [
+        f"Ricevuta telematica pagoPA — esito: {rt.esito_label}",
+        f"importo: {format_importo_euro_it(rt.importo_totale)}",
+        f"IUV: {rt.iuv or 'n.d.'}",
+        f"data ricevuta: {rt.data_ricevuta or 'n.d.'}",
+    ]
+    if rt.causale:
+        righe.append(f"causale: {rt.causale[:200]}")
+    return "\n".join(righe)
+
+
+def riconosci_ricevuta_caricata(nome: str, contenuto: bytes) -> "RicevutaTelematica | None":
+    """La ricevuta telematica dentro un file che l'avvocato ha caricato, se c'e'.
+
+    Serve al caricamento normale dei documenti: chi ha appena pagato sul
+    portale trascina la RT nel fascicolo come farebbe con qualsiasi altro
+    file, e non deve dover scegliere una via speciale perche' il pagamento
+    venga registrato.
+
+    Fail-closed: un file che non e' una RT valida secondo lo schema
+    ministeriale torna `None` e resta un documento come gli altri. Non si
+    tenta di indovinare un pagamento da un PDF o da un nome di file.
+    """
+    if not contenuto or len(contenuto) > RT_MASSIMO_BYTE:
+        return None
+    if not str(nome or "").casefold().endswith((".xml", ".xml.p7m")):
+        return None
+    try:
+        return parse_rt(contenuto)
+    except Exception:
+        return None

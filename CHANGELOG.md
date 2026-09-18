@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.321.0 - 18/09/2026
+
+**I motori imparano l'art. 127-ter c.p.c.** «Termine del 10/09/2026» non dice all'avvocato che cosa deve fare; «deposito di note scritte ex art. 127-ter c.p.c.» sì. Ora la qualificazione dell'istituto si legge **una volta sola**, insieme alla data, e finisce nell'archivio con la norma che la governa (`pct/archivio_letture/istituti_processuali.py`, `estrazione_istituti.py`). Prima viveva nel presidio, che riapriva il testo a ogni richiesta dell'avvocato: due presìdi potevano qualificare lo stesso decreto in due modi diversi.
+
+**Dalla qualificazione nascono i termini che il decreto impone senza scriverne la data**: la notifica di ricorso e decreto trenta giorni prima, la costituzione del resistente dieci giorni prima. Solo quelli che il decreto dichiara: un decreto che non parla della notifica non fa nascere un termine di notifica, e inventarlo metterebbe in scadenziario una data che nessun giudice ha imposto. Riconosciuto anche l'art. 127-bis (udienza da remoto) con il suo termine di costituzione.
+
+**L'autocertificazione di esenzione archiviata sotto la voce sbagliata torna dove appartiene.** Le pratiche importate da un gestionale precedente la portano spesso sotto «spese ed esborsi»: l'import ha conservato il file, non il suo significato. Per l'avvocato era doppio danno — il contributo unificato restava «da registrare» per una somma non dovuta, e fra le spese compariva una voce che spesa non è. Si riconosce dal nome del documento (`pct/fascicolo_esenzione_cu.py`), senza aprirlo.
+
+**La ricevuta pagoPA viene riconosciuta anche quando l'avvocato la carica fra i documenti.** Il pagamento avviene sul portale ufficiale con la sua autenticazione — il gestionale non paga e non scarica nulla, sono le regole PST. Ma chi ha appena pagato trascina la ricevuta nel fascicolo come farebbe con qualsiasi altro file, e non deve dover scegliere una via speciale: se è una `RT.xml` valida secondo lo schema ministeriale `PagamentiTelematiciGiustizia`, il contributo unificato risulta versato, con importo, IUV e data in nota. **Fail-closed**: solo l'esito «eseguito» prova un versamento; una ricevuta con esito diverso resta agli atti con la sua nota e non fa risultare pagato nulla. Un file che RT non è resta un documento come gli altri: non si indovina un pagamento da un nome. Base normativa: art. 4 c.9 D.L. 193/2009; D.P.R. 115/2002 art. 13.
+
+Test: istituti processuali 8, esenzione importata 11, ricevuta pagoPA caricata 6.
+
 ## 2.320.27 - 18/09/2026
 
 **La sezione documenti del fascicolo torna a chiedere la lettura dei documenti mancanti.** Anche la funzione che ordina la lettura mirata delle date processuali era rimasta definita ma scollegata: aprire la sezione documenti non metteva in coda nulla, e le date arrivavano solo quando il giro periodico capitava su quel fascicolo. Ora la richiede — e solo lì: la lista e il riepilogo continuano a mostrare soltanto ciò che i motori hanno già letto e collaudato, perché nella richiesta dell'avvocato non si legge.

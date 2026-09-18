@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
+from flask import Flask, current_app, flash, g, jsonify, redirect, request, send_file, url_for
 
 from pct.document_management import normalize_document_tags
 from pct.document_intelligence.sources import source_from_uploaded_document
@@ -33,6 +33,56 @@ from web.services.fascicoli_document_rename import rinomina_documento_response
 from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
 from web.services.document_tools import DocumentToolError, rotate_pdf_bytes
 from web.services.signed_document_runtime import build_document_signed_snapshot_from_bytes, build_document_version_candidates
+
+def _registra_ricevuta_pagopa(gestore: Any, id_fasc: str, documento: Any, nome: str, contenuto: bytes) -> int:
+    """Se il file caricato e' una Ricevuta Telematica pagoPA, registra il pagamento.
+
+    Il pagamento avviene sul portale ufficiale con l'autenticazione
+    dell'avvocato (regole PST: nessun download autonomo). Quello che il
+    gestionale puo' fare e' riconoscere la ricevuta che l'avvocato riporta nel
+    fascicolo, verificarla secondo lo schema ministeriale
+    ``PagamentiTelematiciGiustizia`` e annotare il versamento sul contributo
+    unificato.
+
+    Fail-closed: si registra il pagamento solo quando l'esito della ricevuta e'
+    «eseguito». Una ricevuta con esito diverso resta agli atti con la sua nota,
+    ma non fa risultare pagato nulla. Restituisce 1 se ha registrato, 0
+    altrimenti.
+
+    Base normativa: art. 4 c.9 D.L. 193/2009; D.P.R. 115/2002 art. 13.
+    """
+    try:
+        from pct.pagamenti_giustizia import nota_ricevuta, riconosci_ricevuta_caricata
+    except Exception:  # pragma: no cover - dipendenze del runtime
+        return 0
+    rt = riconosci_ricevuta_caricata(nome, contenuto)
+    if rt is None:
+        return 0
+    try:
+        note = "\n".join(filter(None, [str(getattr(documento, "note", "") or ""), nota_ricevuta(rt)]))
+        gestore.aggiorna_documento_metadati(id_fasc, getattr(documento, "id", ""), note=note)
+    except Exception:
+        current_app.logger.info("Ricevuta pagoPA riconosciuta ma nota non aggiornata su %s", id_fasc)
+    if not getattr(rt, "pagamento_eseguito", False):
+        return 0
+    try:
+        fascicolo = gestore.get(id_fasc)
+        pagamenti = dict(getattr(fascicolo, "pagamenti", {}) or {})
+        pagamenti["contributo_unificato"] = {
+            "kind": "contributo_unificato", "status": "pagato", "previsto": True, "pagato": True,
+            "importo": float(rt.importo_totale), "valuta": "EUR",
+            "data_pagamento": str(rt.data_ricevuta or ""),
+            "documento_fonte": nome, "documento_id": getattr(documento, "id", ""),
+            "origine": "Ricevuta telematica pagoPA caricata nel fascicolo",
+            "updated_by": "IUSENTRA automatico",
+            "note": f"Versamento provato dalla ricevuta telematica (IUV {rt.iuv or 'n.d.'}).",
+        }
+        gestore.aggiorna(id_fasc, pagamenti=pagamenti)
+    except Exception:
+        current_app.logger.exception("Registrazione del pagamento pagoPA non riuscita su %s", id_fasc)
+        return 0
+    return 1
+
 
 def register_fascicoli_document_routes(
     app: Flask,
@@ -168,6 +218,7 @@ def register_fascicoli_document_routes(
         modalita_raw = str(form.get("classificazione_modalita") or form.get("classificazione") or "").strip().lower()
         manuale = modalita_raw == "manuale" or (not modalita_raw and bool(form.get("tipo_doc")))
         documenti_creati = []
+        ricevute_riconosciute = 0
         try:
             for index, storage in enumerate(files):
                 raw = storage.read()
@@ -201,6 +252,15 @@ def register_fascicoli_document_routes(
                     nome_originale=storage.filename,
                 )
                 documenti_creati.append(documento)
+                # Chi ha appena pagato sul portale trascina la ricevuta nel
+                # fascicolo come farebbe con qualsiasi altro file: se e' una RT
+                # valida secondo lo schema ministeriale, il pagamento viene
+                # registrato senza che l'avvocato debba scegliere una via
+                # speciale. Un file che RT non e' resta un documento come gli
+                # altri: non si indovina un pagamento da un nome.
+                ricevute_riconosciute += _registra_ricevuta_pagopa(
+                    gestore_fascicoli, id_fasc, documento, storage.filename, raw,
+                )
                 _indicizza_documento_lex(
                     id_fasc=id_fasc,
                     document_id=getattr(documento, "id", "") or storage.filename,
@@ -217,6 +277,12 @@ def register_fascicoli_document_routes(
                 raise ValueError("I file selezionati sono vuoti o non leggibili.")
             count = len(documenti_creati)
             msg = f"Caricato {count} documento." if count == 1 else f"Caricati {count} documenti."
+            if ricevute_riconosciute:
+                msg += (
+                    " Riconosciuta la ricevuta telematica del pagamento: il contributo unificato risulta versato."
+                    if ricevute_riconosciute == 1
+                    else f" Riconosciute {ricevute_riconosciute} ricevute telematiche di pagamento."
+                )
             flash(msg, "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"{count} file")
             clear_react_fascicoli_list_cache()

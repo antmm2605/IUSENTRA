@@ -3437,8 +3437,20 @@ def _automatic_payment_sources_for_fascicolo(
     force_revalidate_auto: bool = False,
     read_collector: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """The two reading motors own extraction; consumers only project current facts."""
-    return _importi_dall_archivio(fascicolo, payments)
+    """The two reading motors own extraction; consumers only project current facts.
+
+    Prima della proiezione si rimette a posto un errore che l'import delle
+    pratiche lascia dietro di se': l'autocertificazione di esenzione archiviata
+    sotto «spese ed esborsi» invece che sul contributo unificato. Non e' una
+    lettura — si riconosce dal nome del documento — ma senza di essa il
+    contributo resta «da registrare» per una somma che non e' dovuta, e fra le
+    spese compare una voce che spesa non e'.
+    """
+    from pct.fascicolo_esenzione_cu import sposta_esenzione_sul_contributo
+
+    esito = dict(sposta_esenzione_sul_contributo(payments))
+    esito.update(_importi_dall_archivio(fascicolo, payments))
+    return esito
 
 
 def _payments_with_automatic_sources(

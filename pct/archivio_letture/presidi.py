@@ -25,6 +25,15 @@ def etichetta_verifica(verifica: str) -> str:
     return _ETICHETTA_VERIFICA.get(verifica, verifica)
 
 
+def _istituto_del_fatto(fatto: Fatto):
+    """L'istituto processuale che i motori hanno riconosciuto per quella data, se c'e'."""
+    from .istituti_processuali import istituto_di
+
+    codice = next((str(p.get("dettaglio") or "") for p in fatto.prove
+                   if p.get("codice") == "istituto" and p.get("esito") == "ok"), "")
+    return istituto_di(codice) if codice else None
+
+
 def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[dict[str, Any]]:
     """Le date di udienza e i termini letti, nella forma delle azioni del presidio documentale."""
     from .adempimenti import perentorieta_documentata
@@ -43,12 +52,17 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
             continue
         visti.add(chiave)
         note_scritte = any(p.get("codice") == "modalita_note" and p.get("esito") == "ok" for p in fatto.prove) or (fatto.campo == "termine" and "note in sostituzione" in fatto.etichetta.lower())
-        tipo = "udienza_documento" if fatto.campo == "udienza" and not note_scritte else "termine_documento"
+        # Se i motori hanno riconosciuto l'istituto, il presidio lo mostra con
+        # il suo nome: «deposito di note ex art. 127-ter c.p.c.» dice cosa fare,
+        # «termine del 10/09/2026» no.
+        istituto = _istituto_del_fatto(fatto)
+        tipo = istituto.codice if istituto else ("udienza_documento" if fatto.campo == "udienza" and not note_scritte else "termine_documento")
         ora = fatto.valore.split("T")[1] if "T" in fatto.valore and not note_scritte else ""
         azioni.append({
             "id": f"{tipo}-{fatto.oggetto_id}-{giorno.isoformat()}",
             "type": tipo,
-            "title": "Udienza letta dai documenti del fascicolo" if tipo == "udienza_documento" else "Termine processuale letto dai documenti del fascicolo",
+            "title": istituto.titolo if istituto else ("Udienza letta dai documenti del fascicolo" if tipo == "udienza_documento" else "Termine processuale letto dai documenti del fascicolo"),
+            "norma": istituto.norma if istituto else "",
             "description": f"Deposito note in sostituzione udienza del {giorno.strftime('%d/%m/%Y')}" if note_scritte else fatto.etichetta,
             "sourceContext": fatto.contesto,
             "dateIso": giorno.isoformat(),

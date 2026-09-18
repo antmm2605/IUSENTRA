@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.320.25 - 18/09/2026
+
+**Il contributo unificato autocertificato esente non è più «da presidiare».** Per il contributo unificato le strade sono due: o il fascicolo porta la ricevuta pagoPA del versamento, o porta l'autocertificazione di esenzione (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002). Se l'autocertificazione c'è, quello **è** l'accertamento: a livello di studio non resta altro da appurare. Lo stato `esenzione_dichiarata` lasciava però la voce «prevista», e il fascicolo restava fra quelli da presidiare per una somma che nessuno deve versare. Ora l'autocertificazione dà `non previsto`, con la norma nella nota.
+
+**Otto test allineati al contratto vero del presidio economico.** Il presidio non apre più i PDF dentro la richiesta dell'avvocato: consulta l'archivio delle letture, che i due motori alimentano in sfondo. Otto test mettevano invece il testo del documento davanti al presidio aspettandosi che lo leggesse lì per lì — provavano un contratto che non esiste più. Ora seminano l'archivio, così provano la catena vera: ricevuta pagoPA, compenso liquidato dal giudice, udienza letta dal decreto di fissazione.
+
+**Leggere un importo non è provare un pagamento.** La distinzione ora è esplicita anche nei test: un importo letto in un documento resta «da registrare» finché non porta con sé la prova del versamento. Una sentenza liquida un compenso, non lo paga.
+
+**Etichette del catalogo allineate**: «Carta d'identità» al posto di «Documento d'identità», sezione dedicata `identita` per carta d'identità e tessera sanitaria, «Verbale di udienza».
+
+**Indicatori del fascicolo su mobile**: due colonne al posto della striscia che scorreva in orizzontale. Le card restano dentro il viewport e si leggono tutte senza trascinare.
+
 ## 2.320.24 - 18/09/2026
 
 **La firma del cliente va nel campo firma del modulo, non in un angolo della pagina.** Il portale clienti timbrava la firma in un riquadro a coordinate fisse, in fondo a destra. Su un modulo con i campi firma — un'autocertificazione per il contributo unificato, una procura alle liti, un ricorso — la firma finiva cosi' lontano dal rigo «Firma», e il modulo sembrava non firmato. Ora `pct/firma_modulo/` (sette moduli, il piu' lungo 157 righe) trova i campi firma veri (i widget AcroForm) e ci appoggia sopra il tratto del cliente alla misura di una firma a penna: sale sopra il rigo con le maiuscole, scende sotto con i tratti discendenti, non tocca i bordi.

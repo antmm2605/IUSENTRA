@@ -152,8 +152,8 @@ CAMPIONI: dict[str, tuple[str, str, str]] = {
     "nota_spese": ("STUDIO LEGALE BIANCHI\nNOTA SPESE E COMPETENZE\nGiudizio Rossi / Alfa S.r.l. - Tribunale di Bari\nFase di studio euro 1.000,00 - Fase introduttiva euro 800,00 - Spese vive euro 237,00 - Totale euro 2.037,00.", "Nota spese e competenze", "pagamenti"),
     # ── Comuni ──
     "dichiarazione_sostitutiva": ("DICHIARAZIONE SOSTITUTIVA DI CERTIFICAZIONE\n(art. 46 D.P.R. 445/2000)\nIl sottoscritto Mario Rossi, consapevole delle sanzioni penali in caso di dichiarazioni mendaci, DICHIARA di essere residente in Bari.", "Dichiarazione sostitutiva (D.P.R. 445/2000)", "allegati"),
-    "documento_identita": ("REPUBBLICA ITALIANA - COMUNE DI BARI\nCARTA D'IDENTITÀ\nCognome ROSSI Nome MARIO Nato il 01/01/1970 a BARI Cittadinanza ITALIANA Scadenza 01/01/2030", "Documento d'identità", "allegati"),
-    "tessera_sanitaria": ("TESSERA SANITARIA\nCODICE FISCALE\nRSSMRA70A01A662X\nROSSI MARIO - Data di nascita 01/01/1970", "Tessera sanitaria / codice fiscale", "allegati"),
+    "documento_identita": ("REPUBBLICA ITALIANA - COMUNE DI BARI\nCARTA D'IDENTITÀ\nCognome ROSSI Nome MARIO Nato il 01/01/1970 a BARI Cittadinanza ITALIANA Scadenza 01/01/2030", "Carta d'identità", "identita"),
+    "tessera_sanitaria": ("TESSERA SANITARIA\nCODICE FISCALE\nRSSMRA70A01A662X\nROSSI MARIO - Data di nascita 01/01/1970", "Tessera sanitaria / codice fiscale", "identita"),
     "certificato_anagrafico": ("COMUNE DI BARI - SERVIZI DEMOGRAFICI\nCERTIFICATO DI RESIDENZA\nSi certifica che ROSSI MARIO, nato a Bari il 01/01/1970, è residente in Bari, via Roma 1. L'Ufficiale d'Anagrafe.", "Certificato anagrafico", "allegati"),
     "visura_camerale": ("CAMERA DI COMMERCIO DI BARI - REGISTRO IMPRESE\nVISURA ORDINARIA SOCIETÀ DI CAPITALE\nALFA S.R.L. - Codice fiscale e n. iscrizione 01234567890 - Sede legale BARI VIA MILANO 5 - REA BA-123456", "Visura camerale", "allegati"),
     "visura_ipotecaria": ("AGENZIA DELLE ENTRATE - CONSERVATORIA DI BARI\nISPEZIONE IPOTECARIA\nSoggetto: ROSSI MARIO. Formalità: iscrizione ipoteca volontaria n. 1234 del 2020 a favore di Banca Gamma.", "Visura ipotecaria", "allegati"),

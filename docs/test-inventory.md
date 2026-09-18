@@ -17,10 +17,10 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | E2E | 12 |
 | Frontend static gate | 1 |
 | Frontend/UI | 214 |
-| RBAC | 73 |
+| RBAC | 72 |
 | Security | 39 |
 | Smoke CLI | 6 |
-| Tenant isolation | 159 |
+| Tenant isolation | 160 |
 
 ## Fasi pytest governate
 
@@ -521,7 +521,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | RBAC | tests/test_deposito_guidato.py | feature flag, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | RBAC | tests/test_quickorganizer_import.py | tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | RBAC | tests/test_react_fatturazione_bridge.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Frontend React | RBAC | tests/test_react_shell.py | 401 anonimo, 403/RBAC, tenant, feature flag, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Security | tests/test_build_dist.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Security | tests/test_document_intelligence_hidden_ui.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Security | tests/test_guida_pratica_service.py | 401 anonimo, feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -532,6 +531,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Tenant isolation | tests/test_react_document_archive.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_react_legal_intelligence_search.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_react_scadenziario_additions.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Frontend React | Tenant isolation | tests/test_react_shell.py | 401 anonimo, 403/RBAC, tenant, feature flag, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_api.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_blocks.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_ui_api_security_matrix.py | 401 anonimo, 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

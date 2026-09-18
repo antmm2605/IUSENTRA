@@ -3351,11 +3351,20 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
     dichiarazioni = [f for f in _fatti_archivio(fascicolo, categoria="evento") if f.campo == "esenzione_cu_dichiarata"]
     if dichiarazioni and _payment_source_needs_automatic_value(payments, "contributo_unificato"):
         d = dichiarazioni[0]
+        # Per il contributo unificato le strade sono due: o il fascicolo porta
+        # la ricevuta pagoPA del versamento, o porta l'autocertificazione di
+        # esenzione (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002). Se
+        # l'autocertificazione c'e', quello **e'** l'accertamento: a livello di
+        # studio non resta altro da appurare, e il contributo non e' dovuto.
+        # Lasciarlo «previsto» terrebbe il fascicolo fra quelli da presidiare
+        # per una somma che nessuno deve versare.
         esito["contributo_unificato"] = {
-            "kind":"contributo_unificato", "status":"esenzione_dichiarata", "previsto":True, "pagato":False,
-            "documento_fonte":_readable_document_source(next((doc.nome for doc in getattr(fascicolo, "documenti", []) if doc.id == d.oggetto_id), ""), default="Dichiarazione di esenzione"), "documento_id":d.oggetto_id,
-            "origine":"Archivio delle letture", "updated_by":"IUSENTRA automatico", "fattoId":d.id,
-            "note":"Il fascicolo contiene la dichiarazione di esenzione. Questo dato attesta la presenza del documento.",
+            "kind": "contributo_unificato", "status": "non_previsto", "previsto": False, "pagato": False,
+            "importo": None, "natura": "esenzione_contributo_unificato",
+            "documento_fonte": _readable_document_source(next((doc.nome for doc in getattr(fascicolo, "documenti", []) if doc.id == d.oggetto_id), ""), default="Dichiarazione di esenzione"),
+            "documento_id": d.oggetto_id,
+            "origine": "Archivio delle letture", "updated_by": "IUSENTRA automatico", "fattoId": d.id,
+            "note": "Esenzione dal contributo unificato autocertificata nel fascicolo (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002).",
         }
     for kind, (campo, etichetta) in _IMPORTO_ARCHIVIO_PER_VOCE.items():
         voce = letti.get(campo)

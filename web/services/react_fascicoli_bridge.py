@@ -3416,7 +3416,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             "pagato": kind == "contributo_unificato" and not da_confermare and voce.get("stato_prova") == "pagato",
             "importo": importo,
             "valuta": "EUR",
-            "data_pagamento": "",
+            "data_pagamento": _text(voce.get("data_prova")),
             "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, voce.get("documento_id"))),
             "origine": "Archivio delle letture",
             "updated_by": "IUSENTRA automatico",
@@ -5371,7 +5371,20 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
     presidio["readPending"] = mancanti
     presidio["readErrors"] = errori
     if mancanti or errori:
-        presidio["warnings"] = [f"Lettura automatica in aggiornamento: {mancanti} oggetti in attesa, {errori} letture da recuperare. Le date mostrate provengono dall’archivio."]
+        # Finché un oggetto resta da leggere, il presidio non può dire che
+        # termini e udienze non ci sono: direbbe «nessuna scadenza» di un
+        # fascicolo che non ha ancora letto. Si dichiara incompleto, e le date
+        # già lette restano visibili.
+        presidio["status"] = "non_disponibile"
+        presidio["tone"] = "warning"
+        presidio["summary"] = (
+            f"Lettura documentale non completata: {mancanti} oggetti in attesa di lettura, "
+            f"{errori} letture da recuperare. Le date mostrate sono quelle già lette e collaudate; "
+            "il controllo non può escludere termini o udienze finché la lettura non è conclusa."
+        )
+        presidio["warnings"] = [
+            "Il controllo non può concludere che non esistano termini finché i documenti collegati non sono stati letti."
+        ]
     elif not presidio["actions"]:
         presidio.update(status="presidiato", tone="neutral", summary="Lettura conclusa: nessuna data processuale rilevata nell’archivio di questo fascicolo.")
     return presidio

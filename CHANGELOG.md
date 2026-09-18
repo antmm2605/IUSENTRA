@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.321.1 - 18/09/2026
+
+**Il giorno del versamento si legge dalla ricevuta telematica, non si indovina.** Una voce economica che dice «pagato» senza dire quando prova poco: all'avvocato la data serve quanto l'importo. Finora il giorno si cercava nella prosa della ricevuta («data pagamento», «data versamento», «data esito»), e in una `RT.xml` di prosa non ce n'e': il campo restava vuoto proprio sulla ricevuta piu' sicura che esista. Ora il motore documenti legge il giorno dove lo schema ministeriale lo dichiara — `dataEsitoSingoloPagamento`, e in sua mancanza la data del messaggio di ricevuta — e lo porta nell'archivio come prova dell'importo (`pct/archivio_letture/estrazione_importi.py`, `pct/pagamenti_giustizia.py`). **Fail-closed**: una RT con esito diverso da «eseguito» non prova un versamento, quindi non da' nessuna data di pagamento. Fuori dalla RT la regola resta quella di prima: solo la data ancorata alla formula della ricevuta, e solo se e' una data del calendario.
+
+**La data arriva fino alla voce economica del fascicolo.** Il presidio la proietta dall'archivio (`pct/archivio_letture/presidi.py`) e la scheda del contributo unificato la mostra (`web/services/react_fascicoli_bridge.py`): prima il dato si fermava a meta' strada, letto e mai esposto.
+
+Base normativa: art. 4 c. 9 D.L. 193/2009 (pagamento telematico del contributo unificato); D.P.R. 115/2002 art. 13; specifiche pagoPA `PagamentiTelematiciGiustizia` del Ministero della Giustizia.
+
+Test: archivio delle letture 17 (4 nuovi sulla RT), shell React economia 16 — fra cui la lettura della `RT.xml` fisica ora provata sulla catena vera, dal motore all'archivio alla scheda.
+
 ## 2.321.0 - 18/09/2026
 
 **I motori imparano l'art. 127-ter c.p.c.** «Termine del 10/09/2026» non dice all'avvocato che cosa deve fare; «deposito di note scritte ex art. 127-ter c.p.c.» sì. Ora la qualificazione dell'istituto si legge **una volta sola**, insieme alla data, e finisce nell'archivio con la norma che la governa (`pct/archivio_letture/istituti_processuali.py`, `estrazione_istituti.py`). Prima viveva nel presidio, che riapriva il testo a ogni richiesta dell'avvocato: due presìdi potevano qualificare lo stesso decreto in due modi diversi.

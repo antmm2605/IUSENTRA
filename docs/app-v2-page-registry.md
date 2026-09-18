@@ -797,8 +797,8 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/{id_fasc}/documenti-riconoscibili | GET | web/blueprints/api_v1_document_tools.py | non rilevato |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/editor | GET | web/bootstrap/fascicoli_editor_routes.py | fascicoli/editor_documento.html |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/firma | GET,POST | web/bootstrap/fascicoli_signature_routes.py | non rilevato |
-| /fascicoli/{id_fasc}/documenti/{id_doc}/scarica | GET | web/bootstrap/fascicoli_document_routes.py | non rilevato |
-| /fascicoli/{id_fasc}/documenti/{id_doc}/visualizza | GET | web/bootstrap/fascicoli_document_routes.py | non rilevato |
+| /fascicoli/{id_fasc}/documenti/{id_doc}/scarica | GET | web/bootstrap/fascicoli_document_view_routes.py | non rilevato |
+| /fascicoli/{id_fasc}/documenti/{id_doc}/visualizza | GET | web/bootstrap/fascicoli_document_view_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/guida-pratica | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /fascicoli/{id_fasc}/modifica | GET,POST | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
 | /fascicoli/{id_fasc}/pdf | GET | web/bootstrap/export_routes.py | non rilevato |

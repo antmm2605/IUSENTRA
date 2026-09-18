@@ -186,6 +186,9 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
             "documento_id": fatto.oggetto_id, "tipo": fatto.tipo, "origine": fatto.origine,
             "norma": norma, "natura": natura, "fatto_id": fatto.id,
             "stato_prova": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "stato" and p.get("esito") == "ok"), ""),
+            # Il giorno del versamento: la ricevuta lo porta, e all'avvocato
+            # serve quanto l'importo. Senza, la voce dice «pagato» ma non quando.
+            "data_prova": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "data" and p.get("esito") == "ok"), ""),
         }
         corrente = migliori.get(fatto.campo)
         if corrente is None or _forza_verifica(fatto.verifica) > _forza_verifica(str(corrente["verifica"])):

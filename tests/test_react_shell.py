@@ -7,9 +7,13 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader
+
+if TYPE_CHECKING:  # solo per le annotazioni: i motori si importano dove servono
+    from pct.registro_letture import Fatto
 
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -67,7 +71,33 @@ def _semina_archivio(app, fascicolo_id: str, documento, fatti) -> None:
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti)
 
 
-def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: str = "", stato: str = "") -> "Fatto":
+def _semina_leggendo_il_documento(app, fascicolo, documento, contenuto: bytes) -> list:
+    """Fa leggere ai motori il documento vero e mette in archivio quello che hanno letto.
+
+    Non e' una semina di comodo: il testo passa dal motore documenti, con le sue
+    regole e il suo collaudo. Serve per i documenti a struttura dichiarata — la
+    RT pagoPA su tutti — dove la lettura non e' OCR ma parsing dello schema
+    ministeriale, e va provata per quello che produce davvero.
+    """
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    fatti = leggi_testo(
+        contenuto.decode("utf-8", "ignore"),
+        origine="nativo",
+        contesto=Contesto(
+            numero_rg=str(getattr(fascicolo, "numero_rg", "") or ""),
+            anno_rg=str(getattr(fascicolo, "anno_rg", "") or ""),
+        ),
+        nome=str(getattr(documento, "nome", "")),
+        metadata={"filename": str(getattr(documento, "nome", ""))},
+    )
+    _semina_archivio(app, str(getattr(fascicolo, "id", "")), documento, fatti)
+    return fatti
+
+
+def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: str = "",
+                   stato: str = "", data: str = "") -> "Fatto":
     """Un importo letto dai motori.
 
     `stato` e' la prova di che cosa quell'importo dimostri: una ricevuta pagoPA
@@ -81,6 +111,8 @@ def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: st
         prove.append({"codice": "norma", "esito": "ok", "dettaglio": norma})
     if stato:
         prove.append({"codice": "stato", "esito": "ok", "dettaglio": stato})
+    if data:
+        prove.append({"codice": "data", "esito": "ok", "dettaglio": data})
     return Fatto(
         categoria="importo", campo=campo, valore=f"{importo:.2f}", valore_letto=etichetta or campo,
         etichetta=etichetta or campo, verifica="verificata", origine="documento", confidenza=1.0,
@@ -6633,6 +6665,14 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
         }
 
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fake_ocr)
+    # Aprire la lista non avvia letture: la ricevuta l'hanno gia' letta i
+    # motori e il presidio la proietta dall'archivio. La lettura mirata la
+    # chiede il presidio su richiesta, che e' un'azione voluta dall'avvocato.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 49.0,
+        etichetta="Contributo unificato versato con pagoPA",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato", data="17/03/2026",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6640,7 +6680,7 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
-    assert calls == [["Pagamento cu.PDF"]]
+    assert calls == [], "la lista non deve avviare letture"
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 49.0
     assert contributo["importoLabel"] == "€ 49,00"
@@ -6695,6 +6735,9 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    # La RT non ha prosa: il motore la legge dallo schema ministeriale, non da
+    # Document AI. Qui legge il file vero, poi il presidio proietta l'archivio.
+    fatti = _semina_leggendo_il_documento(app, fascicolo, documento, xml)
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6703,6 +6746,7 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
 
     assert response.status_code == 200
     assert documento.id
+    assert [fatto.valore for fatto in fatti if fatto.campo == "contributo_unificato"] == ["49.00"]
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 49.0
     assert contributo["importoLabel"] == "€ 49,00"

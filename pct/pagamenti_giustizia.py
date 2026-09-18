@@ -59,6 +59,7 @@ class RicevutaTelematica:
     iuv: str = ""  # identificativoUnivocoVersamento
     codice_contesto_pagamento: str = ""
     data_ricevuta: str = ""  # dataOraMessaggioRicevuta (ISO 8601)
+    data_esito_pagamento: str = ""  # dataEsitoSingoloPagamento: il giorno in cui il versamento e' stato eseguito
     ente_beneficiario: str = ""
     pagatore: str = ""
     causale: str = ""
@@ -81,6 +82,7 @@ class RicevutaTelematica:
             "iuv": self.iuv,
             "codice_contesto_pagamento": self.codice_contesto_pagamento,
             "data_ricevuta": self.data_ricevuta,
+            "data_esito_pagamento": self.data_esito_pagamento,
             "ente_beneficiario": self.ente_beneficiario,
             "pagatore": self.pagatore,
             "causale": self.causale,
@@ -158,6 +160,7 @@ def parse_rt(data: bytes) -> RicevutaTelematica | None:
         codice_contesto_pagamento=_find_text(root, "CodiceContestoPagamento")
         or _find_text(root, "codiceContestoPagamento"),
         data_ricevuta=_find_text(root, "dataOraMessaggioRicevuta"),
+        data_esito_pagamento=_find_text(root, "dataEsitoSingoloPagamento"),
         causale=_find_text(root, "causaleVersamento"),
         iur=_find_all_text(root, "identificativoUnivocoRiscossione"),
     )

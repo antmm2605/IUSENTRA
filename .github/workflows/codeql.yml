@@ -1,5 +1,20 @@
 name: CodeQL
 
+# L'analisi CodeQL e' un controllo richiesto del deploy. Su questa repository
+# privata la scheda «Security → Code scanning» non esiste (richiede GitHub Code
+# Security): il passaggio di caricamento rispondeva «Code scanning is not
+# enabled for this repository» e faceva fallire il job anche quando l'analisi
+# non aveva trovato nulla, bloccando la catena CI → sync Codex → deploy.
+#
+# L'analisi resta identica e resta bloccante. Cambia solo dove finisce il
+# risultato: il SARIF viene scritto su file, conservato come artefatto della run
+# e valutato da `tools/check_codeql_sarif.py`, che fa fallire il job sugli
+# avvisi di livello `error` o con gravita' CVSS >= 7.0. Le deroghe per singola
+# regola si dichiarano, con motivo scritto, in `.github/codeql/eccezioni.json`.
+#
+# Attivando GitHub Code Security si torna al comportamento nativo: `upload:
+# always` al posto di `upload: never` e via il passaggio «Esito analisi CodeQL».
+
 on:
   push:
   pull_request:
@@ -37,3 +52,20 @@ jobs:
 
       - name: Analyze
         uses: github/codeql-action/analyze@v3
+        with:
+          output: artifacts/codeql
+          upload: never
+
+      - name: Esito analisi CodeQL
+        run: |
+          python3 tools/check_codeql_sarif.py artifacts/codeql \
+            --report-md artifacts/codeql/esito-codeql.md
+
+      - name: Conserva i risultati dell'analisi
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: codeql-sarif
+          path: artifacts/codeql
+          if-no-files-found: warn
+          retention-days: 14

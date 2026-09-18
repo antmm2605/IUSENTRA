@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.322.1 - 18/09/2026
+
+**CodeQL torna verde senza rinunciare all'analisi.** Con il permesso ripristinato nella 2.322.0, il deploy ha finalmente potuto leggere i check della CI — e la prima cosa che ha letto è che `Analyze (python)` era rosso. Correttamente si è fermato. Ma il job non falliva per un difetto del codice: l'analisi girava fino in fondo (2.499 file Python scansionati, nessun rilievo) e moriva un passo dopo, nel pubblicare il risultato nella scheda «Security → Code scanning». Su una repository privata quella scheda esiste solo con GitHub Code Security attivo, e la risposta era sempre la stessa: «Code scanning is not enabled for this repository». Un controllo richiesto che nessun commit poteva soddisfare, e quindi una catena CI → sync Codex → deploy bloccata per sempre.
+
+L'analisi non è stata tolta né indebolita: è cambiato dove finisce il risultato. Il SARIF viene scritto su file, conservato come artefatto della run, e valutato da `tools/check_codeql_sarif.py`, che fa fallire il job sugli avvisi di livello `error` o con gravità CVSS pari o superiore a 7.0 — la stessa soglia «High» che GitHub usa per il code scanning. Il valore di sicurezza aumenta invece di diminuire: prima quegli avvisi non li vedeva nessuno, perché la scheda dove sarebbero dovuti comparire non esiste; ora fermano la catena.
+
+Le deroghe per singola regola si dichiarano in `.github/codeql/eccezioni.json` e **richiedono un motivo scritto**: il gate rifiuta una voce senza motivazione, come già accade per le altre deroghe del progetto. Il file nasce vuoto. Un'analisi che non produce alcun SARIF non viene interpretata come «pulita» ma come guasto, e ferma comunque il job.
+
+Attivando GitHub Code Security si torna al comportamento nativo e la scelta resta aperta: non è pregiudicata da questa release.
+
+Test: presidio CodeQL 8 (analisi senza rilievi, avviso `error`, gravità alta senza livello `error`, gravità sotto soglia, cartella senza SARIF, eccezione senza motivo, eccezione dichiarata, validità del file del progetto).
+
 ## 2.322.0 - 18/09/2026
 
 **Il deploy torna a controllare la CI prima di partire.** Il gate «Attendi CI richiesta dello SHA corrente» interrogava i check-run del commit e riceveva 403 a ogni tentativo: 134 richieste rifiutate, novanta minuti di attesa, poi il passaggio proseguiva lo stesso perché dichiarato `continue-on-error`. Non era solo tempo perso: il controllo «la CI è verde prima di deployare» sembrava attivo e non lo era, tanto che la 2.321.0 è uscita in produzione con la CI rossa. Mancavano `checks: read` e `statuses: read` nei permessi del job, ristretti a `contents: write` dal commit dell'08/09 — e un blocco `permissions:` a livello di job sostituisce i predefiniti.

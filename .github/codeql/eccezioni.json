@@ -1,0 +1,5 @@
+{
+  "versione": 1,
+  "nota": "Regole CodeQL che non fermano la catena. Ogni voce richiede un motivo scritto e il presidio alternativo che copre quel rischio. Senza motivo il gate rifiuta la voce.",
+  "regole_non_bloccanti": []
+}

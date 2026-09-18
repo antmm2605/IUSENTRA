@@ -6934,13 +6934,25 @@ def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mira
 
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fake_ocr)
 
+    # Aprire la lista dei fascicoli non avvia nessuna lettura: nella richiesta
+    # dell'avvocato si usa solo cio' che i motori hanno gia' letto e collaudato.
+    # La lettura mirata la chiede il presidio, che e' un'azione voluta.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(app, fascicolo.id, documento, [Fatto(
+        categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+        valore_letto="AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE", verifica="verificata", confidenza=1.0,
+        etichetta="Dichiarazione di esenzione dal contributo unificato",
+        contesto="art. 9 comma 1-bis e art. 76 D.P.R. 115/2002",
+    )])
+
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
     item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
-    assert calls == [["Autocertificazione reddituale.PDF"]]
+    assert calls == [], "la lista non deve avviare letture: le fa il presidio, su richiesta"
     assert contributo["status"] == "non_previsto"
     assert contributo["previsto"] is False
     assert contributo["importo"] is None
@@ -7026,7 +7038,7 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
         anno_rg=2026,
         oggetto="222050 - Retribuzione",
     )
-    fascicoli.aggiungi_documento(
+    documento = fascicoli.aggiungi_documento(
         fascicolo.id,
         "Autocertificazione esenzione cu diritto lavoro.PDF",
         TipoDocumento.ATTO_GIUDIZIARIO,
@@ -7038,6 +7050,17 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
         pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    # L'esenzione si riconosce dal nome del file, senza aprire il PDF: e' il
+    # motore documenti a produrne il fatto. Il presidio non legge — proietta
+    # l'archivio sui campi del fascicolo e li salva una volta sola.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(app, fascicolo.id, documento, [Fatto(
+        categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+        valore_letto=documento.nome, verifica="verificata", confidenza=1.0,
+        etichetta="Dichiarazione di esenzione dal contributo unificato",
+        contesto="riconosciuta dal nome del documento, senza riconoscimento ottico",
+    )])
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
@@ -7150,6 +7173,24 @@ def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_d
                 created_at="2026-07-05T10:00:00Z",
             )
         )
+
+    # Il documento vive solo sul server (Document AI), non fra i documenti
+    # locali del fascicolo: il motore documenti lo legge comunque e il fatto
+    # finisce nell'archivio con l'identificativo del documento sul server.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(
+        app, fascicolo.id,
+        SimpleNamespace(id="docai-esenzione-server",
+                        nome="Autocertificazione esenzione contributo server.pdf",
+                        hash_sha256=digest),
+        [Fatto(
+            categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+            valore_letto="AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE", verifica="verificata", confidenza=1.0,
+            etichetta="Dichiarazione di esenzione dal contributo unificato",
+            contesto="D.P.R. 115/2002",
+        )],
+    )
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",

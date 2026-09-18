@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.320.26 - 18/09/2026
+
+**La nomina del difensore di fiducia non è più una procura alle liti.** Sono due atti diversi: la procura alle liti conferisce la rappresentanza processuale nel civile (art. 83 c.p.c.), la nomina del difensore di fiducia designa il difensore nel penale (art. 96 c.p.p.); nel deposito hanno ruoli diversi e all'avvocato dicono cose diverse. La formula però si somiglia — «io sottoscritto… nomino… difensore» — e la regola generica se le prendeva entrambe, scavalcando la regola del titolo. Ora i segni del penale (il titolo dell'atto, la qualità di indagato o imputato, il registro delle notizie di reato) la tengono fuori.
+
+**Il presidio economico chiede ai motori di leggere quando l'archivio non ha nulla.** La funzione che ordina la lettura mirata era rimasta definita ma scollegata: il clic dell'avvocato sul presidio non produceva effetto, e il dato arrivava solo quando il giro periodico capitava su quel fascicolo. Ora il presidio la richiama — e dentro la richiesta non indicizza, mette in coda la lettura in sfondo, come vuole la regola.
+
+**Il nome del documento arriva anche quando il documento vive solo sul server.** Un atto importato sta a volte solo in Document AI e non fra i documenti del fascicolo: la voce economica mostrava «Dichiarazione di esenzione» invece del nome vero, lasciando l'avvocato senza sapere da quale atto venisse il dato. Ora il nome si chiede all'inventario del registro, che lo conosce.
+
+**Altri sette test allineati al contratto dell'archivio**, fra cui quello che si aspettava che aprire la lista dei fascicoli avviasse una lettura: nella richiesta dell'avvocato si usa solo ciò che i motori hanno già letto e collaudato.
+
 ## 2.320.25 - 18/09/2026
 
 **Il contributo unificato autocertificato esente non è più «da presidiare».** Per il contributo unificato le strade sono due: o il fascicolo porta la ricevuta pagoPA del versamento, o porta l'autocertificazione di esenzione (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002). Se l'autocertificazione c'è, quello **è** l'accertamento: a livello di studio non resta altro da appurare. Lo stato `esenzione_dichiarata` lasciava però la voce «prevista», e il fascicolo restava fra quelli da presidiare per una somma che nessuno deve versare. Ora l'autocertificazione dà `non previsto`, con la norma nella nota.

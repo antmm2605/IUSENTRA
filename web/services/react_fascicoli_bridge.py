@@ -3334,6 +3334,36 @@ _IMPORTO_ARCHIVIO_PER_VOCE: dict[str, tuple[str, str]] = {
 }
 
 
+def _nome_oggetto_archivio(fascicolo: Any, oggetto_id: str) -> str:
+    """Il nome del documento da cui viene un fatto, anche se non e' fra i locali.
+
+    Un documento importato vive a volte solo sul server (Document AI) e non fra
+    i documenti del fascicolo: cercarlo solo li' lascia l'avvocato senza sapere
+    da quale atto arriva il dato. L'inventario del registro conosce il nome di
+    ogni oggetto letto, quindi si chiede a lui quando la ricerca locale non
+    trova nulla.
+    """
+    identificativo = _text(oggetto_id)
+    if not identificativo:
+        return ""
+    locale = next(
+        (_text(getattr(doc, "nome", "")) for doc in getattr(fascicolo, "documenti", []) or []
+         if _text(getattr(doc, "id", "")) == identificativo),
+        "",
+    )
+    if locale:
+        return locale
+    try:
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        oggetto = registro_corrente().oggetto(
+            tenant_corrente(), _text(getattr(fascicolo, "id", "")), "documento", identificativo,
+        )
+    except Exception:
+        return ""
+    return _text(getattr(oggetto, "nome", "")) if oggetto else ""
+
+
 def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str, Any]]:
     """Le voci economiche che l'archivio ha già letto e collaudato, pronte per il presidio.
 
@@ -3361,7 +3391,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         esito["contributo_unificato"] = {
             "kind": "contributo_unificato", "status": "non_previsto", "previsto": False, "pagato": False,
             "importo": None, "natura": "esenzione_contributo_unificato",
-            "documento_fonte": _readable_document_source(next((doc.nome for doc in getattr(fascicolo, "documenti", []) if doc.id == d.oggetto_id), ""), default="Dichiarazione di esenzione"),
+            "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, d.oggetto_id), default="Dichiarazione di esenzione"),
             "documento_id": d.oggetto_id,
             "origine": "Archivio delle letture", "updated_by": "IUSENTRA automatico", "fattoId": d.id,
             "note": "Esenzione dal contributo unificato autocertificata nel fascicolo (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002).",
@@ -3387,7 +3417,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             "importo": importo,
             "valuta": "EUR",
             "data_pagamento": "",
-            "documento_fonte": _readable_document_source(next((doc.nome for doc in getattr(fascicolo, "documenti", []) if doc.id == voce.get("documento_id")), "")),
+            "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, voce.get("documento_id"))),
             "origine": "Archivio delle letture",
             "updated_by": "IUSENTRA automatico",
             "note": nota + ".",
@@ -4645,6 +4675,17 @@ def _ensure_contributo_unificato_for_fascicolo(
     scan_payments = dict(payments)
     for other_kind in ("spese_esborsi", "liquidazione_giudice", "parcella"):
         scan_payments.setdefault(other_kind, {"kind": other_kind, "status": "non_previsto", "previsto": False})
+    # Il presidio non legge: proietta l'archivio. Ma se l'archivio non ha
+    # ancora nulla per un documento che ha tutta l'aria di portare un dato
+    # economico, **chiede ai motori di leggerlo**. Dentro la richiesta la
+    # funzione non indicizza — mette in coda la lettura in sfondo e torna
+    # vuota — cosi' il clic dell'avvocato non resta senza effetto in attesa
+    # che il giro periodico arrivi da solo su quel fascicolo.
+    if needs_cu_value and documenti_da_leggere:
+        correnti = _presidio_documenti_correnti(fascicolo)
+        da_leggere = [correnti[i] for i in documenti_da_leggere if i in correnti]
+        if da_leggere:
+            _ensure_economic_document_ai_texts_for_fascicolo(fascicolo, da_leggere)
     letture: dict[str, dict[str, Any]] = {}
     automatic_sources = _automatic_payment_sources_for_fascicolo(
         fascicolo,

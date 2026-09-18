@@ -8129,7 +8129,11 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Lettore documento" in page_source
     assert "function mobilePreviewUrl" in page_source
     assert "parsed.searchParams.set('viewer', 'mobile')" in page_source
-    assert "const viewerUrl = mobileUrl || preview.url" in page_source
+    # Il lettore mostra il documento attivo, che dopo un cambio di versione o di
+    # allegato non e' piu' quello aperto all'inizio: l'anteprima mobile si
+    # calcola su quello, non su `preview.url`.
+    assert "const mobileUrl = preview.mobileUrl || mobilePreviewUrl(activeUrl)" in page_source
+    assert "const viewerUrl = mobileUrl || activeUrl" in page_source
     assert ".iu-fas-preview-modal__title" in css
     assert ".iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source

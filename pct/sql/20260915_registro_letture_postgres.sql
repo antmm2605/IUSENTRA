@@ -164,3 +164,23 @@ CREATE TABLE IF NOT EXISTS letture_consegne (
 
 CREATE INDEX IF NOT EXISTS idx_letture_consegne_fascicolo
     ON letture_consegne (tenant_id, fascicolo_id, presidio, stato);
+
+-- Cache persistente della lettura del fascicolo (2.320.20): il payload React
+-- già calcolato resta nel registro SQL tenant-aware e viene invalidato dagli
+-- eventi reali di documento, PEC o dati fascicolo. L'apertura del fascicolo
+-- non deve ricalcolare letture salvate.
+CREATE TABLE IF NOT EXISTS letture_payload_cache (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    cache_key TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    expires_at TEXT NOT NULL,
+    creato_il TEXT NOT NULL,
+    aggiornato_il TEXT NOT NULL,
+    UNIQUE (tenant_id, fascicolo_id, cache_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_letture_payload_cache_fascicolo
+    ON letture_payload_cache (tenant_id, fascicolo_id, expires_at);
+

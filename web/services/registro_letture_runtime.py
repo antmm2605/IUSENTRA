@@ -80,6 +80,16 @@ def cifratura_attiva() -> bool:
         return False
 
 
+def _riattiva_presidio_economico_scheduler() -> None:
+    try:
+        from web.services.fascicoli_presidi_runtime import riattiva_fascicoli_presidio_scheduler
+
+        paths = dict(getattr(g, "data_paths", {}) or {}) if has_app_context() else None
+        riattiva_fascicoli_presidio_scheduler(paths)
+    except Exception:
+        logger.debug("Presidio economico/documentale scheduler non riattivato", exc_info=True)
+
+
 # ---- inventario ---------------------------------------------------------------
 
 def _righe_pec_collegate(fascicolo_id: str) -> list[dict[str, Any]]:
@@ -162,6 +172,7 @@ def documento_aggiornato(fascicolo_id: str, documento: Any = None) -> None:
     except Exception as exc:  # il registro non deve mai bloccare il caricamento
         logger.warning("Registro letture non aggiornato per il fascicolo %s: %s", fascicolo_id, exc)
     invalida_lettura(fascicolo_id)
+    _riattiva_presidio_economico_scheduler()
     _lettura_dopo_evento(fascicolo_id)
 
 
@@ -184,6 +195,7 @@ def documento_rimosso(fascicolo_id: str, documento_id: str) -> None:
     except Exception as exc:
         logger.warning("Registro letture: rimozione non registrata per %s/%s: %s", fascicolo_id, documento_id, exc)
     invalida_lettura(fascicolo_id)
+    _riattiva_presidio_economico_scheduler()
 
 
 def pec_collegata(fascicolo_id: str) -> None:
@@ -197,6 +209,7 @@ def pec_collegata(fascicolo_id: str) -> None:
     except Exception as exc:
         logger.warning("Registro letture: PEC collegata non registrata per %s: %s", fascicolo_id, exc)
     invalida_lettura(fascicolo_id)
+    _riattiva_presidio_economico_scheduler()
     _lettura_dopo_evento(fascicolo_id)
 
 

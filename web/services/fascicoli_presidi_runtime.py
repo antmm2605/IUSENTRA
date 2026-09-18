@@ -6,10 +6,148 @@ lettura documentale/economica, consolidamento pagamenti e stato pratica.
 
 from __future__ import annotations
 
+import json
+import os
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
-from flask import Flask, g, has_request_context, session
+from flask import Flask, current_app, g, has_app_context, has_request_context, session
 
+
+
+
+_PRESIDIO_IDLE_MARKER = "fascicoli_presidio_scheduler_idle.json"
+_PRESIDIO_IDLE_ORE_DEFAULT = 24
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _iso_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _parse_iso_utc(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _idle_hours(app: Flask | None = None) -> int:
+    raw = ""
+    try:
+        raw = str((getattr(app, "config", {}) or {}).get("IUSENTRA_FASCICOLI_PRESIDIO_IDLE_ORE") or "")
+    except Exception:
+        raw = ""
+    raw = raw or os.getenv("IUSENTRA_FASCICOLI_PRESIDIO_IDLE_ORE", "")
+    try:
+        value = int(str(raw or "").strip())
+    except (TypeError, ValueError):
+        value = _PRESIDIO_IDLE_ORE_DEFAULT
+    return max(0, value)
+
+
+def _idle_marker_path(paths: dict[str, Any] | None = None) -> Path:
+    from web.services.registro_letture_runtime import percorso_registro
+
+    return Path(percorso_registro(paths or {})).resolve().parent / _PRESIDIO_IDLE_MARKER
+
+
+def _economic_analysis_version() -> str:
+    try:
+        from web.services.react_fascicoli_bridge import ECONOMIC_DOCUMENT_ANALYSIS_VERSION
+
+        return str(ECONOMIC_DOCUMENT_ANALYSIS_VERSION)
+    except Exception:
+        return ""
+
+
+def _presidio_idle_attivo(app: Flask | None, paths: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    if _idle_hours(app) <= 0:
+        return None
+    try:
+        data = json.loads(_idle_marker_path(paths).read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if str(data.get("analysis_version") or "") != _economic_analysis_version():
+        return None
+    expires_at = _parse_iso_utc(data.get("fino_a"))
+    if expires_at is None or expires_at <= _now_utc():
+        return None
+    return data
+
+
+def _empty_presidio_report(*, idle: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "source": "registro_sql_cache" if idle else "repository_reali",
+        "generatedAt": _iso_utc(_now_utc()),
+        "message": "Presidio economico/documentale fermo: nessun documento o dato nuovo da analizzare." if idle else "Nessun presidio da eseguire.",
+        "created": [],
+        "createdCount": 0,
+        "existingCount": 0,
+        "missingBasisCount": 0,
+        "processedDefined": 0,
+        "contributiCheckedCount": 0,
+        "contributiUpdatedCount": 0,
+        "contributiMissingCount": 0,
+        "documentAnalysisUpdatedCount": 0,
+        "documentAnalysisCandidateCount": 0,
+        "documentAnalysisPendingCount": 0,
+        "statusDefinedUpdatedCount": 0,
+        "skippedCount": 0,
+        "idle": bool(idle),
+        "prossimo_controllo": str((idle or {}).get("fino_a") or ""),
+    }
+
+
+def _scrivi_presidio_idle(app: Flask | None, paths: dict[str, Any] | None, report: dict[str, Any]) -> None:
+    if _idle_hours(app) <= 0:
+        return
+    deve_fermarsi = (
+        int(report.get("createdCount") or 0) == 0
+        and int(report.get("contributiUpdatedCount") or 0) == 0
+        and int(report.get("documentAnalysisUpdatedCount") or 0) == 0
+        and int(report.get("documentAnalysisPendingCount") or 0) == 0
+        and int(report.get("statusDefinedUpdatedCount") or 0) == 0
+    )
+    path = _idle_marker_path(paths)
+    if not deve_fermarsi:
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return
+    now = _now_utc()
+    data = {
+        "stato": "fermo",
+        "ultimo_giro": _iso_utc(now),
+        "fino_a": _iso_utc(now + timedelta(hours=_idle_hours(app))),
+        "analysis_version": _economic_analysis_version(),
+        "contributiCheckedCount": int(report.get("contributiCheckedCount") or 0),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp.replace(path)
+    except Exception:
+        pass
+
+
+def riattiva_fascicoli_presidio_scheduler(paths: dict[str, Any] | None = None) -> None:
+    """Riattiva il presidio economico/documentale quando un dato reale cambia."""
+    try:
+        _idle_marker_path(paths).unlink(missing_ok=True)
+    except Exception:
+        pass
 
 def _text(value: Any, default: str = "") -> str:
     text = str(value if value is not None else "").strip()
@@ -66,6 +204,12 @@ def run_fascicoli_document_economic_presidio_for_current_context(
     from web.services.react_fascicoli_bridge import run_react_fascicoli_economic_presidio
     from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
 
+    paths = dict(getattr(g, "data_paths", {}) or {})
+    app_obj = current_app._get_current_object() if has_app_context() else None
+    idle = _presidio_idle_attivo(app_obj, paths)
+    if idle:
+        return _empty_presidio_report(idle=idle)
+
     report = run_react_fascicoli_economic_presidio(
         get_fascicoli=get_fascicoli,
         get_fatturazione=get_fatturazione,
@@ -83,6 +227,7 @@ def run_fascicoli_document_economic_presidio_for_current_context(
     ):
         clear_dashboard_payload_cache()
         clear_react_fascicoli_list_cache()
+    _scrivi_presidio_idle(app_obj, paths, report)
     return report
 
 
@@ -112,6 +257,7 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
         "documentAnalysisPendingCount": 0,
         "statusDefinedUpdatedCount": 0,
         "skippedCount": 0,
+        "idleSkippedTenants": 0,
     }
     tenants: list[dict[str, Any]] = []
     active = _active_tenants(app)
@@ -127,6 +273,8 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
                     limit=limit_per_tenant,
                     actor=actor,
                 )
+            if report.get("idle"):
+                report["idleSkippedTenants"] = 1
             tenant_report = {"tenant": slug, **report}
             tenants.append(tenant_report)
             for key in totals:
@@ -152,6 +300,8 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
                 limit=limit_per_tenant,
                 actor=actor,
             )
+        if report.get("idle"):
+            report["idleSkippedTenants"] = 1
         tenants.append({"tenant": "default", **report})
         for key in totals:
             totals[key] += int(report.get(key) or 0)
@@ -170,6 +320,7 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
 
 
 __all__ = [
+    "riattiva_fascicoli_presidio_scheduler",
     "run_fascicoli_document_economic_presidio_for_all_tenants",
     "run_fascicoli_document_economic_presidio_for_current_context",
 ]

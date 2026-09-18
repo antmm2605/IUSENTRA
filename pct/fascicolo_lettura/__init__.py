@@ -39,7 +39,7 @@ from .pec import pec
 from .prossimi_passi import prossimi_passi
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.09.16.lettura-fascicolo.v10"
+VERSIONE_LETTURA = "2026.09.18.lettura-fascicolo.v11-cache-sql-sezioni"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:

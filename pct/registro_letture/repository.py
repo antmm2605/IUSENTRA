@@ -36,7 +36,7 @@ from .modello import (
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
 
-TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne")
+TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
 COLONNE: dict[str, tuple[str, ...]] = {
     "letture_oggetti": (
@@ -60,6 +60,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
     ),
     "letture_fatti": COLONNE_FATTI,
     "letture_consegne": COLONNE_CONSEGNE,
+    "letture_payload_cache": ("id", "tenant_id", "fascicolo_id", "cache_key", "payload_json", "expires_at", "creato_il", "aggiornato_il"),
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -72,6 +73,7 @@ _FILTRI_SQL = {
     "tenant_id = ? AND fascicolo_id = ? AND utente_id = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "utente_id" = ?',
     "tenant_id = ? AND fascicolo_id = ? AND stato = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "stato" = ?',
     "tenant_id = ? AND id = ?": '"tenant_id" = ? AND "id" = ?',
+    "tenant_id = ? AND fascicolo_id = ? AND cache_key = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "cache_key" = ?',
     "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND lettore = ? AND campo = ? AND valore_letto = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ? AND "sha256" = ? AND "lettore" = ? AND "campo" = ? AND "valore_letto" = ?',
 }
 _ORDINI_SQL = {
@@ -500,6 +502,64 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             per_oggetto.append({**oggetto.to_dict(), "letture": dict(stato_oggetti[(oggetto.tipo, oggetto.oggetto_id)])})
         anomalie = len(self.anomalie(tenant, fascicolo, stato="aperta"))
         return StatoFascicolo(fascicolo_id=fascicolo, impronta=impronta_inventario(oggetti), oggetti=len(oggetti), lettori=stati, per_oggetto=per_oggetto, anomalie_aperte=anomalie, tutto_letto=tutto_letto)
+
+
+    # ---- cache persistente payload lettura -----------------------------------
+
+    def payload_cache_get(self, tenant_id: str, fascicolo_id: str, cache_key: str, *, now: str | None = None) -> str | None:
+        """Payload JSON già calcolato per la Lettura del fascicolo, se non scaduto."""
+        tenant, fascicolo, key = _testo(tenant_id), _testo(fascicolo_id), _testo(cache_key)
+        if not tenant or not fascicolo or not key:
+            return None
+        righe = self._seleziona("letture_payload_cache", "tenant_id = ? AND fascicolo_id = ? AND cache_key = ?", (tenant, fascicolo, key))
+        if not righe:
+            return None
+        riga = righe[0]
+        expires_at = _testo(riga.get("expires_at"))
+        if expires_at and expires_at < _testo(now or _adesso()):
+            self.payload_cache_delete(tenant, fascicolo, cache_key=key)
+            return None
+        return _testo(riga.get("payload_json"))
+
+    def payload_cache_set(self, tenant_id: str, fascicolo_id: str, cache_key: str, payload_json: str, *, expires_at: str) -> None:
+        tenant, fascicolo, key = _testo(tenant_id), _testo(fascicolo_id), _testo(cache_key)
+        if not tenant or not fascicolo or not key:
+            return
+        adesso = _adesso()
+        valori = {
+            "payload_json": str(payload_json or "{}"),
+            "expires_at": _testo(expires_at),
+            "aggiornato_il": adesso,
+        }
+        with self.connection() as conn:
+            esistente = conn.execute(
+                f"SELECT id FROM {self._tabella('letture_payload_cache')} WHERE {self._filtro('tenant_id = ? AND fascicolo_id = ? AND cache_key = ?')}",
+                (tenant, fascicolo, key),
+            ).fetchone()
+            if esistente:
+                self._aggiorna(conn, "letture_payload_cache", valori, "tenant_id = ? AND fascicolo_id = ? AND cache_key = ?", (tenant, fascicolo, key))
+            else:
+                self._inserisci(conn, "letture_payload_cache", {
+                    "id": _nuovo_id("lpc"), "tenant_id": tenant, "fascicolo_id": fascicolo, "cache_key": key,
+                    "creato_il": adesso, **valori,
+                })
+
+    def payload_cache_delete(self, tenant_id: str, fascicolo_id: str, *, cache_key: str = "") -> int:
+        tenant, fascicolo, key = _testo(tenant_id), _testo(fascicolo_id), _testo(cache_key)
+        if not tenant or not fascicolo:
+            return 0
+        with self.connection() as conn:
+            if key:
+                cur = conn.execute(
+                    f"DELETE FROM {self._tabella('letture_payload_cache')} WHERE {self._filtro('tenant_id = ? AND fascicolo_id = ? AND cache_key = ?')}",
+                    (tenant, fascicolo, key),
+                )
+            else:
+                cur = conn.execute(
+                    f"DELETE FROM {self._tabella('letture_payload_cache')} WHERE {self._filtro('tenant_id = ? AND fascicolo_id = ?')}",
+                    (tenant, fascicolo),
+                )
+        return int(getattr(cur, "rowcount", 0) or 0)
 
     # ---- viste dell'avvocato ---------------------------------------------------
 

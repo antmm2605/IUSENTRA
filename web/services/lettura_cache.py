@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -48,6 +49,64 @@ class LetturaPayloadCache:
         raw = json.dumps(list(key), ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8")
         return hashlib.sha256(raw).hexdigest()
 
+
+    def _db_parts(self, key: tuple) -> tuple[str, str, str] | None:
+        if len(key) != 3 or key[0] != "lettura":
+            return None
+        tenant_version = str(key[1] or "")
+        tenant = tenant_version.split("@", 1)[0].strip() or "single-studio"
+        fascicolo_id = str(key[2] or "").strip()
+        cache_key = self._name(key)
+        if not fascicolo_id:
+            return None
+        return tenant, fascicolo_id, cache_key
+
+    def _db_get(self, key: tuple) -> bytes | None:
+        parts = self._db_parts(key)
+        if parts is None or not has_app_context():
+            return None
+        try:
+            from web.services.registro_letture_runtime import registro_corrente
+
+            payload = registro_corrente().payload_cache_get(*parts)
+            return payload.encode("utf-8") if payload else None
+        except Exception:
+            return None
+
+    def _db_set(self, key: tuple, payload: bytes) -> None:
+        parts = self._db_parts(key)
+        if parts is None or not has_app_context():
+            return
+        try:
+            from web.services.registro_letture_runtime import registro_corrente
+
+            expires = datetime.fromtimestamp(time.time() + self.ttl_seconds, tz=timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+            registro_corrente().payload_cache_set(*parts, payload.decode("utf-8"), expires_at=expires)
+        except Exception:
+            return
+
+    def _db_delete_key(self, key: tuple) -> None:
+        parts = self._db_parts(key)
+        if parts is None or not has_app_context():
+            return
+        try:
+            from web.services.registro_letture_runtime import registro_corrente
+
+            tenant, fascicolo_id, cache_key = parts
+            registro_corrente().payload_cache_delete(tenant, fascicolo_id, cache_key=cache_key)
+        except Exception:
+            return
+
+    def _db_delete_fascicolo_corrente(self, fascicolo_id: str) -> int:
+        if not has_app_context():
+            return 0
+        try:
+            from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+            return int(registro_corrente().payload_cache_delete(tenant_corrente(), str(fascicolo_id or "")))
+        except Exception:
+            return 0
+
     def _paths(self, key: tuple) -> tuple[Path, Path] | None:
         directory = self._directory()
         if directory is None:
@@ -58,9 +117,16 @@ class LetturaPayloadCache:
     def get(self, key: tuple) -> bytes | None:
         if not self.enabled:
             return None
+        cached = self._memory.get(key)
+        if cached is not None:
+            return cached
+        db_payload = self._db_get(key)
+        if db_payload is not None:
+            self._memory.set(key, db_payload)
+            return db_payload
         paths = self._paths(key)
         if paths is None:
-            return self._memory.get(key)
+            return None
         data_path, meta_path = paths
         try:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -71,10 +137,13 @@ class LetturaPayloadCache:
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             return None
         self._memory.set(key, payload)
+        self._db_set(key, payload)
         return payload
 
     def set(self, key: tuple, payload: bytes) -> None:
         self._memory.set(key, payload)
+        if isinstance(payload, (bytes, bytearray)):
+            self._db_set(key, bytes(payload))
         if not self.enabled or not isinstance(payload, (bytes, bytearray)):
             return
         paths = self._paths(key)
@@ -110,6 +179,7 @@ class LetturaPayloadCache:
 
     def invalidate(self, key: tuple) -> None:
         self._memory.invalidate(key)
+        self._db_delete_key(key)
         paths = self._paths(key)
         if paths is None:
             return
@@ -159,7 +229,9 @@ def invalida_lettura(fascicolo_id: str) -> int:
     target = str(fascicolo_id or "")
     if not target:
         return 0
-    return LETTURA_CACHE.invalidate_where(lambda key: len(key) == 3 and key[0] == "lettura" and key[2] == target)
+    removed = LETTURA_CACHE.invalidate_where(lambda key: len(key) == 3 and key[0] == "lettura" and key[2] == target)
+    removed += LETTURA_CACHE._db_delete_fascicolo_corrente(target)
+    return removed
 
 
 __all__ = ["LETTURA_CACHE", "chiave_lettura", "invalida_lettura"]

@@ -67,6 +67,66 @@ def test_un_documento_caricato_entra_nel_registro_e_invalida_la_lettura(tmp_path
         assert registro.oggetti(tenant, fascicolo_id) == []
 
 
+
+def test_cache_lettura_persistente_nel_registro_sql_e_invalidata_da_eventi(tmp_path: Path):
+    from web.services.lettura_cache import LETTURA_CACHE, chiave_lettura
+
+    app = _app(tmp_path)
+    fascicolo_id, documento_id = _seed(app)
+    with app.app_context():
+        from web.services.registro_letture_runtime import documento_aggiornato, registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        key = chiave_lettura(tenant, fascicolo_id)
+        LETTURA_CACHE.set(key, b'{"ok":true,"lettura":{"lacune":[]}}')
+        LETTURA_CACHE._memory.clear()
+
+        assert LETTURA_CACHE.get(key) == b'{"ok":true,"lettura":{"lacune":[]}}'
+        rows = registro._seleziona("letture_payload_cache", "tenant_id = ? AND fascicolo_id = ?", (tenant, fascicolo_id))
+        assert len(rows) == 1 and rows[0]["payload_json"].startswith('{"ok":true')
+
+        documento_aggiornato(fascicolo_id)
+        assert LETTURA_CACHE.get(key) is None
+        assert registro._seleziona("letture_payload_cache", "tenant_id = ? AND fascicolo_id = ?", (tenant, fascicolo_id)) == []
+
+
+def test_presidio_economico_scheduler_salta_tenant_fermo(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    calls: list[str] = []
+
+    def fake_presidio(**kwargs):
+        calls.append("run")
+        return {
+            "ok": True,
+            "source": "repository_reali",
+            "created": [],
+            "createdCount": 0,
+            "existingCount": 0,
+            "missingBasisCount": 0,
+            "processedDefined": 0,
+            "contributiCheckedCount": 7,
+            "contributiUpdatedCount": 0,
+            "contributiMissingCount": 0,
+            "documentAnalysisUpdatedCount": 0,
+            "documentAnalysisCandidateCount": 0,
+            "documentAnalysisPendingCount": 0,
+            "statusDefinedUpdatedCount": 0,
+            "skippedCount": 0,
+        }
+
+    monkeypatch.setattr("web.services.react_fascicoli_bridge.run_react_fascicoli_economic_presidio", fake_presidio)
+    with app.test_request_context("/__test/presidio"):
+        from web.services.fascicoli_presidi_runtime import run_fascicoli_document_economic_presidio_for_current_context
+
+        first = run_fascicoli_document_economic_presidio_for_current_context(limit=25)
+        second = run_fascicoli_document_economic_presidio_for_current_context(limit=25)
+
+    assert calls == ["run"]
+    assert first["contributiCheckedCount"] == 7
+    assert second["idle"] is True
+    assert second["contributiCheckedCount"] == 0
+
 def test_l_indice_documentale_non_decifra_i_documenti_gia_letti(tmp_path: Path):
     """La raccolta delle sorgenti usa l'impronta nota: niente lettura né decifratura del file."""
     from pct.document_intelligence.sources import source_from_fascicolo_document

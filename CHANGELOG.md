@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.322.4 - 18/09/2026
+
+**I dati runtime escono dalla repository senza uscire dalla macchina reale.** La release avanza sopra la produzione 2.322.3 e conserva tutte le correzioni già pubblicate, compreso il lettore OCR con pannelli affiancati e riepilogo fascicolo salvato. La modifica nuova rimuove dal tracciamento Git i file sotto `data/` che sono dati di esecuzione dello studio: restano nella cartella locale e nei volumi Docker, ma non vengono più versionati né distribuiti come sorgente applicativo. Questo evita conflitti fra codice, cache, documenti caricati, tenant e fascicoli reali.
+
+Test: controlli mirati OCR/lettura fascicolo, typecheck React e verifica deploy Hetzner su commit versionato.
+
 ## 2.322.3 - 18/09/2026
 
 **L'ultimo avviso: via la regex dalla validazione dell'indirizzo di posta.** Dei undici rilievi della 2.322.2 ne restava uno, `py/polynomial-redos` su `web/services/fascicolo_controparti_aggiuntive.py`. La riscrittura precedente aveva reso l'espressione regolare più veloce, ma su un valore che arriva dal modulo compilato dall'utente la risposta giusta non è una regex più furba: è nessuna regex. La forma dell'indirizzo — parte locale non vuota, una sola chiocciola, dominio di almeno due etichette non vuote — si verifica con due divisioni di stringa, in tempo lineare e senza alcuna possibilità di backtracking. Gli indirizzi accettati sono gli stessi, confrontati uno per uno con la forma precedente su dodici casi: nessuna differenza. Centomila caratteri costruiti apposta si scartano in meno di un millesimo di secondo, ed è quello che verifica il test nuovo.

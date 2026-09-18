@@ -157,6 +157,7 @@ import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRunt
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
+import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
 import { useFileDropTarget } from './fascicoloDocumenti/useFileDropTarget'
@@ -10026,7 +10027,7 @@ function DetailPage({ id }:{id:string}) {
             auditStatus={lazyStatus.audit}
           />
           <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'}>
-            <LetturaFascicoloPanel fascicoloId={f.id || id} onError={failDetail} onReady={clearLetturaError}/>
+            <LetturaFascicoloPanel fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
           </DetailSection>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen={activeHashSection === 'uffici-competenti'}>

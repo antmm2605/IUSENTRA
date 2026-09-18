@@ -236,6 +236,7 @@ function allineamentoHtml(formato: OcrFormat): string {
 
 export {
   blocksOfPage,
+  applyPlainTextToBlocks,
   blocksToPlainText,
   changeBlockKind,
   countCharacters,

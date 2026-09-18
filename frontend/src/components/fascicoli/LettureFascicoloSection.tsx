@@ -132,7 +132,7 @@ export function LettureFascicoloSection({ fascicoloId, refreshKey = 0, onAggiorn
     <section className="iu-fas-letture" aria-label="Registro delle letture del fascicolo" aria-busy={loading}>
       <div className="iu-fas-lettura__section-head">
         <h4><BookOpenCheck size={16}/> Letture e verifiche</h4>
-        <span>{riassunto ? <Badge tone={riassunto.tono}>{riassunto.testo}</Badge> : loading ? 'in lettura…' : ''}</span>
+        <span>{riassunto ? <Badge tone={riassunto.tono}>{riassunto.testo}</Badge> : loading ? 'carico registro…' : ''}</span>
       </div>
       {error ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
       {novita ? <p className={`iu-fas-letture__novita${letture?.novita.nuovi.length || letture?.novita.cambiati.length ? ' is-nuove' : ''}`}>{novita}</p> : null}

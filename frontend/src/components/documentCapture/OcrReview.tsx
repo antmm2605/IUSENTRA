@@ -1,8 +1,11 @@
+import { useMemo, useState } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Hash, Italic, Rows3, Trash2, Type } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import {
+  applyPlainTextToBlocks,
   changeBlockKind,
   markerOf,
+  blocksToPlainText,
   removeBlock,
   updateBlockCell,
   updateBlockFormat,
@@ -68,6 +71,10 @@ function fiducia(valore: number): string {
  * togliere quello che non serve, prima che il contenuto entri nell'editor.
  */
 export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect }: Props) {
+  const [blocchiVisibili, setBlocchiVisibili] = useState(false)
+  const testoContinuo = useMemo(() => blocksToPlainText(blocks), [blocks])
+  const blocchiTestuali = blocks.filter((block) => block.kind !== 'tabella' && block.kind !== 'numero_pagina').length
+  const tabelle = blocks.filter((block) => block.kind === 'tabella').length
   if (!blocks.length) {
     return <p className="iu-acq-hint">Nessun testo riconosciuto in questa acquisizione.</p>
   }
@@ -76,122 +83,139 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
       <p className="iu-acq-hint">
         Rileggi e correggi: quello che vedi qui è esattamente ciò che verrà inserito nel documento.
       </p>
-      <ol className="iu-ocr-review__list">
-        {blocks.map((block) => (
-          <li
-            key={block.id}
-            className={`iu-ocr-block iu-ocr-block--${block.kind}${selectedId === block.id ? ' is-selected' : ''}`}
-            onFocusCapture={() => onSelect?.(block.id)}
-          >
-            <div className="iu-ocr-block__bar">
-              <label className="iu-ocr-block__kind">
-                <span className="iu-sr-only">Tipo di blocco</span>
-                {block.kind === 'tabella' ? <Rows3 size={14} aria-hidden="true" /> : block.kind === 'numero_pagina' ? <Hash size={14} aria-hidden="true" /> : <Type size={14} aria-hidden="true" />}
-                <select
-                  value={block.kind}
-                  disabled={disabled || block.kind === 'tabella'}
-                  onChange={(event) => onChange(changeBlockKind(blocks, block.id, event.target.value as OcrBlockKind))}
-                >
-                  {(['titolo', 'paragrafo', 'elenco', 'numero_pagina'] as OcrBlockKind[]).map((kind) => (
-                    <option key={kind} value={kind}>{ETICHETTE[kind]}</option>
-                  ))}
-                  {block.kind === 'tabella' ? <option value="tabella">{ETICHETTE.tabella}</option> : null}
-                </select>
-              </label>
-              <span className="iu-ocr-block__meta">
-                {block.kind === 'elenco' && markerOf(block) ? `${ETICHETTE_MARCATORE[markerOf(block)!.tipo]} · ` : ''}
-                {block.kind === 'numero_pagina' ? 'escluso dal documento · ' : ''}
-                {fiducia(block.confidence)}
-              </span>
-              <Button
-                type="button"
-                tone="neutral"
-                disabled={disabled}
-                aria-label={`Togli il blocco ${ETICHETTE[block.kind].toLowerCase()}`}
-                onClick={() => onChange(removeBlock(blocks, block.id))}
-              >
-                <Trash2 size={14} aria-hidden="true" />
-              </Button>
-            </div>
-            {block.kind === 'tabella' ? null : (
-              <div className="iu-ocr-block__formato">
-                <label>
-                  <span className="iu-sr-only">Livello del testo</span>
+      <label className="iu-ocr-review__plain">
+        <span>Testo continuo riconosciuto</span>
+        <textarea
+          value={testoContinuo}
+          disabled={disabled}
+          aria-label="Testo continuo riconosciuto da correggere"
+          onChange={(event) => onChange(applyPlainTextToBlocks(blocks, event.target.value))}
+        />
+      </label>
+      <div className="iu-ocr-review__toolbar">
+        <span>{blocchiTestuali} parti testuali{tabelle ? ` · ${tabelle} tabell${tabelle === 1 ? 'a' : 'e'} nella vista avanzata` : ''}</span>
+        <Button type="button" tone="neutral" onClick={() => setBlocchiVisibili((value) => !value)}>
+          {blocchiVisibili ? 'Nascondi blocchi e formato' : 'Mostra blocchi e formato'}
+        </Button>
+      </div>
+      {blocchiVisibili ? (
+        <ol className="iu-ocr-review__list">
+          {blocks.map((block) => (
+            <li
+              key={block.id}
+              className={`iu-ocr-block iu-ocr-block--${block.kind}${selectedId === block.id ? ' is-selected' : ''}`}
+              onFocusCapture={() => onSelect?.(block.id)}
+            >
+              <div className="iu-ocr-block__bar">
+                <label className="iu-ocr-block__kind">
+                  <span className="iu-sr-only">Tipo di blocco</span>
+                  {block.kind === 'tabella' ? <Rows3 size={14} aria-hidden="true" /> : block.kind === 'numero_pagina' ? <Hash size={14} aria-hidden="true" /> : <Type size={14} aria-hidden="true" />}
                   <select
-                    value={block.format.livello}
-                    disabled={disabled}
-                    onChange={(event) => onChange(updateBlockFormat(blocks, block.id, { livello: Number(event.target.value) }))}
+                    value={block.kind}
+                    disabled={disabled || block.kind === 'tabella'}
+                    onChange={(event) => onChange(changeBlockKind(blocks, block.id, event.target.value as OcrBlockKind))}
                   >
-                    {LIVELLI.map((voce) => <option key={voce.value} value={voce.value}>{voce.label}</option>)}
+                    {(['titolo', 'paragrafo', 'elenco', 'numero_pagina'] as OcrBlockKind[]).map((kind) => (
+                      <option key={kind} value={kind}>{ETICHETTE[kind]}</option>
+                    ))}
+                    {block.kind === 'tabella' ? <option value="tabella">{ETICHETTE.tabella}</option> : null}
                   </select>
                 </label>
+                <span className="iu-ocr-block__meta">
+                  {block.kind === 'elenco' && markerOf(block) ? `${ETICHETTE_MARCATORE[markerOf(block)!.tipo]} · ` : ''}
+                  {block.kind === 'numero_pagina' ? 'escluso dal documento · ' : ''}
+                  {fiducia(block.confidence)}
+                </span>
                 <Button
                   type="button"
                   tone="neutral"
                   disabled={disabled}
-                  aria-pressed={block.format.grassetto}
-                  aria-label="Grassetto"
-                  onClick={() => onChange(updateBlockFormat(blocks, block.id, { grassetto: !block.format.grassetto }))}
+                  aria-label={`Togli il blocco ${ETICHETTE[block.kind].toLowerCase()}`}
+                  onClick={() => onChange(removeBlock(blocks, block.id))}
                 >
-                  <Bold size={14} aria-hidden="true" />
+                  <Trash2 size={14} aria-hidden="true" />
                 </Button>
-                <Button
-                  type="button"
-                  tone="neutral"
-                  disabled={disabled}
-                  aria-pressed={block.format.corsivo}
-                  aria-label="Corsivo"
-                  onClick={() => onChange(updateBlockFormat(blocks, block.id, { corsivo: !block.format.corsivo }))}
-                >
-                  <Italic size={14} aria-hidden="true" />
-                </Button>
-                {ALLINEAMENTI.map(({ value, label, Icona }) => (
+              </div>
+              {block.kind === 'tabella' ? null : (
+                <div className="iu-ocr-block__formato">
+                  <label>
+                    <span className="iu-sr-only">Livello del testo</span>
+                    <select
+                      value={block.format.livello}
+                      disabled={disabled}
+                      onChange={(event) => onChange(updateBlockFormat(blocks, block.id, { livello: Number(event.target.value) }))}
+                    >
+                      {LIVELLI.map((voce) => <option key={voce.value} value={voce.value}>{voce.label}</option>)}
+                    </select>
+                  </label>
                   <Button
-                    key={value}
                     type="button"
                     tone="neutral"
                     disabled={disabled}
-                    aria-pressed={block.format.allineamento === value}
-                    aria-label={label}
-                    onClick={() => onChange(updateBlockFormat(blocks, block.id, { allineamento: value }))}
+                    aria-pressed={block.format.grassetto}
+                    aria-label="Grassetto"
+                    onClick={() => onChange(updateBlockFormat(blocks, block.id, { grassetto: !block.format.grassetto }))}
                   >
-                    <Icona size={14} aria-hidden="true" />
+                    <Bold size={14} aria-hidden="true" />
                   </Button>
-                ))}
-              </div>
-            )}
-            {block.kind === 'tabella' ? (
-              <div className="iu-ocr-block__grid">
-                <table>
-                  <tbody>
-                    {block.rows.map((row, rowIndex) => (
-                      <tr key={`${block.id}-r${rowIndex}`}>
-                        {row.map((cell, columnIndex) => (
-                          <td key={`${block.id}-r${rowIndex}-c${columnIndex}`}>
-                            <input
-                              value={cell}
-                              disabled={disabled}
-                              aria-label={`Riga ${rowIndex + 1}, colonna ${columnIndex + 1}`}
-                              onChange={(event) => onChange(updateBlockCell(blocks, block.id, rowIndex, columnIndex, event.target.value))}
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <textarea
-                value={block.text}
-                disabled={disabled}
-                aria-label={`Testo del blocco ${ETICHETTE[block.kind].toLowerCase()}`}
-                onChange={(event) => onChange(updateBlockText(blocks, block.id, event.target.value))}
-              />
-            )}
-          </li>
-        ))}
-      </ol>
+                  <Button
+                    type="button"
+                    tone="neutral"
+                    disabled={disabled}
+                    aria-pressed={block.format.corsivo}
+                    aria-label="Corsivo"
+                    onClick={() => onChange(updateBlockFormat(blocks, block.id, { corsivo: !block.format.corsivo }))}
+                  >
+                    <Italic size={14} aria-hidden="true" />
+                  </Button>
+                  {ALLINEAMENTI.map(({ value, label, Icona }) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      tone="neutral"
+                      disabled={disabled}
+                      aria-pressed={block.format.allineamento === value}
+                      aria-label={label}
+                      onClick={() => onChange(updateBlockFormat(blocks, block.id, { allineamento: value }))}
+                    >
+                      <Icona size={14} aria-hidden="true" />
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {block.kind === 'tabella' ? (
+                <div className="iu-ocr-block__grid">
+                  <table>
+                    <tbody>
+                      {block.rows.map((row, rowIndex) => (
+                        <tr key={`${block.id}-r${rowIndex}`}>
+                          {row.map((cell, columnIndex) => (
+                            <td key={`${block.id}-r${rowIndex}-c${columnIndex}`}>
+                              <input
+                                value={cell}
+                                disabled={disabled}
+                                aria-label={`Riga ${rowIndex + 1}, colonna ${columnIndex + 1}`}
+                                onChange={(event) => onChange(updateBlockCell(blocks, block.id, rowIndex, columnIndex, event.target.value))}
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <textarea
+                  value={block.text}
+                  disabled={disabled}
+                  aria-label={`Testo del blocco ${ETICHETTE[block.kind].toLowerCase()}`}
+                  onChange={(event) => onChange(updateBlockText(blocks, block.id, event.target.value))}
+                />
+              )}
+            </li>
+          ))}
+        </ol>
+      ) : null}
       {figures.length ? (
         <p className="iu-acq-alert" role="status">
           {figures.length === 1

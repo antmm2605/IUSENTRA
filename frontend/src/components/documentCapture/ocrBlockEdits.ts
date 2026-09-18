@@ -13,6 +13,20 @@ export function blocksToPlainText(blocks: OcrBlock[]): string {
     .join('\n\n')
 }
 
+export function applyPlainTextToBlocks(blocks: OcrBlock[], plainText: string): OcrBlock[] {
+  const parti = String(plainText ?? '')
+    .replace(/\r\n?/g, '\n')
+    .split(/\n{2,}/)
+    .map((parte) => parte.trim())
+  let indice = 0
+  return blocks.map((block) => {
+    if (block.kind === 'tabella' || block.kind === 'numero_pagina') return block
+    const text = parti[indice] ?? ''
+    indice += 1
+    return { ...block, text }
+  })
+}
+
 export function countCharacters(blocks: OcrBlock[]): number {
   return blocksToPlainText(blocks).replace(/\s+/g, '').length
 }

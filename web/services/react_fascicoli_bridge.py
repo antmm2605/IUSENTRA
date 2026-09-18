@@ -127,6 +127,68 @@ def _current_tenant_id() -> str:
         return ""
 
 
+def _current_tenant_runtime_label() -> str:
+    try:
+        from flask import g
+
+        tenant = getattr(g, "tenant", None)
+        return _text(
+            getattr(g, "tenant_context_slug", "")
+            or getattr(g, "tenant_slug", "")
+            or getattr(g, "auth_tenant_slug", "")
+            or getattr(tenant, "slug", "")
+            or "default"
+        )
+    except Exception:
+        return "default"
+
+
+def _lettura_fascicolo_cache_key(fid: str) -> tuple | None:
+    try:
+        from web.services.lettura_cache import chiave_lettura
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro = registro_corrente()
+        ciclo = registro.impronta_fascicolo(tenant_corrente(), str(fid), "motore_documenti")
+        revisione = str((ciclo or {}).get("aggiornato_il") or "")
+        tenant_versionato = f"{_current_tenant_runtime_label()}@{APP_VERSION}@{revisione}"
+        return chiave_lettura(tenant_versionato, str(fid))
+    except Exception:
+        return None
+
+
+def _initial_lettura_fascicolo(fid: str) -> dict[str, Any] | None:
+    """Payload consultivo già materializzato per aprire il pannello senza avviare letture."""
+    if not _text(fid):
+        return None
+    try:
+        from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
+        from web.services.lettura_cache import LETTURA_CACHE
+
+        chiave = _lettura_fascicolo_cache_key(fid)
+        if chiave is not None:
+            cached = LETTURA_CACHE.get(chiave)
+            if cached:
+                payload = json.loads(cached.decode("utf-8"))
+                lettura = payload.get("lettura") if isinstance(payload, dict) else None
+                if isinstance(lettura, dict) and lettura:
+                    return lettura
+
+        lettura = load_fascicolo_lettura_context(fascicolo_id=str(fid))
+        if not isinstance(lettura, dict) or not lettura:
+            return None
+        if chiave is not None and not bool((lettura.get("verifiche") or {}).get("in_corso")):
+            LETTURA_CACHE.set(
+                chiave,
+                json.dumps({"ok": True, "lettura": lettura}, ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8"),
+            )
+        return lettura
+    except Exception as exc:
+        if has_app_context():
+            current_app.logger.warning("Lettura iniziale del fascicolo %s non caricata: %s", fid, exc)
+        return None
+
+
 def _current_cache_scope() -> str:
     tenant_id = _current_tenant_id()
     if tenant_id:
@@ -8844,6 +8906,7 @@ def build_react_fascicolo_detail_payload(
         if load_deposits or load_regia
         else {}
     )
+    initial_lettura = _safe("initial_lettura", lambda: _initial_lettura_fascicolo(fid), None)
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -8881,6 +8944,7 @@ def build_react_fascicolo_detail_payload(
         "depositCatalog": deposit_catalog,
         "depositReadiness": deposit_readiness,
         "depositPreparation": deposit_preparation,
+        "initialLettura": initial_lettura,
         "signature": _signature_settings(get_config_studio),
         "auditTrail": audit_trail,
         "actions": {

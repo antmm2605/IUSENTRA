@@ -34,14 +34,16 @@ function isScheda(valore: SchedaProcedurale | Record<string, never> | undefined)
 // il pannello li mostra, non li calcola.
 export function LetturaFascicoloPanel({
   fascicoloId,
+  initialLettura,
   onError,
   onReady,
 }: {
   fascicoloId: string
+  initialLettura?: LetturaFascicolo | null
   onError?: (message: string) => void
   onReady?: () => void
 }) {
-  const [lettura, setLettura] = useState<LetturaFascicolo | null>(null)
+  const [lettura, setLettura] = useState<LetturaFascicolo | null>(initialLettura || null)
   const [loading, setLoading] = useState(false)
   const [registroRevision, setRegistroRevision] = useState(0)
   const [error, setError] = useState('')
@@ -71,7 +73,17 @@ export function LetturaFascicoloPanel({
     }
   }, [fascicoloId, onError, onReady])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    if (initialLettura) {
+      setLettura(initialLettura)
+      setError('')
+      setLoading(false)
+      onReady?.()
+      return
+    }
+    setLettura(null)
+    void load()
+  }, [initialLettura, load, onReady])
 
   // I presìdi stanno verificando in sfondo: si rilegge una volta, dopo qualche secondo.
   const inCorso = Boolean(lettura?.verifiche?.in_corso)
@@ -91,7 +103,7 @@ export function LetturaFascicoloPanel({
     return tuttiGliEventi ? tutti : tutti.slice(0, EVENTI_VISIBILI)
   }, [lettura, tuttiGliEventi])
 
-  if (!lettura && loading) return <p className="iu-fas-lettura__state"><RefreshCw className="iu-spin" size={15}/> Lettura del fascicolo in corso…</p>
+  if (!lettura && loading) return <p className="iu-fas-lettura__state"><RefreshCw className="iu-spin" size={15}/> Carico il riepilogo salvato del fascicolo…</p>
   if (!lettura) {
     return (
       <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert">
@@ -116,7 +128,7 @@ export function LetturaFascicoloPanel({
         </div>
         <div className="iu-fas-lettura__header-actions">
           <span>Letta il {lettura.generata_il}{testata.rg ? ` · RG ${testata.rg}` : ''}</span>
-          <button type="button" disabled={loading} onClick={() => void load(true)} title="Ricostruisce la lettura dai dati correnti del fascicolo"><RefreshCw className={loading ? 'iu-spin' : ''} size={15}/> Aggiorna</button>
+          <button type="button" disabled={loading} onClick={() => void load(true)} title="Aggiorna il riepilogo dai dati già presenti nel fascicolo e avvia solo i presìdi di verifica richiesti"><RefreshCw className={loading ? 'iu-spin' : ''} size={15}/> Aggiorna</button>
         </div>
       </header>
       {error ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
@@ -201,7 +213,7 @@ export function LetturaFascicoloPanel({
       <section className="iu-fas-lettura__verifiche" aria-label="Verifiche automatiche dei presìdi">
         <div className="iu-fas-lettura__section-head">
           <h4><ShieldCheck size={16}/> Verifiche automatiche dei presìdi</h4>
-          <span>{lettura.verifiche?.in_corso ? 'in corso…' : lettura.verifiche?.eseguita_il_it ? `eseguite il ${lettura.verifiche.eseguita_il_it}` : 'partono all\'apertura del fascicolo e si ripetono ogni 15 minuti'}</span>
+          <span>{lettura.verifiche?.in_corso ? 'aggiornamento presìdi in corso…' : lettura.verifiche?.eseguita_il_it ? `eseguite il ${lettura.verifiche.eseguita_il_it}` : 'nessuna verifica automatica registrata in questa vista'}</span>
         </div>
         {verifiche.length ? (
           <ul className="iu-fas-lettura__verifiche-lista">

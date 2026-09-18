@@ -56,7 +56,7 @@ test('le card dei presìdi leggono i numeri della lettura e portano dove si agis
   assert.equal(perId.pec.tono, 'warning')
   assert.match(perId.pec.nota, /1 da controllare · 1 termini da registrare/)
   assert.equal(perId.scadenze.valore, '2')
-  assert.equal(perId.scadenze.tono, 'danger')
+  assert.equal(perId.scadenze.tono, 'info')
   assert.equal(perId.economico.valore, '€ 1.500,00')
   assert.equal(perId.economico.tono, 'danger')
   assert.match(perId.economico.nota, /1 parcelle scadute per € 900,00/)
@@ -119,7 +119,7 @@ test('le verifiche automatiche si leggono presidio per presidio', async () => {
   assert.equal(righe[0].tono, 'warning')
   assert.equal(righe[2].tono, 'warning')
   assert.match(righe[2].esito, /casella PEC dello studio non configurata/)
-  assert.equal(righe[3].esito, 'tutti i 5 documenti letti e catalogati')
+  assert.equal(righe[3].esito, 'tutti i 5 documenti letti dall’archivio')
   assert.equal(righe[4].tono, 'danger')
 })
 

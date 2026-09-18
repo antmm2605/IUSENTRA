@@ -1025,6 +1025,7 @@ export type FascicoloDetailData = {
   depositCatalog: FascicoloDepositCatalog
   depositReadiness: FascicoloDepositReadiness
   depositPreparation: FascicoloDepositPreparation
+  initialLettura: unknown | null
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
   auditTrail: FascicoloAuditTrail
   actions: {
@@ -1478,6 +1479,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   depositCatalog: emptyDepositCatalog,
   depositReadiness: emptyDepositReadiness,
   depositPreparation: emptyDepositPreparation,
+  initialLettura: null,
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   auditTrail: {
@@ -2526,6 +2528,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     depositCatalog: normalizeDepositCatalog(payload.depositCatalog ?? payload.deposit_catalog),
     depositReadiness: normalizeDepositReadiness(payload.depositReadiness ?? payload.deposit_readiness),
     depositPreparation: normalizeDepositPreparation(payload.depositPreparation ?? payload.deposit_preparation),
+    initialLettura: isRecord(payload.initialLettura ?? payload.initial_lettura) ? (payload.initialLettura ?? payload.initial_lettura) : null,
     signature: isRecord(payload.signature) ? {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),

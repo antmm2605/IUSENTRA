@@ -9,7 +9,7 @@ const cartella = new URL('../../frontend/src/components/documentCapture/', impor
 const sorgente = stripTypeScriptTypes(readFileSync(new URL('ocrBlocks.ts', cartella), 'utf8'))
   .replaceAll("'./ocrMarkers'", JSON.stringify(new URL('ocrMarkers.ts', cartella).href))
   .replace("'./ocrBlockEdits'", JSON.stringify(new URL('ocrBlockEdits.ts', cartella).href))
-const { blocksToHtml, blocksToPlainText, markerFromText, parseBlocks } = await import(`data:text/javascript;base64,${Buffer.from(sorgente).toString('base64')}`)
+const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat } = await import(`data:text/javascript;base64,${Buffer.from(sorgente).toString('base64')}`)
 
 const blocco = (tipo, testo, extra = {}) => ({ tipo, testo, confidenza: 0.9, riquadro: [0, 0, 10, 10], formato: { livello: 0, grassetto: false, corsivo: false, allineamento: 'sinistra', scala: 1 }, ...extra })
 
@@ -39,4 +39,20 @@ test('il numero di pagina resta fuori dal documento e dal testo semplice, il giu
   ], 2)
   assert.equal(blocksToHtml(blocks), '<p style="text-align:justify">Corpo dell atto.</p>')
   assert.equal(blocksToPlainText(blocks), 'Corpo dell atto.')
+})
+
+test('la correzione continua aggiorna davvero testo e formato finale', () => {
+  const blocks = parseBlocks([
+    blocco('titolo', 'Titolo vecchio'),
+    blocco('paragrafo', 'Primo testo vecchio.'),
+    { tipo: 'tabella', testo: '', righe: [['Voce', 'Importo'], ['Spese', '500']], confidenza: 0.9, riquadro: [0, 0, 10, 10] },
+    blocco('paragrafo', 'Secondo testo vecchio.'),
+  ], 1)
+  const corretti = applyPlainTextToBlocks(blocks, 'Titolo corretto\n\nPrimo testo corretto.\n\nSecondo testo corretto.')
+  const formattati = updateBlockFormat(corretti, corretti[1].id, { grassetto: true, allineamento: 'giustificato' })
+  assert.equal(blocksToPlainText(formattati), 'Titolo corretto\n\nPrimo testo corretto.\n\nVoce | Importo\nSpese | 500\n\nSecondo testo corretto.')
+  assert.equal(
+    blocksToHtml(formattati),
+    '<p><strong>Titolo corretto</strong></p><p style="text-align:justify"><strong>Primo testo corretto.</strong></p><table border="1" cellspacing="0" cellpadding="4"><thead><tr><th>Voce</th><th>Importo</th></tr></thead><tbody><tr><td>Spese</td><td>500</td></tr></tbody></table><p>Secondo testo corretto.</p>',
+  )
 })

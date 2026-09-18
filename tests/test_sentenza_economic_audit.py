@@ -66,6 +66,21 @@ def test_rg_mismatch_blocca_alimentazione_economica():
     assert audit.match.issues  # motivo esplicitato
 
 
+def test_cliente_mismatch_blocca_alimentazione_economica():
+    testo = """TRIBUNALE ORDINARIO DI MILANO
+    Sezione Prima Civile - R.G. 1234/2025
+    definitivamente pronunciando, accoglie la domanda proposta da Roberta Montagnese contro Beta S.r.l.;
+    condanna Beta S.r.l. alla rifusione delle spese di lite, che liquida in complessivi euro 1.500,00 oltre accessori."""
+
+    audit = build_audit(fascicolo=_fasc(), testo=testo, cu_tiers=CU_TIERS)
+
+    assert audit.match.rg_match is True
+    assert audit.match.safe_to_attach is False
+    assert "Nome cliente non riscontrato" in " ".join(audit.match.issues)
+    assert [a.type for a in audit.azioni] == ["verifica_riconciliazione"]
+    assert audit.status == "needs_reconciliation"
+
+
 def test_condanna_senza_distrazione_credito_cliente():
     # regola #2: mai credito avvocato senza distrazione
     audit = build_audit(fascicolo=_fasc(), testo=SENT_CLIENTE)

@@ -489,8 +489,9 @@ def build_audit(
 
     azioni: list[EconomicAction] = []
 
-    if not match.rg_match:
-        # Regola #1: RG diverso => non alimentare il contesto economico.
+    if not match.safe_to_attach:
+        # Regola #1: senza riconciliazione piena RG + cliente non alimentare il
+        # contesto economico.
         azioni.append(EconomicAction(
             type="verifica_riconciliazione",
             label="Documento non riconciliato al fascicolo: verifica RG/cliente prima di ogni azione economica.",
@@ -532,7 +533,7 @@ def build_audit(
             ))
         status = "to_review" if (match.human_review_required or sentenza.spese_liquidate.human_review_required or cu.human_review_required) else "verified"
 
-    human_review = not match.rg_match or match.human_review_required or sentenza.spese_liquidate.human_review_required or cu.human_review_required
+    human_review = not match.safe_to_attach or match.human_review_required or sentenza.spese_liquidate.human_review_required or cu.human_review_required
 
     return SentenzaEconomicAudit(
         fascicolo_id=str(getattr(fascicolo, "id", "") or ""),

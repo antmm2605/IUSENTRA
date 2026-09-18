@@ -17,8 +17,9 @@ def estrai_controllo_economico(testo: str, *, origine: str, metadata: dict[str, 
         valore_causa=float(getattr(fascicolo, "valore_causa", 0) or 0),
         cu_tiers=metadata.get("cu_tiers"),
     )
-    # A precedent is useful knowledge, never a financial judgment of this case.
-    if not audit.match.rg_match:
+    # Una sentenza istruttoria o un precedente giurisprudenziale è conoscenza,
+    # non una fonte economica del fascicolo: richiede match pieno RG + cliente.
+    if not audit.match.safe_to_attach:
         return []
     return [Fatto(categoria="evento", campo="controllo_economico",
         valore="analizzato", etichetta="Controllo economico del provvedimento",

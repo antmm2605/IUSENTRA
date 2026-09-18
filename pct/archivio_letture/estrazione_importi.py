@@ -27,7 +27,7 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .ancoraggio import brano
 
-VERSIONE_ESTRAZIONE_IMPORTI = "2026.09.16.importi.v1"
+VERSIONE_ESTRAZIONE_IMPORTI = "2026.09.18.importi.v2"
 
 # Campo del fatto → etichetta italiana e norma che lo governa.
 CAMPI_IMPORTO: dict[str, tuple[str, str]] = {
@@ -75,17 +75,35 @@ def _fatto(campo: str, importo: float, *, titolo: str, testo: str, origine: str,
 
 def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None, origine: str = "") -> list[Fatto]:
     """Compenso liquidato, esborsi, fondo spese e beneficio dal dispositivo della sentenza."""
-    from pct.fascicolo_sentenza_economica import analyze_sentenza_tribunale_text
+    from pct.fascicolo_sentenza_economica import analyze_sentenza_tribunale_text, validate_sentenza_fascicolo_context
 
     grezzo = str(testo or "")
     if not grezzo.strip():
         return []
+    meta = metadata or {}
     try:
-        esito = analyze_sentenza_tribunale_text(grezzo, metadata or {})
+        esito = analyze_sentenza_tribunale_text(grezzo, meta)
     except Exception:
         return []
     if not getattr(esito, "found", False):
         return []
+    fascicolo = meta.get("fascicolo")
+    if fascicolo is not None:
+        try:
+            contesto = validate_sentenza_fascicolo_context(
+                text=grezzo,
+                extraction=esito,
+                fascicolo=fascicolo,
+                metadata=meta,
+                fascicolo_id=_testo(getattr(fascicolo, "id", "")),
+            )
+        except Exception:
+            return []
+        if not contesto.ok:
+            # Una sentenza usata come precedente o materiale istruttorio può
+            # stare nel fascicolo, ma non deve alimentare incassi, fatturazione
+            # o passi economici se non conferma insieme cliente e RG.
+            return []
     coppie = (
         ("liquidazione_giudice", esito.liquidazione_importo, esito.liquidazione_titolo),
         ("spese_esborsi", esito.spese_esborsi_importo, esito.spese_esborsi_titolo),

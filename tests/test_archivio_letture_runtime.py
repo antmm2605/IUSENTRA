@@ -102,6 +102,33 @@ def test_il_motore_documenti_alimenta_l_archivio_una_volta_sola_e_i_presidi_atti
         assert archivio["udienze"] == 1 and archivio["termini"] == 1 and archivio["prove_notifica"] >= 1 and archivio["lettura_automatica"]["completa"]
 
 
+def test_pannello_letture_avvia_archivio_in_background_senza_click(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    fascicolo_id, _decreto_id, _relata_id = _seed(app)
+    chiamate: list[dict[str, object]] = []
+
+    def _fake_avvia(app_obj, fid: str, *, paths=None, tenant_slug: str = "", forza: bool = False):
+        chiamate.append({"fid": fid, "paths": dict(paths or {}), "tenant_slug": tenant_slug, "forza": forza})
+        return True
+
+    monkeypatch.setattr("web.services.archivio_letture_runtime.avvia_lettura_in_background", _fake_avvia)
+
+    response = app.test_client().get(f"/api/v1/ui/fascicoli/{fascicolo_id}/letture?visto=0", headers=HEADERS)
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert chiamate == [{"fid": fascicolo_id, "paths": {}, "tenant_slug": "", "forza": False}]
+    automatica = payload["letture"]["archivio"]["lettura_automatica"]
+    assert automatica["in_corso"] is True
+    assert automatica["completa"] is False
+    assert automatica["da_leggere"] == 2
+    assert any(
+        voce.get("letture", {}).get("motore_documenti") == "in_corso"
+        for voce in payload["letture"]["per_oggetto"]
+    )
+
+
 def test_il_motore_pec_alimenta_l_archivio_dal_presidio_pec(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id, _decreto_id, _relata_id = _seed(app)

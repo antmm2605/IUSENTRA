@@ -9239,6 +9239,34 @@ class PecAuditRepository:
             if marker in str(getattr(dep, "note", "") or ""):
                 deposito = dep
                 break
+        if deposito is None and stage_id == "deposito_da_ricondurre" and lifecycle.get("requires_new_deposit") is False:
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.deposit.not_created",
+                        resource_type="pec_message",
+                        resource_id=message_id,
+                        payload={
+                            "fascicolo_id": fascicolo_id,
+                            "reason": "deposito_da_ricondurre_senza_nuovo_deposito",
+                            "correlation": correlation,
+                            "history_event": lifecycle.get("history_event") or {},
+                        },
+                        actor=actor,
+                    )
+            except Exception:
+                pass
+            return {
+                "ok": True,
+                "skipped": True,
+                "reason": "deposito_da_ricondurre_senza_nuovo_deposito",
+                "created": False,
+                "fascicolo_id": fascicolo_id,
+                "deposito_id": "",
+                "state": state,
+                "correlation": correlation,
+            }
 
         document_name = clean_text(
             correlation.get("document_name") or correlation.get("atto") or receipt.get("document_name") or "Deposito telematico PEC",

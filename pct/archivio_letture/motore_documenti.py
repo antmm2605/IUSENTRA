@@ -16,11 +16,11 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .collaudo import Contesto, collauda_tutti
 from .estrazione_date import estrai_date
-from .estrazione_importi import estrai_importi
+from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.16.motore-documenti.v7+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}"
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 

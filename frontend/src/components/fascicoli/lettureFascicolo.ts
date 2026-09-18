@@ -131,6 +131,9 @@ export function riassuntoLetture(letture: LettureFascicolo): { testo: string; to
   if (automatica?.completa) {
     return { testo: `Tutto letto e collaudato: ${letture.oggetti} tra documenti e PEC. Si rilegge solo ciò che cambia.`, tono: 'success' }
   }
+  if (automatica?.in_corso) {
+    return { testo: `Lettura automatica in corso: ${automatica.da_leggere || 0} oggett${automatica.da_leggere === 1 ? 'o' : 'i'} in lavorazione.`, tono: 'info' }
+  }
   if (automatica?.da_leggere) {
     return { testo: `Da leggere nell'archivio: ${automatica.da_leggere} oggett${automatica.da_leggere === 1 ? 'o' : 'i'}.`, tono: 'warning' }
   }

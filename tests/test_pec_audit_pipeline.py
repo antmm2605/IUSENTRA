@@ -3728,6 +3728,63 @@ def test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history
     assert second["duplicate"] is False
 
 
+def test_pct_deposit_da_ricondurre_non_crea_deposito_in_corso(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    fascicoli_db = tmp_path / "fascicoli.json"
+    fascicoli_docs = tmp_path / "documenti"
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs))
+    fascicolo = fascicoli.nuovo(
+        "Alessi II ricorso c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Alessi Giovanna",
+        tribunale="Tribunale di Messina",
+        numero_rg="2539",
+        anno_rg=2025,
+        controparte="Ministero dell'Istruzione",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+    )
+    parsed = {
+        "headers": {"subject": "POSTA CERTIFICATA: FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA"},
+        "body": {"text": "Comunicazione di cancelleria da ricondurre alla pratica RG 2539/2025."},
+    }
+    report = {
+        "event_type": "pct_deposito",
+        "deposit_lifecycle": {
+            "current_stage": {"id": "deposito_da_ricondurre", "label": "Deposito da ricondurre", "status": "warning"},
+            "correlation": {
+                "key": "message-id:fissazione-termine-note",
+                "rg": "2539/2025",
+                "document_name": "FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA",
+            },
+            "receipt": {},
+            "history_event": {"stage": "deposito_da_ricondurre", "requires_redeposit": False},
+            "final_state": "deposito_da_ricondurre",
+            "requires_new_deposit": False,
+        },
+    }
+
+    result = repo._upsert_pct_deposit_from_report(
+        "fissazione-termine-note@example.test",
+        parsed=parsed,
+        report=report,
+        attachments=[],
+        fascicolo_id=fascicolo.id,
+        actor="codex-test",
+    )
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert result["skipped"] is True
+    assert result["reason"] == "deposito_da_ricondurre_senza_nuovo_deposito"
+    assert saved is not None
+    assert saved.depositi_pct == []
+
+
 def test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoFascicolo
     from web.services.react_fascicoli_bridge import _deposits

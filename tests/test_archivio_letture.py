@@ -51,6 +51,57 @@ def test_le_date_sono_fatti_solo_se_ancorate_e_vere():
     assert not valori & {"1980-03-12", "2020-02-03", "2020-01-01", "2021-02-02", "2022-03-03", "2026-02-01", "2026-02-28", "2034-02-01"}
 
 
+def test_sentenza_istruttoria_non_alimenta_importi_del_fascicolo():
+    testo = """
+    TRIBUNALE ORDINARIO DI VICENZA
+    Sentenza n. 99/2026 pubbl. il 20/04/2026
+    RG n. 1234/2026
+    nella causa promossa da Roberta Montagnese contro Ministero dell'Istruzione.
+    P.Q.M. condanna il Ministero alla rifusione delle spese di lite,
+    liquidando la complessiva somma di € 500,00 oltre accessori.
+    """
+
+    fatti = leggi_testo(
+        testo,
+        origine="nativo",
+        contesto=_contesto(),
+        nome="Sentenza_Tribunale_Vicenza_20-04-2023.PDF",
+        metadata={"fascicolo": FASCICOLO, "tipo_documento": "SENTENZA", "documento_id": "DOC-VICENZA"},
+    )
+
+    assert [f for f in fatti if f.categoria == "importo"] == []
+    assert [f for f in fatti if f.campo == "controllo_economico"] == []
+
+
+def test_sentenza_del_cliente_alimenta_importi_del_fascicolo():
+    testo = """
+    TRIBUNALE ORDINARIO DI MILANO
+    Sentenza n. 100/2026 pubbl. il 20/04/2026
+    RG n. 1234/2026
+    nella causa promossa da Anna Bianchi contro Ministero dell'Istruzione.
+    P.Q.M. condanna il Ministero alla rifusione delle spese di lite,
+    liquidando la complessiva somma di € 500,00 oltre accessori.
+    """
+
+    fatti = leggi_testo(
+        testo,
+        origine="nativo",
+        contesto=_contesto(),
+        nome="Sentenza_Bianchi_RG_1234_2026.pdf",
+        metadata={"fascicolo": FASCICOLO, "tipo_documento": "SENTENZA", "documento_id": "DOC-SENTENZA"},
+    )
+
+    importi = [f for f in fatti if f.categoria == "importo" and f.campo == "liquidazione_giudice"]
+    assert importi and importi[0].valore == "500.00"
+
+
+def test_versione_motore_documenti_include_versione_importi():
+    from pct.archivio_letture.estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
+    from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI
+
+    assert VERSIONE_ESTRAZIONE_IMPORTI in VERSIONE_MOTORE_DOCUMENTI
+
+
 def test_la_citazione_della_carta_non_rende_identita_un_decreto():
     from pct.archivio_letture.pertinenza_documentale import natura_documentale
 
@@ -164,6 +215,21 @@ def test_l_archivio_conserva_le_decisioni_dell_avvocato_e_rimuove_i_fatti_scompa
     registro.risolvi_anomalia("t", anomalia.id, esito="confermata", utente_id="avv")
     assert next(f for f in registro.fatti("t", "F1") if f.campo == "udienza").verifica == "verificata"
     assert registro.riassunto_fatti("t", "F1")["per_verifica"]["corretta"] == 1
+
+
+def test_rilettura_oggetto_rimuove_fatti_di_impronta_precedente(tmp_path: Path):
+    registro = RegistroLetture(tmp_path / "registro.db")
+    vecchio = Oggetto(tipo="documento", oggetto_id="d1", sha256_archivio="a" * 64)
+    corrente = Oggetto(tipo="documento", oggetto_id="d1", sha256="a" * 64)
+    registro.registra_inventario("t", "F1", [corrente])
+    registro.registra_fatti("t", "F1", vecchio, "documenti", [
+        Fatto(categoria="importo", campo="liquidazione_giudice", valore="500.00", valore_letto="€ 500,00", etichetta="Compenso liquidato dal giudice € 500,00", verifica="verificata"),
+    ], versione="v1")
+
+    esito = registro.registra_fatti("t", "F1", corrente, "documenti", [], versione="v2")
+
+    assert esito["rimossi"] == 1
+    assert registro.fatti("t", "F1", verifiche=None) == []
 
 
 def test_collauda_non_tocca_le_decisioni():

@@ -8918,7 +8918,33 @@ def fascicolo_react_letture(id_fasc: str):
         if fascicolo is None:
             return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
         segna = str(request.args.get("visto") or "1").strip().lower() not in {"0", "false", "no"}
-        return _jsonify_public_payload({"ok": True, "letture": stato_letture_payload(fascicolo, segna_visto=segna)})
+        letture = stato_letture_payload(fascicolo, segna_visto=segna)
+        automatica = (letture.get("archivio") or {}).get("lettura_automatica") if isinstance(letture, dict) else {}
+        if isinstance(automatica, dict) and int(automatica.get("da_leggere") or 0) > 0 and not automatica.get("in_corso"):
+            try:
+                from web.services.archivio_letture_runtime import avvia_lettura_in_background
+
+                avviata = avvia_lettura_in_background(
+                    current_app._get_current_object(),
+                    str(id_fasc or "").strip(),
+                    paths=dict(getattr(g, "data_paths", {}) or {}),
+                    tenant_slug=str(getattr(g, "tenant_context_slug", "") or ""),
+                    forza=False,
+                )
+            except Exception as exc:
+                current_app.logger.warning("Lettura archivio non avviata per %s: %s", id_fasc, exc)
+                avviata = False
+            if avviata:
+                automatica["in_corso"] = True
+                automatica["completa"] = False
+                for voce in letture.get("per_oggetto") or []:
+                    letture_oggetto = voce.get("letture") if isinstance(voce, dict) else None
+                    if not isinstance(letture_oggetto, dict):
+                        continue
+                    for lettore, stato in list(letture_oggetto.items()):
+                        if lettore in {"motore_documenti", "motore_pec"} and stato in {"da_leggere", "da_rileggere", "regole_aggiornate"}:
+                            letture_oggetto[lettore] = "in_corso"
+        return _jsonify_public_payload({"ok": True, "letture": letture})
     except Exception as exc:
         # Il motivo si dichiara: «non disponibile» senza spiegazione non permette
         # all'avvocato né a chi assiste di capire che cosa non ha funzionato.

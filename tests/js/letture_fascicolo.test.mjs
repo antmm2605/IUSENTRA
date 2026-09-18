@@ -88,6 +88,17 @@ test('archivio: riassunto dei dati verificati, da confermare, in attesa di lettu
   assert.equal(riassuntoArchivio(undefined).tono, 'neutral')
 })
 
+test('riassunto letture: se la lettura automatica è partita non chiede intervento manuale', () => {
+  const stato = letture({
+    oggetti: 7,
+    archivio: archivio({ lettura_automatica: { in_corso: true, da_leggere: 7, completa: false, ultima_lettura: '', ultima_lettura_it: '' } }),
+  })
+
+  const riassunto = riassuntoLetture(stato)
+  assert.equal(riassunto.tono, 'info')
+  assert.equal(riassunto.testo, 'Lettura automatica in corso: 7 oggetti in lavorazione.')
+})
+
 test('collaudo del lettore e lettura automatica in frasi italiane', () => {
   assert.equal(fraseCollaudo(archivio().collaudo_lettore).testo, 'Collaudo del lettore superato il 16/09/2026 04:10: 3/3 pagine di prova lette correttamente.')
   const fallito = fraseCollaudo({ eseguito: true, superato: false, corretti: 2, totali: 3, eseguito_il_it: '', casi_falliti: ['Relata con dati anagrafici'] })

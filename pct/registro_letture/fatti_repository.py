@@ -34,6 +34,7 @@ COLONNE_FATTI: tuple[str, ...] = (
 _FILTRI_FATTI = {
     "tenant_id = ? AND fascicolo_id = ?": '"tenant_id" = ? AND "fascicolo_id" = ?',
     "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND motore = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ? AND "sha256" = ? AND "motore" = ?',
+    "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND motore = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ? AND "motore" = ?',
     "tenant_id = ? AND tipo = ? AND oggetto_id = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ?',
     "tenant_id = ? AND id = ?": '"tenant_id" = ? AND "id" = ?',
 }
@@ -131,7 +132,12 @@ class FattiMixin:
         tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
         tipo, oggetto_id, sha = _testo(oggetto.tipo), _testo(oggetto.oggetto_id), _testo(oggetto.impronta)
         adesso = self._adesso()  # type: ignore[attr-defined]
-        esistenti = {riga["chiave"]: riga for riga in self._seleziona_fatti("tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND motore = ?", (tenant, tipo, oggetto_id, sha, motore))}
+        righe_oggetto = self._seleziona_fatti(
+            "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND motore = ?",
+            (tenant, tipo, oggetto_id, motore),
+        )
+        esistenti = {riga["chiave"]: riga for riga in righe_oggetto if _testo(riga.get("sha256")) == sha}
+        obsoleti = [riga for riga in righe_oggetto if _testo(riga.get("sha256")) != sha]
         conteggi = {"nuovi": 0, "aggiornati": 0, "conservati": 0, "rimossi": 0}
         visti: set[str] = set()
         with self.connection() as conn:  # type: ignore[attr-defined]
@@ -168,6 +174,12 @@ class FattiMixin:
                 )
             for chiave, riga in esistenti.items():
                 if chiave in visti or str(riga.get("verifica") or "") in {"corretta", "ignorata"} or riga.get("risolta_da"):
+                    continue
+                conteggi["rimossi"] += 1
+                conn.execute('DELETE FROM "letture_fatti" WHERE "tenant_id" = ? AND "id" = ?', (tenant, riga["id"]))
+            for riga in obsoleti:
+                if str(riga.get("verifica") or "") in {"corretta", "ignorata"} or riga.get("risolta_da"):
+                    conteggi["conservati"] += 1
                     continue
                 conteggi["rimossi"] += 1
                 conn.execute('DELETE FROM "letture_fatti" WHERE "tenant_id" = ? AND "id" = ?', (tenant, riga["id"]))

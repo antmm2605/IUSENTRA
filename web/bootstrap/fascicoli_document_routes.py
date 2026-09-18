@@ -1,38 +1,36 @@
-"""Document routes extracted from the fascicoli monolith."""
+"""Caricamento e modifica dei documenti del fascicolo.
+
+Qui restano il caricamento manuale, i metadati, la rinomina e la rotazione.
+Le altre responsabilita' hanno un modulo proprio: l'import dai portali in
+`fascicoli_document_import_routes`, la consultazione (scarico, anteprima,
+firme) in `fascicoli_document_view_routes`, il cestino in
+`fascicoli_document_trash_routes`.
+"""
 
 from __future__ import annotations
 
-import io
-import threading
 from collections.abc import Callable
-from datetime import date
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, url_for
 
 from pct.document_management import normalize_document_tags
-from pct.document_intelligence.sources import source_from_uploaded_document
 from pct.fascicoli import TipoDocumento
 from web.bootstrap.fascicoli_document_helpers import (
-    applica_modalita_portale,
     classifica_tipo_documento,
-    contenuto_portale_bytes,
-    estrai_pdf_da_raw,
-    mobile_pdf_preview_response,
-    mobile_rich_preview_response,
     nome_documento_operativo,
-    payload_bool,
     percorso_documento_lettura,
-    preview_error_html,
-    preview_unavailable_html,
     wants_json_response,
 )
+from web.bootstrap.fascicoli_document_import_routes import register_fascicoli_document_import_routes
 from web.bootstrap.fascicoli_document_trash_routes import register_fascicoli_document_trash_routes
+from web.bootstrap.fascicoli_document_view_routes import register_fascicoli_document_view_routes
+from web.services.document_lex_indexing import indicizza_documento_lex
 from web.services.fascicoli_document_rename import rinomina_documento_response
+from web.services.ricevuta_pagopa_runtime import registra_ricevuta_pagopa
 from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
 from web.services.document_tools import DocumentToolError, rotate_pdf_bytes
-from web.services.signed_document_runtime import build_document_signed_snapshot_from_bytes, build_document_version_candidates
 
 def register_fascicoli_document_routes(
     app: Flask,
@@ -58,97 +56,6 @@ def register_fascicoli_document_routes(
     applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
-    def _record_document_operational_audit(
-        *,
-        fascicolo_id: str,
-        document_id: str,
-        documento: Any,
-        event_type: str,
-    ) -> None:
-        """Registra un riscontro SQL di consultazione senza fingere prova WORM."""
-        try:
-            utente = getattr(g, "utente_corrente", None)
-            actor = str(
-                getattr(utente, "username", "")
-                or getattr(utente, "id", "")
-                or ""
-            ).strip()
-            nome = str(getattr(documento, "nome", "") or "Documento del fascicolo").strip()
-            action = "download" if event_type == "DOC_DOWNLOADED" else "view"
-            label = "Documento scaricato" if action == "download" else "Documento consultato"
-            get_practice_engine().audit(
-                str(fascicolo_id or ""),
-                event_type,
-                actor=actor,
-                message=f"{label}: {nome}",
-                payload={
-                    "document_id": str(document_id or ""),
-                    "document_name": nome,
-                    "source_action": action,
-                },
-            )
-        except Exception as exc:
-            # Il documento già autorizzato deve restare fruibile anche se il
-            # solo registro operativo è temporaneamente indisponibile.
-            app.logger.warning(
-                "Audit operativo documento non registrato %s/%s: %s",
-                fascicolo_id,
-                document_id,
-                exc,
-            )
-    def _indicizza_documento_lex(
-        *,
-        id_fasc: str,
-        document_id: str,
-        filename: str,
-        content: bytes,
-        source_type: str,
-        metadata: dict[str, Any] | None = None,
-        blocking: bool = True,
-    ) -> None:
-        try:
-            from web.services.document_intelligence_runtime import (
-                build_document_ai_service,
-                document_ai_tenant_id,
-                document_ai_user_context,
-            )
-            tenant_id = document_ai_tenant_id()
-            user_context = document_ai_user_context()
-            app_obj = app._get_current_object() if hasattr(app, "_get_current_object") else app
-
-            def _process() -> None:
-                try:
-                    with app_obj.app_context():
-                        source = source_from_uploaded_document(
-                            tenant_id=tenant_id,
-                            fascicolo_id=id_fasc,
-                            document_id=document_id,
-                            filename=filename,
-                            content=content,
-                            source_type=source_type,
-                            metadata=metadata or {},
-                        )
-                        service = build_document_ai_service()
-                        service.process_lex_indexing_sources(
-                            tenant_id,
-                            id_fasc,
-                            [source],
-                            user_context,
-                            retry_errors=True,
-                        )
-                except Exception as exc:
-                    app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
-
-            if blocking:
-                _process()
-            else:
-                threading.Thread(
-                    target=_process,
-                    name=f"lex-index-document-{id_fasc}-{document_id}",
-                    daemon=True,
-                ).start()
-        except Exception as exc:
-            app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
@@ -168,6 +75,7 @@ def register_fascicoli_document_routes(
         modalita_raw = str(form.get("classificazione_modalita") or form.get("classificazione") or "").strip().lower()
         manuale = modalita_raw == "manuale" or (not modalita_raw and bool(form.get("tipo_doc")))
         documenti_creati = []
+        ricevute_riconosciute = 0
         try:
             for index, storage in enumerate(files):
                 raw = storage.read()
@@ -201,7 +109,17 @@ def register_fascicoli_document_routes(
                     nome_originale=storage.filename,
                 )
                 documenti_creati.append(documento)
-                _indicizza_documento_lex(
+                # Chi ha appena pagato sul portale trascina la ricevuta nel
+                # fascicolo come farebbe con qualsiasi altro file: se e' una RT
+                # valida secondo lo schema ministeriale, il pagamento viene
+                # registrato senza che l'avvocato debba scegliere una via
+                # speciale. Un file che RT non e' resta un documento come gli
+                # altri: non si indovina un pagamento da un nome.
+                ricevute_riconosciute += registra_ricevuta_pagopa(
+                    gestore_fascicoli, id_fasc, documento, storage.filename, raw,
+                )
+                indicizza_documento_lex(
+                    app,
                     id_fasc=id_fasc,
                     document_id=getattr(documento, "id", "") or storage.filename,
                     filename=storage.filename,
@@ -217,6 +135,12 @@ def register_fascicoli_document_routes(
                 raise ValueError("I file selezionati sono vuoti o non leggibili.")
             count = len(documenti_creati)
             msg = f"Caricato {count} documento." if count == 1 else f"Caricati {count} documenti."
+            if ricevute_riconosciute:
+                msg += (
+                    " Riconosciuta la ricevuta telematica del pagamento: il contributo unificato risulta versato."
+                    if ricevute_riconosciute == 1
+                    else f" Riconosciute {ricevute_riconosciute} ricevute telematiche di pagamento."
+                )
             flash(msg, "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"{count} file")
             clear_react_fascicoli_list_cache()
@@ -341,7 +265,8 @@ def register_fascicoli_document_routes(
                 pdfa_profile="2b",
                 preserva_contenuto_originale=True,
             )
-            _indicizza_documento_lex(
+            indicizza_documento_lex(
+                app,
                 id_fasc=id_fasc,
                 document_id=getattr(rotated_doc, "id", "") or rotated_name,
                 filename=rotated_name,
@@ -383,388 +308,30 @@ def register_fascicoli_document_routes(
         except Exception as exc:
             app.logger.exception("Errore salva_rotazione_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
             return jsonify({"ok": False, "messaggio": "Rotazione non salvata. Verifica il documento e riprova."}), 500
-    @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
-    def importa_documenti_portale(id_fasc):
-        gestore_fascicoli = get_fascicoli()
-        fascicolo = gestore_fascicoli.get(id_fasc)
-        if not fascicolo:
-            if wants_json_response():
-                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
-            flash("Fascicolo non trovato.", "warning")
-            return redirect(url_for("lista_fascicoli"))
-        fonte = portale_ufficiale_label(fascicolo)
-        note_importazione = (request.form.get("note_importazione", "") or "").strip()
-        mantieni_albero_originale = payload_bool(request.form.get("mantieni_albero_originale"), False)
-        scarica_originale_portale = payload_bool(request.form.get("scarica_originale_portale"), False)
-        uploaded_items: list[dict[str, Any]] = []
-
-        for storage in request.files.getlist("files"):
-            if not storage or not storage.filename:
-                continue
-            payload = storage.read()
-            if not payload:
-                continue
-            uploaded_items.extend(
-                espandi_file_importato_portale(
-                    nome_file=storage.filename,
-                    contenuto=payload,
-                    data_documento=date.today().isoformat(),
-                    origine=f"upload:{storage.filename}",
-                )
-            )
-        staging_items: list[dict[str, Any]] = []
-        staging_dir = pst_import_dir_for_fascicolo(fascicolo)
-        usa_staging = not uploaded_items
-        if usa_staging:
-            staging_items, staging_dir = leggi_staging_documenti_portale(fascicolo)
-        items = applica_modalita_portale(
-            uploaded_items or staging_items,
-            scarica_originale=scarica_originale_portale,
-        )
-        if not items:
-            if wants_json_response():
-                return jsonify(
-                    {
-                        "ok": False,
-                        "messaggio": f"Nessun file ufficiale trovato. Seleziona i download del {fonte} oppure riprova dopo averli copiati nella inbox tecnica del fascicolo.",
-                    }
-                ), 400
-            flash(
-                f"Nessun file ufficiale trovato. Seleziona i download del {fonte} oppure riprova dopo averli copiati nella inbox tecnica del fascicolo.",
-                "warning",
-            )
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-        try:
-            albero_originale_salvato = ""
-            if mantieni_albero_originale and uploaded_items:
-                albero_originale_salvato = salva_albero_originale_documenti_portale(fascicolo, uploaded_items)
-            esito_import = importa_documenti_portale_items(
-                gf=gestore_fascicoli,
-                fasc=fascicolo,
-                items=items,
-                note_importazione=note_importazione,
-                usa_staging=usa_staging,
-                staging_dir=staging_dir if usa_staging else None,
-            )
-            for index, item in enumerate(items):
-                _indicizza_documento_lex(
-                    id_fasc=id_fasc,
-                    document_id=str(item.get("id_documento_portale") or item.get("id_documento") or item.get("origine") or index),
-                    filename=str(item.get("nome") or item.get("nome_file_originale") or f"documento-portale-{index}.pdf"),
-                    content=contenuto_portale_bytes(item),
-                    source_type="portale_telematico",
-                    metadata={"trigger": "import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
-                )
-            agganciati = len(esito_import["depositi_agganciati"])
-            msg = f"Importati {esito_import['documenti_importati']} file ufficiali da {fonte}."
-            if agganciati:
-                msg += f" {agganciati} deposit" + ("o ufficiale aggiornato." if agganciati == 1 else "i ufficiali aggiornati.")
-            if esito_import["lotto_generico"]:
-                msg += " Alcuni file sono stati registrati in un lotto documentale locale."
-            if esito_import["staging_archived"]:
-                msg += " Inbox temporanea archiviata."
-            if albero_originale_salvato:
-                msg += " Albero tecnico originale archiviato."
-            flash(msg, "success")
-            clear_react_fascicoli_list_cache()
-            if wants_json_response():
-                return jsonify(
-                    {
-                        "ok": True,
-                        "messaggio": msg,
-                        "documenti_importati": esito_import["documenti_importati"],
-                        "depositi_agganciati": agganciati,
-                        "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#documenti",
-                    }
-                )
-        except (ValueError, KeyError) as exc:
-            app.logger.warning("Import documenti portale non valido %s: %s", id_fasc, exc)
-            msg = "Importazione non completata. Verifica file selezionati e fascicolo."
-            if wants_json_response():
-                return jsonify({"ok": False, "messaggio": msg}), 400
-            flash(msg, "danger")
-        except Exception as exc:
-            app.logger.exception("Errore importa_documenti_portale %s: %s", id_fasc, exc)
-            msg = "Importazione file ufficiali non completata. Verifica il pacchetto e riprova."
-            if wants_json_response():
-                return jsonify({"ok": False, "messaggio": msg}), 500
-            flash(msg, "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    @app.route("/api/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
-    def api_importa_documenti_portale(id_fasc):
-        try:
-            gestore_fascicoli = get_fascicoli()
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            if not fascicolo:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-
-            data = request.get_json(silent=True) or {}
-            note_importazione = (data.get("note_importazione", "") or "").strip()
-            mantieni_albero_originale = bool(data.get("mantieni_albero_originale"))
-            scarica_originale_portale = payload_bool(data.get("scarica_originale_portale"), False)
-            items = applica_modalita_portale(
-                decode_portale_downloaded_items(data.get("files") or []),
-                scarica_originale=scarica_originale_portale,
-            )
-            if not items:
-                return jsonify({"ok": False, "errore": "Nessun file valido ricevuto dal Local Signer."}), 200
-
-            albero_originale_salvato = ""
-            if mantieni_albero_originale:
-                albero_originale_salvato = salva_albero_originale_documenti_portale(fascicolo, items)
-
-            esito_import = importa_documenti_portale_items(
-                gf=gestore_fascicoli,
-                fasc=fascicolo,
-                items=items,
-                note_importazione=note_importazione,
-            )
-            for index, item in enumerate(items):
-                _indicizza_documento_lex(
-                    id_fasc=id_fasc,
-                    document_id=str(item.get("id_documento_portale") or item.get("id_documento") or item.get("origine") or index),
-                    filename=str(item.get("nome") or item.get("nome_file_originale") or f"documento-portale-{index}.pdf"),
-                    content=contenuto_portale_bytes(item),
-                    source_type="portale_telematico",
-                    metadata={"trigger": "api_import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
-                )
-            clear_react_fascicoli_list_cache()
-            return (
-                jsonify(
-                    {
-                        "ok": True,
-                        "documenti_importati": esito_import["documenti_importati"],
-                        "depositi_agganciati": len(esito_import["depositi_agganciati"]),
-                        "lotto_generico": esito_import["lotto_generico"],
-                        "albero_originale_salvato": bool(albero_originale_salvato),
-                        "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc),
-                    }
-                ),
-                200,
-            )
-        except (ValueError, KeyError) as exc:
-            app.logger.warning("API import documenti portale non valido %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": "Importazione non completata. Verifica file selezionati e fascicolo."}), 200
-        except Exception as exc:
-            app.logger.exception("Errore api_importa_documenti_portale %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": "Importazione file ufficiali non completata. Verifica il pacchetto e riprova."}), 200
-
-    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/scarica")
-    def scarica_documento(id_fasc, id_doc):
-        gestore_fascicoli = get_fascicoli()
-        try:
-            percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
-            data = decrypt_doc(percorso.read_bytes())
-            download_name = nome_documento_operativo(documento, percorso, data)
-            _record_document_operational_audit(
-                fascicolo_id=id_fasc,
-                document_id=id_doc,
-                documento=documento,
-                event_type="DOC_DOWNLOADED",
-            )
-            audit("fascicoli.documento.scarica", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
-            return send_file(io.BytesIO(data), as_attachment=True, download_name=download_name)
-        except Exception as exc:
-            app.logger.exception("Errore scarica_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-            flash("Impossibile scaricare il documento. Verifica il fascicolo e riprova.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/visualizza")
-    def visualizza_documento(id_fasc, id_doc):
-        gestore_fascicoli = get_fascicoli()
-        try:
-            percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
-            data = decrypt_doc(percorso.read_bytes())
-            operational_name = nome_documento_operativo(documento, percorso, data)
-            if payload_bool(request.args.get("download"), False):
-                _record_document_operational_audit(
-                    fascicolo_id=id_fasc,
-                    document_id=id_doc,
-                    documento=documento,
-                    event_type="DOC_DOWNLOADED",
-                )
-                audit(
-                    "fascicoli.documento.scarica",
-                    "fascicolo",
-                    id_fasc,
-                    dettagli=f"doc {id_doc} — {documento.nome}",
-                )
-                return send_file(io.BytesIO(data), as_attachment=True, download_name=operational_name)
-            firma_payload = firma_payload_corrente_o_sibling(percorso, operational_name, data)
-            preview_payload = data
-            preview_name = operational_name
-            lower_name = operational_name.casefold()
-
-            if lower_name.endswith((".xml", ".xml.p7m", ".eml", ".eml.p7m", ".txt", ".txt.p7m")) and request.args.get("viewer") != "mobile":
-                from web.services.signed_attachment_preview import build_attachment_preview_payload
-
-                signed_payload = firma_payload if lower_name.endswith(".p7m") else data
-                preview_document = build_attachment_preview_payload(
-                    nome_file=operational_name,
-                    data=signed_payload,
-                    mime_salvato="",
-                )
-                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
-                if preview_document.unavailable_reason:
-                    return preview_unavailable_html(operational_name, scarica_url)
-                _record_document_operational_audit(
-                    fascicolo_id=id_fasc,
-                    document_id=id_doc,
-                    documento=documento,
-                    event_type="DOC_VIEWED",
-                )
-                audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {documento.nome}")
-                return send_file(
-                    io.BytesIO(preview_document.data),
-                    mimetype=preview_document.mimetype,
-                    as_attachment=False,
-                    download_name=preview_document.download_name,
-                )
-
-            if lower_name.endswith(".p7m"):
-                contenuto_estratto = estrai_contenuto_p7m_per_preview(firma_payload)
-                if contenuto_estratto:
-                    preview_payload = contenuto_estratto
-                    preview_name = nome_preview_documento(documento.nome)
-                else:
-                    nome_preview = nome_preview_documento(documento.nome)
-                    if mime_preview_documento(nome_preview, data):
-                        preview_payload = data
-                        preview_name = nome_preview
-                    else:
-                        pdf_raw = estrai_pdf_da_raw(firma_payload)
-                        if pdf_raw and pdf_raw.startswith(b"%PDF"):
-                            preview_payload = pdf_raw
-                            preview_name = nome_preview
-                        else:
-                            contenuto_versione = payload_preview_da_versioni_documento(gestore_fascicoli, documento)
-                            if contenuto_versione:
-                                preview_payload = contenuto_versione
-                                preview_name = nome_preview
-
-            mobile_response, preview_payload, preview_name = mobile_rich_preview_response(
-                preview_payload=preview_payload,
-                preview_name=preview_name,
-                mime_salvato=(mime_preview_documento(preview_name, preview_payload) or ("", ""))[0],
-                id_fasc=id_fasc,
-                id_doc=id_doc,
-                documento=documento,
-                audit=audit,
-            )
-            if mobile_response is not None:
-                if not request.args.get("page"):
-                    _record_document_operational_audit(
-                        fascicolo_id=id_fasc,
-                        document_id=id_doc,
-                        documento=documento,
-                        event_type="DOC_VIEWED",
-                    )
-                return mobile_response
-
-            preview = mime_preview_documento(preview_name, preview_payload)
-            if not preview:
-                pdf_raw = estrai_pdf_da_raw(data) or estrai_pdf_da_raw(firma_payload)
-                if pdf_raw:
-                    preview_payload = pdf_raw
-                    preview_name = nome_preview_documento(documento.nome) or "documento.pdf"
-                    preview = ("application/pdf", preview_name)
-
-            if not preview:
-                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
-                return preview_unavailable_html(documento.nome, scarica_url)
-
-            if operational_name.casefold().endswith(".p7m") and preview_payload.startswith(b"%PDF"):
-                try:
-                    from pct.firma import analizza_firma_documento
-
-                    firme = analizza_firma_documento(firma_payload, documento.nome)
-                except Exception:
-                    firme = []
-                preview_payload = applica_timbro_firma_visibile(preview_payload, firme, documento)
-
-            mime, nome_download = preview
-            if mime == "application/pdf" and request.args.get("viewer") == "mobile":
-                mobile_response = mobile_pdf_preview_response(
-                    preview_payload=preview_payload,
-                    id_fasc=id_fasc,
-                    id_doc=id_doc,
-                    documento=documento,
-                    nome_download=nome_download,
-                    audit=audit,
-                )
-                if mobile_response is not None:
-                    if not request.args.get("page"):
-                        _record_document_operational_audit(
-                            fascicolo_id=id_fasc,
-                            document_id=id_doc,
-                            documento=documento,
-                            event_type="DOC_VIEWED",
-                        )
-                    return mobile_response
-            _record_document_operational_audit(
-                fascicolo_id=id_fasc,
-                document_id=id_doc,
-                documento=documento,
-                event_type="DOC_VIEWED",
-            )
-            audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
-            return send_file(
-                io.BytesIO(preview_payload),
-                mimetype=mime,
-                as_attachment=False,
-                download_name=nome_download,
-            )
-        except Exception as exc:
-            app.logger.exception("Errore visualizza_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-            try:
-                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
-            except Exception:
-                scarica_url = "#"
-            return preview_error_html(scarica_url)
-
-    @app.route("/api/fascicoli/<id_fasc>/documenti/<id_doc>/info-firma")
-    def api_info_firma_documento(id_fasc, id_doc):
-        if g.utente_corrente is None:
-            return jsonify({"firme": [], "errore": "Non autenticato"}), 401
-        try:
-            gestore_fascicoli = get_fascicoli()
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            if not fascicolo:
-                return jsonify({"firme": [], "errore": "Fascicolo non trovato"}), 404
-            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
-            if not documento:
-                return jsonify({"firme": [], "errore": "Documento non trovato"}), 404
-            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
-            data = decrypt_doc(percorso.read_bytes())
-            from pct.firma import analizza_firma_documento
-
-            firme = analizza_firma_documento(data, documento.nome)
-            signed_snapshot = build_document_signed_snapshot_from_bytes(
-                source_name=documento.nome,
-                source_path=str(percorso),
-                data=data,
-                version_candidates=build_document_version_candidates(
-                    gestore_fascicoli,
-                    documento,
-                    decrypt_doc=decrypt_doc,
-                ),
-            )
-            return jsonify(
-                {
-                    "firme": firme,
-                    "nome": documento.nome,
-                    "signed_status": (signed_snapshot or {}).get("signed_status"),
-                    "signed_ui": (signed_snapshot or {}).get("ui_status"),
-                }
-            )
-        except Exception as exc:
-            app.logger.exception("Errore api_info_firma_documento: %s", exc)
-            return jsonify({"firme": [], "errore": "Lettura firme non completata. Verifica il documento e riprova."})
-
+    register_fascicoli_document_import_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        audit=audit,
+        salva_documento_fascicolo=salva_documento_fascicolo,
+        portale_ufficiale_label=portale_ufficiale_label,
+        espandi_file_importato_portale=espandi_file_importato_portale,
+        pst_import_dir_for_fascicolo=pst_import_dir_for_fascicolo,
+        leggi_staging_documenti_portale=leggi_staging_documenti_portale,
+        salva_albero_originale_documenti_portale=salva_albero_originale_documenti_portale,
+        importa_documenti_portale_items=importa_documenti_portale_items,
+        decode_portale_downloaded_items=decode_portale_downloaded_items,
+    )
+    register_fascicoli_document_view_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_practice_engine=get_practice_engine,
+        audit=audit,
+        decrypt_doc=decrypt_doc,
+        firma_payload_corrente_o_sibling=firma_payload_corrente_o_sibling,
+        estrai_contenuto_p7m_per_preview=estrai_contenuto_p7m_per_preview,
+        nome_preview_documento=nome_preview_documento,
+        mime_preview_documento=mime_preview_documento,
+        payload_preview_da_versioni_documento=payload_preview_da_versioni_documento,
+        applica_timbro_firma_visibile=applica_timbro_firma_visibile,
+    )
     register_fascicoli_document_trash_routes(app, get_fascicoli=get_fascicoli, audit=audit)

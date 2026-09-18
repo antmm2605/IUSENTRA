@@ -353,6 +353,12 @@ def _public_row(row: dict[str, Any], *, include_private: bool = False) -> dict[s
         if key.endswith("_json"):
             cleaned[key[:-5]] = json_loads(value, {} if value == "{}" else [])
             cleaned.pop(key, None)
+    # Il token cifrato dell'invito resta sul server anche se e' cifrato: e' la
+    # credenziale d'accesso al portale del cliente e non ha motivo di viaggiare.
+    # Si rimostra solo su richiesta esplicita dell'avvocato autenticato.
+    metadata = cleaned.get("metadata")
+    if isinstance(metadata, dict) and "token_cifrato" in metadata:
+        cleaned["metadata"] = {chiave: valore for chiave, valore in metadata.items() if chiave != "token_cifrato"}
     for key in ("created_at", "updated_at", "uploaded_at", "accepted_at", "expires_at", "starts_at", "ends_at", "submitted_at", "completed_at", "read_at"):
         if key in cleaned:
             cleaned[f"{key}_label"] = _iso_to_rome_label(cleaned.get(key))
@@ -627,6 +633,44 @@ def studio_add_message(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "message": "Messaggio inviato.", "item": _public_row(message, include_private=True), "dashboard": build_studio_dashboard_payload()}
 
 
+def studio_invite_link(payload: dict[str, Any]) -> dict[str, Any]:
+    """Il link riservato di un invito, per l'avvocato che lo ha generato.
+
+    Il database conserva del token solo l'impronta; il link si rimostra perche'
+    accanto c'e' una copia cifrata con la chiave del server. Se manca — nessuna
+    chiave configurata, oppure invito creato prima di questa protezione — si
+    dice chiaramente che non e' recuperabile e va rigenerato, invece di
+    mostrare un link finto.
+    """
+    if not _can("clienti.leggi"):
+        return {"ok": False, "code": "forbidden", "message": "Permesso clienti.leggi richiesto."}
+    repo = repository_for_current_request()
+    tenant_id = _current_tenant_id()
+    invite_id = _text(payload.get("inviteId"))
+    invite = next(
+        (riga for riga in (repo.dashboard_snapshot(tenant_id).get("invites") or []) if _text(riga.get("id")) == invite_id),
+        None,
+    ) if invite_id else None
+    if not invite:
+        return {"ok": False, "code": "validation_error", "message": "Invito non trovato."}
+    token = repo.invite_token_in_chiaro(invite)
+    if not token:
+        from pct.client_portal_token_cifrato import cifratura_disponibile
+
+        motivo = (
+            "Il link non è più recuperabile: questo invito è stato creato prima che il token venisse conservato cifrato. Rigeneralo per averne uno nuovo."
+            if cifratura_disponibile()
+            else "Il link non è recuperabile perché il server non ha la chiave di cifratura (PCT_DOC_KEY). Rigenera l'invito quando serve inviarlo."
+        )
+        return {"ok": True, "available": False, "url": "", "message": motivo}
+    return {
+        "ok": True,
+        "available": True,
+        "url": _public_url(f"/portale-cliente/invito/{token}"),
+        "invite": _public_row(invite, include_private=True),
+    }
+
+
 def studio_add_document_request(payload: dict[str, Any]) -> dict[str, Any]:
     if not _can("clienti.scrivi"):
         return {"ok": False, "code": "forbidden", "message": "Permesso clienti.scrivi richiesto."}
@@ -897,7 +941,7 @@ def invite_preview_payload(token: str) -> dict[str, Any]:
             "ok": True,
             "surface": "invite",
             "invite": _public_row(invite),
-            "client": _public_row(snapshot.get("profile", {})),
+            "client": _public_row(_profilo_con_scheda_studio(snapshot.get("profile", {}) or {})),
             "matter": _public_row(snapshot.get("matter", {})),
             "featureFlags": _features_payload(),
         }
@@ -945,13 +989,14 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
                 "nextAction": _text((snapshot.get("matter") or {}).get("next_action")) or "Controlla documenti, privacy e messaggi.",
             },
             "invite": _public_row(invite),
-            "client": _public_row(snapshot.get("profile", {})),
+            "client": _public_row(_profilo_con_scheda_studio(snapshot.get("profile", {}) or {})),
             "matter": _public_row(snapshot.get("matter", {})),
             "steps": _public_rows(snapshot.get("steps", [])),
             "documentRequests": _public_rows(document_requests),
             "documents": _public_rows(documents),
             "signatures": _public_rows(snapshot.get("signatures", [])),
             "consents": _public_rows(snapshot.get("consents", [])),
+            "privacyNotice": _informativa_privacy(),
             "messages": _public_rows(snapshot.get("messages", [])),
             "appointments": _public_rows(snapshot.get("appointments", [])),
             "notifications": _public_rows(snapshot.get("notifications", [])),
@@ -960,7 +1005,7 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
             "evidencePacks": _public_rows(snapshot.get("evidencePacks", [])),
             "settings": snapshot.get("settings") or DEFAULT_CLIENT_PORTAL_SETTINGS,
             "uploadLimits": _upload_limits(snapshot.get("settings") or DEFAULT_CLIENT_PORTAL_SETTINGS),
-            "profileCompletion": _profile_completion(snapshot.get("profile", {}) or {}),
+            "profileCompletion": _profile_completion(_profilo_con_scheda_studio(snapshot.get("profile", {}) or {})),
             "actions": {
                 "profile": "/api/v1/ui/client-portal/public/profile",
                 "consent": "/api/v1/ui/client-portal/public/consents",
@@ -1017,6 +1062,65 @@ def _profile_anagrafica(profile: dict[str, Any]) -> dict[str, Any]:
         preferences = json_loads(profile.get("preferences_json"), {})
     anagrafica = preferences.get("anagrafica") if isinstance(preferences, dict) else {}
     return dict(anagrafica) if isinstance(anagrafica, dict) else {}
+
+
+def _informativa_privacy() -> dict[str, Any]:
+    """L'informativa che il cliente deve poter leggere prima di accettare."""
+    try:
+        from web.services.client_portal_privacy_testi import informativa_payload
+
+        return informativa_payload()
+    except Exception:
+        return {}
+
+
+def _profilo_con_scheda_studio(profile: dict[str, Any]) -> dict[str, Any]:
+    """Il profilo del portale completato con cio' che lo studio gia' sa.
+
+    Non scrive nulla: e' la proiezione mostrata al cliente. Quello che il
+    cliente ha scritto di suo resta la sua parola e vince; la scheda dello
+    studio riempie il resto, cosi' l'interessato conferma invece di riscrivere
+    dati che il fascicolo ha gia' (GDPR artt. 5 § 1 lett. d e 16).
+    """
+    from pct.anagrafica_cliente_portale import (
+        anagrafica_dallo_studio,
+        origine_dei_campi,
+        unisci_anagrafica,
+    )
+
+    base = dict(profile or {})
+    dal_cliente = _profile_anagrafica(base)
+    for chiave, campo in (
+        ("display_name", "displayName"),
+        ("email", "email"),
+        ("phone", "phone"),
+        ("fiscal_code", "fiscalCode"),
+        ("identity_expires_at", "identityExpiresAt"),
+    ):
+        valore = _text(base.get(chiave))
+        if valore:
+            dal_cliente.setdefault(campo, valore)
+    try:
+        dallo_studio = anagrafica_dallo_studio(_cliente_by_id(_text(base.get("client_id"))))
+    except Exception:
+        # La scheda dello studio e' un di piu': se non si legge, il portale
+        # resta quello di prima invece di negare l'accesso all'anagrafica.
+        dallo_studio = {}
+    unita = unisci_anagrafica(dallo_studio=dallo_studio, dal_cliente=dal_cliente)
+    base["display_name"] = unita.get("displayName") or _text(base.get("display_name"))
+    base["email"] = unita.get("email", "")
+    base["phone"] = unita.get("phone", "")
+    base["fiscal_code"] = unita.get("fiscalCode", "")
+    base["identity_expires_at"] = unita.get("identityExpiresAt", "")
+    preferences = base.get("preferences")
+    if not isinstance(preferences, dict):
+        preferences = json_loads(base.get("preferences_json"), {})
+    preferences = dict(preferences) if isinstance(preferences, dict) else {}
+    preferences["anagrafica"] = unita
+    base["preferences"] = preferences
+    base.pop("preferences_json", None)
+    base["anagrafica_origine"] = origine_dei_campi(dallo_studio=dallo_studio, dal_cliente=dal_cliente)
+    return base
 
 
 def _profile_completion(profile: dict[str, Any]) -> dict[str, Any]:
@@ -1123,7 +1227,7 @@ def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
         return {
             "ok": True,
             "message": message,
-            "client": _public_row(profile),
+            "client": _public_row(_profilo_con_scheda_studio(profile)),
             "profileCompletion": completion,
             "dashboard": client_dashboard_payload(token=token),
         }
@@ -1136,7 +1240,7 @@ def client_update_preferences(payload: dict[str, Any]) -> dict[str, Any]:
         token = _current_client_token()
         invite, repo = _invite_and_repo(token)
         profile = repo.update_preferences(_text(invite.get("tenant_id")), client_id=_text(invite.get("client_id")), preferences=dict(payload.get("preferences") or payload))
-        return {"ok": True, "message": "Preferenze aggiornate.", "client": _public_row(profile), "dashboard": client_dashboard_payload(token=token)}
+        return {"ok": True, "message": "Preferenze aggiornate.", "client": _public_row(_profilo_con_scheda_studio(profile)), "dashboard": client_dashboard_payload(token=token)}
     except ClientPortalError:
         return _invalid_invite_payload()
 
@@ -1145,14 +1249,37 @@ def client_set_consent(payload: dict[str, Any]) -> dict[str, Any]:
     try:
         token = _current_client_token()
         invite, repo = _invite_and_repo(token)
+        from web.services.client_portal_privacy_testi import (
+            CHIAVE_INFORMATIVA,
+            DICHIARAZIONE_INFORMATIVA,
+            VERSIONE_INFORMATIVA,
+            testo_informativa,
+        )
+
+        chiave = _text(payload.get("key")) or CHIAVE_INFORMATIVA
+        # La versione e il testo registrati sono quelli del server, mai quelli
+        # arrivati dal browser: la prova del consenso deve dire che cosa
+        # l'interessato aveva davanti, non che cosa il client dichiara.
+        # Art. 7 § 1 GDPR: il titolare deve poter dimostrare il consenso.
+        prova: dict[str, Any] = {"source": "portale_cliente"}
+        versione = _text(payload.get("version")) or "1"
+        if chiave == CHIAVE_INFORMATIVA:
+            versione = VERSIONE_INFORMATIVA
+            prova.update(
+                {
+                    "testo_informativa": testo_informativa(),
+                    "dichiarazione": DICHIARAZIONE_INFORMATIVA,
+                    "versione_informativa": VERSIONE_INFORMATIVA,
+                }
+            )
         consent = repo.set_consent(
             _text(invite.get("tenant_id")),
             client_id=_text(invite.get("client_id")),
             matter_id=_text(invite.get("matter_id")),
-            consent_key=_text(payload.get("key")) or "privacy_portale_cliente",
-            version=_text(payload.get("version")) or "1",
+            consent_key=chiave,
+            version=versione,
             accepted=bool(payload.get("accepted")),
-            payload={"source": "portale_cliente"},
+            payload=prova,
         )
         return {"ok": True, "message": "Consenso registrato.", "item": _public_row(consent), "dashboard": client_dashboard_payload(token=token)}
     except ClientPortalError:

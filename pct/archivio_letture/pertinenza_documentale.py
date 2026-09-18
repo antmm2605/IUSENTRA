@@ -37,13 +37,37 @@ def _documento_identita_strutturale(head: str) -> bool:
     return bool(tipo.start() < 250 and campi >= 3)
 
 
+def _nomina_difensore_penale(head: str) -> bool:
+    """La nomina del difensore di fiducia non e' una procura alle liti.
+
+    Sono due atti diversi: la procura alle liti conferisce la rappresentanza
+    processuale nel civile (art. 83 c.p.c.), la nomina del difensore di fiducia
+    designa il difensore nel penale (art. 96 c.p.p.). Nel deposito hanno ruoli
+    diversi, e all'avvocato dicono cose diverse.
+
+    La formula pero' si somiglia — «io sottoscritto… nomino… difensore» — e la
+    regola generica se le prendeva entrambe. I segni del penale invece non sono
+    ambigui: il titolo dell'atto, la qualita' di indagato o imputato, il
+    registro delle notizie di reato.
+    """
+    return bool(
+        re.search(r"nomina\s+(?:del\s+|di\s+)?difensore(?:\s+di\s+fiducia)?", head[:400], re.I)
+        or re.search(r"\bdifensore\s+di\s+fiducia\b", head, re.I)
+        and re.search(r"\bindagat\w+\b|\bimputat\w+\b|\bR\.?\s*G\.?\s*N\.?\s*R\.?\b|procedimento\s+penale", head, re.I)
+    )
+
+
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "") -> tuple[str, str]:
     head = " ".join(str(testo or "").split())[:4000]
     if re.search(r"(?:contratto individuale di lavoro|contratto di lavoro a tempo determinato)", head[:1800], re.I):
         return "contratto_lavoro", "Il documento disciplina il rapporto di lavoro: le sue date non sono termini processuali."
     if _documento_identita_strutturale(head):
         return "documento_identita", "Date di emissione, scadenza e nascita del documento di identità."
-    if re.search(r"(?:io sottoscritt|procura alle liti)", head[:600], re.I) and re.search(r"(?:difensore e procuratore|conferisco.{0,35}(?:potere|mandato)|nomino.{0,100}difensore)", head, re.I):
+    if (
+        re.search(r"(?:io sottoscritt|procura alle liti)", head[:600], re.I)
+        and re.search(r"(?:difensore e procuratore|conferisco.{0,35}(?:potere|mandato)|nomino.{0,100}difensore)", head, re.I)
+        and not _nomina_difensore_penale(head)
+    ):
         return "procura", "Formula di conferimento della rappresentanza processuale riconosciuta nel contenuto."
     judicial = re.search(r"(?:REPUBBLICA ITALIANA|TRIBUNALE.{0,90}(?:VERBALE|ORDINANZA|SENTENZA))", head[:450], re.I)
     if judicial and numero_rg and anno_rg:

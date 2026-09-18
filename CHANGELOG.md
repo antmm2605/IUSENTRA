@@ -1,5 +1,142 @@
 # Changelog
 
+## 2.322.3 - 18/09/2026
+
+**L'ultimo avviso: via la regex dalla validazione dell'indirizzo di posta.** Dei undici rilievi della 2.322.2 ne restava uno, `py/polynomial-redos` su `web/services/fascicolo_controparti_aggiuntive.py`. La riscrittura precedente aveva reso l'espressione regolare più veloce, ma su un valore che arriva dal modulo compilato dall'utente la risposta giusta non è una regex più furba: è nessuna regex. La forma dell'indirizzo — parte locale non vuota, una sola chiocciola, dominio di almeno due etichette non vuote — si verifica con due divisioni di stringa, in tempo lineare e senza alcuna possibilità di backtracking. Gli indirizzi accettati sono gli stessi, confrontati uno per uno con la forma precedente su dodici casi: nessuna differenza. Centomila caratteri costruiti apposta si scartano in meno di un millesimo di secondo, ed è quello che verifica il test nuovo.
+
+Con questo l'analisi statica non ha più rilievi bloccanti: **da undici a zero in tre release**, nessuno messo a tacere se non i tre falsi positivi sul redirect, dichiarati per iscritto e circoscritti al loro file.
+
+Test: controparti aggiuntive 17 (dodici in più: indirizzi validi, malformati, e input costruito apposta).
+
+## 2.322.2 - 18/09/2026
+
+**Undici avvisi di sicurezza che nessuno aveva mai visto.** Appena il presidio della 2.322.1 ha cominciato a leggere davvero i risultati di CodeQL, ne ha trovati undici — tutti preesistenti, tutti invisibili finché l'analisi moriva nel caricamento verso una scheda che su questa repository non esiste. Sei nel codice di produzione, cinque nei test. Nessuno è stato messo a tacere.
+
+**Due espressioni regolari potevano bloccare il server** (ReDoS). Quella che riconosce i riferimenti normativi nel testo dei documenti (`pct/procedura_fasi/lacune.py`) poteva impiegare un tempo esponenziale: scriveva `\d+[\w-]*`, due modi di dividere la stessa cifra, e trattava la «e» come congiunzione anche attaccata ai numeri, così «1e0» diventava un elenco. Ora la cifra si legge in un modo solo e la congiunzione vale solo se separata da spazi — «artt. 1 e 2» e «artt. 1,2» restano riconosciuti, «1e0» no, e non lo è mai stato in una citazione forense. Il testo che entra in quella regex arriva da documenti e PEC: non è mai fidato. Quella dell'indirizzo di posta delle controparti (`web/services/fascicolo_controparti_aggiuntive.py`) rallentava in modo quadratico su un valore inviato dall'utente, perché il punto stava dentro entrambe le classi; ora il dominio si legge come etichette separate da punti, con un solo modo di dividerlo. Gli indirizzi accettati restano gli stessi, verificati caso per caso.
+
+**Tre segnalazioni di redirect aperto sono risultate false**, e non sono state chiuse in silenzio. I tre `redirect` di `web/bootstrap/soggetti_routes.py` passano già da `_safe_internal_next_url`, che rifiuta schema, netloc, percorsi protocol-relative, backslash, caratteri di controllo, frammenti e segmenti `..`: la destinazione resta sempre interna, ed è coperta da test. CodeQL non riconosce quel sanificatore perché è importato dentro la funzione. La deroga è scritta in `.github/codeql/eccezioni.json` con la motivazione per esteso — e **circoscritta a quel file**: il presidio ora accetta il campo `file`, così spegnere la regola dove è un falso positivo non la spegne dove sarebbe vera. Un test lo verifica proprio così: derogato nel file dichiarato, bloccante altrove.
+
+**Cinque rilievi nei test corretti invece che esclusi.** Due usavano `tempfile.mktemp`, che restituisce un nome senza creare il file e lascia una finestra fra il nome e la scrittura: sostituito con `mkstemp`. Tre verificavano la fonte di un calcolo con `startswith` sull'URL, che un dominio costruito ad arte può soddisfare; ora confrontano l'host per intero — un'asserzione anche più forte di prima.
+
+Test: presidio dell'analisi statica 9 (una in più: la deroga circoscritta al file).
+
+## 2.322.1 - 18/09/2026
+
+**CodeQL torna verde senza rinunciare all'analisi.** Con il permesso ripristinato nella 2.322.0, il deploy ha finalmente potuto leggere i check della CI — e la prima cosa che ha letto è che `Analyze (python)` era rosso. Correttamente si è fermato. Ma il job non falliva per un difetto del codice: l'analisi girava fino in fondo (2.499 file Python scansionati, nessun rilievo) e moriva un passo dopo, nel pubblicare il risultato nella scheda «Security → Code scanning». Su una repository privata quella scheda esiste solo con GitHub Code Security attivo, e la risposta era sempre la stessa: «Code scanning is not enabled for this repository». Un controllo richiesto che nessun commit poteva soddisfare, e quindi una catena CI → sync Codex → deploy bloccata per sempre.
+
+L'analisi non è stata tolta né indebolita: è cambiato dove finisce il risultato. Il SARIF viene scritto su file, conservato come artefatto della run, e valutato da `tools/check_codeql_sarif.py`, che fa fallire il job sugli avvisi di livello `error` o con gravità CVSS pari o superiore a 7.0 — la stessa soglia «High» che GitHub usa per il code scanning. Il valore di sicurezza aumenta invece di diminuire: prima quegli avvisi non li vedeva nessuno, perché la scheda dove sarebbero dovuti comparire non esiste; ora fermano la catena.
+
+Le deroghe per singola regola si dichiarano in `.github/codeql/eccezioni.json` e **richiedono un motivo scritto**: il gate rifiuta una voce senza motivazione, come già accade per le altre deroghe del progetto. Il file nasce vuoto. Un'analisi che non produce alcun SARIF non viene interpretata come «pulita» ma come guasto, e ferma comunque il job.
+
+Attivando GitHub Code Security si torna al comportamento nativo e la scelta resta aperta: non è pregiudicata da questa release.
+
+Test: presidio CodeQL 8 (analisi senza rilievi, avviso `error`, gravità alta senza livello `error`, gravità sotto soglia, cartella senza SARIF, eccezione senza motivo, eccezione dichiarata, validità del file del progetto).
+
+## 2.322.0 - 18/09/2026
+
+**Il deploy torna a controllare la CI prima di partire.** Il gate «Attendi CI richiesta dello SHA corrente» interrogava i check-run del commit e riceveva 403 a ogni tentativo: 134 richieste rifiutate, novanta minuti di attesa, poi il passaggio proseguiva lo stesso perché dichiarato `continue-on-error`. Non era solo tempo perso: il controllo «la CI è verde prima di deployare» sembrava attivo e non lo era, tanto che la 2.321.0 è uscita in produzione con la CI rossa. Mancavano `checks: read` e `statuses: read` nei permessi del job, ristretti a `contents: write` dal commit dell'08/09 — e un blocco `permissions:` a livello di job sostituisce i predefiniti.
+
+**L'anagrafica del Portale Cliente parte da quello che lo studio già sa.** Il portale leggeva i campi solo da `preferences.anagrafica`, che si riempie unicamente quando è il cliente a compilare: data e luogo di nascita, indirizzo di residenza, recapiti, PEC, partita IVA e scadenza del documento non arrivavano mai all'interessato, e il contatore diceva «2 campi su 10» di una scheda che lo studio aveva quasi completa. Ora la scheda dello studio è la proposta di partenza e quello che il cliente scrive prevale; le due origini restano distinte, così un dato mai letto dal cliente non viene spacciato per dichiarato da lui. Base normativa: GDPR artt. 5 § 1 lett. d) e 16.
+
+**La chat con il cliente è viva su entrambi i lati.** Prima i messaggi comparivano solo ricaricando la pagina. Ora si chiede la coda a partire da un segnalibro, e ci si ferma quando la scheda non è in primo piano. Due difetti trovati costruendola: l'offset «+00:00» del segnalibro letto come spazio dentro la richiesta, e — più serio — gli orari salvati al secondo con identificativi casuali, per cui due messaggi scritti nello stesso secondo non sono distinguibili e con un confronto stretto uno sarebbe sparito per sempre. Il confronto è quindi inclusivo e chi legge scarta per identificativo: ripetere è recuperabile, perdere un messaggio fra avvocato e cliente no.
+
+**Il link del cliente si rivede dalla pagina dello studio.** Il database conserva del token solo l'impronta, quindi il link esisteva solo nell'istante in cui nasceva. Ora accanto all'invito c'è una copia cifrata con AES-256-GCM che si decifra solo per l'avvocato autenticato, e che non lascia mai il server nemmeno cifrata. Fail-closed: senza `PCT_DOC_KEY` non si conserva nulla e la scheda invita a rigenerare, invece di scrivere una credenziale in chiaro nel database. GDPR art. 32 § 1 lett. a).
+
+**Il cliente legge l'informativa prima di accettarla.** Il pannello mostrava la chiave del consenso e un pulsante «Accetta»: il testo non compariva da nessuna parte. Ora l'informativa vive sul server, versionata, con le sezioni che l'art. 13 impone — compresa quella che dice che rifiutare non pregiudica l'incarico — si legge per intero, si scarica, e il pulsante resta disabilitato finché non è stata aperta. All'accettazione si registrano testo, versione e momento: la versione è quella del server anche se il browser ne manda un'altra. GDPR artt. 7 e 13.
+
+**Fotocamera e webcam per i documenti.** Chi deve mandare la carta d'identità ce l'ha in mano, non in una cartella: ogni documento richiesto si manda ora come file, con la fotocamera del telefono o con la webcam del computer. La camera parte solo dopo il consenso e si spegne all'uscita.
+
+**I moduli si compilano dentro il portale.** Il cliente apre il modulo, scrive nei campi predisposti e salva; la copia compilata si aggiunge accanto all'originale, che non viene mai sovrascritto, e si scaricano entrambi. Le regole sui campi sono quelle già usate per i moduli degli organismi di mediazione. Se il PDF non ha campi predisposti non lo si compila «a occhio»: resta consultabile, e lo si dice.
+
+**Preventivo e conferimento alla firma dalla pagina dello studio**, riusando il percorso già collaudato; se la firma non è abilitata per lo studio la scheda lo dichiara invece di offrire un pulsante inerte.
+
+**Il gate locale esegue anche i 10 shard del «Pytest core» della CI** (89 file, di cui solo 5 già coperti dai passi curati). L'elenco scelto a mano era cresciuto per aggiunte dopo ogni fuga scoperta in CI, e continuava a lasciarne passare: `tests/test_regia_ui_react.py` e `tests/test_email_client.py` non erano in nessun passo. Quest'ultimo ha rivelato un difetto vero — lo strato di testo del lettore apriva il PDF senza protezione e faceva cadere l'anteprima di un allegato PEC malformato invece di mostrarne le pagine.
+
+Test: anagrafica del portale 7, moduli 3, privacy 3, unione messaggi 8, portale clienti 15, archivio delle letture 17.
+
+## 2.321.1 - 18/09/2026
+
+**Il giorno del versamento si legge dalla ricevuta telematica, non si indovina.** Una voce economica che dice «pagato» senza dire quando prova poco: all'avvocato la data serve quanto l'importo. Finora il giorno si cercava nella prosa della ricevuta («data pagamento», «data versamento», «data esito»), e in una `RT.xml` di prosa non ce n'e': il campo restava vuoto proprio sulla ricevuta piu' sicura che esista. Ora il motore documenti legge il giorno dove lo schema ministeriale lo dichiara — `dataEsitoSingoloPagamento`, e in sua mancanza la data del messaggio di ricevuta — e lo porta nell'archivio come prova dell'importo (`pct/archivio_letture/estrazione_importi.py`, `pct/pagamenti_giustizia.py`). **Fail-closed**: una RT con esito diverso da «eseguito» non prova un versamento, quindi non da' nessuna data di pagamento. Fuori dalla RT la regola resta quella di prima: solo la data ancorata alla formula della ricevuta, e solo se e' una data del calendario.
+
+**La data arriva fino alla voce economica del fascicolo.** Il presidio la proietta dall'archivio (`pct/archivio_letture/presidi.py`) e la scheda del contributo unificato la mostra (`web/services/react_fascicoli_bridge.py`): prima il dato si fermava a meta' strada, letto e mai esposto.
+
+Base normativa: art. 4 c. 9 D.L. 193/2009 (pagamento telematico del contributo unificato); D.P.R. 115/2002 art. 13; specifiche pagoPA `PagamentiTelematiciGiustizia` del Ministero della Giustizia.
+
+Test: archivio delle letture 17 (4 nuovi sulla RT), shell React economia 16 — fra cui la lettura della `RT.xml` fisica ora provata sulla catena vera, dal motore all'archivio alla scheda.
+
+## 2.321.0 - 18/09/2026
+
+**I motori imparano l'art. 127-ter c.p.c.** «Termine del 10/09/2026» non dice all'avvocato che cosa deve fare; «deposito di note scritte ex art. 127-ter c.p.c.» sì. Ora la qualificazione dell'istituto si legge **una volta sola**, insieme alla data, e finisce nell'archivio con la norma che la governa (`pct/archivio_letture/istituti_processuali.py`, `estrazione_istituti.py`). Prima viveva nel presidio, che riapriva il testo a ogni richiesta dell'avvocato: due presìdi potevano qualificare lo stesso decreto in due modi diversi.
+
+**Dalla qualificazione nascono i termini che il decreto impone senza scriverne la data**: la notifica di ricorso e decreto trenta giorni prima, la costituzione del resistente dieci giorni prima. Solo quelli che il decreto dichiara: un decreto che non parla della notifica non fa nascere un termine di notifica, e inventarlo metterebbe in scadenziario una data che nessun giudice ha imposto. Riconosciuto anche l'art. 127-bis (udienza da remoto) con il suo termine di costituzione.
+
+**L'autocertificazione di esenzione archiviata sotto la voce sbagliata torna dove appartiene.** Le pratiche importate da un gestionale precedente la portano spesso sotto «spese ed esborsi»: l'import ha conservato il file, non il suo significato. Per l'avvocato era doppio danno — il contributo unificato restava «da registrare» per una somma non dovuta, e fra le spese compariva una voce che spesa non è. Si riconosce dal nome del documento (`pct/fascicolo_esenzione_cu.py`), senza aprirlo.
+
+**La ricevuta pagoPA viene riconosciuta anche quando l'avvocato la carica fra i documenti.** Il pagamento avviene sul portale ufficiale con la sua autenticazione — il gestionale non paga e non scarica nulla, sono le regole PST. Ma chi ha appena pagato trascina la ricevuta nel fascicolo come farebbe con qualsiasi altro file, e non deve dover scegliere una via speciale: se è una `RT.xml` valida secondo lo schema ministeriale `PagamentiTelematiciGiustizia`, il contributo unificato risulta versato, con importo, IUV e data in nota. **Fail-closed**: solo l'esito «eseguito» prova un versamento; una ricevuta con esito diverso resta agli atti con la sua nota e non fa risultare pagato nulla. Un file che RT non è resta un documento come gli altri: non si indovina un pagamento da un nome. Base normativa: art. 4 c.9 D.L. 193/2009; D.P.R. 115/2002 art. 13.
+
+Test: istituti processuali 8, esenzione importata 11, ricevuta pagoPA caricata 6.
+
+## 2.320.27 - 18/09/2026
+
+**La sezione documenti del fascicolo torna a chiedere la lettura dei documenti mancanti.** Anche la funzione che ordina la lettura mirata delle date processuali era rimasta definita ma scollegata: aprire la sezione documenti non metteva in coda nulla, e le date arrivavano solo quando il giro periodico capitava su quel fascicolo. Ora la richiede — e solo lì: la lista e il riepilogo continuano a mostrare soltanto ciò che i motori hanno già letto e collaudato, perché nella richiesta dell'avvocato non si legge.
+
+**Chi deve leggere riceve i documenti, non le loro righe d'identità.** Il punto d'innesto passava le righe usate per capire che cosa è cambiato: a chi legge servono i documenti veri.
+
+**Altri due test allineati all'archivio**: la ricevuta telematica RT importata come atto giudiziario e il caso «non riapre documenti invariati», che ora afferma qualcosa di più forte — aprire la lista non riapre **nessun** documento, nemmeno al primo giro.
+
+## 2.320.26 - 18/09/2026
+
+**La nomina del difensore di fiducia non è più una procura alle liti.** Sono due atti diversi: la procura alle liti conferisce la rappresentanza processuale nel civile (art. 83 c.p.c.), la nomina del difensore di fiducia designa il difensore nel penale (art. 96 c.p.p.); nel deposito hanno ruoli diversi e all'avvocato dicono cose diverse. La formula però si somiglia — «io sottoscritto… nomino… difensore» — e la regola generica se le prendeva entrambe, scavalcando la regola del titolo. Ora i segni del penale (il titolo dell'atto, la qualità di indagato o imputato, il registro delle notizie di reato) la tengono fuori.
+
+**Il presidio economico chiede ai motori di leggere quando l'archivio non ha nulla.** La funzione che ordina la lettura mirata era rimasta definita ma scollegata: il clic dell'avvocato sul presidio non produceva effetto, e il dato arrivava solo quando il giro periodico capitava su quel fascicolo. Ora il presidio la richiama — e dentro la richiesta non indicizza, mette in coda la lettura in sfondo, come vuole la regola.
+
+**Il nome del documento arriva anche quando il documento vive solo sul server.** Un atto importato sta a volte solo in Document AI e non fra i documenti del fascicolo: la voce economica mostrava «Dichiarazione di esenzione» invece del nome vero, lasciando l'avvocato senza sapere da quale atto venisse il dato. Ora il nome si chiede all'inventario del registro, che lo conosce.
+
+**Altri sette test allineati al contratto dell'archivio**, fra cui quello che si aspettava che aprire la lista dei fascicoli avviasse una lettura: nella richiesta dell'avvocato si usa solo ciò che i motori hanno già letto e collaudato.
+
+## 2.320.25 - 18/09/2026
+
+**Il contributo unificato autocertificato esente non è più «da presidiare».** Per il contributo unificato le strade sono due: o il fascicolo porta la ricevuta pagoPA del versamento, o porta l'autocertificazione di esenzione (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002). Se l'autocertificazione c'è, quello **è** l'accertamento: a livello di studio non resta altro da appurare. Lo stato `esenzione_dichiarata` lasciava però la voce «prevista», e il fascicolo restava fra quelli da presidiare per una somma che nessuno deve versare. Ora l'autocertificazione dà `non previsto`, con la norma nella nota.
+
+**Otto test allineati al contratto vero del presidio economico.** Il presidio non apre più i PDF dentro la richiesta dell'avvocato: consulta l'archivio delle letture, che i due motori alimentano in sfondo. Otto test mettevano invece il testo del documento davanti al presidio aspettandosi che lo leggesse lì per lì — provavano un contratto che non esiste più. Ora seminano l'archivio, così provano la catena vera: ricevuta pagoPA, compenso liquidato dal giudice, udienza letta dal decreto di fissazione.
+
+**Leggere un importo non è provare un pagamento.** La distinzione ora è esplicita anche nei test: un importo letto in un documento resta «da registrare» finché non porta con sé la prova del versamento. Una sentenza liquida un compenso, non lo paga.
+
+**Etichette del catalogo allineate**: «Carta d'identità» al posto di «Documento d'identità», sezione dedicata `identita` per carta d'identità e tessera sanitaria, «Verbale di udienza».
+
+**Indicatori del fascicolo su mobile**: due colonne al posto della striscia che scorreva in orizzontale. Le card restano dentro il viewport e si leggono tutte senza trascinare.
+
+## 2.320.24 - 18/09/2026
+
+**La firma del cliente va nel campo firma del modulo, non in un angolo della pagina.** Il portale clienti timbrava la firma in un riquadro a coordinate fisse, in fondo a destra. Su un modulo con i campi firma — un'autocertificazione per il contributo unificato, una procura alle liti, un ricorso — la firma finiva cosi' lontano dal rigo «Firma», e il modulo sembrava non firmato. Ora `pct/firma_modulo/` (sette moduli, il piu' lungo 157 righe) trova i campi firma veri (i widget AcroForm) e ci appoggia sopra il tratto del cliente alla misura di una firma a penna: sale sopra il rigo con le maiuscole, scende sotto con i tratti discendenti, non tocca i bordi.
+
+**I moduli ministeriali portano piu' impaginazioni sovrapposte.** L'autocertificazione per il contributo unificato ne ha sette, una per numero di righe del nucleo familiare, e i widget delle varianti inutilizzate hanno il bit Hidden acceso. Firmare su un widget nascosto significa mettere la firma dove nessuno la vedra': si usa solo quello visibile.
+
+**Il modulo firmato non e' piu' compilabile.** Un modulo che resta modificabile puo' essere cambiato dopo la firma, e un documento del genere non prova nulla: art. 20 D.Lgs. 82/2005, integrita' del documento informatico. Dopo l'applicazione della firma il modulo viene appiattito.
+
+**Il tratto arriva in JPEG, che non ha trasparenza.** Incollato com'e' porterebbe con se' un rettangolo bianco a coprire il rigo del modulo e le parole prestampate attorno: lo sfondo viene reso trasparente prima di appoggiarlo.
+
+**Chi ha firmato e quando resta scritto sul documento.** Il registro delle prove del portale conserva gia' tutto, ma chi legge il documento fuori dallo studio non ha accesso al registro: una riga piccola e grigia nel margine basso dell'ultima pagina dichiara firmatario, data e riferimento, senza sembrare parte del modulo ministeriale.
+
+**Niente cambia per i documenti che moduli non sono.** Una lettera, un parere, una relazione non hanno campi firma: li firma il timbro di sempre, con lo stesso aspetto di prima. E se qualcosa non riesce — PyMuPDF assente, modulo illeggibile — si ricade sul timbro: la firma del cliente non deve mai fallire per questo.
+
+Test: firma sul modulo 9 (posizione nel campo, appiattimento, trasparenza del tratto, attribuzione visibile, ripiego sul timbro, guasto che non ferma la firma), su moduli PDF veri con widget AcroForm veri.
+
+## 2.320.23 - 18/09/2026
+
+**Importazione fedele nell'editor atti.** Un PDF importato perdeva tutto quello che non fosse testo: le tabelle diventavano righe incolonnate da riscrivere a mano, le immagini e i loghi sparivano, grassetto, corsivo, colori, allineamenti, elenchi, formato e margini della pagina non arrivavano. Ora `pct/documento_fedele/` (nove moduli, nessuno oltre le 330 righe) ricostruisce un documento che **scorre** — paragrafi, tabelle e immagini restano modificabili — con l'aspetto dell'originale. La rotta e' quella di sempre, `/template-atti/api/importa-documento`: non cambia nulla per chi la chiama, e se PyMuPDF non c'e' resta il vecchio ripiego a righe. Le pagine scansionate le legge il **motore OCR unico** `legal_ocr/motore/`, non una copia locale: due lettori con tarature proprie leggono lo stesso atto in due modi diversi, ed e' peggio di uno solo (docs/OCR_LEGAL.md).
+
+**Due difetti trovati provando su PDF veri, non su HTML finto.** Il filetto di una cella diventava una sottolineatura del testo: in un atto con una tabella bordata usciva sottolineata **ogni cella**. Nel PDF una sottolineatura non e' un attributo del testo, e' una linea disegnata sotto le lettere — e lo e' anche il bordo di una cella; quello che li distingue e' **quanto la linea sporge oltre il testo**, non quanto misura. E un titolo solo sulla pagina, come la copertina di una procura alle liti, risultava giustificato invece che centrato: con poche righe la colonna di testo non si puo' dedurre dal contenuto, perche' una riga sola definisce una colonna larga quanto se stessa.
+
+**Il corredo di Microsoft Word, carattere per carattere.** Un atto che arriva dallo studio di controparte, dalla cancelleria o da un consulente e' scritto con i font di Word: Georgia, Book Antiqua, Palatino Linotype, Bookman Old Style, Century Schoolbook, Constantia, Perpetua, Rockwell, Sylfaen, Tahoma, Segoe UI, Trebuchet MS, Century Gothic, Candara, Corbel, Gill Sans MT, Arial Narrow, Consolas e gli altri — **30 nuovi**, da 16 a 46 famiglie. Senza, l'importazione li ricadeva su un ripiego e l'atto cambiava aspetto sotto gli occhi dell'avvocato. I cloni metrici delle distribuzioni Linux (Carlito, Liberation, Caladea, Gelasio, Tinos) tornano al carattere Word originale. La tendina dell'importazione non e' piu' una seconda lista: deriva dal catalogo dell'editor, che resta l'unica fonte. Nessun font viene scaricato da servizi esterni: sono caratteri di sistema, la policy non cambia.
+
+**«Salva modifiche» non butta piu' fuori chi sta correggendo una scheda cliente.** Dopo un salvataggio riuscito si navigava sempre. In creazione e' giusto — si finisce nella cartella del cliente appena nato — in modifica no: l'avvocato veniva espulso dal modulo a ogni salvataggio e doveva rientrare per continuare. Ora in modifica **resta sulla scheda** con la conferma «Modifiche salvate.»; se la scheda e' stata aperta da un'altra pagina, il campo `next_url` — che era gia' nel modulo e nessuno leggeva — riporta da dove si e' arrivati.
+
+**Una sola regola per il «torna da dove sei arrivato».** `next_url` arriva dalla barra degli indirizzi. Nel gestionale ce n'erano **tre** versioni del controllo, e due erano piu' deboli di quella buona: guardavano la doppia barra e lasciavano passare `/\host.esterno` e i percorsi con caratteri di controllo (una tabulazione dopo la barra, in certi browser, diventa `//host`). Ora il bridge dei clienti e le rotte dei soggetti delegano a `is_safe_internal_path`, che era gia' completa. Il momento in cui l'utente uscirebbe dal gestionale e' subito dopo un salvataggio andato a buon fine: quando si fida di quello che vede.
+
+Test: importazione fedele 17 su PDF generati e riletti (tabelle, sfondi, stili, centratura, formato, caratteri, scansione con OCR reale), destinazione del salvataggio 4 lato server e 7 lato browser. Il gate locale esegue ora anche il nuovo test JS.
+>>>>>>> 208cc5c (2.320.0 — Importazione fedele nell'editor atti, corredo font di Word, salvataggio cliente)
+
 ## 2.320.17 — 16/09/2026
 
 - Fascicoli: la sezione “Comunicazioni, PEC e notifica” non apre più automaticamente carichi pesanti quando la notifica è già gestita; documenti, depositi e catalogazione partono solo su sezione richiesta o azione pendente.

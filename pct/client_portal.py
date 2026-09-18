@@ -81,6 +81,10 @@ CLIENT_PORTAL_WHERE_SQL = {
     "client_id = ? AND matter_id = ?": '"client_id" = ? AND "matter_id" = ?',
     "matter_id = ? AND accepted = 1": '"matter_id" = ? AND "accepted" = 1',
     "matter_id = ? AND status <> ?": '"matter_id" = ? AND "status" <> ?',
+    # Coda della conversazione dal segnalibro in poi: tiene viva la chat del
+    # portale senza rispedire ogni volta tutto lo storico. Il confronto e'
+    # inclusivo perche' gli orari hanno il secondo come unita' minima.
+    "matter_id = ? AND created_at >= ?": '"matter_id" = ? AND "created_at" >= ?',
     "status = ?": '"status" = ?',
 }
 CLIENT_PORTAL_ORDER_SQL = {
@@ -500,11 +504,40 @@ class ClientPortalRepository:
             "last_sent_at": now,
             "channel": channel or "email",
             "notes": notes,
-            "metadata_json": json_dumps(metadata or {}),
+            "metadata_json": json_dumps(self._metadata_con_token(metadata, token)),
         }
         self._insert("client_portal_invites", record)
         self.record_audit(tenant_id, "studio", actor_id, "client_portal.invite.create", "invite", record["id"], {"clientId": client_id, "matterId": matter_id})
         return {"invite": record, "token": token}
+
+    @staticmethod
+    def _metadata_con_token(metadata: dict[str, Any] | None, token: str) -> dict[str, Any]:
+        """Aggiunge il token cifrato ai metadati dell'invito, se si puo'.
+
+        Serve a rimostrare il link all'avvocato che lo ha generato: l'impronta
+        `token_hash` verifica ma non restituisce. La cifratura e' fail-closed —
+        senza chiave non si conserva nulla e il link resta solo rigenerabile.
+        """
+        from pct.client_portal_token_cifrato import cifra_token
+
+        dati = dict(metadata or {})
+        cifrato = cifra_token(token)
+        if cifrato:
+            dati["token_cifrato"] = cifrato
+        return dati
+
+    def invite_token_in_chiaro(self, invite: dict[str, Any] | None) -> str:
+        """Il link di un invito, per l'avvocato autenticato. Vuoto se perduto."""
+        from pct.client_portal_token_cifrato import decifra_token
+
+        if not invite:
+            return ""
+        metadata = invite.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = json_loads(invite.get("metadata_json"), {})
+        if not isinstance(metadata, dict):
+            return ""
+        return decifra_token(str(metadata.get("token_cifrato") or ""))
 
     def find_invite_by_token(self, token: str) -> dict[str, Any] | None:
         digest = token_hash(token)
@@ -852,6 +885,42 @@ class ClientPortalRepository:
             f"SELECT * FROM {safe_table} WHERE {clause} ORDER BY {safe_order} LIMIT ?",
             (tenant_id, *tuple(params), int(limit)),
         )
+
+    def messages_after(self, tenant_id: str, *, matter_id: str, after: str = "", limit: int = 100) -> list[dict[str, Any]]:
+        """I messaggi della pratica dal segnalibro in poi, dal piu' vecchio.
+
+        Serve a tenere viva la conversazione senza rispedire ogni volta tutto
+        lo storico: chi guarda la chat chiede solo la coda. Il segnalibro e' il
+        `created_at` dell'ultimo messaggio gia' mostrato; vuoto significa
+        «dammi la fine della conversazione».
+
+        **Il confronto e' inclusivo, e non e' una svista.** Gli orari si
+        salvano con il secondo come unita' minima (`utc_now`) e gli
+        identificativi sono casuali: due messaggi scritti nello stesso secondo
+        non sono distinguibili ne' per tempo ne' per ordine. Con un confronto
+        stretto uno dei due sparirebbe per sempre dalla conversazione. Meglio
+        ripetere l'ultimo secondo — chi chiede scarta i messaggi che ha gia'
+        per identificativo — che perdere un messaggio fra avvocato e cliente.
+        """
+        segnalibro = str(after or "").strip()
+        if segnalibro:
+            return self._list(
+                "client_portal_messages",
+                tenant_id,
+                "matter_id = ? AND created_at >= ?",
+                (matter_id, segnalibro),
+                order="created_at ASC",
+                limit=limit,
+            )
+        recenti = self._list(
+            "client_portal_messages",
+            tenant_id,
+            "matter_id = ?",
+            (matter_id,),
+            order="created_at DESC",
+            limit=limit,
+        )
+        return list(reversed(recenti))
 
     def _update_progress_from_activity(self, tenant_id: str, matter_id: str) -> None:
         consents_ok = self._count("client_portal_consents", tenant_id, "matter_id = ? AND accepted = 1", (matter_id,)) > 0

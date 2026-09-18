@@ -5,8 +5,12 @@ import { ActionButton as Button } from './ActionButton'
 
 type Field = { nome: string; etichetta: string; tipo: string; pagina: number; valore: string; opzioni: string[]; sola_lettura: boolean; max_caratteri: number; selezionato: boolean; rettangolo: number[] }
 type ModuleData = { campi: Field[]; pagine: { numero: number; larghezza: number; altezza: number }[]; documento: string; versione: number }
-export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty }: {
+export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }: {
   endpoint: string; previewUrl: string; busy: boolean; save: (values: Record<string, string | boolean>) => Promise<boolean>; onDirty: (dirty: boolean) => void
+  /** Come leggere i campi. Serve dove la richiesta non basta da sola: il
+   *  Portale Cliente si autentica con un token, non con la sessione dello
+   *  studio. Omesso, si usa la richiesta semplice di sempre. */
+  carica?: (segnale: AbortSignal) => Promise<ModuleData>
 }) {
   const [data, setData] = useState<ModuleData | null>(null)
   const [values, setValues] = useState<Record<string, string | boolean>>({})
@@ -47,14 +51,15 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty }: {
   useEffect(() => {
     const abort = new AbortController()
     setError('')
-    ensureJson<ModuleData>(endpoint, { signal: abort.signal }).then((r) => { setData(r); setValues({}); setPage(1) })
+    const lettura = carica ? carica(abort.signal) : ensureJson<ModuleData>(endpoint, { signal: abort.signal })
+    lettura.then((r) => { setData(r); setValues({}); setPage(1) })
       .catch((e) => { if (!abort.signal.aborted) setError(e instanceof Error ? e.message : 'Modulo non disponibile.') })
     return () => abort.abort()
-  }, [endpoint, retry])
+  }, [endpoint, retry, carica])
   useEffect(() => { onDirty(dirty); return () => onDirty(false) }, [dirty, onDirty])
   useEffect(() => { const guard = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = '' } }; window.addEventListener('beforeunload', guard); return () => window.removeEventListener('beforeunload', guard) }, [dirty])
   if (error) return <p role="alert">{error} <Button onClick={() => setRetry(retry + 1)}>Rileggi modulo</Button></p>
-  if (!data) return <p role="status">Lettura dei campi predisposti dall’organismo…</p>
+  if (!data) return <p role="status">Lettura dei campi predisposti nel modulo…</p>
   const sheet = data.pagine[page - 1]
   const fields = data.campi.filter((f) => f.pagina === page)
   const update = (name: string, value: string | boolean) => { setValues((old) => ({ ...old, [name]: value })); setDirty(true) }

@@ -52,6 +52,13 @@ jobs:
     name: Deploy su Hetzner CPX42
     permissions:
       contents: write
+      # Il gate «Attendi CI richiesta dello SHA corrente» legge i check-run del
+      # commit: senza questo permesso `gh api .../check-runs` risponde 403
+      # «Resource not accessible by integration» e il deploy resta in attesa
+      # fino allo scadere del timeout, senza mai partire. I controlli richiesti
+      # arrivano sia come check-run sia come commit status: servono entrambi.
+      checks: read
+      statuses: read
     runs-on: ubuntu-latest
     # 90 minutes for required CI plus backup, image build and health checks.
     timeout-minutes: 120

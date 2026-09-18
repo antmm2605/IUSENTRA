@@ -77,6 +77,16 @@ export type ClientPortalClientPayload = {
   documents?: PortalRow[]
   signatures?: PortalRow[]
   consents?: PortalRow[]
+  /** L'informativa che il cliente deve poter leggere prima di accettare. */
+  privacyNotice?: {
+    key?: string
+    version?: string
+    title?: string
+    declaration?: string
+    text?: string
+    sections?: { heading?: string; body?: string }[]
+    controller?: { nome?: string; indirizzo?: string; email?: string; telefono?: string }
+  }
   messages?: PortalRow[]
   appointments?: PortalRow[]
   notifications?: PortalRow[]
@@ -200,6 +210,94 @@ export async function clientPortalPost<T = ClientPortalResponse>(
   return apiPostJson<T>(url, body, { ok: false, message: 'Operazione non completata.' } as T, {
     headers: token ? { 'X-Client-Portal-Token': token } : {},
   })
+}
+
+export type ModuloPortale = {
+  ok?: boolean
+  compilabile?: boolean
+  campi?: unknown[]
+  pagine?: { numero: number; larghezza: number; altezza: number }[]
+  documento?: string
+  nome?: string
+  versione?: number
+  message?: string
+}
+
+/** I campi predisposti di un modulo mandato dallo studio. */
+export async function caricaModuloPortale(
+  documentId: string,
+  token = readClientPortalToken(),
+  signal?: AbortSignal,
+): Promise<ModuloPortale> {
+  return apiJson<ModuloPortale>(
+    `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/modulo`,
+    { ok: false, compilabile: false, campi: [], pagine: [] },
+    { headers: token ? { 'X-Client-Portal-Token': token } : {}, signal },
+  )
+}
+
+/** Salva la copia compilata: l'originale dello studio non viene toccato. */
+export async function compilaModuloPortale(
+  documentId: string,
+  valori: Record<string, string | boolean>,
+  token = readClientPortalToken(),
+): Promise<ClientPortalResponse> {
+  return apiPostJson<ClientPortalResponse>(
+    `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/modulo`,
+    { valori },
+    { ok: false, message: 'Modulo non compilato.' },
+    { headers: token ? { 'X-Client-Portal-Token': token } : {} },
+  )
+}
+
+export type LinkInvito = {
+  ok?: boolean
+  available?: boolean
+  url?: string
+  message?: string
+}
+
+/** Il link riservato di un invito, decifrato dal server per l'avvocato. */
+export async function caricaLinkInvito(inviteId: string): Promise<LinkInvito> {
+  if (!inviteId) return { ok: false, available: false, url: '' }
+  return apiJson<LinkInvito>(
+    `/api/v1/ui/client-portal/studio/invites/${encodeURIComponent(inviteId)}/link`,
+    { ok: false, available: false, url: '', message: 'Link non recuperabile.' },
+  )
+}
+
+export type ConversazionePortale = {
+  ok?: boolean
+  messages?: Record<string, unknown>[]
+  cursor?: string
+  nuovi?: number
+}
+
+/** La coda della conversazione di una pratica, per la pagina dello studio. */
+export async function caricaConversazioneStudio(matterId: string, segnalibro = ''): Promise<ConversazionePortale> {
+  if (!matterId) return { ok: false, messages: [], cursor: segnalibro }
+  const parametri = new URLSearchParams({ matterId })
+  if (segnalibro) parametri.set('since', segnalibro)
+  return apiJson<ConversazionePortale>(
+    `/api/v1/ui/client-portal/studio/conversation?${parametri.toString()}`,
+    { ok: false, messages: [], cursor: segnalibro },
+  )
+}
+
+/** La coda della conversazione della propria pratica, per la pagina del cliente. */
+export async function caricaConversazioneCliente(
+  segnalibro = '',
+  token = readClientPortalToken(),
+): Promise<ConversazionePortale> {
+  if (!token) return { ok: false, messages: [], cursor: segnalibro }
+  const parametri = new URLSearchParams()
+  if (segnalibro) parametri.set('since', segnalibro)
+  const coda = parametri.toString()
+  return apiJson<ConversazionePortale>(
+    `/api/v1/ui/client-portal/public/conversation${coda ? `?${coda}` : ''}`,
+    { ok: false, messages: [], cursor: segnalibro },
+    { headers: { 'X-Client-Portal-Token': token } },
+  )
 }
 
 export async function uploadClientPortalDocument(

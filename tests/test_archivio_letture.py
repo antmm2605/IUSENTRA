@@ -235,3 +235,59 @@ def test_rilettura_oggetto_rimuove_fatti_di_impronta_precedente(tmp_path: Path):
 def test_collauda_non_tocca_le_decisioni():
     fatto = Fatto(categoria="data", campo="udienza", valore="2026-11-10", verifica="corretta")
     assert collauda(fatto, _contesto()).verifica == "corretta"
+
+
+_RT_PAGOPA = """<?xml version="1.0" encoding="UTF-8"?>
+<pay_j:RT xmlns:pay_j="http://www.digitpa.gov.it/schemas/2011/Pagamenti/">
+  <pay_j:dataOraMessaggioRicevuta>2026-05-14T09:10:00</pay_j:dataOraMessaggioRicevuta>
+  <pay_j:datiPagamento>
+    <pay_j:codiceEsitoPagamento>{esito}</pay_j:codiceEsitoPagamento>
+    <pay_j:importoTotalePagato>98.00</pay_j:importoTotalePagato>
+    <pay_j:datiSingoloPagamento>
+      <pay_j:singoloImportoPagato>98.00</pay_j:singoloImportoPagato>
+      <pay_j:dataEsitoSingoloPagamento>2026-05-12</pay_j:dataEsitoSingoloPagamento>
+      <pay_j:causaleVersamento>/RFB/300039//98.00/TXT/Contributo unificato</pay_j:causaleVersamento>
+      <pay_j:datiSpecificiRiscossione>9/0702100TS/CONTRIB</pay_j:datiSpecificiRiscossione>
+    </pay_j:datiSingoloPagamento>
+  </pay_j:datiPagamento>
+</pay_j:RT>"""
+
+
+def test_data_del_versamento_letta_dallo_schema_della_ricevuta_telematica():
+    """La RT non ha prosa: il giorno del versamento si legge dal campo dedicato."""
+    from pct.archivio_letture.estrazione_importi import data_del_versamento
+
+    assert data_del_versamento(_RT_PAGOPA.format(esito="0")) == "12/05/2026"
+
+
+def test_ricevuta_telematica_senza_pagamento_eseguito_non_da_una_data_di_pagamento():
+    """Esito diverso da «eseguito»: la RT non prova un versamento, quindi niente data."""
+    from pct.archivio_letture.estrazione_importi import data_del_versamento
+
+    assert data_del_versamento(_RT_PAGOPA.format(esito="4")) == ""
+
+
+def test_importo_del_contributo_da_ricevuta_telematica_porta_stato_e_giorno():
+    from pct.archivio_letture.estrazione_importi import estrai_importi
+
+    fatti = estrai_importi(
+        _RT_PAGOPA.format(esito="0"),
+        metadata={"filename": "RT contributo.xml"},
+        origine="nativo",
+    )
+    contributo = next(f for f in fatti if f.campo == "contributo_unificato")
+    prove = {prova["codice"]: prova["dettaglio"] for prova in contributo.prove}
+
+    assert contributo.valore == "98.00"
+    assert prove["stato"] == "pagato"
+    assert prove["data"] == "12/05/2026"
+    assert prove["norma"] == "D.P.R. 115/2002 art. 13"
+
+
+def test_data_del_versamento_resta_ancorata_nella_prosa_di_una_ricevuta_cartacea():
+    """Fuori dalla RT vale la regola di prima: solo la data ancorata alla formula."""
+    from pct.archivio_letture.estrazione_importi import data_del_versamento
+
+    assert data_del_versamento("Data pagamento: 17/03/2026 - esito positivo.") == "17/03/2026"
+    assert data_del_versamento("Sentenza del 28/04/2026 pubblicata in cancelleria.") == ""
+    assert data_del_versamento("Data pagamento: 31/02/2026") == ""

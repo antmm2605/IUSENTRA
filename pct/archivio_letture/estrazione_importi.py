@@ -27,7 +27,7 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .ancoraggio import brano
 
-VERSIONE_ESTRAZIONE_IMPORTI = "2026.09.18.importi.v2"
+VERSIONE_ESTRAZIONE_IMPORTI = "2026.09.18.importi.v3+ricevuta-telematica"
 
 # Campo del fatto → etichetta italiana e norma che lo governa.
 CAMPI_IMPORTO: dict[str, tuple[str, str]] = {
@@ -54,6 +54,74 @@ def _importo(valore: Any) -> float | None:
     if numero <= 0 or numero > IMPORTO_MASSIMO:
         return None
     return round(numero, 2)
+
+
+#: il giorno del versamento in una ricevuta: si accetta solo se ancorato a una
+#: delle formule della ricevuta stessa, mai una data qualsiasi del documento
+_RE_DATA_VERSAMENTO = re.compile(
+    r"data\s+(?:del\s+)?(?:pagament\w+|versament\w+|esito|operazione)\s*[:\-]?\s*"
+    r"(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})",
+    re.I,
+)
+
+
+def data_dalla_ricevuta_telematica(testo: str) -> str:
+    """Il giorno del versamento letto dalla RT pagoPA, non indovinato dal testo.
+
+    La ricevuta telematica di giustizia e' un documento a struttura dichiarata
+    (schema ``PagamentiTelematiciGiustizia``, namespace DigitPA): il giorno del
+    versamento sta in ``dataEsitoSingoloPagamento``, e in sua mancanza nella
+    data del messaggio di ricevuta. Leggerlo dallo schema e' piu' sicuro che
+    cercarlo nella prosa, perche' la RT non ha prosa: cercare «data pagamento»
+    in un XML non trova nulla.
+
+    Base normativa: art. 4 c. 9 D.L. 193/2009 (pagamento telematico del
+    contributo unificato) e specifiche pagoPA del Ministero della Giustizia.
+    """
+    from pct.pagamenti_giustizia import e_ricevuta_telematica, parse_rt
+    from pct.registro_letture.verifica_date import interpreta_data
+
+    grezzo = str(testo or "")
+    if "<" not in grezzo or "RT" not in grezzo:
+        return ""
+    try:
+        dati = grezzo.encode("utf-8", "ignore")
+        if not e_ricevuta_telematica(dati):
+            return ""
+        ricevuta = parse_rt(dati)
+    except Exception:
+        return ""
+    if ricevuta is None or not ricevuta.pagamento_eseguito:
+        # Una RT con esito diverso da «eseguito» non prova un versamento:
+        # dichiarare la sua data come giorno di pagamento sarebbe falso.
+        return ""
+    for candidata in (ricevuta.data_esito_pagamento, ricevuta.data_ricevuta):
+        giorno = interpreta_data(str(candidata or "").split("T", 1)[0])
+        if giorno:
+            return giorno.strftime("%d/%m/%Y")
+    return ""
+
+
+def data_del_versamento(testo: str) -> str:
+    """Il giorno del versamento dichiarato nella ricevuta, in formato italiano.
+
+    All'avvocato la data serve quanto l'importo: una voce che dice «pagato» ma
+    non quando non prova granche'. Si accetta solo la data ancorata alle
+    formule della ricevuta — «data pagamento», «data versamento», «data esito»
+    — oppure, quando la ricevuta e' la RT telematica, il campo che lo schema
+    ministeriale dedica al versamento; e solo se e' una data del calendario:
+    una data qualsiasi trovata nel documento non e' il giorno del versamento.
+    """
+    from pct.registro_letture.verifica_date import interpreta_data
+
+    dallo_schema = data_dalla_ricevuta_telematica(testo)
+    if dallo_schema:
+        return dallo_schema
+    trovata = _RE_DATA_VERSAMENTO.search(str(testo or ""))
+    if not trovata:
+        return ""
+    giorno = interpreta_data(trovata.group(1))
+    return giorno.strftime("%d/%m/%Y") if giorno else ""
 
 
 def _fatto(campo: str, importo: float, *, titolo: str, testo: str, origine: str, natura: str = "") -> Fatto:
@@ -151,6 +219,9 @@ def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None 
     stato = _testo(evidenza.get("status"))
     if stato:
         fatto.prove = list(fatto.prove) + [{"codice": "stato", "esito": "ok", "dettaglio": stato}]
+    quando = data_del_versamento(grezzo)
+    if quando:
+        fatto.prove = list(fatto.prove) + [{"codice": "data", "esito": "ok", "dettaglio": quando}]
     return [fatto]
 
 
@@ -170,5 +241,6 @@ def estrai_importi(testo: str, *, metadata: dict[str, Any] | None = None, origin
 
 __all__ = [
     "CAMPI_IMPORTO", "IMPORTO_MASSIMO", "VERSIONE_ESTRAZIONE_IMPORTI",
+    "data_dalla_ricevuta_telematica", "data_del_versamento",
     "estrai_importi", "importi_dalla_sentenza", "importo_contributo_unificato",
 ]

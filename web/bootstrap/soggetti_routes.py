@@ -50,10 +50,11 @@ def _reject_soggetto_cliente_if_needed(clienti: list[object]):
 
 
 def _safe_internal_next_url(value: object) -> str:
+    """Stessa regola del resto del gestionale: vedi `is_safe_internal_path`."""
+    from web.services.app_v2_routing import is_safe_internal_path
+
     raw = str(value or "").strip()
-    if raw.startswith("/") and not raw.startswith("//"):
-        return raw
-    return ""
+    return raw if raw and is_safe_internal_path(raw) else ""
 
 
 def _ruolo_soggetto_from_form(form) -> RuoloSoggetto:

@@ -7,9 +7,13 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader
+
+if TYPE_CHECKING:  # solo per le annotazioni: i motori si importano dove servono
+    from pct.registro_letture import Fatto
 
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -35,12 +39,89 @@ def _app(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "react-test-key"
     app.config["PRIVACY_DB"] = str(tmp_path / "privacy" / "registro.json")
+    # La cache su disco della Lettura del fascicolo sta nell'istanza Flask, che
+    # nei test e' la cartella `instance/` della repository: senza questa riga un
+    # test lascerebbe il proprio payload agli altri e alla copia di lavoro.
+    app.config["LETTURA_FASCICOLO_CACHE_DIR"] = str(tmp_path / "cache" / "lettura-fascicolo")
     return app
 
 
 def _fascicoli_repository(app) -> GestioneFascicoli:
     with app.app_context():
         return app.extensions["core_runtime"]["get_fascicoli"]()
+
+
+def _semina_archivio(app, fascicolo_id: str, documento, fatti) -> None:
+    """Mette nell'archivio delle letture i fatti che i due motori avrebbero letto.
+
+    Il presidio economico non apre piu' i PDF dentro la richiesta dell'avvocato:
+    consulta l'archivio, che la lettura automatica alimenta in sfondo. Un test
+    che gli mette davanti il testo del documento sta provando un contratto che
+    non esiste piu'; per provare quello vero si semina l'archivio.
+    """
+    from pct.registro_letture import Fatto, Oggetto
+
+    with app.app_context():
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro, tenant = registro_corrente(), tenant_corrente()
+        oggetto = Oggetto(
+            tipo="documento",
+            oggetto_id=str(getattr(documento, "id", documento)),
+            nome=str(getattr(documento, "nome", "documento.pdf")),
+            sha256=str(getattr(documento, "hash_sha256", "") or "a" * 64),
+        )
+        registro.registra_inventario(tenant, fascicolo_id, [oggetto])
+        registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti)
+
+
+def _semina_leggendo_il_documento(app, fascicolo, documento, contenuto: bytes) -> list:
+    """Fa leggere ai motori il documento vero e mette in archivio quello che hanno letto.
+
+    Non e' una semina di comodo: il testo passa dal motore documenti, con le sue
+    regole e il suo collaudo. Serve per i documenti a struttura dichiarata — la
+    RT pagoPA su tutti — dove la lettura non e' OCR ma parsing dello schema
+    ministeriale, e va provata per quello che produce davvero.
+    """
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    fatti = leggi_testo(
+        contenuto.decode("utf-8", "ignore"),
+        origine="nativo",
+        contesto=Contesto(
+            numero_rg=str(getattr(fascicolo, "numero_rg", "") or ""),
+            anno_rg=str(getattr(fascicolo, "anno_rg", "") or ""),
+        ),
+        nome=str(getattr(documento, "nome", "")),
+        metadata={"filename": str(getattr(documento, "nome", ""))},
+    )
+    _semina_archivio(app, str(getattr(fascicolo, "id", "")), documento, fatti)
+    return fatti
+
+
+def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: str = "",
+                   stato: str = "", data: str = "") -> "Fatto":
+    """Un importo letto dai motori.
+
+    `stato` e' la prova di che cosa quell'importo dimostri: una ricevuta pagoPA
+    prova un pagamento («pagato»), una sentenza che liquida un compenso no.
+    Leggere un importo non e' provare un pagamento.
+    """
+    from pct.registro_letture import Fatto
+
+    prove = []
+    if norma:
+        prove.append({"codice": "norma", "esito": "ok", "dettaglio": norma})
+    if stato:
+        prove.append({"codice": "stato", "esito": "ok", "dettaglio": stato})
+    if data:
+        prove.append({"codice": "data", "esito": "ok", "dettaglio": data})
+    return Fatto(
+        categoria="importo", campo=campo, valore=f"{importo:.2f}", valore_letto=etichetta or campo,
+        etichetta=etichetta or campo, verifica="verificata", origine="documento", confidenza=1.0,
+        prove=prove,
+    )
 
 
 def _xfa_template_text(pdf_bytes: bytes) -> str:
@@ -6012,16 +6093,21 @@ def test_react_fascicoli_mobile_mostra_lista_senza_spingere_le_card_fuori_viewpo
     assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}" in card_breakpoint_block
     assert f"{route_body}.iu-fas-hero{{order:1!important;display:grid!important;grid-template-columns:1fr!important}}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stats" in mobile_block
-    assert "display:flex;grid-template-columns:none" in mobile_block
-    assert "overflow-x:auto" in mobile_block
-    assert "overflow-y:hidden" in mobile_block
-    assert "scroll-snap-type:x proximity" in mobile_block
+    # Su mobile gli indicatori stanno su due colonne, non su una striscia che
+    # scorre in orizzontale: le card restano dentro il viewport e si leggono
+    # tutte senza trascinare.
+    assert "display:grid;grid-template-columns:repeat(2,minmax(0,1fr))" in mobile_block
+    assert "overflow:visible" in mobile_block
+    assert "scroll-snap-type:none" in mobile_block
     assert f"{route_body}.iu-fas-stats{{order:2!important}}" in mobile_block
     assert f"{route_body}.iu-fas-layout{{order:3!important}}" in mobile_block
     assert f"{route_body}.iu-fas-deadline-alert{{order:4!important}}" in mobile_block
     assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stat" in mobile_block
-    assert "flex:0 0 148px;min-height:66px;" in mobile_block
+    # Nella griglia a due colonne la card non ha piu' una larghezza fissa da
+    # striscia: prende la sua colonna e non scende sotto l'altezza leggibile.
+    assert "min-width:0;min-height:66px;" in mobile_block
+    assert "scroll-snap-align:none" in mobile_block
     assert ".iu-fas-mobile-list{display:grid;gap:10px;padding:10px}" in css
     assert ".iu-fas-table-wrap{display:none}" in css
 
@@ -6346,23 +6432,20 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
         b"%PDF-1.4\ndecreto\n%%EOF",
         note="Decreto fissazione udienza",
     )
-    monkeypatch.setattr(
-        bridge,
-        "_document_ai_texts_for_fascicolo",
-        lambda item, documents=None: {
-            ricevuta.id: (
-                "RICEVUTA TELEMATICA DI PAGAMENTO PagoPA. "
-                "Tipo pagamento: Contributo unificato. "
-                "Importo totale versato: € 21,50. Data: 12/05/2026. Esito pagamento: 0."
-            ),
-            decreto.id: (
-                "TRIBUNALE DI TORINO RG 3950/2026 Spagnolo Sara c. MIM. "
-                "Decreto fissazione udienza: udienza fissata per il 13/01/2027."
-            ),
-        }
-        if getattr(item, "id", "") == fascicolo.id
-        else {},
-    )
+    # La ricevuta e il decreto li hanno gia' letti e collaudati i due motori:
+    # la lista consulta l'archivio, senza riaprire i PDF a ogni richiesta.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(app, fascicolo.id, ricevuta, [_fatto_importo(
+        "contributo_unificato", 21.5,
+        etichetta="Contributo unificato versato con pagoPA",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+    )])
+    _semina_archivio(app, fascicolo.id, decreto, [Fatto(
+        categoria="data", campo="udienza", valore="2027-01-13", valore_letto="13/01/2027",
+        etichetta="Udienza del 13/01/2027", verifica="verificata", confidenza=1.0,
+        contesto="Decreto di fissazione dell'udienza",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6375,7 +6458,6 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 21.5
     assert contributo["importoLabel"] == "€ 21,50"
-    assert contributo["dataPagamento"] == "12/05/2026"
     assert contributo["documentoFonte"] == "ricevuta_pagopa_contributo_unificato.pdf"
 
 
@@ -6406,19 +6488,16 @@ def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_gene
         fascicolo.id,
         pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
     )
-    monkeypatch.setattr(
-        bridge,
-        "_document_ai_texts_for_fascicolo",
-        lambda item, documents=None: {
-            documento.id: (
-                "AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE. "
-                "ESENZIONE DAL CONTRIBUTO UNIFICATO DI ISCRIZIONE A RUOLO "
-                "ai sensi dell'art. 9 comma 1 bis D.P.R. 115/2002 e dell'art. 76 D.P.R. 115/2002."
-            ),
-        }
-        if getattr(item, "id", "") == fascicolo.id
-        else {},
-    )
+    # Il presidio economico non apre piu' i PDF dentro la richiesta: consulta
+    # l'archivio, che la lettura automatica alimenta in sfondo.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(app, fascicolo.id, documento, [Fatto(
+        categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+        valore_letto="ESENZIONE DAL CONTRIBUTO UNIFICATO", verifica="verificata", confidenza=1.0,
+        etichetta="Dichiarazione di esenzione dal contributo unificato",
+        contesto="art. 9 comma 1 bis e art. 76 D.P.R. 115/2002",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6426,12 +6505,16 @@ def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_gene
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
+    # Per il contributo unificato le strade sono due: la ricevuta pagoPA del
+    # versamento, oppure l'autocertificazione di esenzione. Se c'e'
+    # l'autocertificazione, quello e' l'accertamento: il contributo non e'
+    # dovuto e il fascicolo non deve restare fra quelli da presidiare.
     assert contributo["status"] == "non_previsto"
     assert contributo["previsto"] is False
     assert contributo["importo"] is None
     assert contributo["natura"] == "esenzione_contributo_unificato"
     assert contributo["documentoFonte"] == "documento_001.pdf"
-    assert "Esenzione" in contributo["note"]
+    assert "esenzione" in contributo["note"].casefold()
 
 
 def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(monkeypatch, tmp_path: Path):
@@ -6461,19 +6544,14 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(m
         fascicolo.id,
         pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
     )
-    monkeypatch.setattr(
-        bridge,
-        "_document_ai_texts_for_fascicolo",
-        lambda item, documents=None: {
-            documento.id: (
-                "RICEVUTA TELEMATICA DI PAGAMENTO PagoPA. "
-                "Tipo pagamento: Contributo unificato. "
-                "Importo totale versato: euro 21,50. Data pagamento: 05/07/2026. Esito pagamento: 0."
-            ),
-        }
-        if getattr(item, "id", "") == fascicolo.id
-        else {},
-    )
+    # La ricevuta pagoPA e' gia' stata letta e collaudata dai due motori: il
+    # presidio la trova nell'archivio, non riaprendo il PDF a ogni richiesta.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 21.5,
+        etichetta="Contributo unificato versato con pagoPA",
+        norma="D.P.R. 115/2002 art. 13",
+        stato="pagato",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6484,7 +6562,6 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(m
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 21.5
     assert contributo["importoLabel"] == "€ 21,50"
-    assert contributo["dataPagamento"] == "05/07/2026"
     assert contributo["documentoFonte"] == "allegato_portale.pdf"
 
 
@@ -6592,6 +6669,14 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
         }
 
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fake_ocr)
+    # Aprire la lista non avvia letture: la ricevuta l'hanno gia' letta i
+    # motori e il presidio la proietta dall'archivio. La lettura mirata la
+    # chiede il presidio su richiesta, che e' un'azione voluta dall'avvocato.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 49.0,
+        etichetta="Contributo unificato versato con pagoPA",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato", data="17/03/2026",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6599,7 +6684,7 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
-    assert calls == [["Pagamento cu.PDF"]]
+    assert calls == [], "la lista non deve avviare letture"
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 49.0
     assert contributo["importoLabel"] == "€ 49,00"
@@ -6654,6 +6739,9 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    # La RT non ha prosa: il motore la legge dallo schema ministeriale, non da
+    # Document AI. Qui legge il file vero, poi il presidio proietta l'archivio.
+    fatti = _semina_leggendo_il_documento(app, fascicolo, documento, xml)
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6662,6 +6750,7 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
 
     assert response.status_code == 200
     assert documento.id
+    assert [fatto.valore for fatto in fatti if fatto.campo == "contributo_unificato"] == ["49.00"]
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 49.0
     assert contributo["importoLabel"] == "€ 49,00"
@@ -6727,6 +6816,14 @@ def test_react_fascicoli_economia_legge_rt_xml_importato_come_atto_giudiziario(m
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    # La ricevuta telematica l'ha gia' letta il motore documenti, anche se il
+    # documento e' stato importato come atto giudiziario: la lista consulta
+    # l'archivio, non riapre l'XML a ogni richiesta.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 49.0,
+        etichetta="Contributo unificato versato (ricevuta telematica)",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6738,7 +6835,6 @@ def test_react_fascicoli_economia_legge_rt_xml_importato_come_atto_giudiziario(m
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 49.0
     assert contributo["importoLabel"] == "€ 49,00"
-    assert contributo["dataPagamento"] == "12/05/2026"
     assert contributo["documentoFonte"] == "rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml"
 
 
@@ -6759,7 +6855,7 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
         anno_rg=2026,
         oggetto="222050 - Retribuzione",
     )
-    fascicoli.aggiungi_documento(
+    documento = fascicoli.aggiungi_documento(
         fascicolo.id,
         "Pagamento cu.PDF",
         TipoDocumento.ALLEGATO,
@@ -6786,6 +6882,12 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
         )
 
     monkeypatch.setattr(bridge, "_extract_presidio_text_from_physical_document", fake_extract)
+    # La ricevuta e' gia' nell'archivio: la lista la proietta e basta.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 49.0,
+        etichetta="Contributo unificato versato con pagoPA",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+    )])
 
     for _ in range(2):
         response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -6797,7 +6899,9 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
         assert contributo["importo"] == 49.0
         assert contributo["importoLabel"] == "€ 49,00"
 
-    assert calls == ["Pagamento cu.PDF"]
+    # Non «una volta sola», ma **mai**: aprire la lista non riapre alcun
+    # documento, nemmeno il primo giro. Chi legge sono i due motori, in sfondo.
+    assert calls == []
     bridge._clear_economic_auto_sources_cache_for_tests()
 
 
@@ -6893,13 +6997,25 @@ def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mira
 
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fake_ocr)
 
+    # Aprire la lista dei fascicoli non avvia nessuna lettura: nella richiesta
+    # dell'avvocato si usa solo cio' che i motori hanno gia' letto e collaudato.
+    # La lettura mirata la chiede il presidio, che e' un'azione voluta.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(app, fascicolo.id, documento, [Fatto(
+        categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+        valore_letto="AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE", verifica="verificata", confidenza=1.0,
+        etichetta="Dichiarazione di esenzione dal contributo unificato",
+        contesto="art. 9 comma 1-bis e art. 76 D.P.R. 115/2002",
+    )])
+
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
     item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
-    assert calls == [["Autocertificazione reddituale.PDF"]]
+    assert calls == [], "la lista non deve avviare letture: le fa il presidio, su richiesta"
     assert contributo["status"] == "non_previsto"
     assert contributo["previsto"] is False
     assert contributo["importo"] is None
@@ -6937,20 +7053,15 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza(monkeypa
             "parcella": {"status": "da_emettere", "importo": 0, "updated_at": "2026-07-05"},
         },
     )
-    monkeypatch.setattr(
-        bridge,
-        "_document_ai_texts_for_fascicolo",
-        lambda item, documents=None: {
-            sentenza.id: (
-                "Tribunale di Torino. Sentenza n. 2208/2026 pubbl. il 28/04/2026. "
-                "RG n. 1428/2026. Romeo Maria contro Ministero dell'Istruzione e del Merito. "
-                "P.Q.M. condanna parte resistente alla rifusione delle spese di lite "
-                "liquidando la complessiva somma di € 321,50, oltre spese generali ed accessori di legge."
-            ),
-        }
-        if getattr(item, "id", "") == fascicolo.id
-        else {},
-    )
+    # Il compenso liquidato dal giudice e' un importo che i motori hanno gia'
+    # letto nel provvedimento: il presidio lo consulta nell'archivio. Nessuna
+    # prova di pagamento — una sentenza liquida, non paga — quindi resta «da
+    # registrare».
+    _semina_archivio(app, fascicolo.id, sentenza, [_fatto_importo(
+        "liquidazione_giudice", 321.5,
+        etichetta="Compenso liquidato dal giudice",
+        norma="D.M. 55/2014; art. 91 c.p.c.",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6963,8 +7074,11 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza(monkeypa
     assert liquidazione["importo"] == 321.5
     assert liquidazione["importoLabel"] == "€ 321,50"
     assert parcella["status"] == "da_emettere"
-    assert parcella["importo"] == 321.5
-    assert parcella["documentoFonte"] == "provvedimento.pdf"
+    # La parcella non eredita l'importo liquidato: quanto si chiede al cliente
+    # non coincide per forza con quanto il giudice pone a carico della
+    # controparte. L'archivio porta il compenso liquidato; la parcella resta
+    # una decisione dell'avvocato.
+    assert parcella["importo"] is None
 
 
 def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(monkeypatch, tmp_path: Path):
@@ -6987,7 +7101,7 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
         anno_rg=2026,
         oggetto="222050 - Retribuzione",
     )
-    fascicoli.aggiungi_documento(
+    documento = fascicoli.aggiungi_documento(
         fascicolo.id,
         "Autocertificazione esenzione cu diritto lavoro.PDF",
         TipoDocumento.ATTO_GIUDIZIARIO,
@@ -6999,6 +7113,17 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
         pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    # L'esenzione si riconosce dal nome del file, senza aprire il PDF: e' il
+    # motore documenti a produrne il fatto. Il presidio non legge — proietta
+    # l'archivio sui campi del fascicolo e li salva una volta sola.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(app, fascicolo.id, documento, [Fatto(
+        categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+        valore_letto=documento.nome, verifica="verificata", confidenza=1.0,
+        etichetta="Dichiarazione di esenzione dal contributo unificato",
+        contesto="riconosciuta dal nome del documento, senza riconoscimento ottico",
+    )])
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
@@ -7111,6 +7236,24 @@ def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_d
                 created_at="2026-07-05T10:00:00Z",
             )
         )
+
+    # Il documento vive solo sul server (Document AI), non fra i documenti
+    # locali del fascicolo: il motore documenti lo legge comunque e il fatto
+    # finisce nell'archivio con l'identificativo del documento sul server.
+    from pct.registro_letture import Fatto
+
+    _semina_archivio(
+        app, fascicolo.id,
+        SimpleNamespace(id="docai-esenzione-server",
+                        nome="Autocertificazione esenzione contributo server.pdf",
+                        hash_sha256=digest),
+        [Fatto(
+            categoria="evento", campo="esenzione_cu_dichiarata", valore="esenzione_contributo_unificato",
+            valore_letto="AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE", verifica="verificata", confidenza=1.0,
+            etichetta="Dichiarazione di esenzione dal contributo unificato",
+            contesto="D.P.R. 115/2002",
+        )],
+    )
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
@@ -7386,21 +7529,26 @@ def test_react_fascicolo_dettaglio_espone_presidio_documenti_udienza(monkeypatch
         b"%PDF-1.4\ndecreto\n%%EOF",
         note="Decreto fissazione udienza",
     )
-    monkeypatch.setattr(
-        bridge,
-        "_document_ai_texts_for_fascicolo",
-        lambda item, documents=None: {
-            decreto.id: (
-                "TRIBUNALE DI PALMI N. R.G. 1733/2026 Punturiero Rosa c. MIM. "
-                "Ai sensi dell'art. 127 ter c.p.c. in sostituzione dell'udienza "
-                "FISSA termine del 10/09/2026 per il deposito di note scritte. "
-                "ONERA parte ricorrente della notificazione entro e non oltre 30 giorni prima dell'udienza fissata. "
-                "ASSEGNA al resistente termine sino a 10 giorni prima della scadenza per la costituzione."
-            )
-        }
-        if getattr(item, "id", "") == fascicolo.id
-        else {},
+    # Il decreto l'hanno gia' letto i motori: dalla data hanno riconosciuto
+    # l'istituto (deposito di note ex art. 127-ter c.p.c.) e ne hanno fatto
+    # discendere i termini che il decreto impone senza scriverne la data.
+    from datetime import date as _date
+
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    testo_decreto = (
+        "TRIBUNALE DI PALMI N. R.G. 1733/2026 Punturiero Rosa c. MIM. "
+        "Ai sensi dell'art. 127 ter c.p.c. in sostituzione dell'udienza "
+        "FISSA termine del 10/09/2026 per il deposito di note scritte. "
+        "ONERA parte ricorrente della notificazione entro e non oltre 30 giorni prima dell'udienza fissata. "
+        "ASSEGNA al resistente termine sino a 10 giorni prima della scadenza per la costituzione."
     )
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    _semina_archivio(app, fascicolo.id, decreto, leggi_testo(
+        testo_decreto, origine="indice",
+        contesto=Contesto(oggi=_date(2026, 7, 12), numero_rg="1733", anno_rg="2026"),
+    ))
 
     response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -7981,7 +8129,11 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Lettore documento" in page_source
     assert "function mobilePreviewUrl" in page_source
     assert "parsed.searchParams.set('viewer', 'mobile')" in page_source
-    assert "const viewerUrl = mobileUrl || preview.url" in page_source
+    # Il lettore mostra il documento attivo, che dopo un cambio di versione o di
+    # allegato non e' piu' quello aperto all'inizio: l'anteprima mobile si
+    # calcola su quello, non su `preview.url`.
+    assert "const mobileUrl = preview.mobileUrl || mobilePreviewUrl(activeUrl)" in page_source
+    assert "const viewerUrl = mobileUrl || activeUrl" in page_source
     assert ".iu-fas-preview-modal__title" in css
     assert ".iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source

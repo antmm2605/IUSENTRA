@@ -1,7 +1,12 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+
+import { useConversazioneViva, type MessaggioPortale } from '../hooks/useConversazioneViva'
+import { WebcamCapture } from './client-portal/WebcamCapture'
+import { PdfModulo } from './mediazione/PdfModulo'
 import {
   Bell,
   CalendarDays,
+  Camera,
   Check,
   ClipboardList,
   Copy,
@@ -17,6 +22,7 @@ import {
   Settings2,
   ShieldCheck,
   UploadCloud,
+  Webcam,
   UserRound,
   UsersRound,
   Video,
@@ -24,6 +30,11 @@ import {
 import {
   acceptInvite,
   clientPortalDocumentUrl,
+  caricaConversazioneCliente,
+  caricaLinkInvito,
+  caricaModuloPortale,
+  compilaModuloPortale,
+  caricaConversazioneStudio,
   clientPortalPost,
   clientPortalTokenFromPath,
   clearClientPortalToken,
@@ -224,6 +235,8 @@ function ClientPortalStudio() {
   const [selectedMatterId, setSelectedMatterId] = useState('')
   const [clientSearch, setClientSearch] = useState('')
   const [inviteForm, setInviteForm] = useState({ clientId: '', matterId: '', preventivoId: '', message: '', expiresDays: 14 })
+  const [linkRecuperati, setLinkRecuperati] = useState<Record<string, { url: string; message: string }>>({})
+  const [preventivoDaFirmare, setPreventivoDaFirmare] = useState('')
   const [messageBody, setMessageBody] = useState('')
   const [requestTitle, setRequestTitle] = useState('')
   const [signatureTitle, setSignatureTitle] = useState('')
@@ -262,16 +275,26 @@ function ClientPortalStudio() {
     void load()
   }, [])
 
-  useEffect(() => {
-    const node = studioChatRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [payload.messages.length, selectedMatterId])
-
   const selectedMatter = useMemo(
     () => payload.matters.find((matter) => rowId(matter) === selectedMatterId) || payload.matters[0],
     [payload.matters, selectedMatterId],
   )
-  const selectedMessages = payload.messages.filter((message) => text(message.matter_id) === rowId(selectedMatter))
+  const messaggiDellaPratica = useMemo(
+    () => payload.messages.filter((message) => text(message.matter_id) === rowId(selectedMatter)),
+    [payload.messages, selectedMatter],
+  )
+  // La chat resta viva senza ricaricare la pagina: chiede solo la coda.
+  const selectedMessages = useConversazioneViva({
+    attiva: Boolean(rowId(selectedMatter)),
+    iniziali: messaggiDellaPratica,
+    carica: (segnalibro) => caricaConversazioneStudio(rowId(selectedMatter), segnalibro),
+  }) as PortalRow[]
+
+  useEffect(() => {
+    const node = studioChatRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [selectedMessages.length, selectedMatterId])
+
   const selectedDocumentRequests = payload.documentRequests.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedClientDocuments = (payload.documents || []).filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const unrequestedClientDocuments = selectedClientDocuments.filter((doc) => {
@@ -415,6 +438,41 @@ function ClientPortalStudio() {
   const focusMatterLink = (matter: PortalRow) => {
     setSelectedMatterId(rowId(matter))
     scrollToPanel('portale-clienti-link-cliente')
+  }
+
+  // Il link non è conservato in chiaro: si chiede al server, che lo decifra
+  // solo per l'avvocato autenticato. Se non è recuperabile lo dice, invece di
+  // mostrare un collegamento finto.
+  const mostraLinkInvito = async (inviteId: string) => {
+    const risposta = await caricaLinkInvito(inviteId)
+    setLinkRecuperati((correnti) => ({
+      ...correnti,
+      [inviteId]: {
+        url: text(risposta.url),
+        message: risposta.available ? '' : text(risposta.message, 'Link non recuperabile: rigenera l\'invito.'),
+      },
+    }))
+  }
+
+  // Il percorso di firma è fail-closed: se lo studio non l'ha abilitato non si
+  // finge di poterlo usare, lo si dice.
+  const firmaIncaricoAttiva = payload.featureFlags?.['routes.appV2.clientPortal.signingWorkflow'] === true
+  const preventiviDelCliente = (payload.preventivoOptions || []).filter(
+    (voce) => text(voce.clientId) === text((selectedMatter?.client as PortalRow | undefined)?.id || selectedMatter?.client_id),
+  )
+
+  /** Manda preventivo e conferimento alla firma: riusa l'invito, che porta con
+   *  sé il preventivo e apre al cliente il percorso già collaudato. */
+  const mandaAllaFirma = async (matter: PortalRow | undefined) => {
+    if (!matter || !preventivoDaFirmare) return
+    const clientId = text((matter.client as PortalRow | undefined)?.id || matter.client_id)
+    await submitInvitePayload({
+      ...inviteForm,
+      clientId,
+      matterId: rowId(matter),
+      preventivoId: preventivoDaFirmare,
+    })
+    setPreventivoDaFirmare('')
   }
 
   const focusMatterChat = (matter: PortalRow) => {
@@ -607,6 +665,44 @@ function ClientPortalStudio() {
                 <FileCheck2 size={17} aria-hidden="true"/>Prepara pacchetto finale
               </button>
             </div>
+            <section className="iu-client-portal-link-panel" id="portale-clienti-firma-incarico" aria-label="Preventivo e conferimento alla firma">
+              <div>
+                <h3>Preventivo e conferimento incarico</h3>
+                <p>
+                  Manda al cliente il preventivo e la lettera di conferimento da firmare. Dal telefono firma sullo schermo;
+                  dal computer può anche scaricare, firmare a penna e rimandare con scansione, webcam o fotocamera.
+                </p>
+              </div>
+              {!firmaIncaricoAttiva ? (
+                <p className="iu-client-portal-muted">
+                  Il percorso di firma non è attivo per questo studio: si abilita dalle impostazioni (firma del Portale Cliente).
+                </p>
+              ) : preventiviDelCliente.length === 0 ? (
+                <p className="iu-client-portal-muted">
+                  Nessun preventivo disponibile per questo cliente: creane uno e torna qui per mandarlo alla firma.
+                </p>
+              ) : (
+                <>
+                  <label>
+                    Preventivo da mandare alla firma
+                    <select value={preventivoDaFirmare} onChange={(event) => setPreventivoDaFirmare(event.target.value)}>
+                      <option value="">Scegli il preventivo…</option>
+                      {preventiviDelCliente.map((voce) => (
+                        <option key={voce.id} value={voce.id}>{text(voce.label)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="iu-client-portal-button"
+                    type="button"
+                    disabled={!preventivoDaFirmare || !payload.canWrite}
+                    onClick={() => mandaAllaFirma(selectedMatter)}
+                  >
+                    <FileCheck2 size={17} aria-hidden="true"/>Manda alla firma
+                  </button>
+                </>
+              )}
+            </section>
             <section className="iu-client-portal-link-panel" id="portale-clienti-link-cliente" aria-label="Link cliente">
               <div>
                 <h3>Link cliente</h3>
@@ -622,12 +718,30 @@ function ClientPortalStudio() {
               )}
               <div className="iu-client-portal-invite-list" aria-label="Inviti cliente">
                 {selectedInvites.length === 0 ? <span className="iu-client-portal-muted">Nessun invito registrato per questa pratica.</span> : null}
-                {selectedInvites.map((invite) => (
-                  <article key={rowId(invite)}>
-                    <strong>{statusLabel(invite.status)}</strong>
-                    <span>{text(invite.expires_at_label) ? `Scade il ${text(invite.expires_at_label)}` : 'Scadenza non disponibile'}</span>
-                  </article>
-                ))}
+                {selectedInvites.map((invite) => {
+                  const idInvito = rowId(invite)
+                  const recuperato = linkRecuperati[idInvito]
+                  return (
+                    <article key={idInvito}>
+                      <strong>{statusLabel(invite.status)}</strong>
+                      <span>{text(invite.expires_at_label) ? `Scade il ${text(invite.expires_at_label)}` : 'Scadenza non disponibile'}</span>
+                      {recuperato?.url ? (
+                        <>
+                          <input readOnly value={recuperato.url} onFocus={(event) => event.currentTarget.select()} aria-label={`Link cliente dell'invito ${idInvito}`}/>
+                          <button className="iu-client-portal-inline" type="button" onClick={() => copyInviteLink(recuperato.url)}>
+                            <Copy size={14} aria-hidden="true"/>Copia
+                          </button>
+                        </>
+                      ) : recuperato?.message ? (
+                        <span className="iu-client-portal-muted">{recuperato.message}</span>
+                      ) : (
+                        <button className="iu-client-portal-inline" type="button" onClick={() => mostraLinkInvito(idInvito)}>
+                          <Link2 size={14} aria-hidden="true"/>Mostra link
+                        </button>
+                      )}
+                    </article>
+                  )
+                })}
               </div>
             </section>
             <div className="iu-client-portal-workgrid">
@@ -921,6 +1035,13 @@ function ClientPortalClient() {
   const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM)
   const [questionnaireResponses, setQuestionnaireResponses] = useState<Record<string, string>>({})
   const [survey, setSurvey] = useState({ rating: 5, comment: '' })
+  // Si accetta solo dopo aver aperto l'informativa: un consenso prestato senza
+  // poter leggere non è informato (art. 7 GDPR).
+  const [informativaLetta, setInformativaLetta] = useState(false)
+  // Quale richiesta sta usando la webcam: una sola per volta, e la camera
+  // parte solo dopo il consenso esplicito dentro WebcamCapture.
+  const [webcamPerRichiesta, setWebcamPerRichiesta] = useState('')
+  const [moduloAperto, setModuloAperto] = useState('')
   const token = readClientPortalToken()
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
@@ -934,14 +1055,14 @@ function ClientPortalClient() {
     setLoading(false)
   }
 
+  // Quanti campi il cliente non ha mai scritto di suo e arrivano dalla scheda
+  // dello studio: vanno controllati e confermati, non dati per dichiarati.
+  const origineCampi = (payload.client?.anagrafica_origine || {}) as Record<string, string>
+  const daConfermare = Object.values(origineCampi).filter((valore) => valore === 'studio').length
+
   useEffect(() => {
     void load()
   }, [])
-
-  useEffect(() => {
-    const node = chatScrollRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [payload.messages?.length])
 
   const applyClientResponse = (response: ClientPortalResponse) => {
     if (response.dashboard?.surface === 'client') setPayload(response.dashboard as ClientPortalClientPayload)
@@ -951,6 +1072,32 @@ function ClientPortalClient() {
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault()
     applyClientResponse(await clientPortalPost('/api/v1/ui/client-portal/public/profile', profileForm))
+  }
+
+  // Si compila solo un PDF: gli altri allegati restano da scaricare.
+  const moduliPdf = (payload.documents || []).filter((voce) => text(voce.filename).toLowerCase().endsWith('.pdf'))
+
+  const informativa = (payload.privacyNotice || {}) as {
+    key?: string
+    version?: string
+    title?: string
+    declaration?: string
+    text?: string
+    sections?: { heading?: string; body?: string }[]
+    controller?: { nome?: string; indirizzo?: string; email?: string; telefono?: string }
+  }
+
+  /** Copia dell'informativa per l'interessato: conserva ciò che ha accettato. */
+  const scaricaInformativa = () => {
+    const contenuto = text(informativa.text)
+    if (!contenuto) return
+    const blob = new Blob([contenuto], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const collegamento = document.createElement('a')
+    collegamento.href = url
+    collegamento.download = `informativa-privacy-${text(informativa.version, 'portale')}.txt`
+    collegamento.click()
+    URL.revokeObjectURL(url)
   }
 
   const acceptConsent = async (key: string) => {
@@ -1031,7 +1178,16 @@ function ClientPortalClient() {
   }
 
   const progress = numberValue(payload.matter?.progress)
-  const messages = payload.messages || []
+  const messages = useConversazioneViva({
+    attiva: Boolean(token),
+    iniziali: (payload.messages || []) as MessaggioPortale[],
+    carica: (segnalibro) => caricaConversazioneCliente(segnalibro, token),
+  }) as PortalRow[]
+
+  useEffect(() => {
+    const node = chatScrollRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [messages.length])
   const completion = payload.profileCompletion
   const uploadLimits = payload.uploadLimits
 
@@ -1113,6 +1269,11 @@ function ClientPortalClient() {
               </span>
             ) : <UserRound size={18} aria-hidden="true"/>}
           </div>
+          {daConfermare > 0 ? (
+            <p className="iu-client-portal-muted">
+              {daConfermare === 1 ? 'Un campo arriva' : `${daConfermare} campi arrivano`} dalla scheda che lo studio ha già: controlla{daConfermare === 1 ? 'lo' : 'li'} e conferma con «Salva anagrafica». Se un dato non è più corretto, correggilo: vale quello che scrivi tu.
+            </p>
+          ) : null}
           {!completion?.complete ? (
             <p className="iu-client-portal-muted">Compila tutti i campi obbligatori (*): lo studio riceverà conferma automatica appena la scheda è completa.</p>
           ) : null}
@@ -1137,12 +1298,56 @@ function ClientPortalClient() {
 
         <div className="iu-client-portal-panel" id="panel-privacy">
           <div className="iu-client-portal-panel__head"><h2>Privacy e consensi</h2><ShieldCheck size={18} aria-hidden="true"/></div>
-          {(payload.consents || []).map((consent) => (
-            <article className="iu-client-portal-action-row" key={rowId(consent)}>
-              <div><strong>{text(consent.consent_key, 'Informativa privacy').replace(/_/g, ' ')}</strong><span>{numberValue(consent.accepted) ? `Accettato il ${text(consent.accepted_at_label)}` : 'Da accettare'}</span></div>
-              <button type="button" onClick={() => acceptConsent(text(consent.consent_key))} disabled={Boolean(numberValue(consent.accepted))}>{numberValue(consent.accepted) ? 'Accettato ✓' : 'Accetta'}</button>
-            </article>
-          ))}
+          {(payload.consents || []).map((consent) => {
+            const chiave = text(consent.consent_key)
+            const accettato = Boolean(numberValue(consent.accepted))
+            const suaInformativa = Boolean(informativa.key) && chiave === text(informativa.key)
+            return (
+              <article className="iu-client-portal-consent" key={rowId(consent)}>
+                <div className="iu-client-portal-consent__head">
+                  <strong>{suaInformativa ? text(informativa.title, 'Informativa privacy') : chiave.replace(/_/g, ' ')}</strong>
+                  <span>{accettato ? `Accettato il ${text(consent.accepted_at_label)}` : 'Da accettare'}</span>
+                </div>
+                {suaInformativa ? (
+                  <>
+                    <details open={!accettato} onToggle={(event) => { if ((event.currentTarget as HTMLDetailsElement).open) setInformativaLetta(true) }}>
+                      <summary>{accettato ? 'Rileggi l’informativa' : 'Leggi l’informativa prima di accettare'}</summary>
+                      <div className="iu-client-portal-consent__testo">
+                        {(informativa.sections || []).map((sezione) => (
+                          <section key={text(sezione.heading)}>
+                            <h4>{text(sezione.heading)}</h4>
+                            <p>{text(sezione.body)}</p>
+                          </section>
+                        ))}
+                        <p className="iu-client-portal-muted">
+                          Titolare del trattamento: {text(informativa.controller?.nome, 'lo studio legale incaricato')}
+                          {text(informativa.controller?.indirizzo) ? `, ${text(informativa.controller?.indirizzo)}` : ''}
+                          {text(informativa.controller?.email) ? ` — ${text(informativa.controller?.email)}` : ''}
+                          {' '}· Versione {text(informativa.version)}
+                        </p>
+                      </div>
+                    </details>
+                    <p className="iu-client-portal-consent__dichiarazione">{text(informativa.declaration)}</p>
+                    <div className="iu-client-portal-consent__azioni">
+                      <button type="button" onClick={() => acceptConsent(chiave)} disabled={accettato || !informativaLetta}>
+                        {accettato ? 'Accettato ✓' : 'Accetto'}
+                      </button>
+                      <button className="iu-client-portal-inline" type="button" onClick={scaricaInformativa}>
+                        <Download size={14} aria-hidden="true"/>Scarica copia
+                      </button>
+                    </div>
+                    {!accettato && !informativaLetta ? (
+                      <span className="iu-client-portal-muted">Apri l’informativa qui sopra: si accetta solo dopo averla aperta.</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="iu-client-portal-consent__azioni">
+                    <button type="button" onClick={() => acceptConsent(chiave)} disabled={accettato}>{accettato ? 'Accettato ✓' : 'Accetta'}</button>
+                  </div>
+                )}
+              </article>
+            )
+          })}
         </div>
 
         <div className="iu-client-portal-panel" id="panel-documenti">
@@ -1159,14 +1364,93 @@ function ClientPortalClient() {
                   <strong>{text(requestItem.title)}</strong>
                   <span>{uploaded ? `Caricato: ${text(uploaded.filename)}` : statusLabel(requestItem.status)}</span>
                 </div>
-                <label className="iu-client-portal-file">
-                  <UploadCloud size={16} aria-hidden="true"/>{uploaded ? 'Sostituisci' : 'Carica'}
-                  <input
-                    type="file"
-                    accept={(uploadLimits?.allowedUploadTypes || []).join(',') || undefined}
-                    onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
+                <div className="iu-client-portal-acquisizione">
+                  <label className="iu-client-portal-file">
+                    <UploadCloud size={16} aria-hidden="true"/>{uploaded ? 'Sostituisci' : 'Carica file'}
+                    <input
+                      type="file"
+                      accept={(uploadLimits?.allowedUploadTypes || []).join(',') || undefined}
+                      onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
+                    />
+                  </label>
+                  {/* Sul telefono apre direttamente la fotocamera posteriore;
+                      sul computer il browser propone comunque un file. */}
+                  <label className="iu-client-portal-file">
+                    <Camera size={16} aria-hidden="true"/>Scatta foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(event) => { uploadDocument(event.target.files?.[0] || null, rowId(requestItem)); event.target.value = '' }}
+                    />
+                  </label>
+                  <button
+                    className="iu-client-portal-inline"
+                    type="button"
+                    onClick={() => setWebcamPerRichiesta(rowId(requestItem))}
+                  >
+                    <Webcam size={16} aria-hidden="true"/>Usa la webcam
+                  </button>
+                </div>
+                {webcamPerRichiesta === rowId(requestItem) ? (
+                  <div className="iu-client-portal-webcam">
+                    <WebcamCapture
+                      onCapture={(blob) => {
+                        setWebcamPerRichiesta('')
+                        void uploadDocument(
+                          new File([blob], `documento-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' }),
+                          rowId(requestItem),
+                        )
+                      }}
+                      onCancel={() => setWebcamPerRichiesta('')}
+                    />
+                  </div>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+
+        <div className="iu-client-portal-panel" id="panel-moduli">
+          <div className="iu-client-portal-panel__head"><h2>Moduli da compilare</h2><ClipboardList size={18} aria-hidden="true"/></div>
+          {moduliPdf.length === 0 ? (
+            <span className="iu-client-portal-muted">Nessun modulo da compilare al momento.</span>
+          ) : (
+            <p className="iu-client-portal-muted">Puoi compilare il modulo qui dentro e scaricarlo. L’originale resta sempre a disposizione: la copia compilata si aggiunge accanto.</p>
+          )}
+          {moduliPdf.map((documento) => {
+            const idDocumento = rowId(documento)
+            const aperto = moduloAperto === idDocumento
+            return (
+              <article className="iu-client-portal-consent" key={idDocumento}>
+                <div className="iu-client-portal-consent__head">
+                  <strong>{text(documento.filename, 'Modulo')}</strong>
+                  <span>{text(documento.uploaded_at_label) ? `Nel portale dal ${text(documento.uploaded_at_label)}` : statusLabel(documento.status)}</span>
+                </div>
+                <div className="iu-client-portal-consent__azioni">
+                  <button type="button" onClick={() => setModuloAperto(aperto ? '' : idDocumento)}>
+                    {aperto ? 'Chiudi il modulo' : 'Compila nel portale'}
+                  </button>
+                  <a className="iu-client-portal-doc-download" href={clientPortalDocumentUrl(idDocumento)}>
+                    <Download size={14} aria-hidden="true"/>Scarica
+                  </a>
+                </div>
+                {aperto ? (
+                  <PdfModulo
+                    key={idDocumento}
+                    endpoint={`/api/v1/ui/client-portal/public/documents/${encodeURIComponent(idDocumento)}/modulo`}
+                    previewUrl={clientPortalDocumentUrl(idDocumento)}
+                    busy={false}
+                    onDirty={() => {}}
+                    carica={(segnale) => caricaModuloPortale(idDocumento, token, segnale) as never}
+                    save={async (valori) => {
+                      const risposta = await compilaModuloPortale(idDocumento, valori, token)
+                      applyClientResponse(risposta)
+                      if (risposta.ok) setModuloAperto('')
+                      return Boolean(risposta.ok)
+                    }}
                   />
-                </label>
+                ) : null}
               </article>
             )
           })}

@@ -3334,6 +3334,36 @@ _IMPORTO_ARCHIVIO_PER_VOCE: dict[str, tuple[str, str]] = {
 }
 
 
+def _nome_oggetto_archivio(fascicolo: Any, oggetto_id: str) -> str:
+    """Il nome del documento da cui viene un fatto, anche se non e' fra i locali.
+
+    Un documento importato vive a volte solo sul server (Document AI) e non fra
+    i documenti del fascicolo: cercarlo solo li' lascia l'avvocato senza sapere
+    da quale atto arriva il dato. L'inventario del registro conosce il nome di
+    ogni oggetto letto, quindi si chiede a lui quando la ricerca locale non
+    trova nulla.
+    """
+    identificativo = _text(oggetto_id)
+    if not identificativo:
+        return ""
+    locale = next(
+        (_text(getattr(doc, "nome", "")) for doc in getattr(fascicolo, "documenti", []) or []
+         if _text(getattr(doc, "id", "")) == identificativo),
+        "",
+    )
+    if locale:
+        return locale
+    try:
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        oggetto = registro_corrente().oggetto(
+            tenant_corrente(), _text(getattr(fascicolo, "id", "")), "documento", identificativo,
+        )
+    except Exception:
+        return ""
+    return _text(getattr(oggetto, "nome", "")) if oggetto else ""
+
+
 def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str, Any]]:
     """Le voci economiche che l'archivio ha già letto e collaudato, pronte per il presidio.
 
@@ -3351,11 +3381,20 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
     dichiarazioni = [f for f in _fatti_archivio(fascicolo, categoria="evento") if f.campo == "esenzione_cu_dichiarata"]
     if dichiarazioni and _payment_source_needs_automatic_value(payments, "contributo_unificato"):
         d = dichiarazioni[0]
+        # Per il contributo unificato le strade sono due: o il fascicolo porta
+        # la ricevuta pagoPA del versamento, o porta l'autocertificazione di
+        # esenzione (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002). Se
+        # l'autocertificazione c'e', quello **e'** l'accertamento: a livello di
+        # studio non resta altro da appurare, e il contributo non e' dovuto.
+        # Lasciarlo «previsto» terrebbe il fascicolo fra quelli da presidiare
+        # per una somma che nessuno deve versare.
         esito["contributo_unificato"] = {
-            "kind":"contributo_unificato", "status":"esenzione_dichiarata", "previsto":True, "pagato":False,
-            "documento_fonte":_readable_document_source(next((doc.nome for doc in getattr(fascicolo, "documenti", []) if doc.id == d.oggetto_id), ""), default="Dichiarazione di esenzione"), "documento_id":d.oggetto_id,
-            "origine":"Archivio delle letture", "updated_by":"IUSENTRA automatico", "fattoId":d.id,
-            "note":"Il fascicolo contiene la dichiarazione di esenzione. Questo dato attesta la presenza del documento.",
+            "kind": "contributo_unificato", "status": "non_previsto", "previsto": False, "pagato": False,
+            "importo": None, "natura": "esenzione_contributo_unificato",
+            "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, d.oggetto_id), default="Dichiarazione di esenzione"),
+            "documento_id": d.oggetto_id,
+            "origine": "Archivio delle letture", "updated_by": "IUSENTRA automatico", "fattoId": d.id,
+            "note": "Esenzione dal contributo unificato autocertificata nel fascicolo (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002).",
         }
     for kind, (campo, etichetta) in _IMPORTO_ARCHIVIO_PER_VOCE.items():
         voce = letti.get(campo)
@@ -3377,8 +3416,8 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             "pagato": kind == "contributo_unificato" and not da_confermare and voce.get("stato_prova") == "pagato",
             "importo": importo,
             "valuta": "EUR",
-            "data_pagamento": "",
-            "documento_fonte": _readable_document_source(next((doc.nome for doc in getattr(fascicolo, "documenti", []) if doc.id == voce.get("documento_id")), "")),
+            "data_pagamento": _text(voce.get("data_prova")),
+            "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, voce.get("documento_id"))),
             "origine": "Archivio delle letture",
             "updated_by": "IUSENTRA automatico",
             "note": nota + ".",
@@ -3398,8 +3437,20 @@ def _automatic_payment_sources_for_fascicolo(
     force_revalidate_auto: bool = False,
     read_collector: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """The two reading motors own extraction; consumers only project current facts."""
-    return _importi_dall_archivio(fascicolo, payments)
+    """The two reading motors own extraction; consumers only project current facts.
+
+    Prima della proiezione si rimette a posto un errore che l'import delle
+    pratiche lascia dietro di se': l'autocertificazione di esenzione archiviata
+    sotto «spese ed esborsi» invece che sul contributo unificato. Non e' una
+    lettura — si riconosce dal nome del documento — ma senza di essa il
+    contributo resta «da registrare» per una somma che non e' dovuta, e fra le
+    spese compare una voce che spesa non e'.
+    """
+    from pct.fascicolo_esenzione_cu import sposta_esenzione_sul_contributo
+
+    esito = dict(sposta_esenzione_sul_contributo(payments))
+    esito.update(_importi_dall_archivio(fascicolo, payments))
+    return esito
 
 
 def _payments_with_automatic_sources(
@@ -4636,6 +4687,17 @@ def _ensure_contributo_unificato_for_fascicolo(
     scan_payments = dict(payments)
     for other_kind in ("spese_esborsi", "liquidazione_giudice", "parcella"):
         scan_payments.setdefault(other_kind, {"kind": other_kind, "status": "non_previsto", "previsto": False})
+    # Il presidio non legge: proietta l'archivio. Ma se l'archivio non ha
+    # ancora nulla per un documento che ha tutta l'aria di portare un dato
+    # economico, **chiede ai motori di leggerlo**. Dentro la richiesta la
+    # funzione non indicizza — mette in coda la lettura in sfondo e torna
+    # vuota — cosi' il clic dell'avvocato non resta senza effetto in attesa
+    # che il giro periodico arrivi da solo su quel fascicolo.
+    if needs_cu_value and documenti_da_leggere:
+        documenti = _documenti_per_identificativo(fascicolo)
+        da_leggere = [documenti[i] for i in documenti_da_leggere if i in documenti]
+        if da_leggere:
+            _ensure_economic_document_ai_texts_for_fascicolo(fascicolo, da_leggere)
     letture: dict[str, dict[str, Any]] = {}
     automatic_sources = _automatic_payment_sources_for_fascicolo(
         fascicolo,
@@ -5252,8 +5314,35 @@ def _automatic_next_deadline_from_documents(fascicolo: Any) -> Any | None:
     )
 
 
+def _documenti_per_identificativo(fascicolo: Any) -> dict[str, Any]:
+    """I documenti del fascicolo indicizzati per identificativo.
+
+    `_presidio_documenti_correnti` restituisce righe d'identita' (dizionari),
+    utili a capire che cosa e' cambiato; a chi deve leggere servono invece i
+    documenti veri.
+    """
+    return {
+        _document_id(documento): documento
+        for documento in list(getattr(fascicolo, "documenti", []) or [])
+        if _document_id(documento)
+    }
+
+
 def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = False) -> dict[str, Any]:
-    """Proiezione dei fatti SQL correnti. Non rilegge testo, OCR o vecchi indici."""
+    """Proiezione dei fatti SQL correnti. Non rilegge testo, OCR o vecchi indici.
+
+    Con `ensure_missing` — la sezione documenti del fascicolo, cioe' un'azione
+    voluta dall'avvocato — chiede ai motori di leggere i documenti che
+    l'archivio non ha ancora: dentro la richiesta non indicizza, mette in coda
+    la lettura in sfondo. Senza quel flag (la lista, il riepilogo) non chiede
+    nulla: si mostra solo cio' che e' gia' stato letto e collaudato.
+    """
+    if ensure_missing:
+        marker = _presidio_documentale_marker(getattr(fascicolo, "pagamenti", {}) or {})
+        documenti = _documenti_per_identificativo(fascicolo)
+        da_leggere = [documenti[i] for i in _presidio_documenti_da_leggere(fascicolo, marker) if i in documenti]
+        if da_leggere:
+            _ensure_deadline_document_ai_texts_for_fascicolo(fascicolo, da_leggere)
     fatti = _fatti_archivio(fascicolo, categoria="data")
     metadata = {_document_id(d): {"filename": _document_display_name(d)}
                 for d in list(getattr(fascicolo, "documenti", []) or [])}
@@ -5282,7 +5371,20 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
     presidio["readPending"] = mancanti
     presidio["readErrors"] = errori
     if mancanti or errori:
-        presidio["warnings"] = [f"Lettura automatica in aggiornamento: {mancanti} oggetti in attesa, {errori} letture da recuperare. Le date mostrate provengono dall’archivio."]
+        # Finché un oggetto resta da leggere, il presidio non può dire che
+        # termini e udienze non ci sono: direbbe «nessuna scadenza» di un
+        # fascicolo che non ha ancora letto. Si dichiara incompleto, e le date
+        # già lette restano visibili.
+        presidio["status"] = "non_disponibile"
+        presidio["tone"] = "warning"
+        presidio["summary"] = (
+            f"Lettura documentale non completata: {mancanti} oggetti in attesa di lettura, "
+            f"{errori} letture da recuperare. Le date mostrate sono quelle già lette e collaudate; "
+            "il controllo non può escludere termini o udienze finché la lettura non è conclusa."
+        )
+        presidio["warnings"] = [
+            "Il controllo non può concludere che non esistano termini finché i documenti collegati non sono stati letti."
+        ]
     elif not presidio["actions"]:
         presidio.update(status="presidiato", tone="neutral", summary="Lettura conclusa: nessuna data processuale rilevata nell’archivio di questo fascicolo.")
     return presidio

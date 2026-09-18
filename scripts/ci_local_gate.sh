@@ -45,6 +45,22 @@ python3() { "$PY_BIN" "$@"; }
 export -f python3 2>/dev/null || true
 printf 'Interprete gate: %s (%s)\n' "$PY_BIN" "$("$PY_BIN" -V 2>&1)"
 
+pytest_core_ci() {
+  # Il gate CI «Pytest core» sono 89 file su 10 shard paralleli. In locale si
+  # eseguono in sequenza: e' la parte piu' lunga, ma e' l'unica che copre i file
+  # che nessuno dei passi curati qui sotto nomina.
+  # Lezione del 18/09/2026: `tests/test_regia_ui_react.py` non era in nessun
+  # passo curato. La CI su 2.321.0 non l'aveva mostrato perche' il lint era
+  # rosso e gli shard erano stati saltati; appena il lint e' tornato verde il
+  # test e' fallito in CI con il gate locale verde.
+  local shard
+  for shard in $(seq 1 10); do
+    printf '  core-%02d/10\n' "$shard"
+    python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 --timeout-minutes 10 || return 1
+  done
+  return 0
+}
+
 PASS=0
 FAIL=0
 FAILED_STEPS=()
@@ -142,7 +158,7 @@ step "Governance repo"           python3 tools/check_repo_governance.py
 # test`: copre rilevamento del foglio, acquisizione, OCR ed elenco documenti.
 # Lezione del 13/09/2026: il gate locale non la eseguiva e una regressione del
 # rilevamento su sfondo chiaro e' arrivata fino alla CI.
-step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs tests/js/fascicolo_document_list.test.mjs tests/js/document_acquisition.test.mjs tests/js/lettura_fascicolo.test.mjs tests/js/letture_fascicolo.test.mjs tests/js/ocr_blocks.test.mjs
+step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs tests/js/fascicolo_document_list.test.mjs tests/js/document_acquisition.test.mjs tests/js/lettura_fascicolo.test.mjs tests/js/letture_fascicolo.test.mjs tests/js/ocr_blocks.test.mjs tests/js/salvataggio_cliente.test.mjs tests/js/conversazione_portale.test.mjs
 step "React contracts"           node frontend/scripts/check-react-contracts.mjs
 step "Presidi notifiche legali"  node frontend/scripts/check-notifiche-legali-presidi.mjs
 step "UI preset sequence"        node scripts/react-migration/audit-ui-preset-sequence.mjs
@@ -165,6 +181,7 @@ if [ "$FAST" -eq 0 ]; then
   # Lezione del 13/09/2026: la riscrittura di web/services/document_ocr.py ha
   # tolto `paragraphs_from_pdf` e 11 shard core sono andati rossi in CI.
   step "Raccolta pytest completa"  python3 -m pytest -q --collect-only tests/ --tb=short
+  step "Pytest core CI (10 shard)" pytest_core_ci
   step "Pytest contratti openapi"  python3 -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short
   # Acquisizione documenti (editor atti): OCR, impaginazione, contratti React,
   # ricerca del fascicolo. Sono i moduli piu' toccati e i piu' veloci da eseguire.

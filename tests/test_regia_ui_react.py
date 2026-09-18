@@ -963,7 +963,14 @@ def test_presidio_prioritario_mostra_azione_e_fonte_e_si_apre_dal_collegamento_d
     regia = source[source.index("function RegiaOperativaSection"):source.index("function relataStatusDisplayLabel")]
 
     assert "defaultOpen?:boolean" in regia
-    assert regia.count("defaultOpen={defaultOpen}") == 2
+    # La regia esce da piu' strade — caricamento, profilo da confermare, presidio
+    # completo — e il collegamento diretto «#presidio-fascicolo» deve aprirla in
+    # tutte: una sola uscita che non rispetta `defaultOpen` lascerebbe l'avvocato
+    # davanti a una sezione chiusa. Si conta il rapporto, non un numero fisso:
+    # aggiungere uno stato nuovo resta lecito, dimenticarne l'apertura no.
+    uscite_presidio = regia.count('<DetailSection id="presidio-fascicolo"')
+    assert uscite_presidio >= 2
+    assert regia.count("defaultOpen={defaultOpen}") == uscite_presidio
     assert "const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)" in regia
     assert "operationalNext.title" in regia
     assert "Fonte: ${operationalSource}" in regia

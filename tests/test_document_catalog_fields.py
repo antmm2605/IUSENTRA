@@ -110,7 +110,7 @@ def test_hearing_minutes_with_textual_identity_exceed_operational_confidence_thr
         "Verbale di udienza\n"
         "Il Giudice dà atto della comparizione delle parti e dispone il rinvio."
     )
-    assert identity.classification.label == "Verbale d'udienza"
+    assert identity.classification.label == "Verbale di udienza"
     assert identity.classification.confidence >= 95
     assert identity.classification.deposit_candidate is False
 

@@ -16,8 +16,16 @@ from .depositi import canale_deposito
 from .fonti import FONTI
 from .riti import rito_per_fascicolo
 
+# Due accortezze contro il backtracking esponenziale (ReDoS): il testo in
+# ingresso arriva da documenti e PEC, quindi non e' fidato.
+# 1. `\d[\w-]*` invece di `\d+[\w-]*`: le due forme riconoscono le stesse
+#    stringhe, ma la prima non lascia al motore piu' modi di dividere «00».
+# 2. la congiunzione «e» vale solo se separata da spazi, e la virgola solo
+#    come virgola: cosi' «artt. 1 e 2» e «artt. 1,2» restano riconosciuti
+#    mentre «1e0» smette di essere un elenco — che del resto non lo e' mai
+#    stato in una citazione forense.
 _RIFERIMENTO_NORMATIVO = re.compile(
-    r"\b(?:artt?\.?\s*\d+[\w-]*(?:\s*(?:e|,)\s*\d+[\w-]*)*\s*(?:c\.p\.c\.|c\.p\.p\.|c\.p\.a\.|c\.c\.|disp\.\s*att\.\s*c\.p\.c\.|d\.?lgs\.?\s*\d+/\d{4}|l\.\s*\d+/\d{4}|d\.?m\.?\s*\d+/\d{4}|d\.?p\.?r\.?\s*\d+/\d{4}|d\.?l\.?\s*\d+/\d{4}))",
+    r"\b(?:artt?\.?\s*\d[\w-]*(?:(?:\s*,\s*|\s+e\s+)\d[\w-]*)*\s*(?:c\.p\.c\.|c\.p\.p\.|c\.p\.a\.|c\.c\.|disp\.\s*att\.\s*c\.p\.c\.|d\.?lgs\.?\s*\d+/\d{4}|l\.\s*\d+/\d{4}|d\.?m\.?\s*\d+/\d{4}|d\.?p\.?r\.?\s*\d+/\d{4}|d\.?l\.?\s*\d+/\d{4}))",
     re.IGNORECASE,
 )
 

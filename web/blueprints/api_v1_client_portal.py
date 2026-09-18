@@ -11,6 +11,14 @@ from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
 )
+from web.services.client_portal_moduli import (
+    campi_del_modulo,
+    compila_il_modulo,
+)
+from web.services.client_portal_conversazione import (
+    conversazione_cliente,
+    conversazione_studio,
+)
 from web.services.react_client_portal_bridge import (
     accept_invite_token,
     build_studio_dashboard_payload,
@@ -33,6 +41,7 @@ from web.services.react_client_portal_bridge import (
     studio_add_appointment,
     studio_add_document_request,
     studio_add_message,
+    studio_invite_link,
     studio_add_signature_request,
     studio_create_evidence_pack,
     studio_document_download,
@@ -151,6 +160,27 @@ def studio_message_create():
     return _json(studio_add_message(_json_body()))
 
 
+@api_v1_client_portal.get("/studio/invites/<invite_id>/link")
+@_studio_auth_required
+def studio_invite_link_read(invite_id: str):
+    """Il link riservato di un invito, decifrato per l'avvocato autenticato."""
+    return _json(studio_invite_link({"inviteId": invite_id}))
+
+
+@api_v1_client_portal.get("/studio/conversation")
+@_studio_auth_required
+def studio_conversation():
+    """Solo i messaggi nuovi: tiene viva la chat senza rispedire lo storico."""
+    return _json(
+        conversazione_studio(
+            {
+                "matterId": request.args.get("matterId"),
+                "since": request.args.get("since"),
+            }
+        )
+    )
+
+
 @api_v1_client_portal.post("/studio/document-requests")
 @_studio_auth_required
 def studio_document_request_create():
@@ -237,6 +267,24 @@ def public_consent_update():
 @api_v1_client_portal.post("/public/messages")
 def public_message_create():
     return _json(client_send_message(_json_body()))
+
+
+@api_v1_client_portal.get("/public/documents/<document_id>/modulo")
+def public_document_form_read(document_id: str):
+    """I campi predisposti di un modulo mandato dallo studio."""
+    return _json(campi_del_modulo(document_id))
+
+
+@api_v1_client_portal.post("/public/documents/<document_id>/modulo")
+def public_document_form_fill(document_id: str):
+    """Salva una copia compilata del modulo, senza toccare l'originale."""
+    return _json(compila_il_modulo(document_id, _json_body()))
+
+
+@api_v1_client_portal.get("/public/conversation")
+def public_conversation():
+    """Solo i messaggi nuovi della propria pratica, autenticati dal token."""
+    return _json(conversazione_cliente({"since": request.args.get("since")}))
 
 
 @api_v1_client_portal.post("/public/documents")

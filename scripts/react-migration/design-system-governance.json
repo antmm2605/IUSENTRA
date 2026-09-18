@@ -94,6 +94,7 @@
     "frontend/src/components/layout/TopBar.css",
     "frontend/src/components/mediazione/mediazione.css",
     "frontend/src/components/templateEditor/templateEditor.css",
+    "frontend/src/features/comunicazioni/MailboxPagination.css",
     "frontend/src/features/impostazioni/ImpostazioniPage.css",
     "frontend/src/features/impostazioni/components/BackupSettingsPanel.css",
     "frontend/src/features/impostazioni/components/BillingSettingsPanel.css",
@@ -115,6 +116,13 @@
     "frontend/src/components/strumenti/OcrDocumentoTool.css"
   ],
   "allowedInlineStyles": [
+    {
+      "file": "frontend/src/components/SourceDocumentModal.tsx",
+      "snippets": [
+        "style={{ '--iu-source-reader-rotation': `${normalizedRotation}deg` } as CSSProperties}"
+      ],
+      "reason": "Rotazione scelta dall'avvocato nel lettore interno: passa come variabile CSS governata, non come regola grafica; l'aspetto resta nel foglio di stile."
+    },
     {
       "file": "frontend/src/components/documentCapture/DocumentCapture.tsx",
       "snippets": [
@@ -194,8 +202,8 @@
   "allowedBackdropFilters": [
     {
       "file": "frontend/src/index.css",
-      "count": 4,
-      "reason": "Topbar, barra mobile e pannello Lex flottante già governati dal preset globale."
+      "count": 5,
+      "reason": "Topbar, barra mobile, pannello Lex flottante e velo del menu mobile (velo di base e velo a menu aperto) già governati dal preset globale."
     },
     {
       "file": "frontend/src/components/DocumentEditorPage.css",

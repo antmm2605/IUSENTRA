@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import io
 import sqlite3
 from pathlib import Path
@@ -323,3 +324,202 @@ def test_public_row_non_espone_evidence_pack_al_cliente():
     assert client_view["status"] == "firmato"
     # Lato studio l'evidence resta disponibile per l'audit.
     assert studio_view["evidence"]["ipHash"] == "ipv:abc"
+
+
+def test_client_portal_anagrafica_parte_dalla_scheda_dello_studio(tmp_path: Path):
+    """Il cliente conferma i dati che lo studio ha gia', non li riscrive.
+
+    Prima il portale leggeva solo `preferences.anagrafica`, riempito unicamente
+    quando era il cliente a compilare: la scheda dello studio non arrivava mai
+    all'interessato e il contatore dei campi diceva il falso.
+
+    Base normativa: GDPR artt. 5 § 1 lett. d) e 16.
+    """
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.app_context():
+        clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+        clienti.aggiorna(cliente.id, data_nascita="1980-01-01", luogo_nascita="Milano")
+        clienti.aggiorna_indirizzo(
+            cliente.id,
+            "residenza",
+            via="Via Verdi",
+            civico="8",
+            cap="20121",
+            comune="Milano",
+            provincia="MI",
+        )
+    with app.test_client() as client:
+        _login(client)
+        token, _ = _create_invite(client, cliente.id, fascicolo.id)
+        client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        dashboard = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()
+
+    anagrafica = dashboard["client"]["preferences"]["anagrafica"]
+    assert anagrafica["birthPlace"] == "Milano"
+    assert anagrafica["address"] == "Via Verdi 8"
+    assert anagrafica["cap"] == "20121"
+    assert anagrafica["province"] == "MI"
+    assert dashboard["client"]["email"] == "mario.rossi@example.it"
+    # Il conteggio misura il dato reale, non solo quello riscritto dal cliente.
+    assert dashboard["profileCompletion"]["complete"] is True
+    assert dashboard["profileCompletion"]["missing"] == []
+    # Nessun campo risulta dichiarato dal cliente finche' il cliente non scrive.
+    origine = dashboard["client"]["anagrafica_origine"]
+    assert origine["address"] == "studio"
+    assert origine["profession"] == ""
+
+
+def test_client_portal_conversazione_tiene_viva_la_chat_senza_perdere_messaggi(tmp_path: Path):
+    """La chat si tiene viva chiedendo la coda, non tutto lo storico.
+
+    Prima i messaggi comparivano solo ricaricando la pagina: chi scriveva non
+    sapeva se l'altro avesse risposto. Ora si chiede a partire da un
+    segnalibro. La coda comprende l'ultimo secondo gia' visto, perche' gli
+    orari si salvano al secondo e due messaggi simultanei non sarebbero
+    distinguibili: chi legge scarta per identificativo quelli che ha gia'.
+    Ripetere e' recuperabile, perdere un messaggio fra avvocato e cliente no.
+    """
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        token, _ = _create_invite(client, cliente.id, fascicolo.id)
+        client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        dashboard = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()
+        matter_id = dashboard["matter"]["id"]
+
+        client.post(
+            "/api/v1/ui/client-portal/studio/messages",
+            json={"matterId": matter_id, "body": "Buongiorno, le confermo l'udienza."},
+        )
+        prima = client.get(f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}").get_json()
+        assert prima["ok"] is True
+        assert [row["body"] for row in prima["messages"]] == ["Buongiorno, le confermo l'udienza."]
+        segnalibro = prima["cursor"]
+        assert segnalibro
+        visti = {row["id"] for row in prima["messages"]}
+
+        # Due messaggi nello stesso secondo: nessuno dei due si perde.
+        client.post(
+            "/api/v1/ui/client-portal/public/messages",
+            json={"body": "Grazie, ci sarò."},
+            headers={"X-Client-Portal-Token": token},
+        )
+        client.post(
+            "/api/v1/ui/client-portal/studio/messages",
+            json={"matterId": matter_id, "body": "Le mando il promemoria."},
+        )
+        dopo = client.get(
+            f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}&since={segnalibro}"
+        ).get_json()
+        nuovi = [row["body"] for row in dopo["messages"] if row["id"] not in visti]
+        assert nuovi == ["Grazie, ci sarò.", "Le mando il promemoria."]
+        assert dopo["messages"][0]["sender_type"] in {"studio", "cliente"}
+
+        # Il cliente, dal suo lato, vede la conversazione della propria pratica.
+        lato_cliente = client.get(
+            "/api/v1/ui/client-portal/public/conversation",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()
+        assert [row["body"] for row in lato_cliente["messages"]] == [
+            "Buongiorno, le confermo l'udienza.",
+            "Grazie, ci sarò.",
+            "Le mando il promemoria.",
+        ]
+
+
+def test_client_portal_conversazione_ripete_l_ultimo_secondo_e_non_salta_nulla(tmp_path: Path):
+    """Il segnalibro e' inclusivo: meglio un messaggio ripetuto che perso."""
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        token, _ = _create_invite(client, cliente.id, fascicolo.id)
+        client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        matter_id = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()["matter"]["id"]
+        client.post(
+            "/api/v1/ui/client-portal/studio/messages",
+            json={"matterId": matter_id, "body": "Primo."},
+        )
+        prima = client.get(f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}").get_json()
+
+        ferma = client.get(
+            f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}&since={prima['cursor']}"
+        ).get_json()
+
+    # Nessun messaggio nuovo: torna il solo messaggio di confine, che il
+    # chiamante gia' conosce e scarta per identificativo.
+    assert [row["id"] for row in ferma["messages"]] == [row["id"] for row in prima["messages"]]
+    assert ferma["cursor"] == prima["cursor"]
+
+
+def test_client_portal_conversazione_cliente_senza_token_non_espone_nulla(tmp_path: Path):
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        risposta = client.get("/api/v1/ui/client-portal/public/conversation").get_json()
+
+    assert risposta["ok"] is False
+
+
+def test_client_portal_link_invito_si_rivede_cifrato_e_non_viaggia_nei_payload(tmp_path: Path, monkeypatch):
+    """L'avvocato rivede il link; il token cifrato non lascia il server.
+
+    Il database conserva del token solo l'impronta: senza una copia cifrata il
+    link esisterebbe solo nell'istante in cui nasce. La copia sta accanto
+    all'invito, protetta con la stessa chiave dei documenti, e si decifra solo
+    per l'avvocato autenticato.
+
+    Base normativa: GDPR art. 32 § 1 lett. a).
+    """
+    monkeypatch.setenv("PCT_DOC_KEY", "chiave-di-prova-per-il-portale")
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        token, invito = _create_invite(client, cliente.id, fascicolo.id)
+        invite_id = invito["invite"]["id"]
+
+        risposta = client.get(f"/api/v1/ui/client-portal/studio/invites/{invite_id}/link").get_json()
+        dashboard = client.get("/api/v1/ui/client-portal/dashboard").get_json()
+
+    assert risposta["ok"] is True
+    assert risposta["available"] is True
+    assert risposta["url"].endswith(f"/portale-cliente/invito/{token}")
+
+    # Il token cifrato resta sul server: nei payload non compare mai.
+    riga = next(voce for voce in dashboard["invites"] if voce["id"] == invite_id)
+    assert "token_cifrato" not in (riga.get("metadata") or {})
+    assert token not in json.dumps(dashboard)
+
+
+def test_client_portal_link_invito_senza_chiave_dice_di_rigenerare(tmp_path: Path, monkeypatch):
+    """Fail-closed: niente chiave, niente token conservato, e lo si dice."""
+    monkeypatch.delenv("PCT_DOC_KEY", raising=False)
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        _token, invito = _create_invite(client, cliente.id, fascicolo.id)
+        risposta = client.get(
+            f"/api/v1/ui/client-portal/studio/invites/{invito['invite']['id']}/link"
+        ).get_json()
+
+    assert risposta["ok"] is True
+    assert risposta["available"] is False
+    assert risposta["url"] == ""
+    assert "Rigenera" in risposta["message"] or "rigenera" in risposta["message"]

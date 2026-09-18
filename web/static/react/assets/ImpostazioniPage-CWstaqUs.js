@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DNwbP5PO.js";export{e as ImpostazioniPage};

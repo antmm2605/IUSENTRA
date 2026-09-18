@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.320.27 - 18/09/2026
+
+**La sezione documenti del fascicolo torna a chiedere la lettura dei documenti mancanti.** Anche la funzione che ordina la lettura mirata delle date processuali era rimasta definita ma scollegata: aprire la sezione documenti non metteva in coda nulla, e le date arrivavano solo quando il giro periodico capitava su quel fascicolo. Ora la richiede — e solo lì: la lista e il riepilogo continuano a mostrare soltanto ciò che i motori hanno già letto e collaudato, perché nella richiesta dell'avvocato non si legge.
+
+**Chi deve leggere riceve i documenti, non le loro righe d'identità.** Il punto d'innesto passava le righe usate per capire che cosa è cambiato: a chi legge servono i documenti veri.
+
+**Altri due test allineati all'archivio**: la ricevuta telematica RT importata come atto giudiziario e il caso «non riapre documenti invariati», che ora afferma qualcosa di più forte — aprire la lista non riapre **nessun** documento, nemmeno al primo giro.
+
 ## 2.320.26 - 18/09/2026
 
 **La nomina del difensore di fiducia non è più una procura alle liti.** Sono due atti diversi: la procura alle liti conferisce la rappresentanza processuale nel civile (art. 83 c.p.c.), la nomina del difensore di fiducia designa il difensore nel penale (art. 96 c.p.p.); nel deposito hanno ruoli diversi e all'avvocato dicono cose diverse. La formula però si somiglia — «io sottoscritto… nomino… difensore» — e la regola generica se le prendeva entrambe, scavalcando la regola del titolo. Ora i segni del penale (il titolo dell'atto, la qualità di indagato o imputato, il registro delle notizie di reato) la tengono fuori.

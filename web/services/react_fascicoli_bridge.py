@@ -4682,8 +4682,8 @@ def _ensure_contributo_unificato_for_fascicolo(
     # vuota — cosi' il clic dell'avvocato non resta senza effetto in attesa
     # che il giro periodico arrivi da solo su quel fascicolo.
     if needs_cu_value and documenti_da_leggere:
-        correnti = _presidio_documenti_correnti(fascicolo)
-        da_leggere = [correnti[i] for i in documenti_da_leggere if i in correnti]
+        documenti = _documenti_per_identificativo(fascicolo)
+        da_leggere = [documenti[i] for i in documenti_da_leggere if i in documenti]
         if da_leggere:
             _ensure_economic_document_ai_texts_for_fascicolo(fascicolo, da_leggere)
     letture: dict[str, dict[str, Any]] = {}
@@ -5302,8 +5302,35 @@ def _automatic_next_deadline_from_documents(fascicolo: Any) -> Any | None:
     )
 
 
+def _documenti_per_identificativo(fascicolo: Any) -> dict[str, Any]:
+    """I documenti del fascicolo indicizzati per identificativo.
+
+    `_presidio_documenti_correnti` restituisce righe d'identita' (dizionari),
+    utili a capire che cosa e' cambiato; a chi deve leggere servono invece i
+    documenti veri.
+    """
+    return {
+        _document_id(documento): documento
+        for documento in list(getattr(fascicolo, "documenti", []) or [])
+        if _document_id(documento)
+    }
+
+
 def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = False) -> dict[str, Any]:
-    """Proiezione dei fatti SQL correnti. Non rilegge testo, OCR o vecchi indici."""
+    """Proiezione dei fatti SQL correnti. Non rilegge testo, OCR o vecchi indici.
+
+    Con `ensure_missing` — la sezione documenti del fascicolo, cioe' un'azione
+    voluta dall'avvocato — chiede ai motori di leggere i documenti che
+    l'archivio non ha ancora: dentro la richiesta non indicizza, mette in coda
+    la lettura in sfondo. Senza quel flag (la lista, il riepilogo) non chiede
+    nulla: si mostra solo cio' che e' gia' stato letto e collaudato.
+    """
+    if ensure_missing:
+        marker = _presidio_documentale_marker(getattr(fascicolo, "pagamenti", {}) or {})
+        documenti = _documenti_per_identificativo(fascicolo)
+        da_leggere = [documenti[i] for i in _presidio_documenti_da_leggere(fascicolo, marker) if i in documenti]
+        if da_leggere:
+            _ensure_deadline_document_ai_texts_for_fascicolo(fascicolo, da_leggere)
     fatti = _fatti_archivio(fascicolo, categoria="data")
     metadata = {_document_id(d): {"filename": _document_display_name(d)}
                 for d in list(getattr(fascicolo, "documenti", []) or [])}

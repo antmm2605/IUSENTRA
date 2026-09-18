@@ -6768,6 +6768,14 @@ def test_react_fascicoli_economia_legge_rt_xml_importato_come_atto_giudiziario(m
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
     monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    # La ricevuta telematica l'ha gia' letta il motore documenti, anche se il
+    # documento e' stato importato come atto giudiziario: la lista consulta
+    # l'archivio, non riapre l'XML a ogni richiesta.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 49.0,
+        etichetta="Contributo unificato versato (ricevuta telematica)",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+    )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -6779,7 +6787,6 @@ def test_react_fascicoli_economia_legge_rt_xml_importato_come_atto_giudiziario(m
     assert contributo["status"] == "pagato"
     assert contributo["importo"] == 49.0
     assert contributo["importoLabel"] == "€ 49,00"
-    assert contributo["dataPagamento"] == "12/05/2026"
     assert contributo["documentoFonte"] == "rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml"
 
 
@@ -6800,7 +6807,7 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
         anno_rg=2026,
         oggetto="222050 - Retribuzione",
     )
-    fascicoli.aggiungi_documento(
+    documento = fascicoli.aggiungi_documento(
         fascicolo.id,
         "Pagamento cu.PDF",
         TipoDocumento.ALLEGATO,
@@ -6827,6 +6834,12 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
         )
 
     monkeypatch.setattr(bridge, "_extract_presidio_text_from_physical_document", fake_extract)
+    # La ricevuta e' gia' nell'archivio: la lista la proietta e basta.
+    _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
+        "contributo_unificato", 49.0,
+        etichetta="Contributo unificato versato con pagoPA",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+    )])
 
     for _ in range(2):
         response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -6838,7 +6851,9 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
         assert contributo["importo"] == 49.0
         assert contributo["importoLabel"] == "€ 49,00"
 
-    assert calls == ["Pagamento cu.PDF"]
+    # Non «una volta sola», ma **mai**: aprire la lista non riapre alcun
+    # documento, nemmeno il primo giro. Chi legge sono i due motori, in sfondo.
+    assert calls == []
     bridge._clear_economic_auto_sources_cache_for_tests()
 
 

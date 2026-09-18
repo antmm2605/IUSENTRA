@@ -11,6 +11,10 @@ from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
 )
+from web.services.client_portal_moduli import (
+    campi_del_modulo,
+    compila_il_modulo,
+)
 from web.services.client_portal_conversazione import (
     conversazione_cliente,
     conversazione_studio,
@@ -263,6 +267,18 @@ def public_consent_update():
 @api_v1_client_portal.post("/public/messages")
 def public_message_create():
     return _json(client_send_message(_json_body()))
+
+
+@api_v1_client_portal.get("/public/documents/<document_id>/modulo")
+def public_document_form_read(document_id: str):
+    """I campi predisposti di un modulo mandato dallo studio."""
+    return _json(campi_del_modulo(document_id))
+
+
+@api_v1_client_portal.post("/public/documents/<document_id>/modulo")
+def public_document_form_fill(document_id: str):
+    """Salva una copia compilata del modulo, senza toccare l'originale."""
+    return _json(compila_il_modulo(document_id, _json_body()))
 
 
 @api_v1_client_portal.get("/public/conversation")

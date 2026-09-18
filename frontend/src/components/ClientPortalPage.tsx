@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useConversazioneViva, type MessaggioPortale } from '../hooks/useConversazioneViva'
 import { WebcamCapture } from './client-portal/WebcamCapture'
+import { PdfModulo } from './mediazione/PdfModulo'
 import {
   Bell,
   CalendarDays,
@@ -31,6 +32,8 @@ import {
   clientPortalDocumentUrl,
   caricaConversazioneCliente,
   caricaLinkInvito,
+  caricaModuloPortale,
+  compilaModuloPortale,
   caricaConversazioneStudio,
   clientPortalPost,
   clientPortalTokenFromPath,
@@ -978,6 +981,7 @@ function ClientPortalClient() {
   // Quale richiesta sta usando la webcam: una sola per volta, e la camera
   // parte solo dopo il consenso esplicito dentro WebcamCapture.
   const [webcamPerRichiesta, setWebcamPerRichiesta] = useState('')
+  const [moduloAperto, setModuloAperto] = useState('')
   const token = readClientPortalToken()
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
   const signaturesEnabled = payload.featureFlags['routes.appV2.clientPortal.signatures'] !== false
@@ -1009,6 +1013,9 @@ function ClientPortalClient() {
     event.preventDefault()
     applyClientResponse(await clientPortalPost('/api/v1/ui/client-portal/public/profile', profileForm))
   }
+
+  // Si compila solo un PDF: gli altri allegati restano da scaricare.
+  const moduliPdf = (payload.documents || []).filter((voce) => text(voce.filename).toLowerCase().endsWith('.pdf'))
 
   const informativa = (payload.privacyNotice || {}) as {
     key?: string
@@ -1338,6 +1345,51 @@ function ClientPortalClient() {
                       onCancel={() => setWebcamPerRichiesta('')}
                     />
                   </div>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+
+        <div className="iu-client-portal-panel" id="panel-moduli">
+          <div className="iu-client-portal-panel__head"><h2>Moduli da compilare</h2><ClipboardList size={18} aria-hidden="true"/></div>
+          {moduliPdf.length === 0 ? (
+            <span className="iu-client-portal-muted">Nessun modulo da compilare al momento.</span>
+          ) : (
+            <p className="iu-client-portal-muted">Puoi compilare il modulo qui dentro e scaricarlo. L’originale resta sempre a disposizione: la copia compilata si aggiunge accanto.</p>
+          )}
+          {moduliPdf.map((documento) => {
+            const idDocumento = rowId(documento)
+            const aperto = moduloAperto === idDocumento
+            return (
+              <article className="iu-client-portal-consent" key={idDocumento}>
+                <div className="iu-client-portal-consent__head">
+                  <strong>{text(documento.filename, 'Modulo')}</strong>
+                  <span>{text(documento.uploaded_at_label) ? `Nel portale dal ${text(documento.uploaded_at_label)}` : statusLabel(documento.status)}</span>
+                </div>
+                <div className="iu-client-portal-consent__azioni">
+                  <button type="button" onClick={() => setModuloAperto(aperto ? '' : idDocumento)}>
+                    {aperto ? 'Chiudi il modulo' : 'Compila nel portale'}
+                  </button>
+                  <a className="iu-client-portal-doc-download" href={clientPortalDocumentUrl(idDocumento)}>
+                    <Download size={14} aria-hidden="true"/>Scarica
+                  </a>
+                </div>
+                {aperto ? (
+                  <PdfModulo
+                    key={idDocumento}
+                    endpoint={`/api/v1/ui/client-portal/public/documents/${encodeURIComponent(idDocumento)}/modulo`}
+                    previewUrl={clientPortalDocumentUrl(idDocumento)}
+                    busy={false}
+                    onDirty={() => {}}
+                    carica={(segnale) => caricaModuloPortale(idDocumento, token, segnale) as never}
+                    save={async (valori) => {
+                      const risposta = await compilaModuloPortale(idDocumento, valori, token)
+                      applyClientResponse(risposta)
+                      if (risposta.ok) setModuloAperto('')
+                      return Boolean(risposta.ok)
+                    }}
+                  />
                 ) : null}
               </article>
             )

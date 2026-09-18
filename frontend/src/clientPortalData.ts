@@ -212,6 +212,44 @@ export async function clientPortalPost<T = ClientPortalResponse>(
   })
 }
 
+export type ModuloPortale = {
+  ok?: boolean
+  compilabile?: boolean
+  campi?: unknown[]
+  pagine?: { numero: number; larghezza: number; altezza: number }[]
+  documento?: string
+  nome?: string
+  versione?: number
+  message?: string
+}
+
+/** I campi predisposti di un modulo mandato dallo studio. */
+export async function caricaModuloPortale(
+  documentId: string,
+  token = readClientPortalToken(),
+  signal?: AbortSignal,
+): Promise<ModuloPortale> {
+  return apiJson<ModuloPortale>(
+    `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/modulo`,
+    { ok: false, compilabile: false, campi: [], pagine: [] },
+    { headers: token ? { 'X-Client-Portal-Token': token } : {}, signal },
+  )
+}
+
+/** Salva la copia compilata: l'originale dello studio non viene toccato. */
+export async function compilaModuloPortale(
+  documentId: string,
+  valori: Record<string, string | boolean>,
+  token = readClientPortalToken(),
+): Promise<ClientPortalResponse> {
+  return apiPostJson<ClientPortalResponse>(
+    `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/modulo`,
+    { valori },
+    { ok: false, message: 'Modulo non compilato.' },
+    { headers: token ? { 'X-Client-Portal-Token': token } : {} },
+  )
+}
+
 export type LinkInvito = {
   ok?: boolean
   available?: boolean

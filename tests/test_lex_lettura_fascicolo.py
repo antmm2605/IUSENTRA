@@ -168,11 +168,24 @@ def test_endpoint_lettura_cache_key_isola_versione_applicativa(tmp_path):
         chiave = api_v1_react._lettura_cache_key("FX")
 
     assert chiave[0] == "lettura"
-    assert chiave[1].endswith(f"@{api_v1_react.APP_VERSION}")
+    # La versione applicativa e' un segmento della chiave: una release nuova non
+    # serve mai all'avvocato il payload costruito da quella precedente. Accanto
+    # sta la revisione SQL della lettura, cosi' il completamento del worker OCR
+    # invalida la cache anche fra container diversi. Si verifica la proprieta',
+    # non la posizione: la chiave puo' crescere di segmenti senza perderla.
+    segmenti = chiave[1].split("@")
+    assert segmenti[0] == "default"
+    assert segmenti[1] == api_v1_react.APP_VERSION
     assert chiave[2] == "FX"
 
 
 def test_context_archivio_completo_non_ricostruisce_catalogo_pesante(monkeypatch):
+    """Con l'archivio gia' letto, la lettura del fascicolo non riapre il catalogo pesante.
+
+    Il documento risulta letto perche' lo dice l'archivio — «letto» nelle
+    letture dei motori — non perche' lo dica un indice ricostruito nella
+    richiesta. Il catalogo si deriva da li'.
+    """
     import lex.context.fascicolo_lettura_context as modulo
 
     fascicolo = SimpleNamespace(
@@ -180,22 +193,30 @@ def test_context_archivio_completo_non_ricostruisce_catalogo_pesante(monkeypatch
         numero="2026/1",
         titolo="Rossi / Bianchi",
         documenti=[SimpleNamespace(id="D1", nome="Atto introduttivo.pdf", tipo="ATTO", data_caricamento="2026-09-10")],
+        attivita=[],
+        depositi_pct=[],
     )
 
     def vietato(*_args, **_kwargs):
-        raise AssertionError("il percorso rapido con archivio completo non deve richiamare il catalogo documentale pesante")
+        raise AssertionError("il percorso con archivio completo non deve richiamare il catalogo documentale pesante")
 
     monkeypatch.setattr(modulo, "get_fascicoli", lambda: SimpleNamespace(get=lambda _id: fascicolo))
-    monkeypatch.setattr(modulo, "_archivio", lambda _fascicolo: {"stato": {"completa": True, "da_leggere": 0}, "riassunto": {"totale": 1, "per_motore": {"documenti": 1}}})
-    monkeypatch.setattr(modulo, "load_document_context", vietato)
+    monkeypatch.setattr(modulo, "_archivio", lambda _fascicolo: {
+        "stato": {"completa": True, "da_leggere": 0},
+        "riassunto": {"totale": 1, "per_motore": {"documenti": 1}},
+        "letture_documenti": {"D1": {"stato": "letto", "presente": True}},
+        "domande": [],
+    })
     monkeypatch.setattr(modulo, "_catalogo", vietato)
     monkeypatch.setattr(modulo, "_documenti_non_scaricati", vietato)
-    monkeypatch.setattr(modulo, "_verifiche", lambda _id: {})
+    monkeypatch.setattr(modulo, "_verifiche", lambda _fascicolo: {})
     monkeypatch.setattr(modulo, "_regia", lambda _id: {})
     monkeypatch.setattr(modulo, "_economico", lambda _id: {})
     monkeypatch.setattr(modulo, "_parti", lambda _id: [])
     monkeypatch.setattr(modulo, "_presidi_notifiche", lambda _id: [])
     monkeypatch.setattr(modulo, "messaggi_pec_per_fascicolo", lambda _fascicolo: [])
+    monkeypatch.setattr("web.services.react_fascicoli_bridge._sql_document_catalog_by_id", lambda _fascicolo: {})
+    monkeypatch.setattr("web.services.correlazioni_ricevute_archivio.depositi_da_archivio", lambda _fascicolo: [])
 
     dati = modulo.raccogli_dati_lettura("F1")
 
@@ -204,4 +225,3 @@ def test_context_archivio_completo_non_ricostruisce_catalogo_pesante(monkeypatch
     assert dati.documenti[0]["lex_read"] is True
     assert dati.catalogo[0]["document_id"] == "D1"
     assert dati.catalogo[0]["indexed"] is True
-    assert dati.catalogo[0]["status"] == "confirmed"

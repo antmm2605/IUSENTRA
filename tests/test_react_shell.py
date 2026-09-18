@@ -39,6 +39,10 @@ def _app(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "react-test-key"
     app.config["PRIVACY_DB"] = str(tmp_path / "privacy" / "registro.json")
+    # La cache su disco della Lettura del fascicolo sta nell'istanza Flask, che
+    # nei test e' la cartella `instance/` della repository: senza questa riga un
+    # test lascerebbe il proprio payload agli altri e alla copia di lavoro.
+    app.config["LETTURA_FASCICOLO_CACHE_DIR"] = str(tmp_path / "cache" / "lettura-fascicolo")
     return app
 
 

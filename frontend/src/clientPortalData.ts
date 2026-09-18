@@ -202,6 +202,40 @@ export async function clientPortalPost<T = ClientPortalResponse>(
   })
 }
 
+export type ConversazionePortale = {
+  ok?: boolean
+  messages?: Record<string, unknown>[]
+  cursor?: string
+  nuovi?: number
+}
+
+/** La coda della conversazione di una pratica, per la pagina dello studio. */
+export async function caricaConversazioneStudio(matterId: string, segnalibro = ''): Promise<ConversazionePortale> {
+  if (!matterId) return { ok: false, messages: [], cursor: segnalibro }
+  const parametri = new URLSearchParams({ matterId })
+  if (segnalibro) parametri.set('since', segnalibro)
+  return apiJson<ConversazionePortale>(
+    `/api/v1/ui/client-portal/studio/conversation?${parametri.toString()}`,
+    { ok: false, messages: [], cursor: segnalibro },
+  )
+}
+
+/** La coda della conversazione della propria pratica, per la pagina del cliente. */
+export async function caricaConversazioneCliente(
+  segnalibro = '',
+  token = readClientPortalToken(),
+): Promise<ConversazionePortale> {
+  if (!token) return { ok: false, messages: [], cursor: segnalibro }
+  const parametri = new URLSearchParams()
+  if (segnalibro) parametri.set('since', segnalibro)
+  const coda = parametri.toString()
+  return apiJson<ConversazionePortale>(
+    `/api/v1/ui/client-portal/public/conversation${coda ? `?${coda}` : ''}`,
+    { ok: false, messages: [], cursor: segnalibro },
+    { headers: { 'X-Client-Portal-Token': token } },
+  )
+}
+
 export async function uploadClientPortalDocument(
   file: File,
   requestId: string,

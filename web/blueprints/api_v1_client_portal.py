@@ -11,6 +11,10 @@ from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
 )
+from web.services.client_portal_conversazione import (
+    conversazione_cliente,
+    conversazione_studio,
+)
 from web.services.react_client_portal_bridge import (
     accept_invite_token,
     build_studio_dashboard_payload,
@@ -151,6 +155,20 @@ def studio_message_create():
     return _json(studio_add_message(_json_body()))
 
 
+@api_v1_client_portal.get("/studio/conversation")
+@_studio_auth_required
+def studio_conversation():
+    """Solo i messaggi nuovi: tiene viva la chat senza rispedire lo storico."""
+    return _json(
+        conversazione_studio(
+            {
+                "matterId": request.args.get("matterId"),
+                "since": request.args.get("since"),
+            }
+        )
+    )
+
+
 @api_v1_client_portal.post("/studio/document-requests")
 @_studio_auth_required
 def studio_document_request_create():
@@ -237,6 +255,12 @@ def public_consent_update():
 @api_v1_client_portal.post("/public/messages")
 def public_message_create():
     return _json(client_send_message(_json_body()))
+
+
+@api_v1_client_portal.get("/public/conversation")
+def public_conversation():
+    """Solo i messaggi nuovi della propria pratica, autenticati dal token."""
+    return _json(conversazione_cliente({"since": request.args.get("since")}))
 
 
 @api_v1_client_portal.post("/public/documents")

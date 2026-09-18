@@ -81,6 +81,10 @@ CLIENT_PORTAL_WHERE_SQL = {
     "client_id = ? AND matter_id = ?": '"client_id" = ? AND "matter_id" = ?',
     "matter_id = ? AND accepted = 1": '"matter_id" = ? AND "accepted" = 1',
     "matter_id = ? AND status <> ?": '"matter_id" = ? AND "status" <> ?',
+    # Coda della conversazione dal segnalibro in poi: tiene viva la chat del
+    # portale senza rispedire ogni volta tutto lo storico. Il confronto e'
+    # inclusivo perche' gli orari hanno il secondo come unita' minima.
+    "matter_id = ? AND created_at >= ?": '"matter_id" = ? AND "created_at" >= ?',
     "status = ?": '"status" = ?',
 }
 CLIENT_PORTAL_ORDER_SQL = {
@@ -852,6 +856,42 @@ class ClientPortalRepository:
             f"SELECT * FROM {safe_table} WHERE {clause} ORDER BY {safe_order} LIMIT ?",
             (tenant_id, *tuple(params), int(limit)),
         )
+
+    def messages_after(self, tenant_id: str, *, matter_id: str, after: str = "", limit: int = 100) -> list[dict[str, Any]]:
+        """I messaggi della pratica dal segnalibro in poi, dal piu' vecchio.
+
+        Serve a tenere viva la conversazione senza rispedire ogni volta tutto
+        lo storico: chi guarda la chat chiede solo la coda. Il segnalibro e' il
+        `created_at` dell'ultimo messaggio gia' mostrato; vuoto significa
+        «dammi la fine della conversazione».
+
+        **Il confronto e' inclusivo, e non e' una svista.** Gli orari si
+        salvano con il secondo come unita' minima (`utc_now`) e gli
+        identificativi sono casuali: due messaggi scritti nello stesso secondo
+        non sono distinguibili ne' per tempo ne' per ordine. Con un confronto
+        stretto uno dei due sparirebbe per sempre dalla conversazione. Meglio
+        ripetere l'ultimo secondo — chi chiede scarta i messaggi che ha gia'
+        per identificativo — che perdere un messaggio fra avvocato e cliente.
+        """
+        segnalibro = str(after or "").strip()
+        if segnalibro:
+            return self._list(
+                "client_portal_messages",
+                tenant_id,
+                "matter_id = ? AND created_at >= ?",
+                (matter_id, segnalibro),
+                order="created_at ASC",
+                limit=limit,
+            )
+        recenti = self._list(
+            "client_portal_messages",
+            tenant_id,
+            "matter_id = ?",
+            (matter_id,),
+            order="created_at DESC",
+            limit=limit,
+        )
+        return list(reversed(recenti))
 
     def _update_progress_from_activity(self, tenant_id: str, matter_id: str) -> None:
         consents_ok = self._count("client_portal_consents", tenant_id, "matter_id = ? AND accepted = 1", (matter_id,)) > 0

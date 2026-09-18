@@ -1,4 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+
+import { useConversazioneViva, type MessaggioPortale } from '../hooks/useConversazioneViva'
 import {
   Bell,
   CalendarDays,
@@ -24,6 +26,8 @@ import {
 import {
   acceptInvite,
   clientPortalDocumentUrl,
+  caricaConversazioneCliente,
+  caricaConversazioneStudio,
   clientPortalPost,
   clientPortalTokenFromPath,
   clearClientPortalToken,
@@ -262,16 +266,26 @@ function ClientPortalStudio() {
     void load()
   }, [])
 
-  useEffect(() => {
-    const node = studioChatRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [payload.messages.length, selectedMatterId])
-
   const selectedMatter = useMemo(
     () => payload.matters.find((matter) => rowId(matter) === selectedMatterId) || payload.matters[0],
     [payload.matters, selectedMatterId],
   )
-  const selectedMessages = payload.messages.filter((message) => text(message.matter_id) === rowId(selectedMatter))
+  const messaggiDellaPratica = useMemo(
+    () => payload.messages.filter((message) => text(message.matter_id) === rowId(selectedMatter)),
+    [payload.messages, selectedMatter],
+  )
+  // La chat resta viva senza ricaricare la pagina: chiede solo la coda.
+  const selectedMessages = useConversazioneViva({
+    attiva: Boolean(rowId(selectedMatter)),
+    iniziali: messaggiDellaPratica,
+    carica: (segnalibro) => caricaConversazioneStudio(rowId(selectedMatter), segnalibro),
+  }) as PortalRow[]
+
+  useEffect(() => {
+    const node = studioChatRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [selectedMessages.length, selectedMatterId])
+
   const selectedDocumentRequests = payload.documentRequests.filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const selectedClientDocuments = (payload.documents || []).filter((item) => text(item.matter_id) === rowId(selectedMatter))
   const unrequestedClientDocuments = selectedClientDocuments.filter((doc) => {
@@ -943,11 +957,6 @@ function ClientPortalClient() {
     void load()
   }, [])
 
-  useEffect(() => {
-    const node = chatScrollRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [payload.messages?.length])
-
   const applyClientResponse = (response: ClientPortalResponse) => {
     if (response.dashboard?.surface === 'client') setPayload(response.dashboard as ClientPortalClientPayload)
     setNotice({ tone: response.ok ? 'success' : 'warning', text: text(response.message, response.ok ? 'Operazione completata.' : 'Operazione non completata.') })
@@ -1036,7 +1045,16 @@ function ClientPortalClient() {
   }
 
   const progress = numberValue(payload.matter?.progress)
-  const messages = payload.messages || []
+  const messages = useConversazioneViva({
+    attiva: Boolean(token),
+    iniziali: (payload.messages || []) as MessaggioPortale[],
+    carica: (segnalibro) => caricaConversazioneCliente(segnalibro, token),
+  }) as PortalRow[]
+
+  useEffect(() => {
+    const node = chatScrollRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [messages.length])
   const completion = payload.profileCompletion
   const uploadLimits = payload.uploadLimits
 

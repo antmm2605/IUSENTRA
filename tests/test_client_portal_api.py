@@ -371,3 +371,103 @@ def test_client_portal_anagrafica_parte_dalla_scheda_dello_studio(tmp_path: Path
     origine = dashboard["client"]["anagrafica_origine"]
     assert origine["address"] == "studio"
     assert origine["profession"] == ""
+
+
+def test_client_portal_conversazione_tiene_viva_la_chat_senza_perdere_messaggi(tmp_path: Path):
+    """La chat si tiene viva chiedendo la coda, non tutto lo storico.
+
+    Prima i messaggi comparivano solo ricaricando la pagina: chi scriveva non
+    sapeva se l'altro avesse risposto. Ora si chiede a partire da un
+    segnalibro. La coda comprende l'ultimo secondo gia' visto, perche' gli
+    orari si salvano al secondo e due messaggi simultanei non sarebbero
+    distinguibili: chi legge scarta per identificativo quelli che ha gia'.
+    Ripetere e' recuperabile, perdere un messaggio fra avvocato e cliente no.
+    """
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        token, _ = _create_invite(client, cliente.id, fascicolo.id)
+        client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        dashboard = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()
+        matter_id = dashboard["matter"]["id"]
+
+        client.post(
+            "/api/v1/ui/client-portal/studio/messages",
+            json={"matterId": matter_id, "body": "Buongiorno, le confermo l'udienza."},
+        )
+        prima = client.get(f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}").get_json()
+        assert prima["ok"] is True
+        assert [row["body"] for row in prima["messages"]] == ["Buongiorno, le confermo l'udienza."]
+        segnalibro = prima["cursor"]
+        assert segnalibro
+        visti = {row["id"] for row in prima["messages"]}
+
+        # Due messaggi nello stesso secondo: nessuno dei due si perde.
+        client.post(
+            "/api/v1/ui/client-portal/public/messages",
+            json={"body": "Grazie, ci sarò."},
+            headers={"X-Client-Portal-Token": token},
+        )
+        client.post(
+            "/api/v1/ui/client-portal/studio/messages",
+            json={"matterId": matter_id, "body": "Le mando il promemoria."},
+        )
+        dopo = client.get(
+            f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}&since={segnalibro}"
+        ).get_json()
+        nuovi = [row["body"] for row in dopo["messages"] if row["id"] not in visti]
+        assert nuovi == ["Grazie, ci sarò.", "Le mando il promemoria."]
+        assert dopo["messages"][0]["sender_type"] in {"studio", "cliente"}
+
+        # Il cliente, dal suo lato, vede la conversazione della propria pratica.
+        lato_cliente = client.get(
+            "/api/v1/ui/client-portal/public/conversation",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()
+        assert [row["body"] for row in lato_cliente["messages"]] == [
+            "Buongiorno, le confermo l'udienza.",
+            "Grazie, ci sarò.",
+            "Le mando il promemoria.",
+        ]
+
+
+def test_client_portal_conversazione_ripete_l_ultimo_secondo_e_non_salta_nulla(tmp_path: Path):
+    """Il segnalibro e' inclusivo: meglio un messaggio ripetuto che perso."""
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    with app.test_client() as client:
+        _login(client)
+        token, _ = _create_invite(client, cliente.id, fascicolo.id)
+        client.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={})
+        matter_id = client.get(
+            "/api/v1/ui/client-portal/public/dashboard",
+            headers={"X-Client-Portal-Token": token},
+        ).get_json()["matter"]["id"]
+        client.post(
+            "/api/v1/ui/client-portal/studio/messages",
+            json={"matterId": matter_id, "body": "Primo."},
+        )
+        prima = client.get(f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}").get_json()
+
+        ferma = client.get(
+            f"/api/v1/ui/client-portal/studio/conversation?matterId={matter_id}&since={prima['cursor']}"
+        ).get_json()
+
+    # Nessun messaggio nuovo: torna il solo messaggio di confine, che il
+    # chiamante gia' conosce e scarta per identificativo.
+    assert [row["id"] for row in ferma["messages"]] == [row["id"] for row in prima["messages"]]
+    assert ferma["cursor"] == prima["cursor"]
+
+
+def test_client_portal_conversazione_cliente_senza_token_non_espone_nulla(tmp_path: Path):
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        risposta = client.get("/api/v1/ui/client-portal/public/conversation").get_json()
+
+    assert risposta["ok"] is False

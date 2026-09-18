@@ -10,6 +10,7 @@ import pytest
 from pct.clienti import Recapiti
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 from web.services.fascicolo_controparti_aggiuntive import (
+    _email_valida,
     collega_controparti_aggiuntive,
     leggi_controparti_aggiuntive,
 )
@@ -120,3 +121,35 @@ def test_non_collega_come_controparte_il_cliente_dello_studio(soggetti):
     assert esito.escluse_cliente == ("Alfa Spa",)
     assert soggetti.tutti() == []
     assert "coincidono con il cliente" in esito.messaggio()
+
+
+# ── Indirizzo di posta: forma valida e tempo lineare ──────────────────────
+
+@pytest.mark.parametrize(
+    "indirizzo",
+    ["mario.rossi@studio.it", "a@b.c", "x@sub.dominio.co.uk", "tizio@pec.ordineavvocati.rc.it"],
+)
+def test_email_valide_restano_accettate(indirizzo):
+    assert _email_valida(indirizzo) is True
+
+
+@pytest.mark.parametrize(
+    "indirizzo",
+    ["senza-chiocciola.it", "a@b", "a@.b", "a@b.", "a@@b.c", "con spazio@b.c", ""],
+)
+def test_email_malformate_restano_rifiutate(indirizzo):
+    assert _email_valida(indirizzo) is False
+
+
+def test_email_lunghissima_non_rallenta_il_controllo():
+    """Il valore arriva dal modulo dell'utente: nessun input deve poter rallentare la verifica.
+
+    La forma precedente usava un'espressione regolare e su una stringa
+    costruita apposta il confronto cresceva piu' che linearmente (ReDoS).
+    """
+    import time
+
+    costruita_apposta = "a@" + "a" * 100_000 + "!"
+    inizio = time.monotonic()
+    assert _email_valida(costruita_apposta) is False
+    assert time.monotonic() - inizio < 0.5

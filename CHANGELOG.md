@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.322.3 - 18/09/2026
+
+**L'ultimo avviso: via la regex dalla validazione dell'indirizzo di posta.** Dei undici rilievi della 2.322.2 ne restava uno, `py/polynomial-redos` su `web/services/fascicolo_controparti_aggiuntive.py`. La riscrittura precedente aveva reso l'espressione regolare più veloce, ma su un valore che arriva dal modulo compilato dall'utente la risposta giusta non è una regex più furba: è nessuna regex. La forma dell'indirizzo — parte locale non vuota, una sola chiocciola, dominio di almeno due etichette non vuote — si verifica con due divisioni di stringa, in tempo lineare e senza alcuna possibilità di backtracking. Gli indirizzi accettati sono gli stessi, confrontati uno per uno con la forma precedente su dodici casi: nessuna differenza. Centomila caratteri costruiti apposta si scartano in meno di un millesimo di secondo, ed è quello che verifica il test nuovo.
+
+Con questo l'analisi statica non ha più rilievi bloccanti: **da undici a zero in tre release**, nessuno messo a tacere se non i tre falsi positivi sul redirect, dichiarati per iscritto e circoscritti al loro file.
+
+Test: controparti aggiuntive 17 (dodici in più: indirizzi validi, malformati, e input costruito apposta).
+
 ## 2.322.2 - 18/09/2026
 
 **Undici avvisi di sicurezza che nessuno aveva mai visto.** Appena il presidio della 2.322.1 ha cominciato a leggere davvero i risultati di CodeQL, ne ha trovati undici — tutti preesistenti, tutti invisibili finché l'analisi moriva nel caricamento verso una scheda che su questa repository non esiste. Sei nel codice di produzione, cinque nei test. Nessuno è stato messo a tacere.

@@ -39,12 +39,27 @@ RUOLI_AMMESSI = {
 _TIPI_PERSONA = {TipoSoggetto.PERSONA_FISICA, TipoSoggetto.PROFESSIONISTA}
 _CODICE_FISCALE_RE = re.compile(r"[A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]")
 _NUMERICO_11_RE = re.compile(r"[0-9]{11}")
-# Il dominio si scrive come etichette separate da punti, e nessuna etichetta
-# contiene un punto: cosi' il motore ha un solo modo di dividere l'indirizzo.
-# La forma precedente (`[^@\s]+\.[^@\s]+`) lasciava il punto dentro entrambe le
-# classi e su un indirizzo lungo inviato dall'utente il confronto rallentava in
-# modo quadratico. Gli indirizzi riconosciuti restano gli stessi.
-_EMAIL_RE = re.compile(r"[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+")
+def _email_valida(valore: str) -> bool:
+    """La forma minima di un indirizzo: parte locale, chiocciola, dominio a etichette.
+
+    Senza espressione regolare, e non per gusto: il valore arriva dal modulo
+    compilato dall'utente, e una regex su testo non fidato puo' rallentare in
+    modo piu' che lineare quando l'input e' costruito apposta (ReDoS). La
+    stessa verifica si fa con due divisioni di stringa, in tempo lineare e
+    senza possibilita' di backtracking.
+
+    Gli indirizzi accettati sono gli stessi di prima: parte locale non vuota
+    senza spazi, una sola chiocciola, dominio di almeno due etichette non
+    vuote separate da punti.
+    """
+    testo = str(valore or "")
+    if not testo or any(carattere.isspace() for carattere in testo):
+        return False
+    locale, chiocciola, dominio = testo.partition("@")
+    if not chiocciola or not locale or "@" in dominio:
+        return False
+    etichette = dominio.split(".")
+    return len(etichette) >= 2 and all(etichette)
 
 
 @dataclass(frozen=True)
@@ -146,7 +161,7 @@ def _leggi_riga(item: dict[str, Any], posizione: int, *, gestore_soggetti: Any) 
     pec = _text(item.get("pec")).lower()
     email = _text(item.get("email")).lower()
     for label, valore in (("PEC", pec), ("email", email)):
-        if valore and not _EMAIL_RE.fullmatch(valore):
+        if valore and not _email_valida(valore):
             raise ValueError(f"Controparte {etichetta}: {label} non valida.")
     return ControparteAggiuntiva(
         nome=nome,

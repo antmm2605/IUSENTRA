@@ -10,7 +10,11 @@ def source(path):
 
 def test_pdf_originale_fullscreen_e_zoom_non_rimontano_i_campi():
     pdf = source("components/mediazione/PdfModulo.tsx")
-    css = source("components/mediazione/mediazione.css")
+    # Gli stili del compilatore stanno nel file del componente, che li importa:
+    # in mediazione.css li vedeva solo chi apriva il procedimento dal fascicolo,
+    # e nel Portale Cliente il modulo arrivava senza regole, con i campi fuori
+    # posto. Il contratto resta lo stesso, cambia il file che lo soddisfa.
+    css = source("components/mediazione/PdfModulo.css")
     assert "Apri il modulo a tutto schermo" in pdf
     assert "Torna alla vista normale del modulo" in pdf
     assert "aria-pressed={expanded}" in pdf

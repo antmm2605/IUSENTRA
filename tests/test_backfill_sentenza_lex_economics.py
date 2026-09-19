@@ -627,3 +627,89 @@ def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Pa
         for voce in voci
     )
     assert not any("Spese ed esborsi" in voce["descrizione"] and voce["prezzo_unitario"] == 21.5 for voce in voci)
+
+
+def _doc_path(tenant_root: Path, document_id: str) -> Path:
+    return (
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-1"
+        / "documenti_ai"
+        / document_id
+        / "v1"
+        / "extracted_text.json"
+    )
+
+
+def test_backfill_con_documento_guasto_non_rifa_la_scansione_integrale(tmp_path: Path):
+    """Sei documenti illeggibili non devono tenere occupato il server ogni dieci minuti.
+
+    Prima il segnaposto viveva dentro l'esito dell'ultima esecuzione *riuscita*:
+    un solo documento in errore rendeva l'esecuzione non riuscita, il segnaposto
+    restava indietro e il giro dopo rileggeva tutto da capo, in eterno.
+    """
+
+    from pct import cursore_sentenze_lex
+
+    data_root = tmp_path / "data"
+    tenant_root = data_root / "tenants" / "tenant-test"
+    registry = data_root / "tenants.json"
+    _write_json(
+        registry,
+        {"tenant-test": {"slug": "tenant-test", "storage_key": "tenant-test", "nome": "Studio Test"}},
+    )
+    for numero in (1, 2):
+        _write_json(
+            _doc_path(tenant_root, f"DOC-{numero}"),
+            {
+                "tenant_id": "tenant-test",
+                "fascicolo_id": "FASC-1",
+                "document_id": f"DOC-{numero}",
+                "text": "Memoria istruttoria senza intestazione di sentenza.",
+            },
+        )
+    guasto = _doc_path(tenant_root, "DOC-GUASTO")
+    guasto.parent.mkdir(parents=True, exist_ok=True)
+    guasto.write_text("{ questo non e' JSON", encoding="utf-8")
+
+    comuni = {
+        "data_root": data_root,
+        "registry": registry,
+        "repo_root": Path(__file__).resolve().parents[1],
+        "tenants": {"tenant-test"},
+        "apply": False,
+        "skip_lex": True,
+        "usa_cursore_persistente": True,
+    }
+
+    primo = run_backfill(**comuni)
+
+    assert primo["ok"] is False  # il documento guasto resta un errore dichiarato
+    assert primo["totals"]["documents_seen"] == 3
+    assert primo["cursore_persistente"]["attivo"] is True
+    assert primo["cursore_persistente"]["in_quarantena"] == 1
+
+    # Il segnaposto e' stato scritto malgrado l'errore.
+    stato = cursore_sentenze_lex.leggi_stato(tenant_root)
+    assert stato.mtime_ns > 0
+    assert str(guasto) in stato.in_errore
+
+    secondo = run_backfill(**comuni)
+
+    # Il giro successivo riprova solo il guasto: gli altri due non si rileggono.
+    assert secondo["totals"]["documents_catalogued"] == 3
+    assert secondo["totals"]["documents_seen"] == 1
+    assert secondo["totals"]["skipped_by_cursor"] == 2
+
+    # E dopo i tentativi massimi smette di riprovarlo, senza dimenticarlo.
+    for _ in range(cursore_sentenze_lex.TENTATIVI_MASSIMI):
+        ultimo = run_backfill(**comuni)
+
+    assert ultimo["totals"]["documents_seen"] == 0
+    assert ultimo["cursore_persistente"]["sospesi"] == 1
+    sospesi = ultimo["cursore_persistente"]["tenants"][0]["documenti_sospesi"]
+    assert sospesi[0]["percorso"] == str(guasto)
+    assert sospesi[0]["errore"]

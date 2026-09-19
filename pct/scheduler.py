@@ -1897,6 +1897,12 @@ def start_scheduler(app):
                     app.config.get("IUSENTRA_SENTENZA_LEX_FULL_SCAN")
                     or os.getenv("IUSENTRA_SENTENZA_LEX_FULL_SCAN")
                 )
+                # Il segnaposto sta accanto all'archivio del tenant, non
+                # dentro l'esito dell'ultima esecuzione riuscita: un giro con
+                # errori non fa piu' ripartire la scansione integrale ogni
+                # dieci minuti. La lettura dall'esito resta solo come ponte
+                # per il primo giro dopo l'aggiornamento.
+                usa_cursore_persistente = not force_full_scan
                 modified_after_ns = 0
                 if not force_full_scan:
                     try:
@@ -1920,6 +1926,7 @@ def start_scheduler(app):
                         0,
                     ),
                     modified_after_ns=max(0, modified_after_ns),
+                    usa_cursore_persistente=usa_cursore_persistente,
                     lex_embed_batch_size=_parse_positive_int(
                         app.config.get("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE")
                         or os.getenv("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE"),
@@ -1948,6 +1955,7 @@ def start_scheduler(app):
                     "source_of_truth": report.get("source_of_truth"),
                     "scan_mode": report.get("scan_mode"),
                     "incremental": report.get("incremental"),
+                    "cursore_persistente": report.get("cursore_persistente"),
                     "force_full_scan": force_full_scan,
                     "totals": totals,
                     "skip_lex": skip_lex,

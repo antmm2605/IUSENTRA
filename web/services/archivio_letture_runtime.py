@@ -19,6 +19,7 @@ import json
 import os
 import threading
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -48,6 +49,7 @@ _LOCK = threading.Lock()
 _IN_CORSO: set[str] = set()
 _SCHEDULER_IDLE_MARKER = "archivio_letture_scheduler_idle.json"
 _SCHEDULER_IDLE_ORE_DEFAULT = 24
+ROME = ZoneInfo("Europe/Rome")
 
 
 def _testo(valore: Any) -> str:

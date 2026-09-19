@@ -32,6 +32,7 @@ from pct.fascicolo_sentenza_economica import (
 )
 from pct.fatturazione import GestioneFatturazione
 from pct.incremental_jobs import file_mtime_ns, newest_file_cursor
+from pct import cursore_sentenze_lex
 from pct.local_ai import LocalAIService
 from pct.storage import StudioDB
 
@@ -606,6 +607,7 @@ def run_backfill(
     skip_lex: bool = False,
     limit: int = 0,
     modified_after_ns: int = 0,
+    usa_cursore_persistente: bool = False,
     lex_embed_batch_size: int = 64,
     lex_embed_max_batches: int = 3,
 ) -> dict[str, Any]:
@@ -628,6 +630,12 @@ def run_backfill(
             "modified_after_ns": int(modified_after_ns or 0),
             "newest_mtime_ns": 0,
             "newest_path": "",
+        },
+        "cursore_persistente": {
+            "attivo": bool(usa_cursore_persistente),
+            "tenants": [],
+            "sospesi": 0,
+            "in_quarantena": 0,
         },
         "tenants": [],
         "totals": {
@@ -701,7 +709,29 @@ def run_backfill(
         if int(tenant_cursor.get("mtime_ns") or 0) > int(report["incremental"].get("newest_mtime_ns") or 0):
             report["incremental"]["newest_mtime_ns"] = int(tenant_cursor.get("mtime_ns") or 0)
             report["incremental"]["newest_path"] = str(tenant_cursor.get("path") or "")
-        if int(modified_after_ns or 0) > 0:
+        stato_cursore = None
+        letti_senza_errore: list[Path] = []
+        falliti_del_giro: dict[str, str] = {}
+        if usa_cursore_persistente:
+            # Il segnaposto vive accanto all'archivio e viene scritto anche
+            # quando il giro ha errori: cosi' sei documenti illeggibili non
+            # costringono piu' a rileggere tutto ogni dieci minuti.
+            stato_cursore = cursore_sentenze_lex.leggi_stato(tenant.root)
+            all_paths = paths
+            paths, dettaglio_cursore = cursore_sentenze_lex.documenti_da_esaminare(
+                all_paths,
+                stato_cursore,
+                mtime_di=file_mtime_ns,
+            )
+            report["totals"]["skipped_by_cursor"] += int(dettaglio_cursore.get("saltati_dal_cursore") or 0)
+            tenant_report["incremental"] = {
+                "enabled": dettaglio_cursore.get("modalita") == "incrementale",
+                "origine": "cursore_persistente",
+                **dettaglio_cursore,
+                "newest_mtime_ns": int(tenant_cursor.get("mtime_ns") or 0),
+                "newest_path": str(tenant_cursor.get("path") or ""),
+            }
+        elif int(modified_after_ns or 0) > 0:
             all_paths = paths
             paths = [path for path in all_paths if file_mtime_ns(path) > int(modified_after_ns or 0)]
             skipped_by_cursor = len(all_paths) - len(paths)
@@ -725,10 +755,12 @@ def run_backfill(
         contributo_pdf_by_fascicolo: dict[str, dict[str, Any]] = {}
         candidates: list[BackfillCandidate] = []
         best_by_sentenza_key: dict[str, BackfillCandidate] = {}
+        tentati_del_giro: list[Path] = []
         for path in paths:
             if limit and report["totals"]["documents_seen"] >= limit:
                 break
             report["totals"]["documents_seen"] += 1
+            tentati_del_giro.append(path)
             try:
                 payload = _load_json(path)
                 if not isinstance(payload, dict):
@@ -807,6 +839,7 @@ def run_backfill(
             except Exception as exc:
                 report["ok"] = False
                 report["totals"]["errors"] += 1
+                falliti_del_giro[str(path)] = str(exc)
                 tenant_report["documents"].append(
                     {
                         "tenant": tenant.storage_key,
@@ -889,6 +922,30 @@ def run_backfill(
             "unique_fascicoli_confirmed": len(tenant_unique_fascicoli_confirmed),
             "unique_missing_fascicoli": len(tenant_unique_missing_fascicoli),
         }
+        if usa_cursore_persistente and stato_cursore is not None:
+            # Si scrive sempre, anche con errori: il cursore avanza solo sui
+            # documenti letti bene, gli altri restano dichiarati in quarantena.
+            letti_senza_errore = [
+                percorso for percorso in tentati_del_giro if str(percorso) not in falliti_del_giro
+            ]
+            stato_cursore = cursore_sentenze_lex.aggiorna_stato(
+                stato_cursore,
+                letti_senza_errore=letti_senza_errore,
+                falliti=falliti_del_giro,
+                mtime_di=file_mtime_ns,
+            )
+            scritto = cursore_sentenze_lex.scrivi_stato(tenant.root, stato_cursore)
+            riepilogo_cursore = cursore_sentenze_lex.riepilogo(stato_cursore)
+            riepilogo_cursore["scritto"] = bool(scritto)
+            riepilogo_cursore["tenant"] = tenant.storage_key
+            riepilogo_cursore["letti_senza_errore"] = len(letti_senza_errore)
+            riepilogo_cursore["falliti_nel_giro"] = len(falliti_del_giro)
+            tenant_report["cursore_persistente"] = riepilogo_cursore
+            report["cursore_persistente"]["tenants"].append(riepilogo_cursore)
+            report["cursore_persistente"]["sospesi"] += int(riepilogo_cursore.get("sospesi") or 0)
+            report["cursore_persistente"]["in_quarantena"] += int(
+                riepilogo_cursore.get("in_quarantena") or 0
+            )
         report["tenants"].append(tenant_report)
     report["totals"]["unique_sentenze"] = len(unique_sentenze)
     report["totals"]["unique_fascicoli_found"] = len(unique_fascicoli_found)
@@ -921,6 +978,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lex-embed-max-batches", type=int, default=3, help="Numero massimo batch embedding per sentenza durante --apply.")
     parser.add_argument("--limit", type=int, default=0, help="Limite globale documenti letti, utile per diagnosi mirate.")
     parser.add_argument("--modified-after-ns", type=int, default=0, help="Cursore incrementale: legge solo extracted_text.json modificati dopo questo mtime_ns.")
+    parser.add_argument(
+        "--cursore-persistente",
+        action="store_true",
+        help="Usa il segnaposto salvato accanto all'archivio del tenant invece di --modified-after-ns.",
+    )
     parser.add_argument("--report", default="", help="Percorso file JSON report.")
     args = parser.parse_args(argv)
 
@@ -937,6 +999,7 @@ def main(argv: list[str] | None = None) -> int:
         skip_lex=bool(args.skip_lex),
         limit=max(0, int(args.limit or 0)),
         modified_after_ns=max(0, int(args.modified_after_ns or 0)),
+        usa_cursore_persistente=bool(args.cursore_persistente),
         lex_embed_batch_size=max(1, int(args.lex_embed_batch_size or 64)),
         lex_embed_max_batches=max(1, int(args.lex_embed_max_batches or 3)),
     )

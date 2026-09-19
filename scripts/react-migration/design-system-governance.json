@@ -24,7 +24,8 @@
     "frontend/src/components/MediazioneRegistryResponsive.css": "Adattamento della stessa tabella mediazione a tablet e mobile, mantenendo tutti i campi e i comandi senza scorrimento orizzontale.",
     "frontend/src/components/templateEditor/templateEditor.css": "Editor atti tipo Word richiesto dall'utente: fogli A4 reali con margini fisici, timbro ripetuto in intestazione, zoom e pannelli a scomparsa su mobile, barra di stato e stampa fedele; token e superfici del preset, nessuno stile inline.",
     "frontend/src/components/fascicoli/letturaFascicolo.css": "Pannello «Lettura del fascicolo» richiesto dall'utente: prossimi passaggi con urgenza, norma e fonte, card dei presìdi (documenti, depositi, notifiche, PEC, scadenze, economico), oggetto, cronologia e schede procedurali con fonti ufficiali; token condivisi, nessuno stile inline, nessuna superficie modale.",
-    "frontend/src/components/strumenti/OcrDocumentoTool.css": "Utility «Da scansione a Word o PDF» in Strumenti forensi richiesta dall'utente: passi dichiarati, destinazione (computer o fascicolo del cliente con stato), formato e conferma; riusa i pattern del riconoscimento del fascicolo, Button e token condivisi; nessuno stile inline."
+    "frontend/src/components/strumenti/OcrDocumentoTool.css": "Utility «Da scansione a Word o PDF» in Strumenti forensi richiesta dall'utente: passi dichiarati, destinazione (computer o fascicolo del cliente con stato), formato e conferma; riusa i pattern del riconoscimento del fascicolo, Button e token condivisi; nessuno stile inline.",
+    "frontend/src/components/mediazione/PdfModulo.css": "Compilazione nel portale del modulo mandato dallo studio, richiesta dall'utente: caselle predisposte posizionate sul foglio, finestra a tutto schermo, comandi delle righe del nucleo familiare e avviso sugli importi di legge superati. Stili staccati da mediazione.css perche' viaggino col componente: nel Portale Cliente arrivava senza, e i campi non si posizionavano. Token condivisi, nessun tema alternativo, nessuno stile inline."
   },
   "approvedCssFiles": [
     "frontend/src/components/AdminDatabasePage.css",
@@ -92,7 +93,9 @@
     "frontend/src/components/fascicoli/letturaFascicolo.css",
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css",
     "frontend/src/components/layout/TopBar.css",
+    "frontend/src/components/mediazione/PdfModulo.css",
     "frontend/src/components/mediazione/mediazione.css",
+    "frontend/src/components/strumenti/OcrDocumentoTool.css",
     "frontend/src/components/templateEditor/templateEditor.css",
     "frontend/src/features/comunicazioni/MailboxPagination.css",
     "frontend/src/features/impostazioni/ImpostazioniPage.css",
@@ -112,8 +115,7 @@
     "frontend/src/theme/layout.css",
     "frontend/src/theme/legal-ui.css",
     "frontend/src/theme/tokens.css",
-    "frontend/src/ui/ui.css",
-    "frontend/src/components/strumenti/OcrDocumentoTool.css"
+    "frontend/src/ui/ui.css"
   ],
   "allowedInlineStyles": [
     {

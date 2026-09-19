@@ -400,6 +400,21 @@ jobs:
             "/ricerca-legale"; do
             check_public_route "${path}"
           done
+          # Portale Cliente pubblico: e' l'unica superficie che l'avvocato non
+          # vede mai da solo, perche' ci entra il cliente con il proprio link.
+          # Un 404 qui significa che il link d'invito mandato ai clienti non
+          # porta da nessuna parte, e senza questo controllo lo scoprirebbe il
+          # cliente. Il token e' palesemente finto e non firmato: la shell
+          # risponde comunque 200 e la pagina dira' «Invito non disponibile»,
+          # senza toccare inviti, dati o sessioni.
+          # Se un giorno il Portale Cliente venisse spento di proposito
+          # (`routes.appV2.clientPortal.enabled`), la rotta risponderebbe 403 e
+          # queste due righe andrebbero tolte insieme alla decisione.
+          for path in \
+            "/portale-cliente" \
+            "/portale-cliente/invito/cp1.verifica-deploy"; do
+            check_public_route "${path}"
+          done
 
       - name: Pulizia immagini e cache build Docker
         if: ${{ always() && steps.setup_ssh.outcome == 'success' }}

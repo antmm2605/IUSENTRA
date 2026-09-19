@@ -1,6 +1,6 @@
 """Test del workflow professionale di firma del Portale Cliente.
 
-Copre i requisiti di sicurezza del flusso: flag default-off fail-closed,
+Copre i requisiti di sicurezza del flusso: flag spento fail-closed,
 token risolto lato server, evidence con hash e mai al cliente, conferimento
 gate-ato dall'accettazione preventivo, consensi obbligatori, PDF originale
 immutato, fallback upload firmato, documento identità con consenso.
@@ -41,8 +41,9 @@ def _app(tmp_path: Path, *, signing_enabled: bool = True):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "client-portal-signing-key"
-    if signing_enabled:
-        app.config["FEATURE_FLAGS"] = {SIGNING_FLAG: True}
+    # Il flag e' scritto sempre, acceso o spento: il test deve dire da se'
+    # quale dei due casi sta coprendo, senza dipendere dal default in vigore.
+    app.config["FEATURE_FLAGS"] = {SIGNING_FLAG: bool(signing_enabled)}
     return app
 
 
@@ -130,7 +131,7 @@ def _gp_runtime(app):
 # ---------------------------------------------------------------- flag off
 
 
-def test_signing_flag_default_off_fail_closed(tmp_path: Path):
+def test_signing_flag_off_fail_closed(tmp_path: Path):
     app = _app(tmp_path, signing_enabled=False)
     _crea_operatore(app)
     cliente, fascicolo = _seed_cliente_fascicolo(app)
@@ -720,3 +721,71 @@ def test_token_non_valido_riceve_errore_opaco(tmp_path: Path):
     assert response.get_json()["code"] == "invalid_invite"
     assert "tenant" not in body.lower()
     assert "Traceback" not in body
+
+
+# ------------------------------------------- preventivo mandato alla firma
+
+
+def test_preventivo_generato_e_proponibile_e_viene_trasmesso(tmp_path: Path):
+    """Mandare alla firma un preventivo solo generato lo trasmette al cliente.
+
+    Prima il form dello studio offriva solo i preventivi gia' INVIATI: un
+    preventivo appena prodotto dal wizard non compariva da nessuna parte e il
+    percorso «preventivo e conferimento incarico» restava irraggiungibile.
+    """
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    preventivo = _seed_preventivo(app, cliente.id, stato=StatoPreventivo.GENERATO)
+
+    with app.test_client() as client:
+        _login(client)
+
+        dashboard = client.get("/api/v1/ui/client-portal/dashboard").get_json()
+        opzioni = {voce["id"]: voce for voce in dashboard["preventivoOptions"]}
+        assert preventivo.id in opzioni
+        assert opzioni[preventivo.id]["status"] == StatoPreventivo.GENERATO.value
+
+        creato = client.post(
+            "/api/v1/ui/client-portal/studio/invites",
+            json={
+                "clientId": cliente.id,
+                "matterId": fascicolo.id,
+                "preventivoId": preventivo.id,
+                "expiresDays": 7,
+            },
+        )
+        assert creato.status_code == 200, creato.get_data(as_text=True)
+
+        # Letto dal runtime dello studio (stessa persistenza dell'app), non da
+        # una copia del file: e' il portale del cliente a doverlo vedere.
+        dopo = client.get("/api/v1/ui/client-portal/dashboard").get_json()
+        aggiornato = {voce["id"]: voce for voce in dopo["preventivoOptions"]}
+        assert aggiornato[preventivo.id]["status"] == StatoPreventivo.INVIATO.value
+
+
+def test_preventivo_in_bozza_non_si_manda_alla_firma(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+    preventivo = _seed_preventivo(app, cliente.id, stato=StatoPreventivo.BOZZA)
+
+    with app.test_client() as client:
+        _login(client)
+
+        dashboard = client.get("/api/v1/ui/client-portal/dashboard").get_json()
+        assert all(voce["id"] != preventivo.id for voce in dashboard["preventivoOptions"])
+
+        rifiutato = client.post(
+            "/api/v1/ui/client-portal/studio/invites",
+            json={
+                "clientId": cliente.id,
+                "matterId": fascicolo.id,
+                "preventivoId": preventivo.id,
+                "expiresDays": 7,
+            },
+        )
+
+    assert rifiutato.status_code == 422
+    assert rifiutato.get_json()["code"] == "validation_error"

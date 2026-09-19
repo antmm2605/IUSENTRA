@@ -25,7 +25,7 @@ Il flusso storico di firma semplice resta governato da
 
 Il **workflow professionale completo** (preventivo → conferimento → documento
 d'identità → firma su PDF → ricevuta) è governato dal flag dedicato
-**`routes.appV2.clientPortal.signingWorkflow`**, **default-off e fail-closed**:
+**`routes.appV2.clientPortal.signingWorkflow`**, **default-on e fail-closed**:
 con il flag disattivato tutti gli endpoint `/public/signing/*` e
 `/studio/documents/<id>/review` rispondono `feature_disabled` (403). Nessuna
 migrazione distruttiva: attivazione/disattivazione senza toccare i dati.
@@ -63,8 +63,7 @@ Chiusura di sicurezza: rimosso l'override locale usato per il collaudo,
 ricostruita la copia Docker reale e verificato che
 `/api/v1/ui/client-portal/public/signing/overview` risponda con stato `403` e
 codice `feature_disabled` quando
-`routes.appV2.clientPortal.signingWorkflow` è spento. La produzione resta quindi
-**default-off/fail-closed** finché lo studio non attiva deliberatamente il flag.
+`routes.appV2.clientPortal.signingWorkflow` è spento.
 
 ## Workflow del cliente (flag `signingWorkflow` attivo)
 

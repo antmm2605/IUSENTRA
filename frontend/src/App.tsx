@@ -1340,14 +1340,11 @@ function DashboardPage({
   )
 }
 
-export default function App() {
-  useVisibleTextGuard()
-  const [, refreshRoute] = useState(0)
-  useEffect(() => {
-    const handleRouteChange = () => refreshRoute((value) => value + 1)
-    window.addEventListener('popstate', handleRouteChange)
-    return () => window.removeEventListener('popstate', handleRouteChange)
-  }, [])
+// Shell operativa dello studio: tutte le sue pagine e tutti i suoi hook. Sta
+// dietro alle uscite di `App`, cosi' gli hook di questa funzione o vengono
+// montati tutti o non viene montata la funzione: React conta e ordina gli hook
+// ad ogni render e uno saltato chiude la pagina con l'errore #310.
+function AppStudio() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
   const routeKey = routePath.toLowerCase()
@@ -1355,21 +1352,6 @@ export default function App() {
   const appV2RequiredFlag = appV2FlagProtectedPath ? appV2FeatureFlagForPath(routeKey) : null
   const appV2UnknownRoute = appV2FlagProtectedPath && !appV2RequiredFlag
   const appV2FlagDenied = appV2RequiredFlag ? !isFeatureFlagEnabledSync(appV2RequiredFlag) : false
-  const forcedLegacyHref = legacyOperationalRedirectHref(activePath)
-  if (forcedLegacyHref) {
-    window.location.replace(forcedLegacyHref)
-    return <PageLoading/>
-  }
-  const isClientPortalPublicPage = routeKey === '/portale-cliente' || routeKey.startsWith('/portale-cliente/')
-  if (isClientPortalPublicPage) {
-    return (
-      <AppErrorBoundary>
-        <Suspense fallback={<PageLoading/>}>
-          <ClientPortalPage mode="client"/>
-        </Suspense>
-      </AppErrorBoundary>
-    )
-  }
   const isSearchPage = routeKey === '/global-search' || routeKey === '/ricerca-studio' || routeKey === '/cerca'
   const isNewAppointmentPage = routeKey === '/agenda/nuovo' || routeKey.startsWith('/agenda/nuovo/')
   const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routeKey)
@@ -1570,4 +1552,36 @@ export default function App() {
       </div>
     </AppErrorBoundary>
   )
+}
+
+export default function App() {
+  useVisibleTextGuard()
+  const [, refreshRoute] = useState(0)
+  useEffect(() => {
+    const handleRouteChange = () => refreshRoute((value) => value + 1)
+    window.addEventListener('popstate', handleRouteChange)
+    return () => window.removeEventListener('popstate', handleRouteChange)
+  }, [])
+  const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
+  const routeKey = normaliseRoutePath(activePath).toLowerCase()
+  const forcedLegacyHref = legacyOperationalRedirectHref(activePath)
+  if (forcedLegacyHref) {
+    window.location.replace(forcedLegacyHref)
+    return <PageLoading/>
+  }
+  // Il Portale Cliente pubblico non e' lo studio: vive fuori dalla shell
+  // operativa, senza barra laterale, dati della Panoramica ne' scorciatoie, e
+  // per quella rotta non deve montarne nulla. Sta qui, davanti ad
+  // <AppStudio/>, proprio perche' un'uscita anticipata dentro AppStudio
+  // salterebbe gli hook che vengono dopo.
+  if (routeKey === '/portale-cliente' || routeKey.startsWith('/portale-cliente/')) {
+    return (
+      <AppErrorBoundary>
+        <Suspense fallback={<PageLoading/>}>
+          <ClientPortalPage mode="client"/>
+        </Suspense>
+      </AppErrorBoundary>
+    )
+  }
+  return <AppStudio/>
 }

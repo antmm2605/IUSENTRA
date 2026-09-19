@@ -27,7 +27,13 @@ from pct.client_portal import (
     utc_now,
 )
 from pct.postgres_runtime_support import database_config_to_dsn, resolve_runtime_postgres_dsn
+from pct.preventivi import StatoPreventivo
 from pct.tenant import GestioneTenant
+from web.services.client_portal_preventivo_stati import (
+    e_proponibile,
+    richiede_trasmissione,
+    stato_di,
+)
 from web.services.client_signature_providers import (
     InternalGraphicSignatureProvider,
     SignatureType,
@@ -476,7 +482,14 @@ def _shape_dashboard(snapshot: dict[str, Any]) -> dict[str, Any]:
 
 
 def _preventivo_options() -> list[dict[str, str]]:
-    """Opzioni preventivo per il form invito (solo con workflow firma attivo)."""
+    """Opzioni preventivo per il form invito (solo con workflow firma attivo).
+
+    Comprende anche i preventivi soltanto generati o verificati: mandarli alla
+    firma del cliente è esattamente l'atto che li trasmette, quindi escluderli
+    avrebbe reso il percorso irraggiungibile finché l'avvocato non li inviava da
+    un'altra pagina. Restano fuori bozza e calcolo in corso: il documento da
+    proporre non esiste ancora.
+    """
 
     if not is_feature_enabled("routes.appV2.clientPortal.signingWorkflow", current_app.config):
         return []
@@ -486,15 +499,14 @@ def _preventivo_options() -> list[dict[str, str]]:
         return []
     options = []
     for preventivo in manager.tutti_preventivi():
-        stato = getattr(getattr(preventivo, "stato", ""), "value", getattr(preventivo, "stato", ""))
-        if _text(stato) not in {"INVIATO", "APERTO"}:
+        if not e_proponibile(preventivo):
             continue
         options.append(
             {
                 "id": _text(getattr(preventivo, "id", "")),
                 "label": f"{_text(getattr(preventivo, 'numero', ''))} — {_text(getattr(preventivo, 'oggetto', ''))}"[:90],
                 "clientId": _text(getattr(preventivo, "id_cliente", "")),
-                "status": _text(stato),
+                "status": stato_di(preventivo),
             }
         )
     return options
@@ -552,6 +564,8 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if _text(getattr(fascicolo, "id_cliente", "")) and _text(getattr(fascicolo, "id_cliente", "")) != client_id:
         return {"ok": False, "code": "validation_error", "message": "Il fascicolo selezionato non è collegato al cliente."}
     preventivo_id = _text(payload.get("preventivoId"))
+    preventivo_da_trasmettere = None
+    gestione_preventivi = None
     if preventivo_id:
         # L'invito può referenziare un preventivo del cliente: usato dal workflow
         # di firma per evidenziarlo. Validazione di appartenenza qui, lato studio.
@@ -560,6 +574,10 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         preventivo = gestione_preventivi.get_preventivo(preventivo_id) if gestione_preventivi else None
         if preventivo is None or _text(getattr(preventivo, "id_cliente", "")) != client_id:
             return {"ok": False, "code": "validation_error", "message": "Il preventivo selezionato non è collegato al cliente."}
+        if not e_proponibile(preventivo):
+            return {"ok": False, "code": "validation_error", "message": "Il preventivo selezionato non è in uno stato che si possa mandare alla firma del cliente."}
+        if richiede_trasmissione(preventivo):
+            preventivo_da_trasmettere = preventivo
     profile = repo.ensure_profile(tenant_id, **_profile_from_cliente(cliente))
     matter_payload = _matter_from_fascicolo(fascicolo)
     matter_payload["client_id"] = client_id
@@ -579,6 +597,17 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         metadata=metadata,
         token_value=token,
     )
+    if preventivo_da_trasmettere is not None and gestione_preventivi is not None:
+        # Mandare alla firma È la trasmissione del preventivo: senza questo
+        # passaggio il cliente aprirebbe il portale e non troverebbe nulla,
+        # perché la mini app mostra solo i preventivi già comunicati.
+        gestione_preventivi.cambia_stato_preventivo(preventivo_id, StatoPreventivo.INVIATO)
+        _audit(
+            "client_portal.preventivo.inviato",
+            "preventivo",
+            preventivo_id,
+            f"{_actor_label()} ha mandato il preventivo alla firma del cliente dal Portale Cliente.",
+        )
     invite_url = _public_url(f"/portale-cliente/invito/{created['token']}")
     repo.add_notification(
         tenant_id,

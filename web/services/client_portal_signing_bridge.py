@@ -30,6 +30,11 @@ from pct.client_portal import (
 )
 from pct.client_portal_access import constant_time_match, generate_otp, hash_secret
 from pct.preventivi import StatoConferimento, StatoPreventivo
+from web.services.client_portal_preventivo_stati import (
+    STATI_ACCETTABILI,
+    STATI_ACCETTATI,
+    STATI_PORTALE,
+)
 from web.services.client_portal_signing_texts import (
     CONFERIMENTO_CONSENT_KEY,
     CONFERIMENTO_CONSENT_TEXT,
@@ -83,14 +88,9 @@ def _request_conferimento_pdf(conferimento_id: str) -> str:
     return f"conferimento-pdf:{conferimento_id}"
 
 
-PREVENTIVO_STATI_PORTALE = {
-    StatoPreventivo.INVIATO,
-    StatoPreventivo.APERTO,
-    StatoPreventivo.ACCETTATO,
-    StatoPreventivo.CONVERTITO,
-}
-PREVENTIVO_STATI_ACCETTABILI = {StatoPreventivo.INVIATO, StatoPreventivo.APERTO}
-PREVENTIVO_STATI_ACCETTATI = {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO}
+PREVENTIVO_STATI_PORTALE = STATI_PORTALE
+PREVENTIVO_STATI_ACCETTABILI = STATI_ACCETTABILI
+PREVENTIVO_STATI_ACCETTATI = STATI_ACCETTATI
 
 SIGNATURE_IMAGE_MAX_BYTES = 300 * 1024
 DECLINE_REASON_MAX_CHARS = 500

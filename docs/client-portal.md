@@ -58,7 +58,7 @@ Ogni tabella include `tenant_id`. I file caricati sono salvati sotto storage ten
 - `routes.appV2.clientPortal.enabled`: abilita console studio e vista cliente, default `on`;
 - `routes.appV2.clientPortal.notifications`: notifiche in-app, default `on`;
 - `routes.appV2.clientPortal.signatures`: firma semplice con evidenza, default `on`;
-- `routes.appV2.clientPortal.signingWorkflow`: workflow professionale preventivo/conferimento/identità/firma su PDF con evidenze, **default `off`** e fail-closed (vedi `docs/portale-cliente-firma.md`);
+- `routes.appV2.clientPortal.signingWorkflow`: workflow professionale preventivo/conferimento/identità/firma su PDF con evidenze, default `on` e fail-closed quando spento (vedi `docs/portale-cliente-firma.md`);
 - `routes.appV2.clientPortal.webPush`: Web Push cliente, default `off`;
 - `routes.appV2.clientPortal.videoCalls`: link videocall governati, default `on`.
 

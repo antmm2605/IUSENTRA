@@ -125,19 +125,6 @@ export function WizardProPage() {
     return () => { active = false }
   }, [])
 
-  if (loadError) {
-    return (
-      <main className="iu-wiz-page">
-        <aside className="iu-wiz-selected">
-          <AlertTriangle size={24}/>
-          <h2>Preparazione non disponibile</h2>
-          <p>{loadError}</p>
-          <button className="iu-wiz-btn primary" type="button" onClick={() => window.location.reload()}>Riprova</button>
-        </aside>
-      </main>
-    )
-  }
-
   const filtered = useMemo(() => {
     const rows = data?.cases ?? []
     const q = query.trim().toLowerCase()
@@ -151,6 +138,19 @@ export function WizardProPage() {
       return true
     })
   }, [data, query, stateFilter, onlyUpcoming, onlyMissingDocs])
+
+  if (loadError) {
+    return (
+      <main className="iu-wiz-page">
+        <aside className="iu-wiz-selected">
+          <AlertTriangle size={24}/>
+          <h2>Preparazione non disponibile</h2>
+          <p>{loadError}</p>
+          <button className="iu-wiz-btn primary" type="button" onClick={() => window.location.reload()}>Riprova</button>
+        </aside>
+      </main>
+    )
+  }
 
   if (!data) {
     return <main className="iu-wiz-page"><div className="iu-wiz-loading">Caricamento preparazioni udienza...</div></main>

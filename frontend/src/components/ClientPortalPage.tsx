@@ -675,7 +675,8 @@ function ClientPortalStudio() {
               </div>
               {!firmaIncaricoAttiva ? (
                 <p className="iu-client-portal-muted">
-                  Il percorso di firma non è attivo per questo studio: si abilita dalle impostazioni (firma del Portale Cliente).
+                  Il percorso di firma è spento per questo studio. È attivo di serie: se non lo vedi, è stato disattivato
+                  nella configurazione del server (funzione «firma del Portale Cliente») e va riacceso dall'amministratore.
                 </p>
               ) : preventiviDelCliente.length === 0 ? (
                 <p className="iu-client-portal-muted">
@@ -1064,6 +1065,23 @@ function ClientPortalClient() {
     void load()
   }, [])
 
+  // La conversazione viva e lo scorrimento della chat sono agganciati qui, con
+  // tutti gli altri hook: sotto ci sono le uscite anticipate (caricamento in
+  // corso, accesso non valido) e un hook dichiarato dopo di esse verrebbe
+  // eseguito solo in alcuni render. React lo rifiuta con l'errore #310
+  // («rendered more hooks than during the previous render») e il portale del
+  // cliente si chiudeva con la schermata di cortesia appena i dati arrivavano.
+  const messages = useConversazioneViva({
+    attiva: Boolean(token),
+    iniziali: (payload.messages || []) as MessaggioPortale[],
+    carica: (segnalibro) => caricaConversazioneCliente(segnalibro, token),
+  }) as PortalRow[]
+
+  useEffect(() => {
+    const node = chatScrollRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [messages.length])
+
   const applyClientResponse = (response: ClientPortalResponse) => {
     if (response.dashboard?.surface === 'client') setPayload(response.dashboard as ClientPortalClientPayload)
     setNotice({ tone: response.ok ? 'success' : 'warning', text: text(response.message, response.ok ? 'Operazione completata.' : 'Operazione non completata.') })
@@ -1178,16 +1196,6 @@ function ClientPortalClient() {
   }
 
   const progress = numberValue(payload.matter?.progress)
-  const messages = useConversazioneViva({
-    attiva: Boolean(token),
-    iniziali: (payload.messages || []) as MessaggioPortale[],
-    carica: (segnalibro) => caricaConversazioneCliente(segnalibro, token),
-  }) as PortalRow[]
-
-  useEffect(() => {
-    const node = chatScrollRef.current
-    if (node) node.scrollTop = node.scrollHeight
-  }, [messages.length])
   const completion = payload.profileCompletion
   const uploadLimits = payload.uploadLimits
 

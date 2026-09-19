@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from functools import wraps
+from io import BytesIO
+from pathlib import Path
 from typing import Any, Callable
 
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, request, send_file
 
+from web.bootstrap.fascicoli_document_helpers import render_pdf_page_png
 from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
+    violations_without_portal_download_token,
 )
 from web.services.client_portal_moduli import (
     campi_del_modulo,
@@ -105,20 +109,12 @@ def _backend_security_guard():
     violations = backend_control_violations_for_request(request)
     if not violations:
         return None
-    # Eccezione mirata: il download pubblico del portale clienti riceve il token
-    # di sessione in query string perche' viene aperto via <a download> da link
-    # condivisi (email/SMS) — non e' possibile impostare header X-... su un click.
-    # Il token e' validato lato server contro la tabella client_portal_sessions
-    # (vedi client_document_download); resta un parametro di autenticazione,
-    # non un controllo server arbitrario.
-    if (
-        request.method == "GET"
-        and "/public/documents/" in request.path
-        and request.path.endswith("/download")
-    ):
-        violations = [v for v in violations if not (v.source == "query" and v.key == "token")]
-        if not violations:
-            return None
+    # Il token in query dello scarico pubblico e' autenticazione del portale,
+    # non un controllo server: la regola sta in backend_security, cosi' il
+    # guard globale di tenant_isolation_runtime e questo non possono divergere.
+    violations = violations_without_portal_download_token(request, violations)
+    if not violations:
+        return None
     return backend_security_error_response(violations)
 
 
@@ -295,13 +291,54 @@ def public_document_upload():
     return _json(client_upload_document(file, request_id=str(request.form.get("requestId") or "")))
 
 
+def _pagina_richiesta() -> int:
+    """Il numero di pagina chiesto per l'anteprima, 0 se non e' un'anteprima.
+
+    Stessa convenzione gia' in uso per gli allegati PEC e i documenti del
+    fascicolo (`?viewer=mobile&page=N`): il compilatore dei moduli mostra la
+    pagina come immagine, perche' un `<img>` non sa disegnare un PDF.
+    """
+    if str(request.args.get("viewer") or "").strip().casefold() not in {"mobile", "pages", "reader"}:
+        return 0
+    try:
+        return max(int(str(request.args.get("page") or "1").strip()), 1)
+    except ValueError:
+        return 0
+
+
 @api_v1_client_portal.get("/public/documents/<document_id>/download")
 def public_document_file(document_id: str):
     result = client_document_download(document_id, token=str(request.args.get("token") or ""))
     if isinstance(result, dict):
         return _json(result)
     path, filename, content_type = result
-    return send_file(path, mimetype=content_type, as_attachment=True, download_name=filename)
+
+    pagina = _pagina_richiesta()
+    if pagina and str(content_type or "").split(";", 1)[0].strip().lower() == "application/pdf":
+        try:
+            png = render_pdf_page_png(path.read_bytes(), pagina)
+        except Exception as errore:
+            current_app.logger.warning(
+                "Anteprima pagina non disponibile per il documento %s (pagina %s): %s",
+                document_id,
+                pagina,
+                errore,
+            )
+            return _json({"ok": False, "code": "preview_unavailable", "message": "Anteprima della pagina non disponibile."})
+        risposta = send_file(
+            BytesIO(png),
+            mimetype="image/png",
+            as_attachment=False,
+            download_name=f"{Path(filename).stem}-pagina-{pagina}.png",
+            conditional=False,
+        )
+        risposta.headers["Cache-Control"] = "private, max-age=3600"
+        return risposta
+
+    # `inline=1`: il portale dice «leggi il documento», e leggerlo vuol dire
+    # aprirlo nel browser, non trovarselo nella cartella degli scaricati.
+    inline = str(request.args.get("inline") or "").strip() in {"1", "true", "si"}
+    return send_file(path, mimetype=content_type, as_attachment=not inline, download_name=filename)
 
 
 @api_v1_client_portal.post("/public/signatures/<signature_id>/complete")

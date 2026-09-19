@@ -116,6 +116,40 @@ def test_portal_public_download_accetta_token_in_query(tmp_path: Path):
     assert response.status_code != 400 or response.get_json().get("code") != "backend_security_control_param"
 
 
+def test_portal_public_download_passa_anche_con_sessione_studio_aperta(tmp_path: Path):
+    """Lo stesso link deve funzionare anche da un browser gia' loggato allo studio.
+
+    Regressione: l'eccezione per il token in query viveva solo nel
+    `before_request` del blueprint del portale, ma il guard globale
+    `enforce_ui_api_backend_security_runtime` (tenant_isolation_runtime) gira
+    prima e rispondeva 400 non appena la richiesta risultava autenticata. Il
+    test gemello qui sopra non se ne accorgeva perche' chiamava da anonimo, e
+    da anonimo il guard globale non si attiva: l'avvocato che apriva il portale
+    del cliente dalla stessa sessione non scaricava piu' nulla.
+    """
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/client-portal/public/documents/cpd_demo/download?token=cp1.fake-token",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    assert response.status_code != 400 or response.get_json().get("code") != "backend_security_control_param"
+
+
+def test_portal_token_in_query_resta_bloccato_con_sessione_studio(tmp_path: Path):
+    """L'eccezione vale solo per lo scarico: altrove il token resta vietato."""
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/client-portal/public/dashboard?token=cp1.fake-token",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    assert response.status_code == 400
+    assert response.get_json()["code"] == "backend_security_control_param"
+
+
 def test_portal_public_token_resta_bloccato_su_altre_route(tmp_path: Path):
     """Su route che NON sono il download del documento, ?token= resta bloccato."""
     app = _app(tmp_path)

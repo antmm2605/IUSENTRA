@@ -18,6 +18,7 @@ verificare e correggere i propri dati e' un adempimento, non una comodita'.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 #: I campi dell'anagrafica del portale, nell'ordine in cui la scheda li mostra.
@@ -65,6 +66,27 @@ def _via_e_civico(indirizzo: Any) -> str:
     via = _testo(getattr(indirizzo, "via", ""))
     civico = _testo(getattr(indirizzo, "civico", ""))
     return _testo(f"{via} {civico}") if via else ""
+
+
+def separa_via_e_civico(indirizzo: str) -> tuple[str, str]:
+    """Divide «Via Roma 12/A» in via e civico, ma solo quando e' evidente.
+
+    La scheda dello studio tiene via e civico in due campi; il portale ne ha
+    uno solo. Si stacca l'ultima parola solo se ha la forma di un civico
+    (cifre, eventualmente con lettera o barra: 87, 12/A, 5bis). In ogni altro
+    caso l'indirizzo resta intero nella via: meglio un campo civico vuoto che
+    un civico inventato.
+    """
+    testo = _testo(indirizzo)
+    if not testo:
+        return "", ""
+    parti = testo.split(" ")
+    if len(parti) < 2:
+        return testo, ""
+    ultima = parti[-1]
+    if re.fullmatch(r"\d+[/\-]?[A-Za-z]{0,3}", ultima) and any(ch.isdigit() for ch in ultima):
+        return " ".join(parti[:-1]), ultima
+    return testo, ""
 
 
 def anagrafica_dallo_studio(cliente: Any) -> dict[str, str]:
@@ -135,9 +157,76 @@ def origine_dei_campi(
     return origini
 
 
+#: Come ogni campo del portale si riporta sulla scheda cliente dello studio.
+#: La chiave e' il campo del portale, il valore dice su quale struttura di
+#: `pct.clienti.Cliente` vive quel dato e con quale nome. Le strutture sono
+#: quelle dichiarate nella dataclass: campo piatto, `recapiti`, l'indirizzo di
+#: residenza, `documento`. Un campo che lo studio non conosce non compare qui.
+DESTINAZIONE_SULLA_SCHEDA: dict[str, tuple[str, str]] = {
+    "email": ("recapiti", "email"),
+    "phone": ("recapiti", "cellulare"),
+    "pec": ("recapiti", "pec"),
+    "fiscalCode": ("cliente", "codice_fiscale"),
+    "vatNumber": ("cliente", "partita_iva"),
+    "birthDate": ("cliente", "data_nascita"),
+    "birthPlace": ("cliente", "luogo_nascita"),
+    "address": ("indirizzo", "via"),
+    "cap": ("indirizzo", "cap"),
+    "city": ("indirizzo", "comune"),
+    "province": ("indirizzo", "provincia"),
+    "identityExpiresAt": ("documento", "data_scadenza"),
+}
+
+
+def aggiornamenti_per_la_scheda(
+    cliente: Any,
+    anagrafica: dict[str, Any] | None,
+) -> tuple[dict[str, dict[str, str]], dict[str, tuple[str, str]]]:
+    """Che cosa scrivere sulla scheda dello studio e che cosa invece diverge.
+
+    Restituisce due cose distinte:
+
+    - gli aggiornamenti, raggruppati per struttura (`cliente`, `recapiti`,
+      `indirizzo`, `documento`), cioe' i campi che sulla scheda sono **vuoti**
+      e che il cliente ha compilato: li si scrive;
+    - le divergenze: campi che la scheda ha gia' valorizzati **in modo diverso**
+      da quanto dichiara il cliente. Non si sovrascrivono di nascosto — il dato
+      del fascicolo e' l'atto dello studio — ma non si perdono: chi chiama le
+      segnala allo studio, che decide (GDPR art. 16, diritto di rettifica).
+
+    `nome` e `cognome` non si toccano: il portale ha un solo campo
+    «Nome e cognome» e dividerlo sarebbe un'invenzione.
+    """
+    campi = anagrafica or {}
+    aggiornamenti: dict[str, dict[str, str]] = {}
+    divergenze: dict[str, tuple[str, str]] = {}
+    if cliente is None:
+        return aggiornamenti, divergenze
+    attuale = anagrafica_dallo_studio(cliente)
+    for campo, (struttura, attributo) in DESTINAZIONE_SULLA_SCHEDA.items():
+        scritto = _testo(campi.get(campo))
+        if not scritto:
+            continue
+        gia_in_scheda = _testo(attuale.get(campo))
+        if not gia_in_scheda:
+            if campo == "address":
+                via, civico = separa_via_e_civico(scritto)
+                aggiornamenti.setdefault(struttura, {})["via"] = via
+                if civico:
+                    aggiornamenti[struttura]["civico"] = civico
+                continue
+            aggiornamenti.setdefault(struttura, {})[attributo] = scritto
+        elif gia_in_scheda.casefold() != scritto.casefold():
+            divergenze[campo] = (gia_in_scheda, scritto)
+    return aggiornamenti, divergenze
+
+
 __all__ = [
     "CAMPI_PORTALE",
     "CAMPI_SOLO_DEL_CLIENTE",
+    "DESTINAZIONE_SULLA_SCHEDA",
+    "aggiornamenti_per_la_scheda",
+    "separa_via_e_civico",
     "anagrafica_dallo_studio",
     "origine_dei_campi",
     "unisci_anagrafica",

@@ -82,7 +82,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }:
     {!data.campi.length ? <p>Questo PDF non contiene campi predisposti. Il modello originale rimane consultabile; non è stato trasformato o compilato automaticamente.</p> : null}
     <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
       <div className="iu-mediazione-pdf-sheet" style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}>
-        <img src={`${previewUrl}?viewer=mobile&page=${page}`} alt={`Pagina ${page} del modulo dell’organismo`} onError={() => setError('Anteprima non disponibile. Non compilare senza verificare la pagina.')} />
+        <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}`} alt={`Pagina ${page} del modulo dell’organismo`} onError={() => setError('Anteprima non disponibile. Non compilare senza verificare la pagina.')} />
         {fields.map((f, i) => {
           const current = values[f.nome] ?? (f.tipo === 'CheckBox' ? f.selezionato : f.valore)
           const style = { left: `${f.rettangolo[0] * 100}%`, top: `${f.rettangolo[1] * 100}%`, width: `${f.rettangolo[2] * 100}%`, height: `${f.rettangolo[3] * 100}%` }

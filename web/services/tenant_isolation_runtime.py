@@ -12,6 +12,7 @@ from pct.tenant import GestioneTenant
 from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
+    violations_without_portal_download_token,
 )
 from web.services.tenant_api_auth import attach_api_tenant_context_from_headers
 
@@ -556,6 +557,13 @@ def register_tenant_isolation_runtime(app: Flask) -> None:
             return None
 
         violations = backend_control_violations_for_request(request)
+        # Lo scarico pubblico di un documento del portale porta il token di
+        # sessione in query string: e' autenticazione, non un controllo server.
+        # Il filtro sta in backend_security, usato anche dal blueprint del
+        # portale: questo guard globale gira prima di quello di blueprint, e
+        # senza questa riga il link mandato al cliente riceveva 400 ogni volta
+        # che il browser aveva una sessione studio aperta.
+        violations = violations_without_portal_download_token(request, violations)
         if not violations:
             return None
 

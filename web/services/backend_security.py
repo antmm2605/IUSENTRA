@@ -205,6 +205,45 @@ def backend_control_violations_for_request(req: Any) -> list[BackendSecurityViol
     return violations[:MAX_SECURITY_VIOLATIONS]
 
 
+def is_public_portal_document_download(req: Any) -> bool:
+    """La richiesta e' lo scarico pubblico di un documento del portale cliente.
+
+    Il link arriva al cliente per email o SMS e viene aperto con un click: su
+    un `<a href>` non si possono mettere header, percio' il token di sessione
+    del portale viaggia in query string. E' un parametro di autenticazione,
+    validato lato server contro `client_portal_sessions`, non un controllo
+    server scelto dal client.
+    """
+    return (
+        _text_attr(req, "method").upper() == "GET"
+        and "/public/documents/" in _text_attr(req, "path")
+        and _text_attr(req, "path").endswith("/download")
+    )
+
+
+def _text_attr(req: Any, nome: str) -> str:
+    valore = getattr(req, nome, "")
+    return str(valore if valore is not None else "")
+
+
+def violations_without_portal_download_token(
+    req: Any,
+    violations: list[BackendSecurityViolation],
+) -> list[BackendSecurityViolation]:
+    """Toglie la sola violazione «token in query» dello scarico del portale.
+
+    La regola sta qui, in un punto solo, perche' i controlli che la applicano
+    sono due e a livelli diversi — il guard globale sugli endpoint
+    `/api/v1/ui/` e quello del blueprint del portale — e se divergono il link
+    del cliente smette di funzionare senza che nessun test lo dica. Ogni altra
+    violazione resta e blocca la richiesta.
+    """
+    if not violations or not is_public_portal_document_download(req):
+        return violations
+    return [v for v in violations if not (v.source == "query" and v.key == "token")]
+
+
+
 def backend_security_error_payload(violations: Iterable[BackendSecurityViolation]) -> dict[str, Any]:
     return {
         "ok": False,

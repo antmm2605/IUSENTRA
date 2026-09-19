@@ -12,8 +12,10 @@ from __future__ import annotations
 
 from pct.anagrafica_cliente_portale import (
     CAMPI_PORTALE,
+    aggiornamenti_per_la_scheda,
     anagrafica_dallo_studio,
     origine_dei_campi,
+    separa_via_e_civico,
     unisci_anagrafica,
 )
 from pct.clienti import Cliente, DocumentoIdentita, Indirizzo, Recapiti, TipoCliente
@@ -109,3 +111,90 @@ def test_l_origine_distingue_confermato_da_proposto():
     assert origini["city"] == "studio"
     # La professione non e' un campo della scheda dello studio: resta da scrivere.
     assert origini["profession"] == ""
+
+
+def test_quello_che_il_cliente_compila_torna_sui_campi_veri_della_scheda():
+    """I recapiti stanno in `recapiti`, l'indirizzo in `indirizzo_residenza`.
+
+    Regressione: la sincronizzazione scriveva su attributi piatti (`email`,
+    `telefono`, `citta`) che la dataclass Cliente non ha, e li scartava in
+    silenzio: la scheda dello studio non si aggiornava mai.
+    """
+    cliente = Cliente(id="CL-2", tipo=TipoCliente.PERSONA_FISICA, nome="Antonio", cognome="Affinito")
+
+    aggiornamenti, divergenze = aggiornamenti_per_la_scheda(
+        cliente,
+        {
+            "email": "antonio@example.it",
+            "phone": "3331234567",
+            "pec": "antonio@pec.it",
+            "fiscalCode": "FFNNTN86S10A512G",
+            "birthDate": "1986-11-10",
+            "birthPlace": "Aversa",
+            "address": "Via Emanuele Campolongo 87",
+            "cap": "81024",
+            "city": "Maddaloni",
+            "province": "CE",
+            "identityExpiresAt": "2030-11-10",
+            "profession": "Impiegato",
+        },
+    )
+
+    assert divergenze == {}
+    assert aggiornamenti["recapiti"] == {"email": "antonio@example.it", "cellulare": "3331234567", "pec": "antonio@pec.it"}
+    assert aggiornamenti["cliente"] == {
+        "codice_fiscale": "FFNNTN86S10A512G",
+        "data_nascita": "1986-11-10",
+        "luogo_nascita": "Aversa",
+    }
+    assert aggiornamenti["indirizzo"] == {
+        "via": "Via Emanuele Campolongo",
+        "civico": "87",
+        "cap": "81024",
+        "comune": "Maddaloni",
+        "provincia": "CE",
+    }
+    assert aggiornamenti["documento"] == {"data_scadenza": "2030-11-10"}
+    # La professione non e' un campo della scheda: non si inventa dove metterla.
+    assert "profession" not in str(aggiornamenti)
+
+
+def test_un_dato_gia_in_scheda_non_si_sovrascrive_ma_si_segnala():
+    cliente = _cliente_completo()
+
+    aggiornamenti, divergenze = aggiornamenti_per_la_scheda(
+        cliente,
+        {"email": "nuova@example.it", "phone": "3331234567", "city": "Avellino"},
+    )
+
+    assert aggiornamenti == {}
+    assert divergenze == {"email": ("antonio@example.it", "nuova@example.it")}
+
+
+def test_lo_stesso_dato_scritto_diversamente_non_e_una_divergenza():
+    cliente = _cliente_completo()
+
+    _aggiornamenti, divergenze = aggiornamenti_per_la_scheda(cliente, {"email": "Antonio@Example.it", "province": "AV"})
+
+    assert divergenze == {}
+
+
+def test_il_civico_si_stacca_solo_quando_e_un_civico():
+    assert separa_via_e_civico("Via Emanuele Campolongo 87") == ("Via Emanuele Campolongo", "87")
+    assert separa_via_e_civico("Piazza Garibaldi 12/A") == ("Piazza Garibaldi", "12/A")
+    assert separa_via_e_civico("Contrada Serroni") == ("Contrada Serroni", "")
+    assert separa_via_e_civico("Largo 8 Marzo") == ("Largo 8 Marzo", "")
+
+
+def test_l_indirizzo_riletto_torna_come_il_cliente_lo_ha_scritto():
+    cliente = Cliente(id="CL-3", tipo=TipoCliente.PERSONA_FISICA, nome="Antonio", cognome="Affinito")
+
+    aggiornamenti, _divergenze = aggiornamenti_per_la_scheda(cliente, {"address": "Via Emanuele Campolongo 87"})
+    for attributo, valore in aggiornamenti["indirizzo"].items():
+        setattr(cliente.indirizzo_residenza, attributo, valore)
+
+    assert anagrafica_dallo_studio(cliente)["address"] == "Via Emanuele Campolongo 87"
+
+
+def test_senza_cliente_non_si_aggiorna_nulla():
+    assert aggiornamenti_per_la_scheda(None, {"email": "a@b.it"}) == ({}, {})

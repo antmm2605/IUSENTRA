@@ -1170,36 +1170,143 @@ def _profile_completion(profile: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _sync_profile_to_cliente(client_id: str, core: dict[str, str], anagrafica: dict[str, str]) -> None:
-    """Riporta best-effort i dati compilati dal cliente sulla scheda anagrafica dello studio."""
+def _campi_portale_completi(core: dict[str, str], anagrafica: dict[str, str]) -> dict[str, str]:
+    """I campi dell'anagrafica del portale in un dizionario solo, come li legge
+    `pct.anagrafica_cliente_portale`: i campi propri del profilo piu' quelli
+    tenuti nelle preferenze."""
+    campi = {chiave: _text(valore) for chiave, valore in (anagrafica or {}).items()}
+    for chiave_portale, valore in (
+        ("displayName", core.get("display_name")),
+        ("email", core.get("email")),
+        ("phone", core.get("phone")),
+        ("fiscalCode", core.get("fiscal_code")),
+        ("identityExpiresAt", core.get("identity_expires_at")),
+    ):
+        testo = _text(valore)
+        if testo:
+            campi[chiave_portale] = testo
+    return campi
+
+
+def _sync_profile_to_cliente(client_id: str, core: dict[str, str], anagrafica: dict[str, str]) -> dict[str, tuple[str, str]]:
+    """Riporta sulla scheda anagrafica dello studio quello che il cliente ha compilato.
+
+    I dati della scheda non stanno tutti allo stesso posto: i recapiti in
+    `Cliente.recapiti`, l'indirizzo in `Cliente.indirizzo_residenza`, la
+    scadenza del documento in `Cliente.documento`. La mappa dei campi e i
+    metodi giusti del gestore si usano qui; dove la scheda e' vuota si scrive,
+    dove dice gia' qualcosa di diverso non si sovrascrive di nascosto: la
+    divergenza torna al chiamante, che la segnala allo studio (GDPR art. 16).
+
+    Restituisce le divergenze trovate: campo del portale -> (in scheda, dichiarato).
+    """
     try:
+        from pct.anagrafica_cliente_portale import aggiornamenti_per_la_scheda
+
         manager = _clienti_manager()
         cliente = _cliente_by_id(client_id)
-        if not cliente or not hasattr(manager, "aggiorna"):
-            return
-        updates: dict[str, Any] = {}
-        mapping = {
-            "email": core.get("email"),
-            "telefono": core.get("phone"),
-            "codice_fiscale": core.get("fiscal_code"),
-            "indirizzo": anagrafica.get("address"),
-            "cap": anagrafica.get("cap"),
-            "citta": anagrafica.get("city"),
-            "provincia": anagrafica.get("province"),
-            "pec": anagrafica.get("pec"),
-            "partita_iva": anagrafica.get("vatNumber"),
-            "data_nascita": anagrafica.get("birthDate"),
-            "luogo_nascita": anagrafica.get("birthPlace"),
-            "professione": anagrafica.get("profession"),
-        }
-        for attr, value in mapping.items():
-            value = _text(value)
-            if value and hasattr(cliente, attr) and not _text(getattr(cliente, attr, "")):
-                updates[attr] = value
-        if updates:
-            manager.aggiorna(client_id, **updates)
+        if manager is None or cliente is None:
+            return {}
+        aggiornamenti, divergenze = aggiornamenti_per_la_scheda(cliente, _campi_portale_completi(core, anagrafica))
+        scritture = (
+            ("cliente", "aggiorna", {}),
+            ("recapiti", "aggiorna_recapiti", {}),
+            ("indirizzo", "aggiorna_indirizzo", {"tipo": "residenza"}),
+            ("documento", "aggiorna_documento", {}),
+        )
+        for struttura, metodo, extra in scritture:
+            campi = aggiornamenti.get(struttura)
+            if not campi:
+                continue
+            funzione = getattr(manager, metodo, None)
+            if not callable(funzione):
+                continue
+            try:
+                funzione(client_id, **extra, **campi)
+            except ValueError as errore:
+                # Un dato non valido (codice fiscale, partita IVA) non deve far
+                # fallire il resto della scheda: si annota e si prosegue.
+                current_app.logger.warning(
+                    "Anagrafica portale: campo rifiutato dalla scheda cliente %s (%s): %s",
+                    client_id,
+                    metodo,
+                    errore,
+                )
+        return divergenze
     except Exception:
         current_app.logger.exception("Sync anagrafica portale -> scheda cliente non riuscita per %s", client_id)
+        return {}
+
+
+def _segnala_divergenze_anagrafica(
+    repo: Any,
+    *,
+    tenant_id: str,
+    matter_id: str,
+    client_id: str,
+    display_name: str,
+    divergenze: dict[str, tuple[str, str]],
+) -> None:
+    """Dice allo studio dove il cliente dichiara qualcosa di diverso dalla scheda.
+
+    Il dato del fascicolo non si sovrascrive da solo: lo studio legge la
+    differenza e decide se rettificare. Si scrive una volta sola per ogni
+    insieme di divergenze, altrimenti ogni salvataggio ripeterebbe lo stesso
+    messaggio in chat.
+    """
+    if not divergenze:
+        return
+    etichette = {
+        "email": "Email",
+        "phone": "Telefono",
+        "pec": "PEC",
+        "fiscalCode": "Codice fiscale",
+        "vatNumber": "Partita IVA",
+        "birthDate": "Data di nascita",
+        "birthPlace": "Luogo di nascita",
+        "address": "Indirizzo",
+        "cap": "CAP",
+        "city": "Città",
+        "province": "Provincia",
+        "identityExpiresAt": "Scadenza documento",
+    }
+    righe = [
+        f"• {etichette.get(campo, campo)}: in scheda «{in_scheda}», il cliente dichiara «{dichiarato}»"
+        for campo, (in_scheda, dichiarato) in sorted(divergenze.items())
+    ]
+    firma = "|".join(f"{campo}={dichiarato}" for campo, (_vecchio, dichiarato) in sorted(divergenze.items()))
+    try:
+        profilo = repo.get_profile(tenant_id, client_id) or {}
+        preferenze = profilo.get("preferences")
+        if not isinstance(preferenze, dict):
+            preferenze = json_loads(profilo.get("preferences_json"), {})
+        preferenze = dict(preferenze) if isinstance(preferenze, dict) else {}
+        if _text(preferenze.get("anagrafica_divergenze_segnalate")) == firma:
+            return
+        nome = _text(display_name, "Il cliente")
+        repo.add_message(
+            tenant_id,
+            matter_id=matter_id,
+            sender_type="cliente",
+            sender_id=client_id,
+            body=(
+                f"⚠️ {nome} ha dichiarato dati diversi da quelli in scheda. "
+                "La scheda non è stata modificata: verificate e rettificate voi.\n" + "\n".join(righe)
+            ),
+        )
+        repo.record_audit(
+            tenant_id,
+            "cliente",
+            client_id,
+            "client_portal.profile.divergent",
+            "profile",
+            _text(profilo.get("id")),
+            {"campi": sorted(divergenze)},
+        )
+        preferenze["anagrafica_divergenze_segnalate"] = firma
+        repo.update_preferences(tenant_id, client_id=client_id, preferences=preferenze)
+    except Exception:
+        current_app.logger.exception("Segnalazione divergenze anagrafica non riuscita per %s", client_id)
 
 
 def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
@@ -1226,7 +1333,15 @@ def client_update_profile(payload: dict[str, Any]) -> dict[str, Any]:
                 anagrafica[field] = _text(payload.get(field))
         profile = repo.update_preferences(tenant_id, client_id=client_id, preferences={"anagrafica": anagrafica})
 
-        _sync_profile_to_cliente(client_id, core_fields, anagrafica)
+        divergenze = _sync_profile_to_cliente(client_id, core_fields, anagrafica)
+        _segnala_divergenze_anagrafica(
+            repo,
+            tenant_id=tenant_id,
+            matter_id=_text(invite.get("matter_id")),
+            client_id=client_id,
+            display_name=_text(profile.get("display_name")),
+            divergenze=divergenze,
+        )
 
         completion = _profile_completion(profile)
         message = "Anagrafica aggiornata."

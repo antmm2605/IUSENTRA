@@ -156,22 +156,28 @@ def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None
     if not getattr(esito, "found", False):
         return []
     fascicolo = meta.get("fascicolo")
-    if fascicolo is not None:
-        try:
-            contesto = validate_sentenza_fascicolo_context(
-                text=grezzo,
-                extraction=esito,
-                fascicolo=fascicolo,
-                metadata=meta,
-                fascicolo_id=_testo(getattr(fascicolo, "id", "")),
-            )
-        except Exception:
-            return []
-        if not contesto.ok:
-            # Una sentenza usata come precedente o materiale istruttorio può
-            # stare nel fascicolo, ma non deve alimentare incassi, fatturazione
-            # o passi economici se non conferma insieme cliente e RG.
-            return []
+    if fascicolo is None:
+        # Senza il fascicolo non si puo' dire se questa sentenza sia la nostra:
+        # una liquidazione attribuita alla pratica sbagliata diventa una voce in
+        # parcella e una proforma verso un cliente che non c'entra. Chi legge un
+        # documento deve dichiarare per quale fascicolo lo sta leggendo; qui non
+        # si indovina e non si estrae nulla.
+        return []
+    try:
+        contesto = validate_sentenza_fascicolo_context(
+            text=grezzo,
+            extraction=esito,
+            fascicolo=fascicolo,
+            metadata=meta,
+            fascicolo_id=_testo(getattr(fascicolo, "id", "")),
+        )
+    except Exception:
+        return []
+    if not contesto.ok:
+        # Una sentenza usata come precedente o materiale istruttorio può
+        # stare nel fascicolo, ma non deve alimentare incassi, fatturazione
+        # o passi economici se non conferma insieme cliente e RG.
+        return []
     coppie = (
         ("liquidazione_giudice", esito.liquidazione_importo, esito.liquidazione_titolo),
         ("spese_esborsi", esito.spese_esborsi_importo, esito.spese_esborsi_titolo),

@@ -1075,7 +1075,20 @@ def registra_lettura_ocr_nell_archivio(job: Any, testo: str) -> int:
             except Exception:
                 fascicolo = {}
         contesto = contesto_da_fascicolo(fascicolo)
-        fatti = _attribuisci(leggi_testo(testo, origine="ocr", contesto=contesto, nome=job.nome_doc), oggetto, "documenti")
+        # Il fascicolo non serve solo al contesto delle date: senza, la lettura
+        # non puo' verificare che una sentenza parli davvero di questo fascicolo
+        # (RG e cliente) e i suoi importi finirebbero nella parte economica di
+        # una pratica che non c'entra.
+        metadata_ocr = {
+            "fascicolo": fascicolo,
+            "documento_id": _testo(getattr(job, "id_doc", "")),
+            "fascicolo_id": _testo(getattr(job, "id_fasc", "")),
+        }
+        fatti = _attribuisci(
+            leggi_testo(testo, origine="ocr", contesto=contesto, nome=job.nome_doc, metadata=metadata_ocr),
+            oggetto,
+            "documenti",
+        )
         registro.registra_fatti(tenant, job.id_fasc, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
         registro.segna_letto(tenant, job.id_fasc, oggetto, LETTORE_DOCUMENTI, esito={"origine": "ocr", "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
         return len(fatti)

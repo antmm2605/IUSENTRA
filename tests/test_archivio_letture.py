@@ -291,3 +291,67 @@ def test_data_del_versamento_resta_ancorata_nella_prosa_di_una_ricevuta_cartacea
     assert data_del_versamento("Data pagamento: 17/03/2026 - esito positivo.") == "17/03/2026"
     assert data_del_versamento("Sentenza del 28/04/2026 pubblicata in cancelleria.") == ""
     assert data_del_versamento("Data pagamento: 31/02/2026") == ""
+
+
+SENTENZA_DI_UN_ALTRO_GIUDIZIO = """
+TRIBUNALE ORDINARIO DI VICENZA
+Sentenza n. 412/2023 pubbl. il 20/04/2023
+RG n. 9876/2022
+nella causa promossa da Mario Verdi contro Alfa S.p.A.
+P.Q.M. condanna Alfa S.p.A. alla rifusione delle spese di lite,
+liquidando la complessiva somma di € 500,00 oltre accessori.
+"""
+
+
+def _importi_liquidazione(fatti) -> list:
+    return [f for f in fatti if f.categoria == "importo" and f.campo == "liquidazione_giudice"]
+
+
+def test_una_sentenza_di_un_altro_giudizio_non_alimenta_l_economia_del_fascicolo():
+    """L'avvocato allega al fascicolo una sentenza per il giudice, non per la parcella.
+
+    Regressione: una sentenza del Tribunale di Vicenza, con RG e parti di
+    un'altra causa, allegata come precedente, faceva comparire 500,00 euro nella
+    parte economica del fascicolo e da li' nella proforma. La liquidazione vale
+    per questa pratica solo se la sentenza conferma insieme il numero di ruolo e
+    il cliente del fascicolo.
+    """
+    fatti = leggi_testo(
+        SENTENZA_DI_UN_ALTRO_GIUDIZIO,
+        origine="nativo",
+        contesto=_contesto(),
+        nome="Sentenza_Tribunale_Vicenza_20-04-2023.PDF",
+        metadata={"fascicolo": FASCICOLO, "tipo_documento": "SENTENZA", "documento_id": "DOC-ALTRUI"},
+    )
+
+    assert _importi_liquidazione(fatti) == []
+
+
+def test_la_sentenza_giusta_con_un_cliente_diverso_non_alimenta_l_economia():
+    """Stesso numero di ruolo ma un'altra parte: non basta l'RG."""
+    testo = SENTENZA_DI_UN_ALTRO_GIUDIZIO.replace("RG n. 9876/2022", "RG n. 1234/2026")
+
+    fatti = leggi_testo(
+        testo, origine="nativo", contesto=_contesto(), nome="Sentenza_altro_cliente.pdf",
+        metadata={"fascicolo": FASCICOLO, "tipo_documento": "SENTENZA", "documento_id": "DOC-ALTRO-CLIENTE"},
+    )
+
+    assert _importi_liquidazione(fatti) == []
+
+
+def test_senza_il_fascicolo_dichiarato_la_sentenza_non_produce_importi():
+    """Chi legge un documento deve dire per quale fascicolo lo legge.
+
+    Regressione: il worker OCR chiamava la lettura senza il fascicolo, e con il
+    fascicolo assente la verifica di ruolo e cliente veniva semplicemente
+    saltata: qualunque sentenza scansionata alimentava l'economia della pratica
+    in cui era finita.
+    """
+    fatti = leggi_testo(
+        SENTENZA_DI_UN_ALTRO_GIUDIZIO.replace("9876/2022", "1234/2026").replace("Mario Verdi", "Anna Bianchi"),
+        origine="ocr",
+        contesto=_contesto(),
+        nome="Sentenza_scansionata.pdf",
+    )
+
+    assert _importi_liquidazione(fatti) == []

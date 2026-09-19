@@ -69,6 +69,10 @@ _FILTRI_SQL = {
     "tenant_id = ? AND fascicolo_id = ? AND tipo = ? AND oggetto_id = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "tipo" = ? AND "oggetto_id" = ?',
     "tenant_id = ? AND tipo = ? AND sha256_archivio = ?": '"tenant_id" = ? AND "tipo" = ? AND "sha256_archivio" = ?',
     "tenant_id = ? AND fascicolo_id = ? AND lettore = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "lettore" = ?',
+    # Lo studio intero in una lettura sola: serve alla panoramica delle letture,
+    # che con trecento fascicoli non puo' interrogarli uno per uno.
+    "tenant_id = ?": '"tenant_id" = ?',
+    "tenant_id = ? AND lettore = ?": '"tenant_id" = ? AND "lettore" = ?',
     "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND lettore = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ? AND "sha256" = ? AND "lettore" = ?',
     "tenant_id = ? AND fascicolo_id = ? AND utente_id = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "utente_id" = ?',
     "tenant_id = ? AND fascicolo_id = ? AND stato = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "stato" = ?',
@@ -80,6 +84,7 @@ _ORDINI_SQL = {
     "aggiornato_il DESC": '"aggiornato_il" DESC',
     "creata_il DESC": '"creata_il" DESC',
     "tipo, nome": '"tipo", "nome"',
+    "fascicolo_id": '"fascicolo_id"',
 }
 
 
@@ -418,6 +423,34 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
     def impronta_fascicolo(self, tenant_id: str, fascicolo_id: str, lettore: str) -> dict[str, Any]:
         righe = self._seleziona("letture_fascicoli", "tenant_id = ? AND fascicolo_id = ? AND lettore = ?", (_testo(tenant_id), _testo(fascicolo_id), _lettore(lettore)))
         return righe[0] if righe else {}
+
+    def righe_fascicoli(self, tenant_id: str, *, lettore: str = "") -> list[dict[str, Any]]:
+        """Lo stato registrato di tutti i fascicoli, in una lettura sola.
+
+        Serve a guardare lo studio intero senza aprire un fascicolo alla volta:
+        con trecento fascicoli, chiedere riga per riga significa trecento
+        interrogazioni e nessuna risposta utile prima di qualche minuto.
+        """
+        if _testo(lettore):
+            return self._seleziona(
+                "letture_fascicoli", "tenant_id = ? AND lettore = ?",
+                (_testo(tenant_id), _lettore(lettore)), ordine="fascicolo_id",
+            )
+        return self._seleziona("letture_fascicoli", "tenant_id = ?", (_testo(tenant_id),), ordine="fascicolo_id")
+
+    def conteggi_letture(self, tenant_id: str, *, lettore: str = "") -> dict[str, dict[str, int]]:
+        """Quante letture per fascicolo, divise per stato, in una lettura sola."""
+        filtro = "tenant_id = ?"
+        parametri: list[Any] = [_testo(tenant_id)]
+        if _testo(lettore):
+            filtro += " AND lettore = ?"
+            parametri.append(_lettore(lettore))
+        esito: dict[str, dict[str, int]] = {}
+        for riga in self._seleziona("letture", filtro, parametri):
+            per_fascicolo = esito.setdefault(_testo(riga.get("fascicolo_id")), {})
+            stato = _testo(riga.get("stato")) or "letto"
+            per_fascicolo[stato] = per_fascicolo.get(stato, 0) + 1
+        return esito
 
     def fascicolo_invariato(self, tenant_id: str, fascicolo_id: str, lettore: str, impronta: str, *, versione: str | None = None) -> bool:
         """Vero se il lettore ha già completato il fascicolo con questa impronta e questa versione."""

@@ -1161,6 +1161,63 @@ function Operations({ data }:{data:DashboardData}) {
  * dell'avvocato. Voci numerate in ordine di urgenza reale (scadute, di oggi,
  * critiche, udienze, PEC, conferimenti, azioni) e ognuna apre il suo evento.
  */
+
+type PanoramicaLetture = {
+  ok?: boolean
+  totali?: { fascicoli: number; fermi: number; da_leggere: number; in_errore: number; mai_letti: number; oggetti_letti: number; oggetti_non_leggibili: number; tutti_fermi?: boolean }
+  fascicoli?: { fascicoloId: string; numero: string; cliente: string; stato: string; documentiLetti: number; pecLette: number; nonLeggibili: number; ultimaLettura: string }[]
+}
+
+const ETICHETTA_LETTURA: Record<string, string> = {
+  fermo: 'letto, fermo',
+  da_leggere: 'da leggere',
+  in_errore: 'in errore',
+  mai_letto: 'mai esaminato',
+}
+
+/** Lo stato dei motori su tutti i fascicoli: una chiamata, non una scheda per volta. */
+function LettureStudio() {
+  const [dati, setDati] = useState<PanoramicaLetture | null>(null)
+  const [errore, setErrore] = useState('')
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/v1/ui/letture/panoramica?soloDaFare=1&limite=25', { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((j) => { if (vivo) setDati(j) })
+      .catch(() => { if (vivo) setErrore('Stato delle letture non disponibile.') })
+    return () => { vivo = false }
+  }, [])
+  if (errore) return <Panel title="Letture dei fascicoli" subtitle={errore} icon={<BookOpenCheck size={17}/>}><Empty>{errore}</Empty></Panel>
+  if (!dati) return <Panel title="Letture dei fascicoli" subtitle="Lettura del registro in corso." icon={<BookOpenCheck size={17}/>}><Empty>Un momento…</Empty></Panel>
+  const t = dati.totali
+  if (!t) return <Panel title="Letture dei fascicoli" subtitle="Registro non leggibile." icon={<BookOpenCheck size={17}/>}><Empty>Registro delle letture non leggibile.</Empty></Panel>
+  const daFare = (dati.fascicoli || []).filter((f) => f.stato !== 'fermo')
+  const sottotitolo = t.tutti_fermi
+    ? `Tutti i ${t.fascicoli} fascicoli sono stati letti: i motori restano fermi finché qualcosa cambia.`
+    : `${t.fermi} fascicoli su ${t.fascicoli} sono letti e fermi; ${t.da_leggere + t.mai_letti + t.in_errore} aspettano ancora.`
+  return (
+    <Panel title="Letture dei fascicoli" subtitle={sottotitolo} icon={<BookOpenCheck size={17}/>} count={daFare.length}>
+      <div className="iu-compact">
+        <div className="iu-compact-row"><div><strong>{t.fermi} letti e fermi</strong><span>{t.oggetti_letti} tra documenti e PEC letti in tutto</span></div><Badge tone={t.tutti_fermi ? 'success' : 'neutral'}>{t.fascicoli} fascicoli</Badge></div>
+        {t.da_leggere ? <div className="iu-compact-row"><div><strong>{t.da_leggere} con qualcosa da leggere</strong><span>documenti o PEC arrivati dopo l'ultimo giro</span></div><Badge tone="warning">da fare</Badge></div> : null}
+        {t.mai_letti ? <div className="iu-compact-row"><div><strong>{t.mai_letti} mai esaminati</strong><span>nessuna lettura registrata per questi fascicoli</span></div><Badge tone="warning">mai letti</Badge></div> : null}
+        {t.in_errore ? <div className="iu-compact-row"><div><strong>{t.in_errore} in errore</strong><span>la lettura si è interrotta e va ripresa</span></div><Badge tone="danger">errore</Badge></div> : null}
+        {t.oggetti_non_leggibili ? <div className="iu-compact-row"><div><strong>{t.oggetti_non_leggibili} documenti non leggibili</strong><span>restano dichiarati come tali, non bloccano il ciclo</span></div><Badge tone="neutral">dichiarati</Badge></div> : null}
+      </div>
+      {daFare.length ? (
+        <div className="iu-compact">
+          {daFare.slice(0, 8).map((f) => (
+            <a className="iu-compact-row" href={`/fascicoli/${f.fascicoloId}#lettura-fascicolo`} key={f.fascicoloId}>
+              <div><strong>{f.numero || f.fascicoloId}{f.cliente ? ` — ${f.cliente}` : ''}</strong><span>{ETICHETTA_LETTURA[f.stato] || f.stato}{f.ultimaLettura ? ` · ultima lettura ${f.ultimaLettura}` : ''}</span></div>
+              <Badge tone={f.stato === 'in_errore' ? 'danger' : 'warning'}>{ETICHETTA_LETTURA[f.stato] || f.stato}</Badge>
+            </a>
+          ))}
+        </div>
+      ) : <Empty>Nessun fascicolo in attesa: i motori hanno finito.</Empty>}
+    </Panel>
+  )
+}
+
 function Worklist({ data }:{data:DashboardData}) {
   return (
     <Panel title="Da lavorare adesso" subtitle="Tutti i processi aperti in ordine di urgenza: un clic apre l'evento." icon={<ListChecks size={17}/>} count={data.worklist.length}>
@@ -1268,6 +1325,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
       <section className="iu-grid">
         <div className="span6"><Worklist data={data}/></div>
+        <div className="span6"><LettureStudio/></div>
         <div className="span6"><Panel title="Notifiche da presidiare" subtitle="Ogni riga apre il presidio e la prossima azione registrata." icon={<ShieldCheck size={17}/>} count={notificationRows.length}><List rows={notificationRows} href="/notifiche-legali?section=presidi"/><a className="iu-link" href="/notifiche-legali?section=presidi">Apri presidi notifiche -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Parcelle e incassi" subtitle="Scadenze di pagamento lette dall'archivio economico dello studio." icon={<Banknote size={17}/>} count={billingRows.length}><List rows={billingRows} href="/incassi-pagamenti"/><a className="iu-link" href="/incassi-pagamenti">Apri incassi e pagamenti -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Agenda da presidiare" subtitle="Udienze e appuntamenti dei prossimi giorni: un clic apre l'impegno." icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>

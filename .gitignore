@@ -61,6 +61,12 @@ artifacts/pst-import-traces/*.local.*
 data/legal_sources/
 artifacts/legal_sources/
 indexes/legal_sources/
+# Stessi archivi generati, scritti con il separatore di Windows: su Linux il
+# backslash finisce dentro il nome del file, le righe qui sopra non lo
+# intercettano e il file entra in commit bloccando il checkout su Windows.
+artifacts\\legal_sources/
+indexes\\legal_sources/
+data\\legal_sources/
 data/normattiva/
 artifacts/normattiva/
 indexes/normattiva/

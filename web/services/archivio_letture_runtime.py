@@ -971,6 +971,97 @@ def lettura_dopo_evento(fascicolo_id: str) -> bool:
         return False
 
 
+def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[str, Any]:
+    """Lo stato della lettura su tutti i fascicoli dello studio, in una schermata.
+
+    Con trecento fascicoli non si puo' aprirli uno alla volta per sapere se sono
+    stati letti. Qui si guarda il registro — non i documenti: nessun file viene
+    aperto e nessuna impronta ricalcolata — e si dice, per ciascuno, se i due
+    motori hanno finito, quanto hanno letto e quando.
+
+    La riga di un fascicolo mai esaminato non esiste nel registro: quel
+    fascicolo compare come «mai letto», che e' un'informazione, non un errore.
+    """
+    from web.helpers import get_fascicoli
+
+    registro = registro_corrente()
+    tenant = tenant_corrente()
+    try:
+        righe_documenti = {
+            _testo(r.get("fascicolo_id")): r for r in registro.righe_fascicoli(tenant, lettore=LETTORE_DOCUMENTI)
+        }
+        righe_pec = {
+            _testo(r.get("fascicolo_id")): r for r in registro.righe_fascicoli(tenant, lettore=LETTORE_PEC)
+        }
+        conteggi = registro.conteggi_letture(tenant)
+    except Exception:
+        logger.exception("Panoramica delle letture non disponibile")
+        return {"ok": False, "message": "Registro delle letture non leggibile."}
+
+    fascicoli = list(get_fascicoli().tutti(archiviati=True))
+    voci: list[dict[str, Any]] = []
+    totali = {"fascicoli": 0, "fermi": 0, "da_leggere": 0, "in_errore": 0, "mai_letti": 0, "oggetti_letti": 0, "oggetti_non_leggibili": 0}
+    for fascicolo in fascicoli:
+        fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+        if not fascicolo_id:
+            continue
+        totali["fascicoli"] += 1
+        documenti = righe_documenti.get(fascicolo_id) or {}
+        pec = righe_pec.get(fascicolo_id) or {}
+        per_stato = conteggi.get(fascicolo_id) or {}
+        letti = int(per_stato.get("letto", 0))
+        non_leggibili = int(per_stato.get("non_leggibile", 0))
+        totali["oggetti_letti"] += letti
+        totali["oggetti_non_leggibili"] += non_leggibili
+        stato_documenti = _testo(documenti.get("stato"))
+        stato_pec = _testo(pec.get("stato"))
+        if not documenti and not pec:
+            stato = "mai_letto"
+        elif "errore" in (stato_documenti, stato_pec):
+            stato = "in_errore"
+        elif stato_documenti == "completa" and stato_pec in ("", "completa"):
+            stato = "fermo"
+        else:
+            stato = "da_leggere"
+        totali[{"fermo": "fermi", "da_leggere": "da_leggere", "in_errore": "in_errore", "mai_letto": "mai_letti"}[stato]] += 1
+        if stato == "fermo" and not includi_fermi:
+            continue
+        voci.append({
+            "fascicoloId": fascicolo_id,
+            "numero": _testo(getattr(fascicolo, "numero", "")),
+            "titolo": _testo(getattr(fascicolo, "titolo", "")),
+            "cliente": _testo(getattr(fascicolo, "nome_cliente", "")),
+            "stato": stato,
+            "documentiLetti": int(documenti.get("oggetti_letti") or 0),
+            "documentiTotali": int(documenti.get("oggetti_totali") or 0),
+            "pecLette": int(pec.get("oggetti_letti") or 0),
+            "pecTotali": int(pec.get("oggetti_totali") or 0),
+            "nonLeggibili": non_leggibili,
+            "ultimaLettura": _iso_a_etichetta(_testo(documenti.get("aggiornato_il")) or _testo(pec.get("aggiornato_il"))),
+            "versioneMotore": _testo(documenti.get("versione_lettore")),
+        })
+    ordine = {"in_errore": 0, "mai_letto": 1, "da_leggere": 2, "fermo": 3}
+    voci.sort(key=lambda v: (ordine.get(v["stato"], 9), v["numero"] or v["fascicoloId"]))
+    if limite > 0:
+        voci = voci[:limite]
+    totali["tutti_fermi"] = totali["fascicoli"] > 0 and totali["fermi"] == totali["fascicoli"]
+    return {"ok": True, "totali": totali, "fascicoli": voci}
+
+
+def _iso_a_etichetta(valore: str) -> str:
+    """La data come la scrive un atto italiano; vuota se non c'e'."""
+    testo = _testo(valore)
+    if not testo:
+        return ""
+    try:
+        momento = datetime.fromisoformat(testo.replace("Z", "+00:00"))
+    except ValueError:
+        return testo[:19]
+    if momento.tzinfo is None:
+        momento = momento.replace(tzinfo=ROME)
+    return momento.astimezone(ROME).strftime("%d/%m/%Y %H:%M")
+
+
 def lettura_automatica_corrente(*, limite_oggetti: int = 150, usa_marker_scheduler: bool = False) -> dict[str, Any]:
     """Tutti i fascicoli dello studio corrente: legge solo ciò che manca, entro un tetto di oggetti per giro."""
     from web.helpers import get_fascicoli

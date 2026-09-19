@@ -8907,6 +8907,30 @@ def fascicolo_react_lettura(id_fasc: str):
         return _jsonify_public_payload({"ok": False, "errore": "Lettura del fascicolo non completata."}, 200)
 
 
+@api_v1_react.get("/letture/panoramica")
+@_richiedi_auth
+def react_letture_panoramica():
+    """Lo stato della lettura su tutti i fascicoli, in una risposta sola.
+
+    Con trecento fascicoli non si puo' aprirli uno alla volta per sapere se i
+    motori hanno finito: qui si guarda il registro — nessun documento viene
+    aperto — e si dice quali sono fermi, quali hanno ancora qualcosa da
+    leggere, quali sono in errore e quali non sono mai stati esaminati.
+    """
+    try:
+        from web.services.archivio_letture_runtime import panoramica_letture
+
+        solo_aperti = str(request.args.get("soloDaFare") or "").strip().lower() in {"1", "true", "si"}
+        try:
+            limite = max(int(str(request.args.get("limite") or "0").strip()), 0)
+        except ValueError:
+            limite = 0
+        return _jsonify_public_payload(panoramica_letture(includi_fermi=not solo_aperti, limite=limite), 200)
+    except Exception as exc:
+        current_app.logger.exception("Panoramica delle letture non disponibile: %s", exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Panoramica delle letture non disponibile."}, 200)
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/letture")
 @_richiedi_auth
 def fascicolo_react_letture(id_fasc: str):

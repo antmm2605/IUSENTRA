@@ -24,12 +24,6 @@
 .iu-mediazione-attachments li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--iu-border, #dce2e9); overflow-wrap: anywhere; }
 .iu-mediazione-attachments li > span, .iu-mediazione-attachments li > label, .iu-mediazione-attachments li > div:first-child { flex: 1; min-width: 180px; }
 .iu-mediazione-choice { border: 1px solid var(--iu-border, #dce2e9); border-radius: 8px; padding: 12px; }
-.iu-mediazione-pdf-scroll { overflow: auto; max-height: 78vh; border: 1px solid #cbd5e1; margin: 12px 0; }
-.iu-mediazione-pdf-sheet { position: relative; flex-shrink: 0; margin-inline: auto; container-type: inline-size; background: white; }
-.iu-mediazione-pdf-sheet > img { width: 100%; height: 100%; display: block; }
-.iu-mediazione-pdf-field { position: absolute; }
-.iu-mediazione .iu-mediazione-pdf-field textarea, .iu-mediazione .iu-mediazione-pdf-field select, .iu-mediazione .iu-mediazione-pdf-field input { width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0 2px; border: 1px solid #639ae0; border-radius: 0; background: rgba(223, 239, 255, .72); color: #142c51; font-size: 1.625cqw; line-height: 1.15; resize: none; }
-.iu-mediazione .iu-mediazione-pdf-field textarea:focus { background: white; }
 .iu-mediazione-document label { margin-bottom: 6px; }
 .iu-mediazione-error, .iu-mediazione-success { border: 1px solid #ad2929; border-radius: 8px; padding: 12px; background: #fff4f3; color: #7b1616; overflow-wrap: anywhere; }
 .iu-mediazione-success { border-color: #187453; background: #effaf4; color: #15543e; }
@@ -39,10 +33,4 @@
 .iu-mediazione-source-check { margin-block: 12px; padding-block: 10px; border-block: 1px solid var(--iu-border, #dce2e9); }
 .iu-mediazione-source-check ul { max-height: 280px; overflow: auto; padding-inline-start: 22px; }
 .iu-mediazione-source-check li { padding-block: 4px; overflow-wrap: anywhere; }
-.iu-mediazione-pdf-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.iu-mediazione-pdf-header h3 { margin: 0; }
-.iu-mediazione .iu-mediazione-pdf-editor--expanded { position: fixed; inset: 0; z-index: 5000; box-sizing: border-box; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; background: var(--iu-surface, #fdfefe); display: flex; flex-direction: column; overflow: auto; padding: 16px; }
-.iu-mediazione-pdf-editor--expanded > * { flex-shrink: 0; }
-.iu-mediazione .iu-mediazione-pdf-editor--expanded .iu-mediazione-pdf-scroll { flex: 1 1 auto; min-height: 180px; max-height: none; }
-.iu-mediazione-pdf-editor--expanded > button { align-self: flex-start; }
 @media (max-width: 700px) { .iu-mediazione-grid { grid-template-columns: minmax(0, 1fr); } .iu-mediazione-block { padding: 12px; } .iu-mediazione-resources { max-height: 300px; } }

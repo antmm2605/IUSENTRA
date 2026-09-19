@@ -265,10 +265,18 @@ def public_message_create():
     return _json(client_send_message(_json_body()))
 
 
+def _righe_richieste() -> int:
+    """Le righe del nucleo familiare chieste da chi compila (0 = quelle del modulo)."""
+    try:
+        return max(int(str(request.args.get("righe") or "0").strip()), 0)
+    except ValueError:
+        return 0
+
+
 @api_v1_client_portal.get("/public/documents/<document_id>/modulo")
 def public_document_form_read(document_id: str):
     """I campi predisposti di un modulo mandato dallo studio."""
-    return _json(campi_del_modulo(document_id))
+    return _json(campi_del_modulo(document_id, _righe_richieste()))
 
 
 @api_v1_client_portal.post("/public/documents/<document_id>/modulo")
@@ -316,7 +324,14 @@ def public_document_file(document_id: str):
     pagina = _pagina_richiesta()
     if pagina and str(content_type or "").split(";", 1)[0].strip().lower() == "application/pdf":
         try:
-            png = render_pdf_page_png(path.read_bytes(), pagina)
+            grezzo = path.read_bytes()
+            # L'anteprima mostra il foglio con le righe che chi compila ha chiesto.
+            righe = _righe_richieste()
+            if righe:
+                from pct.mediazione_documenti import imposta_righe
+
+                grezzo = imposta_righe(grezzo, righe)
+            png = render_pdf_page_png(grezzo, pagina)
         except Exception as errore:
             current_app.logger.warning(
                 "Anteprima pagina non disponibile per il documento %s (pagina %s): %s",

@@ -1,0 +1,53 @@
+/* Gli stili del compilatore dei moduli PDF.
+
+Stavano in `mediazione.css`, importato solo da `MediazioneFascicolo`: nel
+Portale Cliente il compilatore arrivava senza stili, i campi restavano nel
+flusso normale invece di posizionarsi sul foglio e il modulo non si poteva
+compilare. Vivono qui, accanto al componente che li usa, e li importa il
+componente stesso: chiunque monti `PdfModulo` se li porta dietro.
+
+Nessuna regola dipende piu' da un antenato `.iu-mediazione`, che nel portale
+non esiste.
+*/
+
+.iu-mediazione-pdf-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.iu-mediazione-pdf-header h3 { margin: 0; }
+.iu-mediazione-pdf-scroll { overflow: auto; max-height: 78vh; border: 1px solid #cbd5e1; margin: 12px 0; }
+.iu-mediazione-pdf-sheet { position: relative; flex-shrink: 0; margin-inline: auto; container-type: inline-size; background: white; }
+.iu-mediazione-pdf-sheet > img { width: 100%; height: 100%; display: block; }
+.iu-mediazione-pdf-field { position: absolute; }
+.iu-mediazione-pdf-field textarea,
+.iu-mediazione-pdf-field select,
+.iu-mediazione-pdf-field input {
+  width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0 2px;
+  border: 1px solid #639ae0; border-radius: 0; background: rgba(223, 239, 255, .72);
+  color: #142c51; font-size: 1.625cqw; line-height: 1.15; resize: none;
+}
+/* Un campo che lo studio ha gia' in scheda: il cliente lo conferma leggendolo.
+   Se lo cambia si vede, perche' la correzione e' sua e va distinta dal dato
+   del fascicolo (GDPR art. 16). */
+.iu-mediazione-pdf-field--dallo-studio textarea,
+.iu-mediazione-pdf-field--dallo-studio select,
+.iu-mediazione-pdf-field--dallo-studio input { border-color: #0f7b57; background: rgba(209, 244, 230, .85); color: #0b3d2c; }
+.iu-mediazione-pdf-field--corretto textarea,
+.iu-mediazione-pdf-field--corretto select,
+.iu-mediazione-pdf-field--corretto input { border-color: #b45309; background: rgba(254, 243, 199, .85); color: #6b3d06; }
+
+.iu-mediazione-pdf-field textarea:focus,
+.iu-mediazione-pdf-field select:focus,
+.iu-mediazione-pdf-field input:focus { background: white; }
+
+/* La finestra sopra la pagina: il modulo si compila in un piano suo, senza la
+   pagina che scorre sotto. */
+.iu-mediazione-pdf-editor--expanded {
+  position: fixed; inset: 0; z-index: 5000; box-sizing: border-box; width: 100%;
+  height: 100dvh; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0;
+  background: var(--iu-surface, #fdfefe); display: flex; flex-direction: column; overflow: auto; padding: 16px;
+}
+.iu-mediazione-pdf-editor--expanded > * { flex-shrink: 0; }
+.iu-mediazione-pdf-editor--expanded .iu-mediazione-pdf-scroll { flex: 1 1 auto; min-height: 180px; max-height: none; }
+.iu-mediazione-pdf-editor--expanded > button { align-self: flex-start; }
+
+/* L'avviso su un importo di legge superato: si legge prima di compilare. */
+.iu-mediazione-pdf-avviso { margin: 10px 0; padding: 10px 12px; border: 1px solid #b45309;
+  border-radius: 8px; background: rgba(254, 243, 199, .6); color: #6b3d06; font-size: 14px; line-height: 1.5; }

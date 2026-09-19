@@ -220,6 +220,14 @@ export type ModuloPortale = {
   documento?: string
   nome?: string
   versione?: number
+  /** Quello che la scheda dello studio sa gia', e da dove viene ogni valore. */
+  proposte?: Record<string, string>
+  origini?: Record<string, string>
+  /** Righe della tabella mostrate ora e massimo che il foglio regge. */
+  righe?: { mostrate: number; massimo: number }
+  righeDaAttivare?: { numero: number; pagina: number; campi: unknown[] }[]
+  /** Importi di legge citati dal modulo e ormai superati. */
+  avvisiNormativi?: { messaggio: string; importo_citato?: string; importo_vigente?: string }[]
   message?: string
 }
 
@@ -228,9 +236,10 @@ export async function caricaModuloPortale(
   documentId: string,
   token = readClientPortalToken(),
   signal?: AbortSignal,
+  righe = 0,
 ): Promise<ModuloPortale> {
   return apiJson<ModuloPortale>(
-    `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/modulo`,
+    `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/modulo${righe ? `?righe=${righe}` : ''}`,
     { ok: false, compilabile: false, campi: [], pagine: [] },
     { headers: token ? { 'X-Client-Portal-Token': token } : {}, signal },
   )

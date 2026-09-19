@@ -2,15 +2,29 @@ import { useEffect, useRef, useState } from 'react'
 import { Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react'
 import { ensureJson } from '../../lib/apiClient'
 import { ActionButton as Button } from './ActionButton'
+// Gli stili del compilatore viaggiano col componente: senza, i campi non si
+// posizionano sul foglio e il modulo non si puo' compilare.
+import './PdfModulo.css'
 
 type Field = { nome: string; etichetta: string; tipo: string; pagina: number; valore: string; opzioni: string[]; sola_lettura: boolean; max_caratteri: number; selezionato: boolean; rettangolo: number[] }
-type ModuleData = { campi: Field[]; pagine: { numero: number; larghezza: number; altezza: number }[]; documento: string; versione: number }
-export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }: {
+type Righe = { mostrate: number; massimo: number }
+type ModuleData = { campi: Field[]; pagine: { numero: number; larghezza: number; altezza: number }[]; documento: string; versione: number
+  /** Valori che lo studio ha gia' in scheda: il cliente conferma o corregge. */
+  proposte?: Record<string, string>; origini?: Record<string, string>; righe?: Righe }
+export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, avvioEspanso, onEsci }: {
   endpoint: string; previewUrl: string; busy: boolean; save: (values: Record<string, string | boolean>) => Promise<boolean>; onDirty: (dirty: boolean) => void
   /** Come leggere i campi. Serve dove la richiesta non basta da sola: il
    *  Portale Cliente si autentica con un token, non con la sessione dello
    *  studio. Omesso, si usa la richiesta semplice di sempre. */
-  carica?: (segnale: AbortSignal) => Promise<ModuleData>
+  carica?: (segnale: AbortSignal, righe?: number) => Promise<ModuleData>
+  /** Apre il modulo subito come finestra sopra la pagina. Nel Portale Cliente
+   *  il modulo e' l'unica cosa da fare in quel momento: compilarlo in mezzo
+   *  agli altri riquadri costringe a cercare i campi mentre la pagina scorre. */
+  avvioEspanso?: boolean
+  /** Che cosa fare quando si esce dalla finestra. Dove il modulo nasce gia'
+   *  aperto a tutto schermo, uscire vuol dire chiuderlo: tornare alla vista
+   *  stretta lascerebbe il compilatore incastrato nella pagina. */
+  onEsci?: () => void
 }) {
   const [data, setData] = useState<ModuleData | null>(null)
   const [values, setValues] = useState<Record<string, string | boolean>>({})
@@ -20,17 +34,18 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }:
   const [retry, setRetry] = useState(0)
   const surface = useRef<HTMLElement>(null)
   const expandButton = useRef<HTMLSpanElement>(null)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(Boolean(avvioEspanso))
   const [zoom, setZoom] = useState(100)
+  const [righe, setRighe] = useState(0)
   useEffect(() => {
     if (!expanded) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setExpanded(false) }
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') { if (onEsci) onEsci(); else setExpanded(false) } }
     let wasNative = document.fullscreenElement === surface.current
     const sync = () => {
       if (document.fullscreenElement === surface.current) wasNative = true
-      else if (wasNative) setExpanded(false)
+      else if (wasNative) { if (onEsci) onEsci(); else setExpanded(false) }
     }
     document.addEventListener('keydown', close)
     document.addEventListener('fullscreenchange', sync)
@@ -43,6 +58,9 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }:
     }
   }, [expanded])
   const toggleExpanded = () => {
+    // Aperto come finestra fin dall'inizio, il comando che la chiude chiude il
+    // modulo: non esiste una vista stretta a cui tornare.
+    if (expanded && onEsci) { onEsci(); return }
     setExpanded(!expanded)
     // Same in-app expansion contract as the fascicolo table. The native API
     // is optional in embedded browsers; no remount, new tab or data reload.
@@ -51,11 +69,18 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }:
   useEffect(() => {
     const abort = new AbortController()
     setError('')
-    const lettura = carica ? carica(abort.signal) : ensureJson<ModuleData>(endpoint, { signal: abort.signal })
-    lettura.then((r) => { setData(r); setValues({}); setPage(1) })
+    const conRighe = (indirizzo: string) => (righe ? `${indirizzo}${indirizzo.includes('?') ? '&' : '?'}righe=${righe}` : indirizzo)
+    const lettura = carica ? carica(abort.signal, righe) : ensureJson<ModuleData>(conRighe(endpoint), { signal: abort.signal })
+    lettura.then((r) => {
+      setData(r)
+      // I valori che lo studio gia' conosce arrivano scritti: chi compila li
+      // conferma leggendoli, invece di ricopiare il proprio fascicolo.
+      setValues({ ...(r.proposte || {}) })
+      setPage(1)
+    })
       .catch((e) => { if (!abort.signal.aborted) setError(e instanceof Error ? e.message : 'Modulo non disponibile.') })
     return () => abort.abort()
-  }, [endpoint, retry, carica])
+  }, [endpoint, retry, carica, righe])
   useEffect(() => { onDirty(dirty); return () => onDirty(false) }, [dirty, onDirty])
   useEffect(() => { const guard = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = '' } }; window.addEventListener('beforeunload', guard); return () => window.removeEventListener('beforeunload', guard) }, [dirty])
   if (error) return <p role="alert">{error} <Button onClick={() => setRetry(retry + 1)}>Rileggi modulo</Button></p>
@@ -66,9 +91,9 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }:
   return <section ref={surface} className={`iu-mediazione-block iu-mediazione-pdf-editor${expanded ? ' iu-mediazione-pdf-editor--expanded' : ''}`} aria-label="Compilazione del modulo originale">
     <header className="iu-mediazione-pdf-header">
       <h3>Compila il modulo dell’organismo</h3>
-      <span ref={expandButton}><Button onClick={toggleExpanded} aria-pressed={expanded} aria-label={expanded ? 'Torna alla vista normale del modulo' : 'Apri il modulo a tutto schermo'}>
+      <span ref={expandButton}><Button onClick={toggleExpanded} aria-pressed={expanded} aria-label={expanded ? (onEsci ? 'Chiudi il modulo' : 'Torna alla vista normale del modulo') : 'Apri il modulo a tutto schermo'}>
         {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
-        {expanded ? 'Vista normale' : 'Tutto schermo'}
+        {expanded ? (onEsci ? 'Chiudi il modulo' : 'Vista normale') : 'Tutto schermo'}
       </Button></span>
     </header>
     <p>Scrivi nei campi del PDF originale. Verrà salvata una copia distinta nel fascicolo: modello, firme e dichiarazioni non vengono confermati automaticamente. Controlla tutte le pagine prima di usare la copia.</p>
@@ -79,15 +104,37 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica }:
       <Button disabled={zoom >= 200} onClick={() => setZoom(Math.min(200, zoom + 25))} aria-label="Ingrandisci il modulo"><ZoomIn size={16}/></Button>
       <Button onClick={() => setZoom(100)}>Dimensione normale</Button>
     </div>
+    {(data.avvisiNormativi || []).map((avviso, indice) => (
+      <aside key={indice} className="iu-mediazione-pdf-avviso" role="note">
+        <strong>Importo non più vigente nel modulo.</strong> {avviso.messaggio} Compila il modulo solo se lo studio conferma che va bene così.
+      </aside>
+    ))}
+    {data.righe && data.righe.massimo > data.righe.mostrate ? (
+      <div className="iu-mediazione-actions" aria-label="Componenti del nucleo familiare">
+        <Button
+          disabled={busy || (righe || data.righe.mostrate) >= data.righe.massimo}
+          onClick={() => setRighe(Math.min((righe || data.righe!.mostrate) + 1, data.righe!.massimo))}
+        >+ Aggiungi componente</Button>
+        <output aria-live="polite">{righe || data.righe.mostrate} righe su {data.righe.massimo}</output>
+        <Button
+          disabled={busy || (righe || data.righe.mostrate) <= data.righe.mostrate}
+          onClick={() => setRighe(Math.max((righe || data.righe!.mostrate) - 1, data.righe!.mostrate))}
+        >− Rimuovi ultima riga</Button>
+      </div>
+    ) : null}
     {!data.campi.length ? <p>Questo PDF non contiene campi predisposti. Il modello originale rimane consultabile; non è stato trasformato o compilato automaticamente.</p> : null}
     <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
       <div className="iu-mediazione-pdf-sheet" style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}>
-        <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}`} alt={`Pagina ${page} del modulo dell’organismo`} onError={() => setError('Anteprima non disponibile. Non compilare senza verificare la pagina.')} />
+        <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo dell’organismo`} onError={() => setError('Anteprima non disponibile. Non compilare senza verificare la pagina.')} />
         {fields.map((f, i) => {
           const current = values[f.nome] ?? (f.tipo === 'CheckBox' ? f.selezionato : f.valore)
           const style = { left: `${f.rettangolo[0] * 100}%`, top: `${f.rettangolo[1] * 100}%`, width: `${f.rettangolo[2] * 100}%`, height: `${f.rettangolo[3] * 100}%` }
           const label = `${f.etichetta || 'Campo'} — pagina ${page}, campo ${i + 1}`
-          return <div key={`${f.nome}-${i}`} className="iu-mediazione-pdf-field" style={style}>
+          const proposto = (data.origini || {})[f.nome] === 'studio'
+          const corretto = proposto && String(current) !== String((data.proposte || {})[f.nome] ?? '')
+          const classi = ['iu-mediazione-pdf-field']
+          if (proposto) classi.push(corretto ? 'iu-mediazione-pdf-field--corretto' : 'iu-mediazione-pdf-field--dallo-studio')
+          return <div key={`${f.nome}-${i}`} className={classi.join(' ')} style={style}>
             {f.tipo === 'CheckBox' ? <input type="checkbox" aria-label={label} title={label} disabled={f.sola_lettura || busy} checked={Boolean(current)} onChange={(e) => update(f.nome, e.target.checked)} /> : f.opzioni.length ? <select aria-label={label} title={label} disabled={f.sola_lettura || busy} value={String(current)} onChange={(e) => update(f.nome, e.target.value)}><option value="">Scegli</option>{f.opzioni.map((v) => <option key={v}>{v}</option>)}</select> : <textarea aria-label={label} title={label} disabled={f.sola_lettura || busy} rows={1} maxLength={f.max_caratteri} value={String(current)} onChange={(e) => update(f.nome, e.target.value)} />}
           </div>
         })}

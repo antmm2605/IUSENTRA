@@ -1449,8 +1449,10 @@ function ClientPortalClient() {
                     endpoint={`/api/v1/ui/client-portal/public/documents/${encodeURIComponent(idDocumento)}/modulo`}
                     previewUrl={clientPortalDocumentUrl(idDocumento)}
                     busy={false}
+                    avvioEspanso
+                    onEsci={() => setModuloAperto('')}
                     onDirty={() => {}}
-                    carica={(segnale) => caricaModuloPortale(idDocumento, token, segnale) as never}
+                    carica={(segnale, righe) => caricaModuloPortale(idDocumento, token, segnale, righe) as never}
                     save={async (valori) => {
                       const risposta = await compilaModuloPortale(idDocumento, valori, token)
                       applyClientResponse(risposta)

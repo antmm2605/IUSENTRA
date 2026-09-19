@@ -478,6 +478,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             built_in=True,
         ),
         SchedulerTemplate("sync_tabelle_normative_daily", "Tabelle normative", "Fonti e tabelle", "Aggiorna tassi, indici e tabelle normative.", "cron", "4", "30", built_in=True),
+        SchedulerTemplate("patrocinio_adeguamento_bimestrale", "Soglia patrocinio", "Aggiornamenti legali", "Ogni due mesi controlla in Gazzetta il decreto che adegua il limite di reddito per il patrocinio (art. 77 D.P.R. 115/2002).", "cron", "5", "10", built_in=True),
         SchedulerTemplate("mediazione_sources_refresh", "Fonti degli organismi di mediazione", "Fonti e tabelle",
                           "Ricontrolla a piccoli lotti i siti degli organismi attivi, conserva le fonti precedenti e rileva cambiamenti di moduli e canali. Non invia domande.",
                           "cron", "", "3-59/10", built_in=True),

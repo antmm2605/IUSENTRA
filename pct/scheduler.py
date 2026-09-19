@@ -657,6 +657,26 @@ def start_scheduler(app):
         with app.app_context():
             return refresh_mediazione_sources(app.config)
 
+    # ---- Adeguamento della soglia del patrocinio (art. 77 D.P.R. 115/2002) ----
+    # Il decreto e' biennale, ma la data di pubblicazione non e' prevedibile:
+    # si guarda la Gazzetta ogni due mesi. Non si riscrive la soglia — si
+    # prepara la riga e la conferma un avvocato, sull'atto.
+    @scheduler.scheduled_job(
+        CronTrigger(month="1,3,5,7,9,11", day=1, hour=5, minute=10),
+        id="patrocinio_adeguamento_bimestrale",
+    )
+    def _patrocinio_adeguamento():
+        with app.app_context():
+            try:
+                from web.services.patrocinio_adeguamento_runtime import (
+                    controlla_adeguamento_patrocinio,
+                )
+
+                esito = controlla_adeguamento_patrocinio(app.config)
+                logger.info("[scheduler] Soglia patrocinio: %s", esito.get("messaggio"))
+            except Exception as e:
+                logger.error("[scheduler] Controllo soglia patrocinio fallito: %s", e)
+
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)
     @scheduler.scheduled_job(CronTrigger(hour=4, minute=30), id="sync_tabelle_normative_daily")

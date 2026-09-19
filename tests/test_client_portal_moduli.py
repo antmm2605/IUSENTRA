@@ -130,3 +130,64 @@ def test_il_modulo_di_un_altra_pratica_non_si_apre(tmp_path: Path):
 
     assert campi["ok"] is False
     assert campi["code"] == "not_found"
+
+
+def _pdf_con_righe_nascoste() -> bytes:
+    """Un modulo che tiene in pancia le righe non ancora aggiunte.
+
+    E' la forma dei moduli con il pulsante «+ Aggiungi componente»:
+    l'autocertificazione per il contributo unificato ha 284 caselle, di cui
+    250 marcate nascoste, fino a sette sovrapposte sulla stessa cella.
+    """
+    import pymupdf as fitz
+
+    documento = fitz.open()
+    pagina = documento.new_page()
+    nascoste: list[int] = []
+    for indice in range(4):
+        widget = fitz.Widget()
+        widget.field_name = "riga_1_nome"  # quattro caselle per lo stesso campo
+        widget.field_type = fitz.PDF_WIDGET_TYPE_TEXT
+        widget.rect = fitz.Rect(72, 100, 400, 100 + 24 - indice * 2)
+        widget.field_value = ""
+        annotazione = pagina.add_widget(widget)
+        if indice:
+            nascoste.append(annotazione.xref)
+    visibile = fitz.Widget()
+    visibile.field_name = "riga_2_nome"
+    visibile.field_type = fitz.PDF_WIDGET_TYPE_TEXT
+    visibile.rect = fitz.Rect(72, 160, 400, 184)
+    visibile.field_value = ""
+    pagina.add_widget(visibile)
+    # /F bit 2 = Hidden (ISO 32000-1, tabella 165): e' il PDF a dichiararlo.
+    for xref in nascoste:
+        documento.xref_set_key(xref, "F", "6")
+    dati = documento.tobytes()
+    documento.close()
+    return dati
+
+
+def test_le_caselle_nascoste_dal_pdf_non_si_mostrano_a_chi_compila():
+    """Regressione: si disegnavano anche le caselle che il PDF nasconde.
+
+    Nel portale finivano una sull'altra sopra quelle vere — chi compilava
+    scriveva in una casella e ne vedeva un'altra, cioe' non riusciva a
+    compilare. Il criterio non e' «la piu' grande» o «la prima»: e' la
+    visibilita' che il documento dichiara.
+    """
+    from pct.mediazione_documenti import campi_pdf
+
+    campi = campi_pdf(_pdf_con_righe_nascoste())
+
+    nomi = [campo["nome"] for campo in campi]
+    assert nomi == ["riga_1_nome", "riga_2_nome"], nomi
+    assert len(nomi) == len(set(nomi)), "una casella per campo, senza sovrapposizioni"
+
+
+def test_un_campo_senza_flag_di_visibilita_resta_compilabile():
+    """Senza il flag, la casella si mostra: meglio una di troppo che un campo perso."""
+    from pct.mediazione_documenti import campi_pdf
+
+    campi = campi_pdf(_pdf_con_campi())
+
+    assert [campo["nome"] for campo in campi] == ["nome_istante", "recapito"]

@@ -10,7 +10,9 @@ type Field = { nome: string; etichetta: string; tipo: string; pagina: number; va
 type Righe = { mostrate: number; massimo: number }
 type ModuleData = { campi: Field[]; pagine: { numero: number; larghezza: number; altezza: number }[]; documento: string; versione: number
   /** Valori che lo studio ha gia' in scheda: il cliente conferma o corregge. */
-  proposte?: Record<string, string>; origini?: Record<string, string>; righe?: Righe }
+  proposte?: Record<string, string>; origini?: Record<string, string>; righe?: Righe
+  /** Importi di legge citati dal modulo e non piu' vigenti. */
+  avvisiNormativi?: { messaggio: string; importo_citato?: string; importo_vigente?: string }[] }
 export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, avvioEspanso, onEsci }: {
   endpoint: string; previewUrl: string; busy: boolean; save: (values: Record<string, string | boolean>) => Promise<boolean>; onDirty: (dirty: boolean) => void
   /** Come leggere i campi. Serve dove la richiesta non basta da sola: il

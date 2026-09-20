@@ -27,8 +27,14 @@ _DL179 = "urn:nir:stato:decreto.legge:2012-10-18;179"
 _L890 = "urn:nir:stato:legge:1982-11-20;890"
 _DLGS28 = "urn:nir:stato:decreto.legislativo:2010-03-04;28"
 _L247 = "urn:nir:stato:legge:2012-12-31;247"
+_L742 = "urn:nir:stato:legge:1969-10-07;742"
 
 VERIFICA_NORMATTIVA = "testo vigente consultato su Normattiva il 14/09/2026"
+VERIFICA_NORMATTIVA_20 = "testo vigente consultato su Normattiva il 20/09/2026"
+# L'articolo è stato sostituito: la data da sola non direbbe quale testo.
+VERIFICA_CPC_133 = (
+    "testo vigente come sostituito dal D.Lgs. 31 ottobre 2024, n. 164; consultato su Normattiva il 20/09/2026"
+)
 VERIFICA_DGSIA = (
     "Specifiche tecniche DGSIA 7 agosto 2024 (art. 34 D.M. 44/2011), PDF ufficiale scaricato dal PST e "
     "conservato in docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf; consultato il 14/09/2026"
@@ -58,6 +64,9 @@ def _dgsia(articolo: int, titolo: str, estratto: str) -> dict[str, Any]:
 
 FONTI: dict[str, dict[str, Any]] = {
     # ── Codice di procedura civile ──────────────────────────────────────────
+    "cpc_133": _norma("art. 133 c.p.c.", "Pubblicazione e comunicazione della sentenza", _CPC, "133",
+        "La sentenza è resa pubblica mediante deposito telematico. Il cancelliere dà immediata comunicazione del deposito alle parti costituite; la comunicazione non è idonea a far decorrere i termini per le impugnazioni di cui all'articolo 325.",
+        verifica=VERIFICA_CPC_133),
     "cpc_136": _norma("art. 136 c.p.c.", "Comunicazioni", _CPC, "136",
         "Il cancelliere fa le comunicazioni prescritte dalla legge o dal giudice; la comunicazione è effettuata a mezzo posta elettronica certificata all'indirizzo risultante dai pubblici elenchi o al domicilio digitale speciale eletto."),
     "cpc_147": _norma("art. 147 c.p.c.", "Tempo delle notificazioni", _CPC, "147",
@@ -80,6 +89,9 @@ FONTI: dict[str, dict[str, Any]] = {
         "La domanda si propone con ricorso, che contiene le indicazioni dell'articolo 163 e l'avvertimento sulle decadenze; il giudice, entro cinque giorni dalla designazione, fissa con decreto l'udienza di comparizione assegnando il termine per la costituzione del convenuto, che deve avvenire non oltre dieci giorni prima dell'udienza; ricorso e decreto sono notificati al convenuto."),
     "cpc_325": _norma("art. 325 c.p.c.", "Termini per le impugnazioni", _CPC, "325",
         "Il termine per proporre l'appello, la revocazione e l'opposizione di terzo è di trenta giorni; il termine per proporre il ricorso per cassazione è di sessanta giorni."),
+    "cpc_326": _norma("art. 326 c.p.c.", "Decorrenza dei termini per le impugnazioni", _CPC, "326",
+        "I termini stabiliti nell'articolo 325 sono perentori e decorrono dalla notificazione della sentenza, per il notificante come per il destinatario dal momento in cui il procedimento di notificazione si perfeziona per il destinatario, salve le eccezioni previste per la revocazione e l'opposizione di terzo.",
+        verifica=VERIFICA_NORMATTIVA_20),
     "cpc_327": _norma("art. 327 c.p.c.", "Decadenza dall'impugnazione", _CPC, "327",
         "Indipendentemente dalla notificazione, l'appello, il ricorso per cassazione e la revocazione non possono proporsi dopo decorsi sei mesi dalla pubblicazione della sentenza."),
     "cpc_414": _norma("art. 414 c.p.c.", "Rito del lavoro: forma della domanda", _CPC, "414",
@@ -88,6 +100,9 @@ FONTI: dict[str, dict[str, Any]] = {
         "Il giudice, entro cinque giorni dal deposito del ricorso, fissa con decreto l'udienza di discussione; tra il deposito e l'udienza non devono decorrere più di sessanta giorni; il ricorso con il decreto deve essere notificato al convenuto."),
     "cpc_416": _norma("art. 416 c.p.c.", "Rito del lavoro: costituzione del convenuto", _CPC, "416",
         "Il convenuto deve costituirsi almeno dieci giorni prima dell'udienza depositando una memoria difensiva nella quale devono essere proposte, a pena di decadenza, le domande riconvenzionali e le eccezioni non rilevabili d'ufficio."),
+    "cpc_429": _norma("art. 429 c.p.c.", "Rito del lavoro: pronuncia della sentenza", _CPC, "429",
+        "Il giudice, esaurita la discussione orale e udite le conclusioni, pronuncia sentenza dando lettura del dispositivo e delle ragioni di fatto e di diritto; in caso di particolare complessità fissa nel dispositivo un termine non superiore a sessanta giorni per il deposito della sentenza. Su richiesta delle parti può concedere un termine non superiore a dieci giorni per note difensive.",
+        verifica=VERIFICA_NORMATTIVA_20),
     "cpc_435": _norma("art. 435 c.p.c.", "Appello nel rito del lavoro: decreto del presidente", _CPC, "435",
         "Il presidente entro cinque giorni dal deposito del ricorso fissa, non oltre sessanta giorni, l'udienza di discussione; l'appellante, nei dieci giorni successivi al deposito del decreto, notifica ricorso e decreto all'appellato."),
     "cpc_480": _norma("art. 480 c.p.c.", "Forma del precetto", _CPC, "480",
@@ -199,6 +214,12 @@ FONTI: dict[str, dict[str, Any]] = {
         "Il responsabile dell'organismo designa un mediatore e fissa il primo incontro tra le parti, che deve tenersi non prima di venti e non oltre quaranta giorni dal deposito della domanda, salvo diversa concorde indicazione delle parti."),
     "l247_art13": _norma("L. 247/2012, art. 13", "Conferimento dell'incarico e compenso", _L247, "13",
         "Il compenso è pattuito di regola per iscritto all'atto del conferimento dell'incarico; il professionista è tenuto a comunicare in forma scritta a chi conferisce l'incarico la prevedibile misura del costo della prestazione."),
+    # La sospensione feriale non vale per le controversie di lavoro: senza
+    # questa voce un termine del rito del lavoro verrebbe calcolato come se
+    # agosto lo sospendesse.
+    "l742_art3": _norma("art. 3 L. 742/1969", "Esclusioni dalla sospensione feriale dei termini", _L742, "3",
+        "In materia civile la sospensione dei termini nel periodo feriale non si applica alle cause e ai procedimenti indicati nell'articolo 92 dell'ordinamento giudiziario, né alle controversie previste dagli articoli 429 e 459 del codice di procedura civile.",
+        verifica=VERIFICA_NORMATTIVA_20),
 }
 
 

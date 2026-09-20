@@ -13,10 +13,10 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 100 |
-| Backend | 84 |
+| Backend | 83 |
 | E2E | 12 |
 | Frontend static gate | 1 |
-| Frontend/UI | 226 |
+| Frontend/UI | 227 |
 | RBAC | 77 |
 | Security | 40 |
 | Smoke CLI | 6 |
@@ -133,7 +133,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Backend | tests/test_istituti_processuali.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_jobs.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_kpi_engine.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Backend domain | Backend | tests/test_lacune_norme_composte.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_legal_regex_pack.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_legal_update_source_parsers.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_lessico_hunspell.py | feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -207,6 +206,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_fonti_ufficiali_registry.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_hetzner_deploy_sync.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_istat_serie_storica.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_lacune_norme_composte.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_legal_coverage_ai_resilience.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_legal_coverage_pipeline.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_legal_intelligence.py | 401 anonimo, file, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

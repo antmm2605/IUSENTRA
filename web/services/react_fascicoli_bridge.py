@@ -105,11 +105,55 @@ def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+#: Sotto questa soglia una fase non interessa: l'elenco deve far vedere i
+#: colpevoli, non seppellirli sotto trenta righe da un millisecondo.
+SOGLIA_FASE_LENTA_MS = 50
+
+
+def _conta_tempo_fase(label: str, millisecondi: int) -> None:
+    """Somma il tempo di una fase sulla richiesta in corso.
+
+    Un fascicolo aperto per la prima volta puo' costare decine di secondi
+    mentre lo stesso fascicolo riaperto e' immediato: e' una lettura fredda
+    da un archivio di dodici gigabyte. Quale fase la paghi non si deduce dal
+    totale, e tirare a indovinare su questo ci e' gia' costato troppo.
+    """
+    try:
+        from flask import g, has_request_context
+
+        if not has_request_context():
+            return
+        tempi = getattr(g, "_tempi_fasi", None)
+        if tempi is None:
+            tempi = {}
+            g._tempi_fasi = tempi
+        tempi[label] = tempi.get(label, 0) + int(millisecondi)
+    except Exception:
+        return
+
+
+def fasi_lente(soglia_ms: int = SOGLIA_FASE_LENTA_MS) -> dict[str, int]:
+    """Le fasi che hanno pesato davvero su questa richiesta, dalla piu' lenta."""
+    try:
+        from flask import g, has_request_context
+
+        if not has_request_context():
+            return {}
+        tempi = dict(getattr(g, "_tempi_fasi", None) or {})
+    except Exception:
+        return {}
+    lente = {k: v for k, v in tempi.items() if v >= soglia_ms}
+    return dict(sorted(lente.items(), key=lambda kv: kv[1], reverse=True))
+
+
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
+    inizio = time.monotonic()
     try:
         return func()
     except Exception:
         return fallback
+    finally:
+        _conta_tempo_fase(label, round(1000 * (time.monotonic() - inizio)))
 
 
 def _current_tenant_id() -> str:
@@ -9091,6 +9135,11 @@ def build_react_fascicolo_detail_payload(
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
+        # Quali fasi hanno pesato su questa apertura. Serve al fascicolo
+        # aperto per la prima volta, che puo' costare decine di secondi
+        # mentre la riapertura e' immediata: senza questo elenco il totale
+        # non dice dove sono finiti.
+        "tempiMs": fasi_lente(),
         "contracts": _contracts(),
         "fascicolo": _full_fascicolo(
             fascicolo,

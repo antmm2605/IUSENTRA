@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
@@ -1295,11 +1296,34 @@ def _impronta_presidio_notifiche(
     tenant_id: str,
     database: Any = None,
     destinatari: int = -1,
+    tempi: dict[str, int] | None = None,
 ) -> impronta_notifiche_legali.Impronta:
+    """Le quattro letture che compongono l'impronta.
+
+    Con ``tempi`` ognuna viene cronometrata e il risultato finisce
+    nell'esito del giro. Serve perche' il presidio si ferma come deve — non
+    trova niente da fare — ma impiega decine di secondi per stabilirlo, e
+    senza la misura non si sa quale delle quattro letture le consumi.
+    """
+
+    def _misura(nome, funzione):
+        if tempi is None:
+            return funzione()
+        inizio = time.monotonic()
+        try:
+            return funzione()
+        finally:
+            tempi[nome] = int(round(1000 * (time.monotonic() - inizio)))
+
     return impronta_notifiche_legali.Impronta(
-        pec_notifiche=_impronta_pec_notifiche(paths, tenant_id=tenant_id, database=database),
-        pec_senza_fascicolo=_impronta_pec_senza_fascicolo(paths),
-        fascicoli=_impronta_fascicoli(paths, database),
+        pec_notifiche=_misura(
+            "pec_notifiche",
+            lambda: _impronta_pec_notifiche(paths, tenant_id=tenant_id, database=database),
+        ),
+        pec_senza_fascicolo=_misura(
+            "pec_senza_fascicolo", lambda: _impronta_pec_senza_fascicolo(paths)
+        ),
+        fascicoli=_misura("fascicoli", lambda: _impronta_fascicoli(paths, database)),
         destinatari=(
             impronta_notifiche_legali.componi("destinatari", destinatari) if destinatari >= 0 else ""
         ),
@@ -1346,15 +1370,26 @@ def materialize_notification_relata_presidio_for_paths(
         )
     cartella_impronta = _cartella_impronta_presidio(paths)
     impronta_attuale = None
+    tempi_impronta: dict[str, int] = {}
     if salta_se_invariato and cartella_impronta is not None:
+        inizio_decisione = time.monotonic()
+        inizio_destinatari = time.monotonic()
+        quanti_destinatari = len(
+            notification_recipients_for_paths(paths, database=database_config)
+        )
+        tempi_impronta["destinatari"] = int(
+            round(1000 * (time.monotonic() - inizio_destinatari))
+        )
         impronta_attuale = _impronta_presidio_notifiche(
             paths,
             tenant_id=_notification_text(
                 presidio_tenant_id or paths.get("_TENANT_PRESIDIO_ID") or tenant_label or tenant_id or "default"
             ),
             database=database_config,
-            destinatari=len(notification_recipients_for_paths(paths, database=database_config)),
+            destinatari=quanti_destinatari,
+            tempi=tempi_impronta,
         )
+        tempi_impronta["totale"] = int(round(1000 * (time.monotonic() - inizio_decisione)))
         salvata, dati_salvati = impronta_notifiche_legali.leggi_impronta(cartella_impronta)
         if impronta_notifiche_legali.si_puo_fermare(impronta_attuale, salvata):
             esito = impronta_notifiche_legali.esito_fermo(impronta_attuale, dati_salvati)
@@ -1367,6 +1402,7 @@ def materialize_notification_relata_presidio_for_paths(
             esito["to_notify"] = 0
             esito["recipients"] = 0
             esito["errors"] = 0
+            esito["tempi_ms"] = dict(tempi_impronta)
             return esito
     total, archived, rows = _notification_fascicolo_rows(paths, database_config)
     legacy_items: list[dict[str, Any]] = []

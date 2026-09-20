@@ -97,6 +97,25 @@ def finish_job(repo, job, result, *, now=None):
         return outcome
 
 
+def verifiche_in_attesa(repo, *, now=None):
+    """Quante verifiche sono scadute in questo momento.
+
+    Una sola COUNT sulla coda: serve a decidere se svegliare il lavoro
+    all'apertura della mediazione senza pagarne il costo. `seed_jobs` tocca
+    tutti gli organismi attivi — quasi cinquecento — e non va eseguito per
+    scoprire che non c'era niente da fare.
+    """
+    now = now or datetime.now(timezone.utc)
+    with repo.connection() as conn:
+        riga = conn.execute(
+            "SELECT COUNT(*) AS n FROM mediazione_source_jobs j "
+            "JOIN mediazione_organismi o ON o.registration_number=j.registration_number "
+            "WHERE o.active=1 AND j.due_at<=?",
+            (now.isoformat(),),
+        ).fetchone()
+    return int(riga["n"] if riga is not None else 0)
+
+
 def refresh_sources(repo, *, limit=6, workers=2):
     if not 1 <= workers <= 6:
         raise ValueError("Usare al massimo sei verifiche pubbliche contemporanee.")

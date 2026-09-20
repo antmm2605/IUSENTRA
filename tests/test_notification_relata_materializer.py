@@ -1413,6 +1413,56 @@ def test_presidio_si_ferma_senza_novita_e_riparte_alla_pec_nuova(monkeypatch, tm
     assert terzo["scanned"] >= 1
 
 
+def test_l_esito_fermo_dichiara_quanto_e_costato_decidere(monkeypatch, tmp_path: Path) -> None:
+    """Fermarsi e' giusto; metterci venti secondi per stabilirlo no.
+
+    In produzione il presidio si ferma come deve — nessuna novita' — ma il
+    giro dura decine di secondi, e le quattro letture che compongono
+    l'impronta non erano distinguibili dall'esito. Adesso ognuna riporta il
+    proprio tempo, cosi' si sa quale intervenire senza tirare a indovinare.
+    """
+
+    paths = _paths(tmp_path)
+    paths["_TENANT_PRESIDIO_ID"] = "studio-montagnese"
+    _write_fascicolo(
+        Path(paths["STUDIO_DB"]),
+        [],
+        fascicolo_id="C3565650",
+        titolo="Carta docente - MIM",
+        nome_cliente="Giuseppe Alfano",
+    )
+    _seed_advanced_presidio(paths, tenant_id="studio-montagnese")
+    monkeypatch.setattr(
+        notifications_runtime,
+        "notification_recipients_for_paths",
+        lambda *_args, **_kwargs: [SimpleNamespace(id="admin", username="admin", ha_permesso=lambda _permission: True)],
+    )
+    comuni = {
+        "tenant_label": "studio-montagnese",
+        "tenant_id": "tenant-local-studio-montagnese",
+        "presidio_tenant_id": "studio-montagnese",
+        "salta_se_invariato": True,
+    }
+
+    notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+    fermo = notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+
+    assert fermo["stato"] == "fermo"
+    tempi = fermo["tempi_ms"]
+    assert set(tempi) == {
+        "destinatari",
+        "pec_notifiche",
+        "pec_senza_fascicolo",
+        "fascicoli",
+        "totale",
+    }
+    assert all(isinstance(v, int) and v >= 0 for v in tempi.values())
+    # Il totale copre le quattro letture: se una sfuggisse al cronometro la
+    # misura indicherebbe il colpevole sbagliato.
+    parziali = sum(v for k, v in tempi.items() if k != "totale")
+    assert tempi["totale"] >= parziali - 5
+
+
 def test_presidio_riparte_se_cambia_un_fascicolo_senza_pec(monkeypatch, tmp_path: Path) -> None:
     paths = _paths(tmp_path)
     paths["_TENANT_PRESIDIO_ID"] = "studio-montagnese"

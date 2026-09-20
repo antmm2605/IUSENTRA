@@ -651,7 +651,11 @@ def start_scheduler(app):
     def _legal_updates_batch():
         _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
 
-    @scheduler.scheduled_job(CronTrigger(minute="3-59/10"), id="mediazione_sources_refresh", max_instances=1, coalesce=True)
+    # Le fonti degli organismi si ricontrollano quando qualcuno apre la
+    # mediazione: la coda ha una scadenza per organismo, e girare ogni dieci
+    # minuti significava rileggere quasi cinquecento righe per scoprire che
+    # non era scaduto niente. A orario resta la sola rete di sicurezza.
+    @scheduler.scheduled_job(CronTrigger(hour=4, minute=40), id="mediazione_sources_refresh", max_instances=1, coalesce=True)
     def _mediazione_sources_refresh():
         from web.services.mediazione_source_runtime import refresh_mediazione_sources
         with app.app_context():

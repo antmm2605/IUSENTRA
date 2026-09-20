@@ -480,8 +480,8 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("sync_tabelle_normative_daily", "Tabelle normative", "Fonti e tabelle", "Aggiorna tassi, indici e tabelle normative.", "cron", "4", "30", built_in=True),
         SchedulerTemplate("patrocinio_adeguamento_bimestrale", "Soglia patrocinio", "Aggiornamenti legali", "Ogni due mesi controlla in Gazzetta il decreto che adegua il limite di reddito per il patrocinio (art. 77 D.P.R. 115/2002).", "cron", "5", "10", built_in=True),
         SchedulerTemplate("mediazione_sources_refresh", "Fonti degli organismi di mediazione", "Fonti e tabelle",
-                          "Ricontrolla a piccoli lotti i siti degli organismi attivi, conserva le fonti precedenti e rileva cambiamenti di moduli e canali. Non invia domande.",
-                          "cron", "", "3-59/10", built_in=True),
+                          "Ricontrolla a piccoli lotti i siti degli organismi attivi, conserva le fonti precedenti e rileva cambiamenti di moduli e canali. Non invia domande. Parte all'apertura della mediazione; a orario resta la sola passata notturna.",
+                          "cron", "4", "40", built_in=True),
         SchedulerTemplate(
             "lex_autonomous_learning_nightly",
             "Apprendimento autonomo Lex (web)",
@@ -713,6 +713,7 @@ class SchedulerRegistryRepository:
         ("studio_daily_operational_plan", "7", "30", "5", "30"),
         ("lex_sentenza_economia_auto", "", "7-57/10", "3", "25"),
         ("lex_sentenza_economia_auto", "", "*/10", "3", "25"),
+        ("mediazione_sources_refresh", "", "3-59/10", "4", "40"),
     )
 
     def upsert_default_jobs(self, config: dict[str, Any] | None = None) -> None:

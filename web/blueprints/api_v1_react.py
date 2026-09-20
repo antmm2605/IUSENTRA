@@ -14344,9 +14344,25 @@ def legal_intelligence_news_page():
     )
 
 
+def _sveglia_fonti_mediazione():
+    """Apertura della mediazione: si chiede il giro delle fonti, se serve.
+
+    Prima girava ogni dieci minuti a prescindere, e la coda era quasi sempre
+    vuota. Qui si paga una COUNT; il lavoro vero resta sullo scheduler, cosi'
+    la pagina non aspetta la rete. Non solleva mai.
+    """
+    try:
+        from web.services.mediazione_source_runtime import sveglia_se_ci_sono_verifiche
+
+        sveglia_se_ci_sono_verifiche(current_app.config)
+    except Exception:
+        current_app.logger.debug("Sveglia fonti mediazione non inoltrata", exc_info=True)
+
+
 @api_v1_react.get("/legal-intelligence/mediazione")
 @_richiedi_auth
 def legal_intelligence_mediazione_page():
+    _sveglia_fonti_mediazione()
     return _legal_intelligence_ui_payload(
         "mediazione",
         "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",
@@ -14388,6 +14404,7 @@ def ricerca_legale_news_page():
 @api_v1_react.get("/ricerca-legale/mediazione")
 @_richiedi_auth
 def ricerca_legale_mediazione_page():
+    _sveglia_fonti_mediazione()
     return _legal_intelligence_ui_payload(
         "mediazione",
         "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",

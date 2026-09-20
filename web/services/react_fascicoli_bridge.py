@@ -874,6 +874,30 @@ def _resolve_fascicolo(repo: Any, requested_id: str) -> Any:
     return None
 
 
+def _idrata_fascicoli_collegati(repo: Any, righe: Iterable[Any]) -> list[Any]:
+    """Sostituisce le righe dell'indice leggero con i fascicoli per intero.
+
+    Chi legge i collegati ne guarda anche i documenti: una riga anagrafica
+    farebbe risultare quei fascicoli senza allegati, e il risultato sarebbe
+    sbagliato senza sembrarlo. Se un fascicolo non si lascia rileggere si
+    tiene la riga che c'era, che e' comunque meglio di perderlo.
+    """
+    idratati: list[Any] = []
+    for riga in list(righe or []):
+        if hasattr(riga, "documenti"):
+            idratati.append(riga)
+            continue
+        fid = _text(getattr(riga, "id", ""))
+        intero = None
+        if fid:
+            try:
+                intero = repo.get(fid)
+            except Exception:
+                intero = None
+        idratati.append(intero if intero is not None else riga)
+    return idratati
+
+
 def _looks_like_technical_user_label(value: str) -> bool:
     text = _text(value)
     if not text:
@@ -8875,7 +8899,13 @@ def build_react_fascicolo_detail_payload(
     fascicoli_scope: list[Any] = []
     duplicate_check_reason = ""
     try:
-        fascicoli_scope = list(fascicoli_repo.tutti())
+        # Per sapere QUALI fascicoli sono doppioni bastano cliente e numero di
+        # ruolo: l'indice leggero li legge senza tirare su documenti e
+        # attivita' di tutto l'archivio. I pochi fascicoli che risultano
+        # davvero collegati vengono poi idratati uno a uno piu' sotto, perche'
+        # di quelli il presidio documentale legge i documenti sul serio.
+        indice = getattr(fascicoli_repo, "indice_leggero", None)
+        fascicoli_scope = list(indice()) if callable(indice) else list(fascicoli_repo.tutti())
     except Exception:
         duplicate_check_reason = "L'archivio fascicoli non è stato letto: riprova il controllo prima di attestare l'assenza di doppioni."
     duplicate_key = normalise_practice_duplicate_key(fascicolo)
@@ -8890,6 +8920,13 @@ def build_react_fascicolo_detail_payload(
         try:
             duplicate_group = _duplicate_group_for_fascicolo(fascicoli_scope, fascicolo)
             related_duplicate_rows = _related_duplicate_fascicoli(fascicoli_scope, fascicolo)
+            # Le righe dell'indice sono anagrafiche: senza documenti il
+            # presidio documentale vedrebbe zero allegati sui collegati e
+            # scriverebbe un'impronta falsa. Qui si idratano per intero, e
+            # sono pochi per definizione (stesso cliente, stesso ruolo).
+            related_duplicate_rows = _idrata_fascicoli_collegati(
+                fascicoli_repo, related_duplicate_rows
+            )
         except Exception:
             duplicate_check_ready = False
             duplicate_check_reason = "Il confronto con l'archivio fascicoli non è terminato: riprova il controllo prima di attestare l'assenza di doppioni."

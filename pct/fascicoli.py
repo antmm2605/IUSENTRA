@@ -17,6 +17,7 @@ import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Iterable, Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -931,6 +932,7 @@ class GestioneFascicoli:
         documents_dir: Optional[str] = None,
         archive_dir: Optional[str] = None,
         studio_db=None,
+        carica_tutto: bool = True,
     ):
         self.db_path = Path(db_path)
         self.documents_dir = (
@@ -947,7 +949,15 @@ class GestioneFascicoli:
             d.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
         self._fascicoli: dict[str, Fascicolo] = {}
-        self._carica()
+        # Con `carica_tutto=False` l'archivio non viene letto all'avvio: il
+        # fascicolo richiesto si prende con una query per chiave primaria.
+        # Serve alle pagine che ne aprono uno solo e che oggi pagano la
+        # deserializzazione dell'intero archivio per poi scartarlo.
+        self._carica_tutto = bool(carica_tutto)
+        self._archivio_completo = False
+        if self._carica_tutto:
+            self._carica()
+            self._archivio_completo = True
 
     # ---------------------------------------------------------------- I/O
 
@@ -3888,7 +3898,81 @@ class GestioneFascicoli:
     # ---------------------------------------------------------------- Query
 
     def get(self, id_fasc: str) -> Optional[Fascicolo]:
-        return self._fascicoli.get(id_fasc)
+        trovato = self._fascicoli.get(id_fasc)
+        if trovato is not None:
+            return trovato
+        if self._archivio_completo or self._studio_db is None:
+            return None
+        # Modalita' leggera: `id` e' PRIMARY KEY, quindi questa e' una
+        # ricerca su indice, non una scansione.
+        letto = self._carica_singolo(id_fasc)
+        if letto is not None:
+            self._fascicoli[letto.id] = letto
+        return letto
+
+    def _carica_singolo(self, id_fasc: str) -> Optional[Fascicolo]:
+        """Legge un solo fascicolo, completo, senza toccare gli altri."""
+        chiave = str(id_fasc or "").strip()
+        if not chiave or self._studio_db is None:
+            return None
+        try:
+            rows = self._studio_db.fetchall_readonly(
+                "SELECT * FROM fascicoli WHERE id = ?", (chiave,)
+            )
+        except Exception:
+            # Il ripiego sicuro e' leggere tutto: meglio lento che monco.
+            self._assicura_archivio_completo()
+            return self._fascicoli.get(chiave)
+        for row in rows or []:
+            letto = self._row_to_fascicolo(row)
+            if letto is not None:
+                return letto
+        return None
+
+    def _assicura_archivio_completo(self) -> None:
+        """Carica l'archivio intero, ma solo quando qualcuno lo chiede davvero."""
+        if self._archivio_completo:
+            return
+        self._carica()
+        self._archivio_completo = True
+
+    def indice_leggero(self) -> list[SimpleNamespace]:
+        """Le sole colonne anagrafiche di tutti i fascicoli, senza i JSON.
+
+        Serve a rispondere a domande di appaiamento — quali fascicoli hanno lo
+        stesso cliente e lo stesso numero di ruolo — senza trascinarsi dietro
+        documenti e attivita' di trecento fascicoli. Chi poi ha bisogno di un
+        fascicolo per intero lo prende con `get()`, che ne legge uno solo.
+        """
+        if self._studio_db is None or self._archivio_completo:
+            self._assicura_archivio_completo()
+            return list(self._fascicoli.values())
+        try:
+            rows = self._studio_db.fetchall_readonly(
+                "SELECT id, numero, titolo, nome_cliente, numero_rg, anno_rg, stato "
+                "FROM fascicoli"
+            )
+        except Exception:
+            self._assicura_archivio_completo()
+            return list(self._fascicoli.values())
+        leggeri: list[SimpleNamespace] = []
+        for row in rows or []:
+            try:
+                d = dict(row)
+            except Exception:
+                continue
+            leggeri.append(
+                SimpleNamespace(
+                    id=str(d.get("id") or ""),
+                    numero=str(d.get("numero") or ""),
+                    titolo=str(d.get("titolo") or ""),
+                    nome_cliente=str(d.get("nome_cliente") or ""),
+                    numero_rg=str(d.get("numero_rg") or ""),
+                    anno_rg=str(d.get("anno_rg") or ""),
+                    stato=str(d.get("stato") or ""),
+                )
+            )
+        return leggeri
 
     def tutti(
         self,
@@ -3897,6 +3981,7 @@ class GestioneFascicoli:
         id_cliente: Optional[str] = None,
         archiviati: bool = False,
     ) -> List[Fascicolo]:
+        self._assicura_archivio_completo()
         fascicoli = sorted(
             self._fascicoli.values(),
             key=lambda f: f.numero,

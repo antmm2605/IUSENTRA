@@ -1121,6 +1121,12 @@ def _fascicoli_loader() -> Callable[[], Any]:
     return loader if callable(loader) else get_fascicoli
 
 
+def _fascicolo_singolo_loader() -> Callable[[], Any]:
+    """Per le rotte che aprono una pratica sola: legge quella, non l'archivio."""
+    loader = _core_runtime_func("get_fascicoli_mirato")
+    return loader if callable(loader) else _fascicoli_loader()
+
+
 def _backup_loader() -> Callable[[], Any]:
     loader = _core_runtime_func("get_backup")
     if callable(loader):
@@ -8691,7 +8697,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
     include_sections = _detail_include_sections(default=set())
     missing_status = 200 if "all" in include_sections else 404
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8711,7 +8717,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_documenti(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8731,7 +8737,7 @@ def fascicolo_react_documenti(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_attivita(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8751,7 +8757,7 @@ def fascicolo_react_attivita(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_scadenze(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8771,7 +8777,7 @@ def fascicolo_react_scadenze(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_depositi(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8791,7 +8797,7 @@ def fascicolo_react_depositi(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_relata(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8811,7 +8817,7 @@ def fascicolo_react_relata(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_audit(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -8831,7 +8837,7 @@ def fascicolo_react_audit(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_lex(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,

@@ -862,6 +862,29 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             )
         return g._fascicoli
 
+    def get_fascicoli_mirato() -> GestioneFascicoli:
+        """Repository che legge un fascicolo per volta, non tutto l'archivio.
+
+        Lo usa chi apre una pratica sola: `get(id)` diventa una ricerca per
+        chiave primaria invece della deserializzazione di tutti i fascicoli
+        dello studio. Se qualcuno chiede `tutti()` l'archivio viene caricato
+        lo stesso, quindi nessun chiamante resta con dati parziali.
+        """
+        if not hasattr(g, "_fascicoli_mirato"):
+            if hasattr(g, "_fascicoli"):
+                # L'archivio e' gia' in memoria per questa richiesta: riusarlo
+                # costa zero ed evita di leggere due volte.
+                g._fascicoli_mirato = g._fascicoli
+            else:
+                g._fascicoli_mirato = GestioneFascicoli(
+                    db_path=_cfg_data_path("FASCICOLI_DB"),
+                    documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
+                    archive_dir=_cfg_data_path("FASCICOLI_ARCH"),
+                    studio_db=get_studio_db("FASCICOLI_DB"),
+                    carica_tutto=False,
+                )
+        return g._fascicoli_mirato
+
     def get_practice_engine():
         if not hasattr(g, "_practice_engine"):
             from pct.practice_engine import PracticeEngineRepository
@@ -1362,6 +1385,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_giurisprudenza": get_giurisprudenza,
         "get_clienti": get_clienti,
         "get_fascicoli": get_fascicoli,
+        "get_fascicoli_mirato": get_fascicoli_mirato,
         "get_practice_engine": get_practice_engine,
         "get_pdp_penale": get_pdp_penale,
         "get_telematico": get_telematico,

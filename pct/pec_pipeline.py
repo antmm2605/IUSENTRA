@@ -849,6 +849,87 @@ def _first_pct_regex(text: str, patterns: Iterable[str], *, limit: int = 180) ->
     return ""
 
 
+#: I domini di posta certificata con cui gli uffici giudiziari scrivono.
+#: Sono assegnati dal Ministero: un privato non spedisce da qui.
+DOMINI_UFFICIO_GIUDIZIARIO = (
+    "giustiziacert.it",
+    "giustizia.it",
+)
+
+#: Le parole con cui un ufficio si nomina nell'indirizzo che il Ministero gli assegna.
+UFFICI_GIUDIZIARI = ("tribunale", "corte", "giudicedipace", "giudice_di_pace", "procura", "cancelleria")
+
+
+def _solo_lettere(valore: Any) -> str:
+    """«TRIBUNALE DI SANTA MARIA CAPUA VETERE» e «tribunale.santamariacapuavetere»
+    sono lo stesso ufficio scritto in due modi: si confrontano senza il resto."""
+    return re.sub(r"[^a-z]", "", clean_text(valore).lower())
+
+
+def _indirizzi_del_messaggio(parsed: dict[str, Any]) -> list[str]:
+    """Tutti i punti in cui puo' comparire chi ha spedito davvero.
+
+    Nella PEC l'ufficio non e' il mittente di trasporto: la busta arriva da
+    `posta-certificata@` del gestore e l'ufficio vero sta nel «Per conto di:».
+    """
+    headers = parsed.get("headers") or {}
+    fields = parsed.get("fields") or {}
+    mittente = (fields.get("mittente") or {}).get("value") or {}
+    voci = [
+        headers.get("from"),
+        headers.get("From"),
+        headers.get("reply-to"),
+        headers.get("Reply-To"),
+        headers.get("x-riferimento-message-id"),
+    ]
+    if isinstance(mittente, dict):
+        voci.extend([mittente.get("email"), mittente.get("name")])
+    elif mittente:
+        voci.append(mittente)
+    return [clean_text(voce, 300) for voce in voci if clean_text(voce)]
+
+
+def ufficio_giudiziario_mittente(parsed: dict[str, Any]) -> str:
+    """L'ufficio giudiziario che ha spedito, letto dal suo indirizzo certificato.
+
+    Restituisce il nome dell'ufficio ridotto alle sole lettere — pronto per il
+    confronto con il tribunale del fascicolo — oppure stringa vuota quando chi
+    scrive non e' un ufficio su un dominio ministeriale.
+    """
+    for indirizzo in _indirizzi_del_messaggio(parsed):
+        basso = indirizzo.lower()
+        if not any(dominio in basso for dominio in DOMINI_UFFICIO_GIUDIZIARIO):
+            continue
+        schema = r"([A-Za-z0-9._%%+-]+)@[A-Za-z0-9.-]*(?:%s)(?![A-Za-z0-9.-])" % "|".join(
+            dominio.replace(".", r"\.") for dominio in DOMINI_UFFICIO_GIUDIZIARIO
+        )
+        for locale in re.findall(schema, indirizzo):
+            compatto = locale.lower().replace("_", "").replace("-", "")
+            if not any(ufficio.replace("_", "") in compatto for ufficio in UFFICI_GIUDIZIARI):
+                continue
+            nome = re.sub(r"^(?:tribunale|corte|giudicedipace|procura|cancelleria)[._-]*", "", locale.lower())
+            return _solo_lettere(nome) or _solo_lettere(locale)
+    return ""
+
+
+def profilo_processuale_presente(parsed: dict[str, Any]) -> bool:
+    """Il messaggio porta un atto del procedimento, non solo una ricevuta.
+
+    Stessa sostanza del controllo che la lettura del fascicolo fa gia' in
+    `pct/fascicolo_lettura/pec.py`: senza un evento o un oggetto processuale
+    riconosciuto, l'RG nel testo resta un indizio.
+    """
+    profilo = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    if not profilo:
+        return False
+    if list(profilo.get("eventi") or profilo.get("events") or []):
+        return True
+    return any(
+        clean_text(profilo.get(chiave))
+        for chiave in ("oggetto_evento", "descrizione_evento", "giudice", "cancelleria", "tipo_atto")
+    )
+
+
 def _profile_party_values(profile: dict[str, Any]) -> list[str]:
     values: list[str] = []
     for key in (
@@ -9134,7 +9215,19 @@ class PecAuditRepository:
         office = clean_text(profile.get("ufficio") or (office_match.group(0) if office_match else ""))
         keywords = [item.lower() for item in re.findall(r"\b[A-Za-zÀ-ÿ]{5,}\b", text)[:40]]
         parties = list(dict.fromkeys(item for item in parties if item))
-        seeds = {"rg": rg, "parties": parties, "office": office, "keywords": keywords[:12]}
+        # Chi scrive e' un ufficio giudiziario su dominio ministeriale, e porta
+        # un atto del procedimento? Allora il numero di ruolo che cita non e'
+        # un indizio raccolto da un testo qualunque.
+        ufficio_mittente = ufficio_giudiziario_mittente(parsed)
+        atto_processuale = profilo_processuale_presente(parsed)
+        seeds = {
+            "rg": rg,
+            "parties": parties,
+            "office": office,
+            "keywords": keywords[:12],
+            "ufficio_mittente": ufficio_mittente,
+            "atto_processuale": atto_processuale,
+        }
         candidates: list[dict[str, Any]] = []
         for fascicolo in fascicoli:
             score = 0.0
@@ -9152,8 +9245,23 @@ class PecAuditRepository:
                 score += 0.82
                 reasons.append("RG certificato dall'XML ministeriale")
             elif fasc_rg and any(candidate == fasc_rg or candidate in fasc_rg or fasc_rg in candidate for candidate in rg):
-                score += 0.58
-                reasons.append("RG coincidente")
+                ufficio_fascicolo = _solo_lettere(getattr(fascicolo, "tribunale", ""))
+                ufficio_coincide = bool(
+                    ufficio_mittente
+                    and ufficio_fascicolo
+                    and (ufficio_mittente in ufficio_fascicolo or ufficio_fascicolo in ufficio_mittente)
+                )
+                if ufficio_coincide and atto_processuale:
+                    # Il numero di ruolo citato dall'ufficio che tiene quel
+                    # procedimento, su dominio ministeriale e dentro un atto:
+                    # e' l'identificativo del procedimento, non un indizio.
+                    # Tre prove indipendenti — RG, ufficio, atto — e nessuna
+                    # delle tre da sola basta.
+                    score += 0.82
+                    reasons.append("RG citato dall'ufficio giudiziario del fascicolo")
+                else:
+                    score += 0.58
+                    reasons.append("RG coincidente")
             party_text = " ".join(
                 clean_text(getattr(fascicolo, attr, ""))
                 for attr in ("nome_cliente", "controparte", "attore_principale", "oggetto", "titolo")
@@ -9375,6 +9483,10 @@ class PecAuditRepository:
             reasons = {str(item or "") for item in list(best.get("reasons") or [])}
             # Il solo RG dedotto dal testo resta insufficiente; il solo RG
             # certificato dall'ufficio no: e' l'identificativo del procedimento.
+            # «RG citato dall'ufficio giudiziario del fascicolo» sta nella
+            # seconda categoria: vale solo quando il mittente e' l'ufficio di
+            # quel procedimento su dominio ministeriale e il messaggio porta un
+            # atto, quindi non e' il caso dell'RG nudo.
             rg_only = bool(best) and reasons == {"RG coincidente"}
             fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
             status = "automatico" if fascicolo_id else "rg_non_sufficiente" if rg_only else "proposte" if candidates else "nessun_candidato"

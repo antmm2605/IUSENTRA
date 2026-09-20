@@ -1242,17 +1242,26 @@ def _impronta_fascicoli(paths: Mapping[str, Any], database: Any = None) -> str:
         # Senza interrogazione leggera non si puo' decidere a poco prezzo:
         # si dichiara ignota e il presidio lavora, come prima.
         return ""
-    comune = (
+    leggero = (
+        "COUNT(*) AS quanti,"
+        " COALESCE(MAX(modificato_il), '') AS ultima_modifica,"
+        " COALESCE(SUM(CASE WHEN LOWER(COALESCE(stato,'')) IN"
+        " ('archiviato','archiviata','archived') THEN 1 ELSE 0 END), 0) AS archiviati"
+    )
+    pesante = (
         "COUNT(*) AS quanti,"
         " COALESCE(SUM(LENGTH(COALESCE(documenti_json, ''))), 0) AS peso_documenti,"
         " COALESCE(SUM(CASE WHEN LOWER(COALESCE(stato,'')) IN"
         " ('archiviato','archiviata','archived') THEN 1 ELSE 0 END), 0) AS archiviati"
     )
-    # Non tutti gli schemi governati hanno ``modificato_il``: dove c'e' si
-    # usa, dove manca bastano conteggio, peso dei documenti e archiviati.
+    # `modificato_il` cambia a ogni salvataggio e si legge senza toccare i
+    # JSON: e' il segnale di cambiamento piu' economico che ci sia. Il peso di
+    # `documenti_json` resta come ripiego per gli archivi dove quella colonna
+    # non e' ancora popolata — li' costa, ma e' l'unico modo di accorgersi di
+    # un documento aggiunto senza dichiararlo.
     tentativi = (
-        f"SELECT {comune}, COALESCE(MAX(modificato_il), '') AS ultima_modifica FROM fascicoli",
-        f"SELECT {comune} FROM fascicoli",
+        f"SELECT {leggero} FROM fascicoli",
+        f"SELECT {pesante} FROM fascicoli",
     )
     righe: list[Any] = []
     for sql in tentativi:
@@ -1266,6 +1275,17 @@ def _impronta_fascicoli(paths: Mapping[str, Any], database: Any = None) -> str:
         return ""
     riga = righe[0]
     valori = tuple(riga) if not isinstance(riga, Mapping) else tuple(riga.values())
+    # Con la colonna vuota il segnale leggero non distingue nulla: si ricade
+    # sul conteggio pesante, altrimenti il presidio si fermerebbe credendo che
+    # non sia cambiato niente.
+    if len(valori) >= 2 and not str(valori[1] or "").strip():
+        try:
+            righe_pesanti = list(fetchall(tentativi[1], ()))
+        except Exception:
+            righe_pesanti = []
+        if righe_pesanti:
+            riga = righe_pesanti[0]
+            valori = tuple(riga) if not isinstance(riga, Mapping) else tuple(riga.values())
     return impronta_notifiche_legali.componi("fascicoli", *valori)
 
 

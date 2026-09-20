@@ -1118,10 +1118,10 @@ class GestioneFascicoli:
                     (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
                      tribunale, sezione, giudice, numero_rg, anno_rg,
                      controparte, avvocato_referente, avvocato_dominus,
-                     data_apertura, data_chiusura, oggetto, note, creato_il,
+                     data_apertura, data_chiusura, oggetto, note, creato_il, modificato_il,
                      attivita_json, documenti_json, scadenze_json,
                      profilo_deposito_json, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         f.id, f.numero, f.titolo,
@@ -1132,6 +1132,7 @@ class GestioneFascicoli:
                         f.controparte, f.avvocato_referente, f.avvocato_dominus,
                         f.data_apertura, f.data_chiusura,
                         f.oggetto, f.note, f.creato_il,
+                        str(getattr(f, "modificato_il", "") or ""),
                         _json.dumps(d.get("attivita", []), ensure_ascii=False),
                         _json.dumps(d.get("documenti", []), ensure_ascii=False),
                         _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
@@ -1241,10 +1242,10 @@ class GestioneFascicoli:
                 (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
                  tribunale, sezione, giudice, numero_rg, anno_rg,
                  controparte, avvocato_referente, avvocato_dominus,
-                 data_apertura, data_chiusura, oggetto, note, creato_il,
+                 data_apertura, data_chiusura, oggetto, note, creato_il, modificato_il,
                  attivita_json, documenti_json, scadenze_json,
                  profilo_deposito_json, dati_json)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(id) DO UPDATE SET
                     numero=excluded.numero,
                     titolo=excluded.titolo,
@@ -1265,6 +1266,7 @@ class GestioneFascicoli:
                     oggetto=excluded.oggetto,
                     note=excluded.note,
                     creato_il=excluded.creato_il,
+                    modificato_il=excluded.modificato_il,
                     attivita_json=excluded.attivita_json,
                     documenti_json=excluded.documenti_json,
                     scadenze_json=excluded.scadenze_json,
@@ -1292,6 +1294,11 @@ class GestioneFascicoli:
                     f.oggetto,
                     f.note,
                     f.creato_il,
+                    # La colonna esisteva ma non veniva mai scritta: il valore
+                    # restava sepolto in dati_json. Senza di lei l'unico modo
+                    # di accorgersi di un cambiamento era pesare l'intero
+                    # archivio documentale a ogni controllo.
+                    str(getattr(f, "modificato_il", "") or ""),
                     _json.dumps(d.get("attivita", []), ensure_ascii=False),
                     _json.dumps(d.get("documenti", []), ensure_ascii=False),
                     _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),

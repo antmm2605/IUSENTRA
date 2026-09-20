@@ -5497,6 +5497,13 @@ def _workspace_counts(fascicolo: Any) -> dict[str, int]:
 
 
 def _fast_documents_count(fascicolo: Any) -> int:
+    # Fascicolo letto senza la colonna degli allegati: il conteggio l'ha fatto
+    # il database. Contare `documenti` qui darebbe zero, che e' falso.
+    if getattr(fascicolo, "documenti_non_caricati", False):
+        try:
+            return int(getattr(fascicolo, "documenti_conteggio", 0) or 0)
+        except (TypeError, ValueError):
+            return 0
     source_snapshot = getattr(fascicolo, "source_snapshot", {}) or {}
     counts = source_snapshot.get("counts") if isinstance(source_snapshot, dict) else {}
     if isinstance(counts, dict):

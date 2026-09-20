@@ -862,6 +862,27 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             )
         return g._fascicoli
 
+    def get_fascicoli_elenco() -> GestioneFascicoli:
+        """Repository per gli elenchi: tutti i fascicoli, senza gli allegati.
+
+        Una riga di elenco mostra cliente, ruolo, scadenze, pagamenti e il
+        numero di documenti — mai i documenti. Leggerli significherebbe
+        trasferire l'archivio documentale dello studio a ogni apertura della
+        lista. Il numero arriva contato dal database.
+        """
+        if not hasattr(g, "_fascicoli_elenco"):
+            if hasattr(g, "_fascicoli"):
+                g._fascicoli_elenco = g._fascicoli
+            else:
+                g._fascicoli_elenco = GestioneFascicoli(
+                    db_path=_cfg_data_path("FASCICOLI_DB"),
+                    documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
+                    archive_dir=_cfg_data_path("FASCICOLI_ARCH"),
+                    studio_db=get_studio_db("FASCICOLI_DB"),
+                    senza_documenti=True,
+                )
+        return g._fascicoli_elenco
+
     def get_fascicoli_mirato() -> GestioneFascicoli:
         """Repository che legge un fascicolo per volta, non tutto l'archivio.
 
@@ -1386,6 +1407,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_clienti": get_clienti,
         "get_fascicoli": get_fascicoli,
         "get_fascicoli_mirato": get_fascicoli_mirato,
+        "get_fascicoli_elenco": get_fascicoli_elenco,
         "get_practice_engine": get_practice_engine,
         "get_pdp_penale": get_pdp_penale,
         "get_telematico": get_telematico,

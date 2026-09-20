@@ -933,6 +933,7 @@ class GestioneFascicoli:
         archive_dir: Optional[str] = None,
         studio_db=None,
         carica_tutto: bool = True,
+        senza_documenti: bool = False,
     ):
         self.db_path = Path(db_path)
         self.documents_dir = (
@@ -954,6 +955,11 @@ class GestioneFascicoli:
         # Serve alle pagine che ne aprono uno solo e che oggi pagano la
         # deserializzazione dell'intero archivio per poi scartarlo.
         self._carica_tutto = bool(carica_tutto)
+        # `senza_documenti` serve a chi mostra un elenco: legge tutti i
+        # fascicoli ma lascia sul database la colonna degli allegati, che e'
+        # la piu' pesante e che un elenco non guarda. Il numero di documenti
+        # arriva comunque, contato da SQL.
+        self._senza_documenti = bool(senza_documenti)
         self._archivio_completo = False
         if self._carica_tutto:
             self._carica()
@@ -998,6 +1004,12 @@ class GestioneFascicoli:
             ):
                 if colonna in d:
                     payload[chiave] = _json.loads(d.get(colonna) or "[]")
+            # Lettura senza allegati: la colonna non e' stata chiesta. Il
+            # fascicolo deve DICHIARARLO, non sembrare un fascicolo senza
+            # documenti — quella e' un'informazione diversa, e sbagliata.
+            documenti_omessi = "documenti_json" not in d
+            if documenti_omessi:
+                payload["documenti"] = []
             profilo_sql = d.get("profilo_deposito_json")
             if profilo_sql:
                 try:
@@ -1007,7 +1019,17 @@ class GestioneFascicoli:
                 if isinstance(profilo_payload, dict) and profilo_payload:
                     payload["profilo_deposito"] = profilo_payload
             _migra_payload_depositi_pct(payload)
-            return Fascicolo.from_dict(payload)
+            fascicolo = Fascicolo.from_dict(payload)
+            if documenti_omessi:
+                # Chi legge `documenti` su questo oggetto sta guardando una
+                # lista vuota che non significa "nessun documento": questi due
+                # attributi lo rendono verificabile invece che invisibile.
+                fascicolo.documenti_non_caricati = True
+                try:
+                    fascicolo.documenti_conteggio = int(d.get("documenti_conteggio") or 0)
+                except (TypeError, ValueError):
+                    fascicolo.documenti_conteggio = 0
+            return fascicolo
         except Exception:
             return None
 
@@ -1022,9 +1044,31 @@ class GestioneFascicoli:
             return [item for item in raw if isinstance(item, dict)]
         return []
 
+    #: Colonne lette quando l'elenco non ha bisogno degli allegati. Il conteggio
+    #: dei documenti lo fa il database, cosi' la riga dell'elenco resta esatta
+    #: senza trasferire l'archivio documentale.
+    _SELECT_SENZA_DOCUMENTI = (
+        "SELECT id, numero, titolo, tipo, stato, id_cliente, nome_cliente, "
+        "tribunale, sezione, giudice, numero_rg, anno_rg, controparte, "
+        "avvocato_referente, avvocato_dominus, data_apertura, data_chiusura, "
+        "oggetto, note, creato_il, modificato_il, attivita_json, scadenze_json, "
+        "profilo_deposito_json, dati_json, "
+        "JSON_ARRAY_LENGTH(COALESCE(documenti_json, '[]')) AS documenti_conteggio "
+        "FROM fascicoli"
+    )
+
     def _carica(self) -> None:
         if self._studio_db is not None:
-            rows = self._studio_db.fetchall_readonly("SELECT * FROM fascicoli")
+            rows = None
+            if self._senza_documenti:
+                try:
+                    rows = self._studio_db.fetchall_readonly(self._SELECT_SENZA_DOCUMENTI)
+                except Exception:
+                    # Senza JSON_ARRAY_LENGTH si torna alla lettura piena:
+                    # meglio lenta che con un conteggio inventato.
+                    rows = None
+            if rows is None:
+                rows = self._studio_db.fetchall_readonly("SELECT * FROM fascicoli")
             self._fascicoli = {}
             if not rows:
                 for payload in self._payloads_da_json_bootstrap():

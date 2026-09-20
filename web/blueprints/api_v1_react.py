@@ -1127,6 +1127,12 @@ def _fascicolo_singolo_loader() -> Callable[[], Any]:
     return loader if callable(loader) else _fascicoli_loader()
 
 
+def _fascicoli_elenco_loader() -> Callable[[], Any]:
+    """Per gli elenchi: tutti i fascicoli, senza trasferire gli allegati."""
+    loader = _core_runtime_func("get_fascicoli_elenco")
+    return loader if callable(loader) else _fascicoli_loader()
+
+
 def _backup_loader() -> Callable[[], Any]:
     loader = _core_runtime_func("get_backup")
     if callable(loader):
@@ -8420,7 +8426,7 @@ def fascicoli_react_list():
         if cached is not None:
             return current_app.response_class(cached, mimetype="application/json")
     response = jsonify(build_react_fascicoli_payload(
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicoli_elenco_loader(),
         get_scadenziario=get_scadenziario,
         get_fatturazione=get_fatturazione,
         page=_request_int("page", default=1),

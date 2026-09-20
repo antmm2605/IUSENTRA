@@ -272,6 +272,18 @@
               <i class="bi bi-scissors"></i> Togli copia doppia fascicoli
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_spazio_database') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-database"></i> Analizza spazio database
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_compattazione_database') }}" onsubmit="return confirm('Compattare gli archivi studio.db con un VACUUM?\n\nPer tutta la durata il database resta bloccato in scrittura e l\u0027applicativo non risponde: su un archivio grande sono minuti, non secondi. Lanciarlo quando nessuno sta lavorando.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-arrows-collapse"></i> Compatta database studi
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.analizza_retention_backup') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
@@ -462,6 +474,27 @@
       {% if not copia_doppia_fascicoli.riscrittura_eseguita and copia_doppia_fascicoli.mb_in_eccesso %}
       <div class="small mt-1 text-muted">
         Nessuna modifica eseguita. La riscrittura tocca solo dati_json: le colonne con i documenti restano invariate.
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if spazio_database %}
+    <div class="alert alert-{{ 'warning' if spazio_database.errori else ('success' if spazio_database.compattazione_eseguita else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Database compattati' if spazio_database.compattazione_eseguita else 'Analisi spazio database' }}
+      </div>
+      <div class="small">{{ spazio_database.messaggio }}</div>
+      <div class="small mt-1">
+        {% for studio in spazio_database.studi %}
+        <div>
+          {{ studio.studio }}: {{ studio.su_disco }} su disco,
+          {{ studio.liberabili }} in pagine libere ({{ studio.percento_libero }}%){% if studio.compattato %} → {{ studio.dopo }}, recuperati {{ studio.recuperati }}{% endif %}{% if studio.saltato %} — <span class="text-muted">{{ studio.saltato }}</span>{% endif %}{% if studio.errore %} — <span class="text-danger">{{ studio.errore }}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if not spazio_database.compattazione_eseguita and spazio_database.gb_liberabili %}
+      <div class="small mt-1 text-muted">
+        Nessuna modifica eseguita. Il VACUUM blocca il database in scrittura per tutta la durata: lanciarlo fuori orario.
       </div>
       {% endif %}
     </div>

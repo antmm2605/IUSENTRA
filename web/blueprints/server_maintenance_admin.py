@@ -71,6 +71,7 @@ def _pagina_manutenzione(**extra):
         "professional_maintenance": None,
         "log_cleanup": None,
         "copia_doppia_fascicoli": None,
+        "spazio_database": None,
     }
     base.update(extra)
     return render_template("admin/server_manutenzione.html", **base)
@@ -117,6 +118,47 @@ def applica_copia_doppia_fascicoli():
     except Exception as exc:
         current_app.logger.exception("Riscrittura copia doppia fascicoli fallita: %s", exc)
         flash("Riscrittura non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/analizza-spazio-database")
+@superadmin_required
+def analizza_spazio_database():
+    """Quanto spazio e' bloccato in pagine libere dentro gli `studio.db`.
+
+    Apre ogni archivio in sola lettura: non scrive e non blocca nessuno.
+    """
+    from pct.manutenzione_database import esamina_tutti
+
+    try:
+        esito = esamina_tutti(_radice_dati(), compattare=False)
+        flash(esito["messaggio"], "info")
+        return _pagina_manutenzione(spazio_database=esito)
+    except Exception as exc:
+        current_app.logger.exception("Analisi spazio database fallita: %s", exc)
+        flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/applica-compattazione-database")
+@superadmin_required
+def applica_compattazione_database():
+    """Esegue VACUUM sugli archivi che ne hanno davvero bisogno.
+
+    Per tutta la durata il database resta bloccato in scrittura, quindi
+    l'applicativo non risponde: su un archivio grande sono minuti, non
+    secondi. Gli archivi con poche pagine libere, e quelli per cui il disco
+    non ha il margine richiesto, vengono saltati e dichiarati.
+    """
+    from pct.manutenzione_database import esamina_tutti
+
+    try:
+        esito = esamina_tutti(_radice_dati(), compattare=True)
+        flash(esito["messaggio"], "success" if esito["ok"] else "warning")
+        return _pagina_manutenzione(spazio_database=esito)
+    except Exception as exc:
+        current_app.logger.exception("Compattazione database fallita: %s", exc)
+        flash("Compattazione non completata. Dettaglio tecnico nei log server.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))
 
 

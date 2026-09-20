@@ -35,8 +35,18 @@ def _official_index() -> tuple[dict[str, dict], dict[str, dict], str]:
 
 def enrich_official_context(context: dict[str, Any]) -> dict[str, Any]:
     result = dict(context)
-    # I profili compilati non vengono sostituiti dal catalogo ministeriale.
-    if any(str(context.get(field) or "").strip() for field in ("area", "branca", "sottobranca")):
+    # I profili compilati non vengono sostituiti dal catalogo ministeriale:
+    # quello che l'avvocato ha scritto resta com'e'. Ma "compilato" vuol dire
+    # completo. Finche' bastava un campo su tre per fermare l'arricchimento,
+    # un fascicolo con la sola area — che e' la forma normale, perche' branca
+    # e sottofamiglia stanno solo nel profilo di deposito — non arrivava mai a
+    # un profilo, e ogni suo documento restava "da verificare" anche quando il
+    # fascicolo portava un codice oggetto ministeriale che lo identificava.
+    campi_profilo = ("area", "branca", "sottobranca")
+    gia_compilati = {
+        campo: str(context.get(campo) or "").strip() for campo in campi_profilo
+    }
+    if all(gia_compilati.values()):
         return result
     by_code, by_description, digest = _official_index()
     code = str(context.get("codice_oggetto_pst") or "").strip()
@@ -57,10 +67,23 @@ def enrich_official_context(context: dict[str, Any]) -> dict[str, Any]:
         "Volontaria giurisdizione": "VGS",
         "Procedimenti speciali sommari": "CIV-MON-CAU",
     }.get(area, "PST")
-    result.update({
+    # Si riempiono solo le caselle vuote: un valore scritto dall'avvocato non
+    # viene mai sovrascritto dal catalogo.
+    dal_catalogo = {
         "area": area,
         "branca": str(row.get("descrizionePadre") or description),
         "sottobranca": description,
+    }
+    completato = {
+        campo: (gia_compilati[campo] or dal_catalogo[campo]) for campo in campi_profilo
+    }
+    # Se il catalogo non copre quello che mancava, non si dichiara un profilo
+    # ufficiale che non c'e': meglio la revisione che una catalogazione senza
+    # fondamento.
+    if not all(completato.values()):
+        return result
+    result.update({
+        **completato,
         "_official_profile_id": profile,
         "_official_object_code": str(row["codice"]),
         "_official_object_file": str(row["fileFonte"]),

@@ -1867,7 +1867,16 @@ def start_scheduler(app):
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
                 return {"ok": False, "job": "local_ai_maintenance", "error": str(e)}
 
-    @scheduler.scheduled_job(CronTrigger(minute="7-57/10"), id="lex_sentenza_economia_auto")
+    # Questo giro non serve piu' a reagire: ci pensa il motore letture, che
+    # chiede l'esecuzione appena ha letto un documento o una PEC nuova
+    # (`_sveglia_lettura_sentenze`), e il worker la prende entro un minuto.
+    # Qui resta una passata notturna come rete di sicurezza: se un evento si
+    # perde — motore riavviato, documento arrivato per un'altra strada,
+    # ripristino da backup — la sentenza verrebbe vista comunque. Girava ogni
+    # dieci minuti e per concludere che non c'era nulla da fare elencava
+    # 37.000 file: 144 ricognizioni al giorno per reagire a qualcosa che
+    # succede qualche volta a settimana.
+    @scheduler.scheduled_job(CronTrigger(hour=3, minute=25), id="lex_sentenza_economia_auto")
     def _lex_sentenza_economia_auto():
         with app.app_context():
             try:
@@ -1952,9 +1961,21 @@ def start_scheduler(app):
                     int(totals.get("vector_indexed") or 0),
                     int(totals.get("context_mismatch_skipped") or 0),
                 )
+                visti = int(totals.get("documents_seen") or 0)
+                if visti:
+                    # Un documento trovato qui e' un documento che gli eventi
+                    # non hanno segnalato: la rete di sicurezza ha lavorato,
+                    # e va detto, non nascosto in mezzo ai conteggi.
+                    logger.warning(
+                        "[scheduler] Rete di sicurezza sentenze: %d documenti non segnalati "
+                        "dal motore letture. Se il numero non e' zero, l'aggancio a eventi "
+                        "non sta funzionando.",
+                        visti,
+                    )
                 return {
                     "ok": bool(report.get("ok")),
                     "job": "lex_sentenza_economia_auto",
+                    "sfuggiti_agli_eventi": visti,
                     "source_of_truth": report.get("source_of_truth"),
                     "scan_mode": report.get("scan_mode"),
                     "incremental": report.get("incremental"),

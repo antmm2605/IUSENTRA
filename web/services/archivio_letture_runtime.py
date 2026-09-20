@@ -1106,7 +1106,40 @@ def lettura_automatica_corrente(*, limite_oggetti: int = 150, usa_marker_schedul
         report["restano"] += int(esito["restano"])
     if usa_marker_scheduler:
         _scrivi_scheduler_idle(app_obj, paths, report)
+    _sveglia_lettura_sentenze(report)
     return report
+
+
+def _sveglia_lettura_sentenze(report: dict[str, Any]) -> None:
+    """Chiede il giro Lex quando e' arrivato davvero qualcosa di nuovo.
+
+    Il giro che riconosce le sentenze girava a orologio ogni dieci minuti e
+    per accorgersi che non c'era niente da fare elencava decine di migliaia
+    di file. Ma chi sa che e' arrivato un documento nuovo e' questo motore,
+    ed e' lui a doverlo dire — appena l'ha letto, non dieci minuti dopo.
+
+    `dedupe_open=True` serve a non accodare una richiesta per ogni documento
+    di un fascicolo con trecento allegati: finche' ce n'e' una in attesa,
+    basta quella.
+
+    Se la richiesta non riesce non si solleva nulla: il giro notturno resta
+    la rete di sicurezza, e questa e' un'accelerazione, non l'unica strada.
+    """
+    if int(report.get("documenti_letti") or 0) <= 0 and int(report.get("pec_lette") or 0) <= 0:
+        return
+    try:
+        from web.services.scheduler_admin_surface import request_scheduler_run
+
+        request_scheduler_run(
+            "lex_sentenza_economia_auto",
+            username="motore letture",
+            dedupe_open=True,
+        )
+    except Exception:
+        logger.debug(
+            "Richiesta di lettura sentenze non inoltrata: la passata notturna la recuperera'.",
+            exc_info=True,
+        )
 
 
 def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150, usa_marker_scheduler: bool = False) -> dict[str, Any]:

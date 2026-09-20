@@ -1404,6 +1404,9 @@ def start_scheduler(app):
                         tenant_id=str(paths.get("_TENANT_NOTIFICATION_ID") or label),
                         presidio_tenant_id=str(paths.get("_TENANT_PRESIDIO_ID") or label),
                         database=paths.get("_TENANT_DATABASE_CONFIG"),
+                        # Il giro schedulato si ferma da solo quando nessuna
+                        # PEC di notifica e nessun fascicolo e' cambiato.
+                        salta_se_invariato=True,
                     )
                     tenant_reports.append(report)
                     errors += _as_int(report.get("errors"))

@@ -170,16 +170,21 @@ class _FakeNotificationPresidioRepository:
         return dict(row) if isinstance(row, dict) else {}
 
 
-def _seed_advanced_presidio(paths: dict[str, str], tenant_id: str = "tenant-test") -> str:
+def _seed_advanced_presidio(
+    paths: dict[str, str],
+    tenant_id: str = "tenant-test",
+    *,
+    source_message_id: str = "pec_alfano",
+) -> str:
     repo = NotificationPresidioRepository(paths["PEC_AUDIT_DB"], tenant_id=tenant_id)
     try:
         service = NotificationPresidioService(repo)
         result = service.create_candidate(
             {
                 "fascicolo_id": "C3565650",
-                "source_message_id": "pec_alfano",
+                "source_message_id": source_message_id,
                 "source_parsed_version_id": "parsed-1",
-                "legal_event_id": "event-alfano",
+                "legal_event_id": f"event-{source_message_id}",
                 "source_effective_at": "2026-07-20T11:01:03Z",
                 "pec_official_delivery_at": "2026-07-20T11:01:03Z",
                 "event_or_order_at": "2026-07-20T11:01:03Z",
@@ -194,7 +199,7 @@ def _seed_advanced_presidio(paths: dict[str, str], tenant_id: str = "tenant-test
                 "rulepack_version": "pytest",
                 "documents": [
                     {
-                        "source_message_id": "pec_alfano",
+                        "source_message_id": source_message_id,
                         "document_role": "office_pec_copy",
                         "document_version": "1",
                         "original_filename": "19040620s.pdf",
@@ -1355,3 +1360,85 @@ def test_materializzatore_campione_scade_solo_il_presidio_sostituito(monkeypatch
     records = repository.list_notifications("tenant-test", "admin")
     assert len(records) == 1
     assert "Doppione" not in records[0].title
+
+
+def test_presidio_si_ferma_senza_novita_e_riparte_alla_pec_nuova(monkeypatch, tmp_path: Path) -> None:
+    """Il presidio non ha motivo di cercare ogni quarto d'ora.
+
+    Una volta lette tutte le PEC di notifica resta fermo; riparte quando ne
+    arriva una nuova, oppure quando cambia un fascicolo (che puo' succedere
+    senza che arrivi nessuna PEC).
+    """
+
+    paths = _paths(tmp_path)
+    paths["_TENANT_PRESIDIO_ID"] = "studio-montagnese"
+    _write_fascicolo(
+        Path(paths["STUDIO_DB"]),
+        [],
+        fascicolo_id="C3565650",
+        titolo="Carta docente - MIM",
+        nome_cliente="Giuseppe Alfano",
+    )
+    _seed_advanced_presidio(paths, tenant_id="studio-montagnese")
+    monkeypatch.setattr(
+        notifications_runtime,
+        "notification_recipients_for_paths",
+        lambda *_args, **_kwargs: [SimpleNamespace(id="admin", username="admin", ha_permesso=lambda _permission: True)],
+    )
+    comuni = {
+        "tenant_label": "studio-montagnese",
+        "tenant_id": "tenant-local-studio-montagnese",
+        "presidio_tenant_id": "studio-montagnese",
+        "salta_se_invariato": True,
+    }
+
+    primo = notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+    assert primo["ok"] is True
+    assert primo.get("stato") != "fermo"
+    assert primo["scanned"] >= 1
+    assert primo.get("impronta_salvata") is True
+
+    secondo = notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+    assert secondo["ok"] is True
+    assert secondo["stato"] == "fermo"
+    assert secondo["scanned"] == 0
+    # Non uno zero muto: dice perche' si e' fermato e quando aveva lavorato.
+    assert "nessuna PEC" in secondo["motivo"]
+    assert secondo["ultimo_giro_utile"]["scanned"] == primo["scanned"]
+
+    # Arriva una PEC che porta una notifica legale.
+    _seed_advanced_presidio(paths, tenant_id="studio-montagnese", source_message_id="pec_nuova")
+    terzo = notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+    assert terzo.get("stato") != "fermo"
+    assert terzo["scanned"] >= 1
+
+
+def test_presidio_riparte_se_cambia_un_fascicolo_senza_pec(monkeypatch, tmp_path: Path) -> None:
+    paths = _paths(tmp_path)
+    paths["_TENANT_PRESIDIO_ID"] = "studio-montagnese"
+    _write_fascicolo(Path(paths["STUDIO_DB"]), [], fascicolo_id="C1", titolo="Primo")
+    _seed_advanced_presidio(paths, tenant_id="studio-montagnese")
+    monkeypatch.setattr(
+        notifications_runtime,
+        "notification_recipients_for_paths",
+        lambda *_args, **_kwargs: [SimpleNamespace(id="admin", username="admin", ha_permesso=lambda _permission: True)],
+    )
+    comuni = {
+        "tenant_label": "studio-montagnese",
+        "tenant_id": "tenant-local-studio-montagnese",
+        "presidio_tenant_id": "studio-montagnese",
+        "salta_se_invariato": True,
+    }
+
+    notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+    assert (
+        notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)["stato"]
+        == "fermo"
+    )
+
+    # L'avvocato apre un fascicolo nuovo: nessuna PEC, ma la relata cambia.
+    _write_fascicolo(Path(paths["STUDIO_DB"]), [], fascicolo_id="C2", titolo="Secondo")
+    ripreso = notifications_runtime.materialize_notification_relata_presidio_for_paths(paths, **comuni)
+
+    assert ripreso.get("stato") != "fermo"
+    assert ripreso["scanned"] >= 2

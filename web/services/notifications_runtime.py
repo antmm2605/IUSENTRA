@@ -11,6 +11,7 @@ from urllib.parse import quote
 
 from flask import current_app, g, has_app_context
 
+from pct import impronta_notifiche_legali
 from pct.notifications import NotificationRepository, NotificationService
 from pct.notifications.web_push import load_web_push_config
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
@@ -1134,6 +1135,164 @@ def _sync_legal_notification_deadlines(
     return {"created": created, "updated": updated, "completed": completed}
 
 
+def _impronta_pec_notifiche(
+    paths: Mapping[str, Any],
+    *,
+    tenant_id: str,
+    database: Any = None,
+) -> str:
+    """Conteggio e ultima modifica dei presìdi PEC ancora aperti.
+
+    In questa tabella ci finiscono solo le PEC che il motore ha
+    riconosciuto come notifica legale: una PEC che non ne prevede una non
+    cambia questa riga e quindi non risveglia il presidio.
+    """
+
+    placeholders = ",".join("?" for _ in LEGAL_NOTIFICATION_ADVANCED_TERMINAL_STATUSES)
+    try:
+        repo = _advanced_notification_repository_for_paths(
+            paths,
+            tenant_id=_notification_text(tenant_id, "default"),
+            database=database,
+        )
+        with repo.connection() as conn:
+            riga = conn.execute(
+                f"""
+                SELECT COUNT(*) AS quante,
+                       COALESCE(MAX(p.updated_at), '') AS ultimo,
+                       COALESCE(MAX(p.id), '') AS ultimo_id
+                FROM pec_legal_notification_presidia p
+                WHERE p.tenant_id=? AND UPPER(COALESCE(p.status,'')) NOT IN ({placeholders})
+                """,
+                (
+                    _notification_text(tenant_id, "default"),
+                    *sorted(LEGAL_NOTIFICATION_ADVANCED_TERMINAL_STATUSES),
+                ),
+            ).fetchone()
+    except Exception:
+        return ""
+    if riga is None:
+        return ""
+    valori = tuple(riga)
+    return impronta_notifiche_legali.componi("pec", *valori)
+
+
+def _impronta_pec_senza_fascicolo(paths: Mapping[str, Any]) -> str:
+    """Conteggio e ultima presa in carico delle PEC lavorate senza fascicolo.
+
+    Si guarda ``ingested_at`` — quando la pipeline ha preso in carico il
+    messaggio — e non ``received_at``, che e' l'ora dichiarata dal
+    mittente. Una PEC spedita alle 06:50 ma scaricata alle 09:00 ha un
+    ``received_at`` anteriore a qualunque segnaposto messo nel frattempo:
+    con quella colonna sparirebbe per sempre, e sarebbe una notifica
+    legale persa in silenzio. ``ingested_at`` invece cresce sempre,
+    perche' lo scrive questo sistema quando il messaggio entra.
+    """
+
+    db_path = _pec_audit_db_path_for_paths(paths)
+    if db_path is None or not Path(db_path).exists():
+        # Nessun archivio PEC: la sorgente e' ferma per davvero, non ignota.
+        return impronta_notifiche_legali.componi("pec_orfane", "assente")
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
+        esiste = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pec_messages'"
+        ).fetchone()
+        if esiste is None:
+            # Archivio presente ma nessuna PEC mai presa in carico: e' uno
+            # stato noto e fermo, non una sorgente che non risponde.
+            return impronta_notifiche_legali.componi("pec_orfane", "nessuna")
+        riga = conn.execute(
+            """
+            SELECT COUNT(*) AS quante,
+                   COALESCE(MAX(m.ingested_at), '') AS ultima_presa_in_carico,
+                   COALESCE(MAX(m.id), '') AS ultimo_id
+            FROM pec_messages m
+            WHERE TRIM(COALESCE(m.linked_fascicolo_id, '')) = ''
+            """
+        ).fetchone()
+    except Exception:
+        return ""
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+    if riga is None:
+        return ""
+    return impronta_notifiche_legali.componi("pec_orfane", *tuple(riga))
+
+
+def _impronta_fascicoli(paths: Mapping[str, Any], database: Any = None) -> str:
+    """Stato dei fascicoli senza leggerne il contenuto.
+
+    Oltre al conteggio e all'ultima modifica dichiarata si somma la
+    lunghezza di ``documenti_json``: se qualcuno allega o toglie un
+    documento senza che ``modificato_il`` venga aggiornato, la somma
+    cambia comunque e il presidio se ne accorge.
+    """
+
+    backend = _core_backend_for_paths(paths, database)
+    if backend is None:
+        return ""
+    fetchall = getattr(backend, "fetchall_readonly", None)
+    if not callable(fetchall):
+        # Senza interrogazione leggera non si puo' decidere a poco prezzo:
+        # si dichiara ignota e il presidio lavora, come prima.
+        return ""
+    comune = (
+        "COUNT(*) AS quanti,"
+        " COALESCE(SUM(LENGTH(COALESCE(documenti_json, ''))), 0) AS peso_documenti,"
+        " COALESCE(SUM(CASE WHEN LOWER(COALESCE(stato,'')) IN"
+        " ('archiviato','archiviata','archived') THEN 1 ELSE 0 END), 0) AS archiviati"
+    )
+    # Non tutti gli schemi governati hanno ``modificato_il``: dove c'e' si
+    # usa, dove manca bastano conteggio, peso dei documenti e archiviati.
+    tentativi = (
+        f"SELECT {comune}, COALESCE(MAX(modificato_il), '') AS ultima_modifica FROM fascicoli",
+        f"SELECT {comune} FROM fascicoli",
+    )
+    righe: list[Any] = []
+    for sql in tentativi:
+        try:
+            righe = list(fetchall(sql, ()))
+        except Exception:
+            continue
+        if righe:
+            break
+    if not righe:
+        return ""
+    riga = righe[0]
+    valori = tuple(riga) if not isinstance(riga, Mapping) else tuple(riga.values())
+    return impronta_notifiche_legali.componi("fascicoli", *valori)
+
+
+def _impronta_presidio_notifiche(
+    paths: Mapping[str, Any],
+    *,
+    tenant_id: str,
+    database: Any = None,
+    destinatari: int = -1,
+) -> impronta_notifiche_legali.Impronta:
+    return impronta_notifiche_legali.Impronta(
+        pec_notifiche=_impronta_pec_notifiche(paths, tenant_id=tenant_id, database=database),
+        pec_senza_fascicolo=_impronta_pec_senza_fascicolo(paths),
+        fascicoli=_impronta_fascicoli(paths, database),
+        destinatari=(
+            impronta_notifiche_legali.componi("destinatari", destinatari) if destinatari >= 0 else ""
+        ),
+    )
+
+
+def _cartella_impronta_presidio(paths: Mapping[str, Any]) -> Path | None:
+    studio_db = _notification_text(paths.get("STUDIO_DB"))
+    if studio_db:
+        return Path(studio_db).expanduser().parent
+    return None
+
+
 def materialize_notification_relata_presidio_for_paths(
     paths: Mapping[str, Any],
     *,
@@ -1141,8 +1300,16 @@ def materialize_notification_relata_presidio_for_paths(
     tenant_id: str = "",
     presidio_tenant_id: str = "",
     database: Any = None,
+    salta_se_invariato: bool = False,
 ) -> dict[str, Any]:
-    """Materializza residui notifica fascicoli in topbar, Web Push e scadenziario senza rallentare la UI."""
+    """Materializza residui notifica fascicoli in topbar, Web Push e scadenziario senza rallentare la UI.
+
+    Con ``salta_se_invariato`` il presidio si ferma quando nessuna delle
+    sue tre sorgenti e' cambiata dall'ultimo giro riuscito: nessuna PEC
+    di notifica nuova, nessuna PEC orfana nuova, nessun fascicolo
+    toccato. Lo usa il giro schedulato; le chiamate manuali e quelle
+    dell'API rifanno sempre il lavoro per intero.
+    """
 
     from web.services.react_fascicoli_bridge import _notification_relata
 
@@ -1157,6 +1324,30 @@ def materialize_notification_relata_presidio_for_paths(
         raise NotificationRuntimeUnavailable(
             "Archivio fascicoli tenant-aware non disponibile per il presidio notifiche."
         )
+    cartella_impronta = _cartella_impronta_presidio(paths)
+    impronta_attuale = None
+    if salta_se_invariato and cartella_impronta is not None:
+        impronta_attuale = _impronta_presidio_notifiche(
+            paths,
+            tenant_id=_notification_text(
+                presidio_tenant_id or paths.get("_TENANT_PRESIDIO_ID") or tenant_label or tenant_id or "default"
+            ),
+            database=database_config,
+            destinatari=len(notification_recipients_for_paths(paths, database=database_config)),
+        )
+        salvata, dati_salvati = impronta_notifiche_legali.leggi_impronta(cartella_impronta)
+        if impronta_notifiche_legali.si_puo_fermare(impronta_attuale, salvata):
+            esito = impronta_notifiche_legali.esito_fermo(impronta_attuale, dati_salvati)
+            esito["tenant"] = _notification_text(tenant_label, "default")
+            esito["source_of_truth"] = (
+                "impronta presidio notifiche: PEC di notifica, PEC senza fascicolo, fascicoli"
+            )
+            esito["scanned"] = 0
+            esito["items"] = 0
+            esito["to_notify"] = 0
+            esito["recipients"] = 0
+            esito["errors"] = 0
+            return esito
     total, archived, rows = _notification_fascicolo_rows(paths, database_config)
     legacy_items: list[dict[str, Any]] = []
     status_counts: dict[str, int] = {}
@@ -1217,7 +1408,7 @@ def materialize_notification_relata_presidio_for_paths(
         except Exception:
             errors += 1
     calendar_report = _sync_legal_notification_deadlines(paths, items, database=database_config)
-    return {
+    esito = {
         "ok": errors == 0,
         "tenant": _notification_text(tenant_label, "default"),
         "source_of_truth": "core backend fascicoli + presidio notifiche repository tenant-aware + notification repository tenant-aware",
@@ -1235,6 +1426,24 @@ def materialize_notification_relata_presidio_for_paths(
         "calendar": calendar_report,
         "status_counts": status_counts,
     }
+    # L'impronta si aggiorna solo se il giro e' andato a buon fine: con
+    # errori in corso il prossimo giro deve rifare il lavoro, non fermarsi.
+    if salta_se_invariato and impronta_attuale is not None and cartella_impronta is not None and errors == 0:
+        # Si salva l'impronta letta PRIMA del lavoro, non una ricalcolata
+        # adesso: il giro ha trattato lo stato di allora, e una PEC
+        # arrivata nel frattempo deve far ripartire il prossimo giro.
+        impronta_finale = impronta_attuale
+        if impronta_finale.completa():
+            esito["impronta_salvata"] = impronta_notifiche_legali.scrivi_impronta(
+                cartella_impronta,
+                impronta_finale,
+                esito={
+                    "scanned": esito.get("scanned"),
+                    "items": esito.get("items"),
+                    "recipients": esito.get("recipients"),
+                },
+            )
+    return esito
 
 
 def materialize_selected_advanced_notification_presidia_for_paths(

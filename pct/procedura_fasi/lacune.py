@@ -43,6 +43,65 @@ def riferimenti_nel_testo(testo: str) -> list[str]:
     return [" ".join(m.group(0).split()) for m in _RIFERIMENTO_NORMATIVO.finditer(str(testo or ""))]
 
 
+#: Un intervallo piu' lungo di cosi' non si espande articolo per articolo:
+#: «artt. 1-500» e' un rinvio a un capo, non una citazione puntuale.
+INTERVALLO_MASSIMO = 12
+
+# «325-326» sono due articoli; «171-bis» e' un articolo solo. La differenza sta
+# in cosa segue il trattino: una cifra o una parola.
+_ELENCO_ARTICOLI = re.compile(r"\d[\w-]*(?:\s*,\s*|\s+e\s+)?")
+_INTERVALLO = re.compile(r"^(\d+)-(\d+)$")
+
+
+def _coda_normativa(norma: str) -> str:
+    """Quello che viene dopo i numeri: «c.p.c.», «l. 742/1969»…"""
+    resto = re.sub(r"^\s*artt?\.?\s*", "", str(norma or ""), flags=re.IGNORECASE)
+    pezzi = re.split(r"^[\d\w\-,\s]*?(?=[a-zA-Z]\.)", resto, maxsplit=1)
+    return (pezzi[-1] if pezzi else "").strip()
+
+
+def articoli_citati(norma: str) -> list[str]:
+    """Un riferimento composto, spezzato negli articoli che cita davvero.
+
+    «artt. 325-326 c.p.c.» sono due articoli, e uno dei due — il 325 — sta gia'
+    nel registro delle fonti verificate. Finche' la citazione veniva confrontata
+    tutta intera, quell'articolo risultava mancante insieme all'altro: una
+    lacuna dichiarata su una fonte che c'era.
+
+    «art. 171-bis c.p.c.» invece e' un articolo solo: dopo il trattino c'e' una
+    parola, non una cifra.
+    """
+    testo = str(norma or "").strip()
+    coda = _coda_normativa(testo)
+    if not coda:
+        return [testo] if testo else []
+    numeri_grezzi = re.sub(re.escape(coda) + r"$", "", testo).strip()
+    numeri_grezzi = re.sub(r"^\s*artt?\.?\s*", "", numeri_grezzi, flags=re.IGNORECASE)
+    pezzi = [p.strip() for p in re.split(r"\s*,\s*|\s+e\s+", numeri_grezzi) if p.strip()]
+    if not pezzi:
+        return [testo]
+    articoli: list[str] = []
+    for pezzo in pezzi:
+        intervallo = _INTERVALLO.match(pezzo)
+        if intervallo:
+            primo, ultimo = int(intervallo.group(1)), int(intervallo.group(2))
+            if primo <= ultimo and (ultimo - primo) < INTERVALLO_MASSIMO:
+                articoli.extend(str(n) for n in range(primo, ultimo + 1))
+                continue
+            # Intervallo troppo ampio: si citano gli estremi, non il capo intero.
+            articoli.extend([str(primo), str(ultimo)])
+            continue
+        articoli.append(pezzo)
+    visti: set[str] = set()
+    fuori: list[str] = []
+    for articolo in articoli:
+        voce = f"art. {articolo} {coda}".strip()
+        if voce not in visti:
+            visti.add(voce)
+            fuori.append(voce)
+    return fuori or [testo]
+
+
 def lacune_conoscenza(
     *,
     tipo: str = "",
@@ -70,19 +129,23 @@ def lacune_conoscenza(
     registrate = _norme_registrate()
     viste: set[str] = set()
     for riferimento in riferimenti:
-        for norma in riferimenti_nel_testo(riferimento):
-            chiave = _chiave(norma)
-            if not chiave or chiave in viste:
-                continue
-            viste.add(chiave)
-            if chiave in registrate:
-                continue
-            lacune.append({
-                "tipo": "norma",
-                "chiave": norma,
-                "descrizione": f"La norma «{norma}» è citata nel fascicolo ma non è nel registro delle fonti verificate: il testo vigente va acquisito da Normattiva prima di fondarvi un termine.",
-            })
+        for composta in riferimenti_nel_testo(riferimento):
+            # Una citazione composta si confronta articolo per articolo:
+            # altrimenti un articolo gia' verificato sparisce dentro l'elenco
+            # e viene dichiarato mancante insieme agli altri.
+            for norma in articoli_citati(composta):
+                chiave = _chiave(norma)
+                if not chiave or chiave in viste:
+                    continue
+                viste.add(chiave)
+                if chiave in registrate:
+                    continue
+                lacune.append({
+                    "tipo": "norma",
+                    "chiave": norma,
+                    "descrizione": f"La norma «{norma}» è citata nel fascicolo ma non è nel registro delle fonti verificate: il testo vigente va acquisito da Normattiva prima di fondarvi un termine.",
+                })
     return lacune
 
 
-__all__ = ["lacune_conoscenza", "riferimenti_nel_testo"]
+__all__ = ["articoli_citati", "lacune_conoscenza", "riferimenti_nel_testo"]

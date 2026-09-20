@@ -912,6 +912,43 @@ def ufficio_giudiziario_mittente(parsed: dict[str, Any]) -> str:
     return ""
 
 
+#: Sopra questo punteggio il candidato migliore vale un collegamento.
+SOGLIA_COLLEGAMENTO = 0.78
+
+
+def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = SOGLIA_COLLEGAMENTO) -> dict[str, Any]:
+    """Da quali candidati nasce un collegamento, e con che esito.
+
+    Sta qui, e non dentro `link_fascicolo`, perche' la manutenzione che
+    ricalcola i messaggi arretrati deve poter dire quanti si collegherebbero
+    *senza scrivere niente*. Se la previsione e l'azione usassero due copie
+    della stessa regola, prima o poi direbbero cose diverse — e la previsione
+    e' quello su cui si decide se toccare i dati.
+    """
+    best = candidates[0] if candidates else {}
+    score = float(best.get("score") or 0.0)
+    reasons = {str(item or "") for item in list(best.get("reasons") or [])}
+    # Il solo RG dedotto dal testo resta insufficiente; il solo RG certificato
+    # dall'ufficio no: e' l'identificativo del procedimento.
+    rg_only = bool(best) and reasons == {"RG coincidente"}
+    fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
+    if fascicolo_id:
+        status = "automatico"
+    elif rg_only:
+        status = "rg_non_sufficiente"
+    elif candidates:
+        status = "proposte"
+    else:
+        status = "nessun_candidato"
+    return {
+        "fascicolo_id": fascicolo_id,
+        "status": status,
+        "score": score,
+        "reasons": sorted(reasons),
+        "rg_only": rg_only,
+    }
+
+
 def profilo_processuale_presente(parsed: dict[str, Any]) -> bool:
     """Il messaggio porta un atto del procedimento, non solo una ricevuta.
 
@@ -9478,18 +9515,13 @@ class PecAuditRepository:
                 raise KeyError("JSON PEC non ancora disponibile.")
             parsed = json.loads(parsed_row["parsed_json"])
             seeds, candidates = self._fascicoli_candidates(parsed)
-            best = candidates[0] if candidates else {}
-            score = float(best.get("score") or 0.0)
-            reasons = {str(item or "") for item in list(best.get("reasons") or [])}
-            # Il solo RG dedotto dal testo resta insufficiente; il solo RG
-            # certificato dall'ufficio no: e' l'identificativo del procedimento.
-            # «RG citato dall'ufficio giudiziario del fascicolo» sta nella
-            # seconda categoria: vale solo quando il mittente e' l'ufficio di
-            # quel procedimento su dominio ministeriale e il messaggio porta un
-            # atto, quindi non e' il caso dell'RG nudo.
-            rg_only = bool(best) and reasons == {"RG coincidente"}
-            fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
-            status = "automatico" if fascicolo_id else "rg_non_sufficiente" if rg_only else "proposte" if candidates else "nessun_candidato"
+            # «RG citato dall'ufficio giudiziario del fascicolo» non e' il caso
+            # dell'RG nudo: vale solo quando il mittente e' l'ufficio di quel
+            # procedimento su dominio ministeriale e il messaggio porta un atto.
+            decisione = decidi_collegamento(candidates, threshold=threshold)
+            score = decisione["score"]
+            fascicolo_id = decisione["fascicolo_id"]
+            status = decisione["status"]
             # Un collegamento certificato (numero di ruolo citato da un ufficio
             # giudiziario, stabilito dalla lettura del fascicolo) non viene
             # sovrascritto dal ricalcolo automatico dei candidati.

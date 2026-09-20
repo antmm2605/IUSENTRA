@@ -72,6 +72,7 @@ def _pagina_manutenzione(**extra):
         "log_cleanup": None,
         "copia_doppia_fascicoli": None,
         "spazio_database": None,
+        "collegamenti_pec": None,
     }
     base.update(extra)
     return render_template("admin/server_manutenzione.html", **base)
@@ -118,6 +119,48 @@ def applica_copia_doppia_fascicoli():
     except Exception as exc:
         current_app.logger.exception("Riscrittura copia doppia fascicoli fallita: %s", exc)
         flash("Riscrittura non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/analizza-collegamenti-pec")
+@superadmin_required
+def analizza_collegamenti_pec():
+    """Quante PEC rimaste senza fascicolo si collegherebbero con la regola di oggi.
+
+    Usa la stessa funzione di decisione del collegatore e non scrive niente:
+    il numero che mostra e' quello che l'applicazione produrrebbe.
+    """
+    from web.services.collegamenti_pec_runtime import esamina_tutti
+
+    try:
+        esito = esamina_tutti(current_app, ricollegare=False)
+        flash(esito["messaggio"], "info")
+        return _pagina_manutenzione(collegamenti_pec=esito)
+    except Exception as exc:
+        current_app.logger.exception("Analisi collegamenti PEC fallita: %s", exc)
+        flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/applica-collegamenti-pec")
+@superadmin_required
+def applica_collegamenti_pec():
+    """Rifa' il collegamento delle PEC che oggi si collegherebbero.
+
+    Tocca solo i messaggi che risultano collegabili: su quelli che
+    resterebbero dove sono non riscrive niente, quindi si puo' rieseguire.
+    Da quale PEC decorre un termine dipende da questo collegamento: e' una
+    scrittura, non una lettura, e sta dietro un bottone suo.
+    """
+    from web.services.collegamenti_pec_runtime import esamina_tutti
+
+    try:
+        esito = esamina_tutti(current_app, ricollegare=True)
+        flash(esito["messaggio"], "success" if esito["ok"] else "warning")
+        return _pagina_manutenzione(collegamenti_pec=esito)
+    except Exception as exc:
+        current_app.logger.exception("Ricollegamento PEC fallito: %s", exc)
+        flash("Ricollegamento non completato. Dettaglio tecnico nei log server.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))
 
 

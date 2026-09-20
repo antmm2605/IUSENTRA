@@ -272,6 +272,18 @@
               <i class="bi bi-scissors"></i> Togli copia doppia fascicoli
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_collegamenti_pec') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-link-45deg"></i> Analizza collegamenti PEC
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_collegamenti_pec') }}" onsubmit="return confirm('Ricollegare le PEC rimaste senza fascicolo?\n\nVengono toccati solo i messaggi che la regola di oggi collega: RG del fascicolo, mittente che e\u0027 quell\u0027ufficio giudiziario, atto del procedimento. Da quale PEC decorre un termine dipende da questo collegamento: lanciarlo dopo avere letto l\u0027analisi.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-link"></i> Ricollega PEC al fascicolo
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.analizza_spazio_database') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
@@ -474,6 +486,29 @@
       {% if not copia_doppia_fascicoli.riscrittura_eseguita and copia_doppia_fascicoli.mb_in_eccesso %}
       <div class="small mt-1 text-muted">
         Nessuna modifica eseguita. La riscrittura tocca solo dati_json: le colonne con i documenti restano invariate.
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if collegamenti_pec %}
+    <div class="alert alert-{{ 'warning' if collegamenti_pec.errori else ('success' if collegamenti_pec.ricollegamento_eseguito else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'PEC ricollegate ai fascicoli' if collegamenti_pec.ricollegamento_eseguito else 'Analisi collegamenti PEC' }}
+      </div>
+      <div class="small">{{ collegamenti_pec.messaggio }}</div>
+      <div class="small mt-1">
+        {% for studio in collegamenti_pec.studi %}
+        <div>
+          {{ studio.studio }}: {{ studio.esaminati }} senza fascicolo,
+          {{ studio.collegabili }} collegabili{% if studio.ricollegati %}, {{ studio.ricollegati }} collegate{% endif %},
+          {{ studio.solo_rg }} con il solo numero di ruolo,
+          {{ studio.senza_candidato }} senza candidato{% if studio.errore %} — <span class="text-danger">{{ studio.errore }}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if not collegamenti_pec.ricollegamento_eseguito and collegamenti_pec.collegabili %}
+      <div class="small mt-1 text-muted">
+        Nessuna modifica eseguita. Il collegamento decide da quale PEC decorre un termine: leggere prima, applicare poi.
       </div>
       {% endif %}
     </div>

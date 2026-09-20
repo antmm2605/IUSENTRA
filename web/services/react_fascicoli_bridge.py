@@ -874,6 +874,24 @@ def _resolve_fascicolo(repo: Any, requested_id: str) -> Any:
     return None
 
 
+def _idrata_documenti_se_serve(repo: Any, fascicolo: Any) -> Any:
+    """Carica gli allegati di un fascicolo letto in modalita' elenco.
+
+    Solo per i pochi fascicoli mostrati a schermo: e' molto meno che leggere
+    l'archivio documentale di tutte le pratiche dello studio, ed e' l'unico
+    modo per avere i documenti dove servono sul serio.
+    """
+    if not getattr(fascicolo, "documenti_non_caricati", False):
+        return fascicolo
+    idrata = getattr(repo, "idrata_documenti", None)
+    if not callable(idrata):
+        return fascicolo
+    try:
+        return idrata(fascicolo)
+    except Exception:
+        return fascicolo
+
+
 def _idrata_fascicoli_collegati(repo: Any, righe: Iterable[Any]) -> list[Any]:
     """Sostituisce le righe dell'indice leggero con i fascicoli per intero.
 
@@ -6352,9 +6370,26 @@ def build_react_fascicoli_payload(
                 enriched_items.append(item)
                 continue
             enriched = dict(item)
-            related_fascicoli = _related_duplicate_fascicoli(fascicoli_for_summary, fascicolo)
+            # La vista economica legge davvero i documenti. Se il fascicolo
+            # arriva dall'elenco senza allegati va idratato adesso, altrimenti
+            # `has_documents` direbbe «nessun documento» — che non e' la
+            # stessa cosa di «non li ho letti» — e il ripiego darebbe una
+            # risposta sbagliata senza segnalare niente.
+            fascicolo = _idrata_documenti_se_serve(gf, fascicolo)
+            related_fascicoli = [
+                _idrata_documenti_se_serve(gf, riga)
+                for riga in _related_duplicate_fascicoli(fascicoli_for_summary, fascicolo)
+            ]
             parcelle = parcelle_by_fasc.get(fid, [])
             duplicate_group = duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo))
+            if getattr(fascicolo, "documenti_non_caricati", False):
+                # Idratazione non riuscita: non si puo' decidere. Meglio
+                # dichiararlo che far passare il ripiego per un risultato.
+                current_app.logger.warning(
+                    "Vista economica: documenti non leggibili per il fascicolo %s, "
+                    "riepilogo economico calcolato senza di essi.",
+                    fid,
+                )
             has_documents = bool(getattr(fascicolo, "documenti", []) or [])
             if has_documents:
                 enriched["paymentSummary"] = payment_summary_for_fascicolo(

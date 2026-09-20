@@ -3993,6 +3993,40 @@ class GestioneFascicoli:
                 return letto
         return None
 
+    def idrata_documenti(self, fascicolo: Any) -> Any:
+        """Carica gli allegati di UN fascicolo letto in modalita' elenco.
+
+        Serve a chi, dopo aver elencato, deve guardare davvero i documenti di
+        poche pratiche — quelle mostrate a schermo. Costa una riga per
+        fascicolo invece dell'archivio documentale intero.
+        """
+        if fascicolo is None or not getattr(fascicolo, "documenti_non_caricati", False):
+            return fascicolo
+        fid = str(getattr(fascicolo, "id", "") or "").strip()
+        if not fid or self._studio_db is None:
+            return fascicolo
+        import json as _json
+
+        try:
+            rows = self._studio_db.fetchall_readonly(
+                "SELECT documenti_json FROM fascicoli WHERE id = ?", (fid,)
+            )
+        except Exception:
+            return fascicolo
+        for row in rows or []:
+            try:
+                grezzo = dict(row).get("documenti_json")
+                documenti = _json.loads(grezzo or "[]")
+            except Exception:
+                return fascicolo
+            payload = fascicolo.to_dict()
+            payload["documenti"] = documenti
+            idratato = Fascicolo.from_dict(payload)
+            # L'oggetto e' ora completo: il flag deve sparire, altrimenti
+            # chi lo controlla continuerebbe a diffidare di dati buoni.
+            return idratato
+        return fascicolo
+
     def _assicura_archivio_completo(self) -> None:
         """Carica l'archivio intero, ma solo quando qualcuno lo chiede davvero."""
         if self._archivio_completo:

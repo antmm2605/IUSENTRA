@@ -115,3 +115,37 @@ def test_un_fascicolo_senza_documenti_conta_zero(tmp_path: Path):
     letto = next(f for f in _repo(tmp_path, senza_documenti=True).tutti() if f.id == vuoto.id)
 
     assert _fast_documents_count(letto) == 0
+
+
+def test_l_idratazione_mirata_riporta_i_documenti_su_un_solo_fascicolo(tmp_path: Path):
+    """Chi deve guardare gli allegati davvero li ottiene, uno per volta.
+
+    La vista economica dell'elenco legge i documenti dei fascicoli mostrati a
+    schermo. Senza questa idratazione vedrebbe zero allegati e prenderebbe il
+    ripiego «fascicolo senza documenti»: nessun errore, risposta sbagliata.
+    """
+
+    ids = _semina(tmp_path, documenti_per_fascicolo=5)
+    repo = _repo(tmp_path, senza_documenti=True)
+    elenco = repo.tutti()
+    scelto = next(f for f in elenco if f.id == ids[0])
+
+    assert scelto.documenti_non_caricati is True
+    assert scelto.documenti == []
+
+    idratato = repo.idrata_documenti(scelto)
+
+    assert len(idratato.documenti) == 5
+    # Il flag sparisce: chi lo controlla non deve piu' diffidare di dati buoni.
+    assert getattr(idratato, "documenti_non_caricati", False) is False
+    assert idratato.id == scelto.id
+    assert idratato.nome_cliente == scelto.nome_cliente
+
+
+def test_idratare_un_fascicolo_gia_completo_non_fa_danni(tmp_path: Path):
+    ids = _semina(tmp_path, documenti_per_fascicolo=5)
+    repo = _repo(tmp_path)
+    completo = repo.get(ids[0])
+
+    assert repo.idrata_documenti(completo) is completo
+    assert len(completo.documenti) == 5

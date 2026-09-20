@@ -961,6 +961,16 @@ class GestioneFascicoli:
 
     # ---------------------------------------------------------------- I/O
 
+    #: Collezioni che hanno una colonna dedicata: non vanno duplicate dentro
+    #: `dati_json`, che altrimenti contiene una seconda copia dell'archivio
+    #: documentale di ogni fascicolo.
+    _COLLEZIONI_CON_COLONNA = ("attivita", "documenti", "depositi_pct")
+
+    @classmethod
+    def _dati_json_snello(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        """Il payload senza le collezioni che sono gia' in colonna propria."""
+        return {k: v for k, v in payload.items() if k not in cls._COLLEZIONI_CON_COLONNA}
+
     @staticmethod
     def _row_to_fascicolo(row) -> Optional["Fascicolo"]:
         """Ricostruisce un Fascicolo da una riga SQLite (dict o sqlite3.Row)."""
@@ -973,11 +983,21 @@ class GestioneFascicoli:
             else:
                 # Fallback colonne: ricostruisce i campi complessi dai JSON figli
                 payload = d.copy()
-                payload["attivita"] = _json.loads(d.get("attivita_json") or "[]")
-                payload["documenti"] = _json.loads(d.get("documenti_json") or "[]")
-                payload["depositi_pct"] = _json.loads(d.get("scadenze_json") or "[]")
                 for k in ("attivita_json", "documenti_json", "scadenze_json", "dati_json"):
                     payload.pop(k, None)
+            # Attivita', documenti e depositi hanno una colonna propria, ed e'
+            # quella la fonte. `dati_json` ne conteneva una seconda copia — lo
+            # stesso archivio documentale scritto due volte — che dalla 2.328.0
+            # non viene piu' salvata. Leggendoli sempre dalle colonne, le righe
+            # scritte prima e quelle scritte dopo si comportano allo stesso
+            # modo: nessuna migrazione obbligatoria, nessun doppio significato.
+            for chiave, colonna in (
+                ("attivita", "attivita_json"),
+                ("documenti", "documenti_json"),
+                ("depositi_pct", "scadenze_json"),
+            ):
+                if colonna in d:
+                    payload[chiave] = _json.loads(d.get(colonna) or "[]")
             profilo_sql = d.get("profilo_deposito_json")
             if profilo_sql:
                 try:
@@ -1072,7 +1092,7 @@ class GestioneFascicoli:
                         _json.dumps(d.get("documenti", []), ensure_ascii=False),
                         _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
                         _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
-                        _json.dumps(d, ensure_ascii=False),
+                        _json.dumps(self._dati_json_snello(d), ensure_ascii=False),
                     ),
                 )
 
@@ -1232,7 +1252,7 @@ class GestioneFascicoli:
                     _json.dumps(d.get("documenti", []), ensure_ascii=False),
                     _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
                     _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
-                    _json.dumps(d, ensure_ascii=False),
+                    _json.dumps(self._dati_json_snello(d), ensure_ascii=False),
                 ),
             )
 

@@ -404,7 +404,10 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
     assert templates["lex_dataset_nightly"].minute == "45"
     assert "senza avviare addestramento automatico" in templates["lex_dataset_nightly"].description
     assert templates["lex_sentenza_economia_auto"].family == "Lex AI"
-    assert templates["lex_sentenza_economia_auto"].minute == "7-57/10"
+    # Dalla 2.334.0 gira una volta a notte: il lavoro parte all'arrivo dei
+    # documenti, non a orario.
+    assert templates["lex_sentenza_economia_auto"].hour == "3"
+    assert templates["lex_sentenza_economia_auto"].minute == "25"
     assert "RG e cliente coincidenti" in templates["lex_sentenza_economia_auto"].description
     assert {
         "cliente_soggetti",

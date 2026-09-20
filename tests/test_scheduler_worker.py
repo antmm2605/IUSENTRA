@@ -42,7 +42,11 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert "hour='23'" in str(scheduler.get_job("legal_updates_batch").trigger)
         assert "hour='1'" in str(scheduler.get_job("lex_dataset_nightly").trigger)
         assert "minute='45'" in str(scheduler.get_job("lex_dataset_nightly").trigger)
-        assert "minute='7-57/10'" in str(scheduler.get_job("lex_sentenza_economia_auto").trigger)
+        # Il worker prende l'orario dal registro, non dal CronTrigger scritto
+        # nel codice: e' proprio questo che rende obbligatoria la migrazione.
+        trigger_lex = str(scheduler.get_job("lex_sentenza_economia_auto").trigger)
+        assert "hour='3'" in trigger_lex
+        assert "minute='25'" in trigger_lex
         assert scheduler.get_job("operational_crash_morning") is not None
         assert scheduler.get_job("operational_crash_midday") is not None
         assert scheduler.get_job("operational_crash_evening") is not None

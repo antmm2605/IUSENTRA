@@ -539,7 +539,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             editable=False,
         ),
         SchedulerTemplate("local_ai_maintenance", "AI locale", "Lex AI", "Mantiene indicizzazione locale e modelli.", "cron", "", "*/30", built_in=True),
-        SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica automaticamente la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo.", "cron", "", "7-57/10", built_in=True),
+        SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo. A orario resta la sola ricognizione notturna di sicurezza: il lavoro parte quando arrivano i documenti.", "cron", "3", "25", built_in=True),
         SchedulerTemplate("lex_dataset_nightly", "Dataset Lex notturno", "Lex AI", "Prepara dataset locali di revisione da Documenti AI senza avviare addestramento automatico.", "cron", "1", "45", built_in=True),
         SchedulerTemplate("lex_operational_agents_nightly", "Agenti Lex notturni", "Lex AI", "Aggiorna inventario operativo completo di studio per Lex.", "cron", "1", "20", built_in=True),
         SchedulerTemplate("utf8_integrity_nightly", "Integrità testo UTF-8", "Manutenzione", "Verifica e ripara mojibake, accenti italiani e caratteri sostitutivi nei dati testuali.", "cron", "0", "35", built_in=True),
@@ -705,8 +705,14 @@ class SchedulerRegistryRepository:
         "studio_daily_operational_plan",
     )
 
+    #: Cambiare l'orario in un template non basta: `upsert_default_jobs` non
+    #: riscrive hour/minute delle righe gia' presenti, quindi il nuovo orario
+    #: resterebbe solo nel codice. Ogni cambio di orario va dichiarato anche
+    #: qui, come (job_id, ora_vecchia, minuto_vecchio, ora_nuova, minuto_nuovo).
     _SYSTEM_CRON_MIGRATIONS: tuple[tuple[str, str, str, str, str], ...] = (
         ("studio_daily_operational_plan", "7", "30", "5", "30"),
+        ("lex_sentenza_economia_auto", "", "7-57/10", "3", "25"),
+        ("lex_sentenza_economia_auto", "", "*/10", "3", "25"),
     )
 
     def upsert_default_jobs(self, config: dict[str, Any] | None = None) -> None:
@@ -851,18 +857,6 @@ class SchedulerRegistryRepository:
                         now,
                     ),
                 )
-            conn.execute(
-                """
-                UPDATE scheduled_jobs
-                SET minute='7-57/10',
-                    updated_at=?,
-                    updated_by='system'
-                WHERE job_id='lex_sentenza_economia_auto'
-                  AND built_in=1
-                  AND minute='*/10'
-                """,
-                (now,),
-            )
             conn.execute(
                 """
                 UPDATE scheduled_jobs

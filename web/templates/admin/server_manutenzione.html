@@ -260,6 +260,18 @@
               <i class="bi bi-stars"></i> Ottimizza archivi studi
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_copia_doppia_fascicoli') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-files"></i> Analizza copia doppia fascicoli
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_copia_doppia_fascicoli') }}" onsubmit="return confirm('Togliere la copia doppia dai fascicoli? Viene riscritto solo dati_json: le colonne con i documenti veri non vengono toccate, e le righe gia\u0027 sgrassate vengono saltate.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-scissors"></i> Togli copia doppia fascicoli
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.analizza_retention_backup') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
@@ -429,6 +441,28 @@
         <li>{{ item.display_path }}: {{ item.bytes_reclaimable|filesizeformat(true) }} recuperabili{% if item.error %} - {{ item.error }}{% endif %}</li>
         {% endfor %}
       </ol>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if copia_doppia_fascicoli %}
+    <div class="alert alert-{{ 'warning' if copia_doppia_fascicoli.errori else ('success' if copia_doppia_fascicoli.riscrittura_eseguita else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Copia doppia rimossa dai fascicoli' if copia_doppia_fascicoli.riscrittura_eseguita else 'Analisi copia doppia fascicoli' }}
+      </div>
+      <div class="small">{{ copia_doppia_fascicoli.messaggio }}</div>
+      <div class="small mt-1">
+        {% for studio in copia_doppia_fascicoli.studi %}
+        <div>
+          {{ studio.studio }}: {{ studio.fascicoli }} fascicoli,
+          {{ studio.da_sgrassare }} con la copia doppia,
+          {{ studio.mb_in_eccesso }} MB in eccesso{% if studio.riscritte %}, {{ studio.riscritte }} righe riscritte{% endif %}{% if studio.errore %} — <span class="text-danger">{{ studio.errore }}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if not copia_doppia_fascicoli.riscrittura_eseguita and copia_doppia_fascicoli.mb_in_eccesso %}
+      <div class="small mt-1 text-muted">
+        Nessuna modifica eseguita. La riscrittura tocca solo dati_json: le colonne con i documenti restano invariate.
+      </div>
       {% endif %}
     </div>
     {% endif %}

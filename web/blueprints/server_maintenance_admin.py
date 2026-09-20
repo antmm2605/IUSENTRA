@@ -26,6 +26,17 @@ server_maintenance_admin = Blueprint(
 )
 
 
+def _radice_dati():
+    from pathlib import Path
+
+    grezzo = (
+        current_app.config.get("PCT_DATA_ROOT")
+        or current_app.config.get("DATA_ROOT")
+        or "/data"
+    )
+    return Path(str(grezzo)).expanduser()
+
+
 @server_maintenance_admin.get("")
 @superadmin_required
 def dashboard():
@@ -47,6 +58,66 @@ def dashboard():
 @superadmin_required
 def api_dashboard():
     return jsonify(build_server_maintenance_surface())
+
+
+def _pagina_manutenzione(**extra):
+    base = {
+        "payload": build_server_maintenance_surface(),
+        "compaction": None,
+        "backup_retention": None,
+        "docker_prune": None,
+        "max_optimization": None,
+        "inactive_cleanup": None,
+        "professional_maintenance": None,
+        "log_cleanup": None,
+        "copia_doppia_fascicoli": None,
+    }
+    base.update(extra)
+    return render_template("admin/server_manutenzione.html", **base)
+
+
+@server_maintenance_admin.post("/analizza-copia-doppia-fascicoli")
+@superadmin_required
+def analizza_copia_doppia_fascicoli():
+    """Quanti megabyte occupano i documenti salvati due volte. Non modifica nulla."""
+    from pct.manutenzione_dati_json import esamina_tutti
+
+    try:
+        esito = esamina_tutti(_radice_dati(), riscrivi=False)
+        flash(
+            f"Analisi completata: {esito['mb_in_eccesso']} MB di copia in eccesso. "
+            "Nessuna modifica eseguita.",
+            "info",
+        )
+        return _pagina_manutenzione(copia_doppia_fascicoli=esito)
+    except Exception as exc:
+        current_app.logger.exception("Analisi copia doppia fascicoli fallita: %s", exc)
+        flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/applica-copia-doppia-fascicoli")
+@superadmin_required
+def applica_copia_doppia_fascicoli():
+    """Riscrive `dati_json` senza le collezioni che hanno gia' una colonna.
+
+    Non tocca mai le colonne con i documenti veri, e le righe gia' sgrassate
+    vengono saltate: si puo' rieseguire senza conseguenze.
+    """
+    from pct.manutenzione_dati_json import esamina_tutti
+
+    try:
+        esito = esamina_tutti(_radice_dati(), riscrivi=True)
+        flash(
+            f"Riscritte {esito['righe_riscritte']} righe. "
+            "Le colonne con i documenti non sono state toccate.",
+            "success",
+        )
+        return _pagina_manutenzione(copia_doppia_fascicoli=esito)
+    except Exception as exc:
+        current_app.logger.exception("Riscrittura copia doppia fascicoli fallita: %s", exc)
+        flash("Riscrittura non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
 
 
 @server_maintenance_admin.post("/analizza-compattazione")

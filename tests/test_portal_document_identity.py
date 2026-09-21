@@ -18,7 +18,7 @@ def test_portal_namespaces_are_not_interchanged():
     doc=SimpleNamespace(id="d",id_documento_portale="quickorganizer:testi:1")
     gf=SimpleNamespace(aggiorna_documento_metadati=lambda *_:None)
     collega_identita_pst(gf,SimpleNamespace(id="f"),doc,{"id_documento":"doc1","id_cat":"cat2"})
-    assert doc.id_documento_portale=="doc1"
+    assert doc.id_documento_portale=="quickorganizer:testi:1"
     assert doc.id_cat_portale=="cat2"
 
 @pytest.mark.parametrize("source,portal,allowed",[("CARICAMENTO_STUDIO","",True),("PORTALE_TELEMATICO","",False),("IMPORT_ESTERNO","",False),("CARICAMENTO_STUDIO","123",False),("","",False)])

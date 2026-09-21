@@ -45,3 +45,9 @@ server: conteneva la gestione delle pianificazioni sospese e la chiusura delle
 connessioni SQLite, assenti nella copia del container web. Il file è copiato
 integralmente dal worker, senza riscritture; entrambe le versioni sono nel backup.
 Il test mirato `test_scheduler_health_schedule_state.py` è superato (1 test).
+
+I test successivi al codice server sono riallineati al comportamento richiesto:
+identificativo QuickOrganizer storico conservato, riferimento PST nel proprio
+campo; PDF esterno in sola consultazione con azione di anteprima nativa.
+Restano attivi tutti i controlli su identità, permessi e anteprima. Nessun cambio
+funzionale è stato introdotto per soddisfare aspettative dei test locali.

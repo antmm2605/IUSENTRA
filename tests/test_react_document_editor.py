@@ -160,7 +160,7 @@ def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
     assert response.status_code == 200
     assert payload["document"]["name"] == "sentenza_cassazione.pdf"
     assert payload["document"]["editable"] is False
-    assert "anteprima nativa" in payload["document"]["lockedReason"]
+    assert "sola consultazione" in payload["document"]["lockedReason"]
     assert payload["document"]["actions"]["preview"] == f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza"
     assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
 

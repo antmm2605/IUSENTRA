@@ -2437,6 +2437,14 @@ def start_scheduler(app):
                         )
                 except Exception as exc:
                     logger.error("[scheduler] Ripresa coda letture non riuscita: %s", exc)
+                try:
+                    from scripts.backfill_archivio_batches import resume_managed_backfills
+
+                    managed = resume_managed_backfills(app)
+                    if int(managed.get("managed") or 0):
+                        logger.info("[scheduler] Backfill archivio: %s", managed.get("reports"))
+                except Exception as exc:
+                    logger.error("[scheduler] Backfill archivio sospeso; il tick successivo riproverà: %s", exc)
                 dispatch_requested_manual_runs(scheduler, app, registry_repo)
 
         scheduler.add_job(

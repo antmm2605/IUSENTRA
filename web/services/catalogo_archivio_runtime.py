@@ -18,7 +18,14 @@ def _human(assignment: Any) -> bool:
 def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str) -> tuple[list, dict, dict]:
     """Solo documenti presenti: l'ID del fascicolo resta distinto dall'ID DocumentAI."""
     fid = str(fascicolo.id)
-    hashes = {o.oggetto_id: o.sha256 for o in oggetti if o.tipo == 'documento' and o.presente and o.sha256}
+    hashes = {}
+    for o in oggetti:
+        impronta = o.impronta
+        if o.tipo != 'documento' or not o.presente or impronta.startswith('dimensione:'):
+            continue
+        # DocumentAI salva SHA-256 nudo; il registro distingue esplicitamente
+        # l'impronta del file conservato con il prefisso ``archivio:``.
+        hashes[o.oggetto_id] = impronta.removeprefix('archivio:')
     ready = {}
     for record in sorted(repository.list_documents(tenant, fid), key=lambda r: _text(r.updated_at), reverse=True):
         if _text(record.status) == 'ready' and record.sha256 in hashes.values():

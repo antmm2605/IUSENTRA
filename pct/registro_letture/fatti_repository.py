@@ -188,20 +188,23 @@ class FattiMixin:
     def fatti(self, tenant_id: str, fascicolo_id: str, *, categoria: str = "", campo: str = "", verifiche: Iterable[str] | None = VERIFICHE_UTILI, motore: str = "", tipo: str = "") -> list[Fatto]:
         """I fatti del fascicolo, di regola solo quelli utili (verificati, plausibili, corretti)."""
         ammesse = set(verifiche) if verifiche is not None else None
+        # Filtrare prima di deserializzare evita di ricostruire tutto l'archivio
+        # per ogni voce economica della lista. SQL identico su SQLite/PostgreSQL.
+        with self.connection() as conn:  # type: ignore[attr-defined]
+            righe = conn.execute(
+                'SELECT * FROM "letture_fatti" WHERE "tenant_id" = ? AND "fascicolo_id" = ? '
+                "AND (? = '' OR categoria = ?) AND (? = '' OR campo = ?) "
+                "AND (? = '' OR motore = ?) AND (? = '' OR tipo = ?) "
+                'ORDER BY "posizione", "letto_il"',
+                (_testo(tenant_id), _testo(fascicolo_id), categoria, categoria,
+                 campo, campo, motore, motore, tipo, tipo),
+            ).fetchall()
         esito: list[Fatto] = []
-        for riga in self._seleziona_fatti("tenant_id = ? AND fascicolo_id = ?", (_testo(tenant_id), _testo(fascicolo_id))):
-            fatto = self._fatto(riga)
-            if categoria and fatto.categoria != categoria:
+        for riga in righe:
+            dati = dict(riga)
+            if ammesse is not None and str(dati.get("verifica") or "") not in ammesse:
                 continue
-            if campo and fatto.campo != campo:
-                continue
-            if motore and fatto.motore != motore:
-                continue
-            if tipo and fatto.tipo != tipo:
-                continue
-            if ammesse is not None and fatto.verifica not in ammesse:
-                continue
-            esito.append(fatto)
+            esito.append(self._fatto(dati))
         return esito
 
     def fatti_oggetto(self, tenant_id: str, tipo: str, oggetto_id: str) -> list[Fatto]:

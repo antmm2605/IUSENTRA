@@ -60,25 +60,16 @@ else
   git -C "$REPO_DIR" fetch origin "$BRANCH"
   TARGET_REF="${EXPECTED_SHA:-origin/$BRANCH}"
 
-  # Il deploy non conserva nulla di locale: la sorgente di verita' e' il commit
-  # verificato dalla CI. Finche' si passava da "git checkout <branch>", un
-  # albero di lavoro sporco faceva abortire il checkout ("Your local changes to
-  # the following files would be overwritten") e il "reset --hard" che lo
-  # avrebbe ripulito non veniva mai eseguito: da quel momento ogni deploy
-  # falliva sempre nello stesso punto, finche' qualcuno non entrava sul server
-  # a mano.
+  # Una release non può cancellare hotfix o sorgenti non consolidati.
+  # Richiedere l'allineamento prima di cambiare checkout o creare immagini.
   DIRTY="$(git -C "$REPO_DIR" status --porcelain)"
   if [ -n "$DIRTY" ]; then
-    echo "Albero di lavoro non pulito in $REPO_DIR: viene sovrascritto dal commit verificato."
-    printf '%s\n' "$DIRTY" | head -50
+    echo "Deploy bloccato: modifiche locali da preservare e consolidare in $REPO_DIR." >&2
+    printf '%s\n' "$DIRTY" | head -50 >&2
+    exit 1
   fi
+  git -C "$REPO_DIR" checkout -B "$BRANCH" "$TARGET_REF"
 
-  git -C "$REPO_DIR" checkout --force -B "$BRANCH" "$TARGET_REF"
-  git -C "$REPO_DIR" reset --hard "$TARGET_REF"
-  # File non tracciati lasciati da build interrotte: rimossi perche' a loro
-  # volta possono bloccare un checkout successivo. I file ignorati restano
-  # (niente -x): sono cache e artefatti di runtime, non contenuto del commit.
-  git -C "$REPO_DIR" clean -fd
 fi
 
 DEPLOYED_COMMIT="$(git -C "$REPO_DIR" rev-parse --short HEAD)"

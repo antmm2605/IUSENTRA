@@ -6,6 +6,7 @@ from pathlib import Path
 from web.services.rettifiche_letture_storiche import pianifica_rettifiche, NOTA_TERMINE_STORICO
 from web.services.catalogo_archivio_runtime import prepara_catalogo
 from pct.document_intelligence.sources import source_from_fascicolo_document
+from pct.registro_letture import Oggetto
 from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
 
 
@@ -35,7 +36,7 @@ class ReadingArchiveConsistencyTests(unittest.TestCase):
         repository.list_catalog_assignments.return_value = []
         repository.get_extracted_text.return_value = NS(text='Ricorso con testo corrente', extraction_engine='pdf-inspector')
         case = NS(id='case-1', documenti=[NS(id='original-id', nome='Ricorso.pdf')])
-        objects = [NS(oggetto_id='original-id', tipo='documento', presente=True, sha256='current-sha')]
+        objects = [Oggetto(oggetto_id='original-id', tipo='documento', presente=True, sha256='', sha256_archivio='current-sha')]
         with patch('web.services.catalogo_archivio_runtime.fascicolo_catalog_context',return_value={}), patch('web.services.catalogo_archivio_runtime.resolve_profile',return_value=('',None)):
             sources, texts, report = prepara_catalogo(case,objects,repository,'tenant-a')
         self.assertEqual([s.source_id for s in sources], ['original-id'])

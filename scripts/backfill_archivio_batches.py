@@ -9,10 +9,13 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 from typing import Any, Callable, Iterator
 from urllib.request import Request, urlopen
 
 BATCH_SIZE = 10
+MAX_INGESTION_ATTEMPTS = 3
+MAX_CASE_ATTEMPTS = 3
 DEFAULT_CHECKPOINT = Path(os.getenv("PCT_DATA_ROOT", "./data")) / "intelligence" / "backfill_archivio_batches.json"
 DEFAULT_READINESS = os.getenv("IUSENTRA_READINESS_URL", "https://app.iusentra.it/api/pronto")
 
@@ -53,12 +56,16 @@ def run_batches(
     process_case: Callable[[str], dict[str, Any]],
     readiness: Callable[[], None],
     batch_size: int = BATCH_SIZE,
+    max_cases: int | None = None,
 ) -> dict[str, Any]:
     """Lavora casi sequenziali, salvando ogni esito e riprendendo dal checkpoint."""
     checkpoint = _load_checkpoint(checkpoint_path)
     completed = set(str(value) for value in checkpoint.get("completed", []) if value)
+    quarantined = set(str(value) for value in checkpoint.get("quarantined", []) if value)
     results = dict(checkpoint.get("results") or {})
-    pending = [case for case in cases if case not in completed]
+    attempts = {str(key): int(value or 0) for key, value in dict(checkpoint.get("attempts") or {}).items()}
+    pending = [case for case in cases if case not in completed and case not in quarantined]
+    selected = pending[:max(0, int(max_cases))] if max_cases is not None else pending
     state: dict[str, Any] = {
         "version": 1,
         "source_of_truth": "sqlite/postgresql tenant-aware",
@@ -66,29 +73,51 @@ def run_batches(
         "force": False,
         "batch_size": int(batch_size),
         "total": len(cases),
+        "cases": list(cases),
         "completed": sorted(completed),
+        "quarantined": sorted(quarantined),
         "results": results,
+        "attempts": attempts,
         "status": "running",
         "updated_at": _now(),
     }
     _write_json_atomic(checkpoint_path, state)
     try:
-        for start in range(0, len(pending), max(1, int(batch_size))):
+        for start in range(0, len(selected), max(1, int(batch_size))):
             readiness()
-            batch = pending[start : start + max(1, int(batch_size))]
+            batch = selected[start : start + max(1, int(batch_size))]
             state["current_batch"] = {"number": start // max(1, int(batch_size)) + 1, "cases": batch}
             _write_json_atomic(checkpoint_path, state)
             for case in batch:
-                result = process_case(case)
+                try:
+                    result = process_case(case)
+                except Exception as exc:
+                    attempts[case] = attempts.get(case, 0) + 1
+                    state["attempts"] = attempts
+                    state["last_case"] = case
+                    state["error"] = f"{type(exc).__name__}: {exc}"[:500]
+                    if attempts[case] >= MAX_CASE_ATTEMPTS:
+                        result = {"ok": False, "status": "quarantined", "reason": "tentativi esauriti", "error": state["error"]}
+                    else:
+                        state["status"] = "stopped"
+                        state["updated_at"] = _now()
+                        _write_json_atomic(checkpoint_path, state)
+                        raise
                 results[case] = result
-                completed.add(case)
-                state["completed"] = sorted(completed)
+                if str(result.get("status") or "") == "quarantined":
+                    quarantined.add(case)
+                    state["quarantined"] = sorted(quarantined)
+                else:
+                    completed.add(case)
+                    state["completed"] = sorted(completed)
                 state["results"] = results
                 state["last_case"] = case
+                state.pop("error", None)
                 state["updated_at"] = _now()
                 _write_json_atomic(checkpoint_path, state)
                 readiness()
-        state["status"] = "complete"
+        remaining = [case for case in cases if case not in completed and case not in quarantined]
+        state["status"] = "pending" if remaining else ("complete_with_quarantine" if quarantined else "complete")
         state.pop("current_batch", None)
         state["updated_at"] = _now()
         _write_json_atomic(checkpoint_path, state)
@@ -138,21 +167,55 @@ def _targets(app: Any, selected_tenant: str) -> tuple[Any, dict[str, Any]]:
     return manager, studios
 
 
-def run_operational(app: Any, *, checkpoint_path: Path, readiness_url: str, selected_tenant: str = "") -> dict[str, Any]:
+def _ingest_current_case(fascicolo_id: str) -> dict[str, Any]:
+    """Completa DocumentAI sul solo fascicolo corrente, con retry finito."""
+    from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
+
+    last: dict[str, Any] = {}
+    for attempt in range(1, MAX_INGESTION_ATTEMPTS + 1):
+        last = dict(build_lex_indexing_summary_payload(
+            fascicolo_id,
+            process=True,
+            retry_errors=True,
+            apply_automations=False,
+            forza=True,
+        ) or {})
+        last["attempts"] = attempt
+        pending = sum(int(last.get(key) or 0) for key in ("queued", "indexing", "stale", "not_indexed"))
+        errors = int(last.get("errors") or 0)
+        if pending == 0 and errors == 0:
+            last["permanent"] = False
+            return last
+        warnings = [str(value or "").casefold() for value in list(last.get("warnings") or []) if value]
+        permanent = errors > 0 and bool(warnings) and all(
+            "formato non supportato per indicizzazione lex" in warning for warning in warnings
+        )
+        if permanent:
+            last["permanent"] = True
+            return last
+        if attempt < MAX_INGESTION_ATTEMPTS:
+            time.sleep(attempt)
+    last["permanent"] = False
+    return last
+
+
+def run_operational(app: Any, *, checkpoint_path: Path, readiness_url: str, selected_tenant: str = "", max_cases: int | None = None) -> dict[str, Any]:
     from web.helpers import get_fascicoli
     from web.blueprints.api_v1_react import _fascicolo_singolo_loader
     from web.services.document_intelligence_runtime import fascicoli_db_path
     from web.services.storage_runtime import get_request_storage_runtime
 
     manager, studios = _targets(app, selected_tenant.strip().lower())
-    cases: list[str] = []
-    for slug, studio in studios.items():
-        with _tenant_context(app, manager, studio, slug):
-            profile = get_request_storage_runtime(fascicoli_db_path())
-            if str(profile.effective_mode).strip().lower() not in {"sqlite", "postgresql"}:
-                raise RuntimeError(f"Fonte SQL obbligatoria per {slug}: modalità {profile.effective_mode!r}.")
-            fascicoli = sorted(get_fascicoli().tutti(archiviati=True), key=lambda item: str(getattr(item, "id", "")))
-            cases.extend(f"{slug}:{getattr(fascicolo, 'id', '')}" for fascicolo in fascicoli if getattr(fascicolo, "id", ""))
+    checkpoint = _load_checkpoint(checkpoint_path)
+    cases = [str(value) for value in checkpoint.get("cases", []) if value]
+    if not cases:
+        for slug, studio in studios.items():
+            with _tenant_context(app, manager, studio, slug):
+                profile = get_request_storage_runtime(fascicoli_db_path())
+                if str(profile.effective_mode).strip().lower() not in {"sqlite", "postgresql"}:
+                    raise RuntimeError(f"Fonte SQL obbligatoria per {slug}: modalità {profile.effective_mode!r}.")
+                fascicoli = sorted(get_fascicoli().tutti(archiviati=True), key=lambda item: str(getattr(item, "id", "")))
+                cases.extend(f"{slug}:{getattr(fascicolo, 'id', '')}" for fascicolo in fascicoli if getattr(fascicolo, "id", ""))
 
     def process(case: str) -> dict[str, Any]:
         from web.services.archivio_letture_runtime import leggi_fascicolo
@@ -163,6 +226,7 @@ def run_operational(app: Any, *, checkpoint_path: Path, readiness_url: str, sele
             if fascicolo is None:
                 raise RuntimeError(f"Fascicolo non trovato: {case}")
             totals = {"giri": 0, "documenti": 0, "pec": 0, "fatti": 0, "verificati": 0}
+            ingestion = _ingest_current_case(fascicolo_id)
             while True:
                 report = leggi_fascicolo(fascicolo, forza=False, limite=200)
                 totals["giri"] += 1
@@ -178,8 +242,20 @@ def run_operational(app: Any, *, checkpoint_path: Path, readiness_url: str, sele
                 catalogo_in_attesa = int(catalogo.get("waiting_for_text") or 0)
                 rag_in_attesa = int(rag.get("waiting_for_text") or 0)
                 if catalogo_in_attesa > 0 or rag_in_attesa > 0:
+                    if ingestion.get("permanent"):
+                        return {
+                            "ok": False,
+                            "status": "quarantined",
+                            "tenant": slug,
+                            "fascicolo_id": fascicolo_id,
+                            "reason": "documenti con formato non supportato da DocumentAI",
+                            "catalog_waiting_for_text": catalogo_in_attesa,
+                            "rag_waiting_for_text": rag_in_attesa,
+                            "ingestion": ingestion,
+                            **totals,
+                        }
                     raise RuntimeError(
-                        f"Testo SQL incompleto per {case}: "
+                        f"Testo SQL incompleto per {case} dopo {ingestion.get('attempts', 0)} tentativi: "
                         f"catalogo={catalogo_in_attesa}, rag={rag_in_attesa}"
                     )
                 restano = int(report.get("restano") or 0)
@@ -195,7 +271,29 @@ def run_operational(app: Any, *, checkpoint_path: Path, readiness_url: str, sele
         process_case=process,
         readiness=lambda: check_readiness(readiness_url),
         batch_size=BATCH_SIZE,
+        max_cases=max_cases,
     )
+
+
+def resume_managed_backfills(app: Any, *, data_root: Path | None = None) -> dict[str, Any]:
+    """Riprende al massimo un caso per tick dai checkpoint finiti già autorizzati."""
+    root = data_root or Path(os.getenv("PCT_DATA_ROOT", "/data"))
+    reports: list[dict[str, Any]] = []
+    for checkpoint in sorted(root.glob("tenants/*/intelligence/backfill-archivio-batches.json")):
+        state = _load_checkpoint(checkpoint)
+        if state.get("status") not in {"running", "pending", "stopped"}:
+            continue
+        slug = checkpoint.parts[-3]
+        report = run_operational(
+            app,
+            checkpoint_path=checkpoint,
+            readiness_url=DEFAULT_READINESS,
+            selected_tenant=slug,
+            max_cases=1,
+        )
+        reports.append({"tenant": slug, "status": report.get("status"), "last_case": report.get("last_case")})
+        break
+    return {"managed": len(reports), "reports": reports}
 
 
 def main(argv: list[str] | None = None) -> int:

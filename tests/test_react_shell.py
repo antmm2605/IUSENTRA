@@ -7936,6 +7936,8 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
     assert pdf_response.headers["X-IUSENTRA-Fascicolo-Documento"]
     assert xhtml_response.status_code == 200
     assert xhtml_response.content_type.startswith("text/html")
+    assert 'src="/static/js/pagopa-prefill.js"' in xhtml_response.get_data(as_text=True)
+    assert f'data-fascicolo="{fascicolo.id}"' in xhtml_response.get_data(as_text=True)
     assert (
         f"/api/v1/ui/pst/pagopa-proxy/resources/static/css/pst.css?iusentra_fascicolo={fascicolo.id}"
         in xhtml_response.get_data(as_text=True)
@@ -8703,7 +8705,20 @@ def test_react_fascicoli_presidio_economico_crea_bozza_proforma_definito(tmp_pat
     assert "visionarla e confermarla" in presidio["message"]
 
 
-def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzata(tmp_path: Path):
+def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzata(tmp_path: Path, monkeypatch):
+    from pct.local_ai import LocalAIService
+
+    # Solo il servizio esterno è controllato: lettura, catalogo, chunk e
+    # persistenza degli embedding percorrono il codice reale anche senza Ollama.
+    class EmbeddingClient:
+        def embed_texts(self, model_name, inputs):
+            assert inputs
+            return {"embeddings": [[1.0, 0.0] for _ in inputs]}
+
+    monkeypatch.setattr(LocalAIService, "bootstrap_runtime", lambda self, **kwargs: {
+        "status": "ready", "embed_model": "embeddinggemma:300m",
+    })
+    monkeypatch.setattr(LocalAIService, "_embedding_client", lambda self, settings=None: EmbeddingClient())
     app = _app(tmp_path)
     client = app.test_client()
     cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
@@ -8769,6 +8784,8 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
         reading = leggi_fascicolo(_fascicoli_repository(app).get(fascicolo.id))
         assert reading["documenti"]["letti"] == 1
         assert reading["catalogo"].get("status") != "error"
+        assert reading["catalogo"]["rag"]["embeddings"]["embedded_total"] > 0
+        assert reading["catalogo"]["rag"]["embeddings"]["pending_remaining"] == 0
 
     response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",

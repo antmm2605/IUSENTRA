@@ -2,6 +2,12 @@
 
 ## 2.342.2 — 21/09/2026
 
+PagoPA: precompilazione dei campi vuoti dall'anagrafica autorizzata del fascicolo,
+anche nei moduli XHTML del PST. Gli avvisi storici mantengono il proprio debitore
+e non sono dichiarati pagati senza RT verificata. Conservata l'integrazione React
+già presente nel bundle operativo. Corretto il test CI della pipeline documentale
+isolando soltanto il download esterno del modello embedding.
+
 Su istruzione esplicita dello studio, il codice effettivamente in esecuzione sul server è la baseline: sorgenti e bundle React sono stati copiati direttamente nella copia locale. Nessuna modifica funzionale aggiunta alla copia server. Il Dockerfile distribuisce il bundle verificato e il deploy rifiuta sorgenti runtime divergenti, file locali non consolidati e commit che perderebbero modifiche del server. I controlli sono identici anche per un rilascio ripetuto.
 
 La copia precedente è conservata fuori dal repository. Dati, volumi, credenziali e flusso deposito/firma/PEC restano preservati. Il verbale della copia e le verifiche sono in `artifacts/react-migration/deploy-preservazione-sorgenti-20260921.md`.

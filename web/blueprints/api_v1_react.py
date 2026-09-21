@@ -860,6 +860,9 @@ def _pst_pagopa_runtime_bridge_script(*, base_url: str, fascicolo_id: str) -> st
 
 def _pst_pagopa_inject_runtime_bridge(text: str, *, base_url: str, fascicolo_id: str) -> str:
     script = _pst_pagopa_runtime_bridge_script(base_url=base_url, fascicolo_id=fascicolo_id)
+    if fascicolo_id:
+        script += ('<script src="/static/js/pagopa-prefill.js" data-fascicolo="'
+                   + html_escape(fascicolo_id, quote=True) + '"></script>')
     if re.search(r"</body\s*>", text, flags=re.IGNORECASE):
         return re.sub(r"</body\s*>", script + r"\g<0>", text, count=1, flags=re.IGNORECASE)
     return text + script
@@ -7271,7 +7274,7 @@ def pst_pagopa_proxy(pst_path: str):
             text = _pst_pagopa_rewrite_dwr_javascript(text)
         elif not is_javascript:
             text = _pst_pagopa_rewrite_text(text, base_url=target_url, fascicolo_id=fascicolo_id)
-            if "text/html" in lower_content_type:
+            if "text/html" in lower_content_type or "application/xhtml+xml" in lower_content_type:
                 text = _pst_pagopa_inject_runtime_bridge(text, base_url=target_url, fascicolo_id=fascicolo_id)
         if "/dwr/call/" in target_path_lower:
             response_content_type = "text/plain; charset=utf-8"
@@ -7301,7 +7304,14 @@ def fascicolo_pagopa_avvisi(id_fasc: str):
             registra_avviso(gestore, id_fasc, _request_payload(), _actor_label())
             _audit_event("pagopa.avviso_conservato", "fascicolo", id_fasc,
                          "Avviso esistente collegato al fascicolo; nessun pagamento eseguito.")
-        return jsonify(ok=True, avvisi=leggi_avvisi(gestore, id_fasc))
+        avvisi = leggi_avvisi(gestore, id_fasc)
+        prefill = {}
+        if _api_key_valida() or _session_user_can("clienti.leggi"):
+            from web.services.pagopa_prefill import dati_precompilazione
+            fascicolo = gestore.get(id_fasc)
+            cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
+            prefill = dati_precompilazione(fascicolo, cliente, avvisi)
+        return jsonify(ok=True, avvisi=avvisi, prefill=prefill)
     except LookupError as exc:
         return jsonify(ok=False, message=str(exc)), 404
     except ValueError as exc:

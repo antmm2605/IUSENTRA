@@ -76,6 +76,7 @@ import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import DocumentCapture from './documentCapture/DocumentCapture'
 import FascicoloOcr from './documentCapture/FascicoloOcr'
+import { PagoPaAvvisiPanel } from './PagoPaAvvisiPanel'
 import {
   IusentraContextFilters,
   IusentraDataSurface,
@@ -6479,6 +6480,10 @@ function EmbeddedRecordModal({
   const [fullScreen, setFullScreen] = useState(false)
   const [prefillOutcome, setPrefillOutcome] = useState<PagoPaPrefillOutcome>({ status: 'idle', message: '' })
   const isPagoPa = record?.kind === 'pagopa'
+  const [hasPagoPaAvvisi, setHasPagoPaAvvisi] = useState(false)
+  const [pagoPaFrameMode, setPagoPaFrameMode] = useState<'auto' | 'nuovo' | 'ricevute'>('auto')
+  const [pagoPaRefresh, setPagoPaRefresh] = useState(0)
+  const pagoPaFascicolo = isPagoPa && record ? new URL(record.href, window.location.origin).searchParams.get('iusentra_fascicolo') || '' : ''
 
   useEffect(() => {
     if (!record) return undefined
@@ -6491,6 +6496,8 @@ function EmbeddedRecordModal({
 
   useEffect(() => {
     setFullScreen(false)
+    setHasPagoPaAvvisi(false)
+    setPagoPaFrameMode('auto')
     setPrefillOutcome({ status: 'idle', message: '' })
   }, [record?.href])
 
@@ -6523,8 +6530,11 @@ function EmbeddedRecordModal({
           </nav>
         </header>
         <div className="iu-fas-embedded-modal__body">
-          {isPagoPa ? <p className="iu-fas-pagopa-proxy-note">Nuovo pagamento PagoPA PST: importo, RG, oggetto del ricorso e cliente restano pronti qui. IUSENTRA prova a compilare i campi visibili, senza inviare nulla.</p> : null}
-          {isPagoPa && contributoMemory ? (
+          {isPagoPa && pagoPaFascicolo && <PagoPaAvvisiPanel fascicoloId={pagoPaFascicolo}
+            refreshKey={pagoPaRefresh} onHasAvvisi={setHasPagoPaAvvisi}
+            onNuovo={() => setPagoPaFrameMode('nuovo')} onRicevute={() => setPagoPaFrameMode('ricevute')} />}
+          {isPagoPa && (!hasPagoPaAvvisi || pagoPaFrameMode === 'nuovo') ? <p className="iu-fas-pagopa-proxy-note">Nuovo pagamento PagoPA PST: importo, RG, oggetto del ricorso e cliente restano pronti qui. IUSENTRA prova a compilare i campi visibili, senza inviare nulla.</p> : null}
+          {isPagoPa && contributoMemory && (!hasPagoPaAvvisi || pagoPaFrameMode === 'nuovo') ? (
             <section className="iu-fas-pagopa-memory" aria-label="Calcolo contributo unificato in memoria">
               <div>
                 <span>Calcolo contributo in memoria</span>
@@ -6534,19 +6544,24 @@ function EmbeddedRecordModal({
               <button type="button" onClick={() => onCopyContributoMemory(contributoMemory)}><Copy size={15}/> Copia calcolo</button>
             </section>
           ) : null}
-          {isPagoPa && prefillOutcome.message ? (
+          {isPagoPa && prefillOutcome.message && (!hasPagoPaAvvisi || pagoPaFrameMode === 'nuovo') ? (
             <p className={`iu-fas-pagopa-prefill iu-fas-pagopa-prefill--${prefillOutcome.status}`} aria-live="polite">
               {prefillOutcome.message}
             </p>
           ) : null}
-          <iframe
+          {(!isPagoPa || !hasPagoPaAvvisi || pagoPaFrameMode !== 'auto') && <iframe
             ref={iframeRef}
-            src={record.href}
+            src={isPagoPa && pagoPaFrameMode === 'ricevute' ? `/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?iusentra_fascicolo=${encodeURIComponent(pagoPaFascicolo)}` : record.href}
             title={record.title}
-            onLoad={isPagoPa ? runPagoPaPrefill : undefined}
+            onLoad={isPagoPa ? () => {
+              runPagoPaPrefill(); setPagoPaRefresh((value) => value + 1)
+              try {
+                if (iframeRef.current?.contentWindow?.location.pathname.endsWith('/pagopa_inviorich.wp')) setPagoPaFrameMode('auto')
+              } catch { /* La navigazione esterna resta sotto il controllo del portale. */ }
+            } : undefined}
             sandbox={isPagoPa ? 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation' : undefined}
             referrerPolicy={isPagoPa ? 'same-origin' : undefined}
-          />
+          />}
         </div>
       </div>
     </div>
@@ -9780,7 +9795,7 @@ function DetailPage({ id }:{id:string}) {
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
   const pagoPaEmbeddedHref = `${PAGOPA_PROXY_NEW_PAYMENT_URL}?iusentra_fascicolo=${encodedId}`
   const openPagoPaModal = useCallback(() => {
-    setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
+    setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA del fascicolo', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
   }, [pagoPaEmbeddedHref])
   useEffect(() => {
     if (typeof window === 'undefined') return

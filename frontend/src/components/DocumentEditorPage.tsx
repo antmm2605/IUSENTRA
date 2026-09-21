@@ -1054,6 +1054,15 @@ export function DocumentEditorPage() {
   const pdfPageImageUrl = data.endpoints.pdfPageImage
     ? `${data.endpoints.pdfPageImage}/${pdfPage}.png?v=${pdfRevision}`
     : ''
+  const pdfMarkStyle = (annotation: PdfAnnotation) => ({
+    left: `${annotation.x * 100}%`,
+    top: `${annotation.y * 100}%`,
+    width: annotation.type === 'text' ? 'auto' : `${(annotation.width || 0.22) * 100}%`,
+    height: annotation.type === 'text' ? 'auto' : `${(annotation.height || 0.045) * 100}%`,
+    color: annotation.color || '#111827',
+    backgroundColor: annotation.type === 'highlight' ? annotation.fillColor || '#fef3c7' : annotation.type === 'cover' ? '#fff' : 'rgba(255,255,255,.86)',
+    fontSize: `${annotation.fontSizePt || 12}px`,
+  }) as React.CSSProperties
   const paperStyle = {
     '--iu-de-font-family': fontFamily,
     '--iu-de-font-size': fontSize,
@@ -1274,15 +1283,7 @@ export function DocumentEditorPage() {
                       <span
                         key={annotation.id}
                         className={`iu-de-pdf-mark iu-de-pdf-mark--${annotation.type}`}
-                        style={{
-                          left: `${annotation.x * 100}%`,
-                          top: `${annotation.y * 100}%`,
-                          width: annotation.type === 'text' ? 'auto' : `${(annotation.width || 0.22) * 100}%`,
-                          height: annotation.type === 'text' ? 'auto' : `${(annotation.height || 0.045) * 100}%`,
-                          color: annotation.color || '#111827',
-                          backgroundColor: annotation.type === 'highlight' ? annotation.fillColor || '#fef3c7' : annotation.type === 'cover' ? '#fff' : 'rgba(255,255,255,.86)',
-                          fontSize: `${annotation.fontSizePt || 12}px`,
-                        }}
+                        style={pdfMarkStyle(annotation)}
                       >
                         {annotation.type === 'text' ? annotation.text : annotation.type === 'cover' ? 'Copertura' : 'Evidenziato'}
                       </span>

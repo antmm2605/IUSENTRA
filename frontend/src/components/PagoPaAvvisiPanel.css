@@ -1,0 +1,15 @@
+.iu-pagopa-avvisi{padding:16px;background:#f5f8fc;color:#18314e;border-bottom:1px solid #d5dfec;overflow:auto;max-height:65vh}
+.iu-fas-embedded-modal--pagopa .iu-fas-embedded-modal__body{display:flex;flex-direction:column;overflow:auto}
+.iu-fas-embedded-modal--pagopa .iu-fas-embedded-modal__body>*{flex-shrink:0;min-width:0}
+.iu-fas-embedded-modal--pagopa .iu-fas-embedded-modal__body iframe{flex:1 0 440px;min-height:440px}
+.iu-pagopa-avvisi header,.iu-pagopa-avvisi article,.iu-pagopa-avvisi__actions,.iu-pagopa-avvisi form{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.iu-pagopa-avvisi article{padding:14px;margin-top:12px;background:#fff;border:1px solid #d5dfec;border-radius:10px}
+.iu-pagopa-avvisi p{font-size:13px;line-height:1.5;margin:8px 0}
+.iu-pagopa-avvisi button,.iu-pagopa-avvisi a{display:inline-flex;align-items:center;min-height:36px;padding:8px 12px;border:1px solid #31597e;border-radius:7px;background:#fff;color:#18314e;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer}
+.iu-pagopa-avvisi button:hover,.iu-pagopa-avvisi a:hover{background:#e3edfa;color:#102c4b}
+.iu-pagopa-avvisi button:focus-visible,.iu-pagopa-avvisi a:focus-visible,.iu-pagopa-avvisi input:focus-visible{outline:3px solid #246ec2;outline-offset:2px}
+.iu-pagopa-avvisi button:disabled{opacity:.65;cursor:wait}
+.iu-pagopa-avvisi form{margin-top:12px;justify-content:flex-start}
+.iu-pagopa-avvisi label{display:grid;gap:6px;font-size:13px}
+.iu-pagopa-avvisi input{padding:8px;border:1px solid #8097b0;border-radius:5px;color:#18314e;background:#fff}
+@media(max-width:600px){.iu-pagopa-avvisi{padding:10px}.iu-pagopa-avvisi article{align-items:flex-start}.iu-pagopa-avvisi__actions>*{flex:1 1 100%}}

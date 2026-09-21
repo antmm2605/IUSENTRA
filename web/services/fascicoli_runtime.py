@@ -2165,6 +2165,19 @@ def build_fascicoli_runtime(
             )
             if not doc_esistente and not portal_keys:
                 doc_esistente = documenti_per_nome_hash.get((nome_norm, sha_payload))
+            if not doc_esistente and portal_keys:
+                from web.services.portal_document_identity import (
+                    trova_documento_importato_identico, collega_identita_pst,
+                )
+                doc_esistente = trova_documento_importato_identico(gf, fasc, payload, item, _decrypt_doc)
+                if doc_esistente:
+                    collega_identita_pst(gf, fasc, doc_esistente, item)
+                    for key in portal_keys:
+                        documenti_per_chiave_portale[key] = doc_esistente
+                    documenti_creati.append({"doc": doc_esistente, "item": item,
+                                            "riusato": True, "aggiornato": False})
+                    continue
+
             if doc_esistente:
                 try:
                     stored = gf.percorso_documento(fasc.id, doc_esistente.id).read_bytes()

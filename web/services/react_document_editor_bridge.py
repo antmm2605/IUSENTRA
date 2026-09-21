@@ -9,6 +9,7 @@ from typing import Any, Callable
 from flask import has_app_context
 
 from pct.editor import estensione_editabile
+from web.services.document_edit_policy import pdf_studio_modificabile, motivo_blocco_editor
 from pct.document_signature_state import document_has_real_digital_signature
 
 
@@ -128,18 +129,14 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     name = _text(getattr(doc, "nome", ""), "Documento")
     suffix = Path(name).suffix.lower()
     signed = document_has_real_digital_signature(doc, name)
-    pdf_preview_native = suffix == ".pdf"
+    pdf_preview_native = suffix == ".pdf" and not pdf_studio_modificabile(doc)
     eml_preview = suffix == ".eml"
     editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native and not eml_preview)
     locked_reason = ""
     if signed:
         locked_reason = "Il documento risulta firmato digitalmente: aprilo in anteprima o usa la pagina firma per sostituirlo consapevolmente."
     elif pdf_preview_native:
-        locked_reason = (
-            "Il PDF viene visualizzato con anteprima nativa per preservare impaginazione, "
-            "stemmi, timbri, firme e testo verticale. Per modificare il contenuto importa "
-            "una versione DOCX, HTML o testo verificata."
-        )
+        locked_reason = motivo_blocco_editor(doc)
     elif eml_preview:
         locked_reason = (
             "Il messaggio EML viene mostrato come email originale con intestazioni, corpo e allegati. "
@@ -224,9 +221,11 @@ def build_react_document_editor_payload(
 
     document = _document_payload(fid, doc)
     warnings: list[str] = []
-    if document["extension"] == "pdf":
+    if document["extension"] == "pdf" and document["editable"]:
+        warnings.append("PDF dello studio modificabile: verifica il contenuto e l’impaginazione prima di salvare. La versione originale resta nello storico.")
+    elif document["extension"] == "pdf":
         warnings.append(
-            "Anteprima PDF nativa attiva: l'editor non ricostruisce il layout in HTML, cosi' il documento resta uguale all'originale."
+            "Anteprima PDF nativa attiva: l'editor non ricostruisce il layout in HTML, così il documento resta uguale all'originale."
         )
     if document["extension"] == "eml":
         warnings.append(

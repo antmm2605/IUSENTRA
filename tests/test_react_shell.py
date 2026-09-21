@@ -7924,7 +7924,7 @@ def test_react_pst_pagopa_proxy_incorpora_portale_e_salva_ricevuta_pdf(tmp_path:
     assert html_response.headers.get("X-Frame-Options", "").upper() != "DENY"
     assert f"/api/v1/ui/pst/pagopa-proxy/resources/static/css/pst.css?iusentra_fascicolo={fascicolo.id}" in html
     assert (
-        f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?action=conferma&iusentra_fascicolo={fascicolo.id}"
+        f"/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?action=conferma&amp;iusentra_fascicolo={fascicolo.id}"
         in html
     )
     assert f"/api/v1/ui/pst/pagopa-proxy/resources/ricevuta.pdf?iusentra_fascicolo={fascicolo.id}" in html

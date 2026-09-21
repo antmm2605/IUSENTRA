@@ -25,6 +25,7 @@ import time
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache, wraps
+from html import escape as html_escape, unescape as html_unescape
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import parse_qsl, quote, quote_plus, unquote, unquote_plus, urlencode, urljoin, urlparse, urlunparse
@@ -495,8 +496,8 @@ PST_PAGOPA_PROXY_CSP = (
 )
 
 _PST_PAGOPA_ATTR_RE = re.compile(
-    r"(?P<prefix>\b(?:href|src|action)\s*=\s*)"
-    r"(?:(?P<quote>['\"])(?P<quoted>[^'\"]+)(?P=quote)|(?P<unquoted>[^\s>]+))",
+    r"(?P<prefix>(?<![\w.])(?:href|src|action)\s*=\s*)"
+    r"(?:(?P<quote>['\"])(?P<quoted>[^'\"]*)(?P=quote)|(?P<unquoted>[^\s>]+))",
     re.IGNORECASE,
 )
 _PST_PAGOPA_CSS_URL_RE = re.compile(r"url\((?P<quote>['\"]?)(?P<url>[^)'\"\s][^)'\"]*?)(?P=quote)\)")
@@ -588,7 +589,8 @@ def _pst_pagopa_safe_path(pst_path: str = "") -> str:
         or cleaned.startswith("//")
         or not PST_PAGOPA_ALLOWED_PATH_RE.fullmatch(cleaned)
         or any(part == ".." for part in parts)
-        or not cleaned.startswith(PST_PAGOPA_ALLOWED_PATH_PREFIXES)
+        or (not cleaned.startswith(PST_PAGOPA_ALLOWED_PATH_PREFIXES)
+            and cleaned != "do/consultazionepubblica/captcha/image")
     ):
         return ""
     return "/".join(parts)
@@ -729,7 +731,8 @@ def _pst_pagopa_rewrite_dwr_javascript(text: str) -> str:
 
 
 def _pst_pagopa_proxy_href(raw_url: str, *, base_url: str, fascicolo_id: str) -> str:
-    value = str(raw_url or "").strip()
+    value = re.sub(r"&(?:#[0-9]+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]+);",
+                   lambda match: html_unescape(match.group()), str(raw_url or "").strip())
     if not value or value.startswith("#"):
         return value
     if re.match(r"(?i)^(javascript|mailto|tel|data):", value):
@@ -741,6 +744,9 @@ def _pst_pagopa_proxy_href(raw_url: str, *, base_url: str, fascicolo_id: str) ->
     if parsed.netloc.lower() != PST_PAGOPA_HOST or not parsed.path.startswith("/PST/"):
         return absolute
     proxy_path = parsed.path.removeprefix("/PST/").lstrip("/")
+    # Il codice ministeriale aggiunge ?ts= al CAPTCHA: il contesto resta in sessione.
+    if proxy_path == "do/consultazionepubblica/captcha/image":
+        return PST_PAGOPA_PROXY_PREFIX + proxy_path + ("?" + parsed.query if parsed.query else "")
     query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
     if fascicolo_id and not any(key == "iusentra_fascicolo" for key, _value in query_pairs):
         query_pairs.append(("iusentra_fascicolo", fascicolo_id))
@@ -753,7 +759,7 @@ def _pst_pagopa_rewrite_text(text: str, *, base_url: str, fascicolo_id: str) -> 
         quote = match.group("quote") or ""
         raw_url = match.group("quoted") if quote else match.group("unquoted")
         rewritten = _pst_pagopa_proxy_href(raw_url or "", base_url=base_url, fascicolo_id=fascicolo_id)
-        return f"{match.group('prefix')}{quote}{rewritten}{quote}"
+        return f"{match.group('prefix')}{quote}{html_escape(rewritten, quote=True)}{quote}"
 
     def _css_replace(match: re.Match[str]) -> str:
         rewritten = _pst_pagopa_proxy_href(match.group("url"), base_url=base_url, fascicolo_id=fascicolo_id)
@@ -7145,6 +7151,12 @@ def pst_pagopa_proxy(pst_path: str):
     upstream_data = None
     if request.method == "POST":
         upstream_data = request.get_data()
+        if request.mimetype in {"multipart/form-data", "application/x-www-form-urlencoded"}:
+            current_app.logger.info(
+                "PagoPA form transport: content_length=%s raw_bytes=%s fields=%s nonempty=%s",
+                request.content_length, len(upstream_data), len(request.form),
+                sorted(key for key, value in request.form.items() if value and key != "captCode"),
+            )
         if "/dwr/call/" in urlparse(target_url).path:
             upstream_data = _pst_pagopa_rewrite_dwr_body(upstream_data, cookies)
 
@@ -7169,11 +7181,39 @@ def pst_pagopa_proxy(pst_path: str):
 
     updated_cookies = dict(cookies)
     updated_cookies.update(upstream.cookies.get_dict())
+    if pst_path.startswith("it/pagopa_"):
+        current_app.logger.info(
+            "PagoPA session transport: path=%s method=%s status=%s session_present=%s session_changed=%s response_cookie_names=%s permission_error=%s",
+            pst_path, request.method, upstream.status_code,
+            bool(cookies.get("JSESSIONID")),
+            bool(cookies.get("JSESSIONID") and updated_cookies.get("JSESSIONID") != cookies.get("JSESSIONID")),
+            sorted(upstream.cookies.get_dict()),
+            b"sufficienti permessi" in upstream.content,
+        )
     if updated_cookies:
         session["pst_pagopa_cookies"] = updated_cookies
         session.modified = True
 
     if 300 <= upstream.status_code < 400 and upstream.headers.get("Location"):
+        # Conservare l'avviso emesso dal PST prima di lasciare il fascicolo.
+        original_location = urljoin(target_url, upstream.headers["Location"])
+        parsed_location = urlparse(original_location)
+        if (fascicolo_id and parsed_location.netloc == PST_PAGOPA_HOST
+                and parsed_location.path == "/PST/it/pagopa_inviorich.wp"
+                and (_api_key_valida() or _session_user_can("fascicoli.scrivi"))):
+            from web.services.pagopa_avvisi_runtime import registra_avviso
+            valori = dict(parse_qsl(parsed_location.query))
+            if valori.get("crs"):
+                try:
+                    registra_avviso(_fascicoli_loader()(), fascicolo_id, {
+                        "numero_avviso": valori["crs"], "importo": valori.get("importo"),
+                        "tipologia": valori.get("tipologia"),
+                        "codice_fiscale_debitore": valori.get("codiceFiscale"),
+                    }, _actor_label())
+                    _audit_event("pagopa.avviso_conservato", "fascicolo", fascicolo_id,
+                                 "Avviso PST conservato; ricevuta ancora da acquisire.")
+                except (ValueError, LookupError):
+                    current_app.logger.warning("Avviso PST non riconosciuto per il fascicolo %s", fascicolo_id)
         location = _pst_pagopa_proxy_href(upstream.headers["Location"], base_url=target_url, fascicolo_id=fascicolo_id)
         return Response(status=upstream.status_code, headers={"Location": location})
 
@@ -7191,6 +7231,20 @@ def pst_pagopa_proxy(pst_path: str):
     lower_content_type = content_type.lower()
     target_path_lower = urlparse(target_url).path.lower()
     is_pdf = "application/pdf" in lower_content_type or ".pdf" in str(disposition or "").lower()
+    if (fascicolo_id and ("xml" in lower_content_type or ".p7m" in str(disposition or "").lower())
+            and len(body) <= 2 * 1024 * 1024
+            and (_api_key_valida() or _session_user_can("fascicoli.scrivi"))):
+        from pct.pagamenti_giustizia import parse_rt
+        from web.services.pagopa_avvisi_runtime import acquisisci_rt
+        if parse_rt(body) is not None:
+            try:
+                avviso = acquisisci_rt(_fascicoli_loader()(), fascicolo_id, body, _actor_label())
+                response_headers["X-IUSENTRA-Fascicolo-Documento"] = avviso["documento_id"]
+                _audit_event("pagopa.ricevuta_acquisita", "fascicolo", fascicolo_id,
+                             "Ricevuta scaricata dal PST, verificata e archiviata.")
+            except (ValueError, LookupError) as exc:
+                current_app.logger.warning("Ricevuta PST non associata al fascicolo %s: %s", fascicolo_id, exc)
+            return Response(body, status=upstream.status_code, headers=response_headers, content_type=content_type)
     if is_pdf:
         filename = _pst_pagopa_filename(upstream, target_url)
         document_id = _pst_pagopa_capture_pdf(fascicolo_id, body, filename=filename, target_url=target_url)
@@ -7232,6 +7286,50 @@ def pst_pagopa_proxy(pst_path: str):
         )
 
     return Response(body, status=upstream.status_code, headers=response_headers, content_type=content_type)
+
+
+@api_v1_react.route("/fascicoli/<id_fasc>/pagopa/avvisi", methods=["GET", "POST"])
+@_richiedi_auth
+def fascicolo_pagopa_avvisi(id_fasc: str):
+    from web.services.pagopa_avvisi_runtime import leggi_avvisi, registra_avviso
+    permission = "fascicoli.scrivi" if request.method == "POST" else "fascicoli.leggi"
+    if not (_api_key_valida() or _session_user_can(permission)):
+        return jsonify(ok=False, message="Operazione non autorizzata."), 403
+    try:
+        gestore = _fascicoli_loader()()
+        if request.method == "POST":
+            registra_avviso(gestore, id_fasc, _request_payload(), _actor_label())
+            _audit_event("pagopa.avviso_conservato", "fascicolo", id_fasc,
+                         "Avviso esistente collegato al fascicolo; nessun pagamento eseguito.")
+        return jsonify(ok=True, avvisi=leggi_avvisi(gestore, id_fasc))
+    except LookupError as exc:
+        return jsonify(ok=False, message=str(exc)), 404
+    except ValueError as exc:
+        return jsonify(ok=False, message=str(exc)), 400
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/pagopa/ricevuta")
+@_richiedi_auth
+def fascicolo_pagopa_ricevuta(id_fasc: str):
+    from web.services.pagopa_avvisi_runtime import acquisisci_rt
+    if not (_api_key_valida() or _session_user_can("fascicoli.scrivi")):
+        return jsonify(ok=False, message="Operazione non autorizzata."), 403
+    upload = request.files.get("ricevuta")
+    if upload is None:
+        return jsonify(ok=False, message="Seleziona la ricevuta telematica XML o XML firmata."), 400
+    contenuto = upload.read(2 * 1024 * 1024 + 1)
+    if len(contenuto) > 2 * 1024 * 1024:
+        return jsonify(ok=False, message="La ricevuta supera il limite di 2 MB."), 400
+    try:
+        avviso = acquisisci_rt(_fascicoli_loader()(), id_fasc, contenuto, _actor_label())
+        _clear_fascicoli_list_payload_cache()
+        _audit_event("pagopa.ricevuta_acquisita", "fascicolo", id_fasc,
+                     "Ricevuta verificata per IUV e importo e archiviata nel fascicolo.")
+        return jsonify(ok=True, avviso=avviso, message="Ricevuta verificata e archiviata nel fascicolo.")
+    except LookupError as exc:
+        return jsonify(ok=False, message=str(exc)), 404
+    except ValueError as exc:
+        return jsonify(ok=False, message=str(exc)), 400
 
 
 @api_v1_react.post("/local-signer/diagnostics")

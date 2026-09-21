@@ -13,6 +13,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 from web.services.security_redaction import redacted_json_response
+from web.services.document_edit_policy import motivo_blocco_editor
 
 
 def _wants_json_response() -> bool:
@@ -261,6 +262,9 @@ def register_fascicoli_editor_routes(
 
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
+            blocco = motivo_blocco_editor(documento)
+            if blocco:
+                return jsonify({"ok": False, "errore": blocco}), 403
             nome = documento.nome
             ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
 
@@ -269,7 +273,9 @@ def register_fascicoli_editor_routes(
                 contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
                 nome_salvato = nome
             elif ext == "pdf":
-                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
+                # Il PDF caricato ha già il proprio contenuto: non aggiungere
+                # intestazioni dello studio a ogni salvataggio dell'editor.
+                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=None)
                 nome_salvato = nome
             else:
                 contenuto_raw = html.encode("utf-8")
@@ -352,6 +358,9 @@ def register_fascicoli_editor_routes(
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             if not documento:
                 return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
+            blocco = motivo_blocco_editor(documento)
+            if blocco:
+                return jsonify({"ok": False, "messaggio": blocco}), 403
             if getattr(documento, "firmato_digitalmente", False) or str(getattr(documento, "nome", "")).lower().endswith(".p7m"):
                 return jsonify({"ok": False, "messaggio": "Documento firmato: usa la funzione di sostituzione controllata dal fascicolo."}), 400
 

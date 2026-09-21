@@ -188,6 +188,13 @@ def backend_control_violations_for_request(req: Any) -> list[BackendSecurityViol
                 )
             )
     else:
+        # Il bridge PST inoltra il multipart originale dopo i controlli.
+        # Conservare i byte prima che il parser del form consumi lo stream.
+        if (
+            getattr(req, "method", "") == "POST"
+            and getattr(req, "path", "").startswith("/api/v1/ui/pst/pagopa-proxy/")
+        ):
+            req.get_data(cache=True)
         form = getattr(req, "form", None)
         if form is not None:
             form_payload = {

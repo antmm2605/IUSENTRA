@@ -1079,7 +1079,7 @@ class GestioneFascicoli:
                         continue
                     self._fascicoli[fascicolo.id] = fascicolo
                 if self._fascicoli:
-                    self._salva()
+                    self._salva_fascicoli_parziale(self._fascicoli.values(), rigenera_mirror=False)
                 return
             migrato = False
             for row in rows:
@@ -1089,8 +1089,8 @@ class GestioneFascicoli:
                     # Se era dati_json NULL (primo carico post-migrazione) → riscrivi
                     if not dict(row).get("dati_json"):
                         migrato = True
-            if migrato:
-                self._salva()
+            if migrato and not self._senza_documenti:
+                self._salva_fascicoli_parziale(self._fascicoli.values(), rigenera_mirror=False)
             return
         payloads = self._payloads_da_json_bootstrap()
         migrato = False
@@ -1107,6 +1107,15 @@ class GestioneFascicoli:
             self._salva()
 
     def _salva(self) -> None:
+        if self._studio_db is not None and not self._archivio_completo:
+            raise RuntimeError(
+                "Salvataggio integrale bloccato: l'archivio è stato caricato solo parzialmente. "
+                "Usare il salvataggio mirato per non alterare gli altri fascicoli."
+            )
+        if self._senza_documenti:
+            raise RuntimeError(
+                "Salvataggio integrale bloccato: i documenti non sono stati caricati."
+            )
         if self._studio_db is not None:
             import json as _json
 

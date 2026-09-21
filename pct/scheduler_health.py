@@ -14,6 +14,7 @@ leggibile lo dichiara.
 from __future__ import annotations
 
 import os
+from contextlib import closing
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -86,6 +87,8 @@ def presidio_heartbeat(
     adesso = now or datetime.now(timezone.utc)
     try:
         latest: Mapping[str, Any] = registry_repo.latest_runs_by_job() or {}
+        list_jobs = getattr(registry_repo, "list_jobs", None)
+        configured = {row["job_id"]: row for row in list_jobs()} if callable(list_jobs) else {}
     except Exception as exc:
         return {
             "ok": False,
@@ -105,7 +108,10 @@ def presidio_heartbeat(
             run.get("finished_at") or run.get("updated_at") or run.get("started_at") or run.get("created_at")
         )
         eta_minuti = int((adesso - finished_at).total_seconds() // 60) if finished_at else None
-        if not run:
+        enabled = configured.get(job_id, {}).get("enabled", True) not in (False, 0, "0")
+        if not enabled:
+            problema = ""
+        elif not run:
             problema = "mai eseguito su questo worker"
         elif status in {"failed", "missed"}:
             problema = f"ultima esecuzione: {status}"
@@ -117,13 +123,16 @@ def presidio_heartbeat(
             problema = ""
         if problema:
             degradati += 1
-        if status in {"failed", "missed"}:
+        if enabled and status in {"failed", "missed"}:
             guasti_certi += 1
         voci.append(
             {
                 "job": job_id,
                 "label": label,
-                "status": status or "sconosciuto",
+                "status": (status or "sconosciuto") if enabled else "paused",
+                "enabled": enabled,
+                "last_run_status": status or "sconosciuto",
+                "pause_reason": "Pianificazione sospesa nel registro; storico conservato." if not enabled else "",
                 "last_run": finished_at.isoformat() if finished_at else "",
                 "minutes_ago": eta_minuti,
                 "tolerance_minutes": tolleranza_minuti,
@@ -176,10 +185,15 @@ class _RegistroSoloLettura:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
 
+    def list_jobs(self) -> list[dict[str, Any]]:
+        with closing(sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)) as conn:
+            conn.row_factory = sqlite3.Row
+            return [dict(row) for row in conn.execute("SELECT job_id, enabled FROM scheduled_jobs")]
+
     def latest_runs_by_job(self) -> dict[str, dict[str, Any]]:
         if not self.db_path.exists():
             raise FileNotFoundError(f"registro assente: {self.db_path}")
-        with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5) as conn:
+        with closing(sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 """
@@ -219,6 +233,8 @@ def format_heartbeat_lines(report: Mapping[str, Any]) -> list[str]:
     righe = []
     for voce in report.get("presidi") or []:
         stato = "ok" if not voce.get("problem") else f"DEGRADATO — {voce['problem']}"
+        if voce.get("enabled") is False:
+            stato = "sospeso nel registro; ultimo esito: " + str(voce.get("last_run_status") or "sconosciuto")
         righe.append(f"{voce['job']}: {stato}")
     return righe
 

@@ -39,3 +39,9 @@ importato e Panoramica, con click di navigazione e scroll; nessuna firma o PEC i
 Questa prova riguarda il riallineamento e non certifica nuovamente tutte le funzioni.
 
 Stato della chiusura: commit/push, CI e deploy da verificare.
+
+La verifica preventiva ha recuperato anche `pct/scheduler_health.py` dal worker
+server: conteneva la gestione delle pianificazioni sospese e la chiusura delle
+connessioni SQLite, assenti nella copia del container web. Il file è copiato
+integralmente dal worker, senza riscritture; entrambe le versioni sono nel backup.
+Il test mirato `test_scheduler_health_schedule_state.py` è superato (1 test).

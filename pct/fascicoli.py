@@ -1079,7 +1079,7 @@ class GestioneFascicoli:
                         continue
                     self._fascicoli[fascicolo.id] = fascicolo
                 if self._fascicoli:
-                    self._salva_fascicoli_parziale(self._fascicoli.values(), rigenera_mirror=False)
+                    self._salva()
                 return
             migrato = False
             for row in rows:
@@ -1089,8 +1089,8 @@ class GestioneFascicoli:
                     # Se era dati_json NULL (primo carico post-migrazione) → riscrivi
                     if not dict(row).get("dati_json"):
                         migrato = True
-            if migrato and not self._senza_documenti:
-                self._salva_fascicoli_parziale(self._fascicoli.values(), rigenera_mirror=False)
+            if migrato:
+                self._salva()
             return
         payloads = self._payloads_da_json_bootstrap()
         migrato = False

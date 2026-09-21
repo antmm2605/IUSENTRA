@@ -1063,7 +1063,7 @@ export function DocumentEditorPage() {
               <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : emlPreviewMode ? 'Messaggio EML consultabile' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
               <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : emlPreviewMode ? 'Apri email originale' : 'Apri anteprima'}</a>
-              <button type="button" disabled={pdfPreviewMode && !doc.editable} title={pdfPreviewMode && !doc.editable ? lockedReason : undefined} onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
+              <button type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
             </div>
           </section>
           {doc.actions.preview ? (

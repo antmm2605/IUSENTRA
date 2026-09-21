@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-svnDr2Il.js";export{e as ImpostazioniPage};

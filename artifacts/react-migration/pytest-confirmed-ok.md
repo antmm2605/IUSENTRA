@@ -6489,3 +6489,7 @@ La prova visiva materiale locale e in produzione resta registrata separatamente 
 | Verifica post-deploy indipendente | OK | Produzione `versione=2.278.85`, un solo container `iusentra-app` healthy, un solo snapshot `iusentra-structured-20260901_095103_746498`, `retention_count=1`, due database e `11.682.848.768` byte di backup; SHA-256 coincidente e `quick_check=ok` per entrambi, cache Docker ripulita e `/opt/iusentra/tmp-backup-snapshot` assente. |
 
 Verifica finale correzione 1.6.132: intero `test_local_signer.py` 269 superati; installer atomico, build pacchetti, guardrail React e versione impostazioni 44 superati. Confini Local Signer, packaging e Ruff positivi; typecheck/build frontend 2,04 secondi.
+
+## Copia server e protezione deploy — 21/09/2026
+
+30 test mirati deploy/runtime/CI/packaging superati (28 iniziali più 2 confronti bundle); Ruff e compilazione Python dei sorgenti copiati superati. Esportazione server verificata per 4.644 file, inclusi 547 asset React. La baseline è il runtime server, su istruzione esplicita dell’utente. Nessuna modifica funzionale introdotta. Stato finale nel verbale `deploy-preservazione-sorgenti-20260921.md`.

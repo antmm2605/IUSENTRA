@@ -181,6 +181,17 @@ jobs:
               "${HETZNER_USER}@${HETZNER_HOST}" \
               'echo "SSH OK $(hostname) $(uname -srm)"'
 
+      - name: Proteggi sorgenti e hotfix prima di ogni percorso di deploy
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            deploy/hetzner/deploy.sh \
+            "${HETZNER_USER}@${HETZNER_HOST}:/tmp/iusentra-preflight-${GITHUB_SHA}.sh"
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            "trap 'rm -f /tmp/iusentra-preflight-${GITHUB_SHA}.sh' EXIT; EXPECTED_SHA='${GITHUB_SHA}' BRANCH='${DEPLOY_BRANCH}' bash /tmp/iusentra-preflight-${GITHUB_SHA}.sh --check-only"
+
       - name: Controlla commit gia deployato
         id: current
         if: ${{ steps.gate.outputs.superato != 'true' }}
@@ -194,7 +205,10 @@ jobs:
               "${HETZNER_USER}@${HETZNER_HOST}" \
               'git -C /opt/iusentra/repo rev-parse HEAD 2>/dev/null || true')
           echo "remote_head=${remote_head}" >> "$GITHUB_OUTPUT"
-          if [ "${remote_head}" = "${GITHUB_SHA}" ]; then
+          runtime_image=$(ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker inspect --format "{{.Config.Image}}" iusentra-app')
+          if [ "${remote_head}" = "${GITHUB_SHA}" ] && [ "${runtime_image}" = "iusentra-app:${GITHUB_SHA}" ]; then
             echo "already_deployed=true" >> "$GITHUB_OUTPUT"
             echo "Commit ${GITHUB_SHA::7} gia deployato: salto backup e rebuild."
           else
@@ -232,7 +246,7 @@ jobs:
 
       - name: Esegui deploy
         id: deploy
-        if: ${{ steps.gate.outputs.superato != 'true' && steps.current.outputs.already_deployed != 'true' }}
+        if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |
           set -euo pipefail
           deploy_prefix=""
@@ -240,7 +254,7 @@ jobs:
             deploy_prefix="IUSENTRA_SKIP_BACKUP_CRON=1 "
           fi
           # Execute the script from the verified checkout, outside the directory
-          # it resets. This also makes the first Portainer migration deterministic.
+          # it updates. This also makes the first Portainer migration deterministic.
           scp -i ~/.ssh/id_deploy \
               -o BatchMode=yes \
               -o StrictHostKeyChecking=yes \
@@ -256,29 +270,6 @@ jobs:
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
               "trap 'rm -f /tmp/iusentra-deploy-${GITHUB_SHA}.sh' EXIT; EXPECTED_SHA='${GITHUB_SHA}' BRANCH='${DEPLOY_BRANCH}' ${deploy_prefix}bash /tmp/iusentra-deploy-${GITHUB_SHA}.sh"
-
-      - name: Ripristina servizi se il commit era gia deployato
-        if: ${{ steps.gate.outputs.superato != 'true' && steps.current.outputs.already_deployed == 'true' }}
-        run: |
-          set -euo pipefail
-          ssh -i ~/.ssh/id_deploy \
-              -o BatchMode=yes \
-              -o ConnectTimeout=15 \
-              -o ServerAliveInterval=30 \
-              -o ServerAliveCountMax=20 \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile=~/.ssh/known_hosts \
-              "${HETZNER_USER}@${HETZNER_HOST}" \
-              'cd /opt/iusentra/repo &&
-               set -a
-               source /opt/iusentra/.env.hetzner
-               set +a
-               if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
-                 python3 deploy/hetzner/portainer_deploy.py
-               else
-                 IUSENTRA_COMPOSE_PROJECT=iusentra IUSENTRA_CLEANUP_RUNNING_TEMP=1 bash deploy/hetzner/cleanup_compose_conflicts.sh
-                 docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml up -d --remove-orphans app caddy scheduler-worker ocr-worker
-               fi'
 
       - name: Recupera commit deployato
         id: state

@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BEMX_fLk.js";export{e as ImpostazioniPage};

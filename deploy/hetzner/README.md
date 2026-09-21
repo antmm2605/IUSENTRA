@@ -4,6 +4,22 @@ Questa cartella contiene il profilo di produzione per spostare IUSENTRA su un se
 
 Guida di release collegata: `docs/DEPLOY_HETZNER_CPX42.md`.
 
+## Protezione dei sorgenti prima del deploy
+
+`deploy.sh --check-only` verifica senza checkout o riavvio: esclusione di deploy
+concorrenti tramite lock sul server, testa remota ancora attuale, repository
+pulito, inclusione di tutti i commit del server e hotfix dei container già
+presenti nei sorgenti candidati. Lo stesso controllo precede anche il percorso
+GitHub che riconosce un commit già distribuito.
+
+Un errore blocca il rilascio. Non usare reset, clean, stash automatici o checkout
+forzati per aggirarlo. Conservare una copia dei sorgenti effettivi del container,
+confrontarli con repository e release, integrare le differenze corrette e provare
+il comportamento prima del rebuild. I bundle React modificati sono confrontati integralmente con quelli del commit.
+La release del 21/09/2026 conserva il bundle operativo copiato dal server;
+per le modifiche successive si compila e verifica il bundle prima del commit.
+Il controllo non è un backup dei dati e non autorizza rollback o ripristini.
+
 Target validato per il server indicato:
 
 - server: `ubuntu-16gb-nbg1-1`

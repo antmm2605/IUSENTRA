@@ -54,11 +54,22 @@ chmod 750 \
 # ---------------------------------------------------------------------------
 # 3. Sincronizza repository
 # ---------------------------------------------------------------------------
+exec 9>"$IUSENTRA_HOME/deploy.lock"
+flock -n 9 || { echo "Deploy già in corso sul server." >&2; exit 1; }
 if [ ! -d "$REPO_DIR/.git" ]; then
+  if [ "${1:-}" = "--check-only" ]; then
+    echo "Repository mancante: verificare il primo impianto prima del deploy." >&2
+    exit 1
+  fi
   git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
 else
   git -C "$REPO_DIR" fetch origin "$BRANCH"
-  TARGET_REF="${EXPECTED_SHA:-origin/$BRANCH}"
+  REMOTE_SHA="$(git -C "$REPO_DIR" rev-parse FETCH_HEAD)"
+  TARGET_REF="${EXPECTED_SHA:-$REMOTE_SHA}"
+  if [ "$TARGET_REF" != "$REMOTE_SHA" ]; then
+    echo "Deploy bloccato: il commit richiesto non è più la testa del branch." >&2
+    exit 1
+  fi
 
   # Una release non può cancellare hotfix o sorgenti non consolidati.
   # Richiedere l'allineamento prima di cambiare checkout o creare immagini.
@@ -67,6 +78,21 @@ else
     echo "Deploy bloccato: modifiche locali da preservare e consolidare in $REPO_DIR." >&2
     printf '%s\n' "$DIRTY" | head -50 >&2
     exit 1
+  fi
+  if ! git -C "$REPO_DIR" merge-base --is-ancestor HEAD "$TARGET_REF"; then
+    echo "Deploy bloccato: la release non contiene tutti i commit del server." >&2
+    exit 1
+  fi
+  # Leggere il presidio dalla release candidata, prima di cambiare sorgenti.
+  GUARD_FILE="$(mktemp)"
+  trap 'rm -f "$GUARD_FILE"' EXIT
+  git -C "$REPO_DIR" show "$TARGET_REF:deploy/hetzner/check_runtime_sources.py" > "$GUARD_FILE"
+  python3 "$GUARD_FILE" --repo "$REPO_DIR" --target "$TARGET_REF"
+  rm -f "$GUARD_FILE"
+  trap - EXIT
+  if [ "${1:-}" = "--check-only" ]; then
+    echo "Verifica pre-deploy superata; nessun checkout o riavvio eseguito."
+    exit 0
   fi
   git -C "$REPO_DIR" checkout -B "$BRANCH" "$TARGET_REF"
 
@@ -212,17 +238,25 @@ CORE_BOOT_SERVICES+=(app)
 if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   # Build once; app and workers use the same immutable release image.
   RELEASE_SHA="$(git rev-parse HEAD)"
-  docker build --label "org.opencontainers.image.revision=${RELEASE_SHA}" -t "iusentra-app:${RELEASE_SHA}" -f Dockerfile .
+  if ! docker image inspect "iusentra-app:${RELEASE_SHA}" >/dev/null 2>&1; then
+    docker build --label "org.opencontainers.image.revision=${RELEASE_SHA}" -t "iusentra-app:${RELEASE_SHA}" -f Dockerfile .
+  fi
+  # Anche un hotfix arrivato durante la build deve fermare il rimpiazzo.
+  test -z "$(git status --porcelain)"
+  python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$RELEASE_SHA"
   python3 deploy/hetzner/portainer_deploy.py
 else
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" build
+  test -z "$(git status --porcelain)"
+  python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
   cleanup_compose_conflict_containers
-  compose_up_with_cleanup -d --build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
+  compose_up_with_cleanup -d --no-build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 
   echo "Attendo health app..."
   wait_for_compose_services "${CORE_HEALTH_SERVICES[@]}"
 
   cleanup_compose_conflict_containers
-  compose_up_with_cleanup -d --build --remove-orphans
+  compose_up_with_cleanup -d --no-build --remove-orphans
 fi
 
 # ---------------------------------------------------------------------------

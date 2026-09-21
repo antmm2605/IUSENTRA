@@ -1,20 +1,9 @@
-"""Sincronizzazione del repository sul server Hetzner prima del rebuild.
-
-Il deploy si e' fermato cinque volte di fila su questo punto: sul server
-l'albero di lavoro era sporco e ``git checkout <branch>`` abortiva con "Your
-local changes to the following files would be overwritten by checkout". Il
-``git reset --hard`` che avrebbe rimesso in ordine l'albero veniva dopo, quindi
-non veniva mai eseguito: ogni deploy successivo falliva allo stesso modo,
-all'infinito, finche' qualcuno non entrava sul server a mano.
-
-Qui la sequenza reale dello script viene estratta e messa alla prova su un
-repository vero, cosi' il test fallisce se qualcuno rimette il checkout davanti
-alla pulizia.
-"""
+"""Il deploy conserva hotfix, file non tracciati e commit esclusivi del server."""
 
 from __future__ import annotations
 
 import subprocess
+import os
 from pathlib import Path
 
 import pytest
@@ -59,13 +48,15 @@ def repository(tmp_path: Path) -> tuple[Path, Path, str, str]:
     _git("config", "user.email", "deploy@iusentra.test", cwd=origine)
     _git("config", "user.name", "Deploy", cwd=origine)
 
+    (origine / "deploy/hetzner").mkdir(parents=True)
+    (origine / "deploy/hetzner/check_runtime_sources.py").write_text("print(\"guard eseguito\")\n")
     (origine / "app.py").write_text("versione uno\n", encoding="utf-8")
-    _git("add", "app.py", cwd=origine)
+    _git("add", ".", cwd=origine)
     _git("commit", "-qm", "primo", cwd=origine)
     primo = _git("rev-parse", "HEAD", cwd=origine)
 
     (origine / "app.py").write_text("versione due\n", encoding="utf-8")
-    _git("add", "app.py", cwd=origine)
+    _git("add", ".", cwd=origine)
     _git("commit", "-qm", "secondo", cwd=origine)
     secondo = _git("rev-parse", "HEAD", cwd=origine)
 
@@ -80,12 +71,12 @@ def repository(tmp_path: Path) -> tuple[Path, Path, str, str]:
 
 def _sincronizza(copia: Path, commit_atteso: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", "-euo", "pipefail", "-c", _blocco_sincronizzazione()],
+        [str(Path("C:/Program Files/Git/bin/bash.exe")) if os.name == "nt" else "bash", "-euo", "pipefail", "-c", _blocco_sincronizzazione().replace("python3 ", "python ") if os.name == "nt" else _blocco_sincronizzazione()],
         cwd=copia.parent,
         capture_output=True,
         text=True,
         env={
-            "PATH": "/usr/bin:/bin:/usr/local/bin",
+            **os.environ,
             "HOME": str(copia.parent),
             "REPO_DIR": str(copia),
             "BRANCH": "main",
@@ -94,7 +85,7 @@ def _sincronizza(copia: Path, commit_atteso: str) -> subprocess.CompletedProcess
     )
 
 
-def test_un_albero_sporco_non_blocca_piu_il_deploy(repository):
+def test_un_albero_sporco_blocca_il_deploy_senza_perdere_hotfix(repository):
     """Il caso reale dell'11/09/2026: file modificati sul server."""
 
     _origine, copia, _primo, secondo = repository
@@ -102,15 +93,13 @@ def test_un_albero_sporco_non_blocca_piu_il_deploy(repository):
 
     esito = _sincronizza(copia, secondo)
 
-    assert esito.returncode == 0, esito.stderr
-    assert _git("rev-parse", "HEAD", cwd=copia) == secondo
-    assert (copia / "app.py").read_text(encoding="utf-8") == "versione due\n"
-    #  La condizione trovata viene dichiarata: un deploy che sovrascrive
-    #  silenziosamente non aiuta a capire da dove arrivavano quei file.
-    assert "Albero di lavoro non pulito" in esito.stdout
+    assert esito.returncode != 0
+    assert _git("rev-parse", "HEAD", cwd=copia) == _primo
+    assert (copia / "app.py").read_text(encoding="utf-8") == "modifica arrivata sul server\n"
+    assert "modifiche locali da preservare" in esito.stderr
 
 
-def test_un_file_non_tracciato_che_collide_non_blocca_il_deploy(repository):
+def test_un_file_non_tracciato_viene_preservato(repository):
     """Residuo di una build interrotta con lo stesso nome di un file del commit."""
 
     _origine, copia, _primo, secondo = repository
@@ -118,9 +107,9 @@ def test_un_file_non_tracciato_che_collide_non_blocca_il_deploy(repository):
 
     esito = _sincronizza(copia, secondo)
 
-    assert esito.returncode == 0, esito.stderr
-    assert _git("rev-parse", "HEAD", cwd=copia) == secondo
-    assert not (copia / "nuovo.py").exists()
+    assert esito.returncode != 0
+    assert _git("rev-parse", "HEAD", cwd=copia) == _primo
+    assert (copia / "nuovo.py").read_text() == "residuo\n"
 
 
 def test_un_albero_pulito_arriva_al_commit_verificato(repository):
@@ -148,3 +137,24 @@ def test_il_branch_locale_resta_sul_commit_verificato(repository):
     assert esito.returncode == 0, esito.stderr
     assert _git("rev-parse", "HEAD", cwd=copia) == secondo
     assert _git("symbolic-ref", "--short", "HEAD", cwd=copia) == "main"
+
+
+def test_un_commit_solo_sul_server_non_viene_scartato(repository):
+    _, copia, _, secondo = repository
+    (copia / "hotfix.py").write_text("hotfix\n")
+    _git("add", ".", cwd=copia)
+    _git("commit", "-qm", "hotfix server", cwd=copia)
+    before = _git("rev-parse", "HEAD", cwd=copia)
+    result = _sincronizza(copia, secondo)
+    assert result.returncode != 0
+    assert "tutti i commit del server" in result.stderr
+    assert _git("rev-parse", "HEAD", cwd=copia) == before
+    assert (copia / "hotfix.py").read_text() == "hotfix\n"
+
+
+def test_una_release_superata_non_parte(repository):
+    _, copia, primo, _ = repository
+    result = _sincronizza(copia, primo)
+    assert result.returncode != 0
+    assert "testa del branch" in result.stderr
+    assert _git("rev-parse", "HEAD", cwd=copia) == primo

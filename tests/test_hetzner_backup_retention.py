@@ -113,9 +113,11 @@ def test_deploy_pulisce_container_compose_temporanei_senza_toccare_dati():
     assert "IUSENTRA_DOCKER_IMAGE_REPOSITORIES" in image_cleanup_script
     assert "docker image rm \"$reference\"" in image_cleanup_script
     assert "docker builder prune --all --force" in image_cleanup_script
-    assert "cleanup_compose_conflicts.sh" in workflow
+    # Anche il rilascio ripetuto passa dal deploy unico, che governa la pulizia.
+    assert "bash /tmp/iusentra-deploy-${GITHUB_SHA}.sh" in workflow
+    assert "cleanup_compose_conflicts.sh" in deploy_script
     assert "cleanup_docker_images.sh" in workflow
-    assert "IUSENTRA_CLEANUP_RUNNING_TEMP=1" in workflow
+    assert 'IUSENTRA_CLEANUP_RUNNING_TEMP:-1' in deploy_script
     assert "docker rm -f \"$container_id\"" in cleanup_script
     assert "docker ps -a --format" in cleanup_script
     assert "^[0-9a-f]{8,64}_${PROJECT}-(app|scheduler-worker|ocr-worker|caddy|audit-worm-init)-[0-9]+$" in cleanup_script

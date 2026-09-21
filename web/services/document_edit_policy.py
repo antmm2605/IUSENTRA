@@ -16,5 +16,5 @@ def motivo_blocco_editor(documento):
     if document_has_real_digital_signature(documento):
         return "Il documento firmato resta in sola consultazione."
     if Path(str(getattr(documento, "nome", ""))).suffix.lower() == ".pdf" and not pdf_studio_modificabile(documento):
-        return "Puoi modificare soltanto i PDF caricati dallo studio. I documenti acquisiti da portali o altre sorgenti restano in sola consultazione con anteprima nativa."
+        return "Puoi modificare soltanto i PDF caricati dallo studio. I documenti acquisiti da portali o altre sorgenti restano in sola consultazione."
     return ""

@@ -414,20 +414,6 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
     conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_DOCUMENTI, tipi=("documento",))
     documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
-    oggetti_documento = [
-        oggetto for oggetto in registro.oggetti(tenant, fascicolo_id)
-        if oggetto.tipo == "documento"
-    ]
-    if forza:
-        # Il comando forzato riguarda esclusivamente il fascicolo ricevuto: rilegge
-        # i documenti ancora presenti usando prima i testi SQL di `testi_documento`.
-        # Gli oggetti mancanti già in `da_leggere` restano per la chiusura governata.
-        chiavi = {(oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) for oggetto in da_leggere}
-        for oggetto in oggetti_documento:
-            chiave = (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta)
-            if oggetto.oggetto_id in documenti and chiave not in chiavi:
-                da_leggere.append(oggetto)
-                chiavi.add(chiave)
     # Ritenta le sole email escluse dall'estrattore precedente, senza invalidare
     # le letture valide di tutti gli altri documenti.
     letti_prima = {
@@ -435,13 +421,11 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
         if l.stato == "non_leggibile" and (forza or (
             (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI))
     }
-    for oggetto in oggetti_documento:
-        if (oggetto.oggetto_id, oggetto.impronta) in letti_prima and oggetto not in da_leggere:
+    for oggetto in registro.oggetti(tenant, fascicolo_id):
+        if oggetto.tipo == "documento" and (oggetto.oggetto_id, oggetto.impronta) in letti_prima and oggetto not in da_leggere:
             da_leggere.append(oggetto)
     conteggi["da_leggere"] = len(da_leggere)
-    from web.services.sentenza_economic_runtime import _cu_tiers
-
-    cu_tiers = _cu_tiers() if da_leggere else []
+    documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
     for oggetto in da_leggere[:limite]:
         documento = documenti.get(oggetto.oggetto_id)
         if documento is None:
@@ -470,8 +454,9 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
         if len(letture) > 1:
             contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
         metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
+        from web.services.sentenza_economic_runtime import _cu_tiers
         metadata.update(fascicolo=fascicolo, documento_id=documento.id,
-                        document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=cu_tiers)
+                        document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=_cu_tiers())
         fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
         registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
@@ -527,17 +512,10 @@ def _allegato_tecnico(oggetto: Any, repository: Any, cache: dict[str, bytes]) ->
     return None
 
 
-def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, messaggi: list[dict[str, Any]], *, limite: int, forza: bool = False) -> dict[str, int]:
+def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, messaggi: list[dict[str, Any]], *, limite: int) -> dict[str, int]:
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     conteggi = {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
-    if forza:
-        chiavi = {(oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) for oggetto in da_leggere}
-        for oggetto in registro.oggetti(tenant, fascicolo_id):
-            chiave = (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta)
-            if oggetto.tipo in {"pec", "allegato_pec"} and chiave not in chiavi:
-                da_leggere.append(oggetto)
-                chiavi.add(chiave)
     falliti = {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_PEC) if l.tipo == "allegato_pec" and l.stato == "non_leggibile" and (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI}
     da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "allegato_pec" and (o.oggetto_id, o.impronta) in falliti and o not in da_leggere)
     conteggi["da_leggere"] = len(da_leggere)
@@ -789,7 +767,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
         riconvalidati = _riconvalida(fascicolo, registro, tenant)
         documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite)
-        pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite, forza=forza)
+        pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
         promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
     except Exception as exc:
         # Il fascicolo non esce dal ciclo: resta in errore dichiarato e si riprova.

@@ -1,4 +1,4 @@
-#  version: 2.342.1
+#  version: 2.342.2
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -123,7 +123,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.342.1" \
+      org.opencontainers.image.version="2.342.2" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -179,12 +179,13 @@ RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
     && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete \
     && rm -rf /app/web/static/react
 
-# Sovrascrive i CSS con quelli compilati da SCSS (dart-sass, stage sass-builder)
-COPY --from=sass-builder /out/ web/static/css/
+# Conserva anche i CSS della stessa copia operativa verificata sul server.
+COPY web/static/css/ web/static/css/
 
-# Copia solo il bundle React appena ricompilato da Vite: gli asset storici
-# presenti nel repo non devono entrare nell'immagine finale.
-COPY --from=frontend-builder /build/web/static/react/ web/static/react/
+# Il bundle verificato sul server è la fonte del rilascio (istruzione 21/09/2026).
+# La build Vite resta disponibile come guardrail; il deploy non sostituisce
+# gli asset operativi con una ricompilazione diversa dalla copia verificata.
+COPY web/static/react/ web/static/react/
 
 # PYTHONPATH -> pct/ e web/ vengono importati dal sorgente in /app
 # (le dipendenze esterne arrivano dal /venv)

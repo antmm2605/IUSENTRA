@@ -6,9 +6,6 @@
 .iu-de-hero nav{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .iu-de-hero nav a,.iu-de-hero nav button,.iu-de-empty a,.iu-de-locked a,.iu-de-locked button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 12px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;color:#0f172a;font-size:12px;font-weight:900;box-shadow:0 6px 18px rgba(15,23,42,.04);cursor:pointer}
 .iu-de-hero nav button{border-color:transparent;background:var(--iu-navy-900);color:#fff}
-.iu-doc-editor-page .iu-de-hero nav button{color:#fff!important}
-.iu-doc-editor-page .iu-de-hero nav button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
-.iu-doc-editor-page .iu-de-hero nav button:hover:not(:disabled){background:#19365c;color:#fff!important}
 .iu-de-hero nav button:disabled{opacity:.56;cursor:not-allowed}
 .iu-de-warnings{display:grid;gap:7px}
 .iu-de-warnings span{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid rgba(245,158,11,.26);border-radius:8px;background:rgba(245,158,11,.08);color:#92400e;font-size:12px;font-weight:820;line-height:1.4}

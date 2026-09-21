@@ -273,9 +273,7 @@ def register_fascicoli_editor_routes(
                 contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
                 nome_salvato = nome
             elif ext == "pdf":
-                # Il PDF caricato ha già il proprio contenuto: non aggiungere
-                # intestazioni dello studio a ogni salvataggio dell'editor.
-                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=None)
+                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
                 nome_salvato = nome
             else:
                 contenuto_raw = html.encode("utf-8")

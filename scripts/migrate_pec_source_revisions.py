@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
-from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -33,7 +32,7 @@ def revision_statements() -> list[str]:
 
 def migrate(path: Path, *, apply: bool, backup_dir: Path | None) -> dict:
     path = path.resolve(strict=True)
-    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=10)) as check:
+    with sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=10) as check:
         tenants = [str(row[0]) for row in check.execute("SELECT tenant_id FROM pec_messages GROUP BY tenant_id")]
         plans = [str(row[3]) for row in check.execute("EXPLAIN QUERY PLAN SELECT id FROM pec_messages WHERE TRIM(COALESCE(linked_fascicolo_id, '')) = '' ORDER BY ingested_at DESC LIMIT 1")]
     report = {"database": str(path), "source_of_truth": "sqlite", "tenants": tenants, "applied": False, "query_plan_before": plans}
@@ -48,12 +47,12 @@ def migrate(path: Path, *, apply: bool, backup_dir: Path | None) -> dict:
     backup_path = backup_dir / f"pec-{name}-{stamp}.sqlite"
     if backup_path.exists():
         raise FileExistsError(backup_path)
-    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as source, closing(sqlite3.connect(backup_path)) as target:
+    with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as source, sqlite3.connect(backup_path) as target:
         source.backup(target, pages=2048, sleep=0.01)
         if target.execute("PRAGMA quick_check").fetchone()[0] != "ok":
             raise RuntimeError("Backup SQLite non valido")
     backup_path.chmod(0o600)
-    with closing(sqlite3.connect(path, timeout=30)) as conn:
+    with sqlite3.connect(path, timeout=30) as conn:
         conn.execute("BEGIN IMMEDIATE")
         for statement in revision_statements():
             conn.execute(statement)

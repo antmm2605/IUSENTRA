@@ -94,7 +94,7 @@ def applica_pertinenza(fatti: list[Fatto], testo: str, *, contesto, origine: str
         clausola = " ".join((testo[max(0, f.posizione - 80):f.posizione] + dopo).split())
         if re.search(
             r"trattazione scritta|sostituit[ao].{0,80}(?:deposito|note)|"
-            r"note.{0,50}in\s+sostituzione\s+(?:dell(?:a|[’'])?\s*)?udienza|"
+            r"note.{0,50}in\s+sostituzione\s+dell(?:a|[’'])?\s*udienza|"
             r"termine perentorio.{0,60}deposito di note",
             clausola,
             re.I,

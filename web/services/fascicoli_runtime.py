@@ -2171,11 +2171,21 @@ def build_fascicoli_runtime(
                 )
                 doc_esistente = trova_documento_importato_identico(gf, fasc, payload, item, _decrypt_doc)
                 if doc_esistente:
+                    stored_plain = _decrypt_doc(gf.percorso_documento(fasc.id, doc_esistente.id).read_bytes())
+                    equivalent_pdf = stored_plain != payload
+                    if equivalent_pdf:
+                        doc_esistente = gf.sostituisci_documento(
+                            fasc.id, doc_esistente.id, nome_file=doc_esistente.nome,
+                            contenuto=_encrypt_doc(payload), caricato_da=u.username if u else "",
+                            preserve_version_snapshot=True, hash_contenuto_sha256=sha_payload,
+                        )
+                        from web.services.registro_letture_runtime import documento_aggiornato
+                        documento_aggiornato(fasc.id, doc_esistente)
                     collega_identita_pst(gf, fasc, doc_esistente, item)
                     for key in portal_keys:
                         documenti_per_chiave_portale[key] = doc_esistente
                     documenti_creati.append({"doc": doc_esistente, "item": item,
-                                            "riusato": True, "aggiornato": False})
+                                            "riusato": not equivalent_pdf, "aggiornato": equivalent_pdf})
                     continue
 
             if doc_esistente:

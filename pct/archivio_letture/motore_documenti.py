@@ -22,9 +22,12 @@ from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.21.motore-documenti.v14+note-sostituzione-udienza+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
     VERSIONE_MOTORE_DOCUMENTI,
+    f"2026.09.18.motore-documenti.v12+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}",
+    f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}",
+    f"2026.09.16.motore-documenti.v7+{VERSIONE_FORMULARIO}",
 )
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}

@@ -15,7 +15,7 @@
     }
     const values = data.prefill || {};
     Object.entries(values).forEach(([name, value]) => {
-      const field = document.getElementsByName(name)[0] || document.getElementById(name);
+      const field = document.getElementById(name) || document.getElementsByName(name)[0];
       if (!value || !field || field.disabled || field.readOnly || field.value) return;
       if (!['INPUT', 'TEXTAREA'].includes(field.tagName) || field.type === 'hidden') return;
       field.value = value;

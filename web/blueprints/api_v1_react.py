@@ -590,7 +590,11 @@ def _pst_pagopa_safe_path(pst_path: str = "") -> str:
         or not PST_PAGOPA_ALLOWED_PATH_RE.fullmatch(cleaned)
         or any(part == ".." for part in parts)
         or (not cleaned.startswith(PST_PAGOPA_ALLOWED_PATH_PREFIXES)
-            and cleaned != "do/consultazionepubblica/captcha/image")
+            and cleaned not in {
+                "do/consultazionepubblica/captcha/image",
+                "do/pagamentitelematici/xmlDetailsBolli.action",
+                "do/pagamentitelematici/pdfDetailsBolli.action",
+            })
     ):
         return ""
     return "/".join(parts)
@@ -7234,7 +7238,9 @@ def pst_pagopa_proxy(pst_path: str):
     lower_content_type = content_type.lower()
     target_path_lower = urlparse(target_url).path.lower()
     is_pdf = "application/pdf" in lower_content_type or ".pdf" in str(disposition or "").lower()
-    if (fascicolo_id and ("xml" in lower_content_type or ".p7m" in str(disposition or "").lower())
+    if (fascicolo_id and ("xml" in lower_content_type
+            or any(ext in str(disposition or "").lower() for ext in (".p7m", ".xml"))
+            or target_path_lower.endswith("/xmldetailsbolli.action"))
             and len(body) <= 2 * 1024 * 1024
             and (_api_key_valida() or _session_user_can("fascicoli.scrivi"))):
         from pct.pagamenti_giustizia import parse_rt

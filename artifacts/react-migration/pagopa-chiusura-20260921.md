@@ -54,3 +54,18 @@ pagamento resta valida: non è stata ripetuta.
 La RT del caso concreto resta da acquisire; il codice fiscale debitore
 dell'avviso recuperato non è presente nel dato storico. Non viene inventato
 né sostituito silenziosamente con quello dell'anagrafica attuale.
+
+## RT acquisita il 21/09/2026, ore 22:28
+
+Il riepilogo originale `03-riepilogo-avviso.png`, già registrato durante la
+prova del cliente, contiene il codice fiscale del debitore. Usato quel dato
+per la ricerca assistita nel browser reale, il PST restituisce l'avviso con
+stato «Disponibile» e collegamento «Download ricevuta». Nessuno scraping HTML.
+
+Il proxy rifiutava i due endpoint ufficiali XML/PDF della RT: aggiunti alla
+lista esatta dei percorsi consentiti, senza aprire altri endpoint del portale.
+La RT originale scaricata è stata verificata e archiviata automaticamente:
+documento `2278E1C7`, IUV `30008103520209603`, importo € 21,50,
+avviso `330008103520209603`, stato SQL `ricevuta_acquisita`.
+Non è stato effettuato un nuovo pagamento. Questa evidenza supera i precedenti
+paragrafi che indicavano la RT ancora mancante. Il deploy resta da chiudere.

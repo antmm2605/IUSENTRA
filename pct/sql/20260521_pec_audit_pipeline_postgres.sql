@@ -42,6 +42,74 @@ CREATE TABLE IF NOT EXISTS pec_messages (
     UNIQUE (tenant_id, mime_sha256)
 );
 
+CREATE TABLE IF NOT EXISTS pec_source_revisions (
+    tenant_id text PRIMARY KEY,
+    messages_revision bigint NOT NULL DEFAULT 0,
+    initialized boolean NOT NULL DEFAULT false,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION iusentra_pec_touch_messages_revision()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    source_tenant text;
+    source_time timestamptz;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        source_tenant := OLD.tenant_id;
+        source_time := now();
+    ELSE
+        IF TG_OP = 'UPDATE'
+           AND NEW.tenant_id IS NOT DISTINCT FROM OLD.tenant_id
+           AND NEW.linked_fascicolo_id IS NOT DISTINCT FROM OLD.linked_fascicolo_id
+           AND NEW.ingested_at IS NOT DISTINCT FROM OLD.ingested_at THEN
+            RETURN NEW;
+        END IF;
+        source_tenant := NEW.tenant_id;
+        source_time := COALESCE(NEW.ingested_at, now());
+    END IF;
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (source_tenant, 1, true, source_time)
+    ON CONFLICT (tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = EXCLUDED.updated_at;
+    IF TG_OP = 'UPDATE' AND OLD.tenant_id IS DISTINCT FROM NEW.tenant_id THEN
+        INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+        VALUES (OLD.tenant_id, 1, true, now())
+        ON CONFLICT (tenant_id) DO UPDATE SET
+            messages_revision = pec_source_revisions.messages_revision + 1,
+            updated_at = EXCLUDED.updated_at;
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'pec_messages_revision_change'
+          AND tgrelid = 'pec_messages'::regclass
+    ) THEN
+        CREATE TRIGGER pec_messages_revision_change
+        AFTER INSERT OR DELETE OR UPDATE OF tenant_id, linked_fascicolo_id, ingested_at
+        ON pec_messages
+        FOR EACH ROW
+        EXECUTE FUNCTION iusentra_pec_touch_messages_revision();
+    END IF;
+END
+$$;
+
+-- One-time schema migration: the initial fingerprint covers all existing tenants.
+INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+SELECT tenant_id, 0, true, now() FROM pec_messages GROUP BY tenant_id
+ON CONFLICT (tenant_id) DO UPDATE SET initialized = true;
+
 CREATE TABLE IF NOT EXISTS pec_parsed_versions (
     id text PRIMARY KEY,
     message_id text NOT NULL REFERENCES pec_messages(id),
@@ -275,6 +343,9 @@ FOR EACH ROW EXECUTE FUNCTION pec_audit_log_append_only();
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_unlinked_ingested
+    ON pec_messages(ingested_at DESC, id)
+    WHERE TRIM(COALESCE(linked_fascicolo_id, '')) = '';
 CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);

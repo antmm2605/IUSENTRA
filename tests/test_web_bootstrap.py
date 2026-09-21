@@ -1885,6 +1885,13 @@ def test_api_react_fascicoli_usa_loader_runtime_condiviso():
     assert "gf=get_fascicoli()" not in block
 
 
+def test_get_letture_fascicolo_usa_loader_mirato_e_non_carica_archivio():
+    source = (REPO_ROOT / "web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    block = source.split("def fascicolo_react_letture", 1)[1].split("@api_v1_react.post", 1)[0]
+    assert "_fascicolo_singolo_loader()().get" in block
+    assert "_fascicoli_loader()().get" not in block
+
+
 def test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi():
     dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
     cockpit = (REPO_ROOT / "web/templates/components/fascicolo_cockpit_tabs.html").read_text(encoding="utf-8")

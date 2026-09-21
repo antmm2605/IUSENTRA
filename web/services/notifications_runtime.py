@@ -1179,15 +1179,12 @@ def _impronta_pec_notifiche(
 
 
 def _impronta_pec_senza_fascicolo(paths: Mapping[str, Any]) -> str:
-    """Conteggio e ultima presa in carico delle PEC lavorate senza fascicolo.
+    """Legge la revisione atomica delle PEC senza fascicolo in O(1).
 
-    Si guarda ``ingested_at`` — quando la pipeline ha preso in carico il
-    messaggio — e non ``received_at``, che e' l'ora dichiarata dal
-    mittente. Una PEC spedita alle 06:50 ma scaricata alle 09:00 ha un
-    ``received_at`` anteriore a qualunque segnaposto messo nel frattempo:
-    con quella colonna sparirebbe per sempre, e sarebbe una notifica
-    legale persa in silenzio. ``ingested_at`` invece cresce sempre,
-    perche' lo scrive questo sistema quando il messaggio entra.
+    La revisione viene aggiornata da trigger SQL su inserimento, collegamento,
+    scollegamento e cancellazione. Se la migrazione non ha inizializzato il
+    segnale, si forza il presidio invece di dichiarare falsamente che non ci
+    sia lavoro.
     """
 
     db_path = _pec_audit_db_path_for_paths(paths)
@@ -1204,15 +1201,14 @@ def _impronta_pec_senza_fascicolo(paths: Mapping[str, Any]) -> str:
             # Archivio presente ma nessuna PEC mai presa in carico: e' uno
             # stato noto e fermo, non una sorgente che non risponde.
             return impronta_notifiche_legali.componi("pec_orfane", "nessuna")
-        riga = conn.execute(
-            """
-            SELECT COUNT(*) AS quante,
-                   COALESCE(MAX(m.ingested_at), '') AS ultima_presa_in_carico,
-                   COALESCE(MAX(m.id), '') AS ultimo_id
-            FROM pec_messages m
-            WHERE TRIM(COALESCE(m.linked_fascicolo_id, '')) = ''
-            """
-        ).fetchone()
+        # Il DB PEC appartiene allo studio. Può contenere righe storiche con
+        # tenant "default": leggere tutte le poche revisioni evita di ignorarle
+        # o di confondere slug PEC e UUID delle notifiche. Nessuna scansione messaggi.
+        revisioni = conn.execute(
+            "SELECT tenant_id, messages_revision, initialized FROM pec_source_revisions ORDER BY tenant_id"
+        ).fetchall()
+        if not revisioni or any(int(row[2] or 0) != 1 for row in revisioni):
+            return ""
     except Exception:
         return ""
     finally:
@@ -1221,9 +1217,9 @@ def _impronta_pec_senza_fascicolo(paths: Mapping[str, Any]) -> str:
                 conn.close()
             except Exception:
                 pass
-    if riga is None:
-        return ""
-    return impronta_notifiche_legali.componi("pec_orfane", *tuple(riga))
+    return impronta_notifiche_legali.componi(
+        "pec_orfane", "revisioni", *(f"{row[0]}:{int(row[1])}" for row in revisioni)
+    )
 
 
 def _impronta_fascicoli(paths: Mapping[str, Any], database: Any = None) -> str:

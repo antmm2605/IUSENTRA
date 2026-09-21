@@ -10,6 +10,40 @@ from dataclasses import asdict, is_dataclass
 from typing import Any
 
 
+def bounded_text_chunks(text: str, *, max_chars: int = 3200) -> list[str]:
+    """Spezza il testo senza perdita, privilegiando confini leggibili."""
+
+    value = str(text or "")
+    if not value:
+        return []
+    if max_chars < 1:
+        raise ValueError("max_chars deve essere positivo")
+    chunks: list[str] = []
+    cursor = 0
+    while cursor < len(value):
+        end = min(cursor + max_chars, len(value))
+        if end == len(value):
+            chunks.append(value[cursor:end])
+            break
+        boundary = max(
+            value.rfind("\n\n", cursor + 1, end + 1),
+            value.rfind("\n", cursor + 1, end + 1),
+            value.rfind(". ", cursor + 1, end + 1),
+            value.rfind("; ", cursor + 1, end + 1),
+            value.rfind(" ", cursor + 1, end + 1),
+        )
+        if boundary <= cursor:
+            boundary = end
+        elif value[boundary:boundary + 2] in {"\n\n", ". ", "; "}:
+            boundary += 2
+        else:
+            boundary += 1
+        boundary = min(boundary, end)
+        chunks.append(value[cursor:boundary])
+        cursor = boundary
+    return [chunk for chunk in chunks if chunk]
+
+
 def chunk_text(text: str, max_chars: int = 1200) -> list[str]:
     safe = str(text or "")
     return [safe[index : index + max_chars] for index in range(0, len(safe), max_chars)] or [""]

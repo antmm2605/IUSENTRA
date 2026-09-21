@@ -153,7 +153,7 @@ def test_prova_reale_gli_importi_arrivano_dal_repository(monkeypatch, tmp_path):
     assert block["totals"]["spese_liquidate_totale"] == 4200.0
 
 
-def test_payload_auto_analizza_documenti_sentenza_non_ancora_letti(monkeypatch, tmp_path):
+def test_payload_get_non_avvia_analisi_documenti_sentenza(monkeypatch, tmp_path):
     repo = SentenzaEconomicRepository(tmp_path / "se.db")
     fascicolo = _fasc()
     fascicolo.documenti = [_sentenza_doc()]
@@ -165,16 +165,15 @@ def test_payload_auto_analizza_documenti_sentenza_non_ancora_letti(monkeypatch, 
 
     payload = runtime.build_sentenza_economic_payload("F1")
     assert payload["ok"] is True
-    assert payload["autoAnalysis"]["analyzed"] == 1
-    assert payload["summary"]["totals"]["sentenze_lette"] == 1
+    assert payload["autoAnalysis"] == {"ok": True, "source": "archivio_letture", "analyzed": 0}
+    assert payload["summary"]["totals"]["sentenze_lette"] == 0
 
     second = runtime.build_sentenza_economic_payload("F1")
-    assert second["autoAnalysis"]["analyzed"] == 0
-    assert second["autoAnalysis"]["skipped"] == 1
-    assert second["summary"]["totals"]["sentenze_lette"] == 1
+    assert second["autoAnalysis"] == {"ok": True, "source": "archivio_letture", "analyzed": 0}
+    assert second["summary"]["totals"]["sentenze_lette"] == 0
 
 
-def test_payload_auto_analizza_tutte_le_sentenze_candidate_senza_limite_fisso(monkeypatch, tmp_path):
+def test_payload_get_non_analizza_le_sentenze_candidate(monkeypatch, tmp_path):
     repo = SentenzaEconomicRepository(tmp_path / "se.db")
     fascicolo = _fasc()
     fascicolo.documenti = [
@@ -194,9 +193,24 @@ def test_payload_auto_analizza_tutte_le_sentenze_candidate_senza_limite_fisso(mo
     payload = runtime.build_sentenza_economic_payload("F1")
 
     assert payload["ok"] is True
-    assert payload["autoAnalysis"]["candidates"] == 10
-    assert payload["autoAnalysis"]["analyzed"] == 10
-    assert payload["summary"]["totals"]["sentenze_lette"] == 10
+    assert payload["autoAnalysis"] == {"ok": True, "source": "archivio_letture", "analyzed": 0}
+    assert payload["summary"]["totals"]["sentenze_lette"] == 0
+
+
+def test_resolve_fascicolo_usa_repository_mirato_senza_helper_globale(monkeypatch):
+    from flask import Flask
+
+    marker = SimpleNamespace(id="F1")
+
+    class _TargetedRepo:
+        def get(self, fascicolo_id):
+            return marker if fascicolo_id == "F1" else None
+
+    monkeypatch.setattr("web.helpers.get_fascicoli", lambda: (_ for _ in ()).throw(AssertionError("helper globale chiamato")))
+    app = Flask(__name__)
+    app.extensions["core_runtime"] = {"get_fascicoli_mirato": lambda: _TargetedRepo()}
+    with app.app_context():
+        assert runtime._resolve_fascicolo("F1") is marker
 
 
 class _EconomicFascicoliRepo:

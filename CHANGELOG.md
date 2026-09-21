@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.342.0 — 21/09/2026
+
+**Letture unificate e apertura fascicolo.** La tranche consolida il registro unico come archivio dei consumer e riduce il lavoro sincrono sulle GET: i lettori periodici derivativi inutili sono stati sospesi con audit, i run orfani provati sono stati riconciliati senza dichiarare completamenti falsi, e il dettaglio fascicolo riusa il repository mirato invece di ricaricare tutti i fascicoli per il contesto economico. Il GET delle letture consulta il registro senza avviare motori.
+
+Verifiche aggregate: 151 test isolati registrati nel verbale di tranche; 72 test mirati del perimetro fascicolo/sentenze/loader e 1 prova di forza del percorso mirato superati in ambiente isolato. Il pilot catalogo ha verificato 33 fascicoli SQL e 319 embedding dopo la riparazione del confine di validità; il controllo di invariante ha misurato 6,951 secondi senza letture catalogo/RAG. Il pilot reale Docling ha coperto 5 documenti con OCR disattivato; il gate MiniCPM resta pilota e Gemma non cambia.
+
+Restano aperti il riallineamento commit/locale, la campagna visuale e l'accettazione finale. I tempi dei vecchi GET osservati (64–121 s) non sono dichiarati risolti: la richiesta isolata del caso economico è scesa da 1,864 s a 1,377 s dopo l'eliminazione del caricamento globale dei 336 fascicoli. Il flusso deposito/firma/PEC congelato il 09/09/2026 resta invariato.
+
 ## 2.322.4 - 18/09/2026
 
 **I dati runtime escono dalla repository senza uscire dalla macchina reale.** La release avanza sopra la produzione 2.322.3 e conserva tutte le correzioni già pubblicate, compreso il lettore OCR con pannelli affiancati e riepilogo fascicolo salvato. La modifica nuova rimuove dal tracciamento Git i file sotto `data/` che sono dati di esecuzione dello studio: restano nella cartella locale e nei volumi Docker, ma non vengono più versionati né distribuiti come sorgente applicativo. Questo evita conflitti fra codice, cache, documenti caricati, tenant e fascicoli reali.

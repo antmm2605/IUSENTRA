@@ -111,13 +111,25 @@ class FascicoloDocumentCatalogPipeline:
         process: bool,
         retry: bool = False,
     ) -> CatalogPipelineResult:
+        # La GET del catalogo deve restare una lettura SQL senza transazione di
+        # scrittura: l'inventario delle regole e le code nascono solo dal
+        # comando esplicito di elaborazione.
+        if not process:
+            return self._run(
+                tenant_id=tenant_id,
+                fascicolo=fascicolo,
+                sources=sources,
+                actor=actor,
+                process=False,
+                retry=retry,
+            )
         with self.repository.catalog_write_batch():
             return self._run(
                 tenant_id=tenant_id,
                 fascicolo=fascicolo,
                 sources=sources,
                 actor=actor,
-                process=process,
+                process=True,
                 retry=retry,
             )
 
@@ -134,8 +146,10 @@ class FascicoloDocumentCatalogPipeline:
         fid = str(getattr(fascicolo, "id", "") or "").strip()
         if not fid:
             raise ValueError("Fascicolo non disponibile per la catalogazione.")
-        rule_set_id = self.ensure_rule_inventory(tenant_id)
-        logging.getLogger(__name__).info("Catalogo: inventario regole pronto")
+        rule_set_id: str | None = None
+        if process:
+            rule_set_id = self.ensure_rule_inventory(tenant_id)
+            logging.getLogger(__name__).info("Catalogo: inventario regole pronto")
         result = CatalogPipelineResult()
         document_sources = [source for source in sources if str(source.fascicolo_id or "") == fid]
         result.total_sources = len(document_sources)

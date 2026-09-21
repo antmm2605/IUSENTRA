@@ -164,10 +164,42 @@ def _actor_id() -> str:
     return str(getattr(g.get("utente_corrente"), "id", "") or "")
 
 
-def _resolve_fascicolo(fascicolo_id: str):
+def _fascicoli_repository_mirato():
+    """Riuso il repository mirato della richiesta prima del helper legacy.
+
+    Il dettaglio React ha gia' aperto `get_fascicoli_mirato()` e lo conserva
+    in `flask.g`; riusarlo evita che il controllo economico ricarichi tutti i
+    fascicoli. Il fallback mantiene compatibilita' per chiamate fuori Flask.
+    """
+    try:
+        from flask import current_app, g
+
+        repository = getattr(g, "_fascicoli_mirato", None)
+        if repository is not None:
+            return repository
+        extensions = getattr(current_app, "extensions", {}) or {}
+        core_runtime = extensions.get("core_runtime", {}) or {}
+        loader = core_runtime.get("get_fascicoli_mirato")
+        if callable(loader):
+            return loader()
+    except (ImportError, RuntimeError, AttributeError):
+        pass
     from web.helpers import get_fascicoli
 
-    gestione = get_fascicoli()
+    try:
+        return get_fascicoli()
+    except RuntimeError:
+        # Il payload di sola lettura puo' essere usato anche da test/CLI senza
+        # contesto Flask: gli audit gia' persistiti restano consultabili.
+        return None
+
+
+def _resolve_fascicolo(fascicolo_id: str, *, fascicolo: Any | None = None):
+    if fascicolo is not None and str(getattr(fascicolo, "id", "") or "") == str(fascicolo_id or ""):
+        return fascicolo
+    gestione = _fascicoli_repository_mirato()
+    if gestione is None:
+        return None
     getter = getattr(gestione, "get", None)
     if callable(getter):
         return gestione.get(fascicolo_id)

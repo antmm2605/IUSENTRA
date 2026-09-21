@@ -36,7 +36,7 @@ from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 
 def _app(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    app = create_app({**_cfg_web(tmp_path), "MULTI_TENANT": False})
     app.config["API_KEY"] = "react-test-key"
     app.config["PRIVACY_DB"] = str(tmp_path / "privacy" / "registro.json")
     # La cache su disco della Lettura del fascicolo sta nell'istanza Flask, che

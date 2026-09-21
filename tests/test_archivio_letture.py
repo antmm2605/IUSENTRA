@@ -355,3 +355,97 @@ def test_senza_il_fascicolo_dichiarato_la_sentenza_non_produce_importi():
     )
 
     assert _importi_liquidazione(fatti) == []
+
+
+
+def test_comunicazione_xml_non_promuove_la_data_generica_a_termine_note():
+    messaggio = {
+        "id": "PEC-RG867",
+        "received_at": "2026-06-23T09:15:00+02:00",
+        "subject": "Comunicazione di cancelleria RG 867/2026",
+        "from": "cancelleria@pec.giustizia.it",
+        "collegata": True,
+        "procedural_profile": {
+            "descrizione_evento": "FISSATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA",
+        },
+        "deadline_proposal": {
+            "detected_procedural_date": {"date": "2026-06-23", "source": "Comunicazione.xml"},
+        },
+        "eventi": [{"primary_event": "fissazione_note", "family": "comunicazione_lavoro", "priority": "P1"}],
+        "udienze": [],
+        "termini": [],
+    }
+
+    fatti = fatti_da_messaggio(messaggio, _contesto())
+
+    termine = next(f for f in fatti if f.categoria == "data" and f.campo == "termine")
+    assert termine.valore == "2026-06-23"
+    assert termine.verifica == "respinta"
+    assert any(p.get("codice") == "fonte_non_ancorata" and p.get("esito") == "respinta" for p in termine.prove)
+    assert any(f.categoria == "evento" and f.campo == "fissazione_note" and f.verifica == "verificata" for f in fatti)
+
+
+def test_provvedimento_allegato_mantiene_il_termine_note_espresso():
+    messaggio = {
+        "id": "PEC-RG867",
+        "received_at": "2026-06-23T09:15:00+02:00",
+        "subject": "Comunicazione di cancelleria RG 867/2026",
+        "from": "cancelleria@pec.giustizia.it",
+        "collegata": True,
+        "procedural_profile": {
+            "descrizione_evento": "FISSATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA",
+        },
+        "deadline_proposal": {
+            "detected_procedural_date": {"date": "2026-06-23", "source": "Comunicazione.xml"},
+        },
+        "eventi": [{"primary_event": "fissazione_note", "family": "comunicazione_lavoro", "priority": "P1"}],
+        "udienze": [{"hearing_date": "2026-10-06", "hearing_time": "14:00", "mode": "note_scritte", "human_review_required": False}],
+        "termini": [],
+    }
+
+    fatti = fatti_da_messaggio(messaggio, _contesto())
+    termini = [f for f in fatti if f.categoria == "data" and f.campo == "termine"]
+
+    assert [(f.valore, f.verifica) for f in termini] == [("2026-10-06T14:00", "verificata")]
+
+
+def test_note_scritte_sostituiscono_udienza_e_conservano_ora_deposito():
+    testo = (
+        "TRIBUNALE ORDINARIO DI MILANO - R.G. n. 1234/2026\n"
+        "visto l’art. 127 ter c.p.c. che consente la sostituzione, con il deposito "
+        "di note scritte; FISSA il termine per il deposito delle note in sostituzione "
+        "dell’udienza nel giorno 06/10/2026, alle ore 14.00."
+    )
+    fatti = leggi_testo(testo, origine="nativo", contesto=_contesto(), nome="decreto.pdf")
+    date = [f for f in fatti if f.categoria == "data" and f.valore.startswith("2026-10-06")]
+    assert date and not [f for f in date if f.campo == "udienza" and f.verifica in {"verificata", "plausibile", "corretta"}]
+    termine = next(f for f in date if f.campo == "termine")
+    assert termine.valore == "2026-10-06T14:00"
+    assert any(p.get("codice") == "modalita_note" and p.get("modalita") == "note_scritte" and p.get("ora_termine") == "14:00" for p in termine.prove)
+    azione = next(a for a in udienze_e_termini([termine], oggi=OGGI) if a["dateIso"] == "2026-10-06")
+    assert azione["hearingMode"] == "note_scritte"
+    assert azione["hearingTime"] == "14:00"
+    assert azione["time"] == "14:00"
+
+
+def test_pec_note_scritte_non_diventa_udienza_anche_se_mode_upstream_e_presenza():
+    messaggio = {
+        "received_at": "2026-06-23T10:00:00",
+        "subject": "Fissazione termine note in sostituzione udienza",
+        "procedural_profile": {"descrizione_evento": "FISSATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA"},
+        "udienze": [{"hearing_date": "2026-10-06", "hearing_time": "14:00", "mode": "presenza", "human_review_required": False}],
+    }
+    date = [f for f in fatti_da_messaggio(messaggio, _contesto()) if f.categoria == "data" and f.valore.startswith("2026-10-06")]
+    assert [(f.campo, f.valore) for f in date] == [("termine", "2026-10-06T14:00")]
+    assert any(p.get("codice") == "modalita_note" and p.get("presenza_fisica") is False for p in date[0].prove)
+
+
+def test_note_in_sostituzione_udienza_senza_dell_diventano_termine_non_udienza():
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    testo = "FISSATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il 06/10/2026 14:00, ADEMPIMENTI: prima udienza e discussione"
+    fatti = leggi_testo(testo, origine="pec_allegato", contesto=Contesto(), nome="Comunicazione.xml")
+    date = [(fatto.campo, fatto.valore) for fatto in fatti if fatto.categoria == "data"]
+    assert ("termine", "2026-10-06") in date
+    assert not any(campo == "udienza" and valore.startswith("2026-10-06") for campo, valore in date)

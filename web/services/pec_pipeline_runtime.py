@@ -92,31 +92,20 @@ def run_workers_for_paths(
             report["legacy_cleanup"] = cleanup
     except Exception as exc:
         report["legacy_cleanup"] = {"errors": 1, "message": str(exc)[:180]}
-    try:
-        if document_presidio_limit is None:
-            effective_document_limit = max(10, min(int(limit or 200), 80))
-        else:
-            effective_document_limit = max(0, int(document_presidio_limit or 0))
-        if effective_document_limit <= 0:
-            report["document_presidio"] = {
-                "skipped_service": True,
-                "reason": "budget_scheduler_esaurito",
-                "limit": 0,
-            }
-        else:
-            document_presidio = repo.recover_missing_hearings_from_fascicolo_documents(
-                limit=effective_document_limit,
-                actor="scheduler",
-            )
-            if (
-                document_presidio.get("scheduled")
-                or document_presidio.get("already_presided")
-                or document_presidio.get("errors")
-                or document_presidio.get("checked_fascicoli")
-            ):
-                report["document_presidio"] = document_presidio
-    except Exception as exc:
-        report["document_presidio"] = {"ok": False, "errors": [str(exc)]}
+    # L'archivio letture e' il produttore unico del presidio documentale.
+    # Questo worker PEC resta consumatore degli esiti e non riapre una seconda
+    # scansione dei fascicoli. L'API esplicita del repository resta disponibile
+    # per migrazioni/riparazioni nominate.
+    report["document_presidio"] = {
+        "ok": True,
+        "status": "delegated_to_archivio_letture",
+        "consumer": "archivio_letture",
+        "source_of_truth": "archivio_letture",
+        "scheduled": 0,
+        "already_presided": 0,
+        "errors": [],
+        "notification_jobs": [],
+    }
     try:
         notification_jobs = list(report.get("jobs") or [])
         if isinstance(report.get("document_presidio"), dict):

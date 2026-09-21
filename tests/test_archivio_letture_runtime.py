@@ -102,13 +102,13 @@ def test_il_motore_documenti_alimenta_l_archivio_una_volta_sola_e_i_presidi_atti
         assert archivio["udienze"] == 1 and archivio["termini"] == 1 and archivio["prove_notifica"] >= 1 and archivio["lettura_automatica"]["completa"]
 
 
-def test_pannello_letture_avvia_archivio_in_background_senza_click(tmp_path: Path, monkeypatch):
+def test_pannello_letture_consulta_stato_senza_accodare_o_avviare_job(tmp_path: Path, monkeypatch):
     app = _app(tmp_path)
     fascicolo_id, _decreto_id, _relata_id = _seed(app)
     chiamate: list[dict[str, object]] = []
 
-    def _fake_avvia(app_obj, fid: str, *, paths=None, tenant_slug: str = "", forza: bool = False):
-        chiamate.append({"fid": fid, "paths": dict(paths or {}), "tenant_slug": tenant_slug, "forza": forza})
+    def _fake_avvia(app_obj, fid: str, **kwargs):
+        chiamate.append({"fid": fid, **kwargs})
         return True
 
     monkeypatch.setattr("web.services.archivio_letture_runtime.avvia_lettura_in_background", _fake_avvia)
@@ -118,15 +118,13 @@ def test_pannello_letture_avvia_archivio_in_background_senza_click(tmp_path: Pat
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["ok"] is True
-    assert chiamate == [{"fid": fascicolo_id, "paths": {}, "tenant_slug": "", "forza": False}]
+    assert chiamate == []
+    with app.app_context():
+        from web.services.registro_letture_runtime import registro_corrente
+
+        assert registro_corrente().eventi_da_riprendere() == []
     automatica = payload["letture"]["archivio"]["lettura_automatica"]
-    assert automatica["in_corso"] is True
-    assert automatica["completa"] is False
-    assert automatica["da_leggere"] == 2
-    assert any(
-        voce.get("letture", {}).get("motore_documenti") == "in_corso"
-        for voce in payload["letture"]["per_oggetto"]
-    )
+    assert automatica["in_corso"] is False
 
 
 def test_il_motore_pec_alimenta_l_archivio_dal_presidio_pec(tmp_path: Path):
@@ -359,3 +357,145 @@ def test_un_giro_fallito_lascia_il_fascicolo_nel_ciclo_dichiarato_in_errore(tmp_
         # Il giro successivo riprende e richiude il ciclo.
         ripreso = runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))
         assert ripreso["ciclo"]["stato"] == "fermo"
+
+
+def test_coda_evento_stesso_fascicolo_serializza_e_non_perde_eventi(tmp_path: Path):
+    from pct.registro_letture import RegistroLetture
+
+    percorso = tmp_path / "registro-coda.db"
+    primo_processo = RegistroLetture(percorso)
+    secondo_processo = RegistroLetture(percorso)
+
+    assert primo_processo.accoda_evento("studio", "09131014") == 1
+    primo = primo_processo.reclama_evento("studio", "09131014", "worker-1")
+    assert primo == {"generation": 1, "forza": False}
+    assert secondo_processo.reclama_evento("studio", "09131014", "worker-2") is None
+
+    # L'evento arrivato mentre il primo è in lavoro resta nella generazione 2.
+    assert secondo_processo.accoda_evento("studio", "09131014", forza=True) == 2
+    assert primo_processo.concludi_evento("studio", "09131014", "worker-1", 1) is True
+    secondo = secondo_processo.reclama_evento("studio", "09131014", "worker-2")
+    assert secondo == {"generation": 2, "forza": True}
+    assert secondo_processo.concludi_evento("studio", "09131014", "worker-2", 2) is False
+
+    # Un altro fascicolo conserva una coda indipendente e non viene scansionato.
+    assert primo_processo.accoda_evento("studio", "ALTRO-FASCICOLO") == 1
+    altro = primo_processo.reclama_evento("studio", "ALTRO-FASCICOLO", "worker-3")
+    assert altro == {"generation": 1, "forza": False}
+
+
+def test_coda_evento_non_consuma_la_generazione_se_la_lettura_fallisce(tmp_path: Path):
+    from pct.registro_letture import RegistroLetture
+
+    registro = RegistroLetture(tmp_path / "registro-coda-errore.db")
+    registro.accoda_evento("studio", "09131014", forza=True)
+    evento = registro.reclama_evento("studio", "09131014", "worker-1")
+    assert evento is not None
+    assert registro.concludi_evento("studio", "09131014", "worker-1", evento["generation"], riuscito=False) is True
+    assert registro.reclama_evento("studio", "09131014", "worker-2") == {"generation": 1, "forza": True}
+
+
+def test_tick_riprende_solo_eventi_pending_o_con_lease_scaduta_dopo_riavvio(monkeypatch, tmp_path: Path):
+    from web.services import archivio_letture_runtime as runtime
+    from web.services.registro_letture_runtime import registro_corrente
+
+    app = _app(tmp_path)
+    with app.app_context():
+        registro = registro_corrente()
+        registro.accoda_evento("single-studio", "09131014")
+        registro.accoda_evento("single-studio", "LEASE-SCADUTA")
+        reclamato = registro.reclama_evento("single-studio", "LEASE-SCADUTA", "worker-morto")
+        assert reclamato is not None
+        with registro.connection() as conn:
+            conn.execute(
+                'UPDATE "letture_eventi" SET lease_until = ? WHERE tenant_id = ? AND fascicolo_id = ?',
+                ("2000-01-01T00:00:00Z", "single-studio", "LEASE-SCADUTA"),
+            )
+        registro.accoda_evento("single-studio", "GIA-FINITO")
+        finito = registro.reclama_evento("single-studio", "GIA-FINITO", "worker-finito")
+        assert finito is not None
+        assert registro.concludi_evento("single-studio", "GIA-FINITO", "worker-finito", finito["generation"]) is False
+
+        avviati: list[tuple[str, str, bool]] = []
+
+        def avvia(_app, fascicolo_id, **kwargs):
+            avviati.append((fascicolo_id, kwargs.get("tenant_slug", ""), kwargs.get("_accoda_evento", True)))
+            return True
+
+        monkeypatch.setattr(runtime, "avvia_lettura_in_background", avvia)
+        report = runtime.riprendi_eventi_lettura(app, limite_per_tenant=10)
+
+    assert report == {"tenant": 1, "trovati": 2, "avviati": 2}
+    assert avviati == [
+        ("09131014", "single-studio", False),
+        ("LEASE-SCADUTA", "single-studio", False),
+    ]
+
+
+def test_evento_web_accoda_generazioni_senza_thread_nel_worker_gevent(monkeypatch, tmp_path: Path):
+    from web.services import archivio_letture_runtime as runtime
+    from web.services.registro_letture_runtime import CHIAVE_PERCORSO, registro_per_percorsi
+
+    app = _app(tmp_path)
+    paths = {CHIAVE_PERCORSO: str(tmp_path / "registro-eventi-web.db")}
+
+    def thread_vietato(*args, **kwargs):
+        raise AssertionError("un evento web non deve avviare thread nel worker gevent")
+
+    monkeypatch.setattr(runtime.threading, "Thread", thread_vietato)
+    with app.app_context():
+        assert runtime.avvia_lettura_in_background(app, "09131014", paths=paths, tenant_slug="studio", forza=False)
+        assert runtime.avvia_lettura_in_background(app, "09131014", paths=paths, tenant_slug="studio", forza=True)
+
+    registro = registro_per_percorsi(paths)
+    with registro.connection() as conn:
+        riga = dict(conn.execute(
+            'SELECT generation, stato, pending_force FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
+            ("studio", "09131014"),
+        ).fetchone())
+    assert riga == {"generation": 2, "stato": "pending", "pending_force": 1}
+
+
+def test_forza_rilegge_solo_i_due_documenti_presenti_del_fascicolo_da_testi_sql(monkeypatch, tmp_path: Path):
+    from types import SimpleNamespace
+
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from web.services import archivio_letture_runtime as runtime
+
+    app = _app(tmp_path)
+    registro = RegistroLetture(tmp_path / "registro-force-target.db")
+    target_docs = [
+        SimpleNamespace(id="DOC-1", nome="decreto.pdf", tipo="DECRETO", hash_sha256="a" * 64, classificazione_portale=""),
+        SimpleNamespace(id="DOC-2", nome="relata.pdf", tipo="ALTRO", hash_sha256="b" * 64, classificazione_portale=""),
+    ]
+    altro_doc = SimpleNamespace(id="DOC-ALTRO", nome="altro.pdf", tipo="ALTRO", hash_sha256="c" * 64, classificazione_portale="")
+    target = SimpleNamespace(id="09131014", documenti=target_docs)
+    altro = SimpleNamespace(id="ALTRO-FASCICOLO", documenti=[altro_doc])
+
+    for fascicolo, documenti in ((target, target_docs), (altro, [altro_doc])):
+        oggetti = [Oggetto(tipo="documento", oggetto_id=doc.id, nome=doc.nome, sha256=doc.hash_sha256) for doc in documenti]
+        registro.registra_inventario("studio", fascicolo.id, oggetti)
+        for oggetto in oggetti:
+            registro.segna_letto("studio", fascicolo.id, oggetto, runtime.LETTORE_DOCUMENTI, esito={"origine": "indice"})
+
+    letti: list[tuple[str, str]] = []
+
+    def testi_sql(fascicolo, documento):
+        letti.append((fascicolo.id, documento.id))
+        return [("indice", "Udienza del 6 ottobre 2026 alle ore 14:00 sostituita da note scritte.")]
+
+    chiamate_cu = []
+    monkeypatch.setattr(runtime, "testi_documento", testi_sql)
+    monkeypatch.setattr(
+        "web.services.sentenza_economic_runtime._cu_tiers",
+        lambda: chiamate_cu.append("cu") or [],
+    )
+    with app.app_context():
+        report = runtime._leggi_documenti(target, registro, "studio", Contesto(), forza=True, limite=200)
+
+    assert report["da_leggere"] == 2
+    assert report["letti"] == 2
+    assert chiamate_cu == ["cu"]
+    assert letti == [("09131014", "DOC-1"), ("09131014", "DOC-2")]
+    assert all(fid != altro.id for fid, _doc_id in letti)

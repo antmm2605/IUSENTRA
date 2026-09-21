@@ -27,21 +27,26 @@ def _seed(app) -> tuple[str, str]:
         return fascicolo.id, documento.id
 
 
-def test_endpoint_letture_censisce_i_documenti_e_le_novita_per_utente(tmp_path: Path):
+def test_endpoint_letture_legge_l_inventario_sql_e_le_novita_per_utente(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id, documento_id = _seed(app)
+    with app.app_context():
+        from web.services.registro_letture_runtime import aggiorna_inventario
+
+        fascicolo = app.extensions["core_runtime"]["get_fascicoli"]().get(fascicolo_id)
+        aggiorna_inventario(fascicolo, con_pec=False)
     with app.test_client() as client:
         risposta = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/letture", headers=HEADERS)
         assert risposta.status_code == 200
         letture = risposta.get_json()["letture"]
         assert letture["oggetti"] == 1 and letture["tutto_letto"] is False
         per_lettore = {voce["lettore"]: voce for voce in letture["lettori"]}
-        assert per_lettore["ocr"]["etichetta"] == "Testo e ricerca" and per_lettore["ocr"]["da_leggere"] == 1
-        assert per_lettore["indice_documentale"]["da_leggere"] == 1
+        assert per_lettore["motore_documenti"]["da_leggere"] == 1
+        assert per_lettore["motore_pec"]["da_leggere"] == 0
         oggetto = letture["per_oggetto"][0]
         assert oggetto["oggetto_id"] == documento_id and oggetto["etichetta"] == "decreto.pdf"
         assert oggetto["cliente"] == "Anna Bianchi" and oggetto["numero_rg"] == "777" and oggetto["anno_rg"] == "2026"
-        assert oggetto["letture"]["ocr"] == "da_leggere"
+        assert oggetto["letture"]["motore_documenti"] == "da_leggere"
         assert letture["novita"]["prima_vista"] is True
         assert letture["anomalie"] == []
         assert client.get("/api/v1/ui/fascicoli/NONESISTE/letture", headers=HEADERS).status_code == 404
@@ -258,3 +263,24 @@ def test_leggi_i_nuovi_accoda_solo_cio_che_manca(tmp_path: Path):
         assert "messaggio" in payload["esito"] and "letture" in payload
         # Il presidio documentale legge le date con le lettere e le mette da confermare.
         assert isinstance(payload["letture"]["lettori"], list)
+
+
+
+def test_get_letture_non_allinea_inventario_ne_scrive(monkeypatch, tmp_path: Path):
+    app = _app(tmp_path)
+    fascicolo_id, _documento_id = _seed(app)
+
+    def vietata(*args, **kwargs):
+        raise AssertionError("la GET /letture non deve registrare l’inventario")
+
+    with app.app_context():
+        fascicolo = app.extensions["core_runtime"]["get_fascicoli"]().get(fascicolo_id)
+        with monkeypatch.context() as contesto:
+            contesto.setattr("pct.registro_letture.repository.RegistroLetture.registra_inventario", vietata)
+            contesto.setattr("web.services.registro_letture_runtime._righe_pec_collegate", vietata)
+            from web.services.registro_letture_runtime import stato_letture_payload
+
+            payload = stato_letture_payload(fascicolo, segna_visto=False)
+
+    assert payload["degradato"] == []
+    assert payload["oggetti"] == 0

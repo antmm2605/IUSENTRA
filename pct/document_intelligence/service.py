@@ -10,6 +10,7 @@ from .extraction import ExtractionResult, extract_text_from_document
 from .models import (
     DOCUMENT_AI_STATUSES,
     DocumentAIRecord,
+    DocumentAIVersion,
     DocumentAISearchResult,
     DocumentAIText,
     DocumentAIUploadResult,
@@ -30,7 +31,7 @@ from .security import (
     user_id_from_context,
     validate_document_file_type,
 )
-from .versioning import build_document_storage_relative_path, build_extracted_text_relative_path, build_initial_version
+from .versioning import build_document_storage_relative_path, build_extracted_text_relative_path, build_initial_version, next_version_number
 
 
 _NON_INTERACTIVE_READ_ACTORS = frozenset({"scheduler", "scheduler-worker", "scheduler-rebuild"})
@@ -310,6 +311,49 @@ class DocumentAIService:
         assert_user_can_read(user_context)
         self._assert_fascicolo_access(fascicolo_id)
         return self.repository.list_documents(tenant_id, fascicolo_id, user_context)
+
+    def reacquire_existing_version(self, tenant_id: str, fascicolo_id: str, document_id: str, content: bytes, user_context: object) -> DocumentAIText:
+        """Crea una nuova versione auditata dallo stesso blob, senza duplicare il record."""
+        assert_user_can_write(user_context)
+        self._assert_fascicolo_access(fascicolo_id)
+        record = self.repository.get_document(tenant_id, fascicolo_id, document_id)
+        if record is None or not record.current_version_id:
+            raise DocumentAINotFound("Documento AI non trovato.")
+        if compute_sha256_bytes(content) != record.sha256:
+            raise DocumentAIValidationError("Impronta del blob diversa dal documento corrente.")
+        previous = self.repository.get_version(tenant_id, fascicolo_id, document_id, record.current_version_id)
+        if previous is None:
+            raise DocumentAINotFound("Versione DocumentAI corrente non trovata.")
+        extraction = extract_text_from_document(content, record.original_filename, record.file_type)
+        if not extraction.ok or not str(extraction.text or "").strip():
+            raise DocumentAIValidationError("Riacquisizione non adottabile: testo affidabile assente.")
+        versions = self.repository.list_versions(tenant_id, fascicolo_id, document_id)
+        number = next_version_number(versions)
+        version = DocumentAIVersion(
+            id=new_id("docaiver"), tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+            document_id=document_id, version_number=number, source=previous.source,
+            storage_path=previous.storage_path, extracted_text_path=None, pdf_preview_path=None,
+            sha256=record.sha256, created_by=user_id_from_context(user_context), created_at=utc_now(),
+        )
+        with self.repository.catalog_write_batch():
+            self.repository.create_version(version)
+            text = DocumentAIText(document_id=document_id, version_id=version.id, tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id, text=extraction.text, pages=extraction.pages,
+                extraction_engine=extraction.extraction_engine, created_at=utc_now(), warnings=list(extraction.warnings))
+            text_path = build_extracted_text_relative_path(tenant_id, fascicolo_id, document_id, number)
+            self.repository.write_text_blob(text_path, json.dumps(text.to_dict(), ensure_ascii=False, indent=2))
+            self.repository.save_extracted_text(text, extracted_text_path=text_path)
+            self.repository.set_current_version(tenant_id, fascicolo_id, document_id, version.id,
+                status="ready", page_count=len(extraction.pages) if extraction.pages else None)
+            record_document_ai_event(self.repository, "document_ai.version.created", tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id, user_context=user_context, document_id=document_id, version_id=version.id,
+                sha256=record.sha256, filename=record.original_filename, status="ready",
+                payload={"source":"reacquisition","previous_version_id":previous.id,"engine":extraction.extraction_engine})
+            record_document_ai_event(self.repository, "document_ai.extraction.completed", tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id, user_context=user_context, document_id=document_id, version_id=version.id,
+                sha256=record.sha256, filename=record.original_filename, status="ready",
+                payload={"engine":extraction.extraction_engine,"page_count":len(extraction.pages),"warnings":extraction.warnings})
+        return text
 
     def get_fascicolo_document(
         self,

@@ -220,9 +220,8 @@ def test_acquisizione_incrementale_legge_solo_nuovi_arrivi_dopo_cursor(tmp_path:
     assert third["relevant"] <= 2, "il giro nuovo controlla arrivo e boundary, non l'archivio intero"
 
 
-def test_worker_pec_rispetta_budget_documentale_scheduler(tmp_path: Path, monkeypatch) -> None:
+def test_worker_pec_delega_presidio_documentale_all_archivio(tmp_path: Path, monkeypatch) -> None:
     paths = _paths(tmp_path)
-    recovered_limits: list[int] = []
 
     class FakeRepository:
         def enqueue_stale_attachment_repairs(self, *, limit: int, actor: str) -> dict[str, object]:
@@ -233,10 +232,6 @@ def test_worker_pec_rispetta_budget_documentale_scheduler(tmp_path: Path, monkey
 
         def cleanup_legacy_pec_operational_items(self, *, actor: str) -> dict[str, int]:
             return {"scadenziario_removed": 0, "agenda_removed": 0, "errors": 0}
-
-        def recover_missing_hearings_from_fascicolo_documents(self, *, limit: int, actor: str) -> dict[str, int]:
-            recovered_limits.append(limit)
-            return {"checked_fascicoli": limit, "checked_documents": limit * 2, "scheduled": 0, "already_presided": 0}
 
     monkeypatch.setattr(
         pec_pipeline_runtime,
@@ -250,19 +245,11 @@ def test_worker_pec_rispetta_budget_documentale_scheduler(tmp_path: Path, monkey
         limit=60,
         document_presidio_limit=5,
     )
-    assert recovered_limits == [5]
     assert report["attachment_maintenance"]["queued"] == 1
-    assert report["document_presidio"]["checked_fascicoli"] == 5
-
-    skipped = pec_pipeline_runtime.run_workers_for_paths(
-        paths,
-        tenant_label="default",
-        limit=60,
-        document_presidio_limit=0,
-    )
-    assert recovered_limits == [5], "limite 0: il presidio documentale non deve partire"
-    assert skipped["document_presidio"]["reason"] == "budget_scheduler_esaurito"
-
+    assert report["document_presidio"]["status"] == "delegated_to_archivio_letture"
+    assert report["document_presidio"]["consumer"] == "archivio_letture"
+    assert report["document_presidio"]["source_of_truth"] == "archivio_letture"
+    assert "skipped_service" not in report["document_presidio"]
 
 def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) -> None:
     from flask import Flask

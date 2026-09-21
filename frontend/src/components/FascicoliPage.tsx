@@ -9410,12 +9410,13 @@ function activityTypeLabel(value: string): string {
 function ActivityRow({ activity, onPreview }:{activity:FascicoloActivity; onPreview?:(preview:PreviewDocument)=>void}) {
   const resultText = normaliseText(activity.result)
   const sourceDerived = Boolean(activity.sourceIsDerived)
+  const sourceRejected = sourceDerived && resultText === 'annullato'
   const readOnlySystemEvent = Boolean(activity.readOnly || sourceDerived)
   const typeLabel = activityTypeLabel(activity.type)
   const displayTitle = sourceDerived ? `${typeLabel} rilevata dal documento` : activity.title
   const displayDescription = sourceDerived ? '' : activity.description
   const badgeText = readOnlySystemEvent
-    ? (sourceDerived ? 'Rilevazione' : 'Registrato')
+    ? (sourceRejected ? 'Rilevazione rettificata' : sourceDerived ? 'Rilevazione' : 'Registrato')
     : !resultText || /non applicabile/.test(resultText)
     ? (activity.type || 'Evento')
     : depositStatusLabel(activity.result)
@@ -9434,9 +9435,9 @@ function ActivityRow({ activity, onPreview }:{activity:FascicoloActivity; onPrev
       <div className="iu-fas-activity-date"><Badge tone={activity.tone}>{badgeText}</Badge><time>{activity.date || 'n.d.'}</time></div>
       <div className="iu-fas-activity-main">
         <strong>{displayTitle}</strong>
-        {sourceDerived ? <span className="iu-fas-activity-derived">Rilevazione dal contenuto: consulta la fonte prima di agire.</span> : null}
+        {sourceDerived ? <span className="iu-fas-activity-derived">{sourceRejected ? 'La verifica della fonte ha escluso questa rilevazione dai dati operativi.' : 'Rilevazione dal contenuto: consulta la fonte prima di agire.'}</span> : null}
         {metaLine ? <span>{metaLine}</span> : null}
-        {sourceDerived ? <p className="iu-fas-activity-derived-summary">Informazione estratta dal contenuto indicizzato: il passaggio verificabile è riportato nella fonte qui sotto.</p> : null}
+        {sourceDerived && !sourceRejected ? <p className="iu-fas-activity-derived-summary">Informazione estratta dal contenuto indicizzato: il passaggio verificabile è riportato nella fonte qui sotto.</p> : null}
         {displayDescription ? <p>{renderActivityText(displayDescription)}</p> : null}
         {activity.notes ? <em>{renderActivityText(activity.notes)}</em> : null}
         {activity.sourceDocumentHref ? (
@@ -9738,6 +9739,7 @@ function DetailPage({ id }:{id:string}) {
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
   const [mediazioneVisited, setMediazioneVisited] = useState(() => currentDetailHashSectionId() === 'mediazione')
+  const [letturaOpen, setLetturaOpen] = useState(() => currentDetailHashSectionId() === 'lettura-fascicolo')
   useEffect(() => {
     let active = true
     const initialIncludes = initialDetailIncludesFromHash()
@@ -10026,8 +10028,8 @@ function DetailPage({ id }:{id:string}) {
             loading={lazyStatus.regia === 'loading'}
             auditStatus={lazyStatus.audit}
           />
-          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'}>
-            <LetturaFascicoloPanel fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
+          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'} onToggle={setLetturaOpen}>
+            <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
           </DetailSection>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen={activeHashSection === 'uffici-competenti'}>

@@ -55,7 +55,8 @@ def _identita(gruppo: list[Fatto]) -> tuple[str, ...]:
         giorno, _ = _giorno_ora(primo)
         ore = sorted({_giorno_ora(voce)[1] for voce in gruppo if _giorno_ora(voce)[1]})
         return (_testo(primo.fascicolo_id), primo.categoria, primo.campo, giorno, ore[0] if ore else "")
-    return (_testo(primo.fascicolo_id), primo.categoria, primo.campo, _testo(primo.valore).casefold(), "")
+    oggetto = _testo(primo.oggetto_id) if primo.campo == "natura_documentale" else ""
+    return (_testo(primo.fascicolo_id), primo.categoria, primo.campo, _testo(primo.valore).casefold(), oggetto)
 
 
 def _migliore(gruppo: list[Fatto]) -> Fatto:
@@ -123,15 +124,36 @@ def _unisci(gruppo: list[Fatto]) -> Fatto:
     )
 
 
+def _secchio(fatto: Fatto) -> tuple[str, ...]:
+    """Partizione economica che conserva esattamente le regole di compatibilità.
+
+    I fatti di secchi diversi non possono mai essere uniti da ``_compatibile``;
+    dentro il singolo secchio resta il confronto ordinato, necessario soltanto
+    per distinguere orari incompatibili dello stesso giorno.
+    """
+    esclusa = "esclusa" if fatto.verifica in {"respinta", "ignorata"} else "utile"
+    oggetto = _testo(fatto.oggetto_id) if fatto.campo == "natura_documentale" else ""
+    valore = _giorno_ora(fatto)[0] if fatto.categoria == "data" else _testo(fatto.valore).casefold()
+    return (_testo(fatto.fascicolo_id), esclusa, fatto.categoria, fatto.campo, oggetto, valore)
+
+
 def fatti_canonici(fatti: Iterable[Fatto]) -> list[Fatto]:
-    """Restituisce fatti senza duplicati semantici, preservando tutte le fonti."""
+    """Restituisce fatti senza duplicati semantici, preservando tutte le fonti.
+
+    L'ordine dei gruppi e la scelta della fonte migliore restano quelli storici;
+    l'indice evita soltanto di confrontare ogni fatto con gruppi certamente
+    incompatibili appartenenti ad altri fascicoli, campi, giorni o valori.
+    """
     gruppi: list[list[Fatto]] = []
+    per_secchio: dict[tuple[str, ...], list[int]] = {}
     for fatto in fatti:
-        for gruppo in gruppi:
-            if _compatibile(gruppo, fatto):
-                gruppo.append(fatto)
+        candidati = per_secchio.setdefault(_secchio(fatto), [])
+        for indice in candidati:
+            if _compatibile(gruppi[indice], fatto):
+                gruppi[indice].append(fatto)
                 break
         else:
+            candidati.append(len(gruppi))
             gruppi.append([fatto])
     return [_unisci(gruppo) for gruppo in gruppi]
 

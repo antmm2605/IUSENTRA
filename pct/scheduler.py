@@ -2425,6 +2425,18 @@ def start_scheduler(app):
                 if registry_tick_state["count"] % 5 == 0:
                     apply_scheduler_registry(scheduler, app, registry_repo)
                 registry_tick_state["count"] += 1
+                try:
+                    from web.services.archivio_letture_runtime import riprendi_eventi_lettura
+
+                    ripresi = riprendi_eventi_lettura(app)
+                    if int(ripresi.get("avviati") or 0):
+                        logger.info(
+                            "[scheduler] Coda letture: ripresi %d eventi puntuali su %d.",
+                            int(ripresi.get("avviati") or 0),
+                            int(ripresi.get("trovati") or 0),
+                        )
+                except Exception as exc:
+                    logger.error("[scheduler] Ripresa coda letture non riuscita: %s", exc)
                 dispatch_requested_manual_runs(scheduler, app, registry_repo)
 
         scheduler.add_job(

@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -36,7 +36,7 @@ from .modello import (
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
 
-TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache")
+TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache", "letture_eventi")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
 COLONNE: dict[str, tuple[str, ...]] = {
     "letture_oggetti": (
@@ -61,6 +61,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
     "letture_fatti": COLONNE_FATTI,
     "letture_consegne": COLONNE_CONSEGNE,
     "letture_payload_cache": ("id", "tenant_id", "fascicolo_id", "cache_key", "payload_json", "expires_at", "creato_il", "aggiornato_il"),
+    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -593,6 +594,91 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                     (tenant, fascicolo),
                 )
         return int(getattr(cur, "rowcount", 0) or 0)
+
+    # ---- coda persistente delle letture puntuali -------------------------------
+
+    def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False) -> int:
+        """Registra una generazione per un solo fascicolo, anche se è già in lavoro."""
+        tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
+        if not tenant or not fascicolo:
+            return 0
+        adesso = _adesso()
+        with self.connection() as conn:
+            conn.execute(
+                'INSERT INTO "letture_eventi" '
+                '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, worker_id, lease_until, creato_il, aggiornato_il) '
+                'VALUES (?, ?, ?, 1, 0, \'pending\', ?, 0, \'\', \'\', ?, ?) '
+                'ON CONFLICT (tenant_id, fascicolo_id) DO UPDATE SET '
+                'generation = letture_eventi.generation + 1, '
+                'stato = CASE WHEN letture_eventi.stato = \'running\' THEN \'running\' ELSE \'pending\' END, '
+                'pending_force = CASE WHEN letture_eventi.pending_force = 1 OR excluded.pending_force = 1 THEN 1 ELSE 0 END, '
+                'aggiornato_il = excluded.aggiornato_il',
+                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, adesso, adesso),
+            )
+            riga = conn.execute(
+                'SELECT generation FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
+                (tenant, fascicolo),
+            ).fetchone()
+        return int(riga["generation"] if riga else 0)
+
+    def reclama_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, *, lease_seconds: int = 1800) -> dict[str, Any] | None:
+        """Reclama atomicamente la generazione pendente; una lease recupera processi interrotti."""
+        tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
+        if not tenant or not fascicolo or not worker:
+            return None
+        adesso = _adesso()
+        lease = (datetime.now(timezone.utc) + timedelta(seconds=max(60, int(lease_seconds)))).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        with self.connection() as conn:
+            conn.execute(
+                'UPDATE "letture_eventi" SET stato = \'running\', claimed_generation = generation, '
+                'claimed_force = pending_force, pending_force = 0, worker_id = ?, lease_until = ?, aggiornato_il = ? '
+                'WHERE tenant_id = ? AND fascicolo_id = ? AND '
+                '(stato = \'pending\' OR (stato = \'running\' AND lease_until < ?))',
+                (worker, lease, adesso, tenant, fascicolo, adesso),
+            )
+            riga = conn.execute(
+                'SELECT generation, claimed_generation, claimed_force, worker_id FROM "letture_eventi" '
+                'WHERE tenant_id = ? AND fascicolo_id = ?',
+                (tenant, fascicolo),
+            ).fetchone()
+        if not riga or _testo(riga["worker_id"]) != worker:
+            return None
+        return {"generation": int(riga["claimed_generation"]), "forza": bool(riga["claimed_force"])}
+
+    def concludi_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int, *, riuscito: bool = True) -> bool:
+        """Chiude la generazione; vero indica un evento arrivato durante il lavoro."""
+        tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
+        adesso = _adesso()
+        with self.connection() as conn:
+            conn.execute(
+                'UPDATE "letture_eventi" SET '
+                'stato = CASE WHEN ? = 0 OR generation > claimed_generation THEN \'pending\' ELSE \'idle\' END, '
+                'pending_force = CASE WHEN ? = 0 AND claimed_force = 1 THEN 1 ELSE pending_force END, '
+                'worker_id = \'\', lease_until = \'\', claimed_force = 0, aggiornato_il = ? '
+                'WHERE tenant_id = ? AND fascicolo_id = ? AND worker_id = ? AND claimed_generation = ?',
+                (1 if riuscito else 0, 1 if riuscito else 0, adesso, tenant, fascicolo, worker, int(generation)),
+            )
+            riga = conn.execute(
+                'SELECT stato FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
+                (tenant, fascicolo),
+            ).fetchone()
+        return bool(riga and _testo(riga["stato"]) == "pending")
+
+    def eventi_da_riprendere(self, tenant_id: str = "", *, limite: int = 20) -> list[dict[str, Any]]:
+        """Restituisce solo eventi pending o con lease scaduta, senza leggere i fascicoli."""
+        tenant = _testo(tenant_id)
+        adesso = _adesso()
+        filtro_tenant = '"tenant_id" = ? AND ' if tenant else ""
+        parametri: list[Any] = [tenant] if tenant else []
+        parametri.extend((adesso, max(1, int(limite))))
+        sql = (
+            f'SELECT * FROM {self._tabella("letture_eventi")} WHERE {filtro_tenant}'
+            "(\"stato\" = 'pending' OR (\"stato\" = 'running' AND \"lease_until\" < ?)) "
+            'ORDER BY "aggiornato_il" ASC LIMIT ?'
+        )
+        with self.connection() as conn:
+            righe = conn.execute(sql, tuple(parametri)).fetchall()
+        return [_riga(riga) for riga in righe]
 
     # ---- viste dell'avvocato ---------------------------------------------------
 

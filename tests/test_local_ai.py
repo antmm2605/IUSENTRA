@@ -580,6 +580,16 @@ def test_prepare_fascicolo_query_impone_analisi_professionale_e_fonti_compatte(t
     ]
 
 
+def _native_pdf_for_rag_test():
+    from io import BytesIO
+    from reportlab.pdfgen.canvas import Canvas
+    output = BytesIO()
+    canvas = Canvas(output)
+    canvas.drawString(72, 760, "Memoria difensiva: il ricorrente deposita le conclusioni scritte.")
+    canvas.save()
+    return output.getvalue()
+
+
 def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     document_path = tmp_path / "memoria.pdf.p7m"
@@ -597,7 +607,7 @@ def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, m
                     "detached_signature": False,
                 },
             ),
-            payload_bytes=b"%PDF-1.4 test",
+            payload_bytes=_native_pdf_for_rag_test(),
         ),
     )
 
@@ -621,7 +631,7 @@ def test_local_ai_index_fascicolo_supporta_p7m_detached_con_versione_originale(t
     cfg = _cfg_web(tmp_path)
     gestione_fascicoli = _gestione_fascicoli_runtime(cfg)
     fascicolo = gestione_fascicoli.nuovo("RG 701/2026", TipoFascicolo.CIVILE)
-    originale = b"%PDF-1.4\n% originale\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    originale = _native_pdf_for_rag_test()
     documento = gestione_fascicoli.aggiungi_documento(
         fascicolo.id,
         "memoria.pdf",
@@ -1794,3 +1804,85 @@ def test_local_ai_index_file_migra_righe_legacy_al_fast_path(tmp_path: Path, mon
     )
     assert third["status"] == "skipped"
     assert read_calls["count"] == 1, "impronta riallineata: dal secondo giro nessuna rilettura"
+
+
+def test_local_ai_pdf_senza_testo_restituisce_needs_ocr_senza_bytes(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    monkeypatch.setattr(service, "_extract_pdf_pages", lambda data: (_ for _ in ()).throw(ValueError("senza testo")))
+
+    with pytest.raises(ValueError, match="richiede OCR"):
+        service._extract_text_pages(b"%PDF-1.4\x00\xff", "application/pdf")
+
+
+def test_local_ai_split_section_limita_paragrafo_gigante_senza_perdere_testo(tmp_path: Path):
+    service = _service(tmp_path)
+    text = "inizio " + ("parola " * 5000) + "fine"
+
+    chunks = service._split_section(text)
+
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 3200 for chunk in chunks)
+    assert "".join(chunks) == text
+
+
+def test_local_ai_embed_esclude_chunk_storico_cifrato_con_motivo(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    indexed = service.index_text_document(
+        source_type="fascicolo_documento",
+        source_id="DOC-CIFRATO",
+        practice_id="FASC-CIFRATO",
+        title="Storico",
+        text="testo iniziale",
+    )
+    with service._connect() as conn:
+        conn.execute(
+            "UPDATE rag_chunks SET text = ?, embedding_state = 'pending' WHERE document_id = ?",
+            ("PCTENC" + ("x" * 100), indexed["document_id"]),
+        )
+        conn.commit()
+
+    class FailIfCalled:
+        def embed_texts(self, *_args, **_kwargs):
+            raise AssertionError("Il chunk cifrato non deve arrivare a /api/embed")
+
+    monkeypatch.setattr(service, "bootstrap_runtime", lambda force=False: {"status": "ready", "embed_model": "embeddinggemma:300m"})
+    monkeypatch.setattr(service, "_ollama_client", lambda settings=None: FailIfCalled())
+    monkeypatch.setattr(service, "_active_model", lambda role: "embeddinggemma:300m" if role == "embed" else "gemma3:1b")
+
+    result = service.embed_pending_chunks(practice_id="FASC-CIFRATO")
+
+    assert result["embedded"] == 0
+    assert result["invalid"] == 1
+    assert "PCTENC" in result["invalid_reasons"][0]["reason"]
+    with service._connect() as conn:
+        row = conn.execute(
+            "SELECT embedding_state, metadata_json FROM rag_chunks WHERE document_id = ?",
+            (indexed["document_id"],),
+        ).fetchone()
+    assert row["embedding_state"] == "invalid"
+    assert "contenuto cifrato PCTENC" in row["metadata_json"]
+
+
+def test_prepare_fascicolo_query_non_avvia_indicizzazione_ne_embed_ui(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    monkeypatch.setattr(
+        service,
+        "index_fascicolo_documents",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("non deve riaprire file")),
+    )
+    monkeypatch.setattr(
+        service,
+        "embed_all_pending_chunks",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("non deve avviare backfill")),
+    )
+    monkeypatch.setattr(service, "hybrid_search", lambda *_args, **_kwargs: [])
+    fascicolo = SimpleNamespace(id="FASC-IMMUTABILE", titolo="Fascicolo", oggetto="", documenti=[])
+
+    prepared = service.prepare_fascicolo_query(
+        fascicolo=fascicolo,
+        documents_dir=str(tmp_path / "documenti"),
+        question="Quali documenti sono disponibili?",
+    )
+
+    assert prepared["indexing"]["status"] == "deferred"
+    assert prepared["embedding"]["status"] == "deferred"

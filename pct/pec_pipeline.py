@@ -83,7 +83,7 @@ from pct.pec_notification_presidio import (
 )
 from pct.fascicolo_registry_document import apply_fascicolo_registry_automation
 
-SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
+SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v4"
 DEADLINE_POLICY_VERSION = "2026-06-03.procedural-dates-v1"
 _PEC_AUDIT_SCHEMA_LOCKS_GUARD = threading.Lock()
 _PEC_AUDIT_SCHEMA_LOCKS: dict[str, threading.Lock] = {}
@@ -161,6 +161,52 @@ CREATE TABLE IF NOT EXISTS pec_messages (
     UNIQUE (tenant_id, account_email, message_id_header, mime_sha256),
     UNIQUE (tenant_id, mime_sha256)
 );
+
+CREATE TABLE IF NOT EXISTS pec_source_revisions (
+    tenant_id TEXT PRIMARY KEY,
+    messages_revision INTEGER NOT NULL DEFAULT 0,
+    initialized INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS pec_messages_revision_insert
+AFTER INSERT ON pec_messages
+BEGIN
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (NEW.tenant_id, 1, 1, COALESCE(NEW.ingested_at, CURRENT_TIMESTAMP))
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+END;
+
+CREATE TRIGGER IF NOT EXISTS pec_messages_revision_update
+AFTER UPDATE OF tenant_id, linked_fascicolo_id, ingested_at ON pec_messages
+WHEN OLD.tenant_id IS NOT NEW.tenant_id
+   OR OLD.linked_fascicolo_id IS NOT NEW.linked_fascicolo_id
+   OR OLD.ingested_at IS NOT NEW.ingested_at
+BEGIN
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (NEW.tenant_id, 1, 1, COALESCE(NEW.ingested_at, CURRENT_TIMESTAMP))
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    SELECT OLD.tenant_id, 1, 1, CURRENT_TIMESTAMP
+    WHERE OLD.tenant_id IS NOT NEW.tenant_id
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+END;
+
+CREATE TRIGGER IF NOT EXISTS pec_messages_revision_delete
+AFTER DELETE ON pec_messages
+BEGIN
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (OLD.tenant_id, 1, 1, CURRENT_TIMESTAMP)
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+END;
 
 CREATE TABLE IF NOT EXISTS pec_parsed_versions (
     id TEXT PRIMARY KEY,
@@ -6960,6 +7006,19 @@ class PecAuditRepository:
                 try:
                     with self.connect() as conn:
                         conn.executescript(SQLITE_SCHEMA)
+                        conn.execute(
+                            """
+                            INSERT OR IGNORE INTO pec_source_revisions
+                            (tenant_id, messages_revision, initialized, updated_at)
+                            VALUES (
+                                ?,
+                                0,
+                                CASE WHEN EXISTS (SELECT 1 FROM pec_messages LIMIT 1) THEN 0 ELSE 1 END,
+                                ?
+                            )
+                            """,
+                            (self.tenant_id, iso_now()),
+                        )
                         hearing_columns = {
                             str(row["name"] or "")
                             for row in conn.execute("PRAGMA table_info(pec_legal_hearings)").fetchall()

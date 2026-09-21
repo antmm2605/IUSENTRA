@@ -23,6 +23,11 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
     monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
     _write_studio_config(tmp_path / "config" / "studio.json")
 
+    riprese: list[object] = []
+    monkeypatch.setattr(
+        "web.services.archivio_letture_runtime.riprendi_eventi_lettura",
+        lambda app: riprese.append(app) or {"tenant": 1, "trovati": 0, "avviati": 0},
+    )
     app = start_scheduler_worker(_cfg_web(tmp_path))
     scheduler = app.config.get("PCT_SCHEDULER")
     try:
@@ -34,7 +39,10 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("lex_dataset_nightly") is not None
         assert scheduler.get_job("legal_official_archives_daily") is not None
         assert scheduler.get_job("legal_updates_batch") is not None
-        assert scheduler.get_job("scheduler_registry_reload") is not None
+        registry_tick = scheduler.get_job("scheduler_registry_reload")
+        assert registry_tick is not None
+        registry_tick.func()
+        assert riprese == [app]
         assert scheduler.get_job("mailbox_sync_runtime") is not None
         assert scheduler.get_job("poll_pec_cancelleria") is not None
         assert "hour='23'" in str(scheduler.get_job("legal_official_archives_daily").trigger)

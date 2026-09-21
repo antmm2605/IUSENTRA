@@ -323,3 +323,95 @@ def test_un_evento_senza_data_non_entra_in_cronologia():
     """Un evento senza giorno non si mostra: in cronologia non avrebbe posto."""
     fatti = [Fatto(categoria="evento", campo="rinvio", valore="udienza", verifica="verificata", id="e1")]
     assert eventi_letti(fatti) == []
+
+
+
+def test_dedup_indicizzato_non_confronta_fatti_certamente_incompatibili(monkeypatch):
+    import pct.archivio_letture.deduplica as deduplica
+
+    original = deduplica._compatibile
+    confronti = 0
+
+    def contato(gruppo, fatto):
+        nonlocal confronti
+        confronti += 1
+        return original(gruppo, fatto)
+
+    monkeypatch.setattr(deduplica, "_compatibile", contato)
+    fatti = [
+        Fatto(
+            categoria="ruolo", campo="numero_ruolo", valore=f"{indice}/2026",
+            verifica="verificata", id=f"f-{indice}", fascicolo_id="F1",
+        )
+        for indice in range(2000)
+    ]
+
+    canonici = deduplica.fatti_canonici(fatti)
+
+    assert [f.id for f in canonici] == [f"f-{indice}" for indice in range(2000)]
+    assert confronti == 0
+
+
+def test_riconciliazione_dry_run_non_scrive_e_applica_solo_riga_automatica_intatta(tmp_path: Path):
+    from web.services.consegna_presidi_runtime import riconcilia_consegne
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+    from web.helpers import get_scadenziario
+
+    app = _app(tmp_path)
+    fascicolo_id = _fascicolo_con_decreto(app)
+    with app.app_context():
+        from web.services.archivio_letture_runtime import leggi_fascicolo
+
+        fascicolo = app.extensions["core_runtime"]["get_fascicoli"]().get(fascicolo_id)
+        leggi_fascicolo(fascicolo)
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        fatto = next(f for f in registro.fatti(tenant, fascicolo_id) if f.campo == "termine")
+        prove = list(fatto.prove) + [{"codice": "fonte_non_ancorata", "esito": "respinta", "dettaglio": "prova test"}]
+        import json
+        with registro.connection() as conn:
+            conn.execute(
+                'UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ? WHERE "tenant_id" = ? AND "id" = ?',
+                ("respinta", json.dumps(prove, ensure_ascii=False), tenant, fatto.id),
+            )
+        scadenza = get_scadenziario().tutte(id_fascicolo=fascicolo_id, solo_aperte=False)[0]
+
+        piano = riconcilia_consegne(fascicolo, registro, tenant, applica=False)
+
+        assert piano["dry_run"] is True
+        assert piano["da_rettificare"] == [{
+            "presidio": "scadenziario", "riferimento": scadenza.id,
+            "fatto_id": fatto.id, "motivo": "prova test",
+        }]
+        assert str(get_scadenziario().get(scadenza.id).stato.value) == "APERTO"
+        assert next(c for c in registro.consegne(tenant, fascicolo_id) if c.fatto_id == fatto.id).stato == "consegnato"
+
+        applicato = riconcilia_consegne(fascicolo, registro, tenant, applica=True)
+
+        assert applicato["scadenze_rettificate"] == 1
+        assert str(get_scadenziario().get(scadenza.id).stato.value) == "ANNULLATO"
+        assert next(c for c in registro.consegne(tenant, fascicolo_id) if c.fatto_id == fatto.id).stato == "non_pertinente"
+
+
+def test_nature_documentali_uguali_di_oggetti_diversi_hanno_identita_distinte():
+    fatti = [
+        Fatto(
+            fascicolo_id="F1",
+            categoria="classificazione",
+            campo="natura_documentale",
+            valore="provvedimento",
+            verifica="verificata",
+            id=f"{oggetto}-{fonte}",
+            motore=fonte,
+            tipo="documento" if fonte == "documenti" else "allegato_pec",
+            oggetto_id=oggetto,
+        )
+        for oggetto in ("D1", "D2")
+        for fonte in ("documenti", "pec")
+    ]
+
+    canonici = fatti_canonici(fatti)
+
+    assert len(canonici) == 2
+    assert {fatto.oggetto_id for fatto in canonici} == {"D1", "D2"}
+    assert len({fatto.id for fatto in canonici}) == 2

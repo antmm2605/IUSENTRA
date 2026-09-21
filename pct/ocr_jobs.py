@@ -266,6 +266,8 @@ class OCRJobStore:
             "totale": sum(counts.values()),
             "completati": counts.get("completed", 0),
             "errori": counts.get("failed", 0),
+            "riconciliati": counts.get("recovered", 0),
+            "superati": counts.get("superseded", 0),
             "in_coda": counts.get("pending", 0),
             "in_lavorazione": counts.get("processing", 0),
             "throughput_ultima_ora": int(throughput_row["total"] if throughput_row else 0),

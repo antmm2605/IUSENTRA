@@ -103,6 +103,14 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         return result
 
     ext = str(file_type or "").lower().lstrip(".")
+    # Il nome storico può essere .pdf o .bin mentre il payload è una PEC EML.
+    # Le intestazioni MIME prevalgono sull'estensione per evitare un recupero
+    # binario che scambi il contenitore per il testo dell'atto.
+    if ext != "eml":
+        from email.parser import BytesHeaderParser
+        headers = BytesHeaderParser(policy=policy.default).parsebytes(content[:65536])
+        if headers.get("From") and headers.get("Subject") and headers.get("MIME-Version"):
+            return _extract_eml(content)
     if ext in {"enc", "p7s"}:
         from .container_metadata import extract_cms_metadata
         return extract_cms_metadata(content)
@@ -845,6 +853,8 @@ def _extract_eml_attachment(filename: str, payload: bytes) -> tuple[str, list[st
     file_type = _file_type_from_payload(payload, clean_name, fallback=Path(clean_name).suffix.lower().lstrip("."))
     result = extract_text_from_document(payload, clean_name, file_type)
     warnings = [f"{clean_name}: {warning}" for warning in result.warnings]
+    if "binary-best-effort" in result.extraction_engine:
+        return "", [f"{clean_name}: contenuto binario escluso dal testo; originale conservato."]
     if not result.ok:
         warnings.append(f"{clean_name}: allegato non letto per Lex.")
         return "", warnings

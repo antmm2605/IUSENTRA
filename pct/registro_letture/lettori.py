@@ -126,7 +126,7 @@ _VERSIONI: dict[str, Callable[[], str]] = {
     "ocr": _versione_ocr,
     "indice_documentale": _versione_indice_documentale,
     "catalogo": _versione_catalogo,
-    "rag_locale": lambda: "rag-locale.v1",
+    "rag_locale": lambda: "rag-locale.v2.sql-pagine",
     "presidio_pec": _versione_presidio_pec,
     "presidio_economico": _versione_presidio_economico,
     "proforma_automatica": _versione_presidio_economico,

@@ -6,10 +6,11 @@ from datetime import datetime
 from typing import Any
 
 from flask import current_app
+from pct.formatting import format_datetime_it
 
 from web.services.observability_runtime import build_observability_payload
 from web.services.admin_surfaces_shared import get_backup_manager
-from web.services.server_maintenance_surface import build_server_maintenance_surface
+from web.services.server_maintenance_runtime import build_cached_server_maintenance_surface
 
 
 def _fmt_mb(size_bytes: int) -> str:
@@ -45,7 +46,7 @@ def _slow_endpoint_action(bucket: dict[str, Any] | None) -> dict[str, str]:
 
 def build_system_health_surface() -> dict:
     observability = build_observability_payload(current_app._get_current_object())
-    maintenance = build_server_maintenance_surface()
+    maintenance = build_cached_server_maintenance_surface()
     backup_manager = get_backup_manager()
     backup_last = backup_manager.ultimo()
 
@@ -75,8 +76,8 @@ def build_system_health_surface() -> dict:
         },
         {
             "label": "Coda OCR",
-            "value": str(ocr.get("queue_depth", 0) or 0),
-            "detail": f"worker {ocr.get('workers', 0) or 0} · throughput {ocr.get('completed', 0) or 0}",
+            "value": str(ocr.get("in_coda", 0) or 0),
+            "detail": f"in lavorazione {ocr.get('in_lavorazione', 0) or 0} · completati nell’ultima ora {ocr.get('throughput_ultima_ora', 0) or 0} · errori {ocr.get('errori', 0) or 0}",
         },
         {
             "label": "Provider AI",
@@ -104,8 +105,8 @@ def build_system_health_surface() -> dict:
             "detail": host_console.get("outside_tenants_note") or "Docker, codice deploy, fonti globali e sistema operativo.",
         },
         {
-            "label": "Ultimo backup",
-            "value": getattr(backup_last, "timestamp", "")[:19] or "mai",
+            "label": "Ultimo backup nel registro applicativo",
+            "value": format_datetime_it(getattr(backup_last, "timestamp", "")) if backup_last else "Nessuna registrazione",
             "detail": getattr(backup_last, "esito", "nessun esito registrato") if backup_last else "nessun backup registrato",
         },
     ]
@@ -137,6 +138,7 @@ def build_system_health_surface() -> dict:
         "http_buckets": http_buckets[:8],
         "slow_endpoint_action": _slow_endpoint_action(slowest),
         "storage": {
+            "sampled_at": (maintenance.get("snapshot") or {}).get("sampled_at", ""),
             "disk": disk,
             "summary": storage_summary,
             "host_console": host_console,
@@ -151,6 +153,8 @@ def build_system_health_surface() -> dict:
         "local_ai": local_ai,
         "advanced_ai": advanced_ai,
         "scheduler_worker_mode": bool(observability.get("scheduler_worker_mode")),
+        "scheduler_health": dict(observability.get("scheduler_health") or {}),
+        "metrics_scope": str(observability.get("metrics_scope") or ""),
     }
 
 
@@ -171,7 +175,8 @@ def build_system_health_api_payload() -> dict[str, Any]:
     observability = build_observability_payload(current_app._get_current_object())
     alerts = list(observability.get("alerts") or [])
     storage = dict(observability.get("storage") or {})
-    scheduler_status = "ok"
+    scheduler_health = dict(observability.get("scheduler_health") or {})
+    scheduler_status = "ok" if scheduler_health.get("ok") else "error" if scheduler_health.get("hard_failures") or scheduler_health.get("error") else "degraded"
     ocr_status = _status_from_alerts(
         alerts,
         codes={"OCR_TIMEOUT", "OCR_QUEUE_OVERFLOW", "OCR_WORKER_STALLED"},
@@ -182,9 +187,9 @@ def build_system_health_api_payload() -> dict[str, Any]:
         db_status = "degraded"
 
     overall_status = "ok"
-    if "error" in {ocr_status, ai_status, db_status}:
+    if "error" in {scheduler_status, ocr_status, ai_status, db_status}:
         overall_status = "error"
-    elif "degraded" in {ocr_status, ai_status, db_status} or bool(alerts):
+    elif "degraded" in {scheduler_status, ocr_status, ai_status, db_status} or bool(alerts):
         overall_status = "degraded"
 
     return {
@@ -197,7 +202,8 @@ def build_system_health_api_payload() -> dict[str, Any]:
         "components": {
             "scheduler": {
                 "status": scheduler_status,
-                "detail": "Worker dedicato attivo" if observability.get("scheduler_worker_mode") else "Modalità web",
+                "detail": "Presìdi aggiornati nel registro del worker" if scheduler_health.get("ok") else "Verificare gli esiti registrati dei presìdi pianificati",
+                "heartbeat": scheduler_health,
             },
             "ocr": {
                 "status": ocr_status,

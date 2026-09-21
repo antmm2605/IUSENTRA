@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import threading
 
 import pytest
 
@@ -13,6 +14,7 @@ from pct.scheduler_registry import (
     dispatch_requested_manual_runs,
     legal_source_scheduler_templates,
     run_delegated_agent_template,
+    schedule_label,
 )
 
 
@@ -84,6 +86,8 @@ def test_scheduler_registry_non_accoda_pianificazioni_disattivate(tmp_path: Path
     assert recent["run_id"] == request["run_id"]
     assert recent["status"] == "completed"
     assert recent["message"] == "Pianificazione disattivata: esecuzione non avviata."
+    assert recent["result"]["status"] == "skipped_disabled"
+    assert recent["status_label"] == "Non avviata"
 
 
 def test_scheduler_registry_non_accoda_manutenzioni_pesanti_in_parallelo(tmp_path: Path):
@@ -543,3 +547,95 @@ def test_scheduler_registry_manuale_builtin_fallisce_se_payload_ok_false(tmp_pat
     assert finished["run_id"] == request["run_id"]
     assert finished["status"] == "failed"
     assert finished["error_message"] == "PST non raggiungibile"
+
+
+def test_scheduler_registry_serializza_callback_concorrenziali_e_ordine_inverso(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    scheduled_at = "2026-07-03 09:10:00+02:00"
+    barrier = threading.Barrier(2)
+    errors: list[BaseException] = []
+
+    def callback(status: str) -> None:
+        try:
+            barrier.wait(timeout=5)
+            repo.record_scheduler_event(
+                "pec_audit_pipeline_workers",
+                status=status,
+                scheduled_at=scheduled_at,
+                result={"ok": True},
+            )
+        except BaseException as exc:  # pragma: no cover - diagnostica del test
+            errors.append(exc)
+
+    threads = [threading.Thread(target=callback, args=(status,)) for status in ("running", "completed")]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+
+    assert not errors
+    runs = [
+        run
+        for run in repo.list_recent_runs(limit=5)
+        if run["job_id"] == "pec_audit_pipeline_workers"
+    ]
+    assert len(runs) == 1
+    assert runs[0]["status"] == "completed"
+
+    inverse = SchedulerRegistryRepository(tmp_path / "inverse.sqlite")
+    inverse.upsert_default_jobs({})
+    inverse.record_scheduler_event(
+        "pec_audit_pipeline_workers", status="completed", scheduled_at=scheduled_at
+    )
+    inverse.record_scheduler_event(
+        "pec_audit_pipeline_workers", status="running", scheduled_at=scheduled_at
+    )
+    inverse_runs = [
+        run
+        for run in inverse.list_recent_runs(limit=5)
+        if run["job_id"] == "pec_audit_pipeline_workers"
+    ]
+    assert len(inverse_runs) == 1
+    assert inverse_runs[0]["status"] == "completed"
+
+
+def test_scheduler_registry_schedule_label_non_interpreta_cron_e_preserva_vincoli():
+    assert schedule_label({"trigger_kind": "cron", "hour": "", "minute": "*/30"}) == (
+        "Regola cron: ogni ora; ogni 30 minuti"
+    )
+    assert schedule_label({"trigger_kind": "cron", "hour": "", "minute": "3-58/10"}) == (
+        "Regola cron: ogni ora; ogni 10 minuti dal minuto 03 al minuto 58"
+    )
+    assert schedule_label({"trigger_kind": "cron", "hour": "7-20", "minute": "*/30"}) == (
+        "Regola cron: nelle ore 7-20; ogni 30 minuti"
+    )
+    assert schedule_label({"trigger_kind": "cron", "hour": "7", "minute": "30", "day_of_week": "mon-fri"}) == (
+        "Regola cron: alle ore 07; al minuto 30; nei giorni mon-fri"
+    )
+
+
+def test_scheduler_registry_normalizza_disponibilita_manuale_e_run_non_avviata(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    with repo.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO scheduled_jobs (
+                job_id, name, family, description, template_key, trigger_kind, hour, minute,
+                interval_minutes, day_of_week, enabled, built_in, editable, args_json,
+                last_applied_signature, created_at, updated_at, updated_by
+            ) VALUES ('manual-only-test', 'Test manuale', 'Test', 'Test', 'test', 'manual', '', '0',
+                0, '', 1, 0, 1, '{}', '', '2026-07-03T09:00:00Z', '2026-07-03T09:00:00Z', 'test')
+            """
+        )
+    job = repo.get_job("manual-only-test")
+    assert job["manual_only"] is True
+    assert job["availability_label"] == "Disponibile su richiesta"
+    normalized = repo._normalize_run({
+        "status": "completed",
+        "duration_ms": 0,
+        "result_json": '{"ok": true, "status": "skipped_disabled"}',
+    })
+    assert normalized["not_started"] is True
+    assert normalized["status_label"] == "Non avviata"

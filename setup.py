@@ -1,3 +1,4 @@
+# version: 2.342.0
 from pathlib import Path
 import sys
 

@@ -1034,6 +1034,7 @@ class SchedulerRegistryRepository:
                         _json_dumps(
                             {
                                 "ok": True,
+                                "status": "skipped_disabled",
                                 "summary": message,
                                 "details": [{"job_id": job_id, "status": "disattivata"}],
                             }
@@ -1486,6 +1487,11 @@ class SchedulerRegistryRepository:
         template_key = str((job or {}).get("template_key") or job_id)
         now = _iso()
         with self.connect() as conn:
+            # APScheduler può consegnare submitted ed executed da callback
+            # ravvicinate/concorrenziali. Serializzare l'intera riconciliazione
+            # impedisce che entrambi vedano l'assenza dell'altro record e
+            # inseriscano due righe per la stessa esecuzione.
+            conn.execute("BEGIN IMMEDIATE")
             if status == "running" and scheduled_at:
                 terminal_row = conn.execute(
                     """
@@ -1627,6 +1633,10 @@ class SchedulerRegistryRepository:
                 SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN enabled=1 AND LOWER(COALESCE(trigger_kind, 'cron')) <> 'manual' THEN 1 ELSE 0 END) AS active_periodic,
+                    SUM(CASE WHEN enabled=1 AND LOWER(COALESCE(trigger_kind, 'cron')) = 'manual' THEN 1 ELSE 0 END) AS active_manual,
+                    SUM(CASE WHEN LOWER(COALESCE(trigger_kind, 'cron')) <> 'manual' THEN 1 ELSE 0 END) AS periodic,
+                    SUM(CASE WHEN LOWER(COALESCE(trigger_kind, 'cron')) = 'manual' THEN 1 ELSE 0 END) AS manual,
                     SUM(CASE WHEN built_in=0 AND family <> 'Agenti fonte legale' THEN 1 ELSE 0 END) AS custom
                 FROM scheduled_jobs
                 """
@@ -1647,6 +1657,10 @@ class SchedulerRegistryRepository:
         return {
             "jobs_total": int(job_totals.get("total") or 0),
             "jobs_active": int(job_totals.get("active") or 0),
+            "jobs_active_periodic": int(job_totals.get("active_periodic") or 0),
+            "jobs_active_manual": int(job_totals.get("active_manual") or 0),
+            "jobs_periodic": int(job_totals.get("periodic") or 0),
+            "jobs_manual": int(job_totals.get("manual") or 0),
             "jobs_custom": int(job_totals.get("custom") or 0),
             "runs_total": int(run_totals.get("total") or 0),
             "runs_failed": int(run_totals.get("failed") or 0),
@@ -1664,13 +1678,16 @@ class SchedulerRegistryRepository:
         row["args"] = _json_loads(row.get("args_json"), {})
         row["signature"] = job_signature(row)
         row["schedule_label"] = schedule_label(row)
+        row["manual_only"] = str(row.get("trigger_kind") or "").strip().lower() == "manual"
+        row["availability_label"] = "Disponibile su richiesta" if row["manual_only"] else "Pianificata"
         return row
 
     def _normalize_run(self, row: dict[str, Any]) -> dict[str, Any]:
         row = dict(row)
         row["duration_ms"] = int(row.get("duration_ms") or 0)
         row["result"] = _json_loads(row.get("result_json"), {})
-        row["status_label"] = run_status_label(row.get("status"))
+        row["not_started"] = row.get("status") == "completed" and _run_was_skipped_disabled(row["result"])
+        row["status_label"] = "Non avviata" if row["not_started"] else run_status_label(row.get("status"))
         return row
 
 
@@ -1692,6 +1709,45 @@ def job_signature(job: dict[str, Any]) -> str:
     )
 
 
+def _run_was_skipped_disabled(result: Any) -> bool:
+    if not isinstance(result, dict):
+        return False
+    if str(result.get("status") or "").strip().lower() == "skipped_disabled":
+        return True
+    details = result.get("details")
+    if isinstance(details, list):
+        for item in details:
+            if isinstance(item, dict) and str(item.get("status") or "").strip().lower() in {"disattivata", "skipped_disabled"}:
+                return True
+    summary = str(result.get("summary") or "").strip().lower()
+    return summary.startswith("pianificazione disattivata")
+
+
+def _cron_hour_text(hour: str) -> str:
+    if not hour or hour == "*":
+        return "ogni ora"
+    if hour.isdigit():
+        return f"alle ore {hour.zfill(2)}"
+    return f"nelle ore {hour}"
+
+
+def _cron_minute_text(minute: str) -> str:
+    if minute == "*":
+        return "a ogni minuto"
+    match = re.fullmatch(r"\*/(\d+)", minute)
+    if match:
+        return f"ogni {int(match.group(1))} minuti"
+    match = re.fullmatch(r"(\d+)-(\d+)/(\d+)", minute)
+    if match:
+        return (
+            f"ogni {int(match.group(3))} minuti dal minuto {int(match.group(1)):02d} "
+            f"al minuto {int(match.group(2)):02d}"
+        )
+    if minute.isdigit():
+        return f"al minuto {int(minute):02d}"
+    return f"con minuti {minute}"
+
+
 def schedule_label(job: dict[str, Any]) -> str:
     kind = str(job.get("trigger_kind") or "cron").lower()
     if kind == "manual":
@@ -1701,11 +1757,13 @@ def schedule_label(job: dict[str, Any]) -> str:
         return f"Ogni {minutes} minuti" if minutes else "Intervallo non configurato"
     hour = str(job.get("hour") or "").strip()
     minute = str(job.get("minute") or "0").strip()
-    if hour and "," in hour:
-        return f"Alle ore {hour.replace(',', ', ')}:{minute.zfill(2) if minute.isdigit() else minute}"
-    if hour:
-        return f"Ogni giorno alle {hour.zfill(2) if hour.isdigit() else hour}:{minute.zfill(2) if minute.isdigit() else minute}"
-    return f"Ogni ora al minuto {minute}"
+    day = str(job.get("day_of_week") or "").strip()
+    if hour.isdigit() and minute.isdigit() and not day:
+        return f"Ogni giorno alle {hour.zfill(2)}:{minute.zfill(2)}"
+    parts = [_cron_hour_text(hour), _cron_minute_text(minute)]
+    if day:
+        parts.append(f"nei giorni {day}")
+    return "Regola cron: " + "; ".join(parts)
 
 
 def run_status_label(value: Any) -> str:

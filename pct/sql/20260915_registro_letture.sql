@@ -192,3 +192,26 @@ CREATE TABLE IF NOT EXISTS letture_payload_cache (
 CREATE INDEX IF NOT EXISTS idx_letture_payload_cache_fascicolo
     ON letture_payload_cache (tenant_id, fascicolo_id, expires_at);
 
+
+
+-- Coda persistente per letture puntuali da evento. La generazione aumenta per
+-- ogni evento: se un nuovo evento arriva durante una lettura, resta pendente e
+-- viene reclamato nel giro successivo senza scandire gli altri fascicoli.
+CREATE TABLE IF NOT EXISTS letture_eventi (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    generation INTEGER NOT NULL DEFAULT 1,
+    claimed_generation INTEGER NOT NULL DEFAULT 0,
+    stato TEXT NOT NULL DEFAULT 'pending' CHECK (stato IN ('pending', 'running', 'idle')),
+    pending_force INTEGER NOT NULL DEFAULT 0,
+    claimed_force INTEGER NOT NULL DEFAULT 0,
+    worker_id TEXT NOT NULL DEFAULT '',
+    lease_until TEXT NOT NULL DEFAULT '',
+    creato_il TEXT NOT NULL,
+    aggiornato_il TEXT NOT NULL,
+    UNIQUE (tenant_id, fascicolo_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_letture_eventi_stato
+    ON letture_eventi (tenant_id, stato, lease_until);

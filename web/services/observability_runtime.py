@@ -48,6 +48,8 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
     registry: RuntimeMetricsRegistry | None = runtime_app.extensions.get("runtime_metrics")
     ocr_runtime = runtime_app.extensions.get("ocr_runtime")
     storage_runtime = _build_storage_runtime_payload(runtime_app)
+    from pct.scheduler_health import presidio_heartbeat_for_config
+    scheduler_health = presidio_heartbeat_for_config(runtime_app.config)
     payload: dict[str, Any] = {
         "ok": True,
         "runtime": registry.snapshot() if registry is not None else {"http": {"buckets": []}, "lex": {}},
@@ -58,6 +60,8 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
             **storage_runtime,
         },
         "scheduler_worker_mode": bool(runtime_app.config.get("PCT_SCHEDULER_WORKER")),
+        "scheduler_health": scheduler_health,
+        "metrics_scope": "Campioni del processo web corrente; si azzerano al suo riavvio.",
         "ocr": ocr_runtime.status_snapshot() if ocr_runtime is not None else {"enabled": False},
         "providers": {},
         "product": {

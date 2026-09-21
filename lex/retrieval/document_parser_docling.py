@@ -16,7 +16,7 @@ from importlib import metadata as importlib_metadata
 from pathlib import Path
 from typing import Any
 
-from .chunking import chunk_structured_text
+from .chunking import bounded_text_chunks, chunk_structured_text
 
 _TRUE_VALUES = {"1", "true", "yes", "on", "si"}
 
@@ -167,23 +167,24 @@ def _build_converter(converter_factory: Callable[[], Any] | None) -> Any:
         return converter_factory()
 
     DocumentConverter, _HybridChunker = _load_docling_classes()
-    if str(os.getenv("LEX_DOCLING_OCR_ENABLED", "")).strip().lower() not in _TRUE_VALUES:
-        return DocumentConverter()
-
     try:
         from docling.datamodel.base_models import InputFormat
         from docling.datamodel.pipeline_options import PdfPipelineOptions
         from docling.document_converter import PdfFormatOption
 
         pipeline_options = PdfPipelineOptions()
-        pipeline_options.do_ocr = True
+        # DocumentConverter() abilita OCR per default in alcune versioni Docling:
+        # il produttore strutturato qui riceve solo testo nativo già governato.
+        pipeline_options.do_ocr = False
         return DocumentConverter(
             format_options={
                 InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
             }
         )
-    except Exception:
-        return DocumentConverter()
+    except Exception as exc:
+        raise DoclingUnavailableError(
+            f"Impossibile configurare Docling con OCR disattivato: {exc}"
+        ) from exc
 
 
 def _build_chunker(chunker_factory: Callable[[], Any] | None) -> Any:
@@ -305,31 +306,41 @@ def _extract_chunks(
             if not text:
                 continue
             confidence = _as_float(_first_from_tree(metadata, {"confidence", "score"}), 1.0)
-            chunks.append(
-                DocumentParseChunk(
-                    document_id=document_id,
-                    source_hash=source_hash,
-                    chunk_index=index,
-                    text=text,
-                    markdown=text,
-                    page_no=_as_int(
-                        _first_from_tree(metadata, {"page_no", "page_number", "page", "page_from"})
-                    ),
-                    section_path=_section_path(metadata),
-                    bbox_json=_json_fragment(metadata, {"bbox", "bounding_box", "prov"}),
-                    table_json=_json_fragment(metadata, {"table", "table_json"}),
-                    ocr_used=_bool_from_metadata(metadata, "ocr_used", "ocr"),
-                    confidence=confidence,
-                    metadata=metadata,
+            parts = bounded_text_chunks(text)
+            for part_index, part in enumerate(parts, start=1):
+                part_metadata = dict(metadata)
+                part_metadata.update(
+                    {
+                        "source_chunk_index": index,
+                        "chunk_part": part_index,
+                        "chunk_parts": len(parts),
+                    }
                 )
-            )
+                chunks.append(
+                    DocumentParseChunk(
+                        document_id=document_id,
+                        source_hash=source_hash,
+                        chunk_index=len(chunks) + 1,
+                        text=part,
+                        markdown=part,
+                        page_no=_as_int(
+                            _first_from_tree(metadata, {"page_no", "page_number", "page", "page_from"})
+                        ),
+                        section_path=_section_path(metadata),
+                        bbox_json=_json_fragment(metadata, {"bbox", "bounding_box", "prov"}),
+                        table_json=_json_fragment(metadata, {"table", "table_json"}),
+                        ocr_used=_bool_from_metadata(metadata, "ocr_used", "ocr"),
+                        confidence=confidence,
+                        metadata=part_metadata,
+                    )
+                )
     except Exception as exc:
         warnings.append(f"Chunking Docling non disponibile: {exc}")
 
     if chunks:
         return chunks
 
-    for row in chunk_structured_text(markdown):
+    for row in chunk_structured_text(markdown, max_chars=3200):
         text = _clean(row.get("text"))
         if not text:
             continue

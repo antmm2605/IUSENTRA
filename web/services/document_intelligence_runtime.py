@@ -95,6 +95,7 @@ def collect_document_ai_sources_for_fascicolo(
     fascicolo_id: str,
     *,
     tenant_id: str | None = None,
+    allow_content_read: bool = True,
 ) -> list[DocumentAISource]:
     gestore = get_fascicoli()
     fascicolo = gestore.get(str(fascicolo_id or "").strip())
@@ -117,6 +118,7 @@ def collect_document_ai_sources_for_fascicolo(
         documents_root=getattr(gestore, "documents_dir", Path(".")),
         decrypt=decrypt_doc,
         impronte=impronte,
+        allow_content_read=allow_content_read,
     )
 
 
@@ -151,7 +153,7 @@ def build_document_catalog_payload(
     fascicolo = get_fascicoli().get(str(fascicolo_id or "").strip())
     if not fascicolo:
         raise DocumentAINotFound("Documento o fascicolo non trovato")
-    sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id)
+    sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id, allow_content_read=process)
     actor = (
         str((context or {}).get("user_id") or "catalogazione-documentale")
         if isinstance(context, dict)
@@ -197,15 +199,32 @@ def build_document_catalog_payload(
                 "assignment": _catalog_assignment_payload(service.repository, assignment, source_urls=source_urls_by_rule.get(assignment.rule_set_id)) if assignment else None,
             }
         )
-    _registra_catalogo(fascicolo_id, sources, by_document)
+    # La lettura GET resta read-only: il registro delle letture si aggiorna
+    # soltanto dopo un'elaborazione esplicita, con la versione realmente
+    # usata dall'assegnazione e non con quella corrente del resolver.
+    if process:
+        _registra_catalogo(fascicolo_id, sources, by_document)
     current = [item["assignment"] for item in documents if item["assignment"]]
+    stale_assignments = [
+        assignment for assignment in current
+        if str(assignment.get("resolver_version") or "") != RESOLVER_VERSION
+    ]
+    stale_manual_or_confirmed = [
+        assignment for assignment in stale_assignments
+        if str(assignment.get("source_state") or "") == "manual_override"
+        or str(assignment.get("status") or "") == "confirmed"
+    ]
     summary = {
         "total": sum(item["status"] in {"catalogued", "proposed", "confirmed"} for item in current),
         **{status: sum(item["status"] == status for item in current)
            for status in ("catalogued", "proposed", "confirmed", "review_required")},
         "errors": len(run.errors),
+        "stale": len(stale_assignments),
+        "stale_assignments": len(stale_assignments),
+        "stale_manual_or_confirmed": len(stale_manual_or_confirmed),
     }
     summary["waiting_for_index"] = run.waiting_for_index
+    summary["awaiting_index"] = run.waiting_for_index
     summary["source_documents"] = len(sources)
     return {
         "fascicolo_id": str(fascicolo_id),
@@ -416,7 +435,9 @@ def build_lex_indexing_summary_payload(
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
     service = build_document_ai_service()
-    sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id)
+    sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id, allow_content_read=process)
+    if not process:
+        return service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context).to_dict()
     registro = _registro_indice_documentale(fascicolo_id, sources)
     if forza:
         registro["invariato"] = False
@@ -446,43 +467,7 @@ def build_lex_indexing_summary_payload(
             )
         )
         return payload
-    summary: LexIndexingSummary = service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context)
-    if not registro.get("invariato"):
-        _registra_indice_documentale(registro, summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context)
-    if not apply_automations:
-        # Lettura dello stato SQL senza avviare OCR o automazioni estranee.
-        return summary.to_dict()
-    if not registro.get("invariato") and _lex_summary_needs_automatic_processing(summary, sources):
-        result = service.process_lex_indexing_sources(
-            tenant_id,
-            fascicolo_id,
-            sources,
-            context,
-            retry_errors=True,
-        )
-        payload = result.summary.to_dict()
-        _registra_indice_documentale(registro, result.summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context)
-        payload.update(
-            _apply_ready_document_automations(
-                service=service,
-                tenant_id=tenant_id,
-                fascicolo_id=fascicolo_id,
-                sources=sources,
-                user_context=context,
-            )
-        )
-        return payload
-    payload = summary.to_dict()
-    payload.update(
-        _apply_ready_document_automations(
-            service=service,
-            tenant_id=tenant_id,
-            fascicolo_id=fascicolo_id,
-            sources=sources,
-            user_context=context,
-        )
-    )
-    return payload
+    return service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context).to_dict()
 
 
 def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_document: dict[tuple[str, str], Any]) -> None:
@@ -506,7 +491,23 @@ def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_do
         fid = str(fascicolo_id or "")
         if letti:
             da_segnare = registro.da_leggere(tenant, fid, "catalogo", oggetti=letti)
-            registro.segna_letti(tenant, fid, da_segnare, "catalogo", esito={"fonte": "assegnazione di catalogo"})
+            # L'impronta del registro deve dichiarare la versione effettiva
+            # dell'assegnazione; una riga v25 resta stale finché il refresh
+            # automatico non la rigenera a v28.
+            for oggetto in da_segnare:
+                assignment = by_document.get((str(oggetto.oggetto_id or ""), str(oggetto.impronta or "")))
+                effective_version = str(getattr(assignment, "resolver_version", "") or "").strip()
+                registro.segna_letti(
+                    tenant,
+                    fid,
+                    [oggetto],
+                    "catalogo",
+                    versione=effective_version or None,
+                    esito={
+                        "fonte": "assegnazione di catalogo",
+                        "resolver_version": effective_version,
+                    },
+                )
         if non_leggibili:
             da_segnare = registro.da_leggere(tenant, fid, "catalogo", oggetti=non_leggibili)
             registro.segna_letti(tenant, fid, da_segnare, "catalogo", stato="non_leggibile", esito={"motivo": "formato non supportato"})

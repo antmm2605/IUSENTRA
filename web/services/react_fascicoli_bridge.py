@@ -206,7 +206,6 @@ def _initial_lettura_fascicolo(fid: str) -> dict[str, Any] | None:
     if not _text(fid):
         return None
     try:
-        from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
         from web.services.lettura_cache import LETTURA_CACHE
 
         chiave = _lettura_fascicolo_cache_key(fid)
@@ -218,15 +217,9 @@ def _initial_lettura_fascicolo(fid: str) -> dict[str, Any] | None:
                 if isinstance(lettura, dict) and lettura:
                     return lettura
 
-        lettura = load_fascicolo_lettura_context(fascicolo_id=str(fid))
-        if not isinstance(lettura, dict) or not lettura:
-            return None
-        if chiave is not None and not bool((lettura.get("verifiche") or {}).get("in_corso")):
-            LETTURA_CACHE.set(
-                chiave,
-                json.dumps({"ok": True, "lettura": lettura}, ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8"),
-            )
-        return lettura
+        # Il dettaglio non materializza il contesto costoso: la sezione aperta
+        # lo carica attraverso la propria API e alimenta la stessa cache.
+        return None
     except Exception as exc:
         if has_app_context():
             current_app.logger.warning("Lettura iniziale del fascicolo %s non caricata: %s", fid, exc)
@@ -4538,13 +4531,10 @@ def _ensure_auto_proforma_for_fascicolo(
         )
         payment_documents = _rank_sentenza_economica_documents(fascicolo, payment_documents)
         texts = _document_ai_texts_for_fascicolo(fascicolo, documents=payment_documents)
-        for doc in payment_documents:
-            document_id = _document_id(doc)
-            if not document_id or texts.get(document_id):
-                continue
-            extracted_text = _extract_presidio_text_from_physical_document(fascicolo, doc)
-            if extracted_text:
-                texts[document_id] = extracted_text
+        missing_texts = [
+            _document_id(doc) for doc in payment_documents
+            if _document_id(doc) and not texts.get(_document_id(doc))
+        ]
         for document_id, text in texts.items():
             metadata = _document_metadata_for_id(fascicolo, document_id)
             if not _document_may_contain_sentenza_economica(text, metadata):
@@ -4566,6 +4556,10 @@ def _ensure_auto_proforma_for_fascicolo(
                     "proformaNumber": _text(getattr(outcome, "proforma_number", "")),
                     "message": _text(getattr(outcome, "message", "")),
                 }
+    if callable(apply_sentenza_tribunale_automation) and missing_texts:
+        # Il motore documentale acquisisce il contenuto. Il consumatore riprova
+        # senza registrare come conclusa una lettura ancora assente.
+        return {"status": "waiting_for_reading", "reason": "Lettura documentale centrale non ancora disponibile.", "documentIds": missing_texts, "readComplete": False}
     _segna_registro_letture_fascicolo(registro_proforma, esito={"proforma": ""})
     amount, amount_source = _fascicolo_auto_proforma_amount(fascicolo)
     if amount is not None:

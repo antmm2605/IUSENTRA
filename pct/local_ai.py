@@ -45,6 +45,64 @@ logger = logging.getLogger("pct.local_ai")
 _ENC_MAGIC = b"PCTENC\x01"
 _RETRIEVAL_CACHE_TTL_SECONDS = 300
 _SNAPSHOT_CACHE_TTL_SECONDS = 300
+_RAG_MAX_CHUNK_CHARS = 3200
+
+
+class DocumentNeedsOcrError(ValueError):
+    """Il PDF non contiene testo affidabile e richiede il motore OCR legale."""
+
+    pass
+
+
+def _bounded_text_parts(text: str, *, max_chars: int = _RAG_MAX_CHUNK_CHARS) -> list[str]:
+    """Spezza senza scartare testo, preferendo confini leggibili."""
+
+    value = str(text or "")
+    if not value:
+        return []
+    if max_chars < 1:
+        raise ValueError("max_chars deve essere positivo")
+    parts: list[str] = []
+    cursor = 0
+    length = len(value)
+    while cursor < length:
+        end = min(cursor + max_chars, length)
+        if end == length:
+            parts.append(value[cursor:end])
+            break
+        boundary = max(
+            value.rfind("\n\n", cursor + 1, end + 1),
+            value.rfind("\n", cursor + 1, end + 1),
+            value.rfind(". ", cursor + 1, end + 1),
+            value.rfind("; ", cursor + 1, end + 1),
+            value.rfind(" ", cursor + 1, end + 1),
+        )
+        if boundary <= cursor:
+            boundary = end
+        elif value[boundary:boundary + 2] in {"\n\n", ". ", "; "}:
+            boundary += 2
+        elif value[boundary:boundary + 1] in {"\n", " "}:
+            boundary += 1
+        boundary = min(boundary, end)
+        parts.append(value[cursor:boundary])
+        cursor = boundary
+    return [part for part in parts if part]
+
+
+def _embedding_validation_reason(text: Any) -> str | None:
+    value = str(text or "")
+    compact = value.strip()
+    if not compact:
+        return "Chunk vuoto: non può essere inviato al modello di embedding."
+    if compact.startswith("PCTENC"):
+        return "Chunk escluso: sembra contenuto cifrato PCTENC, non testo estratto."
+    if len(value) > _RAG_MAX_CHUNK_CHARS:
+        return f"Chunk escluso: {len(value)} caratteri oltre il limite di {_RAG_MAX_CHUNK_CHARS}."
+    control_chars = sum(1 for char in value if ord(char) < 32 and char not in "\n\r\t")
+    if control_chars:
+        return "Chunk escluso: contiene byte di controllo incompatibili con il testo indicizzabile."
+    return None
+
 
 _HEADING_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("intestazione", re.compile(r"^(TRIBUNALE|CORTE D'APPELLO|CORTE DI CASSAZIONE|GIUDICE DI PACE|TAR|CONSIGLIO DI STATO)\b", re.I)),
@@ -463,7 +521,7 @@ class OllamaHttpClient:
         data = self._request(
             "POST",
             "/embed",
-            payload={"model": model_name, "input": inputs, "truncate": True},
+            payload={"model": model_name, "input": inputs, "truncate": False},
             timeout=240,
         )
         embeddings = data.get("embeddings") or []
@@ -1686,11 +1744,10 @@ class LocalAIService:
         if mime_type == "application/pdf":
             try:
                 return self._extract_pdf_pages(data)
-            except Exception:
-                fallback_text = _fallback_binary_text(data)
-                if fallback_text:
-                    return [{"page_number": 1, "text": fallback_text}]
-                raise
+            except Exception as exc:
+                raise DocumentNeedsOcrError(
+                    "PDF senza testo affidabile: richiede OCR con il motore legale prima dell'indicizzazione."
+                ) from exc
         if mime_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             return self._extract_docx_pages(data)
         raise ValueError(f"Formato non supportato per parsing locale: {mime_type}")
@@ -1778,7 +1835,10 @@ class LocalAIService:
                 current_tokens += paragraph_tokens
         if current:
             chunks.append("\n\n".join(current).strip())
-        return [chunk for chunk in chunks if chunk]
+        bounded: list[str] = []
+        for chunk in chunks:
+            bounded.extend(_bounded_text_parts(chunk))
+        return [chunk for chunk in bounded if chunk.strip()]
 
     def _parse_document_bytes(
         self,
@@ -2113,6 +2173,21 @@ class LocalAIService:
                     "language": parsed.get("language"),
                     "signed_status": signed_status,
                 }
+            except DocumentNeedsOcrError as exc:
+                conn.execute(
+                    "UPDATE rag_documents SET parse_state = 'needs_ocr', chunk_count = 0, updated_at = ? WHERE id = ?",
+                    (_now_iso(), document_id),
+                )
+                conn.commit()
+                return {
+                    "status": "needs_ocr",
+                    "document_id": document_id,
+                    "chunk_count": 0,
+                    "mime_type": normalized_mime,
+                    "outer_mime_type": outer_mime,
+                    "reason": str(exc),
+                    "signed_status": signed_status,
+                }
             except Exception:
                 conn.execute(
                     "UPDATE rag_documents SET parse_state = 'error', updated_at = ? WHERE id = ?",
@@ -2131,6 +2206,7 @@ class LocalAIService:
         text: str,
         metadata: dict[str, Any] | None = None,
         force: bool = False,
+        pages: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Indicizza testo già estratto nello stesso archivio RAG dei documenti."""
 
@@ -2176,13 +2252,15 @@ class LocalAIService:
                 "page_from": None,
                 "page_to": None,
             }
+            archived_pages = [dict(page) for page in (pages or []) if str(page.get("text") or "").strip()]
+            sections = [dict(section, text=str(page["text"]), page_from=page.get("page_number"), page_to=page.get("page_number")) for page in archived_pages] or [section]
             parsed = {
                 "title": normalized_title,
                 "mime_type": "text/plain",
                 "file_path": "",
                 "raw_text": normalized_text,
-                "pages": [{"page_number": None, "text": normalized_text}],
-                "sections": [section],
+                "pages": archived_pages or [{"page_number": None, "text": normalized_text}],
+                "sections": sections,
                 "language": _detect_language(normalized_text),
             }
             chunk_rows = self._build_chunk_rows(document_id=document_id, practice_id=practice_id, parsed=parsed)
@@ -2261,9 +2339,11 @@ class LocalAIService:
             "indexed": 0,
             "skipped": 0,
             "unsupported": 0,
+            "needs_ocr": 0,
             "errors": [],
             "indexed_items": [],
             "unsupported_items": [],
+            "needs_ocr_items": [],
         }
         docs = list(getattr(fascicolo, "documenti", []) or [])
         if limit:
@@ -2293,6 +2373,16 @@ class LocalAIService:
                             "mime_type": str(outcome.get("mime_type") or ""),
                             "chunk_count": int(outcome.get("chunk_count") or 0),
                             "signed_status": outcome.get("signed_status"),
+                        }
+                    )
+                if outcome["status"] == "needs_ocr":
+                    results["needs_ocr_items"].append(
+                        {
+                            "document_id": str(getattr(doc, "id", "")),
+                            "nome": str(getattr(doc, "nome", "") or full_path.name),
+                            "mime_type": str(outcome.get("mime_type") or ""),
+                            "reason": str(outcome.get("reason") or "PDF da acquisire con OCR."),
+                            "file_path": str(outcome.get("file_path") or full_path),
                         }
                     )
                 if outcome["status"] == "unsupported":
@@ -2372,7 +2462,7 @@ class LocalAIService:
                 dict(row)
                 for row in conn.execute(
                     f"""
-                    SELECT id, document_id, text
+                    SELECT id, document_id, text, metadata_json
                     FROM rag_chunks
                     WHERE {' AND '.join(conditions)}
                     ORDER BY created_at ASC
@@ -2385,17 +2475,62 @@ class LocalAIService:
                 return {
                     "status": "ready",
                     "embedded": 0,
+                    "invalid": 0,
                     "vector_dimensions": None,
                     "pending_remaining": 0,
                     "embedding_provider": provider,
                     "embedding_model": embed_model,
                 }
-            embed_result = client.embed_texts(str(embed_model), [str(row["text"] or "") for row in rows])
+
+            valid_rows: list[dict[str, Any]] = []
+            invalid_reasons: list[dict[str, str]] = []
+            for row in rows:
+                reason = _embedding_validation_reason(row.get("text"))
+                if reason is None:
+                    valid_rows.append(row)
+                    continue
+                try:
+                    metadata = json.loads(row.get("metadata_json") or "{}")
+                except Exception:
+                    metadata = {}
+                metadata["embedding_validation"] = {
+                    "status": "invalid",
+                    "reason": reason,
+                    "at": _now_iso(),
+                }
+                conn.execute(
+                    """
+                    UPDATE rag_chunks
+                    SET embedding_state = 'invalid', embedding_json = NULL,
+                        embedding_dimensions = NULL, embedding_provider = NULL,
+                        embedding_model = NULL, metadata_json = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (json.dumps(metadata, ensure_ascii=False), _now_iso(), row["id"]),
+                )
+                invalid_reasons.append({"chunk_id": str(row["id"]), "reason": reason})
+
+            if not valid_rows:
+                conn.commit()
+                return {
+                    "status": "ready",
+                    "embedded": 0,
+                    "invalid": len(invalid_reasons),
+                    "invalid_reasons": invalid_reasons,
+                    "vector_dimensions": None,
+                    "pending_remaining": self._pending_chunks_count(
+                        conn, practice_id=practice_id, document_id=document_id
+                    ),
+                    "embedding_provider": provider,
+                    "embedding_model": embed_model,
+                }
+
+            embed_result = client.embed_texts(str(embed_model), [str(row["text"] or "") for row in valid_rows])
             vectors = embed_result.get("embeddings") or []
-            if len(vectors) != len(rows):
-                raise ValueError("Numero embeddings diverso dai chunk in pending")
+            if len(vectors) != len(valid_rows):
+                raise ValueError("Numero embeddings diverso dai chunk validi in pending")
             touched_documents: set[str] = set()
-            for idx, row in enumerate(rows):
+            for idx, row in enumerate(valid_rows):
                 vector = vectors[idx]
                 conn.execute(
                     """
@@ -2424,7 +2559,9 @@ class LocalAIService:
             conn.commit()
             return {
                 "status": "ready",
-                "embedded": len(rows),
+                "embedded": len(valid_rows),
+                "invalid": len(invalid_reasons),
+                "invalid_reasons": invalid_reasons,
                 "vector_dimensions": len(vectors[0]) if vectors else None,
                 "embedding_provider": provider,
                 "embedding_model": embed_model,
@@ -2500,7 +2637,7 @@ class LocalAIService:
         if not tokens:
             return []
         fts_query = " OR ".join(f'"{token}"' for token in tokens)
-        conditions = ["rag_chunks_fts MATCH ?"]
+        conditions = ["rag_chunks_fts MATCH ?", "c.embedding_state != 'invalid'", "c.text NOT LIKE 'PCTENC%'", f"length(c.text) <= {_RAG_MAX_CHUNK_CHARS}"]
         params: list[Any] = [fts_query]
         if practice_id:
             conditions.append("c.practice_id = ?")
@@ -2533,7 +2670,7 @@ class LocalAIService:
         embedding_provider: str,
         embedding_model: str,
     ) -> list[dict[str, Any]]:
-        conditions = ["embedding_state = 'embedded'", "embedding_json IS NOT NULL"]
+        conditions = ["embedding_state = 'embedded'", "embedding_json IS NOT NULL", "text NOT LIKE 'PCTENC%'", f"length(text) <= {_RAG_MAX_CHUNK_CHARS}"]
         params: list[Any] = []
         if query_vector:
             conditions.append("embedding_dimensions = ?")
@@ -3101,17 +3238,22 @@ class LocalAIService:
         auto_index: bool | None = None,
     ) -> dict[str, Any]:
         settings = self._load_settings()
-        should_index = settings.auto_index_documents if auto_index is None else bool(auto_index)
-        indexing = None
-        embedding = None
+        requested_auto_index = settings.auto_index_documents if auto_index is None else bool(auto_index)
         practice_id = str(getattr(fascicolo, "id", ""))
-        if should_index:
-            indexing = self.index_fascicolo_documents(fascicolo, documents_dir)
-            embedding = self.embed_all_pending_chunks(
-                practice_id=practice_id or None,
-                batch_size=200,
-                max_batches=1000,
-            )
+        # La preparazione della UI consulta esclusivamente l'indice immutabile:
+        # non riapre file e non avvia backfill. L'indicizzazione incrementale
+        # resta un lavoro autonomo e tracciabile.
+        indexing = {
+            "status": "deferred",
+            "reason": "Indice RAG consultato senza riaprire i documenti.",
+            "requested_auto_index": requested_auto_index,
+            "next_action": "scheduled_incremental_index",
+        }
+        embedding = {
+            "status": "deferred",
+            "reason": "Nessun backfill embedding viene avviato dalla richiesta UI.",
+            "next_action": "scheduled_incremental_index",
+        }
         snapshot = self._fascicolo_snapshot(
             fascicolo=fascicolo,
             workspace=workspace,
@@ -3345,12 +3487,6 @@ class LocalAIService:
             intelligenza=intelligenza,
             auto_index=auto_index,
         )
-        if not prepared.get("embedding"):
-            self.embed_all_pending_chunks(
-                practice_id=str(getattr(fascicolo, "id", "")) or None,
-                batch_size=200,
-                max_batches=1000,
-            )
         return self._complete_prepared_query(prepared=prepared, runtime=bootstrap, keep_alive=settings.keep_alive)
 
     def ask_workspace(

@@ -18,7 +18,7 @@ from pct.registro_letture.fatti_repository import Fatto
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
 
-VERSIONE_MOTORE_PEC = "2026.09.16.motore-pec.v8"
+VERSIONE_MOTORE_PEC = "2026.09.21.motore-pec.v10+modalita-note-scritte"
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),
@@ -78,19 +78,39 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
     proposta = messaggio.get("deadline_proposal") or {}
     data_proposta = proposta.get("detected_procedural_date") or {}
     note_xml = bool(re.search(r"(?:FISSATO|RIASSEGNATO) TERMINE PER NOTE IN SOSTITUZIONE UDIENZA", descrizione_evento, re.I)) and "Comunicazione.xml" in str(data_proposta.get("source") or "") and bool(messaggio.get("collegata"))
+    # Comunicazione.xml certifica l'evento comunicato, non il termine contenuto
+    # nel provvedimento allegato. Il vecchio fallback promuoveva la data generica
+    # proposta dal presidio (anche data di ricezione/redazione) a termine per note.
+    # Si conserva lo stesso fatto, ma respinto e con prova auditabile: la rilettura
+    # aggiorna la riga storica senza toccare decisioni corrette/ignorate dell'avvocato.
+    termine_xml_non_ancorato = ""
     if note_xml and not udienze and data_proposta.get("date"):
+        termine_xml_non_ancorato = _giorno(data_proposta["date"])
         udienze = [{"hearing_date": data_proposta["date"], "hearing_time":"", "mode":"note_scritte", "human_review_required":False}]
     for udienza in udienze:
         giorno = _giorno(udienza.get("hearing_date"))
         if not giorno:
             continue
-        scritta = _testo(udienza.get("mode")) in {"note_scritte", "trattazione scritta"}
-        ora = "" if scritta else _testo(udienza.get("hearing_time"))[:5]
+        modo = _testo(udienza.get("mode")).casefold()
+        testo_evento = f"{descrizione_evento} {oggetto}".casefold()
+        scritta = modo in {"note_scritte", "trattazione scritta"} or bool(re.search(
+            r"(?:note|trattazione scritta).{0,80}(?:in )?sostituzione.{0,30}udienza",
+            testo_evento,
+            re.I,
+        ))
+        # Anche il termine per note può scadere a un'ora espressa dal
+        # provvedimento: conservarla evita di trasformare «ore 14:00» in un
+        # generico fine giornata.
+        ora = _testo(udienza.get("hearing_time"))[:5]
         rivedere = bool(udienza.get("human_review_required"))
         fatti.append(Fatto(
             categoria="data", campo="termine" if scritta else "udienza", valore=giorno + (f"T{ora}" if ora else ""), valore_letto=giorno, etichetta=("Deposito note in sostituzione udienza del " if scritta else "Udienza del ") + f"{giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}" + (f" ore {ora}" if ora else "") + (f" ({_testo(udienza.get('mode'))})" if _testo(udienza.get("mode")) else ""),
             contesto=(descrizione_evento if note_xml else f"{'Termine per note scritte' if scritta else 'Udienza'} comunicato con la PEC «{oggetto}» del {ricevuta_il}")[:300], origine="presidio_pec", confidenza=0.7 if rivedere else 0.95,
-            prove=[{"codice": "ancoraggio", "esito": "ok", "dettaglio": "udienza estratta dal presidio PEC"}, {"codice": "forma", "esito": "attenzione" if rivedere else "ok", "dettaglio": "da rivedere per il presidio" if rivedere else "nessuna correzione"}],
+            prove=[
+                {"codice": "ancoraggio", "esito": "ok", "dettaglio": "data estratta dal presidio PEC"},
+                {"codice": "forma", "esito": "attenzione" if rivedere else "ok", "dettaglio": "da rivedere per il presidio" if rivedere else "nessuna correzione"},
+                *([{"codice": "modalita_note", "esito": "ok", "dettaglio": "note scritte in sostituzione dell’udienza", "modalita": "note_scritte", "ora_termine": ora, "presenza_fisica": False}] if scritta else []),
+            ],
         ))
     for termine in list(messaggio.get("termini") or []):
         giorno = _giorno(termine.get("dies_a_quo_date"))
@@ -142,6 +162,22 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
         # Un'udienza o una decorrenza comunicate con una PEC non possono precederla.
         contesto_pec.data_minima = max(filter(None, [contesto.data_minima, ricevuta]))
     collaudati = collauda_tutti(fatti, contesto_pec)
+    if termine_xml_non_ancorato:
+        for fatto in collaudati:
+            if (
+                fatto.categoria == "data" and fatto.campo == "termine"
+                and _giorno(fatto.valore) == termine_xml_non_ancorato
+                and fatto.origine == "presidio_pec" and fatto.contesto == descrizione_evento[:300]
+            ):
+                fatto.verifica = "respinta"
+                fatto.prove = list(fatto.prove) + [{
+                    "codice": "fonte_non_ancorata",
+                    "esito": "respinta",
+                    "dettaglio": (
+                        "Comunicazione.xml prova la comunicazione dell’evento, ma non ancora "
+                        "questa data al termine fissato nel provvedimento allegato."
+                    ),
+                }]
     from .termini_pec import scadenza_proposta
     if messaggio.get("event_type") != "pct_deposito":
         for termine in messaggio.get("termini") or []:

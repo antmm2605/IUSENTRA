@@ -129,6 +129,7 @@ def collect_fascicolo_document_sources(
     documents_root: str | Path,
     decrypt: Callable[[bytes], bytes] | None = None,
     impronte: Any = None,
+    allow_content_read: bool = True,
 ) -> list[DocumentAISource]:
     root = Path(documents_root)
     sources: list[DocumentAISource] = []
@@ -140,6 +141,7 @@ def collect_fascicolo_document_sources(
             documents_root=root,
             decrypt=decrypt,
             impronte=impronte,
+            allow_content_read=allow_content_read,
         )
         if source is not None:
             document_type = getattr(document, "tipo", "")
@@ -229,6 +231,7 @@ def source_from_fascicolo_document(
     documents_root: str | Path,
     decrypt: Callable[[bytes], bytes] | None = None,
     impronte: Any = None,
+    allow_content_read: bool = True,
 ) -> DocumentAISource | None:
     filename = Path(str(getattr(document, "nome", "") or "")).name
     if not filename:
@@ -259,7 +262,7 @@ def source_from_fascicolo_document(
     # davvero indicizzarlo. Prima ogni chiamata decifrava tutti i documenti del
     # fascicolo solo per ricalcolare un hash gia' noto.
     should_read_content = bool(
-        supported and content_path and content_path.exists() and not impronta_nota and (not sha256 or decrypt is not None)
+        allow_content_read and supported and content_path and content_path.exists() and not impronta_nota and (not sha256 or decrypt is not None)
     )
     if impronta_nota:
         sha256 = impronta_nota

@@ -51,14 +51,19 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
         if chiave in visti:
             continue
         visti.add(chiave)
-        note_scritte = any(p.get("codice") == "modalita_note" and p.get("esito") == "ok" for p in fatto.prove) or (fatto.campo == "termine" and "note in sostituzione" in fatto.etichetta.lower())
         # Se i motori hanno riconosciuto l'istituto, il presidio lo mostra con
         # il suo nome: «deposito di note ex art. 127-ter c.p.c.» dice cosa fare,
         # «termine del 10/09/2026» no.
         istituto = _istituto_del_fatto(fatto)
+        etichetta = fatto.etichetta.casefold()
+        note_scritte = (
+            any(p.get("codice") == "modalita_note" and p.get("esito") == "ok" for p in fatto.prove)
+            or (istituto is not None and istituto.codice == "note_127_ter")
+            or (fatto.campo == "termine" and any(x in etichetta for x in ("note in sostituzione", "note scritte")))
+        )
         tipo = istituto.codice if istituto else ("udienza_documento" if fatto.campo == "udienza" and not note_scritte else "termine_documento")
-        ora = fatto.valore.split("T")[1] if "T" in fatto.valore and not note_scritte else ""
-        azioni.append({
+        ora = fatto.valore.split("T")[1][:5] if "T" in fatto.valore else ""
+        azione = {
             "id": f"{tipo}-{fatto.oggetto_id}-{giorno.isoformat()}",
             "type": tipo,
             "title": istituto.titolo if istituto else ("Udienza letta dai documenti del fascicolo" if tipo == "udienza_documento" else "Termine processuale letto dai documenti del fascicolo"),
@@ -83,7 +88,10 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
             "dateCorrected": fatto.verifica == "corretta",
             "requiresConfirmation": fatto.verifica == "plausibile",
             "peremptory": perentorieta_documentata(fatto),
-        })
+        }
+        if note_scritte:
+            azione.update({"hearingMode": "note_scritte", "hearingTime": ora})
+        azioni.append(azione)
     azioni.sort(key=lambda voce: (voce["dateIso"], voce["type"]))
     return azioni
 

@@ -34,11 +34,13 @@ function isScheda(valore: SchedaProcedurale | Record<string, never> | undefined)
 // il pannello li mostra, non li calcola.
 export function LetturaFascicoloPanel({
   fascicoloId,
+  active = true,
   initialLettura,
   onError,
   onReady,
 }: {
   fascicoloId: string
+  active?: boolean
   initialLettura?: LetturaFascicolo | null
   onError?: (message: string) => void
   onReady?: () => void
@@ -52,7 +54,7 @@ export function LetturaFascicoloPanel({
   const [schedeAperte, setSchedeAperte] = useState(false)
 
   const load = useCallback(async (aggiorna = false) => {
-    if (!fascicoloId) return
+    if (!fascicoloId || !active) return
     setLoading(true)
     setError('')
     try {
@@ -71,27 +73,24 @@ export function LetturaFascicoloPanel({
     } finally {
       setLoading(false)
     }
-  }, [fascicoloId, onError, onReady])
+  }, [fascicoloId, active, onError, onReady])
 
   useEffect(() => {
-    if (initialLettura) {
-      setLettura(initialLettura)
-      setError('')
-      setLoading(false)
-      onReady?.()
-      return
-    }
-    setLettura(null)
-    void load()
-  }, [initialLettura, load, onReady])
+    setLettura(initialLettura || null)
+    setError('')
+    if (initialLettura) onReady?.()
+  }, [fascicoloId, initialLettura, onReady])
+
+  // La riapertura conserva il riepilogo visibile e riceve lo stato corrente.
+  useEffect(() => { if (active) void load() }, [active, load])
 
   // I presìdi stanno verificando in sfondo: si rilegge una volta, dopo qualche secondo.
   const inCorso = Boolean(lettura?.verifiche?.in_corso)
   useEffect(() => {
-    if (!inCorso) return undefined
+    if (!active || !inCorso) return undefined
     const timer = globalThis.setTimeout(() => { void load() }, 9000)
     return () => globalThis.clearTimeout(timer)
-  }, [inCorso, load])
+  }, [active, inCorso, load])
 
   const passi = useMemo(() => (lettura ? passiOrdinati(lettura) : []), [lettura])
   const cards = useMemo(() => (lettura ? presidiCards(lettura) : []), [lettura])
@@ -227,7 +226,7 @@ export function LetturaFascicoloPanel({
         ) : null}
       </section>
 
-      <LettureFascicoloSection key={fascicoloId} fascicoloId={fascicoloId} refreshKey={registroRevision} onAggiornato={() => void load()}/>
+      <LettureFascicoloSection active={active} key={fascicoloId} fascicoloId={fascicoloId} refreshKey={registroRevision} onAggiornato={() => void load()}/>
 
       <section className="iu-fas-lettura__blocco iu-fas-lettura__economico" aria-label="Presidio economico del fascicolo">
         <div className="iu-fas-lettura__section-head">

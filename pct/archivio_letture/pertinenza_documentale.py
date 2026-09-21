@@ -92,13 +92,36 @@ def applica_pertinenza(fatti: list[Fatto], testo: str, *, contesto, origine: str
         if prossima:
             dopo = dopo[:prossima.start()]
         clausola = " ".join((testo[max(0, f.posizione - 80):f.posizione] + dopo).split())
-        if re.search(r"trattazione scritta|sostituit[ao].{0,60}(?:deposito|note)|note in sostituzione udienza|termine perentorio.{0,60}deposito di note", clausola, re.I):
+        if re.search(
+            r"trattazione scritta|sostituit[ao].{0,80}(?:deposito|note)|"
+            r"note.{0,50}in\s+sostituzione\s+(?:dell(?:a|[’'])?\s*)?udienza|"
+            r"termine perentorio.{0,60}deposito di note",
+            clausola,
+            re.I,
+        ):
             note.add(f.valore[:10])
     for f in fatti:
         if f.categoria == "data" and f.campo in {"udienza", "termine"} and f.valore[:10] in note:
-            f.campo, f.valore = "termine", f.valore[:10]
-            f.etichetta = "Deposito note in sostituzione udienza del " + f.valore[8:10] + "/" + f.valore[5:7] + "/" + f.valore[:4]
-            f.prove = list(f.prove) + [{"codice":"modalita_note", "esito":"ok", "dettaglio":"Deposito di note scritte in sostituzione dell’udienza; nessun orario di collegamento."}]
+            giorno = f.valore[:10]
+            ora = f.valore[11:16] if len(f.valore) >= 16 and f.valore[10] == "T" else ""
+            f.campo = "termine"
+            f.valore = giorno + (f"T{ora}" if ora else "")
+            f.etichetta = (
+                "Deposito note in sostituzione udienza del "
+                + giorno[8:10] + "/" + giorno[5:7] + "/" + giorno[:4]
+                + (f" ore {ora}" if ora else "")
+            )
+            if not any(p.get("codice") == "modalita_note" and p.get("esito") == "ok" for p in f.prove):
+                f.prove = list(f.prove) + [{
+                    "codice": "modalita_note",
+                    "esito": "ok",
+                    "dettaglio": (
+                        "Deposito di note scritte in sostituzione dell’udienza; "
+                        + (f"le ore {ora} sono il termine del deposito, non un orario di comparizione." if ora else "nessuna comparizione fisica fissata.")
+                    ),
+                    "modalita": "note_scritte",
+                    "ora_termine": ora,
+                }]
     natura, motivo = natura_documentale(testo, contesto.numero_rg, contesto.anno_rg)
     if not natura:
         return fatti

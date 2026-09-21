@@ -1,6 +1,38 @@
 # Registro delle letture
 
-Aggiornato: 16/09/2026 (versione 2.318.0).
+Aggiornato: 21/09/2026 (tranche 2.342.0).
+
+
+## Riconciliazione dei motori e apertura fascicolo (2.342.0)
+
+Il registro è la fonte centrale per i consumer delle letture. Per questo motivo
+sono stati sospesi con audit undici job periodici derivativi che duplicavano
+funzioni già alimentate dagli eventi; restano attivi i consumer necessari alla
+consegna Agenda/Scadenziario e PEC, oltre a ricezione, sicurezza e backup. Dodici
+run orfani sono stati riconciliati solo quando esisteva la coppia terminale con
+lo stesso job e orario pianificato: nessun run ancora aperto è stato trasformato
+in completato senza prova.
+
+Le GET del fascicolo e del registro leggono lo stato persistito e non avviano
+motori. L'apertura del fascicolo riusa il repository mirato e il controllo
+sentenze economiche non ricarica l'archivio completo. Il GET letture usa il
+loader singolo; il lavoro parte dagli eventi di importazione o modifica e dal
+worker governato. Il tempo isolato del percorso economico è passato da 1,864 a
+1,377 secondi. I vecchi GET da 64 a 121 secondi e i 503 di upstream restano
+aperti come verifica di produzione: questo documento non li dichiara risolti.
+
+Il pilot SQL del catalogo ha coperto 33 fascicoli e 319 embedding dopo la
+riparazione del confine di validità; l'invariante osservato è 6,951 secondi con
+zero letture catalogo/RAG. Due sorgenti PEC sono state migrate al segnale di
+revisione e due EML binari sono stati riacquisiti preservando gli originali.
+Il pilot Docling ha coperto cinque documenti reali con OCR spento; il gate
+MiniCPM resta limitato al pilot, Gemma non è stato modificato e il batch di dieci
+documenti sequenziali non è ancora stato lanciato.
+
+Restano aperti il contaminante legacy RAG globale da 12 GB, 28 orfani OCR e gli
+errori storici non ancora applicati, oltre al riallineamento commit/locale, alla
+campagna visuale e all'accettazione finale della candidata produzione 2.342.0.
+Il flusso deposito/firma/PEC congelato il 09/09/2026 non è stato toccato.
 
 ## Che cosa fa
 

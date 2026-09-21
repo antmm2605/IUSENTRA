@@ -80,16 +80,6 @@ def cifratura_attiva() -> bool:
         return False
 
 
-def _riattiva_presidio_economico_scheduler() -> None:
-    try:
-        from web.services.fascicoli_presidi_runtime import riattiva_fascicoli_presidio_scheduler
-
-        paths = dict(getattr(g, "data_paths", {}) or {}) if has_app_context() else None
-        riattiva_fascicoli_presidio_scheduler(paths)
-    except Exception:
-        logger.debug("Presidio economico/documentale scheduler non riattivato", exc_info=True)
-
-
 # ---- inventario ---------------------------------------------------------------
 
 def _righe_pec_collegate(fascicolo_id: str) -> list[dict[str, Any]]:
@@ -172,7 +162,6 @@ def documento_aggiornato(fascicolo_id: str, documento: Any = None) -> None:
     except Exception as exc:  # il registro non deve mai bloccare il caricamento
         logger.warning("Registro letture non aggiornato per il fascicolo %s: %s", fascicolo_id, exc)
     invalida_lettura(fascicolo_id)
-    _riattiva_presidio_economico_scheduler()
     _lettura_dopo_evento(fascicolo_id)
 
 
@@ -195,7 +184,7 @@ def documento_rimosso(fascicolo_id: str, documento_id: str) -> None:
     except Exception as exc:
         logger.warning("Registro letture: rimozione non registrata per %s/%s: %s", fascicolo_id, documento_id, exc)
     invalida_lettura(fascicolo_id)
-    _riattiva_presidio_economico_scheduler()
+    _lettura_dopo_evento(fascicolo_id)
 
 
 def pec_collegata(fascicolo_id: str) -> None:
@@ -209,7 +198,6 @@ def pec_collegata(fascicolo_id: str) -> None:
     except Exception as exc:
         logger.warning("Registro letture: PEC collegata non registrata per %s: %s", fascicolo_id, exc)
     invalida_lettura(fascicolo_id)
-    _riattiva_presidio_economico_scheduler()
     _lettura_dopo_evento(fascicolo_id)
 
 
@@ -364,15 +352,9 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
             degradato.append({"passo": nome, "motivo": f"{type(exc).__name__}: {exc}"[:300]})
             return valore_di_riserva
 
-    # L'inventario si allinea qui (documenti e PEC collegate): è la vista dell'avvocato.
-    righe_pec = passo("PEC collegate", lambda: _righe_pec_collegate(fascicolo_id), []) or []
-    oggetti = passo(
-        "inventario del fascicolo",
-        lambda: oggetti_da_fascicolo(fascicolo, cifratura_attiva=cifratura_attiva()) + oggetti_da_pec(righe_pec, fascicolo),
-        [],
-    ) or []
-    if oggetti:
-        passo("registrazione dell'inventario", lambda: registro.registra_inventario(tenant, fascicolo_id, oggetti))
+    # La GET è una proiezione del registro SQL già materializzato. Inventario e
+    # PEC vengono allineati dagli eventi di caricamento/collegamento e dai job
+    # espliciti: aprire il pannello non avvia query PEC N+1 né transazioni write.
     # Le letture operative provengono esclusivamente dai due motori SQL.
     # I vecchi lettori restano diagnostica, senza ricalcolare date nelle GET.
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("motore_documenti", "motore_pec"))

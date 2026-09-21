@@ -42,6 +42,52 @@ CREATE TABLE IF NOT EXISTS pec_messages (
     UNIQUE (tenant_id, mime_sha256)
 );
 
+CREATE TABLE IF NOT EXISTS pec_source_revisions (
+    tenant_id TEXT PRIMARY KEY,
+    messages_revision INTEGER NOT NULL DEFAULT 0,
+    initialized INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS pec_messages_revision_insert
+AFTER INSERT ON pec_messages
+BEGIN
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (NEW.tenant_id, 1, 1, COALESCE(NEW.ingested_at, CURRENT_TIMESTAMP))
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+END;
+
+CREATE TRIGGER IF NOT EXISTS pec_messages_revision_update
+AFTER UPDATE OF tenant_id, linked_fascicolo_id, ingested_at ON pec_messages
+WHEN OLD.tenant_id IS NOT NEW.tenant_id
+   OR OLD.linked_fascicolo_id IS NOT NEW.linked_fascicolo_id
+   OR OLD.ingested_at IS NOT NEW.ingested_at
+BEGIN
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (NEW.tenant_id, 1, 1, COALESCE(NEW.ingested_at, CURRENT_TIMESTAMP))
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    SELECT OLD.tenant_id, 1, 1, CURRENT_TIMESTAMP
+    WHERE OLD.tenant_id IS NOT NEW.tenant_id
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+END;
+
+CREATE TRIGGER IF NOT EXISTS pec_messages_revision_delete
+AFTER DELETE ON pec_messages
+BEGIN
+    INSERT INTO pec_source_revisions (tenant_id, messages_revision, initialized, updated_at)
+    VALUES (OLD.tenant_id, 1, 1, CURRENT_TIMESTAMP)
+    ON CONFLICT(tenant_id) DO UPDATE SET
+        messages_revision = pec_source_revisions.messages_revision + 1,
+        updated_at = excluded.updated_at;
+END;
+
 CREATE TABLE IF NOT EXISTS pec_parsed_versions (
     id TEXT PRIMARY KEY,
     message_id TEXT NOT NULL REFERENCES pec_messages(id),
@@ -270,6 +316,9 @@ END;
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_unlinked_ingested
+    ON pec_messages(ingested_at DESC, id)
+    WHERE TRIM(COALESCE(linked_fascicolo_id, '')) = '';
 CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);

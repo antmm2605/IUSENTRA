@@ -259,3 +259,28 @@ def test_citations_preservano_metadati_pagina_sezione_chunk():
     assert citation.page_no == 5
     assert citation.section_path == "Diritto"
     assert citation.chunk_index == 2
+
+
+def test_docling_chunking_limita_chunk_lungo_senza_perdere_testo(tmp_path):
+    source = tmp_path / "atto-lungo.pdf"
+    source.write_bytes(b"%PDF-1.4\nlungo\n%%EOF")
+    original = "inizio " + ("termine " * 1000) + "fine"
+
+    class LongChunker(FakeChunker):
+        def chunk(self, dl_doc):
+            return [FakeChunk(original, {"page_no": 1, "headings": ["Fatto"]})]
+
+        def contextualize(self, chunk):
+            return chunk.text
+
+    result = parse_document_with_docling(
+        source,
+        document_id="DOC-LUNGO",
+        converter_factory=FakeConverter,
+        chunker_factory=LongChunker,
+    )
+
+    assert len(result.chunks) > 1
+    assert all(len(chunk.text) <= 3200 for chunk in result.chunks)
+    assert "".join(chunk.text for chunk in result.chunks) == original
+    assert result.chunks[0].metadata["source_chunk_index"] == 1

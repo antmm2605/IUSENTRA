@@ -924,6 +924,43 @@ def test_pipeline_separa_identita_documentale_e_segnali_di_presidio(tmp_path):
     assert any(item.evidence_type == "legal_source" and "fonte ufficiale" in item.excerpt for item in note_evidence)
 
 
+def test_lettura_catalogo_non_scrive_inventario_regole(tmp_path):
+    """La GET non deve creare neppure rule-set o snapshot SQL."""
+
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id = "studio-read-only-inventory"
+    fascicolo_id = "FASC-READ-ONLY-INVENTORY"
+    source = _ready_source(
+        repo,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        document_id="DOC-READ-ONLY-INVENTORY",
+        filename="memoria.pdf",
+        sha256="8" * 64,
+        text="MEMORIA CONCLUSIVA.",
+    )
+    fascicolo = SimpleNamespace(id=fascicolo_id, area_pratica="Civile", profilo_deposito={})
+
+    before = {
+        table: repo.structured_db.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in ("document_catalog_rule_sets", "document_catalog_source_snapshots", "document_catalog_jobs")
+    }
+    result = FascicoloDocumentCatalogPipeline(repo).run(
+        tenant_id=tenant_id,
+        fascicolo=fascicolo,
+        sources=[source],
+        actor="operatore",
+        process=False,
+    )
+    after = {
+        table: repo.structured_db.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in before
+    }
+
+    assert result.queued == 0
+    assert after == before
+
+
 def test_lettura_catalogo_non_crea_job_senza_elaborazione(tmp_path):
     """La GET del catalogo non deve lasciare job queued privi di consumer."""
 

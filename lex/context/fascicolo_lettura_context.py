@@ -343,7 +343,7 @@ def _archivio(fascicolo: Any) -> dict[str, Any]:
     fid = str(fascicolo.id)
     grezzi = registro.fatti(tenant, fid, verifiche=None)
     fatti = fatti_canonici(grezzi)
-    stato = stato_archivio_payload(fascicolo, registro=registro)
+    stato = stato_archivio_payload(fascicolo, registro=registro, fatti=fatti, fatti_gia_canonici=True)
     lette = {(l.oggetto_id, l.sha256): l for l in registro.letture(tenant, fid, lettore="motore_documenti")}
     oggetti = [o for o in registro.oggetti(tenant, fid) if o.tipo == "documento"]
     return {

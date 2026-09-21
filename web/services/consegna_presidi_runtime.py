@@ -32,7 +32,7 @@ import re
 from datetime import date
 from typing import Any
 
-from pct.archivio_letture.distribuzione import PRESIDI_CHE_SCRIVONO, fatti_per_presidio
+from pct.archivio_letture.distribuzione import PRESIDI_CHE_SCRIVONO
 from pct.registro_letture import RegistroLetture
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,18 @@ def _ora(fatto: Any) -> str:
     return valore[11:16] if len(valore) >= 16 and valore[10] == "T" else ""
 
 
+def _dati_note_scritte(fatto: Any) -> dict[str, str]:
+    """Restituisce la modalità solo quando deriva da prova/istituto espliciti."""
+    prove = list(getattr(fatto, "prove", []) or [])
+    modalita = next((p for p in prove if p.get("codice") == "modalita_note" and p.get("esito") == "ok"), None)
+    istituto = next((str(p.get("dettaglio") or "") for p in prove if p.get("codice") == "istituto" and p.get("esito") == "ok"), "")
+    etichetta = _testo(getattr(fatto, "etichetta", "")).casefold()
+    if not (modalita or istituto == "note_127_ter" or any(x in etichetta for x in ("note in sostituzione", "note scritte"))):
+        return {}
+    ora = _ora(fatto) or _testo((modalita or {}).get("ora_termine"))[:5]
+    return {"hearing_mode": "note_scritte", "hearing_time": ora, "legal_due_at": _giorno(fatto.valore) + (f"T{ora}:00" if ora else "")}
+
+
 # ---- scadenziario ----------------------------------------------------------
 
 def _modalita_termine(testo: str) -> str:
@@ -87,10 +99,14 @@ def _stessa_scadenza(riga: Any, fatto: Any) -> bool:
     testo = _testo(getattr(riga, "titolo", "")) + " " + _testo(getattr(riga, "note", ""))
     if fatto.id and "ARCHIVIO_FATTO:" + fatto.id in testo:
         return True
+    # Una scadenza manuale già presente nello stesso giorno prevale sulla
+    # proposta del lettore; tra proposte automatiche serve identità semantica.
+    automatico = "ARCHIVIO_FATTO:" in testo or "PEC_AUDIT:" in testo or bool(_testo(getattr(riga, "deadline_profile_code", "")))
+    if not automatico:
+        return True
     modalita = _modalita_termine(fatto.etichetta + " " + fatto.contesto)
     if modalita:
         return modalita == _modalita_termine(testo)
-    # Per termini generici serve la fonte esatta, non basta lo stesso giorno.
     return bool(fatto.oggetto_id and fatto.oggetto_id in testo and _testo(riga.titolo) == _testo(fatto.etichetta))
 
 
@@ -110,7 +126,14 @@ def _consegna_scadenziario(fascicolo: Any, fatti: list[Any]) -> list[dict[str, s
             continue
         stessa = next((s for s in esistenti if _stessa_scadenza(s, fatto)), None)
         if stessa:
-            esiti.append({"fatto_id":fatto.id, "stato":"consegnato", "riferimento":stessa.id, "motivo":"Stesso adempimento già registrato; fonte collegata senza duplicarlo."})
+            testo_esistente = _testo(getattr(stessa, "note", ""))
+            automatico_stesso_fatto = bool(fatto.id and "ARCHIVIO_FATTO:" + fatto.id in testo_esistente)
+            esiti.append({
+                "fatto_id": fatto.id,
+                "stato": "consegnato" if automatico_stesso_fatto else "non_pertinente",
+                "riferimento": stessa.id,
+                "motivo": "Stesso adempimento già registrato; fonte collegata senza duplicarlo.",
+            })
             continue
         if giorno < date.today().isoformat():
             esiti.append({"fatto_id":fatto.id, "stato":"non_pertinente", "motivo":"Data storica del " + format_date_it(giorno) + ": conservata nella lettura, senza creare una nuova urgenza."})
@@ -120,9 +143,18 @@ def _consegna_scadenziario(fascicolo: Any, fatti: list[Any]) -> list[dict[str, s
         from pct.archivio_letture.adempimenti import perentorieta_documentata
         perentorio = perentorieta_documentata(fatto)
         tipo = TipoTermine.TERMINE_PERENTORIO if perentorio else TipoTermine.DEPOSITO_ATTO if modalita == "deposito_note" else TipoTermine.ADEMPIMENTO
-        nota = "Data verificata nell’archivio delle letture.\nARCHIVIO_FATTO:" + fatto.id + "\nFonte: " + fatto.tipo + ":" + fatto.oggetto_id
+        nota = "Data verificata nell’archivio delle letture. Creata dalla lettura automatica dei documenti: da confermare.\nARCHIVIO_FATTO:" + fatto.id + "\nFonte: " + fatto.tipo + ":" + fatto.oggetto_id
         try:
-            nuova = gestore.nuova(titolo=fatto.etichetta[:120] or "Termine letto dai documenti", tipo=tipo, data_scadenza=giorno, id_fascicolo=fid, descrizione=fatto.contesto[:300], note=nota, perentorio=perentorio)
+            dati_note = _dati_note_scritte(fatto)
+            nuova = gestore.nuova(
+                titolo=fatto.etichetta[:120] or "Termine letto dai documenti",
+                tipo=tipo, data_scadenza=giorno, id_fascicolo=fid,
+                descrizione=fatto.contesto[:300], note=nota, perentorio=perentorio,
+                hearing_mode=dati_note.get("hearing_mode", ""),
+                hearing_time=dati_note.get("hearing_time", ""),
+                hearing_mode_source=(f"{fatto.tipo}:{fatto.oggetto_id}" if dati_note else ""),
+                legal_due_at=dati_note.get("legal_due_at", ""),
+            )
             esistenti.append(nuova)
             esiti.append({"fatto_id":fatto.id, "stato":"consegnato", "riferimento":nuova.id})
         except Exception as exc:
@@ -179,51 +211,92 @@ CONSEGNATARI = {"scadenziario": _consegna_scadenziario, "agenda": _consegna_agen
 
 # ---- il giro di consegna ----------------------------------------------------
 
-def riconcilia_consegne(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
-    """Retract only untouched machine proposals whose source has been rejected.
+def riconcilia_consegne(
+    fascicolo: Any,
+    registro: RegistroLetture,
+    tenant: str,
+    *,
+    applica: bool = True,
+) -> dict[str, Any]:
+    """Rettifica solo proposte automatiche intatte sostenute da fonti respinte.
 
-    Source facts, rows and delivery references are retained; the reason is
-    written both in the affected row and in the delivery ledger.
+    La ricerca usa sia i fatti grezzi sia la vista canonica. Se l'identità
+    canonica è cambiata dopo la riconvalida, il riferimento della consegna e
+    giorno/campo permettono di ritrovare le fonti; una riga modificata
+    dall'avvocato resta intatta e viene segnalata per verifica. ``applica=False``
+    produce lo stesso piano senza scrivere agenda, scadenziario o consegne.
     """
+    from pct.archivio_letture import fatti_canonici
     from web.helpers import get_scadenziario, get_agenda
+
     fid = _testo(getattr(fascicolo, "id", ""))
-    fatti = {f.id: f for f in registro.fatti(tenant, fid, verifiche=None)}
+    grezzi = registro.fatti(tenant, fid, verifiche=None)
+    canonici = fatti_canonici(grezzi)
+    fatti = {f.id: f for f in [*grezzi, *canonici]}
     scadenziario, agenda = get_scadenziario(), get_agenda()
     scadenze = {s.id: s for s in scadenziario.tutte(id_fascicolo=fid, solo_aperte=False)}
-    conti = {"scadenze_rettificate": 0, "agenda_rettificata": 0, "da_verificare": 0}
-    # Earlier canonical ids could change when the source was rejected.
-    # Recover only untouched, recognisable automatic proposals whose entire
-    # source evidence for that hearing day is now rejected.
-    for riga in agenda.tutti():
-        if _testo(getattr(riga, "procedimento", "")) != _procedimento(fascicolo) or _stato(riga) != "PROGRAMMATO":
-            continue
-        giorno = _giorno(getattr(riga, "data_ora", ""))
-        atteso = "Udienza del " + giorno[8:10] + "/" + giorno[5:7] + "/" + giorno[:4]
-        if _testo(getattr(riga, "note", "")) != NOTA_CONSEGNA or _testo(riga.titolo) != atteso:
-            continue
-        fonti = [f for f in fatti.values() if f.categoria == "data" and f.campo == "udienza" and _giorno(f.valore) == giorno]
-        if fonti and all(f.verifica in {"respinta", "ignorata"} for f in fonti):
-            from pct.agenda import StatoAppuntamento
-            agenda.modifica(riga.id, stato=StatoAppuntamento.ANNULLATO, note=NOTA_CONSEGNA + "\nRettifica automatica: la lettura corrente esclude questa data come udienza. Fonti: " + ", ".join(sorted({f.oggetto_id for f in fonti})))
-            conti["agenda_rettificata"] += 1
-    for consegna in registro.consegne(tenant, fid):
+    appuntamenti = {a.id: a for a in agenda.tutti()}
+    conti: dict[str, Any] = {
+        "scadenze_rettificate": 0,
+        "agenda_rettificata": 0,
+        "da_verificare": 0,
+        "da_rettificare": [],
+        "dry_run": not applica,
+    }
+
+    def fonti_respinte(consegna: Any, riga: Any) -> list[Any]:
         fatto = fatti.get(consegna.fatto_id)
-        if consegna.stato != "consegnato" or not fatto or fatto.verifica != "respinta":
+        if fatto is not None:
+            return [fatto] if fatto.verifica in {"respinta", "ignorata"} else []
+        giorno = _giorno(getattr(riga, "data_scadenza", "") if consegna.presidio == "scadenziario" else getattr(riga, "data_ora", ""))
+        campi = {"termine", "costituzione"} if consegna.presidio == "scadenziario" else {"udienza"}
+        fonti = [f for f in grezzi if f.categoria == "data" and f.campo in campi and _giorno(f.valore) == giorno]
+        return fonti if fonti and all(f.verifica in {"respinta", "ignorata"} for f in fonti) else []
+
+    def riga_automatica_integra(consegna: Any, riga: Any, fonti: list[Any]) -> bool:
+        if riga is None:
+            return False
+        stato = _stato(riga)
+        atteso = "APERTO" if consegna.presidio == "scadenziario" else "PROGRAMMATO"
+        if stato != atteso:
+            return False
+        nota = str(getattr(riga, "note", "") or "")
+        prime_righe = (
+            {"Data verificata nell’archivio delle letture.", "Data verificata nell’archivio delle letture. " + NOTA_CONSEGNA}
+            if consegna.presidio == "scadenziario"
+            else {"Data e ora verificate nell’archivio."}
+        )
+        righe_nota = nota.splitlines()
+        if len(righe_nota) != 3 or righe_nota[0] not in prime_righe or righe_nota[1] != "ARCHIVIO_FATTO:" + consegna.fatto_id or not righe_nota[2].startswith("Fonte: "):
+            return False
+        giorno = _giorno(getattr(riga, "data_scadenza", "") if consegna.presidio == "scadenziario" else getattr(riga, "data_ora", ""))
+        compatibili = [f for f in fonti if _giorno(f.valore) == giorno and _testo(f.etichetta)[:120] == _testo(getattr(riga, "titolo", ""))]
+        return bool(compatibili)
+
+    for consegna in registro.consegne(tenant, fid):
+        if consegna.stato != "consegnato" or consegna.presidio not in {"scadenziario", "agenda"}:
             continue
-        motivo = next((str(p.get("dettaglio") or "") for p in reversed(fatto.prove) if p.get("esito") in {"respinta", "errore"} and p.get("dettaglio")), "")
-        if not motivo:
+        riga = scadenze.get(consegna.riferimento) if consegna.presidio == "scadenziario" else appuntamenti.get(consegna.riferimento)
+        fonti = fonti_respinte(consegna, riga)
+        if not fonti:
             continue
-        riga = scadenze.get(consegna.riferimento) if consegna.presidio == "scadenziario" else agenda.get(consegna.riferimento) if consegna.presidio == "agenda" else None
-        stato = str(getattr(getattr(riga, "stato", ""), "value", getattr(riga, "stato", "")))
-        # Exact original note/title/date prevents overriding a lawyer's edits.
-        if riga is None or _testo(getattr(riga, "note", "")) != NOTA_CONSEGNA or _testo(getattr(riga, "titolo", "")) != fatto.etichetta[:120] or stato not in {"APERTO", "PROGRAMMATO"}:
+        if not riga_automatica_integra(consegna, riga, fonti):
             conti["da_verificare"] += 1
             continue
-        campo_data = "data_scadenza" if consegna.presidio == "scadenziario" else "data_ora"
-        if _giorno(getattr(riga, campo_data, "")) != _giorno(fatto.valore):
-            conti["da_verificare"] += 1
+        motivo = next((
+            str(p.get("dettaglio") or "")
+            for fatto in fonti for p in reversed(fatto.prove)
+            if p.get("esito") in {"respinta", "errore"} and p.get("dettaglio")
+        ), "La fonte corrente non conferma più il dato consegnato.")
+        conti["da_rettificare"].append({
+            "presidio": consegna.presidio,
+            "riferimento": consegna.riferimento,
+            "fatto_id": consegna.fatto_id,
+            "motivo": motivo,
+        })
+        if not applica:
             continue
-        nota = NOTA_CONSEGNA + "\nRettifica automatica della lettura: " + motivo
+        nota = str(getattr(riga, "note", "") or "") + "\nRettifica automatica della lettura: " + motivo
         if consegna.presidio == "scadenziario":
             scadenziario.aggiorna(riga.id, stato="ANNULLATO", note=nota)
             conti["scadenze_rettificate"] += 1
@@ -231,12 +304,68 @@ def riconcilia_consegne(fascicolo: Any, registro: RegistroLetture, tenant: str) 
             from pct.agenda import StatoAppuntamento
             agenda.modifica(riga.id, stato=StatoAppuntamento.ANNULLATO, note=nota)
             conti["agenda_rettificata"] += 1
-        registro.segna_consegna(tenant, fid, fatto.id, consegna.presidio, stato="non_pertinente", riferimento=riga.id, motivo="Proposta automatica annullata: " + motivo, versione_presidio="2026.09.16.riconciliazione.v1")
-    if conti["scadenze_rettificate"] or conti["agenda_rettificata"]:
+        registro.segna_consegna(
+            tenant, fid, consegna.fatto_id, consegna.presidio,
+            stato="non_pertinente", riferimento=riga.id,
+            motivo="Proposta automatica annullata: " + motivo,
+            versione_presidio="2026.09.21.riconciliazione.v2",
+        )
+    if applica and (conti["scadenze_rettificate"] or conti["agenda_rettificata"]):
         from web.services.lettura_cache import invalida_lettura
         invalida_lettura(fid)
     return conti
 
+
+
+def riconcilia_modalita_note(fascicolo: Any, registro: RegistroLetture, tenant: str, *, applica: bool = False) -> dict[str, Any]:
+    """Allinea ora e modalità delle sole proposte PEC automatiche ancora intatte."""
+    import json
+    from web.helpers import get_agenda, get_scadenziario
+
+    fid = _testo(getattr(fascicolo, "id", ""))
+    oggetti = {(o.tipo, o.oggetto_id): o.impronta for o in registro.oggetti(tenant, fid)}
+    fatti = [
+        f for f in registro.fatti(tenant, fid, verifiche=("verificata", "corretta"))
+        if oggetti.get((f.tipo, f.oggetto_id)) == f.sha256 and f.campo == "termine" and _dati_note_scritte(f).get("hearing_time")
+    ]
+    per_giorno: dict[str, list[Any]] = {}
+    for fatto in fatti:
+        per_giorno.setdefault(_giorno(fatto.valore), []).append(fatto)
+    scadenziario, agenda = get_scadenziario(), get_agenda()
+    piano = []
+    for scadenza in scadenziario.tutte(id_fascicolo=fid, solo_aperte=False):
+        giorno = _giorno(scadenza.data_scadenza)
+        marker = f"PEC_AUDIT:docpresidio:{fid}:"
+        note = str(getattr(scadenza, "note", "") or "")
+        fonte = re.search(re.escape(marker) + r"([^:\n]+):termine:" + re.escape(giorno), note)
+        fatto = next((f for f in per_giorno.get(giorno, []) if fonte and f.oggetto_id == fonte.group(1)), None)
+        if not fatto or _stato(scadenza) != "APERTO" or getattr(scadenza, "deadline_profile_code", "") != "PEC_AUTO_PRESIDIO" or getattr(scadenza, "source_event_type", "") != "fascicolo_documenti_audit" or _modalita_termine(scadenza.titolo) != "deposito_note":
+            continue
+        dati = _dati_note_scritte(fatto)
+        appuntamento_id = getattr(scadenza, "id_appuntamento", "")
+        appuntamento = agenda.get(appuntamento_id) if appuntamento_id else None
+        if appuntamento_id and not (appuntamento is not None and _stato(appuntamento) == "PROGRAMMATO" and str(getattr(appuntamento, "tipo", "").value) == "SCADENZA" and _giorno(appuntamento.data_ora) == giorno and getattr(appuntamento, "external_profile_id", "") == "pec_scadenziario" and marker in str(getattr(appuntamento, "note", "") or "")):
+            continue
+        if getattr(scadenza, "hearing_mode", "") == "note_scritte" and getattr(scadenza, "hearing_time", "") == dati["hearing_time"] and (appuntamento is None or (appuntamento.hearing_mode == "note_scritte" and appuntamento.hearing_time == dati["hearing_time"] and str(appuntamento.data_ora)[11:16] == dati["hearing_time"])):
+            continue
+        voce = {"scadenza_id": scadenza.id, "appuntamento_id": getattr(appuntamento, "id", ""), "fatto_id": fatto.id, "giorno": giorno, "ora": dati["hearing_time"]}
+        piano.append(voce)
+        if not applica:
+            continue
+        try:
+            traccia = json.loads(getattr(scadenza, "trace_json", "") or "[]")
+        except (TypeError, ValueError):
+            traccia = [{"storico": getattr(scadenza, "trace_json", "")}]
+        if not isinstance(traccia, list):
+            traccia = [{"storico": traccia}]
+        traccia.append({"origine": "archivio_letture", "operazione": "modalita_note_scritte", "versione": "2026.09.21.v1", "fatto_id": fatto.id, "fonte": f"{fatto.tipo}:{fatto.oggetto_id}", "ora_termine": dati["hearing_time"]})
+        scadenziario.aggiorna(scadenza.id, hearing_mode="note_scritte", hearing_time=dati["hearing_time"], hearing_mode_source=f"{fatto.tipo}:{fatto.oggetto_id}", legal_due_at=dati["legal_due_at"], trace_json=json.dumps(traccia, ensure_ascii=False))
+        if appuntamento is not None:
+            agenda.modifica(appuntamento.id, data_ora=f"{giorno}T{dati['hearing_time']}:00", hearing_mode="note_scritte", hearing_time=dati["hearing_time"], note=(str(appuntamento.note or "") + "\nModalità e ora riconciliate dalla fonte documentale verificata: deposito note scritte.").strip())
+    if applica and piano:
+        from web.services.lettura_cache import invalida_lettura
+        invalida_lettura(fid)
+    return {"dry_run": not applica, "da_rettificare": piano, "rettificate": len(piano) if applica else 0}
 
 
 def riconcilia_adempimenti(fascicolo: Any, registro: RegistroLetture, tenant: str, *, applica: bool = True) -> dict[str, Any]:
@@ -304,7 +433,7 @@ def riconcilia_adempimenti(fascicolo: Any, registro: RegistroLetture, tenant: st
     return esito
 
 
-def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = None) -> dict[str, Any]:
+def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = None, applica_riconciliazioni: bool = True) -> dict[str, Any]:
     """Consegna ai presìdi i fatti che spettano loro e non hanno ancora preso.
 
     Non rilegge nulla: prende i fatti dall'archivio, chiede al presidio di
@@ -320,11 +449,14 @@ def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = Non
     esito: dict[str, Any] = {"fascicolo_id": fascicolo_id, "presidi": {}, "consegnati": 0, "non_pertinenti": 0, "rifiutati": 0}
     if not fascicolo_id:
         return esito
-    esito["riconciliazione"] = riconcilia_consegne(fascicolo, registro, tenant)
-    esito["adempimenti"] = riconcilia_adempimenti(fascicolo, registro, tenant)
+    esito["riconciliazione"] = riconcilia_consegne(fascicolo, registro, tenant, applica=applica_riconciliazioni)
+    esito["modalita_note"] = riconcilia_modalita_note(fascicolo, registro, tenant, applica=applica_riconciliazioni)
+    esito["adempimenti"] = riconcilia_adempimenti(fascicolo, registro, tenant, applica=applica_riconciliazioni)
+    from web.services.rettifiche_letture_storiche import riconcilia_storico
+    esito["riconciliazione_storica"] = riconcilia_storico(fascicolo, registro, tenant, applica=applica_riconciliazioni)
     tutti = fatti_fascicolo(fascicolo, verifiche=("verificata", "corretta"))
     for presidio in PRESIDI_CHE_SCRIVONO:
-        spettanti = fatti_per_presidio(tutti, presidio.nome)
+        spettanti = [fatto for fatto in tutti if presidio.gli_serve(fatto)]
         da_prendere = registro.da_consegnare(tenant, fascicolo_id, presidio.nome, spettanti)
         # Il vecchio confronto sul solo giorno non registrava il riferimento:
         # riconciliare quelle consegne con le identità semantiche attuali.
@@ -367,4 +499,4 @@ def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = Non
     return esito
 
 
-__all__ = ["CONSEGNATARI", "NOTA_CONSEGNA", "ORIGINE", "consegna_fascicolo"]
+__all__ = ["CONSEGNATARI", "NOTA_CONSEGNA", "ORIGINE", "consegna_fascicolo", "riconcilia_modalita_note"]

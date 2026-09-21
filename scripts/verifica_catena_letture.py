@@ -77,8 +77,7 @@ def _stato_fascicolo(fascicolo: Any, registro: Any, tenant: str) -> dict[str, An
 
 def verifica(fascicolo_id: str = "") -> dict[str, Any]:
     """Lo stato reale della catena per lo studio corrente."""
-    from pct.archivio_letture import fatti_canonici
-    from pct.archivio_letture.distribuzione import PRESIDI, categorie_senza_presidio, distribuzione_attesa
+    from pct.archivio_letture.distribuzione import PRESIDI, categorie_senza_presidio
     from web.helpers import get_fascicoli
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
@@ -110,7 +109,7 @@ def verifica(fascicolo_id: str = "") -> dict[str, Any]:
             esito["problemi"].append(f"Fascicolo {_testo(getattr(fascicolo, 'id', ''))}: stato del ciclo non leggibile ({type(exc).__name__}: {exc}).")
             continue
         conteggi_ciclo[riga["ciclo"]] = conteggi_ciclo.get(riga["ciclo"], 0) + 1
-        for fatto in fatti_canonici(riga.pop("_fatti")):
+        for fatto in riga.pop("_fatti"):
             tutti_fatti_grezzi.append(fatto)
             voce = per_categoria.setdefault(str(fatto.categoria), {})
             voce[str(fatto.verifica)] = voce.get(str(fatto.verifica), 0) + 1
@@ -124,8 +123,10 @@ def verifica(fascicolo_id: str = "") -> dict[str, Any]:
             if riga["ciclo"] == "in_errore":
                 esito["problemi"].append(f"Fascicolo {riga['id']} in errore nel ciclo: {riga['motivo']}")
 
-    tutti_fatti = fatti_canonici(tutti_fatti_grezzi)
-    attesa = distribuzione_attesa(tutti_fatti)
+    # Ogni fatto è già canonico nel proprio fascicolo. Fascicoli distinti non
+    # sono compatibili, quindi una nuova canonizzazione globale è solo costo.
+    tutti_fatti = tutti_fatti_grezzi
+    attesa = {voce.nome: [fatto for fatto in tutti_fatti if voce.gli_serve(fatto)] for voce in PRESIDI}
     for presidio in PRESIDI:
         spettanti = attesa.get(presidio.nome) or []
         da_prendere = 0

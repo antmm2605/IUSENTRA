@@ -25,7 +25,7 @@ const OGGETTI_VISIBILI = 6
 // letti che i controlli giudicano dubbi — le date prima di tutto — che
 // l'avvocato conferma o corregge. Legge /api/v1/ui/fascicoli/<id>/letture,
 // mai in cache: le novità sono personali.
-export function LettureFascicoloSection({ fascicoloId, refreshKey = 0, onAggiornato }: { fascicoloId: string; refreshKey?: number; onAggiornato?: () => void }) {
+export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey = 0, onAggiornato }: { fascicoloId: string; active?: boolean; refreshKey?: number; onAggiornato?: () => void }) {
   const [letture, setLetture] = useState<LettureFascicolo | null>(null)
   const [loading, setLoading] = useState(false)
   const [aggiornamento, setAggiornamento] = useState<EsitoAggiornamentoLetture | null>(null)
@@ -40,7 +40,7 @@ export function LettureFascicoloSection({ fascicoloId, refreshKey = 0, onAggiorn
   notificaAggiornamento.current = onAggiornato
 
   const load = useCallback(async () => {
-    if (!fascicoloId || richiestaInCorso.current) return
+    if (!active || !fascicoloId || richiestaInCorso.current) return
     richiestaInCorso.current = true
     if (!corrente.current) setLoading(true)
     setError('')
@@ -61,15 +61,19 @@ export function LettureFascicoloSection({ fascicoloId, refreshKey = 0, onAggiorn
       richiestaInCorso.current = false
       setLoading(false)
     }
-  }, [fascicoloId])
+  }, [fascicoloId, active])
 
   useEffect(() => { void load() }, [load, refreshKey])
+  const letturaInCorso = Boolean(letture?.archivio?.lettura_automatica.in_corso)
   useEffect(() => {
+    if (!active) return undefined
     const aggiornaSeVisibile = () => { if (document.visibilityState === 'visible') void load() }
-    const timer = window.setInterval(aggiornaSeVisibile, 15000)
+    // Si consulta solo il registro aperto: frequenza breve durante un lavoro,
+    // un controllo al minuto a riposo per recepire aggiornamenti di altri utenti.
+    const timer = window.setInterval(aggiornaSeVisibile, letturaInCorso ? 5000 : 60000)
     window.addEventListener('focus', aggiornaSeVisibile)
     return () => { window.clearInterval(timer); window.removeEventListener('focus', aggiornaSeVisibile) }
-  }, [load])
+  }, [active, letturaInCorso, load])
 
   const aggiorna = useCallback(async () => {
     setLoading(true)

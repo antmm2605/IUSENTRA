@@ -1079,18 +1079,20 @@ class GestioneFascicoli:
                         continue
                     self._fascicoli[fascicolo.id] = fascicolo
                 if self._fascicoli:
-                    self._salva()
+                    # Il bootstrap non deve sostituire l'intera tabella: un
+                    # altro processo potrebbe avervi inserito altri fascicoli.
+                    self._salva_fascicoli_parziale(self._fascicoli.values())
                 return
-            migrato = False
+            da_migrare = []
             for row in rows:
                 f = self._row_to_fascicolo(row)
                 if f:
                     self._fascicoli[f.id] = f
                     # Se era dati_json NULL (primo carico post-migrazione) → riscrivi
-                    if not dict(row).get("dati_json"):
-                        migrato = True
-            if migrato:
-                self._salva()
+                    if not dict(row).get("dati_json") and not getattr(f, "documenti_non_caricati", False):
+                        da_migrare.append(f)
+            if da_migrare:
+                self._salva_fascicoli_parziale(da_migrare)
             return
         payloads = self._payloads_da_json_bootstrap()
         migrato = False

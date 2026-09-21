@@ -51,3 +51,12 @@ identificativo QuickOrganizer storico conservato, riferimento PST nel proprio
 campo; PDF esterno in sola consultazione con azione di anteprima nativa.
 Restano attivi tutti i controlli su identità, permessi e anteprima. Nessun cambio
 funzionale è stato introdotto per soddisfare aspettative dei test locali.
+
+## Correzione dei due blocchi CI — 21/09/2026
+Il commit 8daebe505 non è stato distribuito: due shard Pytest hanno fermato i gate. Il server è rimasto sulla precedente immagine healthy, versione 2.342.0.
+
+Il bootstrap SQL dei fascicoli chiamava il salvataggio integrale prima di dichiarare conclusa la lettura. Ora bootstrap e migrazione delle sole righe storiche usano il salvataggio mirato già disponibile, senza cancellare la tabella. La protezione sui caricamenti parziali resta attiva. Le righe lette senza documenti non vengono riscritte durante la migrazione. Test aggiunti per inserimento concorrente, conservazione degli altri fascicoli e conservazione degli allegati.
+
+Il test della proforma da sentenza fisica viene eseguito con l'indicizzazione e il motore documentale centrali reali, seguiti dalle API React. Restano verificati importi, creazione della proforma e assenza di doppioni; nessuna lettura sincrona dei documenti viene reintrodotta nella richiesta HTTP.
+
+Il deploy resta da verificare dopo il nuovo push. Le modifiche locali dell'editor PDF restano una voce distinta ancora da distribuire.

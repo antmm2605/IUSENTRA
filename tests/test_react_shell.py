@@ -59,7 +59,7 @@ def _semina_archivio(app, fascicolo_id: str, documento, fatti) -> None:
     che gli mette davanti il testo del documento sta provando un contratto che
     non esiste piu'; per provare quello vero si semina l'archivio.
     """
-    from pct.registro_letture import Fatto, Oggetto
+    from pct.registro_letture import Oggetto
 
     with app.app_context():
         from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
@@ -6403,7 +6403,6 @@ def test_react_fascicoli_prossima_scadenza_da_rg_univoco_presidiato(tmp_path: Pa
 
 
 def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypatch, tmp_path: Path):
-    import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -6462,7 +6461,6 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
 
 
 def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica(monkeypatch, tmp_path: Path):
-    import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -6518,7 +6516,6 @@ def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_gene
 
 
 def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(monkeypatch, tmp_path: Path):
-    import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -7024,7 +7021,6 @@ def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mira
 
 
 def test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza(monkeypatch, tmp_path: Path):
-    import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -8756,6 +8752,24 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
         data_chiusura="2026-06-15",
     )
 
+    # Il server legge i documenti nel motore centrale, fuori dalla richiesta
+    # HTTP. Eseguire il vero ciclo sul file fisico prima della proiezione.
+    from flask import g
+    from web.services.archivio_letture_runtime import leggi_fascicolo
+    from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
+
+    with app.test_request_context("/"):
+        indexed = build_lex_indexing_summary_payload(
+            fascicolo.id, process=True, apply_automations=False,
+            user_context={"skip_permission_check": True, "user_id": "test"},
+        )
+        assert indexed["ready"] == 1
+    with app.test_request_context("/"):
+        g.data_paths = {"LOCAL_AI_DB": str(tmp_path / "rag.db")}
+        reading = leggi_fascicolo(_fascicoli_repository(app).get(fascicolo.id))
+        assert reading["documenti"]["letti"] == 1
+        assert reading["catalogo"].get("status") != "error"
+
     response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
         json={"limit": 1000},
@@ -8774,7 +8788,7 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
 
     payload = response.get_json()
     assert response.status_code == 200
-    assert payload["createdCount"] == 1
+    assert payload["createdCount"] == 1, payload
     assert payload["created"][0]["source"] == "sentenza"
     assert duplicate_response.get_json()["createdCount"] == 0
     row = next(item for item in list_response.get_json()["items"] if item["id"] == fascicolo.id)

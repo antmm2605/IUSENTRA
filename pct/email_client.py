@@ -1135,6 +1135,19 @@ class GestioneEmailRicevute:
 
     @classmethod
     def _cartelle_imap_effettive(cls, mail: Any, richieste: List[str]) -> List[str]:
+        """Le cartelle da aprire davvero: quelle che esistono sul server.
+
+        `cartelle_imap_standard()` e' un elenco di nomi tentati a indovinare —
+        ventitre, fra italiano e inglese, per coprire i vari gestori. Il server
+        pero' lo sa quali ha, e lo dice con una sola LIST. Finche' quella
+        risposta serviva solo ad *aggiungere*, ogni giro apriva anche le venti
+        cartelle inesistenti, una SELECT per ciascuna: su quattro caselle
+        facevano un centinaio di viaggi verso il gestore, ed era tutto il costo
+        della sincronizzazione, identico che ci fosse posta nuova o no.
+
+        Se la LIST non risponde si torna ai nomi tentati: meglio qualche SELECT
+        a vuoto che una casella non guardata.
+        """
         cartelle: list[str] = []
 
         def _add(value: Any) -> None:
@@ -1142,23 +1155,49 @@ class GestioneEmailRicevute:
             if name and name not in cartelle:
                 cartelle.append(name)
 
-        for cartella in richieste:
-            _add(cartella)
-
         try:
             status, data = mail.list()
         except (AttributeError, imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError, TypeError):
-            return cartelle
+            status, data = "NO", []
         if status != "OK":
+            for cartella in richieste:
+                _add(cartella)
             return cartelle
 
-        for line in data or []:
+        righe = list(data or [])
+        presenti: dict[str, str] = {}
+        operative: list[str] = []
+        for line in righe:
             mailbox = cls._imap_mailbox_from_list_line(line)
             if not mailbox:
                 continue
+            presenti.setdefault(cls._chiave_cartella(mailbox), mailbox)
             if cls._imap_mailbox_list_entry_is_operativa(line, mailbox):
-                _add(mailbox)
+                operative.append(mailbox)
+
+        if not presenti:
+            # Una LIST vuota non e' una casella vuota: e' una risposta che non
+            # sappiamo leggere. Si riprova con i nomi tentati.
+            for cartella in richieste:
+                _add(cartella)
+            return cartelle
+
+        for cartella in richieste:
+            # Il nome che il server usa puo' differire per maiuscole o
+            # separatore: «INBOX.Sent» e «INBOX/Sent» sono la stessa cartella.
+            esistente = presenti.get(cls._chiave_cartella(cartella))
+            if esistente:
+                _add(esistente)
+        for mailbox in operative:
+            _add(mailbox)
         return cartelle
+
+    @staticmethod
+    def _chiave_cartella(nome: Any) -> str:
+        """Due scritture della stessa cartella devono dare la stessa chiave."""
+        testo = str(nome or "").strip().strip('"')
+        testo = testo.replace("\\", "/").replace(".", "/")
+        return "/".join(parte for parte in testo.lower().split("/") if parte)
 
     @staticmethod
     def _allinea_cartella_da_imap(email_obj: EmailRicevuta, cartella_imap: str) -> bool:

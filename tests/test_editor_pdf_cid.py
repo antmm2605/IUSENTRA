@@ -71,7 +71,7 @@ def test_documento_to_html_blocca_pdf_cid_senza_fallback_affidabile(monkeypatch)
     assert 'data-editor-disabled="true"' in html
     assert meta["editor_disabled"] is True
     assert meta["testo_affidabile"] is False
-    assert any("testo PDF non leggibile" in avviso for avviso in avvisi)
+    assert any("anteprima nativa" in avviso for avviso in avvisi)
 
 
 def _pdf_reportlab(*, layout_complesso: bool) -> bytes:
@@ -107,21 +107,21 @@ def test_documento_to_html_blocca_pdf_con_layout_grafico_non_fedele():
     assert meta["editor_disabled"] is True
     assert meta["layout_preservato"] is False
     assert meta["anteprima_originale_obbligatoria"] is True
-    assert meta["editor_disabled_reason"] == "layout PDF complesso"
+    assert meta["editor_disabled_reason"] == "anteprima PDF nativa"
     assert 'data-editor-disabled="true"' in html
     assert "REPUBBLICA ITALIANA" not in html
-    assert any("anteprima originale" in avviso for avviso in avvisi)
+    assert any("anteprima nativa" in avviso for avviso in avvisi)
 
 
-def test_documento_to_html_lascia_editabile_pdf_testuale_lineare():
+def test_documento_to_html_blocca_anche_pdf_testuale_lineare():
     html, avvisi, meta = editor.documento_to_html(
         _pdf_reportlab(layout_complesso=False),
         "bozza_lineare.pdf",
     )
 
     assert meta["tipo_originale"] == "pdf"
-    assert meta["editor_disabled"] is False
-    assert meta["layout_preservato"] is True
-    assert meta["anteprima_originale_obbligatoria"] is False
-    assert "REPUBBLICA ITALIANA" in html
-    assert not avvisi
+    assert meta["editor_disabled"] is True
+    assert meta["layout_preservato"] is False
+    assert meta["anteprima_originale_obbligatoria"] is True
+    assert "REPUBBLICA ITALIANA" not in html
+    assert any("anteprima nativa" in avviso for avviso in avvisi)

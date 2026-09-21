@@ -63,6 +63,41 @@ def _seed_documento_pdf(app):
     return fascicolo, documento
 
 
+def _pdf_valido_testo(testo: str = "Documento PDF originale") -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    pdf.drawString(72, 760, testo)
+    pdf.showPage()
+    pdf.save()
+    return buffer.getvalue()
+
+
+def _seed_documento_pdf_valido(app):
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Ricorso PDF modificabile",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Reale",
+            tribunale="Tribunale di Palmi",
+            numero_rg="811/2026",
+        )
+        documento = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "ricorso_originale.pdf",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            _pdf_valido_testo(),
+            note="PDF originale valido",
+            tags=["atto"],
+            caricato_da="operatore",
+        )
+    return fascicolo, documento
+
+
 def _seed_documento_eml(app):
     raw = (
         b"From: Cancelleria <cancelleria@example.test>\r\n"
@@ -160,9 +195,122 @@ def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
     assert response.status_code == 200
     assert payload["document"]["name"] == "sentenza_cassazione.pdf"
     assert payload["document"]["editable"] is False
-    assert "sola consultazione" in payload["document"]["lockedReason"]
+    assert "anteprima originale" in payload["document"]["lockedReason"]
     assert payload["document"]["actions"]["preview"] == f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza"
     assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
+
+
+def test_editor_pdf_non_viene_salvato_ricostruendolo_da_html(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_pdf(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/salva",
+            json={"html": "<h1>Testo riscritto dall'editor</h1>"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 409
+    assert payload["ok"] is False
+    assert "non lo ricostruisce" in payload["errore"]
+
+
+def test_editor_pdf_endpoint_restituisce_il_pdf_originale(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_pdf(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/pdf",
+            json={"html": "<h1>Contenuto che non deve entrare nel PDF</h1>"},
+        )
+
+    assert response.status_code == 200
+    assert response.data == b"%PDF-1.4\n% test\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    assert b"Contenuto che non deve entrare nel PDF" not in response.data
+
+
+def test_editor_pdf_overlay_versiona_e_preserva_pdf_originale(tmp_path: Path):
+    import fitz
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_pdf_valido(app)
+
+    with app.test_client() as client:
+        _login(client)
+        meta_response = client.get(f"/api/editor/{fascicolo.id}/{documento.id}/pdf-meta")
+        page_response = client.get(f"/api/editor/{fascicolo.id}/{documento.id}/pdf-pagina/1.png")
+        overlay_response = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/pdf-overlay",
+            json={
+                "annotations": [
+                    {
+                        "type": "text",
+                        "page": 1,
+                        "x": 0.12,
+                        "y": 0.18,
+                        "text": "Nota studio verificata",
+                        "fontSizePt": 13,
+                        "color": "#111827",
+                    },
+                    {
+                        "type": "highlight",
+                        "page": 1,
+                        "x": 0.1,
+                        "y": 0.2,
+                        "width": 0.35,
+                        "height": 0.04,
+                        "fillColor": "#fef3c7",
+                    },
+                ]
+            },
+        )
+        exported = client.post(f"/api/editor/{fascicolo.id}/{documento.id}/pdf", json={"html": "<p>ignorato</p>"})
+
+    assert meta_response.status_code == 200
+    assert meta_response.get_json()["pageCount"] == 1
+    assert page_response.status_code == 200
+    assert page_response.data.startswith(b"\x89PNG")
+    payload = overlay_response.get_json()
+    assert overlay_response.status_code == 200, payload
+    assert payload["ok"] is True
+    assert payload["annotations"] == 2
+    assert payload["documento"]["versioni"] == 1
+    assert exported.status_code == 200
+    with fitz.open(stream=exported.data, filetype="pdf") as pdf:
+        assert "Nota studio verificata" in pdf[0].get_text()
+
+
+def test_editor_pdf_importa_nuova_versione_senza_conversione_html(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_pdf_valido(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/importa",
+            data={"documento": (io.BytesIO(_pdf_valido_testo("Nuova versione PDF")), "nuova_versione.pdf")},
+            content_type="multipart/form-data",
+        )
+
+    payload = response.get_json()
+    with app.test_request_context("/"):
+        updated = get_fascicoli().get(fascicolo.id)
+        updated_doc = next(doc for doc in updated.documenti if doc.id == documento.id)
+
+    assert response.status_code == 200, payload
+    assert payload["ok"] is True
+    assert payload["documento"]["nome"] == "nuova_versione.pdf"
+    assert payload["documento"]["editable"] is False
+    assert updated_doc.nome == "nuova_versione.pdf"
+    assert len(updated_doc.versioni) == 1
 
 
 def test_editor_documento_payload_eml_usa_anteprima_email_originale(tmp_path: Path):
@@ -235,6 +383,8 @@ def test_editor_documento_react_contract_statico():
     assert "Dimensione testo" in page_source
     assert "Interlinea" in page_source
     assert "Anteprima PDF fedele all\\'originale" in page_source
+    assert "Modifica PDF sicura" in page_source
+    assert "Salva versione PDF" in page_source
     assert "Messaggio EML consultabile" in page_source
     assert "EML originale" in page_source
     assert "PDF nativo" in page_source
@@ -250,8 +400,10 @@ def test_editor_documento_react_contract_statico():
     assert "https://esm.sh" not in page_source
     assert "editorAI" in data_source
     assert "importFile" in data_source
+    assert "pdfOverlay" in data_source
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(idFascicolo)}/documenti/${encodeURIComponent(idDocumento)}/editor" in data_source
     assert "build_react_document_editor_payload" in bridge_source
     assert "editorAI" in bridge_source
     assert "/importa" in bridge_source
+    assert "/pdf-overlay" in bridge_source
     assert 'render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")' in route_source

@@ -21,7 +21,7 @@ def test_portal_namespaces_are_not_interchanged():
     assert doc.id_documento_portale=="quickorganizer:testi:1"
     assert doc.id_cat_portale=="cat2"
 
-@pytest.mark.parametrize("source,portal,allowed",[("CARICAMENTO_STUDIO","",True),("PORTALE_TELEMATICO","",False),("IMPORT_ESTERNO","",False),("CARICAMENTO_STUDIO","123",False),("","",False)])
-def test_pdf_editing_requires_explicit_studio_origin(source,portal,allowed):
+@pytest.mark.parametrize("source,portal",[("CARICAMENTO_STUDIO",""),("PORTALE_TELEMATICO",""),("IMPORT_ESTERNO",""),("CARICAMENTO_STUDIO","123"),("","")])
+def test_pdf_editing_uses_native_preview_for_every_origin(source,portal):
     doc=SimpleNamespace(nome="bozza.pdf",fonte_documento=source,id_documento_portale=portal,firmato_digitalmente=False,signature_metadata={})
-    assert pdf_studio_modificabile(doc)==allowed
+    assert pdf_studio_modificabile(doc) is False

@@ -251,7 +251,7 @@ def register_fascicoli_editor_routes(
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/salva", methods=["POST"])
     def api_editor_salva(id_fasc, id_doc):
-        from pct.editor import html_to_docx, html_to_pdf
+        from pct.editor import html_to_docx
 
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
@@ -262,18 +262,26 @@ def register_fascicoli_editor_routes(
 
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
+            nome = documento.nome
+            ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
+            if ext == "pdf":
+                return jsonify(
+                    {
+                        "ok": False,
+                        "errore": (
+                            "Il PDF resta in anteprima nativa: l'editor non lo ricostruisce "
+                            "in HTML per non alterare il documento originale."
+                        ),
+                    }
+                ), 409
+
             blocco = motivo_blocco_editor(documento)
             if blocco:
                 return jsonify({"ok": False, "errore": blocco}), 403
-            nome = documento.nome
-            ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
 
             timbro = _current_studio_timbro()
             if ext == "docx":
                 contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
-                nome_salvato = nome
-            elif ext == "pdf":
-                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
                 nome_salvato = nome
             else:
                 contenuto_raw = html.encode("utf-8")
@@ -317,9 +325,20 @@ def register_fascicoli_editor_routes(
         try:
             body = request.get_json(force=True) or {}
             html = body.get("html", "<p></p>")
-            fascicolo = get_fascicoli().get(id_fasc)
+            gestore_fascicoli = get_fascicoli()
+            fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
+            if documento and Path(documento.nome).suffix.lower() == ".pdf":
+                percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+                contenuto_originale = decrypt_doc(percorso.read_bytes())
+                audit("fascicoli.documento.editor_pdf_originale", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
+                return send_file(
+                    io.BytesIO(contenuto_originale),
+                    mimetype="application/pdf",
+                    as_attachment=True,
+                    download_name=documento.nome,
+                )
             pdf_bytes = html_to_pdf(html, titolo=titolo, studio_timbro=_current_studio_timbro())
             audit("fascicoli.documento.editor_pdf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(
@@ -333,6 +352,113 @@ def register_fascicoli_editor_routes(
         except Exception as exc:
             app.logger.exception("Errore api_editor_pdf: %s", exc)
             return "Generazione PDF non completata.", 500
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/pdf-meta")
+    def api_editor_pdf_meta(id_fasc, id_doc):
+        from web.services.pdf_overlay_editor import PdfOverlayError, pdf_page_infos
+
+        gestore_fascicoli = get_fascicoli()
+        try:
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento or Path(documento.nome).suffix.lower() != ".pdf":
+                return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
+            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+            pdf_bytes = decrypt_doc(percorso.read_bytes())
+            pages = [
+                {"number": info.number, "width": info.width, "height": info.height}
+                for info in pdf_page_infos(pdf_bytes)
+            ]
+            return jsonify({"ok": True, "pageCount": len(pages), "pages": pages})
+        except PdfOverlayError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_pdf_meta: %s", exc)
+            return jsonify({"ok": False, "errore": "Metadati PDF non disponibili."}), 500
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/pdf-pagina/<int:page_number>.png")
+    def api_editor_pdf_pagina_png(id_fasc, id_doc, page_number: int):
+        from web.services.pdf_overlay_editor import PdfOverlayError, render_pdf_page_png
+
+        gestore_fascicoli = get_fascicoli()
+        try:
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento or Path(documento.nome).suffix.lower() != ".pdf":
+                return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
+            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+            png_bytes = render_pdf_page_png(decrypt_doc(percorso.read_bytes()), page_number=page_number)
+            return send_file(io.BytesIO(png_bytes), mimetype="image/png", as_attachment=False)
+        except PdfOverlayError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_pdf_pagina_png: %s", exc)
+            return jsonify({"ok": False, "errore": "Pagina PDF non renderizzata."}), 500
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/pdf-overlay", methods=["POST"])
+    def api_editor_pdf_overlay(id_fasc, id_doc):
+        from web.services.pdf_overlay_editor import PdfOverlayError, apply_pdf_overlays
+
+        gestore_fascicoli = get_fascicoli()
+        utente = g.utente_corrente
+        try:
+            body = request.get_json(force=True) or {}
+            annotations = body.get("annotations") or []
+            if not isinstance(annotations, list):
+                return jsonify({"ok": False, "errore": "Modifiche PDF non valide."}), 400
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento or Path(documento.nome).suffix.lower() != ".pdf":
+                return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
+            if getattr(documento, "firmato_digitalmente", False) or str(getattr(documento, "nome", "")).lower().endswith(".p7m"):
+                return jsonify({"ok": False, "errore": "Il documento firmato resta in sola consultazione."}), 403
+            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+            pdf_bytes = decrypt_doc(percorso.read_bytes())
+            contenuto_raw, count = apply_pdf_overlays(pdf_bytes, annotations)
+            doc_salvato = gestore_fascicoli.sostituisci_documento(
+                id_fasc,
+                id_doc,
+                nome_file=documento.nome,
+                contenuto=encrypt_doc(contenuto_raw),
+                caricato_da=utente.username if utente else "editor_pdf",
+                note=f"Modificato con editor PDF sicuro: {count} interventi overlay.",
+                hash_contenuto_sha256=hashlib.sha256(contenuto_raw).hexdigest(),
+            )
+            accoda_ocr(
+                percorso=str(gestore_fascicoli.percorso_documento(id_fasc, doc_salvato.id)),
+                hash_sha256=doc_salvato.hash_sha256,
+                id_fasc=id_fasc,
+                id_doc=doc_salvato.id,
+                nome_doc=doc_salvato.nome,
+                tipo_doc=doc_salvato.tipo.value,
+                index_path=_cfg_data_path("SEARCH_INDEX"),
+            )
+            _registra_documento_aggiornato(id_fasc, doc_salvato)
+            _indicizza_salvataggio_editor(
+                id_fasc=id_fasc,
+                document_id=doc_salvato.id,
+                filename=doc_salvato.nome,
+                content=contenuto_raw,
+            )
+            audit("fascicoli.documento.editor_pdf_overlay", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {count} interventi")
+            return jsonify(
+                {
+                    "ok": True,
+                    "annotations": count,
+                    "message": "PDF salvato come nuova versione con modifiche native a overlay.",
+                    "documento": {
+                        "id": doc_salvato.id,
+                        "nome": doc_salvato.nome,
+                        "hash": doc_salvato.hash_sha256,
+                        "versioni": len(getattr(doc_salvato, "versioni", []) or []),
+                    },
+                }
+            )
+        except PdfOverlayError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 400
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_pdf_overlay: %s", exc)
+            return jsonify({"ok": False, "errore": "Modifica PDF non salvata."}), 500
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/importa", methods=["POST"])
     def api_editor_importa(id_fasc, id_doc):
@@ -356,11 +482,12 @@ def register_fascicoli_editor_routes(
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             if not documento:
                 return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
-            blocco = motivo_blocco_editor(documento)
-            if blocco:
-                return jsonify({"ok": False, "messaggio": blocco}), 403
             if getattr(documento, "firmato_digitalmente", False) or str(getattr(documento, "nome", "")).lower().endswith(".p7m"):
                 return jsonify({"ok": False, "messaggio": "Documento firmato: usa la funzione di sostituzione controllata dal fascicolo."}), 400
+            if Path(str(getattr(documento, "nome", ""))).suffix.lower() != ".pdf":
+                blocco = motivo_blocco_editor(documento)
+                if blocco:
+                    return jsonify({"ok": False, "messaggio": blocco}), 403
 
             doc_salvato = gestore_fascicoli.sostituisci_documento(
                 id_fasc,

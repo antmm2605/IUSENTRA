@@ -602,22 +602,19 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
         }
 
     if ext == ".pdf":
-        html, avvisi, is_scanned, n_pagine = pdf_to_html(data)
-        editor_disabled = 'data-editor-disabled="true"' in html
-        disabled_reason = ""
-        if editor_disabled:
-            match = re.search(r'data-editor-disabled-reason="([^"]*)"', html)
-            disabled_reason = match.group(1) if match else ""
-        return html, avvisi, {
+        html = _html_pdf_non_modificabile(1, "anteprima PDF nativa", visuale=True)
+        return html, [
+            "Il PDF resta in anteprima nativa: l'editor non lo trasforma in HTML per non perdere font, immagini, timbri, firme o impaginazione."
+        ], {
             "tipo_originale": "pdf",
-            "is_scanned": is_scanned,
-            "n_pagine": n_pagine,
+            "is_scanned": False,
+            "n_pagine": 0,
             "n_caratteri": len(html),
-            "layout_preservato": not is_scanned and not editor_disabled,
-            "testo_affidabile": not editor_disabled and "(cid:" not in html.lower(),
-            "editor_disabled": editor_disabled,
-            "editor_disabled_reason": disabled_reason,
-            "anteprima_originale_obbligatoria": editor_disabled,
+            "layout_preservato": False,
+            "testo_affidabile": False,
+            "editor_disabled": True,
+            "editor_disabled_reason": "anteprima PDF nativa",
+            "anteprima_originale_obbligatoria": True,
         }
 
     if ext in (".txt",):

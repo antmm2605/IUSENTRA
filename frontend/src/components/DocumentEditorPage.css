@@ -64,6 +64,31 @@
 .iu-de-loader{position:absolute;inset:0;z-index:3;display:grid;place-items:center;align-content:center;gap:10px;background:rgba(232,237,245,.74);color:var(--iu-blue-700);font-size:13px;font-weight:900}
 .iu-de-preview-shell{min-width:0;display:grid;gap:8px}
 .iu-de-preview-frame{width:100%;min-height:calc(100vh - 250px);border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
+.iu-de-pdf-editor{display:grid;gap:13px;padding:14px;border:1px solid rgba(37,99,235,.22);border-radius:8px;background:linear-gradient(180deg,#fff,#f8fbff);box-shadow:var(--iu-shadow-soft)}
+.iu-de-pdf-editor__head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.iu-de-pdf-editor__head h2{margin:0 0 5px;color:#0f172a;font-size:20px;font-weight:950;letter-spacing:0}
+.iu-de-pdf-editor__head p,.iu-de-pdf-editor__status,.iu-de-pdf-editor__list p{margin:0;color:var(--iu-slate-600);font-size:12px;font-weight:760;line-height:1.45}
+.iu-de-pdf-editor__actions,.iu-de-pdf-editor__toolbar{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.iu-de-pdf-editor__actions button,.iu-de-pdf-editor__list button{min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;color:#0f172a;padding:0 11px;font-size:12px;font-weight:900;cursor:pointer}
+.iu-de-pdf-editor__actions button:last-child{border-color:transparent;background:var(--iu-navy-900);color:#fff}
+.iu-de-pdf-editor__actions button:disabled,.iu-de-pdf-editor__list button:disabled{opacity:.55;cursor:not-allowed}
+.iu-de-pdf-editor__toolbar label{display:grid;gap:5px;color:var(--iu-slate-600);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:0}
+.iu-de-pdf-editor__toolbar select,.iu-de-pdf-editor__toolbar input{min-height:38px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;color:#111827;padding:0 10px;font-size:13px;font-weight:800;text-transform:none;letter-spacing:0}
+.iu-de-pdf-editor__toolbar input[type="color"]{width:54px;padding:3px}
+.iu-de-pdf-editor__text{flex:1 1 280px}
+.iu-de-pdf-editor__body{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+.iu-de-pdf-page{min-height:420px;overflow:auto;border:1px solid var(--iu-border);border-radius:8px;background:#dbe4f0;padding:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.iu-de-pdf-page__canvas{position:relative;width:min(100%,960px);margin:0 auto;cursor:crosshair}
+.iu-de-pdf-page__canvas:focus-visible{outline:3px solid var(--iu-blue-600);outline-offset:3px}
+.iu-de-pdf-page__canvas img{display:block;width:100%;height:auto;border-radius:3px;background:#fff;box-shadow:0 24px 60px rgba(15,23,42,.18);user-select:none;pointer-events:none}
+.iu-de-pdf-mark{position:absolute;z-index:4;display:inline-flex;align-items:center;justify-content:center;min-width:34px;min-height:18px;border:1px solid rgba(37,99,235,.55);border-radius:4px;padding:2px 5px;color:#111827;font-size:12px;font-weight:900;line-height:1.15;box-shadow:0 6px 16px rgba(15,23,42,.13);pointer-events:none}
+.iu-de-pdf-mark--highlight{border-color:rgba(245,158,11,.7);color:#92400e;background:rgba(254,243,199,.7)}
+.iu-de-pdf-mark--cover{border-color:rgba(100,116,139,.72);color:#475569;background:#fff}
+.iu-de-pdf-editor__list{display:grid;gap:9px;padding:12px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
+.iu-de-pdf-editor__list strong{color:#0f172a;font-size:13px;font-weight:950}
+.iu-de-pdf-editor__list ol{display:grid;gap:7px;margin:0;padding-left:18px;color:#111827;font-size:12px;font-weight:800;line-height:1.4}
+.iu-de-pdf-editor__list li{display:grid;gap:5px}
+.iu-de-pdf-editor__list button{justify-self:start;min-height:30px;padding:0 9px;font-size:11px}
 .iu-de-empty,.iu-de-locked{display:grid;gap:11px;justify-items:start;padding:20px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
 .iu-de-empty h1,.iu-de-locked h2{margin:0;color:#0f172a;font-size:22px;font-weight:950;letter-spacing:0}
 .iu-de-empty p,.iu-de-locked p{max-width:720px;margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:760;line-height:1.45}
@@ -124,6 +149,8 @@
   .iu-de-search-panel{grid-template-columns:1fr}
   .iu-de-ai-head{flex-direction:column}
   .iu-de-ai-grid,.iu-de-ai-form{grid-template-columns:1fr}
+  .iu-de-pdf-editor__head{flex-direction:column}
+  .iu-de-pdf-editor__body{grid-template-columns:1fr}
   .iu-de-paper{padding:16px 8px;min-height:720px}
   .iu-de-editable{min-height:900px;padding:44px 30px}
 }
@@ -140,6 +167,10 @@
   .iu-de-tool--wide{min-width:calc(50% - 4px)}
   .iu-de-ai-actions,.iu-de-ai-export{display:grid;grid-template-columns:1fr;width:100%}
   .iu-de-ai-actions button,.iu-de-ai-export button,.iu-de-ai-form button{width:100%}
+  .iu-de-pdf-editor__actions,.iu-de-pdf-editor__toolbar{display:grid;grid-template-columns:1fr;width:100%}
+  .iu-de-pdf-editor__actions button,.iu-de-pdf-editor__toolbar select,.iu-de-pdf-editor__toolbar input{width:100%}
+  .iu-de-pdf-editor__toolbar input[type="color"]{width:100%}
+  .iu-de-pdf-page{min-height:320px;padding:8px}
   .iu-de-ai-docs label{grid-template-columns:auto minmax(0,1fr)}
   .iu-de-ai-docs small{grid-column:2;white-space:normal}
   .iu-de-meta-row{align-items:stretch}

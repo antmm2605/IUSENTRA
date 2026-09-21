@@ -73,6 +73,24 @@ type EditorAIDetail = {
   edit_proposals: EditorAIProposal[]
   versions: Array<{ id: string; version_number: number; source: string; created_at: string }>
 }
+type PdfEditorTool = 'text' | 'highlight' | 'cover'
+type PdfAnnotation = {
+  id: string
+  type: PdfEditorTool
+  page: number
+  x: number
+  y: number
+  width?: number
+  height?: number
+  text?: string
+  fontSizePt?: number
+  color?: string
+  fillColor?: string
+}
+type PdfMeta = {
+  pageCount: number
+  pages: Array<{ number: number; width: number; height: number }>
+}
 type IusentraVoiceInputService = {
   startForTarget?: (target: HTMLElement, options?: {
     context?: string
@@ -306,6 +324,28 @@ function downloadBlob(blob: Blob, filename: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 750)
 }
 
+function normalizePdfMeta(payload: unknown): PdfMeta {
+  const row = isRecord(payload) ? payload : {}
+  const pages = Array.isArray(row.pages) ? row.pages : []
+  const normalizedPages = pages
+    .filter(isRecord)
+    .map((item) => ({
+      number: Number(item.number || 0),
+      width: Number(item.width || 0),
+      height: Number(item.height || 0),
+    }))
+    .filter((item) => item.number > 0 && item.width > 0 && item.height > 0)
+  return {
+    pageCount: Number(row.pageCount || normalizedPages.length || 0),
+    pages: normalizedPages,
+  }
+}
+
+function newPdfAnnotationId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `pdf-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 function ToolbarButton({ title, onClick, children, disabled = false }:{title:string; onClick:()=>void; children:ReactNode; disabled?:boolean}) {
   return (
     <button className="iu-de-tool" type="button" onClick={onClick} title={title} aria-label={title} disabled={disabled}>
@@ -400,6 +440,18 @@ export function DocumentEditorPage() {
   const [editorAiDocumentIds, setEditorAiDocumentIds] = useState<string[]>([])
   const [editorAiEditInstructions, setEditorAiEditInstructions] = useState('')
   const [voiceDictating, setVoiceDictating] = useState(false)
+  const [pdfEditorOpen, setPdfEditorOpen] = useState(false)
+  const [pdfMeta, setPdfMeta] = useState<PdfMeta>({ pageCount: 0, pages: [] })
+  const [pdfPage, setPdfPage] = useState(1)
+  const [pdfTool, setPdfTool] = useState<PdfEditorTool>('text')
+  const [pdfText, setPdfText] = useState('')
+  const [pdfFontSize, setPdfFontSize] = useState(12)
+  const [pdfTextColor, setPdfTextColor] = useState('#111827')
+  const [pdfFillColor, setPdfFillColor] = useState('#fef3c7')
+  const [pdfAnnotations, setPdfAnnotations] = useState<PdfAnnotation[]>([])
+  const [pdfSaving, setPdfSaving] = useState(false)
+  const [pdfStatus, setPdfStatus] = useState('')
+  const [pdfRevision, setPdfRevision] = useState(Date.now())
 
   const updateStats = useCallback(() => {
     const text = editorRef.current?.innerText.trim() || ''
@@ -685,6 +737,11 @@ export function DocumentEditorPage() {
         setConversionLockedReason('')
         setEditorAiBootstrapped(false)
         setEditorAiDetail({ sources: [], edit_proposals: [], versions: [] })
+        setPdfAnnotations([])
+        setPdfStatus('')
+        setPdfMeta({ pageCount: 0, pages: [] })
+        setPdfPage(1)
+        setPdfRevision(Date.now())
         setData(payload)
         setWarnings(payload.warnings)
         if (!payload.notFound && payload.document.editable) void loadDocument(payload)
@@ -792,6 +849,103 @@ export function DocumentEditorPage() {
     setStatus({ tone: 'warning', label: 'Contenuto importato, da salvare' })
   }
 
+  const loadPdfMeta = useCallback(async () => {
+    if (!data.endpoints.pdfMeta) return
+    setPdfStatus('Carico pagine PDF...')
+    try {
+      const response = await fetch(data.endpoints.pdfMeta, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+      if (!response.ok || payload.ok === false) throw new Error(text(payload.errore || payload.message, 'Metadati PDF non disponibili.'))
+      const meta = normalizePdfMeta(payload)
+      setPdfMeta(meta)
+      setPdfPage((current) => Math.min(Math.max(1, current), Math.max(1, meta.pageCount || 1)))
+      setPdfStatus(meta.pageCount ? 'PDF pronto per modifiche sicure a overlay.' : 'PDF senza pagine renderizzabili.')
+    } catch (error) {
+      setPdfStatus(error instanceof Error ? error.message : 'Metadati PDF non disponibili.')
+    }
+  }, [data.endpoints.pdfMeta])
+
+  const addPdfAnnotationAt = (x: number, y: number) => {
+    const safeX = Math.min(0.98, Math.max(0, x))
+    const safeY = Math.min(0.98, Math.max(0, y))
+    if (pdfTool === 'text') {
+      const value = pdfText.trim()
+      if (!value) {
+        setPdfStatus('Scrivi il testo da inserire prima di cliccare sulla pagina.')
+        return
+      }
+      setPdfAnnotations((current) => [...current, {
+        id: newPdfAnnotationId(),
+        type: 'text',
+        page: pdfPage,
+        x: safeX,
+        y: safeY,
+        text: value,
+        fontSizePt: pdfFontSize,
+        color: pdfTextColor,
+      }])
+      setPdfStatus('Testo aggiunto alla bozza PDF. Salva per creare la nuova versione.')
+      return
+    }
+    setPdfAnnotations((current) => [...current, {
+      id: newPdfAnnotationId(),
+      type: pdfTool,
+      page: pdfPage,
+      x: safeX,
+      y: safeY,
+      width: 0.22,
+      height: 0.045,
+      fillColor: pdfTool === 'cover' ? '#ffffff' : pdfFillColor,
+    }])
+    setPdfStatus(pdfTool === 'cover' ? 'Riquadro coprente aggiunto alla bozza PDF.' : 'Evidenziazione aggiunta alla bozza PDF.')
+  }
+
+  const handlePdfPageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    addPdfAnnotationAt((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height)
+  }
+
+  const savePdfOverlay = async () => {
+    if (!data.endpoints.pdfOverlay || !pdfAnnotations.length || pdfSaving) return
+    setPdfSaving(true)
+    setPdfStatus('Salvo il PDF come nuova versione...')
+    try {
+      const response = await fetch(data.endpoints.pdfOverlay, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ annotations: pdfAnnotations }),
+      })
+      const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+      if (!response.ok || payload.ok === false) throw new Error(text(payload.errore || payload.message, 'PDF non salvato.'))
+      setPdfAnnotations([])
+      setPdfRevision(Date.now())
+      setPdfStatus(text(payload.message, 'PDF salvato come nuova versione.'))
+      setStatus({ tone: 'success', label: 'PDF salvato' })
+      await loadPdfMeta()
+    } catch (error) {
+      setPdfStatus(error instanceof Error ? error.message : 'PDF non salvato.')
+      setStatus({ tone: 'danger', label: 'Modifica PDF non salvata' })
+    } finally {
+      setPdfSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    if (pdfEditorOpen && data.document.extension === 'pdf' && data.endpoints.pdfMeta && !pdfMeta.pageCount) {
+      void loadPdfMeta()
+    }
+  }, [data.document.extension, data.endpoints.pdfMeta, loadPdfMeta, pdfEditorOpen, pdfMeta.pageCount])
+
   const insertLink = () => {
     const href = window.prompt('Inserisci URL del collegamento')
     if (!href) return
@@ -896,6 +1050,10 @@ export function DocumentEditorPage() {
   const currentAttoAI = data.editorAI.current
   const editorAiReadyDocuments = editorAiBootstrap.documents.filter((item) => item.status === 'ready')
   const editorAiPendingProposals = editorAiDetail.edit_proposals.filter((item) => item.status === 'pending')
+  const pdfCurrentPageAnnotations = pdfAnnotations.filter((annotation) => annotation.page === pdfPage)
+  const pdfPageImageUrl = data.endpoints.pdfPageImage
+    ? `${data.endpoints.pdfPageImage}/${pdfPage}.png?v=${pdfRevision}`
+    : ''
   const paperStyle = {
     '--iu-de-font-family': fontFamily,
     '--iu-de-font-size': fontSize,
@@ -1063,9 +1221,90 @@ export function DocumentEditorPage() {
               <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : emlPreviewMode ? 'Messaggio EML consultabile' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
               <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : emlPreviewMode ? 'Apri email originale' : 'Apri anteprima'}</a>
+              {pdfPreviewMode && !doc.signed && data.endpoints.pdfOverlay ? (
+                <button type="button" onClick={() => setPdfEditorOpen((value) => !value)}><FileText size={15}/>{pdfEditorOpen ? 'Chiudi modifica PDF' : 'Modifica PDF sicura'}</button>
+              ) : null}
               <button type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
             </div>
           </section>
+          {pdfPreviewMode && pdfEditorOpen ? (
+            <section className="iu-de-pdf-editor" aria-label="Editor PDF sicuro">
+              <div className="iu-de-pdf-editor__head">
+                <div>
+                  <h2>Modifica PDF sicura</h2>
+                  <p>Gli interventi vengono applicati come overlay sul PDF originale e salvati come nuova versione del documento.</p>
+                </div>
+                <div className="iu-de-pdf-editor__actions">
+                  <button type="button" onClick={() => setPdfAnnotations((current) => current.slice(0, -1))} disabled={!pdfAnnotations.length || pdfSaving}><Undo2 size={15}/> Annulla ultimo</button>
+                  <button type="button" onClick={() => setPdfAnnotations([])} disabled={!pdfAnnotations.length || pdfSaving}><XCircle size={15}/> Svuota</button>
+                  <button type="button" onClick={() => void savePdfOverlay()} disabled={!pdfAnnotations.length || pdfSaving}><Save size={15}/>{pdfSaving ? 'Salvo...' : 'Salva versione PDF'}</button>
+                </div>
+              </div>
+              <div className="iu-de-pdf-editor__toolbar">
+                <label><span>Pagina</span>
+                  <select value={pdfPage} onChange={(event) => setPdfPage(Number(event.target.value) || 1)}>
+                    {Array.from({ length: Math.max(1, pdfMeta.pageCount || 1) }, (_, index) => index + 1).map((page) => (
+                      <option key={page} value={page}>Pagina {page}</option>
+                    ))}
+                  </select>
+                </label>
+                <label><span>Strumento</span>
+                  <select value={pdfTool} onChange={(event) => setPdfTool(event.target.value as PdfEditorTool)}>
+                    <option value="text">Testo</option>
+                    <option value="highlight">Evidenzia</option>
+                    <option value="cover">Copri</option>
+                  </select>
+                </label>
+                <label className="iu-de-pdf-editor__text"><span>Testo da inserire</span>
+                  <input value={pdfText} onChange={(event) => setPdfText(event.target.value)} placeholder="Scrivi il testo e clicca sulla pagina" disabled={pdfTool !== 'text'}/>
+                </label>
+                <label><span>Dimensione</span>
+                  <input type="number" min={6} max={48} value={pdfFontSize} onChange={(event) => setPdfFontSize(Number(event.target.value) || 12)} disabled={pdfTool !== 'text'}/>
+                </label>
+                <label><span>Colore</span>
+                  <input type="color" value={pdfTool === 'text' ? pdfTextColor : pdfFillColor} onChange={(event) => pdfTool === 'text' ? setPdfTextColor(event.target.value) : setPdfFillColor(event.target.value)}/>
+                </label>
+              </div>
+              {pdfStatus ? <p className="iu-de-pdf-editor__status">{pdfStatus}</p> : null}
+              <div className="iu-de-pdf-editor__body">
+                <div className="iu-de-pdf-page">
+                  <div className="iu-de-pdf-page__canvas" role="button" tabIndex={0} onClick={handlePdfPageClick} onKeyDown={(event) => { if (event.key === 'Enter') addPdfAnnotationAt(0.12, 0.12) }}>
+                    {pdfPageImageUrl ? <img src={pdfPageImageUrl} alt={`Pagina ${pdfPage} del PDF ${doc.name}`}/> : <div className="iu-de-loader"><LoaderCircle className="iu-spin" size={24}/><span>Pagina PDF in caricamento...</span></div>}
+                    {pdfCurrentPageAnnotations.map((annotation) => (
+                      <span
+                        key={annotation.id}
+                        className={`iu-de-pdf-mark iu-de-pdf-mark--${annotation.type}`}
+                        style={{
+                          left: `${annotation.x * 100}%`,
+                          top: `${annotation.y * 100}%`,
+                          width: annotation.type === 'text' ? 'auto' : `${(annotation.width || 0.22) * 100}%`,
+                          height: annotation.type === 'text' ? 'auto' : `${(annotation.height || 0.045) * 100}%`,
+                          color: annotation.color || '#111827',
+                          backgroundColor: annotation.type === 'highlight' ? annotation.fillColor || '#fef3c7' : annotation.type === 'cover' ? '#fff' : 'rgba(255,255,255,.86)',
+                          fontSize: `${annotation.fontSizePt || 12}px`,
+                        }}
+                      >
+                        {annotation.type === 'text' ? annotation.text : annotation.type === 'cover' ? 'Copertura' : 'Evidenziato'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <aside className="iu-de-pdf-editor__list">
+                  <strong>Interventi da salvare</strong>
+                  {pdfAnnotations.length ? (
+                    <ol>
+                      {pdfAnnotations.map((annotation) => (
+                        <li key={annotation.id}>
+                          <span>Pag. {annotation.page} · {annotation.type === 'text' ? `Testo: ${annotation.text}` : annotation.type === 'cover' ? 'Copertura' : 'Evidenziazione'}</span>
+                          <button type="button" onClick={() => setPdfAnnotations((current) => current.filter((item) => item.id !== annotation.id))}>Rimuovi</button>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : <p>Nessun intervento inserito. Seleziona uno strumento e clicca sulla pagina renderizzata.</p>}
+                </aside>
+              </div>
+            </section>
+          ) : null}
           {doc.actions.preview ? (
             <section className="iu-de-workbench iu-de-workbench--preview">
               <DocumentFacts data={data}/>
@@ -1076,7 +1315,7 @@ export function DocumentEditorPage() {
                 </div>
                 <iframe
                   className="iu-de-preview-frame"
-                  src={doc.actions.preview}
+                  src={`${doc.actions.preview}${doc.actions.preview.includes('?') ? '&' : '?'}v=${pdfRevision}`}
                   title={`Anteprima ${doc.name}`}
                 />
               </section>

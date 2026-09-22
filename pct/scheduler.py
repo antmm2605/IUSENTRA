@@ -661,6 +661,33 @@ def start_scheduler(app):
         with app.app_context():
             return refresh_mediazione_sources(app.config)
 
+    # ---- Censimento notturno dello spazio su disco (00:40) ----
+    # Misurare backup, cartelle escluse, snapshot, normativa globale, log e
+    # cache dei servizi su un disco da centinaia di gigabyte sono minuti: la
+    # console non poteva farlo dentro una richiesta chiusa a 120 secondi, e
+    # infatti il bottone non tornava. Qui il tempo c'e'. Il risultato viene
+    # scritto e il pannello lo legge gia' pronto. Non cancella niente.
+    @scheduler.scheduled_job(
+        CronTrigger(hour=0, minute=40),
+        id="censimento_spazio_notturno",
+        max_instances=1,
+        coalesce=True,
+    )
+    def _censimento_spazio_notturno():
+        from web.services.censimento_spazio import esegui_censimento
+        with app.app_context():
+            try:
+                voce = esegui_censimento(dict(app.config))
+                risultato = voce.get("risultato") or {}
+                logger.info(
+                    "[scheduler] Censimento spazio: recuperabile %s",
+                    risultato.get("bytes_reclaimable_label"),
+                )
+                return voce
+            except Exception as e:
+                logger.error("[scheduler] Censimento spazio fallito: %s", e)
+                return None
+
     # ---- Rispezzatura notturna dei chunk RAG (01:00-04:45, ogni quarto d'ora) ----
     # I chunk lasciati dallo splitter vecchio sono migliaia e rifarli costa ore:
     # nessuna richiesta HTTP le regge, e il bottone del pannello si ferma a 75

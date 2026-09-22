@@ -43,21 +43,26 @@ class PdfPageInfo:
 
 
 def pdf_page_infos(pdf_bytes: bytes) -> list[PdfPageInfo]:
-    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+    """Misure delle pagine. Sola lettura: passa dal motore di rendering."""
+    from pct.rendering_pdf import RenderingPdfError, dimensioni_pagine
+
+    try:
         return [
-            PdfPageInfo(number=index + 1, width=float(page.rect.width), height=float(page.rect.height))
-            for index, page in enumerate(doc)
+            PdfPageInfo(number=misura.numero, width=misura.larghezza, height=misura.altezza)
+            for misura in dimensioni_pagine(pdf_bytes)
         ]
+    except RenderingPdfError as exc:
+        raise PdfOverlayError(str(exc)) from exc
 
 
 def render_pdf_page_png(pdf_bytes: bytes, *, page_number: int, zoom: float = 1.6) -> bytes:
-    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
-        if page_number < 1 or page_number > len(doc):
-            raise PdfOverlayError("Pagina PDF non disponibile.")
-        page = doc[page_number - 1]
-        matrix = fitz.Matrix(max(0.5, min(float(zoom or 1.6), 3.0)), max(0.5, min(float(zoom or 1.6), 3.0)))
-        pixmap = page.get_pixmap(matrix=matrix, alpha=False)
-        return bytes(pixmap.tobytes("png"))
+    """Una pagina come immagine. Sola lettura: passa dal motore di rendering."""
+    from pct.rendering_pdf import RenderingPdfError, pagina_png
+
+    try:
+        return pagina_png(pdf_bytes, numero_pagina=page_number, scala=zoom, predefinita=1.6)
+    except RenderingPdfError as exc:
+        raise PdfOverlayError(str(exc)) from exc
 
 
 def apply_pdf_overlays(pdf_bytes: bytes, annotations: Iterable[dict[str, Any]]) -> tuple[bytes, int]:

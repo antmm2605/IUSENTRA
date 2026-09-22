@@ -523,27 +523,38 @@ def elimina_cartelle_escluse():
 @server_maintenance_admin.post("/analizza-manutenzione-professionale")
 @superadmin_required
 def analizza_manutenzione_professionale():
+    """Mostra l'ultimo censimento notturno dello spazio. Non lo ricalcola.
+
+    Il calcolo misura backup, cartelle escluse, snapshot, normativa globale,
+    log di sistema e cache dei servizi: su un disco da centinaia di gigabyte
+    sono minuti, e il server chiude la richiesta a 120 secondi. Rifarlo qui
+    significava non rispondere mai. Il conto si fa di notte e qui si legge.
+    """
+    from web.services.censimento_spazio import ORE_PRIMA_DI_DICHIARARLO_VECCHIO, eta_ore, ultimo_censimento
+
     try:
-        maintenance = run_professional_server_maintenance(apply=False)
+        censimento = ultimo_censimento(dict(current_app.config))
+        if censimento is None:
+            flash(
+                "Nessun censimento dello spazio disponibile: la scansione gira di notte. "
+                "Per averlo subito, usa «Esegui adesso» sulla pianificazione "
+                "«Censimento dello spazio su disco» in Pianificazioni.",
+                "warning",
+            )
+            return _pagina_manutenzione()
+        maintenance = censimento["risultato"]
+        ore = eta_ore(censimento)
+        quando = "" if ore is None else f" (scansione di {int(ore)} ore fa)"
+        livello = "warning" if (ore is not None and ore > ORE_PRIMA_DI_DICHIARARLO_VECCHIO) else "info"
         flash(
-            "Analisi manutenzione professionale completata: "
-            f"spazio recuperabile {maintenance['bytes_reclaimable_label']}.",
-            "info",
+            f"Spazio recuperabile secondo l'ultimo censimento: "
+            f"{maintenance.get('bytes_reclaimable_label')}{quando}.",
+            livello,
         )
-        return render_template(
-            "admin/server_manutenzione.html",
-            payload=build_server_maintenance_surface(),
-            compaction=None,
-            backup_retention=None,
-            docker_prune=None,
-            max_optimization=None,
-            inactive_cleanup=None,
-            professional_maintenance=maintenance,
-            log_cleanup=None,
-        )
+        return _pagina_manutenzione(professional_maintenance=maintenance)
     except Exception as exc:
-        current_app.logger.exception("Errore analisi manutenzione professionale: %s", exc)
-        flash("Errore durante l'analisi manutenzione professionale.", "danger")
+        current_app.logger.exception("Errore lettura censimento spazio: %s", exc)
+        flash("Censimento dello spazio non leggibile. Dettaglio tecnico nei log server.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))
 
 

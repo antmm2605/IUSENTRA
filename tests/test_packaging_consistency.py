@@ -66,6 +66,10 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         "mammoth>=1.6.0",
         "pdfplumber>=0.10.0",
         "PyMuPDF>=1.24.0",
+        # Il rendering delle pagine e' passato a PDFium (licenza BSD) perche'
+        # PyMuPDF e' AGPL-3.0 e il prodotto e' servito attraverso la rete.
+        # PyMuPDF resta finche' gli altri moduli lo usano.
+        "pypdfium2>=4.30.0",
         "pypdf>=6.0.0",
         "asn1crypto>=1.5.0",
         "pytesseract>=0.3.10",

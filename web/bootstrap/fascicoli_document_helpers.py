@@ -237,37 +237,25 @@ def preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
 
 
 def pdf_page_count(data: bytes) -> int:
+    """Quante pagine ha il PDF. Sola lettura: passa dal motore di rendering."""
+    from pct.rendering_pdf import RenderingPdfError, dimensioni_pagine
+
     try:
-        import fitz  # type: ignore
-    except ImportError as exc:
-        raise RuntimeError("Motore anteprima PDF non disponibile.") from exc
-    doc = None
-    try:
-        doc = fitz.open(stream=data, filetype="pdf")
-        return max(0, int(len(doc)))
-    finally:
-        if doc is not None:
-            doc.close()
+        return max(0, len(dimensioni_pagine(data)))
+    except RenderingPdfError as exc:
+        raise RuntimeError(str(exc)) from exc
 
 
 def render_pdf_page_png(data: bytes, page_number: int, *, scale: float = 1.85) -> bytes:
+    """Anteprima di una pagina. Sola lettura: passa dal motore di rendering."""
+    from pct.rendering_pdf import RenderingPdfError, pagina_png
+
     if page_number < 1:
         raise ValueError("Pagina PDF non valida.")
     try:
-        import fitz  # type: ignore
-    except ImportError as exc:
-        raise RuntimeError("Motore anteprima PDF non disponibile.") from exc
-    doc = None
-    try:
-        doc = fitz.open(stream=data, filetype="pdf")
-        if page_number > len(doc):
-            raise ValueError("Pagina PDF fuori intervallo.")
-        page = doc[page_number - 1]
-        pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
-        return bytes(pix.tobytes("png"))
-    finally:
-        if doc is not None:
-            doc.close()
+        return pagina_png(data, numero_pagina=page_number, scala=scale, predefinita=1.85)
+    except RenderingPdfError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def pdf_mobile_preview_html(

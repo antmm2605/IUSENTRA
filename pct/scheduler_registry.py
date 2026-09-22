@@ -479,6 +479,16 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         ),
         SchedulerTemplate("sync_tabelle_normative_daily", "Tabelle normative", "Fonti e tabelle", "Aggiorna tassi, indici e tabelle normative.", "cron", "4", "30", built_in=True),
         SchedulerTemplate(
+            "censimento_spazio_notturno",
+            "Censimento dello spazio su disco",
+            "Fonti e tabelle",
+            "Misura una volta a notte quanto spazio e' recuperabile fra backup eccedenti, cartelle non registrate, snapshot residui, normativa duplicata, log di sistema e cache dei servizi. Scrive il risultato: il pannello lo legge gia' pronto, senza attese. Non cancella niente.",
+            "cron",
+            "0",
+            "40",
+            built_in=True,
+        ),
+        SchedulerTemplate(
             "rag_rispezzatura_notturna",
             "Rispezzatura notturna dei chunk",
             "Fonti e tabelle",

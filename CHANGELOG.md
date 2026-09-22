@@ -1,5 +1,56 @@
 # Changelog
 
+## 2.348.0 — 22/09/2026
+
+**Il rendering delle pagine PDF esce da PyMuPDF.** Non per ragioni tecniche: PyMuPDF
+e' sotto AGPL-3.0 e IUSENTRA viene servito agli studi attraverso la rete. PDFium ha
+una licenza BSD e pypdfium2 sta fra Apache-2.0 e BSD-3: si incorporano in un
+prodotto commerciale senza obblighi di apertura.
+
+Il rendering era sparso in punti diversi, ognuno con la sua variante di
+`get_pixmap`. Ora c'e' un modulo solo, `pct/rendering_pdf.py`, che legge e disegna e
+non modifica mai il documento. Ci passano l'anteprima di pagina del fascicolo, il
+conteggio delle pagine, le misure e l'anteprima a immagini dell'editor, e le pagine
+dei moduli firmabili per il portale clienti.
+
+Dopo questo passo `pct/firma_modulo/anteprima.py` e
+`web/bootstrap/fascicoli_document_helpers.py` non dipendono piu' da PyMuPDF. Nel
+modulo dell'editor resta la parte che *scrive* — testo, evidenziazioni,
+oscuramenti, salvataggio — che migrera' con il proprio passo. Il quarto punto di
+rendering, dentro `documento_fedele/`, lavora su un documento PyMuPDF aperto dal
+chiamante: appartiene alla migrazione di quel package, non alla sostituzione
+meccanica.
+
+`pypdfium2` entra in `requirements/pdf.txt`. PyMuPDF resta dichiarato: gli altri
+moduli lo usano ancora.
+
+Test: `tests/test_rendering_pdf.py` (nuovo), compreso un controllo che legge gli
+import dei moduli gia' migrati e fallisce se qualcuno ci rimette PyMuPDF.
+
+## 2.347.0 — 22/09/2026
+
+**Il conto dello spazio si fa di notte e il pannello lo legge gia' pronto.**
+«Analizza manutenzione» misurava backup, cartelle escluse, snapshot, normativa
+globale, log di sistema e cache dei servizi dentro la richiesta HTTP: su un disco
+da 262 GiB sono minuti, e il server chiude a 120 secondi. Provato in produzione, il
+bottone non e' tornato dopo cinque minuti — quindi quel numero, con ogni
+probabilita', non lo ha mai visto nessuno.
+
+Nuova pianificazione `censimento_spazio_notturno`, alle 00:40: misura una volta e
+scrive il risultato. Il bottone ora legge quel risultato e risponde subito, dicendo
+di quante ore fa e' la scansione; oltre trenta ore lo segnala come vecchio. Se non
+c'e' ancora nessun censimento lo dice, invece di far finta.
+
+Per averne uno prima del giro notturno si usa «Esegui adesso» sulla pianificazione:
+la richiesta viene accodata e il lavoro avviene nello scheduler, dove il tempo non
+e' contato in secondi di richiesta.
+
+Il censimento misura soltanto: non cancella niente. Le cancellazioni restano dietro
+i bottoni che le fanno, uno per area.
+
+Test: `tests/test_censimento_spazio.py` (nuovo), compreso il caso del file
+illeggibile, che non deve far cadere il pannello.
+
 ## 2.346.0 — 22/09/2026
 
 **La retention dei backup cercava gli archivi dove non c'erano.** La stessa pagina

@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.351.0 — 22/09/2026
+
+**Lo strato di testo selezionabile del lettore esce da PyMuPDF.** Le parole con le
+loro coordinate vengono da pdfplumber, che tiene gia' conto della rotazione
+dichiarata dalla pagina, e il rendering per l'OCR da PDFium. Resta intatto il
+comportamento che giustifica il modulo: se il PDF non si apre, le pagine compaiono
+lo stesso senza selezione, e una pagina illeggibile non toglie la selezione alle
+altre.
+
+**La composizione di immagini in PDF esce da PyMuPDF.** Le pagine si costruiscono
+con reportlab: con `a4` l'immagine entra intera in un foglio A4 orientato come lei e
+centrata; senza formato dichiarato la pagina prende la misura esatta
+dell'immagine. Un file che non e' un'immagine viene rifiutato con un messaggio,
+invece di sollevare un errore generico.
+
+Restano tredici moduli con PyMuPDF: i cinque di `documento_fedele/`, i tre AcroForm
+della firma, la mediazione, i due dell'OCR, l'editor a overlay e uno script.
+
+Test: `tests/test_pdf_reader_text.py` (nuovo) e casi nuovi in
+`tests/test_document_tools.py`, con i controlli sugli import che falliscono se un
+modulo migrato torna a PyMuPDF.
+
 ## 2.350.0 — 22/09/2026
 
 **Il secondo motore di lettura dell'editor non e' piu' PyMuPDF.** In

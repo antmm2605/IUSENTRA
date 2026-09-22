@@ -126,19 +126,70 @@ A4_POINTS = (595.276, 841.89)
 
 def _image_on_a4_page(data: bytes) -> bytes:
     """Pagina A4 (orientata come l'immagine) con l'immagine centrata e intera, senza ricampionarla."""
-    import fitz  # type: ignore
+    import io
 
-    with fitz.open(stream=data) as image:
-        rect = image[0].rect
-    landscape = rect.width > rect.height
-    width, height = (A4_POINTS[1], A4_POINTS[0]) if landscape else A4_POINTS
-    document = fitz.open()
+    from PIL import Image
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
     try:
-        page = document.new_page(width=width, height=height)
-        page.insert_image(page.rect, stream=data, keep_proportion=True)
-        return document.tobytes(garbage=3, deflate=True)
-    finally:
-        document.close()
+        with Image.open(io.BytesIO(data)) as immagine:
+            larghezza_img, altezza_img = immagine.size
+    except Exception as errore:
+        raise DocumentToolError("Immagine non leggibile.") from errore
+    if larghezza_img <= 0 or altezza_img <= 0:
+        raise DocumentToolError("Immagine non leggibile.")
+
+    orizzontale = larghezza_img > altezza_img
+    larghezza, altezza = (A4_POINTS[1], A4_POINTS[0]) if orizzontale else A4_POINTS
+    # L'immagine entra intera e mantiene le proporzioni: si scala sul lato che
+    # tocca per primo il bordo, e si centra sull'altro.
+    fattore = min(larghezza / larghezza_img, altezza / altezza_img)
+    disegnata_larga = larghezza_img * fattore
+    disegnata_alta = altezza_img * fattore
+
+    uscita = io.BytesIO()
+    foglio = canvas.Canvas(uscita, pagesize=(larghezza, altezza))
+    foglio.drawImage(
+        ImageReader(io.BytesIO(data)),
+        (larghezza - disegnata_larga) / 2,
+        (altezza - disegnata_alta) / 2,
+        width=disegnata_larga,
+        height=disegnata_alta,
+        preserveAspectRatio=True,
+        anchor="c",
+    )
+    foglio.showPage()
+    foglio.save()
+    return uscita.getvalue()
+
+
+def _image_on_its_own_page(data: bytes) -> bytes:
+    """Una pagina della misura esatta dell'immagine, a 72 punti per pollice.
+
+    E' il comportamento senza formato dichiarato: la pagina prende le
+    dimensioni dell'immagine invece di adattarla a un foglio.
+    """
+    import io
+
+    from PIL import Image
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    try:
+        with Image.open(io.BytesIO(data)) as immagine:
+            larghezza, altezza = immagine.size
+    except Exception as errore:
+        raise DocumentToolError("Immagine non leggibile.") from errore
+    if larghezza <= 0 or altezza <= 0:
+        raise DocumentToolError("Immagine non leggibile.")
+
+    uscita = io.BytesIO()
+    foglio = canvas.Canvas(uscita, pagesize=(float(larghezza), float(altezza)))
+    foglio.drawImage(ImageReader(io.BytesIO(data)), 0, 0, width=float(larghezza), height=float(altezza))
+    foglio.showPage()
+    foglio.save()
+    return uscita.getvalue()
 
 
 def images_to_pdf(
@@ -166,14 +217,10 @@ def images_to_pdf(
                 pages += 1
             continue
         try:
-            import fitz  # type: ignore
-
             if page_format == "a4":
                 pdf_bytes = _image_on_a4_page(document.data)
             else:
-                image = fitz.open(stream=document.data)
-                pdf_bytes = image.convert_to_pdf()
-                image.close()
+                pdf_bytes = _image_on_its_own_page(document.data)
             reader = PdfReader(io.BytesIO(pdf_bytes), strict=False)
         except Exception as exc:
             raise DocumentToolError(

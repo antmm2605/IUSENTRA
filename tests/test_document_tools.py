@@ -169,3 +169,67 @@ def test_api_zip_segnala_errore_leggibile_senza_file():
     response = client.post("/api/v1/ui/document-tools/zip", data={"output_name": "archivio"})
     assert response.status_code == 400
     assert response.get_json()["message"] == "Seleziona almeno un documento."
+
+
+def _png(larghezza: int, altezza: int) -> bytes:
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (larghezza, altezza), "white").save(buffer, "PNG")
+    return buffer.getvalue()
+
+
+def test_l_immagine_orizzontale_prende_un_a4_orizzontale():
+    from pct.rendering_pdf import dimensioni_pagine
+    from web.services.document_tools import _image_on_a4_page
+
+    misure = dimensioni_pagine(_image_on_a4_page(_png(1200, 800)))
+
+    assert len(misure) == 1
+    assert misure[0].larghezza > misure[0].altezza
+
+
+def test_l_immagine_verticale_prende_un_a4_verticale():
+    from pct.rendering_pdf import dimensioni_pagine
+    from web.services.document_tools import _image_on_a4_page
+
+    misure = dimensioni_pagine(_image_on_a4_page(_png(800, 1200)))
+
+    assert misure[0].altezza > misure[0].larghezza
+
+
+def test_senza_formato_la_pagina_prende_la_misura_dell_immagine():
+    from pct.rendering_pdf import dimensioni_pagine
+    from web.services.document_tools import _image_on_its_own_page
+
+    misure = dimensioni_pagine(_image_on_its_own_page(_png(640, 480)))
+
+    assert round(misure[0].larghezza) == 640
+    assert round(misure[0].altezza) == 480
+
+
+def test_un_file_che_non_e_un_immagine_viene_rifiutato():
+    import pytest
+
+    from web.services.document_tools import DocumentToolError, _image_on_a4_page
+
+    with pytest.raises(DocumentToolError):
+        _image_on_a4_page(b"questo non e' un'immagine")
+
+
+def test_la_composizione_delle_immagini_non_dipende_piu_da_pymupdf():
+    import ast
+    from pathlib import Path as _P
+
+    sorgente = (_P(__file__).resolve().parents[1] / "web" / "services" / "document_tools.py").read_text(
+        encoding="utf-8-sig"
+    )
+    importati: set[str] = set()
+    for nodo in ast.walk(ast.parse(sorgente)):
+        if isinstance(nodo, ast.Import):
+            importati.update(alias.name.split(".")[0] for alias in nodo.names)
+        elif isinstance(nodo, ast.ImportFrom) and nodo.module:
+            importati.add(nodo.module.split(".")[0])
+    assert not (importati & {"fitz", "pymupdf"})

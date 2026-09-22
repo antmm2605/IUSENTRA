@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.355.0 — 22/09/2026
+
+**Il lettore permissivo per l'importazione fedele: `pct/documento_fedele/sorgente.py`.**
+Dopo la geometria tocca alla lettura. `documento_fedele` chiedeva tutto a una
+`fitz.Page`: gli span di testo con i loro attributi, i collegamenti, le linee
+disegnate, i rettangoli pieni, il rendering di un ritaglio. `PaginaSorgente` mette
+insieme due librerie permissive per fare le stesse cose — pdfplumber (MIT) per il
+testo e la geometria, PDFium (BSD, via pypdfium2) per il rendering.
+
+La struttura degli span riproduce quella che PyMuPDF restituiva con
+`get_text("rawdict")`: stesse chiavi, stesso significato. Cosi' `_tratti_da_span` —
+la parte che decide sottolineature, evidenziature e collegamenti carattere per
+carattere, tarata su documenti veri — non va toccata. Cambiare insieme lettore e
+logica avrebbe reso impossibile capire chi ha rotto cosa.
+
+La differenza che costa di piu': nei PDF lo spazio quasi mai e' una lettera, e' il
+punto in cui la successiva riparte piu' in la'. PyMuPDF lo inferiva da solo,
+pdfplumber consegna le lettere disegnate. La soglia non puo' essere fissa — lo
+spazio di un corpo 10 e' piu' stretto di quello di un corpo 14 — quindi e' una
+frazione del corpo. Il test lo verifica nel modo piu' severo: il testo ricostruito
+riga per riga deve coincidere, carattere per carattere, con quello che pdfplumber
+legge per conto suo.
+
+Gli altri tredici test lavorano su un PDF costruito nel test con dentro tutto quello
+che un atto puo' avere: grassetto, corsivo, colore, sottolineatura, barratura,
+evidenziatura gialla, collegamento, apice, una tabella bordata e una pagina
+orizzontale. Compreso il caso che aveva gia' fatto danni una volta: il bordo di una
+cella alta non deve diventare una sottolineatura.
+
+Il modulo non e' ancora collegato: `lettura.py`, `tabelle.py`, `immagini.py`,
+`pagina.py` e `conversione.py` passano a `PaginaSorgente` nel passo successivo, in
+un colpo solo, con `tests/test_documento_fedele.py` come rete.
+
 ## 2.354.0 — 22/09/2026
 
 **La geometria di `documento_fedele` esce da PyMuPDF.** L'editor atti importa i PDF

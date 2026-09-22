@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.353.0 — 22/09/2026
+
+**Due pezzi che servono alla stessa cosa: portare la scrittura sui PDF fuori da
+PyMuPDF senza peggiorare quello che l'avvocato vede.**
+
+`pct/apparenza_campi_pdf.py` costruisce l'apparenza disegnata di un campo modulo.
+In un PDF il valore di un campo (`/V`) e il suo disegno (`/AP`) sono due cose
+separate: PyMuPDF li scriveva insieme, pypdf scrive solo il valore. Senza apparenza
+il campo si stampa vuoto — il dato c'e', sul foglio non si vede. Il modulo genera lo
+XObject del disegno riproducendo il modello che usava PyMuPDF: rettangolo di
+ritaglio, corpo del carattere dal `/DA` dichiarato o calcolato sull'altezza della
+casella, testo codificato in WinAnsi con le parentesi protette. Gli otto test non
+guardano la struttura del file ma i pixel: renderizzano la pagina con i moduli
+disegnati e contano l'inchiostro. Senza apparenza l'inchiostro e' quello del modulo
+vuoto; con apparenza cresce, e cresce ancora se il testo e' piu' lungo.
+
+`pct/verifica_fedelta.py` risponde alla domanda che l'avvocato fa ogni volta che un
+documento passa per l'editor: "e' rimasto come prima?". Ogni parola del documento di
+partenza viene cercata in quello di arrivo e si misura di quanto si e' spostata, in
+millimetri. Il verdetto e' per pagina — fedele, scostata, da rivedere — cosi' si sa
+dove guardare invece di sfogliare tutto. I nove test verificano prima di tutto che
+il confronto sappia bocciare: uno spostamento di un centimetro, una parola sparita,
+il numero di pagine cambiato.
+
+La misura serve due volte: prima di sostituire un documento nel fascicolo, e in
+prova, per dire se una modifica al convertitore ha migliorato o peggiorato
+l'importazione. Senza questo numero la migrazione di `pct/documento_fedele` fuori da
+PyMuPDF — 51 usi di `fitz` in cinque file — sarebbe a occhio.
+
 ## 2.352.0 — 22/09/2026
 
 **Nessuno verificava che un modulo compilato contenesse davvero il valore

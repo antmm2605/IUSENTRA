@@ -15,6 +15,8 @@ _LOCAL_SIGNER_MOD_FILES = {
     "security.py",
     "server_bootstrap.py",
     "support_agent.py",
+    "firma_pkcs11.py",
+    "windows_signing_session.py",
 }
 
 

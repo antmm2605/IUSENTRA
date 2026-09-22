@@ -521,7 +521,7 @@ function Copy-LocalSignerModule {
     $moduleSourceDir = Join-Path $toolsDir "local_signer_mod"
     New-Item -ItemType Directory -Force -Path $DestinationModuleDir | Out-Null
 
-    foreach ($moduleFile in @("__init__.py", "ai_cache.py", "ai_handlers.py", "pec_bridge.py", "security.py", "server_bootstrap.py", "support_agent.py")) {
+    foreach ($moduleFile in @("__init__.py", "ai_cache.py", "ai_handlers.py", "pec_bridge.py", "security.py", "server_bootstrap.py", "support_agent.py", "firma_pkcs11.py", "windows_signing_session.py")) {
         $source = Join-Path $moduleSourceDir $moduleFile
         if (-not (Test-Path $source)) {
             $source = Join-Path $toolsDir ("local_signer_mod__" + $moduleFile)

@@ -6079,3 +6079,16 @@ Integrato pdf-inspector offline nella copia Docker locale. File CAdES con nome P
 Il pannello Fascicolo d'ufficio include ora i provvedimenti nel flag già previsto e rilegge i contatori restituiti dall'importazione; nessuna modifica al trasporto comune Wizard/PST, sessioni, PIN, Local Signer, firma o PEC. La prova PIN dei sette provvedimenti resta da eseguire con l'utente.
 
 Eseguite prove materiali nella copia `127.0.0.1:8080`: refresh, fonti, sentenza nel lettore con Stampa presente, RG citato senza riscrittura della pratica, XML di collaudo con due corpi e preview mobile. Test SQL/SQLite e PostgreSQL vivo su schema isolato; prove, norme e limiti in `catalogazione-unica-fonti-2026-09-06.md` e `docs/specs/ministero/CATALOGAZIONE_DOCUMENTALE_MATRICE_20260906.md`. Nessun deposito, notifica, firma o invio reali eseguiti. Rilascio complessivo ancora aperto.
+
+## Aggiornamento 22/09/2026 - Ripristino Local Signer 1.6.133 per deposito e firma multipla
+
+Perimetro: solo Local Signer, pacchetto installabile e download del signer. Non sono stati modificati invio PEC server-side, regole SMTP, Message-ID, AUTH UTF-8, classificazione ministeriale v21 o dati dei fascicoli.
+
+- Causa del blocco PAdES: nei percorsi Windows senza sessione PKCS#11 riusabile il fallback Windows Store poteva firmare in CAdES anche quando il comando deposito aveva richiesto PAdES, lasciando un file `.pdf` privo di firma PAdES interna verificabile.
+- Correzione: il Local Signer 1.6.133 instrada il fallback in base al formato richiesto. Se il deposito chiede PAdES, viene usato il percorso PAdES; se chiede CAdES, resta il percorso CAdES.
+- Causa delle richieste PIN ripetute: il pacchetto installabile standalone non distribuiva il modulo `firma_pkcs11.py` necessario alla sessione PIN riusabile; il signer ricadeva quindi sulla firma inline documento per documento.
+- Correzione: il pacchetto standalone include ora `firma_pkcs11.py` byte-per-byte dalla versione accettata e un worker Windows Store persistente per riusare la stessa chiave durante il lotto, senza salvare PIN o documenti su disco.
+- Il pacchetto Windows `SetupLocalSigner-1.6.133.exe` e gli script di installazione includono i due moduli di sessione. Il download pubblico `/polisWeb/local-signer/setup/windows-exe` restituisce la versione 1.6.133.
+- Test automatici eseguiti: regressione formato PAdES/CAdES nei fallback senza token, verifica del modulo PKCS#11 distribuito identico a quello accettato, presenza dei moduli nei canali installazione, build React e test mirati Local Signer.
+- Prova tecnica controllata: firmati tre payload con certificato Windows di test nello stesso worker, con verifica crittografica delle firme e rimozione del certificato di test. Nessun PIN reale e nessuna firma su documenti dello studio sono stati letti o simulati.
+- Stato prova materiale: non verificato su macchina reale per il token dell'avvocato fino a quando l'utente non conferma una firma multipla reale con PIN inserito una sola volta e salvataggio dei documenti nel fascicolo.

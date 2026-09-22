@@ -1,7 +1,7 @@
 {
   "name": "@iusentra/studio",
   "private": true,
-  "version": "2.343.0",
+  "version": "2.343.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
@@ -70,3 +70,4 @@
     "@babel/core": "7.29.7"
   }
 }
+

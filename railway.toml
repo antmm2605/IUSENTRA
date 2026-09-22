@@ -1,6 +1,6 @@
 #  Railway - Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.343.0
+#  version: 2.343.1
 #  redeploy: 30/06/2026 15:16:47
 
 [build]
@@ -30,3 +30,4 @@ restartPolicyMaxRetries = 5
 #  VOLUME (persistenza dati):
 #  Vai su: progetto -> Service -> Volumes -> Add Volume
 #  Mount path: /data
+

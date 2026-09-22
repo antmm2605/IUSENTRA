@@ -98,7 +98,9 @@ $moduleFiles = @(
     "pec_bridge.py",
     "security.py",
     "server_bootstrap.py",
-    "support_agent.py"
+    "support_agent.py",
+    "firma_pkcs11.py",
+    "windows_signing_session.py"
 )
 foreach ($moduleFile in $moduleFiles) {
     $source = Join-Path $localSignerModDir $moduleFile
@@ -167,6 +169,8 @@ SourceFiles0=$escapedSource
   %FILE15%=
   %FILE16%=
   %FILE17%=
+%FILE18%=
+%FILE19%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -186,6 +190,8 @@ FILE14=local_signer_mod__security.py
 FILE15=local_signer_mod__server_bootstrap.py
 FILE16=local_signer_mod__support_agent.py
 FILE17=local_signer_foreground_helper.py
+FILE18=local_signer_mod__firma_pkcs11.py
+FILE19=local_signer_mod__windows_signing_session.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -260,6 +266,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -o "$MOD_DIR/firma_pkcs11.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -o "$MOD_DIR/windows_signing_session.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
@@ -349,6 +357,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -o "$MOD_DIR/firma_pkcs11.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -o "$MOD_DIR/windows_signing_session.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow

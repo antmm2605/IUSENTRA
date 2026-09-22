@@ -168,45 +168,61 @@ def _file_presente(documento: dict[str, Any]) -> bool:
         return False
 
 
-def documenti_fuori_misura(service: Any, *, massimo: int = 0) -> list[dict[str, Any]]:
-    """I documenti con almeno un chunk in attesa oltre il limite, per SQL soltanto.
+#: Un chunk oltre il limite si riconosce dal conteggio token gia' salvato:
+#: `_estimate_tokens` e' ceil(caratteri / 4), quindi oltre questa soglia il
+#: testo supera `_RAG_MAX_CHUNK_CHARS`. E' una colonna intera: si confronta
+#: senza leggere il testo, che su questo archivio pesa centinaia di megabyte.
+SOGLIA_TOKEN = _RAG_MAX_CHUNK_CHARS // 4
 
-    Il censimento completo deve leggere il testo di ogni chunk sotto misura per
-    passarlo al validatore, e su decine di migliaia di righe costa un minuto e
-    mezzo. Qui non serve: un chunk oltre `_RAG_MAX_CHUNK_CHARS` si riconosce
-    dalla sola lunghezza, e sono quelli il grosso del guaio. La rispezzatura
-    parte da questi, cosi' ogni passata spende il suo tempo a rifare documenti
-    invece che a ricontarli.
-    """
+
+def _identificativi_fuori_misura(conn, *, massimo: int = 0) -> list[str]:
+    """Una sola passata su rag_chunks, senza toccare il testo."""
     sql = """
-        SELECT d.id, d.source_type, d.source_id, d.practice_id, d.title, d.file_path, d.mime_type
-        FROM rag_documents AS d
-        WHERE EXISTS (
-            SELECT 1 FROM rag_chunks AS c
-            WHERE c.document_id = d.id
-              AND c.embedding_state = 'pending'
-              AND length(c.text) > ?
-        )
+        SELECT DISTINCT document_id FROM rag_chunks
+        WHERE embedding_state = 'pending' AND COALESCE(token_estimate, 0) > ?
     """
-    parametri: list[Any] = [_RAG_MAX_CHUNK_CHARS]
+    parametri: list[Any] = [SOGLIA_TOKEN]
     if massimo > 0:
         sql += " LIMIT ?"
         parametri.append(massimo)
+    return [str(riga[0]) for riga in conn.execute(sql, parametri).fetchall() if riga[0]]
+
+
+def documenti_fuori_misura(service: Any, *, massimo: int = 0) -> list[dict[str, Any]]:
+    """I documenti con almeno un chunk in attesa oltre il limite.
+
+    Il censimento completo deve leggere il testo di ogni chunk per passarlo al
+    validatore, e su decine di migliaia di righe costa piu' del tempo concesso
+    all'intera richiesta. Qui non serve: il conteggio token salvato al momento
+    della scrittura dice gia' se il chunk sfora, ed e' un intero.
+
+    Un chunk scritto da un percorso che non ha valorizzato `token_estimate`
+    sfugge a questo giro: lo ritrova il censimento completo, e in ogni caso il
+    validatore lo scarta prima di mandarlo al modello.
+    """
     with service._connect() as conn:
-        return [dict(riga) for riga in conn.execute(sql, parametri).fetchall()]
+        identificativi = _identificativi_fuori_misura(conn, massimo=massimo)
+        if not identificativi:
+            return []
+        documenti: list[dict[str, Any]] = []
+        for inizio in range(0, len(identificativi), LOTTO_TESTI):
+            lotto = identificativi[inizio : inizio + LOTTO_TESTI]
+            segnaposti = ",".join("?" for _ in lotto)
+            righe = conn.execute(
+                f"""
+                SELECT id, source_type, source_id, practice_id, title, file_path, mime_type
+                FROM rag_documents WHERE id IN ({segnaposti})
+                """,
+                lotto,
+            ).fetchall()
+            documenti.extend(dict(riga) for riga in righe)
+    return documenti
 
 
 def quanti_fuori_misura(service: Any) -> int:
     """Quanti documenti hanno ancora almeno un chunk oltre il limite."""
     with service._connect() as conn:
-        riga = conn.execute(
-            """
-            SELECT COUNT(DISTINCT document_id) FROM rag_chunks
-            WHERE embedding_state = 'pending' AND length(text) > ?
-            """,
-            (_RAG_MAX_CHUNK_CHARS,),
-        ).fetchone()
-    return int(riga[0] if riga else 0)
+        return len(_identificativi_fuori_misura(conn))
 
 
 def esamina(service: Any, *, studio: str = "", limite: int = 0) -> EsitoArchivio:
@@ -350,6 +366,7 @@ __all__ = [
     "documenti_coinvolti",
     "documenti_fuori_misura",
     "esamina",
+    "SOGLIA_TOKEN",
     "quanti_fuori_misura",
     "rispezza",
 ]

@@ -254,11 +254,12 @@ def _documento_con_chunk_gigante(service: LocalAIService, cartella: Path, numero
             INSERT INTO rag_chunks (
                 id, document_id, practice_id, section_type, ordinal, page_from, page_to,
                 token_estimate, text, metadata_json, embedding_state, created_at, updated_at
-            ) VALUES (?, ?, 'FASC-1', 'corpo', 99, 1, 1, 1, ?, '{}', 'pending', ?, ?)
+            ) VALUES (?, ?, 'FASC-1', 'corpo', 99, 1, 1, ?, ?, '{}', 'pending', ?, ?)
             """,
             (
                 f"gigante-{numero}",
                 document_id,
+                _RAG_MAX_CHUNK_CHARS,  # come lo scriveva lo splitter vecchio: ceil(caratteri / 4)
                 "parola " * (_RAG_MAX_CHUNK_CHARS * 4 // 7),
                 "2026-09-01T00:00:00",
                 "2026-09-01T00:00:00",
@@ -324,3 +325,32 @@ def test_rispezza_non_dipende_dal_censimento_completo(tmp_path: Path, monkeypatc
 
     assert esito.documenti_rifatti == 2
     assert esito.documenti_restanti == 0
+
+
+def test_la_via_veloce_dichiara_il_suo_limite(tmp_path: Path):
+    """Un chunk senza conteggio token sfugge alla via veloce, non al censimento.
+
+    La rispezzatura si fida di `token_estimate` per non leggere il testo. Se
+    quel conteggio manca, il documento non entra nel lotto: lo ritrova
+    l'analisi completa, e il validatore lo scarta comunque prima del modello.
+    """
+
+    from pct.manutenzione_chunk_rag import documenti_fuori_misura
+
+    service = _servizio(tmp_path)
+    document_id, _ = _documento_indicizzato(service, tmp_path)
+    with service._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO rag_chunks (
+                id, document_id, practice_id, section_type, ordinal, page_from, page_to,
+                token_estimate, text, metadata_json, embedding_state, created_at, updated_at
+            ) VALUES ('senza-conteggio', ?, 'FASC-1', 'corpo', 98, 1, 1, 0, ?, '{}', 'pending', ?, ?)
+            """,
+            (document_id, "x" * (_RAG_MAX_CHUNK_CHARS * 3), "2026-09-01T00:00:00", "2026-09-01T00:00:00"),
+        )
+        conn.commit()
+
+    assert documenti_fuori_misura(service) == [], "senza conteggio la via veloce non lo vede"
+    scarti, _ = chunk_da_scartare(service)
+    assert any(s["chunk"] == "senza-conteggio" for s in scarti), "il censimento completo lo trova"

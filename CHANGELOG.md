@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.343.5 — 22/09/2026
+
+**La lista dei documenti da rifare non rilegge piu' l'archivio una volta per
+documento.** La query introdotta con la 2.343.4 usava un `EXISTS` correlato su
+`rag_documents`: in produzione la passata ha impiegato 313 secondi, di cui la quasi
+totalita' spesa a costruire la lista. Ora e' una sola passata su `rag_chunks` che
+confronta il conteggio token gia' salvato — `_estimate_tokens` e' ceil(caratteri/4),
+quindi la soglia e' un intero e il testo non viene toccato.
+
+Il limite e' dichiarato e coperto da un test: un chunk scritto senza
+`token_estimate` sfugge alla via veloce, lo ritrova il censimento completo del
+bottone di analisi, e il validatore lo scarta comunque prima del modello.
+
 ## 2.343.4 — 22/09/2026
 
 **La rispezzatura spendeva il suo tempo a contare invece che a lavorare.** La prima

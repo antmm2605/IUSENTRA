@@ -56,7 +56,7 @@ def estrai_tabelle(
 
     fuori: list[Elemento] = []
     for tabella in trovate:
-        if dedotte and not _tabella_plausibile(tabella, righe):
+        if dedotte and not _tabella_plausibile(pagina, tabella, righe):
             continue
         riquadro = Riquadro(tabella.bbox)
         celle = [c for c in (tabella.cells or []) if c]
@@ -112,8 +112,19 @@ RIGHE_RACCOLTE_MINIME = 2
 #: raccolta da quella cella.
 DENTRO_LA_CELLA = 0.50
 
+#: In quante righe, almeno, deve essere scritta la seconda colonna piu' piena
+#: perche' la griglia sia una tabella e non un testo incolonnato.
+QUOTA_SECONDA_COLONNA = 0.30
 
-def _tabella_plausibile(tabella, righe: list[Riga]) -> bool:
+#: E comunque in almeno due righe.
+RIGHE_SECONDA_COLONNA_MINIME = 2
+
+#: Quante parole spezzate a meta' bastano a dire che quelle colonne non
+#: esistono: due, perche' una potrebbe essere una sillabazione.
+PAROLE_SPEZZATE_AMMESSE = 1
+
+
+def _tabella_plausibile(pagina, tabella, righe: list[Riga]) -> bool:
     """Vero se una tabella dedotta dall'incolonnamento regge davvero.
 
     Senza filetti la ricerca «a testo» trova una griglia dappertutto: su un
@@ -153,8 +164,92 @@ def _tabella_plausibile(tabella, righe: list[Riga]) -> bool:
         if any(riquadro.sovrapposizione(cella) > DENTRO_LA_CELLA for cella in celle):
             raccolte += 1
 
-    return (raccolte >= RIGHE_RACCOLTE_MINIME
-            and raccolte >= len(dentro) * QUOTA_RIGHE_RACCOLTE)
+    if raccolte < RIGHE_RACCOLTE_MINIME or raccolte < len(dentro) * QUOTA_RIGHE_RACCOLTE:
+        return False
+    if _spezza_le_parole(pagina, tabella):
+        return False
+    return _almeno_due_colonne_scritte(tabella)
+
+
+def _spezza_le_parole(pagina, tabella) -> bool:
+    """Vero se il bordo fra due colonne passa in mezzo a una parola.
+
+    E' il segno che quelle colonne non ci sono. Una tabella vera ha le colonne
+    separate da uno spazio bianco; la ricerca «a testo» invece allinea per caso
+    parole di righe diverse e taglia dove capita — «Avvocato Roberto
+    Montagnes | e», «Ufficio R | ecupero Crediti». Guardando le lettere una per
+    una si vede subito: fra le due che stanno ai lati del bordo non c'e'
+    nemmeno lo spazio di uno spazio.
+    """
+    celle = [c for c in (tabella.cells or []) if c]
+    if not celle:
+        return False
+    bordi = sorted({round(float(c[0]), 1) for c in celle}
+                   | {round(float(c[2]), 1) for c in celle})
+    riquadro = Riquadro(tabella.bbox)
+    interni = [b for b in bordi
+               if riquadro.x0 + Taratura.TOLLERANZA < b < riquadro.x1 - Taratura.TOLLERANZA]
+    if not interni:
+        return False
+
+    try:
+        caratteri = [c for c in pagina.caratteri
+                     if riquadro.y0 <= float(c["top"]) <= riquadro.y1]
+    except Exception:
+        return False
+    if not caratteri:
+        return False
+
+    per_riga: dict[int, list[dict]] = {}
+    for carattere in caratteri:
+        per_riga.setdefault(int(round(float(carattere["top"]))), []).append(carattere)
+
+    spezzate = 0
+    for gruppo in per_riga.values():
+        gruppo.sort(key=lambda c: float(c["x0"]))
+        for prima, dopo in zip(gruppo, gruppo[1:]):
+            if str(prima.get("text") or "").isspace() or str(dopo.get("text") or "").isspace():
+                continue
+            fine, inizio = float(prima["x1"]), float(dopo["x0"])
+            corpo = float(dopo.get("size") or prima.get("size") or 11.0)
+            if inizio - fine > corpo * 0.18:
+                continue   # qui uno spazio c'e': il bordo puo' passare
+            if any(fine - 0.2 <= b <= inizio + 0.2 for b in interni):
+                spezzate += 1
+                if spezzate > PAROLE_SPEZZATE_AMMESSE:
+                    return True
+    return False
+
+
+def _almeno_due_colonne_scritte(tabella) -> bool:
+    """Vero se la griglia ha davvero due colonne, non una sola e il vuoto.
+
+    Una pagina di solo testo puo' superare la prova delle righe raccolte: se la
+    griglia inventata e' larga quanto la pagina, ogni riga ci sta dentro. Ma in
+    quella griglia una colonna sola porta il testo e le altre restano vuote —
+    era il caso della carta intestata seguita dall'atto, cinquantanove righe e
+    due colonne vuote — mentre in una tabella vera almeno due colonne sono
+    scritte. Non si applica alle tabelle con i filetti: quelle le dichiara
+    l'autore, e un modulo da compilare e' fatto apposta di celle vuote.
+    """
+    try:
+        dati = tabella.extract() or []
+    except Exception:
+        return True   # non si riesce a leggerla: si lascia decidere al resto
+    dati = [fila for fila in dati if fila]
+    if len(dati) < RIGHE_RACCOLTE_MINIME:
+        return False
+    larghezza = max(len(fila) for fila in dati)
+    if larghezza < 2:
+        return False
+    scritte = [
+        sum(1 for fila in dati
+            if colonna < len(fila) and (fila[colonna] or "").strip())
+        for colonna in range(larghezza)
+    ]
+    scritte.sort(reverse=True)
+    soglia = max(RIGHE_SECONDA_COLONNA_MINIME, len(dati) * QUOTA_SECONDA_COLONNA)
+    return scritte[1] >= soglia
 
 
 def _e_intestazione(griglia: list[list[Optional[dict]]]) -> bool:

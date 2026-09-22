@@ -126,6 +126,7 @@ def estrai_immagini(pagina: PaginaSorgente, larghezza_pagina: float,
             tipo="immagine",
             html=(f'<p style="{stile_p};margin:0.35em 0">'
                   f'<img src="{sorgente}" style="width:{quota:.1f}%;height:auto" '
+                  f'data-riquadro="{r.x0:.1f},{r.y0:.1f},{r.x1:.1f},{r.y1:.1f}" '
                   f'alt="Immagine del documento"></p>'),
             top=r.y0,
             bbox=tuple(r),
@@ -187,6 +188,7 @@ def estrai_grafica(
             tipo="grafica",
             html=(f'<p style="text-align:{"center" if centrata else "left"};margin:0.3em 0">'
                   f'<img src="{sorgente}" style="width:{quota:.1f}%;height:auto" '
+                  f'data-riquadro="{g.x0:.1f},{g.y0:.1f},{g.x1:.1f},{g.y1:.1f}" '
                   f'alt="Grafica del documento"></p>'),
             top=g.y0,
             bbox=tuple(g),

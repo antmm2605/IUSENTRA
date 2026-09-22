@@ -214,10 +214,29 @@ def _stile_paragrafo(
     corpo = statistics.median([r.corpo for r in blocco])
     stile = [f"text-align:{allinea}"]
 
+    # Quanto scende ogni riga, in punti e non in proporzione al corpo: un
+    # titolo di diciotto punti in un atto con righe a ventiquattro scende di
+    # ventiquattro, non di trentasei. Chi riscrive il PDF fa un passo di
+    # interlinea per ogni riga del paragrafo e uno stacco fra un paragrafo e
+    # l'altro, quindi qui si dichiarano tutti e due.
+    # Il salto si misura sul bordo alto delle righe, ma chi riscrive il PDF
+    # lavora sulla linea di base: se il paragrafo dopo ha un corpo diverso, il
+    # bordo alto si sposta anche senza che la riga si muova. Si toglie quella
+    # differenza, altrimenti ogni cambio di corpo lascia un punto di scarto
+    # che si somma riga dopo riga.
+    salto_dopo = 0.0
+    if successivo:
+        salto_dopo = successivo[0].bbox[1] - blocco[-1].bbox[1]
+        corpo_dopo = statistics.median([r.corpo for r in successivo])
+        salto_dopo -= Taratura.DISCESA_CARATTERE * (corpo_dopo - corpo)
     if len(blocco) > 1:
-        interno = _interlinea_mediana(blocco)
-        rapporto = max(0.9, min(3.0, interno / max(corpo, 1.0)))
-        stile.append(f"line-height:{rapporto:.2f}")
+        passo = _interlinea_mediana(blocco)
+    elif salto_dopo > 0.5:
+        # riga sola: il passo e' esattamente la distanza dalla riga dopo
+        passo = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO)
+    else:
+        passo = interlinea
+    stile.append(f"line-height:{_pt(max(passo, corpo * 0.9))}pt")
 
     rientro_sx = (min(r.bbox[0] for r in blocco[1:]) if len(blocco) > 1
                   else blocco[0].bbox[0]) - sinistra
@@ -238,12 +257,11 @@ def _stile_paragrafo(
             stile.append(f"text-indent:{_pt(prima - altre)}pt")
 
     if successivo:
-        salto = successivo[0].bbox[1] - blocco[-1].bbox[1]
-        extra = salto - interlinea
-        if extra > corpo_base * 0.3:
-            # lo stacco si limita: un vuoto enorme e' quasi sempre dovuto a
-            # una tabella o a un'immagine che sta in mezzo, non al paragrafo
-            stile.append(f"margin-bottom:{_pt(min(extra * 0.75, corpo_base * 2.4))}pt")
+        # un vuoto enorme e' quasi sempre una tabella o un'immagine in mezzo,
+        # non lo stacco del paragrafo: oltre quel limite non si segue
+        extra = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO) - passo
+        if extra > 0.5:
+            stile.append(f"margin-bottom:{_pt(extra)}pt")
     return stile
 
 

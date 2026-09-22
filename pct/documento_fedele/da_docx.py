@@ -571,6 +571,31 @@ def _in_ordine(documento):
             yield Table(elemento, documento)
 
 
+def _interlinea_prevalente(documento, corpo_base: float) -> float:
+    """L'interlinea usata piu' spesso nel documento, in punti.
+
+    Word la dichiara per paragrafo, in due modi: un moltiplicatore del corpo o
+    una misura esatta. Qui diventa sempre una misura, perche' chi riesporta
+    ragiona in punti.
+    """
+    conteggio: dict[float, int] = {}
+    for paragrafo in _tutti_i_paragrafi(documento):
+        lettere = len(paragrafo.text or "")
+        if not lettere:
+            continue
+        valore = _formato_ereditato(paragrafo, "line_spacing")
+        if valore is None:
+            passo = round(corpo_base * 1.2, 1)
+        elif isinstance(valore, float):
+            passo = round(corpo_base * valore, 1)
+        else:
+            passo = round(getattr(valore, "pt", corpo_base * 1.2), 1)
+        conteggio[passo] = conteggio.get(passo, 0) + lettere
+    if not conteggio:
+        return round(corpo_base * 1.2, 1)
+    return max(conteggio.items(), key=lambda voce: voce[1])[0]
+
+
 def _formato_pagina(documento) -> dict:
     if not documento.sections:
         return {}
@@ -681,8 +706,19 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
     _chiudi_elenchi()
 
     stile_pagina = [f"font-family:{famiglia_base}", f"font-size:{_pt(corpo_base)}pt"]
+    # La pagina porta con se' le sue misure: servono a chi la riesporta in PDF.
+    margini = formato.get("margini_pt") or {}
+    misure = (
+        f' data-larghezza="{_pt(formato.get("larghezza_pt", 595.3))}"'
+        f' data-altezza="{_pt(formato.get("altezza_pt", 841.9))}"'
+        f' data-margine-alto="{_pt(margini.get("alto", 56.7))}"'
+        f' data-margine-destro="{_pt(margini.get("destro", 56.7))}"'
+        f' data-margine-basso="{_pt(margini.get("basso", 56.7))}"'
+        f' data-margine-sinistro="{_pt(margini.get("sinistro", 56.7))}"'
+        f' data-interlinea="{_pt(_interlinea_prevalente(documento, corpo_base))}"'
+    )
     html = "".join(
-        f'<section class="iu-doc-pagina" data-pagina="{numero}" data-origine="docx" '
+        f'<section class="iu-doc-pagina" data-pagina="{numero}" data-origine="docx"{misure} '
         f'style="{";".join(stile_pagina)}">{"".join(contenuto)}</section>'
         for numero, contenuto in enumerate(pagine, start=1)
     )
@@ -693,7 +729,7 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
     esito.caratteri = sorted(c for c in caratteri if c)
     esito.pagine = [PaginaConvertita(
         numero=numero,
-        html=(f'<section class="iu-doc-pagina" data-pagina="{numero}" data-origine="docx" '
+        html=(f'<section class="iu-doc-pagina" data-pagina="{numero}" data-origine="docx"{misure} '
               f'style="{";".join(stile_pagina)}">{"".join(contenuto)}</section>'),
         larghezza=formato.get("larghezza_pt", 595.3),
         altezza=formato.get("altezza_pt", 841.9),

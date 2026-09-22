@@ -127,3 +127,30 @@ def test_una_tabella_senza_filetti_ma_con_le_celle_piene_resta_tabella():
     assert "<table" in html, "una tabella senza filetti e' stata buttata via"
     testo = _testo(html)
     assert "Contributo unificato" in testo and "2.430,00" in testo
+
+
+def test_le_colonne_che_tagliano_una_parola_non_sono_colonne():
+    """Il bordo che passa in mezzo a una parola tradisce la griglia inventata.
+
+    Su una carta intestata seguita dall'atto la ricerca «a testo» trovava tre
+    colonne e tagliava dove capitava: «Avvocato Roberto Montagnes | e». Le
+    righe finite in quella griglia uscivano dai paragrafi, e il documento
+    tornava di tre pagine piu' lungo.
+    """
+    intestazione = ParagraphStyle(
+        "intestazione", parent=getSampleStyleSheet()["Normal"],
+        alignment=TA_JUSTIFY, fontName="Times-Roman", fontSize=9, leading=11,
+    )
+    html = _html([
+        Paragraph("STUDIO LEGALE MONTAGNESE", intestazione),
+        Paragraph("Avvocato Roberto Montagnese", intestazione),
+        Paragraph("Patrocinante in Cassazione", intestazione),
+        Paragraph("Via N. Bixio, 4 - Tel e Fax 0966 - 611363", intestazione),
+        Paragraph("89029 TAURIANOVA (RC)", intestazione),
+        Paragraph(PERIODO * 10, _stile()),
+    ])
+
+    assert "<table" not in html, "la carta intestata e' stata presa per una tabella"
+    testo = _testo(html)
+    assert "Avvocato Roberto Montagnese" in testo, "una parola e' stata tagliata a meta'"
+    assert "Con atto di citazione" in testo

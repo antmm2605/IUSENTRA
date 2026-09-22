@@ -122,6 +122,45 @@ ALTEZZA_IN_CORPO = 0.78
 RIGHE_PER_DEDURRE_LA_COLONNA = 3
 
 
+def _allineamento_pagina(righe: list[Riga], margini, larghezza: float) -> str:
+    """Come e' allineato il corpo della pagina.
+
+    Quello che distingue il giustificato non e' quante righe toccano il margine
+    destro — l'ultima riga di ogni capoverso non lo tocca — ma che quelle che
+    lo toccano finiscano tutte nello stesso punto.
+    """
+    if len(righe) < 4:
+        return "left"
+    conteggio: dict[int, int] = {}
+    for r in righe:
+        chiave = int(round(r.bbox[2]))
+        conteggio[chiave] = conteggio.get(chiave, 0) + 1
+    ricorrente, quante = max(conteggio.items(), key=lambda voce: voce[1])
+    if quante > len(righe) * 0.30:
+        return "justify"
+    return "left"
+
+
+def _interlinea(righe: list[Riga], corpo: float) -> float:
+    """La distanza fra le basi di due righe consecutive, in punti.
+
+    Si prende la mediana dei salti, non la media: in un atto ci sono sempre
+    righe piu' distanti — dopo un titolo, prima di un elenco — e la media le
+    farebbe pesare come se fossero la regola.
+    """
+    if len(righe) < 3:
+        return round(corpo * 1.2, 1)
+    ordinate = sorted(righe, key=lambda r: r.origine_y)
+    salti = [
+        ordinate[i + 1].origine_y - ordinate[i].origine_y
+        for i in range(len(ordinate) - 1)
+    ]
+    salti = sorted(s for s in salti if corpo * 0.6 < s < corpo * 4)
+    if not salti:
+        return round(corpo * 1.2, 1)
+    return round(salti[len(salti) // 2], 1)
+
+
 def _colonna(pagina: PaginaSorgente, righe: list[Riga],
              margini: tuple[float, float, float, float]) -> tuple[float, float]:
     """I bordi sinistro e destro della colonna di testo, per giudicare gli allineamenti.
@@ -280,9 +319,21 @@ def converti(
                     )
                     corpo_html += f'<footer class="iu-doc-piede">{fondo}</footer>'
 
+                # La pagina porta con se' le sue misure. Servono a chi la
+                # riesporta in PDF: senza, l'esportazione rifa' il documento
+                # con margini e interlinea suoi, e un atto di sedici pagine ne
+                # esce venti.
                 html = (
                     f'<section class="iu-doc-pagina" data-pagina="{voce["indice"] + 1}"'
                     f' data-origine="{"ocr" if voce["da_ocr"] else "testo"}"'
+                    f' data-larghezza="{_pt(pagina.rect.width)}"'
+                    f' data-altezza="{_pt(pagina.rect.height)}"'
+                    f' data-margine-alto="{_pt(margini[0])}"'
+                    f' data-margine-destro="{_pt(margini[1])}"'
+                    f' data-margine-basso="{_pt(margini[2])}"'
+                    f' data-margine-sinistro="{_pt(margini[3])}"'
+                    f' data-interlinea="{_pt(_interlinea(libere, corpo_pagina))}"'
+                    f' data-allineamento="{_allineamento_pagina(libere, margini, pagina.rect.width)}"'
                     f' style="font-family:{famiglia_pagina};'
                     f'font-size:{_pt(corpo_pagina)}pt">{corpo_html}</section>'
                 )

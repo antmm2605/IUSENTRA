@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 import re
 from email import policy
 from email.message import EmailMessage, Message
@@ -916,6 +917,143 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
 # ─────────────────────────────────────────────── HTML → PDF
 # Usa reportlab (già in requirements) — nessuna dipendenza di sistema aggiuntiva
 
+#: Gli attributi con cui l'importazione scrive le misure della pagina.
+_MISURE_PAGINA = {
+    "data-margine-alto": "margin_top_mm",
+    "data-margine-destro": "margin_right_mm",
+    "data-margine-basso": "margin_bottom_mm",
+    "data-margine-sinistro": "margin_left_mm",
+}
+
+
+def misure_del_documento(html: str) -> dict:
+    """Margini, corpo e interlinea scritti nella prima pagina del documento.
+
+    `pct/documento_fedele` li misura sull'originale e li lascia sulla sezione
+    come attributi `data-`. Qui tornano a essere un layout, in millimetri come
+    li vuole l'esportazione.
+
+    Se la pagina non li porta — un HTML scritto a mano, un documento vecchio —
+    si restituisce un dizionario vuoto e valgono i valori dell'editor.
+    """
+    if not html or "iu-doc-pagina" not in html:
+        return {}
+    apertura = re.search(r"<section[^>]*class=\"[^\"]*iu-doc-pagina[^\"]*\"[^>]*>", html)
+    if not apertura:
+        return {}
+    sezione = apertura.group(0)
+
+    fuori: dict = {}
+    for attributo, chiave in _MISURE_PAGINA.items():
+        trovato = re.search(rf'{attributo}="([0-9.]+)"', sezione)
+        if trovato:
+            try:
+                fuori[chiave] = round(float(trovato.group(1)) * 25.4 / 72, 1)
+            except ValueError:
+                pass
+
+    for attributo, chiave in (("data-allineamento", "text_align"),):
+        trovato = re.search(rf'{attributo}="([a-z]+)"', sezione)
+        if trovato and trovato.group(1) in ("left", "center", "right", "justify"):
+            fuori[chiave] = trovato.group(1)
+
+    corpo = re.search(r"font-size:\s*([0-9.]+)pt", sezione)
+    interlinea = re.search(r'data-interlinea="([0-9.]+)"', sezione)
+    if corpo:
+        try:
+            misura = float(corpo.group(1))
+            fuori["font_size_pt"] = misura
+            if interlinea and misura > 0:
+                fuori["line_height"] = round(float(interlinea.group(1)) / misura, 2)
+        except ValueError:
+            pass
+
+    if fuori:
+        # Il documento dichiara gia' la distanza fra le righe: aggiungerci
+        # anche lo stacco fra paragrafi raddoppierebbe ogni interruzione.
+        fuori.setdefault("paragraph_spacing_pt", 0)
+        fuori["prima_riga_pt"] = _corpo_del_primo_blocco(html, fuori.get("font_size_pt", 12))
+    return fuori
+
+
+_RE_SEZIONE_PAGINA = re.compile(
+    r'<section[^>]*class="[^"]*iu-doc-pagina[^"]*"[^>]*>', re.I
+)
+
+
+def misure_delle_pagine(html: str) -> list[dict]:
+    """Le misure di ogni pagina del documento importato, una per una.
+
+    Un atto non ha un solo insieme di margini: la prima pagina porta la carta
+    intestata e comincia a un centimetro dal bordo, le altre cominciano a
+    cinque; a volte cambia anche il corpo. Dare a tutte le misure della prima
+    e' il motivo per cui sedici pagine ne diventano diciotto.
+    """
+    if not html or "iu-doc-pagina" not in html:
+        return []
+    aperture = list(_RE_SEZIONE_PAGINA.finditer(html))
+    fuori: list[dict] = []
+    for posto, apertura in enumerate(aperture):
+        sezione = apertura.group(0)
+        fine = aperture[posto + 1].start() if posto + 1 < len(aperture) else len(html)
+        dentro = html[apertura.end():fine]
+
+        def _numero(attributo: str, ripiego: float) -> float:
+            trovato = re.search(rf'{attributo}="([0-9.]+)"', sezione)
+            if not trovato:
+                return ripiego
+            try:
+                return float(trovato.group(1))
+            except ValueError:
+                return ripiego
+
+        corpo = 12.0
+        trovato = re.search(r"font-size:\s*([0-9.]+)pt", sezione)
+        if trovato:
+            try:
+                corpo = float(trovato.group(1))
+            except ValueError:
+                corpo = 12.0
+        allinea = "justify"
+        trovato = re.search(r'data-allineamento="([a-z]+)"', sezione)
+        if trovato and trovato.group(1) in ("left", "center", "right", "justify"):
+            allinea = trovato.group(1)
+
+        fuori.append({
+            "larghezza": _numero("data-larghezza", 595.3),
+            "altezza": _numero("data-altezza", 841.9),
+            "alto": _numero("data-margine-alto", 56.7),
+            "destro": _numero("data-margine-destro", 56.7),
+            "basso": _numero("data-margine-basso", 56.7),
+            "sinistro": _numero("data-margine-sinistro", 56.7),
+            "interlinea": _numero("data-interlinea", round(corpo * 1.2, 1)),
+            "corpo": corpo,
+            "allineamento": allinea,
+            "prima_riga": _corpo_del_primo_blocco(dentro, corpo),
+        })
+    return fuori
+
+
+def _corpo_del_primo_blocco(html: str, ripiego: float) -> float:
+    """Con che corpo e' scritta la prima riga della pagina.
+
+    Serve a sapere di quanto reportlab fara' scendere quella riga sotto il
+    margine: lo scarto dipende dal corpo, e la prima riga di un atto e' spesso
+    l'intestazione, piu' grande del testo.
+    """
+    primo = re.search(r"<(?:p|h[1-4])\b[^>]*>", html or "")
+    if not primo:
+        return ripiego
+    corpo = re.search(r"font-size:\s*([0-9.]+)pt", primo.group(0))
+    if not corpo:
+        return ripiego
+    try:
+        misura = float(corpo.group(1))
+    except ValueError:
+        return ripiego
+    return misura if 4 <= misura <= 40 else ripiego
+
+
 def html_to_pdf(
     html: str,
     titolo: str = "Documento",
@@ -939,6 +1077,7 @@ def html_to_pdf(
     """
     try:
         from reportlab.platypus import (
+            BaseDocTemplate, PageTemplate, Frame, NextPageTemplate,
             SimpleDocTemplate, Paragraph, Spacer, PageBreak,
             Table, TableStyle, HRFlowable, ListFlowable, ListItem, Image as RLImage,
         )
@@ -947,6 +1086,7 @@ def html_to_pdf(
         from reportlab.lib.units import cm
         from reportlab.lib import colors
         from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT, TA_LEFT
+        from reportlab.lib.utils import ImageReader
         from pct.pdf_style import pdf_table_header_style
     except ImportError:
         raise ImportError("reportlab non installato. Esegui: pip install reportlab")
@@ -955,6 +1095,15 @@ def html_to_pdf(
         from lxml import etree
     except ImportError:
         raise ImportError("lxml non installato")
+
+    # Un documento importato porta scritte le proprie misure. Non passano per
+    # la normalizzazione dell'editor: quella tiene i margini fra 5 e 60 mm
+    # interi e l'interlinea fra 1,2 e 2,6, che sono limiti giusti per un atto
+    # scritto qui e sbagliati per uno da riprodurre — un margine di 3,5 mm
+    # diventerebbe 5, e tre pagine su sedici cambierebbero di riga.
+    layout = dict(layout or {})
+    misure_documento = {} if layout.get("stamp_anchor") else misure_del_documento(html)
+    misure_pagine = misure_delle_pagine(html) if misure_documento else []
 
     try:
         from pct.template_atti import font_editor, normalizza_editor_layout
@@ -971,6 +1120,7 @@ def html_to_pdf(
             "margin_left_mm": 32,
             "paragraph_spacing_pt": 8,
         }
+        layout_cfg.update({c: v for c, v in layout.items() if c in layout_cfg})
         font_meta = {"pdf_family": "times"}
 
     editor_page_setup = None
@@ -996,6 +1146,12 @@ def html_to_pdf(
             layout_cfg["margin_top_mm"] = top_margin_with_stamp(layout_cfg, studio_timbro)
         except Exception:
             stamp_callback = None
+
+    if misure_documento:
+        # il timbro, quando c'e', ha gia' spostato il margine alto: non si tocca
+        if stamp_callback is not None:
+            misure_documento.pop("margin_top_mm", None)
+        layout_cfg.update(misure_documento)
 
     pdf_family = (font_meta.get("pdf_family") or "times").lower()
     font_bundle = {
@@ -1064,6 +1220,125 @@ def html_to_pdf(
         spaceBefore=6, spaceAfter=4,
         underlineWidth=0.5,
     )
+    if misure_documento:
+        # Nell'originale ogni andata a capo e' gia' segnata, e la riga che la
+        # precede era giustificata da bordo a bordo. Senza questo reportlab la
+        # tratta come fine di capoverso e la lascia corta: le parole si
+        # stringono a sinistra e l'ultima arriva anche a quattro millimetri da
+        # dove stava.
+        st_normal.justifyBreaks = 1
+
+        # Il documento importato porta gia' scritto quanto stacca ogni riga e
+        # ogni capoverso. Lo stacco che l'editor mette attorno ai titoli si
+        # sommerebbe a quello, e ogni titolo spingerebbe giu' tutto il resto
+        # della pagina.
+        for _stile in (st_h1, st_h2, st_h3, st_h4):
+            _stile.spaceBefore = 0
+            _stile.spaceAfter = 0
+
+    _stili_paragrafo: dict = {}
+    _allineamenti = {"left": TA_LEFT, "center": TA_CENTER,
+                     "right": TA_RIGHT, "justify": TA_JUSTIFY}
+    _corrente = {"normal": st_normal, "h1": st_h1, "h2": st_h2,
+                 "h3": st_h3, "h4": st_h4}
+    _stili_di_pagina: dict = {}
+
+    def _stili_della_pagina(misure: dict) -> dict:
+        """Gli stili del corpo con cui e' scritta questa pagina.
+
+        Il corpo e l'interlinea non sono uguali in tutto l'atto: la pagina con
+        la carta intestata ha righe fitte, quelle dopo no. Un paragrafo che non
+        dichiara le proprie misure prende quelle della sua pagina, non quelle
+        della prima.
+        """
+        chiave = (round(misure["corpo"], 2), round(misure["interlinea"], 2),
+                  misure["allineamento"])
+        if chiave in _stili_di_pagina:
+            return _stili_di_pagina[chiave]
+        corpo = misure["corpo"]
+        passo = misure["interlinea"] or round(corpo * 1.2, 1)
+        normale = ParagraphStyle(
+            f"Pagina{len(_stili_di_pagina)}", parent=st_normal,
+            fontSize=corpo, leading=passo,
+            alignment=_allineamenti.get(misure["allineamento"], alignment),
+        )
+        fuori = {"normal": normale}
+        for nome, stile, fattore in (("h1", st_h1, 1.45), ("h2", st_h2, 1.2),
+                                     ("h3", st_h3, 1.08), ("h4", st_h4, 1.02)):
+            fuori[nome] = ParagraphStyle(
+                f"Pagina{len(_stili_di_pagina)}{nome}", parent=stile,
+                fontSize=round(corpo * fattore, 1), leading=passo,
+            )
+        _stili_di_pagina[chiave] = fuori
+        return fuori
+
+    def _stile_del_paragrafo(elemento, partenza=None):
+        """Lo stile di questo paragrafo, non quello del documento.
+
+        Un documento importato porta su ogni capoverso quello che era: come e'
+        allineato, di quanto rientra, che interlinea ha, con che corpo e'
+        scritto. Rendendoli tutti con lo stile del corpo si perde
+        l'intestazione compatta, il titolo centrato, la firma a destra — e le
+        righe scivolano tutte di qualche millimetro, che su sedici pagine
+        diventano quattro pagine in piu'.
+        """
+        partenza = partenza if partenza is not None else _corrente["normal"]
+        dichiarato = (elemento.get("style") or "").strip()
+        if not dichiarato:
+            return partenza
+        chiave = (partenza.name, dichiarato)
+        if chiave in _stili_paragrafo:
+            return _stili_paragrafo[chiave]
+
+        def _misura(nome: str):
+            trovato = re.search(rf"(?:^|;)\s*{nome}\s*:\s*(-?[0-9.]+)\s*pt", dichiarato)
+            if not trovato:
+                return None
+            try:
+                return float(trovato.group(1))
+            except ValueError:
+                return None
+
+        cambi: dict = {}
+        allineamenti = {"left": TA_LEFT, "center": TA_CENTER,
+                        "right": TA_RIGHT, "justify": TA_JUSTIFY}
+        trovato = re.search(r"text-align\s*:\s*([a-z]+)", dichiarato)
+        if trovato and trovato.group(1) in allineamenti:
+            cambi["alignment"] = allineamenti[trovato.group(1)]
+
+        corpo = _misura("font-size")
+        if corpo and 4 <= corpo <= 40:
+            cambi["fontSize"] = corpo
+            cambi["leading"] = round(corpo * layout_cfg["line_height"], 1)
+
+        # l'interlinea puo' essere in punti o un moltiplicatore del corpo
+        passo = _misura("line-height")
+        if passo is None:
+            trovato = re.search(r"line-height\s*:\s*([0-9.]+)\s*(?:;|$)", dichiarato)
+            if trovato:
+                try:
+                    passo = float(trovato.group(1)) * cambi.get("fontSize", partenza.fontSize)
+                except ValueError:
+                    passo = None
+        if passo and passo > 0:
+            cambi["leading"] = round(passo, 1)
+
+        for proprieta, attributo in (("text-indent", "firstLineIndent"),
+                                     ("margin-left", "leftIndent"),
+                                     ("margin-right", "rightIndent"),
+                                     ("margin-top", "spaceBefore"),
+                                     ("margin-bottom", "spaceAfter")):
+            valore = _misura(proprieta)
+            if valore is not None:
+                cambi[attributo] = valore
+
+        if not cambi:
+            _stili_paragrafo[chiave] = partenza
+            return partenza
+        stile = ParagraphStyle(f"Doc{len(_stili_paragrafo)}", parent=partenza, **cambi)
+        _stili_paragrafo[chiave] = stile
+        return stile
+
     st_li = ParagraphStyle(
         "LegalLI", parent=st_normal,
         leftIndent=18, spaceAfter=3,
@@ -1154,12 +1429,112 @@ def html_to_pdf(
     # ── Costruisce flowables ──────────────────────────────────
     story = []
 
+    _larghezza_utile = (
+        page_size[0]
+        - (layout_cfg["margin_left_mm"] / 10.0) * cm
+        - (layout_cfg["margin_right_mm"] / 10.0) * cm
+    )
+
+    def _paragrafo_fedele(rich, stile, attese):
+        """Il paragrafo nelle righe che aveva nell'originale.
+
+        In un documento importato ogni andata a capo e' gia' scritta: se il
+        paragrafo ne aggiunge una, l'ultima parola scende da sola e tutto il
+        resto della pagina scala di una riga. Succede per pochi decimi di
+        punto, perche' il carattere di arrivo non e' largo esattamente come
+        quello di partenza. Qui si allarga la riga quel tanto che basta, un
+        passo alla volta, e ci si ferma appena le righe tornano quelle.
+        """
+        paragrafo = Paragraph(rich, stile)
+        if not attese or attese < 1:
+            return paragrafo
+        for concessione in (0, 2, 5, 9, 14, 20, 28):
+            if concessione:
+                stile_largo = ParagraphStyle(
+                    f"Fedele{concessione}-{stile.name}", parent=stile,
+                    rightIndent=stile.rightIndent - concessione,
+                )
+                paragrafo = Paragraph(rich, stile_largo)
+            try:
+                paragrafo.wrap(_larghezza_utile, 1_000_000)
+                righe = len(paragrafo.blPara.lines)
+            except Exception:
+                return paragrafo
+            if righe <= attese:
+                if os.environ.get("IU_DEBUG_RIGHE") and concessione:
+                    print(f"[fedele] +{concessione}pt per {attese} righe", flush=True)
+                return paragrafo
+        if os.environ.get("IU_DEBUG_RIGHE"):
+            print(f"[fedele] NON RIENTRA: attese={attese} righe={righe}", flush=True)
+        return paragrafo
+
+    def _righe_dichiarate(el, rich):
+        """Quante righe aveva questo paragrafo nel documento di partenza."""
+        if not misure_documento:
+            return 0
+        return len(re.findall(r"<br\s*/?>", rich or "", re.I)) + 1
+
+    _pagine_viste = [0]
+    #: le immagini che nell'originale stanno a una posizione precisa: non
+    #: entrano nel flusso del testo, si disegnano sulla pagina dove erano
+    _immagini_fisse: dict = {}
+
+    def _immagine_fissa(el) -> bool:
+        """Disegna l'immagine dov'era, invece di metterla in fila col testo.
+
+        Nella carta intestata il logo sta accanto al nome dello studio, non
+        sopra: messo in fila occupa da solo l'altezza che nell'originale ne
+        ospitava due, e da li' in giu' la pagina non torna piu'.
+        """
+        riquadro = (el.get("data-riquadro") or "").strip()
+        if not riquadro or not misure_pagine:
+            return False
+        try:
+            x0, y0, x1, y1 = (float(v) for v in riquadro.split(","))
+        except ValueError:
+            return False
+        if x1 - x0 < 1 or y1 - y0 < 1:
+            return True   # immagine degenere: si salta comunque
+        trovato = re.match(r"^data:image/[^;]+;base64,(.+)$",
+                           el.get("src") or "", flags=re.I | re.S)
+        if not trovato:
+            return False
+        try:
+            dati = base64.b64decode(trovato.group(1))
+        except Exception:
+            return False
+        posto = max(0, _pagine_viste[0] - 1)
+        _immagini_fisse.setdefault(posto, []).append((dati, x0, y0, x1, y1))
+        return True
+
     def _process(el):
         tag = (el.tag or "").lower().split("}")[-1]
 
+        if tag == "section" and "iu-doc-pagina" in (el.get("class") or ""):
+            # Una pagina del documento importato e' una pagina del PDF, con i
+            # suoi margini e il suo corpo: se si lascia impaginare al flusso,
+            # basta una riga di troppo perche' sedici pagine ne diventino
+            # diciotto.
+            posto = _pagine_viste[0]
+            _pagine_viste[0] += 1
+            if posto < len(misure_pagine):
+                _corrente.update(_stili_della_pagina(misure_pagine[posto]))
+            if posto > 0:
+                if posto < len(misure_pagine):
+                    story.append(NextPageTemplate(f"iupag{posto}"))
+                story.append(PageBreak())
+            for figlio in el:
+                try:
+                    _process(figlio)
+                except Exception:
+                    pass
+            return
+
         if tag in HEADING_STYLES:
             rich = _node_to_rich(el)
-            story.append(Paragraph(rich, HEADING_STYLES[tag]))
+            story.append(_paragrafo_fedele(
+                rich, _stile_del_paragrafo(el, _corrente.get(tag, HEADING_STYLES[tag])),
+                _righe_dichiarate(el, rich)))
             return
 
         if tag in ("p", "div"):
@@ -1182,7 +1557,8 @@ def html_to_pdf(
                     _process(child)
                 return
             if rich.strip():
-                story.append(Paragraph(rich, st_normal))
+                story.append(_paragrafo_fedele(
+                    rich, _stile_del_paragrafo(el), _righe_dichiarate(el, rich)))
             else:
                 story.append(Spacer(1, 0.3 * cm))
             return
@@ -1236,6 +1612,8 @@ def html_to_pdf(
             return
 
         if tag == "img":
+            if _immagine_fissa(el):
+                return
             image = _image_flowable_from_src(el.get("src", ""))
             if image:
                 story.append(image)
@@ -1289,13 +1667,110 @@ def html_to_pdf(
 
     # ── Genera PDF ───────────────────────────────────────────
     buf = io.BytesIO()
+
+    if misure_pagine:
+        # Ogni pagina ha la sua cornice, presa dalle misure dell'originale.
+        # Il riempimento si azzera: la cornice e' gia' il rettangolo del testo,
+        # e sei punti per lato basterebbero a far scendere l'ultima parola di
+        # ogni capoverso e l'ultima riga di ogni pagina.
+        try:
+            from reportlab.pdfbase import pdfmetrics
+        except Exception:
+            pdfmetrics = None
+
+        modelli = []
+        for posto, misure in enumerate(misure_pagine):
+            larghezza, altezza = misure["larghezza"], misure["altezza"]
+            discesa = 0.0
+            if pdfmetrics is not None:
+                try:
+                    discesa = abs(pdfmetrics.getDescent(
+                        font_bundle["normal"], misure["prima_riga"] or misure["corpo"]))
+                except Exception:
+                    discesa = 0.0
+            # reportlab posa il bordo alto del primo carattere una discesa
+            # sotto la cornice: la cornice parte percio' quella discesa piu' su
+            cima = max(0.0, misure["alto"] - discesa)
+            # sotto l'ultima riga tiene fermo un intero passo di interlinea,
+            # mentre nell'originale quella riga occupa solo il corpo
+            respiro = max(0.0, misure["interlinea"] - misure["corpo"])
+            fondo = min(altezza, altezza - misure["basso"] + respiro)
+            alta = max(20.0, fondo - cima)
+            larga = max(40.0, larghezza - misure["sinistro"] - misure["destro"])
+            cornice = Frame(
+                misure["sinistro"], altezza - cima - alta, larga, alta,
+                leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+                id=f"iucornice{posto}",
+            )
+            def _disegna(tela, documento, _posto=posto, _altezza=altezza):
+                for dati, x0, y0, x1, y1 in _immagini_fisse.get(_posto, ()):
+                    try:
+                        tela.drawImage(
+                            ImageReader(io.BytesIO(dati)),
+                            x0, _altezza - y1, x1 - x0, y1 - y0,
+                            mask="auto", preserveAspectRatio=False,
+                        )
+                    except Exception:
+                        continue
+                if stamp_callback is not None:
+                    stamp_callback(tela, documento)
+
+            modelli.append(PageTemplate(
+                id=f"iupag{posto}", frames=[cornice],
+                pagesize=(larghezza, altezza), onPage=_disegna,
+            ))
+
+        doc = BaseDocTemplate(
+            buf, pagesize=(misure_pagine[0]["larghezza"], misure_pagine[0]["altezza"]),
+            title=titolo, author="IUSENTRA",
+            leftMargin=misure_pagine[0]["sinistro"],
+            rightMargin=misure_pagine[0]["destro"],
+            topMargin=misure_pagine[0]["alto"],
+            bottomMargin=misure_pagine[0]["basso"],
+        )
+        doc.addPageTemplates(modelli)
+        doc.build(story)
+        return buf.getvalue()
+
+    margine_alto = (layout_cfg["margin_top_mm"] / 10.0) * cm
+    margine_sinistro = (layout_cfg["margin_left_mm"] / 10.0) * cm
+    margine_destro = (layout_cfg["margin_right_mm"] / 10.0) * cm
+    margine_basso = (layout_cfg["margin_bottom_mm"] / 10.0) * cm
+    if misure_documento:
+        # La cornice di reportlab tiene sei punti di riempimento per lato: il
+        # testo non comincia sul margine ma due millimetri piu' dentro, e la
+        # riga e' quattro millimetri piu' corta, quel tanto che basta a far
+        # scendere l'ultima parola di ogni capoverso.
+        margine_sinistro -= 6.0
+        margine_destro -= 6.0
+        # Sotto l'ultima riga reportlab tiene fermo un intero passo di
+        # interlinea, mentre nell'originale quella riga occupa solo il corpo:
+        # senza restituire la differenza l'ultima riga di ogni pagina scivola
+        # a quella dopo, e il documento cresce di una pagina ogni poche.
+        margine_basso = max(
+            0.0,
+            (layout_cfg["margin_bottom_mm"] / 10.0) * cm - 6.0 - max(0.0, leading - font_size),
+        )
+    if misure_documento:
+        # Reportlab non posa la prima riga sul margine: la fa scendere di sei
+        # punti di riempimento della cornice piu' la discesa del carattere.
+        # Su un documento riprodotto quei nove punti spostano tutta la pagina,
+        # perche' ogni riga successiva parte da li'.
+        try:
+            from reportlab.pdfbase import pdfmetrics
+            corpo_prima = misure_documento.get("prima_riga_pt") or font_size
+            margine_alto -= 6.0 + abs(
+                pdfmetrics.getDescent(font_bundle["normal"], corpo_prima)
+            )
+        except Exception:
+            pass
     doc = SimpleDocTemplate(
         buf,
         pagesize=page_size,
-        rightMargin=(layout_cfg["margin_right_mm"] / 10.0) * cm,
-        leftMargin=(layout_cfg["margin_left_mm"] / 10.0) * cm,
-        topMargin=(layout_cfg["margin_top_mm"] / 10.0) * cm,
-        bottomMargin=(layout_cfg["margin_bottom_mm"] / 10.0) * cm,
+        rightMargin=margine_destro,
+        leftMargin=margine_sinistro,
+        topMargin=margine_alto,
+        bottomMargin=margine_basso,
         title=titolo,
         author="IUSENTRA",
     )

@@ -1,5 +1,65 @@
 # Changelog
 
+## 2.362.0 — 22/09/2026
+
+**Un atto importato nell'editor e risalvato torna della lunghezza che aveva.**
+Fino a ieri no: una citazione di sedici pagine ne tornava venti, e nessuna
+parola stava dove stava prima — zero su dodici atti dello studio tornavano
+riconoscibili. Il testo c'era tutto, ma il documento era un altro.
+
+Il motivo non era uno. L'esportazione prendeva le misure della prima pagina e
+le dava a tutte; posava la prima riga nove punti sotto il margine, e da li' in
+giu' scivolava tutto; rendeva ogni capoverso con lo stile del corpo, buttando
+via l'allineamento, il corpo e l'interlinea che l'importazione aveva gia'
+misurato e scritto su ogni paragrafo; lasciava corta ogni riga che finiva con
+un'andata a capo, quando nell'originale quella riga era piena da bordo a
+bordo; metteva loghi e timbri in fila col testo invece che dove stavano, e una
+carta intestata occupava cosi' il doppio dell'altezza.
+
+Adesso il documento importato si riscrive dalle sue proprie misure:
+
+* **Ogni pagina ha la sua cornice.** Margini, corpo e interlinea si leggono
+  pagina per pagina, non piu' solo dalla prima: la pagina con la carta
+  intestata comincia a un centimetro dal bordo, quelle dopo a cinque, e adesso
+  si comportano di conseguenza. Una pagina dell'originale e' una pagina del
+  PDF: prima l'impaginazione era lasciata al flusso, e bastava una riga di
+  troppo per far crescere il documento.
+* **Ogni capoverso porta le sue misure.** L'importazione le scriveva gia'
+  — `text-align`, `line-height`, `text-indent`, i rientri — e l'esportazione le
+  ignorava. L'interlinea ora e' dichiarata in punti e non in proporzione al
+  corpo: un titolo di diciotto punti in un atto con righe a ventiquattro scende
+  di ventiquattro, non di trentasei.
+* **La prima riga sta sul margine** e l'ultima non scivola alla pagina dopo:
+  si restituisce il riempimento della cornice e il passo di interlinea che
+  reportlab tiene fermi per conto suo.
+* **Le righe giustificate arrivano al margine destro.** Ogni andata a capo
+  dell'originale e' gia' segnata, quindi la riga che la precede era piena:
+  senza dirlo, le parole si stringevano a sinistra e l'ultima finiva a quattro
+  millimetri da dove stava.
+* **Loghi, timbri e firme si disegnano dov'erano**, fuori dal flusso del testo,
+  con il riquadro che avevano nell'originale.
+* **Il capoverso tiene le righe che aveva:** se il carattere di arrivo e' largo
+  qualche decimo di punto piu' di quello di partenza, la riga si allarga quel
+  tanto che basta invece di mandare a capo l'ultima parola.
+
+E una griglia inventata in meno: **se il bordo fra due colonne passa in mezzo a
+una parola, quelle colonne non esistono.** La ricerca «a testo» allineava per
+caso parole di righe diverse e tagliava dove capitava — «Avvocato Roberto
+Montagnes | e», «Ufficio R | ecupero Crediti» — e le righe finite in quella
+griglia uscivano dai paragrafi. Su una memoria costava tre pagine e trentuno
+parole.
+
+Il banco `scripts/banco_importazione_fedele.py` fa il giro completo su una
+cartella di atti e misura sempre allo stesso modo: pagine prima e dopo, parole
+prima e dopo, e quante finiscono entro un millimetro da dove erano. Serve a
+rispondere alla domanda che conta — **una correzione fatta su un atto peggiora
+gli altri?** Gli atti dello studio che si leggono sono passati da undici a
+dodici; quelli che tornano dello stesso numero di pagine da sei a nove, e la
+citazione di sedici pagine, che ne tornava venti, adesso ne torna sedici. Su
+uno le parole entro il millimetro sono passate da zero all'89%, su due da zero
+al 34%. Sugli altri lo scarto grosso e' ancora orizzontale — e si continua da
+li'.
+
 ## 2.361.0 — 22/09/2026
 
 **I caratteri: il problema non era quanti ne conoscevamo, era dove stava

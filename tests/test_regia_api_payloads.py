@@ -248,6 +248,57 @@ def test_api_regia_blocca_requisiti_prima_della_conferma_profilo(tmp_path):
         assert app.extensions["core_runtime"]["get_practice_engine"]().get_profile_snapshot(fascicolo.id) is None
 
 
+def test_api_deposito_rispetta_il_ruolo_scelto_contro_il_catalogo(tmp_path):
+    """Il catalogo propone, l'avvocato decide: il ruolo che arriva non si riscrive."""
+
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    # Il nome lo fa riconoscere come atto principale dal catalogo.
+    documento = gf.aggiungi_documento(
+        fascicolo.id, "ricorso lavoro.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False
+    )
+    client = app.test_client()
+    headers = {"X-API-Key": "regia-test-key"}
+    _conferma_profilo_regia(app, client, fascicolo)
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "documents": [
+                {"document_id": documento.id, "selected": True, "role": "allegato", "already_signed": False},
+            ]
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    righe = response.get_json()["updatedDocuments"]
+    riga = next(item for item in righe if item["documentId"] == documento.id)
+    assert riga["role"] == "allegato", "il ruolo scelto dall'avvocato non puo' essere sovrascritto dal catalogo"
+
+
+def test_api_deposito_propone_il_ruolo_solo_se_nessuno_ha_scelto(tmp_path):
+    """Senza un ruolo indicato la proposta del catalogo resta utile."""
+
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    documento = gf.aggiungi_documento(
+        fascicolo.id, "ricorso lavoro.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False
+    )
+    client = app.test_client()
+    headers = {"X-API-Key": "regia-test-key"}
+    _conferma_profilo_regia(app, client, fascicolo)
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={"documents": [{"document_id": documento.id, "selected": True, "already_signed": False}]},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    righe = response.get_json()["updatedDocuments"]
+    riga = next(item for item in righe if item["documentId"] == documento.id)
+    assert riga["role"] == "atto_principale"
+
+
 def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     atto = gf.aggiungi_documento(fascicolo.id, "ricorso lavoro.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)

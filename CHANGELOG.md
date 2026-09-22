@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.343.0 — 22/09/2026
+
+**Il ruolo dei documenti in busta lo decide l'avvocato.** Nella proposta di busta il
+documento riconosciuto dal catalogo veniva imposto come atto principale anche dopo
+che l'avvocato gli aveva assegnato un altro ruolo, e la scelta opposta veniva
+declassata ad allegato quando il catalogo era sicuro al 70%. Ora il catalogo propone
+soltanto dove nessuno ha ancora scelto: il ruolo che arriva dalla riga arriva
+dall'avvocato e non viene riscritto, ne' dal salvataggio lato server ne' dalla
+normalizzazione dell'interfaccia. Se nessun documento porta il ruolo di atto
+principale, la busta resta in attesa che l'avvocato ne scelga uno invece di
+riceverne uno indovinato.
+
+**Il binario storico non entra piu' nel modello di embedding.** Tolta la funzione
+che leggeva i PDF illeggibili come stringa di byte, rimasta nel codice dopo la
+2.342.0. Aggiunta la guardia sui caratteri non decodificabili: oltre il 15% il
+chunk e' contenuto binario e viene escluso con il motivo registrato, sotto quella
+soglia un atto con la codifica sbagliata resta indicizzabile. Un documento che passa
+all'OCR non lascia piu' i vecchi chunk in archivio mentre il conteggio dichiara zero.
+
+**I chunk ereditati dallo splitter vecchio si possono rifare dal pannello.** Nuove
+voci di manutenzione «Analizza chunk archivio RAG» e «Rifai i chunk inservibili»:
+la prima legge e basta e dice quanti chunk in attesa verrebbero scartati e da quali
+documenti, la seconda reindicizza quei documenti cosi' che lo splitter di oggi li
+tagli da capo. Senza questo passaggio i documenti con chunk fuori misura sarebbero
+spariti dalla ricerca in silenzio.
+
+Test: `tests/test_manutenzione_chunk_rag.py` (nuovo), `tests/test_local_ai.py`,
+`tests/test_regia_api_payloads.py`, `tests/test_deposito.py`, `tests/test_busta.py`,
+`tests/test_conformita_pst.py`, `tests/test_rag_archivio_runtime.py`,
+`tests/test_server_maintenance_surface.py`.
+
 ## 2.342.2 — 21/09/2026
 
 PagoPA: precompilazione dei campi vuoti dall'anagrafica autorizzata del fascicolo,

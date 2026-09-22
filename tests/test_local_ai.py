@@ -11,7 +11,7 @@ import pytest
 from lex.contracts import LexResponse
 from lex.prompts.prompt_builder import build_assistente_prompt
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
-from pct.local_ai import LocalAIService, _strip_html
+from pct.local_ai import LocalAIService, _embedding_validation_reason, _strip_html
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 from pct.runtime_resilience import CircuitBreakerOpenError, clear_runtime_circuit_breakers
 from web.app import create_app
@@ -1823,6 +1823,33 @@ def test_local_ai_split_section_limita_paragrafo_gigante_senza_perdere_testo(tmp
     assert len(chunks) > 1
     assert all(len(chunk) <= 3200 for chunk in chunks)
     assert "".join(chunks) == text
+
+
+def test_embedding_validation_scarta_il_testo_nato_da_byte_binari():
+    """Un PDF letto come stringa produce caratteri di sostituzione: non e' testo."""
+
+    binario = ("\ufffd\ufffd\ufffd\ufffd%PDF\ufffd\ufffd\ufffd obj\ufffd\ufffd\ufffd\ufffd stream\ufffd\ufffd\ufffd\ufffd " * 6).strip()
+
+    motivo = _embedding_validation_reason(binario)
+
+    assert motivo is not None
+    assert "non decodificabili" in motivo
+
+
+def test_embedding_validation_accetta_atto_con_pochi_accenti_mal_codificati():
+    """Un atto vero con qualche accento rotto resta indicizzabile."""
+
+    atto = (
+        "Il ricorrente espone che il termine perentorio \ufffd decorso "
+        "senza che la controparte abbia depositato alcunch\ufffd. "
+        "La difesa osserva altres\ufffd che la notifica \ufffd tempestiva "
+        "e che la domanda \ufffd fondata. " * 4
+    )
+    assert atto.count("\ufffd") >= 5, "l'atto deve superare la soglia minima assoluta"
+    quota = atto.count("\ufffd") / len(atto.strip())
+    assert quota > 0.02, "un atto con gli accenti rotti supera il 2%: la soglia non puo' stare li'"
+
+    assert _embedding_validation_reason(atto) is None
 
 
 def test_local_ai_embed_esclude_chunk_storico_cifrato_con_motivo(tmp_path: Path, monkeypatch):

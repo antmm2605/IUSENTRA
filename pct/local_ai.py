@@ -46,6 +46,13 @@ _ENC_MAGIC = b"PCTENC\x01"
 _RETRIEVAL_CACHE_TTL_SECONDS = 300
 _SNAPSHOT_CACHE_TTL_SECONDS = 300
 _RAG_MAX_CHUNK_CHARS = 3200
+# Oltre questa quota di caratteri non decodificabili il testo non e' testo:
+# e' un file binario letto come stringa. La soglia e' volutamente alta: un atto
+# italiano con la codifica sbagliata perde tutte le vocali accentate e arriva
+# intorno al 3-5%, mentre un PDF letto come stringa supera il 30%. Sotto questa
+# soglia il documento resta indicizzabile, accenti rotti compresi.
+_RAG_MAX_QUOTA_ILLEGGIBILI = 0.15
+_RAG_MIN_ILLEGGIBILI = 5
 
 
 class DocumentNeedsOcrError(ValueError):
@@ -101,6 +108,12 @@ def _embedding_validation_reason(text: Any) -> str | None:
     control_chars = sum(1 for char in value if ord(char) < 32 and char not in "\n\r\t")
     if control_chars:
         return "Chunk escluso: contiene byte di controllo incompatibili con il testo indicizzabile."
+    illeggibili = compact.count("\ufffd")
+    if illeggibili >= _RAG_MIN_ILLEGGIBILI and illeggibili / len(compact) > _RAG_MAX_QUOTA_ILLEGGIBILI:
+        return (
+            f"Chunk escluso: {illeggibili} caratteri non decodificabili su {len(compact)}, "
+            "sembra contenuto binario letto come testo."
+        )
     return None
 
 
@@ -292,12 +305,6 @@ def _unique_strings(items: Iterable[Any]) -> list[str]:
         seen.add(key)
         unique.append(value)
     return unique
-
-
-def _fallback_binary_text(data: bytes) -> str:
-    text = _normalize_text(data.decode("utf-8", errors="replace"))
-    text = re.sub(r"[\x00-\x08\x0b-\x1f]+", " ", text)
-    return _clean_spaces(text)
 
 
 def _read_json_file(path: Path, fallback: Any) -> Any:
@@ -2174,6 +2181,11 @@ class LocalAIService:
                     "signed_status": signed_status,
                 }
             except DocumentNeedsOcrError as exc:
+                # I chunk vecchi vanno via insieme al conteggio: lasciarli
+                # mentre chunk_count dice zero fa dire all'archivio due cose
+                # diverse, e i chunk rimasti tornano in coda all'embedding
+                # anche se il documento e' in attesa di OCR.
+                self._replace_document_chunks(conn, document_id, [])
                 conn.execute(
                     "UPDATE rag_documents SET parse_state = 'needs_ocr', chunk_count = 0, updated_at = ? WHERE id = ?",
                     (_now_iso(), document_id),

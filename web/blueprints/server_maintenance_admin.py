@@ -73,6 +73,7 @@ def _pagina_manutenzione(**extra):
         "copia_doppia_fascicoli": None,
         "spazio_database": None,
         "collegamenti_pec": None,
+        "chunk_rag": None,
     }
     base.update(extra)
     return render_template("admin/server_manutenzione.html", **base)
@@ -161,6 +162,49 @@ def applica_collegamenti_pec():
     except Exception as exc:
         current_app.logger.exception("Ricollegamento PEC fallito: %s", exc)
         flash("Ricollegamento non completato. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/analizza-chunk-rag")
+@superadmin_required
+def analizza_chunk_rag():
+    """Quanti chunk in attesa il validatore di oggi scarterebbe, e da quali documenti.
+
+    Sono i chunk lasciati dallo splitter vecchio, che tagliava soltanto fra
+    un paragrafo e l'altro. Legge e basta.
+    """
+    from web.services.chunk_rag_runtime import esamina_tutti
+
+    try:
+        esito = esamina_tutti(current_app, rispezzare=False)
+        flash(esito["messaggio"], "info")
+        return _pagina_manutenzione(chunk_rag=esito)
+    except Exception as exc:
+        current_app.logger.exception("Analisi chunk RAG fallita: %s", exc)
+        flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/applica-chunk-rag")
+@superadmin_required
+def applica_chunk_rag():
+    """Reindicizza i documenti i cui chunk verrebbero scartati.
+
+    Si tocca solo chi ha qualcosa da rifare e ha ancora il file di partenza:
+    un documento indicizzato da testo gia' estratto viene contato a parte e
+    lasciato dov'e', invece di restare senza niente di cercabile. La
+    reindicizzazione rilegge i file dal disco: e' lavoro vero sulla macchina,
+    e sta dietro un bottone suo.
+    """
+    from web.services.chunk_rag_runtime import esamina_tutti
+
+    try:
+        esito = esamina_tutti(current_app, rispezzare=True)
+        flash(esito["messaggio"], "success" if esito["ok"] else "warning")
+        return _pagina_manutenzione(chunk_rag=esito)
+    except Exception as exc:
+        current_app.logger.exception("Rispezzatura chunk RAG fallita: %s", exc)
+        flash("Rispezzatura non completata. Dettaglio tecnico nei log server.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))
 
 

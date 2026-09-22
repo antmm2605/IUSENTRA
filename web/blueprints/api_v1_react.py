@@ -9384,15 +9384,19 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         if not doc:
             return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
         selected = bool(raw_row.get("selected"))
+        ruolo_indicato = str(raw_row.get("role") or raw_row.get("documentRole") or "").strip()
         role = _deposit_document_role(raw_row.get("role"))
         catalog = classify_fascicolo_document(doc)
-        if catalog.role == "atto_principale":
-            role = "atto_principale"
-        elif role == "atto_principale" and catalog.confidence >= 70 and catalog.role not in {"atto_principale", "atto_difensivo"}:
-            if catalog.deposit_role in {"procura", "prova_notifica", "fuori_busta"}:
+        if not ruolo_indicato:
+            # Il catalogo propone solo dove nessuno ha ancora scelto. Quando il
+            # ruolo arriva dalla riga, arriva dall'avvocato: sceglie lui cosa e'
+            # l'atto principale e cosa e' un allegato, e il catalogo non lo
+            # corregge. Un riconoscimento sbagliato altrimenti porta in busta un
+            # atto principale che non e' quello depositato.
+            if catalog.role == "atto_principale":
+                role = "atto_principale"
+            elif catalog.deposit_role in {"procura", "prova_notifica", "fuori_busta"}:
                 role = catalog.deposit_role
-            else:
-                role = "allegato"
         signed_container = _documento_contenitore_firma(doc)
         already_signed = bool(raw_row.get("already_signed") or raw_row.get("alreadySigned") or signed_container)
         requires_signature = bool(

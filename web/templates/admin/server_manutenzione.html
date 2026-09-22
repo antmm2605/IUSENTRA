@@ -284,6 +284,18 @@
               <i class="bi bi-link"></i> Ricollega PEC al fascicolo
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_chunk_rag') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-scissors"></i> Analizza chunk archivio RAG
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_chunk_rag') }}" onsubmit="return confirm('Rifare i chunk dei documenti che ne hanno di inservibili?\n\nI file vengono riletti dal disco e reindicizzati: e\u0027 lavoro vero sulla macchina. I documenti senza file di partenza restano come sono. Lanciarlo dopo avere letto l\u0027analisi, e quando nessuno sta lavorando.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-arrow-repeat"></i> Rifai i chunk inservibili
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.analizza_spazio_database') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
@@ -509,6 +521,27 @@
       {% if not collegamenti_pec.ricollegamento_eseguito and collegamenti_pec.collegabili %}
       <div class="small mt-1 text-muted">
         Nessuna modifica eseguita. Il collegamento decide da quale PEC decorre un termine: leggere prima, applicare poi.
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if chunk_rag %}
+    <div class="alert alert-{{ 'warning' if chunk_rag.errori else ('success' if chunk_rag.rispezzatura_eseguita else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Chunk dell\'archivio rifatti' if chunk_rag.rispezzatura_eseguita else 'Analisi chunk archivio RAG' }}
+      </div>
+      <div class="small">{{ chunk_rag.messaggio }}</div>
+      <div class="small mt-1">
+        {% for studio in chunk_rag.studi %}
+        <div>
+          {{ studio.studio }}: {{ studio.chunk_da_scartare }} chunk da scartare su {{ studio.chunk_in_attesa }} in attesa,
+          {{ studio.documenti_coinvolti }} documenti{% if studio.documenti_rifatti %}, {{ studio.documenti_rifatti }} rifatti{% endif %}{% if studio.documenti_verso_ocr %}, {{ studio.documenti_verso_ocr }} passati all'OCR{% endif %}{% if studio.documenti_senza_file %}, {{ studio.documenti_senza_file }} senza file di partenza{% endif %}{% if studio.errore %} — <span class="text-danger">{{ studio.errore }}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if not chunk_rag.rispezzatura_eseguita and chunk_rag.chunk_da_scartare %}
+      <div class="small mt-1 text-muted">
+        Nessuna modifica eseguita. Senza rifarli, quei documenti restano senza niente di cercabile.
       </div>
       {% endif %}
     </div>

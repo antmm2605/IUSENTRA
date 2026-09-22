@@ -2345,10 +2345,18 @@ function DepositPreparePage({ id }:{id:string}) {
   const selectedDepositDocuments = depositSelectableDocuments.filter((doc) => (
     depositSelectionReady ? Boolean(effectiveDepositClassificationById[doc.id]?.selected) : defaultDepositSelectionIds.includes(doc.id)
   ))
-  const mainActDocument =
-    selectedDepositDocuments.find((doc) => effectiveDepositClassificationById[doc.id]?.role === 'atto_principale')
-    || (usableProposedMainActDocument && selectedDepositDocuments.some((doc) => doc.id === usableProposedMainActDocument.id) ? usableProposedMainActDocument : undefined)
-    || selectedDepositDocuments.find(isMainActCandidateDocument)
+  const chosenMainActDocument = selectedDepositDocuments.find(
+    (doc) => effectiveDepositClassificationById[doc.id]?.role === 'atto_principale',
+  )
+  // I ripieghi servono solo al primo disegno, quando una classificazione non
+  // c'e' ancora: da li' in poi l'atto principale e' quello che porta il ruolo.
+  // Se non ce n'e' nessuno, l'avvocato lo ha tolto apposta e la busta resta in
+  // attesa che ne scelga uno, invece di riceverne uno indovinato.
+  const mainActDocument = depositSelectionReady
+    ? chosenMainActDocument
+    : chosenMainActDocument
+      || (usableProposedMainActDocument && selectedDepositDocuments.some((doc) => doc.id === usableProposedMainActDocument.id) ? usableProposedMainActDocument : undefined)
+      || selectedDepositDocuments.find(isMainActCandidateDocument)
   const packageDocuments = uniqueFascicoloDocuments(selectedDepositDocuments)
   const packageDocumentNames = packageDocuments.map((doc) => doc.name).filter(Boolean)
   const packageDocumentIdSet = new Set(packageDocuments.map((doc) => doc.id))
@@ -2817,16 +2825,15 @@ function DepositPreparePage({ id }:{id:string}) {
     datiatto_extra: depositSpecificData,
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
-      const role = doc.id === mainActDocument?.id
-        ? 'atto_principale'
-        : effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
+      const role = effectiveDepositClassificationById[doc.id]?.role
+        || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
       const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, role)
       const requestedSignature = selected && Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
       return {
         document_id: doc.id,
         selected,
         role: normaliseDepositRoleForUi(role),
-        role_confirmed: selected && doc.id === mainActDocument?.id,
+        role_confirmed: selected && normaliseDepositRoleForUi(role) === 'atto_principale',
         studio_document_type: effectiveDepositClassificationById[doc.id]?.studioDocumentType || '',
         already_signed: Boolean(doc.signed),
         requires_signature: Boolean(mandatorySignature || requestedSignature),
@@ -4949,7 +4956,12 @@ function normaliseDepositClassificationMainAct(
   validMainActIds?: ReadonlySet<string>,
 ): Record<string, DepositDocumentClassification> {
   const entries = Object.entries(classificationById)
-  const preferredSelected = preferredMainActId ? entries.find(([id, row]) => id === preferredMainActId && row.selected) : undefined
+  // Il documento proposto vale come atto principale solo finche' porta quel
+  // ruolo. Se l'avvocato gliene ha dato un altro, la proposta non lo riscrive:
+  // il software propone, la scelta resta sua.
+  const preferredSelected = preferredMainActId
+    ? entries.find(([id, row]) => id === preferredMainActId && row.selected && row.role === 'atto_principale')
+    : undefined
   const validSelectedMain = entries.find(([id, row]) => row.selected && row.role === 'atto_principale' && (!validMainActIds || validMainActIds.has(id)))
   const selectedMain = validSelectedMain
     || preferredSelected

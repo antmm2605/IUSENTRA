@@ -13,7 +13,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 from web.services.security_redaction import redacted_json_response
-from web.services.document_edit_policy import motivo_blocco_editor
+from web.services.document_edit_policy import motivo_blocco_editor, pdf_studio_modificabile
 
 
 def _wants_json_response() -> bool:
@@ -412,6 +412,8 @@ def register_fascicoli_editor_routes(
                 return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
             if getattr(documento, "firmato_digitalmente", False) or str(getattr(documento, "nome", "")).lower().endswith(".p7m"):
                 return jsonify({"ok": False, "errore": "Il documento firmato resta in sola consultazione."}), 403
+            if not pdf_studio_modificabile(documento):
+                return jsonify({"ok": False, "errore": motivo_blocco_editor(documento)}), 403
             percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             pdf_bytes = decrypt_doc(percorso.read_bytes())
             contenuto_raw, count = apply_pdf_overlays(pdf_bytes, annotations)

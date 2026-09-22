@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-BqsLoW2D.js";import{t}from"./ImpostazioniPage-Dyp_wMiH.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

@@ -31,6 +31,7 @@ export type EditorDocument = {
   hash: string
   source: string
   editable: boolean
+  pdfOverlayAllowed: boolean
   lockedReason: string
   portal: {
     name: string
@@ -131,6 +132,7 @@ export const emptyDocumentEditorPayload: DocumentEditorPayload = {
     hash: '',
     source: '',
     editable: true,
+    pdfOverlayAllowed: false,
     lockedReason: '',
     portal: { name: '', class: '', sender: '', date: '' },
     actions: { preview: '', download: '', sign: '', detail: '/fascicoli' },
@@ -198,6 +200,7 @@ function normalizeDocument(value: unknown): EditorDocument {
     hash: text(row.hash),
     source: text(row.source),
     editable: row.editable !== false,
+    pdfOverlayAllowed: bool(row.pdfOverlayAllowed),
     lockedReason: text(row.lockedReason),
     portal: {
       name: text(portal.name),

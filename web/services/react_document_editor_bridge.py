@@ -9,7 +9,7 @@ from typing import Any, Callable
 from flask import has_app_context
 
 from pct.editor import estensione_editabile
-from web.services.document_edit_policy import motivo_blocco_editor
+from web.services.document_edit_policy import motivo_blocco_editor, pdf_studio_modificabile
 from pct.document_signature_state import document_has_real_digital_signature
 
 
@@ -130,6 +130,7 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     suffix = Path(name).suffix.lower()
     signed = document_has_real_digital_signature(doc, name)
     pdf_preview_native = suffix == ".pdf"
+    pdf_overlay_allowed = bool(pdf_preview_native and pdf_studio_modificabile(doc))
     eml_preview = suffix == ".eml"
     editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native and not eml_preview)
     locked_reason = ""
@@ -159,6 +160,7 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
         "hash": _text(getattr(doc, "hash_sha256", "")),
         "source": _text(getattr(doc, "fonte_documento", ""), "CARICAMENTO_STUDIO"),
         "editable": editable,
+        "pdfOverlayAllowed": pdf_overlay_allowed,
         "lockedReason": locked_reason,
         "portal": {
             "name": _text(getattr(doc, "nome_portale", "")),

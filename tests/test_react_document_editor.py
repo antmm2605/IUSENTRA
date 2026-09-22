@@ -195,7 +195,8 @@ def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
     assert response.status_code == 200
     assert payload["document"]["name"] == "sentenza_cassazione.pdf"
     assert payload["document"]["editable"] is False
-    assert "anteprima originale" in payload["document"]["lockedReason"]
+    assert payload["document"]["pdfOverlayAllowed"] is True
+    assert "Modifica PDF sicura" in payload["document"]["lockedReason"]
     assert payload["document"]["actions"]["preview"] == f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza"
     assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
 
@@ -285,6 +286,43 @@ def test_editor_pdf_overlay_versiona_e_preserva_pdf_originale(tmp_path: Path):
     assert exported.status_code == 200
     with fitz.open(stream=exported.data, filetype="pdf") as pdf:
         assert "Nota studio verificata" in pdf[0].get_text()
+
+
+def test_editor_pdf_overlay_blocca_documento_portale(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_pdf_valido(app)
+    with app.test_request_context("/"):
+        repo = get_fascicoli()
+        stored = repo.get(fascicolo.id)
+        stored_doc = next(doc for doc in stored.documenti if doc.id == documento.id)
+        stored_doc.fonte_documento = "PORTALE_TELEMATICO"
+        repo._salva()
+
+    with app.test_client() as client:
+        _login(client)
+        payload_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti/{documento.id}/editor")
+        overlay_response = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/pdf-overlay",
+            json={
+                "annotations": [
+                    {
+                        "type": "text",
+                        "page": 1,
+                        "x": 0.12,
+                        "y": 0.18,
+                        "text": "Non deve entrare",
+                    }
+                ]
+            },
+        )
+
+    payload = payload_response.get_json()
+    assert payload_response.status_code == 200
+    assert payload["document"]["pdfOverlayAllowed"] is False
+    assert "PDF caricati dallo studio" in payload["document"]["lockedReason"]
+    assert overlay_response.status_code == 403
+    assert "PDF caricati dallo studio" in overlay_response.get_json()["errore"]
 
 
 def test_editor_pdf_importa_nuova_versione_senza_conversione_html(tmp_path: Path):

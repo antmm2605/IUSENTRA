@@ -168,6 +168,47 @@ def _file_presente(documento: dict[str, Any]) -> bool:
         return False
 
 
+def documenti_fuori_misura(service: Any, *, massimo: int = 0) -> list[dict[str, Any]]:
+    """I documenti con almeno un chunk in attesa oltre il limite, per SQL soltanto.
+
+    Il censimento completo deve leggere il testo di ogni chunk sotto misura per
+    passarlo al validatore, e su decine di migliaia di righe costa un minuto e
+    mezzo. Qui non serve: un chunk oltre `_RAG_MAX_CHUNK_CHARS` si riconosce
+    dalla sola lunghezza, e sono quelli il grosso del guaio. La rispezzatura
+    parte da questi, cosi' ogni passata spende il suo tempo a rifare documenti
+    invece che a ricontarli.
+    """
+    sql = """
+        SELECT d.id, d.source_type, d.source_id, d.practice_id, d.title, d.file_path, d.mime_type
+        FROM rag_documents AS d
+        WHERE EXISTS (
+            SELECT 1 FROM rag_chunks AS c
+            WHERE c.document_id = d.id
+              AND c.embedding_state = 'pending'
+              AND length(c.text) > ?
+        )
+    """
+    parametri: list[Any] = [_RAG_MAX_CHUNK_CHARS]
+    if massimo > 0:
+        sql += " LIMIT ?"
+        parametri.append(massimo)
+    with service._connect() as conn:
+        return [dict(riga) for riga in conn.execute(sql, parametri).fetchall()]
+
+
+def quanti_fuori_misura(service: Any) -> int:
+    """Quanti documenti hanno ancora almeno un chunk oltre il limite."""
+    with service._connect() as conn:
+        riga = conn.execute(
+            """
+            SELECT COUNT(DISTINCT document_id) FROM rag_chunks
+            WHERE embedding_state = 'pending' AND length(text) > ?
+            """,
+            (_RAG_MAX_CHUNK_CHARS,),
+        ).fetchone()
+    return int(riga[0] if riga else 0)
+
+
 def esamina(service: Any, *, studio: str = "", limite: int = 0) -> EsitoArchivio:
     """Quanti chunk in attesa oggi verrebbero scartati, e da quali documenti.
 
@@ -200,36 +241,33 @@ def rispezza(
     massimo_documenti: int = LOTTO_DOCUMENTI,
     budget_secondi: float = BUDGET_SECONDI,
 ) -> EsitoArchivio:
-    """Reindicizza con `force` i documenti che hanno chunk da scartare.
+    """Reindicizza con `force` i documenti che hanno chunk fuori misura.
 
-    Lavora a passate: si ferma al tetto di documenti o allo scadere del tempo
-    e dice quanti ne restano, perche' il server chiude la richiesta a 120
-    secondi e una passata su seimila documenti non ci sta. L'operazione e'
-    ripetibile: ogni giro riparte da quelli ancora da rifare.
+    Parte dalla lista a sola SQL: il censimento completo legge il testo di
+    ogni chunk e su questo archivio costa un minuto e mezzo, che e' piu' del
+    tempo che il server concede a tutta la richiesta. Cosi' invece la passata
+    spende il suo tempo a rifare documenti.
 
-    Si tocca solo chi ha davvero qualcosa da rifare, e solo se il file di
-    partenza e' ancora al suo posto: un documento indicizzato da testo gia'
-    estratto non si puo' ricostruire da qui, e viene contato a parte invece
-    di essere svuotato.
+    Lavora a lotti: si ferma al tetto di documenti o allo scadere del tempo —
+    contato da quando comincia a lavorare, non da quando comincia a guardare —
+    e dice quanti ne restano. L'operazione e' ripetibile.
+
+    Si tocca solo chi ha ancora il file di partenza: un documento indicizzato
+    da testo gia' estratto non si puo' ricostruire da qui, e viene contato a
+    parte invece di essere svuotato.
     """
     esito = EsitoArchivio(studio=studio or "default")
-    partenza = time.monotonic()
     try:
-        scarti, totale = chunk_da_scartare(service)
-        esito.chunk_in_attesa = totale
-        esito.chunk_da_scartare = len(scarti)
-        documenti = documenti_coinvolti(service, scarti)
-        if limite > 0:
-            documenti = documenti[:limite]
-        esito.documenti_coinvolti = len(documenti)
-        for scarto in scarti[:5]:
-            esito.esempi.append(scarto)
+        massimo_lista = massimo_documenti if limite <= 0 else min(massimo_documenti, limite)
+        candidati = documenti_fuori_misura(service, massimo=massimo_lista)
+        esito.documenti_coinvolti = quanti_fuori_misura(service)
     except Exception as exc:
         esito.errore = str(exc)
         return esito
 
-    rifattibili = [doc for doc in documenti if _file_presente(doc)]
-    esito.documenti_senza_file = len(documenti) - len(rifattibili)
+    rifattibili = [doc for doc in candidati if _file_presente(doc)]
+    esito.documenti_senza_file = len(candidati) - len(rifattibili)
+    partenza = time.monotonic()
     fatti = 0
     for documento in rifattibili:
         if fatti >= massimo_documenti or (time.monotonic() - partenza) >= budget_secondi:
@@ -257,7 +295,10 @@ def rispezza(
         else:
             esito.documenti_in_errore += 1
             esito.esempi.append({"documento": documento.get("id"), "stato": stato})
-    esito.documenti_restanti = max(0, len(rifattibili) - fatti)
+    try:
+        esito.documenti_restanti = quanti_fuori_misura(service)
+    except Exception:
+        esito.documenti_restanti = max(0, esito.documenti_coinvolti - fatti)
     return esito
 
 
@@ -272,7 +313,7 @@ def _riepilogo(esiti: list[EsitoArchivio], *, applicato: bool) -> dict[str, Any]
     restanti = sum(e.documenti_restanti for e in esiti)
     if applicato:
         messaggio = (
-            f"Rifatti {rifatti} documenti su {coinvolti}; "
+            f"Rifatti {rifatti} documenti su {coinvolti} fuori misura; "
             f"{verso_ocr} passati all'OCR, {senza_file} senza file di partenza."
         )
         if restanti:
@@ -307,6 +348,8 @@ __all__ = [
     "EsitoArchivio",
     "chunk_da_scartare",
     "documenti_coinvolti",
+    "documenti_fuori_misura",
     "esamina",
+    "quanti_fuori_misura",
     "rispezza",
 ]

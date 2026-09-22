@@ -299,3 +299,28 @@ def test_rispezza_si_ferma_allo_scadere_del_tempo(tmp_path: Path):
 
     assert esito.documenti_rifatti == 0, "con budget zero non si lavora"
     assert esito.documenti_restanti == 3
+
+
+def test_rispezza_non_dipende_dal_censimento_completo(tmp_path: Path, monkeypatch):
+    """La passata non deve rileggere il testo di tutto l'archivio per partire.
+
+    In produzione quel censimento costa un minuto e mezzo — piu' del tempo che
+    il server concede all'intera richiesta — e la prima passata rifece un solo
+    documento su seimila.
+    """
+
+    import pct.manutenzione_chunk_rag as modulo
+
+    service = _servizio(tmp_path)
+    for numero in range(2):
+        _documento_con_chunk_gigante(service, tmp_path / "documenti", numero)
+
+    def _vietato(*args, **kwargs):
+        raise AssertionError("la rispezzatura non deve passare dal censimento completo")
+
+    monkeypatch.setattr(modulo, "chunk_da_scartare", _vietato)
+
+    esito = modulo.rispezza(service, studio="studio-test")
+
+    assert esito.documenti_rifatti == 2
+    assert esito.documenti_restanti == 0

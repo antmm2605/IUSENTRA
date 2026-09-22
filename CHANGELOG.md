@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.343.4 — 22/09/2026
+
+**La rispezzatura spendeva il suo tempo a contare invece che a lavorare.** La prima
+passata in produzione ha rifatto un solo documento su 5.996 in 93 secondi: il
+censimento completo, che legge il testo di ogni chunk per passarlo al validatore,
+costa da solo piu' del tempo concesso all'intera richiesta, e il cronometro partiva
+prima di quello. Ora la passata parte da una lista a sola SQL — i documenti con
+almeno un chunk oltre il limite si riconoscono dalla lunghezza, senza leggere niente
+— e il tempo si conta da quando comincia a rifare, non da quando comincia a
+guardare. Il censimento completo resta dov'e' utile: nel bottone di analisi.
+
+Test: un caso nuovo vieta alla rispezzatura di passare dal censimento completo.
+
 ## 2.343.3 — 22/09/2026
 
 **La rispezzatura dei chunk lavora a passate.** L'analisi in produzione dice 20.863

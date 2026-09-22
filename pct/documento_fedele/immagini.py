@@ -181,12 +181,14 @@ def estrai_grafica(
 
     gruppi: list[Riquadro] = []
     for r in sorted(riquadri, key=lambda x: (x.y0, x.x0)):
-        for g in gruppi:
+        for indice, g in enumerate(gruppi):
+            # il margine di sei punti tiene insieme i tracciati di uno stesso
+            # timbro, che nel PDF arrivano come decine di pezzi staccati
             if Riquadro(g.x0 - 6, g.y0 - 6, g.x1 + 6, g.y1 + 6).intersects(r):
-                g |= r
+                gruppi[indice] = g.unito(r)
                 break
         else:
-            gruppi.append(+r)
+            gruppi.append(r)
 
     fuori: list[Elemento] = []
     zoom = dpi / 72.0

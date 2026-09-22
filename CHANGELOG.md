@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.356.0 — 22/09/2026
+
+**Correzione: la 2.354.0 aveva rotto timbri, loghi e firme disegnati a vettori.**
+Sostituendo `fitz.Rect` con `Riquadro` erano rimasti due operatori che solo PyMuPDF
+aveva: `g |= r` per unire due rettangoli e `+r` per copiarne uno. Su `Riquadro`, che
+e' immutabile, il secondo alza `TypeError`.
+
+Il punto colpito e' `estrai_grafica`, cioe' il codice che raggruppa i tracciati
+vicini e rasterizza la zona: l'intestazione dello studio, il timbro di deposito, la
+firma grafica. L'errore non finiva in un messaggio — usciva da `converti()`, e
+l'importazione ripiegava sulle righe semplici. L'avvocato non avrebbe visto un
+guasto, avrebbe visto un atto importato male.
+
+Il raggruppamento ora usa `unito()` e sostituisce l'elemento nell'elenco invece di
+modificarlo sul posto.
+
+Perche' non l'aveva preso nessuno: `estrai_grafica` non aveva test propri, e
+`tests/test_documento_fedele.py` non passa da li'. Ora ce ne sono due, su un PDF con
+un timbro fatto di una decina di tracciati staccati — la forma in cui i timbri
+arrivano davvero nei PDF. Il primo verifica che i tracciati diventino una grafica
+sola e non dieci; il secondo che una zona gia' diventata tabella o immagine non
+venga rasterizzata una seconda volta. Sul codice della 2.355.0 falliscono entrambi.
+
 ## 2.355.0 — 22/09/2026
 
 **Il lettore permissivo per l'importazione fedele: `pct/documento_fedele/sorgente.py`.**

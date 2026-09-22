@@ -1,0 +1,75 @@
+"""I timbri e le firme disegnati a vettori non devono sparire.
+
+`estrai_grafica` raggruppa i tracciati vicini e rasterizza la zona: e' il
+codice che tiene in piedi l'intestazione dello studio, il timbro di deposito e
+la firma grafica su un atto. Non aveva test suoi, e la sostituzione della
+geometria aveva rotto proprio il raggruppamento senza che nulla lo dicesse.
+"""
+
+from __future__ import annotations
+
+import pytest
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas
+
+fitz = pytest.importorskip("pymupdf", reason="l'estrazione grafica gira ancora su PyMuPDF")
+
+from pct.documento_fedele.geometria import Riquadro  # noqa: E402
+from pct.documento_fedele.immagini import estrai_grafica  # noqa: E402
+
+
+@pytest.fixture
+def con_timbro(tmp_path):
+    """Un atto con un timbro fatto di tanti tracciati staccati."""
+    percorso = tmp_path / "timbro.pdf"
+    foglio = canvas.Canvas(str(percorso), pagesize=A4)
+
+    foglio.setFont("Helvetica", 11)
+    foglio.drawString(25 * mm, 250 * mm, "atto con timbro")
+
+    # il timbro: cornice piu' una decina di segni dentro, tutti vicini
+    foglio.setStrokeColorRGB(0.7, 0.1, 0.1)
+    foglio.setLineWidth(1.4)
+    foglio.roundRect(120 * mm, 200 * mm, 50 * mm, 18 * mm, 3 * mm, stroke=1, fill=0)
+    for n in range(10):
+        x = 124 * mm + n * 4 * mm
+        foglio.line(x, 205 * mm, x + 3 * mm, 213 * mm)
+
+    foglio.showPage()
+    foglio.save()
+    return percorso
+
+
+def test_i_tracciati_vicini_diventano_una_sola_grafica(con_timbro):
+    documento = fitz.open(str(con_timbro))
+    try:
+        elementi = estrai_grafica(documento[0], [])
+    finally:
+        documento.close()
+
+    assert elementi, "il timbro e' sparito"
+    assert len(elementi) == 1, (
+        f"il timbro e' stato spezzato in {len(elementi)} pezzi invece di restare uno"
+    )
+
+    uno = elementi[0]
+    assert uno.tipo == "grafica"
+    assert 'src="data:image/' in uno.html
+    riquadro = Riquadro(uno.bbox)
+    assert riquadro.width > 40 * mm * 0.8
+    assert riquadro.height > 15 * mm * 0.8
+
+
+def test_una_zona_gia_occupata_non_viene_rasterizzata_due_volte(con_timbro):
+    """Quello che e' gia' diventato tabella o immagine resta fuori."""
+    documento = fitz.open(str(con_timbro))
+    try:
+        tutto = estrai_grafica(documento[0], [])
+        occupato = Riquadro(tutto[0].bbox)
+        niente = estrai_grafica(documento[0], [occupato])
+    finally:
+        documento.close()
+
+    assert tutto
+    assert niente == []

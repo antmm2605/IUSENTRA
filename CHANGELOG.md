@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.346.0 — 22/09/2026
+
+**La retention dei backup cercava gli archivi dove non c'erano.** La stessa pagina
+diceva «Backup esterni 0 B, nessun archivio trovato in /opt/iusentra/backups» e poco
+sotto «Archivi backup esterni 64,3 GiB»: due misure della stessa cartella, una sul
+percorso dell'host cosi' com'e' scritto e l'altra sotto la radice dell'host montata
+nel container. Dentro il container il primo percorso non esiste, quindi la retention
+non ha mai trovato un solo archivio da governare e non ha mai liberato niente.
+
+Ora il percorso si risolve una volta sola, e se quello indicato non esiste si
+raggiunge la stessa cartella sotto la radice dell'host. Entrambe le schede leggono
+lo stesso numero.
+
+**Il pannello di manutenzione era diventato una colonna di ventidue bottoni.**
+Stavano tutti in una colonna larga cinque dodicesimi, incolonnati a destra, con le
+analisi e le azioni distruttive mescolate. Ora sono quattro riquadri — spazio sul
+disco, archivi degli studi, cartelle e copie doppie, archivio di ricerca e PEC — e
+in ognuno l'analisi sta accanto all'azione che le corrisponde.
+
+Test: `tests/test_backup_dir_resolution.py` (nuovo). Provato al contrario: senza il
+ripiego sulla radice host la risoluzione torna al percorso vuoto e la retention resta
+senza archivi.
+
 ## 2.345.0 — 22/09/2026
 
 **La copertura nell'editor PDF adesso oscura davvero.** Finora disegnava un

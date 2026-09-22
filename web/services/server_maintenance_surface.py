@@ -407,14 +407,32 @@ def resolve_data_root(config: dict[str, Any] | None = None) -> Path:
 
 
 def resolve_external_backup_dir(config: dict[str, Any] | None = None) -> Path:
+    """Dove stanno davvero gli archivi di backup.
+
+    Il percorso indicato e' quello dell'host. Dentro il container quel percorso
+    spesso non esiste: l'host si vede sotto la sua radice montata, ed e' li'
+    che stanno gli archivi. Finche' questa funzione restituiva comunque il
+    percorso diretto, chi la usava non trovava nessun archivio: la scheda
+    "Ultimo backup" diceva zero byte mentre la mappa del disco misurava
+    decine di gigabyte nella stessa cartella, e la retention non aveva mai
+    niente da governare.
+    """
     cfg = _runtime_config(config)
-    return Path(
+    indicato = Path(
         str(
             os.getenv("IUSENTRA_BACKUP_DIR")
             or cfg.get("IUSENTRA_BACKUP_DIR")
             or "/opt/iusentra/backups"
         )
     )
+    if indicato.exists():
+        return indicato
+    host = resolve_host_iusentra_dir(cfg)
+    if host is not None:
+        sotto_host = host / indicato.name
+        if sotto_host.exists():
+            return sotto_host
+    return indicato
 
 
 def _registry_path_for_data_root(data_root: Path, config: dict[str, Any]) -> Path:

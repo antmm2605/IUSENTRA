@@ -215,147 +215,176 @@
   </div>
   <div class="card-body">
     <div class="row g-3 align-items-end">
-      <div class="col-12 col-xl-7">
+      <div class="col-12">
         <ul class="mb-0">
           {% for item in payload.recommendations %}
           <li>{{ item }}</li>
           {% endfor %}
         </ul>
       </div>
-      <div class="col-12 col-xl-5">
-        <div class="d-flex flex-wrap gap-2 justify-content-xl-end">
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_manutenzione_professionale') }}">
+      <div class="col-12">
+        <div class="row g-3">
+          <div class="col-12 col-xl-6">
+            <div class="border rounded-3 h-100 p-3">
+              <div class="fw-semibold mb-2"><i class="bi bi-hdd"></i> Spazio sul disco</div>
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_manutenzione_professionale') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-primary" type="submit">
               <i class="bi bi-clipboard2-pulse"></i> Analizza manutenzione
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_manutenzione_professionale') }}" onsubmit="return confirm('Eseguire manutenzione professionale? Verranno rimossi solo backup eccedenti, cartelle tenant non registrate, snapshot temporanei e cache ricostruibile.')">
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_manutenzione_professionale') }}" onsubmit="return confirm('Eseguire manutenzione professionale? Verranno rimossi solo backup eccedenti, cartelle tenant non registrate, snapshot temporanei e cache ricostruibile.')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-danger" type="submit">
               <i class="bi bi-tools"></i> Esegui manutenzione
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_compattazione') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-primary" type="submit">
-              <i class="bi bi-search"></i> Analizza compattazione
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.compatta') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-success" type="submit">
-              <i class="bi bi-hdd-stack"></i> Compatta tutto in sicurezza
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_ottimizzazione_massima') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-primary" type="submit">
-              <i class="bi bi-speedometer2"></i> Analizza ottimizzazione massima
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_ottimizzazione_massima') }}" onsubmit="return confirm('Ottimizzare allegati e archivi degli studi mantenendo invariati i percorsi applicativi?')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-success" type="submit">
-              <i class="bi bi-stars"></i> Ottimizza archivi studi
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_copia_doppia_fascicoli') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-secondary" type="submit">
-              <i class="bi bi-files"></i> Analizza copia doppia fascicoli
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_copia_doppia_fascicoli') }}" onsubmit="return confirm('Togliere la copia doppia dai fascicoli? Viene riscritto solo dati_json: le colonne con i documenti veri non vengono toccate, e le righe gia\u0027 sgrassate vengono saltate.')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-warning" type="submit">
-              <i class="bi bi-scissors"></i> Togli copia doppia fascicoli
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_collegamenti_pec') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-secondary" type="submit">
-              <i class="bi bi-link-45deg"></i> Analizza collegamenti PEC
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_collegamenti_pec') }}" onsubmit="return confirm('Ricollegare le PEC rimaste senza fascicolo?\n\nVengono toccati solo i messaggi che la regola di oggi collega: RG del fascicolo, mittente che e\u0027 quell\u0027ufficio giudiziario, atto del procedimento. Da quale PEC decorre un termine dipende da questo collegamento: lanciarlo dopo avere letto l\u0027analisi.')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-warning" type="submit">
-              <i class="bi bi-link"></i> Ricollega PEC al fascicolo
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_chunk_rag') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-secondary" type="submit">
-              <i class="bi bi-scissors"></i> Analizza chunk archivio RAG
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_chunk_rag') }}" onsubmit="return confirm('Rifare i chunk dei documenti che ne hanno di inservibili?\n\nI file vengono riletti dal disco e reindicizzati: e\u0027 lavoro vero sulla macchina. I documenti senza file di partenza restano come sono. Lanciarlo dopo avere letto l\u0027analisi, e quando nessuno sta lavorando.')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-warning" type="submit">
-              <i class="bi bi-arrow-repeat"></i> Rifai i chunk inservibili
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_spazio_database') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-secondary" type="submit">
-              <i class="bi bi-database"></i> Analizza spazio database
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_compattazione_database') }}" onsubmit="return confirm('Compattare gli archivi studio.db con un VACUUM?\n\nPer tutta la durata il database resta bloccato in scrittura e l\u0027applicativo non risponde: su un archivio grande sono minuti, non secondi. Lanciarlo quando nessuno sta lavorando.')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-warning" type="submit">
-              <i class="bi bi-arrows-collapse"></i> Compatta database studi
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_retention_backup') }}">
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_retention_backup') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
               <i class="bi bi-archive"></i> Analizza retention backup
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.applica_retention_backup') }}">
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_retention_backup') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-warning" type="submit">
               <i class="bi bi-trash3"></i> Applica retention backup
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_cartelle_escluse') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-warning" type="submit">
-              <i class="bi bi-folder-x"></i> Analizza cartelle escluse
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.elimina_cartelle_escluse') }}" onsubmit="return confirm('Eliminare le cartelle tenant escluse dalla registry attiva? I due storage degli studi registrati non vengono toccati.')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-danger" type="submit">
-              <i class="bi bi-trash3"></i> Elimina cartelle escluse
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.pulisci_log_sistema') }}" onsubmit="return confirm('Ridurre i log di sistema mantenendo gli ultimi 256 MiB di journal?')">
+                <form method="post" action="{{ url_for('server_maintenance_admin.pulisci_log_sistema') }}" onsubmit="return confirm('Ridurre i log di sistema mantenendo gli ultimi 256 MiB di journal?')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
               <i class="bi bi-journal-x"></i> Pulisci log sistema
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_normativa_globale') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-primary" type="submit">
-              <i class="bi bi-journal-text"></i> Analizza normativa globale
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.pulisci_normativa_globale') }}" onsubmit="return confirm('Rimuovere solo i backup duplicati della normativa globale? DB Normattiva, indice e sorgenti restano disponibili per Ricerca Legale e Lex.')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-outline-danger" type="submit">
-              <i class="bi bi-trash3"></i> Pulisci backup Normattiva
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Pulire la cache ricostruibile dei servizi? I dati degli studi non vengono toccati.')">
+                <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Pulire la cache ricostruibile dei servizi? I dati degli studi non vengono toccati.')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-danger" type="submit">
               <i class="bi bi-bucket"></i> Pulisci cache servizi
             </button>
           </form>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-xl-6">
+            <div class="border rounded-3 h-100 p-3">
+              <div class="fw-semibold mb-2"><i class="bi bi-database"></i> Archivi degli studi</div>
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_compattazione') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-search"></i> Analizza compattazione
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.compatta') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-success" type="submit">
+              <i class="bi bi-hdd-stack"></i> Compatta tutto in sicurezza
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_spazio_database') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-database"></i> Analizza spazio database
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_compattazione_database') }}" onsubmit="return confirm('Compattare gli archivi studio.db con un VACUUM?\n\nPer tutta la durata il database resta bloccato in scrittura e l\u0027applicativo non risponde: su un archivio grande sono minuti, non secondi. Lanciarlo quando nessuno sta lavorando.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-arrows-collapse"></i> Compatta database studi
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_ottimizzazione_massima') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-speedometer2"></i> Analizza ottimizzazione massima
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_ottimizzazione_massima') }}" onsubmit="return confirm('Ottimizzare allegati e archivi degli studi mantenendo invariati i percorsi applicativi?')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-success" type="submit">
+              <i class="bi bi-stars"></i> Ottimizza archivi studi
+            </button>
+          </form>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-xl-6">
+            <div class="border rounded-3 h-100 p-3">
+              <div class="fw-semibold mb-2"><i class="bi bi-folder2-open"></i> Cartelle e copie doppie</div>
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_cartelle_escluse') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-warning" type="submit">
+              <i class="bi bi-folder-x"></i> Analizza cartelle escluse
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.elimina_cartelle_escluse') }}" onsubmit="return confirm('Eliminare le cartelle tenant escluse dalla registry attiva? I due storage degli studi registrati non vengono toccati.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-danger" type="submit">
+              <i class="bi bi-trash3"></i> Elimina cartelle escluse
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_copia_doppia_fascicoli') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-files"></i> Analizza copia doppia fascicoli
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_copia_doppia_fascicoli') }}" onsubmit="return confirm('Togliere la copia doppia dai fascicoli? Viene riscritto solo dati_json: le colonne con i documenti veri non vengono toccate, e le righe gia\u0027 sgrassate vengono saltate.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-scissors"></i> Togli copia doppia fascicoli
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_normativa_globale') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-journal-text"></i> Analizza normativa globale
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.pulisci_normativa_globale') }}" onsubmit="return confirm('Rimuovere solo i backup duplicati della normativa globale? DB Normattiva, indice e sorgenti restano disponibili per Ricerca Legale e Lex.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-danger" type="submit">
+              <i class="bi bi-trash3"></i> Pulisci backup Normattiva
+            </button>
+          </form>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-xl-6">
+            <div class="border rounded-3 h-100 p-3">
+              <div class="fw-semibold mb-2"><i class="bi bi-search"></i> Archivio di ricerca e PEC</div>
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_collegamenti_pec') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-link-45deg"></i> Analizza collegamenti PEC
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_collegamenti_pec') }}" onsubmit="return confirm('Ricollegare le PEC rimaste senza fascicolo?\n\nVengono toccati solo i messaggi che la regola di oggi collega: RG del fascicolo, mittente che e\u0027 quell\u0027ufficio giudiziario, atto del procedimento. Da quale PEC decorre un termine dipende da questo collegamento: lanciarlo dopo avere letto l\u0027analisi.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-link"></i> Ricollega PEC al fascicolo
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.analizza_chunk_rag') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-scissors"></i> Analizza chunk archivio RAG
+            </button>
+          </form>
+                <form method="post" action="{{ url_for('server_maintenance_admin.applica_chunk_rag') }}" onsubmit="return confirm('Rifare i chunk dei documenti che ne hanno di inservibili?\n\nI file vengono riletti dal disco e reindicizzati: e\u0027 lavoro vero sulla macchina. I documenti senza file di partenza restano come sono. Lanciarlo dopo avere letto l\u0027analisi, e quando nessuno sta lavorando.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-arrow-repeat"></i> Rifai i chunk inservibili
+            </button>
+          </form>
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </div>

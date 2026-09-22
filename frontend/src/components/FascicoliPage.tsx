@@ -9795,7 +9795,7 @@ function DetailPage({ id }:{id:string}) {
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
   const pagoPaEmbeddedHref = `${PAGOPA_PROXY_NEW_PAYMENT_URL}?iusentra_fascicolo=${encodedId}`
   const openPagoPaModal = useCallback(() => {
-    setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA del fascicolo', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
+    setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
   }, [pagoPaEmbeddedHref])
   useEffect(() => {
     if (typeof window === 'undefined') return

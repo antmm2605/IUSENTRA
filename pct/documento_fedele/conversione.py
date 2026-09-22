@@ -21,6 +21,7 @@ except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
     except ImportError:
         fitz = None  # type: ignore[assignment]
 
+from .geometria import Riquadro
 from .taratura import Taratura, _pt, pila_font
 from .modello import DocumentoConvertito, PaginaConvertita, Riga, Tratto
 from .lettura import leggi_righe
@@ -214,7 +215,7 @@ def converti(
                        else estrai_tabelle(pagina, righe, testo_sx, testo_dx))
             immagini = estrai_immagini(pagina, pagina.rect.width,
                                         salta_pagina_intera=da_ocr)
-            occupati = [fitz.Rect(t.bbox) for t in tabelle] + [fitz.Rect(i.bbox) for i in immagini]
+            occupati = [Riquadro(t.bbox) for t in tabelle] + [Riquadro(i.bbox) for i in immagini]
             grafica = [] if da_ocr else estrai_grafica(pagina, occupati)
 
             grezzo.append({
@@ -237,12 +238,12 @@ def converti(
             righe: list[Riga] = voce["righe"]
             tabelle, immagini, grafica = voce["tabelle"], voce["immagini"], voce["grafica"]
 
-            occupati = [fitz.Rect(t.bbox) for t in tabelle]
+            occupati = [Riquadro(t.bbox) for t in tabelle]
             libere = [
                 r for r in righe
-                if not any(t.intersects(fitz.Rect(r.bbox))
-                           and (t & fitz.Rect(r.bbox)).get_area()
-                           > fitz.Rect(r.bbox).get_area() * 0.5
+                if not any(t.intersects(Riquadro(r.bbox))
+                           and (t & Riquadro(r.bbox)).get_area()
+                           > Riquadro(r.bbox).get_area() * 0.5
                            for t in occupati)
             ]
             corpo_pagina = (statistics.median([r.corpo for r in libere])

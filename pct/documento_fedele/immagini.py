@@ -21,6 +21,7 @@ try:
 except ImportError:  # pragma: no cover
     Image = None  # type: ignore[assignment]
 
+from .geometria import Riquadro
 from .taratura import Taratura
 from .modello import Elemento
 
@@ -108,7 +109,7 @@ def estrai_immagini(pagina: fitz.Page, larghezza_pagina: float,
     for blocco in pagina.get_text("dict", flags=fitz.TEXTFLAGS_DICT)["blocks"]:
         if blocco.get("type") != 1:
             continue
-        r = fitz.Rect(blocco["bbox"])
+        r = Riquadro(blocco["bbox"])
         if r.width < Taratura.IMMAGINE_MINIMA or r.height < Taratura.IMMAGINE_MINIMA:
             continue
         if salta_pagina_intera and r.get_area() > area_pagina * 0.8:
@@ -146,7 +147,7 @@ def estrai_immagini(pagina: fitz.Page, larghezza_pagina: float,
 
 
 def estrai_grafica(
-    pagina: fitz.Page, esclusi: list[fitz.Rect], dpi: int = Taratura.DPI_GRAFICA,
+    pagina: fitz.Page, esclusi: list[Riquadro], dpi: int = Taratura.DPI_GRAFICA,
 ) -> list[Elemento]:
     """
     Loghi, cornici, timbri e firme disegnati a vettori: si raggruppano i
@@ -162,14 +163,14 @@ def estrai_grafica(
         return []
 
     try:
-        campi = [fitz.Rect(w.rect) for w in pagina.widgets()]
+        campi = [Riquadro(w.rect) for w in pagina.widgets()]
     except Exception:
         campi = []
     esclusi = list(esclusi) + campi
 
     riquadri = []
     for d in disegni:
-        r = fitz.Rect(d["rect"])
+        r = Riquadro(d["rect"])
         if r.width < Taratura.GRAFICA_MINIMA or r.height < Taratura.GRAFICA_MINIMA:
             continue
         if r.width > pagina.rect.width * 0.97 and r.height > pagina.rect.height * 0.97:
@@ -178,10 +179,10 @@ def estrai_grafica(
             continue
         riquadri.append(r)
 
-    gruppi: list[fitz.Rect] = []
+    gruppi: list[Riquadro] = []
     for r in sorted(riquadri, key=lambda x: (x.y0, x.x0)):
         for g in gruppi:
-            if fitz.Rect(g.x0 - 6, g.y0 - 6, g.x1 + 6, g.y1 + 6).intersects(r):
+            if Riquadro(g.x0 - 6, g.y0 - 6, g.x1 + 6, g.y1 + 6).intersects(r):
                 g |= r
                 break
         else:

@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.354.0 — 22/09/2026
+
+**La geometria di `documento_fedele` esce da PyMuPDF.** L'editor atti importa i PDF
+con `pct/documento_fedele`, che conserva tabelle vere, immagini, grassetto, colori,
+allineamenti, formato e margini — ed e' la strada giusta per modificare un PDF
+caricato dallo studio: non si esce dal software, e l'impaginazione in uscita la
+decide IUSENTRA. Il problema e' che il pacchetto gira su PyMuPDF, che e' AGPL.
+
+Dei cinquantuno usi di `fitz`, trentotto erano `fitz.Rect`: riquadri di span, di
+caratteri, di celle, di immagini, di evidenziature. Nessuna lettura, solo geometria.
+Il nuovo `pct/documento_fedele/geometria.py` porta `Riquadro`, che ripete
+l'interfaccia usata davvero da quel codice — `x0`, `y0`, `x1`, `y1`, `width`,
+`height`, `get_area()`, `intersects()` e l'operatore `&` — cosi' i cinque file
+interessati cambiano solo la riga di importazione.
+
+Il comportamento e' stato verificato contro PyMuPDF su quattromila coppie di
+rettangoli presi a caso, compresi quelli degeneri e quelli che si sfiorano su un
+bordo: nessuna differenza su `intersects` e su `get_area`, e sull'intersezione uno
+scarto massimo di 0,0006 punti quadrati, che e' l'arrotondamento a 32 bit di
+PyMuPDF. Sono le condizioni al contorno che decidono se il filetto di una cella
+diventa una sottolineatura: i dodici test le fissano una per una.
+
+`tests/test_documento_fedele.py` da' lo stesso esito di prima della sostituzione,
+confrontato con il pacchetto ricostruito da HEAD.
+
+Restano ventuno usi di `fitz`, quasi tutti annotazioni `fitz.Page`; le chiamate vere
+sono la lettura degli span, i collegamenti, i disegni, le immagini e l'apertura del
+documento. E' il passo successivo.
+
 ## 2.353.0 — 22/09/2026
 
 **Due pezzi che servono alla stessa cosa: portare la scrittura sui PDF fuori da

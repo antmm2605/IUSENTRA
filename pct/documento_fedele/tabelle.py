@@ -16,6 +16,7 @@ except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
     except ImportError:
         fitz = None  # type: ignore[assignment]
 
+from .geometria import Riquadro
 from .taratura import Taratura, _colore_da_float, _pt
 from .modello import Elemento, Riga, Tratto
 from .paragrafi import _allineamento, _html_tratti
@@ -25,7 +26,7 @@ from .paragrafi import _allineamento, _html_tratti
 # 3. Tabelle
 # ===========================================================================
 
-def _sfondo_cella(pagina: fitz.Page, riquadro: fitz.Rect) -> Optional[str]:
+def _sfondo_cella(pagina: fitz.Page, riquadro: Riquadro) -> Optional[str]:
     try:
         disegni = pagina.get_drawings()
     except Exception:
@@ -33,7 +34,7 @@ def _sfondo_cella(pagina: fitz.Page, riquadro: fitz.Rect) -> Optional[str]:
     for d in disegni:
         if d.get("fill") is None:
             continue
-        r = fitz.Rect(d["rect"])
+        r = Riquadro(d["rect"])
         if not r.intersects(riquadro):
             continue
         if (r & riquadro).get_area() < riquadro.get_area() * 0.8:
@@ -58,7 +59,7 @@ def estrai_tabelle(
 
     fuori: list[Elemento] = []
     for tabella in trovate.tables:
-        riquadro = fitz.Rect(tabella.bbox)
+        riquadro = Riquadro(tabella.bbox)
         celle = [c for c in (tabella.cells or []) if c]
         if len(celle) < 4:
             continue
@@ -77,15 +78,15 @@ def estrai_tabelle(
                 continue
             colspan = max(1, sum(1 for k in range(c, n_col) if xs[k + 1] <= x1 + Taratura.TOLLERANZA))
             rowspan = max(1, sum(1 for k in range(r, n_rig) if ys[k + 1] <= y1 + Taratura.TOLLERANZA))
-            cella = fitz.Rect(x0, y0, x1, y1)
+            cella = Riquadro(x0, y0, x1, y1)
             griglia[r][c] = {
                 "rect": cella,
                 "colspan": colspan,
                 "rowspan": rowspan,
                 "sfondo": _sfondo_cella(pagina, cella),
-                "righe": [g for g in righe if fitz.Rect(g.bbox).intersects(cella)
-                          and (fitz.Rect(g.bbox) & cella).get_area()
-                          > fitz.Rect(g.bbox).get_area() * 0.5],
+                "righe": [g for g in righe if Riquadro(g.bbox).intersects(cella)
+                          and (Riquadro(g.bbox) & cella).get_area()
+                          > Riquadro(g.bbox).get_area() * 0.5],
             }
             for rr in range(r, min(n_rig, r + rowspan)):
                 for cc in range(c, min(n_col, c + colspan)):
@@ -122,7 +123,7 @@ def _banda(valori: list[float], v: float) -> Optional[int]:
     return len(valori) - 2
 
 
-def _html_tabella(griglia, xs: list[float], tabella, riquadro: fitz.Rect,
+def _html_tabella(griglia, xs: list[float], tabella, riquadro: Riquadro,
                   sinistra: Optional[float] = None,
                   destra: Optional[float] = None) -> str:
     totale = max(1.0, xs[-1] - xs[0])

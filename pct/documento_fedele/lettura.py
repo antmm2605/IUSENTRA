@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
     except ImportError:
         fitz = None  # type: ignore[assignment]
 
+from .geometria import Riquadro
 from .taratura import _colore, _colore_da_float, pila_font
 from .modello import Riga, Tratto
 
@@ -29,13 +30,13 @@ from .modello import Riga, Tratto
 _APICE, _CORSIVO, _GRAZIE, _MONO, _GRASSETTO = 1, 2, 4, 8, 16
 
 
-def _collegamenti(pagina: fitz.Page) -> list[tuple[fitz.Rect, str]]:
+def _collegamenti(pagina: fitz.Page) -> list[tuple[Riquadro, str]]:
     fuori = []
     try:
         for l in pagina.get_links():
             uri = l.get("uri")
             if uri:
-                fuori.append((fitz.Rect(l["from"]), uri))
+                fuori.append((Riquadro(l["from"]), uri))
     except Exception:
         pass
     return fuori
@@ -53,13 +54,13 @@ def _filetti(pagina: fitz.Page) -> list[tuple[float, float, float]]:
     except Exception:
         return fuori
     for d in disegni:
-        r = fitz.Rect(d["rect"])
+        r = Riquadro(d["rect"])
         if r.height <= 2.4 and r.width > 5:
             fuori.append((r.x0, r.x1, (r.y0 + r.y1) / 2))
     return fuori
 
 
-def _evidenziature(pagina: fitz.Page) -> list[tuple[fitz.Rect, str]]:
+def _evidenziature(pagina: fitz.Page) -> list[tuple[Riquadro, str]]:
     """Rettangoli pieni chiari dietro il testo: sono evidenziazioni."""
     fuori = []
     try:
@@ -72,7 +73,7 @@ def _evidenziature(pagina: fitz.Page) -> list[tuple[fitz.Rect, str]]:
         colore = _colore_da_float(d.get("fill"))
         if not colore or colore.lower() in ("#ffffff", "#fefefe"):
             continue
-        r = fitz.Rect(d["rect"])
+        r = Riquadro(d["rect"])
         if 4 < r.height < 26 and r.width > 8:
             fuori.append((r, colore))
     return fuori
@@ -84,9 +85,9 @@ SPORGENZA_MASSIMA = 0.35
 SPORGENZA_MINIMA_PT = 12.0
 
 
-def _decorazioni(riquadro: fitz.Rect,
+def _decorazioni(riquadro: Riquadro,
                  filetti: list[tuple[float, float, float]],
-                 contenitore: Optional[fitz.Rect] = None) -> tuple[bool, bool]:
+                 contenitore: Optional[Riquadro] = None) -> tuple[bool, bool]:
     """
     (sottolineato, barrato) per un riquadro.
 
@@ -120,14 +121,14 @@ def _decorazioni(riquadro: fitz.Rect,
     return sottolineato, barrato
 
 
-def _sfondo(riquadro: fitz.Rect, sfondi: list[tuple[fitz.Rect, str]]) -> Optional[str]:
+def _sfondo(riquadro: Riquadro, sfondi: list[tuple[Riquadro, str]]) -> Optional[str]:
     for r, colore in sfondi:
         if r.intersects(riquadro) and (r & riquadro).get_area() > riquadro.get_area() * 0.55:
             return colore
     return None
 
 
-def _indirizzo(riquadro: fitz.Rect, link: list[tuple[fitz.Rect, str]]) -> Optional[str]:
+def _indirizzo(riquadro: Riquadro, link: list[tuple[Riquadro, str]]) -> Optional[str]:
     for r, uri in link:
         if r.intersects(riquadro):
             return uri
@@ -137,8 +138,8 @@ def _indirizzo(riquadro: fitz.Rect, link: list[tuple[fitz.Rect, str]]) -> Option
 def _tratti_da_span(
     span: dict,
     filetti: list[tuple[float, float, float]],
-    sfondi: list[tuple[fitz.Rect, str]],
-    link: list[tuple[fitz.Rect, str]],
+    sfondi: list[tuple[Riquadro, str]],
+    link: list[tuple[Riquadro, str]],
     corpo_riga: float,
 ) -> list[Tratto]:
     """
@@ -153,7 +154,7 @@ def _tratti_da_span(
         return []
 
     flag = int(span.get("flags", 0))
-    riquadro = fitz.Rect(span["bbox"])
+    riquadro = Riquadro(span["bbox"])
     corpo = round(float(span.get("size", 11.0)), 1)
     nome = (span.get("font", "") or "").lower()
 
@@ -204,9 +205,9 @@ def _tratti_da_span(
         lettera = car.get("c", "")
         if not lettera:
             continue
-        cr = fitz.Rect(car["bbox"])
+        cr = Riquadro(car["bbox"])
         if cr.width <= 0:
-            cr = fitz.Rect(cr.x0, riquadro.y0, cr.x0 + 0.1, riquadro.y1)
+            cr = Riquadro(cr.x0, riquadro.y0, cr.x0 + 0.1, riquadro.y1)
         sotto, barra = _decorazioni(cr, filetti, riquadro)
         stato = dict(
             sottolineato=sotto, barrato=barra,

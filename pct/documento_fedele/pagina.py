@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
     except ImportError:
         fitz = None  # type: ignore[assignment]
 
+from .geometria import Riquadro
 from .taratura import Taratura, _pt
 from .modello import Elemento, Riga
 from .paragrafi import _html_tratti
@@ -25,7 +26,7 @@ from .paragrafi import _html_tratti
 # ===========================================================================
 
 def _margini(pagina: fitz.Page, righe: list[Riga], altri: list[Elemento]) -> tuple[float, float, float, float]:
-    riquadri = [fitz.Rect(r.bbox) for r in righe] + [fitz.Rect(e.bbox) for e in altri]
+    riquadri = [Riquadro(r.bbox) for r in righe] + [Riquadro(e.bbox) for e in altri]
     if not riquadri:
         return (56.7, 56.7, 56.7, 56.7)
     sx = min(r.x0 for r in riquadri)

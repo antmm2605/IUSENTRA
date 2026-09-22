@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.344.0 — 22/09/2026
+
+**I chunk da rifare li rifa' la notte, non un bottone.** In produzione i documenti
+con chunk fuori misura sono 5.982 e ognuno costa circa sei secondi fra rilettura del
+file, riestrazione del testo e rispezzatura: sono nove ore e mezza di lavoro, che
+nessuna richiesta HTTP regge per quanto la si spezzetti. Il bottone del pannello si
+ferma a 75 secondi per non farsi troncare dal server, e da solo avrebbe richiesto
+piu' di quattrocento clic.
+
+Nuova pianificazione `rag_rispezzatura_notturna`: gira fra l'una e le cinque, ogni
+quarto d'ora, e lavora dodici minuti per giro riprendendo da dove si era fermata.
+Di giorno non tocca niente. Quando non resta piu' niente da rifare la passata torna
+subito e non costa nulla, quindi puo' restare accesa anche dopo. Una sola istanza
+per volta, senza accavallamenti.
+
+Il bottone resta dov'e', per l'analisi e per finire gli ultimi.
+
+Test: budget notturno distinto da quello del bottone, e orario verificato sul
+registro delle pianificazioni, non solo sul codice.
+
 ## 2.343.5 — 22/09/2026
 
 **La lista dei documenti da rifare non rilegge piu' l'archivio una volta per

@@ -661,6 +661,34 @@ def start_scheduler(app):
         with app.app_context():
             return refresh_mediazione_sources(app.config)
 
+    # ---- Rispezzatura notturna dei chunk RAG (01:00-04:45, ogni quarto d'ora) ----
+    # I chunk lasciati dallo splitter vecchio sono migliaia e rifarli costa ore:
+    # nessuna richiesta HTTP le regge, e il bottone del pannello si ferma a 75
+    # secondi per non farsi troncare. Qui invece si lavora per davvero, di notte,
+    # dodici minuti per giro; il giro dopo riprende da dove si era fermato.
+    # Quando non resta niente da rifare la passata torna subito e non costa nulla.
+    @scheduler.scheduled_job(
+        CronTrigger(hour="1-4", minute="*/15"),
+        id="rag_rispezzatura_notturna",
+        max_instances=1,
+        coalesce=True,
+    )
+    def _rag_rispezzatura_notturna():
+        from web.services.chunk_rag_runtime import rispezzatura_notturna
+        with app.app_context():
+            try:
+                esito = rispezzatura_notturna(app)
+                logger.info(
+                    "[scheduler] Rispezzatura chunk RAG: %s rifatti, %s all'OCR, %s restanti",
+                    esito.get("documenti_rifatti"),
+                    esito.get("documenti_verso_ocr"),
+                    esito.get("documenti_restanti"),
+                )
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Rispezzatura chunk RAG fallita: %s", e)
+                return None
+
     # ---- Adeguamento della soglia del patrocinio (art. 77 D.P.R. 115/2002) ----
     # Il decreto e' biennale, ma la data di pubblicazione non e' prevedibile:
     # si guarda la Gazzetta ogni due mesi. Non si riscrive la soglia — si

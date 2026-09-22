@@ -14,7 +14,20 @@ from typing import Any
 
 from flask import g
 
-from pct.manutenzione_chunk_rag import EsitoArchivio, _riepilogo, esamina, rispezza
+from pct.manutenzione_chunk_rag import (
+    BUDGET_SECONDI,
+    LOTTO_DOCUMENTI,
+    EsitoArchivio,
+    _riepilogo,
+    esamina,
+    rispezza,
+)
+
+#: Quanto lavora una passata notturna. Fuori da una richiesta HTTP il tetto
+#: non e' piu' il timeout del server: e' il riguardo per chi dorme mentre la
+#: macchina macina. Dodici minuti per giro, e il giro dopo riprende da li'.
+BUDGET_NOTTURNO_SECONDI = 720.0
+LOTTO_NOTTURNO = 2000
 
 
 def _servizio_corrente():
@@ -23,11 +36,27 @@ def _servizio_corrente():
     return get_local_ai_service()
 
 
-def esamina_tutti(app: Any, *, rispezzare: bool = False, limite: int = 0) -> dict[str, Any]:
+def esamina_tutti(
+    app: Any,
+    *,
+    rispezzare: bool = False,
+    limite: int = 0,
+    massimo_documenti: int = LOTTO_DOCUMENTI,
+    budget_secondi: float = BUDGET_SECONDI,
+) -> dict[str, Any]:
     """Tutti gli studi attivi, ognuno con il suo archivio."""
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
 
-    lavoro = rispezza if rispezzare else esamina
+    def lavoro(servizio, *, studio: str, limite: int = 0):
+        if not rispezzare:
+            return esamina(servizio, studio=studio, limite=limite)
+        return rispezza(
+            servizio,
+            studio=studio,
+            limite=limite,
+            massimo_documenti=massimo_documenti,
+            budget_secondi=budget_secondi,
+        )
     esiti: list[EsitoArchivio] = []
     attivi = _active_tenants(app)
     if not attivi:
@@ -58,4 +87,21 @@ def esamina_tutti(app: Any, *, rispezzare: bool = False, limite: int = 0) -> dic
     return _riepilogo(esiti, applicato=rispezzare)
 
 
-__all__ = ["esamina_tutti"]
+
+
+def rispezzatura_notturna(app: Any) -> dict[str, Any]:
+    """Il giro notturno: rifa' i chunk fuori misura finche' ha tempo.
+
+    Il bottone del pannello resta per l'analisi e per gli ultimi rimasti: in
+    produzione il lavoro completo e' di ore, e nessuna richiesta HTTP le regge.
+    Qui invece si puo' lavorare per davvero, di notte, e fermarsi al budget.
+    """
+    return esamina_tutti(
+        app,
+        rispezzare=True,
+        massimo_documenti=LOTTO_NOTTURNO,
+        budget_secondi=BUDGET_NOTTURNO_SECONDI,
+    )
+
+
+__all__ = ["BUDGET_NOTTURNO_SECONDI", "LOTTO_NOTTURNO", "esamina_tutti", "rispezzatura_notturna"]

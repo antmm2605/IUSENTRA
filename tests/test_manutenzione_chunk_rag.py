@@ -354,3 +354,36 @@ def test_la_via_veloce_dichiara_il_suo_limite(tmp_path: Path):
     assert documenti_fuori_misura(service) == [], "senza conteggio la via veloce non lo vede"
     scarti, _ = chunk_da_scartare(service)
     assert any(s["chunk"] == "senza-conteggio" for s in scarti), "il censimento completo lo trova"
+
+
+def test_la_passata_notturna_ha_un_budget_suo(monkeypatch):
+    """Fuori da una richiesta HTTP il tetto non e' piu' il timeout del server."""
+
+    from web.services import chunk_rag_runtime
+
+    passati = {}
+
+    def _finto(app, **kwargs):
+        passati.update(kwargs)
+        return {"ok": True}
+
+    monkeypatch.setattr(chunk_rag_runtime, "esamina_tutti", _finto)
+    chunk_rag_runtime.rispezzatura_notturna(object())
+
+    assert passati["rispezzare"] is True
+    assert passati["budget_secondi"] == chunk_rag_runtime.BUDGET_NOTTURNO_SECONDI
+    assert passati["budget_secondi"] > 600, "una passata notturna deve poter lavorare per minuti"
+    assert passati["massimo_documenti"] == chunk_rag_runtime.LOTTO_NOTTURNO
+
+
+def test_il_job_notturno_e_registrato_e_gira_solo_di_notte():
+    """L'orario sta nel registro, non solo nel codice."""
+
+    from pct.scheduler_registry import template_catalog
+
+    voce = next(t for t in template_catalog() if t.key == "rag_rispezzatura_notturna")
+
+    assert voce.trigger_kind == "cron"
+    assert voce.hour == "1-4", "solo notte"
+    assert voce.minute == "*/15"
+    assert voce.built_in is True

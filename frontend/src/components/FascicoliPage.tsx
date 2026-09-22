@@ -6466,7 +6466,7 @@ function ContributoUnificatoModal({
 }
 
 function EmbeddedRecordModal({
-  record,
+  record: initialRecord,
   contributoMemory,
   onCopyContributoMemory,
   onClose,
@@ -6479,31 +6479,37 @@ function EmbeddedRecordModal({
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [fullScreen, setFullScreen] = useState(false)
   const [prefillOutcome, setPrefillOutcome] = useState<PagoPaPrefillOutcome>({ status: 'idle', message: '' })
-  const isPagoPa = record?.kind === 'pagopa'
+  const isPagoPa = initialRecord?.kind === 'pagopa'
   const [hasPagoPaAvvisi, setHasPagoPaAvvisi] = useState(false)
   const [pagoPaFrameMode, setPagoPaFrameMode] = useState<'auto' | 'nuovo' | 'ricevute'>('auto')
   const [pagoPaRefresh, setPagoPaRefresh] = useState(0)
-  const pagoPaFascicolo = isPagoPa && record ? new URL(record.href, window.location.origin).searchParams.get('iusentra_fascicolo') || '' : ''
+  const pagoPaFascicolo = isPagoPa && initialRecord ? new URL(initialRecord.href, window.location.origin).searchParams.get('iusentra_fascicolo') || '' : ''
 
   useEffect(() => {
-    if (!record) return undefined
+    if (!initialRecord) return undefined
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [record, onClose])
+  }, [initialRecord, onClose])
 
   useEffect(() => {
     setFullScreen(false)
     setHasPagoPaAvvisi(false)
     setPagoPaFrameMode('auto')
     setPrefillOutcome({ status: 'idle', message: '' })
-  }, [record?.href])
+  }, [initialRecord?.href])
 
-  const runPagoPaPrefill = useCallback(() => {
+  const runPagoPaPrefill = useCallback((event?: unknown) => {
     if (!isPagoPa) return
     setPrefillOutcome(tryPrefillPagoPaFrame(iframeRef.current, contributoMemory))
+    if (event) {
+      setPagoPaRefresh((value) => value + 1)
+      try {
+        if (iframeRef.current?.contentWindow?.location.pathname.endsWith('/pagopa_inviorich.wp')) setPagoPaFrameMode('auto')
+      } catch { /* La navigazione esterna resta sotto il controllo del portale. */ }
+    }
   }, [isPagoPa, contributoMemory])
 
   useEffect(() => {
@@ -6512,7 +6518,10 @@ function EmbeddedRecordModal({
     return () => window.clearTimeout(timer)
   }, [isPagoPa, contributoMemory, runPagoPaPrefill])
 
-  if (!record) return null
+  if (!initialRecord) return null
+  const record = isPagoPa && pagoPaFrameMode === 'ricevute'
+    ? { ...initialRecord, href: `/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?iusentra_fascicolo=${encodeURIComponent(pagoPaFascicolo)}` }
+    : initialRecord
   return (
     <div className={`iu-fas-preview-modal iu-fas-embedded-modal${isPagoPa ? ' iu-fas-embedded-modal--pagopa' : ''}${isPagoPa && contributoMemory ? ' iu-fas-embedded-modal--pagopa-memory' : ''}${isPagoPa && prefillOutcome.message ? ' iu-fas-embedded-modal--pagopa-prefill' : ''}${fullScreen ? ' iu-fas-embedded-modal--fullscreen' : ''}`} role="dialog" aria-modal="true" aria-label={record.title}>
       <div className="iu-fas-preview-modal__box">
@@ -6551,14 +6560,9 @@ function EmbeddedRecordModal({
           ) : null}
           {(!isPagoPa || !hasPagoPaAvvisi || pagoPaFrameMode !== 'auto') && <iframe
             ref={iframeRef}
-            src={isPagoPa && pagoPaFrameMode === 'ricevute' ? `/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp?iusentra_fascicolo=${encodeURIComponent(pagoPaFascicolo)}` : record.href}
+            src={record.href}
             title={record.title}
-            onLoad={isPagoPa ? () => {
-              runPagoPaPrefill(); setPagoPaRefresh((value) => value + 1)
-              try {
-                if (iframeRef.current?.contentWindow?.location.pathname.endsWith('/pagopa_inviorich.wp')) setPagoPaFrameMode('auto')
-              } catch { /* La navigazione esterna resta sotto il controllo del portale. */ }
-            } : undefined}
+            onLoad={isPagoPa ? runPagoPaPrefill : undefined}
             sandbox={isPagoPa ? 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation' : undefined}
             referrerPolicy={isPagoPa ? 'same-origin' : undefined}
           />}

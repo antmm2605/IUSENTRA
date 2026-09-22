@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.352.0 — 22/09/2026
+
+**Nessuno verificava che un modulo compilato contenesse davvero il valore
+scritto.** I test sulla compilazione dei moduli di mediazione controllavano il giro
+— il modulo si legge, la copia compilata nasce, il nome del file e' quello giusto —
+ma non che il dato finisse dentro il PDF, ne' che fosse disegnato. Un campo il cui
+valore sta nel modulo senza apparenza si stampa vuoto in alcuni lettori: per un
+modulo che va depositato a un organismo e' un difetto che nessuno vede finche' non
+e' tardi.
+
+Nuovo `tests/test_moduli_compilazione_contratto.py`: il valore si rilegge con un
+lettore indipendente, il campo compilato ha l'apparenza disegnata, la casella
+selezionata non resta su Off, i campi inesistenti e i testi oltre il limite vengono
+rifiutati, e il modulo compilato non porta JavaScript — che e' una misura di
+sicurezza gia' presente e che non deve perdersi.
+
+Il contratto vale qualunque libreria ci sia sotto: e' la rete di sicurezza per
+portare questo modulo fuori da PyMuPDF. La migrazione vera e' il passo successivo, e
+il suo ostacolo e' noto: PyMuPDF disegna da solo l'apparenza del campo compilato,
+pypdf no, quindi l'apparenza dei campi di testo va costruita insieme al valore.
+
 ## 2.351.0 — 22/09/2026
 
 **Lo strato di testo selezionabile del lettore esce da PyMuPDF.** Le parole con le

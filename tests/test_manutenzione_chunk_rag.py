@@ -234,3 +234,68 @@ def test_esamina_tutti_guarda_l_archivio_vero_dell_applicazione(tmp_path: Path):
     assert riepilogo["errori"] == []
     assert riepilogo["chunk_da_scartare"] == 1, riepilogo["messaggio"]
     assert riepilogo["documenti_coinvolti"] == 1
+
+
+def _documento_con_chunk_gigante(service: LocalAIService, cartella: Path, numero: int) -> str:
+    percorso = cartella / f"atto-{numero}.txt"
+    percorso.parent.mkdir(parents=True, exist_ok=True)
+    percorso.write_text(TESTO_ATTO, encoding="utf-8")
+    esito = service.index_file(
+        source_type="fascicolo_documento",
+        source_id=f"DOC-{numero}",
+        practice_id="FASC-1",
+        file_path=str(percorso),
+        title=f"Atto {numero}",
+    )
+    document_id = str(esito["document_id"])
+    with service._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO rag_chunks (
+                id, document_id, practice_id, section_type, ordinal, page_from, page_to,
+                token_estimate, text, metadata_json, embedding_state, created_at, updated_at
+            ) VALUES (?, ?, 'FASC-1', 'corpo', 99, 1, 1, 1, ?, '{}', 'pending', ?, ?)
+            """,
+            (
+                f"gigante-{numero}",
+                document_id,
+                "parola " * (_RAG_MAX_CHUNK_CHARS * 4 // 7),
+                "2026-09-01T00:00:00",
+                "2026-09-01T00:00:00",
+            ),
+        )
+        conn.commit()
+    return document_id
+
+
+def test_rispezza_lavora_a_passate_e_dice_quanti_restano(tmp_path: Path):
+    """Seimila documenti non stanno in una richiesta HTTP: si va a lotti."""
+
+    service = _servizio(tmp_path)
+    for numero in range(4):
+        _documento_con_chunk_gigante(service, tmp_path / "documenti", numero)
+
+    prima = rispezza(service, studio="studio-test", massimo_documenti=2)
+
+    assert prima.documenti_coinvolti == 4
+    assert prima.documenti_rifatti == 2
+    assert prima.documenti_restanti == 2, "deve dire quanti ne restano"
+
+    seconda = rispezza(service, studio="studio-test", massimo_documenti=2)
+
+    assert seconda.documenti_rifatti == 2
+    assert seconda.documenti_restanti == 0
+    assert chunk_da_scartare(service)[0] == [], "dopo le due passate non resta niente da scartare"
+
+
+def test_rispezza_si_ferma_allo_scadere_del_tempo(tmp_path: Path):
+    """Il tetto non e' solo sul numero: su documenti lenti conta il tempo."""
+
+    service = _servizio(tmp_path)
+    for numero in range(3):
+        _documento_con_chunk_gigante(service, tmp_path / "documenti", numero)
+
+    esito = rispezza(service, studio="studio-test", massimo_documenti=99, budget_secondi=0.0)
+
+    assert esito.documenti_rifatti == 0, "con budget zero non si lavora"
+    assert esito.documenti_restanti == 3

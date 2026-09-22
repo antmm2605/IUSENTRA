@@ -26,6 +26,7 @@ fare esattamente la stessa cosa.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,14 @@ from pct.local_ai import _RAG_MAX_CHUNK_CHARS, _embedding_validation_reason
 
 #: Quanti testi si leggono per volta quando serve guardarli davvero.
 LOTTO_TESTI = 200
+
+#: Quanti documenti al massimo si rifanno in una sola passata.
+LOTTO_DOCUMENTI = 150
+
+#: Secondi oltre i quali la passata si ferma da sola e dice quanto resta.
+#: Il server chiude la richiesta a 120 secondi: meglio fermarsi prima e
+#: rispondere, che farsi troncare a meta' senza dire niente.
+BUDGET_SECONDI = 75.0
 
 
 @dataclass
@@ -48,6 +57,7 @@ class EsitoArchivio:
     documenti_verso_ocr: int = 0
     documenti_senza_file: int = 0
     documenti_in_errore: int = 0
+    documenti_restanti: int = 0
     errore: str = ""
     esempi: list[dict[str, Any]] = field(default_factory=list)
 
@@ -61,6 +71,7 @@ class EsitoArchivio:
             "documenti_verso_ocr": self.documenti_verso_ocr,
             "documenti_senza_file": self.documenti_senza_file,
             "documenti_in_errore": self.documenti_in_errore,
+            "documenti_restanti": self.documenti_restanti,
             "errore": self.errore,
             "esempi": self.esempi[:5],
         }
@@ -181,24 +192,49 @@ def esamina(service: Any, *, studio: str = "", limite: int = 0) -> EsitoArchivio
     return esito
 
 
-def rispezza(service: Any, *, studio: str = "", limite: int = 0) -> EsitoArchivio:
+def rispezza(
+    service: Any,
+    *,
+    studio: str = "",
+    limite: int = 0,
+    massimo_documenti: int = LOTTO_DOCUMENTI,
+    budget_secondi: float = BUDGET_SECONDI,
+) -> EsitoArchivio:
     """Reindicizza con `force` i documenti che hanno chunk da scartare.
+
+    Lavora a passate: si ferma al tetto di documenti o allo scadere del tempo
+    e dice quanti ne restano, perche' il server chiude la richiesta a 120
+    secondi e una passata su seimila documenti non ci sta. L'operazione e'
+    ripetibile: ogni giro riparte da quelli ancora da rifare.
 
     Si tocca solo chi ha davvero qualcosa da rifare, e solo se il file di
     partenza e' ancora al suo posto: un documento indicizzato da testo gia'
     estratto non si puo' ricostruire da qui, e viene contato a parte invece
     di essere svuotato.
     """
-    esito = esamina(service, studio=studio, limite=limite)
-    if esito.errore or not esito.chunk_da_scartare:
+    esito = EsitoArchivio(studio=studio or "default")
+    partenza = time.monotonic()
+    try:
+        scarti, totale = chunk_da_scartare(service)
+        esito.chunk_in_attesa = totale
+        esito.chunk_da_scartare = len(scarti)
+        documenti = documenti_coinvolti(service, scarti)
+        if limite > 0:
+            documenti = documenti[:limite]
+        esito.documenti_coinvolti = len(documenti)
+        for scarto in scarti[:5]:
+            esito.esempi.append(scarto)
+    except Exception as exc:
+        esito.errore = str(exc)
         return esito
-    scarti, _ = chunk_da_scartare(service)
-    documenti = documenti_coinvolti(service, scarti)
-    if limite > 0:
-        documenti = documenti[:limite]
-    for documento in documenti:
-        if not _file_presente(documento):
-            continue
+
+    rifattibili = [doc for doc in documenti if _file_presente(doc)]
+    esito.documenti_senza_file = len(documenti) - len(rifattibili)
+    fatti = 0
+    for documento in rifattibili:
+        if fatti >= massimo_documenti or (time.monotonic() - partenza) >= budget_secondi:
+            break
+        fatti += 1
         try:
             risultato = service.index_file(
                 source_type=str(documento.get("source_type") or ""),
@@ -221,6 +257,7 @@ def rispezza(service: Any, *, studio: str = "", limite: int = 0) -> EsitoArchivi
         else:
             esito.documenti_in_errore += 1
             esito.esempi.append({"documento": documento.get("id"), "stato": stato})
+    esito.documenti_restanti = max(0, len(rifattibili) - fatti)
     return esito
 
 
@@ -232,11 +269,14 @@ def _riepilogo(esiti: list[EsitoArchivio], *, applicato: bool) -> dict[str, Any]
     verso_ocr = sum(e.documenti_verso_ocr for e in esiti)
     senza_file = sum(e.documenti_senza_file for e in esiti)
     errori = [e.errore for e in esiti if e.errore]
+    restanti = sum(e.documenti_restanti for e in esiti)
     if applicato:
         messaggio = (
             f"Rifatti {rifatti} documenti su {coinvolti}; "
             f"{verso_ocr} passati all'OCR, {senza_file} senza file di partenza."
         )
+        if restanti:
+            messaggio += f" Restano {restanti} documenti da rifare: ripremere il bottone."
     else:
         messaggio = (
             f"{da_scartare} chunk su {in_attesa} in attesa verrebbero scartati, "
@@ -253,6 +293,7 @@ def _riepilogo(esiti: list[EsitoArchivio], *, applicato: bool) -> dict[str, Any]
         "documenti_verso_ocr": verso_ocr,
         "documenti_senza_file": senza_file,
         "documenti_in_errore": sum(e.documenti_in_errore for e in esiti),
+        "documenti_restanti": restanti,
         "errori": errori,
         "studi": [e.come_dizionario() for e in esiti],
         "messaggio": messaggio,
@@ -260,6 +301,8 @@ def _riepilogo(esiti: list[EsitoArchivio], *, applicato: bool) -> dict[str, Any]
 
 
 __all__ = [
+    "BUDGET_SECONDI",
+    "LOTTO_DOCUMENTI",
     "LOTTO_TESTI",
     "EsitoArchivio",
     "chunk_da_scartare",

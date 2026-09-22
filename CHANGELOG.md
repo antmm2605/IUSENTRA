@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.343.3 — 22/09/2026
+
+**La rispezzatura dei chunk lavora a passate.** L'analisi in produzione dice 20.863
+chunk da scartare su 30.779 in attesa, da 5.996 documenti. Rifarli tutti in una
+richiesta sola non e' possibile: il server chiude a 120 secondi e il lavoro sarebbe
+stato troncato a meta' senza dirlo a nessuno. Ora ogni passata si ferma al tetto di
+150 documenti o dopo 75 secondi, riporta quanti ne restano e invita a ripremere il
+bottone; l'operazione e' ripetibile e ogni giro riparte da quelli ancora da rifare.
+La passata non rilegge piu' due volte l'intero archivio prima di cominciare.
+
+Test: due casi nuovi in `tests/test_manutenzione_chunk_rag.py`, uno sul tetto di
+documenti e uno sul tempo scaduto.
+
 ## 2.343.2 — 22/09/2026
 
 **La manutenzione guardava un archivio che non era quello dello studio.** «Analizza

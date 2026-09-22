@@ -539,6 +539,11 @@
         </div>
         {% endfor %}
       </div>
+      {% if chunk_rag.rispezzatura_eseguita and chunk_rag.documenti_restanti %}
+      <div class="small mt-1 text-muted">
+        La passata si ferma da sola per non farsi troncare dal server: ripremi il bottone finche' i documenti restanti non arrivano a zero.
+      </div>
+      {% endif %}
       {% if not chunk_rag.rispezzatura_eseguita and chunk_rag.chunk_da_scartare %}
       <div class="small mt-1 text-muted">
         Nessuna modifica eseguita. Senza rifarli, quei documenti restano senza niente di cercabile.

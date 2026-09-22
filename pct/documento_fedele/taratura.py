@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-
 # ===========================================================================
 # Taratura
 # ===========================================================================
@@ -50,14 +49,18 @@ def _famiglie_dal_catalogo() -> list[str]:
 
     Una seconda lista qui accanto si disallineerebbe al primo font aggiunto, e
     l'importazione ricadrebbe su un ripiego per un carattere che l'editor in
-    realta' ha: il catalogo di `pct/template_atti.py` resta l'unica fonte.
+    realta' ha: `pct/catalogo_caratteri.py` resta l'unica fonte.
+
+    Quel modulo non importa niente apposta. Prima il catalogo stava dentro
+    `pct/template_atti.py`, che tira dentro il driver di PostgreSQL: dove quel
+    driver manca, qui arrivavano tre caratteri invece di quarantasei e ogni
+    atto tornava in Times New Roman o in Arial.
     """
     try:
-        from pct.template_atti import EDITOR_FONT_CATALOG
+        from pct.catalogo_caratteri import ETICHETTE_CARATTERI
     except Exception:  # pragma: no cover - solo se il catalogo non e' caricabile
         return list(_FAMIGLIE_MINIME)
-    famiglie = [str(voce.get("label") or "").strip() for voce in EDITOR_FONT_CATALOG.values()]
-    return [voce for voce in famiglie if voce] or list(_FAMIGLIE_MINIME)
+    return list(ETICHETTE_CARATTERI) or list(_FAMIGLIE_MINIME)
 
 
 #: ripiego se il catalogo dell'editor non e' caricabile: i caratteri che nessun
@@ -118,6 +121,22 @@ _MAPPA_FONT = [
     (r"microsoftsansserif|mssansserif", "Microsoft Sans Serif"),
     (r"bahnschrift|dinalternate", "Bahnschrift"),
     (r"ebrima", "Ebrima"),
+    # caratteri diffusi negli atti e nei PDF dei software giudiziari, ognuno
+    # sulla famiglia del catalogo che gli somiglia di piu'
+    (r"minion|sabon|janson|utopia|charter|charis|gentium|cardo|junicode", "Book Antiqua"),
+    (r"ebgaramond|cormorant|sortsmill", "Garamond"),
+    (r"didot|bodoni|playfair", "Perpetua"),
+    (r"ptserif|notoserif|droidserif|literata|lora", "Source Serif 4"),
+    (r"newcenturyschlbk|^croman$", "Century Schoolbook"),   # C059: la chiave perde le cifre
+    (r"urwpalladio|^proman$", "Book Antiqua"),              # P052: idem
+    (r"futura|avenir|jost|questrial", "Century Gothic"),
+    (r"optima|gillsansmt", "Gill Sans MT"),
+    (r"myriad|frutiger|univers|helveticaneue|helvneue", "Arial"),
+    (r"calisto|goudy|bellmt", "Book Antiqua"),
+    (r"nimbusmono|liberationmono|ptmono|courierprime|freemono|dejavusansmono", "Courier New"),
+    (r"firamono|robotomono|jetbrainsmono|sourcecodepro|menlo|monaco", "Consolas"),
+    (r"ptsans|sourcesans|firasans|ubuntu|cantarell|nunito|worksans|rubik|karla", "Inter"),
+    (r"arialunicode", "Arial"),
     (r"arial|helvetica|arimo|liberationsans|nimbussans|freesans", "Arial"),
     (r"inter", "Inter"),
     (r"manrope", "Manrope"),
@@ -141,23 +160,89 @@ def famiglia_editor(nome_font: str) -> tuple[str, str]:
     ).strip("-_, ") or originale
 
     chiave = _chiave(originale)
-    esatta = _MAPPA_CATALOGO.get(chiave) or _MAPPA_CATALOGO.get(_chiave(pulito))
+    # se e' il nome intero a corrispondere, il nome intero e' quello buono:
+    # «Times New Roman» ripulito diventa «Times New», che non esiste, e
+    # finirebbe davanti a tutto nella pila del foglio di stile
+    esatta = _MAPPA_CATALOGO.get(chiave)
+    if esatta:
+        return esatta, esatta
+    esatta = _MAPPA_CATALOGO.get(_chiave(pulito))
     if esatta:
         return esatta, pulito
     for schema, famiglia in _MAPPA_FONT:
         if re.search(schema, chiave) and famiglia in _MAPPA_CATALOGO.values():
             return famiglia, pulito
-    # ripiego sul tipo: con grazie o senza
-    return ("Times New Roman" if "serif" in chiave else "Arial"), pulito
+    return _ripiego(chiave), pulito
+
+
+#: Indizi che un nome porta con se' sul tipo di carattere. Un carattere fuori
+#: catalogo non deve diventare Arial per scarto: se si chiama «Futura» e' senza
+#: grazie, se si chiama «Courier Prime» e' a spaziatura fissa, e scegliere male
+#: si vede su tutta la pagina.
+_INDIZI_MONO = (
+    "mono", "code", "courier", "console", "typewriter", "terminal",
+    "fixed", "teletype", "prestige",
+)
+_INDIZI_SENZA_GRAZIE = (
+    "sans", "grotesk", "grotesque", "gothic", "neue", "helv", "arial",
+    "futura", "avenir", "frutiger", "univers", "franklin", "akzidenz",
+    "interstate", "gill", "myriad", "verdana", "tahoma", "segoe", "calibri",
+    "roboto", "lato", "ubuntu", "nunito", "poppins", "montserrat",
+)
+_INDIZI_CON_GRAZIE = (
+    "serif", "roman", "times", "garamond", "book", "antiqua", "palatino",
+    "baskerville", "caslon", "bodoni", "didot", "georgia", "cambria",
+    "minion", "sabon", "utopia", "charter", "schoolbook", "century",
+    "perpetua", "rockwell", "slab", "clarendon", "elzevir",
+)
+
+
+def _ripiego(chiave: str) -> str:
+    """La famiglia da usare quando il nome non e' in catalogo.
+
+    Si guarda cosa dice il nome: quasi tutti i caratteri portano scritto che
+    cosa sono. Solo quando non dice niente si sceglie il carattere con grazie,
+    perche' un atto scritto in un carattere sconosciuto quasi sempre e' scritto
+    in un carattere con grazie.
+    """
+    disponibili = set(_MAPPA_CATALOGO.values())
+    for indizio in _INDIZI_MONO:
+        if indizio in chiave:
+            return "Courier New" if "Courier New" in disponibili else _FAMIGLIE_MINIME[2]
+    for indizio in _INDIZI_SENZA_GRAZIE:
+        if indizio in chiave:
+            return "Arial" if "Arial" in disponibili else _FAMIGLIE_MINIME[1]
+    for indizio in _INDIZI_CON_GRAZIE:
+        if indizio in chiave:
+            return "Times New Roman"
+    return "Times New Roman"
+
+
+#: Dal tono dichiarato nel catalogo al ripiego generico del foglio di stile.
+_GENERICI = {"serif": "serif", "sans": "sans-serif", "mono": "monospace"}
+
+
+def _tono(famiglia: str) -> str:
+    """Se la famiglia ha grazie, non le ha, o e' a spaziatura fissa.
+
+    Il catalogo dell'editor lo dichiara per ognuna. Prima qui c'era un elenco
+    scritto a mano di sei nomi: tutte le altre famiglie senza grazie —
+    Century Gothic, Segoe UI, Tahoma, Trebuchet, Gill Sans, Franklin Gothic,
+    Impact — ripiegavano su `serif`, e bastava che il carattere non fosse
+    installato perche' il testo cambiasse faccia.
+    """
+    try:
+        from pct.catalogo_caratteri import TONO_CARATTERI
+    except Exception:  # pragma: no cover - catalogo non caricabile
+        return "mono" if famiglia == "Courier New" else (
+            "sans" if famiglia == "Arial" else "serif")
+    return TONO_CARATTERI.get(famiglia, "serif")
 
 
 def pila_font(nome_font: str) -> str:
     """Stack CSS: prima il font originale, poi quello dell'editor."""
     famiglia, originale = famiglia_editor(nome_font)
-    generico = "monospace" if famiglia == "Courier New" else (
-        "sans-serif" if famiglia in ("Arial", "Verdana", "Inter", "Manrope",
-                                     "Calibri", "Aptos") else "serif"
-    )
+    generico = _GENERICI.get(_tono(famiglia), "serif")
     if originale and originale.lower() != famiglia.lower():
         return f"'{originale}', '{famiglia}', {generico}"
     return f"'{famiglia}', {generico}"

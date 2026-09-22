@@ -187,3 +187,127 @@ def test_un_file_che_non_e_un_docx_viene_rifiutato(tmp_path):
     finto.write_bytes(b"non sono un documento")
     with pytest.raises(DocxError, match="illeggibile"):
         converti_docx(finto)
+
+
+# ---------------------------------------------------------------------------
+# Quello che un atto ha davvero, oltre al testo formattato
+# ---------------------------------------------------------------------------
+
+def test_il_formato_dichiarato_su_uno_stile_viene_letto(tmp_path):
+    """Un atto scritto con gli stili di Word — cioe' quasi ogni atto — non
+    dichiara niente sul paragrafo: sta tutto sullo stile."""
+    def costruisci(d):
+        corpo = d.styles.add_style("CorpoAtto", 1)
+        corpo.font.name = "Times New Roman"
+        corpo.font.size = Pt(12)
+        corpo.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        corpo.paragraph_format.first_line_indent = Mm(10)
+        corpo.paragraph_format.space_after = Pt(6)
+        corpo.paragraph_format.line_spacing = 1.4
+        d.add_paragraph("Paragrafo che non dichiara niente di suo.", style="CorpoAtto")
+
+    html = _scrivi(costruisci, tmp_path).html
+    assert "text-align:justify" in html, "il giustificato dello stile e' andato perso"
+    assert "text-indent" in html, "il rientro dello stile e' andato perso"
+    assert "margin-bottom" in html, "la spaziatura dello stile e' andata persa"
+    assert "line-height" in html, "l'interlinea dello stile e' andata persa"
+
+
+def test_il_collegamento_porta_con_se_il_suo_testo(tmp_path):
+    """Chi legge solo `paragraph.runs` salta quello che sta dentro un
+    collegamento: non perde il link, perde l'indirizzo scritto."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    def costruisci(d):
+        paragrafo = d.add_paragraph()
+        relazione = d.part.relate_to(
+            "https://www.iusentra.it",
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+            is_external=True,
+        )
+        collegamento = OxmlElement("w:hyperlink")
+        collegamento.set(qn("r:id"), relazione)
+        pezzo = OxmlElement("w:r")
+        testo = OxmlElement("w:t")
+        testo.text = "www.iusentra.it"
+        pezzo.append(testo)
+        collegamento.append(pezzo)
+        paragrafo._p.append(collegamento)
+
+    html = _scrivi(costruisci, tmp_path).html
+    assert "www.iusentra.it" in _testo(html), "il testo del collegamento e' sparito"
+    assert "<a href" in html, "il collegamento e' diventato testo semplice"
+    assert "iusentra.it" in html
+
+
+def test_un_a_capo_dentro_il_paragrafo_resta_un_a_capo(tmp_path):
+    def costruisci(d):
+        paragrafo = d.add_paragraph()
+        paragrafo.add_run("Studio legale Affinito")
+        paragrafo.add_run().add_break()
+        paragrafo.add_run("via Duomo 118, Napoli")
+
+    html = _scrivi(costruisci, tmp_path).html
+    assert "<br>" in html, "le due righe dell'indirizzo sono diventate una sola"
+    assert "Studio legale" in _testo(html) and "via Duomo" in _testo(html)
+
+
+def test_un_salto_di_pagina_apre_una_pagina_nuova(tmp_path):
+    from docx.enum.text import WD_BREAK
+
+    def costruisci(d):
+        d.add_paragraph("prima pagina")
+        salto = d.add_paragraph()
+        salto.add_run().add_break(WD_BREAK.PAGE)
+        d.add_paragraph("seconda pagina")
+
+    esito = _scrivi(costruisci, tmp_path)
+    assert len(esito.pagine) == 2, "il salto di pagina e' stato ignorato"
+    assert 'data-pagina="2"' in esito.html
+
+
+def test_il_logo_dello_studio_arriva_nell_editor(tmp_path):
+    from docx.shared import Inches
+    from PIL import Image
+
+    def costruisci(d):
+        logo = tmp_path / "logo.png"
+        Image.new("RGB", (120, 40), (30, 60, 140)).save(str(logo))
+        d.add_picture(str(logo), width=Inches(1.6))
+        d.add_paragraph("atto con intestazione")
+
+    esito = _scrivi(costruisci, tmp_path)
+    assert "<img" in esito.html, "il logo e' sparito"
+    assert "data:image/" in esito.html, "l'immagine non porta con se' i suoi dati"
+    assert esito.pagine[0].immagini == 1
+
+
+def test_le_larghezze_delle_colonne_sono_quelle_dichiarate(tmp_path):
+    def costruisci(d):
+        tabella = d.add_table(rows=2, cols=2)
+        tabella.columns[0].width = Mm(120)
+        tabella.columns[1].width = Mm(40)
+        tabella.rows[0].cells[0].text = "descrizione lunga"
+        tabella.rows[0].cells[1].text = "EUR 1,00"
+
+    html = _scrivi(costruisci, tmp_path).html
+    larghezze = re.findall(r"width:([0-9.]+)%", html)
+    assert larghezze, "le colonne non hanno larghezza: l'editor le fara' uguali"
+    assert float(larghezze[0]) > float(larghezze[1]), (
+        f"la colonna larga non e' la prima: {larghezze}"
+    )
+
+
+def test_un_elenco_annidato_resta_annidato(tmp_path):
+    def costruisci(d):
+        d.add_paragraph("punto principale", style="List Number")
+        sotto = d.add_paragraph("sotto punto", style="List Number")
+        numerazione = sotto._p.get_or_add_pPr().get_or_add_numPr()
+        livello = numerazione.get_or_add_ilvl()
+        livello.val = 1
+        d.add_paragraph("altro punto principale", style="List Number")
+
+    html = _scrivi(costruisci, tmp_path).html
+    assert html.count("<ol>") == 2, f"l'annidamento e' andato perso: {html}"
+    assert "sotto punto" in _testo(html)

@@ -22,6 +22,7 @@ Solo python-docx (MIT). Nessun programma esterno, nessuna libreria AGPL.
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from docx import Document as ApriDocx
@@ -88,6 +89,29 @@ def _eredita(oggetto, attributo: str, paragrafo, documento):
         return getattr(normale, attributo, None)
     except (KeyError, AttributeError):
         return None
+
+
+def _formato_ereditato(paragrafo, attributo):
+    """Il valore del formato scritto sul paragrafo, o quello che eredita.
+
+    Un atto scritto con gli stili di Word — cioe' quasi ogni atto — non dichiara
+    niente sul paragrafo: il giustificato, il rientro e la spaziatura stanno
+    sullo stile. Chi legge solo `paragraph.paragraph_format` trova `None` e il
+    documento torna tutto allineato a sinistra.
+    """
+    valore = getattr(paragrafo.paragraph_format, attributo, None)
+    if valore is not None:
+        return valore
+    stile = getattr(paragrafo, "style", None)
+    visti = 0
+    while stile is not None and visti < 8:
+        formato = getattr(stile, "paragraph_format", None)
+        valore = getattr(formato, attributo, None) if formato is not None else None
+        if valore is not None:
+            return valore
+        stile = getattr(stile, "base_style", None)
+        visti += 1
+    return None
 
 
 def _colore(tratto, paragrafo, documento) -> str:
@@ -160,11 +184,56 @@ def _unione(cella) -> tuple[int, bool]:
 # Dal paragrafo del DOCX ai tratti del modello
 # ---------------------------------------------------------------------------
 
+def _pezzi_del_paragrafo(paragrafo):
+    """I tratti del paragrafo, con il loro collegamento quando ce l'hanno.
+
+    `paragraph.runs` salta quello che sta dentro un `w:hyperlink`: su un atto
+    che cita una PEC o un riferimento normativo, l'indirizzo non perdeva solo
+    il collegamento — spariva anche il testo.
+    """
+    from docx.text.run import Run
+
+    for elemento in paragrafo._p.iterchildren():
+        if elemento.tag == f"{NS}r":
+            yield Run(elemento, paragrafo), None
+        elif elemento.tag == f"{NS}hyperlink":
+            indirizzo = _indirizzo_collegamento(elemento, paragrafo)
+            for interno in elemento.iterchildren(f"{NS}r"):
+                yield Run(interno, paragrafo), indirizzo
+
+
+def _indirizzo_collegamento(elemento, paragrafo) -> str | None:
+    """L'indirizzo di un `w:hyperlink`, risolto nelle relazioni del documento."""
+    RIF = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+    riferimento = elemento.get(RIF)
+    if not riferimento:
+        ancora = elemento.get(f"{NS}anchor")
+        return f"#{ancora}" if ancora else None
+    try:
+        return paragrafo.part.rels[riferimento].target_ref
+    except (KeyError, AttributeError):
+        return None
+
+
+def _interruzioni(pezzo) -> tuple[bool, bool]:
+    """(c'e' un a capo, c'e' un salto di pagina) dentro questo tratto."""
+    a_capo = salto = False
+    for interruzione in pezzo._r.iterchildren(f"{NS}br"):
+        if interruzione.get(f"{NS}type") == "page":
+            salto = True
+        else:
+            a_capo = True
+    return a_capo, salto
+
+
 def _tratti(paragrafo, documento, corpo_base: float,
             nomi: set[str] | None = None) -> list[Tratto]:
     fuori: list[Tratto] = []
-    for pezzo in paragrafo.runs:
+    for pezzo, indirizzo in _pezzi_del_paragrafo(paragrafo):
         testo = pezzo.text
+        a_capo, _salto = _interruzioni(pezzo)
+        if a_capo:
+            testo = f"{testo}\n"
         if not testo:
             continue
         misura = _eredita(pezzo.font, "size", paragrafo, documento)
@@ -184,33 +253,51 @@ def _tratti(paragrafo, documento, corpo_base: float,
             pedice=bool(getattr(pezzo.font, "subscript", None)),
             colore=_colore(pezzo, paragrafo, documento),
             evidenziato=_evidenziazione(pezzo),
+            collegamento=indirizzo,
         ))
     return fuori
 
 
+def _ha_salto_di_pagina(paragrafo) -> bool:
+    """Vero se il paragrafo porta un salto di pagina."""
+    for pezzo in paragrafo._p.iterchildren(f"{NS}r"):
+        for interruzione in pezzo.iterchildren(f"{NS}br"):
+            if interruzione.get(f"{NS}type") == "page":
+                return True
+    return False
+
+
+def _con_a_capo(html: str) -> str:
+    """Gli a capo dentro un paragrafo diventano `<br>`.
+
+    Nel testo arrivano come ritorni a riga, e l'HTML li collasserebbe in uno
+    spazio: due righe di un indirizzo diventerebbero una sola.
+    """
+    return html.replace("\n", "<br>")
+
+
 def _stile_paragrafo(paragrafo) -> list[str]:
     """Allineamento, rientri, interlinea e spazi, come li ha lasciati Word."""
-    formato = paragrafo.paragraph_format
     stile: list[str] = []
 
-    allineamento = ALLINEAMENTI.get(paragrafo.alignment)
+    allineamento = ALLINEAMENTI.get(_formato_ereditato(paragrafo, "alignment"))
     if allineamento and allineamento != "left":
         stile.append(f"text-align:{allineamento}")
 
     for attributo, proprieta in (("left_indent", "margin-left"),
                                  ("right_indent", "margin-right"),
                                  ("first_line_indent", "text-indent")):
-        misura = getattr(formato, attributo, None)
+        misura = _formato_ereditato(paragrafo, attributo)
         if misura is not None and abs(misura.pt) > 0.5:
             stile.append(f"{proprieta}:{_pt(misura.pt)}pt")
 
     for attributo, proprieta in (("space_before", "margin-top"),
                                  ("space_after", "margin-bottom")):
-        misura = getattr(formato, attributo, None)
+        misura = _formato_ereditato(paragrafo, attributo)
         if misura is not None and misura.pt > 0.5:
             stile.append(f"{proprieta}:{_pt(misura.pt)}pt")
 
-    interlinea = getattr(formato, "line_spacing", None)
+    interlinea = _formato_ereditato(paragrafo, "line_spacing")
     if interlinea is not None:
         if isinstance(interlinea, float):
             if abs(interlinea - 1.0) > 0.05:
@@ -219,6 +306,23 @@ def _stile_paragrafo(paragrafo) -> list[str]:
             stile.append(f"line-height:{_pt(interlinea.pt)}pt")
 
     return stile
+
+
+def _livello_elenco(paragrafo) -> int:
+    """Il livello di annidamento della voce: 0 e' il primo."""
+    try:
+        numerazione = paragrafo._p.pPr.numPr
+    except AttributeError:
+        return 0
+    if numerazione is None:
+        return 0
+    livello = numerazione.find(f"{NS}ilvl")
+    if livello is None:
+        return 0
+    try:
+        return max(0, min(8, int(livello.get(f"{NS}val"))))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _voce_di_elenco(paragrafo) -> str | None:
@@ -266,6 +370,58 @@ def _corpo_prevalente(documento) -> tuple[float, str]:
 # Tabelle
 # ---------------------------------------------------------------------------
 
+def _immagini(paragrafo, documento) -> list[str]:
+    """Le immagini del paragrafo, come `<img>` con i dati dentro.
+
+    Logo dello studio, firma scansionata, timbro: senza queste un atto
+    importato perde l'intestazione, e l'avvocato se ne accorge solo davanti
+    alla stampa.
+    """
+    RIF = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+    from .immagini import alleggerisci_immagine
+
+    fuori: list[str] = []
+    for disegno in paragrafo._p.iter():
+        if not disegno.tag.endswith("}blip"):
+            continue
+        riferimento = disegno.get(RIF)
+        if not riferimento:
+            continue
+        try:
+            parte = documento.part.related_parts[riferimento]
+            dati = parte.blob
+        except (KeyError, AttributeError):
+            continue
+        if not dati:
+            continue
+        estensione = (getattr(parte, "partname", "").rsplit(".", 1)[-1] or "png").lower()
+        try:
+            dati, estensione = alleggerisci_immagine(dati, estensione)
+        except Exception:
+            estensione = estensione or "png"
+        tipo = "jpeg" if estensione in ("jpg", "jpeg") else estensione
+        sorgente = f"data:image/{tipo};base64," + base64.b64encode(dati).decode()
+        larghezza = _larghezza_immagine(disegno)
+        misura = f";width:{_pt(larghezza)}pt" if larghezza else ""
+        fuori.append(
+            f'<img src="{sorgente}" style="max-width:100%;height:auto{misura}" '
+            f'alt="Immagine del documento">'
+        )
+    return fuori
+
+
+def _larghezza_immagine(blip) -> float | None:
+    """La larghezza dichiarata nel disegno, in punti."""
+    for antenato in blip.iterancestors():
+        for estensione in antenato.iter():
+            if estensione.tag.endswith("}extent"):
+                try:
+                    return int(estensione.get("cx")) / 12700.0   # EMU -> punti
+                except (TypeError, ValueError):
+                    return None
+    return None
+
+
 def _e_intestazione(tabella) -> bool:
     """Vero se la prima riga della tabella e' un'intestazione.
 
@@ -296,18 +452,68 @@ def _e_intestazione(tabella) -> bool:
     return not any(_tutta_grassetto(r) for r in tabella.rows[1:])
 
 
+def _larghezze_colonne(tabella) -> list[float]:
+    """La larghezza di ogni colonna in percentuale, come la dichiara il DOCX.
+
+    Senza questa, l'editor spartisce lo spazio in parti uguali: un prospetto
+    con la descrizione larga e l'importo stretto esce sbilenco.
+    """
+    try:
+        griglia = tabella._tbl.find(f"{NS}tblGrid")
+    except AttributeError:
+        return []
+    if griglia is None:
+        return []
+    misure = []
+    for colonna in griglia.iterchildren(f"{NS}gridCol"):
+        try:
+            misure.append(float(colonna.get(f"{NS}w")))
+        except (TypeError, ValueError):
+            misure.append(0.0)
+    totale = sum(misure)
+    if totale <= 0:
+        return []
+    return [m / totale * 100 for m in misure]
+
+
+def _ha_bordi(tabella) -> bool:
+    """Vero se la tabella dichiara dei bordi visibili."""
+    try:
+        proprieta = tabella._tbl.tblPr
+    except AttributeError:
+        return False
+    if proprieta is None:
+        return False
+    bordi = proprieta.find(f"{NS}tblBorders")
+    if bordi is None:
+        nome = (getattr(getattr(tabella, "style", None), "name", "") or "").lower()
+        return "grid" in nome or "griglia" in nome
+    for lato in bordi.iterchildren():
+        valore = lato.get(f"{NS}val")
+        if valore and valore not in ("none", "nil"):
+            return True
+    return False
+
+
 def _html_tabella(tabella, documento, corpo_base: float, famiglia_base: str,
                   nomi: set[str] | None = None) -> str:
     intestazione = _e_intestazione(tabella)
-    pezzi = ['<table class="iu-doc-tabella"><tbody>']
+    larghezze = _larghezze_colonne(tabella)
+    classi = "iu-doc-tabella"
+    if not _ha_bordi(tabella):
+        classi += " iu-doc-tabella--senza-bordi"
+    pezzi = [f'<table class="{classi}"><tbody>']
     for indice_riga, riga in enumerate(tabella.rows):
         pezzi.append("<tr>")
         vista: set = set()
+        indice_colonna = 0
         for cella in riga.cells:
             if id(cella._tc) in vista:      # una cella unita compare piu' volte
                 continue
             vista.add(id(cella._tc))
             colonne, prosegue = _unione(cella)
+            inizio_colonna = indice_colonna
+            indice_colonna += colonne
             if prosegue:
                 continue
 
@@ -315,6 +521,10 @@ def _html_tabella(tabella, documento, corpo_base: float, famiglia_base: str,
             attributi = f' colspan="{colonne}"' if colonne > 1 else ""
 
             stile = []
+            if larghezze:
+                quota = sum(larghezze[inizio_colonna:inizio_colonna + colonne])
+                if quota > 0:
+                    stile.append(f"width:{quota:.1f}%")
             sfondo = _sfondo_cella(cella)
             if sfondo:
                 stile.append(f"background-color:{sfondo}")
@@ -324,8 +534,8 @@ def _html_tabella(tabella, documento, corpo_base: float, famiglia_base: str,
                 tratti = _tratti(paragrafo, documento, corpo_base, nomi)
                 if not tratti:
                     continue
-                allineamento = ALLINEAMENTI.get(paragrafo.alignment)
-                interno = _html_tratti(tratti, corpo_base, famiglia_base)
+                allineamento = ALLINEAMENTI.get(_formato_ereditato(paragrafo, "alignment"))
+                interno = _con_a_capo(_html_tratti(tratti, corpo_base, famiglia_base))
                 if allineamento and allineamento != "left":
                     interno = f'<span style="display:block;text-align:{allineamento}">{interno}</span>'
                 contenuto.append(interno)
@@ -405,51 +615,76 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
     corpo_base, famiglia_base = _corpo_prevalente(documento)
     formato = _formato_pagina(documento)
 
-    pezzi: list[str] = []
-    elenco_aperto: str | None = None
+    pagine: list[list[str]] = [[]]
+    aperti: list[str] = []          # gli elenchi aperti, uno per livello
     caratteri: set[str] = set()
     elementi = 0
     tabelle = 0
+    immagini = 0
 
-    def _chiudi_elenco():
-        nonlocal elenco_aperto
-        if elenco_aperto:
-            pezzi.append(f"</{elenco_aperto}>")
-            elenco_aperto = None
+    def pezzi() -> list[str]:
+        return pagine[-1]
+
+    def _chiudi_elenchi(fino_a: int = 0):
+        while len(aperti) > fino_a:
+            pezzi().append(f"</{aperti.pop()}>")
 
     for blocco in _in_ordine(documento):
         if blocco.__class__.__name__ == "Table":
-            _chiudi_elenco()
-            pezzi.append(_html_tabella(blocco, documento, corpo_base, famiglia_base, caratteri))
+            _chiudi_elenchi()
+            pezzi().append(_html_tabella(blocco, documento, corpo_base, famiglia_base, caratteri))
             tabelle += 1
             continue
 
+        if _ha_salto_di_pagina(blocco):
+            _chiudi_elenchi()
+            pagine.append([])
+
+        figure = _immagini(blocco, documento)
         tratti = _tratti(blocco, documento, corpo_base, caratteri)
-        if not tratti or not "".join(t.testo for t in tratti).strip():
-            _chiudi_elenco()
+        scritto = "".join(t.testo for t in tratti).strip()
+        if not scritto and not figure:
+            _chiudi_elenchi()
             continue
 
-        interno = _html_tratti(tratti, corpo_base, famiglia_base)
+        if figure:
+            _chiudi_elenchi()
+            allineamento = ALLINEAMENTI.get(_formato_ereditato(blocco, "alignment")) or "left"
+            pezzi().append(
+                f'<p style="text-align:{allineamento};margin:0.35em 0">{"".join(figure)}</p>'
+            )
+            immagini += len(figure)
+            elementi += 1
+            if not scritto:
+                continue
+
+        interno = _con_a_capo(_html_tratti(tratti, corpo_base, famiglia_base))
         marchio = _voce_di_elenco(blocco)
         if marchio:
-            if elenco_aperto != marchio:
-                _chiudi_elenco()
-                pezzi.append(f"<{marchio}>")
-                elenco_aperto = marchio
-            pezzi.append(f"<li>{interno}</li>")
+            livello = _livello_elenco(blocco) + 1
+            _chiudi_elenchi(livello)
+            while len(aperti) < livello:
+                pezzi().append(f"<{marchio}>")
+                aperti.append(marchio)
+            if aperti[-1] != marchio:
+                _chiudi_elenchi(livello - 1)
+                pezzi().append(f"<{marchio}>")
+                aperti.append(marchio)
+            pezzi().append(f"<li>{interno}</li>")
         else:
-            _chiudi_elenco()
+            _chiudi_elenchi()
             stile = _stile_paragrafo(blocco)
             attributo = f' style="{";".join(stile)}"' if stile else ""
-            pezzi.append(f"<p{attributo}>{interno}</p>")
+            pezzi().append(f"<p{attributo}>{interno}</p>")
         elementi += 1
 
-    _chiudi_elenco()
+    _chiudi_elenchi()
 
     stile_pagina = [f"font-family:{famiglia_base}", f"font-size:{_pt(corpo_base)}pt"]
-    html = (
-        f'<section class="iu-doc-pagina" data-pagina="1" data-origine="docx" '
-        f'style="{";".join(stile_pagina)}">{"".join(pezzi)}</section>'
+    html = "".join(
+        f'<section class="iu-doc-pagina" data-pagina="{numero}" data-origine="docx" '
+        f'style="{";".join(stile_pagina)}">{"".join(contenuto)}</section>'
+        for numero, contenuto in enumerate(pagine, start=1)
     )
 
     esito = DocumentoConvertito()
@@ -457,8 +692,9 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
     esito.formato = formato
     esito.caratteri = sorted(c for c in caratteri if c)
     esito.pagine = [PaginaConvertita(
-        numero=1,
-        html=html,
+        numero=numero,
+        html=(f'<section class="iu-doc-pagina" data-pagina="{numero}" data-origine="docx" '
+              f'style="{";".join(stile_pagina)}">{"".join(contenuto)}</section>'),
         larghezza=formato.get("larghezza_pt", 595.3),
         altezza=formato.get("altezza_pt", 841.9),
         orientamento=formato.get("orientamento", "verticale"),
@@ -470,8 +706,8 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
         ),
         elementi=elementi,
         tabelle=tabelle,
-        immagini=0,
-    )]
+        immagini=immagini,
+    ) for numero, contenuto in enumerate(pagine, start=1)]
     if not elementi and not tabelle:
         esito.avvisi.append("il documento non contiene testo")
     return esito

@@ -1,5 +1,99 @@
 # Changelog
 
+## 2.361.0 — 22/09/2026
+
+**I caratteri: il problema non era quanti ne conoscevamo, era dove stava
+l'elenco.** Il catalogo dell'editor — quarantasei famiglie — viveva dentro
+`pct/template_atti.py`, che in cima importa il driver di PostgreSQL. Dove quel
+driver manca, il modulo non si carica, l'importazione fedele non trova il catalogo
+e ripiega su tre soli caratteri: **ogni atto torna in Times New Roman o in Arial,
+qualunque cosa dichiari il documento**. Un elenco di caratteri non deve dipendere
+dal database.
+
+Nuovo `pct/catalogo_caratteri.py`, che non importa niente. `pct/template_atti.py`
+continua a esportare `EDITOR_FONT_CATALOG` come prima, quindi per il resto
+dell'applicazione non cambia nulla. Era anche la causa di due test rossi da tempo —
+«Georgia letto come Arial», «Carlito letto come Calibri»: non mancava Georgia,
+mancava il catalogo.
+
+Poi tre miglioramenti al riconoscimento vero e proprio:
+
+* **Quindici alias nuovi**, per i caratteri che compaiono negli atti e nei PDF dei
+  software giudiziari: Minion, Sabon, Janson, Utopia, Charter, Gentium, Cardo, EB
+  Garamond, Cormorant, Didot, Bodoni, Playfair, PT Serif, Noto Serif, Lora, Futura,
+  Avenir, Jost, Optima, Myriad, Frutiger, Univers, Helvetica Neue, Goudy, Calisto,
+  Bell MT, Courier Prime, Nimbus Mono, JetBrains Mono, Menlo, Monaco, PT Sans,
+  Source Sans, Fira Sans, Ubuntu, Cantarell, e i nomi URW che i PDF scrivono come
+  `C059` e `P052`.
+* **Il ripiego guarda la forma del nome.** Un carattere fuori catalogo diventava
+  Arial per scarto, a meno che nel nome non comparisse la parola «serif» — e un
+  monospaziato sconosciuto diventava Arial come tutti gli altri. Ora gli indizi
+  contano: `mono`, `code`, `console`, `courier` portano a Courier New; `grotesk`,
+  `gothic`, `neue`, `futura` ad Arial; `roman`, `antiqua`, `slab`, `schoolbook` a
+  Times New Roman. Solo un nome che non dice niente di se' prende le grazie, perche'
+  un atto scritto in un carattere sconosciuto quasi sempre ce le ha.
+* **Il ripiego generico del foglio di stile segue il tono dichiarato nel catalogo.**
+  C'era un elenco scritto a mano di sei nomi: tutte le altre famiglie senza grazie —
+  Century Gothic, Segoe UI, Tahoma, Trebuchet, Gill Sans, Franklin Gothic, Impact —
+  ripiegavano su `serif`, e bastava che il carattere non fosse installato sul
+  computer di chi legge perche' il testo cambiasse faccia.
+
+Corretto anche un difetto piccolo ma visibile: «Times New Roman» veniva ripulito dei
+suffissi di stile e diventava «Times New», un carattere che non esiste, che finiva
+davanti a tutto nella pila del foglio di stile. Ora quando e' il nome intero a
+corrispondere e' quello a valere.
+
+Quarantasette prove in `tests/test_caratteri_documento_fedele.py`, compresa quella
+che importa il catalogo in un interprete separato per essere sicuri che non si tiri
+dietro niente.
+
+## 2.360.0 — 22/09/2026
+
+**Il lettore DOCX prende tutto quello che un atto ha davvero.** La versione di
+poche ore fa leggeva il testo e la sua formattazione; questa legge anche la
+struttura e quello che sta intorno al testo.
+
+Sette cose che prima si perdevano, in ordine di quanto costano all'avvocato:
+
+* **Il formato dichiarato sugli stili.** Era il buco piu' grave: un atto scritto
+  con gli stili di Word — cioe' quasi ogni atto — non dichiara niente sul
+  paragrafo, mette giustificato, rientro, spaziatura e interlinea sullo stile.
+  Chi legge solo `paragraph_format` trova `None` e il documento torna tutto
+  allineato a sinistra. Ora si risale la catena degli stili.
+* **Il testo dentro i collegamenti.** `paragraph.runs` salta quello che sta in un
+  `w:hyperlink`: su un atto che cita una PEC o un riferimento normativo non si
+  perdeva il link, spariva l'indirizzo scritto. Ora i tratti si leggono
+  dall'XML del paragrafo, e il collegamento arriva con il suo indirizzo.
+* **Le immagini**: logo dello studio, firma scansionata, timbro. Senza, un atto
+  importato perde l'intestazione e l'avvocato se ne accorge davanti alla stampa.
+* **Gli a capo dentro un paragrafo**: le due righe di un indirizzo diventavano
+  una sola, perche' l'HTML collassa i ritorni a riga.
+* **I salti di pagina**: il documento usciva come pagina unica, mentre l'editor
+  impagina in A4 vero.
+* **Le larghezze delle colonne**: senza, l'editor spartisce lo spazio in parti
+  uguali e un prospetto con la descrizione larga e l'importo stretto esce
+  sbilenco. Si leggono anche i bordi dichiarati, cosi' una tabella senza filetti
+  non viene disegnata come un modulo bordato.
+* **Gli elenchi annidati**: i sottopunti di un «premesso che» tornavano allo
+  stesso livello dei punti principali.
+
+Il confronto sullo stesso atto — con logo, titolo centrato, corpo giustificato da
+stile, grassetto, corsivo, sottolineato, colore, indirizzo su due righe,
+collegamento, elenco numerato, tabella con intestazione e colonne di larghezza
+diversa, salto di pagina e firma a destra — su venti voci:
+
+| | conservate |
+|---|---|
+| lettore nostro | **20 su 20** |
+| via LibreOffice (DOCX -> PDF -> lettura) | 16 |
+| mammoth (quello che era in uso) | 7 |
+
+LibreOffice perde colore del testo, firma a destra, giustificato e spaziatura dei
+paragrafi: dopo la stampa in PDF non sono piu' dichiarati da nessuna parte e vanno
+indovinati dalla geometria. Il DOCX quelle cose ce le ha scritte dentro.
+
+Diciannove test in `tests/test_da_docx.py`.
+
 ## 2.359.0 — 22/09/2026
 
 **Il DOCX che rientra dall'editor non perde piu' meta' della formattazione — e

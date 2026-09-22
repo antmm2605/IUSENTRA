@@ -290,8 +290,16 @@ def test_i_cloni_metrici_tornano_al_carattere_di_word():
 
 
 def test_la_tendina_dell_importazione_e_quella_dell_editor():
-    """Due liste di font si disallineano al primo carattere aggiunto: la fonte e' una."""
-    from pct.template_atti import EDITOR_FONT_CATALOG
+    """Due liste di font si disallineano al primo carattere aggiunto: la fonte e' una.
+
+    Il catalogo si legge da `pct.catalogo_caratteri`, che non importa niente.
+    Quando stava dentro `pct.template_atti` — che tira dentro il driver di
+    PostgreSQL — bastava un ambiente senza quel driver perche' l'importazione
+    trovasse tre caratteri invece di quarantasei e ogni atto tornasse in Times
+    New Roman.
+    """
+    from pct.catalogo_caratteri import EDITOR_FONT_CATALOG
 
     catalogo = {str(voce["label"]) for voce in EDITOR_FONT_CATALOG.values()}
     assert set(FAMIGLIE_EDITOR) == catalogo, "la tendina dell'importazione non e' quella dell'editor"
+    assert len(catalogo) > 20, "il catalogo dei caratteri non si e' caricato"

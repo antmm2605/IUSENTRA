@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.350.0 — 22/09/2026
+
+**Il secondo motore di lettura dell'editor non e' piu' PyMuPDF.** In
+`pct/editor.py` PyMuPDF non era il lettore principale — quello e' pdfplumber — ma
+la seconda opinione quando il testo estratto non supera il controllo di
+affidabilita', per esempio con font CID senza mappa Unicode. Sostituirlo con
+pdfplumber sarebbe stato interrogare due volte lo stesso motore: e' passato a
+PDFium, che estrae per conto suo. Un test legge il sorgente e fallisce se la
+seconda opinione torna a venire dallo stesso motore della prima.
+
+**Il confronto fra due PDF del portale esce da PyMuPDF.** Legge la struttura con
+pypdf — pagine, riquadro, rotazione, annotazioni — e confronta testo e pixel con
+PDFium. Il confronto resta volutamente conservativo: al minimo dubbio risponde
+"non equivalenti" e conserva entrambi i file.
+
+Censimento corretto di quello che resta. La domanda che decide la difficolta' non
+e' quali funzioni di PyMuPDF un modulo usa, ma chi possiede il documento aperto:
+chi lo apre da solo si sposta da solo, chi riceve una pagina gia' aperta non si
+sposta finche' non si sposta il chiamante. Con quel criterio `documento_fedele/`
+e' una sola unita' da cinque file guidata da `conversione.py`, e il gruppo OCR e'
+una sola unita' da due.
+
+Test: casi nuovi in `tests/test_lettura_pdf.py` e `tests/test_portal_document_identity.py`.
+Provati al contrario: togliendo il confronto su testo e pixel, due PDF diversi
+risultano equivalenti.
+
 ## 2.349.0 — 22/09/2026
 
 **Anche la lettura del testo esce da PyMuPDF.** Per leggere il testo di un PDF non

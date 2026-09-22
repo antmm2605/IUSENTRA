@@ -78,6 +78,42 @@ def test_i_nomi_non_cominciano_per_test():
         assert not nome.lower().startswith("test"), f"{nome} verrebbe raccolto da pytest"
 
 
+def test_il_secondo_motore_legge_davvero_la_pagina_chiesta():
+    """Serve a chi chiama quando il lettore principale non e' affidabile."""
+    dati = _pdf_due_pagine()
+
+    assert PRIMA in lettura_pdf.leggi_testo_pagina_alternativo(dati, 0)
+    assert SECONDA in lettura_pdf.leggi_testo_pagina_alternativo(dati, 1)
+
+
+def test_il_secondo_motore_non_fa_cadere_l_importazione():
+    """Se non riesce, chi chiama passa all'OCR: non deve sollevare."""
+    assert lettura_pdf.leggi_testo_pagina_alternativo(_pdf_due_pagine(), 9) == ""
+    assert lettura_pdf.leggi_testo_pagina_alternativo(_pdf_due_pagine(), -1) == ""
+    assert lettura_pdf.leggi_testo_pagina_alternativo(b"non e' un PDF", 0) == ""
+
+
+def test_il_secondo_motore_non_e_lo_stesso_del_primo():
+    """Interrogare due volte lo stesso lettore non e' una seconda opinione."""
+    import ast
+    from pathlib import Path as _P
+
+    sorgente = (_P(__file__).resolve().parents[1] / "pct" / "lettura_pdf.py").read_text(encoding="utf-8")
+    corpo = next(
+        nodo
+        for nodo in ast.walk(ast.parse(sorgente))
+        if isinstance(nodo, ast.FunctionDef) and nodo.name == "leggi_testo_pagina_alternativo"
+    )
+    importati = {
+        alias.name.split(".")[0]
+        for nodo in ast.walk(corpo)
+        if isinstance(nodo, ast.Import)
+        for alias in nodo.names
+    }
+    assert "pypdfium2" in importati
+    assert "pdfplumber" not in importati, "il secondo parere deve venire da un motore diverso"
+
+
 def test_i_moduli_gia_migrati_non_importano_piu_pymupdf():
     import ast
     from pathlib import Path
@@ -89,8 +125,9 @@ def test_i_moduli_gia_migrati_non_importano_piu_pymupdf():
         "web/services/client_portal_moduli.py",
         "web/services/mediazione_fascicolo.py",
         "web/bootstrap/mediazione_fascicolo_routes.py",
+        "pct/editor.py",
     ):
-        albero = ast.parse((radice / relativo).read_text(encoding="utf-8"))
+        albero = ast.parse((radice / relativo).read_text(encoding="utf-8-sig"))
         importati: set[str] = set()
         for nodo in ast.walk(albero):
             if isinstance(nodo, ast.Import):

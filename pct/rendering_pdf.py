@@ -36,7 +36,13 @@ class DimensioniPagina:
     altezza: float
 
 
-def _documento(origine: bytes | str | Path):
+def apri_documento(origine: bytes | str | Path):
+    """Apre il PDF con PDFium. Chi chiama deve chiuderlo.
+
+    Serve a chi ha bisogno del documento aperto per piu' di una operazione —
+    per esempio confrontare testo e pixel della stessa pagina — senza riaprirlo
+    ogni volta.
+    """
     try:
         import pypdfium2 as pdfium
     except ImportError as exc:  # pragma: no cover - dipendenza dichiarata
@@ -66,7 +72,7 @@ def _png_da_pagina(pagina: Any, scala: float) -> bytes:
 
 def dimensioni_pagine(origine: bytes | str | Path) -> list[DimensioniPagina]:
     """Numero, larghezza e altezza di ogni pagina, in punti."""
-    documento = _documento(origine)
+    documento = apri_documento(origine)
     try:
         return [
             DimensioniPagina(
@@ -88,7 +94,7 @@ def pagina_png(
     predefinita: float = 1.85,
 ) -> bytes:
     """Una pagina sola come PNG. Le pagine si contano da uno."""
-    documento = _documento(origine)
+    documento = apri_documento(origine)
     try:
         if numero_pagina < 1 or numero_pagina > len(documento):
             raise RenderingPdfError("Pagina PDF non disponibile.")
@@ -103,7 +109,7 @@ def pagine_png(origine: bytes | str | Path, *, dpi: int = 130) -> list[dict[str,
     Il dpi si traduce in ingrandimento sui 72 punti per pollice del PDF.
     """
     scala = _scala_ammessa(max(1, int(dpi or 130)) / 72.0, 1.0)
-    documento = _documento(origine)
+    documento = apri_documento(origine)
     try:
         fuori: list[dict[str, Any]] = []
         for indice in range(len(documento)):
@@ -123,6 +129,7 @@ def pagine_png(origine: bytes | str | Path, *, dpi: int = 130) -> list[dict[str,
 
 __all__ = [
     "SCALA_MASSIMA",
+    "apri_documento",
     "SCALA_MINIMA",
     "DimensioniPagina",
     "RenderingPdfError",

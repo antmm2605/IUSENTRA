@@ -64,20 +64,68 @@ def pdf_equivalenti_privi_di_firma(left, right):
         return False
     if any(token in raw for raw in (left, right) for token in (b"/ByteRange", b"/JavaScript", b"/EmbeddedFile", b"/AcroForm")):
         return False
-    import pymupdf
+    # Il confronto e' volutamente conservativo: al minimo dubbio si risponde
+    # "non equivalenti" e si conservano entrambi i file. La struttura si legge
+    # con pypdf, il disegno con PDFium: nessuno dei due e' AGPL.
+    import io
+
+    from pypdf import PdfReader
+
+    from pct.rendering_pdf import RenderingPdfError, apri_documento
+
     try:
-        with pymupdf.open(stream=left, filetype="pdf") as a, pymupdf.open(stream=right, filetype="pdf") as b:
-            if a.needs_pass or b.needs_pass or len(a) != len(b) or not 0 < len(a) <= 100:
+        lettore_a = PdfReader(io.BytesIO(left))
+        lettore_b = PdfReader(io.BytesIO(right))
+        if lettore_a.is_encrypted or lettore_b.is_encrypted:
+            return False
+        if len(lettore_a.pages) != len(lettore_b.pages) or not 0 < len(lettore_a.pages) <= 100:
+            return False
+        for pagina_a, pagina_b in zip(lettore_a.pages, lettore_b.pages):
+            if _riquadro(pagina_a) != _riquadro(pagina_b):
                 return False
-            for pa, pb in zip(a, b):
-                if pa.rect != pb.rect or pa.rotation != pb.rotation or pa.rect.width * pa.rect.height > 1500000:
+            if int(pagina_a.get("/Rotate") or 0) != int(pagina_b.get("/Rotate") or 0):
+                return False
+            larghezza, altezza = _riquadro(pagina_a)
+            if larghezza * altezza > 1500000:
+                return False
+            if _ha_annotazioni(pagina_a) or _ha_annotazioni(pagina_b):
+                return False
+        documento_a = apri_documento(left)
+        documento_b = apri_documento(right)
+        try:
+            for indice in range(len(documento_a)):
+                if _testo_pagina(documento_a, indice) != _testo_pagina(documento_b, indice):
                     return False
-                if list(pa.annots() or []) or list(pb.annots() or []) or pa.get_links() or pb.get_links():
+                if _pixel_pagina(documento_a, indice) != _pixel_pagina(documento_b, indice):
                     return False
-                if pa.get_text() != pb.get_text():
-                    return False
-                if pa.get_pixmap(matrix=pymupdf.Matrix(2, 2), alpha=False).samples != pb.get_pixmap(matrix=pymupdf.Matrix(2, 2), alpha=False).samples:
-                    return False
-            return True
-    except (ValueError, RuntimeError):
+        finally:
+            documento_a.close()
+            documento_b.close()
+        return True
+    except (ValueError, RuntimeError, RenderingPdfError):
         return False
+
+
+def _riquadro(pagina) -> tuple[float, float]:
+    riquadro = pagina.mediabox
+    return (float(riquadro.width), float(riquadro.height))
+
+
+def _ha_annotazioni(pagina) -> bool:
+    """Annotazioni e collegamenti stanno entrambi in /Annots."""
+    try:
+        return bool(pagina.get("/Annots"))
+    except Exception:
+        return True
+
+
+def _testo_pagina(documento, indice: int) -> str:
+    pagina_testo = documento[indice].get_textpage()
+    try:
+        return pagina_testo.get_text_range() or ""
+    finally:
+        pagina_testo.close()
+
+
+def _pixel_pagina(documento, indice: int) -> bytes:
+    return documento[indice].render(scale=2).to_pil().tobytes()

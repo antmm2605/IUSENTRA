@@ -140,7 +140,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
                     )
                     testo_fallback = ""
                     if testo_plain.strip():
-                        testo_alternativo = _estrai_testo_pymupdf(data, i)
+                        testo_alternativo = _estrai_testo_secondo_motore(data, i)
                         if _testo_pdf_affidabile(testo_alternativo):
                             testo_fallback = testo_alternativo
                             avvisi.append(
@@ -258,26 +258,16 @@ def _motivo_layout_pagina_non_fedele(pagina) -> str:
     return ", ".join(ragioni)
 
 
-def _estrai_testo_pymupdf(data: bytes, page_index: int) -> str:
-    """Secondo motore di estrazione testo, utile su alcuni PDF con font embedded."""
-    try:
-        import fitz
-    except ImportError:
-        return ""
-    doc = None
-    try:
-        doc = fitz.open(stream=data, filetype="pdf")
-        if page_index >= len(doc):
-            return ""
-        return (doc[page_index].get_text("text") or "").strip()
-    except Exception:
-        return ""
-    finally:
-        if doc is not None:
-            try:
-                doc.close()
-            except Exception:
-                pass
+def _estrai_testo_secondo_motore(data: bytes, page_index: int) -> str:
+    """Secondo motore di estrazione testo, utile su alcuni PDF con font embedded.
+
+    Il lettore principale e' pdfplumber. Quando il suo risultato non supera il
+    controllo di affidabilita' serve un motore costruito diversamente, non lo
+    stesso interrogato due volte: qui PDFium.
+    """
+    from pct.lettura_pdf import leggi_testo_pagina_alternativo
+
+    return leggi_testo_pagina_alternativo(data, page_index)
 
 
 def _ocr_pagina(data: bytes, page_index: int, pagina=None) -> str:

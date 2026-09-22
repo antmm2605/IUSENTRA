@@ -51,6 +51,14 @@ BIANCHI = {"#ffffff", "#fefefe"}
 STACCO_SPAZIO_RELATIVO = 0.18
 STACCO_SPAZIO_MINIMO = 0.75
 
+#: Oltre questo stacco, sempre in frazione del corpo, non c'e' piu' uno spazio
+#: ma un'altra colonna: due celle di tabella, o due blocchi affiancati.
+#: Tenerli in una riga sola fa danni a valle — la riga risulta larga quanto la
+#: tabella, e il bordo della cella smette di «sporgere» dal testo, cioe'
+#: diventa indistinguibile da una sottolineatura. Due volte e mezzo il corpo e'
+#: largo: in un testo giustificato uno spazio non arriva a tanto.
+STACCO_COLONNA_RELATIVO = 2.5
+
 
 class SorgenteError(ValueError):
     """Il PDF non si apre."""
@@ -158,6 +166,30 @@ def _con_spazi(caratteri: list[dict]) -> list[dict]:
     return fuori
 
 
+def _separa_colonne(caratteri: list[dict]) -> list[list[dict]]:
+    """Spezza una riga dove il testo salta in un'altra colonna.
+
+    pdfplumber mette sulla stessa riga tutto quello che sta alla stessa
+    altezza, comprese due celle di tabella lontane fra loro. PyMuPDF le teneva
+    separate, e il codice a valle ci conta: misura quanto un filetto sporge
+    oltre il testo per decidere se e' una sottolineatura o il bordo di una
+    cella. Con la riga larga quanto tutta la tabella quel confronto si
+    capovolge e ogni cella esce sottolineata.
+    """
+    if not caratteri:
+        return []
+    pezzi: list[list[dict]] = [[caratteri[0]]]
+    for carattere in caratteri[1:]:
+        precedente = pezzi[-1][-1]
+        corpo = float(carattere.get("size") or precedente.get("size") or 11.0)
+        stacco = float(carattere["x0"]) - float(precedente["x1"])
+        if stacco > corpo * STACCO_COLONNA_RELATIVO:
+            pezzi.append([carattere])
+        else:
+            pezzi[-1].append(carattere)
+    return pezzi
+
+
 @dataclass(frozen=True)
 class PaginaSorgente:
     """Una pagina, con quello che serviva a `documento_fedele`."""
@@ -184,6 +216,12 @@ class PaginaSorgente:
     def riquadro(self) -> Riquadro:
         return Riquadro(0.0, 0.0, self.larghezza, self.altezza)
 
+    #: Il nome che aveva in PyMuPDF. Tenerlo evita di riscrivere le decine di
+    #: `pagina.rect.width` sparse nel pacchetto.
+    @property
+    def rect(self) -> Riquadro:
+        return self.riquadro
+
     # -- cosa c'e' disegnato ------------------------------------------------
 
     @property
@@ -200,6 +238,63 @@ class PaginaSorgente:
     def caratteri(self) -> list[dict]:
         """Tutte le lettere della pagina, con posizione e carattere."""
         return list(self._pagina.chars or [])
+
+    @property
+    def curve(self) -> list[dict]:
+        """I tracciati curvi: archi, cerchi, la parte tonda di un timbro."""
+        return list(self._pagina.curves or [])
+
+    @property
+    def disegni(self) -> list[dict]:
+        """Tutto quello che e' disegnato e non e' testo.
+
+        PyMuPDF li dava insieme con `get_drawings()`; pdfplumber li tiene
+        divisi per tipo, quindi qui si rimettono insieme.
+        """
+        return self.rettangoli + self.linee + self.curve
+
+    @property
+    def immagini(self) -> list[dict]:
+        """Le immagini incorporate, con il loro riquadro sulla pagina."""
+        return list(self._pagina.images or [])
+
+    @property
+    def campi_modulo(self) -> list[Riquadro]:
+        """I riquadri dei campi compilabili.
+
+        La cornice di un campo modulo e' solo il vestito grafico del campo, e
+        la scritta dentro viene gia' letta come testo: rasterizzarla
+        raddoppierebbe ogni etichetta.
+        """
+        fuori: list[Riquadro] = []
+        for annotazione in getattr(self._pagina, "annots", []) or []:
+            dati = annotazione.get("data") or {}
+            if str(dati.get("Subtype") or "").strip("/'") != "Widget":
+                continue
+            try:
+                fuori.append(Riquadro(
+                    annotazione["x0"], annotazione["top"],
+                    annotazione["x1"], annotazione["bottom"],
+                ))
+            except (KeyError, TypeError, ValueError):
+                continue
+        return fuori
+
+    def tabelle(self, strategia: str = "lines_strict") -> list:
+        """Le tabelle trovate sulla pagina, con la strategia indicata.
+
+        Le strategie hanno i nomi di pdfplumber: `lines_strict` si fida solo
+        dei filetti disegnati, `text` deduce la griglia dall'incolonnamento.
+        Si prova la prima e, se non trova niente, la seconda: una tabella senza
+        filetti resta una tabella.
+        """
+        try:
+            return self._pagina.find_tables({
+                "vertical_strategy": strategia,
+                "horizontal_strategy": strategia,
+            }) or []
+        except Exception:
+            return []
 
     @property
     def collegamenti(self) -> list[tuple[Riquadro, str]]:
@@ -274,18 +369,19 @@ class PaginaSorgente:
             caratteri = [c for c in (riga.get("chars") or []) if c.get("text")]
             if not caratteri:
                 continue
-            span = self._span_da_caratteri(caratteri)
-            if not span:
-                continue
-            fuori.append({
-                "bbox": (
-                    min(float(c["x0"]) for c in caratteri),
-                    min(float(c["top"]) for c in caratteri),
-                    max(float(c["x1"]) for c in caratteri),
-                    max(float(c["bottom"]) for c in caratteri),
-                ),
-                "spans": span,
-            })
+            for pezzo in _separa_colonne(caratteri):
+                span = self._span_da_caratteri(pezzo)
+                if not span:
+                    continue
+                fuori.append({
+                    "bbox": (
+                        min(float(c["x0"]) for c in pezzo),
+                        min(float(c["top"]) for c in pezzo),
+                        max(float(c["x1"]) for c in pezzo),
+                        max(float(c["bottom"]) for c in pezzo),
+                    ),
+                    "spans": span,
+                })
         return fuori
 
     def _span_da_caratteri(self, caratteri: list[dict]) -> list[dict]:
@@ -385,8 +481,22 @@ class DocumentoSorgente:
             except Exception:
                 pass
 
+    #: `chiudi()` ha il nome italiano del resto del pacchetto; `close()` e'
+    #: quello che il codice chiamava quando sotto c'era PyMuPDF.
+    close = chiudi
+
     def __len__(self) -> int:
         return len(self._testo.pages)
+
+    def __getitem__(self, indice: int) -> PaginaSorgente:
+        pagina = self._testo.pages[indice]
+        return PaginaSorgente(
+            numero=indice + 1 if indice >= 0 else len(self) + indice + 1,
+            _pagina=pagina, _documento_grafico=self._grafica,
+        )
+
+    def __iter__(self):
+        return iter(self.pagine)
 
     @property
     def pagine(self) -> list[PaginaSorgente]:

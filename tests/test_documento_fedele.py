@@ -22,8 +22,6 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from pct.documento_fedele import FAMIGLIE_EDITOR, converti_file, famiglia_editor, pila_font
 
-fitz = pytest.importorskip("pymupdf", reason="PyMuPDF non installato")
-
 
 def _stile(nome: str = "Times-Roman", corpo: float = 11, allineamento: int = TA_JUSTIFY) -> ParagraphStyle:
     return ParagraphStyle(
@@ -152,17 +150,41 @@ def test_un_documento_senza_testo_non_fa_saltare_la_conversione():
 
 
 def _scansione(flow) -> str:
-    """Lo stesso atto, ma solo immagine: nessun testo dentro il PDF."""
+    """Lo stesso atto, ma solo immagine: nessun testo dentro il PDF.
+
+    Si disegna ogni pagina e la si reincolla come figura: e' quello che fa uno
+    scanner, ed e' l'unico modo di provare che il riconoscimento ottico parta
+    davvero.
+    """
+    import io
+
+    import pypdfium2 as pdfium
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas as tela
+
     originale = _pdf(flow)
     percorso = _percorso_temporaneo(".pdf")
-    sorgente, esito = fitz.open(originale), fitz.open()
-    for pagina in sorgente:
-        pix = pagina.get_pixmap(dpi=200)
-        nuova = esito.new_page(width=pagina.rect.width, height=pagina.rect.height)
-        nuova.insert_image(nuova.rect, stream=pix.tobytes("png"))
-    esito.save(percorso)
-    sorgente.close()
-    esito.close()
+    documento = pdfium.PdfDocument(originale)
+    foglio = None
+    try:
+        for indice in range(len(documento)):
+            pagina = documento[indice]
+            larghezza, altezza = pagina.get_width(), pagina.get_height()
+            immagine = pagina.render(scale=200 / 72).to_pil().convert("RGB")
+            if foglio is None:
+                foglio = tela.Canvas(percorso, pagesize=(larghezza, altezza))
+            else:
+                foglio.setPageSize((larghezza, altezza))
+            deposito = io.BytesIO()
+            immagine.save(deposito, format="PNG")
+            deposito.seek(0)
+            foglio.drawImage(ImageReader(deposito), 0, 0,
+                             width=larghezza, height=altezza)
+            foglio.showPage()
+        if foglio is not None:
+            foglio.save()
+    finally:
+        documento.close()
     Path(originale).unlink(missing_ok=True)
     return percorso
 

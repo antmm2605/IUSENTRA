@@ -11,31 +11,23 @@ import re
 import statistics
 from typing import Iterable, Optional
 
-_LOG = logging.getLogger(__name__)
-
-try:  # PyMuPDF e' dichiarato in requirements.txt; senza, l'importazione fedele si spegne
-    import pymupdf as fitz  # nome nuovo dalla 1.24; `import fitz` e' deprecato
-except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
-    try:
-        import fitz
-    except ImportError:
-        fitz = None  # type: ignore[assignment]
-
 from .geometria import Riquadro
-from .taratura import Taratura, _pt, pila_font
-from .modello import DocumentoConvertito, PaginaConvertita, Riga, Tratto
-from .lettura import leggi_righe
-from .paragrafi import _html_tratti, costruisci_paragrafi
-from .tabelle import estrai_tabelle
 from .immagini import estrai_grafica, estrai_immagini
+from .lettura import leggi_righe
+from .modello import DocumentoConvertito, PaginaConvertita, Riga, Tratto
 from .pagina import _formato, _margini, _pagina_esatta, _testate_e_piedi
+from .paragrafi import _html_tratti, costruisci_paragrafi
+from .sorgente import DocumentoSorgente, PaginaSorgente
+from .tabelle import estrai_tabelle
+from .taratura import Taratura, _pt, pila_font
 
+_LOG = logging.getLogger(__name__)
 
 # ===========================================================================
 # 7. Conversione
 # ===========================================================================
 
-def _ocr_pagina(documento: fitz.Document, indice: int, lingua: str) -> tuple[Optional[list[Riga]], str]:
+def _ocr_pagina(documento: DocumentoSorgente, indice: int, lingua: str) -> tuple[Optional[list[Riga]], str]:
     """Pagina scansionata: la legge il motore OCR unico, non una copia locale.
 
     In IUSENTRA il riconoscimento ottico ha un solo motore, `legal_ocr/motore/`
@@ -67,8 +59,7 @@ def _ocr_pagina(documento: fitz.Document, indice: int, lingua: str) -> tuple[Opt
 
     try:
         pagina = documento[indice]
-        pix = pagina.get_pixmap(dpi=DPI_OCR)
-        with Image.open(io.BytesIO(pix.tobytes("png"))) as immagine:
+        with Image.open(io.BytesIO(pagina.png(dpi=DPI_OCR))) as immagine:
             lettura = leggi_immagine(immagine.convert("L"), pytesseract=_motore,
                                      lingua=lingua or "ita", con_pdf=False)
     except Exception as errore:
@@ -131,7 +122,7 @@ ALTEZZA_IN_CORPO = 0.78
 RIGHE_PER_DEDURRE_LA_COLONNA = 3
 
 
-def _colonna(pagina: fitz.Page, righe: list[Riga],
+def _colonna(pagina: PaginaSorgente, righe: list[Riga],
              margini: tuple[float, float, float, float]) -> tuple[float, float]:
     """I bordi sinistro e destro della colonna di testo, per giudicare gli allineamenti.
 
@@ -165,7 +156,7 @@ def converti(
     `max_pagine_ocr` evita che una scansione di centinaia di pagine tenga
     occupato un lavoratore per mezz'ora.
     """
-    documento = fitz.open(percorso)
+    documento = DocumentoSorgente(percorso)
     try:
         esito = DocumentoConvertito()
         famiglie: set[str] = set()
@@ -234,7 +225,7 @@ def converti(
         testate, piedi = _testate_e_piedi(tutte_righe, altezza)
 
         for voce in grezzo:
-            pagina: fitz.Page = voce["pagina"]
+            pagina: PaginaSorgente = voce["pagina"]
             righe: list[Riga] = voce["righe"]
             tabelle, immagini, grafica = voce["tabelle"], voce["immagini"], voce["grafica"]
 

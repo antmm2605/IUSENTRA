@@ -1,5 +1,55 @@
 # Changelog
 
+## 2.357.0 — 22/09/2026
+
+**L'importazione fedele esce da PyMuPDF.** `pct/documento_fedele` e' il modulo che
+porta un PDF dentro l'editor atti conservando tabelle, immagini, grassetto, colori,
+allineamenti, formato e margini — cioe' la strada con cui si modifica un PDF
+caricato dallo studio restando dentro il software. Girava su PyMuPDF, che e' AGPL.
+Ora i cinque file che leggevano la pagina passano tutti da `PaginaSorgente`: zero
+usi di `fitz` nel pacchetto.
+
+`lettura.py` chiede gli span, i filetti, le evidenziature e i collegamenti alla
+sorgente e tiene la parte che decide che cosa significano. `tabelle.py` usa
+`find_tables` di pdfplumber. `immagini.py` ritaglia la zona dalla pagina disegnata
+invece di estrarre i byte incorporati: costa risoluzione sulle immagini enormi, ma
+restituisce quello che il lettore mostra davvero, con maschere e trasparenze gia'
+applicate e nessun formato esotico da riconvertire. `pagina.py` e `conversione.py`
+cambiano quasi solo la riga di importazione, perche' `PaginaSorgente` tiene i nomi
+che avevano — `rect`, `close()`, l'indicizzazione e l'iterazione del documento.
+
+**La differenza che ha fatto danni, e come e' venuta fuori.** pdfplumber mette sulla
+stessa riga tutto quello che sta alla stessa altezza, comprese due celle di tabella
+lontane fra loro; PyMuPDF le teneva separate. Il codice a valle ci contava: misura
+quanto un filetto sporge oltre il testo per distinguere una sottolineatura dal bordo
+di una cella. Con la riga larga quanto tutta la tabella quel confronto si capovolge,
+e ogni cella usciva sottolineata — esattamente il difetto che
+`test_il_filetto_di_una_cella_non_diventa_una_sottolineatura` era stato scritto per
+impedire, e che infatti l'ha ripreso. Le righe ora si spezzano dove il testo salta di
+oltre due volte e mezzo il corpo: in un testo giustificato uno spazio non arriva a
+tanto.
+
+L'intestazione di tabella, che PyMuPDF dichiarava da solo, ora si riconosce dalla
+regola che vale negli atti: la prima riga ha uno sfondo suo, oppure e' tutta in
+grassetto e le altre no.
+
+**La prova.** Sei documenti di controllo — tabella con intestazione colorata, testo
+con grassetto corsivo sottolineato e colore, titolo centrato, elenco numerato,
+pagina orizzontale, paragrafo giustificato lungo — convertiti con il pacchetto
+vecchio e con quello nuovo, confrontando quindici misure dell'HTML prodotto piu' il
+testo. Tutto identico tranne due voci, entrambe a favore del nuovo: sull'elenco e
+sul paragrafo lungo il vecchio marcava come riga di intestazione (`<th>`) righe che
+non lo erano, tredici in tutto. Sulla tabella vera le intestazioni restano dov'erano.
+
+`tests/test_documento_fedele.py` da' lo stesso esito di prima e non chiede piu'
+PyMuPDF, nemmeno per costruire la scansione di prova: quella ora si disegna con
+PDFium. `tests/test_sorgente_documento_fedele.py` sale a quindici, con il caso nuovo
+delle due celle affiancate.
+
+Resta aperto un difetto piu' vecchio della migrazione, che il confronto ha portato a
+galla: su un paragrafo lungo senza filetti la ricerca tabelle «a testo» inventa una
+griglia di seicento celle. C'era prima e c'e' ancora.
+
 ## 2.356.0 — 22/09/2026
 
 **Correzione: la 2.354.0 aveva rotto timbri, loghi e firme disegnati a vettori.**

@@ -8,57 +8,52 @@ from __future__ import annotations
 import statistics
 from typing import Optional
 
-try:  # PyMuPDF e' dichiarato in requirements.txt; senza, l'importazione fedele si spegne
-    import pymupdf as fitz  # nome nuovo dalla 1.24; `import fitz` e' deprecato
-except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
-    try:
-        import fitz
-    except ImportError:
-        fitz = None  # type: ignore[assignment]
-
 from .geometria import Riquadro
-from .taratura import Taratura, _colore_da_float, _pt
 from .modello import Elemento, Riga, Tratto
 from .paragrafi import _allineamento, _html_tratti
-
+from .sorgente import PaginaSorgente
+from .taratura import Taratura, _colore_da_float, _pt
 
 # ===========================================================================
 # 3. Tabelle
 # ===========================================================================
 
-def _sfondo_cella(pagina: fitz.Page, riquadro: Riquadro) -> Optional[str]:
-    try:
-        disegni = pagina.get_drawings()
-    except Exception:
-        return None
-    for d in disegni:
-        if d.get("fill") is None:
+def _sfondo_cella(pagina: PaginaSorgente, riquadro: Riquadro) -> Optional[str]:
+    """Il colore dietro una cella, se c'e' e non e' il bianco della pagina.
+
+    Vale solo un rettangolo che copre quasi tutta la cella: un riquadro che la
+    sfiora e' un'altra cosa — il bordo di quella accanto, un filetto spesso.
+    """
+    for rettangolo in pagina.rettangoli:
+        if not rettangolo.get("fill"):
             continue
-        r = Riquadro(d["rect"])
+        r = Riquadro(rettangolo["x0"], rettangolo["top"],
+                     rettangolo["x1"], rettangolo["bottom"])
         if not r.intersects(riquadro):
             continue
         if (r & riquadro).get_area() < riquadro.get_area() * 0.8:
             continue
-        colore = _colore_da_float(d.get("fill"))
+        colore = _colore_da_float(rettangolo.get("non_stroking_color"))
         if colore and colore.lower() not in ("#ffffff", "#fefefe"):
             return colore
     return None
 
 
 def estrai_tabelle(
-    pagina: fitz.Page, righe: list[Riga],
+    pagina: PaginaSorgente, righe: list[Riga],
     sinistra: Optional[float] = None, destra: Optional[float] = None,
 ) -> list[Elemento]:
     """Tabelle rigate e non, con celle unite, intestazioni e sfondi."""
-    try:
-        trovate = pagina.find_tables(strategy="lines_strict")
-        if not trovate.tables:
-            trovate = pagina.find_tables(strategy="text")
-    except Exception:
+    trovate = pagina.tabelle("lines_strict")
+    if not trovate:
+        # una tabella senza filetti resta una tabella: si guarda
+        # l'incolonnamento del testo
+        trovate = pagina.tabelle("text")
+    if not trovate:
         return []
 
     fuori: list[Elemento] = []
-    for tabella in trovate.tables:
+    for tabella in trovate:
         riquadro = Riquadro(tabella.bbox)
         celle = [c for c in (tabella.cells or []) if c]
         if len(celle) < 4:
@@ -102,6 +97,25 @@ def estrai_tabelle(
     return fuori
 
 
+def _e_intestazione(griglia: list[list[Optional[dict]]]) -> bool:
+    """Vero se la prima riga della griglia si comporta da intestazione."""
+    prima = [c for c in griglia[0] if c and not c.get("salta")]
+    if not prima:
+        return False
+
+    if any(c.get("sfondo") for c in prima):
+        return True
+
+    def _tutta_grassetto(fila) -> bool:
+        tratti = [t for c in fila if c and not c.get("salta")
+                  for r in c.get("righe", []) for t in r.tratti if t.testo.strip()]
+        return bool(tratti) and all(t.grassetto for t in tratti)
+
+    if not _tutta_grassetto(griglia[0]):
+        return False
+    return not any(_tutta_grassetto(fila) for fila in griglia[1:])
+
+
 def _accorpa(valori: list[float], tol: float = Taratura.TOLLERANZA) -> list[float]:
     if not valori:
         return []
@@ -142,12 +156,13 @@ def _html_tabella(griglia, xs: list[float], tabella, riquadro: Riquadro,
                 stile_tabella.append("margin-left:auto;margin-right:auto")
             elif scarto_sx > Taratura.RIENTRO_MINIMO:
                 stile_tabella.append(f"margin-left:{_pt(scarto_sx)}pt")
+    # PyMuPDF dichiarava da solo quale fosse la riga di intestazione;
+    # pdfplumber consegna solo la griglia. La regola che la ritrova e' quella
+    # che usano gli atti: la prima riga e' intestazione quando ha uno sfondo
+    # suo, oppure quando e' tutta in grassetto e le altre no.
     intestazione = set()
-    try:
-        if tabella.header and tabella.header.external is False:
-            intestazione = {0}
-    except Exception:
-        pass
+    if griglia and _e_intestazione(griglia):
+        intestazione = {0}
 
     attributo = f' style="{";".join(stile_tabella)}"' if stile_tabella else ""
     fuori = [f'<table class="iu-doc-tabella"{attributo}><tbody>']

@@ -7,25 +7,17 @@ from __future__ import annotations
 
 import re
 
-try:  # PyMuPDF e' dichiarato in requirements.txt; senza, l'importazione fedele si spegne
-    import pymupdf as fitz  # nome nuovo dalla 1.24; `import fitz` e' deprecato
-except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
-    try:
-        import fitz
-    except ImportError:
-        fitz = None  # type: ignore[assignment]
-
 from .geometria import Riquadro
-from .taratura import Taratura, _pt
 from .modello import Elemento, Riga
 from .paragrafi import _html_tratti
-
+from .sorgente import PaginaSorgente
+from .taratura import Taratura, _pt
 
 # ===========================================================================
 # 5. Pagina, intestazioni e piedi
 # ===========================================================================
 
-def _margini(pagina: fitz.Page, righe: list[Riga], altri: list[Elemento]) -> tuple[float, float, float, float]:
+def _margini(pagina: PaginaSorgente, righe: list[Riga], altri: list[Elemento]) -> tuple[float, float, float, float]:
     riquadri = [Riquadro(r.bbox) for r in righe] + [Riquadro(e.bbox) for e in altri]
     if not riquadri:
         return (56.7, 56.7, 56.7, 56.7)
@@ -46,7 +38,7 @@ _FORMATI = {
 }
 
 
-def _formato(pagina: fitz.Page) -> tuple[str, str]:
+def _formato(pagina: PaginaSorgente) -> tuple[str, str]:
     l, a = pagina.rect.width, pagina.rect.height
     orientamento = "orizzontale" if l > a else "verticale"
     corto, lungo = min(l, a), max(l, a)
@@ -80,7 +72,7 @@ def _testate_e_piedi(pagine_righe: list[list[Riga]], altezza: float) -> tuple[se
 # 6. Modalita' "esatto"
 # ===========================================================================
 
-def _pagina_esatta(pagina: fitz.Page, righe: list[Riga],
+def _pagina_esatta(pagina: PaginaSorgente, righe: list[Riga],
                    immagini: list[Elemento], grafica: list[Elemento],
                    numero: int) -> str:
     pezzi = [

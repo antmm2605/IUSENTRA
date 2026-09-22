@@ -13,10 +13,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-fitz = pytest.importorskip("pymupdf", reason="l'estrazione grafica gira ancora su PyMuPDF")
-
-from pct.documento_fedele.geometria import Riquadro  # noqa: E402
-from pct.documento_fedele.immagini import estrai_grafica  # noqa: E402
+from pct.documento_fedele.geometria import Riquadro
+from pct.documento_fedele.immagini import estrai_grafica
+from pct.documento_fedele.sorgente import DocumentoSorgente
 
 
 @pytest.fixture
@@ -42,11 +41,8 @@ def con_timbro(tmp_path):
 
 
 def test_i_tracciati_vicini_diventano_una_sola_grafica(con_timbro):
-    documento = fitz.open(str(con_timbro))
-    try:
-        elementi = estrai_grafica(documento[0], [])
-    finally:
-        documento.close()
+    with DocumentoSorgente(con_timbro) as aperto:
+        elementi = estrai_grafica(aperto.pagine[0], [])
 
     assert elementi, "il timbro e' sparito"
     assert len(elementi) == 1, (
@@ -63,13 +59,36 @@ def test_i_tracciati_vicini_diventano_una_sola_grafica(con_timbro):
 
 def test_una_zona_gia_occupata_non_viene_rasterizzata_due_volte(con_timbro):
     """Quello che e' gia' diventato tabella o immagine resta fuori."""
-    documento = fitz.open(str(con_timbro))
-    try:
-        tutto = estrai_grafica(documento[0], [])
+    with DocumentoSorgente(con_timbro) as aperto:
+        pagina = aperto.pagine[0]
+        tutto = estrai_grafica(pagina, [])
         occupato = Riquadro(tutto[0].bbox)
-        niente = estrai_grafica(documento[0], [occupato])
-    finally:
-        documento.close()
+        niente = estrai_grafica(pagina, [occupato])
 
     assert tutto
     assert niente == []
+
+
+def test_la_cornice_di_un_campo_modulo_non_diventa_grafica(tmp_path):
+    """La scritta dentro un campo e' gia' letta come testo: rasterizzarla
+    raddoppierebbe ogni etichetta."""
+    from reportlab.lib.colors import black
+
+    percorso = tmp_path / "modulo.pdf"
+    foglio = canvas.Canvas(str(percorso), pagesize=A4)
+    foglio.setFont("Helvetica", 11)
+    foglio.drawString(25 * mm, 250 * mm, "Nome dell'istante:")
+    foglio.acroForm.textfield(
+        name="nome", x=80 * mm, y=246 * mm, width=80 * mm, height=8 * mm,
+        borderColor=black, forceBorder=True,
+    )
+    foglio.showPage()
+    foglio.save()
+
+    with DocumentoSorgente(percorso) as aperto:
+        pagina = aperto.pagine[0]
+        campi = pagina.campi_modulo
+        elementi = estrai_grafica(pagina, [])
+
+    assert campi, "il campo modulo non e' stato riconosciuto"
+    assert elementi == [], "la cornice del campo e' finita nella grafica"

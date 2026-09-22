@@ -1,7 +1,12 @@
 """Lettura degli span della pagina con tutto lo stile dichiarato dal PDF.
 
 Carattere, corpo, grassetto, corsivo, sottolineato, barrato, colore del testo
-e dello sfondo, collegamenti: quello che l'importazione «a testo» perde."""
+e dello sfondo, collegamenti: quello che l'importazione «a testo» perde.
+
+Chi consegna gli span e i disegni e' `PaginaSorgente` (pdfplumber e PDFium);
+qui resta la parte che decide che cosa significano — dove finisce una
+sottolineatura e dove comincia il bordo di una cella, per esempio — che e' la
+parte tarata su documenti veri."""
 
 from __future__ import annotations
 
@@ -9,75 +14,14 @@ import re
 import statistics
 from typing import Optional
 
-try:  # PyMuPDF e' dichiarato in requirements.txt; senza, l'importazione fedele si spegne
-    import pymupdf as fitz  # nome nuovo dalla 1.24; `import fitz` e' deprecato
-except ImportError:  # pragma: no cover - ambienti senza PyMuPDF
-    try:
-        import fitz
-    except ImportError:
-        fitz = None  # type: ignore[assignment]
-
 from .geometria import Riquadro
-from .taratura import _colore, _colore_da_float, pila_font
 from .modello import Riga, Tratto
-
+from .sorgente import APICE, CORSIVO, GRASSETTO, PaginaSorgente
+from .taratura import _colore, pila_font
 
 # ===========================================================================
 # 1. Lettura degli span con tutto lo stile
 # ===========================================================================
-
-#: bit dei flag di span in PyMuPDF
-_APICE, _CORSIVO, _GRAZIE, _MONO, _GRASSETTO = 1, 2, 4, 8, 16
-
-
-def _collegamenti(pagina: fitz.Page) -> list[tuple[Riquadro, str]]:
-    fuori = []
-    try:
-        for l in pagina.get_links():
-            uri = l.get("uri")
-            if uri:
-                fuori.append((Riquadro(l["from"]), uri))
-    except Exception:
-        pass
-    return fuori
-
-
-def _filetti(pagina: fitz.Page) -> list[tuple[float, float, float]]:
-    """
-    Filetti orizzontali sottili: (x0, x1, y). Servono a riconoscere
-    sottolineature e barrature, che nel PDF non sono attributi del testo ma
-    linee disegnate sopra o sotto le lettere.
-    """
-    fuori = []
-    try:
-        disegni = pagina.get_drawings()
-    except Exception:
-        return fuori
-    for d in disegni:
-        r = Riquadro(d["rect"])
-        if r.height <= 2.4 and r.width > 5:
-            fuori.append((r.x0, r.x1, (r.y0 + r.y1) / 2))
-    return fuori
-
-
-def _evidenziature(pagina: fitz.Page) -> list[tuple[Riquadro, str]]:
-    """Rettangoli pieni chiari dietro il testo: sono evidenziazioni."""
-    fuori = []
-    try:
-        disegni = pagina.get_drawings()
-    except Exception:
-        return fuori
-    for d in disegni:
-        if d.get("fill") is None or d.get("type") not in ("f", "fs"):
-            continue
-        colore = _colore_da_float(d.get("fill"))
-        if not colore or colore.lower() in ("#ffffff", "#fefefe"):
-            continue
-        r = Riquadro(d["rect"])
-        if 4 < r.height < 26 and r.width > 8:
-            fuori.append((r, colore))
-    return fuori
-
 
 #: quanto un filetto puo' sporgere oltre il testo restando una decorazione,
 #: in frazione della larghezza del testo stesso, e in punti per le parole corte
@@ -158,7 +102,7 @@ def _tratti_da_span(
     corpo = round(float(span.get("size", 11.0)), 1)
     nome = (span.get("font", "") or "").lower()
 
-    apice = bool(flag & _APICE)
+    apice = bool(flag & APICE)
     pedice = False
     if not apice and corpo < corpo_riga * 0.78:
         pedice = span.get("origin", (0, 0))[1] > riquadro.y0 + riquadro.height * 0.72
@@ -166,8 +110,8 @@ def _tratti_da_span(
     base = dict(
         famiglia=pila_font(span.get("font", "")),
         corpo=corpo,
-        grassetto=bool(flag & _GRASSETTO) or "bold" in nome,
-        corsivo=bool(flag & _CORSIVO) or "italic" in nome or "oblique" in nome,
+        grassetto=bool(flag & GRASSETTO) or "bold" in nome,
+        corsivo=bool(flag & CORSIVO) or "italic" in nome or "oblique" in nome,
         apice=apice,
         pedice=pedice,
         colore=_colore(span.get("color", 0)),
@@ -221,32 +165,28 @@ def _tratti_da_span(
     return fuori
 
 
-def leggi_righe(pagina: fitz.Page) -> list[Riga]:
+def leggi_righe(pagina: PaginaSorgente) -> list[Riga]:
     """Tutte le righe di testo della pagina, con lo stile tratto per tratto."""
-    filetti = _filetti(pagina)
-    sfondi = _evidenziature(pagina)
-    link = _collegamenti(pagina)
+    filetti = pagina.filetti
+    sfondi = pagina.evidenziature
+    link = pagina.collegamenti
 
-    dati = pagina.get_text("rawdict", flags=fitz.TEXTFLAGS_RAWDICT & ~fitz.TEXT_PRESERVE_IMAGES)
     righe: list[Riga] = []
-    for blocco in dati["blocks"]:
-        if blocco.get("type") != 0:
+    for linea in pagina.righe_grezze():
+        span = linea.get("spans", [])
+        if not span:
             continue
-        for linea in blocco.get("lines", []):
-            span = linea.get("spans", [])
-            if not span:
-                continue
-            corpo_riga = statistics.median([float(s.get("size", 11)) for s in span])
-            tratti: list[Tratto] = []
-            for uno in span:
-                tratti.extend(_tratti_da_span(uno, filetti, sfondi, link, corpo_riga))
-            if not tratti or not "".join(t.testo for t in tratti).strip():
-                continue
-            righe.append(Riga(
-                tratti=tratti,
-                bbox=tuple(linea["bbox"]),
-                origine_y=span[0].get("origin", (0, linea["bbox"][1]))[1],
-            ))
+        corpo_riga = statistics.median([float(s.get("size", 11)) for s in span])
+        tratti: list[Tratto] = []
+        for uno in span:
+            tratti.extend(_tratti_da_span(uno, filetti, sfondi, link, corpo_riga))
+        if not tratti or not "".join(t.testo for t in tratti).strip():
+            continue
+        righe.append(Riga(
+            tratti=tratti,
+            bbox=tuple(linea["bbox"]),
+            origine_y=span[0].get("origin", (0, linea["bbox"][1]))[1],
+        ))
     righe.sort(key=lambda r: (round(r.bbox[1], 1), r.bbox[0]))
     return _unisci_segni_elenco(righe)
 

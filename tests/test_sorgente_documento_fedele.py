@@ -90,15 +90,38 @@ def test_le_misure_della_pagina_sono_quelle_del_pdf(documento):
 
 
 def test_il_testo_ricostruito_e_quello_che_legge_pdfplumber(documento):
-    """Gli spazi nei PDF non sono lettere: se si sbaglia soglia escono attaccati."""
+    """Gli spazi nei PDF non sono lettere: se si sbaglia soglia escono attaccati.
+
+    Il confronto e' sul testo intero perche' le righe non coincidono una a una:
+    dove pdfplumber tiene insieme due celle lontane, qui si separano (vedi
+    `test_due_celle_affiancate_non_finiscono_nella_stessa_riga`).
+    """
     with DocumentoSorgente(documento) as aperto:
-        nostro = ["".join(s["text"] for s in r["spans"])
-                  for r in aperto.pagine[0].righe_grezze()]
+        nostro = " ".join(
+            "".join(s["text"] for s in r["spans"])
+            for r in aperto.pagine[0].righe_grezze()
+        )
     with pdfplumber.open(str(documento)) as pdf:
-        loro = [r["text"] for r in pdf.pages[0].extract_text_lines()]
-    assert nostro == loro
+        loro = " ".join(r["text"] for r in pdf.pages[0].extract_text_lines())
+    assert " ".join(nostro.split()) == " ".join(loro.split())
     assert "TITOLO IN GRASSETTO" in nostro
-    assert "cella 1.1 cella 1.2 cella 1.3" in nostro
+    assert "cella 1.1" in nostro
+
+
+def test_due_celle_affiancate_non_finiscono_nella_stessa_riga(documento):
+    """Tenerle insieme fa uscire sottolineata ogni cella di una tabella.
+
+    Il codice a valle misura quanto un filetto sporge oltre il testo per
+    distinguere una sottolineatura dal bordo di una cella. Con una riga larga
+    quanto tutta la tabella quel confronto si capovolge.
+    """
+    with DocumentoSorgente(documento) as aperto:
+        testi = ["".join(s["text"] for s in r["spans"])
+                 for r in aperto.pagine[0].righe_grezze()]
+    assert "cella 1.1" in testi
+    assert not [t for t in testi if t.count("cella") > 1], (
+        f"due celle affiancate sono rimaste nella stessa riga: {testi}"
+    )
 
 
 def test_il_collegamento_arriva_con_il_suo_riquadro(documento):

@@ -3,6 +3,10 @@ name: Frontend React CI
 on:
   pull_request:
   push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "iusentra-release-*"
   workflow_dispatch:
   repository_dispatch:
     types: [codex-ci-recovery]

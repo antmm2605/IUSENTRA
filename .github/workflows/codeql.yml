@@ -17,6 +17,10 @@ name: CodeQL
 
 on:
   push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "iusentra-release-*"
   pull_request:
   repository_dispatch:
     types: [codex-ci-recovery]

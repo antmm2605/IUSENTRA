@@ -2,6 +2,10 @@ name: Security Supply Chain
 
 on:
   push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "iusentra-release-*"
   pull_request:
   workflow_dispatch:
   repository_dispatch:

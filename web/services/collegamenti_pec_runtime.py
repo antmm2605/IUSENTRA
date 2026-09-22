@@ -12,11 +12,21 @@ from typing import Any
 from pct.manutenzione_collegamenti_pec import EsitoStudio, _riepilogo, esamina, ricollega
 
 
-def _repository_per_studio(app: Any, slug: str):
+def _repository_per_studio(manager: Any, studio: Any, slug: str):
+    """Monta il contesto tenant e apre il registro con i percorsi di quello studio.
+
+    `_attach_tenant_context` vuole il gestore dei tenant e l'oggetto studio, e
+    non restituisce niente: scrive il contesto su `g`. I percorsi si leggono da
+    li'. Passargli l'app e lo slug apriva un archivio che non e' quello dello
+    studio, e i conteggi tornavano vuoti.
+    """
+    from flask import g
+
     from web.services.fascicoli_presidi_runtime import _attach_tenant_context
     from web.services.pec_pipeline_runtime import repository_from_paths
 
-    paths = _attach_tenant_context(app, slug)
+    _attach_tenant_context(manager, studio)
+    paths = dict(getattr(g, "data_paths", {}) or {})
     return repository_from_paths(paths, tenant_label=slug)
 
 
@@ -39,13 +49,16 @@ def esamina_tutti(app: Any, *, ricollegare: bool = False, limite: int = 0) -> di
         esiti.append(lavoro(repo, studio=etichetta, limite=limite))
         return _riepilogo(esiti, applicato=ricollegare)
 
+    from pct.tenant import GestioneTenant
+
+    manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
     for studio in attivi:
         slug = str(getattr(studio, "slug", "") or "").strip().lower()
         if not slug:
             continue
         with app.test_request_context(f"/__manutenzione/collegamenti-pec/{slug}"):
             try:
-                repo = _repository_per_studio(app, slug)
+                repo = _repository_per_studio(manager, studio, slug)
                 esiti.append(lavoro(repo, studio=slug, limite=limite))
             except Exception as exc:
                 esiti.append(EsitoStudio(studio=slug, errore=str(exc)))

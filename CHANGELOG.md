@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.343.2 — 22/09/2026
+
+**La manutenzione guardava un archivio che non era quello dello studio.** «Analizza
+chunk archivio RAG» rispondeva «0 chunk su 0 in attesa» mentre i chunk erano tutti
+al loro posto: il runtime ricostruiva a mano i percorsi del database invece di
+chiedere il servizio alla stessa fabbrica che usa l'applicazione, e finiva su un
+archivio vuoto. Ora entra nel contesto dello studio e usa `get_local_ai_service`,
+lo stesso di `/api/local-ai/status`.
+
+Stesso errore corretto nel ricalcolo dei collegamenti PEC introdotto con la 2.340.0:
+`_attach_tenant_context` vuole il gestore dei tenant e l'oggetto studio e scrive il
+contesto su `g`, non restituisce i percorsi. Ricevendo l'app e lo slug apriva il
+registro sbagliato, quindi i conteggi per studio di quella console non erano
+attendibili e vanno rifatti dopo questo rilascio.
+
+Test: `tests/test_manutenzione_chunk_rag.py` verifica che il conteggio venga dal
+database che usa l'app. Senza la correzione il test fallisce con lo stesso messaggio
+letto in produzione.
+
 ## 2.343.0 — 22/09/2026
 
 **Il ruolo dei documenti in busta lo decide l'avvocato.** Nella proposta di busta il

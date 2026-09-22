@@ -13,6 +13,9 @@ import pytest
 
 from pct.local_ai import _RAG_MAX_CHUNK_CHARS, LocalAIService
 from pct.manutenzione_chunk_rag import chunk_da_scartare, esamina, rispezza
+from tests.test_web_bootstrap import _cfg_web
+from web.app import create_app
+from web.services.chunk_rag_runtime import esamina_tutti
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -199,3 +202,35 @@ def test_documento_che_passa_all_ocr_non_lascia_chunk_orfani(tmp_path: Path, mon
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+def test_esamina_tutti_guarda_l_archivio_vero_dell_applicazione(tmp_path: Path):
+    """Il conteggio deve venire dal database che usa l'app, non da uno ricostruito.
+
+    Il primo tentativo apriva un archivio suo, ricavato dai percorsi a mano, e
+    tornava sempre zero mentre i chunk erano tutti al loro posto.
+    """
+
+    app = create_app(_cfg_web(tmp_path))
+    percorso = tmp_path / "ricorso.txt"
+    percorso.write_text(TESTO_ATTO, encoding="utf-8")
+
+    with app.test_request_context("/"):
+        from lex.providers.local_ai_service import get_local_ai_service
+
+        servizio = get_local_ai_service()
+        esito = servizio.index_file(
+            source_type="fascicolo_documento",
+            source_id="DOC-APP",
+            practice_id="FASC-APP",
+            file_path=str(percorso),
+            title="Ricorso",
+        )
+        assert esito["status"] == "indexed"
+        _scrivi_chunk_gigante(servizio, str(esito["document_id"]), caratteri=_RAG_MAX_CHUNK_CHARS * 4)
+
+    riepilogo = esamina_tutti(app, rispezzare=False)
+
+    assert riepilogo["errori"] == []
+    assert riepilogo["chunk_da_scartare"] == 1, riepilogo["messaggio"]
+    assert riepilogo["documenti_coinvolti"] == 1

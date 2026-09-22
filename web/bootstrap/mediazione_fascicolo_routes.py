@@ -163,9 +163,11 @@ def register_mediazione_fascicolo_routes(app, *, get_fascicoli, cliente_accessib
                 raise ValueError("Modulo non presente nel fascicolo.")
             raw = decrypt_doc(gf.percorso_documento(fasc.id, doc.id).read_bytes())
             if request.method == "GET":
-                import fitz
-                with fitz.open(stream=raw, filetype="pdf") as pdf:
-                    pages = [{"numero": p.number + 1, "larghezza": p.rect.width, "altezza": p.rect.height} for p in pdf]
+                from pct.rendering_pdf import dimensioni_pagine
+                pages = [
+                    {"numero": m.numero, "larghezza": m.larghezza, "altezza": m.altezza}
+                    for m in dimensioni_pagine(raw)
+                ]
                 return jsonify(ok=True, campi=campi_pdf(raw), pagine=pages, documento=doc.id, versione=previous["versione"])
             body = request.get_json(silent=True) or {}
             if previous["versione"] != body.get("versione"):

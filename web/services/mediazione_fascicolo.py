@@ -101,10 +101,15 @@ def acquisisci_modulo(config, number, source_url):
         raise ValueError("Il sito non ha restituito il modulo richiesto.")
     filename = unquote(urlsplit(response["url"]).path.rsplit("/", 1)[-1])
     if raw.startswith(b"%PDF-"):
-        import fitz
-        with fitz.open(stream=raw, filetype="pdf") as doc:
-            if doc.is_encrypted or not doc.page_count:
-                raise ValueError("Il modulo è protetto o non contiene pagine leggibili.")
+        from pct.rendering_pdf import RenderingPdfError, dimensioni_pagine
+
+        # Un PDF protetto non si apre e uno vuoto non ha pagine: in entrambi i
+        # casi il modulo non e' compilabile e va detto subito.
+        try:
+            if not dimensioni_pagine(raw):
+                raise RenderingPdfError("nessuna pagina")
+        except RenderingPdfError as errore:
+            raise ValueError("Il modulo è protetto o non contiene pagine leggibili.") from errore
         if not filename.lower().endswith(".pdf"):
             filename = f"Modulo_organismo_{number}.pdf"
     elif filename.lower().endswith(".docx"):

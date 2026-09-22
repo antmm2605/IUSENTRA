@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.349.0 — 22/09/2026
+
+**Anche la lettura del testo esce da PyMuPDF.** Per leggere il testo di un PDF non
+serve un motore di rendering: serve un lettore. Nuovo modulo `pct/lettura_pdf.py`
+sopra pdfplumber, che e' gia' fra le dipendenze ed e' MIT.
+
+Ci sono passati quattro moduli che aprivano il PDF solo per chiedergli il testo o le
+misure delle pagine: le soglie citate nei documenti, le pagine dei moduli nel
+portale clienti, il controllo che un modulo di mediazione sia leggibile, e le misure
+delle pagine nelle rotte di mediazione. Nessuno di loro dipende piu' da PyMuPDF.
+
+I nomi pubblici cominciano con `leggi_` e non con `testo_`: pytest raccoglie come
+test qualunque funzione il cui nome inizi per `test`, e con `testo_documento`
+importato in un file di prova provava a eseguirlo come se fosse una batteria di
+test. Un test fissa la regola sui nomi, cosi' non ricapita.
+
+Censimento di quello che resta: diciassette moduli usano ancora PyMuPDF. Il grosso
+e' `documento_fedele/` (ricostruzione fedele del layout), poi i moduli AcroForm che
+passeranno a pypdf, la scrittura sul PDF che passera' a reportlab piu' pypdf, e il
+gruppo OCR, dove le funzioni ricevono una pagina gia' aperta dal chiamante e vanno
+quindi migrate insieme a chi le chiama.
+
+Test: `tests/test_lettura_pdf.py` (nuovo), con il controllo sugli import che
+fallisce se uno dei moduli migrati torna a PyMuPDF.
+
 ## 2.348.0 — 22/09/2026
 
 **Il rendering delle pagine PDF esce da PyMuPDF.** Non per ragioni tecniche: PyMuPDF

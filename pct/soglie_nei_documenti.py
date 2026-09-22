@@ -132,11 +132,9 @@ def soglie_superate_nel_testo(
 
 def soglie_superate_nel_pdf(raw: bytes, norme: Any, riferimento: date | None = None) -> list[dict[str, Any]]:
     """Come sopra, leggendo il testo di un PDF."""
-    import pymupdf as fitz
+    from pct.lettura_pdf import leggi_testo
 
-    with fitz.open(stream=raw, filetype="pdf") as documento:
-        testo = "\n".join(pagina.get_text() for pagina in documento)
-    return soglie_superate_nel_testo(testo, norme, riferimento)
+    return soglie_superate_nel_testo(leggi_testo(raw), norme, riferimento)
 
 
 __all__ = [

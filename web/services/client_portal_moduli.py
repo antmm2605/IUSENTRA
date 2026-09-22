@@ -122,10 +122,12 @@ def campi_del_modulo(document_id: str, righe: int = 0) -> dict[str, Any]:
         grezzo = _contenuto(repo, riga)
         if righe:
             grezzo = imposta_righe(grezzo, righe)
-        import pymupdf as fitz
+        from pct.rendering_pdf import dimensioni_pagine
 
-        with fitz.open(stream=grezzo, filetype="pdf") as pdf:
-            pagine = [{"numero": p.number + 1, "larghezza": p.rect.width, "altezza": p.rect.height} for p in pdf]
+        pagine = [
+            {"numero": m.numero, "larghezza": m.larghezza, "altezza": m.altezza}
+            for m in dimensioni_pagine(grezzo)
+        ]
         campi = campi_pdf(grezzo)
         righe_attivabili = righe_da_attivare(campi_pdf(grezzo, includi_da_attivare=True))
     except ValueError as errore:

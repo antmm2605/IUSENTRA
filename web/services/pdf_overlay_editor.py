@@ -2,11 +2,29 @@
 
 Il modulo non converte mai il PDF in HTML: apre il PDF originale, applica
 interventi grafici espliciti sulle pagine e restituisce un nuovo PDF.
+
+Due regole governano il salvataggio, e sono in tensione fra loro.
+
+La prima: un documento che puo' finire agli atti va modificato *aggiungendo*,
+non riscrivendo. Il salvataggio incrementale lascia intatti i byte originali e
+accoda le modifiche, cosi' dentro il file modificato l'originale resta
+verificabile.
+
+La seconda: un oscuramento deve togliere davvero il testo. Finche' si disegnava
+un rettangolo bianco sopra, il testo restava nel contenuto della pagina e si
+riprendeva con un copia-incolla: sembrava coperto e non lo era.
+
+Le due cose non convivono. Un salvataggio incrementale conserva la revisione
+precedente, quindi conserverebbe anche il testo che l'oscuramento doveva
+distruggere. Percio': se fra le modifiche c'e' un oscuramento il file viene
+riscritto per intero, e solo in quel caso.
 """
 
 from __future__ import annotations
 
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 import re
 from typing import Any, Iterable
 
@@ -43,18 +61,48 @@ def render_pdf_page_png(pdf_bytes: bytes, *, page_number: int, zoom: float = 1.6
 
 
 def apply_pdf_overlays(pdf_bytes: bytes, annotations: Iterable[dict[str, Any]]) -> tuple[bytes, int]:
+    """Applica le modifiche e restituisce il PDF nuovo con quante ne ha applicate.
+
+    Senza oscuramenti il file esce da un salvataggio incrementale: i byte
+    dell'originale restano dov'erano. Con almeno un oscuramento il file viene
+    riscritto, perche' il testo tolto non deve sopravvivere in una revisione
+    precedente.
+    """
     normalized = [_normalize_annotation(item) for item in annotations]
     if not normalized:
         raise PdfOverlayError("Nessuna modifica PDF da salvare.")
-    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
-        if doc.is_encrypted:
-            raise PdfOverlayError("PDF cifrato: importare una versione sbloccata prima della modifica.")
-        for annotation in normalized:
-            page_number = int(annotation["page"])
-            if page_number < 1 or page_number > len(doc):
-                raise PdfOverlayError("Una modifica indica una pagina PDF non disponibile.")
-            _apply_annotation(doc[page_number - 1], annotation)
-        return bytes(doc.tobytes(garbage=4, deflate=True, clean=True)), len(normalized)
+    oscura = any(str(item.get("type")) == "cover" for item in normalized)
+    with tempfile.TemporaryDirectory(prefix="iusentra-pdf-") as cartella:
+        lavoro = Path(cartella) / "documento.pdf"
+        lavoro.write_bytes(pdf_bytes)
+        with fitz.open(str(lavoro)) as doc:
+            if doc.is_encrypted:
+                raise PdfOverlayError("PDF cifrato: importare una versione sbloccata prima della modifica.")
+            pagine_da_oscurare: set[int] = set()
+            for annotation in normalized:
+                page_number = int(annotation["page"])
+                if page_number < 1 or page_number > len(doc):
+                    raise PdfOverlayError("Una modifica indica una pagina PDF non disponibile.")
+                _apply_annotation(doc[page_number - 1], annotation)
+                if str(annotation["type"]) == "cover":
+                    pagine_da_oscurare.add(page_number - 1)
+            for indice in sorted(pagine_da_oscurare):
+                _esegui_oscuramenti(doc[indice])
+            if oscura:
+                # Riscrittura piena: la revisione precedente conteneva il testo
+                # oscurato e non deve restare nel file.
+                return bytes(doc.tobytes(garbage=4, deflate=True, clean=True)), len(normalized)
+            doc.save(str(lavoro), incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
+        return lavoro.read_bytes(), len(normalized)
+
+
+def _esegui_oscuramenti(page: fitz.Page) -> None:
+    """Toglie davvero il contenuto sotto i rettangoli di oscuramento."""
+    try:
+        page.apply_redactions()
+    except TypeError:
+        # Versioni piu' vecchie non accettano argomenti opzionali.
+        page.apply_redactions()
 
 
 def _normalize_annotation(raw: dict[str, Any]) -> dict[str, Any]:
@@ -112,7 +160,10 @@ def _apply_annotation(page: fitz.Page, annotation: dict[str, Any]) -> None:
         min(height, y + height * float(annotation["height"])),
     )
     if kind == "cover":
-        page.draw_rect(rect, color=(0.82, 0.86, 0.91), fill=(1.0, 1.0, 1.0), width=0.6, overlay=True)
+        # Oscuramento vero: si marca l'area e il contenuto sotto viene tolto
+        # dalla pagina quando si applicano le redazioni. Un rettangolo disegnato
+        # sopra lascerebbe il testo nel file, recuperabile con un copia-incolla.
+        page.add_redact_annot(rect, fill=(1.0, 1.0, 1.0))
         return
     page.draw_rect(rect, color=None, fill=_rgb(annotation["fillColor"]), fill_opacity=0.35, overlay=True)
 

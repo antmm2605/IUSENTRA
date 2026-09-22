@@ -21,7 +21,17 @@ def test_portal_namespaces_are_not_interchanged():
     assert doc.id_documento_portale=="quickorganizer:testi:1"
     assert doc.id_cat_portale=="cat2"
 
-@pytest.mark.parametrize("source,portal",[("CARICAMENTO_STUDIO",""),("PORTALE_TELEMATICO",""),("IMPORT_ESTERNO",""),("CARICAMENTO_STUDIO","123"),("","")])
-def test_pdf_editing_uses_native_preview_for_every_origin(source,portal):
+# Il test diceva che nessun PDF fosse modificabile: era il comportamento di
+# prima che l'editor a overlay venisse abilitato per i documenti dello studio.
+# La regola di oggi distingue la provenienza, e la stringa vuota sta dalla parte
+# chiusa: un documento senza provenienza registrata non risulta dello studio.
+@pytest.mark.parametrize("source,portal,expected",[
+    ("CARICAMENTO_STUDIO","",True),
+    ("CARICAMENTO_STUDIO","123",True),
+    ("PORTALE_TELEMATICO","",False),
+    ("IMPORT_ESTERNO","",False),
+    ("","",False),
+])
+def test_pdf_editing_follows_document_origin(source,portal,expected):
     doc=SimpleNamespace(nome="bozza.pdf",fonte_documento=source,id_documento_portale=portal,firmato_digitalmente=False,signature_metadata={})
-    assert pdf_studio_modificabile(doc) is False
+    assert pdf_studio_modificabile(doc) is expected

@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 720.
+- File pytest censiti: 721.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,7 +16,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 85 |
 | E2E | 12 |
 | Frontend static gate | 1 |
-| Frontend/UI | 232 |
+| Frontend/UI | 233 |
 | RBAC | 77 |
 | Security | 42 |
 | Smoke CLI | 6 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 71 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 173 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 266 |
+| 09-misc | Test non classificati dalle fasi principali | 267 |
 
 ## Suite CI aggiuntive
 
@@ -449,6 +449,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Documenti | Frontend/UI | tests/test_editor_ai_renderer.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_editor_ai_template_resolver.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_editor_html_docx.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Documenti | Frontend/UI | tests/test_pdf_overlay_editor.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_template_atti_cartabia_strict.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_template_atti_export_layout.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Documenti | Frontend/UI | tests/test_template_atti_generation_gate.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

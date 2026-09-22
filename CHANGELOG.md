@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.345.0 — 22/09/2026
+
+**La copertura nell'editor PDF adesso oscura davvero.** Finora disegnava un
+rettangolo bianco sopra il testo: il testo restava nel contenuto della pagina e si
+riprendeva con un copia-incolla o con la ricerca. Per uno studio che copre il dato
+di un cliente prima di depositare era un buco, perche' sembrava nascosto e non lo
+era. Ora l'area viene marcata e il contenuto sottostante viene rimosso dalla pagina.
+
+**Senza oscuramenti il salvataggio e' incrementale.** I byte dell'originale restano
+intatti in testa al file e le modifiche si accodano, cosi' dentro il documento
+modificato l'originale resta verificabile. Prima il file veniva ricostruito da capo
+a ogni salvataggio: visivamente identico, ma non piu' lo stesso file.
+
+Le due regole sono in tensione e la tensione e' dichiarata nel codice: un
+salvataggio incrementale conserva la revisione precedente, quindi conserverebbe
+anche il testo che l'oscuramento doveva distruggere. Percio' con almeno un
+oscuramento il file viene riscritto per intero, e solo in quel caso.
+
+**La regola «solo i PDF caricati dallo studio» non si apre piu' sulla stringa
+vuota.** L'elenco delle provenienze ammesse conteneva il valore vuoto: un documento
+a cui nessun percorso di ingresso aveva valorizzato il campo passava per documento
+dello studio ed era modificabile. Su una regola che protegge la prova il valore di
+partenza dev'essere chiuso. Chi incontra il blocco ora legge un messaggio distinto,
+che dice che la provenienza non risulta registrata.
+
+Allineato `test_pdf_editing_uses_native_preview_for_every_origin`, che era rimasto
+fermo al comportamento precedente all'abilitazione dell'editor e asseriva che nessun
+PDF fosse modificabile: era rosso gia' prima di questa modifica.
+
+Test: `tests/test_pdf_overlay_editor.py` (nuovo). Provati al contrario: rimettendo
+il rettangolo disegnato il testo torna estraibile, e rimettendo la riscrittura piena
+il file modificato non contiene piu' l'originale.
+
 ## 2.344.0 — 22/09/2026
 
 **I chunk da rifare li rifa' la notte, non un bottone.** In produzione i documenti

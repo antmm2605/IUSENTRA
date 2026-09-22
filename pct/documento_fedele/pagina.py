@@ -39,9 +39,9 @@ _FORMATI = {
 
 
 def _formato(pagina: PaginaSorgente) -> tuple[str, str]:
-    l, a = pagina.rect.width, pagina.rect.height
-    orientamento = "orizzontale" if l > a else "verticale"
-    corto, lungo = min(l, a), max(l, a)
+    larghezza, altezza = pagina.rect.width, pagina.rect.height
+    orientamento = "orizzontale" if larghezza > altezza else "verticale"
+    corto, lungo = min(larghezza, altezza), max(larghezza, altezza)
     for nome, (fl, fa) in _FORMATI.items():
         if abs(corto - fl) < 6 and abs(lungo - fa) < 6:
             return nome, orientamento

@@ -45,15 +45,19 @@ def estrai_tabelle(
 ) -> list[Elemento]:
     """Tabelle rigate e non, con celle unite, intestazioni e sfondi."""
     trovate = pagina.tabelle("lines_strict")
+    dedotte = False
     if not trovate:
         # una tabella senza filetti resta una tabella: si guarda
         # l'incolonnamento del testo
         trovate = pagina.tabelle("text")
+        dedotte = True
     if not trovate:
         return []
 
     fuori: list[Elemento] = []
     for tabella in trovate:
+        if dedotte and not _tabella_plausibile(tabella, righe):
+            continue
         riquadro = Riquadro(tabella.bbox)
         celle = [c for c in (tabella.cells or []) if c]
         if len(celle) < 4:
@@ -95,6 +99,62 @@ def estrai_tabelle(
             bbox=tuple(riquadro),
         ))
     return fuori
+
+
+#: Quota minima delle righe coperte dalla tabella che devono stare in una sua
+#: cella perche' la griglia descriva davvero quel testo.
+QUOTA_RIGHE_RACCOLTE = 0.70
+
+#: E comunque almeno due righe: una sola non fa una tabella.
+RIGHE_RACCOLTE_MINIME = 2
+
+#: Quanta parte di una riga deve stare dentro una cella perche' si consideri
+#: raccolta da quella cella.
+DENTRO_LA_CELLA = 0.50
+
+
+def _tabella_plausibile(tabella, righe: list[Riga]) -> bool:
+    """Vero se una tabella dedotta dall'incolonnamento regge davvero.
+
+    Senza filetti la ricerca «a testo» trova una griglia dappertutto: su un
+    paragrafo giustificato lungo ne inventava una di seicento celle, e siccome
+    le righe finite in tabella escono dai paragrafi, il testo dell'atto
+    spariva — l'avvocato apriva l'editor su una griglia vuota.
+
+    Quello che distingue i due casi e' se la griglia **raccoglie** il testo che
+    copre: in una tabella ogni riga sta dentro una cella, in un paragrafo le
+    righe sono piu' larghe di qualsiasi cella, perche' quelle colonne non
+    esistono — le ha inventate la ricerca allineando parole di righe diverse.
+
+    Basta che la meta' della riga stia in una cella sola: la ricerca «a testo»
+    spezza anche dentro una cella vera (fra «EUR» e la cifra, per dire), e
+    pretendere che la riga ci stia tutta boccerebbe tabelle buone.
+
+    Non si applica alle tabelle con i filetti disegnati: li' il bordo e' una
+    dichiarazione dell'autore, e un modulo da compilare e' fatto apposta di
+    celle vuote.
+    """
+    celle = [Riquadro(c[0], c[1], c[2], c[3]) for c in (tabella.cells or []) if c]
+    if len(celle) < 4:
+        return False
+
+    coperto = Riquadro(tabella.bbox)
+    dentro = [
+        r for r in righe
+        if Riquadro(r.bbox).intersects(coperto)
+        and (Riquadro(r.bbox) & coperto).get_area() > Riquadro(r.bbox).get_area() * 0.5
+    ]
+    if len(dentro) < RIGHE_RACCOLTE_MINIME:
+        return False
+
+    raccolte = 0
+    for riga in dentro:
+        riquadro = Riquadro(riga.bbox)
+        if any(riquadro.sovrapposizione(cella) > DENTRO_LA_CELLA for cella in celle):
+            raccolte += 1
+
+    return (raccolte >= RIGHE_RACCOLTE_MINIME
+            and raccolte >= len(dentro) * QUOTA_RIGHE_RACCOLTE)
 
 
 def _e_intestazione(griglia: list[list[Optional[dict]]]) -> bool:

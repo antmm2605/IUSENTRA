@@ -9,61 +9,56 @@ import shutil
 import tempfile
 from html import escape
 
-from .modello import DocumentoConvertito
 from .conversione import converti
-
+from .modello import DocumentoConvertito
 
 # ===========================================================================
 # 8. Altri formati in ingresso
 # ===========================================================================
 
 def converti_docx(percorso: str) -> DocumentoConvertito:
-    """DOCX: si passa per PDF quando c'e' LibreOffice, altrimenti conversione diretta."""
-    import shutil
+    """DOCX: letto direttamente, senza passare per un programma esterno.
+
+    Prima si chiamava LibreOffice per fare DOCX -> PDF e poi si rileggeva il
+    PDF. Funzionava, ma richiede mezzo giga di programma sul server — che sul
+    server di IUSENTRA non c'e' — e butta via la struttura del documento per
+    poi riscoprirla dalla geometria: i paragrafi tornano dalla posizione delle
+    righe, gli elenchi dai pallini disegnati. Il DOCX quella struttura ce
+    l'ha gia' scritta dentro, e leggerla li' rende anche meglio: misurato su
+    un atto con tredici cose da conservare, la via diretta le tiene tutte e
+    tredici, quella per LibreOffice undici — perde il giustificato e il
+    rientro di prima riga, che dopo la stampa in PDF non sono piu' dichiarati
+    da nessuna parte.
+    """
+    from .da_docx import converti_docx as leggi_docx
+
+    return leggi_docx(percorso)
+
+
+def converti_documento_datato(percorso: str) -> DocumentoConvertito:
+    """`.doc`, `.odt`, `.rtf`: formati che solo un convertitore esterno apre.
+
+    Sono vecchi o di altri programmi, e la libreria che legge i DOCX non li
+    tocca. Se sul sistema c'e' LibreOffice si passa di li'; altrimenti si dice
+    chiaramente che non si puo', invece di restituire una pagina vuota.
+    """
     import subprocess
-    import tempfile
 
     soffice = shutil.which("soffice") or shutil.which("libreoffice")
-    if soffice:
-        with tempfile.TemporaryDirectory() as cartella:
-            subprocess.run(
-                [soffice, "--headless", "--convert-to", "pdf", "--outdir", cartella, percorso],
-                check=True, timeout=180, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            prodotti = [f for f in os.listdir(cartella) if f.lower().endswith(".pdf")]
-            if prodotti:
-                return converti(os.path.join(cartella, prodotti[0]))
-
-    from docx import Document as Docx   # ripiego senza LibreOffice
-    doc = Docx(percorso)
-    pezzi = []
-    for p in doc.paragraphs:
-        if not p.text.strip():
-            continue
-        allinea = {0: "left", 1: "center", 2: "right", 3: "justify"}.get(
-            int(p.alignment) if p.alignment is not None else 0, "left")
-        tratti = []
-        for run in p.runs:
-            testo = escape(run.text)
-            if run.bold:
-                testo = f"<strong>{testo}</strong>"
-            if run.italic:
-                testo = f"<em>{testo}</em>"
-            if run.underline:
-                testo = f"<u>{testo}</u>"
-            tratti.append(testo)
-        pezzi.append(f'<p style="text-align:{allinea}">{"".join(tratti)}</p>')
-    for t in doc.tables:
-        righe = []
-        for r in t.rows:
-            celle = "".join(f"<td>{escape(c.text)}</td>" for c in r.cells)
-            righe.append(f"<tr>{celle}</tr>")
-        pezzi.append(f'<table class="iu-doc-tabella"><tbody>{"".join(righe)}</tbody></table>')
-
-    esito = DocumentoConvertito()
-    esito.html = f'<section class="iu-doc-pagina" data-pagina="1">{"".join(pezzi)}</section>'
-    esito.avvisi.append("DOCX convertito senza LibreOffice: impaginazione approssimata")
-    return esito
+    if not soffice:
+        raise ValueError(
+            f"per leggere {os.path.splitext(percorso)[1]} serve LibreOffice, "
+            "che non e' installato: converti il documento in .docx o in .pdf"
+        )
+    with tempfile.TemporaryDirectory() as cartella:
+        subprocess.run(
+            [soffice, "--headless", "--convert-to", "pdf", "--outdir", cartella, percorso],
+            check=True, timeout=180, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        prodotti = [f for f in os.listdir(cartella) if f.lower().endswith(".pdf")]
+        if not prodotti:
+            raise ValueError(f"conversione non riuscita: {os.path.basename(percorso)}")
+        return converti(os.path.join(cartella, prodotti[0]))
 
 
 def converti_file(percorso: str, **kwargs) -> DocumentoConvertito:
@@ -75,8 +70,10 @@ def converti_file(percorso: str, **kwargs) -> DocumentoConvertito:
     kwargs.pop("max_pagine_ocr", None)
     kwargs.pop("modo", None)
     kwargs.pop("lingua_ocr", None)
-    if estensione in (".docx", ".doc", ".odt", ".rtf"):
+    if estensione == ".docx":
         return converti_docx(percorso)
+    if estensione in (".doc", ".odt", ".rtf"):
+        return converti_documento_datato(percorso)
     if estensione in (".txt", ".md"):
         with open(percorso, encoding="utf-8", errors="replace") as f:
             testo = f.read()
@@ -113,4 +110,5 @@ def converti_bytes(dati: bytes, nome: str, **kwargs) -> DocumentoConvertito:
         shutil.rmtree(cartella, ignore_errors=True)
 
 
-__all__ = ["ESTENSIONI", "converti_bytes", "converti_docx", "converti_file"]
+__all__ = ["ESTENSIONI", "converti_bytes", "converti_docx",
+           "converti_documento_datato", "converti_file"]

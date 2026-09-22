@@ -1,5 +1,84 @@
 # Changelog
 
+## 2.359.0 — 22/09/2026
+
+**Il DOCX che rientra dall'editor non perde piu' meta' della formattazione — e
+LibreOffice non serve.** L'avvocato esporta l'atto in Word, lo corregge, lo
+ricarica: se al rientro il titolo centrato finisce a sinistra e il carattere
+sparisce, l'esportazione in Word non e' un giro utile, e' un modo per rovinare
+l'atto.
+
+La rotta di importazione leggeva i DOCX con `mammoth`. Misurato su un atto con
+tredici cose da conservare, ne teneva quattro — grassetto, corsivo, tabelle,
+elenchi — e buttava via **sottolineato, colore, allineamenti, rientri, carattere,
+corpo, margini di pagina e intestazioni di tabella**. `converti_docx`, che nel
+pacchetto esisteva gia' ed era migliore, non veniva nemmeno chiamato: e comunque
+senza LibreOffice ripiegava su una conversione approssimata.
+
+Nuovo `pct/documento_fedele/da_docx.py`: il DOCX si legge com'e', con python-docx,
+e si scrive nell'HTML dell'editor riusando `_html_tratti` — la stessa resa dei
+documenti che arrivano da un PDF, cosi' un atto ha lo stesso aspetto da qualunque
+parte entri. Sullo stesso atto di prova tiene **tutte e tredici** le voci.
+
+Il confronto con la via che passava da LibreOffice (DOCX -> PDF -> lettura del PDF):
+
+| | nostro | LibreOffice | mammoth |
+|---|---|---|---|
+| voci conservate su 13 | **13** | 11 | 4 |
+
+LibreOffice perde il giustificato e il rientro di prima riga, perche' dopo la stampa
+in PDF non sono piu' dichiarati da nessuna parte: restano spaziatura fra le parole e
+uno scostamento, e vanno indovinati. Il DOCX quella struttura ce l'ha scritta
+dentro. Quindi la via diretta non e' un ripiego: e' migliore, e non chiede mezzo
+giga di programma su un server che ha il disco all'87,5%.
+
+Il pezzo che costa di piu' e che le conversioni veloci saltano: in un DOCX quasi
+niente e' scritto dove lo si cerca. Il corpo di una parola puo' stare sul tratto,
+sullo stile del paragrafo, sullo stile da cui quello discende, o solo nelle
+impostazioni del documento. Chi legge il primo livello trova `None` quasi sempre —
+ed e' il motivo per cui carattere e corpo si perdono. Qui si risale la catena.
+
+`.doc`, `.odt` e `.rtf` restano a LibreOffice, che e' l'unico che li apre: se non
+c'e', ora si dice chiaramente che serve, invece di restituire una pagina vuota.
+
+Dodici test in `tests/test_da_docx.py`, compresi i due casi che fanno la differenza:
+carattere e corpo ereditati dallo stile, e una tabella in mezzo al testo che deve
+restare al suo posto — chi legge paragrafi e tabelle come due elenchi separati se le
+ritrova tutte in fondo.
+
+## 2.358.0 — 22/09/2026
+
+**Un atto di solo testo veniva importato come una griglia vuota.** Il difetto e'
+piu' vecchio della migrazione ed e' il piu' grave trovato finora su questa strada.
+
+Quando un PDF non ha filetti disegnati, `estrai_tabelle` ripiega sulla ricerca «a
+testo», che deduce la griglia dall'incolonnamento delle parole. Su un paragrafo
+giustificato lungo quella ricerca allinea parole di righe diverse e inventa una
+tabella: misurato su un atto di dodici periodi, **seicentoventisette celle**. E
+siccome le righe che finiscono in una tabella vengono tolte dai paragrafi, il testo
+spariva: l'HTML consegnato all'editor era una tabella di celle `&nbsp;`, zero
+paragrafi. L'avvocato apriva l'atto e trovava una griglia vuota.
+
+La regola nuova: una griglia dedotta e' una tabella solo se **raccoglie** il testo
+che copre — almeno il settanta per cento delle righe che stanno nel suo riquadro
+deve stare dentro una cella. In una tabella e' cosi' per costruzione; in un
+paragrafo nessuna riga ci sta, perche' e' piu' larga di qualunque cella inventata.
+
+Basta che meta' della riga stia in una cella sola: la ricerca «a testo» spezza anche
+dentro una cella vera — fra «EUR» e la cifra, per dire — e pretendere che la riga ci
+stia tutta bocciava tabelle buone. La prova non tocca le tabelle con i filetti
+disegnati: li' il bordo e' una dichiarazione dell'autore, e un modulo da compilare e'
+fatto apposta di celle vuote.
+
+Quattro test nuovi in `tests/test_tabelle_documento_fedele.py` tengono ferme le due
+cose insieme: un atto di solo testo e un elenco numerato non diventano tabelle e il
+testo arriva nell'editor; un modulo bordato con celle vuote resta una tabella; un
+prospetto senza filetti ma incolonnato resta una tabella.
+
+Sullo stesso atto lungo di prima: il testo dell'editor passa da `&nbsp; &nbsp;
+&nbsp; ...` a «Con atto di citazione ritualmente notificato la parte attrice
+conveniva in giudizio...».
+
 ## 2.357.0 — 22/09/2026
 
 **L'importazione fedele esce da PyMuPDF.** `pct/documento_fedele` e' il modulo che

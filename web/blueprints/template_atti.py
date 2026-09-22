@@ -2030,13 +2030,32 @@ def api_importa_documento():
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
         if ext == "docx":
-            import mammoth
+            # Si legge con lo stesso modulo che importa i PDF, cosi' un atto ha
+            # lo stesso aspetto da qualunque parte entri. Il lettore precedente
+            # (mammoth) teneva grassetto, corsivo, tabelle ed elenchi e buttava
+            # via tutto il resto: sottolineato, colore, allineamenti, rientri,
+            # carattere, corpo e margini di pagina. Un atto esportato in Word,
+            # corretto e ricaricato tornava senza il titolo centrato e senza la
+            # firma a destra.
+            from pct.documento_fedele import converti_bytes
+
             data = file.read()
-            result = mammoth.convert_to_html(io.BytesIO(data))
-            html = result.value or ""
-            # Stripping di tag vuoti lasciati da mammoth
-            html = re.sub(r"<p>\s*</p>", "", html)
-            fonts = _extract_docx_fonts(data)
+            try:
+                documento = converti_bytes(data, filename)
+                html = documento.html or ""
+                fonts = documento.caratteri or _extract_docx_fonts(data)
+                avvisi = documento.avvisi or []
+            except Exception as errore:
+                current_app.logger.warning(
+                    "Lettura DOCX non riuscita, uso il ripiego: %s", errore
+                )
+                import mammoth
+                html = re.sub(r"<p>\s*</p>", "", mammoth.convert_to_html(io.BytesIO(data)).value or "")
+                fonts = _extract_docx_fonts(data)
+                avvisi = ["documento letto in modo approssimato: controllare la formattazione"]
+            nota = "Documento DOCX importato con carattere, allineamenti e tabelle."
+            if avvisi:
+                nota = f"{nota} {' '.join(avvisi)}"
             return jsonify({
                 "ok": True,
                 "tipo": "html",
@@ -2045,7 +2064,7 @@ def api_importa_documento():
                 "fonts": fonts,
                 "detectedFonts": fonts,
                 "encoding": "DOCX UTF-8 interno",
-                "note": "Documento DOCX importato: font e testo sono disponibili per creare un template personalizzato.",
+                "note": nota,
             })
 
         if ext == "pdf":

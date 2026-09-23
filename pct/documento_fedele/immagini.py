@@ -16,6 +16,8 @@ except ImportError:  # pragma: no cover
 from .geometria import Riquadro
 from .modello import Elemento
 from .sorgente import PaginaSorgente
+from typing import Optional
+
 from .taratura import Taratura
 
 # ===========================================================================
@@ -134,8 +136,14 @@ def estrai_immagini(pagina: PaginaSorgente, larghezza_pagina: float,
     return fuori
 
 
+#: Quanta parte di una riga deve stare dentro un disegno perche' si consideri
+#: scritta dentro quel disegno.
+RIGA_DENTRO_IL_DISEGNO = 0.70
+
+
 def estrai_grafica(
     pagina: PaginaSorgente, esclusi: list[Riquadro], dpi: int = Taratura.DPI_GRAFICA,
+    righe: Optional[list] = None,
 ) -> list[Elemento]:
     """
     Loghi, cornici, timbri e firme disegnati a vettori: si raggruppano i
@@ -144,6 +152,13 @@ def estrai_grafica(
     Le zone dei campi modulo restano fuori: la loro cornice e' solo il vestito
     grafico del campo e la scritta che contengono viene gia' letta come testo,
     quindi rasterizzarle raddoppierebbe ogni etichetta.
+
+    E per la stessa ragione resta fuori il riquadro che **contiene** delle
+    righe: la cornice della carta intestata e' un disegno, ma dentro ci sta il
+    nome dello studio, che viene gia' scritto come testo. Rasterizzando anche
+    quella l'intestazione usciva due volte, una sopra l'altra, con le lettere
+    sdoppiate. Si perde il filetto del riquadro e si tiene il testo: e' il
+    verso giusto in cui sbagliare, perche' il testo l'avvocato lo modifica.
     """
     esclusi = list(esclusi) + pagina.campi_modulo
 
@@ -169,10 +184,15 @@ def estrai_grafica(
         else:
             gruppi.append(r)
 
+    scritte = [Riquadro(r.bbox) for r in (righe or [])]
+
     fuori: list[Elemento] = []
     for g in gruppi:
         if g.width < 14 or g.height < 14:
             continue          # filetti e righini: li rende gia' il paragrafo
+        if any(g.intersects(r) and (g & r).get_area() > r.get_area() * RIGA_DENTRO_IL_DISEGNO
+               for r in scritte):
+            continue          # ci sta dentro del testo: lo scrive gia' il paragrafo
         if g.height < 3.5:
             continue
         try:

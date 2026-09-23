@@ -246,7 +246,7 @@ def converti(
             immagini = estrai_immagini(pagina, pagina.rect.width,
                                         salta_pagina_intera=da_ocr)
             occupati = [Riquadro(t.bbox) for t in tabelle] + [Riquadro(i.bbox) for i in immagini]
-            grafica = [] if da_ocr else estrai_grafica(pagina, occupati)
+            grafica = [] if da_ocr else estrai_grafica(pagina, occupati, righe=righe)
 
             grezzo.append({
                 "pagina": pagina, "indice": indice, "righe": righe,

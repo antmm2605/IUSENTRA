@@ -92,3 +92,56 @@ def test_la_cornice_di_un_campo_modulo_non_diventa_grafica(tmp_path):
 
     assert campi, "il campo modulo non e' stato riconosciuto"
     assert elementi == [], "la cornice del campo e' finita nella grafica"
+
+
+@pytest.fixture
+def carta_intestata(tmp_path):
+    """Una carta intestata: un riquadro disegnato, e dentro il nome dello studio."""
+    percorso = tmp_path / "intestata.pdf"
+    foglio = canvas.Canvas(str(percorso), pagesize=A4)
+
+    foglio.setLineWidth(0.8)
+    foglio.rect(25 * mm, 250 * mm, 90 * mm, 28 * mm, stroke=1, fill=0)
+    foglio.setFont("Helvetica-Bold", 11)
+    foglio.drawString(30 * mm, 270 * mm, "STUDIO LEGALE MONTAGNESE")
+    foglio.setFont("Helvetica", 9)
+    foglio.drawString(30 * mm, 264 * mm, "Avvocato Roberto Montagnese")
+    foglio.drawString(30 * mm, 258 * mm, "Via N. Bixio, 4 - Taurianova")
+
+    foglio.setFont("Helvetica", 11)
+    foglio.drawString(25 * mm, 200 * mm, "corpo dell'atto")
+    foglio.showPage()
+    foglio.save()
+    return percorso
+
+
+def test_il_riquadro_che_contiene_testo_non_si_rasterizza(carta_intestata):
+    """Altrimenti l'intestazione esce due volte, una sopra l'altra.
+
+    La cornice della carta intestata e' un disegno, ma dentro ci sta il nome
+    dello studio, che viene gia' scritto come testo. Rasterizzando anche quella
+    le lettere uscivano sdoppiate. Si perde il filetto e si tiene il testo: il
+    testo l'avvocato lo modifica, il filetto no.
+    """
+    from pct.documento_fedele.lettura import leggi_righe
+
+    with DocumentoSorgente(carta_intestata) as documento:
+        pagina = documento[0]
+        righe = leggi_righe(pagina)
+        con_testo = estrai_grafica(pagina, [], righe=righe)
+        senza_testo = estrai_grafica(pagina, [])
+
+    assert senza_testo, "la prova non regge: senza le righe il riquadro c'era"
+    assert not con_testo, "il riquadro dell'intestazione e' stato rasterizzato lo stesso"
+
+
+def test_un_timbro_che_non_contiene_testo_resta(con_timbro):
+    """La regola non deve mangiarsi i timbri: quelli stanno nel bianco."""
+    from pct.documento_fedele.lettura import leggi_righe
+
+    with DocumentoSorgente(con_timbro) as documento:
+        pagina = documento[0]
+        righe = leggi_righe(pagina)
+        trovati = estrai_grafica(pagina, [], righe=righe)
+
+    assert trovati, "il timbro e' sparito"

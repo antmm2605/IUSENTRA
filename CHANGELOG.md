@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.367.0 — 23/09/2026
+
+**La carta intestata non esce piu' due volte.** La cornice del riquadro
+intestato e' un disegno, e la grafica vettoriale — loghi, timbri, firme —
+viene rasterizzata per tenerne l'aspetto. Ma dentro quel riquadro ci sta il
+nome dello studio, che viene **gia'** scritto come testo: rasterizzando anche
+la cornice l'intestazione finiva sul foglio due volte, una sopra l'altra, con
+le lettere sdoppiate — «SSTTUUDDIIOO LLEEGGAALLEE».
+
+Adesso un disegno che **contiene** delle righe di testo non si rasterizza. Si
+perde il filetto del riquadro e si tiene il testo: e' il verso giusto in cui
+sbagliare, perche' il testo l'avvocato lo modifica e il filetto no. I timbri
+di deposito e le firme, che stanno nel bianco e testo dentro non ne hanno,
+restano dove sono.
+
 ## 2.366.0 — 23/09/2026
 
 **Il grassetto e il corsivo si leggono dal documento, non si indovinano dal

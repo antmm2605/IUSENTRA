@@ -957,6 +957,10 @@ def misure_del_documento(html: str) -> dict:
         if trovato and trovato.group(1) in ("left", "center", "right", "justify"):
             fuori[chiave] = trovato.group(1)
 
+    famiglia = re.search(r"font-family:\s*([^;\"]+)", sezione)
+    if famiglia:
+        fuori["font_family_documento"] = famiglia.group(1).strip()
+
     corpo = re.search(r"font-size:\s*([0-9.]+)pt", sezione)
     interlinea = re.search(r'data-interlinea="([0-9.]+)"', sezione)
     if corpo:
@@ -1179,6 +1183,21 @@ def html_to_pdf(
         "italic": "Times-Italic",
         "bold_italic": "Times-BoldItalic",
     })
+
+    if misure_documento:
+        # I quattordici caratteri base del PDF sono metriche Adobe: Times non
+        # e' Times New Roman e Helvetica non e' Arial, e l'uno per cento di
+        # differenza in larghezza, su una riga giustificata, sposta le parole
+        # in mezzo di piu' di un millimetro. Se sul sistema ci sono gli
+        # equivalenti metrici aperti — Liberation, Carlito, Caladea — si usano
+        # quelli: hanno le stesse larghezze, carattere per carattere.
+        try:
+            from pct.caratteri_reali import tagli_per
+            veri = tagli_per(misure_documento.get("font_family_documento") or "")
+            if veri:
+                font_bundle = dict(veri)
+        except Exception:
+            pass
 
     page_size = landscape(A4) if layout_cfg.get("page_orientation") == "orizzontale" else A4
     font_size = layout_cfg["font_size_pt"]

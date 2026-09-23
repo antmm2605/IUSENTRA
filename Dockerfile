@@ -138,6 +138,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libffi8 \
         libxml2 \
         libxslt1.1 \
+        fonts-liberation2 \
+        fonts-liberation-sans-narrow \
+        fonts-crosextra-carlito \
+        fonts-crosextra-caladea \
+        fonts-dejavu-core \
         tesseract-ocr \
         tesseract-ocr-ita \
         hunspell \

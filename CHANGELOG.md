@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.368.0 — 23/09/2026
+
+**I caratteri veri al posto dei quattordici di base.** Chi riesporta un PDF ha,
+di suo, solo le metriche Adobe: Times, Helvetica, Courier. Ma **Times non e'
+Times New Roman** e **Helvetica non e' Arial** — sono disegni diversi, con
+larghezze diverse di circa l'uno per cento. Su una riga giustificata di
+quattrocento punti fanno quattro punti, e le parole in mezzo si spostano di
+piu' di un millimetro: era una fetta dello scarto orizzontale che restava.
+
+Times New Roman, Arial, Calibri e Cambria non si possono distribuire — sono di
+Microsoft e di Monotype. Esistono pero' i loro **equivalenti metrici aperti**,
+disegnati apposta per avere le stesse larghezze carattere per carattere:
+Liberation Serif, Liberation Sans, Liberation Sans Narrow, Liberation Mono,
+Carlito, Caladea. Sono gli stessi che usa LibreOffice quando apre un documento
+Word su Linux. Nuovo `pct/caratteri_reali.py`: li cerca sul sistema, li
+registra una volta sola, e dice all'esportazione quale usare. Se non ci sono,
+non cambia niente e si torna ai quattordici di base.
+
+Due regole imparate misurando, non ragionando:
+
+* **Si sostituisce solo fra equivalenti veri.** Al primo tentativo mettevo un
+  DejaVu Serif al posto di Book Antiqua — serif lo e', ma con larghezze sue — e
+  quel documento e' passato dal 30% al 6%. Per le famiglie senza equivalente si
+  resta al ripiego dichiarato.
+* **Decide la prima famiglia che ha un nome.** Quella che arriva all'esportazione
+  e' una pila — `'F1', 'Times New Roman', serif` — dove la prima voce e' del
+  documento e le altre sono i ripieghi del riconoscimento. Scorrerla fino alla
+  prima corrispondenza significa scommettere su un nome che nessuno ha detto:
+  su `'Helvetica', 'Arial'` si finiva per usare le metriche di Arial per un
+  carattere che Arial non e', e il documento peggiorava di ventidue punti.
+
+Il Dockerfile installa `fonts-liberation2`, `fonts-liberation-sans-narrow`,
+`fonts-crosextra-carlito`, `fonts-crosextra-caladea` e `fonts-dejavu-core`,
+cosi' in produzione ci sono. Sul banco la citazione di sedici pagine passa da
+66,3% a **67,8%**, e nessun documento peggiora.
+
 ## 2.367.0 — 23/09/2026
 
 **La carta intestata non esce piu' due volte.** La cornice del riquadro

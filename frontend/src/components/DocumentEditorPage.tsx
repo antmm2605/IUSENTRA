@@ -1156,6 +1156,12 @@ export function DocumentEditorPage() {
     backgroundColor: annotation.type === 'highlight' ? annotation.fillColor || '#fef3c7' : annotation.type === 'cover' ? '#fff' : 'rgba(255,255,255,.86)',
     fontSize: `${annotation.fontSizePt || 12}px`,
   }) as React.CSSProperties
+  const pdfBozzaStyle = (bozza: { x: number; y: number; x1: number; y1: number }) => ({
+    left: `${Math.min(bozza.x, bozza.x1) * 100}%`,
+    top: `${Math.min(bozza.y, bozza.y1) * 100}%`,
+    width: `${Math.abs(bozza.x1 - bozza.x) * 100}%`,
+    height: `${Math.abs(bozza.y1 - bozza.y) * 100}%`,
+  }) as React.CSSProperties
   const paperStyle = {
     '--iu-de-font-family': fontFamily,
     '--iu-de-font-size': fontSize,
@@ -1384,15 +1390,7 @@ export function DocumentEditorPage() {
                   >
                     {pdfPageImageUrl ? <img src={pdfPageImageUrl} alt={`Pagina ${pdfPage} del PDF ${doc.name}`}/> : <div className="iu-de-loader"><LoaderCircle className="iu-spin" size={24}/><span>Pagina PDF in caricamento...</span></div>}
                     {pdfBozza ? (
-                      <span
-                        className="iu-de-pdf-mark iu-de-pdf-mark--bozza"
-                        style={{
-                          left: `${Math.min(pdfBozza.x, pdfBozza.x1) * 100}%`,
-                          top: `${Math.min(pdfBozza.y, pdfBozza.y1) * 100}%`,
-                          width: `${Math.abs(pdfBozza.x1 - pdfBozza.x) * 100}%`,
-                          height: `${Math.abs(pdfBozza.y1 - pdfBozza.y) * 100}%`,
-                        }}
-                      />
+                      <span className="iu-de-pdf-mark iu-de-pdf-mark--bozza" style={pdfBozzaStyle(pdfBozza)} />
                     ) : null}
                     {pdfCurrentPageAnnotations.map((annotation) => (
                       <span

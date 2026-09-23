@@ -455,3 +455,61 @@ def test_le_pagine_si_leggono_ancora_una_per_una():
 
     documento = misure_del_documento(html)
     assert documento["font_size_pt"] == 12.0, "il documento prende la prima pagina"
+
+
+def test_ogni_pagina_misura_le_righe_sulla_propria_colonna():
+    """La seconda pagina non ha per forza i margini della prima.
+
+    Chi riscrive il PDF allarga un paragrafo finche' le righe non tornano
+    quelle che aveva. Ma misurava sempre sulla colonna della **prima** pagina:
+    su una pagina piu' stretta non si accorgeva che l'intestazione andava a
+    capo, e quella riga in piu' spingeva giu' tutto il resto di ottanta punti.
+    """
+    import io
+    import re
+
+    import pdfplumber
+
+    from pct.editor import html_to_pdf, misure_delle_pagine
+
+    def _pagina(numero: int, sinistro: float, testo: str) -> str:
+        return (
+            f'<section class="iu-doc-pagina" data-pagina="{numero}"'
+            f' data-larghezza="595.3" data-altezza="841.9"'
+            f' data-margine-alto="40" data-margine-basso="40"'
+            f' data-margine-sinistro="{sinistro}" data-margine-destro="144.4"'
+            f' data-interlinea="24" data-allineamento="left"'
+            f' style="font-family:\'Times New Roman\', serif;font-size:12.0pt">'
+            # con questo rientro destro l'intestazione sta su una riga nella
+            # colonna della prima pagina (166,5 punti per 162,6 che le
+            # servono) e non ci sta in quella della seconda (159,5)
+            f'<p style="text-align:center;line-height:10pt;margin-right:212pt">{testo}</p>'
+            f'<p style="text-align:left;line-height:24pt">corpo della pagina {numero}</p>'
+            f"</section>"
+        )
+
+    # la prima pagina e' larga, la seconda stretta: sette punti di differenza
+    html = _pagina(1, 72.4, "STUDIO LEGALE POLIFRONE") + _pagina(2, 79.4, "STUDIO LEGALE POLIFRONE")
+
+    pagine = misure_delle_pagine(html)
+    assert [p["sinistro"] for p in pagine] == [72.4, 79.4], (
+        "le due pagine devono restare distinte"
+    )
+
+    with pdfplumber.open(io.BytesIO(html_to_pdf(html))) as pdf:
+        assert len(pdf.pages) == 2
+        for numero, pagina in enumerate(pdf.pages, 1):
+            righe = pagina.extract_text_lines()
+            intestazione = [r for r in righe if "STUDIO" in r["text"] or "POLIFRONE" in r["text"]]
+            assert len(intestazione) == 1, (
+                f"pagina {numero}: l'intestazione e' andata a capo -> "
+                f"{[r['text'] for r in intestazione]}"
+            )
+            corpo = [r for r in righe if r["text"].startswith("corpo")]
+            assert corpo, f"pagina {numero}: manca il corpo"
+            # il corpo sta subito sotto l'intestazione, non ottanta punti piu' giu'
+            assert corpo[0]["top"] - intestazione[0]["top"] < 40, (
+                f"pagina {numero}: il corpo e' scivolato a "
+                f"{corpo[0]['top'] - intestazione[0]['top']:.0f} punti dall'intestazione"
+            )
+    assert re.search(r'data-margine-sinistro="79.4"', html)

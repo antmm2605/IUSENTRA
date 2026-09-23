@@ -1036,6 +1036,11 @@ def misure_delle_pagine(html: str) -> list[dict]:
         if trovato and trovato.group(1) in ("left", "center", "right", "justify"):
             allinea = trovato.group(1)
 
+        famiglia = ""
+        trovato = re.search(r"font-family:\s*([^;\"]+)", sezione)
+        if trovato:
+            famiglia = trovato.group(1).strip()
+
         fuori.append({
             "larghezza": _numero("data-larghezza", 595.3),
             "altezza": _numero("data-altezza", 841.9),
@@ -1046,6 +1051,7 @@ def misure_delle_pagine(html: str) -> list[dict]:
             "interlinea": _numero("data-interlinea", round(corpo * 1.2, 1)),
             "corpo": corpo,
             "allineamento": allinea,
+            "famiglia": famiglia,
             "prima_riga": _corpo_del_primo_blocco(dentro, corpo),
         })
     return fuori
@@ -1283,15 +1289,30 @@ def html_to_pdf(
         dichiara le proprie misure prende quelle della sua pagina, non quelle
         della prima.
         """
+        famiglia_pagina = misure.get("famiglia") or ""
         chiave = (round(misure["corpo"], 2), round(misure["interlinea"], 2),
-                  misure["allineamento"])
+                  misure["allineamento"], famiglia_pagina)
         if chiave in _stili_di_pagina:
             return _stili_di_pagina[chiave]
         corpo = misure["corpo"]
         passo = misure["interlinea"] or round(corpo * 1.2, 1)
+        # Anche il carattere e' della pagina. Una memoria scritta in due
+        # riprese cambia famiglia a meta' atto, e scrivere la seconda meta'
+        # con quella della prima non sposta solo il disegno: cambia la
+        # larghezza delle parole, l'intestazione va a capo dove prima stava
+        # su una riga, e da li' in giu' la pagina scivola di ottanta punti.
+        tagli = dict(font_bundle)
+        if famiglia_pagina:
+            try:
+                from pct.caratteri_reali import tagli_per
+                propri = tagli_per(famiglia_pagina)
+                if propri:
+                    tagli = dict(propri)
+            except Exception:
+                pass
         normale = ParagraphStyle(
             f"Pagina{len(_stili_di_pagina)}", parent=st_normal,
-            fontSize=corpo, leading=passo,
+            fontName=tagli["normal"], fontSize=corpo, leading=passo,
             alignment=_allineamenti.get(misure["allineamento"], alignment),
         )
         fuori = {"normal": normale}
@@ -1299,6 +1320,7 @@ def html_to_pdf(
                                      ("h3", st_h3, 1.08), ("h4", st_h4, 1.02)):
             fuori[nome] = ParagraphStyle(
                 f"Pagina{len(_stili_di_pagina)}{nome}", parent=stile,
+                fontName=tagli["bold"],
                 fontSize=round(corpo * fattore, 1), leading=passo,
             )
         _stili_di_pagina[chiave] = fuori
@@ -1603,7 +1625,7 @@ def html_to_pdf(
 
             # larghezza della tabella rispetto alla colonna di testo
             quota_tabella = _quota(el.get("style") or "", "width") or 100.0
-            larga = _larghezza_utile * min(quota_tabella, 100.0) / 100.0
+            larga = _colonna_utile[0] * min(quota_tabella, 100.0) / 100.0
 
             # le colonne: si prendono dalla riga che ne ha di piu'
             modello = max(file_tr, key=lambda t: len(_celle_della_riga(t)))
@@ -1700,11 +1722,16 @@ def html_to_pdf(
         except Exception:
             return None
 
-    _larghezza_utile = (
+    # La colonna di testo in cui il documento viene davvero impaginato.
+    # Parte da quella dichiarata dal documento, ma ogni pagina importata
+    # porta i suoi margini e la aggiorna: misurare le righe sulla colonna
+    # della prima pagina significa non accorgersi che sulla seconda vanno a
+    # capo — e una riga in piu' in testata spinge giu' tutto il resto.
+    _colonna_utile = [
         page_size[0]
         - (layout_cfg["margin_left_mm"] / 10.0) * cm
         - (layout_cfg["margin_right_mm"] / 10.0) * cm
-    )
+    ]
 
     def _paragrafo_fedele(rich, stile, attese):
         """Il paragrafo nelle righe che aveva nell'originale.
@@ -1727,7 +1754,7 @@ def html_to_pdf(
                 )
                 paragrafo = Paragraph(rich, stile_largo)
             try:
-                paragrafo.wrap(_larghezza_utile, 1_000_000)
+                paragrafo.wrap(_colonna_utile[0], 1_000_000)
                 righe = len(paragrafo.blPara.lines)
             except Exception:
                 return paragrafo
@@ -1820,6 +1847,11 @@ def html_to_pdf(
             _pagine_viste[0] += 1
             if posto < len(misure_pagine):
                 _corrente.update(_stili_della_pagina(misure_pagine[posto]))
+                misure_qui = misure_pagine[posto]
+                _colonna_utile[0] = max(
+                    1.0,
+                    misure_qui["larghezza"] - misure_qui["sinistro"] - misure_qui["destro"],
+                )
             if posto > 0:
                 if posto < len(misure_pagine):
                     story.append(NextPageTemplate(f"iupag{posto}"))

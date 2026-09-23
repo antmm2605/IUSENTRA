@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import statistics
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -100,16 +101,101 @@ def _colore_intero(valore) -> int:
     return int(esadecimale[1:], 16)
 
 
-def _flag(nome_carattere: str, *, apice: bool = False) -> int:
-    """I bit di stile ricavati dal nome del carattere.
+#: I bit del campo `Flags` del descrittore, come li scrive il PDF.
+_FLAG_PASSO_FISSO = 1 << 0
+_FLAG_GRAZIE = 1 << 1
+_FLAG_CORSIVO = 1 << 6
+_FLAG_GRASSETTO_FORZATO = 1 << 18
 
-    PyMuPDF li leggeva dal descrittore del font; pdfplumber espone il nome, che
-    per i caratteri usati negli atti dice la stessa cosa. Il codice a valle
-    guarda comunque anche il nome, quindi un descrittore avaro non cambia
-    l'esito.
+#: Da questo peso in su il carattere e' un neretto (400 e' il tondo).
+PESO_GRASSETTO = 600
+
+
+def stile_dal_descrittore(descrittore: dict) -> int:
+    """Lo stile che il documento **dichiara** per un carattere.
+
+    Il nome non basta. «Times New Roman,Bold» lo dice, ma un PDF scritto da un
+    software giudiziario chiama i suoi caratteri `F1`, `F2`, `F3`, e allora dal
+    nome non si ricava niente: il corsivo di un nome di parte spariva. Il
+    descrittore invece lo dice sempre — l'inclinazione, il peso, i bit di
+    `Flags` — ed e' quello che PyMuPDF leggeva.
+    """
+    if not descrittore:
+        return 0
+    bit = 0
+    try:
+        bandiere = int(descrittore.get("Flags") or 0)
+    except (TypeError, ValueError):
+        bandiere = 0
+    if bandiere & _FLAG_PASSO_FISSO:
+        bit |= MONO
+    if bandiere & _FLAG_GRAZIE:
+        bit |= GRAZIE
+    if bandiere & _FLAG_CORSIVO:
+        bit |= CORSIVO
+    if bandiere & _FLAG_GRASSETTO_FORZATO:
+        bit |= GRASSETTO
+    try:
+        if abs(float(descrittore.get("ItalicAngle") or 0)) > 0.5:
+            bit |= CORSIVO
+    except (TypeError, ValueError):
+        pass
+    try:
+        if float(descrittore.get("FontWeight") or 0) >= PESO_GRASSETTO:
+            bit |= GRASSETTO
+    except (TypeError, ValueError):
+        pass
+    return bit
+
+
+#: I bit di `macStyle`, nella tabella `head` di un carattere TrueType.
+_MACSTYLE_GRASSETTO = 1 << 0
+_MACSTYLE_CORSIVO = 1 << 1
+
+
+def stile_dal_programma(dati: bytes) -> int:
+    """Lo stile scritto dentro il carattere incorporato.
+
+    E' l'ultima parola, e spesso l'unica. Un PDF rifatto da un convertitore
+    chiama i suoi caratteri `CIDFont+F1`, `F2`, `F3` e svuota il descrittore:
+    niente inclinazione, niente peso. Il nome non dice niente, il descrittore
+    nemmeno — ma il carattere se lo porta scritto dentro, nella tabella `head`,
+    e li' si legge che `F2` e' il neretto corsivo con cui sono scritti i nomi
+    delle parti.
+    """
+    if not dati or len(dati) < 12:
+        return 0
+    try:
+        quante = struct.unpack(">H", dati[4:6])[0]
+        for indice in range(min(quante, 64)):
+            posto = 12 + indice * 16
+            if posto + 16 > len(dati):
+                break
+            if dati[posto:posto + 4] != b"head":
+                continue
+            inizio = struct.unpack(">I", dati[posto + 8:posto + 12])[0]
+            if inizio + 46 > len(dati):
+                return 0
+            macchia = struct.unpack(">H", dati[inizio + 44:inizio + 46])[0]
+            bit = 0
+            if macchia & _MACSTYLE_GRASSETTO:
+                bit |= GRASSETTO
+            if macchia & _MACSTYLE_CORSIVO:
+                bit |= CORSIVO
+            return bit
+    except Exception:
+        return 0
+    return 0
+
+
+def _flag(nome_carattere: str, *, apice: bool = False, dichiarato: int = 0) -> int:
+    """I bit di stile del carattere: quelli dichiarati, piu' quelli nel nome.
+
+    Il descrittore ha la precedenza perche' e' quello che il documento afferma;
+    il nome resta come rinforzo, per i PDF che il descrittore non ce l'hanno.
     """
     minuscolo = (nome_carattere or "").lower()
-    bit = 0
+    bit = dichiarato
     if apice:
         bit |= APICE
     if "italic" in minuscolo or "oblique" in minuscolo:
@@ -430,9 +516,54 @@ class PaginaSorgente:
                 })
         return fuori
 
+    @property
+    def stili_dichiarati(self) -> dict:
+        """Lo stile che la pagina dichiara per ognuno dei suoi caratteri."""
+        try:
+            from pdfminer.pdftypes import resolve1
+        except Exception:
+            return {}
+        fuori: dict = {}
+        try:
+            risorse = resolve1(self._pagina.page_obj.resources) or {}
+            caratteri = resolve1(risorse.get("Font")) or {}
+        except Exception:
+            return {}
+        for riferimento in list(caratteri.values()):
+            try:
+                voce = resolve1(riferimento) or {}
+                descrittore = resolve1(voce.get("FontDescriptor")) or {}
+                if not descrittore and voce.get("DescendantFonts"):
+                    discendenti = resolve1(voce["DescendantFonts"]) or []
+                    if discendenti:
+                        descrittore = resolve1(
+                            (resolve1(discendenti[0]) or {}).get("FontDescriptor")
+                        ) or {}
+                nome = voce.get("BaseFont")
+                nome = getattr(nome, "name", None) or str(nome or "")
+                if not nome:
+                    continue
+                bit = stile_dal_descrittore(descrittore)
+                if not (bit & (GRASSETTO | CORSIVO)):
+                    for chiave in ("FontFile2", "FontFile3", "FontFile"):
+                        flusso = descrittore.get(chiave)
+                        if flusso is None:
+                            continue
+                        try:
+                            bit |= stile_dal_programma(resolve1(flusso).get_data())
+                        except Exception:
+                            pass
+                        break
+                if bit:
+                    fuori[nome] = fuori.get(nome, 0) | bit
+            except Exception:
+                continue
+        return fuori
+
     def _span_da_caratteri(self, caratteri: list[dict]) -> list[dict]:
         """Raggruppa i caratteri consecutivi che condividono lo stile."""
         caratteri = _con_spazi(caratteri)
+        dichiarati = self.stili_dichiarati
         corpo_riga = statistics.median([float(c.get("size") or 0) or 11.0 for c in caratteri])
         gruppi: list[list[dict]] = []
         firma_corrente = None
@@ -449,7 +580,8 @@ class PaginaSorgente:
             testo = "".join(str(c["text"]) for c in gruppo)
             if not testo:
                 continue
-            nome = str(gruppo[0].get("fontname") or "")
+            nome_intero = str(gruppo[0].get("fontname") or "")
+            nome = nome_intero
             corpo = round(statistics.median([float(c.get("size") or 0) for c in gruppo]), 1)
             alto = min(float(c["top"]) for c in gruppo)
             basso = max(float(c["bottom"]) for c in gruppo)
@@ -464,7 +596,8 @@ class PaginaSorgente:
                 ),
                 "size": corpo,
                 "font": nome.split("+")[-1],
-                "flags": _flag(nome, apice=apice),
+                "flags": _flag(nome, apice=apice,
+                               dichiarato=dichiarati.get(nome_intero, 0)),
                 "color": _colore_intero(gruppo[0].get("non_stroking_color")),
                 "origin": (float(gruppo[0]["x0"]), base),
                 "chars": [

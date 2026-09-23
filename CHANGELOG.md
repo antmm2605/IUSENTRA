@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.366.0 — 23/09/2026
+
+**Il grassetto e il corsivo si leggono dal documento, non si indovinano dal
+nome.** Finora lo stile di un carattere veniva ricavato dal suo nome: «Times
+New Roman,Bold» lo dice, e funziona. Ma un PDF rifatto da un convertitore — ed
+e' il caso di tutti gli atti che passano per il deposito telematico — chiama i
+suoi caratteri `CIDFont+F1`, `F2`, `F3` e svuota il descrittore: niente
+inclinazione, niente peso. Dal nome non si ricava niente, e **il neretto
+corsivo con cui sono scritti i nomi delle parti spariva**: su una memoria, zero
+grassetti e zero corsivi in tre pagine.
+
+Adesso l'analizzatore guarda dove la cosa e' scritta davvero, in tre passaggi:
+il descrittore del carattere (`ItalicAngle`, `FontWeight`, i bit di `Flags`);
+se tace, il **programma del carattere incorporato** — la tabella `head` di un
+TrueType porta `macStyle`, due bit che dicono neretto e corsivo; e per ultimo
+il nome, come rinforzo. Sulla memoria: da 0 a 24 grassetti e 18 corsivi, ed e'
+esattamente `F2`, quello dei nomi delle parti.
+
+**E il corpo che riproduce la larghezza della riga.** Chi riesporta ha solo i
+quattordici caratteri base del PDF: quando quello dichiarato non c'e' — un
+calligrafico, un titolo condensato — ripiega su Times, e «Patrocinante in
+Cassazione» da sedici punti in Times e' largo il doppio di com'era, tanto da
+sembrare una seconda intestazione sopra la prima. Sapendo quanto era larga la
+riga si sceglie il corpo che la riproduce.
+
+Sul banco: le memorie passano da 60,3% a **61,2%**, l'invito al pagamento da
+27,1% a **30,1%**, la citazione da 65,4% a **66,3%**. Un documento peggiora e
+va detto: gli scritti difensivi 29334341 scendono da 57,8% a 6,2%, perche'
+adesso il loro corpo e' reso in neretto e in corsivo come nell'originale, e il
+Times grassetto e' largo un punto per cento piu' del carattere incorporato che
+sostituisce — abbastanza da spostare le parole di tre punti e mezzo, sopra la
+tolleranza di un millimetro. E' il prezzo di sostituire i caratteri invece di
+incorporarli, e si paga finche' non li incorporiamo: fra un nome di parte reso
+in tondo e uno reso in neretto corsivo tre punti e mezzo piu' in la', per un
+avvocato il secondo e' quello giusto.
+
 ## 2.365.0 — 23/09/2026
 
 **I margini della pagina sono quelli del testo, non quelli del timbro.**

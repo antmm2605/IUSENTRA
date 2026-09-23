@@ -1336,12 +1336,57 @@ def html_to_pdf(
             if valore is not None:
                 cambi[attributo] = valore
 
+        # Il corpo che riproduce la larghezza che la riga aveva. Serve quando
+        # il carattere dichiarato non esiste qui: «Patrocinante in Cassazione»
+        # in un calligrafico da sedici punti e' stretto, lo stesso testo in
+        # Times da sedici e' largo il doppio e sembra una seconda intestazione
+        # sopra la prima.
+        voluta = (elemento.get("data-larghezza") or "").strip()
+        if voluta and cambi.get("alignment", partenza.alignment) != TA_JUSTIFY:
+            corpo_ora = cambi.get("fontSize", partenza.fontSize)
+            nuovo = _corpo_che_sta_nella_riga(elemento, voluta, corpo_ora)
+            if nuovo is not None:
+                cambi["fontSize"] = nuovo
+
         if not cambi:
             _stili_paragrafo[chiave] = partenza
             return partenza
         stile = ParagraphStyle(f"Doc{len(_stili_paragrafo)}", parent=partenza, **cambi)
         _stili_paragrafo[chiave] = stile
         return stile
+
+    def _corpo_che_sta_nella_riga(elemento, voluta: str, corpo: float):
+        """Il corpo con cui questo testo torna largo quanto era.
+
+        Si misura con il carattere che verra' usato davvero, non con quello
+        dichiarato: se combaciano il rapporto e' uno e non si tocca niente.
+        """
+        try:
+            larga = float(voluta)
+        except ValueError:
+            return None
+        testo = "".join(elemento.itertext()).strip()
+        if larga <= 1 or len(testo) < 2:
+            return None
+        grassetto = any(
+            (figlio.tag or "").lower().split("}")[-1] in ("strong", "b")
+            for figlio in elemento if isinstance(figlio.tag, str)
+        )
+        try:
+            from reportlab.pdfbase import pdfmetrics
+            misurata = pdfmetrics.stringWidth(
+                testo, font_bundle["bold" if grassetto else "normal"], corpo
+            )
+        except Exception:
+            return None
+        if misurata <= 1:
+            return None
+        rapporto = larga / misurata
+        # sotto il due per cento e' rumore di misura; fuori da questi estremi
+        # non e' piu' una sostituzione di carattere ma un errore di lettura
+        if abs(rapporto - 1.0) < 0.02 or not (0.45 <= rapporto <= 1.8):
+            return None
+        return round(corpo * rapporto, 2)
 
     st_li = ParagraphStyle(
         "LegalLI", parent=st_normal,

@@ -392,9 +392,20 @@ def _paragrafo(
     interno = "<br>".join(
         _html_tratti(r.tratti, corpo, famiglia_base) for r in blocco
     )
+    # Quanto era larga la riga nell'originale. Chi riesporta ha solo i
+    # caratteri base del PDF: quando quello dichiarato non c'e' — un
+    # calligrafico, un titolo condensato — ripiega su Times, e una riga da
+    # sedici punti in Times e' larga il doppio di com'era. Sapendo la misura
+    # vera si sceglie il corpo che la riproduce.
+    misura = ""
+    if len(blocco) == 1 and allinea_blocco != "justify":
+        larga = blocco[0].bbox[2] - blocco[0].bbox[0]
+        if larga > 1:
+            misura = f' data-larghezza="{_pt(larga)}"'
+
     return Elemento(
         tipo="titolo" if titolo else "paragrafo",
-        html=f'<{tag} style="{";".join(stile)}">{interno}</{tag}>',
+        html=f'<{tag} style="{";".join(stile)}"{misura}>{interno}</{tag}>',
         top=blocco[0].bbox[1],
         bbox=(min(r.bbox[0] for r in blocco), blocco[0].bbox[1],
               max(r.bbox[2] for r in blocco), blocco[-1].bbox[3]),

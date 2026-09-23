@@ -288,3 +288,61 @@ def test_se_testo_e_lettere_non_si_allineano_non_si_segna_niente():
     caratteri = _lettere("Tribunale di Palmi")
     _segna_gli_spazi("tutt'altra riga", caratteri)
     assert not any(c.get(SPAZIO_DICHIARATO) for c in caratteri)
+
+
+# ------------------------------------------------- lo stile che il PDF dichiara
+
+def test_lo_stile_si_legge_dal_descrittore_del_carattere():
+    """Il nome non basta: quello che conta e' quello che il PDF dichiara."""
+    from pct.documento_fedele.sorgente import CORSIVO, GRASSETTO, GRAZIE, MONO
+    from pct.documento_fedele.sorgente import stile_dal_descrittore
+
+    assert stile_dal_descrittore({"ItalicAngle": -14.1}) & CORSIVO
+    assert not stile_dal_descrittore({"ItalicAngle": 0}) & CORSIVO
+    assert stile_dal_descrittore({"FontWeight": 700}) & GRASSETTO
+    assert not stile_dal_descrittore({"FontWeight": 400}) & GRASSETTO
+    assert stile_dal_descrittore({"Flags": 1}) & MONO
+    assert stile_dal_descrittore({"Flags": 2}) & GRAZIE
+    assert stile_dal_descrittore({"Flags": 64}) & CORSIVO
+    assert stile_dal_descrittore({}) == 0
+
+
+def _truetype(macstyle: int) -> bytes:
+    """Un TrueType ridotto all'osso: la sola tabella `head`."""
+    import struct
+
+    head = b"\x00" * 44 + struct.pack(">H", macstyle) + b"\x00" * 8
+    inizio = 12 + 16
+    direttorio = struct.pack(">IHHHH", 0x00010000, 1, 16, 0, 0)
+    direttorio += b"head" + struct.pack(">III", 0, inizio, len(head))
+    return direttorio + head
+
+
+def test_lo_stile_si_legge_dentro_il_carattere_incorporato():
+    """L'ultima parola, e spesso l'unica.
+
+    Un PDF rifatto da un convertitore chiama i suoi caratteri `CIDFont+F1`,
+    `F2`, `F3` e svuota il descrittore: niente inclinazione, niente peso. Il
+    corsivo dei nomi delle parti spariva. Dentro il carattere, pero', c'e'
+    scritto.
+    """
+    from pct.documento_fedele.sorgente import CORSIVO, GRASSETTO, stile_dal_programma
+
+    assert stile_dal_programma(_truetype(0)) == 0
+    assert stile_dal_programma(_truetype(1)) & GRASSETTO
+    assert stile_dal_programma(_truetype(2)) & CORSIVO
+    tutti = stile_dal_programma(_truetype(3))
+    assert tutti & GRASSETTO and tutti & CORSIVO
+    assert stile_dal_programma(b"") == 0
+    assert stile_dal_programma(b"non e' un carattere") == 0
+
+
+def test_il_nome_resta_un_rinforzo_non_l_unica_fonte():
+    """Quando il descrittore tace, il nome serve ancora."""
+    from pct.documento_fedele.sorgente import CORSIVO, GRASSETTO, _flag
+
+    assert _flag("ABCDEE+Times New Roman,BoldItalic") & GRASSETTO
+    assert _flag("ABCDEE+Times New Roman,BoldItalic") & CORSIVO
+    assert _flag("CIDFont+F2") == 0
+    assert _flag("CIDFont+F2", dichiarato=GRASSETTO | CORSIVO) & GRASSETTO
+    assert _flag("CIDFont+F2", dichiarato=GRASSETTO | CORSIVO) & CORSIVO

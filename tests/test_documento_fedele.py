@@ -303,3 +303,36 @@ def test_la_tendina_dell_importazione_e_quella_dell_editor():
     catalogo = {str(voce["label"]) for voce in EDITOR_FONT_CATALOG.values()}
     assert set(FAMIGLIE_EDITOR) == catalogo, "la tendina dell'importazione non e' quella dell'editor"
     assert len(catalogo) > 20, "il catalogo dei caratteri non si e' caricato"
+
+
+def test_un_rientro_di_sette_punti_si_dichiara_lo_stesso():
+    """Sotto gli otto punti il rientro non apre un capoverso, ma esiste.
+
+    In un atto con gli elenchi a filo di margine, il corpo del testo sta sette
+    punti piu' dentro. Scartare quel rientro — perche' non basta a dire «qui
+    comincia un capoverso nuovo» — appoggiava tutto il corpo al margine: sette
+    punti a ogni riga, piu' del doppio del millimetro che il banco tollera, e
+    le righe centrate scivolavano di tre e mezzo per giunta.
+    """
+    from pct.documento_fedele.modello import Riga, Tratto
+    from pct.documento_fedele.paragrafi import _stile_paragrafo
+    from pct.documento_fedele.taratura import Taratura
+
+    assert Taratura.RIENTRO_DICHIARATO < 7.0 < Taratura.RIENTRO_MINIMO, (
+        "il caso interessante e' proprio quello in mezzo alle due soglie"
+    )
+
+    def _riga(x0: float, y0: float, larga: float) -> Riga:
+        return Riga(
+            tratti=[Tratto(testo="parole del corpo", famiglia="Times New Roman", corpo=12.0)],
+            bbox=(x0, y0, x0 + larga, y0 + 14.0),
+        )
+
+    # il corpo sta a 79.4, il margine della pagina a 72.4: sette punti
+    blocco = [_riga(79.4, 300, 400), _riga(79.4, 321, 400)]
+    stile = _stile_paragrafo(blocco, None, sinistra=72.4, destra=479.4,
+                             corpo_base=12.0, interlinea=21.0)
+
+    assert any(s.startswith("margin-left:7") for s in stile), (
+        f"il rientro di sette punti doveva essere dichiarato: {stile}"
+    )

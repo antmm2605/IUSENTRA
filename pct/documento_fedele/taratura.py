@@ -21,6 +21,15 @@ class Taratura:
     #: scostamento minimo (in punti) perche' un rientro sia considerato voluto
     RIENTRO_MINIMO = 8.0
 
+    #: Quanto deve valere un rientro perche' convenga **scriverlo**. E' una
+    #: domanda diversa da RIENTRO_MINIMO, che decide se un rientro apre un
+    #: capoverso nuovo: per quello otto punti sono il minimo sindacale, sotto
+    #: si scambierebbe una riga corta per un capoverso. Ma un rientro di sette
+    #: punti esiste lo stesso, e buttarlo via costa sette punti a ogni riga del
+    #: corpo — piu' del doppio del millimetro che il banco tollera. Il limite,
+    #: qui, e' solo l'errore di misura.
+    RIENTRO_DICHIARATO = 3.0
+
     #: oltre questo multiplo dell'interlinea il vuoto fra due paragrafi non e'
     #: piu' uno stacco voluto: in mezzo c'e' una tabella, un'immagine o la
     #: fine del testo della pagina, e seguirlo sposterebbe tutto il resto

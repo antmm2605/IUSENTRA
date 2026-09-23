@@ -492,12 +492,12 @@ def _stile_paragrafo(
     rientro_sx = (min(r.bbox[0] for r in blocco[1:]) if len(blocco) > 1
                   else blocco[0].bbox[0]) - sinistra
     rientro_dx = destra - max(r.bbox[2] for r in blocco)
-    if rientro_sx > Taratura.RIENTRO_MINIMO and allinea in ("left", "justify"):
+    if rientro_sx > Taratura.RIENTRO_DICHIARATO and allinea in ("left", "justify"):
         if len(blocco) == 1 and rientro_sx < 42:
             stile.append(f"text-indent:{_pt(rientro_sx)}pt")   # capoverso breve
         else:
             stile.append(f"margin-left:{_pt(rientro_sx)}pt")
-    if rientro_dx > Taratura.RIENTRO_MINIMO and allinea in ("right", "justify"):
+    if rientro_dx > Taratura.RIENTRO_DICHIARATO and allinea in ("right", "justify"):
         stile.append(f"margin-right:{_pt(rientro_dx)}pt")
 
     # rientro della prima riga

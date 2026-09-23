@@ -94,33 +94,42 @@
 }
 
 .iu-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.iu-ocr-review { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 8px; min-height: 0; }
-.iu-ocr-review__plain { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; min-height: 0; }
-.iu-ocr-review__plain > span { font-size: 12px; font-weight: 850; color: var(--iu-slate-600, #475569); }
-.iu-ocr-review__plain textarea { width: 100%; height: 100%; min-height: 280px; max-height: none; padding: 10px 11px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 10px; background: var(--iu-surface, #ffffff); color: inherit; font: inherit; font-size: 13.5px; line-height: 1.55; resize: vertical; }
-.iu-ocr-review__plain textarea:focus-visible { outline: 3px solid var(--iu-primary, #2563eb); outline-offset: 2px; }
-.iu-ocr-review__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-.iu-ocr-review__toolbar > span { color: var(--iu-slate-600, #475569); font-size: 12px; font-weight: 760; }
-.iu-ocr-review__toolbar .iu-btn { min-height: 34px; }
-.iu-ocr-review__list { display: grid; gap: 10px; max-height: min(46dvh, 420px); overflow-y: auto; margin: 0; padding: 0 2px 0 0; list-style: none; }
-.iu-ocr-block { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 8px; background: var(--iu-surface, #ffffff); }
-.iu-ocr-block--titolo, .iu-ocr-block--tabella { background: var(--iu-surface-subtle, #eef2f7); }
-.iu-ocr-block--titolo .iu-ocr-block__kind, .iu-ocr-block--tabella .iu-ocr-block__kind { font-weight: 700; }
-.iu-ocr-block__bar { display: flex; align-items: center; gap: 8px; }
-.iu-ocr-block__kind { display: inline-flex; align-items: center; gap: 5px; }
-.iu-ocr-block__kind select { padding: 3px 6px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; font: inherit; font-size: 12px; }
-.iu-ocr-block__meta { flex: 1; color: var(--iu-slate-600, #475569); font-size: 11.5px; }
-.iu-ocr-block textarea { width: 100%; min-height: 58px; padding: 7px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; font: inherit; font-size: 13px; resize: vertical; }
-.iu-ocr-block--titolo textarea { font-weight: 600; }
-.iu-ocr-block__grid { overflow-x: auto; }
-.iu-ocr-block__grid table { width: 100%; border-collapse: collapse; }
-.iu-ocr-block__grid td { padding: 0; border: 1px solid var(--iu-border, #dce2e9); }
-.iu-ocr-block__grid input { width: 100%; min-width: 90px; padding: 5px 6px; border: 0; background: transparent; font: inherit; font-size: 12.5px; }
-.iu-ocr-block__grid input:focus { outline: 2px solid var(--iu-primary, #2563eb); outline-offset: -2px; }
+/* Il testo riconosciuto si legge di seguito, come sara' nel documento, e si
+   corregge scrivendoci dentro: non e' un elenco di schede da compilare. */
+.iu-ocr-review { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; min-height: 0; }
+.iu-ocr-barra { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 8px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 9px; background: var(--iu-surface, #ffffff); }
+.iu-ocr-barra .iu-btn { min-height: 30px; padding: 0 8px; }
+.iu-ocr-barra select { padding: 4px 7px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; background: var(--iu-surface, #ffffff); font: inherit; font-size: 12px; }
+.iu-ocr-barra__stato { flex: 1 1 100%; color: var(--iu-slate-600, #475569); font-size: 11.5px; font-weight: 700; }
+.iu-ocr-foglio { display: grid; gap: 2px; min-height: 280px; max-height: min(52dvh, 520px); overflow-y: auto; padding: 14px 16px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 10px; background: var(--iu-surface, #ffffff); }
+.iu-ocr-foglio__parte { --iu-ocr-scala: 1; padding: 2px 8px; border-radius: 4px; }
+.iu-ocr-foglio__parte.is-scelto { background: var(--iu-surface-subtle, #eef2f7); box-shadow: inset 0 0 0 1px var(--iu-primary, #2563eb); }
+/* Quello che il riconoscimento ha letto senza sicurezza resta segnato: e' cosi'
+   che si sa dove guardare, invece di rileggere tutto da capo. */
+.iu-ocr-foglio__parte.is-incerto .iu-ocr-foglio__testo { background: rgba(245, 158, 11, .13); box-shadow: inset 0 -1px 0 rgba(180, 83, 9, .45); }
+.iu-ocr-foglio__testo { min-height: 1.5em; font-size: calc(13.5px * var(--iu-ocr-scala)); line-height: 1.55; outline: none; overflow-wrap: anywhere; white-space: pre-wrap; }
+.iu-ocr-foglio__testo:focus-visible { outline: 2px solid var(--iu-primary, #2563eb); outline-offset: 2px; border-radius: 3px; }
+.iu-ocr-foglio__parte.is-grassetto .iu-ocr-foglio__testo { font-weight: 800; }
+.iu-ocr-foglio__parte.is-corsivo .iu-ocr-foglio__testo { font-style: italic; }
+.iu-ocr-foglio__parte--h1 .iu-ocr-foglio__testo { font-size: calc(19px * var(--iu-ocr-scala)); font-weight: 900; }
+.iu-ocr-foglio__parte--h2 .iu-ocr-foglio__testo { font-size: calc(17px * var(--iu-ocr-scala)); font-weight: 850; }
+.iu-ocr-foglio__parte--h3 .iu-ocr-foglio__testo { font-size: calc(15px * var(--iu-ocr-scala)); font-weight: 800; }
+.iu-ocr-foglio__parte--h4 .iu-ocr-foglio__testo { font-size: calc(14px * var(--iu-ocr-scala)); font-weight: 780; letter-spacing: .02em; }
+.iu-ocr-foglio__parte--numero_pagina .iu-ocr-foglio__testo { color: var(--iu-slate-500, #64748b); font-size: 12px; }
+.iu-ocr-al--sinistra .iu-ocr-foglio__testo { text-align: left; }
+.iu-ocr-al--centro .iu-ocr-foglio__testo { text-align: center; }
+.iu-ocr-al--destra .iu-ocr-foglio__testo { text-align: right; }
+.iu-ocr-al--giustificato .iu-ocr-foglio__testo { text-align: justify; }
+.iu-ocr-foglio__tabella { display: grid; gap: 4px; margin: 7px 0; overflow-x: auto; }
+.iu-ocr-foglio__etichetta { display: inline-flex; align-items: center; gap: 5px; color: var(--iu-slate-600, #475569); font-size: 11px; font-weight: 800; }
+.iu-ocr-foglio__tabella table { width: 100%; border-collapse: collapse; }
+.iu-ocr-foglio__tabella td { padding: 0; border: 1px solid var(--iu-border, #dce2e9); }
+.iu-ocr-foglio__tabella input { width: 100%; min-width: 90px; padding: 5px 6px; border: 0; background: transparent; font: inherit; font-size: 12.5px; }
+.iu-ocr-foglio__tabella input:focus { outline: 2px solid var(--iu-primary, #2563eb); outline-offset: -2px; }
 @media (max-width: 640px) {
-  .iu-ocr-review__plain textarea { min-height: 46dvh; max-height: none; font-size: 16px; }
-  .iu-ocr-review__list { max-height: none; }
-  .iu-ocr-block__grid input { min-width: 72px; }
+  .iu-ocr-foglio { min-height: 46dvh; max-height: none; padding: 12px; }
+  .iu-ocr-foglio__testo { font-size: calc(16px * var(--iu-ocr-scala)); }
+  .iu-ocr-foglio__tabella input { min-width: 72px; }
 }
 
 .iu-matter-picker { display: grid; gap: 6px; }
@@ -149,8 +158,4 @@
 
 /* Comandi di formato nella revisione: il testo riconosciuto conserva la forma
    che aveva sul foglio, e l'avvocato può correggerla dove il motore ha sbagliato. */
-.iu-ocr-block__formato { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-.iu-ocr-block__formato select { padding: 3px 6px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; font: inherit; font-size: 12px; }
-.iu-ocr-block__formato .iu-btn { min-height: 30px; padding-inline: 8px; }
-.iu-ocr-block__formato .iu-btn[aria-pressed="true"] { border-color: var(--iu-primary, #2563eb); color: var(--iu-primary, #2563eb); }
-.iu-ocr-block.is-selected { border-color: var(--iu-primary, #2563eb); box-shadow: 0 0 0 2px rgba(37, 99, 235, .16); }
+.iu-ocr-barra .iu-btn[aria-pressed="true"] { border-color: var(--iu-primary, #2563eb); color: var(--iu-primary, #2563eb); }

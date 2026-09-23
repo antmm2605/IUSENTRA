@@ -425,6 +425,47 @@ def test_contributo_unificato_pagato_unisce_importo_registrato_e_ricevuta_selezi
     assert contribution["source"] == "Ricevuta PagoPA contributo unificato.pdf"
 
 
+def test_contributo_unificato_riconosce_la_fonte_rt_registrata_se_selezionata():
+    fascicolo = _fascicolo()
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "pagato",
+            "natura": "pagamento_contributo_unificato",
+            "importo": 21.5,
+            "documento_fonte": "RT-330008103520209603.xml",
+        }
+    }
+    documents = [
+        SimpleNamespace(
+            id="RT1",
+            nome="RT-330008103520209603.xml",
+            descrizione="Ricevuta XML selezionata per il deposito",
+            catalogRole="allegato",
+        )
+    ]
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=documents)
+    assert contribution["resolved"] is True
+    assert contribution["mode"] == "pagato"
+    assert contribution["importo"] == 21.5
+    assert contribution["payment_evidence"] is True
+    assert contribution["source"] == "RT-330008103520209603.xml"
+
+
+def test_contributo_unificato_non_usa_la_fonte_rt_se_non_e_selezionata():
+    fascicolo = _fascicolo()
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "pagato",
+            "natura": "pagamento_contributo_unificato",
+            "importo": 21.5,
+            "documento_fonte": "RT-330008103520209603.xml",
+        }
+    }
+    contribution = contributo_unificato_fascicolo(fascicolo, documents=[])
+    assert contribution["resolved"] is False
+    assert contribution["payment_evidence"] is False
+
+
 def test_contributo_unificato_prenotato_a_debito_non_richiede_ricevuta_o_importo():
     fascicolo = _fascicolo()
     fascicolo.pagamenti = {

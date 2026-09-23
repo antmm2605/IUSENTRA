@@ -282,6 +282,7 @@ def ministerial_contributo_unificato_for_context(
     documents: Iterable[Any] | None = None,
 ) -> dict[str, Any]:
     """Resolve the ministerial contribution state from the fascicolo source of truth."""
+    selected_documents = None if documents is None else list(documents)
     payments = _dict_or_empty(getattr(fascicolo, "pagamenti", {}))
     raw: dict[str, Any] = {}
     for key, value in payments.items():
@@ -320,19 +321,31 @@ def ministerial_contributo_unificato_for_context(
         mode = "da_definire"
         resolved = False
 
-    document_state = _contributo_unificato_from_documents(fascicolo, documents)
+    document_state = _contributo_unificato_from_documents(fascicolo, selected_documents)
     if document_state and document_state["mode"] == "esente" and (not raw or mode == "da_definire"):
         return document_state
 
     if mode == "pagato" or (document_state and document_state["mode"] == "pagato"):
         document_amount = document_state.get("importo") if document_state else None
         effective_amount = amount if amount is not None else document_amount
-        if documents is None:
+        if selected_documents is None:
             payment_evidence = bool(source) or bool(document_state and document_state.get("payment_evidence"))
             effective_source = source or str((document_state or {}).get("source") or "")
         else:
-            payment_evidence = bool(document_state and document_state.get("payment_evidence"))
-            effective_source = str((document_state or {}).get("source") or "")
+            source_token = _normalise_payment_token(source.replace("\\", "/").split("/")[-1])
+            selected_source = next(
+                (
+                    _document_source_name(document)
+                    for document in selected_documents
+                    if source_token
+                    and _normalise_payment_token(_document_source_name(document)) == source_token
+                ),
+                "",
+            )
+            payment_evidence = bool(selected_source) or bool(
+                document_state and document_state.get("payment_evidence")
+            )
+            effective_source = str((document_state or {}).get("source") or selected_source)
         if effective_amount is None:
             blocking_message = "Manca il contributo unificato: inserisci l'importo pagato."
         elif not payment_evidence:

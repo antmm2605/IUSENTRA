@@ -293,3 +293,48 @@ def test_la_riga_piena_resta_piena_anche_se_e_l_ultima():
     assert not scostate, (
         f"{len(scostate)} righe piene su {len(piene)} sono tornate corte"
     )
+
+
+def test_il_numero_di_pagina_resta_in_fondo_al_foglio():
+    """Nel flusso non ci starebbe: sotto l'ultima riga resta fermo un interlinea.
+
+    Un piede che nell'originale sfiora il bordo del foglio, messo in fila col
+    testo, scivola alla pagina dopo e si porta dietro tutto il resto: un atto
+    di sei pagine ne faceva undici. Si disegna dov'era.
+    """
+    descrittore, percorso = tempfile.mkstemp(suffix=".pdf")
+    os.close(descrittore)
+
+    def _numero(tela, documento):
+        tela.setFont("Times-Roman", 10)
+        tela.drawCentredString(A4[0] / 2, 18, str(documento.page))
+
+    SimpleDocTemplate(
+        percorso, pagesize=A4,
+        leftMargin=25 * mm, rightMargin=25 * mm,
+        topMargin=20 * mm, bottomMargin=20 * mm,
+    ).build(
+        [Paragraph(PERIODO * 7, _corpo()), PageBreak(),
+         Paragraph(PERIODO * 7, _corpo())],
+        onFirstPage=_numero, onLaterPages=_numero,
+    )
+    atto = Path(percorso)
+
+    ritorno = None
+    try:
+        with pdfplumber.open(str(atto)) as pdf:
+            assert len(pdf.pages) == 2, "l'atto di prova non e' di due pagine"
+            fondo_prima = max(p["top"] for p in pdf.pages[0].extract_words())
+        ritorno = _giro(atto)
+        with pdfplumber.open(str(ritorno)) as pdf:
+            pagine = len(pdf.pages)
+            fondo_dopo = max(p["top"] for p in pdf.pages[0].extract_words())
+    finally:
+        atto.unlink(missing_ok=True)
+        if ritorno:
+            ritorno.unlink(missing_ok=True)
+
+    assert pagine == 2, f"l'atto era di due pagine ed e' tornato di {pagine}"
+    assert abs(fondo_dopo - fondo_prima) < 2.9, (
+        f"il numero di pagina e' passato da {fondo_prima:.1f} a {fondo_dopo:.1f} punti"
+    )

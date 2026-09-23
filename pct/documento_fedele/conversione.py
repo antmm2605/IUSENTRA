@@ -283,7 +283,11 @@ def converti(
             ) if libere else pila_font("Times New Roman")
 
             nome_formato, orientamento = _formato(pagina)
-            margini = _margini(pagina, righe, tabelle + immagini + grafica)
+            # I margini sono quelli del testo. Immagini e grafica non entrano
+            # piu' nel flusso — si disegnano al loro riquadro — e contarle qui
+            # faceva cominciare la pagina dove comincia il timbro invece che
+            # dove comincia l'atto: sette millimetri piu' su, tutte le righe.
+            margini = _margini(pagina, righe, tabelle)
 
             if modo == "esatto":
                 html = _pagina_esatta(pagina, righe, immagini, grafica, voce["indice"] + 1)
@@ -323,7 +327,14 @@ def converti(
                             piede, sinistra, destra, corpo_pagina, famiglia_pagina,
                         )
                     )
-                    corpo_html += f'<footer class="iu-doc-piede">{fondo}</footer>'
+                    # il piede porta scritta la sua altezza: non sta nel
+                    # flusso del testo — sotto l'ultima riga reportlab tiene
+                    # fermo un passo di interlinea, e il numero di pagina non
+                    # ci starebbe piu' dentro il foglio — si disegna dov'era
+                    corpo_html += (
+                        f'<footer class="iu-doc-piede"'
+                        f' data-alto="{_pt(piede[0].bbox[1])}">{fondo}</footer>'
+                    )
 
                 # La pagina porta con se' le sue misure. Servono a chi la
                 # riesporta in PDF: senza, l'esportazione rifa' il documento

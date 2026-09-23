@@ -1483,6 +1483,36 @@ def html_to_pdf(
     #: entrano nel flusso del testo, si disegnano sulla pagina dove erano
     _immagini_fisse: dict = {}
 
+    #: i piedi di pagina, con l'altezza a cui stavano nell'originale
+    _piedi_fissi: dict = {}
+
+    def _piede_fisso(el) -> bool:
+        """Il numero di pagina si disegna dov'era, non in coda al testo.
+
+        Sotto l'ultima riga reportlab tiene fermo un intero passo di
+        interlinea: un piede che nell'originale sfiora il bordo del foglio, nel
+        flusso non ci sta piu' e scivola alla pagina dopo, portandosi dietro
+        tutto il resto. Un atto di sei pagine ne faceva undici.
+        """
+        alto = (el.get("data-alto") or "").strip()
+        if not alto or not misure_pagine:
+            return False
+        try:
+            quota = float(alto)
+        except ValueError:
+            return False
+        pezzi = []
+        for figlio in el:
+            if not isinstance(figlio.tag, str):
+                continue
+            testo = _node_to_rich(figlio)
+            if testo.strip():
+                pezzi.append(Paragraph(testo, _stile_del_paragrafo(figlio)))
+        if not pezzi:
+            return True
+        _piedi_fissi.setdefault(max(0, _pagine_viste[0] - 1), []).append((pezzi, quota))
+        return True
+
     def _immagine_fissa(el) -> bool:
         """Disegna l'immagine dov'era, invece di metterla in fila col testo.
 
@@ -1533,6 +1563,10 @@ def html_to_pdf(
                 except Exception:
                     pass
             return
+
+        if tag == "footer" and "iu-doc-piede" in (el.get("class") or ""):
+            if _piede_fisso(el):
+                return
 
         if tag in HEADING_STYLES:
             rich = _node_to_rich(el)
@@ -1706,7 +1740,21 @@ def html_to_pdf(
                 leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
                 id=f"iucornice{posto}",
             )
-            def _disegna(tela, documento, _posto=posto, _altezza=altezza):
+            def _disegna(tela, documento, _posto=posto, _altezza=altezza,
+                         _larga=larga, _sinistra=misure["sinistro"],
+                         _discesa=discesa):
+                for pezzi, quota in _piedi_fissi.get(_posto, ()):
+                    scorre = quota
+                    for paragrafo in pezzi:
+                        try:
+                            _, alta = paragrafo.wrapOn(tela, _larga, 1_000_000)
+                            paragrafo.drawOn(
+                                tela, _sinistra,
+                                _altezza - scorre - alta + _discesa,
+                            )
+                            scorre += alta
+                        except Exception:
+                            continue
                 for dati, x0, y0, x1, y1 in _immagini_fisse.get(_posto, ()):
                     try:
                         tela.drawImage(

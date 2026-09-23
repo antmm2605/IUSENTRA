@@ -216,6 +216,19 @@ def _allineamento_blocco(blocco: list[Riga], sinistra: float, destra: float) -> 
     return "left"
 
 
+def _stacco_massimo(interlinea: float, corpo_base: float) -> float:
+    """Oltre questo vuoto fra due capoversi c'e' qualcosa in mezzo, non uno stacco.
+
+    Il limite si misura sul passo della pagina, non su quello del blocco. Una
+    carta intestata ha righe fitte — nove punti e mezzo — e prendendo quelle
+    come scala il vuoto fra la testata e il corpo, che e' cinquantacinque
+    punti, veniva tagliato a trentatre: il corpo saliva di due centimetri e
+    l'ultima riga della pagina scivolava a quella dopo.
+    """
+    scala = max(interlinea, corpo_base * 2.0)
+    return scala * Taratura.STACCO_MASSIMO
+
+
 def _centrato_su(blocco: list[Riga], sinistra: float, destra: float):
     """Il punto su cui le righe di questo blocco sono centrate, se lo sono.
 
@@ -252,6 +265,7 @@ def _centrato_su(blocco: list[Riga], sinistra: float, destra: float):
 def _stile_paragrafo(
     blocco: list[Riga], successivo: Optional[list[Riga]],
     sinistra: float, destra: float, corpo_base: float, interlinea: float,
+    cappa: Optional[float] = None,
 ) -> list[str]:
     allinea = _allineamento_blocco(blocco, sinistra, destra)
     corpo = statistics.median([r.corpo for r in blocco])
@@ -279,7 +293,7 @@ def _stile_paragrafo(
         passo = _interlinea_mediana(blocco)
     elif salto_dopo > 0.5:
         # riga sola: il passo e' esattamente la distanza dalla riga dopo
-        passo = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO)
+        passo = min(salto_dopo, cappa or _stacco_massimo(interlinea, corpo_base))
     else:
         passo = interlinea
     # il pavimento serve solo contro una misura degenere: una carta intestata
@@ -304,7 +318,7 @@ def _stile_paragrafo(
         elif stretta < -Taratura.RIENTRO_MINIMO:
             stile.append(f"margin-left:{_pt(-stretta)}pt")
         if successivo:
-            extra = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO) - passo
+            extra = min(salto_dopo, cappa or _stacco_massimo(interlinea, corpo_base)) - passo
             if extra > 0.5:
                 stile.append(f"margin-bottom:{_pt(extra)}pt")
         return stile
@@ -330,7 +344,7 @@ def _stile_paragrafo(
     if successivo:
         # un vuoto enorme e' quasi sempre una tabella o un'immagine in mezzo,
         # non lo stacco del paragrafo: oltre quel limite non si segue
-        extra = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO) - passo
+        extra = min(salto_dopo, cappa or _stacco_massimo(interlinea, corpo_base)) - passo
         if extra > 0.5:
             stile.append(f"margin-bottom:{_pt(extra)}pt")
     return stile
@@ -343,9 +357,16 @@ def _paragrafo(
 ) -> Elemento:
     if indice + 1 < len(blocchi):
         successivo = blocchi[indice + 1]
+        cappa = None
     else:
         successivo = [seguito] if seguito is not None else None
-    stile = _stile_paragrafo(blocco, successivo, sinistra, destra, corpo_base, interlinea)
+        # fra la testata e il corpo, o fra il corpo e il piede di pagina, il
+        # vuoto e' grande per costruzione: mezza pagina fra l'ultima riga e il
+        # numero in fondo. Il limite che protegge dai vuoti fasulli dentro il
+        # testo, li', taglierebbe quello vero
+        cappa = _stacco_massimo(interlinea, corpo_base) * 2.0 if successivo else None
+    stile = _stile_paragrafo(blocco, successivo, sinistra, destra,
+                             corpo_base, interlinea, cappa)
     corpo = statistics.median([r.corpo for r in blocco])
     if abs(corpo - corpo_base) >= 0.6:
         stile.append(f"font-size:{_pt(corpo)}pt")

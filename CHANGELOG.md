@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.365.0 — 23/09/2026
+
+**I margini della pagina sono quelli del testo, non quelli del timbro.**
+Immagini, loghi e timbri non entrano piu' nel flusso — si disegnano al loro
+riquadro, dove stavano — ma continuavano a contare nel calcolo dei margini: un
+timbro depositato in alto a sinistra faceva cominciare la pagina dove comincia
+il timbro invece che dove comincia l'atto, e tutte le righe salivano di sette
+millimetri. Adesso i margini si misurano sul testo e sulle tabelle.
+
+**Il numero di pagina si disegna in fondo al foglio.** Nel flusso non ci sta:
+sotto l'ultima riga reportlab tiene fermo un intero passo di interlinea, e un
+piede che nell'originale sfiora il bordo scivolava alla pagina dopo portandosi
+dietro tutto il resto — un atto di sei pagine ne faceva undici. Come per i
+loghi, adesso il piede porta scritta la sua altezza e si disegna li'.
+
+**Il vuoto fra la testata e il corpo non si taglia piu'.** Il limite che
+protegge dai vuoti fasulli dentro il testo si misurava sul passo del blocco:
+una carta intestata ha righe fitte — nove punti e mezzo — e con quella scala i
+cinquantacinque punti fra la testata e il corpo venivano tagliati a trentatre.
+Adesso il limite si misura sul passo della pagina.
+
+Sul banco dei dodici atti leggibili: le due memorie passano da 41% a **59,9%**
+di parole entro il millimetro, il provvedimento del giudice da 10,9% a
+**43,4%**, gli scritti difensivi da 6% a **57%**, l'invito al pagamento da 0,6%
+a **27,1%**. Nessun documento peggiora.
+
 ## 2.364.0 — 23/09/2026
 
 **La riga piena tornava corta.** Una riga che nell'originale arriva al margine

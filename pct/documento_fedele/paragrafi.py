@@ -584,6 +584,7 @@ def _elenco(
 ) -> Elemento:
     tag = "ol" if numerato else "ul"
     pezzi = []
+    segno = ""
     for blocco in voci:
         righe = list(blocco)
         primo = righe[0]
@@ -592,10 +593,13 @@ def _elenco(
             testa = tratti[0].testo
             if _RE_SEGNO.match(testa):
                 # il segno e' un tratto a se' (ricucito da _unisci_segni_elenco)
+                segno = segno or testa.strip()
                 tratti = tratti[1:]
             else:
                 for schema in (_RE_NUMERO_ELENCO, _RE_PUNTO_ELENCO, _RE_NUMERO_NUDO):
-                    if schema.match(testa):
+                    trovato = schema.match(testa)
+                    if trovato:
+                        segno = segno or (trovato.group(1) or "").strip()
                         tratti[0].testo = schema.sub("", testa, count=1)
                         break
         interno = _html_tratti(tratti, corpo_base, famiglia_base)
@@ -605,9 +609,13 @@ def _elenco(
 
     rientro = min(b[0].bbox[0] for b in voci) - sinistra
     stile = f'style="margin-left:{_pt(max(0, rientro))}pt"' if rientro > Taratura.RIENTRO_MINIMO else ""
+    # Il segno che l'autore ha scelto. Senza, chi riscrive ne mette uno suo:
+    # un trattino diventa un pallino, e se il carattere di turno quel pallino
+    # non ce l'ha esce «(cid:127)» — testo che nell'atto non c'era.
+    marchio = f' data-segno="{escape(segno, quote=True)}"' if not numerato and segno else ""
     return Elemento(
         tipo="elenco",
-        html=f"<{tag} {stile}>{''.join(pezzi)}</{tag}>",
+        html=f"<{tag} {stile}{marchio}>{''.join(pezzi)}</{tag}>",
         top=voci[0][0].bbox[1],
         bbox=(min(b[0].bbox[0] for b in voci), voci[0][0].bbox[1],
               max(b[-1].bbox[2] for b in voci), voci[-1][-1].bbox[3]),

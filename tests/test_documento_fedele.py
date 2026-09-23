@@ -336,3 +336,55 @@ def test_un_rientro_di_sette_punti_si_dichiara_lo_stesso():
     assert any(s.startswith("margin-left:7") for s in stile), (
         f"il rientro di sette punti doveva essere dichiarato: {stile}"
     )
+
+
+def test_il_segno_dell_elenco_e_quello_dell_autore():
+    """Un trattino non deve tornare pallino, e men che meno «(cid:127)».
+
+    L'elenco dei testimoni di una memoria e' puntato con un trattino. Chi
+    riscriveva il documento ci metteva il segno di riserva di reportlab, preso
+    da un altro carattere: quando quel carattere il pallino non ce l'ha, nel
+    PDF finisce la sigla del glifo mancante — «(cid:127)» in mezzo a un atto
+    da depositare.
+    """
+    import io
+    import re
+
+    import pdfplumber
+
+    from pct.documento_fedele.modello import Riga, Tratto
+    from pct.documento_fedele.paragrafi import _elenco
+    from pct.editor import html_to_pdf
+
+    def _voce(testo: str, y: float) -> list[Riga]:
+        return [Riga(
+            tratti=[Tratto(testo=f"- {testo}", famiglia="Times New Roman", corpo=12.0)],
+            bbox=(85.0, y, 400.0, y + 14.0),
+        )]
+
+    elemento = _elenco(
+        [_voce("Avv. Brosio Elio", 300), _voce("Ing. Abate Saverio", 321)],
+        numerato=False, corpo_base=12.0, famiglia_base="Times New Roman",
+        sinistra=85.0, destra=510.0,
+    )
+    assert 'data-segno="-"' in elemento.html, (
+        f"il segno dell'autore doveva restare scritto: {elemento.html[:120]}"
+    )
+
+    pagina = (
+        '<section class="iu-doc-pagina" data-pagina="1"'
+        ' data-larghezza="595.3" data-altezza="841.9"'
+        ' data-margine-alto="56.7" data-margine-basso="56.7"'
+        ' data-margine-sinistro="85" data-margine-destro="56.7"'
+        ' data-interlinea="18" data-allineamento="left"'
+        ' style="font-family:\'Times New Roman\', serif;font-size:12.0pt">'
+        f"{elemento.html}</section>"
+    )
+    with pdfplumber.open(io.BytesIO(html_to_pdf(pagina))) as pdf:
+        testo = pdf.pages[0].extract_text() or ""
+
+    assert "(cid:" not in testo, f"nel PDF e' finita la sigla di un glifo: {testo!r}"
+    assert "•" not in testo, "il trattino e' diventato un pallino"
+    assert re.search(r"-\s+Avv\. Brosio Elio", testo), (
+        f"la voce doveva tornare col suo trattino: {testo!r}"
+    )

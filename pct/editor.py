@@ -1920,11 +1920,24 @@ def html_to_pdf(
                 inizio_elenco = max(1, int(el.get("start") or 1))
             except (TypeError, ValueError):
                 inizio_elenco = 1
+            # Il segno che l'autore ha scelto, scritto col carattere del
+            # testo: il pallino di riserva di reportlab viene da un altro
+            # carattere, e quando quello non ce l'ha finisce nel PDF come
+            # «(cid:127)» — spazzatura in mezzo a un atto.
+            segno_elenco = (el.get("data-segno") or "").strip() or "\u2022"
             for li in el.findall("li"):
                 rich = _node_to_rich(li)
-                items.append(ListItem(Paragraph(rich, st_li), bulletType=tipo_elenco))
+                voce = {"bulletType": tipo_elenco}
+                if tipo_elenco == "bullet":
+                    voce["bulletFontName"] = st_li.fontName
+                items.append(ListItem(Paragraph(rich, st_li), **voce))
             if items:
                 opzioni = {"bulletType": tipo_elenco, "leftIndent": 18, "bulletFontSize": 10}
+                if tipo_elenco == "bullet":
+                    # per un elenco puntato reportlab prende il segno da
+                    # «start», non da «bulletText»
+                    opzioni["bulletFontName"] = st_li.fontName
+                    opzioni["start"] = segno_elenco
                 if tipo_elenco != "bullet":
                     opzioni["start"] = inizio_elenco
                     opzioni["bulletFormat"] = "%s."

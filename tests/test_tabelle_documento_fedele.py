@@ -183,3 +183,87 @@ def test_un_modulo_con_poche_parole_non_e_una_scansione():
 
     # niente testo: scansione anche col timbro vettoriale sopra
     assert _e_scansione(0, 90)
+
+
+# ===========================================================================
+# Righe spezzate in colonne
+# ===========================================================================
+
+def _riga_finta(testo: str, x0: float, y0: float, larga: float, corpo: float = 10.0):
+    """Una riga con l'ingombro che avrebbe sulla pagina."""
+    from pct.documento_fedele.modello import Riga, Tratto
+    return Riga(
+        tratti=[Tratto(testo=testo, famiglia="Times New Roman", corpo=corpo)],
+        bbox=(x0, y0, x0 + larga, y0 + corpo * 1.2),
+    )
+
+
+def test_le_celle_di_una_riga_restano_una_riga_sola():
+    """Tre celle affiancate sono una fila, non tre righe una sotto l'altra."""
+    from pct.documento_fedele.paragrafi import _file_affiancate
+
+    gruppi = _file_affiancate([
+        _riga_finta("Tipologia", 54, 300, 90),
+        _riga_finta("Importo", 200, 300.4, 50),
+        _riga_finta("Codice", 300, 299.8, 45),
+        _riga_finta("Totale a pagare", 54, 320, 110),
+    ])
+
+    assert [len(g) for g in gruppi] == [3, 1], (
+        "le tre celle della prima riga dovevano stare insieme"
+    )
+    assert [r.testo for r in gruppi[0]] == ["Tipologia", "Importo", "Codice"]
+
+
+def test_una_sigla_schiacciata_non_fa_una_fila():
+    """Trentadue lettere in sette punti non sono una colonna.
+
+    Certi PDF firmano la pagina con un codice disegnato in un centimetro di
+    riga. Messo in una cella larga quanto occupava, va a capo otto volte: una
+    pagina ne diventa tre. Quel pezzo non deve entrare in una fila.
+    """
+    from pct.documento_fedele.paragrafi import _file_affiancate, _testo_compresso
+
+    sigla = _riga_finta("c0b6b422ef54d05e131ff4bdf5f631b7", 500, 300, 7.0, corpo=3.7)
+    assert _testo_compresso(sigla)
+    assert not _testo_compresso(_riga_finta("Il procedimento r.g.n. 387/2023", 54, 300, 150, corpo=14))
+
+    gruppi = _file_affiancate([
+        _riga_finta("Il procedimento r.g.n. 387/2023", 54, 300, 280, corpo=14),
+        sigla,
+    ])
+    assert [len(g) for g in gruppi] == [1, 1], (
+        "con un pezzo schiacciato la fila non si fa: si torna ai paragrafi"
+    )
+
+
+def test_la_fila_dichiara_le_colonne_dove_stavano():
+    """Ogni cella va dal suo inizio all'inizio di quella dopo."""
+    import re
+
+    from pct.documento_fedele.paragrafi import _fila_affiancata
+
+    gruppo = [
+        _riga_finta("Tipologia", 154, 300, 90),
+        _riga_finta("Importo", 254, 300, 50),
+        _riga_finta("Codice", 354, 300, 45),
+    ]
+    elemento = _fila_affiancata(
+        gruppo, sinistra=54.0, destra=554.0, successivo=_riga_finta("dopo", 54, 313, 40),
+        interlinea=12.0, corpo_base=10.0, famiglia_base="Times New Roman",
+    )
+
+    assert elemento.tipo == "tabella"
+    assert 'data-fila="1"' in elemento.html
+    assert 'data-bordi="0"' in elemento.html, "una fila non ha filetti da disegnare"
+    assert elemento.html.count("<tr>") == 1, "la fila e' una riga sola"
+
+    quote = [float(q) for q in
+             re.findall(r'<td style="width:([0-9.]+)%', elemento.html)]
+    # colonna larga 500: vuoto 100, poi 100, 100, 200
+    assert quote[0] == 20.0, "il vuoto prima della prima cella"
+    assert quote[1:] == [20.0, 20.0, 40.0]
+    assert abs(sum(quote) - 100.0) < 0.5
+
+    # l'altezza della riga e' il passo fino alla riga dopo, non l'interlinea
+    assert "line-height:13pt" in elemento.html

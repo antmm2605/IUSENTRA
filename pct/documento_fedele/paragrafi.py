@@ -111,10 +111,167 @@ def _interlinea_mediana(righe: list[Riga]) -> float:
     return statistics.median(salti) if salti else 14.0
 
 
+#: Quanto due righe devono sovrapporsi in verticale perche' siano la stessa
+#: riga spezzata in colonne, e non due righe una sotto l'altra.
+SOVRAPPOSIZIONE_FILA = 0.6
+
+
+def _file_affiancate(righe: list[Riga]) -> list[list[Riga]]:
+    """Raggruppa le righe che stanno sulla stessa fascia verticale.
+
+    La lettura spezza una riga di testo dove il bianco fra due parole e' tanto
+    largo da essere una colonna: serve a tenere ferma la x di ogni pezzo. Ma
+    quei pezzi sono ancora **una riga sola**, e chi li rimette in colonna uno
+    sotto l'altro allunga la pagina di una riga per ogni cella — un prospetto
+    di sette colonne diventa sette righe, e la pagina ne diventa due.
+    """
+    if not righe:
+        return []
+    gruppi: list[list[Riga]] = [[righe[0]]]
+    for corrente in righe[1:]:
+        ultima = gruppi[-1][-1]
+        alto = max(ultima.bbox[1], corrente.bbox[1])
+        basso = min(ultima.bbox[3], corrente.bbox[3])
+        altezza = min(ultima.bbox[3] - ultima.bbox[1],
+                      corrente.bbox[3] - corrente.bbox[1])
+        affiancata = (
+            altezza > 0
+            and (basso - alto) > altezza * SOVRAPPOSIZIONE_FILA
+            and corrente.bbox[0] > ultima.bbox[2] - Taratura.TOLLERANZA
+        )
+        (gruppi[-1].append(corrente) if affiancata else gruppi.append([corrente]))
+
+    # una fila vale solo se ogni pezzo ci sta nello spazio che occupava
+    fuori: list[list[Riga]] = []
+    for gruppo in gruppi:
+        if len(gruppo) > 1 and any(_testo_compresso(r) for r in gruppo):
+            fuori.extend([r] for r in gruppo)
+        else:
+            fuori.append(gruppo)
+    return fuori
+
+
+#: Quanto spazio serve, come quota del corpo, per un carattere: sotto questa
+#: misura il PDF non sta scrivendo, sta comprimendo. Un carattere stretto sta
+#: intorno a 0,40 del corpo, uno normale a 0,50.
+LARGHEZZA_MINIMA_PER_CARATTERE = 0.25
+
+
+def _testo_compresso(riga: Riga) -> bool:
+    """Vero se quel testo e' schiacciato piu' di quanto un carattere permetta.
+
+    Certi PDF firmano la pagina con una sigla disegnata in un centimetro di
+    riga: trentadue lettere in sette punti, un ventesimo di quello che
+    servirebbe. Non e' testo da leggere, e chi lo rimette in una colonna larga
+    sette punti lo manda a capo otto volte — una pagina ne diventa tre.
+    """
+    caratteri = len(riga.testo.strip())
+    if caratteri < 4 or riga.corpo <= 0:
+        return False
+    larghezza = riga.bbox[2] - riga.bbox[0]
+    return larghezza / caratteri < riga.corpo * LARGHEZZA_MINIMA_PER_CARATTERE
+
+
+def _fila_affiancata(
+    gruppo: list[Riga], sinistra: float, destra: float,
+    successivo: Optional[Riga], interlinea: float, corpo_base: float,
+    famiglia_base: str,
+) -> Elemento:
+    """Le celle di una stessa riga, rese come una tabella di una riga sola.
+
+    Senza filetti e senza margini interni: serve solo a tenere insieme i pezzi
+    e a dare a ognuno la sua colonna. L'altezza della riga e' il passo fino
+    alla riga dopo, come per un paragrafo di una riga sola.
+    """
+    colonna = max(1.0, destra - sinistra)
+    corpo = statistics.median([r.corpo for r in gruppo])
+
+    passo = interlinea
+    if successivo is not None:
+        salto = successivo.bbox[1] - gruppo[0].bbox[1]
+        salto -= Taratura.DISCESA_CARATTERE * (successivo.corpo - corpo)
+        if salto > 0.5:
+            passo = min(salto, _stacco_massimo(interlinea, corpo_base))
+    passo = max(passo, corpo * 0.55)
+
+    # ogni cella va dal suo inizio all'inizio di quella dopo: il testo ricade
+    # dove stava, e l'ultima arriva al margine perche' un numero allineato a
+    # destra ci si appoggia
+    bordi = [max(sinistra, gruppo[0].bbox[0])]
+    for prossima in gruppo[1:]:
+        bordi.append(max(bordi[-1], prossima.bbox[0]))
+    bordi.append(max(bordi[-1], destra))
+
+    pezzi = ['<table class="iu-doc-tabella" data-bordi="0" data-fila="1"'
+             ' style="width:100%">']
+    pezzi.append("<tbody><tr>")
+
+    vuoto = bordi[0] - sinistra
+    if vuoto > Taratura.TOLLERANZA:
+        pezzi.append(f'<td style="width:{vuoto / colonna * 100:.1f}%"></td>')
+
+    for posto, riga in enumerate(gruppo):
+        larga = bordi[posto + 1] - bordi[posto]
+        stile = [f"width:{larga / colonna * 100:.1f}%",
+                 f"line-height:{_pt(passo)}pt"]
+        allinea = _allineamento(riga, bordi[posto], bordi[posto + 1])
+        if allinea in ("center", "right"):
+            stile.append(f"text-align:{allinea}")
+        pezzi.append(f'<td style="{";".join(stile)}">'
+                     f'{_html_tratti(riga.tratti, corpo_base, famiglia_base)}</td>')
+
+    pezzi.append("</tr></tbody></table>")
+    return Elemento(
+        tipo="tabella",
+        html="".join(pezzi),
+        top=gruppo[0].bbox[1],
+        bbox=(bordi[0], gruppo[0].bbox[1],
+              max(r.bbox[2] for r in gruppo), max(r.bbox[3] for r in gruppo)),
+    )
+
+
+def _con_file_affiancate(
+    gruppi: list[list[Riga]], sinistra: float, destra: float,
+    corpo_base: float, famiglia_base: str, seguito: Optional[Riga],
+) -> list[Elemento]:
+    """Il documento ha righe spezzate in colonne: si alternano i due modi.
+
+    I tratti di testo che scendono uno sotto l'altro restano paragrafi — e
+    passano dalla stessa costruzione di sempre, che sa di capoversi, elenchi e
+    rientri. Le righe affiancate diventano una fila. Ognuno dei due sa quale
+    riga viene dopo, cosi' il passo verticale non si perde al passaggio.
+    """
+    interlinea = _interlinea_mediana([r for g in gruppi for r in g])
+    fuori: list[Elemento] = []
+    segmento: list[Riga] = []
+
+    def _dopo(posto: int) -> Optional[Riga]:
+        for gruppo in gruppi[posto + 1:]:
+            return gruppo[0]
+        return seguito
+
+    for posto, gruppo in enumerate(gruppi):
+        if len(gruppo) == 1:
+            segmento.append(gruppo[0])
+            continue
+        if segmento:
+            fuori += costruisci_paragrafi(segmento, sinistra, destra, corpo_base,
+                                          famiglia_base, gruppo[0], interlinea)
+            segmento = []
+        fuori.append(_fila_affiancata(gruppo, sinistra, destra, _dopo(posto),
+                                      interlinea, corpo_base, famiglia_base))
+    if segmento:
+        fuori += costruisci_paragrafi(segmento, sinistra, destra, corpo_base,
+                                      famiglia_base, seguito, interlinea)
+    fuori.sort(key=lambda e: e.top)
+    return fuori
+
+
 def costruisci_paragrafi(
     righe: list[Riga], sinistra: float, destra: float,
     corpo_base: float, famiglia_base: str,
     seguito: Optional[Riga] = None,
+    interlinea_pagina: Optional[float] = None,
 ) -> list[Elemento]:
     """`seguito` e' la prima riga che viene dopo queste, quando non ne fa parte.
 
@@ -125,7 +282,16 @@ def costruisci_paragrafi(
     if not righe:
         return []
 
-    interlinea = _interlinea_mediana(righe)
+    gruppi = _file_affiancate(righe)
+    if any(len(g) > 1 for g in gruppi):
+        return _con_file_affiancate(gruppi, sinistra, destra, corpo_base,
+                                    famiglia_base, seguito)
+
+    # L'interlinea si misura sulla pagina, non sul pezzo: quando una riga
+    # spezzata in colonne taglia il testo in segmenti corti, la mediana di
+    # tre righe non e' l'interlinea dell'atto — e un paragrafo di una riga
+    # sola, che prende il passo da li', casca dodici punti piu' in basso.
+    interlinea = interlinea_pagina or _interlinea_mediana(righe)
     bordo_sx = min(r.bbox[0] for r in righe)
     bordo_dx = max(r.bbox[2] for r in righe)
 

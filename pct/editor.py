@@ -1682,6 +1682,20 @@ def html_to_pdf(
 
             tabella = Table(dati, colWidths=larghezze)
             tabella.setStyle(TableStyle(comandi))
+            # Lo stacco sopra e sotto: una tabella dentro il flusso di un atto
+            # sta a una distanza dichiarata, come un paragrafo. Senza, reportlab
+            # la appoggia alla precedente e tutto quello che viene dopo sale.
+            stile_tabella = el.get("style") or ""
+            for proprieta, attributo in (("margin-top", "spaceBefore"),
+                                         ("margin-bottom", "spaceAfter")):
+                misura = re.search(
+                    rf"(?:^|;)\s*{proprieta}\s*:\s*([0-9.]+)pt", stile_tabella
+                )
+                if misura:
+                    try:
+                        setattr(tabella, attributo, float(misura.group(1)))
+                    except ValueError:
+                        pass
             return tabella
         except Exception:
             return None

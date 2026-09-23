@@ -41,8 +41,18 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("legal_updates_batch") is not None
         registry_tick = scheduler.get_job("scheduler_registry_reload")
         assert registry_tick is not None
+        # Lo scheduler qui e' avviato davvero, e questo job ha un trigger al
+        # minuto: se il test attraversa lo scoccare del minuto, il tick parte
+        # da solo e la ripresa risulta chiamata due volte. Non e' un difetto —
+        # e' il job che fa il suo mestiere — ma faceva rosso un turno su
+        # cinque, e sempre in una scheggia diversa. Si azzera il conto e si
+        # guarda solo quello che fa il tick chiamato qui.
+        riprese.clear()
         registry_tick.func()
-        assert riprese == [app]
+        assert riprese, "il tick del registro non ha ripreso le letture"
+        assert all(ripresa is app for ripresa in riprese), (
+            f"la ripresa e' stata chiamata con un'altra applicazione: {riprese}"
+        )
         assert scheduler.get_job("mailbox_sync_runtime") is not None
         assert scheduler.get_job("poll_pec_cancelleria") is not None
         assert "hour='23'" in str(scheduler.get_job("legal_official_archives_daily").trigger)

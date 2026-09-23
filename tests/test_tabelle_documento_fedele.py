@@ -154,3 +154,32 @@ def test_le_colonne_che_tagliano_una_parola_non_sono_colonne():
     testo = _testo(html)
     assert "Avvocato Roberto Montagnese" in testo, "una parola e' stata tagliata a meta'"
     assert "Con atto di citazione" in testo
+
+
+def test_un_modulo_con_poche_parole_non_e_una_scansione():
+    """Poche parole non bastano a dirlo: conta se la pagina ha tracciati.
+
+    Una nota di iscrizione a ruolo, o un invito al pagamento del tribunale, di
+    parole ne ha poche e ha la griglia disegnata. Trattandola da scansione si
+    perde la griglia insieme alle caselle, e quello che torna nell'editor e' un
+    elenco di frasi sciolte.
+
+    Una scansione, invece, e' una fotografia: dentro ha un disegno solo — la
+    sua immagine — e di righe e rettangoli non ne ha.
+    """
+    from pct.documento_fedele.conversione import _e_scansione
+
+    # tanto testo: non e' una scansione, comunque sia fatta
+    assert not _e_scansione(4000, 0)
+    assert not _e_scansione(4000, 90)
+
+    # poche parole e la griglia disegnata: e' un modulo
+    assert not _e_scansione(25, 90)
+    assert not _e_scansione(25, 4)
+
+    # poche parole e nessun tracciato: e' una fotografia
+    assert _e_scansione(25, 0)
+    assert _e_scansione(25, 3)
+
+    # niente testo: scansione anche col timbro vettoriale sopra
+    assert _e_scansione(0, 90)

@@ -47,6 +47,14 @@ class Taratura:
     #: sotto questo numero di caratteri la pagina e' considerata una scansione
     SOGLIA_SCANSIONE = 40
 
+    #: Quanti tracciati bastano a dire che la pagina non e' una scansione. Una
+    #: scansione e' una fotografia: dentro non ha righe ne' rettangoli, ha un
+    #: disegno solo, l'immagine. Una pagina che di tracciati ne ha tanti e
+    #: qualche parola scritta e' un modulo — un verbale, una nota di
+    #: iscrizione a ruolo — e mandarla al riconoscimento ottico le fa perdere
+    #: la griglia.
+    VETTORI_NON_SCANSIONE = 4
+
     #: fascia alta/bassa della pagina in cui cercare intestazioni e piedi
     FASCIA_TESTATA = 0.10
 

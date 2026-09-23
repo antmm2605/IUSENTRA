@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.370.0 — 23/09/2026
+
+**Un modulo con poche parole non e' una scansione.** Una pagina veniva mandata
+al riconoscimento ottico quando aveva meno di quaranta caratteri di testo. Ma
+una nota di iscrizione a ruolo, un invito al pagamento, un verbale d'udienza
+precompilato: di parole ne hanno poche e hanno **la griglia disegnata**.
+Trattandoli da fotografia si perdeva la griglia insieme alle caselle, e
+nell'editor tornava un elenco di frasi sciolte al posto del modulo.
+
+Una scansione, invece, e' una fotografia: dentro ha un disegno solo — la sua
+immagine — e di righe e rettangoli non ne ha. Quindi la regola ora e' «poco
+testo **e** nessun tracciato», non «poco testo» e basta. Con niente testo resta
+una scansione anche se ci hanno messo sopra un timbro vettoriale.
+
+Era anche il test rosso che si trascinava da giorni: la prova del modulo
+bordato con le caselle vuote — «Nome», «Cognome», «Codice fiscale», venticinque
+caratteri in tutto — finiva nel riconoscimento ottico e perdeva la tabella. Il
+test aveva ragione, e diceva una cosa vera sui documenti dello studio.
+
+**Node 24 c'era gia'**, e ci resta: CI (`node-version: "24"` in `ci.yml`,
+`frontend-ci.yml`, `security-supply-chain.yml`) e immagine (`node:24-slim`).
+L'avviso «Node.js 20 is deprecated» non riguardava il nostro Node ma il
+runtime dichiarato da `actions/upload-artifact@v5`, ed e' gia' risolto salendo
+a `@v7`.
+
 ## 2.369.0 — 23/09/2026
 
 **Il carattere vero del documento, riusato per riscriverlo.** Un atto in

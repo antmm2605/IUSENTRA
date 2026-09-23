@@ -115,6 +115,25 @@ def _alias_incorporato(pila: str) -> str:
     return prima if _RE_ALIAS.match(prima) else ""
 
 
+def _e_scansione(testo_letto: int, tracciati: int) -> bool:
+    """Se questa pagina e' una fotografia, e quindi va letta col riconoscimento.
+
+    Poche parole non bastano a dirlo. Un modulo del tribunale — una nota di
+    iscrizione a ruolo, un invito al pagamento — di parole ne ha poche e ha la
+    griglia disegnata: mandandolo al riconoscimento ottico si perde la griglia
+    insieme alle caselle, e quello che torna e' un elenco di frasi sciolte.
+
+    Una scansione, invece, e' una fotografia: dentro ha un disegno solo,
+    l'immagine, e di righe e rettangoli non ne ha. Quindi: poco testo **e**
+    nessun tracciato.
+    """
+    if testo_letto >= Taratura.SOGLIA_SCANSIONE:
+        return False
+    if testo_letto and tracciati >= Taratura.VETTORI_NON_SCANSIONE:
+        return False
+    return True
+
+
 def _senza_alias(pila: str) -> str:
     """La pila delle famiglie senza il carattere incorporato in testa."""
     voci = [v.strip() for v in str(pila or "").split(",")]
@@ -255,7 +274,13 @@ def converti(
                 for tratto in riga.tratti:
                     famiglie.add(_famiglia_da_pila(tratto.famiglia))
             da_ocr = False
-            scansione = sum(len(r.testo) for r in righe) < Taratura.SOGLIA_SCANSIONE
+            try:
+                tracciati = len(pagina.rettangoli) + len(pagina.linee)
+            except Exception:
+                tracciati = 0
+            scansione = _e_scansione(
+                sum(len(r.testo) for r in righe), tracciati
+            )
             if scansione and ocr_se_scansione and pagine_ocr >= max_pagine_ocr:
                 esito.avvisi.append(
                     f"pagina {indice + 1}: riconoscimento ottico non eseguito "

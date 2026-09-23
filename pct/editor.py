@@ -1856,11 +1856,20 @@ def html_to_pdf(
                 if posto < len(misure_pagine):
                     story.append(NextPageTemplate(f"iupag{posto}"))
                 story.append(PageBreak())
+            quanti_prima = len(story)
             for figlio in el:
                 try:
                     _process(figlio)
                 except Exception:
                     pass
+            # L'ultima pagina di un atto porta spesso solo il numero di
+            # pagina: il piede si disegna sulla tela, non entra nel flusso, e
+            # una pagina che non mette niente nel flusso non viene creata —
+            # reportlab chiude il documento sull'ultimo salto pagina e il
+            # nove diventa otto. Un segnaposto alto un decimo di punto basta
+            # a farla esistere, e non si vede.
+            if len(story) == quanti_prima:
+                story.append(Spacer(1, 0.1))
             return
 
         if tag == "footer" and "iu-doc-piede" in (el.get("class") or ""):

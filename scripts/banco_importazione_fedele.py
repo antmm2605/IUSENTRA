@@ -16,6 +16,21 @@ entro un millimetro da dove erano.
 
 Non tocca niente e non scrive niente nella cartella: lavora su copie
 temporanee.
+
+**Su quali documenti si misura.** La promessa dell'editor vale per gli atti
+che lo studio redige — citazioni, memorie, comparse, note, scritti difensivi:
+quelli che l'avvocato apre per cambiare una data e risalvare. Non vale per i
+documenti che lo studio riceve: provvedimenti del giudice, copertine di ruolo,
+inviti al pagamento della cancelleria, ricevute PEC, scansioni. Quelli si
+archiviano e si leggono, non si riscrivono.
+
+La distinzione non e' un dettaglio di comodo: cambia cosa stiamo misurando. Un
+provvedimento del tribunale e' impaginato da un gestionale che non e' il
+nostro, con colonne di etichette ruotate e moduli a griglia, e inseguirlo
+porta la taratura lontano dagli atti veri. Conviene tenerli in una cartella a
+parte e passarci il banco ogni tanto per un motivo solo: accorgersi se uno di
+loro smette di aprirsi del tutto. Il punteggio che conta e' quello degli atti
+dello studio.
 """
 
 from __future__ import annotations

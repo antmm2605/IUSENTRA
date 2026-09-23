@@ -513,3 +513,43 @@ def test_ogni_pagina_misura_le_righe_sulla_propria_colonna():
                 f"{corpo[0]['top'] - intestazione[0]['top']:.0f} punti dall'intestazione"
             )
     assert re.search(r'data-margine-sinistro="79.4"', html)
+
+
+def test_una_pagina_con_il_solo_numero_esiste_lo_stesso():
+    """L'ultima pagina di un atto spesso non ha testo: solo il suo numero.
+
+    Il piede si disegna sulla tela, non entra nel flusso. Una pagina che nel
+    flusso non mette niente non veniva creata: reportlab chiudeva il documento
+    sull'ultimo salto pagina, e una memoria di nove pagine ne tornava otto.
+    """
+    import io
+
+    import pdfplumber
+
+    from pct.editor import html_to_pdf
+
+    def _pagina(numero: int, corpo: str) -> str:
+        return (
+            f'<section class="iu-doc-pagina" data-pagina="{numero}"'
+            f' data-larghezza="595.3" data-altezza="841.9"'
+            f' data-margine-alto="56.7" data-margine-basso="56.7"'
+            f' data-margine-sinistro="85" data-margine-destro="56.7"'
+            f' data-interlinea="18" data-allineamento="left"'
+            f' style="font-family:\'Times New Roman\', serif;font-size:12.0pt">'
+            f"{corpo}"
+            f'<footer class="iu-doc-piede" data-alto="800">'
+            f'<p style="text-align:center;line-height:12pt">{numero}</p></footer>'
+            f"</section>"
+        )
+
+    # tre pagine, e l'ultima porta solo il numero
+    html = (_pagina(1, "<p>Prima pagina con il suo testo.</p>")
+            + _pagina(2, "<p>Seconda pagina con il suo testo.</p>")
+            + _pagina(3, ""))
+
+    with pdfplumber.open(io.BytesIO(html_to_pdf(html))) as pdf:
+        assert len(pdf.pages) == 3, (
+            f"le pagine erano tre e sono tornate {len(pdf.pages)}"
+        )
+        ultima = (pdf.pages[2].extract_text() or "").strip()
+        assert ultima == "3", f"l'ultima pagina doveva portare il suo numero: {ultima!r}"

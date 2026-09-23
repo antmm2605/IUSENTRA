@@ -114,7 +114,14 @@ def _interlinea_mediana(righe: list[Riga]) -> float:
 def costruisci_paragrafi(
     righe: list[Riga], sinistra: float, destra: float,
     corpo_base: float, famiglia_base: str,
+    seguito: Optional[Riga] = None,
 ) -> list[Elemento]:
+    """`seguito` e' la prima riga che viene dopo queste, quando non ne fa parte.
+
+    Serve alla testata: le sue righe si costruiscono a parte, ma l'ultima deve
+    sapere quanto dista dalla prima riga del corpo, altrimenti il corpo parte
+    dove capita e tutta la pagina scivola con lui.
+    """
     if not righe:
         return []
 
@@ -190,7 +197,7 @@ def costruisci_paragrafi(
                 continue
 
         fuori.append(_paragrafo(blocco, blocchi, indice, sinistra, destra,
-                                corpo_base, famiglia_base, interlinea))
+                                corpo_base, famiglia_base, interlinea, seguito))
         indice += 1
     return fuori
 
@@ -206,12 +213,48 @@ def _allineamento_blocco(blocco: list[Riga], sinistra: float, destra: float) -> 
     return "left"
 
 
+def _centrato_su(blocco: list[Riga], sinistra: float, destra: float):
+    """Il punto su cui le righe di questo blocco sono centrate, se lo sono.
+
+    Una carta intestata e' centrata, ma non sulla colonna del testo: sta in una
+    sua colonna piu' stretta, piu' a sinistra. Riga per riga non si vede — ogni
+    riga sembra solo rientrata di un po' — e il blocco finiva allineato a
+    sinistra con un rientro solo, che e' giusto per una riga e sbagliato per le
+    altre.
+
+    Il segno che le righe sono centrate fra loro e' che i loro centri stanno
+    fermi mentre le lunghezze cambiano: in un blocco allineato a sinistra il
+    centro si sposta della meta' di quanto si accorcia la riga.
+    """
+    if len(blocco) < 2:
+        return None
+    centri = [(r.bbox[0] + r.bbox[2]) / 2 for r in blocco]
+    larghezze = [r.bbox[2] - r.bbox[0] for r in blocco]
+    scarto_centri = max(centri) - min(centri)
+    scarto_larghezze = max(larghezze) - min(larghezze)
+    if scarto_larghezze <= Taratura.RIENTRO_MINIMO * 2:
+        return None                      # righe tutte lunghe uguale: non si sa
+    if scarto_centri > Taratura.CENTRI_FERMI:
+        return None
+    if scarto_centri > scarto_larghezze * 0.25:
+        return None                      # i centri seguono le lunghezze: e' a sinistra
+    centro = statistics.median(centri)
+    # dev'essere un centro suo, non quello della colonna: altrimenti basta
+    # dire "centrato" e non serve stringere la colonna
+    if abs(centro - (sinistra + destra) / 2) < Taratura.RIENTRO_MINIMO:
+        return None
+    return centro
+
+
 def _stile_paragrafo(
     blocco: list[Riga], successivo: Optional[list[Riga]],
     sinistra: float, destra: float, corpo_base: float, interlinea: float,
 ) -> list[str]:
     allinea = _allineamento_blocco(blocco, sinistra, destra)
     corpo = statistics.median([r.corpo for r in blocco])
+    centro_proprio = _centrato_su(blocco, sinistra, destra) if allinea == "left" else None
+    if centro_proprio is not None:
+        allinea = "center"
     stile = [f"text-align:{allinea}"]
 
     # Quanto scende ogni riga, in punti e non in proporzione al corpo: un
@@ -236,7 +279,25 @@ def _stile_paragrafo(
         passo = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO)
     else:
         passo = interlinea
-    stile.append(f"line-height:{_pt(max(passo, corpo * 0.9))}pt")
+    # il pavimento serve solo contro una misura degenere: una carta intestata
+    # sta stretta, nove punti e mezzo con un corpo da dodici, e alzarla al
+    # corpo le fa guadagnare un punto per riga che poi la pagina si porta
+    # dietro fino in fondo
+    stile.append(f"line-height:{_pt(max(passo, corpo * 0.55))}pt")
+
+    if centro_proprio is not None:
+        # si stringe la colonna a destra finche' il suo centro non e' quello
+        # delle righe: cosi' ogni riga, lunga o corta, casca dov'era
+        stretta = destra - (2 * centro_proprio - sinistra)
+        if stretta > Taratura.RIENTRO_MINIMO:
+            stile.append(f"margin-right:{_pt(stretta)}pt")
+        elif stretta < -Taratura.RIENTRO_MINIMO:
+            stile.append(f"margin-left:{_pt(-stretta)}pt")
+        if successivo:
+            extra = min(salto_dopo, interlinea * Taratura.STACCO_MASSIMO) - passo
+            if extra > 0.5:
+                stile.append(f"margin-bottom:{_pt(extra)}pt")
+        return stile
 
     rientro_sx = (min(r.bbox[0] for r in blocco[1:]) if len(blocco) > 1
                   else blocco[0].bbox[0]) - sinistra
@@ -268,9 +329,12 @@ def _stile_paragrafo(
 def _paragrafo(
     blocco: list[Riga], blocchi: list[list[Riga]], indice: int,
     sinistra: float, destra: float, corpo_base: float,
-    famiglia_base: str, interlinea: float,
+    famiglia_base: str, interlinea: float, seguito: Optional[Riga] = None,
 ) -> Elemento:
-    successivo = blocchi[indice + 1] if indice + 1 < len(blocchi) else None
+    if indice + 1 < len(blocchi):
+        successivo = blocchi[indice + 1]
+    else:
+        successivo = [seguito] if seguito is not None else None
     stile = _stile_paragrafo(blocco, successivo, sinistra, destra, corpo_base, interlinea)
     corpo = statistics.median([r.corpo for r in blocco])
     if abs(corpo - corpo_base) >= 0.6:

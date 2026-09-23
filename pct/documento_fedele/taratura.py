@@ -26,6 +26,10 @@ class Taratura:
     #: fine del testo della pagina, e seguirlo sposterebbe tutto il resto
     STACCO_MASSIMO = 3.5
 
+    #: quanto possono ballare i centri delle righe di un blocco perche' si
+    #: possa ancora dire che sono centrate una sull'altra
+    CENTRI_FERMI = 12.0
+
     #: quanto scende sotto la linea di base un carattere, in frazione del
     #: corpo: serve a convertire un salto misurato sul bordo alto delle righe
     #: in un salto fra linee di base (0,217 per i Times, 0,207 per gli Arial)

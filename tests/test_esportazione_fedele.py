@@ -191,3 +191,58 @@ def test_le_righe_giustificate_arrivano_al_margine_destro():
     assert abs(destro_dopo - destro_prima) < 2.9, (
         f"il margine destro e' passato da {destro_prima:.1f} a {destro_dopo:.1f} punti"
     )
+
+
+# ---------------------------------------------------------------- la testata
+
+def _intestato(nome: str = "carta") -> Path:
+    """Un atto di due pagine con la stessa carta intestata in cima a tutte e due."""
+    descrittore, percorso = tempfile.mkstemp(suffix=".pdf")
+    os.close(descrittore)
+    stretto = ParagraphStyle(
+        "carta", parent=getSampleStyleSheet()["Normal"], alignment=TA_CENTER,
+        fontName="Times-Bold", fontSize=11, leading=12, spaceAfter=0,
+    )
+    testata = [
+        Paragraph("STUDIO LEGALE ROSSI", stretto),
+        Paragraph("Via Roma 1 - 70121 Bari", stretto),
+        Paragraph("PEC: studio@pec.it", stretto),
+    ]
+    flow = testata + [Paragraph(PERIODO * 7, _corpo())]
+    flow += [PageBreak()] + testata + [Paragraph(PERIODO * 7, _corpo())]
+    SimpleDocTemplate(percorso, pagesize=A4,
+                      leftMargin=25 * mm, rightMargin=25 * mm,
+                      topMargin=15 * mm, bottomMargin=20 * mm).build(flow)
+    return Path(percorso)
+
+
+def test_la_carta_intestata_non_allunga_la_pagina():
+    """Resa a mano, centrata e senza misure, occupava il doppio dell'altezza.
+
+    Su una citazione di sedici pagine erano trentotto punti di scarto: la
+    testata spingeva giu' il corpo e da li' in fondo non c'era piu' una riga
+    al suo posto.
+    """
+    atto = _intestato()
+    ritorno = None
+    try:
+        ritorno = _giro(atto)
+        with pdfplumber.open(str(atto)) as pdf:
+            righe_prima = sorted({round(p["top"], 1) for p in pdf.pages[0].extract_words()})
+        with pdfplumber.open(str(ritorno)) as pdf:
+            pagine_dopo = len(pdf.pages)
+            righe_dopo = sorted({round(p["top"], 1) for p in pdf.pages[0].extract_words()})
+        esito = confronta(atto, ritorno)
+    finally:
+        atto.unlink(missing_ok=True)
+        if ritorno:
+            ritorno.unlink(missing_ok=True)
+
+    assert pagine_dopo == 2, f"l'atto era di due pagine ed e' tornato di {pagine_dopo}"
+    assert esito.parole_perse_totali == 0, esito.sommario()
+    # la prima riga del corpo, quella subito sotto la testata
+    corpo_prima = righe_prima[3]
+    corpo_dopo = righe_dopo[3]
+    assert abs(corpo_dopo - corpo_prima) < 2.9, (
+        f"sotto la testata il corpo e' passato da {corpo_prima:.1f} a {corpo_dopo:.1f} punti"
+    )

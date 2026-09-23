@@ -141,12 +141,53 @@ def _firma(carattere: dict) -> tuple:
     )
 
 
+#: Segno che pdfplumber ha visto uno spazio prima di questa lettera. Non e'
+#: una misura: e' quello che ha letto la sua segmentazione delle parole, e
+#: batte qualunque soglia geometrica.
+SPAZIO_DICHIARATO = "_iu_spazio_prima"
+
+
+def _segna_gli_spazi(testo: str, caratteri: list[dict]) -> None:
+    """Segna, su ogni lettera, se nel testo della riga era preceduta da spazio.
+
+    pdfplumber la riga la legge giusta — «Patrocinante in Cassazione» — ma la
+    lista delle lettere che restituisce gli spazi non li contiene: ricostruendo
+    il testo da li' le parole escono attaccate. Di solito lo spazio si ritrova
+    dal vuoto fra una lettera e l'altra, ma non sempre si puo': in un carattere
+    calligrafico i riquadri delle lettere si **sovrappongono** di cinque punti,
+    e allora un vuoto non c'e' da nessuna parte.
+
+    Si ripercorrono testo e lettere insieme. Se non si allineano non si segna
+    niente e decide la geometria: meglio nessuno spazio che uno inventato.
+    """
+    if not testo or not caratteri:
+        return
+    segni: list[bool] = []
+    posto = 0
+    for carattere in caratteri:
+        lettera = str(carattere.get("text") or "")
+        vuoti = 0
+        while posto < len(testo) and testo[posto].isspace():
+            vuoti += 1
+            posto += 1
+        if posto >= len(testo) or testo[posto] != lettera[:1]:
+            return
+        posto += len(lettera)
+        segni.append(bool(vuoti))
+    for carattere, segno in zip(caratteri, segni):
+        if segno:
+            carattere[SPAZIO_DICHIARATO] = True
+
+
 def _con_spazi(caratteri: list[dict]) -> list[dict]:
     """Rimette gli spazi fra i caratteri di una riga.
 
     pdfplumber consegna le lettere disegnate, e nei PDF lo spazio quasi mai e'
     una lettera: e' il punto in cui la successiva riparte piu' in la'. Senza
     questo passaggio il testo esce tutto attaccato.
+
+    Dove `_segna_gli_spazi` ha lasciato il suo segno non si guarda il vuoto: lo
+    spazio c'era, anche se le lettere si sovrappongono.
     """
     if not caratteri:
         return []
@@ -156,11 +197,13 @@ def _con_spazi(caratteri: list[dict]) -> list[dict]:
         stacco = float(carattere["x0"]) - float(precedente["x1"])
         corpo = float(carattere.get("size") or precedente.get("size") or 11.0)
         soglia = max(corpo * STACCO_SPAZIO_RELATIVO, STACCO_SPAZIO_MINIMO)
-        if stacco > soglia and str(precedente["text"]) != " ":
+        dichiarato = bool(carattere.get(SPAZIO_DICHIARATO))
+        if (dichiarato or stacco > soglia) and str(precedente["text"]) != " ":
+            estremi = sorted((float(precedente["x1"]), float(carattere["x0"])))
             spazio = dict(precedente)
             spazio["text"] = " "
-            spazio["x0"] = float(precedente["x1"])
-            spazio["x1"] = float(carattere["x0"])
+            spazio["x0"], spazio["x1"] = estremi
+            spazio.pop(SPAZIO_DICHIARATO, None)
             fuori.append(spazio)
         fuori.append(carattere)
     return fuori
@@ -369,6 +412,9 @@ class PaginaSorgente:
             caratteri = [c for c in (riga.get("chars") or []) if c.get("text")]
             if not caratteri:
                 continue
+            # prima di spezzare le colonne, perche' il testo della riga le
+            # attraversa e l'allineamento si fa una volta sola
+            _segna_gli_spazi(str(riga.get("text") or ""), caratteri)
             for pezzo in _separa_colonne(caratteri):
                 span = self._span_da_caratteri(pezzo)
                 if not span:

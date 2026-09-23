@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.363.0 — 23/09/2026
+
+**La carta intestata era quella che spostava tutto.** Le righe di testata —
+quelle che si ripetono uguali in cima a ogni pagina — non passavano dalla
+costruzione dei paragrafi: venivano scritte a mano, centrate e senza nessuna
+misura. Su una citazione di sedici pagine la testata occupava il doppio
+dell'altezza che aveva, spingeva giu' il corpo di **trentotto punti**, e da li'
+in fondo non c'era piu' una riga al suo posto. Adesso testata e piede passano
+dalla stessa strada del corpo, e l'ultima riga della testata sa quanto dista
+dalla prima riga del testo.
+
+**Gli spazi che nessuna soglia poteva trovare.** «Patrocinante in Cassazione»
+tornava «PatrocinanteinCassazione», e non era una soglia tarata male: in
+*French Script MT* il riquadro di ogni lettera sborda di cinque punti su
+quella dopo, quindi fra una parola e l'altra un vuoto non c'e' proprio.
+Cercare lo spazio nella geometria, li', non si puo'. Ma lo spazio pdfplumber lo
+conosce gia' — sta nel testo della riga, e lo toglie solo dall'elenco delle
+lettere. Adesso testo e lettere si ripercorrono insieme e lo spazio si rimette
+dov'era; se i due non si allineano non si segna niente e decide la geometria,
+perche' meglio nessuno spazio che uno inventato. Sulla citazione: **468 righe
+su 468**, e le parole ritrovate passano da 3.696 a 3.728 su 3.731.
+
+**Un blocco centrato sulla sua colonna, non sulla pagina.** La carta intestata
+e' centrata, ma in una colonna sua, piu' stretta e piu' a sinistra: riga per
+riga sembra solo rientrata di un po', e il blocco finiva allineato a sinistra
+con un rientro solo — giusto per una riga, sbagliato per le altre. Il segno che
+le righe sono centrate fra loro e' che i loro centri stanno fermi mentre le
+lunghezze cambiano; in un blocco a sinistra il centro si sposta della meta' di
+quanto si accorcia la riga. Riconosciuto quello, si stringe la colonna finche'
+il suo centro non e' quello delle righe.
+
+E un pavimento tolto: l'interlinea di un capoverso non si alza piu' al corpo
+del carattere. Una carta intestata sta stretta — nove punti e mezzo con un
+corpo da dodici — e alzarla faceva guadagnare un punto per riga, che la pagina
+si portava dietro fino in fondo.
+
+Sul banco dei dodici atti leggibili dello studio: la citazione di sedici pagine
+passa da **0% a 57,7%** di parole entro il millimetro, e lo scarto verticale
+medio da tredici millimetri a due decimi. Il primo atto attraversa la soglia e
+torna depositabile senza revisione. Restano gli scarti orizzontali su certi
+capoversi, ed e' li' che si continua.
+
 ## 2.362.0 — 22/09/2026
 
 **Un atto importato nell'editor e risalvato torna della lunghezza che aveva.**

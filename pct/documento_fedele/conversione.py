@@ -303,19 +303,25 @@ def converti(
                 elementi.sort(key=lambda e: e.top)
                 corpo_html = "".join(e.html for e in elementi)
 
+                # Testata e piede passano dalla stessa costruzione del
+                # corpo: rendendoli a mano, centrati e senza misure, la carta
+                # intestata veniva fuori alta il doppio e spingeva giu' tutta
+                # la pagina — trentotto punti su una citazione di sedici
+                # pagine, cioe' nessuna riga al suo posto.
                 if testa:
                     intestazione = "".join(
-                        f'<p style="text-align:center">'
-                        f'{_html_tratti(r.tratti, corpo_pagina, famiglia_pagina)}</p>'
-                        for r in testa
+                        e.html for e in costruisci_paragrafi(
+                            testa, sinistra, destra, corpo_pagina, famiglia_pagina,
+                            seguito=centro[0] if centro else None,
+                        )
                     )
                     corpo_html = (f'<header class="iu-doc-testata">{intestazione}</header>'
                                   + corpo_html)
                 if piede:
                     fondo = "".join(
-                        f'<p style="text-align:center">'
-                        f'{_html_tratti(r.tratti, corpo_pagina, famiglia_pagina)}</p>'
-                        for r in piede
+                        e.html for e in costruisci_paragrafi(
+                            piede, sinistra, destra, corpo_pagina, famiglia_pagina,
+                        )
                     )
                     corpo_html += f'<footer class="iu-doc-piede">{fondo}</footer>'
 

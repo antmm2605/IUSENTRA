@@ -233,3 +233,58 @@ def test_si_puo_aprire_anche_dai_byte(documento):
     with DocumentoSorgente(documento.read_bytes()) as aperto:
         assert len(aperto) == 1
         assert aperto.pagine[0].righe_grezze()
+
+
+# ---------------------------------------------------------- spazi dichiarati
+
+def _lettere(parole: str, passo: float = 6.0, sovrapposte: float = 0.0):
+    """Le lettere di una riga, senza gli spazi, come le consegna pdfplumber."""
+    caratteri, x = [], 0.0
+    for lettera in parole.replace(" ", ""):
+        caratteri.append({
+            "text": lettera, "x0": x, "x1": x + passo + sovrapposte,
+            "top": 100.0, "bottom": 112.0, "size": 12.0,
+        })
+        x += passo
+    return caratteri
+
+
+def test_lo_spazio_si_ritrova_anche_se_le_lettere_si_sovrappongono():
+    """Nei caratteri calligrafici i riquadri delle lettere si accavallano.
+
+    Con «French Script MT» ogni lettera sborda di cinque punti su quella dopo:
+    di vuoti non ce n'e' nemmeno uno, e cercando lo spazio nella geometria
+    usciva «PatrocinanteinCassazione». Lo spazio pero' pdfplumber lo conosce
+    gia', perche' sta nel testo della riga.
+    """
+    from pct.documento_fedele.sorgente import (
+        SPAZIO_DICHIARATO,
+        _con_spazi,
+        _segna_gli_spazi,
+    )
+
+    caratteri = _lettere("Patrocinante in Cassazione", sovrapposte=5.0)
+    _segna_gli_spazi("Patrocinante in Cassazione", caratteri)
+
+    segnate = [c["text"] for c in caratteri if c.get(SPAZIO_DICHIARATO)]
+    assert segnate == ["i", "C"], "lo spazio non e' stato segnato dove serviva"
+
+    testo = "".join(str(c["text"]) for c in _con_spazi(caratteri))
+    assert testo == "Patrocinante in Cassazione"
+
+
+def test_senza_il_segno_le_lettere_sovrapposte_restano_attaccate():
+    """Il difetto che c'era: nessuna soglia puo' trovare un vuoto che non c'e'."""
+    from pct.documento_fedele.sorgente import _con_spazi
+
+    caratteri = _lettere("Patrocinante in Cassazione", sovrapposte=5.0)
+    assert "".join(str(c["text"]) for c in _con_spazi(caratteri)) == "PatrocinanteinCassazione"
+
+
+def test_se_testo_e_lettere_non_si_allineano_non_si_segna_niente():
+    """Meglio nessuno spazio che uno inventato."""
+    from pct.documento_fedele.sorgente import SPAZIO_DICHIARATO, _segna_gli_spazi
+
+    caratteri = _lettere("Tribunale di Palmi")
+    _segna_gli_spazi("tutt'altra riga", caratteri)
+    assert not any(c.get(SPAZIO_DICHIARATO) for c in caratteri)

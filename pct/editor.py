@@ -936,12 +936,10 @@ def misure_del_documento(html: str) -> dict:
     Se la pagina non li porta — un HTML scritto a mano, un documento vecchio —
     si restituisce un dizionario vuoto e valgono i valori dell'editor.
     """
-    if not html or "iu-doc-pagina" not in html:
+    aperture = _aperture_di_pagina(html)
+    if not aperture:
         return {}
-    apertura = re.search(r"<section[^>]*class=\"[^\"]*iu-doc-pagina[^\"]*\"[^>]*>", html)
-    if not apertura:
-        return {}
-    sezione = apertura.group(0)
+    sezione = aperture[0].group(0)
 
     fuori: dict = {}
     for attributo, chiave in _MISURE_PAGINA.items():
@@ -980,9 +978,24 @@ def misure_del_documento(html: str) -> dict:
     return fuori
 
 
-_RE_SEZIONE_PAGINA = re.compile(
-    r'<section[^>]*class="[^"]*iu-doc-pagina[^"]*"[^>]*>', re.I
-)
+# Il tag di apertura si cerca con un solo quantificatore su una classe di
+# caratteri che esclude '>': ogni posizione ha una sola strada, quindi il
+# tempo resta lineare sulla lunghezza dell'HTML. Cercare la classe dentro
+# l'espressione — `[^>]*class="[^"]*iu-doc-pagina` — darebbe invece due
+# quantificatori sovrapposti, e su un documento costruito apposta il
+# motore ci si arrampicherebbe sopra (CodeQL py/polynomial-redos).
+_RE_APERTURA_SECTION = re.compile(r"<section\b[^>]*>", re.I)
+
+
+def _aperture_di_pagina(html: str) -> list[re.Match[str]]:
+    """I tag `<section>` che aprono una pagina del documento importato."""
+    if not html or "iu-doc-pagina" not in html:
+        return []
+    return [
+        apertura
+        for apertura in _RE_APERTURA_SECTION.finditer(html)
+        if "iu-doc-pagina" in apertura.group(0)
+    ]
 
 
 def misure_delle_pagine(html: str) -> list[dict]:
@@ -993,9 +1006,9 @@ def misure_delle_pagine(html: str) -> list[dict]:
     cinque; a volte cambia anche il corpo. Dare a tutte le misure della prima
     e' il motivo per cui sedici pagine ne diventano diciotto.
     """
-    if not html or "iu-doc-pagina" not in html:
+    aperture = _aperture_di_pagina(html)
+    if not aperture:
         return []
-    aperture = list(_RE_SEZIONE_PAGINA.finditer(html))
     fuori: list[dict] = []
     for posto, apertura in enumerate(aperture):
         sezione = apertura.group(0)

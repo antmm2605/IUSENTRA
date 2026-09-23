@@ -401,3 +401,57 @@ def test_la_tabella_tiene_le_colonne_che_aveva():
             f"«{parola}» e' passata da x={x_prima} a x={x_dopo}"
         )
     assert set(y_prima.values()) and set(y_dopo.values())
+
+
+def test_la_lettura_delle_pagine_non_si_impianta_su_un_html_costruito_apposta():
+    """L'HTML arriva dall'editor, quindi da chi scrive: non puo' far perno.
+
+    Il tag di apertura si cercava con `<section[^>]*class="[^"]*iu-doc-pagina`:
+    due quantificatori che si contendono gli stessi caratteri, e su un
+    documento fatto di `<section` seguito da mille `class="iu-doc-pagina"` il
+    motore prova tutte le divisioni possibili. Il tempo cresce col quadrato:
+    un file di pochi megabyte tiene occupato il processo che deve esportare.
+    Ora la classe si cerca nel tag gia' ritagliato, e il tempo torna lineare.
+    """
+    import time
+
+    from pct.editor import _aperture_di_pagina
+
+    cattivo = "<section" + 'class="iu-doc-pagina"' * 60_000
+    partenza = time.perf_counter()
+    trovate = _aperture_di_pagina(cattivo)
+    durata = time.perf_counter() - partenza
+
+    assert trovate == [], "un tag mai chiuso non apre nessuna pagina"
+    assert durata < 1.0, (
+        f"{len(cattivo)} caratteri hanno impegnato il processo per {durata:.1f}s"
+    )
+
+
+def test_le_pagine_si_leggono_ancora_una_per_una():
+    """Il rimedio non deve costare la lettura vera: due pagine, due misure."""
+    from pct.editor import _aperture_di_pagina
+
+    html = (
+        '<section class="iu-doc-pagina" data-margine-alto="28.3"'
+        ' data-margine-sinistro="85" data-interlinea="18"'
+        ' data-allineamento="justify" style="font-size: 12.0pt">'
+        "<p>Prima</p></section>"
+        '<section class="iu-doc-pagina" data-margine-alto="141.7"'
+        ' data-margine-sinistro="85" data-interlinea="15"'
+        ' style="font-size: 11.0pt"><p>Seconda</p></section>'
+    )
+
+    assert len(_aperture_di_pagina(html)) == 2
+    # una `<section>` che non e' una pagina non deve entrare nel conto
+    assert len(_aperture_di_pagina(
+        '<section class="altro"><p>x</p></section>' + html
+    )) == 2
+
+    pagine = misure_delle_pagine(html)
+    assert [p["alto"] for p in pagine] == [28.3, 141.7]
+    assert [p["corpo"] for p in pagine] == [12.0, 11.0]
+    assert [p["interlinea"] for p in pagine] == [18.0, 15.0]
+
+    documento = misure_del_documento(html)
+    assert documento["font_size_pt"] == 12.0, "il documento prende la prima pagina"

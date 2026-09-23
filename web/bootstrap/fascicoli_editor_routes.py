@@ -395,6 +395,25 @@ def register_fascicoli_editor_routes(
             app.logger.exception("Errore api_editor_pdf_pagina_png: %s", exc)
             return jsonify({"ok": False, "errore": "Pagina PDF non renderizzata."}), 500
 
+    def _nome_della_copia(nome: str, fascicolo) -> str:
+        """Un nome che dice che e' una copia, e che nel fascicolo non c'e' gia'.
+
+        Chiamarla come l'originale, in un fascicolo, e' il modo piu' rapido per
+        depositare quella sbagliata: due file con lo stesso nome e nessuno che
+        si ricorda quale porta gli omissis.
+        """
+        radice = Path(nome or "documento.pdf")
+        gambo = radice.stem or "documento"
+        coda = radice.suffix or ".pdf"
+        presi = {str(getattr(d, "nome", "")).lower()
+                 for d in (getattr(fascicolo, "documenti", None) or [])}
+        proposta = f"{gambo} (copia){coda}"
+        numero = 2
+        while proposta.lower() in presi:
+            proposta = f"{gambo} (copia {numero}){coda}"
+            numero += 1
+        return proposta
+
     @app.route("/api/editor/<id_fasc>/<id_doc>/pdf-overlay", methods=["POST"])
     def api_editor_pdf_overlay(id_fasc, id_doc):
         from web.services.pdf_overlay_editor import PdfOverlayError, apply_pdf_overlays
@@ -417,15 +436,44 @@ def register_fascicoli_editor_routes(
             percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             pdf_bytes = decrypt_doc(percorso.read_bytes())
             contenuto_raw, count = apply_pdf_overlays(pdf_bytes, annotations)
-            doc_salvato = gestore_fascicoli.sostituisci_documento(
-                id_fasc,
-                id_doc,
-                nome_file=documento.nome,
-                contenuto=encrypt_doc(contenuto_raw),
-                caricato_da=utente.username if utente else "editor_pdf",
-                note=f"Modificato con editor PDF sicuro: {count} interventi overlay.",
-                hash_contenuto_sha256=hashlib.sha256(contenuto_raw).hexdigest(),
-            )
+
+            # Dove finisce il risultato. Sovrascrivere e' comodo finche' si
+            # aggiunge un timbro; per una copia da mandare a qualcuno, o per
+            # una versione con gli omissis, l'originale deve restare dov'e'.
+            destinazione = str(body.get("destinazione") or "versione").strip().lower()
+            if destinazione not in ("versione", "copia", "scarica"):
+                destinazione = "versione"
+
+            if destinazione == "scarica":
+                audit("fascicoli.documento.editor_pdf_overlay", "fascicolo", id_fasc,
+                      dettagli=f"doc {id_doc} — {count} interventi scaricati")
+                return send_file(
+                    io.BytesIO(contenuto_raw),
+                    mimetype="application/pdf",
+                    as_attachment=True,
+                    download_name=_nome_della_copia(documento.nome, fascicolo),
+                )
+
+            if destinazione == "copia":
+                doc_salvato = gestore_fascicoli.aggiungi_documento(
+                    id_fasc,
+                    nome_file=_nome_della_copia(documento.nome, fascicolo),
+                    tipo=documento.tipo,
+                    contenuto=encrypt_doc(contenuto_raw),
+                    note=f"Copia con {count} interventi dell'editor PDF sicuro.",
+                    caricato_da=utente.username if utente else "editor_pdf",
+                    hash_contenuto_sha256=hashlib.sha256(contenuto_raw).hexdigest(),
+                )
+            else:
+                doc_salvato = gestore_fascicoli.sostituisci_documento(
+                    id_fasc,
+                    id_doc,
+                    nome_file=documento.nome,
+                    contenuto=encrypt_doc(contenuto_raw),
+                    caricato_da=utente.username if utente else "editor_pdf",
+                    note=f"Modificato con editor PDF sicuro: {count} interventi overlay.",
+                    hash_contenuto_sha256=hashlib.sha256(contenuto_raw).hexdigest(),
+                )
             accoda_ocr(
                 percorso=str(gestore_fascicoli.percorso_documento(id_fasc, doc_salvato.id)),
                 hash_sha256=doc_salvato.hash_sha256,
@@ -447,7 +495,12 @@ def register_fascicoli_editor_routes(
                 {
                     "ok": True,
                     "annotations": count,
-                    "message": "PDF salvato come nuova versione con modifiche native a overlay.",
+                    "message": (
+                        f"Copia creata nel fascicolo: {doc_salvato.nome}."
+                        if destinazione == "copia"
+                        else "PDF salvato come nuova versione con modifiche native a overlay."
+                    ),
+                    "destinazione": destinazione,
                     "documento": {
                         "id": doc_salvato.id,
                         "nome": doc_salvato.nome,

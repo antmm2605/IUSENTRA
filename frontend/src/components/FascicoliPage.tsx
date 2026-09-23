@@ -1917,6 +1917,18 @@ function CatalogazioneDocumentalePanel({
   const [editingDocumentId, setEditingDocumentId] = useState('')
   const [evidenceDocumentId, setEvidenceDocumentId] = useState('')
   const [reviewedEvidenceDocumentIds, setReviewedEvidenceDocumentIds] = useState<Set<string>>(() => new Set())
+  // Il dettaglio della catalogazione nasce chiuso. Su un fascicolo da
+  // sessanta documenti, aperto su tutti, l'elenco diventa un muro: si scorre
+  // per minuti e non si trova piu' il documento che si cercava.
+  const [catalogoAperto, setCatalogoAperto] = useState<Set<string>>(() => new Set())
+  const apriChiudiCatalogo = (documentId: string) => {
+    setCatalogoAperto((current) => {
+      const prossimo = new Set(current)
+      if (prossimo.has(documentId)) prossimo.delete(documentId)
+      else prossimo.add(documentId)
+      return prossimo
+    })
+  }
   const [error, setError] = useState('')
   const [catalogOpen, setCatalogOpen] = useState(true)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -2180,10 +2192,11 @@ function CatalogazioneDocumentalePanel({
             const needsConfirmation = assignment?.status === 'review_required' || assignment?.status === 'proposed'
             const hasEvidence = Boolean(assignment?.evidence?.length)
             const evidenceReviewed = reviewedEvidenceDocumentIds.has(item.document_id)
+            const aperto = catalogoAperto.has(item.document_id)
             return (
               <article key={item.document_id || item.filename} className="iu-fas-catalog__entry">
-                {document ? <DocumentRow doc={{ ...document, ...(assignment ? { type: assignment.document_label, catalogLabel: assignment.document_label, catalogSection: assignment.document_section } : {}) }} hideCatalogSummary onPreview={onPreview} onDone={onDone} onError={onError}/> : null}
-                <div className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`}>
+                {document ? <DocumentRow doc={{ ...document, ...(assignment ? { type: assignment.document_label, catalogLabel: assignment.document_label, catalogSection: assignment.document_section } : {}) }} hideCatalogSummary aperto={aperto} onApriChiudi={() => apriChiudiCatalogo(item.document_id)} onPreview={onPreview} onDone={onDone} onError={onError}/> : null}
+                <div className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`} hidden={document ? !aperto : false}>
                 <FolderSearch2 size={17}/>
                 <div className="iu-fas-catalog__copy">
                   {!document ? <strong>{item.filename || 'Documento del fascicolo'}</strong> : null}
@@ -8321,7 +8334,7 @@ function documentCatalogMethodLabel(doc: FascicoloDocument): { label: string; to
   return { label: 'Da indicizzare: contenuto non letto', tone: 'warning', detail: doc.catalogEvidence || 'Esegui la lettura documentale prima di usare una classificazione.' }
 }
 
-function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = false }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void; hideCatalogSummary?:boolean}) {
+function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = false, aperto, onApriChiudi }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void; hideCatalogSummary?:boolean; aperto?:boolean; onApriChiudi?:()=>void}) {
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState(doc.name)
   const [renameBusy, setRenameBusy] = useState(false)
@@ -8382,6 +8395,18 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
   return (
     <article className="iu-fas-doc-row">
       <div className="iu-fas-doc-icon-cell">
+        {onApriChiudi ? (
+          <button
+            type="button"
+            className="iu-fas-doc-toggle"
+            aria-expanded={Boolean(aperto)}
+            title={aperto ? 'Chiudi il documento' : 'Apri il documento'}
+            aria-label={`${aperto ? 'Chiudi' : 'Apri'} il documento ${doc.name}`}
+            onClick={onApriChiudi}
+          >
+            {aperto ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
+          </button>
+        ) : null}
         <FileText size={18}/>
         {doc.actions.rename ? (
           <button type="button" title="Rinomina file" aria-label={`Rinomina file ${doc.name}`} onClick={startRename}>
@@ -8398,8 +8423,8 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
           {renameMessage ? <small>{renameMessage}</small> : null}
         </form>
       ) : null}
-      <div className="iu-fas-doc-badges"><Badge tone={doc.signed ? doc.statusTone : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : 'Firma non verificata'}</Badge>{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
-      <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-doc-actions" aria-label={`Azioni per ${doc.name}`}>
+      <div className="iu-fas-doc-badges" hidden={onApriChiudi ? !aperto : false}><Badge tone={doc.signed ? doc.statusTone : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : 'Firma non verificata'}</Badge>{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
+      <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-doc-actions" hidden={onApriChiudi ? !aperto : false} aria-label={`Azioni per ${doc.name}`}>
         {doc.actions.acquire ? <a className="iu-fas-doc-action" href={doc.actions.acquire} title="Acquisisci il file dal portale con sessione autenticata o Local Signer"><Download size={15}/><span>Acquisisci dal PST</span></a> : null}
         {doc.actions.preview ? <button type="button" className="iu-fas-doc-action" title="Apri il documento nel lettore interno" aria-label={`Apri ${doc.name} nel lettore interno`} onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/><span>Visualizza</span></button> : null}
         {doc.actions.download ? <DocumentDownloadAction downloadUrl={doc.actions.download} name={doc.name} onDone={onDone} onError={onError}/> : null}

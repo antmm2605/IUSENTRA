@@ -9,6 +9,7 @@ import {
   Bold,
   Check,
   CheckCircle2,
+  Copy,
   Download,
   Eye,
   FileDown,
@@ -74,6 +75,13 @@ type EditorAIDetail = {
   versions: Array<{ id: string; version_number: number; source: string; created_at: string }>
 }
 type PdfEditorTool = 'text' | 'highlight' | 'cover'
+
+//: Sotto questa frazione della pagina il trascinamento non e' un
+//: trascinamento: e' un clic, e vale il riquadro di sempre.
+const MISURA_MINIMA_RIQUADRO = 0.004
+
+//: Il riquadro di chi clicca e basta, in frazione di pagina.
+const RIQUADRO_PREDEFINITO = { width: 0.22, height: 0.045 }
 type PdfAnnotation = {
   id: string
   type: PdfEditorTool
@@ -449,6 +457,8 @@ export function DocumentEditorPage() {
   const [pdfTextColor, setPdfTextColor] = useState('#111827')
   const [pdfFillColor, setPdfFillColor] = useState('#fef3c7')
   const [pdfAnnotations, setPdfAnnotations] = useState<PdfAnnotation[]>([])
+  const [pdfBozza, setPdfBozza] = useState<{ x: number; y: number; x1: number; y1: number } | null>(null)
+  const pdfTrascinaRef = useRef<{ x: number; y: number } | null>(null)
   const [pdfSaving, setPdfSaving] = useState(false)
   const [pdfStatus, setPdfStatus] = useState('')
   const [pdfRevision, setPdfRevision] = useState(Date.now())
@@ -891,47 +901,130 @@ export function DocumentEditorPage() {
       setPdfStatus('Testo aggiunto alla bozza PDF. Salva per creare la nuova versione.')
       return
     }
+    addPdfRiquadro(safeX, safeY, safeX + RIQUADRO_PREDEFINITO.width, safeY + RIQUADRO_PREDEFINITO.height)
+  }
+
+  // Il riquadro si disegna: si preme dove comincia, si trascina fin dove
+  // finisce, si rilascia. Prima era di misura fissa, ancorata al punto del
+  // clic: per coprire una riga di venticinque lettere ne servivano due
+  // sovrapposti, e chi mirava male copriva la parola accanto. Su un atto,
+  // un omissis che non copre e' una cosa seria.
+  const addPdfRiquadro = (x0: number, y0: number, x1: number, y1: number) => {
+    const sinistra = Math.min(0.999, Math.max(0, Math.min(x0, x1)))
+    const alto = Math.min(0.999, Math.max(0, Math.min(y0, y1)))
+    let larghezza = Math.abs(x1 - x0)
+    let altezza = Math.abs(y1 - y0)
+    // un clic secco, senza trascinare, vale come prima: chi clicca e basta
+    // non deve restare senza niente
+    if (larghezza < MISURA_MINIMA_RIQUADRO) larghezza = RIQUADRO_PREDEFINITO.width
+    if (altezza < MISURA_MINIMA_RIQUADRO) altezza = RIQUADRO_PREDEFINITO.height
+    larghezza = Math.min(larghezza, 1 - sinistra)
+    altezza = Math.min(altezza, 1 - alto)
     setPdfAnnotations((current) => [...current, {
       id: newPdfAnnotationId(),
       type: pdfTool,
       page: pdfPage,
-      x: safeX,
-      y: safeY,
-      width: 0.22,
-      height: 0.045,
+      x: sinistra,
+      y: alto,
+      width: larghezza,
+      height: altezza,
       fillColor: pdfTool === 'cover' ? '#ffffff' : pdfFillColor,
     }])
     setPdfStatus(pdfTool === 'cover' ? 'Riquadro coprente aggiunto alla bozza PDF.' : 'Evidenziazione aggiunta alla bozza PDF.')
   }
 
-  const handlePdfPageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const pdfPuntoDa = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect()
-    if (!rect.width || !rect.height) return
-    addPdfAnnotationAt((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height)
+    if (!rect.width || !rect.height) return null
+    return {
+      x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
+    }
   }
 
-  const savePdfOverlay = async () => {
+  const handlePdfPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pdfTool === 'text') return
+    const punto = pdfPuntoDa(event)
+    if (!punto) return
+    event.preventDefault()
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* il browser non lo sostiene */ }
+    pdfTrascinaRef.current = punto
+    setPdfBozza({ x: punto.x, y: punto.y, x1: punto.x, y1: punto.y })
+  }
+
+  const handlePdfPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const inizio = pdfTrascinaRef.current
+    if (!inizio) return
+    const punto = pdfPuntoDa(event)
+    if (!punto) return
+    setPdfBozza({ x: inizio.x, y: inizio.y, x1: punto.x, y1: punto.y })
+  }
+
+  const handlePdfPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const inizio = pdfTrascinaRef.current
+    const punto = pdfPuntoDa(event)
+    pdfTrascinaRef.current = null
+    setPdfBozza(null)
+    if (!punto) return
+    if (pdfTool === 'text' || !inizio) {
+      addPdfAnnotationAt(punto.x, punto.y)
+      return
+    }
+    addPdfRiquadro(inizio.x, inizio.y, punto.x, punto.y)
+  }
+
+  // Dove finisce il risultato. Sovrascrivere va bene finche' si aggiunge un
+  // timbro; per una copia da mandare a qualcuno, o per una versione con gli
+  // omissis, l'originale deve restare dov'e' — e a volte quella copia non
+  // deve nemmeno entrare nel fascicolo, serve solo sul computer.
+  const savePdfOverlay = async (destinazione: 'versione' | 'copia' | 'scarica' = 'versione') => {
     if (!data.endpoints.pdfOverlay || !pdfAnnotations.length || pdfSaving) return
     setPdfSaving(true)
-    setPdfStatus('Salvo il PDF come nuova versione...')
+    setPdfStatus(
+      destinazione === 'copia' ? 'Creo una copia nel fascicolo...'
+        : destinazione === 'scarica' ? 'Preparo la copia da scaricare...'
+        : 'Salvo il PDF come nuova versione...',
+    )
     try {
       const response = await fetch(data.endpoints.pdfOverlay, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
-          Accept: 'application/json',
+          Accept: destinazione === 'scarica' ? 'application/pdf' : 'application/json',
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ annotations: pdfAnnotations }),
+        body: JSON.stringify({ annotations: pdfAnnotations, destinazione }),
       })
+      if (destinazione === 'scarica') {
+        if (!response.ok) {
+          const errore = await response.json().catch(() => ({} as Record<string, unknown>))
+          throw new Error(text(errore.errore || errore.message, 'Copia non scaricata.'))
+        }
+        const blob = await response.blob()
+        const intestazione = response.headers.get('content-disposition') || ''
+        const trovato = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(intestazione)
+        const nome = trovato ? decodeURIComponent(trovato[1]) : `${data.document.name.replace(/\.pdf$/i, '')} (copia).pdf`
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = nome
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(url)
+        setPdfAnnotations([])
+        setPdfStatus(`Copia scaricata: ${nome}. L'originale nel fascicolo non e' stato toccato.`)
+        setStatus({ tone: 'success', label: 'Copia scaricata' })
+        return
+      }
       const payload = await response.json().catch(() => ({} as Record<string, unknown>))
       if (!response.ok || payload.ok === false) throw new Error(text(payload.errore || payload.message, 'PDF non salvato.'))
       setPdfAnnotations([])
       setPdfRevision(Date.now())
       setPdfStatus(text(payload.message, 'PDF salvato come nuova versione.'))
-      setStatus({ tone: 'success', label: 'PDF salvato' })
-      await loadPdfMeta()
+      setStatus({ tone: 'success', label: destinazione === 'copia' ? 'Copia creata' : 'PDF salvato' })
+      if (destinazione !== 'copia') await loadPdfMeta()
     } catch (error) {
       setPdfStatus(error instanceof Error ? error.message : 'PDF non salvato.')
       setStatus({ tone: 'danger', label: 'Modifica PDF non salvata' })
@@ -1241,12 +1334,14 @@ export function DocumentEditorPage() {
               <div className="iu-de-pdf-editor__head">
                 <div>
                   <h2>Modifica PDF sicura</h2>
-                  <p>Gli interventi vengono applicati come overlay sul PDF originale e salvati come nuova versione del documento.</p>
+                  <p>Gli interventi vengono applicati come overlay sul PDF originale. Per coprire o evidenziare tieni premuto dove comincia e trascina fin dove finisce: il riquadro e' quello che disegni. Poi scegli dove va il risultato — una nuova versione di questo documento, una copia nel fascicolo che lascia intatto l'originale, o una copia scaricata sul computer.</p>
                 </div>
                 <div className="iu-de-pdf-editor__actions">
                   <button type="button" onClick={() => setPdfAnnotations((current) => current.slice(0, -1))} disabled={!pdfAnnotations.length || pdfSaving}><Undo2 size={15}/> Annulla ultimo</button>
                   <button type="button" onClick={() => setPdfAnnotations([])} disabled={!pdfAnnotations.length || pdfSaving}><XCircle size={15}/> Svuota</button>
-                  <button type="button" onClick={() => void savePdfOverlay()} disabled={!pdfAnnotations.length || pdfSaving}><Save size={15}/>{pdfSaving ? 'Salvo...' : 'Salva versione PDF'}</button>
+                  <button type="button" onClick={() => void savePdfOverlay('copia')} disabled={!pdfAnnotations.length || pdfSaving} title="Crea un documento nuovo nel fascicolo e lascia intatto l'originale"><Copy size={15}/> Copia nel fascicolo</button>
+                  <button type="button" onClick={() => void savePdfOverlay('scarica')} disabled={!pdfAnnotations.length || pdfSaving} title="Scarica la copia sul computer senza toccare il fascicolo"><Download size={15}/> Scarica copia</button>
+                  <button type="button" onClick={() => void savePdfOverlay('versione')} disabled={!pdfAnnotations.length || pdfSaving}><Save size={15}/>{pdfSaving ? 'Salvo...' : 'Salva versione PDF'}</button>
                 </div>
               </div>
               <div className="iu-de-pdf-editor__toolbar">
@@ -1277,8 +1372,28 @@ export function DocumentEditorPage() {
               {pdfStatus ? <p className="iu-de-pdf-editor__status">{pdfStatus}</p> : null}
               <div className="iu-de-pdf-editor__body">
                 <div className="iu-de-pdf-page">
-                  <div className="iu-de-pdf-page__canvas" role="button" tabIndex={0} onClick={handlePdfPageClick} onKeyDown={(event) => { if (event.key === 'Enter') addPdfAnnotationAt(0.12, 0.12) }}>
+                  <div
+                    className={`iu-de-pdf-page__canvas${pdfTool === 'text' ? '' : ' iu-de-pdf-page__canvas--disegna'}`}
+                    role="button"
+                    tabIndex={0}
+                    onPointerDown={handlePdfPointerDown}
+                    onPointerMove={handlePdfPointerMove}
+                    onPointerUp={handlePdfPointerUp}
+                    onPointerCancel={() => { pdfTrascinaRef.current = null; setPdfBozza(null) }}
+                    onKeyDown={(event) => { if (event.key === 'Enter') addPdfAnnotationAt(0.12, 0.12) }}
+                  >
                     {pdfPageImageUrl ? <img src={pdfPageImageUrl} alt={`Pagina ${pdfPage} del PDF ${doc.name}`}/> : <div className="iu-de-loader"><LoaderCircle className="iu-spin" size={24}/><span>Pagina PDF in caricamento...</span></div>}
+                    {pdfBozza ? (
+                      <span
+                        className="iu-de-pdf-mark iu-de-pdf-mark--bozza"
+                        style={{
+                          left: `${Math.min(pdfBozza.x, pdfBozza.x1) * 100}%`,
+                          top: `${Math.min(pdfBozza.y, pdfBozza.y1) * 100}%`,
+                          width: `${Math.abs(pdfBozza.x1 - pdfBozza.x) * 100}%`,
+                          height: `${Math.abs(pdfBozza.y1 - pdfBozza.y) * 100}%`,
+                        }}
+                      />
+                    ) : null}
                     {pdfCurrentPageAnnotations.map((annotation) => (
                       <span
                         key={annotation.id}

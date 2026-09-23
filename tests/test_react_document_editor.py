@@ -59,6 +59,10 @@ def _seed_documento_pdf(app):
             note="Documento PDF originale",
             tags=["sentenza"],
             caricato_da="operatore",
+            # Senza provenienza il PDF resta in sola consultazione, ed e'
+            # giusto cosi': la modifica e' riservata a quelli dello studio.
+            # Un documento di prova che non la dichiara non prova niente.
+            fonte_documento="CARICAMENTO_STUDIO",
         )
     return fascicolo, documento
 
@@ -94,6 +98,7 @@ def _seed_documento_pdf_valido(app):
             note="PDF originale valido",
             tags=["atto"],
             caricato_da="operatore",
+            fonte_documento="CARICAMENTO_STUDIO",
         )
     return fascicolo, documento
 
@@ -445,3 +450,97 @@ def test_editor_documento_react_contract_statico():
     assert "/importa" in bridge_source
     assert "/pdf-overlay" in bridge_source
     assert 'render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")' in route_source
+
+
+def _percorso_pdf(app, id_fasc: str, id_doc: str) -> Path:
+    """Il file del documento cosi' com'e' sul disco, cifrato e tutto."""
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        return Path(fascicoli.percorso_documento(id_fasc, id_doc))
+
+
+def test_editor_pdf_overlay_crea_una_copia_e_lascia_intatto_l_originale(tmp_path: Path):
+    """La copia e' un documento nuovo: l'originale resta quello che era.
+
+    Sovrascrivere va bene finche' si aggiunge un timbro. Per una versione con
+    gli omissis, o per una copia da mandare a qualcuno, l'originale deve
+    restare dov'e' — e con lo stesso nome, in un fascicolo, non si capisce piu'
+    quale delle due porta le coperture.
+    """
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    fascicolo, documento = _seed_documento_pdf_valido(app)
+    prima = _percorso_pdf(app, fascicolo.id, documento.id).read_bytes()
+
+    with app.test_client() as client:
+        _crea_operatore(app)
+        _login(client)
+        risposta = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/pdf-overlay",
+            json={
+                "destinazione": "copia",
+                "annotations": [
+                    {"type": "cover", "page": 1, "x": 0.1, "y": 0.2,
+                     "width": 0.4, "height": 0.05, "fillColor": "#ffffff"},
+                ],
+            },
+        )
+        payload = risposta.get_json()
+        assert risposta.status_code == 200, payload
+        assert payload["ok"] is True
+        assert payload["destinazione"] == "copia"
+
+        nome_copia = payload["documento"]["nome"]
+        assert nome_copia == "ricorso_originale (copia).pdf", nome_copia
+        assert payload["documento"]["id"] != documento.id, "la copia e' un documento suo"
+
+        # l'originale non e' stato toccato
+        assert _percorso_pdf(app, fascicolo.id, documento.id).read_bytes() == prima
+
+        # e una seconda copia non si chiama come la prima
+        seconda = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/pdf-overlay",
+            json={"destinazione": "copia", "annotations": [
+                {"type": "cover", "page": 1, "x": 0.1, "y": 0.3,
+                 "width": 0.2, "height": 0.05},
+            ]},
+        )
+        assert seconda.get_json()["documento"]["nome"] == "ricorso_originale (copia 2).pdf"
+
+
+def test_editor_pdf_overlay_scarica_la_copia_senza_toccare_il_fascicolo(tmp_path: Path):
+    """A volte la copia serve solo sul computer, e nel fascicolo non deve entrare."""
+    import fitz
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    fascicolo, documento = _seed_documento_pdf_valido(app)
+    prima = _percorso_pdf(app, fascicolo.id, documento.id).read_bytes()
+
+    with app.test_client() as client:
+        _crea_operatore(app)
+        _login(client)
+        risposta = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/pdf-overlay",
+            json={
+                "destinazione": "scarica",
+                "annotations": [
+                    {"type": "text", "page": 1, "x": 0.1, "y": 0.5,
+                     "text": "Copia di lavoro", "fontSizePt": 12, "color": "#111827"},
+                ],
+            },
+        )
+
+    assert risposta.status_code == 200
+    assert risposta.mimetype == "application/pdf"
+    assert "ricorso_originale (copia).pdf" in (risposta.headers.get("Content-Disposition") or "")
+    with fitz.open(stream=risposta.data, filetype="pdf") as pdf:
+        assert "Copia di lavoro" in pdf[0].get_text()
+
+    # nel fascicolo non e' cambiato niente
+    assert _percorso_pdf(app, fascicolo.id, documento.id).read_bytes() == prima
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        assert len(fascicoli.get(fascicolo.id).documenti) == 1

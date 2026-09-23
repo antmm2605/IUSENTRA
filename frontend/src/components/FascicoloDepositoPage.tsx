@@ -3028,7 +3028,6 @@ function DepositPreparePage({ id }:{id:string}) {
   const proofActionBlockedReason = loading || !f.id
     ? 'Caricamento proposta busta in corso.'
     : 'Azione di prova deposito non disponibile.'
-  const requiredDepositDataBlocked = missingRequiredSlots.length > 0 || missingRequiredDepositDataLabels.length > 0
   const actionBlockedReason = !selectedDepositType
     ? 'Scegli il tipo di deposito prima di preparare la prova.'
     : !officeRecipientReady
@@ -3066,6 +3065,13 @@ function DepositPreparePage({ id }:{id:string}) {
   const missingRequiredDocumentSlots = missingRequiredSlots.filter((slot) => (
     !isMainActSlot(slot) && depositReadinessSatisfiesSlot(slot, data.depositReadiness) === null
   ))
+  const requiredDepositDataBlocked = (
+    missingRequiredDocumentSlots.length > 0
+    || missingRequiredDepositDataLabels.length > 0
+    || (proceedingRegistryRequired && !data.depositReadiness.anagraficaProcedimento.ready)
+    || (caseValueRequired && !data.depositReadiness.valoreCausa.ready)
+    || (contributionRequired && !data.depositReadiness.contributoUnificato.ready)
+  )
   const hasRequiredDocumentSlots = sortedSlots.some((slot) => (
     recordBool(slot, 'required')
     && !isMainActSlot(slot)

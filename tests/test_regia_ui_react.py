@@ -426,7 +426,12 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
 
     assert "const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady" in deposit_page
     assert "const proofActionBlocked = loading || !f.id || !dryRunBustaAction" in deposit_page
-    assert "const requiredDepositDataBlocked = missingRequiredSlots.length > 0" in deposit_page
+    assert "const requiredDepositDataBlocked = (" in deposit_page
+    assert "missingRequiredDocumentSlots.length > 0" in deposit_page
+    assert "proceedingRegistryRequired && !data.depositReadiness.anagraficaProcedimento.ready" in deposit_page
+    assert "caseValueRequired && !data.depositReadiness.valoreCausa.ready" in deposit_page
+    assert "contributionRequired && !data.depositReadiness.contributoUnificato.ready" in deposit_page
+    assert "missingRequiredSlots.length > 0 || missingRequiredDepositDataLabels.length > 0" not in deposit_page
     assert deposit_page.count("disabled={proofActionBlocked}") >= 2
     assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla." in deposit_page

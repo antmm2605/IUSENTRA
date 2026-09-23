@@ -246,3 +246,50 @@ def test_la_carta_intestata_non_allunga_la_pagina():
     assert abs(corpo_dopo - corpo_prima) < 2.9, (
         f"sotto la testata il corpo e' passato da {corpo_prima:.1f} a {corpo_dopo:.1f} punti"
     )
+
+
+def test_la_riga_piena_resta_piena_anche_se_e_l_ultima():
+    """Una riga che arrivava al margine destro era giustificata.
+
+    Se il capoverso ne ha una sola — un capitolo di prova, una voce di elenco —
+    chi riscrive il PDF la tratta come riga di chiusura e la lascia corta: le
+    parole si stringono a sinistra e l'ultima finisce a due centimetri da dove
+    stava, anche se la riga e' al suo posto in verticale.
+    """
+    atto = _atto([
+        Paragraph(PERIODO * 2, _corpo()),
+        Paragraph(PERIODO * 2, _corpo()),
+        Paragraph(PERIODO * 2, _corpo()),
+    ])
+    ritorno = None
+    try:
+        ritorno = _giro(atto)
+        with pdfplumber.open(str(atto)) as pdf:
+            prima = pdf.pages[0].extract_words()
+        with pdfplumber.open(str(ritorno)) as pdf:
+            dopo = pdf.pages[0].extract_words()
+    finally:
+        atto.unlink(missing_ok=True)
+        if ritorno:
+            ritorno.unlink(missing_ok=True)
+
+    # il bordo destro delle righe piene: nell'originale finiscono tutte li'
+    def _bordi(parole):
+        per_riga: dict[float, float] = {}
+        for p in parole:
+            chiave = round(p["top"], 0)
+            per_riga[chiave] = max(per_riga.get(chiave, 0.0), p["x1"])
+        return per_riga
+
+    bordi_prima, bordi_dopo = _bordi(prima), _bordi(dopo)
+    destro = max(bordi_prima.values())
+    piene = [y for y, x1 in bordi_prima.items() if destro - x1 < 1.5]
+    assert len(piene) >= 3, "l'atto di prova non ha righe piene da confrontare"
+
+    scostate = [
+        y for y in piene
+        if y in bordi_dopo and abs(bordi_dopo[y] - bordi_prima[y]) > 2.9
+    ]
+    assert not scostate, (
+        f"{len(scostate)} righe piene su {len(piene)} sono tornate corte"
+    )

@@ -205,7 +205,10 @@ def costruisci_paragrafi(
 def _allineamento_blocco(blocco: list[Riga], sinistra: float, destra: float) -> str:
     """Il paragrafo prende l'allineamento della maggioranza delle sue righe,
     escludendo l'ultima (che in un testo giustificato e' sempre corta)."""
-    riferimento = blocco[:-1] if len(blocco) > 2 else blocco
+    # l'ultima riga si esclude sempre, anche quando le righe sono due: in un
+    # capoverso giustificato e' sempre corta, e su due righe il suo voto
+    # pareggiava quello della riga piena e il capoverso finiva a sinistra
+    riferimento = blocco[:-1] if len(blocco) > 1 else blocco
     voti = [_allineamento(r, sinistra, destra) for r in riferimento]
     for candidato in ("justify", "center", "right"):
         if voti.count(candidato) >= max(1, len(voti) * 0.6):
@@ -284,6 +287,13 @@ def _stile_paragrafo(
     # corpo le fa guadagnare un punto per riga che poi la pagina si porta
     # dietro fino in fondo
     stile.append(f"line-height:{_pt(max(passo, corpo * 0.55))}pt")
+
+    # Una riga che nell'originale arriva al margine destro era giustificata,
+    # anche se e' l'ultima del capoverso — o l'unica. Senza dirlo resta corta,
+    # le parole si stringono a sinistra e l'ultima finisce anche a due
+    # centimetri da dove stava.
+    if allinea == "justify" and destra - blocco[-1].bbox[2] <= Taratura.TOLLERANZA:
+        stile.append("text-align-last:justify")
 
     if centro_proprio is not None:
         # si stringe la colonna a destra finche' il suo centro non e' quello

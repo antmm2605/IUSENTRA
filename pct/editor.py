@@ -1306,6 +1306,10 @@ def html_to_pdf(
         if trovato and trovato.group(1) in allineamenti:
             cambi["alignment"] = allineamenti[trovato.group(1)]
 
+        # l'ultima riga del capoverso era piena da bordo a bordo
+        if re.search(r"text-align-last\s*:\s*justify", dichiarato):
+            cambi["justifyLastLine"] = 1
+
         corpo = _misura("font-size")
         if corpo and 4 <= corpo <= 40:
             cambi["fontSize"] = corpo

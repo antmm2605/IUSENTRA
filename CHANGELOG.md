@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.364.0 — 23/09/2026
+
+**La riga piena tornava corta.** Una riga che nell'originale arriva al margine
+destro era giustificata, anche quando e' l'ultima del capoverso — o l'unica,
+come in un capitolo di prova o in una voce di elenco. Chi riscriveva il PDF la
+trattava come riga di chiusura e la lasciava corta: le parole si stringevano a
+sinistra e l'ultima finiva anche a due centimetri da dove stava, pur essendo
+la riga al suo posto in verticale. Adesso il capoverso dichiara
+`text-align-last:justify` quando la sua ultima riga toccava il bordo, e
+l'esportazione la riempie.
+
+E una correzione al conteggio degli allineamenti: **l'ultima riga si esclude
+sempre**, non solo nei capoversi di tre righe o piu'. In un capoverso
+giustificato l'ultima riga e' sempre corta, quindi vota «a sinistra»; su due
+righe il suo voto pareggiava quello della riga piena e il capoverso finiva
+allineato a sinistra, cioe' con le parole tutte spostate.
+
+Sul banco: la citazione di sedici pagine passa da 57,7% a **65,4%** di parole
+entro il millimetro, le due memorie da 34,1% a **40,7%**, e le note di
+trattazione da 89,0% a **94,4%**.
+
 ## 2.363.0 — 23/09/2026
 
 **La carta intestata era quella che spostava tutto.** Le righe di testata —

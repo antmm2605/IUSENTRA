@@ -168,6 +168,41 @@ def build_cades_signed_attrs_der(
     return cms.CMSAttributes(signed_attrs).dump()
 
 
+def _cades_embedded_content_for_parallel_signature(payload: bytes) -> bytes | None:
+    """Restituisce il contenuto di una CAdES cofirmabile, senza aprire buste annidate."""
+    try:
+        from asn1crypto import cms
+
+        content_info = cms.ContentInfo.load(payload, strict=True)
+    except Exception:
+        return None
+    if content_info["content_type"].native != "signed_data":
+        return None
+
+    signed_data = content_info["content"]
+    if not signed_data["signer_infos"] or not signed_data["certificates"]:
+        raise ValueError("La busta CAdES esistente non contiene firme e certificati validi.")
+
+    content = signed_data["encap_content_info"]["content"]
+    if content.native is None:
+        raise ValueError(
+            "La firma CAdES esistente è detached: manca il contenuto da cofirmare."
+        )
+    embedded = content.native
+    if not isinstance(embedded, bytes):
+        embedded = bytes(content.contents)
+
+    try:
+        nested = cms.ContentInfo.load(embedded, strict=True)
+    except Exception:
+        nested = None
+    if nested is not None and nested["content_type"].native == "signed_data":
+        raise ValueError(
+            "La busta CAdES esistente contiene un'altra busta firmata: "
+            "la cofirma annidata non è ammessa."
+        )
+    return embedded
+
 def _build_cades_bes(
     documento: bytes,
     signature_bytes: bytes,
@@ -176,6 +211,7 @@ def _build_cades_bes(
     *,
     detached: bool = False,
     certificate_chain_der: Optional[List[bytes]] = None,
+    existing_cades: bytes | None = None,
 ) -> bytes:
     """
     Costruisce una busta CAdES-BES DER valida a partire da firma, certificato
@@ -226,6 +262,49 @@ def _build_cades_bes(
                 value=_ax509.Certificate.load(raw_certificate),
             )
         )
+
+    if existing_cades is not None:
+        # Specifiche tecniche DGSIA 07/08/2024, art. 15, c. 2:
+        # le firme multiple CAdES sono parallele nella stessa busta .p7m.
+        existing_content = _cades_embedded_content_for_parallel_signature(existing_cades)
+        if existing_content is None:
+            raise ValueError("La busta CAdES esistente non è valida o non è leggibile.")
+        if existing_content != documento:
+            raise ValueError(
+                "La firma aggiuntiva non corrisponde al contenuto della busta CAdES esistente."
+            )
+
+        existing_info = cms.ContentInfo.load(existing_cades, strict=True)
+        existing_signed_data = existing_info["content"]
+        existing_signers = list(existing_signed_data["signer_infos"])
+        existing_signed_data["signer_infos"] = cms.SignerInfos([
+            *[cms.SignerInfo.load(item.dump()) for item in existing_signers],
+            signer_info,
+        ])
+
+        existing_certificates = list(existing_signed_data["certificates"] or [])
+        existing_certificate_ders = {item.dump() for item in existing_certificates}
+        merged_certificates = [
+            cms.CertificateChoices.load(item.dump()) for item in existing_certificates
+        ]
+        for item in certificate_choices:
+            item_der = item.dump()
+            if item_der not in existing_certificate_ders:
+                merged_certificates.append(cms.CertificateChoices.load(item_der))
+                existing_certificate_ders.add(item_der)
+        existing_signed_data["certificates"] = cms.CertificateSet(merged_certificates)
+
+        existing_algorithms = list(existing_signed_data["digest_algorithms"])
+        existing_algorithm_ders = {item.dump() for item in existing_algorithms}
+        sha256_algorithm = algos.DigestAlgorithm({
+            "algorithm": algos.DigestAlgorithmId("sha256"),
+        })
+        if sha256_algorithm.dump() not in existing_algorithm_ders:
+            existing_algorithms.append(sha256_algorithm)
+        existing_signed_data["digest_algorithms"] = cms.DigestAlgorithms([
+            algos.DigestAlgorithm.load(item.dump()) for item in existing_algorithms
+        ])
+        return existing_info.dump()
 
     signed_data = cms.SignedData({
         "version": cms.CMSVersion(1),
@@ -707,7 +786,14 @@ class FirmaPKCS11:
         """
         from pkcs11 import Attribute, ObjectClass, Mechanism
 
-        if not detached:
+        existing_cades: bytes | None = None
+        embedded_content = _cades_embedded_content_for_parallel_signature(documento)
+        if embedded_content is not None:
+            existing_cades = documento
+            documento = embedded_content
+            detached = False
+
+        if not detached and existing_cades is None:
             documento = self._prepare_pdf_for_visible_signature(
                 documento,
                 visible_signature_mode=visible_signature_mode,
@@ -716,7 +802,7 @@ class FirmaPKCS11:
             )
 
         sess = self._get_session()
-        cert = self._get_cert()
+        self._get_cert()
 
         # 1. Recupera la chiave privata dal token
         priv_keys = list(sess.get_objects({Attribute.CLASS: ObjectClass.PRIVATE_KEY}))
@@ -746,8 +832,14 @@ class FirmaPKCS11:
         logger.debug("Firma PKCS#11 completata: %d byte", len(signature_bytes))
 
         # 5. Costruisce la busta PKCS#7 CAdES-BES
-        return self._build_pkcs7(documento, doc_digest, signed_attrs_der,
-                                  signature_bytes, detached)
+        return self._build_pkcs7(
+            documento,
+            doc_digest,
+            signed_attrs_der,
+            signature_bytes,
+            detached,
+            existing_cades=existing_cades,
+        )
 
     @staticmethod
     def _pdf_da_firmare(documento: bytes) -> bytes:
@@ -857,6 +949,8 @@ class FirmaPKCS11:
         signed_attrs_der:   bytes,
         signature_bytes:    bytes,
         detached:           bool,
+        *,
+        existing_cades:     bytes | None = None,
     ) -> bytes:
         """
         Costruisce la busta PKCS#7 SignedData DER conforme a RFC 5652 e CAdES-BES.
@@ -868,6 +962,7 @@ class FirmaPKCS11:
             signed_attrs_der=signed_attrs_der,
             detached=detached,
             certificate_chain_der=self._cert_chain_der,
+            existing_cades=existing_cades,
         )
 
     # ── salva documento firmato (interfaccia FirmaDigitale) ─────────────────

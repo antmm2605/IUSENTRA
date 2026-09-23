@@ -280,6 +280,14 @@ const DEPOSIT_DOCUMENT_ROLE_OPTIONS: Array<{ value: DepositDocumentRole; label: 
   { value: 'fuori_busta', label: 'Fuori busta' },
 ]
 
+const DEPOSIT_PROFESSIONAL_ROLE_OPTIONS: FascicoloDepositInputOption[] = [
+  { value: 'AVV.', label: 'Avvocato' },
+  { value: 'CTU', label: 'Consulente tecnico / perito' },
+  { value: 'CUR', label: 'Curatore' },
+  { value: 'CUS', label: 'Custode' },
+  { value: 'DEL', label: 'Delegato alle vendite' },
+]
+
 type DepositCatalogPreviewState = {
   total: number
   macroareas: DepositCatalogPreviewMacro[]
@@ -287,25 +295,44 @@ type DepositCatalogPreviewState = {
 
 const EMPTY_DEPOSIT_CATALOG_PREVIEW: DepositCatalogPreviewState = { total: 0, macroareas: [] }
 
-function buildDepositCatalogPreviewState(catalog: FascicoloDepositCatalog | undefined): DepositCatalogPreviewState {
-  const entries = (catalog?.entries || []).filter((entry) => Boolean(entry.key))
+function depositProfessionalRoleScope(value: unknown): 'avvocato' | 'curatore' | 'custode' | 'delegato' | 'ctu' {
+  const normalized = depositValueText(value).trim().toUpperCase().replace(/[.\s_-]+/g, '')
+  if (['CUR', 'CURATORE'].includes(normalized)) return 'curatore'
+  if (['CUS', 'CUSTODE'].includes(normalized)) return 'custode'
+  if (['DEL', 'DELEGATO', 'DELEGATOALLEVENDITE'].includes(normalized)) return 'delegato'
+  if (['CTU', 'CONSULENTE', 'PERITO'].includes(normalized)) return 'ctu'
+  return 'avvocato'
+}
+
+function depositCatalogEntryAvailableForRole(entry: FascicoloDepositCatalogEntry, professionalRole: unknown): boolean {
+  const allowed = entry.access.allowedProfessionalRoles
+  return entry.access.selectableByProfessional
+    && !entry.access.systemOnly
+    && allowed.includes(depositProfessionalRoleScope(professionalRole))
+}
+
+function buildDepositCatalogPreviewState(catalog: FascicoloDepositCatalog | undefined, professionalRole: unknown): DepositCatalogPreviewState {
+  const entries = (catalog?.entries || []).filter((entry) => (
+    Boolean(entry.key) && depositCatalogEntryAvailableForRole(entry, professionalRole)
+  ))
   const entryByKey = new Map(entries.map((entry) => [entry.key, entry]))
   const macroareas = (catalog?.macroareas || [])
-    .map((macro) => ({
-      id: macro.id,
-      label: macro.label,
-      total: macro.total,
-      service: macro.service,
-      categories: macro.categories.map((category) => ({
-        id: category.id,
-        label: category.label,
-        total: category.total,
-        options: category.optionKeys.map((key) => entryByKey.get(key)).filter(Boolean) as DepositCatalogPreviewOption[],
-      })).filter((category) => category.options.length > 0),
-    }))
+    .map((macro) => {
+      const categories = macro.categories.map((category) => {
+        const options = category.optionKeys.map((key) => entryByKey.get(key)).filter(Boolean) as DepositCatalogPreviewOption[]
+        return { id: category.id, label: category.label, total: options.length, options }
+      }).filter((category) => category.options.length > 0)
+      return {
+        id: macro.id,
+        label: macro.label,
+        total: categories.reduce((total, category) => total + category.total, 0),
+        service: macro.service,
+        categories,
+      }
+    })
     .filter((macro) => macro.categories.length > 0)
   return {
-    total: catalog?.counts.totalDepositTypes || entries.length,
+    total: entries.length,
     macroareas: macroareas.length ? macroareas : buildDepositCatalogPreviewMacroareasFromEntries(entries),
   }
 }
@@ -775,13 +802,16 @@ function depositSpecificFieldComplete(field: FascicoloDepositInputField, value: 
       return item.fattispecie !== 'Titolo esecutivo' || depositValueText(item.descrizione).trim().length > 0
     })
   }
-  if (field.type === 'beni-pignorati-unep') return depositObjectList(value).length > 0
   if (field.type === 'beni-pignorati' || field.type === 'beni-pignorati-unep') {
     const items = depositObjectList(value)
     const isUnep = field.type === 'beni-pignorati-unep'
+    const allowedMobileAssetCodes = new Set(field.options.map((option) => option.value))
     return items.length > 0 && items.every((item) => {
       if (!depositRequiredValuesPresent(item, ['tipo', 'descrizione'])) return false
-      if (!normaliseText(depositValueText(item.tipo)).includes('immob')) return depositPositiveNumber(item.valore)
+      if (!normaliseText(depositValueText(item.tipo)).includes('immob')) {
+        return allowedMobileAssetCodes.has(depositValueText(item.tipologia))
+          && (isUnep || depositPositiveNumber(item.valore))
+      }
       return depositRequiredValuesPresent(depositObject(item.indirizzo), ['via', 'cap', 'localita', 'provincia'])
         && depositRequiredValuesPresent(depositObject(item.dati_catastali), ['sezione', 'foglio', 'particella'])
         && depositRequiredValuesPresent(item, ['catasto', 'classe'])
@@ -1101,7 +1131,7 @@ function DepositSpecificComplexField({
                 <div className="iu-fas-deposit-specific__grid">
                   <DepositSelectInput label="Tipo" value={item.tipo} options={[{ value: 'mobiliare', label: 'Bene mobile' }, { value: 'immobiliare', label: 'Bene immobile' }]} onChange={(next) => set('tipo', next)} required />
                   <DepositTextInput label="Descrizione" value={item.descrizione} onChange={(next) => set('descrizione', next)} required />
-                  {!isImmobile && isUnep ? <DepositTextInput label="Tipologia" value={item.tipologia} onChange={(next) => set('tipologia', next)} required /> : null}
+                  {!isImmobile ? <DepositSelectInput label="Tipologia ufficiale PST" value={item.tipologia} options={field.options} onChange={(next) => set('tipologia', next)} required /> : null}
                   {!isImmobile ? <DepositTextInput label="Valore (€)" value={item.valore} onChange={(next) => set('valore', next)} required={!isUnep} inputMode="decimal" placeholder="0,00" /> : null}
                   {isImmobile ? <DepositTextInput label="Indirizzo" value={address.via} onChange={(next) => setAddress('via', next)} required /> : null}
                   {isImmobile ? <DepositTextInput label="CAP" value={address.cap} onChange={(next) => setAddress('cap', next)} required inputMode="numeric" /> : null}
@@ -1390,13 +1420,20 @@ function DepositTypePreviewPanel({
   selectedKey,
   onSelect,
   currentProfile,
+  professionalRole,
+  onProfessionalRoleChange,
 }: {
   catalog: FascicoloDepositCatalog
   selectedKey: string
   onSelect: (key: string) => void
   currentProfile: string
+  professionalRole: string
+  onProfessionalRoleChange: (role: string) => void
 }) {
-  const catalogPreview = useMemo(() => buildDepositCatalogPreviewState(catalog), [catalog])
+  const catalogPreview = useMemo(
+    () => buildDepositCatalogPreviewState(catalog, professionalRole),
+    [catalog, professionalRole],
+  )
   const [macroId, setMacroId] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [schemaOpen, setSchemaOpen] = useState(true)
@@ -1468,6 +1505,15 @@ function DepositTypePreviewPanel({
         <Badge tone={sendReady ? 'success' : 'warning'}>{selectedType ? (sendReady ? 'Operativo' : 'Da completare') : 'Da scegliere'}</Badge>
       </header>
       <div className="iu-fas-deposit-type-panel__controls">
+        <label>
+          <span>Qualifica professionista</span>
+          <select value={professionalRole} onChange={(event) => onProfessionalRoleChange(event.currentTarget.value)} required aria-required="true">
+            <option value="">Scegli la qualifica</option>
+            {DEPOSIT_PROFESSIONAL_ROLE_OPTIONS.map((option) => (
+              <option value={option.value} key={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
         <label>
           <span>Macroarea</span>
           <select value={selectedMacro.id} onChange={(event) => selectMacro(event.currentTarget.value)}>
@@ -3149,7 +3195,9 @@ function DepositPreparePage({ id }:{id:string}) {
       index: '2',
       title: 'Documenti',
       state: documentPhaseState,
-      detail: packageDocuments.length === 1 ? '1 documento in busta' : `${packageDocuments.length} documenti in busta`,
+      detail: packageDocuments.length
+        ? `${packageDocuments.length} selezionati · ${selectedAttachmentIds.length} allegati`
+        : 'Nessun documento selezionato',
       tone: documentPhaseTone,
     },
     {
@@ -3437,7 +3485,7 @@ function DepositPreparePage({ id }:{id:string}) {
 
       <section className="iu-fas-cockpit iu-fas-deposit-cockpit" aria-label="Stato deposito">
         <StatCard icon={<ClipboardCheck size={19}/>} label="Controlli deposito" value={`${completedDepositRequirementChecks}/${depositRequirementChecks.length}`} note={incompleteDepositRequirementChecks.length ? `${incompleteDepositRequirementChecks.length} da completare` : 'tutti superati'} tone={preparationTone} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
-        <StatCard icon={<FolderOpen size={19}/>} label="Documenti busta" value={packageDocuments.length} note={packageDocuments.length === 1 ? '1 documento selezionato' : `${packageDocuments.length} documenti selezionati`} tone={packageDocuments.length ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
+        <StatCard icon={<FolderOpen size={19}/>} label="Documenti selezionati" value={packageDocuments.length} note={mainActDocument ? `1 atto principale + ${selectedAttachmentIds.length} allegati` : `${selectedAttachmentIds.length} allegati, atto principale da selezionare`} tone={packageDocuments.length ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
         <StatCard icon={<FileText size={19}/>} label="Atto principale" value={mainActDocument ? 1 : 0} note={mainActDocument?.name || 'da selezionare'} tone={mainActDocument ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
         <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#firma-busta" onClick={openDepositPhase('#firma-busta')}/>
         <StatCard icon={<Landmark size={19}/>} label="Ufficio destinatario" value={officeRecipientReady ? 'OK' : '—'} note={data.depositOffice.name || 'da verificare'} tone={officeRecipientReady ? 'success' : 'warning'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
@@ -3523,6 +3571,13 @@ function DepositPreparePage({ id }:{id:string}) {
                   setSelectedDepositTypeKey(key)
                 }}
                 currentProfile={practiceProfileName}
+                professionalRole={selectedDepositProfessionalRole}
+                onProfessionalRoleChange={(role) => {
+                  setDepositSpecificData((current) => ({ ...current, professionista_ruolo: role }))
+                  if (selectedDepositType && !depositCatalogEntryAvailableForRole(selectedDepositType, role)) {
+                    setSelectedDepositTypeKey('')
+                  }
+                }}
               />
               <DepositSpecificDataForm
                 entry={selectedDepositType}
@@ -3701,7 +3756,12 @@ function DepositPreparePage({ id }:{id:string}) {
             {renderDepositStepControls('firma-busta')}
           </DetailSection>
 
-          <DetailSection id="generazione-busta" title="4. Pacchetto deposito" icon={<FileArchive size={17}/>} open={activeDepositPanel === 'generazione-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('generazione-busta') }} count={packageDocuments.length + 2}>
+          <DetailSection id="generazione-busta" title="4. Pacchetto deposito" icon={<FileArchive size={17}/>} open={activeDepositPanel === 'generazione-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('generazione-busta') }}>
+            <div className="iu-fas-deposit-phase-note">
+              <Badge tone={mainActDocument ? 'info' : 'warning'}>Conteggio pacchetto</Badge>
+              <strong>{packageDocuments.length === 1 ? '1 documento selezionato' : `${packageDocuments.length} documenti selezionati`}</strong>
+              <span>{mainActDocument ? `1 atto principale + ${selectedAttachmentIds.length} allegati selezionati. Il software aggiunge 1 indice documenti e 1 file dati deposito.` : `${selectedAttachmentIds.length} allegati selezionati; scegli l’atto principale. Il software aggiungerà indice e dati deposito.`}</span>
+            </div>
             <div className="iu-fas-package-office">
               <div>
                 <Badge tone={officeRecipientBadgeTone}>{officeRecipientBadgeLabel}</Badge>
@@ -3723,9 +3783,9 @@ function DepositPreparePage({ id }:{id:string}) {
                 {mainActDocument && !mainActDocument.signed ? <small>Firma software prevista prima del pacchetto.</small> : null}
               </article>
               <article>
-                <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati</Badge>
+                <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati selezionati</Badge>
                 <strong>{selectedAttachmentIds.length}</strong>
-                <span>{selectedAttachmentIds.length ? 'Collegati da scelte e prove già presenti.' : 'Nessun allegato selezionato.'}</span>
+                <span>{selectedAttachmentIds.length ? 'Inclusi nei documenti selezionati insieme all’atto principale.' : 'Nessun allegato selezionato.'}</span>
               </article>
               <article>
                 <Badge tone={notificationProofDocuments.length ? 'info' : 'neutral'}>Prova notifica</Badge>
@@ -3816,7 +3876,7 @@ function DepositPreparePage({ id }:{id:string}) {
                   <span>Dati preparati dal software in base al tipo deposito e ai documenti selezionati.</span>
                 </div>
                 <div className="iu-fas-package-docs__actions">
-                  <small>Generato</small>
+                  <small>1 file generato</small>
                 </div>
               </article>
               <article key="package-indice-documenti">
@@ -3834,7 +3894,7 @@ function DepositPreparePage({ id }:{id:string}) {
                     disabled={indicePreviewDisabled}
                     disabledReason={indicePreviewDisabledReason}
                   />
-                  <small>Generato</small>
+                  <small>1 indice generato</small>
                 </div>
               </article>
               {packageDocuments.map((doc) => {
@@ -4314,6 +4374,11 @@ function DepositBatchSignaturePanel({
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
   const signableDocuments = documents.filter((doc) => additionalSignatureIds.includes(doc.id) || requiresPackageSignature(doc))
+  const additionalCadesSignatureRequired = documents.some(
+    (doc) => additionalSignatureIds.includes(doc.id) && studioTelematicoSignatureFormat(doc) === 'cades',
+  )
+  const additionalSignatureMinimumVersion = additionalCadesSignatureRequired ? '1.6.134' : '1.6.129'
+  const additionalSignatureSelectionKey = additionalSignatureIds.join('|')
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
@@ -4406,8 +4471,10 @@ function DepositBatchSignaturePanel({
       onDone(message)
       return undefined
     }
-    if (additionalSignatureIds.length && compareLocalSignerVersions(localSignerVersion, '1.6.129') < 0) {
-      const message = 'Per aggiungere una firma conservando quelle presenti, aggiorna Local Signer alla versione 1.6.129 e poi premi Riverifica.'
+    if (additionalSignatureIds.length && compareLocalSignerVersions(localSignerVersion, additionalSignatureMinimumVersion) < 0) {
+      const message = additionalCadesSignatureRequired
+        ? 'Per aggiungere una firma CAdES parallela conservando quelle presenti, aggiorna Local Signer alla versione 1.6.134 e poi premi Riverifica.'
+        : 'Per aggiungere una firma conservando quelle presenti, aggiorna Local Signer alla versione 1.6.129 e poi premi Riverifica.'
       setError(message)
       throw signatureInputRequired(message)
     }
@@ -4552,7 +4619,7 @@ function DepositBatchSignaturePanel({
   useEffect(() => {
     registerAction?.(signableDocuments.length ? () => signAll(false) : null)
     return () => registerAction?.(null)
-  }, [signableDocuments.length, pin, localSignerCanSign, restartSuggested, localSignerReachable, primaryToken?.slot_id, visibleSignatureMode, visibleSignaturePlace, visibleSignatureDatetimeMode])
+  }, [signableDocuments.length, additionalSignatureSelectionKey, additionalSignatureMinimumVersion, pin, localSignerCanSign, restartSuggested, localSignerReachable, primaryToken?.slot_id, visibleSignatureMode, visibleSignaturePlace, visibleSignatureDatetimeMode])
 
   if (!documents.length) return null
 
@@ -4589,7 +4656,7 @@ function DepositBatchSignaturePanel({
         {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - lettore {displayToken.slot_id}</small> : null}
         {selectedWindowsCertificate?.codice_fiscale && !restartSuggested ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
         {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
-        {additionalSignatureIds.length > 0 && compareLocalSignerVersions(localSignerVersion, '1.6.129') < 0
+        {additionalSignatureIds.length > 0 && compareLocalSignerVersions(localSignerVersion, additionalSignatureMinimumVersion) < 0
           ? <a className="iu-fas-mini-action" href="/polisWeb/local-signer/setup/windows">Aggiorna Local Signer per aggiungere la firma</a> : null}
       </div>
       {restartSuggested || localSignerOutdated || !localSignerReachable ? (

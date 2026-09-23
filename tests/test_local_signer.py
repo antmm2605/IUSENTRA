@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import ast
 import base64
-import io
 import importlib.util
+import io
 import json
 import os
 import subprocess
-import tempfile
 import sys
-import time
+import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -2342,7 +2341,7 @@ def test_firma_inline_usa_privkey_sign_e_signed_attrs(monkeypatch):
     monkeypatch.setitem(sys.modules, "pkcs11", fake_pkcs11)
     monkeypatch.setattr(
         "pct.firma_pkcs11._build_cades_bes",
-        lambda documento, signature_bytes, cert_der, signed_attrs_der=None, detached=False: {
+        lambda documento, signature_bytes, cert_der, signed_attrs_der=None, detached=False, existing_cades=None: {
             "documento": documento,
             "firma": signature_bytes,
             "cert_der": cert_der,
@@ -2353,7 +2352,7 @@ def test_firma_inline_usa_privkey_sign_e_signed_attrs(monkeypatch):
     monkeypatch.setattr(
         module,
         "_build_cades_bes_inline",
-        lambda documento, firma, cert_der, signed_attrs_der=None: {
+        lambda documento, firma, cert_der, signed_attrs_der=None, existing_cades=None: {
             "documento": documento,
             "firma": firma,
             "cert_der": cert_der,
@@ -6489,6 +6488,141 @@ def test_extract_cades_refresh_source_rifiuta_file_non_firmato():
         module._extract_cades_refresh_source(b"%PDF-1.4\n%%EOF")
 
 
+
+def test_build_cades_bes_inline_aggiunge_firma_parallela_verificabile():
+    from asn1crypto import cms
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    module = _load_local_signer()
+    documento = b"%PDF-1.4\n% cofirma parallela\n%%EOF"
+
+    def material(common_name):
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+            .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+            .sign(key, hashes.SHA256())
+        )
+        return key, cert.public_bytes(serialization.Encoding.DER)
+
+    first_key, first_cert = material("AVVOCATO PRIMO")
+    first_attrs = module._build_signed_attrs_der_inline(documento, cert_der=first_cert)
+    first_signature = first_key.sign(first_attrs, padding.PKCS1v15(), hashes.SHA256())
+    first = module._build_cades_bes_inline(
+        documento,
+        first_signature,
+        first_cert,
+        signed_attrs_der=first_attrs,
+    )
+
+    second_key, second_cert = material("AVVOCATO SECONDO")
+    second_attrs = module._build_signed_attrs_der_inline(documento, cert_der=second_cert)
+    second_signature = second_key.sign(second_attrs, padding.PKCS1v15(), hashes.SHA256())
+    second = module._build_cades_bes_inline(
+        documento,
+        second_signature,
+        second_cert,
+        signed_attrs_der=second_attrs,
+        existing_cades=first,
+    )
+
+    first_data = cms.ContentInfo.load(first, strict=True)["content"]
+    second_data = cms.ContentInfo.load(second, strict=True)["content"]
+    assert second_data["encap_content_info"]["content"].native == documento
+    assert len(first_data["signer_infos"]) == 1
+    assert len(second_data["signer_infos"]) == 2
+    assert len(second_data["certificates"]) == 2
+    assert {item.dump() for item in first_data["signer_infos"]}.issubset(
+        {item.dump() for item in second_data["signer_infos"]}
+    )
+    from pct.document_signature_state import verify_additional_signature
+
+    verify_additional_signature(first, second, "ricorso.pdf.p7m")
+
+
+def test_firma_windows_store_cades_conserva_firma_esistente_in_parallelo(monkeypatch):
+    from asn1crypto import cms
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    module = _load_local_signer()
+    documento = b"%PDF-1.4\n% firma Windows parallela\n%%EOF"
+
+    def material(common_name):
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+            .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+            .sign(key, hashes.SHA256())
+        )
+        return key, cert.public_bytes(serialization.Encoding.DER)
+
+    first_key, first_cert = material("AVVOCATO PRIMO")
+    first_attrs = module._build_signed_attrs_der_inline(documento, cert_der=first_cert)
+    first = module._build_cades_bes_inline(
+        documento,
+        first_key.sign(first_attrs, padding.PKCS1v15(), hashes.SHA256()),
+        first_cert,
+        signed_attrs_der=first_attrs,
+    )
+    second_key, second_cert = material("AVVOCATO SECONDO")
+    monkeypatch.setattr(
+        module,
+        "_windows_certificato_per_firma",
+        lambda cert_thumbprint=None: {
+            "thumbprint": "B" * 40,
+            "soggetto": "AVVOCATO SECONDO",
+            "emittente": "Test CA",
+            "scadenza": "2027-09-23",
+        },
+    )
+    monkeypatch.setattr(module, "_windows_store_certificate_der", lambda _thumbprint: second_cert)
+    monkeypatch.setattr(
+        module,
+        "_windows_store_sign_raw",
+        lambda _thumbprint, payload, _digest: second_key.sign(
+            payload, padding.PKCS1v15(), hashes.SHA256()
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_documento_firma_visibile",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("La cofirma non deve modificare il contenuto già firmato")
+        ),
+    )
+
+    second, info = module._firma_documento_windows_store(first)
+
+    first_data = cms.ContentInfo.load(first, strict=True)["content"]
+    second_data = cms.ContentInfo.load(second, strict=True)["content"]
+    assert second_data["encap_content_info"]["content"].native == documento
+    assert len(second_data["signer_infos"]) == 2
+    assert {item.dump() for item in first_data["signer_infos"]}.issubset(
+        {item.dump() for item in second_data["signer_infos"]}
+    )
+    assert info["windows_cert_store"] is True
+    from pct.document_signature_state import verify_additional_signature
+
+    verify_additional_signature(first, second, "ricorso.pdf.p7m")
+
 def test_pick_preferred_windows_cert_privilegia_aruba_auth():
     module = _load_local_signer()
 
@@ -6766,7 +6900,6 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     captured = {}
     orig_trova = module._trova_libreria
     orig_firma = module._firma_documento
-    orig_extract = module._extract_cades_refresh_source
 
     class _FakeHandler:
         def __init__(self, payload):
@@ -6781,7 +6914,6 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
 
     try:
         module._trova_libreria = lambda: "fake.dll"
-        module._extract_cades_refresh_source = lambda payload: b"doc-2-originale"
 
         def _fake_firma_documento(
             lib_path,
@@ -6844,7 +6976,6 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     finally:
         module._trova_libreria = orig_trova
         module._firma_documento = orig_firma
-        module._extract_cades_refresh_source = orig_extract
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
@@ -6860,7 +6991,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert calls[1]["pin"] == ""
     assert calls[1]["pin_session_id"] == "sess-1"
     assert calls[1]["formato"] == "cades"
-    assert calls[1]["documento"] == b"doc-2-originale"
+    assert calls[1]["documento"] == b"doc-2.p7m"
     assert calls[1]["visible_signature_mode"] == "nessuna"
     assert captured["payload"]["risultati"][1]["replaced_existing_signature"] is True
     assert calls[1]["visible_signature_place"] == "Taurianova"
@@ -6871,12 +7002,14 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
 def test_firma_inline_pades_mantiene_distinto_certificato_token(monkeypatch):
     module = _load_local_signer()
 
-    from asn1crypto import keys, x509 as asn1_x509
+    from asn1crypto import keys
+    from asn1crypto import x509 as asn1_x509
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.x509.oid import NameOID
-    from pyhanko.sign import pkcs11 as pyhanko_pkcs11, signers
+    from pyhanko.sign import pkcs11 as pyhanko_pkcs11
+    from pyhanko.sign import signers
     from pyhanko_certvalidator.registry import SimpleCertificateStore
     from reportlab.pdfgen import canvas
 

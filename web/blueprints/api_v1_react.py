@@ -8800,12 +8800,20 @@ def fascicolo_react_documento_editor(id_fasc: str, id_doc: str):
 def telematico_depositi_catalogo():
     try:
         key = str(request.args.get("key") or "").strip()
+        professional_role = str(request.args.get("professional_role") or "AVV.").strip()
         if key:
-            entry = resolve_deposit_type_payload(key)
+            entry = resolve_deposit_type_payload(key, professional_role=professional_role)
             if not entry:
-                return jsonify({"ok": False, "mock_fallback": False, "errore": "Tipo deposito non trovato."}), 404
+                return jsonify({"ok": False, "mock_fallback": False, "errore": "Tipo deposito non disponibile per il ruolo professionale selezionato."}), 404
             return jsonify({"ok": True, "mock_fallback": False, "entry": entry})
-        return jsonify({"ok": True, "mock_fallback": False, "catalog": build_deposit_catalog_payload(include_entries=True)})
+        return jsonify({
+            "ok": True,
+            "mock_fallback": False,
+            "catalog": build_deposit_catalog_payload(
+                include_entries=True,
+                professional_role=professional_role,
+            ),
+        })
     except Exception as exc:
         current_app.logger.exception("Catalogo depositi telematici non disponibile: %s", exc)
         return jsonify({"ok": False, "mock_fallback": False, "errore": "Catalogo depositi telematici non disponibile."}), 500

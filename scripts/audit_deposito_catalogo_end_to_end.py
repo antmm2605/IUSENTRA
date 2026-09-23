@@ -33,29 +33,30 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from pct.busta import BustaTelematica, DatiBusta
+from pct.cassazione_atti_v21 import (
+    CASSAZIONE_ATTI_V21_SOURCE,
+    MOTIVI_REVOCAZIONE,
+    ROOT_OSCURAMENTO,
+)
+from pct.cassazione_atti_v21 import (
+    ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI,
+)
 from pct.datiatto_xsd import validate_datiatto_xml
-from pct.firma import estrai_contenuto_cades, profilo_cades_bes_valido
-from pct.firma_pkcs11 import _build_cades_bes
-from pct.pst_cifratura import crea_certificato_cifratura_test
 from pct.deposito_studio_telematico_contract import studio_telematico_document_requirements
 from pct.deposito_studio_telematico_validation import (
     CATALOG_UNREACHABLE_RULE_IDS,
     FOLLOW_UP_MESSAGE_RULE_IDS,
     validate_studio_telematico_deposit,
 )
-from pct.cassazione_atti_v21 import (
-    CASSAZIONE_ATTI_V21_SOURCE,
-    MOTIVI_REVOCAZIONE,
-    ROOT_OSCURAMENTO,
-    ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI,
-)
 from pct.deposito_telematico_catalogo import CASSAZIONE_ROOT_ELIMINATA_STATUS, list_deposit_catalog_entries
+from pct.firma import estrai_contenuto_cades, profilo_cades_bes_valido
+from pct.firma_pkcs11 import _build_cades_bes
+from pct.pst_cifratura import crea_certificato_cifratura_test
 from web.services.deposito_anagrafica_ministeriale import (
     _anagrafica_procedimento_deposito_xml,
     _namespace_anagrafica_per_generatore,
 )
 from web.services.deposito_catalogo_runtime import deposito_catalogo_destination
-
 
 QUICKORGANIZER_LISTA_UFFICI_CANDIDATES = (
     Path(r"D:\QuickOrganizer\ListaUfficiGiudiziari.xml"),
@@ -554,7 +555,7 @@ DATIATTO_EXTRA_BASE: dict[str, Any] = {
         {
             "id": "bene-audit",
             "tipo": "mobile",
-            "tipologia": "ARREDI",
+            "tipologia": "3",
             "descrizione": "Bene mobile per audit",
             "valore": "1200,00",
             "diritti": [{"tipo": "1", "quota": "1"}],
@@ -752,6 +753,7 @@ def _test_cades_identity() -> tuple[Any, bytes]:
 def _sign_cades_bes(payload: bytes, identity: tuple[Any, bytes]) -> bytes:
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.asymmetric import padding
+
     from tools.local_signer import (
         _build_signed_attrs_der_inline,
         _ensure_signing_certificate_v2_oid_registered,
@@ -843,7 +845,7 @@ def _extra_for(entry: dict[str, Any]) -> dict[str, Any]:
             {
                 "tipo": "mobile",
                 "descrizione": "Bene mobile sintetico per audit",
-                "tipologia": "ARREDI",
+                "tipologia": "3",
                 "valore": "1200,00",
             }
         ]
@@ -853,7 +855,7 @@ def _extra_for(entry: dict[str, Any]) -> dict[str, Any]:
             {
                 "tipo": "mobile",
                 "descrizione": "Credito sintetico presso terzi",
-                "tipologia": "CREDITO",
+                "tipologia": "23",
                 "valore": "1200,00",
             }
         ]

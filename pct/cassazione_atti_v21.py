@@ -1,14 +1,13 @@
-"""Atti di parte Cassazione presenti negli schemi v21 e non ancora nel catalogo depositi.
+"""Atti di parte Cassazione presenti negli schemi v21 e aggiunti al catalogo depositi.
 
 Fonte tecnica: PST, XSD_Cassazione_20260227 (Processo Telematico di legittimita - Schemi XSD
 v.21), `docs/specs/ministero/parte/parte_v21/Parte-cassazione.xsd`. Le radici sono state
 introdotte dal Ministero con le versioni v14 (L. 197/2022), v16 (revocazione, errore materiale,
 udienza) e v17 (oscuramento). Il catalogo Studio Telematico decompilato non le contiene.
 
-PREDISPOSTI, NON ATTIVI: per decisione dello studio questi atti restano fuori dal catalogo e dal
-generatore finche `CASSAZIONE_ATTI_V21_ATTIVI` e False. L'attivazione richiede la checklist in
-`docs/specs/ministero/CASSAZIONE_ATTI_V21_PREDISPOSTI.md` (prova sulla macchina reale e
-aggiornamento delle attese dell'audit del catalogo).
+I tredici atti sono attivi dal 23/09/2026: appartengono al pacchetto v21 già in esercizio e i
+generatori dedicati sono verificati contro `Parte-cassazione.xsd`. L'interruttore resta come
+presidio di emergenza fail-closed e non abilita alcuna radice priva di generatore completo.
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-CASSAZIONE_ATTI_V21_ATTIVI = False
+CASSAZIONE_ATTI_V21_ATTIVI = True
 CASSAZIONE_ATTI_V21_SOURCE = "xsd_ministeriale_cassazione_v21"
 CASSAZIONE_ATTI_V21_NON_ATTIVI_MESSAGE = (
     "Questo atto della Corte di Cassazione è predisposto ma non ancora attivato in IUSENTRA: "
@@ -31,9 +30,20 @@ ROOTS_ISTANZE = frozenset(
         "IstanzaTrattazionePubblicaUdienza",
     }
 )
+ROOTS_PROCEDIMENTO_SEMPLICE = ROOTS_ISTANZE | frozenset(
+    {
+        "DefinizioneAgevolataL130_2022",
+        "IstanzaSospensioneL130_2022",
+        "IstanzaTrattazioneL130_2022",
+        "RicorsoPerSaltum",
+    }
+)
+ROOT_RICHIESTA_VISIBILITA = "AttoRichiestaVisibilita"
 ROOT_OSCURAMENTO = "IstanzaOscuramento"
 ROOTS_INTRODUTTIVI = frozenset({"RicorsoErroreMateriale", "RevocazioneExArt391ter", "RevocazioneExArt391quater"})
-CASSAZIONE_ATTI_V21_ROOTS = ROOTS_ISTANZE | ROOTS_INTRODUTTIVI | {ROOT_OSCURAMENTO}
+CASSAZIONE_ATTI_V21_ROOTS = (
+    ROOTS_PROCEDIMENTO_SEMPLICE | ROOTS_INTRODUTTIVI | {ROOT_OSCURAMENTO, ROOT_RICHIESTA_VISIBILITA}
+)
 
 # Motivi di revocazione (tipi-base.xsd v21): contenitore, elemento e tipo del numero di articolo.
 MOTIVI_REVOCAZIONE = {
@@ -46,6 +56,42 @@ _CATEGORIA_INTRO = "Atti introduttivi"
 
 # Definizione di ogni atto: radice, variabile, etichetta, categoria, base normativa e dati richiesti.
 _ATTI: tuple[dict[str, Any], ...] = (
+    {
+        "root": ROOT_RICHIESTA_VISIBILITA,
+        "text": "Richiesta di visibilità del fascicolo (Corte di Cassazione)",
+        "categoria": _CATEGORIA_ENDO,
+        "base_normativa": "Schema XSD Cassazione v21, atto AttoRichiestaVisibilita",
+        "schema_da": "v11",
+        "richiesta_visibilita": True,
+    },
+    {
+        "root": "RicorsoPerSaltum",
+        "text": "Ricorso per saltum (Corte di Cassazione)",
+        "categoria": _CATEGORIA_ENDO,
+        "base_normativa": "c.p.c., art. 360, secondo comma (ricorso omisso medio)",
+        "schema_da": "v3",
+    },
+    {
+        "root": "DefinizioneAgevolataL130_2022",
+        "text": "Definizione agevolata ex art. 5 L. 130/2022 (Corte di Cassazione)",
+        "categoria": _CATEGORIA_ENDO,
+        "base_normativa": "L. 31 agosto 2022, n. 130, art. 5",
+        "schema_da": "v12",
+    },
+    {
+        "root": "IstanzaTrattazioneL130_2022",
+        "text": "Istanza di trattazione ex art. 5 L. 130/2022 (Corte di Cassazione)",
+        "categoria": _CATEGORIA_ENDO,
+        "base_normativa": "L. 31 agosto 2022, n. 130, art. 5",
+        "schema_da": "v12",
+    },
+    {
+        "root": "IstanzaSospensioneL130_2022",
+        "text": "Istanza di sospensione ex art. 5 L. 130/2022 (Corte di Cassazione)",
+        "categoria": _CATEGORIA_ENDO,
+        "base_normativa": "L. 31 agosto 2022, n. 130, art. 5",
+        "schema_da": "v12",
+    },
     {
         "root": "IstanzaSospensioneExL197_2022",
         "text": "Istanza di sospensione per definizione agevolata ex L. 197/2022 (Corte di Cassazione)",
@@ -131,6 +177,8 @@ def _raw_entry(atto: dict[str, Any]) -> dict[str, Any]:
         if introduttivo
         else ["RiferimentoProcedimento"]
     )
+    if atto.get("richiesta_visibilita"):
+        required.append("AnagraficaProcedimento")
     return {
         "key": f"Parte_CASSAZIONE::{root}",
         "text": atto["text"],
@@ -148,7 +196,11 @@ def _raw_entry(atto: dict[str, Any]) -> dict[str, Any]:
         "deposit_menu_flags": (
             {"VisualizzaAnagraficaProcedimento": True, "needProcura": True, "needContributoUnificato": True}
             if introduttivo
-            else {}
+            else (
+                {"VisualizzaAnagraficaProcedimento": True, "needProcura": True}
+                if atto.get("richiesta_visibilita")
+                else {}
+            )
         ),
         "deposit_fixed_object_codes": [],
         "deposit_controls": [],
@@ -193,7 +245,9 @@ __all__ = [
     "MOTIVI_REVOCAZIONE",
     "ROOTS_INTRODUTTIVI",
     "ROOTS_ISTANZE",
+    "ROOTS_PROCEDIMENTO_SEMPLICE",
     "ROOT_OSCURAMENTO",
+    "ROOT_RICHIESTA_VISIBILITA",
     "cassazione_atti_v21_attivi",
     "cassazione_atti_v21_raw_entries",
     "catalog_raw_with_cassazione_v21",

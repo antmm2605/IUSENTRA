@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import sys
 import io
+import sys
 from datetime import UTC, datetime, timedelta
 
 import pct.firma_pkcs11 as firma_pkcs11
@@ -131,12 +131,14 @@ def test_salva_documento_firmato_pkcs11_pdf_usa_cades_contenente_pdf(tmp_path, m
 
 
 def test_firma_pades_pkcs11_riproduce_profilo_studio_telematico(monkeypatch):
-    from asn1crypto import keys, x509 as asn1_x509
+    from asn1crypto import keys
+    from asn1crypto import x509 as asn1_x509
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.x509.oid import NameOID
-    from pyhanko.sign import pkcs11 as pyhanko_pkcs11, signers
+    from pyhanko.sign import pkcs11 as pyhanko_pkcs11
+    from pyhanko.sign import signers
     from pyhanko_certvalidator.registry import SimpleCertificateStore
     from pypdf import PdfReader
     from reportlab.pdfgen import canvas
@@ -327,3 +329,153 @@ def test_pkcs11_prepare_pdf_for_visible_signature_usa_get_cert_senza_self_cert(m
     assert captured["issuer"] == "CA Test"
     assert captured["serial"] == "ABC123"
     assert captured["mode"] == "basso_sinistra"
+
+
+def test_cades_additional_signature_is_parallel_and_preserves_previous_signature():
+    import hashlib
+
+    from asn1crypto import cms
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.document_signature_state import verify_additional_signature
+
+    def certificate(common_name: str):
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        name = x509.Name([
+            x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+        ])
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(name)
+            .issuer_name(name)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+            .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+            .sign(key, hashes.SHA256())
+        )
+        return key, cert.public_bytes(serialization.Encoding.DER)
+
+    def sign(content: bytes, key, cert_der: bytes, *, existing: bytes | None = None):
+        signed_attrs = firma_pkcs11.build_cades_signed_attrs_der(
+            hashlib.sha256(content).digest(),
+            cert_der=cert_der,
+        )
+        signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+        return firma_pkcs11._build_cades_bes(
+            documento=content,
+            signature_bytes=signature,
+            cert_der=cert_der,
+            signed_attrs_der=signed_attrs,
+            detached=False,
+            existing_cades=existing,
+        )
+
+    content = b"%PDF-1.4\nDocumento con due firmatari\n%%EOF"
+    first_key, first_cert = certificate("Primo firmatario")
+    second_key, second_cert = certificate("Avvocato cofirmatario")
+    first_envelope = sign(content, first_key, first_cert)
+    first_info = cms.ContentInfo.load(first_envelope, strict=True)
+    preserved_signer = first_info["content"]["signer_infos"][0].dump()
+
+    parallel_envelope = sign(
+        content,
+        second_key,
+        second_cert,
+        existing=first_envelope,
+    )
+    parallel_info = cms.ContentInfo.load(parallel_envelope, strict=True)
+    parallel_data = parallel_info["content"]
+
+    assert parallel_data["encap_content_info"]["content"].native == content
+    assert len(parallel_data["signer_infos"]) == 2
+    assert len(parallel_data["certificates"]) == 2
+    assert preserved_signer in {
+        signer.dump() for signer in parallel_data["signer_infos"]
+    }
+    assert parallel_data["encap_content_info"]["content"].native != first_envelope
+    verify_additional_signature(
+        first_envelope,
+        parallel_envelope,
+        "documento.pdf.p7m",
+    )
+
+
+def test_cades_additional_signature_rejects_nested_container():
+    import hashlib
+
+    import pytest
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.document_signature_state import verify_additional_signature
+
+    def certificate(common_name: str):
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        name = x509.Name([
+            x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+        ])
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(name)
+            .issuer_name(name)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+            .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+            .sign(key, hashes.SHA256())
+        )
+        return key, cert.public_bytes(serialization.Encoding.DER)
+
+    def sign(content: bytes, key, cert_der: bytes):
+        signed_attrs = firma_pkcs11.build_cades_signed_attrs_der(
+            hashlib.sha256(content).digest(),
+            cert_der=cert_der,
+        )
+        signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+        return firma_pkcs11._build_cades_bes(
+            documento=content,
+            signature_bytes=signature,
+            cert_der=cert_der,
+            signed_attrs_der=signed_attrs,
+            detached=False,
+        )
+
+    content = b"%PDF-1.4\nDocumento da non annidare\n%%EOF"
+    first_key, first_cert = certificate("Primo firmatario")
+    second_key, second_cert = certificate("Secondo firmatario")
+    first_envelope = sign(content, first_key, first_cert)
+    nested_envelope = sign(first_envelope, second_key, second_cert)
+
+    with pytest.raises(ValueError, match="annidata|stesso contenuto"):
+        verify_additional_signature(
+            first_envelope,
+            nested_envelope,
+            "documento.pdf.p7m",
+        )
+
+    nested_attrs = firma_pkcs11.build_cades_signed_attrs_der(
+        hashlib.sha256(first_envelope).digest(),
+        cert_der=second_cert,
+    )
+    nested_signature = second_key.sign(
+        nested_attrs,
+        padding.PKCS1v15(),
+        hashes.SHA256(),
+    )
+    with pytest.raises(ValueError, match="annidata"):
+        firma_pkcs11._build_cades_bes(
+            documento=first_envelope,
+            signature_bytes=nested_signature,
+            cert_der=second_cert,
+            signed_attrs_der=nested_attrs,
+            detached=False,
+            existing_cades=nested_envelope,
+        )

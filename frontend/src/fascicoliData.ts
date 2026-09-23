@@ -865,6 +865,11 @@ export type FascicoloDepositCatalogEntry = {
     tipo_deposito_telematico_policy: string
     tipo_deposito_telematico_schema_status: string
   }
+  access: {
+    allowedProfessionalRoles: string[]
+    systemOnly: boolean
+    selectableByProfessional: boolean
+  }
   rules: {
     policy_code: string
     channel_kind: string
@@ -2609,6 +2614,7 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
     const quickOrganizer = isRecord(item.quickOrganizer ?? item.quick_organizer) ? (item.quickOrganizer ?? item.quick_organizer) as Record<string, unknown> : {}
     const payload = isRecord(item.payload) ? item.payload : {}
     const rules = isRecord(item.rules) ? item.rules : {}
+    const access = isRecord(item.access) ? item.access : {}
     const schema = isRecord(item.schema) ? item.schema : {}
     const ui = isRecord(item.ui) ? item.ui : {}
     return {
@@ -2638,6 +2644,11 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
         tipo_deposito_telematico_registry: text(payload.tipo_deposito_telematico_registry),
         tipo_deposito_telematico_policy: text(payload.tipo_deposito_telematico_policy),
         tipo_deposito_telematico_schema_status: text(payload.tipo_deposito_telematico_schema_status),
+      },
+      access: {
+        allowedProfessionalRoles: asArray(access.allowedProfessionalRoles ?? access.allowed_professional_roles).map((role) => text(role)).filter(Boolean),
+        systemOnly: bool(access.systemOnly ?? access.system_only),
+        selectableByProfessional: bool(access.selectableByProfessional ?? access.selectable_by_professional),
       },
       rules: {
         policy_code: text(rules.policy_code),

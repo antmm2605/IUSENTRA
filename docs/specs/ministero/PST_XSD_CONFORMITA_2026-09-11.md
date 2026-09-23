@@ -55,14 +55,14 @@ Differenze verificate tra pacchetti:
    "sarà dato successivo avviso…", "verrà resa nota con una successiva comunicazione") non venivano
    riconosciute; aggiunte con test.
 
-## Punti ancora aperti
+## Stato aggiornato al 23/09/2026
 
-- **Beni mobili pignorati**: `tipologia` è testo libero (predefinito `MOBILI`), mentre la
-  `Codifiche_Beni_Mobili.pdf` del PST prevede codici numerici. Da implementare con la tabella ufficiale salvata qui.
-- **Codifica errori controlli 1.0**: `legal_deposit/errors/rejection_analyzer.py` non mappa i messaggi
-  FATAL/ERROR/WARN ministeriali.
-- **Atti Cassazione v21 non ancora nel catalogo**: predisposti e non attivi dalla 2.287.0 (catalogo, campi,
-  generatore e test), in attesa di attivazione da parte dello studio. Dettaglio e checklist in
+- **Beni mobili pignorati**: risolto con la tabella ufficiale `Codifiche_Beni_Mobili.pdf`
+  (SHA-256 `C081D674CCA3F965DF54B38A564F44A66E8DC5552A92454BF6C1129C6C834DC5`): 27 codici per le esecuzioni individuali e 485 per le procedure concorsuali; testo libero rifiutato.
+- **Codifica errori controlli 1.0**: risolta con la tabella ufficiale FATAL/ERROR/WARN
+  (SHA-256 `B20C0046FD0000166BC69CB8F1DAB8981A43CE94D913E803BA032D7CE09EBC6B`); i messaggi futuri non catalogati restano fail-closed.
+- **Atti Cassazione v21 aggiuntivi**: i tredici atti sono attivi tecnicamente dal 23/09/2026
+  (catalogo, campi, generatore e test XSD v21). Dettaglio e verifiche in
   `CASSAZIONE_ATTI_V21_PREDISPOSTI.md`.
 - **Anticipazioni non salvate**: `XSD_SICI_20260720.zip` e `XSD_Cassazione_20260907.zip` vanno salvati in
   `xsd/` (hash sopra) prima di usarli nel codice; alla messa in esercizio aggiornare catalogo e versione attiva.

@@ -1,0 +1,2570 @@
+{
+  "version": "PST-ACC705-2026-09-23",
+  "title": "Codifica beni mobili",
+  "sourcePage": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC705",
+  "sourceDocument": "https://pst.giustizia.it/PST/resources/cms/documents/Codifiche_Beni_Mobili.pdf",
+  "sourceFile": "docs/specs/ministero/Codifiche_Beni_Mobili.pdf",
+  "sourceSha256": "C081D674CCA3F965DF54B38A564F44A66E8DC5552A92454BF6C1129C6C834DC5",
+  "entries": [
+    {
+      "code": "0",
+      "label": "Compendio pignorato",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "1",
+      "label": "Mobili ed arredi per casa",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "2",
+      "label": "Denaro no contanti (assegni, etc)",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "3",
+      "label": "Mobili ed arredi per ufficio",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "4",
+      "label": "Elettrodomestici",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "5",
+      "label": "Preziosi",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "6",
+      "label": "Denaro contante",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "7",
+      "label": "Titoli (Azioni, BOT, CCT etc )",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "8",
+      "label": "Autovetture",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "9",
+      "label": "Automezzi commerciali",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "10",
+      "label": "Motoveicolo o ciclomotore",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "11",
+      "label": "Attrezzature industriali",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "12",
+      "label": "Nave o galleggiante",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "13",
+      "label": "Aereomobile",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "14",
+      "label": "Attrezzature mediche",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "15",
+      "label": "Computer ed attr. informatica",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "16",
+      "label": "Merce deperibile",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "17",
+      "label": "Merci varie non deperibili",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "18",
+      "label": "Marchio",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "19",
+      "label": "Brevetto",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "20",
+      "label": "Oggetti d'arte o antiquariato",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "21",
+      "label": "Abbigliamento e calzature",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "22",
+      "label": "Attrezzature varie",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "23",
+      "label": "Credito unitario",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "24",
+      "label": "Credito periodico",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "25",
+      "label": "Emolumenti",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "26",
+      "label": "Bene generico",
+      "scope": "esecuzioni_individuali"
+    },
+    {
+      "code": "101",
+      "label": "Macchine per la lavorazione del legno e simili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.1",
+      "label": "Bordatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.10",
+      "label": "Incollatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.11",
+      "label": "Levigatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.12",
+      "label": "Linee di sezionamento tronchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.13",
+      "label": "Macinatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.14",
+      "label": "Pialle",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.15",
+      "label": "Presse",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.16",
+      "label": "Scorniciatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.17",
+      "label": "Segatronchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.18",
+      "label": "Seghe",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.19",
+      "label": "Sezionatrici multilame",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.2",
+      "label": "Calibratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.20",
+      "label": "Silos",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.21",
+      "label": "Spalmatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.22",
+      "label": "Squadratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.23",
+      "label": "Strettoi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.24",
+      "label": "Stuccatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.25",
+      "label": "Tenonatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.26",
+      "label": "Tinteggiatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.27",
+      "label": "Trapani",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.28",
+      "label": "Velatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.3",
+      "label": "Caricatori - centratori per tronchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.4",
+      "label": "Cavatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.5",
+      "label": "Chiodatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.6",
+      "label": "Combinate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.7",
+      "label": "Essicatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.8",
+      "label": "Fresatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.9",
+      "label": "Impianti aspirazione - insilaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "101.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102",
+      "label": "Macchine per la lavorazione dei metalli",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.1",
+      "label": "Alesatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.10",
+      "label": "Maschiatrici-filettatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.11",
+      "label": "Piallatrici-limatrici-stozzatrici-brocciatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.12",
+      "label": "Rettificatrici-lappatrici-molatrici-affilatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.13",
+      "label": "Segatrici-troncatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.14",
+      "label": "Torni a controllo numerico",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.15",
+      "label": "Torni speciali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.16",
+      "label": "Torni tradizionali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.17",
+      "label": "Trapani-foratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.18",
+      "label": "Bobinatrici-avvolgitrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.19",
+      "label": "Cesoie-tranciatrici-punzonatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.2",
+      "label": "Alesatrici-fresatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.20",
+      "label": "Chiodatrici-ribaditrici-bordatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.21",
+      "label": "Combinate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.22",
+      "label": "Curvatrici-raddrizzatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.23",
+      "label": "Laminatoi-calandre",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.24",
+      "label": "Presse-magli",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.25",
+      "label": "Presse piegatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.26",
+      "label": "Roditrici-refilatrici-contornatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.27",
+      "label": "Rullatrici-godronatrici-profilatrici-aggraffatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.28",
+      "label": "Trafilatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.3",
+      "label": "Centri di lavoro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.4",
+      "label": "Compressori -essicatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.5",
+      "label": "Fresatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.6",
+      "label": "Macch. per ruote dentate ( Dentatrici- sbarbatrici, ecc.)",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.7",
+      "label": "Macchine combinate per metalli",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.8",
+      "label": "Macchine per controllo e misura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.9",
+      "label": "Macchine per prova materiali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "102.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103",
+      "label": "Macchinari per la saldatura, trattamenti termici, speciali e fonderia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.1",
+      "label": "Forni a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.2",
+      "label": "Forni elettrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.3",
+      "label": "Impianti galvanici (cromatura-nichelatura)",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.4",
+      "label": "Macchine e impianti per terre da fonderia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.5",
+      "label": "Pallinatrici-sabbiatrici-granigliatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.6",
+      "label": "Saldatrici a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.7",
+      "label": "Saldatrici elettriche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "103.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104",
+      "label": "Macchinari per la lavorazione della plastica e gomma",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.1",
+      "label": "Estrusori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.2",
+      "label": "Granulatori macinatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.3",
+      "label": "Macchine ad iniezione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.4",
+      "label": "Macchine per produzione sacchi e borse",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.5",
+      "label": "Macchine per soffiaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.6",
+      "label": "Macchine termoformatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.7",
+      "label": "Mescolatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.8",
+      "label": "Saldatrici elettroniche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.9",
+      "label": "Taglierine",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "104.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105",
+      "label": "Macchinari per la termotecnica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1",
+      "label": "Caldaie",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1.1",
+      "label": "olio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1.2",
+      "label": "gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1.3",
+      "label": "polverino di carbone",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1.4",
+      "label": "condensazione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1.5",
+      "label": "biomassa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.1.999",
+      "label": "altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2",
+      "label": "Generatori di aria calda",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2.1",
+      "label": "olio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2.2",
+      "label": "gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2.3",
+      "label": "polverino di carbone",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2.4",
+      "label": "condensazione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2.5",
+      "label": "biomassa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.2.999",
+      "label": "altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3",
+      "label": "Generatori di vapore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3.1",
+      "label": "olio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3.2",
+      "label": "gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3.3",
+      "label": "polverino di carbone",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3.4",
+      "label": "condensazione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3.5",
+      "label": "biomassa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.3.999",
+      "label": "altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.4",
+      "label": "Gruppi frigoriferi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.4.1",
+      "label": "semplice compressione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.4.2",
+      "label": "doppia compressione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.4.999",
+      "label": "altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "105.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106",
+      "label": "Macchinari per l'agricoltura, foreste e pesca",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.1",
+      "label": "Imballatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.2",
+      "label": "Macchine per la raccolta frutta e ortaggi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.3",
+      "label": "Macchine per manutenzione e pulizia fossi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.4",
+      "label": "Mietitrebbiatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.5",
+      "label": "Rimorchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.6",
+      "label": "Trattori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.7",
+      "label": "Macc. per lavorazioni second. del terreno",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.8",
+      "label": "Pompe centrifughe",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "106.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107",
+      "label": "Macchinari per l'estrazione di combustibili e minerali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.1",
+      "label": "Carotatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.2",
+      "label": "Dumper",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.3",
+      "label": "Macchine per la trivellazione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.4",
+      "label": "Perforatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.5",
+      "label": "Pompa columetrica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.6",
+      "label": "Compressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.7",
+      "label": "Ventilatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "107.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108",
+      "label": "Macchinari per l'industria alimentare e conserviera",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.1",
+      "label": "Alimentatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.10",
+      "label": "Lavatrici e selezionatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.11",
+      "label": "Macchine dosatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.12",
+      "label": "Macchine industriali produzione gelato",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.13",
+      "label": "Pastorizzatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.14",
+      "label": "Sfogliatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.15",
+      "label": "Sterilizzatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.16",
+      "label": "Pompe centrifughe",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.17",
+      "label": "Pompe volumetriche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.18",
+      "label": "Compressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.19",
+      "label": "Ventilatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.2",
+      "label": "Autoclavi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.20",
+      "label": "Turbina a vapore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.21",
+      "label": "Turbina a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.22",
+      "label": "Gruppo combinato",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.23",
+      "label": "Scambiatore di calore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.24",
+      "label": "Condensatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.3",
+      "label": "Celle frigorifere",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.4",
+      "label": "Centrifughe con paniere > 500 mm",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.5",
+      "label": "Forni a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.6",
+      "label": "Forni elettrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.7",
+      "label": "Friggitrici industriali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.8",
+      "label": "Impastatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.9",
+      "label": "Impianti e macchine lavorazione frutta",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "108.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109",
+      "label": "Macchinari per la produzione ed il trattamento della carta",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.1",
+      "label": "Arrotolatori e srotolatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.2",
+      "label": "Impilatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.3",
+      "label": "Macchine per cartoncino e cartone",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.4",
+      "label": "Presse disidratatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.5",
+      "label": "Raffinatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.6",
+      "label": "Ribobinatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "109.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110",
+      "label": "Macchinari per l'industria poligrafica, editoriale ed affini",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.1",
+      "label": "Cucitrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.10",
+      "label": "Perforatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.11",
+      "label": "Piegatrici incollatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.12",
+      "label": "Ribobinatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.13",
+      "label": "Scanner",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.14",
+      "label": "Spalmatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.15",
+      "label": "Taglierine",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.2",
+      "label": "Fotocompositrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.3",
+      "label": "Fustellatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.4",
+      "label": "Legatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.5",
+      "label": "Macchine accoppiatrici per modulo continuo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.6",
+      "label": "Macchine per stampa flexografica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.7",
+      "label": "Macchine per stampa off-set",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.8",
+      "label": "Macchine per stampa rotocalco",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.9",
+      "label": "Macchine per stampa serigrafica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "110.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111",
+      "label": "Macchinari per la lavorazione della ceramica, dei laterizi, del vetro e del marmo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C01",
+      "label": "Forni di cottura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C02",
+      "label": "Forni per l'essicazione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C03",
+      "label": "Impianti abbattimento polveri",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C04",
+      "label": "Impianti depurazione acque",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C05",
+      "label": "Linee e macchine di scelta",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C06",
+      "label": "Linee e macchine per la verniciatura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.C07",
+      "label": "Presse",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.L01",
+      "label": "Forni per la cottura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.L02",
+      "label": "Impianti preparazione argilla - mattoniere",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.L99",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.M01",
+      "label": "Foratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.M02",
+      "label": "Fresatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.M03",
+      "label": "Lucidatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.M04",
+      "label": "Scolpitrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.M05",
+      "label": "Segatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.M06",
+      "label": "Tagliablocchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.V01",
+      "label": "Bisellatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.V02",
+      "label": "Lavatrici - asciugatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.V03",
+      "label": "Macchine per la lavorazione del vetro piano",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.V04",
+      "label": "Macchine produzione Vetri isolanti",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.V05",
+      "label": "Macchine produzione vetri stratificati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.V06",
+      "label": "Tavoli per il taglio computerizzati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z01",
+      "label": "Pompe centrifughe",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z02",
+      "label": "Pompe volumetriche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z03",
+      "label": "Compressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z04",
+      "label": "Ventilatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z05",
+      "label": "Turbina a vapore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z06",
+      "label": "Turbina a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z07",
+      "label": "Gruppi combinati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z08",
+      "label": "Scambiatori di calore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.Z09",
+      "label": "Condensatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "111.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112",
+      "label": "Macchinari per l'industria chimica e farmaceutica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.1",
+      "label": "Autoclavi - essicatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.10",
+      "label": "Turbina a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.11",
+      "label": "Gruppi combinati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.12",
+      "label": "Scambiatori di calore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.13",
+      "label": "Condensatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.2",
+      "label": "Blisteratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.3",
+      "label": "Impianto condizionamento aria sterile",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.4",
+      "label": "Sterilizzatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.5",
+      "label": "Pompe centrifughe",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.6",
+      "label": "Pompe volumetriche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.7",
+      "label": "Compressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.8",
+      "label": "Ventilatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.9",
+      "label": "Turbina a vapore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "112.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113",
+      "label": "Elettromedicali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.1",
+      "label": "Apparecchi e strumenti diagnostici - analisi cliniche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.10",
+      "label": "Riuniti odontoiatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.2",
+      "label": "Apparecchi e strumenti per chirurgia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.3",
+      "label": "Apparecchi e strumenti per fisioterapia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.4",
+      "label": "Apparecchi e strumenti per traumatologia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.5",
+      "label": "Apparecchi per cardiologia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.6",
+      "label": "Apparecchi per laboratori di ricerca",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.7",
+      "label": "Apparecchi per radiologia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.8",
+      "label": "Ecofomografi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.9",
+      "label": "Fotometri",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "113.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114",
+      "label": "Macchinari per il confezionamento e l'imballaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.1",
+      "label": "Capsulatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.10",
+      "label": "Riempitrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.2",
+      "label": "Chiuditrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.3",
+      "label": "Confezionatrici film termoretrabili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.4",
+      "label": "Confezionatrici sottovuoto",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.5",
+      "label": "Etichettatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.6",
+      "label": "Formatrici di scatole",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.7",
+      "label": "Imbustatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.8",
+      "label": "Palettizzatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.9",
+      "label": "Reggiatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "114.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115",
+      "label": "Apparecchi per l'industria ottica, fotocinematografica e radiotelevisiva",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.1",
+      "label": "Apparecchiature per optometria",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.1",
+      "label": "Amplificatori e Casse acustiche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.2",
+      "label": "Impianti di acustica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.2",
+      "label": "Ingranditori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.3",
+      "label": "Mixer",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.3",
+      "label": "Linee di sviluppo e stampa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.4",
+      "label": "Riproduttori - sviluppatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.4",
+      "label": "Proiettori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.5",
+      "label": "Registratori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.6",
+      "label": "Telecamere fisse",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.7",
+      "label": "Telecamere portatili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.8",
+      "label": "Videoregistratori professionali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "115.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116",
+      "label": "Macchinari per l'industria tessile, lavorazione pelli e calzature",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.1",
+      "label": "Bottali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.10",
+      "label": "Spaccatrici - trance",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.11",
+      "label": "Carde",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.12",
+      "label": "Filatoi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.13",
+      "label": "Imballatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.14",
+      "label": "Macchine ed impianti di lavaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.15",
+      "label": "Macchine ed impianti di tintura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.16",
+      "label": "Macchine ed impianti per finissaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.17",
+      "label": "Macchine per calze",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.18",
+      "label": "Macchine per maglieria circolari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.19",
+      "label": "Macchine per maglieria rettilinee",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.2",
+      "label": "Fresatrici sottopiede",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.20",
+      "label": "Macchine per ricami",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.21",
+      "label": "Orditoi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.22",
+      "label": "Pettinatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.23",
+      "label": "Roccatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.24",
+      "label": "Telai di tessitura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.3",
+      "label": "Fustellatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.4",
+      "label": "Macchine per cucire",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.5",
+      "label": "Macchine per iniezione termoplastici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.6",
+      "label": "Macchine per montaggio e premontaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.7",
+      "label": "Macchine stiratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.8",
+      "label": "Montaboette",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.9",
+      "label": "Pressasuole",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "116.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117",
+      "label": "Macchinari, impianti ed attrezzature per l'edilizia",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A01",
+      "label": "Baracche componibili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A02",
+      "label": "Baracche monoblocco",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A03",
+      "label": "Benne",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A04",
+      "label": "Box",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A05",
+      "label": "Container",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A06",
+      "label": "Elettro e motocompressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A07",
+      "label": "Paranchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A08",
+      "label": "Piegaferri",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A09",
+      "label": "Ponteggi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A10",
+      "label": "Quadri elettrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.A11",
+      "label": "Semafori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E01",
+      "label": "Autogru",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E02",
+      "label": "Betoniere elettriche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E03",
+      "label": "Betoniere a scoppio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E04",
+      "label": "Caricatori - elevatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E05",
+      "label": "Carrelli elevatori fuoristrada",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E06",
+      "label": "Casseforme",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E07",
+      "label": "Compressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E08",
+      "label": "Dumper",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E09",
+      "label": "Gru a cavalletto",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E10",
+      "label": "Gru a torre",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E11",
+      "label": "Gruppi elettrogeni",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E12",
+      "label": "Impianti di betonaggio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E13",
+      "label": "Martelli demolitori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.E14",
+      "label": "Pompe per calcestruzzo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.F01",
+      "label": "Livellatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.F02",
+      "label": "Molatrici per binari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S01",
+      "label": "Costipatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S02",
+      "label": "Fresatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S03",
+      "label": "Impianti Bitume",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S04",
+      "label": "Motolivellatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S05",
+      "label": "Piastre vibranti",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S06",
+      "label": "Rulli compressori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.S07",
+      "label": "Vibrofinitrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.Z01",
+      "label": "Compressori rotativi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.Z02",
+      "label": "Compressori alternativi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "117.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201",
+      "label": "Materie prime e prodotti",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.1",
+      "label": "Legno e derivati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.10",
+      "label": "Materie plastiche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.11",
+      "label": "Pellami e cuoio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.12",
+      "label": "Prodotti minerali (vetro, porcellana, ceramica, ecc.)",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.13",
+      "label": "Prodotti chimici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.2",
+      "label": "Tessuti e fibre naturali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.3",
+      "label": "Tessuti e fibre sintetiche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.4",
+      "label": "Leghe dell'alluminio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.5",
+      "label": "Leghe del rame",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.6",
+      "label": "Leghe ferrose",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.7",
+      "label": "Materiali edili e da costruzione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.8",
+      "label": "Prodotti petroliferi e derivati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.9",
+      "label": "Prodotti in gomma",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "201.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202",
+      "label": "Attrezzature ed utensili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.1",
+      "label": "Morse",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.10",
+      "label": "Cabine forno",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.11",
+      "label": "Equilibratrici per ruote",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.12",
+      "label": "Ponti sollevatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.13",
+      "label": "Rete elettrica",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.14",
+      "label": "Rete d'aria compressa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.2",
+      "label": "Banchi da lavoro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.3",
+      "label": "Carrelli portapezzi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.4",
+      "label": "Carrelli portautensili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.5",
+      "label": "Strumenti di misura",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.6",
+      "label": "Utensili per l'asportazione di materiale",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.7",
+      "label": "Utensili per la deformazione del materiale",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.8",
+      "label": "Banchi prova",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.9",
+      "label": "Banchi raddrizzatura telai",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "202.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301",
+      "label": "Macchine operatrici targate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.1",
+      "label": "Bettoniere semoventi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.2",
+      "label": "Carrelli elevatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.3",
+      "label": "Dumper",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.4",
+      "label": "Escavatori gommati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.5",
+      "label": "Finitrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.6",
+      "label": "Motolivellatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.7",
+      "label": "Pale gommate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.8",
+      "label": "Rulli",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.9",
+      "label": "Terne",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "301.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302",
+      "label": "Macchine operatrici registrate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.1",
+      "label": "Escavatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.2",
+      "label": "Pale cingolate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.3",
+      "label": "Pale gommate",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.4",
+      "label": "Terne",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.5",
+      "label": "Trattori cingolati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.6",
+      "label": "Altre macchine operatrici con potenza installata < 50 KW",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "302.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303",
+      "label": "Apparecchi di sollevamento",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.1",
+      "label": "Ascensori - montacarichi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.10",
+      "label": "Paranchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.11",
+      "label": "Piattaforme",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.2",
+      "label": "Carrelli elevatori diesel",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.3",
+      "label": "Carrelli elevatori elettrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.4",
+      "label": "Carri ponte",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.5",
+      "label": "Gru a bandiera",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.6",
+      "label": "Gru a cavalletto",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.7",
+      "label": "Gru a ponte",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.8",
+      "label": "Gru edili a torre",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.9",
+      "label": "Gru per autocarri",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "303.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401",
+      "label": "Veicoli",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.1",
+      "label": "Autoarticolati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.10",
+      "label": "Ciclomotori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.11",
+      "label": "Filobus",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.12",
+      "label": "Motociclette",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.13",
+      "label": "Motoveicoli a tre ruote",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.14",
+      "label": "Rimorchi e semirimorchi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.15",
+      "label": "Roulotte",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.16",
+      "label": "Trattori stradali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.17",
+      "label": "Camper",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2",
+      "label": "Autobus",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2.1",
+      "label": "Diesel",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2.2",
+      "label": "Benzina",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2.3",
+      "label": "Elettrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2.4",
+      "label": "Ibridi con diesel",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2.5",
+      "label": "Ibridi con turbina a gas",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.2.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.3",
+      "label": "Autocaravan",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.4",
+      "label": "Autocarri > 80 Ql",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.5",
+      "label": "Autocarri 0 ÷ 35 Ql",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.6",
+      "label": "Autocarri 35 ÷ 80 Ql",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.7",
+      "label": "Autosnodati",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.8",
+      "label": "Autovetture a benzina",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.9",
+      "label": "Autovetture diesel",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "401.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402",
+      "label": "Navi e galleggianti",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.1",
+      "label": "Imbarcazione a vela",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.2",
+      "label": "Imbarcazione a motore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.3",
+      "label": "Entrobordo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.4",
+      "label": "Fuoribordo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.5",
+      "label": "Cabinati a motore",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.6",
+      "label": "Cabinati a vela",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.7",
+      "label": "Navi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "402.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500",
+      "label": "Macchine ed attrezzature per l'ufficio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.1",
+      "label": "Affrancatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.10",
+      "label": "Personal computer portatili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.11",
+      "label": "Piegatrici imbustatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.12",
+      "label": "Plotter",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.13",
+      "label": "Punzonatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.14",
+      "label": "Sistemi ed impianti telefonici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.15",
+      "label": "Stampanti a getto d'inchiostro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.16",
+      "label": "Stampanti ad aghi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.17",
+      "label": "Stampanti laser",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.18",
+      "label": "Taglierine",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.19",
+      "label": "Timbratrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.2",
+      "label": "Apparecchiature telex - telefax - segreterie telefoniche - modem - ecc.",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.20",
+      "label": "Palmari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.21",
+      "label": "Cellulari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.3",
+      "label": "Calcolatrici elettroniche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.4",
+      "label": "Distruggi documenti",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.5",
+      "label": "Fotocopiatrici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.6",
+      "label": "Macchine da scrivere elettroniche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.7",
+      "label": "Macchine da scrivere manuali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.8",
+      "label": "Macchine per microfilmare",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.9",
+      "label": "Personal computer da tavolo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "500.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600",
+      "label": "Commercio al dettaglio, ristorazione e l'industria alberghiera",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.1",
+      "label": "Attrezzature per cucine e mense",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.2",
+      "label": "Banchi frigoriferi per l'esposizione",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.3",
+      "label": "Bilance elettroniche",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.4",
+      "label": "Celle frigorifere",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.5",
+      "label": "Macchine per caffè",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.6",
+      "label": "Registratori di cassa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.7",
+      "label": "Vetrine espositive",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "600.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "701",
+      "label": "Mobili da casa e varie",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "701.1",
+      "label": "Mobili per la casa",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "701.2",
+      "label": "Complementi d'arredo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "701.3",
+      "label": "Mobili ed oggetti d'antiquariato",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "701.4",
+      "label": "Mobili specifici",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "701.999",
+      "label": "Altro",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702",
+      "label": "Arredi da ufficio e varie",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.1",
+      "label": "Cassettiere",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.10",
+      "label": "Pensili",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.11",
+      "label": "Poltroncine con ruote piroettanti",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.12",
+      "label": "Scansie modulari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.13",
+      "label": "Schedari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.14",
+      "label": "Scrivanie con appendice",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.15",
+      "label": "Scrivanie normali",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.16",
+      "label": "Sedie da ufficio",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.17",
+      "label": "Tavoli da disegno",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.18",
+      "label": "Tavoli porta PC / Stampante",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.19",
+      "label": "Tavoli riunioni",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.2",
+      "label": "Cassettiere o portarotoli da disegni",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.20",
+      "label": "Tavolini dattilo",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.21",
+      "label": "Tecnigrafi",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.3",
+      "label": "Classificatori",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.4",
+      "label": "Librerie",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.5",
+      "label": "Mobiletti - portatelefoni -portariviste - ecc.",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.6",
+      "label": "Mobiletti in metallo ad ante",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.7",
+      "label": "Mobili da ufficio a giorno e con ante o cassettiere",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.8",
+      "label": "Mobili da ufficio con ante",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.9",
+      "label": "Pareti attrezzate modulari",
+      "scope": "procedure_concorsuali"
+    },
+    {
+      "code": "702.999",
+      "label": "Varie",
+      "scope": "procedure_concorsuali"
+    }
+  ]
+}

@@ -20,7 +20,12 @@ from pct.deposito_studio_telematico_contract import (
     studio_telematico_document_requirements,
     studio_telematico_runtime_payload,
 )
-from pct.pst_cifratura import canali_telematici_cifratura_policy
+from pct.ministerial_xsd_catalog import (
+    active_catalog_summary,
+    active_xsd_association,
+    filter_entries_for_professional_role,
+    normalize_professional_role,
+)
 from pct.pst_catalog import (
     PST_CASSAZIONE_XSD_20260611_PACKAGE_URL,
     PST_CASSAZIONE_XSD_20260615_DOWNLOAD_PAGE_URL,
@@ -29,15 +34,16 @@ from pct.pst_catalog import (
     PST_CASSAZIONE_XSD_ACTIVE_VERSION,
     PST_SICI_XSD_20260512_NEWS_URL,
     PST_SICI_XSD_20260512_PACKAGE_URL,
-    PST_SICI_XSD_20260722_NEWS_URL,
-    PST_SICI_XSD_20260722_NEW_OBJECT_CODES,
-    PST_SICI_XSD_20260722_PACKAGE_URL,
     PST_SICI_XSD_20260611_CHANGELOG_URL,
     PST_SICI_XSD_20260611_NEW_ACT,
     PST_SICI_XSD_20260611_NEW_OBJECT_CODE,
     PST_SICI_XSD_20260611_PACKAGE_URL,
+    PST_SICI_XSD_20260722_NEW_OBJECT_CODES,
+    PST_SICI_XSD_20260722_NEWS_URL,
+    PST_SICI_XSD_20260722_PACKAGE_URL,
     get_xsd_channels,
 )
+from pct.pst_cifratura import canali_telematici_cifratura_policy
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "cataloghi"
 CATALOG_PATH = DATA_DIR / "quickorganizer_depositi_studio_telematico.json"
@@ -860,6 +866,11 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
             str(schema.get("ministerialRoot") or ""),
         ),
     }
+    active_xsd = active_xsd_association(
+        str(schema.get("generatorClass") or ""),
+        str(schema.get("ministerialRoot") or ""),
+    )
+    schema = {**schema, "activeXsd": active_xsd}
     studio_validation = studio_telematico_runtime_payload(key)
     if schema["status"] == CASSAZIONE_ROOT_ELIMINATA_STATUS:
         rules = {
@@ -880,6 +891,12 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
                 "Questo tipo di deposito è riconosciuto, ma l'invio reale resta sospeso: "
                 "mancano ancora campi specifici obbligatori per questo caso."
             ),
+        }
+    elif rules["real_send_allowed_from_pct_panel"] and not active_xsd["active"]:
+        rules = {
+            **rules,
+            "real_send_allowed_from_pct_panel": False,
+            "real_send_blocker": active_xsd["reason"],
         }
     return {
         "key": key,
@@ -914,6 +931,11 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
         },
         "rules": rules,
         "schema": schema,
+        "access": {
+            "allowedProfessionalRoles": list(active_xsd["allowedProfessionalRoles"]),
+            "systemOnly": bool(active_xsd["systemOnly"]),
+            "selectableByProfessional": bool(active_xsd["selectableByProfessional"]),
+        },
         "studioValidation": studio_validation,
         "ui": {
             "service": registry["label"],
@@ -1002,11 +1024,28 @@ def _macro_service(macro: str, entries: list[dict[str, Any]]) -> str:
     return " / ".join(_unique_texts([entry["channel"] for entry in entries])) or "Canale da verificare"
 
 
-def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, Any]:
+def build_deposit_catalog_payload(
+    *,
+    include_entries: bool = True,
+    professional_role: Any | None = None,
+) -> dict[str, Any]:
     raw = catalog_raw_with_cassazione_v21(load_deposit_catalog_raw())
     counts = raw.get("counts") if isinstance(raw.get("counts"), dict) else {}
     macro_counts = counts.get("macroareas") if isinstance(counts.get("macroareas"), dict) else {}
-    entries = list_deposit_catalog_entries()
+    all_entries = list_deposit_catalog_entries()
+    entries = (
+        filter_entries_for_professional_role(all_entries, professional_role)
+        if professional_role is not None
+        else all_entries
+    )
+    visible_macro_counts = (
+        {
+            macro: len([entry for entry in entries if entry["macro"] == macro])
+            for macro in _unique_texts([entry["macro"] for entry in entries])
+        }
+        if professional_role is not None
+        else macro_counts
+    )
     policy = canali_telematici_cifratura_policy()
     return {
         "schemaVersion": 3,
@@ -1016,14 +1055,19 @@ def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, 
         "tenantScope": "catalogo_tecnico_condiviso_non_tenant",
         "generatedAt": _text(raw.get("generated_at")),
         "counts": {
-            "totalDepositTypes": int((counts or {}).get("total_deposit_types") or len(entries)),
-            "macroareas": macro_counts,
+            "totalDepositTypes": len(entries) if professional_role is not None else int((counts or {}).get("total_deposit_types") or len(entries)),
+            "sourceTotalDepositTypes": len(all_entries),
+            "macroareas": visible_macro_counts,
             "categories": counts.get("categories") if isinstance(counts.get("categories"), dict) else {},
         },
         "sourceMeta": raw.get("source") if isinstance(raw.get("source"), dict) else {},
         "officialSources": list(OFFICIAL_SOURCES),
         "referenceData": datiatto_reference_data(),
         "ministerialXsdChannels": [channel.to_dict() for channel in get_xsd_channels()],
+        "ministerialXsdCatalog": active_catalog_summary(all_entries),
+        "professionalRoleScope": (
+            normalize_professional_role(professional_role) if professional_role is not None else "catalogo_tecnico_completo"
+        ),
         "ministerialSchemaEvidence": {
             "siciPreview20260611": {
                 "packageUrl": PST_SICI_XSD_20260611_PACKAGE_URL,
@@ -1071,13 +1115,19 @@ def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, 
                 "fonte": "Regole del deposito telematico",
             },
         },
-        "macroareas": _macroareas_payload(entries, macro_counts),
+        "macroareas": _macroareas_payload(entries, visible_macro_counts),
         "entries": list(entries) if include_entries else [],
     }
 
 
-def resolve_deposit_type_payload(key: str) -> dict[str, Any] | None:
+def resolve_deposit_type_payload(
+    key: str,
+    *,
+    professional_role: Any | None = None,
+) -> dict[str, Any] | None:
     entry = resolve_deposit_catalog_entry(key)
     if not entry:
+        return None
+    if professional_role is not None and not filter_entries_for_professional_role((entry,), professional_role):
         return None
     return dict(entry)

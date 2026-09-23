@@ -1,9 +1,8 @@
-"""Otto atti di parte Cassazione degli schemi v21 predisposti ma non attivati.
+"""Tredici atti di parte Cassazione degli schemi v21 attivi nel catalogo.
 
 Fonte: docs/specs/ministero/parte/parte_v21/Parte-cassazione.xsd (XSD_Cassazione_20260227, in
-esercizio dal 04/03/2026). Per decisione dello studio restano fuori da catalogo e generatore finche
-`pct.cassazione_atti_v21.CASSAZIONE_ATTI_V21_ATTIVI` e False; i test con l'interruttore acceso
-dimostrano che all'attivazione ogni atto produce un DatiAtto valido.
+esercizio dal 04/03/2026). Ogni atto produce un DatiAtto valido; l'interruttore disattivato
+resta testato come arresto di emergenza fail-closed.
 """
 
 from __future__ import annotations
@@ -17,7 +16,11 @@ from lxml import etree
 import pct.cassazione_atti_v21 as atti_v21
 import pct.deposito_telematico_catalogo as catalogo
 from pct.busta import BustaTelematica
-from pct.cassazione_xsd_tables import cassazione_enumeration_values, cassazione_parte_roots, cassazione_parte_schema_path
+from pct.cassazione_xsd_tables import (
+    cassazione_enumeration_values,
+    cassazione_parte_roots,
+    cassazione_parte_schema_path,
+)
 from scripts.audit_deposito_catalogo_end_to_end import _dati_busta_for, _sample_pdf
 
 
@@ -28,10 +31,11 @@ def _svuota_cache_catalogo() -> None:
 
 @pytest.fixture
 def attivi(monkeypatch):
+    original = atti_v21.CASSAZIONE_ATTI_V21_ATTIVI
     monkeypatch.setattr(atti_v21, "CASSAZIONE_ATTI_V21_ATTIVI", True)
     _svuota_cache_catalogo()
     yield
-    monkeypatch.setattr(atti_v21, "CASSAZIONE_ATTI_V21_ATTIVI", False)
+    monkeypatch.setattr(atti_v21, "CASSAZIONE_ATTI_V21_ATTIVI", original)
     _svuota_cache_catalogo()
 
 
@@ -53,20 +57,20 @@ def _v21_entries() -> dict[str, dict]:
     }
 
 
-def test_predisposti_ma_non_attivi_per_impostazione_predefinita():
+def test_attivi_per_impostazione_predefinita():
     _svuota_cache_catalogo()
     payload = catalogo.build_deposit_catalog_payload()
 
-    assert atti_v21.CASSAZIONE_ATTI_V21_ATTIVI is False
-    assert len(catalogo.list_deposit_catalog_entries()) == 270
-    assert payload["counts"]["totalDepositTypes"] == 270
-    assert _v21_entries() == {}
+    assert atti_v21.CASSAZIONE_ATTI_V21_ATTIVI is True
+    assert len(catalogo.list_deposit_catalog_entries()) == 283
+    assert payload["counts"]["totalDepositTypes"] == 283
+    assert set(_v21_entries()) == atti_v21.CASSAZIONE_ATTI_V21_KEYS
 
 
-def test_radici_esistono_nello_schema_in_esercizio_e_non_nel_catalogo_decompilato():
+def test_radici_esistono_nello_schema_in_esercizio_e_sono_aggiunte_al_catalogo_decompilato():
     raw_keys = {entry.get("key") for entry in catalogo.load_deposit_catalog_raw()["entries"]}
 
-    assert len(atti_v21.CASSAZIONE_ATTI_V21_ROOTS) == 8
+    assert len(atti_v21.CASSAZIONE_ATTI_V21_ROOTS) == 13
     assert atti_v21.CASSAZIONE_ATTI_V21_ROOTS <= cassazione_parte_roots()
     assert not raw_keys & atti_v21.CASSAZIONE_ATTI_V21_KEYS
 
@@ -85,8 +89,8 @@ def test_con_attivazione_entrano_nel_catalogo_e_generano_datiatto_valido(attivi,
     payload = catalogo.build_deposit_catalog_payload()
 
     assert set(entries) == atti_v21.CASSAZIONE_ATTI_V21_KEYS
-    assert payload["counts"]["totalDepositTypes"] == 278
-    assert payload["counts"]["macroareas"]["Corte di Cassazione (civile)"] == 41
+    assert payload["counts"]["totalDepositTypes"] == 283
+    assert payload["counts"]["macroareas"]["Corte di Cassazione (civile)"] == 46
     for key, entry in entries.items():
         assert entry["quickOrganizer"]["mappingSource"] == atti_v21.CASSAZIONE_ATTI_V21_SOURCE
         assert entry["rules"]["real_send_allowed_from_pct_panel"] is True, key

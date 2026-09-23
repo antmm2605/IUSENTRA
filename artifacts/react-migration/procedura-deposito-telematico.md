@@ -6092,3 +6092,9 @@ Perimetro: solo Local Signer, pacchetto installabile e download del signer. Non 
 - Test automatici eseguiti: regressione formato PAdES/CAdES nei fallback senza token, verifica del modulo PKCS#11 distribuito identico a quello accettato, presenza dei moduli nei canali installazione, build React e test mirati Local Signer.
 - Prova tecnica controllata: firmati tre payload con certificato Windows di test nello stesso worker, con verifica crittografica delle firme e rimozione del certificato di test. Nessun PIN reale e nessuna firma su documenti dello studio sono stati letti o simulati.
 - Stato prova materiale: non verificato su macchina reale per il token dell'avvocato fino a quando l'utente non conferma una firma multipla reale con PIN inserito una sola volta e salvataggio dei documenti nel fascicolo.
+
+## Aggiornamento 23/09/2026 — Local Signer 1.6.134 e cofirma CAdES parallela
+
+La 1.6.134 ripristina il motore Windows PowerShell della 1.6.131 accettata, mantenendo i guardrail non crittografici della 1.6.133. La cofirma CAdES conserva ora contenuto, firme e certificati precedenti nello stesso `SignedData`, senza buste `.p7m` annidate. Pacchetti Windows, macOS e Linux rigenerati; 277 test Local Signer, 109 test PolisWeb e 17 test packaging superati. Dettagli, impronte e limiti: `artifacts/react-migration/local-signer-1.6.134-ripristino-20260923.md`.
+
+Stato della prova materiale: **non verificato su macchina reale** con token e PIN dell’avvocato. Nessuna PEC o deposito reale è stato inviato.

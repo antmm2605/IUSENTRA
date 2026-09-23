@@ -9,11 +9,9 @@ from typing import Any
 from pct.pratiche_collegate_catalog import (
     codice_oggetto_pst_entry,
     list_codici_oggetto_pst,
-    normalize_codice_oggetto_pst,
     resolve_codice_oggetto_pst_payload,
 )
 from pct.profilo_deposito import costruisci_profilo_deposito
-
 
 CORE_DEPOSIT_PROFILE_TABLES: tuple[tuple[str, str], ...] = (
     ("fascicoli", "id"),
@@ -110,11 +108,13 @@ def build_deposit_profile_for_record(
 
     oggetto = _first(row.get("oggetto"), payload.get("oggetto"), row.get("titolo"), payload.get("titolo"))
     codice_payload = _resolve_codice_payload(
-        payload.get("codice_oggetto_pst"),
+        # La colonna SQL strutturata è fonte di verità; il JSON è solo mirror.
         row.get("codice_oggetto_pst"),
+        payload.get("codice_oggetto_pst"),
         _profile_get(current_profile, "codice_deposito", "codice_oggetto_pst"),
         oggetto,
     )
+    codice_corrente = _text(codice_payload.get("codice_oggetto_pst"))
     ufficio = _first(
         row.get("tribunale"),
         payload.get("tribunale"),
@@ -143,16 +143,16 @@ def build_deposit_profile_for_record(
             payload.get("procedura_operativa_codice"),
             _profile_get(current_profile, "pratica", "procedura_operativa_codice"),
         ),
-        codice_oggetto_pst=codice_payload["codice_oggetto_pst"],
-        fonte_codice_oggetto=_first(
-            row.get("fonte_codice_oggetto"),
-            payload.get("fonte_codice_oggetto"),
-            codice_payload["fonte_codice_oggetto"],
+        codice_oggetto_pst=codice_corrente,
+        fonte_codice_oggetto=(
+            _text(codice_payload.get("fonte_codice_oggetto"))
+            if codice_corrente
+            else _first(row.get("fonte_codice_oggetto"), payload.get("fonte_codice_oggetto"))
         ),
-        file_fonte_codice_oggetto=_first(
-            row.get("file_fonte_codice_oggetto"),
-            payload.get("file_fonte_codice_oggetto"),
-            codice_payload["file_fonte_codice_oggetto"],
+        file_fonte_codice_oggetto=(
+            _text(codice_payload.get("file_fonte_codice_oggetto"))
+            if codice_corrente
+            else _first(row.get("file_fonte_codice_oggetto"), payload.get("file_fonte_codice_oggetto"))
         ),
         ufficio=ufficio,
         verifica_certificato=bool(verify_certificates and ufficio),
@@ -169,6 +169,8 @@ def deposit_profile_needs_update(current: dict[str, Any], profile: dict[str, Any
     checks = (
         ("canale", "codice"),
         ("codice_deposito", "codice_oggetto_pst"),
+        ("codice_deposito", "fonte"),
+        ("codice_deposito", "file"),
         ("ufficio", "codice_pst"),
         ("ufficio", "pec"),
         ("certificato_cifratura", "richiesto"),
@@ -188,7 +190,7 @@ def merge_profile_into_payload(payload: dict[str, Any], profile: dict[str, Any])
     merged = dict(payload or {})
     merged["profilo_deposito"] = profile
     codice = _text(_profile_get(profile, "codice_deposito", "codice_oggetto_pst"))
-    if codice and not _text(merged.get("codice_oggetto_pst")):
+    if codice:
         merged["codice_oggetto_pst"] = codice
         merged["fonte_codice_oggetto"] = _text(_profile_get(profile, "codice_deposito", "fonte"))
         merged["file_fonte_codice_oggetto"] = _text(_profile_get(profile, "codice_deposito", "file"))

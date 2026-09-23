@@ -1012,3 +1012,41 @@ def test_attivita_react_rende_apribile_la_fonte_documentale_nel_lettore_interno(
     assert "def _attivita_derivata_da_documento" in routes
     assert "senza alterarne lo stato" in routes
     assert "la fonte e l'evento restano nel fascicolo" in routes
+
+
+def test_ui_deposito_distingue_documenti_allegati_e_indice_generato():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'label="Documenti selezionati"' in source
+    assert "Conteggio pacchetto" in source
+    assert "Allegati selezionati" in source
+    assert "1 atto principale +" in source
+    assert "Il software aggiunge 1 indice documenti e 1 file dati deposito." in source
+    assert "1 indice generato" in source
+    assert "count={packageDocuments.length + 2}" not in source
+    assert "additionalCadesSignatureRequired" in source
+    assert "additionalSignatureMinimumVersion = additionalCadesSignatureRequired ? '1.6.134' : '1.6.129'" in source
+    assert "firma CAdES parallela" in source
+
+
+def test_ui_deposito_sceglie_il_ruolo_prima_del_tipo_e_aggiorna_la_firma_registrata():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(
+        encoding="utf-8"
+    )
+    data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
+    bridge = Path("web/services/react_fascicoli_bridge.py").read_text(encoding="utf-8")
+
+    assert "Qualifica professionista" in source
+    assert "DEPOSIT_PROFESSIONAL_ROLE_OPTIONS" in source
+    assert "depositCatalogEntryAvailableForRole" in source
+    assert "selectableByProfessional" in source
+    assert "setSelectedDepositTypeKey('')" in source
+    assert "additionalSignatureSelectionKey" in source
+    assert "additionalSignatureMinimumVersion" in source
+    assert "additionalSignatureSelectionKey, additionalSignatureMinimumVersion" in source
+    assert "allowedProfessionalRoles: string[]" in data_source
+    assert "allowedProfessionalRoles: asArray" in data_source
+    assert "lambda: build_deposit_catalog_payload(include_entries=True)" in bridge
+    assert "professional_role=_text(preparation_datiatto_extra" not in bridge

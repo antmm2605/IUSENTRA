@@ -21,6 +21,7 @@ from reportlab.pdfgen import canvas
 
 from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .atto_enc_validation import inspect_atto_enc_payload
+from .beni_mobili_pst import require_mobile_asset_code
 from .cassazione_atti_v21 import CASSAZIONE_ATTI_V21_ROOTS, ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI
 from .cassazione_atti_v21_datiatto import CassazioneAttiV21DatiAttoMixin
 from .cassazione_xsd_tables import (
@@ -2306,9 +2307,9 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
             local = "beneImmobileTavolare" if is_immobile else "beneMobile"
             node = etree.SubElement(beni_node, f"{{{SIECIC_TIPIBASE_NS}}}{local}", ID=bene_id)
             if not is_immobile:
-                etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}tipologia").text = str(
-                    bene.get("tipologia") or "MOBILI"
-                ).strip()
+                etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}tipologia").text = require_mobile_asset_code(
+                    bene.get("tipologia")
+                )
             etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}descrizione").text = str(
                 bene.get("descrizione") or ""
             ).strip()
@@ -3161,7 +3162,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
             self._aggiungi_pignoramento_ministeriale(root)
         elif self.dati.contributo_unificato_xml_mode == "siecic_istanza_vendita":
             self._aggiungi_istanza_vendita_ministeriale(root)
-        elif self._is_richiesta_visibilita():
+        elif self._is_richiesta_visibilita() and not cassazione_specifica:
             self._aggiungi_richiesta_visibilita_ministeriale(root)
         elif self._is_progetto_distribuzione():
             self._aggiungi_progetto_distribuzione_ministeriale(root)

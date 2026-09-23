@@ -15,6 +15,7 @@ di generazione si ferma con un messaggio per l'avvocato.
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from typing import Any
 
 from lxml import etree
@@ -23,7 +24,9 @@ from pct.cassazione_atti_v21 import (
     CASSAZIONE_ATTI_V21_NON_ATTIVI_MESSAGE,
     MOTIVI_REVOCAZIONE,
     ROOT_OSCURAMENTO,
-    ROOTS_ISTANZE,
+    ROOT_RICHIESTA_VISIBILITA,
+    ROOTS_INTRODUTTIVI,
+    ROOTS_PROCEDIMENTO_SEMPLICE,
     cassazione_atti_v21_attivi,
 )
 from pct.cassazione_xsd_tables import (
@@ -44,13 +47,78 @@ class CassazioneAttiV21DatiAttoMixin:
         if not cassazione_atti_v21_attivi():
             raise ValueError(CASSAZIONE_ATTI_V21_NON_ATTIVI_MESSAGE)
         root_name = self._datiatto_root_name()
-        if root_name in ROOTS_ISTANZE:
+        if root_name in ROOTS_PROCEDIMENTO_SEMPLICE:
+            return True
+        if root_name == ROOT_RICHIESTA_VISIBILITA:
+            self._aggiungi_richiesta_visibilita_cassazione_v21(root)
             return True
         if root_name == ROOT_OSCURAMENTO:
             self._aggiungi_oscuramento_cassazione_v21(root)
             return True
-        self._aggiungi_introduttivo_cassazione_v21(root, root_name)
-        return True
+        if root_name in ROOTS_INTRODUTTIVI:
+            self._aggiungi_introduttivo_cassazione_v21(root, root_name)
+            return True
+        raise ValueError(
+            f"Generatore Cassazione v21 non disponibile per la radice ministeriale {root_name!r}."
+        )
+
+    def _aggiungi_richiesta_visibilita_cassazione_v21(self, root: etree._Element) -> None:
+        anagrafica = self._anagrafica_procedimento_node()
+        parti = anagrafica.xpath(
+            "./*[local-name()='Partecipanti']/*[local-name()='Parte']"
+        )
+        avvocati = anagrafica.xpath(
+            "./*[local-name()='Soggetti']/*[local-name()='Avvocato']"
+        )
+        if not parti:
+            raise ValueError(
+                "Parte assistita mancante nell'anagrafica della richiesta di visibilità Cassazione."
+            )
+        parte_source = parti[0]
+        parte_id = str(parte_source.get("ID") or "").strip()
+        if not parte_id:
+            raise ValueError(
+                "Identificativo della parte mancante nella richiesta di visibilità Cassazione."
+            )
+
+        avvocato_source = next(
+            (
+                avvocato
+                for avvocato in avvocati
+                if parte_id
+                in {
+                    str(ref or "").strip()
+                    for ref in avvocato.xpath(
+                        "./*[local-name()='parteRappresentata']/@ref"
+                    )
+                }
+            ),
+            None,
+        )
+        if avvocato_source is None:
+            raise ValueError(
+                "Avvocato collegato alla parte mancante nella richiesta di visibilità Cassazione."
+            )
+
+        parte = deepcopy(parte_source)
+        parte.tag = f"{{{CASSAZIONE_PARTE_NS}}}Parte"
+        avvocato = deepcopy(avvocato_source)
+        avvocato.tag = f"{{{CASSAZIONE_PARTE_NS}}}Avvocato"
+        for riferimento in list(
+            avvocato.xpath("./*[local-name()='parteRappresentata']")
+        ):
+            if str(riferimento.get("ref") or "").strip() != parte_id:
+                avvocato.remove(riferimento)
+        if not avvocato.xpath(
+            "./*[local-name()='parteRappresentata'][@ref=$parte_id]",
+            parte_id=parte_id,
+        ):
+            raise ValueError(
+                "Riferimento della parte rappresentata mancante nella richiesta di visibilità Cassazione."
+            )
+
+        root.append(parte)
+        root.append(avvocato)
 
     def _aggiungi_oscuramento_cassazione_v21(self, root: etree._Element) -> None:
         codice = re.sub(r"\s+", "", self._required_extra_text(

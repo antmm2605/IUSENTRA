@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from lxml import etree
 
+from pct.beni_mobili_pst import require_mobile_asset_code
 
 ROOT_NS = "http://schemi.processotelematico.giustizia.it/unep/atti/parte/v1"
 ATTI_NS = "http://schemi.processotelematico.giustizia.it/unep/tipi/atti/v1"
@@ -374,7 +375,7 @@ def _assets(root: etree._Element, extra: dict[str, Any]) -> list[tuple[str, list
             )
         else:
             asset = _node(wrapper, SIECIC_NS, "beneMobile", ID=asset_id)
-            _node(asset, SIECIC_NS, "tipologia", _required(raw.get("tipologia"), "tipologia bene mobile"))
+            _node(asset, SIECIC_NS, "tipologia", require_mobile_asset_code(raw.get("tipologia")))
             _node(asset, SIECIC_NS, "descrizione", _required(raw.get("descrizione"), "descrizione bene mobile"))
             if isinstance(raw.get("ubicazione"), dict):
                 _address(asset, "ubicazione", dict(raw["ubicazione"]), namespace=SIECIC_NS)

@@ -1,12 +1,12 @@
-import pytest
-
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from lxml import etree
 
 from pct.busta import BustaTelematica
+from pct.cassazione_atti_v21 import CASSAZIONE_ATTI_V21_KEYS, cassazione_atti_v21_attivi
 from pct.deposito_studio_telematico_contract import studio_telematico_document_requirements
 from pct.deposito_studio_telematico_validation import validate_studio_telematico_deposit
 from pct.deposito_telematico_catalogo import (
@@ -15,18 +15,17 @@ from pct.deposito_telematico_catalogo import (
     list_deposit_catalog_entries,
     resolve_deposit_type_payload,
 )
-from web.services.deposito_catalogo_runtime import (
-    deposito_catalogo_apply,
-    deposito_catalogo_datiatto_extra,
-    deposito_catalogo_destination,
-)
 from scripts.audit_deposito_catalogo_end_to_end import (
     _dati_busta_for,
     _sample_pdf,
     audit_deposit_catalog,
 )
 from scripts.extract_deposito_behavior_contract_from_quickorganizer import _applicable_keys
-from pct.cassazione_atti_v21 import CASSAZIONE_ATTI_V21_KEYS, cassazione_atti_v21_attivi
+from web.services.deposito_catalogo_runtime import (
+    deposito_catalogo_apply,
+    deposito_catalogo_datiatto_extra,
+    deposito_catalogo_destination,
+)
 
 
 def _atti_cassazione_v21_attivi() -> int:
@@ -72,6 +71,7 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
         {"value": "CTU", "label": "Consulente"},
         {"value": "CUR", "label": "Curatore"},
         {"value": "CUS", "label": "Custode"},
+        {"value": "DEL", "label": "Delegato alle vendite"},
         {"value": "DR.", "label": "Dr."},
         {"value": "DOTT.", "label": "Dott."},
         {"value": "GEOM.", "label": "Geom."},
@@ -93,14 +93,14 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     ]
 
 
-def test_tutti_i_252_depositi_pct_usano_il_profilo_busta_e_firma_studio_telematico():
+def test_tutti_i_depositi_pct_usano_il_profilo_busta_e_firma_studio_telematico():
     entries = list_deposit_catalog_entries()
     pct_entries = [entry for entry in entries if entry["rules"]["channel_kind"] == "pct_civile_dm44"]
     unep_entries = [
         entry for entry in entries if entry["rules"]["channel_kind"] == "unep_deposito_telematico"
     ]
 
-    assert len(pct_entries) == 252
+    assert len(pct_entries) == 252 + _atti_cassazione_v21_attivi()
     assert len(unep_entries) == 18
     for entry in [*pct_entries, *unep_entries]:
         rules = entry["rules"]

@@ -8,10 +8,13 @@ from typing import Any
 
 from lxml import etree
 
+from pct.beni_mobili_pst import mobile_asset_options
 from pct.cassazione_atti_v21 import (
     CASSAZIONE_ATTI_V21_INTRODUTTIVI_KEYS,
     MOTIVI_REVOCAZIONE,
     ROOT_OSCURAMENTO,
+)
+from pct.cassazione_atti_v21 import (
     ROOTS_INTRODUTTIVI as CASSAZIONE_V21_INTRODUTTIVI,
 )
 from pct.cassazione_xsd_tables import cassazione_enumeration, cassazione_parte_child_enumeration
@@ -182,6 +185,7 @@ DEPOSITO_PROFESSIONISTA_ROLE_OPTIONS = (
     ("CTU", "Consulente"),
     ("CUR", "Curatore"),
     ("CUS", "Custode"),
+    ("DEL", "Delegato alle vendite"),
     ("DR.", "Dr."),
     ("DOTT.", "Dott."),
     ("GEOM.", "Geom."),
@@ -525,7 +529,14 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
             _field("data_pignoramento", "Data del pignoramento", "date", group=pign_group),
             _field("stima_diritto", "Valore del diritto pignorato", "currency", group=pign_group),
             _field("cronologico_pignoramento", "Cronologico", required=False, group=pign_group),
-            _field("beni_pignorati", "Beni pignorati", "beni-pignorati", group="Beni"),
+            _field(
+                "beni_pignorati",
+                "Beni pignorati",
+                "beni-pignorati",
+                group="Beni",
+                options=mobile_asset_options(),
+                note="Per i beni mobili seleziona la codifica ufficiale PST; il testo libero non è ammesso.",
+            ),
             _field("titolo", "Titolo esecutivo", "titolo-esecutivo", group="Titolo"),
         )
         if "MobiliarePressoDebitore" in key:
@@ -732,6 +743,8 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
                     "beni-pignorati-unep",
                     required=source_blocks_missing_assets,
                     group=unep_group,
+                    options=mobile_asset_options(),
+                    note="Per i beni mobili seleziona la codifica ufficiale PST; il testo libero non è ammesso.",
                 ),
             )
             if "PressoTerzi" in suffix:

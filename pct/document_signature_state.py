@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-
 SIGNED_CONTAINER_SUFFIXES = (".p7m", ".sig", ".pkcs7")
 _CADES_FORMATS = {"cades", "cades_bes", "p7m", "pkcs7", "cms", "signed_data"}
 _PADES_FORMATS = {"pades", "pades_bes", "pdf", "pdf_signature"}
@@ -173,13 +172,141 @@ __all__ = [
 ]
 
 
+def _cades_embedded_content(signed_data: Any) -> bytes:
+    content = signed_data["encap_content_info"]["content"]
+    if content.native is None:
+        raise ValueError("La busta CAdES è detached e non contiene il documento.")
+    embedded = content.native
+    return embedded if isinstance(embedded, bytes) else bytes(content.contents)
+
+
+def _cades_signer_certificate(signer_info: Any, certificates: Any) -> Any | None:
+    sid = signer_info["sid"]
+    for certificate_choice in certificates or []:
+        if certificate_choice.name != "certificate":
+            continue
+        certificate = certificate_choice.chosen
+        if sid.name == "issuer_and_serial_number":
+            issuer_serial = sid.chosen
+            if (
+                certificate.serial_number == issuer_serial["serial_number"].native
+                and certificate.issuer.dump() == issuer_serial["issuer"].dump()
+            ):
+                return certificate
+        elif sid.name == "subject_key_identifier":
+            key_identifier = getattr(certificate, "key_identifier", None)
+            if key_identifier and key_identifier == sid.chosen.native:
+                return certificate
+    return None
+
+
+def _cades_signatures_are_cryptographically_valid(signed_data: Any, content: bytes) -> bool:
+    import hashlib
+
+    try:
+        from pyhanko.sign.validation.generic_cms import validate_sig_integrity
+    except Exception:
+        return False
+
+    content_type = signed_data["encap_content_info"]["content_type"].native
+    for signer_info in signed_data["signer_infos"]:
+        certificate = _cades_signer_certificate(
+            signer_info,
+            signed_data["certificates"],
+        )
+        if certificate is None:
+            return False
+        digest_algorithm = str(
+            signer_info["digest_algorithm"]["algorithm"].native or ""
+        ).lower().replace("-", "")
+        try:
+            digest = hashlib.new(digest_algorithm, content).digest()
+            intact, valid = validate_sig_integrity(
+                signer_info,
+                certificate,
+                expected_content_type=content_type,
+                actual_digest=digest,
+            )
+        except Exception:
+            return False
+        if not intact or not valid:
+            return False
+    return True
+
+
+def _verify_parallel_cades_signature(original: bytes, signed: bytes) -> None:
+    from collections import Counter
+
+    from asn1crypto import cms
+
+    try:
+        original_info = cms.ContentInfo.load(original, strict=True)
+        signed_info = cms.ContentInfo.load(signed, strict=True)
+        if (
+            original_info["content_type"].native != "signed_data"
+            or signed_info["content_type"].native != "signed_data"
+        ):
+            raise ValueError
+    except Exception as exc:
+        raise ValueError("La firma aggiuntiva non è una busta CAdES valida.") from exc
+
+    original_data = original_info["content"]
+    signed_data = signed_info["content"]
+    original_content = _cades_embedded_content(original_data)
+    signed_content = _cades_embedded_content(signed_data)
+
+    try:
+        nested = cms.ContentInfo.load(signed_content, strict=True)
+    except Exception:
+        nested = None
+    if nested is not None and nested["content_type"].native == "signed_data":
+        raise ValueError("La cofirma CAdES annidata non è ammessa.")
+    if signed_content != original_content or signed_content == original:
+        raise ValueError(
+            "La nuova firma CAdES non conserva lo stesso contenuto incapsulato."
+        )
+
+    original_signers = Counter(
+        signer.dump() for signer in original_data["signer_infos"]
+    )
+    signed_signers = Counter(
+        signer.dump() for signer in signed_data["signer_infos"]
+    )
+    if (
+        sum(signed_signers.values()) <= sum(original_signers.values())
+        or any(signed_signers[item] < count for item, count in original_signers.items())
+    ):
+        raise ValueError(
+            "La nuova busta CAdES non conserva tutte le firme precedenti come firme parallele."
+        )
+
+    original_certificates = Counter(
+        certificate.dump() for certificate in original_data["certificates"] or []
+    )
+    signed_certificates = Counter(
+        certificate.dump() for certificate in signed_data["certificates"] or []
+    )
+    if any(
+        signed_certificates[item] < count
+        for item, count in original_certificates.items()
+    ):
+        raise ValueError(
+            "La nuova busta CAdES non conserva i certificati delle firme precedenti."
+        )
+    if not _cades_signatures_are_cryptographically_valid(signed_data, signed_content):
+        raise ValueError(
+            "La nuova busta CAdES contiene una firma non verificabile sul documento."
+        )
+
 def verify_additional_signature(original: bytes, signed: bytes, filename: str) -> None:
-    """Reject replacements and unchanged files when the user requested addition."""
+    """Verifica che la firma aggiunta conservi documento e firme già presenti."""
     if not original or original == signed:
         raise ValueError("Il file non contiene una nuova firma.")
     if original.startswith(b"%PDF-") and signed.startswith(original):
         import io
+
         from pyhanko.pdf_utils.reader import PdfFileReader
+
         from pct.firma import analizza_firma_documento
 
         before = PdfFileReader(io.BytesIO(original)).embedded_signatures
@@ -196,8 +323,10 @@ def verify_additional_signature(original: bytes, signed: bytes, filename: str) -
                 and all(item.get("content_digest_verified") and item.get("cryptographic_signature_verified")
                         for item in evidence)):
             return
-    elif is_signed_container_name(filename):
-        from pct.firma import busta_cades_valida, estrai_contenuto_cades
-        if busta_cades_valida(signed) and estrai_contenuto_cades(signed) == original:
+    else:
+        from pct.firma import busta_cades_valida
+
+        if busta_cades_valida(original) or is_signed_container_name(filename):
+            _verify_parallel_cades_signature(original, signed)
             return
     raise ValueError("La nuova firma non conserva integralmente il documento e le firme precedenti.")

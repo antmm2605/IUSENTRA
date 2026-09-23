@@ -9,8 +9,8 @@ from typing import Iterable
 
 from lxml import etree
 
+from pct.ministerial_xsd_catalog import active_schema_paths
 from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
-
 
 _XSD_NS = "http://www.w3.org/2001/XMLSchema"
 _ROOT = Path(__file__).resolve().parents[1]
@@ -39,9 +39,9 @@ def _relative(path: Path) -> str:
 
 
 def _schema_files() -> Iterable[Path]:
-    for root in _SCHEMA_ROOTS:
-        if root.exists():
-            yield from root.rglob("*.xsd")
+    # I pacchetti conservano anche storico e preview: il runtime indicizza
+    # esclusivamente gli entry point dichiarati in esercizio.
+    yield from (path for path in active_schema_paths() if path.exists())
 
 
 @lru_cache(maxsize=1)

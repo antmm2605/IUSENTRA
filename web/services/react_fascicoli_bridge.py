@@ -9121,7 +9121,13 @@ def build_react_fascicolo_detail_payload(
         }
     )
     deposit_catalog = (
-        _safe("deposit_catalog", lambda: build_deposit_catalog_payload(include_entries=True), {})
+        _safe(
+            "deposit_catalog",
+            # Il browser deve poter scegliere la qualifica prima del tipo di deposito.
+            # Il POST applica comunque il filtro fail-closed sul ruolo selezionato.
+            lambda: build_deposit_catalog_payload(include_entries=True),
+            {},
+        )
         if load_deposits or load_regia
         else {}
     )

@@ -213,9 +213,21 @@ def deposito_catalogo_entry(form_like: Any) -> tuple[dict[str, Any] | None, str]
     key = str(form_like.get("tipo_deposito_telematico_key", "") or "").strip()
     if not key:
         return None, ""
-    entry = resolve_deposit_type_payload(key)
+    professional_role = str(form_like.get("professionista_ruolo", "") or "").strip()
+    if not professional_role:
+        raw_extra = form_like.get("datiatto_extra", "") or form_like.get("dati_deposito_specifici", "")
+        if isinstance(raw_extra, dict):
+            professional_role = str(raw_extra.get("professionista_ruolo") or "").strip()
+        elif raw_extra:
+            try:
+                parsed_extra = json.loads(str(raw_extra))
+            except Exception:
+                parsed_extra = {}
+            if isinstance(parsed_extra, dict):
+                professional_role = str(parsed_extra.get("professionista_ruolo") or "").strip()
+    entry = resolve_deposit_type_payload(key, professional_role=professional_role or "AVV.")
     if not entry:
-        return None, "Tipo deposito non trovato nel catalogo backend."
+        return None, "Tipo deposito non disponibile per il ruolo professionale selezionato."
     return entry, ""
 
 

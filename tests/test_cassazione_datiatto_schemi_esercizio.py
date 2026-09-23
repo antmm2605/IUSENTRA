@@ -16,6 +16,7 @@ import pytest
 from lxml import etree
 
 from pct.busta import CASSAZIONE_ATTI_NS, CASSAZIONE_PARTE_NS, BustaTelematica
+from pct.cassazione_atti_v21 import CASSAZIONE_ATTI_V21_ROOTS
 from pct.cassazione_xsd_tables import cassazione_enumeration_values, cassazione_parte_schema_path
 from pct.datiatto_xsd import _SCHEMA_ROOTS
 from pct.deposito_datiatto_fields import datiatto_input_fields
@@ -67,7 +68,7 @@ def test_ogni_atto_cassazione_del_catalogo_e_valido_sugli_schemi_in_esercizio(sc
         assert etree.QName(root).namespace == CASSAZIONE_PARTE_NS, entry["key"]
         assert schema.validate(etree.ElementTree(root)), (entry["key"], str(schema.error_log.last_error))
         generated += 1
-    assert generated == 32
+    assert generated == 32 + len(CASSAZIONE_ATTI_V21_ROOTS)
 
 
 def test_memoria_380_bis_eliminata_dal_ministero_non_e_inviabile(atto_pdf):

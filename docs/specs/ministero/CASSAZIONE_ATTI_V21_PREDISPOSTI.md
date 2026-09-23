@@ -1,13 +1,13 @@
-# Atti Cassazione v21 predisposti e non attivi
+# Atti Cassazione v21 attivi
 
-Stato: **predisposti, non attivi** (decisione dello studio dell'11/09/2026). Interruttore:
-`pct/cassazione_atti_v21.py` → `CASSAZIONE_ATTI_V21_ATTIVI = False`.
+Stato: **attivi dal 23/09/2026**. Interruttore:
+`pct/cassazione_atti_v21.py` → `CASSAZIONE_ATTI_V21_ATTIVI = True`.
 
-Con l'interruttore spento gli atti non compaiono nel catalogo depositi, non sono selezionabili e il
-generatore DatiAtto rifiuta la preparazione con un messaggio per l'avvocato. Con l'interruttore acceso
-entrano nel catalogo Corte di Cassazione (33 → 41 voci, 270 → 278 tipi) e sono inviabili.
+Con l'interruttore acceso gli atti entrano nel catalogo Corte di Cassazione (33 → 46 voci,
+270 → 283 tipi) e sono abilitati tecnicamente nel catalogo e nei generatori. L'invio reale resta subordinato al collaudo sul PC dello studio con token, PIN e Local Signer 1.6.134, senza invio PEC durante la prova. Se l'interruttore viene spento per emergenza non compaiono nel
+catalogo e il generatore DatiAtto rifiuta la preparazione con un messaggio per l'avvocato.
 
-Nota sulle fonti: le otto radici appartengono agli schemi **v21 già in esercizio** (XSD_Cassazione_20260227,
+Nota sulle fonti: le tredici radici appartengono agli schemi **v21 già in esercizio** (XSD_Cassazione_20260227,
 applicati dal 04/03/2026). Dal lato ministeriale non serve attendere un'ulteriore messa in esercizio:
 l'attivazione dipende dalla prova sulla macchina reale e dal deploy di IUSENTRA.
 
@@ -15,6 +15,11 @@ l'attivazione dipende dalla prova sulla macchina reale e dal deploy di IUSENTRA.
 
 | Radice XSD | Dal | Voce catalogo | Dati generati oltre a procedimento/IndiceBusta | Base |
 |---|---|---|---|---|
+| `AttoRichiestaVisibilita` | v11 | Richiesta di visibilità del fascicolo | `Parte`, `Avvocato`, collegamento `parteRappresentata` | XSD Cassazione v21 |
+| `RicorsoPerSaltum` | v3 | Ricorso per saltum | riferimento al procedimento | c.p.c., art. 360, secondo comma |
+| `DefinizioneAgevolataL130_2022` | v12 | Definizione agevolata | riferimento al procedimento | L. 130/2022, art. 5 |
+| `IstanzaTrattazioneL130_2022` | v12 | Istanza di trattazione | riferimento al procedimento | L. 130/2022, art. 5 |
+| `IstanzaSospensioneL130_2022` | v12 | Istanza di sospensione | riferimento al procedimento | L. 130/2022, art. 5 |
 | `IstanzaSospensioneExL197_2022` | v14 | Istanza di sospensione per definizione agevolata | — | L. 197/2022, art. 1, comma 197 |
 | `ProduzionePagamentoExL197_2022` | v14 | Definizione agevolata: produzione del pagamento | — | L. 197/2022, art. 1, commi 186-203 |
 | `IstanzaAnticipazioneUdienza` | v16 | Istanza di anticipazione dell'udienza | — | XSD v21 |
@@ -41,15 +46,15 @@ stata individuata una norma specifica da citare.
 - Test: `tests/test_cassazione_atti_v21_predisposti.py` (interruttore spento e acceso); le attese di
   `tests/test_deposito_telematico_catalogo.py` si adeguano da sole allo stato dell'interruttore.
 
-Prova eseguita l'11/09/2026 con interruttore acceso nel sandbox: 8/8 DatiAtto validi su `parte_v21`; audit del
-catalogo con 40 atti Cassazione verificati e nessun errore sulle voci Cassazione (gli altri errori dell'audit
+Prova eseguita l'11/09/2026 con interruttore acceso nel sandbox: 13/13 DatiAtto validi su `parte_v21`; audit del
+catalogo con 46 atti Cassazione verificati e nessun errore sulle voci Cassazione (gli altri errori dell'audit
 dipendono dall'ambiente: certificati PST e sorgenti Studio Telematico non raggiungibili).
 
-## Checklist di attivazione
+## Verifiche di attivazione
 
-1. Portare `CASSAZIONE_ATTI_V21_ATTIVI` a `True` in un commit dedicato con bump di versione.
-2. Rieseguire sulla macchina reale `tests/test_cassazione_atti_v21_predisposti.py` e
-   `tests/test_deposito_telematico_catalogo.py` (audit completo, attese 278 tipi).
+1. `CASSAZIONE_ATTI_V21_ATTIVI` è impostato a `True`.
+2. Rieseguire `tests/test_cassazione_atti_v21_predisposti.py` e
+   `tests/test_deposito_telematico_catalogo.py` (audit completo, attese 283 tipi).
 3. Ricompilare il bundle React e provare sulla UI reale: selezione di ciascun atto, campi richiesti, motivi di
    revocazione, oscuramento, simulazione di deposito fino alla richiesta PIN senza invio reale.
 4. Verificare la presenza dei relativi modelli in Redazione Atti, se lo studio li vuole disponibili.

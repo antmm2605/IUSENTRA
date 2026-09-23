@@ -6098,3 +6098,17 @@ Perimetro: solo Local Signer, pacchetto installabile e download del signer. Non 
 La 1.6.134 ripristina il motore Windows PowerShell della 1.6.131 accettata, mantenendo i guardrail non crittografici della 1.6.133. La cofirma CAdES conserva ora contenuto, firme e certificati precedenti nello stesso `SignedData`, senza buste `.p7m` annidate. Pacchetti Windows, macOS e Linux rigenerati; 277 test Local Signer, 109 test PolisWeb e 17 test packaging superati. Dettagli, impronte e limiti: `artifacts/react-migration/local-signer-1.6.134-ripristino-20260923.md`.
 
 Stato della prova materiale: **non verificato su macchina reale** con token e PIN dell’avvocato. Nessuna PEC o deposito reale è stato inviato.
+
+## Aggiornamento 23/09/2026 — correlazione certificata delle ricevute del deposito 6542D021
+
+Perimetro: sola lettura e riconciliazione delle ricevute PEC del deposito già inviato dal PC locale per il fascicolo `0BAABCE0`. Busta, firme, documenti, classificazione, Local Signer, trasporto SMTP e invio reale non sono stati modificati né rieseguiti.
+
+- Causa: accettazione e consegna richiamano il Message-ID originale dell'invio, mentre l'esito dei controlli automatici richiama nell'`EsitoAtto.xml` il Message-ID certificato di trasporto già presente nella ricevuta di consegna. Lo scoring testuale non deve essere usato per collegare questa terza ricevuta.
+- Correzione: la pipeline segue la catena certificata dei Message-ID già archiviati nello stesso deposito, limitandola alle sole fasi PCT di controlli e ricevuta finale. Le corrispondenze ambigue restano bloccate; l'IDBUSTA finale conserva priorità quando già disponibile.
+- Prova reale in produzione, in ordine cronologico, sulle sole tre PEC: accettazione e consegna collegate tramite Message-ID originale; controlli automatici collegati tramite Message-ID certificato di trasporto; punteggio `1.0` per tutte.
+- Esito persistito nella fonte SQL dello studio: un solo deposito `6542D021`, stato `CONTROLLI_SUPERATI`, IDBUSTA `155701307`, ricevute di accettazione, consegna e controlli presenti, nessuna ricevuta finale della cancelleria.
+- Il fascicolo conserva `numero_rg` vuoto: nessun RG è stato dedotto da atto, oggetto PEC, OCR o controlli automatici. Il numero sarà scritto soltanto dalla ricevuta finale ministeriale che lo certifica; solo allora lo stato potrà diventare `ACCETTATO_CANCELLERIA`.
+- Backup preventivo del dato mirato: `/opt/iusentra/backups/pre-reconcile-deposito-6542D021-20260923_213906.json`, SHA-256 `09f246b92fadf56c96462d88b191bb8b1a405068ac2d8a5f75ccbb1f5dabf648`.
+- Guardrail mirati: test della catena certificata e test Message-ID originale/IDBUSTA finale superati; nessun duplicato del deposito.
+
+Stato della prova visiva: la riconciliazione è stata verificata sul dato reale di produzione tramite repository e database. La conferma visuale completa nel browser reale resta da registrare dopo il deploy finale.

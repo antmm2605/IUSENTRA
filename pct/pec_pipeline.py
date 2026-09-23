@@ -828,7 +828,7 @@ def xml_tag_value(xml_text: str, names: Iterable[str]) -> str:
 
 
 def _canonical_message_id_value(value: Any) -> str:
-    return clean_text(value, 320).strip("<> ")
+    return html.unescape(clean_text(value, 320)).strip("<> ")
 
 
 def _normalised_message_id_value(value: Any) -> str:
@@ -853,6 +853,27 @@ def _deposit_original_message_id(deposito: Any) -> str:
         re.I,
     )
     return _canonical_message_id_value(match.group(1) if match else "")
+
+
+def _deposit_receipt_message_ids(deposito: Any) -> set[str]:
+    """Message-ID certificati già archiviati nelle ricevute dello stesso deposito."""
+
+    values: set[str] = set()
+    pattern = re.compile(
+        r"(?:Message-ID(?: deposito)?|Message ID|Identificativo(?: del)? messaggio)\s*:\s*<?([^<>\s]+@[^<>\s]+)>?",
+        re.I,
+    )
+    for field_name in (
+        "ricevuta_accettazione",
+        "ricevuta_consegna",
+        "ricevuta_controlli_automatici",
+        "ricevuta_cancelleria",
+    ):
+        for match in pattern.finditer(str(getattr(deposito, field_name, "") or "")):
+            value = _normalised_message_id_value(match.group(1))
+            if value:
+                values.add(value)
+    return values
 
 
 def _receipt_original_message_id(msg: Message, xml_text: str) -> str:
@@ -1022,6 +1043,13 @@ def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = 
                 "receipt_reference": {},
             }
         best = exact[0]
+        matched_by = list(best.get("matched_by") or [])
+        if "message_id" in matched_by:
+            reference_strategy = "original_message_id"
+        elif "idbusta_finale" in matched_by:
+            reference_strategy = "idbusta_finale"
+        else:
+            reference_strategy = "certified_receipt_chain"
         return {
             "fascicolo_id": str(best.get("id") or ""),
             "status": "ricevuta_identificativi_verificati",
@@ -1033,14 +1061,11 @@ def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = 
                 "deposito_id": str(best.get("deposito_id") or ""),
                 "original_message_id": str(best.get("original_message_id") or ""),
                 "provider_message_id": str(best.get("provider_message_id") or ""),
+                "source_message_id": str(best.get("source_message_id") or ""),
                 "idbusta": str(best.get("idbusta") or ""),
                 "recipient": str(best.get("recipient") or ""),
-                "strategy": (
-                    "original_message_id"
-                    if "message_id" in list(best.get("matched_by") or [])
-                    else "idbusta_finale"
-                ),
-                "matched_by": list(best.get("matched_by") or []),
+                "strategy": reference_strategy,
+                "matched_by": matched_by,
             },
         }
 
@@ -9403,6 +9428,10 @@ class PecAuditRepository:
         receipt_original_key = _normalised_message_id_value(receipt_original_message_id)
         correlation = build_pct_deposit_correlation(parsed)
         receipt_idbusta = clean_text(correlation.get("idbusta") or "", 180)
+        receipt_source_message_id = _canonical_message_id_value(
+            correlation.get("source_message_id") or ""
+        )
+        receipt_source_key = _normalised_message_id_value(receipt_source_message_id)
         provider_message_id = _canonical_message_id_value(headers.get("message_id"))
         receipt_recipient = _normalised_email_address(pec_receipt.get("recipient_address"))
         receipt_stage = detect_pct_deposit_stage(parsed).get("id")
@@ -9446,12 +9475,27 @@ class PecAuditRepository:
                 ):
                     matched_by.append("idbusta_finale")
                     reasons.append("IDBUSTA finale del deposito coincidente")
+                certified_receipt_chain = bool(
+                    receipt_stage
+                    in {
+                        "esito_controlli_deposito",
+                        "accettazione_deposito",
+                        "intervento_cancelleria",
+                        "rifiuto_deposito",
+                    }
+                    and receipt_source_key
+                    and receipt_source_key in _deposit_receipt_message_ids(deposito)
+                )
+                if certified_receipt_chain:
+                    matched_by.append("certified_receipt_chain")
+                    reasons.append("Message-ID certificato richiamato dalla ricevuta precedente")
                 if matched_by:
                     deposit_recipient = _normalised_email_address(
                         getattr(deposito, "pec_destinatario", "") or ""
                     )
                     recipient_conflict = bool(
-                        receipt_recipient
+                        not certified_receipt_chain
+                        and receipt_recipient
                         and deposit_recipient
                         and receipt_recipient != deposit_recipient
                     )
@@ -9468,6 +9512,7 @@ class PecAuditRepository:
                             "deposito_id": clean_text(getattr(deposito, "id", "") or "", 120),
                             "original_message_id": sent_message_id,
                             "provider_message_id": provider_message_id,
+                            "source_message_id": receipt_source_message_id,
                             "idbusta": receipt_idbusta or deposito_idbusta,
                             "recipient": receipt_recipient,
                             "matched_by": matched_by,

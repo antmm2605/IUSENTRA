@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import io
+from pathlib import Path
 
-from pypdf import PdfReader
+import pytest
+
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -10,6 +13,8 @@ from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
     VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT,
     VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT,
+    VISIBLE_SIGNATURE_FONT_BOLD_NAME,
+    VISIBLE_SIGNATURE_FONT_REGULAR_NAME,
     VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT,
     VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT,
     VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_PT,
@@ -24,9 +29,11 @@ from visible_signature import (
     _draw_visible_signature_bottom_right_text,
     _draw_visible_signature_seal,
     _draw_visible_signature_side_mark,
+    _register_visible_signature_fonts,
     apply_visible_signature_stamp,
     compute_visible_signature_layout,
     format_visible_signature_datetime,
+    has_pdf_signature,
     has_visible_signature_stamp,
     normalize_visible_signature_datetime_mode,
     normalize_visible_signature_mode,
@@ -46,6 +53,88 @@ def _make_pdf_bytes(pages: int = 1) -> bytes:
             pdf.showPage()
     pdf.save()
     return buffer.getvalue()
+
+
+def _make_blank_pdf_bytes(pages: int = 1) -> bytes:
+    buffer = io.BytesIO()
+    writer = PdfWriter()
+    for _index in range(max(int(pages or 1), 1)):
+        writer.add_blank_page(width=A4[0], height=A4[1])
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
+def _font_leaf_dictionaries(font):
+    if str(font.get("/Subtype") or "") != "/Type0":
+        return [font]
+    descendants = font.get("/DescendantFonts") or []
+    return [item.get_object() for item in descendants]
+
+
+def test_visible_signature_uses_packaged_vera_ttf_fonts():
+    from reportlab.pdfbase import pdfmetrics
+
+    regular, bold = _register_visible_signature_fonts()
+
+    assert regular == VISIBLE_SIGNATURE_FONT_REGULAR_NAME
+    assert bold == VISIBLE_SIGNATURE_FONT_BOLD_NAME
+    assert Path(pdfmetrics.getFont(regular).face.filename).name == "Vera.ttf"
+    assert Path(pdfmetrics.getFont(bold).face.filename).name == "VeraBd.ttf"
+
+
+def test_visible_signature_embeds_true_type_font_in_every_stamped_page():
+    stamped = apply_visible_signature_stamp(
+        _make_blank_pdf_bytes(pages=2),
+        intestatario="Avv. Antonio Mammola",
+        data_firma="2026-09-23T17:00:00+02:00",
+        luogo="Taurianova",
+        mode=VISIBLE_SIGNATURE_MODE_LATERALE,
+    )
+
+    reader = PdfReader(io.BytesIO(stamped))
+    embedded_stream_sizes = []
+    base_fonts = []
+
+    for page in reader.pages:
+        resources = page["/Resources"].get_object()
+        fonts = resources["/Font"].get_object()
+        assert fonts
+        for font_ref in fonts.values():
+            font = font_ref.get_object()
+            base_fonts.append(str(font.get("/BaseFont") or ""))
+            for leaf_font in _font_leaf_dictionaries(font):
+                descriptor_ref = leaf_font.get("/FontDescriptor")
+                assert descriptor_ref is not None
+                descriptor = descriptor_ref.get_object()
+                embedded_refs = [
+                    descriptor.get(key)
+                    for key in ("/FontFile", "/FontFile2", "/FontFile3")
+                    if descriptor.get(key) is not None
+                ]
+                assert embedded_refs
+                for embedded_ref in embedded_refs:
+                    font_stream = embedded_ref.get_object()
+                    embedded_stream_sizes.append(len(font_stream.get_data()))
+
+    assert embedded_stream_sizes
+    assert all(size > 1024 for size in embedded_stream_sizes)
+    assert all("Helvetica" not in base_font for base_font in base_fonts)
+    assert all("BitstreamVera" in base_font for base_font in base_fonts)
+
+
+def test_visible_signature_fails_closed_when_embedded_font_is_unavailable(monkeypatch):
+    def _font_non_disponibile():
+        raise RuntimeError("font incorporabile mancante")
+
+    monkeypatch.setattr("visible_signature._register_visible_signature_fonts", _font_non_disponibile)
+
+    with pytest.raises(RuntimeError, match="conformità PDF/A"):
+        apply_visible_signature_stamp(
+            _make_blank_pdf_bytes(),
+            intestatario="Avv. Antonio Mammola",
+            data_firma="2026-09-23T17:00:00+02:00",
+            luogo="Taurianova",
+        )
 
 
 def test_format_visible_signature_datetime_italian_style():
@@ -623,3 +712,36 @@ def test_bottom_left_signature_draws_on_left_side(monkeypatch):
     assert seal_calls
     # for left-aligned layout, seal is to the left of the text start (seal before text)
     assert seal_calls[0]["anchor_x"] < overlay.drawn[0][0]
+
+
+def test_has_pdf_signature_fallisce_chiuso_se_il_pdf_non_e_determinabile(monkeypatch):
+    def _parser_non_disponibile(*_args, **_kwargs):
+        raise ValueError("xref non leggibile")
+
+    monkeypatch.setattr("pypdf.PdfReader", _parser_non_disponibile)
+
+    with pytest.raises(RuntimeError, match="preservare il documento"):
+        has_pdf_signature(b"%PDF-1.7\ncontenuto non determinabile")
+
+    assert has_pdf_signature(
+        b"%PDF-1.7\n1 0 obj << /Type /Sig /SubFilter /ETSI.CAdES.detached "
+        b"/ByteRange [0 100 200 300] >> endobj"
+    ) is True
+
+
+def test_has_pdf_signature_riconosce_byte_range_non_esposto_dal_parser(monkeypatch):
+    class _ReaderSenzaCampi:
+        pages = []
+
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def get_fields(self):
+            return {}
+
+    monkeypatch.setattr("pypdf.PdfReader", _ReaderSenzaCampi)
+
+    assert has_pdf_signature(
+        b"%PDF-1.7\n1 0 obj << /Type /Sig /SubFilter /ETSI.CAdES.detached "
+        b"/ByteRange [0 100 200 300] >> endobj"
+    ) is True

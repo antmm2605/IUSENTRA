@@ -451,6 +451,7 @@ END;
 
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_fascicolo_received ON pec_messages(tenant_id, linked_fascicolo_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
 CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
@@ -830,6 +831,30 @@ def _canonical_message_id_value(value: Any) -> str:
     return clean_text(value, 320).strip("<> ")
 
 
+def _normalised_message_id_value(value: Any) -> str:
+    """Canonical Message-ID preserving the local part and folding only its domain."""
+
+    canonical = _canonical_message_id_value(value)
+    local, separator, domain = canonical.rpartition("@")
+    return f"{local}@{domain.casefold()}" if separator else canonical
+
+
+def _normalised_email_address(value: Any) -> str:
+    addresses = getaddresses([str(value or "")])
+    return clean_text(addresses[0][1] if addresses else "", 320).casefold()
+
+
+def _deposit_original_message_id(deposito: Any) -> str:
+    """Read the immutable Message-ID recorded by the local PEC sender."""
+
+    match = re.search(
+        r"Message-ID:\s*<?([^\s<>]+@[^\s<>]+)>?",
+        str(getattr(deposito, "messaggio", "") or ""),
+        re.I,
+    )
+    return _canonical_message_id_value(match.group(1) if match else "")
+
+
 def _receipt_original_message_id(msg: Message, xml_text: str) -> str:
     for header in (
         "X-Riferimento-Message-ID",
@@ -965,12 +990,60 @@ SOGLIA_COLLEGAMENTO = 0.78
 def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = SOGLIA_COLLEGAMENTO) -> dict[str, Any]:
     """Da quali candidati nasce un collegamento, e con che esito.
 
-    Sta qui, e non dentro `link_fascicolo`, perche' la manutenzione che
+    Sta qui, e non dentro link_fascicolo, perche' la manutenzione che
     ricalcola i messaggi arretrati deve poter dire quanti si collegherebbero
-    *senza scrivere niente*. Se la previsione e l'azione usassero due copie
-    della stessa regola, prima o poi direbbero cose diverse — e la previsione
-    e' quello su cui si decide se toccare i dati.
+    senza scrivere niente. Se la previsione e l'azione usassero due copie
+    della stessa regola, prima o poi direbbero cose diverse.
     """
+    conflicts = [candidate for candidate in candidates if candidate.get("exact_receipt_reference_conflict")]
+    if conflicts:
+        return {
+            "fascicolo_id": "",
+            "status": "ricevuta_destinatario_non_coincidente",
+            "score": 1.0,
+            "reasons": ["Il destinatario certificato non coincide con quello del deposito"],
+            "rg_only": False,
+            "receipt_reference": {},
+        }
+
+    exact = [candidate for candidate in candidates if candidate.get("exact_receipt_reference")]
+    if exact:
+        exact_keys = {
+            (str(candidate.get("id") or ""), str(candidate.get("deposito_id") or ""))
+            for candidate in exact
+        }
+        if len(exact_keys) != 1:
+            return {
+                "fascicolo_id": "",
+                "status": "ricevuta_identificativi_ambigui",
+                "score": 1.0,
+                "reasons": ["Pi\u00f9 depositi coincidono con gli identificativi certificati della ricevuta"],
+                "rg_only": False,
+                "receipt_reference": {},
+            }
+        best = exact[0]
+        return {
+            "fascicolo_id": str(best.get("id") or ""),
+            "status": "ricevuta_identificativi_verificati",
+            "score": 1.0,
+            "reasons": sorted({str(item or "") for item in list(best.get("reasons") or [])}),
+            "rg_only": False,
+            "receipt_reference": {
+                "fascicolo_id": str(best.get("id") or ""),
+                "deposito_id": str(best.get("deposito_id") or ""),
+                "original_message_id": str(best.get("original_message_id") or ""),
+                "provider_message_id": str(best.get("provider_message_id") or ""),
+                "idbusta": str(best.get("idbusta") or ""),
+                "recipient": str(best.get("recipient") or ""),
+                "strategy": (
+                    "original_message_id"
+                    if "message_id" in list(best.get("matched_by") or [])
+                    else "idbusta_finale"
+                ),
+                "matched_by": list(best.get("matched_by") or []),
+            },
+        }
+
     best = candidates[0] if candidates else {}
     score = float(best.get("score") or 0.0)
     reasons = {str(item or "") for item in list(best.get("reasons") or [])}
@@ -992,6 +1065,7 @@ def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = 
         "score": score,
         "reasons": sorted(reasons),
         "rg_only": rg_only,
+        "receipt_reference": {},
     }
 
 
@@ -1337,6 +1411,7 @@ def build_pct_deposit_receipt_profile(
         "description": description,
         "occurred_at": occurred_at,
         "numero_ruolo": xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")) or (parsed.get("rg_candidates") or [""])[0],
+        "numero_ruolo_certificato": xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")),
         "document_name": document_name,
         "status": status,
         "requires_redeposit": bool(outcome_code is not None and outcome_code < 0 and not _pct_controls_non_blocking_acceptance(lower_description)),
@@ -5920,10 +5995,11 @@ _PCT_DEPOSIT_STATE_RANK = {
     "ACCETTATO_PEC": 3,
     "CONSEGNATO": 4,
     "WARN_CONTROLLI": 5,
-    "ERRORE_CONTROLLI": 6,
-    "ACCETTATO_CANCELLERIA": 7,
-    "RIFIUTATO_CANCELLERIA": 8,
-    "ERRORE": 9,
+    "CONTROLLI_SUPERATI": 6,
+    "ERRORE_CONTROLLI": 7,
+    "ACCETTATO_CANCELLERIA": 8,
+    "RIFIUTATO_CANCELLERIA": 9,
+    "ERRORE": 10,
 }
 
 
@@ -5936,7 +6012,13 @@ def _pct_deposit_state_from_lifecycle(lifecycle: dict[str, Any]) -> tuple[str, s
     if stage_id == "consegna_pec":
         return "CONSEGNATO", ""
     if stage_id == "esito_controlli_deposito":
-        return ("ERRORE_CONTROLLI", "ERROR") if stage_status == "danger" else ("WARN_CONTROLLI", "WARN")
+        receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
+        outcome_code = receipt.get("outcome_code")
+        if outcome_code == 1:
+            return "CONTROLLI_SUPERATI", "OK"
+        if stage_status == "danger" or (isinstance(outcome_code, int) and outcome_code < 0):
+            return "ERRORE_CONTROLLI", "ERROR"
+        return "WARN_CONTROLLI", "WARN"
     if stage_id in {"accettazione_deposito", "intervento_cancelleria"}:
         return "ACCETTATO_CANCELLERIA", "OK"
     if stage_id == "rifiuto_deposito":
@@ -9316,6 +9398,19 @@ class PecAuditRepository:
         # un indizio raccolto da un testo qualunque.
         ufficio_mittente = ufficio_giudiziario_mittente(parsed)
         atto_processuale = profilo_processuale_presente(parsed)
+        pec_receipt = parsed.get("pec_receipt") if isinstance(parsed.get("pec_receipt"), dict) else {}
+        receipt_original_message_id = _canonical_message_id_value(pec_receipt.get("original_message_id"))
+        receipt_original_key = _normalised_message_id_value(receipt_original_message_id)
+        correlation = build_pct_deposit_correlation(parsed)
+        receipt_idbusta = clean_text(correlation.get("idbusta") or "", 180)
+        provider_message_id = _canonical_message_id_value(headers.get("message_id"))
+        receipt_recipient = _normalised_email_address(pec_receipt.get("recipient_address"))
+        receipt_stage = detect_pct_deposit_stage(parsed).get("id")
+        idbusta_match_allowed = receipt_stage in {
+            "accettazione_deposito",
+            "intervento_cancelleria",
+            "rifiuto_deposito",
+        }
         seeds = {
             "rg": rg,
             "parties": parties,
@@ -9323,9 +9418,64 @@ class PecAuditRepository:
             "keywords": keywords[:12],
             "ufficio_mittente": ufficio_mittente,
             "atto_processuale": atto_processuale,
+            "receipt_original_message_id": receipt_original_message_id,
+            "receipt_idbusta": receipt_idbusta,
+            "receipt_recipient": receipt_recipient,
+            "receipt_stage": receipt_stage,
         }
         candidates: list[dict[str, Any]] = []
         for fascicolo in fascicoli:
+            exact_for_fascicolo: list[dict[str, Any]] = []
+            for deposito in list(getattr(fascicolo, "depositi_pct", []) or []):
+                sent_message_id = _deposit_original_message_id(deposito)
+                sent_message_key = _normalised_message_id_value(sent_message_id)
+                deposito_idbusta = clean_text(
+                    getattr(deposito, "id_deposito_esterno", "") or "",
+                    180,
+                )
+                matched_by: list[str] = []
+                reasons: list[str] = []
+                if receipt_original_key and sent_message_key and receipt_original_key == sent_message_key:
+                    matched_by.append("message_id")
+                    reasons.append("Message-ID del deposito coincidente")
+                if (
+                    idbusta_match_allowed
+                    and receipt_idbusta
+                    and deposito_idbusta
+                    and receipt_idbusta == deposito_idbusta
+                ):
+                    matched_by.append("idbusta_finale")
+                    reasons.append("IDBUSTA finale del deposito coincidente")
+                if matched_by:
+                    deposit_recipient = _normalised_email_address(
+                        getattr(deposito, "pec_destinatario", "") or ""
+                    )
+                    recipient_conflict = bool(
+                        receipt_recipient
+                        and deposit_recipient
+                        and receipt_recipient != deposit_recipient
+                    )
+                    exact_for_fascicolo.append(
+                        {
+                            "id": str(getattr(fascicolo, "id", "")),
+                            "title": clean_text(getattr(fascicolo, "titolo", ""), 120),
+                            "number": clean_text(getattr(fascicolo, "numero", "")),
+                            "rg": _fascicolo_rg_display(fascicolo),
+                            "score": 1.0,
+                            "reasons": reasons,
+                            "exact_receipt_reference": not recipient_conflict,
+                            "exact_receipt_reference_conflict": recipient_conflict,
+                            "deposito_id": clean_text(getattr(deposito, "id", "") or "", 120),
+                            "original_message_id": sent_message_id,
+                            "provider_message_id": provider_message_id,
+                            "idbusta": receipt_idbusta or deposito_idbusta,
+                            "recipient": receipt_recipient,
+                            "matched_by": matched_by,
+                        }
+                    )
+            if exact_for_fascicolo:
+                candidates.extend(exact_for_fascicolo)
+                continue
             score = 0.0
             reasons: list[str] = []
             fasc_rg = ""
@@ -9385,7 +9535,10 @@ class PecAuditRepository:
                         "reasons": reasons,
                     }
                 )
-        candidates.sort(key=lambda item: float(item["score"]), reverse=True)
+        candidates.sort(
+            key=lambda item: (bool(item.get("exact_receipt_reference")), float(item["score"])),
+            reverse=True,
+        )
         return seeds, candidates[:5]
 
     def _upsert_pct_deposit_from_report(
@@ -9405,10 +9558,24 @@ class PecAuditRepository:
         lifecycle = report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {}
         if not lifecycle:
             return {"ok": False, "skipped": True, "reason": "lifecycle_assente"}
+        archive_reference: dict[str, Any] = {}
+        try:
+            with self.connect() as conn:
+                message_row = conn.execute(
+                    "SELECT metadata_json FROM pec_messages WHERE tenant_id=? AND id=?",
+                    (self.tenant_id, message_id),
+                ).fetchone()
+            message_metadata = json.loads(message_row["metadata_json"] or "{}") if message_row else {}
+            candidate_reference = message_metadata.get("archive_receipt_reference")
+            if isinstance(candidate_reference, dict):
+                archive_reference = dict(candidate_reference)
+        except (sqlite3.Error, TypeError, ValueError):
+            archive_reference = {}
+        reference_deposito_id = clean_text(archive_reference.get("deposito_id") or "", 120)
         correlation = lifecycle.get("correlation") if isinstance(lifecycle.get("correlation"), dict) else {}
         if not correlation:
             correlation = build_pct_deposit_correlation(parsed)
-        if correlation.get("manual_review") or not correlation.get("key"):
+        if (correlation.get("manual_review") or not correlation.get("key")) and not reference_deposito_id:
             return {"ok": False, "skipped": True, "reason": "correlazione_ambigua", "correlation": correlation}
         try:
             from pct.fascicoli import GestioneFascicoli
@@ -9430,19 +9597,84 @@ class PecAuditRepository:
         stage_id = str(stage.get("id") or "")
         receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
         official_rg_number, official_rg_year = _pct_split_numero_ruolo(
-            receipt.get("numero_ruolo") or correlation.get("rg") or ""
+            receipt.get("numero_ruolo_certificato") or ""
         )
-        external_id = clean_text(correlation.get("idbusta") or correlation.get("ref_id") or correlation.get("key"), 180)
-        marker = f"PEC_DEPOSIT_CORRELATION:{correlation.get('key')}"
+        idbusta = clean_text(correlation.get("idbusta") or "", 180)
+        ref_id = clean_text(correlation.get("ref_id") or "", 180)
+        external_id = idbusta or ref_id
+        correlation_key = clean_text(correlation.get("key") or reference_deposito_id, 180)
+        marker = f"PEC_DEPOSIT_CORRELATION:{correlation_key}"
         event_marker = f"PEC_DEPOSIT_EVENT:{message_id}:{stage_id}:{receipt.get('outcome_code') if receipt.get('outcome_code') is not None else ''}"
         deposito = None
-        for dep in getattr(fascicolo, "depositi_pct", []) or []:
-            if external_id and external_id == clean_text(getattr(dep, "id_deposito_esterno", "") or "", 180):
-                deposito = dep
-                break
-            if marker in str(getattr(dep, "note", "") or ""):
-                deposito = dep
-                break
+        if reference_deposito_id:
+            deposito = next(
+                (
+                    dep
+                    for dep in (getattr(fascicolo, "depositi_pct", []) or [])
+                    if clean_text(getattr(dep, "id", "") or "", 120) == reference_deposito_id
+                ),
+                None,
+            )
+            if deposito is None:
+                return {
+                    "ok": False,
+                    "skipped": True,
+                    "reason": "riferimento_deposito_fuori_fascicolo",
+                    "deposito_id": reference_deposito_id,
+                }
+            reference_strategy = clean_text(archive_reference.get("strategy") or "", 80)
+            reference_matches = {
+                clean_text(item, 80)
+                for item in list(archive_reference.get("matched_by") or [])
+                if clean_text(item, 80)
+            }
+            if reference_strategy == "idbusta_finale" or "idbusta_finale" in reference_matches:
+                reference_idbusta = clean_text(archive_reference.get("idbusta") or "", 180)
+                deposito_idbusta = clean_text(
+                    getattr(deposito, "id_deposito_esterno", "") or "",
+                    180,
+                )
+                if not reference_idbusta or reference_idbusta != deposito_idbusta:
+                    return {
+                        "ok": False,
+                        "skipped": True,
+                        "reason": "riferimento_idbusta_non_coincidente",
+                        "deposito_id": reference_deposito_id,
+                    }
+            else:
+                reference_original = _normalised_message_id_value(
+                    archive_reference.get("original_message_id") or ""
+                )
+                sent_original = _normalised_message_id_value(
+                    _deposit_original_message_id(deposito)
+                )
+                if not reference_original or not sent_original or reference_original != sent_original:
+                    return {
+                        "ok": False,
+                        "skipped": True,
+                        "reason": "riferimento_message_id_non_coincidente",
+                        "deposito_id": reference_deposito_id,
+                    }
+        if deposito is None:
+            for dep in getattr(fascicolo, "depositi_pct", []) or []:
+                if external_id and external_id == clean_text(getattr(dep, "id_deposito_esterno", "") or "", 180):
+                    deposito = dep
+                    break
+                if marker in str(getattr(dep, "note", "") or ""):
+                    deposito = dep
+                    break
+        if (
+            deposito is None
+            and list(getattr(fascicolo, "depositi_pct", []) or [])
+            and stage_id != "deposito_da_ricondurre"
+        ):
+            return {
+                "ok": False,
+                "skipped": True,
+                "reason": "ricevuta_senza_deposito_correlato",
+                "fascicolo_id": fascicolo_id,
+                "correlation": correlation,
+            }
         if deposito is None and stage_id == "deposito_da_ricondurre" and lifecycle.get("requires_new_deposit") is False:
             try:
                 with self.connect() as conn:
@@ -9494,7 +9726,11 @@ class PecAuditRepository:
             created = True
 
         rg_note_lines: list[str] = []
-        if official_rg_number and official_rg_year:
+        if (
+            stage_id in {"accettazione_deposito", "intervento_cancelleria"}
+            and official_rg_number
+            and official_rg_year
+        ):
             current_rg_display = _fascicolo_rg_display(fascicolo)
             current_rg_number, current_rg_year = _pct_split_numero_ruolo(current_rg_display)
             official_display = f"{official_rg_number}/{official_rg_year}"
@@ -9513,8 +9749,14 @@ class PecAuditRepository:
             deposito.stato = state
         deposito.tipo_atto = getattr(deposito, "tipo_atto", "") or "DEPOSITO_PCT"
         deposito.nome_atto_principale = getattr(deposito, "nome_atto_principale", "") or document_name
-        deposito.messaggio = f"Deposito telematico: {document_name}"
-        deposito.id_deposito_esterno = getattr(deposito, "id_deposito_esterno", "") or external_id
+        deposito.messaggio = (
+            getattr(deposito, "messaggio", "")
+            or f"Deposito telematico: {document_name}"
+        )
+        if idbusta:
+            deposito.id_deposito_esterno = idbusta
+        elif not getattr(deposito, "id_deposito_esterno", "") and ref_id:
+            deposito.id_deposito_esterno = ref_id
         if stage_id == "accettazione_pec":
             deposito.ricevuta_accettazione = _merge_text_once(getattr(deposito, "ricevuta_accettazione", ""), receipt_text)
         elif stage_id == "consegna_pec":
@@ -9581,6 +9823,7 @@ class PecAuditRepository:
             score = decisione["score"]
             fascicolo_id = decisione["fascicolo_id"]
             status = decisione["status"]
+            receipt_reference = dict(decisione.get("receipt_reference") or {})
             # Un collegamento certificato (numero di ruolo citato da un ufficio
             # giudiziario, stabilito dalla lettura del fascicolo) non viene
             # sovrascritto dal ricalcolo automatico dei candidati.
@@ -9589,6 +9832,19 @@ class PecAuditRepository:
                 fascicolo_id = str(esistente["fascicolo_id"])
                 status = str(esistente["status"])
                 score = max(score, float(esistente.get("score") or 1.0))
+            if receipt_reference and fascicolo_id == str(decisione.get("fascicolo_id") or ""):
+                message_row = conn.execute(
+                    "SELECT metadata_json FROM pec_messages WHERE tenant_id=? AND id=?",
+                    (self.tenant_id, message_id),
+                ).fetchone()
+                metadata = _json_loads(message_row["metadata_json"] if message_row else "{}")
+                if not isinstance(metadata, dict):
+                    metadata = {}
+                metadata["archive_receipt_reference"] = receipt_reference
+                conn.execute(
+                    "UPDATE pec_messages SET metadata_json=? WHERE tenant_id=? AND id=?",
+                    (canonical_json(metadata), self.tenant_id, message_id),
+                )
             link_id = uuid.uuid4().hex
             conn.execute(
                 """

@@ -49,7 +49,7 @@ SCHEDE_DEPOSITO: dict[str, dict[str, Any]] = {
         ],
         "stati_software": {
             "INVIATO": "invio", "ACCETTATO_PEC": "accettazione_pec", "ACCETTATO": "accettazione_pec",
-            "CONSEGNATO": "consegna", "WARN_CONTROLLI": "controlli_automatici", "ERRORE_CONTROLLI": "controlli_automatici",
+            "CONSEGNATO": "consegna", "CONTROLLI_SUPERATI": "controlli_automatici", "WARN_CONTROLLI": "controlli_automatici", "ERRORE_CONTROLLI": "controlli_automatici",
             "ERRORE": "controlli_automatici", "ACCETTATO_CANCELLERIA": "esito_cancelleria",
             "RIFIUTATO_CANCELLERIA": "esito_cancelleria", "RIFIUTATO": "esito_cancelleria",
         },
@@ -81,7 +81,7 @@ SCHEDE_DEPOSITO: dict[str, dict[str, Any]] = {
         ],
         "stati_software": {
             "INVIATO": "invio", "IN_TRANSITO": "transito", "IN TRANSITO": "transito", "ACCETTATO_PEC": "ricevuta",
-            "CONSEGNATO": "transito", "IN_VERIFICA": "verifica", "IN VERIFICA": "verifica", "WARN_CONTROLLI": "verifica",
+            "CONSEGNATO": "transito", "IN_VERIFICA": "verifica", "IN VERIFICA": "verifica", "CONTROLLI_SUPERATI": "verifica", "WARN_CONTROLLI": "verifica",
             "ERRORE_CONTROLLI": "esito", "ERRORE_TECNICO": "esito", "ERRORE": "esito",
             "ACCETTATO": "esito", "ACCETTATO_CANCELLERIA": "esito", "RIFIUTATO": "esito", "RIFIUTATO_CANCELLERIA": "esito",
         },
@@ -108,7 +108,7 @@ SCHEDE_DEPOSITO: dict[str, dict[str, Any]] = {
                   "stato del deposito nel fascicolo PAT", "cpa_dpcm_40_2016"),
         ],
         "stati_software": {
-            "INVIATO": "deposito", "ACCETTATO_PEC": "deposito", "CONSEGNATO": "controlli", "WARN_CONTROLLI": "controlli",
+            "INVIATO": "deposito", "ACCETTATO_PEC": "deposito", "CONSEGNATO": "controlli", "CONTROLLI_SUPERATI": "controlli", "WARN_CONTROLLI": "controlli",
             "ERRORE_CONTROLLI": "controlli", "ACCETTATO_CANCELLERIA": "esito", "RIFIUTATO_CANCELLERIA": "esito",
             "ACCETTATO": "esito", "RIFIUTATO": "esito", "ERRORE": "controlli",
         },
@@ -136,7 +136,7 @@ SCHEDE_DEPOSITO: dict[str, dict[str, Any]] = {
                   "comunicazioni PEC della segreteria", "tu175_art61"),
         ],
         "stati_software": {
-            "INVIATO": "costituzione", "ACCETTATO_PEC": "costituzione", "CONSEGNATO": "costituzione", "WARN_CONTROLLI": "esito",
+            "INVIATO": "costituzione", "ACCETTATO_PEC": "costituzione", "CONSEGNATO": "costituzione", "CONTROLLI_SUPERATI": "esito", "WARN_CONTROLLI": "esito",
             "ERRORE_CONTROLLI": "esito", "ACCETTATO_CANCELLERIA": "esito", "RIFIUTATO_CANCELLERIA": "esito",
             "ACCETTATO": "esito", "RIFIUTATO": "esito", "ERRORE": "esito",
         },

@@ -357,13 +357,22 @@ def _zip_pdf_with_link_acquisition_instruction() -> bytes:
     return zip_buffer.getvalue()
 
 
-def _pct_esito_mime(subject: str, xml_text: str, *, message_id: str, when: str) -> bytes:
+def _pct_esito_mime(
+    subject: str,
+    xml_text: str,
+    *,
+    message_id: str,
+    when: str,
+    original_message_id: str = "",
+) -> bytes:
     msg = EmailMessage(policy=policy.SMTP)
     msg["Subject"] = subject
     msg["From"] = "cancelleria@giustiziapec.it"
     msg["To"] = "studio@example.pec.it"
     msg["Date"] = when
     msg["Message-ID"] = message_id
+    if original_message_id:
+        msg["X-Riferimento-Message-ID"] = f"<{original_message_id.strip('<> ')}>"
     msg.set_content(
         "\n".join(
             [
@@ -3726,6 +3735,210 @@ def test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history
     assert deposito.note.count("PEC_DEPOSIT_EVENT:") == 2
     assert first["duplicate"] is False
     assert second["duplicate"] is False
+
+
+def test_pct_receipt_reference_aggiorna_deposito_esistente_senza_duplicarlo(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    fascicoli_db = tmp_path / "fascicoli.json"
+    fascicoli_docs = tmp_path / "documenti"
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs))
+    fascicolo = fascicoli.nuovo(
+        "Di Mauro Maryam",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Di Mauro Maryam",
+        tribunale="Tribunale di Vicenza",
+    )
+    original_message_id = "179018056167.20200.6167084769917992854@xn--gi-3ja"
+    deposito = fascicoli.aggiungi_esito_deposito(
+        fascicolo.id,
+        tipo_atto="RICORSO",
+        pec_destinatario="tribunale.vicenza@civile.ptel.giustiziacert.it",
+        stato="INVIATO",
+        messaggio=f"Deposito reale inviato dal PC locale\nMessage-ID: <{original_message_id}>",
+        registrato_da="avvocato",
+        nome_atto_principale="Ricorso.pdf",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+    )
+    repo.ensure_schema()
+    metadata = {
+        "archive_receipt_reference": {
+            "deposito_id": deposito.id,
+            "original_message_id": original_message_id,
+            "provider_message_id": "provider-155701307",
+        }
+    }
+    with repo.connect() as conn:
+        conn.execute(
+            "INSERT INTO pec_messages "
+            "(id, tenant_id, account_email, folder, mime_sha256, mime_size, original_mime, "
+            "received_at, ingested_at, status, quality_status, signature_status, linked_fascicolo_id, metadata_json) "
+            "VALUES ('receipt-controls', 'default', 'studio@pec.it', 'INBOX', 'sha-controls', 10, X'00', "
+            "'2026-09-23T18:24:29+02:00', '2026-09-23T18:24:30+02:00', 'link_candidates', "
+            "'verde', 'valida', '', ?)",
+            (json.dumps(metadata),),
+        )
+        conn.commit()
+    parsed = {
+        "headers": {"subject": "ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO"},
+        "body": {"text": "Codice esito: 1. Controlli terminati con successo."},
+        "pec_receipt": {"original_message_id": f"<{original_message_id}>"},
+    }
+    report = {
+        "event_type": "pct_deposito",
+        "deposit_lifecycle": {
+            "current_stage": {
+                "id": "esito_controlli_deposito",
+                "label": "Esito controlli automatici",
+                "status": "ok",
+            },
+            "correlation": {
+                "key": "",
+                "idbusta": "155701307",
+                "manual_review": True,
+                "document_name": "Ricorso.pdf",
+            },
+            "receipt": {
+                "outcome_code": 1,
+                "original_message_id": f"<{original_message_id}>",
+            },
+            "final_state": "automatic_checks_passed",
+        },
+    }
+
+    result = repo._upsert_pct_deposit_from_report(
+        "receipt-controls",
+        parsed=parsed,
+        report=report,
+        attachments=[],
+        fascicolo_id=fascicolo.id,
+        actor="archivio-letture",
+    )
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert result["ok"] is True
+    assert result["created"] is False
+    assert result["deposito_id"] == deposito.id
+    assert saved is not None
+    assert len(saved.depositi_pct) == 1
+    assert saved.depositi_pct[0].id == deposito.id
+    assert saved.depositi_pct[0].stato == "CONTROLLI_SUPERATI"
+    assert original_message_id in saved.depositi_pct[0].messaggio
+    assert saved.depositi_pct[0].id_deposito_esterno == "155701307"
+    assert saved.depositi_pct[0].ricevuta_controlli_automatici
+
+def test_pct_receipts_exact_message_id_then_final_idbusta_update_one_real_deposit(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    fascicoli_db = tmp_path / "fascicoli.json"
+    fascicoli_docs = tmp_path / "documenti"
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs))
+    fascicolo = fascicoli.nuovo(
+        "Di Mauro Maryam",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Di Mauro Maryam",
+        tribunale="Tribunale di Vicenza",
+    )
+    original_message_id = "deposito-6542D021@xn--gi-3ja"
+    deposito = fascicoli.aggiungi_esito_deposito(
+        fascicolo.id,
+        tipo_atto="RICORSO",
+        pec_destinatario="tribunale.vicenza@civile.ptel.giustiziacert.it",
+        stato="INVIATO",
+        messaggio=f"Deposito reale inviato dal PC locale\\nMessage-ID: <{original_message_id}>",
+        registrato_da="avvocato",
+        nome_atto_principale="Ricorso.pdf",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+    )
+    controls_xml = """<?xml version="1.0"?>
+    <EsitoAtto>
+      <IdMsgMitt>DEPOSITO TELEMATICO: Ricorso.pdf RG: 4593/2022</IdMsgMitt>
+      <DatiEsito><MsgEsito>
+        <NumeroRuolo>4593/2022</NumeroRuolo>
+        <CodiceEsito>1</CodiceEsito>
+        <DescrizioneEsito>IDBUSTA: 155701307 Controlli terminati con successo</DescrizioneEsito>
+      </MsgEsito><Tempo><Data>2026-09-23</Data><Ora zoneDesignator="+0200">18:24:29</Ora></Tempo></DatiEsito>
+    </EsitoAtto>"""
+    controls = repo.ingest_mime(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO",
+            controls_xml,
+            message_id="<controls-155701307@example.test>",
+            original_message_id=original_message_id,
+            when="Wed, 23 Sep 2026 18:24:29 +0200",
+        )
+    )
+    worker = repo.run_pending_jobs(limit=30, actor="codex-test")
+    assert worker["failed"] == 0
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert saved is not None
+    assert len(saved.depositi_pct) == 1
+    assert saved.depositi_pct[0].id == deposito.id
+    assert saved.depositi_pct[0].stato == "CONTROLLI_SUPERATI"
+    assert saved.depositi_pct[0].id_deposito_esterno == "155701307"
+    assert saved.depositi_pct[0].messaggio.endswith(f"<{original_message_id}>")
+    assert saved.numero_rg == ""
+    assert saved.anno_rg == 0
+
+    with repo.connect() as conn:
+        controls_row = conn.execute(
+            "SELECT metadata_json, linked_fascicolo_id FROM pec_messages WHERE id=?",
+            (controls["id"],),
+        ).fetchone()
+    controls_metadata = json.loads(controls_row["metadata_json"])
+    assert controls_row["linked_fascicolo_id"] == fascicolo.id
+    assert controls_metadata["archive_receipt_reference"]["deposito_id"] == deposito.id
+    assert controls_metadata["archive_receipt_reference"]["strategy"] == "original_message_id"
+
+    final_xml = """<?xml version="1.0"?>
+    <EsitoAtto>
+      <IdMsgMitt>DEPOSITO TELEMATICO: Ricorso.pdf</IdMsgMitt>
+      <DatiEsito><MsgEsito>
+        <NumeroRuolo>987/2026</NumeroRuolo>
+        <CodiceEsito>2</CodiceEsito>
+        <DescrizioneEsito>IDBUSTA: 155701307 Accettazione manuale avvenuta con successo</DescrizioneEsito>
+      </MsgEsito><Tempo><Data>2026-09-24</Data><Ora zoneDesignator="+0200">09:15:00</Ora></Tempo></DatiEsito>
+    </EsitoAtto>"""
+    final = repo.ingest_mime(
+        _pct_esito_mime(
+            "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO",
+            final_xml,
+            message_id="<accepted-155701307@example.test>",
+            when="Thu, 24 Sep 2026 09:15:00 +0200",
+        )
+    )
+    worker = repo.run_pending_jobs(limit=30, actor="codex-test")
+    assert worker["failed"] == 0
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert saved is not None
+    assert len(saved.depositi_pct) == 1
+    assert saved.depositi_pct[0].id == deposito.id
+    assert saved.depositi_pct[0].stato == "ACCETTATO_CANCELLERIA"
+    assert saved.depositi_pct[0].id_deposito_esterno == "155701307"
+    assert saved.depositi_pct[0].messaggio.endswith(f"<{original_message_id}>")
+    assert saved.numero_rg == "987"
+    assert saved.anno_rg == 2026
+    with repo.connect() as conn:
+        final_row = conn.execute(
+            "SELECT metadata_json, linked_fascicolo_id FROM pec_messages WHERE id=?",
+            (final["id"],),
+        ).fetchone()
+    final_metadata = json.loads(final_row["metadata_json"])
+    assert final_row["linked_fascicolo_id"] == fascicolo.id
+    assert final_metadata["archive_receipt_reference"]["deposito_id"] == deposito.id
+    assert final_metadata["archive_receipt_reference"]["strategy"] == "idbusta_finale"
 
 
 def test_pct_deposit_da_ricondurre_non_crea_deposito_in_corso(tmp_path):

@@ -150,7 +150,15 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
                 {"codice": "base_normativa", "esito": "ok", "dettaglio": _BASE_NORMATIVA_PEC},
             ],
         ))
-    contesto_pec = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note)
+    contesto_pec = Contesto(
+        oggi=contesto.oggi,
+        anno_riferimento=contesto.anno_riferimento,
+        data_minima=contesto.data_minima,
+        numero_rg=contesto.numero_rg,
+        anno_rg=contesto.anno_rg,
+        ufficio_giudiziario=contesto.ufficio_giudiziario,
+        date_note=contesto.date_note,
+    )
     ricevuta = None
     try:
         from pct.registro_letture.verifica_date import interpreta_data

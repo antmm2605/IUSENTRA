@@ -193,10 +193,19 @@ def test_firma_pades_pkcs11_riproduce_profilo_studio_telematico(monkeypatch):
     cms.CMSAttributeType("content_type")
     monkeypatch.delitem(cms.CMSAttributeType._reverse_map, "signing_certificate_v2", raising=False)
     signed = signer.firma_pades(source.getvalue(), visible_signature_place="Taurianova")
-    fields = PdfReader(io.BytesIO(signed)).get_fields()
+    reader = PdfReader(io.BytesIO(signed))
+    fields = reader.get_fields()
     signature = fields["Signature1"]["/V"]
+    from visible_signature import VISIBLE_SIGNATURE_METADATA_KEY, has_visible_signature_stamp
 
     assert signed.startswith(b"%PDF")
+    assert has_visible_signature_stamp(signed) is True
+    assert "Modalita firma visibile: laterale" in str(
+        (reader.metadata or {}).get(VISIBLE_SIGNATURE_METADATA_KEY, "")
+    )
+    rendered_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Firmato Da: AVV. GIUSEPPE MONTAGNESE" in rendered_text
+    assert "Luogo firma: TAURIANOVA" in rendered_text
     assert signature["/SubFilter"] == "/ETSI.CAdES.detached"
     assert signature["/Reason"] == "Per autentica e sottoscrizione"
     assert signature["/Location"] == "Taurianova"

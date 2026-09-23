@@ -384,6 +384,7 @@ def _is_raw_pct_deposit_receipt_email(email: Any) -> bool:
     technical_state = status in {
         "ACCETTATO_PEC",
         "CONSEGNATO",
+        "CONTROLLI_SUPERATI",
         "WARN_CONTROLLI",
         "ERRORE_CONTROLLI",
         "ACCETTATO_CANCELLERIA",

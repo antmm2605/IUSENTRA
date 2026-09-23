@@ -6801,6 +6801,15 @@ def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypat
 
     reader = PdfReader(BytesIO(firmato))
     field = reader.get_fields()["Signature1"]
+    from visible_signature import VISIBLE_SIGNATURE_METADATA_KEY, has_visible_signature_stamp
+
+    assert has_visible_signature_stamp(firmato) is True
+    assert "Modalita firma visibile: laterale" in str(
+        (reader.metadata or {}).get(VISIBLE_SIGNATURE_METADATA_KEY, "")
+    )
+    rendered_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Firmato Da: AVV. GIUSEPPE MONTAGNESE" in rendered_text
+    assert "Luogo firma: TAURIANOVA" in rendered_text
     assert field["/V"]["/SubFilter"] == "/ETSI.CAdES.detached"
     assert field["/V"]["/Reason"] == "Per autentica e sottoscrizione"
     assert field["/V"]["/Location"] == "Taurianova"
@@ -7112,6 +7121,17 @@ def test_firma_inline_pades_mantiene_distinto_certificato_token(monkeypatch):
 
     assert signed.startswith(b"%PDF")
     assert info["intestatario"] == "Avv. Test Token"
+    from pypdf import PdfReader
+    from visible_signature import VISIBLE_SIGNATURE_METADATA_KEY, has_visible_signature_stamp
+
+    reader = PdfReader(io.BytesIO(signed))
+    assert has_visible_signature_stamp(signed) is True
+    assert "Modalita firma visibile: laterale" in str(
+        (reader.metadata or {}).get(VISIBLE_SIGNATURE_METADATA_KEY, "")
+    )
+    rendered_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Firmato Da: AVV. TEST TOKEN" in rendered_text
+    assert "Luogo firma: TAURIANOVA" in rendered_text
 
 
 def test_firma_singola_propaga_modalita_visibile_al_signer():

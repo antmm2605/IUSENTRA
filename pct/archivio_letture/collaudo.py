@@ -16,6 +16,8 @@ prove ma non si propongono a nessuno.
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Iterable
@@ -46,6 +48,7 @@ class Contesto:
     data_minima: date | None = None
     numero_rg: str = ""
     anno_rg: str = ""
+    ufficio_giudiziario: str = ""
     # data ISO -> etichette delle fonti che la conoscono (agenda, scadenziario, PEC, portale)
     date_note: dict[str, list[str]] = field(default_factory=dict)
     # una seconda lettura indipendente dello stesso oggetto (testo nativo, OCR, indice)
@@ -61,6 +64,56 @@ class Contesto:
 
 def _prova(codice: str, esito: str, dettaglio: str) -> dict[str, str]:
     return {"codice": codice, "esito": esito, "dettaglio": dettaglio}
+
+
+_UFFICIO_PRIMA_DEL_RUOLO = re.compile(
+    r"\b(?:tribunale(?:\s+ordinario)?|corte\s+d[’']appello|giudice\s+di\s+pace|"
+    r"tribunale\s+amministrativo\s+regionale|corte\s+di\s+giustizia\s+tributaria)"
+    r"\s+(?:di|del|della|per(?:\s+il|\s+la)?)\s+.+?"
+    r"(?=\s+(?:r\s*\.?\s*g\s*\.?|n\s*\.?\s*r\s*\.?\s*g\s*\.?|sezione\b)|[,;:\-–—]|$)",
+    re.IGNORECASE,
+)
+_STOP_UFFICIO = {
+    "di",
+    "del",
+    "della",
+    "dell",
+    "per",
+    "il",
+    "la",
+    "ordinario",
+    "ordinaria",
+}
+
+
+def _chiave_ufficio(valore: str) -> str:
+    testo = re.sub(r"\([^)]*\)", " ", str(valore or ""))
+    testo = "".join(
+        carattere
+        for carattere in unicodedata.normalize("NFKD", testo)
+        if not unicodedata.combining(carattere)
+    ).casefold()
+    token = re.findall(r"[a-z0-9]+", testo)
+    if "sezione" in token:
+        token = token[: token.index("sezione")]
+    return " ".join(voce for voce in token if voce not in _STOP_UFFICIO)
+
+
+def ufficio_esplicito_del_ruolo(fatto: Fatto) -> str:
+    match = _UFFICIO_PRIMA_DEL_RUOLO.search(str(fatto.contesto or ""))
+    return " ".join(match.group(0).split()) if match else ""
+
+
+def ruolo_compatibile_con_ufficio(fatto: Fatto, ufficio_giudiziario: str) -> bool:
+    atteso = _chiave_ufficio(ufficio_giudiziario)
+    dichiarato = _chiave_ufficio(ufficio_esplicito_del_ruolo(fatto))
+    if not atteso or not dichiarato:
+        return True
+    return (
+        atteso == dichiarato
+        or dichiarato.startswith(atteso + " ")
+        or atteso.startswith(dichiarato + " ")
+    )
 
 
 def _con_prove_governance(fatto: Fatto) -> Fatto:
@@ -134,6 +187,26 @@ def _collauda_data(fatto: Fatto, contesto: Contesto, secondarie: set[str]) -> Fa
 
 def _collauda_ruolo(fatto: Fatto, contesto: Contesto) -> Fatto:
     prove = list(fatto.prove)
+    ufficio_documento = ufficio_esplicito_del_ruolo(fatto)
+    if not ruolo_compatibile_con_ufficio(fatto, contesto.ufficio_giudiziario):
+        prove.append(
+            _prova(
+                "ufficio_giudiziario",
+                "respinta",
+                f"il documento indica {ufficio_documento}, diverso dall'ufficio "
+                f"del fascicolo {contesto.ufficio_giudiziario}",
+            )
+        )
+        fatto.prove, fatto.verifica = prove, "respinta"
+        return fatto
+    if ufficio_documento and contesto.ufficio_giudiziario:
+        prove.append(
+            _prova(
+                "ufficio_giudiziario",
+                "ok",
+                f"ufficio coerente con il fascicolo: {contesto.ufficio_giudiziario}",
+            )
+        )
     atteso = f"{int(contesto.numero_rg)}/{contesto.anno_rg}" if str(contesto.numero_rg or "").strip().isdigit() and str(contesto.anno_rg or "").strip() else ""
     if atteso and fatto.valore == atteso:
         prove.append(_prova("concordanza", "ok", f"coincide con il ruolo del fascicolo {atteso}"))
@@ -223,13 +296,21 @@ def contesto_da_fascicolo(fascicolo: Any, *, oggi: date | None = None, date_note
         return str(getattr(fascicolo, nome, "") or "")
 
     return Contesto(
-        oggi=orizzonte["oggi"], anno_riferimento=orizzonte["anno_riferimento"], data_minima=orizzonte["data_minima"],
-        numero_rg=campo("numero_rg").strip(), anno_rg=campo("anno_rg").strip(), date_note=dict(date_note or {}),
+        oggi=orizzonte["oggi"],
+        anno_riferimento=orizzonte["anno_riferimento"],
+        data_minima=orizzonte["data_minima"],
+        numero_rg=campo("numero_rg").strip(),
+        anno_rg=campo("anno_rg").strip(),
+        ufficio_giudiziario=(
+            campo("tribunale").strip()
+            or campo("ufficio_giudiziario").strip()
+        ),
+        date_note=dict(date_note or {}),
     )
 
 
 __all__ = [
     "BASE_NORMATIVA_DIGITALE", "CAMPI_CONSEGUENTI", "CAMPI_FUTURI",
     "ORIGINI_NON_OTTICHE", "PROCEDURA_ARCHIVIO_LETTURE", "Contesto",
-    "collauda", "collauda_tutti", "contesto_da_fascicolo",
+    "collauda", "collauda_tutti", "contesto_da_fascicolo", "ruolo_compatibile_con_ufficio", "ufficio_esplicito_del_ruolo",
 ]

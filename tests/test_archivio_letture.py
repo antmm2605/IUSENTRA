@@ -97,9 +97,13 @@ def test_sentenza_del_cliente_alimenta_importi_del_fascicolo():
 
 def test_versione_motore_documenti_include_versione_importi():
     from pct.archivio_letture.estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
-    from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI
+    from pct.archivio_letture.motore_documenti import (
+        VERSIONE_MOTORE_DOCUMENTI,
+        VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI,
+    )
 
     assert VERSIONE_ESTRAZIONE_IMPORTI in VERSIONE_MOTORE_DOCUMENTI
+    assert any(".v13+" in versione for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI)
 
 
 def test_la_citazione_della_carta_non_rende_identita_un_decreto():
@@ -128,6 +132,60 @@ def test_prove_di_notifica_e_ruoli_dal_testo():
     assert "attestazione" not in prove
     ruoli = estrai_ruoli("R.G. n. 12S4/2O26 e R.G.N.R. 5678/2025 e procedimento 999/2026", origine="ocr")
     assert [(f.campo, f.valore) for f in ruoli] == [("numero_ruolo", "1254/2026"), ("numero_ruolo_penale", "5678/2025")]
+
+
+def test_un_rg_di_un_tribunale_diverso_non_diventa_ruolo_del_fascicolo():
+    fascicolo = SimpleNamespace(
+        id="F-VICENZA",
+        numero_rg="",
+        anno_rg="",
+        tribunale="Tribunale di Vicenza",
+        data_apertura="2026-09-01",
+    )
+    testo = "TRIBUNALE ORDINARIO DI TRANI, SEZIONE LAVORO, R.G. n. 4593/2022"
+    fatti = [
+        fatto
+        for fatto in leggi_testo(
+            testo,
+            origine="nativo",
+            contesto=contesto_da_fascicolo(fascicolo, oggi=OGGI),
+        )
+        if fatto.categoria == "ruolo"
+    ]
+
+    assert len(fatti) == 1
+    assert fatti[0].valore == "4593/2022"
+    assert fatti[0].verifica == "respinta"
+    assert any(
+        prova.get("codice") == "ufficio_giudiziario"
+        and prova.get("esito") == "respinta"
+        for prova in fatti[0].prove
+    )
+    assert ruoli_letti(fatti, ufficio_giudiziario=fascicolo.tribunale) == []
+
+
+def test_un_rg_dello_stesso_tribunale_resta_proponibile_se_manca_in_sql():
+    fascicolo = SimpleNamespace(
+        id="F-VICENZA",
+        numero_rg="",
+        anno_rg="",
+        tribunale="Tribunale di Vicenza",
+        data_apertura="2026-09-01",
+    )
+    testo = "TRIBUNALE ORDINARIO DI VICENZA, SEZIONE LAVORO, R.G. n. 4593/2022"
+    fatti = [
+        fatto
+        for fatto in leggi_testo(
+            testo,
+            origine="nativo",
+            contesto=contesto_da_fascicolo(fascicolo, oggi=OGGI),
+        )
+        if fatto.categoria == "ruolo"
+    ]
+
+    assert len(fatti) == 1
+    assert fatti[0].verifica == "verificata"
+    assert ruoli_letti(fatti, ufficio_giudiziario=fascicolo.tribunale)[0]["valore"] == "4593/2022"
 
 
 def test_il_collaudo_decide_verificata_plausibile_respinta():

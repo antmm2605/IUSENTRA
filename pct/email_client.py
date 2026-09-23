@@ -108,6 +108,7 @@ _STATI_PCT_ORDINE = {
     "INVIATO": 0,
     "ACCETTATO_PEC": 1,
     "CONSEGNATO": 2,
+    "CONTROLLI_SUPERATI": 3,
     "WARN_CONTROLLI": 3,
     "ERRORE_CONTROLLI": 3,
     "ACCETTATO_CANCELLERIA": 4,
@@ -2127,10 +2128,14 @@ def _aggiorna_ricevute_deposito_da_email(dep, em: EmailRicevuta) -> None:
         dep.ricevuta_accettazione = testo
     elif stato_nuovo == "CONSEGNATO" and not dep.ricevuta_consegna:
         dep.ricevuta_consegna = testo
-    elif stato_nuovo in {"WARN_CONTROLLI", "ERRORE_CONTROLLI"}:
+    elif stato_nuovo in {"CONTROLLI_SUPERATI", "WARN_CONTROLLI", "ERRORE_CONTROLLI"}:
         if not dep.ricevuta_controlli_automatici:
             dep.ricevuta_controlli_automatici = testo
-        dep.esito_controlli = "WARN" if stato_nuovo == "WARN_CONTROLLI" else "ERROR"
+        dep.esito_controlli = {
+            "CONTROLLI_SUPERATI": "OK",
+            "WARN_CONTROLLI": "WARN",
+            "ERRORE_CONTROLLI": "ERROR",
+        }[stato_nuovo]
     elif stato_nuovo in {"ACCETTATO_CANCELLERIA", "RIFIUTATO_CANCELLERIA"} and not dep.ricevuta_cancelleria:
         dep.ricevuta_cancelleria = testo
 

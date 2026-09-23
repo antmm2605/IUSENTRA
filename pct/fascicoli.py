@@ -431,6 +431,7 @@ STATI_DEPOSITO_PCT_CANONICI = {
     "ACCETTATO_PEC",
     "CONSEGNATO",
     "WARN_CONTROLLI",
+    "CONTROLLI_SUPERATI",
     "ERRORE_CONTROLLI",
     "ACCETTATO_CANCELLERIA",
     "RIFIUTATO_CANCELLERIA",
@@ -642,7 +643,7 @@ class EsitoDepositoPCT:
     Flusso ufficiale PCT (4 fasi):
       Fase 4 → ACCETTATO_PEC        : ricevuta accettazione PEC (gestore mittente)
       Fase 5 → CONSEGNATO            : ricevuta avvenuta consegna (sistema MinGiustizia)
-      Fase 6 → WARN_CONTROLLI /
+      Fase 6 → CONTROLLI_SUPERATI / WARN_CONTROLLI /
                ERRORE_CONTROLLI      : esito controlli automatici busta
       Fase 7 → ACCETTATO_CANCELLERIA : deposito accettato dalla cancelleria (definitivo)
                RIFIUTATO_CANCELLERIA : deposito rifiutato dalla cancelleria

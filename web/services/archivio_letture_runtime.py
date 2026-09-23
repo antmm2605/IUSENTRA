@@ -450,7 +450,16 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
                 continue
         oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oggetto.oggetto_id) or oggetto
         origine, testo = letture[0]
-        contesto_documento = Contesto(oggi=contesto.oggi, anno_riferimento=contesto.anno_riferimento, data_minima=contesto.data_minima, numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg, date_note=contesto.date_note, importi_noti=contesto.importi_noti)
+        contesto_documento = Contesto(
+            oggi=contesto.oggi,
+            anno_riferimento=contesto.anno_riferimento,
+            data_minima=contesto.data_minima,
+            numero_rg=contesto.numero_rg,
+            anno_rg=contesto.anno_rg,
+            ufficio_giudiziario=contesto.ufficio_giudiziario,
+            date_note=contesto.date_note,
+            importi_noti=contesto.importi_noti,
+        )
         if len(letture) > 1:
             contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
         metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
@@ -759,9 +768,6 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
             )
     try:
         messaggi = _messaggi_pec(fascicolo)
-        from web.services.correlazioni_ricevute_archivio import prepara_correlazioni
-        from web.services.pec_pipeline_runtime import repository_for_current_request
-        prepara_correlazioni(fascicolo, messaggi, repository_for_current_request())
         inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
         contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)

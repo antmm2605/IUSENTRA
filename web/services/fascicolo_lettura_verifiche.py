@@ -271,7 +271,7 @@ def verifica_depositi(app: Any, fascicolo: Any, paths: dict[str, Any]) -> dict[s
     """Controlla le ricevute dei depositi in corso con il polling PEC/PDP dello studio."""
     pendenti = [
         voce for voce in list(getattr(fascicolo, "depositi_pct", []) or [])
-        if _clean(getattr(voce, "stato", "")).upper() in {"INVIATO", "ACCETTATO_PEC", "ACCETTATO", "CONSEGNATO", "WARN_CONTROLLI"}
+        if _clean(getattr(voce, "stato", "")).upper() in {"INVIATO", "ACCETTATO_PEC", "ACCETTATO", "CONSEGNATO", "CONTROLLI_SUPERATI", "WARN_CONTROLLI"}
     ]
     if not pendenti:
         return {"pendenti": 0, "esito": "nessun_deposito_in_corso"}

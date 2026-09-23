@@ -5296,7 +5296,14 @@ def _ruolo_dall_archivio(fascicolo: Any) -> dict[str, str]:
         from pct.archivio_letture.presidi import ruoli_letti
     except Exception:
         return {}
-    for voce in ruoli_letti(_fatti_archivio(fascicolo, categoria="ruolo")):
+    ufficio = (
+        _text(getattr(fascicolo, "tribunale", ""))
+        or _text(getattr(fascicolo, "ufficio_giudiziario", ""))
+    )
+    for voce in ruoli_letti(
+        _fatti_archivio(fascicolo, categoria="ruolo"),
+        ufficio_giudiziario=ufficio,
+    ):
         numero, _, anno = _text(voce.get("valore")).partition("/")
         if numero.strip() and anno.strip():
             oggetti = [str(o) for o in (voce.get("oggetti") or []) if str(o or "").strip()]
@@ -8384,7 +8391,7 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
         if dedupe_key in seen:
             continue
         seen.add(dedupe_key)
-        tone = "success" if status in {"ACCETTATO_CANCELLERIA", "CONSEGNATO", "ACCETTATO_PEC"} else "danger" if "ERRORE" in status or "RIFIUTATO" in status else "warning" if "WARN" in status else "primary"
+        tone = "success" if status in {"ACCETTATO_CANCELLERIA", "CONTROLLI_SUPERATI", "CONSEGNATO", "ACCETTATO_PEC"} else "danger" if "ERRORE" in status or "RIFIUTATO" in status else "warning" if "WARN" in status else "primary"
         message = _deposit_display_message(dep, portal_docs)
         simulated = is_simulated_deposit(dep)
         next_phase = next_receipt_phase(dep)

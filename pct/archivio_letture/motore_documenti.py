@@ -16,15 +16,16 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .collaudo import Contesto, collauda_tutti
 from .estrazione_date import estrai_date
-from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
 from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_ruolo import estrai_ruoli
 
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI_V13 = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
     VERSIONE_MOTORE_DOCUMENTI,
+    VERSIONE_MOTORE_DOCUMENTI_V13,
     f"2026.09.18.motore-documenti.v12+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}",
     f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}",
     f"2026.09.16.motore-documenti.v7+{VERSIONE_FORMULARIO}",

@@ -874,6 +874,11 @@ class FirmaPKCS11:
         from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
         from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
         from pyhanko.stamp import TextStampStyle
+        from visible_signature import (
+            has_pdf_signature,
+            has_visible_signature_stamp,
+            next_pdf_signature_field_name,
+        )
 
         # Stessa registrazione del Local Signer accettato: una firma CAdES
         # precedente può aver inizializzato la mappa prima dell'import di tsp.
@@ -883,9 +888,20 @@ class FirmaPKCS11:
         cms.CMSAttributeType._reverse_map["signing_certificate_v2"] = oid
 
         pdf_payload = self._pdf_da_firmare(documento)
+        had_existing_signature = has_pdf_signature(pdf_payload)
+        if not had_existing_signature:
+            pdf_payload = self._prepare_pdf_for_visible_signature(
+                pdf_payload,
+                visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
+            )
+            if not has_visible_signature_stamp(pdf_payload):
+                raise RuntimeError(
+                    "La firma PAdES non è stata applicata: manca il timbro visibile richiesto."
+                )
         reader = PdfReader(io.BytesIO(pdf_payload))
-        last_page = reader.pages[-1]
-        page_width = int(float(last_page.mediabox.width))
+        page_width = int(float(reader.pages[-1].mediabox.width))
         location = resolve_visible_signature_place(
             city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
             province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
@@ -902,7 +918,6 @@ class FirmaPKCS11:
             key_id=self._cert_id,
             embed_roots=False,
         )
-        from visible_signature import next_pdf_signature_field_name
         signature_field_name = next_pdf_signature_field_name(reader)
         metadata = signers.PdfSignatureMetadata(
             field_name=signature_field_name,
@@ -915,11 +930,15 @@ class FirmaPKCS11:
         field = fields.SigFieldSpec(
             sig_field_name=signature_field_name,
             on_page=-1,
-            box=(20, 10, max(40, page_width - 20), 55),
+            box=(20, 10, max(40, page_width - 20), 55) if had_existing_signature else None,
         )
-        stamp = TextStampStyle(
-            stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
-            timestamp_format="%d/%m/%Y ore %H:%M",
+        stamp = (
+            TextStampStyle(
+                stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
+                timestamp_format="%d/%m/%Y ore %H:%M",
+            )
+            if had_existing_signature
+            else None
         )
         writer = IncrementalPdfFileWriter(io.BytesIO(pdf_payload))
         output = io.BytesIO()
@@ -930,7 +949,6 @@ class FirmaPKCS11:
             new_field_spec=field,
         ).sign_pdf(writer, output=output)
         return output.getvalue()
-
     def _build_signed_attrs(self, doc_digest: bytes, cert_der: bytes | None = None) -> bytes:
         """
         Costruisce i SignedAttributes DER (tag SET 0x31) per la firma CAdES-BES.

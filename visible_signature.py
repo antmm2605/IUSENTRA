@@ -4,6 +4,8 @@ import base64
 import io
 import re
 from datetime import datetime
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 try:
@@ -45,6 +47,8 @@ VISIBLE_SIGNATURE_DATETIME_MODES = {
 VISIBLE_SIGNATURE_PREFIX = "Firmato digitalmente da"
 VISIBLE_SIGNATURE_DATE_LABEL = "Data e ora firma:"
 VISIBLE_SIGNATURE_METADATA_KEY = "/HACSSignatureStamp"
+VISIBLE_SIGNATURE_FONT_REGULAR_NAME = "IUSENTRAVisibleSignature"
+VISIBLE_SIGNATURE_FONT_BOLD_NAME = "IUSENTRAVisibleSignatureBold"
 VISIBLE_SIGNATURE_COCCARDA_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAACsAAAAtCAYAAAA3BJLdAAAK30lEQVR4AazZa8jX5R3H8etvaVoeOmimLdM84NmW"
     "tWL6oFGjthrURoxBD7YnORDZZIuJEDYdwRhsbFH5YNhhQdEKSdBJNRw9cDMPrZRJHtJSy2OlVprHfV7X9pNbu09F"
@@ -92,6 +96,53 @@ VISIBLE_SIGNATURE_COCCARDA_PNG_B64 = (
     "B08rc+8PRMUAAAAASUVORK5CYII="
 )
 ITALY_TIMEZONE = ZoneInfo("Europe/Rome") if ZoneInfo else None
+
+
+@lru_cache(maxsize=1)
+def _register_visible_signature_fonts() -> tuple[str, str]:
+    """Registra i TTF incorporabili distribuiti con ReportLab.
+
+    I font PDF Base 14 (per esempio Helvetica) non vengono incorporati nel
+    documento e possono rendere non conforme un PDF/A originariamente valido.
+    Bitstream Vera è già parte della dipendenza ReportLab installata dal
+    Local Signer e rende il timbro deterministico su Windows e Linux.
+    """
+
+    try:
+        import reportlab
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+    except Exception as exc:  # pragma: no cover - dipendenza obbligatoria
+        raise RuntimeError(
+            "Impossibile caricare il font incorporabile della firma visibile. "
+            "La firma è stata interrotta per preservare la conformità PDF/A."
+        ) from exc
+
+    package_file = getattr(reportlab, "__file__", None)
+    if not package_file:
+        raise RuntimeError(
+            "Il percorso dei font ReportLab non è disponibile. La firma è "
+            "stata interrotta per preservare la conformità PDF/A."
+        )
+
+    fonts_dir = Path(package_file).resolve().parent / "fonts"
+    fonts = (
+        (VISIBLE_SIGNATURE_FONT_REGULAR_NAME, fonts_dir / "Vera.ttf"),
+        (VISIBLE_SIGNATURE_FONT_BOLD_NAME, fonts_dir / "VeraBd.ttf"),
+    )
+    missing = [font_path.name for _font_name, font_path in fonts if not font_path.is_file()]
+    if missing:
+        raise RuntimeError(
+            "Font incorporabili mancanti nel runtime ReportLab: "
+            f"{', '.join(missing)}. La firma è stata interrotta per preservare "
+            "la conformità PDF/A."
+        )
+
+    registered = set(pdfmetrics.getRegisteredFontNames())
+    for font_name, font_path in fonts:
+        if font_name not in registered:
+            pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
+    return VISIBLE_SIGNATURE_FONT_REGULAR_NAME, VISIBLE_SIGNATURE_FONT_BOLD_NAME
 
 
 def normalize_visible_signature_mode(value: Any) -> str:
@@ -363,6 +414,53 @@ def has_visible_signature_stamp(pdf_data: bytes) -> bool:
         return False
 
 
+
+def has_pdf_signature(pdf_data: bytes) -> bool:
+    """Rileva una firma PAdES senza rischiare di riscriverne una non leggibile.
+
+    Un errore del parser non equivale a un PDF senza firma. In quel caso la
+    firma viene interrotta: il chiamante non deve mai passare il documento a
+    ``PdfWriter`` e invalidare una revisione PAdES preesistente.
+    """
+    if not pdf_data.lstrip().startswith(b"%PDF"):
+        return False
+    try:
+        from pypdf import PdfReader
+
+        reader = PdfReader(io.BytesIO(pdf_data), strict=False)
+        for field in (reader.get_fields() or {}).values():
+            try:
+                current = field.get_object()
+            except Exception:
+                current = field
+            if str(current.get("/FT") or "") == "/Sig" and current.get("/V") is not None:
+                return True
+        for page in reader.pages:
+            for annotation_ref in page.get("/Annots", []):
+                try:
+                    annotation = annotation_ref.get_object()
+                except Exception:
+                    annotation = annotation_ref
+                if (
+                    str(annotation.get("/FT") or "") == "/Sig"
+                    and annotation.get("/V") is not None
+                ):
+                    return True
+    except Exception as exc:
+        if re.search(rb"/ByteRange\s*\[", pdf_data) and re.search(
+            rb"/(?:SubFilter\s*/ETSI\.CAdES\.detached|Type\s*/Sig)", pdf_data
+        ):
+            return True
+        raise RuntimeError(
+            "Impossibile verificare in sicurezza se il PDF contiene già una firma "
+            "digitale. La firma non è stata eseguita per preservare il documento."
+        ) from exc
+    if re.search(rb"/ByteRange\s*\[", pdf_data) and re.search(
+        rb"/(?:SubFilter\s*/ETSI\.CAdES\.detached|Type\s*/Sig)", pdf_data
+    ):
+        return True
+    return False
+
 def apply_visible_signature_stamp(
     pdf_data: bytes,
     *,
@@ -396,14 +494,14 @@ def apply_visible_signature_stamp(
         from pypdf import PdfReader, PdfWriter
         from reportlab.lib.colors import Color
         from reportlab.pdfgen import canvas
-    except Exception:
-        return _apply_visible_signature_stamp_fallback(
-            pdf_data,
-            stamp_text=stamp_text,
-            mode=resolved_mode,
-        )
+    except Exception as exc:
+        raise RuntimeError(
+            "Impossibile preparare il timbro di firma visibile conforme a PDF/A. "
+            "La firma non è stata eseguita."
+        ) from exc
 
     try:
+        regular_font_name, _bold_font_name = _register_visible_signature_fonts()
         reader = PdfReader(io.BytesIO(pdf_data))
         writer = PdfWriter(clone_from=io.BytesIO(pdf_data))
         page_count = len(reader.pages)
@@ -425,7 +523,12 @@ def apply_visible_signature_stamp(
             )
 
             overlay_buffer = io.BytesIO()
-            overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
+            overlay = canvas.Canvas(
+                overlay_buffer,
+                pagesize=(width, height),
+                initialFontName=regular_font_name,
+                initialFontSize=VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT,
+            )
 
             muted = Color(0.23, 0.23, 0.23)
             if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}:
@@ -478,85 +581,12 @@ def apply_visible_signature_stamp(
         output_buffer = io.BytesIO()
         writer.write(output_buffer)
         return output_buffer.getvalue()
-    except Exception:
-        return _apply_visible_signature_stamp_fallback(
-            pdf_data,
-            stamp_text=stamp_text,
-            mode=resolved_mode,
-        )
-
-
-def _apply_visible_signature_stamp_fallback(
-    pdf_data: bytes,
-    *,
-    stamp_text: str,
-    mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
-) -> bytes:
-    try:
-        from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-        from pyhanko.pdf_utils.layout import BoxConstraints
-        from pyhanko.pdf_utils.text import TextBoxStyle
-        from pyhanko.stamp import TextStamp, TextStampStyle
-    except Exception:
-        return pdf_data
-
-    try:
-        buf_in = io.BytesIO(pdf_data)
-        writer = IncrementalPdfFileWriter(buf_in)
-        page_count = 1
-        try:
-            pages = writer.prev.root["/Pages"].get_object()
-            page_count = max(int(pages.get("/Count", 1) or 1), 1)
-        except Exception:
-            page_count = 1
-
-        resolved_mode = normalize_visible_signature_mode(mode)
-        style = TextStampStyle(
-            stamp_text=stamp_text,
-            border_width=1,
-            border_color=(0.12, 0.31, 0.55),
-            text_box_style=TextBoxStyle(
-                font_size=(
-                    11
-                    if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}
-                    else VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT
-                ),
-                leading=13
-                if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}
-                else 10,
-                text_color=(0.11, 0.16, 0.24),
-            ),
-        )
-        for dest_page in range(page_count):
-            page_width = 595.0
-            page_height = 842.0
-            try:
-                page_ref, _ = writer.find_page_for_modification(dest_page)
-                media_box = page_ref.get_object().get("/MediaBox")
-                if media_box and len(media_box) >= 4:
-                    page_width = float(media_box[2]) - float(media_box[0])
-                    page_height = float(media_box[3]) - float(media_box[1])
-            except Exception:
-                page_width = 595.0
-                page_height = 842.0
-
-            layout = compute_visible_signature_layout(
-                width=page_width,
-                height=page_height,
-                mode=resolved_mode,
-            )
-            box_width = int(float(layout["box_width"]))
-            box_height = int(float(layout["box_height"]))
-            x = int(float(layout["x"]))
-            y = int(float(layout["y"]))
-            stamp = TextStamp(writer, style, box=BoxConstraints(width=box_width, height=box_height))
-            stamp.apply(dest_page, x, y)
-
-        buf_out = io.BytesIO()
-        writer.write(buf_out)
-        return buf_out.getvalue()
-    except Exception:
-        return pdf_data
+    except Exception as exc:
+        raise RuntimeError(
+            "Impossibile applicare il timbro di firma visibile con font "
+            "incorporato. La firma è stata interrotta per preservare la "
+            "conformità PDF/A."
+        ) from exc
 
 
 def prepare_document_for_signature(
@@ -753,7 +783,7 @@ def _draw_visible_signature_side_mark(
         max(height - 10.0, 0.0),
     )
     text_length = max(height - text_start_y - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT, 40.0)
-    font_name = "Helvetica"
+    font_name, _bold_font_name = _register_visible_signature_fonts()
     font_size = VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT
     side_text = _fit_text_for_width(overlay, side_text, font_name, font_size, text_length)
 
@@ -826,7 +856,7 @@ def _draw_visible_signature_bottom_text(
         mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     )
     align = str(layout.get("align") or "right")
-    font_name = "Helvetica"
+    font_name, _bold_font_name = _register_visible_signature_fonts()
     font_size = 11
     line_one, line_two = _build_visible_signature_bottom_lines(
         intestatario=intestatario,

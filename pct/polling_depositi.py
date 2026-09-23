@@ -42,6 +42,7 @@ STATI_PENDENTI = frozenset({
     "INVIATO",
     "ACCETTATO_PEC",
     "CONSEGNATO",
+    "CONTROLLI_SUPERATI",
     "WARN_CONTROLLI",
 })
 

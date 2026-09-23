@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.134"
+VERSION = "1.6.135"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3929,7 +3929,9 @@ def _firma_documento_windows_store_pades(
     documento: bytes,
     *,
     cert_thumbprint: Optional[str] = None,
+    visible_signature_mode: str = "laterale",
     visible_signature_place: str = "",
+    visible_signature_datetime_mode: str = "data_ora",
 ) -> tuple[bytes, dict]:
     from asn1crypto import cms, x509 as asn1_x509
     from cryptography import x509 as crypto_x509
@@ -3938,6 +3940,11 @@ def _firma_documento_windows_store_pades(
     from pyhanko.sign import fields, signers
     from pyhanko.stamp import TextStampStyle
     from pyhanko_certvalidator.registry import SimpleCertificateStore
+    from visible_signature import (
+        has_pdf_signature,
+        has_visible_signature_stamp,
+        next_pdf_signature_field_name,
+    )
 
     _ensure_signing_certificate_v2_oid_registered()
 
@@ -3955,6 +3962,22 @@ def _firma_documento_windows_store_pades(
             pdf_payload = pdf_payload.encode("latin-1")
     if not isinstance(pdf_payload, bytes) or not pdf_payload.lstrip().startswith(b"%PDF"):
         raise RuntimeError("Il documento richiesto per la firma PAdES non contiene un PDF valido.")
+
+    had_existing_signature = has_pdf_signature(pdf_payload)
+    if not had_existing_signature:
+        pdf_payload = _prepare_documento_firma_visibile(
+            pdf_payload,
+            str(cert.get("soggetto_completo") or cert.get("soggetto") or ""),
+            str(cert.get("emittente_completo") or cert.get("emittente") or ""),
+            str(cert.get("seriale") or thumbprint),
+            visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
+            visible_signature_datetime_mode=visible_signature_datetime_mode,
+        )
+        if not has_visible_signature_stamp(pdf_payload):
+            raise RuntimeError(
+                "La firma PAdES non è stata applicata: manca il timbro visibile richiesto."
+            )
 
     signing_cert = asn1_x509.Certificate.load(cert_der)
     registry = SimpleCertificateStore()
@@ -3977,7 +4000,6 @@ def _firma_documento_windows_store_pades(
 
     reader = PdfReader(io.BytesIO(pdf_payload))
     page_width = int(float(reader.pages[-1].mediabox.width))
-    from visible_signature import next_pdf_signature_field_name
     signature_field_name = next_pdf_signature_field_name(reader)
     metadata = signers.PdfSignatureMetadata(
         field_name=signature_field_name,
@@ -3988,17 +4010,22 @@ def _firma_documento_windows_store_pades(
         subfilter=fields.SigSeedSubFilter.PADES,
     )
     output = io.BytesIO()
+    stamp = (
+        TextStampStyle(
+            stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
+            timestamp_format="%d/%m/%Y ore %H:%M",
+        )
+        if had_existing_signature
+        else None
+    )
     signers.PdfSigner(
         metadata,
         signer=WindowsStoreSigner(),
-        stamp_style=TextStampStyle(
-            stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
-            timestamp_format="%d/%m/%Y ore %H:%M",
-        ),
+        stamp_style=stamp,
         new_field_spec=fields.SigFieldSpec(
             sig_field_name=signature_field_name,
             on_page=-1,
-            box=(20, 10, max(40, page_width - 20), 55),
+            box=(20, 10, max(40, page_width - 20), 55) if had_existing_signature else None,
         ),
     ).sign_pdf(
         IncrementalPdfFileWriter(io.BytesIO(pdf_payload)),
@@ -4012,7 +4039,6 @@ def _firma_documento_windows_store_pades(
         "pin_session_cached": False,
         "formato": "pades",
     }
-
 
 def _firma_documento_windows_store(
     documento: bytes,
@@ -4160,7 +4186,9 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
             return _firma_documento_windows_store_pades(
                 documento,
                 cert_thumbprint=cert_thumbprint,
+                visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
         return _firma_documento_windows_store(
             documento,
@@ -4219,8 +4247,11 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
         if sys.platform == "win32" and _errore_pkcs11_senza_token(exc):
             if formato == "pades":
                 return _firma_documento_windows_store_pades(
-                    documento, cert_thumbprint=cert_thumbprint,
+                    documento,
+                    cert_thumbprint=cert_thumbprint,
+                    visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
+                    visible_signature_datetime_mode=visible_signature_datetime_mode,
                 )
             return _firma_documento_windows_store(
                 documento,
@@ -4247,8 +4278,11 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
         if sys.platform == "win32" and _errore_pkcs11_senza_token(exc):
             if formato == "pades":
                 return _firma_documento_windows_store_pades(
-                    documento, cert_thumbprint=cert_thumbprint,
+                    documento,
+                    cert_thumbprint=cert_thumbprint,
+                    visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
+                    visible_signature_datetime_mode=visible_signature_datetime_mode,
                 )
             return _firma_documento_windows_store(
                 documento,
@@ -4331,6 +4365,11 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
             from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
             from pyhanko.stamp import TextStampStyle
+            from visible_signature import (
+                has_pdf_signature,
+                has_visible_signature_stamp,
+                next_pdf_signature_field_name,
+            )
 
             pdf_payload = documento
             if not pdf_payload.lstrip().startswith(b"%PDF"):
@@ -4340,6 +4379,21 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
                     pdf_payload = pdf_payload.encode("latin-1")
             if not isinstance(pdf_payload, bytes) or not pdf_payload.lstrip().startswith(b"%PDF"):
                 raise RuntimeError("Il documento richiesto per la firma PAdES non contiene un PDF valido.")
+            had_existing_signature = has_pdf_signature(pdf_payload)
+            if not had_existing_signature:
+                pdf_payload = _prepare_documento_firma_visibile(
+                    pdf_payload,
+                    intestatario,
+                    issuer,
+                    serial,
+                    visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
+                    visible_signature_datetime_mode=visible_signature_datetime_mode,
+                )
+                if not has_visible_signature_stamp(pdf_payload):
+                    raise RuntimeError(
+                        "La firma PAdES non è stata applicata: manca il timbro visibile richiesto."
+                    )
             reader = PdfReader(io.BytesIO(pdf_payload))
             page_width = int(float(reader.pages[-1].mediabox.width))
             cert_id_raw = token_cert_obj[id_attribute] if id_attribute is not None else None
@@ -4357,7 +4411,6 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
                 key_id=cert_id,
                 embed_roots=False,
             )
-            from visible_signature import next_pdf_signature_field_name
             signature_field_name = next_pdf_signature_field_name(reader)
             metadata = signers.PdfSignatureMetadata(
                 field_name=signature_field_name,
@@ -4370,16 +4423,21 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             field = fields.SigFieldSpec(
                 sig_field_name=signature_field_name,
                 on_page=-1,
-                box=(20, 10, max(40, page_width - 20), 55),
+                box=(20, 10, max(40, page_width - 20), 55) if had_existing_signature else None,
+            )
+            stamp = (
+                TextStampStyle(
+                    stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
+                    timestamp_format="%d/%m/%Y ore %H:%M",
+                )
+                if had_existing_signature
+                else None
             )
             output = io.BytesIO()
             signers.PdfSigner(
                 metadata,
                 signer=signer,
-                stamp_style=TextStampStyle(
-                    stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
-                    timestamp_format="%d/%m/%Y ore %H:%M",
-                ),
+                stamp_style=stamp,
                 new_field_spec=field,
             ).sign_pdf(
                 IncrementalPdfFileWriter(io.BytesIO(pdf_payload)),

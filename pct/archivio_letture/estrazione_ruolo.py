@@ -42,7 +42,7 @@ def estrai_ruoli(testo: str, *, origine: str) -> list[Fatto]:
         sostituzioni = sum(1 for carattere in match.group("numero") + match.group("anno") if not carattere.isdigit())
         fatti.append(Fatto(
             categoria="ruolo", campo=campo, valore=valore, valore_letto=" ".join(match.group(0).split()), etichetta=f"{'R.G.N.R.' if campo.endswith('penale') else 'R.G.'} {valore}",
-            contesto=" ".join(testo[max(0, match.start() - 80):match.end() + 80].split()), posizione=match.start(), origine=origine,
+            contesto=" ".join(testo[max(0, match.start() - 240):match.end() + 80].split()), posizione=match.start(), origine=origine,
             confidenza=max(0.3, 1.0 - 0.2 * sostituzioni),
             prove=[{"codice": "forma", "esito": "ok" if sostituzioni <= 1 else "attenzione", "dettaglio": f"{sostituzioni} segni corretti" if sostituzioni else "nessuna correzione"}],
         ))

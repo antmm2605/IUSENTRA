@@ -119,10 +119,18 @@ def prove_notifica_per_oggetto(fatti: Iterable[Fatto]) -> dict[str, dict[str, An
     return esito
 
 
-def ruoli_letti(fatti: Iterable[Fatto]) -> list[dict[str, Any]]:
+def ruoli_letti(
+    fatti: Iterable[Fatto],
+    *,
+    ufficio_giudiziario: str = "",
+) -> list[dict[str, Any]]:
+    from .collaudo import ruolo_compatibile_con_ufficio
+
     visti: dict[str, dict[str, Any]] = {}
     for fatto in fatti:
         if fatto.categoria != "ruolo" or fatto.verifica not in VERIFICHE_UTILI:
+            continue
+        if not ruolo_compatibile_con_ufficio(fatto, ufficio_giudiziario):
             continue
         voce = visti.setdefault(fatto.valore, {"valore": fatto.valore, "campo": fatto.campo, "verifica": fatto.verifica, "oggetti": []})
         if fatto.oggetto_id not in voce["oggetti"]:

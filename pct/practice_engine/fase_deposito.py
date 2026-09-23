@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from typing import Any
 
 # Stati di un deposito che, se presenti, dicono che la busta esiste già.
-STATI_DEPOSITO_APERTI = {"IN_PREPARAZIONE", "PRONTO", "INVIATO", "ACCETTATO_PEC", "CONSEGNATO", "IN_ATTESA_CONTROLLI", "WARN_CONTROLLI"}
+STATI_DEPOSITO_APERTI = {"IN_PREPARAZIONE", "PRONTO", "INVIATO", "ACCETTATO_PEC", "CONSEGNATO", "IN_ATTESA_CONTROLLI", "CONTROLLI_SUPERATI", "WARN_CONTROLLI"}
 STATI_DEPOSITO_CHIUSI = {"CONTROLLI_OK", "ACCETTATO_CANCELLERIA", "ACQUISITO", "RIFIUTATO_CANCELLERIA", "ERRORE_CONTROLLI", "ERRORE"}
 STATI_FASCICOLO_SENZA_DEPOSITO = {"DEFINITO", "CHIUSO", "ARCHIVIATO"}
 MESSAGGIO_NON_RICHIESTA = (
@@ -154,6 +154,7 @@ ETICHETTE_DEPOSITO: dict[str, tuple[str, str]] = {
     "ACCETTATO_PEC": ("Accettato dal gestore PEC", "IN_ATTESA_RICEVUTE"),
     "CONSEGNATO": ("Consegnato al sistema ministeriale", "IN_ATTESA_RICEVUTE"),
     "IN_ATTESA_CONTROLLI": ("In attesa dei controlli automatici", "IN_ATTESA_RICEVUTE"),
+    "CONTROLLI_SUPERATI": ("Controlli automatici superati", "IN_ATTESA_RICEVUTE"),
     "WARN_CONTROLLI": ("Controlli automatici con avvisi", "IN_ATTESA_RICEVUTE"),
     "ERRORE_CONTROLLI": ("Controlli automatici con errori", "BLOCCATO_DA_ERRORI"),
     "CONTROLLI_OK": ("Controlli automatici superati", "IN_ATTESA_RICEVUTE"),

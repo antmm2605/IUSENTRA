@@ -1948,18 +1948,40 @@ def html_to_pdf(
             # carattere, e quando quello non ce l'ha finisce nel PDF come
             # «(cid:127)» — spazzatura in mezzo a un atto.
             segno_elenco = (el.get("data-segno") or "").strip() or "\u2022"
+            # In un documento importato lo stacco fra le voci e' gia' scritto
+            # nell'interlinea di ognuna: aggiungerne un altro sposta in giu'
+            # mezza pagina ogni sei testimoni. E il testo comincia subito dopo
+            # il segno, non a un rientro deciso da noi: diciotto punti fissi
+            # restringono la riga e mandano a capo la voce piu' lunga.
+            base_voce = st_li
+            rientro_voce = 18
+            if misure_documento:
+                corpo_voce = _corrente["normal"].fontSize
+                base_voce = _stili_paragrafo.setdefault(
+                    ("iu-voce", round(corpo_voce, 2)),
+                    ParagraphStyle(f"Voce{round(corpo_voce, 2)}",
+                                   parent=_corrente["normal"], spaceAfter=0),
+                )
+                try:
+                    from reportlab.pdfbase import pdfmetrics
+                    rientro_voce = pdfmetrics.stringWidth(
+                        f"{segno_elenco} ", base_voce.fontName, corpo_voce)
+                except Exception:
+                    rientro_voce = 18
             for li in el.findall("li"):
                 rich = _node_to_rich(li)
                 voce = {"bulletType": tipo_elenco}
                 if tipo_elenco == "bullet":
-                    voce["bulletFontName"] = st_li.fontName
-                items.append(ListItem(Paragraph(rich, st_li), **voce))
+                    voce["bulletFontName"] = base_voce.fontName
+                items.append(ListItem(
+                    Paragraph(rich, _stile_del_paragrafo(li, base_voce)), **voce))
             if items:
-                opzioni = {"bulletType": tipo_elenco, "leftIndent": 18, "bulletFontSize": 10}
+                opzioni = {"bulletType": tipo_elenco,
+                           "leftIndent": rientro_voce, "bulletFontSize": 10}
                 if tipo_elenco == "bullet":
                     # per un elenco puntato reportlab prende il segno da
                     # «start», non da «bulletText»
-                    opzioni["bulletFontName"] = st_li.fontName
+                    opzioni["bulletFontName"] = base_voce.fontName
                     opzioni["start"] = segno_elenco
                 if tipo_elenco != "bullet":
                     opzioni["start"] = inizio_elenco

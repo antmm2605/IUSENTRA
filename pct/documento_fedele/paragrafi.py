@@ -340,7 +340,7 @@ def costruisci_paragrafi(
         if (len(segnate) >= 2 and len(segnate) >= len(blocco) * 0.7) or crescenti:
             numerato = crescenti or bool(_RE_NUMERO_ELENCO.match((segnate or nudi)[0].testo))
             fuori.append(_elenco([[r] for r in blocco], numerato, corpo_base,
-                                 famiglia_base, sinistra, destra))
+                                 famiglia_base, sinistra, destra, interlinea))
             indice += 1
             continue
 
@@ -358,7 +358,7 @@ def costruisci_paragrafi(
                 fine += 1
             if len(voci) >= 2:
                 fuori.append(_elenco(voci, numerato, corpo_base, famiglia_base,
-                                     sinistra, destra))
+                                     sinistra, destra, interlinea))
                 indice = fine
                 continue
 
@@ -598,9 +598,11 @@ def _paragrafo(
 def _elenco(
     voci: list[list[Riga]], numerato: bool, corpo_base: float,
     famiglia_base: str, sinistra: float, destra: float,
+    interlinea_pagina: Optional[float] = None,
 ) -> Elemento:
     tag = "ol" if numerato else "ul"
     pezzi = []
+    passi: list[list[Riga]] = []
     segno = ""
     for blocco in voci:
         righe = list(blocco)
@@ -622,7 +624,35 @@ def _elenco(
         interno = _html_tratti(tratti, corpo_base, famiglia_base)
         for r in righe[1:]:
             interno += "<br>" + _html_tratti(r.tratti, corpo_base, famiglia_base)
-        pezzi.append(f"<li>{interno}</li>")
+        passi.append(righe)
+        pezzi.append(interno)
+
+    # Il passo di ogni voce: dentro una voce e' la distanza fra le sue righe,
+    # fra una voce e l'altra e' la distanza dalla prossima. Senza dirlo, chi
+    # riscrive ci mette uno stacco suo — tre punti a voce — e sei testimoni
+    # spostano in giu' mezza pagina.
+    # Il limite si misura sull'interlinea della **pagina**, non su quella
+    # dell'elenco: quando fra due voci c'e' un'immagine, la mediana dei salti
+    # dell'elenco e' quel salto, e il limite diventa quattro volte tanto —
+    # una voce alta duecentotrenta punti, e la pagina ne diventa due.
+    interlinea = interlinea_pagina or _interlinea_mediana(
+        [r for gruppo in passi for r in gruppo]
+    )
+    voci_html = []
+    for posto, (righe, interno) in enumerate(zip(passi, pezzi)):
+        if posto + 1 < len(passi):
+            passo = passi[posto + 1][0].bbox[1] - righe[0].bbox[1]
+            if len(righe) > 1:
+                passo = _interlinea_mediana(righe)
+        elif len(righe) > 1:
+            passo = _interlinea_mediana(righe)
+        else:
+            passo = interlinea
+        corpo_voce = statistics.median([r.corpo for r in righe])
+        passo = max(min(passo, _stacco_massimo(interlinea, corpo_base)),
+                    corpo_voce * 0.55)
+        voci_html.append(f'<li style="line-height:{_pt(passo)}pt">{interno}</li>')
+    pezzi = voci_html
 
     rientro = min(b[0].bbox[0] for b in voci) - sinistra
     stile = f'style="margin-left:{_pt(max(0, rientro))}pt"' if rientro > Taratura.RIENTRO_MINIMO else ""

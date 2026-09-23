@@ -431,3 +431,57 @@ def test_una_riga_centrata_si_centra_sulla_colonna_del_testo():
     assert not [s for s in _stile_paragrafo(
         centrata, None, sinistra=cornice_sx, destra=cornice_dx,
         corpo_base=12.0, interlinea=24.0) if s.startswith("margin-")]
+
+
+def test_un_elenco_non_aggiunge_stacco_alle_voci():
+    """Sei testimoni non devono spostare in giu' mezza pagina.
+
+    Le voci di un elenco stanno alla stessa distanza delle righe del testo:
+    quella distanza e' gia' scritta nell'interlinea di ogni voce. Chi
+    riscriveva ce ne aggiungeva una sua — tre punti a voce — e su un elenco di
+    sei testimoni la firma in fondo alla pagina scivolava di diciotto punti.
+    """
+    import io
+    import re
+
+    import pdfplumber
+
+    from pct.documento_fedele.modello import Riga, Tratto
+    from pct.documento_fedele.paragrafi import _elenco
+    from pct.editor import html_to_pdf
+
+    PASSO = 24.0
+
+    def _voce(testo: str, y: float) -> list[Riga]:
+        return [Riga(
+            tratti=[Tratto(testo=f"- {testo}", famiglia="Times New Roman", corpo=12.0)],
+            bbox=(79.4, y, 300.0, y + 14.0),
+        )]
+
+    partenza = 233.4
+    voci = [_voce(f"Testimone numero {n}", partenza + n * PASSO) for n in range(6)]
+    elemento = _elenco(voci, numerato=False, corpo_base=12.0,
+                       famiglia_base="Times New Roman",
+                       sinistra=79.4, destra=450.8, interlinea_pagina=PASSO)
+
+    altezze = {float(a) for a in re.findall(r'line-height:([0-9.]+)pt', elemento.html)}
+    assert altezze == {PASSO}, f"ogni voce doveva dichiarare il suo passo: {altezze}"
+
+    pagina = (
+        '<section class="iu-doc-pagina" data-pagina="1"'
+        ' data-larghezza="595.3" data-altezza="841.9"'
+        ' data-margine-alto="56.7" data-margine-basso="56.7"'
+        ' data-margine-sinistro="79.4" data-margine-destro="144.5"'
+        ' data-interlinea="24" data-allineamento="left"'
+        ' style="font-family:\'Times New Roman\', serif;font-size:12.0pt">'
+        f"{elemento.html}</section>"
+    )
+    with pdfplumber.open(io.BytesIO(html_to_pdf(pagina))) as pdf:
+        cime = [r["top"] for r in pdf.pages[0].extract_text_lines()]
+
+    assert len(cime) == 6, f"le voci erano sei e sono tornate {len(cime)}"
+    passi = [b - a for a, b in zip(cime, cime[1:])]
+    for passo in passi:
+        assert abs(passo - PASSO) < 1.0, (
+            f"fra una voce e l'altra ci sono {passo:.1f} punti invece di {PASSO}"
+        )

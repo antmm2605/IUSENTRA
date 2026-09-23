@@ -489,6 +489,23 @@ def _stile_paragrafo(
                 stile.append(f"margin-bottom:{_pt(extra)}pt")
         return stile
 
+    if allinea == "center":
+        # Centrato su cosa. Chi riscrive il documento centra sulla cornice
+        # della pagina; l'autore ha centrato sulla colonna del testo, che
+        # comincia piu' a destra quando qualcosa — una carta intestata, un
+        # elenco a filo — sporge a sinistra. Sono pochi punti, ma li prendono
+        # tutte le righe centrate dell'atto: il titolo del tribunale, il
+        # «CONTRO», il numero di pagina.
+        centro_voluto = statistics.median(
+            [(r.bbox[0] + r.bbox[2]) / 2 for r in blocco]
+        )
+        scarto = centro_voluto - (sinistra + destra) / 2
+        # spostare il centro di X vuol dire aggiungere 2X da una parte sola
+        if scarto > Taratura.RIENTRO_DICHIARATO:
+            stile.append(f"margin-left:{_pt(2 * scarto)}pt")
+        elif scarto < -Taratura.RIENTRO_DICHIARATO:
+            stile.append(f"margin-right:{_pt(-2 * scarto)}pt")
+
     rientro_sx = (min(r.bbox[0] for r in blocco[1:]) if len(blocco) > 1
                   else blocco[0].bbox[0]) - sinistra
     rientro_dx = destra - max(r.bbox[2] for r in blocco)

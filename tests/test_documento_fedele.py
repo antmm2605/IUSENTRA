@@ -388,3 +388,46 @@ def test_il_segno_dell_elenco_e_quello_dell_autore():
     assert re.search(r"-\s+Avv\. Brosio Elio", testo), (
         f"la voce doveva tornare col suo trattino: {testo!r}"
     )
+
+
+def test_una_riga_centrata_si_centra_sulla_colonna_del_testo():
+    """Centrato su cosa: sulla cornice della pagina, o sulla colonna?
+
+    Quando qualcosa sporge a sinistra — una carta intestata, un elenco a filo
+    di margine — la cornice comincia prima della colonna del testo. L'autore
+    ha centrato il titolo sulla colonna; chi riscriveva centrava sulla
+    cornice, e ogni riga centrata dell'atto cadeva qualche punto a sinistra:
+    il nome del tribunale, il «CONTRO», il numero di pagina.
+    """
+    from pct.documento_fedele.modello import Riga, Tratto
+    from pct.documento_fedele.paragrafi import _stile_paragrafo
+
+    def _riga(x0: float, x1: float) -> Riga:
+        return Riga(
+            tratti=[Tratto(testo="TRIBUNALE CIVILE DI PALMI",
+                           famiglia="Times New Roman", corpo=16.0)],
+            bbox=(x0, 300.0, x1, 318.0),
+        )
+
+    # la cornice comincia a 68.7, la colonna del testo a 79.4
+    cornice_sx, cornice_dx = 68.7, 450.8
+    # riga centrata sulla colonna [79.4, 450.8]: centro 265.1
+    blocco = [_riga(148.3, 381.9)]
+
+    stile = _stile_paragrafo(blocco, None, sinistra=cornice_sx, destra=cornice_dx,
+                             corpo_base=12.0, interlinea=24.0)
+    assert "text-align:center" in stile
+
+    rientro = [s for s in stile if s.startswith("margin-left:")]
+    assert rientro, f"il centro andava spostato a destra: {stile}"
+    valore = float(rientro[0].split(":")[1].rstrip("pt"))
+    # centro voluto 265.1, centro della cornice 259.75: cinque punti e mezzo,
+    # che si recuperano aggiungendone il doppio a sinistra
+    atteso = 2 * (265.1 - (cornice_sx + cornice_dx) / 2)
+    assert abs(valore - atteso) < 0.6, f"atteso ~{atteso:.1f}pt, trovato {valore}pt"
+
+    # una riga gia' centrata sulla cornice non deve prendere nessun rientro
+    centrata = [_riga(200.0, 319.5)]
+    assert not [s for s in _stile_paragrafo(
+        centrata, None, sinistra=cornice_sx, destra=cornice_dx,
+        corpo_base=12.0, interlinea=24.0) if s.startswith("margin-")]

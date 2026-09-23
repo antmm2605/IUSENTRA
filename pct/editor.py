@@ -1403,7 +1403,10 @@ def html_to_pdf(
             voluta = ""
         if voluta and cambi.get("alignment", partenza.alignment) != TA_JUSTIFY:
             corpo_ora = cambi.get("fontSize", partenza.fontSize)
-            nuovo = _corpo_che_sta_nella_riga(elemento, voluta, corpo_ora)
+            nuovo = _corpo_che_sta_nella_riga(
+                elemento, voluta, corpo_ora,
+                cambi.get("fontName", partenza.fontName),
+            )
             if nuovo is not None:
                 cambi["fontSize"] = nuovo
 
@@ -1414,7 +1417,8 @@ def html_to_pdf(
         _stili_paragrafo[chiave] = stile
         return stile
 
-    def _corpo_che_sta_nella_riga(elemento, voluta: str, corpo: float):
+    def _corpo_che_sta_nella_riga(elemento, voluta: str, corpo: float,
+                                  faccia: str = ""):
         """Il corpo con cui questo testo torna largo quanto era.
 
         Si misura con il carattere che verra' usato davvero, non con quello
@@ -1431,11 +1435,18 @@ def html_to_pdf(
             (figlio.tag or "").lower().split("}")[-1] in ("strong", "b")
             for figlio in elemento if isinstance(figlio.tag, str)
         )
+        # Il taglio con cui la riga verra' scritta davvero. Misurarla col
+        # tondo e poi scriverla in neretto — come capitava a ogni titolo, che
+        # il neretto ce l'ha dallo stile e non da un <strong> — significa
+        # calcolare il corpo su una larghezza che non sara' quella: il neretto
+        # di Liberation Serif e' il sei per cento piu' largo, e su un titolo
+        # centrato di quattro centimetri sono sette punti di scivolamento.
+        faccia = faccia or font_bundle["normal"]
+        if grassetto and faccia == font_bundle["normal"]:
+            faccia = font_bundle["bold"]
         try:
             from reportlab.pdfbase import pdfmetrics
-            misurata = pdfmetrics.stringWidth(
-                testo, font_bundle["bold" if grassetto else "normal"], corpo
-            )
+            misurata = pdfmetrics.stringWidth(testo, faccia, corpo)
         except Exception:
             return None
         if misurata <= 1:
@@ -1878,8 +1889,20 @@ def html_to_pdf(
 
         if tag in HEADING_STYLES:
             rich = _node_to_rich(el)
+            partenza = _corrente.get(tag, HEADING_STYLES[tag])
+            # In un documento importato il titolo non e' una scelta di stile:
+            # e' una riga che stava li' com'era. Il convertitore la chiama h2
+            # perche' e' grande e centrata, non perche' fosse in neretto —
+            # e scriverla in neretto quando non lo era la allarga del sei per
+            # cento, che su una riga centrata sono sette punti di scarto.
+            if misure_documento and "<b>" not in rich and "<strong>" not in rich:
+                partenza = _stili_paragrafo.setdefault(
+                    (partenza.name, "iu-tondo"),
+                    ParagraphStyle(f"{partenza.name}Tondo", parent=partenza,
+                                   fontName=font_bundle["normal"]),
+                )
             story.append(_paragrafo_fedele(
-                rich, _stile_del_paragrafo(el, _corrente.get(tag, HEADING_STYLES[tag])),
+                rich, _stile_del_paragrafo(el, partenza),
                 _righe_dichiarate(el, rich)))
             return
 

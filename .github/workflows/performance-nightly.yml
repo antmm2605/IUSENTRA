@@ -44,7 +44,7 @@ jobs:
           timeout 5m python tools/performance_smoke.py --strict --output performance-smoke.json
 
       - name: Upload performance artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: performance-smoke
           path: performance-smoke.json

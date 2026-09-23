@@ -67,7 +67,7 @@ jobs:
 
       - name: Conserva i risultati dell'analisi
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: codeql-sarif
           path: artifacts/codeql

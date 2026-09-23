@@ -94,7 +94,8 @@ def estrai_tabelle(
 
         fuori.append(Elemento(
             tipo="tabella",
-            html=_html_tabella(griglia, xs, tabella, riquadro, sinistra, destra),
+            html=_html_tabella(griglia, xs, tabella, riquadro, sinistra, destra,
+                               bordata=not dedotte),
             top=riquadro.y0,
             bbox=tuple(riquadro),
         ))
@@ -294,7 +295,7 @@ def _banda(valori: list[float], v: float) -> Optional[int]:
 
 def _html_tabella(griglia, xs: list[float], tabella, riquadro: Riquadro,
                   sinistra: Optional[float] = None,
-                  destra: Optional[float] = None) -> str:
+                  destra: Optional[float] = None, bordata: bool = True) -> str:
     totale = max(1.0, xs[-1] - xs[0])
 
     # larghezza e posizione rispetto alla colonna di testo: una tabella
@@ -320,6 +321,10 @@ def _html_tabella(griglia, xs: list[float], tabella, riquadro: Riquadro,
         intestazione = {0}
 
     attributo = f' style="{";".join(stile_tabella)}"' if stile_tabella else ""
+    # «bordata» vuol dire che i filetti li ha disegnati l'autore. Una tabella
+    # dedotta dall'incolonnamento non ha bordi: disegnarglieli intorno
+    # aggiungerebbe al documento righe che non c'erano.
+    attributo += f' data-bordi="{"1" if bordata else "0"}"'
     fuori = [f'<table class="iu-doc-tabella"{attributo}><tbody>']
     for indice_riga, fila in enumerate(griglia):
         fuori.append("<tr>")
@@ -345,6 +350,16 @@ def _html_tabella(griglia, xs: list[float], tabella, riquadro: Riquadro,
                 )
                 if allinea != "left":
                     stile.append(f"text-align:{allinea}")
+
+                # Quanto il testo sta dentro rispetto al bordo della cella.
+                # Senza, chi riscrive lo appoggia al filetto e ogni colonna
+                # scivola a sinistra di quel tanto.
+                dentro_sx = min(r.bbox[0] for r in righe_cella) - cella["rect"].x0
+                if dentro_sx > 0.5:
+                    stile.append(f"padding-left:{_pt(dentro_sx)}pt")
+                dentro_su = righe_cella[0].bbox[1] - cella["rect"].y0
+                if dentro_su > 0.5:
+                    stile.append(f"padding-top:{_pt(dentro_su)}pt")
 
             # lo sfondo e' gia' sulla cella: toglierlo dai tratti evita di
             # ridipingere il colore dietro ogni parola

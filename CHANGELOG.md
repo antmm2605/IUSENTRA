@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.371.0 — 23/09/2026
+
+**La tabella torna con le colonne che aveva.** L'esportazione rifaceva ogni
+tabella con uno stile suo: griglia grigia su tutto, quattro punti di margine
+dentro ogni cella, colonne larghe uguali, testo della cella ridotto a testo
+semplice. Su un modulo del tribunale — un invito al pagamento, una nota di
+iscrizione a ruolo, dove le colonne hanno larghezze decise e i bordi ci sono
+solo dove l'autore li ha disegnati — quello che tornava non era piu' quel
+modulo: le celle di una riga si incolonnavano una sotto l'altra, «Debitore 1)»
+sopra il nome invece che accanto.
+
+Adesso la tabella riprende dall'originale:
+
+* **le larghezze delle colonne**, in proporzione a com'erano, e la larghezza
+  della tabella rispetto alla colonna di testo;
+* **le celle unite**, in orizzontale e in verticale;
+* **i bordi solo se c'erano**: una tabella dedotta dall'incolonnamento del
+  testo non ha filetti, e disegnarglieli intorno aggiungerebbe all'atto righe
+  che l'autore non ha mai messo;
+* **il contenuto ricco** — grassetto, corsivo, corpo — invece del solo testo;
+* **i margini interni veri**: quanto il testo sta dentro rispetto al bordo
+  della cella. Appoggiandolo al filetto ogni colonna scivolava a sinistra di
+  sei punti;
+* **l'ordine delle celle**: si leggevano prima tutte le intestazioni e poi
+  tutte le celle normali, e una riga mista usciva rimescolata.
+
+L'altezza delle righe non si gonfia piu' con margini inventati: e' quella del
+contenuto, come nell'originale.
+
 ## 2.370.0 — 23/09/2026
 
 **Un modulo con poche parole non e' una scansione.** Una pagina veniva mandata

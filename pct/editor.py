@@ -1558,6 +1558,121 @@ def html_to_pdf(
     # ── Costruisce flowables ──────────────────────────────────
     story = []
 
+    def _quota(stile: str, nome: str):
+        """Una misura in percentuale dentro uno `style`."""
+        trovato = re.search(rf"(?:^|;)\s*{nome}\s*:\s*([0-9.]+)%", stile or "")
+        if not trovato:
+            return None
+        try:
+            return float(trovato.group(1))
+        except ValueError:
+            return None
+
+    def _celle_della_riga(tr):
+        """Le celle nell'ordine in cui stanno, non prima le th e poi le td."""
+        return [c for c in tr
+                if isinstance(c.tag, str)
+                and c.tag.lower().split("}")[-1] in ("td", "th")]
+
+    def _tabella_fedele(el):
+        """La tabella com'era: larghezze delle colonne, celle unite, bordi.
+
+        La resa dell'editor rifaceva ogni tabella con uno stile suo — griglia
+        grigia su tutto, quattro punti di margine dentro ogni cella, colonne
+        larghe uguali. Su un modulo del tribunale, dove le colonne hanno
+        larghezze decise e i bordi ci sono solo dove l'autore li ha disegnati,
+        quello che tornava non era piu' quel modulo.
+        """
+        try:
+            file_tr = el.findall(".//tr")
+            if not file_tr:
+                return None
+
+            # larghezza della tabella rispetto alla colonna di testo
+            quota_tabella = _quota(el.get("style") or "", "width") or 100.0
+            larga = _larghezza_utile * min(quota_tabella, 100.0) / 100.0
+
+            # le colonne: si prendono dalla riga che ne ha di piu'
+            modello = max(file_tr, key=lambda t: len(_celle_della_riga(t)))
+            quote = []
+            for cella in _celle_della_riga(modello):
+                passo = _quota(cella.get("style") or "", "width") or 0.0
+                try:
+                    passo *= max(1, int(cella.get("colspan") or 1))
+                except ValueError:
+                    pass
+                quote.append(passo)
+            colonne = len(quote)
+            if not colonne:
+                return None
+            somma = sum(quote)
+            if somma <= 0:
+                larghezze = [larga / colonne] * colonne
+            else:
+                larghezze = [larga * q / somma for q in quote]
+
+            dati, comandi = [], []
+            for numero, tr in enumerate(file_tr):
+                fila, colonna = [], 0
+                for cella in _celle_della_riga(tr):
+                    while len(fila) < colonna:
+                        fila.append("")
+                    try:
+                        quante = max(1, int(cella.get("colspan") or 1))
+                        alte = max(1, int(cella.get("rowspan") or 1))
+                    except ValueError:
+                        quante = alte = 1
+                    stile_cella = cella.get("style") or ""
+                    ricco = _node_to_rich(cella).replace("&nbsp;", " ").strip()
+                    fila.append(Paragraph(ricco, _stile_del_paragrafo(cella))
+                                if ricco else "")
+                    if quante > 1 or alte > 1:
+                        comandi.append(("SPAN", (colonna, numero),
+                                        (colonna + quante - 1, numero + alte - 1)))
+                    for proprieta, comando in (("padding-left", "LEFTPADDING"),
+                                               ("padding-top", "TOPPADDING")):
+                        dentro = re.search(
+                            rf"(?:^|;)\s*{proprieta}\s*:\s*([0-9.]+)pt", stile_cella
+                        )
+                        if dentro:
+                            try:
+                                comandi.append((comando, (colonna, numero),
+                                                (colonna, numero),
+                                                float(dentro.group(1))))
+                            except ValueError:
+                                pass
+                    sfondo = re.search(r"background-color:\s*(#[0-9a-fA-F]{3,8})",
+                                       stile_cella)
+                    if sfondo:
+                        comandi.append(("BACKGROUND", (colonna, numero),
+                                        (colonna, numero),
+                                        colors.HexColor(sfondo.group(1))))
+                    colonna += quante
+                while len(fila) < colonne:
+                    fila.append("")
+                dati.append(fila[:colonne])
+
+            if not dati:
+                return None
+
+            # i margini a zero vanno in testa: i valori per singola cella
+            # arrivano dopo e devono poterli scavalcare
+            comandi = [
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ] + comandi
+            if (el.get("data-bordi") or "1") == "1":
+                comandi.append(("GRID", (0, 0), (-1, -1), 0.5, colors.black))
+
+            tabella = Table(dati, colWidths=larghezze)
+            tabella.setStyle(TableStyle(comandi))
+            return tabella
+        except Exception:
+            return None
+
     _larghezza_utile = (
         page_size[0]
         - (layout_cfg["margin_left_mm"] / 10.0) * cm
@@ -1784,6 +1899,10 @@ def html_to_pdf(
             return
 
         if tag == "table":
+            tabella = (_tabella_fedele(el) if misure_documento else None)
+            if tabella is not None:
+                story.append(tabella)
+                return
             rows_data = []
             for tr in el.findall(".//tr"):
                 row = []

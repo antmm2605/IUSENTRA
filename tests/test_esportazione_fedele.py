@@ -338,3 +338,66 @@ def test_il_numero_di_pagina_resta_in_fondo_al_foglio():
     assert abs(fondo_dopo - fondo_prima) < 2.9, (
         f"il numero di pagina e' passato da {fondo_prima:.1f} a {fondo_dopo:.1f} punti"
     )
+
+
+# ---------------------------------------------------------------- le tabelle
+
+def test_la_tabella_tiene_le_colonne_che_aveva():
+    """La resa dell'editor rifaceva ogni tabella con uno stile suo.
+
+    Griglia grigia su tutto, quattro punti di margine dentro ogni cella,
+    colonne larghe uguali. Su un modulo del tribunale — dove le colonne hanno
+    larghezze decise e i bordi ci sono solo dove l'autore li ha disegnati —
+    quello che tornava non era piu' quel modulo: le celle di una riga si
+    incolonnavano una sotto l'altra.
+    """
+    from reportlab.lib import colors
+    from reportlab.platypus import Table, TableStyle
+
+    modulo = Table(
+        [
+            ["Tipologia Credito", "Importo", "Codice Tributo"],
+            ["ANTICIPAZIONI FORFETTARIE", "27,00", "738T"],
+            ["RICHIESTA D'UFFICIO", "0,00", "—"],
+        ],
+        colWidths=[85 * mm, 30 * mm, 35 * mm],
+        style=TableStyle([("GRID", (0, 0), (-1, -1), 0.6, colors.black)]),
+    )
+    atto = _atto([Paragraph("INVITO AL PAGAMENTO", _titolo()), modulo])
+
+    ritorno = None
+    try:
+        ritorno = _giro(atto)
+        with pdfplumber.open(str(atto)) as pdf:
+            prima = pdf.pages[0].extract_words()
+        with pdfplumber.open(str(ritorno)) as pdf:
+            pagine = len(pdf.pages)
+            dopo = pdf.pages[0].extract_words()
+    finally:
+        atto.unlink(missing_ok=True)
+        if ritorno:
+            ritorno.unlink(missing_ok=True)
+
+    assert pagine == 1, f"il modulo era di una pagina ed e' tornato di {pagine}"
+
+    def _riga_di(parole, testo):
+        for p in parole:
+            if p["text"] == testo:
+                return round(p["top"], 0), round(p["x0"], 0)
+        raise AssertionError(f"parola non trovata: {testo}")
+
+    # le tre intestazioni stavano sulla stessa riga, e devono restarci
+    y_prima = {t: _riga_di(prima, t)[0] for t in ("Tipologia", "Importo", "Codice")}
+    y_dopo = {t: _riga_di(dopo, t)[0] for t in ("Tipologia", "Importo", "Codice")}
+    assert len(set(y_dopo.values())) == 1, (
+        f"le celle della prima riga si sono incolonnate: {y_dopo}"
+    )
+
+    # e ognuna nella sua colonna, dove stava
+    for parola in ("Tipologia", "Importo", "Codice"):
+        x_prima = _riga_di(prima, parola)[1]
+        x_dopo = _riga_di(dopo, parola)[1]
+        assert abs(x_dopo - x_prima) < 6, (
+            f"«{parola}» e' passata da x={x_prima} a x={x_dopo}"
+        )
+    assert set(y_prima.values()) and set(y_dopo.values())

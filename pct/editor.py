@@ -1360,7 +1360,12 @@ def html_to_pdf(
         # in un calligrafico da sedici punti e' stretto, lo stesso testo in
         # Times da sedici e' largo il doppio e sembra una seconda intestazione
         # sopra la prima.
+        # Non si tocca il corpo quando il tratto usa il carattere vero del
+        # documento: li' la larghezza e' gia' quella giusta, e correggerla
+        # significherebbe correggere una misura esatta con una stimata.
         voluta = (elemento.get("data-larghezza") or "").strip()
+        if voluta and _con_carattere_incorporato(elemento):
+            voluta = ""
         if voluta and cambi.get("alignment", partenza.alignment) != TA_JUSTIFY:
             corpo_ora = cambi.get("fontSize", partenza.fontSize)
             nuovo = _corpo_che_sta_nella_riga(elemento, voluta, corpo_ora)
@@ -1425,6 +1430,61 @@ def html_to_pdf(
     # Mappa tag → stile
     HEADING_STYLES = {"h1": st_h1, "h2": st_h2, "h3": st_h3, "h4": st_h4}
 
+    # ── Caratteri che il documento si porta dentro ───────────
+    _incorporati: dict = {}
+    if misure_documento:
+        try:
+            from pct.documento_fedele.caratteri_incorporati import (
+                copre as _copre_incorporato,
+            )
+            from pct.documento_fedele.caratteri_incorporati import (
+                leggi_blocco_stile,
+                registra as _registra_incorporato,
+            )
+            for _alias, _dati in leggi_blocco_stile(html).items():
+                if _registra_incorporato(_alias, _dati):
+                    _incorporati[_alias] = True
+        except Exception:
+            _incorporati = {}
+
+            def _copre_incorporato(*_):
+                return False
+
+    _RE_FACCIA = re.compile(r"font-family:\s*'?(iu-[0-9a-f]+)'?")
+
+    def _con_carattere_incorporato(elemento) -> bool:
+        """Vero se almeno un tratto di questo capoverso usa il carattere vero."""
+        if not _incorporati:
+            return False
+        for figlio in elemento.iter():
+            if figlio is elemento or not isinstance(figlio.tag, str):
+                continue
+            if _faccia_incorporata(figlio):
+                return True
+        return False
+
+    def _faccia_incorporata(elemento) -> str:
+        """Il carattere vero del documento per questo tratto, se si puo' usare.
+
+        Si usa solo se contiene **tutte** le lettere da scrivere: quello
+        incorporato in un PDF e' un sottoinsieme, e le lettere che non ci sono
+        uscirebbero bianche senza dire niente. Quando non bastano, questo
+        tratto torna al sostituto: si vede che il carattere e' un altro, ma il
+        testo c'e' tutto.
+        """
+        if not _incorporati:
+            return ""
+        trovato = _RE_FACCIA.search(elemento.get("style") or "")
+        if not trovato or trovato.group(1) not in _incorporati:
+            return ""
+        alias = trovato.group(1)
+        try:
+            if not _copre_incorporato(alias, "".join(elemento.itertext())):
+                return ""
+        except Exception:
+            return ""
+        return alias
+
     # ── Parse HTML ───────────────────────────────────────────
     html_clean = f"<div>{html}</div>"
     try:
@@ -1468,7 +1528,8 @@ def html_to_pdf(
             elif child_tag == "sub":
                 parts.append(f"<sub>{inner}</sub>")
             else:
-                parts.append(inner)
+                faccia = _faccia_incorporata(child) if child_tag == "span" else ""
+                parts.append(f'<font face="{faccia}">{inner}</font>' if faccia else inner)
             if child.tail:
                 parts.append(_rich_text(child.tail))
         return "".join(parts)

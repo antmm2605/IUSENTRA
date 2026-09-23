@@ -202,7 +202,7 @@ def registro() -> dict:
 
 #: I nomi che un PDF rifatto da un convertitore da' ai suoi caratteri: non
 #: dicono niente, e dietro c'e' il nome vero.
-_SENZA_NOME = re.compile(r"^(?:cidfont\+)?[a-z]{1,3}\d{1,3}$")
+_SENZA_NOME = re.compile(r"^(?:cidfont\+)?[a-z]{1,3}\d{1,3}$|^iu-[0-9a-f]+$")
 
 
 def tagli_per(famiglia: str) -> Optional[dict]:

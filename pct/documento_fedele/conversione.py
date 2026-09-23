@@ -13,6 +13,11 @@ from typing import Iterable, Optional
 
 from .geometria import Riquadro
 from .immagini import estrai_grafica, estrai_immagini
+from .caratteri_incorporati import (
+    blocco_stile,
+    caratteri_della_pagina,
+    da_incorporare,
+)
 from .lettura import leggi_righe
 from .modello import DocumentoConvertito, PaginaConvertita, Riga, Tratto
 from .pagina import _formato, _margini, _pagina_esatta, _testate_e_piedi
@@ -99,6 +104,23 @@ def _corpo_da_parole(parole: list[dict], scala: float) -> float:
     if not altezze:
         return 11.0
     return max(6.0, round(statistics.median(altezze) * ALTEZZA_IN_CORPO, 1))
+
+
+_RE_ALIAS = re.compile(r"^iu-[0-9a-f]+$")
+
+
+def _alias_incorporato(pila: str) -> str:
+    """L'alias del carattere incorporato, se questa pila ne ha uno in testa."""
+    prima = str(pila or "").split(",")[0].strip().strip("'\"")
+    return prima if _RE_ALIAS.match(prima) else ""
+
+
+def _senza_alias(pila: str) -> str:
+    """La pila delle famiglie senza il carattere incorporato in testa."""
+    voci = [v.strip() for v in str(pila or "").split(",")]
+    if voci and _RE_ALIAS.match(voci[0].strip("'\"")):
+        voci = voci[1:]
+    return ", ".join(voci) if voci else pila
 
 
 def _famiglia_da_pila(pila: str) -> str:
@@ -214,7 +236,21 @@ def converti(
             if selezione is not None and (indice + 1) not in selezione:
                 continue
 
-            righe = leggi_righe(pagina)
+            # I caratteri che il PDF si porta dentro: servono per i
+            # calligrafici e per tutto quello che un equivalente aperto non ce
+            # l'ha. Si leggono prima delle righe perche' il loro alias entra
+            # nella pila delle famiglie di ogni tratto.
+            try:
+                tutti = caratteri_della_pagina(pagina)
+                # l'alias si mette solo ai caratteri che ci porteremo dietro:
+                # per Times New Roman o Calibri c'e' l'equivalente aperto, che
+                # e' un carattere intero e regge anche il testo riscritto
+                incorporati_pagina = da_incorporare(
+                    tutti, {v["alias"] for v in tutti.values()}
+                )
+            except Exception:
+                incorporati_pagina = {}
+            righe = leggi_righe(pagina, incorporati_pagina)
             for riga in righe:
                 for tratto in riga.tratti:
                     famiglie.add(_famiglia_da_pila(tratto.famiglia))
@@ -278,9 +314,12 @@ def converti(
             ]
             corpo_pagina = (statistics.median([r.corpo for r in libere])
                             if libere else 11.0)
-            famiglia_pagina = statistics.mode(
+            # la famiglia della pagina non porta l'alias: quello e' del
+            # singolo tratto, e in testa alla pila della pagina spegnerebbe il
+            # riconoscimento dell'equivalente metrico per tutto il documento
+            famiglia_pagina = _senza_alias(statistics.mode(
                 [t.famiglia for r in libere for t in r.tratti if t.testo.strip()]
-            ) if libere else pila_font("Times New Roman")
+            )) if libere else pila_font("Times New Roman")
 
             nome_formato, orientamento = _formato(pagina)
             # I margini sono quelli del testo. Immagini e grafica non entrano
@@ -340,6 +379,21 @@ def converti(
                 # riesporta in PDF: senza, l'esportazione rifa' il documento
                 # con margini e interlinea suoi, e un atto di sedici pagine ne
                 # esce venti.
+                # I caratteri incorporati viaggiano con la pagina: chi la
+                # riscrive non ha il PDF di partenza, ha solo questo HTML. Si
+                # portano solo quelli usati davvero e senza equivalente
+                # aperto — in pratica i calligrafici — perche' un carattere
+                # intero pesa duecento kilobyte e non serve.
+                usati = {
+                    _alias_incorporato(t.famiglia)
+                    for r in righe for t in r.tratti if t.testo.strip()
+                }
+                stile_caratteri = blocco_stile({
+                    nome: voce for nome, voce in incorporati_pagina.items()
+                    if voce["alias"] in usati
+                })
+                corpo_html = stile_caratteri + corpo_html
+
                 html = (
                     f'<section class="iu-doc-pagina" data-pagina="{voce["indice"] + 1}"'
                     f' data-origine="{"ocr" if voce["da_ocr"] else "testo"}"'

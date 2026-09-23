@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.369.0 — 23/09/2026
+
+**Il carattere vero del documento, riusato per riscriverlo.** Un atto in
+*French Script MT* o in *Monotype Corsiva* non si riproduce con i quattordici
+caratteri base del PDF, e un equivalente metrico aperto quei due non ce l'hanno.
+Il carattere pero' sta **dentro il documento**: il PDF se lo porta incorporato,
+altrimenti non si vedrebbe nemmeno sul computer di chi lo riceve. Adesso si
+tira fuori, viaggia con la pagina in un `@font-face`, e chi riesporta lo usa.
+
+**La trappola, ed e' la ragione per cui questo pezzo e' un modulo e non tre
+righe.** Il carattere incorporato in un PDF e' un **sottoinsieme**: contiene
+solo le lettere che quel documento usa, non l'alfabeto. Provato:
+
+    'Patrocinante in Cassazione'         -> torna giusto
+    'Patrocinante in Cassazione ZZZ 987' -> 'Patrocinante in Cassazione \x00\x00\x00'
+
+Le lettere che nell'originale non c'erano **escono bianche**, senza un errore e
+senza un segno. Su un atto che poi si deposita e' il difetto peggiore che ci
+sia, perche' non si vede. Per questo il carattere estratto si usa solo dopo
+aver controllato, lettera per lettera, che il testo da scrivere ci stia tutto
+dentro. Quando non ci sta — l'avvocato ha riscritto quella riga — quel tratto
+torna al carattere sostitutivo: cambia l'aspetto di una riga, ma il testo c'e'
+tutto. Un guasto che si vede e' sempre meglio di uno che non si vede.
+
+Si portano dietro solo i caratteri **usati** e **senza equivalente aperto**:
+per Times New Roman o Calibri c'e' Liberation Serif o Carlito, che sono
+caratteri interi e reggono anche il testo riscritto. In pratica viaggiano i
+calligrafici, che pesano quindici o cinquanta kilobyte, non i duecento di un
+Calibri completo.
+
+Una cosa imparata rompendo: l'alias del carattere incorporato finiva anche
+nella famiglia della **pagina**, e li' spegneva il riconoscimento
+dell'equivalente metrico per tutto il documento — la citazione passava da 67,8%
+a 66,1% senza una ragione visibile. La famiglia della pagina ora non porta
+l'alias: quello e' del singolo tratto.
+
+Sul banco: l'invito al pagamento del tribunale passa da 30,1% a **48,8%** di
+parole entro il millimetro — il suo carattere, Book Antiqua, un equivalente
+aperto non ce l'ha e adesso e' quello vero. La citazione resta a 67,8%, ma con
+l'intestazione calligrafica riprodotta com'era invece che in tondo.
+
 ## 2.368.0 — 23/09/2026
 
 **I caratteri veri al posto dei quattordici di base.** Chi riesporta un PDF ha,

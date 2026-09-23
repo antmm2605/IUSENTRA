@@ -79,12 +79,20 @@ def _indirizzo(riquadro: Riquadro, link: list[tuple[Riquadro, str]]) -> Optional
     return None
 
 
+def _pila_con_incorporato(nome_font: str, incorporati: Optional[dict]) -> str:
+    """La pila delle famiglie, con davanti il carattere incorporato se c'e'."""
+    pila = pila_font(nome_font)
+    voce = (incorporati or {}).get((nome_font or "").split("+")[-1])
+    return f"'{voce['alias']}', {pila}" if voce else pila
+
+
 def _tratti_da_span(
     span: dict,
     filetti: list[tuple[float, float, float]],
     sfondi: list[tuple[Riquadro, str]],
     link: list[tuple[Riquadro, str]],
     corpo_riga: float,
+    incorporati: Optional[dict] = None,
 ) -> list[Tratto]:
     """
     Uno span del PDF puo' contenere piu' stili: sottolineature, barrature ed
@@ -108,7 +116,7 @@ def _tratti_da_span(
         pedice = span.get("origin", (0, 0))[1] > riquadro.y0 + riquadro.height * 0.72
 
     base = dict(
-        famiglia=pila_font(span.get("font", "")),
+        famiglia=_pila_con_incorporato(span.get("font", ""), incorporati),
         corpo=corpo,
         grassetto=bool(flag & GRASSETTO) or "bold" in nome,
         corsivo=bool(flag & CORSIVO) or "italic" in nome or "oblique" in nome,
@@ -165,8 +173,14 @@ def _tratti_da_span(
     return fuori
 
 
-def leggi_righe(pagina: PaginaSorgente) -> list[Riga]:
-    """Tutte le righe di testo della pagina, con lo stile tratto per tratto."""
+def leggi_righe(pagina: PaginaSorgente, incorporati: Optional[dict] = None) -> list[Riga]:
+    """Tutte le righe di testo della pagina, con lo stile tratto per tratto.
+
+    `incorporati` sono i caratteri che il PDF si porta dentro: quando c'e' ne
+    uno per il tratto, il suo alias va in testa alla pila delle famiglie, cosi'
+    chi riscrive il documento puo' usare il carattere vero invece di un
+    sostituto.
+    """
     filetti = pagina.filetti
     sfondi = pagina.evidenziature
     link = pagina.collegamenti
@@ -179,7 +193,8 @@ def leggi_righe(pagina: PaginaSorgente) -> list[Riga]:
         corpo_riga = statistics.median([float(s.get("size", 11)) for s in span])
         tratti: list[Tratto] = []
         for uno in span:
-            tratti.extend(_tratti_da_span(uno, filetti, sfondi, link, corpo_riga))
+            tratti.extend(_tratti_da_span(uno, filetti, sfondi, link, corpo_riga,
+                                          incorporati))
         if not tratti or not "".join(t.testo for t in tratti).strip():
             continue
         righe.append(Riga(

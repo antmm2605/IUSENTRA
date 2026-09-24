@@ -2503,9 +2503,36 @@ def start_scheduler(app):
             coalesce=True,
         )
 
+        # Seconda lettura di Lex sulla catalogazione: un documento per giro,
+        # nel worker e non nelle richieste web, con il modello locale.
+        def _catalogo_seconda_lettura():
+            with app.app_context():
+                try:
+                    from web.services.catalogo_lex_runtime import seconda_lettura_catalogo
+
+                    esito = seconda_lettura_catalogo(app)
+                    if int(esito.get("lette") or 0):
+                        logger.info(
+                            "[scheduler] Catalogo, seconda lettura Lex: %d lette, %d scelte, %d cambiate.",
+                            int(esito.get("lette") or 0),
+                            int(esito.get("scelte") or 0),
+                            int(esito.get("cambiate") or 0),
+                        )
+                except Exception as exc:
+                    logger.error("[scheduler] Seconda lettura del catalogo non riuscita: %s", exc)
+
+        scheduler.add_job(
+            _catalogo_seconda_lettura,
+            CronTrigger(minute="*/2"),
+            id="catalogo_seconda_lettura_lex",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+
         def _record_scheduler_event(event):
             job_id = str(getattr(event, "job_id", "") or "")
-            if not job_id or job_id == "scheduler_registry_reload" or job_id.startswith("manual_"):
+            if not job_id or job_id in {"scheduler_registry_reload", "catalogo_seconda_lettura_lex"} or job_id.startswith("manual_"):
                 return
             try:
                 job_row = registry_repo.get_job(job_id)

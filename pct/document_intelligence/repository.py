@@ -1215,6 +1215,22 @@ class DocumentAIRepository:
         rows = self._conn().execute(sql, (tenant_id, fascicolo_id)).fetchall()
         return [assignment for row in rows if (assignment := self._catalog_assignment_from_row(row)) is not None]
 
+    def list_catalog_assignments_to_reread(self, tenant_id: str, *, limit: int = 200, offset: int = 0) -> list[DocumentCatalogAssignment]:
+        """Le proposte incerte dello studio, dalle piu' dubbie: la coda della seconda lettura di Lex."""
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            """
+            SELECT * FROM document_catalog_assignments
+            WHERE tenant_id = ? AND status IN ('proposed', 'review_required')
+              AND source_state <> 'manual_override'
+              AND (status = 'review_required' OR confidence < 90)
+            ORDER BY CASE status WHEN 'review_required' THEN 0 ELSE 1 END, confidence ASC, updated_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            (tenant_id, max(1, int(limit)), max(0, int(offset))),
+        ).fetchall()
+        return [assignment for row in rows if (assignment := self._catalog_assignment_from_row(row)) is not None]
+
     def save_catalog_assignment(
         self,
         assignment: DocumentCatalogAssignment,

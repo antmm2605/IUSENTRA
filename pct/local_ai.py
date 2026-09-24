@@ -551,9 +551,12 @@ class OllamaHttpClient:
         prompt: str,
         *,
         keep_alive: str = "10m",
-        response_format: str | None = None,
+        response_format: str | dict[str, Any] | None = None,
         timeout: float = 300,
+        options: dict[str, Any] | None = None,
+        think: bool | None = None,
     ) -> dict[str, Any]:
+        """`response_format` e' "json" oppure uno schema JSON (risposta vincolata)."""
         payload: dict[str, Any] = {
             "model": model_name,
             "prompt": prompt,
@@ -562,6 +565,10 @@ class OllamaHttpClient:
         }
         if response_format:
             payload["format"] = response_format
+        if options:
+            payload["options"] = dict(options)
+        if think is not None:
+            payload["think"] = bool(think)
         return self._request(
             "POST",
             "/generate",

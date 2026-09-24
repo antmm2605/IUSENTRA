@@ -1,4 +1,5 @@
 import { useState, type MouseEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Strikethrough, Trash2, Underline } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import { OcrFoglio } from './OcrFoglio'
@@ -32,6 +33,8 @@ type Props = {
   onSelect?: (id: string) => void
   /** Misure delle pagine lette: il foglio prende i margini del PDF. */
   pagine?: GeometriaPagina[]
+  /** Dove mettere indicazioni e barra: nella vista affiancata stanno sopra entrambi i pannelli. */
+  barraIn?: HTMLElement | null
 }
 
 /** Gli stili che si accendono e si spengono: sulla parte selezionata, o sul pezzo intero se non se ne seleziona una. */
@@ -59,7 +62,7 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
  * quello che il riconoscimento ha letto con poca sicurezza resta segnato:
  * e' cosi' che si sa dove guardare, invece di rileggere tutto.
  */
-export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect, pagine }: Props) {
+export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect, pagine, barraIn }: Props) {
   const [attivo, setAttivo] = useState('')
   const [ridisegno, setRidisegno] = useState(0)
   const selezione = useSelezioneOcr('.iu-ocr-barra')
@@ -93,8 +96,8 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
   const premuto = (chiave: (typeof STILI)[number]['chiave']) => (corrente && parziale
     ? stileTra(trattiDelBlocco(corrente.tratti, corrente.text, corrente.format), parziale.inizio, parziale.fine, chiave)
     : Boolean(formato?.[chiave]))
-  return (
-    <div className="iu-ocr-review">
+  const intestazione = (
+    <>
       <p className="iu-acq-hint">
         Rileggi e correggi scrivendo qui sotto: quello che vedi è esattamente ciò che verrà inserito
         nel documento.{incerti ? ` ${incerti} ${incerti === 1 ? 'parte è segnata' : 'parti sono segnate'} perché il riconoscimento non ne è sicuro.` : ''}
@@ -208,6 +211,11 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             : 'Clicca nel testo per scegliere su cosa agire'}
         </span>
       </div>
+    </>
+  )
+  return (
+    <div className={`iu-ocr-review${barraIn === undefined ? '' : ' iu-ocr-review--senza-barra'}`}>
+      {barraIn === undefined ? intestazione : barraIn ? createPortal(intestazione, barraIn) : null}
 
       <OcrFoglio
         blocks={blocks}

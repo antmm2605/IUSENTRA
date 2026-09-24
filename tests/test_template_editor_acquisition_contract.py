@@ -133,6 +133,7 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
         "components/documentCapture/OcrFoglio.tsx": 250,
         "components/documentCapture/useSchermoIntero.ts": 250,
         "components/documentCapture/OcrPageViewer.tsx": 250,
+        "components/documentCapture/ocrScorrimento.ts": 250,
         "services/documentOcr.ts": 250,
         "services/fascicoloSearch.ts": 180,
     }

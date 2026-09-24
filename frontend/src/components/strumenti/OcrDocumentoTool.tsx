@@ -4,6 +4,7 @@ import { Button } from '../../ui/Button'
 import { blocksToHtml, countCharacters, type OcrBlock, type OcrFigure } from '../documentCapture/ocrBlocks'
 import { OcrReview } from '../documentCapture/OcrReview'
 import { OcrPageViewer } from '../documentCapture/OcrPageViewer'
+import { useScorrimentoAppaiato } from '../documentCapture/ocrScorrimento'
 import { MatterPicker } from '../documentCapture/MatterPicker'
 import {
   documentoModificabile,
@@ -51,7 +52,6 @@ export default function OcrDocumentoTool() {
   const [fascicoloEtichetta, setFascicoloEtichetta] = useState('')
   const [nome, setNome] = useState('')
   const [pagine, setPagine] = useState<PaginaRiconosciuta[]>([])
-  const [paginaAttiva, setPaginaAttiva] = useState(1)
   const [sovrapposizione, setSovrapposizione] = useState(true)
   const [selezionato, setSelezionato] = useState('')
   const [totale, setTotale] = useState(0)
@@ -67,11 +67,16 @@ export default function OcrDocumentoTool() {
   const [esitoSalvataggio, setEsitoSalvataggio] = useState<{ testo: string; href?: string } | null>(null)
   const vivo = useRef(true)
   const interruzione = useRef<AbortController | null>(null)
+  // Barra e comandi sopra i due pannelli; pagine e testo scorrono insieme.
+  const affiancato = useRef<HTMLDivElement | null>(null)
+  const [postoComandi, setPostoComandi] = useState<HTMLDivElement | null>(null)
+  const [postoBarra, setPostoBarra] = useState<HTMLDivElement | null>(null)
+  useScorrimentoAppaiato(affiancato, blocchi.length > 0)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
 
   const azzera = useCallback(() => {
-    setPagine([]); setBlocchi([]); setFigure([]); setTotale(0); setPaginaAttiva(1); setSelezionato('')
+    setPagine([]); setBlocchi([]); setFigure([]); setTotale(0); setSelezionato('')
     setAvanzamento(''); setAvviso(''); setErrore(''); setConfermaAperta(false); setEsitoSalvataggio(null)
   }, [])
 
@@ -266,11 +271,12 @@ export default function OcrDocumentoTool() {
             </p>
           ) : null}
 
-          <div className="iu-ocr-affiancato">
+          <div ref={affiancato} className="iu-ocr-affiancato">
+            <div ref={setPostoComandi} className="iu-ocr-affiancato__comandi" />
+            <div ref={setPostoBarra} className="iu-ocr-affiancato__barra" />
             <OcrPageViewer
+              comandiIn={postoComandi}
               pagine={pagine}
-              paginaAttiva={paginaAttiva}
-              onPagina={setPaginaAttiva}
               blocchi={blocchi}
               selezionato={selezionato}
               onSeleziona={setSelezionato}
@@ -278,7 +284,7 @@ export default function OcrDocumentoTool() {
               onSovrapposizione={setSovrapposizione}
             />
             <div className="iu-ocr-affiancato__testo">
-              <OcrReview blocks={blocchi} figures={figure} disabled={lavorando} onChange={setBlocchi} selectedId={selezionato} onSelect={setSelezionato} />
+              <OcrReview blocks={blocchi} figures={figure} disabled={lavorando} onChange={setBlocchi} selectedId={selezionato} onSelect={setSelezionato} barraIn={postoBarra} />
             </div>
           </div>
 

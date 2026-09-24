@@ -47,6 +47,7 @@ export function OcrFoglio({ blocks, pagine, parte }: {
           <div
             key={numero}
             className="iu-ocr-pagina"
+            data-pagina={numero}
             style={stileDellaPagina(marginiDellaPagina(blocchi, pagine?.find((voce) => voce.numero === numero)))}
             aria-label={`Pagina ${numero}`}
           >

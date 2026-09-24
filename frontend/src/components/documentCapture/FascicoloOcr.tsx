@@ -12,6 +12,7 @@ import { OcrReview } from './OcrReview'
 import { OcrPageViewer } from './OcrPageViewer'
 import { OcrSaveChoices, type DestinazioneOcr } from './OcrSaveChoices'
 import { useSchermoIntero } from './useSchermoIntero'
+import { useScorrimentoAppaiato } from './ocrScorrimento'
 import {
   documentoModificabile,
   elencaDocumentiRiconoscibili,
@@ -67,7 +68,6 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [file, setFile] = useState<File | null>(null)
   const [nome, setNome] = useState('')
   const [pagine, setPagine] = useState<PaginaRiconosciuta[]>([])
-  const [paginaAttiva, setPaginaAttiva] = useState(1)
   const [sovrapposizione, setSovrapposizione] = useState(true)
   const [selezionato, setSelezionato] = useState('')
   const [totale, setTotale] = useState(0)
@@ -82,6 +82,11 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const interruzione = useRef<AbortController | null>(null)
   const affiancato = useRef<HTMLDivElement | null>(null)
   const schermoIntero = useSchermoIntero(affiancato)
+  // Comandi della pagina e barra del formato stanno sopra i due pannelli, a
+  // tutta larghezza: cosi' immagine e testo partono alla stessa altezza.
+  const [postoComandi, setPostoComandi] = useState<HTMLDivElement | null>(null)
+  const [postoBarra, setPostoBarra] = useState<HTMLDivElement | null>(null)
+  useScorrimentoAppaiato(affiancato, blocchi.length > 0)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
 
@@ -104,7 +109,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
 
   const azzera = () => {
     setPagine([]); setBlocchi([]); setFigure([]); setTotale(0)
-    setAvanzamento(''); setAvviso(''); setErrore(''); setSelezionato(''); setPaginaAttiva(1)
+    setAvanzamento(''); setAvviso(''); setErrore(''); setSelezionato('')
   }
 
   const sorgente = (): SorgenteOcr | null => {
@@ -346,15 +351,16 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
 
           <div ref={affiancato} className={`iu-ocr-affiancato${schermoIntero.ripiego ? ' is-schermo-intero' : ''}`}>
             <div className="iu-ocr-affiancato__comandi">
+              <div ref={setPostoComandi} className="iu-ocr-affiancato__pagina" />
               <Button type="button" tone="neutral" aria-pressed={schermoIntero.attivo} onClick={() => void schermoIntero.alterna()}>
                 {schermoIntero.attivo ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
                 {schermoIntero.attivo ? 'Esci dallo schermo intero' : 'Schermo intero'}
               </Button>
             </div>
+            <div ref={setPostoBarra} className="iu-ocr-affiancato__barra" />
             <OcrPageViewer
+              comandiIn={postoComandi}
               pagine={pagine}
-              paginaAttiva={paginaAttiva}
-              onPagina={setPaginaAttiva}
               blocchi={blocchi}
               selezionato={selezionato}
               onSeleziona={setSelezionato}
@@ -370,6 +376,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
                 selectedId={selezionato}
                 onSelect={setSelezionato}
                 pagine={geometrie}
+                barraIn={postoBarra}
               />
             </div>
           </div>

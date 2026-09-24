@@ -186,4 +186,5 @@ export {
   updateBlockCell,
   updateBlockFormat,
   updateBlockText,
+  updateSelectionFormat,
 } from './ocrBlockEdits'

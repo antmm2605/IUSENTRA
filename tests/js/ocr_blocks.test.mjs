@@ -5,7 +5,7 @@ import { test } from 'node:test'
 // I moduli del frontend si importano fra loro senza estensione, come fa Vite:
 // l'aggancio dei test Node li risolve sui file .ts.
 import './support/resolve_ts_extensionless.mjs'
-const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat, updateBlockText } = await import('../../frontend/src/components/documentCapture/ocrBlocks.ts')
+const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat, updateBlockText, updateSelectionFormat } = await import('../../frontend/src/components/documentCapture/ocrBlocks.ts')
 
 const blocco = (tipo, testo, extra = {}) => ({ tipo, testo, confidenza: 0.9, riquadro: [0, 0, 10, 10], formato: { livello: 0, grassetto: false, corsivo: false, allineamento: 'sinistra', scala: 1 }, ...extra })
 
@@ -120,5 +120,41 @@ test('la voce di elenco perde il marcatore anche nei tratti', () => {
     }),
   ], 1)
   assert.equal(blocksToHtml([voce]), '<ol type="a"><li>si <u>rigetta</u></li></ol>')
+})
+
+const { stileTra } = await import('../../frontend/src/components/documentCapture/ocrTratti.ts')
+
+test('il neretto sulla parola selezionata tocca solo quella', () => {
+  const [block] = parseBlocks([blocco('paragrafo', 'Il Tribunale rigetta la domanda')], 1)
+  const [dopo] = updateSelectionFormat([block], block.id, 13, 20, { grassetto: true })
+  assert.equal(blocksToHtml([dopo]), '<p>Il Tribunale <strong>rigetta</strong> la domanda</p>')
+  // il pezzo nel suo insieme resta tondo
+  assert.equal(dopo.format.grassetto, false)
+})
+
+test('selezione e colore si sommano ai tratti che ci sono gia', () => {
+  const [block] = conTratti()
+  // «la domanda» in rosso, dentro un capoverso che ha gia' neretto e blu
+  const [dopo] = updateSelectionFormat([block], block.id, 21, 31, { colore: '#cc0000' })
+  assert.equal(
+    blocksToHtml([dopo]),
+    '<p>Il Tribunale <strong><u>rigetta</u></strong> <span style="color:#cc0000">la domanda</span> di <span style="color:#0000ff">studio@pec.it</span></p>',
+  )
+})
+
+test('il comando sulla selezione si spegne se tutta la selezione lo ha gia', () => {
+  const [block] = conTratti()
+  assert.equal(stileTra(block.tratti, 13, 20, 'grassetto'), true, '«rigetta» e\' tutto in neretto')
+  assert.equal(stileTra(block.tratti, 10, 20, 'grassetto'), false, 'mezza selezione non e\' in neretto')
+  const [spento] = updateSelectionFormat([block], block.id, 13, 20, { grassetto: false, sottolineato: false })
+  assert.equal(blocksToHtml([spento]).includes('<strong>'), false)
+})
+
+test('se tutto torna uguale i tratti tornano formato del pezzo', () => {
+  const [block] = parseBlocks([blocco('paragrafo', 'Tutto in corsivo')], 1)
+  const [tutto] = updateSelectionFormat([block], block.id, 0, block.text.length, { corsivo: true })
+  assert.deepEqual(tutto.tratti, [])
+  assert.equal(tutto.format.corsivo, true)
+  assert.equal(blocksToHtml([tutto]), '<p><em>Tutto in corsivo</em></p>')
 })
 

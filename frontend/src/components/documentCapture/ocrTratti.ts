@@ -113,3 +113,45 @@ export function trattiConFormato(tratti: OcrTratto[], patch: Partial<OcrFormat>)
   }
   return Object.keys(cambi).length ? unisci(tratti.map((tratto) => ({ ...tratto, ...cambi }))) : tratti
 }
+
+type ChiaveStile = 'grassetto' | 'corsivo' | 'sottolineato' | 'barrato'
+
+/**
+ * I tratti del blocco, anche quando non ne ha: un tratto solo, col formato
+ * del blocco. E' da qui che parte un formato messo su una selezione.
+ */
+export function trattiDelBlocco(tratti: OcrTratto[] | undefined, testo: string, formato: OcrFormat): OcrTratto[] {
+  if (tratti?.length) return tratti
+  return testo
+    ? [{
+        testo,
+        grassetto: formato.grassetto,
+        corsivo: formato.corsivo,
+        sottolineato: formato.sottolineato,
+        barrato: formato.barrato,
+        colore: formato.colore,
+      }]
+    : []
+}
+
+/**
+ * Il formato messo su un pezzo del testo, fra due posizioni: i tratti si
+ * tagliano ai bordi della selezione e il resto del capoverso non si tocca.
+ */
+export function trattiConFormatoTra(tratti: OcrTratto[], inizio: number, fine: number, patch: Partial<OcrFormat>): OcrTratto[] {
+  const lunghezza = tratti.reduce((somma, tratto) => somma + tratto.testo.length, 0)
+  const da = Math.max(0, Math.min(inizio, fine))
+  const a = Math.min(lunghezza, Math.max(inizio, fine))
+  if (a <= da) return tratti
+  return unisci([
+    ...trattiTra(tratti, 0, da),
+    ...trattiConFormato(trattiTra(tratti, da, a), patch),
+    ...trattiTra(tratti, a, lunghezza),
+  ])
+}
+
+/** Vero se tutto il pezzo selezionato ha quello stile: il comando allora lo toglie. */
+export function stileTra(tratti: OcrTratto[], inizio: number, fine: number, chiave: ChiaveStile): boolean {
+  const pezzo = trattiTra(tratti, Math.min(inizio, fine), Math.max(inizio, fine))
+  return pezzo.length > 0 && pezzo.every((tratto) => tratto[chiave])
+}

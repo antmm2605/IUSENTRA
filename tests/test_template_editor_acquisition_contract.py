@@ -127,6 +127,8 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
         "components/documentCapture/ocrBlocks.ts": 250,
         "components/documentCapture/ocrHtml.ts": 250,
         "components/documentCapture/ocrTratti.ts": 250,
+        "components/documentCapture/ocrSelezione.ts": 250,
+        "components/documentCapture/ocrBarraVoci.ts": 250,
         "services/documentOcr.ts": 250,
         "services/fascicoloSearch.ts": 180,
     }

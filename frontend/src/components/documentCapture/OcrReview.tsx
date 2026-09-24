@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Strikethrough, Trash2, Underline } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import { ETICHETTE, ParteDelFoglio, daControllare } from './OcrParte'
+import { CARATTERI_COMUNI, CORPI, ETICHETTE_MARCATORE, LIVELLI, fiducia } from './ocrBarraVoci'
+import { useSelezioneOcr } from './ocrSelezione'
+import { stileTra, trattiDelBlocco } from './ocrTratti'
 import {
   changeBlockKind,
   markerOf,
@@ -9,10 +12,12 @@ import {
   updateBlockCell,
   updateBlockFormat,
   updateBlockText,
+  updateSelectionFormat,
   type OcrAlignment,
   type OcrBlock,
   type OcrBlockKind,
   type OcrFigure,
+  type OcrFormat,
 } from './ocrBlocks'
 
 type Props = {
@@ -25,15 +30,7 @@ type Props = {
   onSelect?: (id: string) => void
 }
 
-const LIVELLI: { value: number; label: string }[] = [
-  { value: 0, label: 'Testo del documento' },
-  { value: 1, label: 'Titolo principale' },
-  { value: 2, label: 'Titolo' },
-  { value: 3, label: 'Sottotitolo' },
-  { value: 4, label: 'Rubrica' },
-]
-
-/** Gli stili che si accendono e si spengono: agiscono su tutto il pezzo scelto. */
+/** Gli stili che si accendono e si spengono: sulla parte selezionata, o sul pezzo intero se non se ne seleziona una. */
 const STILI: { chiave: 'grassetto' | 'corsivo' | 'sottolineato' | 'barrato'; label: string; Icona: typeof Bold }[] = [
   { chiave: 'grassetto', label: 'Grassetto', Icona: Bold },
   { chiave: 'corsivo', label: 'Corsivo', Icona: Italic },
@@ -49,27 +46,6 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
 ]
 
 /**
- * I caratteri che si offrono sempre: quelli dell'editor dei documenti, più
- * quelli che il documento stesso usa. Un carattere letto dal PDF deve poter
- * restare, anche se non è fra i soliti.
- */
-const CARATTERI_COMUNI = ['Times New Roman', 'Arial', 'Calibri', 'Garamond', 'Georgia', 'Book Antiqua', 'Courier New']
-const CORPI = [8, 9, 10, 10.5, 11, 11.5, 12, 13, 14, 16, 18, 20, 24]
-
-const ETICHETTE_MARCATORE: Record<string, string> = {
-  puntato: 'elenco puntato',
-  numerato: 'elenco numerato',
-  lettera: 'elenco per lettere',
-  romano: 'elenco in numeri romani',
-  decimale: 'elenco a livelli',
-}
-
-function fiducia(valore: number): string {
-  if (!valore) return ''
-  return `${Math.round(valore * 100)}% di confidenza`
-}
-
-/**
  * Revisione del testo riconosciuto prima di portarlo nel documento.
  *
  * Il riconoscimento automatico sbaglia, e su un atto un errore non corretto
@@ -81,8 +57,22 @@ function fiducia(valore: number): string {
  */
 export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect }: Props) {
   const [attivo, setAttivo] = useState('')
+  const [ridisegno, setRidisegno] = useState(0)
+  const selezione = useSelezioneOcr('.iu-ocr-barra')
   const corrente = blocks.find((block) => block.id === (selectedId || attivo)) || null
   const incerti = blocks.filter(daControllare).length
+  // Con una parte del testo selezionata, neretto, corsivo, sottolineato,
+  // barrato e colore valgono per quella; senza, per tutto il pezzo.
+  const parziale = corrente && selezione?.blockId === corrente.id && selezione.fine > selezione.inizio ? selezione : null
+  const applica = (patch: Partial<OcrFormat>, soloPezzo = false) => {
+    if (!corrente) return
+    onChange(parziale && !soloPezzo
+      ? updateSelectionFormat(blocks, corrente.id, parziale.inizio, parziale.fine, patch)
+      : updateBlockFormat(blocks, corrente.id, patch))
+    setRidisegno((valore) => valore + 1)
+  }
+  // la barra non si prende il fuoco: la selezione nel testo resta dov'e'
+  const tieniLaSelezione = (event: MouseEvent) => event.preventDefault()
 
   const scegli = (id: string) => {
     setAttivo(id)
@@ -96,6 +86,9 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
   const formato = corrente && corrente.kind !== 'tabella' ? corrente.format : null
   const famiglie = Array.from(new Set([...blocks.map((block) => block.format.famiglia).filter(Boolean), ...CARATTERI_COMUNI]))
   const corpi = formato?.corpo && !CORPI.includes(formato.corpo) ? [...CORPI, formato.corpo].sort((a, b) => a - b) : CORPI
+  const premuto = (chiave: (typeof STILI)[number]['chiave']) => (corrente && parziale
+    ? stileTra(trattiDelBlocco(corrente.tratti, corrente.text, corrente.format), parziale.inizio, parziale.fine, chiave)
+    : Boolean(formato?.[chiave]))
   return (
     <div className="iu-ocr-review">
       <p className="iu-acq-hint">
@@ -109,7 +102,7 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
           <select
             value={formato ? formato.livello : 0}
             disabled={disabled || !formato}
-            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { livello: Number(event.target.value) }))}
+            onChange={(event) => applica({ livello: Number(event.target.value) }, true)}
           >
             {LIVELLI.map((voce) => <option key={voce.value} value={voce.value}>{voce.label}</option>)}
           </select>
@@ -119,7 +112,7 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
           <select
             value={formato?.famiglia || ''}
             disabled={disabled || !formato}
-            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { famiglia: event.target.value }))}
+            onChange={(event) => applica({ famiglia: event.target.value }, true)}
           >
             <option value="">Carattere del documento</option>
             {famiglie.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
@@ -130,7 +123,7 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
           <select
             value={formato?.corpo || 0}
             disabled={disabled || !formato}
-            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { corpo: Number(event.target.value) }))}
+            onChange={(event) => applica({ corpo: Number(event.target.value) }, true)}
           >
             <option value={0}>Corpo del documento</option>
             {corpi.map((corpo) => <option key={corpo} value={corpo}>{`${String(corpo).replace('.', ',')} pt`}</option>)}
@@ -142,9 +135,10 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             type="button"
             tone="neutral"
             disabled={disabled || !formato}
-            aria-pressed={Boolean(formato?.[chiave])}
+            aria-pressed={premuto(chiave)}
             aria-label={label}
-            onClick={() => corrente && formato && onChange(updateBlockFormat(blocks, corrente.id, { [chiave]: !formato[chiave] }))}
+            onMouseDown={tieniLaSelezione}
+            onClick={() => applica({ [chiave]: !premuto(chiave) })}
           >
             <Icona size={14} aria-hidden="true" />
           </Button>
@@ -157,7 +151,8 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             disabled={disabled || !formato}
             aria-pressed={formato?.allineamento === value}
             aria-label={label}
-            onClick={() => corrente && onChange(updateBlockFormat(blocks, corrente.id, { allineamento: value }))}
+            onMouseDown={tieniLaSelezione}
+            onClick={() => applica({ allineamento: value }, true)}
           >
             <Icona size={14} aria-hidden="true" />
           </Button>
@@ -168,15 +163,16 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             type="color"
             value={formato?.colore || '#111827'}
             disabled={disabled || !formato}
-            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { colore: event.target.value.toLowerCase() }))}
+            onChange={(event) => applica({ colore: event.target.value.toLowerCase() })}
           />
         </label>
         <Button
           type="button"
           tone="neutral"
-          disabled={disabled || !formato?.colore}
+          disabled={disabled || !formato}
           aria-label="Togli il colore e lascia quello del documento"
-          onClick={() => corrente && onChange(updateBlockFormat(blocks, corrente.id, { colore: '' }))}
+          onMouseDown={tieniLaSelezione}
+          onClick={() => applica({ colore: '' })}
         >
           <PaintBucket size={14} aria-hidden="true" />
         </Button>
@@ -204,7 +200,7 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
         </Button>
         <span className="iu-ocr-barra__stato">
           {corrente
-            ? `${ETICHETTE[corrente.kind]}${corrente.kind === 'elenco' && markerOf(corrente) ? ` · ${ETICHETTE_MARCATORE[markerOf(corrente)!.tipo]}` : ''}${corrente.kind === 'numero_pagina' ? ' · escluso dal documento' : ''}${corrente.confidence ? ` · ${fiducia(corrente.confidence)}` : ''}`
+            ? `${ETICHETTE[corrente.kind]}${corrente.kind === 'elenco' && markerOf(corrente) ? ` · ${ETICHETTE_MARCATORE[markerOf(corrente)!.tipo]}` : ''}${corrente.kind === 'numero_pagina' ? ' · escluso dal documento' : ''}${corrente.confidence ? ` · ${fiducia(corrente.confidence)}` : ''}${parziale ? ` · ${parziale.fine - parziale.inizio} caratteri selezionati` : ''}`
             : 'Clicca nel testo per scegliere su cosa agire'}
         </span>
       </div>
@@ -216,6 +212,7 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             block={block}
             disabled={disabled}
             scelto={corrente?.id === block.id}
+            ridisegno={ridisegno}
             onText={(testo) => onChange(updateBlockText(blocks, block.id, testo))}
             onCell={(riga, colonna, valore) => onChange(updateBlockCell(blocks, block.id, riga, colonna, valore))}
             onSelect={() => scegli(block.id)}

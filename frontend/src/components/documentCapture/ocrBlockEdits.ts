@@ -3,7 +3,7 @@
  * formato, eliminazione; e le letture di servizio (testo semplice, conteggio).
  */
 import type { OcrBlock, OcrBlockKind, OcrFormat } from './ocrBlocks'
-import { trattiConFormato, trattiDopoLaCorrezione } from './ocrTratti'
+import { trattiConFormato, trattiConFormatoTra, trattiDelBlocco, trattiDopoLaCorrezione } from './ocrTratti'
 
 /** Il testo nuovo, con i tratti riallineati: una correzione non cancella il neretto. */
 function conTesto(block: OcrBlock, text: string): OcrBlock {
@@ -64,6 +64,24 @@ export function updateBlockFormat(blocks: OcrBlock[], id: string, patch: Partial
       ? { ...block, format: { ...block.format, ...patch }, tratti: trattiConFormato(block.tratti ?? [], patch) }
       : block
   ))
+}
+
+/**
+ * Il formato su una parte del testo: la parola selezionata, non il capoverso.
+ *
+ * Se dopo il cambio il testo torna tutto uguale, i tratti tornano a essere il
+ * formato del blocco: il documento non si porta dietro tratti che non dicono
+ * niente, e la barra mostra di nuovo lo stato del pezzo intero.
+ */
+export function updateSelectionFormat(blocks: OcrBlock[], id: string, inizio: number, fine: number, patch: Partial<OcrFormat>): OcrBlock[] {
+  return blocks.map((block) => {
+    if (block.id !== id) return block
+    const tratti = trattiConFormatoTra(trattiDelBlocco(block.tratti, block.text, block.format), inizio, fine, patch)
+    if (tratti.length !== 1) return { ...block, tratti }
+    const [unico] = tratti
+    const { grassetto, corsivo, sottolineato, barrato, colore } = unico
+    return { ...block, tratti: [], format: { ...block.format, grassetto, corsivo, sottolineato, barrato, colore } }
+  })
 }
 
 /** Blocchi di una pagina, per la vista affiancata all'immagine. */

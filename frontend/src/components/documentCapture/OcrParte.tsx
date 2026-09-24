@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Rows3 } from 'lucide-react'
 import { CLASSI_ALLINEAMENTO, type OcrBlock, type OcrBlockKind } from './ocrBlocks'
+import { ATTRIBUTO_BLOCCO, ripristinaSelezione, selezioneDentro } from './ocrSelezione'
 import type { OcrTratto } from './ocrTratti'
 
 export const ETICHETTE: Record<OcrBlockKind, string> = {
@@ -56,26 +57,39 @@ function nodoDelTratto(tratto: OcrTratto): HTMLSpanElement {
  * Non si riscrive il nodo mentre ci si sta scrivendo dentro: il cursore
  * salterebbe in testa a ogni lettera battuta. Il testo che arriva da fuori —
  * un blocco unito, un cambio di pagina — entra solo quando il campo non ha il
- * fuoco.
+ * fuoco. Fa eccezione un cambio di formato dalla barra (`ridisegno`): li' il
+ * testo non cambia, si ridisegnano i tratti e la selezione torna dov'era.
  */
-function BloccoScrivibile({ block, disabled, onText, onSelect }: {
+function BloccoScrivibile({ block, disabled, ridisegno, onText, onSelect }: {
   block: OcrBlock
   disabled: boolean
+  ridisegno: number
   onText: (testo: string) => void
   onSelect: () => void
 }) {
   const nodo = useRef<HTMLDivElement | null>(null)
+  const ultimoRidisegno = useRef(ridisegno)
   useEffect(() => {
     const elemento = nodo.current
-    if (!elemento || document.activeElement === elemento) return
+    if (!elemento) return
+    const perIlFormato = ultimoRidisegno.current !== ridisegno
+    ultimoRidisegno.current = ridisegno
     // Il testo si legge sempre come testo semplice (onInput): i tratti sono
     // solo come lo si vede, e si riallineano da soli quando il testo cambia.
-    if (block.tratti?.length) elemento.replaceChildren(...block.tratti.map(nodoDelTratto))
-    else if (elemento.textContent !== block.text) elemento.textContent = block.text
-  }, [block.text, block.tratti])
+    const disegna = () => {
+      if (block.tratti?.length) elemento.replaceChildren(...block.tratti.map(nodoDelTratto))
+      else if (elemento.childElementCount || elemento.textContent !== block.text) elemento.textContent = block.text
+    }
+    if (document.activeElement !== elemento) return disegna()
+    if (!perIlFormato) return
+    const selezione = selezioneDentro(elemento)
+    disegna()
+    if (selezione) ripristinaSelezione(elemento, selezione.inizio, selezione.fine)
+  }, [block.text, block.tratti, ridisegno])
   return (
     <div
       ref={nodo}
+      {...{ [ATTRIBUTO_BLOCCO]: block.id }}
       className="iu-ocr-foglio__testo"
       contentEditable={!disabled}
       suppressContentEditableWarning
@@ -94,10 +108,12 @@ function BloccoScrivibile({ block, disabled, onText, onSelect }: {
  * documento: livello, allineamento, corpo, colore, e il segno che il
  * riconoscimento non era sicuro di averla letta bene.
  */
-export function ParteDelFoglio({ block, disabled, scelto, onText, onCell, onSelect }: {
+export function ParteDelFoglio({ block, disabled, scelto, ridisegno, onText, onCell, onSelect }: {
   block: OcrBlock
   disabled: boolean
   scelto: boolean
+  /** Cresce a ogni comando della barra: il pezzo si ridisegna anche col cursore dentro. */
+  ridisegno: number
   onText: (testo: string) => void
   onCell: (riga: number, colonna: number, valore: string) => void
   onSelect: () => void
@@ -146,7 +162,7 @@ export function ParteDelFoglio({ block, disabled, scelto, onText, onCell, onSele
           </table>
         </div>
       ) : (
-        <BloccoScrivibile block={block} disabled={disabled} onText={onText} onSelect={onSelect} />
+        <BloccoScrivibile block={block} disabled={disabled} ridisegno={ridisegno} onText={onText} onSelect={onSelect} />
       )}
     </div>
   )

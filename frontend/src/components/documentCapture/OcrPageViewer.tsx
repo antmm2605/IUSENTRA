@@ -15,6 +15,8 @@ type Props = {
   onSovrapposizione: (attiva: boolean) => void
   /** Dove mettere i comandi: nella vista affiancata stanno sopra i pannelli. */
   comandiIn?: HTMLElement | null
+  /** Dove mettere i dati letti: nella vista affiancata stanno sotto i pannelli, che restano alti uguali. */
+  riferimentiIn?: HTMLElement | null
 }
 
 /** Valori letti su tutte le pagine, senza ripetizioni e nell'ordine in cui compaiono. */
@@ -48,6 +50,7 @@ export function OcrPageViewer({
   sovrapposizione,
   onSovrapposizione,
   comandiIn,
+  riferimentiIn,
 }: Props) {
   const conImmagine = useMemo(() => pagine.filter((pagina) => pagina.anteprima), [pagine])
   const foglio = useRef<HTMLDivElement | null>(null)
@@ -69,6 +72,14 @@ export function OcrPageViewer({
   const numeriDiRuolo = unici(pagine, (pagina) => pagina.riferimenti.numeroRuolo)
   const uffici = unici(pagine, (pagina) => pagina.riferimenti.uffici)
   const date = unici(pagine, (pagina) => pagina.riferimenti.date)
+
+  const riferimenti = numeriDiRuolo.length || uffici.length || date.length ? (
+    <dl className="iu-ocr-viewer__riferimenti">
+      {numeriDiRuolo.length ? <div><dt>Numero di ruolo letto</dt><dd>{numeriDiRuolo.join(' · ')}</dd></div> : null}
+      {uffici.length ? <div><dt>Ufficio giudiziario</dt><dd>{uffici.join(' · ')}</dd></div> : null}
+      {date.length ? <div><dt>Date nel testo</dt><dd>{date.slice(0, 3).join(' · ')}</dd></div> : null}
+    </dl>
+  ) : null
 
   const comandi = (
     <header className="iu-ocr-viewer__barra">
@@ -103,9 +114,10 @@ export function OcrPageViewer({
                   height={anteprima.altezza}
                   loading="lazy"
                 />
-                {sovrapposizione ? (
-                  <svg
-                    className="iu-ocr-viewer__riquadri"
+                {/* I riquadri ci sono sempre: nascosti, servono a far scorrere
+                    insieme pagina e testo blocco per blocco. */}
+                <svg
+                    className={`iu-ocr-viewer__riquadri${sovrapposizione ? '' : ' is-nascosti'}`}
                     viewBox={`0 0 ${anteprima.larghezza} ${anteprima.altezza}`}
                     preserveAspectRatio="none"
                     aria-hidden="true"
@@ -116,6 +128,7 @@ export function OcrPageViewer({
                       return (
                         <rect
                           key={blocco.id}
+                          data-blocco={blocco.id}
                           className={`iu-ocr-viewer__riquadro${selezionato === blocco.id ? ' is-selected' : ''}`}
                           x={x0}
                           y={y0}
@@ -126,7 +139,6 @@ export function OcrPageViewer({
                       )
                     })}
                   </svg>
-                ) : null}
                 <span className="iu-ocr-viewer__numero">Pagina {pagina.numero}</span>
               </div>
             )
@@ -136,13 +148,7 @@ export function OcrPageViewer({
         <p className="iu-acq-hint">Anteprima delle pagine non disponibile: il testo riconosciuto resta comunque completo.</p>
       )}
 
-      {numeriDiRuolo.length || uffici.length || date.length ? (
-        <dl className="iu-ocr-viewer__riferimenti">
-          {numeriDiRuolo.length ? <div><dt>Numero di ruolo letto</dt><dd>{numeriDiRuolo.join(' · ')}</dd></div> : null}
-          {uffici.length ? <div><dt>Ufficio giudiziario</dt><dd>{uffici.join(' · ')}</dd></div> : null}
-          {date.length ? <div><dt>Date nel testo</dt><dd>{date.slice(0, 3).join(' · ')}</dd></div> : null}
-        </dl>
-      ) : null}
+      {riferimenti ? (riferimentiIn === undefined ? riferimenti : riferimentiIn ? createPortal(riferimenti, riferimentiIn) : null) : null}
     </section>
   )
 }

@@ -86,6 +86,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   // tutta larghezza: cosi' immagine e testo partono alla stessa altezza.
   const [postoComandi, setPostoComandi] = useState<HTMLDivElement | null>(null)
   const [postoBarra, setPostoBarra] = useState<HTMLDivElement | null>(null)
+  const [postoRiferimenti, setPostoRiferimenti] = useState<HTMLDivElement | null>(null)
   useScorrimentoAppaiato(affiancato, blocchi.length > 0)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
@@ -360,6 +361,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
             <div ref={setPostoBarra} className="iu-ocr-affiancato__barra" />
             <OcrPageViewer
               comandiIn={postoComandi}
+              riferimentiIn={postoRiferimenti}
               pagine={pagine}
               blocchi={blocchi}
               selezionato={selezionato}
@@ -379,6 +381,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
                 barraIn={postoBarra}
               />
             </div>
+            <div ref={setPostoRiferimenti} className="iu-ocr-affiancato__riferimenti" />
           </div>
 
           <OcrSaveChoices

@@ -40,12 +40,16 @@ export function useSchermoIntero(elemento: RefObject<HTMLElement | null>) {
       return
     }
     if (document.fullscreenEnabled && typeof riquadro.requestFullscreen === 'function') {
-      try {
-        await riquadro.requestFullscreen()
-        return
-      } catch {
-        // rifiutato dal browser: si allarga il riquadro
-      }
+      // Alcuni contenitori (app desktop, riquadri incorporati) promettono lo
+      // schermo intero e poi non lo danno, o non rispondono affatto: conta
+      // solo se il riquadro e' davvero a schermo intero poco dopo.
+      await Promise.race([
+        riquadro.requestFullscreen().catch(() => undefined),
+        new Promise((fine) => window.setTimeout(fine, 600)),
+      ])
+      await new Promise((fine) => window.setTimeout(fine, 80))
+      if (document.fullscreenElement === riquadro) return
+      // rifiutato dal browser: si allarga il riquadro
     }
     setRipiego(true)
   }, [elemento, ripiego])

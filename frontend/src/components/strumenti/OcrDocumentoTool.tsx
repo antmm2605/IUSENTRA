@@ -71,6 +71,7 @@ export default function OcrDocumentoTool() {
   const affiancato = useRef<HTMLDivElement | null>(null)
   const [postoComandi, setPostoComandi] = useState<HTMLDivElement | null>(null)
   const [postoBarra, setPostoBarra] = useState<HTMLDivElement | null>(null)
+  const [postoRiferimenti, setPostoRiferimenti] = useState<HTMLDivElement | null>(null)
   useScorrimentoAppaiato(affiancato, blocchi.length > 0)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
@@ -276,6 +277,7 @@ export default function OcrDocumentoTool() {
             <div ref={setPostoBarra} className="iu-ocr-affiancato__barra" />
             <OcrPageViewer
               comandiIn={postoComandi}
+              riferimentiIn={postoRiferimenti}
               pagine={pagine}
               blocchi={blocchi}
               selezionato={selezionato}
@@ -286,6 +288,7 @@ export default function OcrDocumentoTool() {
             <div className="iu-ocr-affiancato__testo">
               <OcrReview blocks={blocchi} figures={figure} disabled={lavorando} onChange={setBlocchi} selectedId={selezionato} onSelect={setSelezionato} barraIn={postoBarra} />
             </div>
+            <div ref={setPostoRiferimenti} className="iu-ocr-affiancato__riferimenti" />
           </div>
 
           <section className="iu-ocr-tool__formato" aria-label="Formato e conferma">

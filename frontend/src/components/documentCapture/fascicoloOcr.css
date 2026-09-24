@@ -47,10 +47,12 @@
 .iu-ocr-affiancato__barra { grid-column: 1 / -1; display: grid; gap: 8px; min-width: 0; }
 .iu-ocr-affiancato__barra .iu-acq-hint { margin: 0; }
 .iu-ocr-affiancato__barra .iu-ocr-barra { top: 0; }
+.iu-ocr-affiancato__riferimenti { grid-column: 1 / -1; min-width: 0; }
+.iu-ocr-affiancato__riferimenti:empty { display: none; }
 .iu-ocr-review.iu-ocr-review--senza-barra { grid-template-rows: minmax(0, 1fr) auto; }
 /* A tutto schermo: pagina e testo prendono l'altezza che resta sotto la barra, ognuno scorre per conto suo. */
 .iu-ocr-affiancato:fullscreen,
-.iu-ocr-affiancato.is-schermo-intero { --iu-ocr-panel-height: 100%; height: 100dvh; margin: 0; padding: 14px 18px; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr); background: var(--iu-surface-subtle, #eef2f7); }
+.iu-ocr-affiancato.is-schermo-intero { --iu-ocr-panel-height: 100%; height: 100dvh; margin: 0; padding: 14px 18px; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr) auto; background: var(--iu-surface-subtle, #eef2f7); }
 .iu-ocr-affiancato.is-schermo-intero { position: fixed; inset: 0; z-index: 1000; }
 .iu-ocr-affiancato:fullscreen .iu-ocr-foglio,
 .iu-ocr-affiancato.is-schermo-intero .iu-ocr-foglio { max-height: none; }
@@ -62,6 +64,7 @@
 .iu-ocr-viewer__numero { position: absolute; right: 8px; bottom: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, .92); color: var(--iu-slate-600, #475569); font-size: 11px; font-weight: 800; }
 .iu-ocr-viewer__foglio img { display: block; width: 100%; height: auto; }
 .iu-ocr-viewer__riquadri { position: absolute; inset: 0; width: 100%; height: 100%; }
+.iu-ocr-viewer__riquadri.is-nascosti { visibility: hidden; }
 .iu-ocr-viewer__riquadro { fill: rgba(37, 99, 235, .10); stroke: rgba(37, 99, 235, .55); stroke-width: 2; cursor: pointer; }
 .iu-ocr-viewer__riquadro:hover { fill: rgba(37, 99, 235, .18); }
 .iu-ocr-viewer__riquadro.is-selected { fill: rgba(37, 99, 235, .26); stroke: var(--iu-primary, #2563eb); stroke-width: 3; }

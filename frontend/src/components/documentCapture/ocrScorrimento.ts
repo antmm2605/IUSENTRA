@@ -31,7 +31,46 @@ function posizione(contenitore: HTMLElement): { pagina: string; quota: number } 
   return scelta
 }
 
-function allinea(sorgente: HTMLElement, destinazione: HTMLElement) {
+/** Riquadri dei blocchi sull'immagine e parti del foglio: lo stesso blocco ha lo stesso id. */
+const SUL_FOGLIO = 'data-ocr-blocco'
+const SULLA_PAGINA = 'data-blocco'
+
+/**
+ * Il blocco in cima alla vista e quanto se n'e' gia' passato.
+ *
+ * La pagina e il foglio non hanno per forza le stesse proporzioni dentro la
+ * pagina (un capoverso corretto si allunga): agganciarsi al blocco tiene
+ * accanto le stesse righe anche dove la pagina intera non basterebbe.
+ */
+function bloccoInCima(contenitore: HTMLElement, attributo: string): { id: string; quota: number } | null {
+  const alto = contenitore.getBoundingClientRect().top
+  let scelta: { id: string; quota: number; distanza: number } | null = null
+  for (const elemento of contenitore.querySelectorAll<Element>(`[${attributo}]`)) {
+    const zona = elemento.getBoundingClientRect()
+    if (zona.bottom <= alto + 1 || zona.height <= 0) continue
+    // il primo che attraversa la cima, altrimenti il piu' vicino sotto
+    const distanza = Math.max(0, zona.top - alto)
+    if (!scelta || distanza < scelta.distanza) {
+      scelta = { id: elemento.getAttribute(attributo) || '', quota: (alto - zona.top) / zona.height, distanza }
+      if (distanza === 0) break
+    }
+  }
+  return scelta && scelta.distanza < 400 ? { id: scelta.id, quota: Math.max(-1, Math.min(1, scelta.quota)) } : null
+}
+
+function allineaSulBlocco(sorgente: HTMLElement, destinazione: HTMLElement, daImmagini: boolean): boolean {
+  const ancora = bloccoInCima(sorgente, daImmagini ? SULLA_PAGINA : SUL_FOGLIO)
+  if (!ancora?.id) return false
+  const gemello = destinazione.querySelector(`[${daImmagini ? SUL_FOGLIO : SULLA_PAGINA}="${CSS.escape(ancora.id)}"]`)
+  if (!gemello) return false
+  const zona = gemello.getBoundingClientRect()
+  if (zona.height <= 0) return false
+  fermaEco(destinazione, destinazione.scrollTop + zona.top - destinazione.getBoundingClientRect().top + ancora.quota * zona.height)
+  return true
+}
+
+function allinea(sorgente: HTMLElement, destinazione: HTMLElement, daImmagini: boolean) {
+  if (allineaSulBlocco(sorgente, destinazione, daImmagini)) return
   const punto = posizione(sorgente)
   if (!punto) return
   const pagina = destinazione.querySelector<HTMLElement>(`[data-pagina="${punto.pagina}"]`)
@@ -58,7 +97,7 @@ export function useScorrimentoAppaiato(riquadro: RefObject<HTMLElement | null>, 
       const destinazione = radice.querySelector<HTMLElement>(immagini ? TESTO : IMMAGINI)
       if (!destinazione) return
       cancelAnimationFrame(attesa)
-      attesa = requestAnimationFrame(() => allinea(sorgente, destinazione))
+      attesa = requestAnimationFrame(() => allinea(sorgente, destinazione, immagini))
     }
     // Lo scorrimento non risale: lo si ascolta in fase di cattura sul riquadro comune.
     radice.addEventListener('scroll', scorre, true)

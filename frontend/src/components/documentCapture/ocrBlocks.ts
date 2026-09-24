@@ -23,6 +23,9 @@ export type OcrFormat = {
   famiglia: string
   /** Corpo in punti come lo dichiara il documento. Zero: quello del documento. */
   corpo: number
+  /** Nel PDF sono linee disegnate sopra il testo: vere solo se misurate. */
+  sottolineato: boolean
+  barrato: boolean
 }
 
 /** Il segno che apre una voce di elenco, come lo ha letto il server. */
@@ -45,12 +48,16 @@ export type OcrBlock = {
   box: [number, number, number, number] | null
   /** Marcatore della voce di elenco: il testo del blocco lo comprende ancora. */
   marker: OcrMarker | null
+  /** Dove il formato cambia dentro il testo (vedi ocrTratti). Assenti: vale il formato del blocco. */
+  tratti?: OcrTratto[]
 }
 
 import { parseMarker } from './ocrMarkers'
+import { parseTratti, type OcrTratto } from './ocrTratti'
 
 export { markerFromText, markerOf } from './ocrMarkers'
 export { INTERRUZIONE_PAGINA_HTML, blocksToHtml } from './ocrHtml'
+export type { OcrTratto } from './ocrTratti'
 
 export const FORMATO_PREDEFINITO: OcrFormat = {
   livello: 0,
@@ -61,6 +68,8 @@ export const FORMATO_PREDEFINITO: OcrFormat = {
   colore: '',
   famiglia: '',
   corpo: 0,
+  sottolineato: false,
+  barrato: false,
 }
 
 const ALLINEAMENTI: OcrAlignment[] = ['sinistra', 'centro', 'destra', 'giustificato']
@@ -86,6 +95,8 @@ function parseFormat(value: unknown): OcrFormat {
     colore: coloreValido(voce.colore),
     famiglia: famigliaValida(voce.famiglia),
     corpo: corpoValido(voce.corpo),
+    sottolineato: Boolean(voce.sottolineato),
+    barrato: Boolean(voce.barrato),
   }
 }
 
@@ -149,6 +160,7 @@ export function parseBlocks(payload: unknown, page: number): OcrBlock[] {
       format: parseFormat(item.formato),
       box: parseBox(item.riquadro),
       marker: kind === 'elenco' ? parseMarker(item.marcatore) : null,
+      tratti: kind === 'tabella' ? [] : parseTratti(item.tratti, text),
     })
   }
   return blocks

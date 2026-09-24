@@ -725,7 +725,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     if body is None:
         body = root
 
-    TAG_INLINE = {"strong", "b", "em", "i", "u", "span", "a", "code", "sub", "sup", "font", "mark", "small"}
+    TAG_INLINE = {"strong", "b", "em", "i", "u", "s", "strike", "del", "span", "a", "code", "sub", "sup", "font", "mark", "small"}
     TAG_CONTENITORE = {"div", "section", "article", "blockquote", "body", "html", "main", "header", "footer"}
     ALLINEAMENTI = {
         "center": WD_ALIGN_PARAGRAPH.CENTER,
@@ -806,6 +806,8 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             nuovo_stato["italic"] = True
         elif tag == "u":
             nuovo_stato["underline"] = True
+        elif tag in ("s", "strike", "del"):
+            nuovo_stato["strike"] = True
         return _stato_dello_stile(nuovo_stato, el)
 
     def _scrivi(paragraph, testo: str, stato: dict) -> None:
@@ -815,6 +817,8 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         run.bold = True if stato.get("bold") else None
         run.italic = True if stato.get("italic") else None
         run.underline = True if stato.get("underline") else None
+        if stato.get("strike"):
+            run.font.strike = True
         colore = stato.get("color")
         if colore:
             valore = int(colore, 16)
@@ -1663,7 +1667,10 @@ def html_to_pdf(
                 parts.append(f"<sub>{inner}</sub>")
             else:
                 faccia = _faccia_incorporata(child) if child_tag == "span" else ""
-                parts.append(f'<font face="{faccia}">{inner}</font>' if faccia else inner)
+                # il colore di un pezzo di riga: l'indirizzo PEC in blu, il richiamo in rosso
+                colore = re.search(r"(?<![-\w])color:#([0-9a-f]{6})", style) if child_tag == "span" else None
+                attributi = (f' face="{faccia}"' if faccia else "") + (f' color="#{colore.group(1)}"' if colore else "")
+                parts.append(f"<font{attributi}>{inner}</font>" if attributi else inner)
             if child.tail:
                 parts.append(_rich_text(child.tail))
         return "".join(parts)

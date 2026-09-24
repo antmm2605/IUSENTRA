@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Trash2 } from 'lucide-react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Strikethrough, Trash2, Underline } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import { ETICHETTE, ParteDelFoglio, daControllare } from './OcrParte'
 import {
@@ -31,6 +31,14 @@ const LIVELLI: { value: number; label: string }[] = [
   { value: 2, label: 'Titolo' },
   { value: 3, label: 'Sottotitolo' },
   { value: 4, label: 'Rubrica' },
+]
+
+/** Gli stili che si accendono e si spengono: agiscono su tutto il pezzo scelto. */
+const STILI: { chiave: 'grassetto' | 'corsivo' | 'sottolineato' | 'barrato'; label: string; Icona: typeof Bold }[] = [
+  { chiave: 'grassetto', label: 'Grassetto', Icona: Bold },
+  { chiave: 'corsivo', label: 'Corsivo', Icona: Italic },
+  { chiave: 'sottolineato', label: 'Sottolineato', Icona: Underline },
+  { chiave: 'barrato', label: 'Barrato', Icona: Strikethrough },
 ]
 
 const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLeft }[] = [
@@ -128,26 +136,19 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             {corpi.map((corpo) => <option key={corpo} value={corpo}>{`${String(corpo).replace('.', ',')} pt`}</option>)}
           </select>
         </label>
-        <Button
-          type="button"
-          tone="neutral"
-          disabled={disabled || !formato}
-          aria-pressed={Boolean(formato?.grassetto)}
-          aria-label="Grassetto"
-          onClick={() => corrente && formato && onChange(updateBlockFormat(blocks, corrente.id, { grassetto: !formato.grassetto }))}
-        >
-          <Bold size={14} aria-hidden="true" />
-        </Button>
-        <Button
-          type="button"
-          tone="neutral"
-          disabled={disabled || !formato}
-          aria-pressed={Boolean(formato?.corsivo)}
-          aria-label="Corsivo"
-          onClick={() => corrente && formato && onChange(updateBlockFormat(blocks, corrente.id, { corsivo: !formato.corsivo }))}
-        >
-          <Italic size={14} aria-hidden="true" />
-        </Button>
+        {STILI.map(({ chiave, label, Icona }) => (
+          <Button
+            key={chiave}
+            type="button"
+            tone="neutral"
+            disabled={disabled || !formato}
+            aria-pressed={Boolean(formato?.[chiave])}
+            aria-label={label}
+            onClick={() => corrente && formato && onChange(updateBlockFormat(blocks, corrente.id, { [chiave]: !formato[chiave] }))}
+          >
+            <Icona size={14} aria-hidden="true" />
+          </Button>
+        ))}
         {ALLINEAMENTI.map(({ value, label, Icona }) => (
           <Button
             key={value}

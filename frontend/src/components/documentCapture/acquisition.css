@@ -111,6 +111,15 @@
 .iu-ocr-foglio__testo:focus-visible { outline: 2px solid var(--iu-primary, #2563eb); outline-offset: 2px; border-radius: 3px; }
 .iu-ocr-foglio__parte.is-grassetto .iu-ocr-foglio__testo { font-weight: 800; }
 .iu-ocr-foglio__parte.is-corsivo .iu-ocr-foglio__testo { font-style: italic; }
+.iu-ocr-foglio__parte.is-sottolineato .iu-ocr-foglio__testo { text-decoration: underline; }
+.iu-ocr-foglio__parte.is-barrato .iu-ocr-foglio__testo { text-decoration: line-through; }
+.iu-ocr-foglio__parte.is-sottolineato.is-barrato .iu-ocr-foglio__testo { text-decoration: underline line-through; }
+/* I tratti: il formato che cambia dentro la riga, come sarà nel documento. */
+.iu-ocr-tratto.is-g { font-weight: 800; }
+.iu-ocr-tratto.is-c { font-style: italic; }
+.iu-ocr-tratto.is-s { text-decoration: underline; }
+.iu-ocr-tratto.is-b { text-decoration: line-through; }
+.iu-ocr-tratto.is-s.is-b { text-decoration: underline line-through; }
 .iu-ocr-foglio__parte--h1 .iu-ocr-foglio__testo { font-size: calc(19px * var(--iu-ocr-scala)); font-weight: 900; }
 .iu-ocr-foglio__parte--h2 .iu-ocr-foglio__testo { font-size: calc(17px * var(--iu-ocr-scala)); font-weight: 850; }
 .iu-ocr-foglio__parte--h3 .iu-ocr-foglio__testo { font-size: calc(15px * var(--iu-ocr-scala)); font-weight: 800; }

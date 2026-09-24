@@ -105,6 +105,10 @@ class Formato:
     #: Corpo in punti tipografici, come lo dichiara il documento. Zero quando
     #: non e' dichiarato.
     corpo: float = 0.0
+    #: Sottolineato e barrato: nel PDF sono linee disegnate sopra il testo, e
+    #: si dichiarano solo quando sono state misurate.
+    sottolineato: bool = False
+    barrato: bool = False
 
     def come_dizionario(self) -> dict[str, Any]:
         return {
@@ -116,6 +120,8 @@ class Formato:
             "colore": self.colore or "",
             "famiglia": self.famiglia or "",
             "corpo": float(self.corpo or 0.0),
+            "sottolineato": bool(self.sottolineato),
+            "barrato": bool(self.barrato),
         }
 
 
@@ -190,12 +196,17 @@ def _grassetto(parole: Sequence[dict[str, Any]], misure: Misure) -> bool:
     return statistics.median(densita) >= misure.densita_corpo * SOGLIA_GRASSETTO
 
 
-def _corsivo(parole: Sequence[dict[str, Any]]) -> bool:
-    dichiarati = [parola.get("corsivo") for parola in parole if "corsivo" in parola]
+def _dichiarato(parole: Sequence[dict[str, Any]], chiave: str) -> bool:
+    """Vero se la maggioranza delle parole lo dichiara; falso se nessuna lo dice."""
+    dichiarati = [parola.get(chiave) for parola in parole if chiave in parola]
     if not dichiarati:
         # Dall'immagine non si misura: non si dichiara.
         return False
     return sum(1 for valore in dichiarati if valore) > len(dichiarati) / 2
+
+
+def _corsivo(parole: Sequence[dict[str, Any]]) -> bool:
+    return _dichiarato(parole, "corsivo")
 
 
 def _allineamento_riga(sinistra: float, destra: float, misure: Misure) -> str:
@@ -346,6 +357,8 @@ def formato_blocco(blocco: Blocco, parole: Sequence[dict[str, Any]], misure: Mis
         colore=_colore(proprie),
         famiglia=_famiglia(proprie),
         corpo=_corpo(corpi),
+        sottolineato=_dichiarato(proprie, "sottolineato"),
+        barrato=_dichiarato(proprie, "barrato"),
     )
 
 

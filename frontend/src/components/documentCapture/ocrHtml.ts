@@ -12,6 +12,7 @@
  */
 import { attributiElenco, continuaElenco, markerOf, voceSenzaMarcatore } from './ocrMarkers'
 import type { OcrBlock, OcrFormat, OcrMarker } from './ocrBlocks'
+import { trattiTra, type OcrTratto } from './ocrTratti'
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => (
@@ -72,7 +73,7 @@ export function blocksToHtml(blocks: OcrBlock[]): string {
       } else {
         elencoAperto = { tag: elencoAperto.tag, marker }
       }
-      pezzi.push(`<li>${inlineHtml(voceSenzaMarcatore(testo, marker), block.format)}</li>`)
+      pezzi.push(`<li>${contenutoDelBlocco(block, voceSenzaMarcatore(testo, marker))}</li>`)
       continue
     }
     chiudiElenco()
@@ -88,16 +89,46 @@ function blockHtml(block: OcrBlock): string {
   const text = block.text.trim()
   if (!text) return ''
   const formato = block.format
-  const contenuto = inlineHtml(text, formato)
-  if (formato.livello >= 1 && formato.livello <= 4) return `<h${formato.livello}${stileDelParagrafo(formato)}>${contenuto}</h${formato.livello}>`
+  const contenuto = contenutoDelBlocco(block, text)
+  // con i tratti il colore e' loro, parola per parola: sul capoverso no
+  const stile = stileDelParagrafo(formato, !block.tratti?.length)
+  if (formato.livello >= 1 && formato.livello <= 4) return `<h${formato.livello}${stile}>${contenuto}</h${formato.livello}>`
   // Il titolo riconosciuto senza misura di corpo resta in grassetto.
-  if (block.kind === 'titolo') return `<p${stileDelParagrafo(formato)}><strong>${contenuto}</strong></p>`
-  return `<p${stileDelParagrafo(formato)}>${contenuto}</p>`
+  if (block.kind === 'titolo') return `<p${stile}><strong>${contenuto}</strong></p>`
+  return `<p${stile}>${contenuto}</p>`
 }
 
-/** Grassetto e corsivo del blocco, nell'HTML consentito dal documento. */
+/**
+ * Il testo del blocco nell'HTML del documento: tratto per tratto quando il
+ * formato cambia dentro la riga, altrimenti col formato del blocco.
+ *
+ * `testo` e' un pezzo del testo del blocco (senza spazi ai bordi, senza il
+ * marcatore dell'elenco): i tratti si ritagliano sulla stessa porzione.
+ */
+function contenutoDelBlocco(block: OcrBlock, testo: string): string {
+  const tratti = block.tratti ?? []
+  const inizio = block.text.lastIndexOf(testo)
+  if (!tratti.length || inizio < 0) return inlineHtml(testo, block.format)
+  const titolo = block.format.livello >= 1 && block.format.livello <= 4
+  return trattiTra(tratti, inizio, inizio + testo.length).map((tratto) => trattoHtml(tratto, titolo)).join('')
+}
+
+/** Un tratto: il titolo e' gia' in neretto, e il neretto non si ripete. */
+function trattoHtml(tratto: OcrTratto, titolo: boolean): string {
+  let html = escapeHtml(tratto.testo)
+  if (tratto.barrato) html = `<s>${html}</s>`
+  if (tratto.sottolineato) html = `<u>${html}</u>`
+  if (tratto.corsivo) html = `<em>${html}</em>`
+  if (tratto.grassetto && !titolo) html = `<strong>${html}</strong>`
+  if (tratto.colore) html = `<span style="color:${tratto.colore}">${html}</span>`
+  return html
+}
+
+/** Il formato del blocco intero, nell'HTML consentito dal documento. */
 function inlineHtml(text: string, formato: OcrFormat): string {
   let html = escapeHtml(text)
+  if (formato.barrato) html = `<s>${html}</s>`
+  if (formato.sottolineato) html = `<u>${html}</u>`
   if (formato.grassetto && formato.livello === 0) html = `<strong>${html}</strong>`
   if (formato.corsivo) html = `<em>${html}</em>`
   return html
@@ -114,12 +145,12 @@ function inlineHtml(text: string, formato: OcrFormat): string {
  * vero di un PDF): da una scansione non si leggono, e restano quelli del
  * documento in cui il testo viene inserito.
  */
-function stileDelParagrafo(formato: OcrFormat): string {
+function stileDelParagrafo(formato: OcrFormat, conColore = true): string {
   const pezzi: string[] = []
   if (formato.allineamento === 'centro') pezzi.push('text-align:center')
   else if (formato.allineamento === 'destra') pezzi.push('text-align:right')
   else if (formato.allineamento === 'giustificato') pezzi.push('text-align:justify')
-  if (formato.colore) pezzi.push(`color:${formato.colore}`)
+  if (formato.colore && conColore) pezzi.push(`color:${formato.colore}`)
   if (formato.famiglia) pezzi.push(`font-family:'${formato.famiglia}'`)
   if (formato.corpo) pezzi.push(`font-size:${formato.corpo}pt`)
   return pezzi.length ? ` style="${pezzi.join(';')}"` : ''

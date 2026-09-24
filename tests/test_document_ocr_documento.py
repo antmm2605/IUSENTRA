@@ -258,6 +258,51 @@ def test_carattere_e_corpo_del_pdf_arrivano_fino_alla_revisione(niente_ocr):
     assert corpo["famiglia"] == "Arial" and corpo["corpo"] == 11.0
 
 
+def _pdf_con_formato_nella_riga() -> bytes:
+    documento = fitz.open()
+    pagina = documento.new_page(width=595, height=842)
+    x, y = 60.0, 120.0
+    for testo, font, colore, sotto, barra in (
+        ("Il Tribunale ", "helv", (0, 0, 0), False, False),
+        ("rigetta", "hebo", (0, 0, 0), True, False),
+        (" la domanda e scrive a ", "helv", (0, 0, 0), False, False),
+        ("studio@pec.it", "helv", (0, 0, 1), False, False),
+        (" e ", "helv", (0, 0, 0), False, False),
+        ("cancella", "helv", (0, 0, 0), False, True),
+        (" questo.", "helv", (0, 0, 0), False, False),
+    ):
+        pagina.insert_text((x, y), testo, fontsize=11, fontname=font, color=colore)
+        larghezza = fitz.get_text_length(testo, fontname=font, fontsize=11)
+        # come le disegna Word: la sottolineatura poco sotto la base, il barrato a meta' lettera
+        if sotto:
+            pagina.draw_line((x, y + 1.5), (x + larghezza, y + 1.5), width=0.6)
+        if barra:
+            pagina.draw_line((x, y - 3.3), (x + larghezza, y - 3.3), width=0.6)
+        x += larghezza
+    pagina.insert_textbox(fitz.Rect(60, 200, 535, 400), "Testo di riempimento del documento. " * 8, fontsize=11)
+    # una cella bordata: il suo testo non deve uscire sottolineato
+    pagina.draw_rect(fitz.Rect(60, 450, 200, 470), width=0.6)
+    pagina.insert_text((64, 464), "Importo", fontsize=11)
+    dati = documento.tobytes()
+    documento.close()
+    return dati
+
+
+def test_il_formato_dentro_la_riga_arriva_fino_alla_revisione(niente_ocr):
+    """Neretto, sottolineato, barrato e colore di una sola parola non si perdono."""
+    blocchi = riconoscimento.riconosci_pagina(_pdf_con_formato_nella_riga(), "atto.pdf", 1).blocks
+    riga = next(blocco for blocco in blocchi if "Tribunale" in str(blocco.get("testo")))
+    tratti = {tratto["testo"].strip(): tratto for tratto in riga["tratti"]}
+    assert "".join(tratto["testo"] for tratto in riga["tratti"]) == riga["testo"]
+    assert tratti["rigetta"]["grassetto"] and tratti["rigetta"]["sottolineato"]
+    assert tratti["cancella"]["barrato"] and not tratti["cancella"]["sottolineato"]
+    assert tratti["studio@pec.it"]["colore"] == "#0000ff"
+    # il capoverso nel suo insieme resta tondo, nero, non sottolineato
+    assert not riga["formato"]["grassetto"] and not riga["formato"]["sottolineato"]
+    cella = next(blocco for blocco in blocchi if str(blocco.get("testo")) == "Importo")
+    assert not cella["formato"]["sottolineato"] and "tratti" not in cella, "il bordo della cella non e' una sottolineatura"
+
+
 def test_il_testo_si_ricompone_nell_ordine_in_cui_si_legge(niente_ocr):
     """Regressione: le righe in corpo grande venivano lette prima di quelle sopra."""
     paragrafi = riconoscimento.riconosci_pagina(_pdf_formattato(), "atto.pdf", 1).paragraphs
@@ -420,6 +465,14 @@ def test_quello_che_non_e_formato_del_documento_non_passa(stile):
     assert stile_consentito(stile) == ""
 
 
+def test_dentro_la_riga_passano_barrato_e_solo_il_colore():
+    pulito = html_consentito(
+        '<p>Il <s>vecchio</s> indirizzo <span style="color:#0000FF;font-size:30pt;position:fixed">studio@pec.it</span>'
+        '<span onclick="x">.</span></p>'
+    )
+    assert pulito == '<p>Il <s>vecchio</s> indirizzo <span style="color:#0000ff">studio@pec.it</span><span>.</span></p>'
+
+
 def test_la_tabella_riconosciuta_resta_una_tabella():
     pulito = html_consentito('<table border="1"><tr><th>Voce</th><td>Importo</td></tr></table>')
     assert pulito.startswith("<table") and "<th>Voce</th>" in pulito and 'border="1"' in pulito
@@ -550,8 +603,11 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     # Il formato riconosciuto diventa formato del documento: allineamento,
     # livello del titolo e colore, quando un colore c'e' davvero.
     assert "text-align:center" in blocchi
-    assert "<h${formato.livello}${stileDelParagrafo(formato)}>" in blocchi
+    assert "const stile = stileDelParagrafo(formato, !block.tratti?.length)" in blocchi
+    assert "<h${formato.livello}${stile}>" in blocchi
     assert "color:${formato.colore}" in blocchi
+    # e il formato dentro la riga, parola per parola
+    assert "<u>${html}</u>" in blocchi and "<s>${html}</s>" in blocchi and "color:${tratto.colore}" in blocchi
     # L'avvocato sceglie dove salvare: fascicolo o computer.
     assert "Nel fascicolo" in destinazioni and "Sul computer" in destinazioni
     assert "Apri subito nell’editor" in destinazioni

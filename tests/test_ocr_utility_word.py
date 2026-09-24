@@ -99,3 +99,14 @@ def test_il_colore_del_capoverso_arriva_nel_pdf():
         documento.close()
     assert colori == {0x0000FF}
 
+
+def test_il_formato_dentro_la_riga_arriva_in_word_parola_per_parola():
+    html = html_consentito(
+        '<p>Il Tribunale <strong><u>rigetta</u></strong> e scrive a '
+        '<span style="color:#0000ff">studio@pec.it</span> e <s>cancella</s>.</p>'
+    )
+    runs = {run.text: run for run in Document(io.BytesIO(html_to_docx(html, "prova", None))).paragraphs[0].runs}
+    assert runs["rigetta"].bold and runs["rigetta"].underline
+    assert str(runs["studio@pec.it"].font.color.rgb) == "0000FF"
+    assert runs["cancella"].font.strike
+    assert not runs["Il Tribunale "].bold and runs["Il Tribunale "].font.color.type is None

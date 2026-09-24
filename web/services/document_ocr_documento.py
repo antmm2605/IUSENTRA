@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from legal_ocr.page_layout import analizza_pagina
+from legal_ocr.tratti import con_tratti
 from web.services.document_ocr import recognize_page
 from web.services.document_ocr_anteprima import ANTEPRIMA_ASSENTE, Anteprima, anteprima_da_pdf
 from web.services.document_ocr_anteprima import come_payload as anteprima_payload
@@ -230,8 +231,52 @@ def _famiglia_del_font(nome: str) -> str:
         return ""
 
 
+def _filetti_della_pagina(sorgente: bytes, indice: int) -> list[tuple[float, float, float]]:
+    """Le linee orizzontali sottili della pagina, lette come le legge l'analizzatore.
+
+    Nel PDF una sottolineatura non e' un attributo del testo: e' una linea
+    disegnata sotto le lettere, come i bordi di una tabella. L'importazione
+    fedele sa gia' distinguere le une dagli altri; qui si usa la stessa lettura,
+    cosi' lo stesso PDF da' le stesse sottolineature da tutte e due le strade.
+    Se la lettura non riesce la pagina si legge lo stesso, senza decorazioni.
+    """
+    try:
+        from pct.documento_fedele.sorgente import DocumentoSorgente
+
+        with DocumentoSorgente(sorgente) as documento:
+            return list(documento[indice].filetti)
+    except Exception:
+        return []
+
+
+def _decorazioni_parola(
+    parola: tuple[float, float, float, float],
+    span: tuple[float, float, float, float],
+    filetti: Sequence[tuple[float, float, float]],
+) -> tuple[bool, bool]:
+    """(sottolineato, barrato) di una parola, con la regola dell'analizzatore.
+
+    La sporgenza della linea si misura sullo span e non sulla parola: una
+    sottolineatura che copre tre parole sporge da ciascuna, ma non dallo span.
+    """
+    if not filetti:
+        return False, False
+    try:
+        from pct.documento_fedele.geometria import Riquadro
+        from pct.documento_fedele.lettura import _decorazioni
+
+        return _decorazioni(Riquadro(parola), list(filetti), Riquadro(span))
+    except Exception:
+        return False, False
+
+
 def _parole_dello_span(
-    span: dict[str, Any], scala: float, blocco: int, riga: int, indice: int
+    span: dict[str, Any],
+    scala: float,
+    blocco: int,
+    riga: int,
+    indice: int,
+    filetti: Sequence[tuple[float, float, float]] = (),
 ) -> list[dict[str, Any]]:
     """Parole di uno span, nella stessa forma che produce il motore OCR.
 
@@ -252,6 +297,13 @@ def _parole_dello_span(
     corpo = float(span.get("size") or 0.0)
     colore = _colore_span(span)
     famiglia = _famiglia_span(span)
+    # Per le decorazioni il riquadro si prende dalla linea di base e dal corpo,
+    # con la discesa delle metriche standard (un quinto del corpo). PyMuPDF
+    # allarga la discesa di alcuni caratteri base fino a un terzo: una
+    # sottolineatura di Word, a un punto e mezzo sotto la base, finiva
+    # «dentro» le lettere e non veniva riconosciuta.
+    base = float((span.get("origin") or (0.0, y1))[1])
+    alto_lettere, basso_lettere = (base - corpo * 0.8, base + corpo * 0.2) if corpo > 0 else (y0, y1)
 
     parole: list[dict[str, Any]] = []
     posizione = 0
@@ -259,6 +311,9 @@ def _parole_dello_span(
         if pezzo.strip():
             inizio = x0 + posizione * passo
             fine = inizio + len(pezzo) * passo
+            sottolineato, barrato = _decorazioni_parola(
+                (inizio, alto_lettere, fine, basso_lettere), (x0, alto_lettere, x1, basso_lettere), filetti
+            )
             parole.append(
                 {
                     "text": pezzo.strip(),
@@ -278,13 +333,17 @@ def _parole_dello_span(
                     "corsivo": corsivo,
                     "colore": colore,
                     "famiglia": famiglia,
+                    "sottolineato": sottolineato,
+                    "barrato": barrato,
                 }
             )
         posizione += len(pezzo) + 1
     return parole
 
 
-def _parole_native(pagina, scala: float) -> list[dict[str, Any]]:
+def _parole_native(
+    pagina, scala: float, filetti: Sequence[tuple[float, float, float]] = ()
+) -> list[dict[str, Any]]:
     """Parole del livello di testo, con corpo e stile dichiarati dal PDF.
 
     Le coordinate del PDF sono in punti tipografici: vengono portate alla scala
@@ -302,7 +361,7 @@ def _parole_native(pagina, scala: float) -> list[dict[str, Any]]:
     for numero_blocco, blocco in enumerate(contenuto.get("blocks") or []):
         for numero_riga, riga in enumerate(blocco.get("lines") or []):
             for span in riga.get("spans") or []:
-                parole.extend(_parole_dello_span(span, scala, numero_blocco, numero_riga, len(parole)))
+                parole.extend(_parole_dello_span(span, scala, numero_blocco, numero_riga, len(parole), filetti))
     if parole:
         return parole
     # Un PDF senza struttura dichiarata (raro, ma capita nei tracciati vecchi)
@@ -423,8 +482,15 @@ def riconosci_pagina(
         pagina = documento.load_page(indice)
         parole = _parole_native(pagina, DPI_RASTERIZZAZIONE / 72.0)
         if _caratteri(parole) >= CARATTERI_TESTO_NATIVO_MINIMI:
+            filetti = _filetti_della_pagina(sorgente, indice)
+            if filetti:
+                # si rileggono le parole con le linee: solo ora si sa che la pagina e' di testo
+                parole = _parole_native(pagina, DPI_RASTERIZZAZIONE / 72.0, filetti)
             blocchi = analizza_pagina(parole, pagina=numero)
             blocks, paragrafi, correzioni, riferimenti = _rifinisci(blocchi_con_formato(blocchi, parole))
+            # I tratti si fanno sul testo gia' corretto: le parole si
+            # riabbinano per contenuto, non per posizione.
+            blocks = con_tratti(blocks, parole)
             return PaginaRiconosciuta(
                 numero=numero,
                 origine=ORIGINE_TESTO,

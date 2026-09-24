@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Rows3 } from 'lucide-react'
 import { CLASSI_ALLINEAMENTO, type OcrBlock, type OcrBlockKind } from './ocrBlocks'
+import type { OcrTratto } from './ocrTratti'
 
 export const ETICHETTE: Record<OcrBlockKind, string> = {
   titolo: 'Titolo',
@@ -24,13 +25,29 @@ export function daControllare(block: OcrBlock): boolean {
 
 function stileDelBlocco(block: OcrBlock) {
   const stile: Record<string, string> = { '--iu-ocr-scala': String(block.format.scala || 1) }
-  // il nero non si dichiara: senza colore il testo prende quello del foglio
-  if (block.format.colore) stile.color = block.format.colore
+  // il nero non si dichiara: senza colore il testo prende quello del foglio;
+  // con i tratti il colore e' loro, parola per parola
+  if (block.format.colore && !block.tratti?.length) stile.color = block.format.colore
   // carattere e corpo solo se il documento li dichiara: si vede come sarà
   if (block.format.famiglia) stile.fontFamily = `'${block.format.famiglia}', serif`
   // il corpo passa da una variabile: la dimensione la scrive il campo, non la parte
   if (block.format.corpo) stile['--iu-ocr-corpo'] = `${block.format.corpo}pt`
   return stile as CSSProperties
+}
+
+/** Un tratto nel foglio: come sarà nel documento, con le classi del foglio di stile. */
+function nodoDelTratto(tratto: OcrTratto): HTMLSpanElement {
+  const nodo = document.createElement('span')
+  nodo.className = [
+    'iu-ocr-tratto',
+    tratto.grassetto ? 'is-g' : '',
+    tratto.corsivo ? 'is-c' : '',
+    tratto.sottolineato ? 'is-s' : '',
+    tratto.barrato ? 'is-b' : '',
+  ].filter(Boolean).join(' ')
+  if (tratto.colore) nodo.style.color = tratto.colore
+  nodo.textContent = tratto.testo
+  return nodo
 }
 
 /**
@@ -51,8 +68,11 @@ function BloccoScrivibile({ block, disabled, onText, onSelect }: {
   useEffect(() => {
     const elemento = nodo.current
     if (!elemento || document.activeElement === elemento) return
-    if (elemento.textContent !== block.text) elemento.textContent = block.text
-  }, [block.text])
+    // Il testo si legge sempre come testo semplice (onInput): i tratti sono
+    // solo come lo si vede, e si riallineano da soli quando il testo cambia.
+    if (block.tratti?.length) elemento.replaceChildren(...block.tratti.map(nodoDelTratto))
+    else if (elemento.textContent !== block.text) elemento.textContent = block.text
+  }, [block.text, block.tratti])
   return (
     <div
       ref={nodo}
@@ -83,6 +103,8 @@ export function ParteDelFoglio({ block, disabled, scelto, onText, onCell, onSele
   onSelect: () => void
 }) {
   const incerto = daControllare(block)
+  // con i tratti lo stile sta nelle parole: sul blocco resterebbe su tutte
+  const formato = block.tratti?.length ? null : block.format
   return (
     <div
       className={[
@@ -90,8 +112,10 @@ export function ParteDelFoglio({ block, disabled, scelto, onText, onCell, onSele
         `iu-ocr-foglio__parte--${block.kind}`,
         `iu-ocr-foglio__parte--h${block.format.livello}`,
         CLASSI_ALLINEAMENTO[block.format.allineamento],
-        block.format.grassetto ? 'is-grassetto' : '',
-        block.format.corsivo ? 'is-corsivo' : '',
+        formato?.grassetto ? 'is-grassetto' : '',
+        formato?.corsivo ? 'is-corsivo' : '',
+        formato?.sottolineato ? 'is-sottolineato' : '',
+        formato?.barrato ? 'is-barrato' : '',
         block.format.corpo ? 'has-corpo' : '',
         incerto ? 'is-incerto' : '',
         scelto ? 'is-scelto' : '',

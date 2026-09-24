@@ -1,21 +1,11 @@
 // Blocchi riconosciuti: elenchi raggruppati con tipo e numero di partenza, numeri di pagina esclusi.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { readFileSync } from 'node:fs'
-import { stripTypeScriptTypes } from 'node:module'
 
-// I moduli si importano fra loro senza estensione: Node li risolve solo con il percorso completo.
-// ocrHtml si monta per primo perche' ocrBlocks ne riesporta la resa in HTML.
-const cartella = new URL('../../frontend/src/components/documentCapture/', import.meta.url)
-const leggi = (nome) => stripTypeScriptTypes(readFileSync(new URL(nome, cartella), 'utf8'))
-const comeModulo = (testo) => `data:text/javascript;base64,${Buffer.from(testo).toString('base64')}`
-const markers = JSON.stringify(new URL('ocrMarkers.ts', cartella).href)
-const htmlUrl = comeModulo(leggi('ocrHtml.ts').replaceAll("'./ocrMarkers'", markers))
-const sorgente = leggi('ocrBlocks.ts')
-  .replaceAll("'./ocrMarkers'", markers)
-  .replace("'./ocrBlockEdits'", JSON.stringify(new URL('ocrBlockEdits.ts', cartella).href))
-  .replace("'./ocrHtml'", JSON.stringify(htmlUrl))
-const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat } = await import(comeModulo(sorgente))
+// I moduli del frontend si importano fra loro senza estensione, come fa Vite:
+// l'aggancio dei test Node li risolve sui file .ts.
+import './support/resolve_ts_extensionless.mjs'
+const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat, updateBlockText } = await import('../../frontend/src/components/documentCapture/ocrBlocks.ts')
 
 const blocco = (tipo, testo, extra = {}) => ({ tipo, testo, confidenza: 0.9, riquadro: [0, 0, 10, 10], formato: { livello: 0, grassetto: false, corsivo: false, allineamento: 'sinistra', scala: 1 }, ...extra })
 
@@ -77,3 +67,58 @@ test('carattere e corpo dichiarati arrivano nel documento, quelli non validi no'
       + '<p>Nome sporco</p>',
   )
 })
+
+const tratto = (testo, extra = {}) => ({ testo, grassetto: false, corsivo: false, sottolineato: false, barrato: false, colore: '', ...extra })
+const conTratti = () => parseBlocks([
+  blocco('paragrafo', 'Il Tribunale rigetta la domanda di studio@pec.it', {
+    tratti: [
+      tratto('Il Tribunale '),
+      tratto('rigetta', { grassetto: true, sottolineato: true }),
+      tratto(' la domanda di '),
+      tratto('studio@pec.it', { colore: '#0000ff' }),
+    ],
+  }),
+], 1)
+
+test('il formato dentro la riga arriva nel documento parola per parola', () => {
+  assert.equal(
+    blocksToHtml(conTratti()),
+    '<p>Il Tribunale <strong><u>rigetta</u></strong> la domanda di <span style="color:#0000ff">studio@pec.it</span></p>',
+  )
+})
+
+test('i tratti che non ridanno il testo non si usano', () => {
+  const [block] = parseBlocks([blocco('paragrafo', 'Testo vero', { tratti: [tratto('Testo '), tratto('falso', { grassetto: true })] })], 1)
+  assert.deepEqual(block.tratti, [])
+})
+
+test('correggere una parola in neretto la lascia in neretto, il resto non si sposta', () => {
+  const [block] = conTratti()
+  const [corretto] = updateBlockText([block], block.id, 'Il Tribunale rigettta la domanda di studio@pec.it')
+  assert.equal(
+    blocksToHtml([corretto]),
+    '<p>Il Tribunale <strong><u>rigettta</u></strong> la domanda di <span style="color:#0000ff">studio@pec.it</span></p>',
+  )
+  const [accorciato] = updateBlockText([corretto], corretto.id, 'Il Tribunale rigettta la domanda')
+  assert.equal(blocksToHtml([accorciato]), '<p>Il Tribunale <strong><u>rigettta</u></strong> la domanda</p>')
+})
+
+test('un comando della barra agisce su tutto il pezzo', () => {
+  const [block] = conTratti()
+  const [tutto] = updateBlockFormat([block], block.id, { grassetto: true })
+  assert.equal(
+    blocksToHtml([tutto]),
+    '<p><strong>Il Tribunale </strong><strong><u>rigetta</u></strong><strong> la domanda di </strong><span style="color:#0000ff"><strong>studio@pec.it</strong></span></p>',
+  )
+})
+
+test('la voce di elenco perde il marcatore anche nei tratti', () => {
+  const [voce] = parseBlocks([
+    blocco('elenco', 'a) si rigetta', {
+      marcatore: { tipo: 'lettera', valore: 1, testo: 'a)', livello: 1 },
+      tratti: [tratto('a) si '), tratto('rigetta', { sottolineato: true })],
+    }),
+  ], 1)
+  assert.equal(blocksToHtml([voce]), '<ol type="a"><li>si <u>rigetta</u></li></ol>')
+})
+

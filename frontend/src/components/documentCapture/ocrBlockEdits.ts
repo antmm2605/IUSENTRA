@@ -3,6 +3,12 @@
  * formato, eliminazione; e le letture di servizio (testo semplice, conteggio).
  */
 import type { OcrBlock, OcrBlockKind, OcrFormat } from './ocrBlocks'
+import { trattiConFormato, trattiDopoLaCorrezione } from './ocrTratti'
+
+/** Il testo nuovo, con i tratti riallineati: una correzione non cancella il neretto. */
+function conTesto(block: OcrBlock, text: string): OcrBlock {
+  return { ...block, text, tratti: trattiDopoLaCorrezione(block.tratti ?? [], block.text, text) }
+}
 
 /** Testo semplice, per l'anteprima e per il conteggio dei caratteri. */
 export function blocksToPlainText(blocks: OcrBlock[]): string {
@@ -23,7 +29,7 @@ export function applyPlainTextToBlocks(blocks: OcrBlock[], plainText: string): O
     if (block.kind === 'tabella' || block.kind === 'numero_pagina') return block
     const text = parti[indice] ?? ''
     indice += 1
-    return { ...block, text }
+    return conTesto(block, text)
   })
 }
 
@@ -32,7 +38,7 @@ export function countCharacters(blocks: OcrBlock[]): number {
 }
 
 export function updateBlockText(blocks: OcrBlock[], id: string, text: string): OcrBlock[] {
-  return blocks.map((block) => (block.id === id ? { ...block, text } : block))
+  return blocks.map((block) => (block.id === id ? conTesto(block, text) : block))
 }
 
 export function updateBlockCell(blocks: OcrBlock[], id: string, row: number, column: number, value: string): OcrBlock[] {
@@ -53,7 +59,11 @@ export function removeBlock(blocks: OcrBlock[], id: string): OcrBlock[] {
 
 /** Cambia il formato di un blocco durante la revisione. */
 export function updateBlockFormat(blocks: OcrBlock[], id: string, patch: Partial<OcrFormat>): OcrBlock[] {
-  return blocks.map((block) => (block.id === id ? { ...block, format: { ...block.format, ...patch } } : block))
+  return blocks.map((block) => (
+    block.id === id
+      ? { ...block, format: { ...block.format, ...patch }, tratti: trattiConFormato(block.tratti ?? [], patch) }
+      : block
+  ))
 }
 
 /** Blocchi di una pagina, per la vista affiancata all'immagine. */

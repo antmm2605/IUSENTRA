@@ -44,6 +44,9 @@ TAG_CONSENTITI = {
     "strong",
     "em",
     "u",
+    # barrato e colore dentro la riga: sono formato dell'atto riconosciuto
+    "s",
+    "span",
     "ul",
     "ol",
     "li",
@@ -68,6 +71,8 @@ ATTRIBUTI_CONSENTITI = {
     "h2": {"style"},
     "h3": {"style"},
     "h4": {"style"},
+    # dentro la riga passa solo il colore: il resto e' del capoverso
+    "span": {"style"},
     "hr": {"class", "data-iu-page-break"},
     # Tipo e numero di partenza dell'elenco: sono forma del documento
     # riconosciuto (a), b), c); I., II.; 3., 4.), non decorazione.
@@ -93,8 +98,12 @@ def _numero_pulito(valore: float) -> str:
     return f"{valore:g}"
 
 
-def stile_consentito(stile: str) -> str:
-    """Le sole dichiarazioni di formato del documento, nei valori ammessi."""
+def stile_consentito(stile: str, *, solo_colore: bool = False) -> str:
+    """Le sole dichiarazioni di formato del documento, nei valori ammessi.
+
+    `solo_colore` vale per i pezzi dentro la riga: il colore di una parola si,
+    ma allineamento, carattere e corpo sono del capoverso intero.
+    """
     tenute: dict[str, str] = {}
     for dichiarazione in str(stile or "").split(";"):
         if ":" not in dichiarazione:
@@ -115,6 +124,8 @@ def stile_consentito(stile: str) -> str:
             trovato = _RE_CORPO.match(valore.replace(" ", "").lower())
             if trovato and CORPO_MINIMO <= float(trovato.group(1)) <= CORPO_MASSIMO:
                 tenute[proprieta] = f"{_numero_pulito(float(trovato.group(1)))}pt"
+    if solo_colore:
+        tenute = {proprieta: valore for proprieta, valore in tenute.items() if proprieta == "color"}
     return ";".join(f"{proprieta}:{valore}" for proprieta, valore in tenute.items())
 
 MAX_HTML_CARATTERI = 4_000_000
@@ -147,7 +158,7 @@ class _Ripulitore(HTMLParser):
             if nome == "data-iu-page-break" and str(valore).strip().lower() not in {"true", "1"}:
                 continue
             if nome == "style":
-                stile = stile_consentito(str(valore))
+                stile = stile_consentito(str(valore), solo_colore=tag == "span")
                 if stile:
                     pezzi.append(f' style="{_attributo(stile)}"')
                 continue

@@ -192,7 +192,7 @@ def test_ogni_blocco_dichiara_sempre_il_proprio_formato():
     )
     for blocco in _blocchi(parole):
         formato = blocco["formato"]
-        assert set(formato) == {"livello", "grassetto", "corsivo", "allineamento", "scala", "colore", "famiglia", "corpo"}
+        assert set(formato) == {"livello", "grassetto", "corsivo", "allineamento", "scala", "colore", "famiglia", "corpo", "sottolineato", "barrato"}
         assert formato["allineamento"] in {ALLINEAMENTO_SINISTRA, ALLINEAMENTO_CENTRO, ALLINEAMENTO_DESTRA}
         # il colore c'e' sempre come chiave, ed e' vuoto quando e' il nero del
         # documento: e' la differenza fra «non dichiarato» e «nero dichiarato»
@@ -333,3 +333,64 @@ def test_il_nome_del_font_nel_pdf_diventa_una_famiglia_dell_editor():
     assert _famiglia_span({"font": ""}) == ""
     assert _famiglia_span({}) == ""
 
+
+def test_sottolineato_e_barrato_si_dichiarano_solo_se_misurati():
+    """Dall'immagine non si misurano: il blocco li dichiara solo se le parole li portano."""
+    stimate = _pagina(_riga(CORPO, 100, 100, riga=1, blocco=1))
+    formato = _blocchi(stimate)[0]["formato"]
+    assert formato["sottolineato"] is False and formato["barrato"] is False
+
+    misurate = _pagina(_riga(CORPO, 100, 100, riga=1, blocco=1, sottolineato=True, barrato=False))
+    formato = _blocchi(misurate)[0]["formato"]
+    assert formato["sottolineato"] is True and formato["barrato"] is False
+
+
+# ── I tratti: il formato dentro la riga ────────────────────────────────────
+
+
+def _p(testo, indice, **stile):
+    return {"text": testo, "word": indice, **stile}
+
+
+def test_i_tratti_ridanno_il_testo_e_segnano_dove_cambia_il_formato():
+    from legal_ocr.tratti import tratti_del_testo
+
+    parole = [_p("Il", 1), _p("Tribunale", 2), _p("rigetta", 3, grassetto=True, sottolineato=True), _p("la", 4), _p("domanda", 5, colore="#0000ff")]
+    tratti = tratti_del_testo("Il Tribunale rigetta la domanda", parole)
+    assert "".join(tratto["testo"] for tratto in tratti) == "Il Tribunale rigetta la domanda"
+    assert [(tratto["testo"], tratto["grassetto"], tratto["sottolineato"], tratto["colore"]) for tratto in tratti] == [
+        ("Il Tribunale ", False, False, ""),
+        ("rigetta", True, True, ""),
+        # lo spazio dopo una parola sottolineata non e' sottolineato
+        (" la ", False, False, ""),
+        ("domanda", False, False, "#0000ff"),
+    ]
+
+
+def test_un_formato_uniforme_non_fa_tratti():
+    """Basta il formato del blocco: il documento non si riempie di etichette inutili."""
+    from legal_ocr.tratti import tratti_del_testo
+
+    assert tratti_del_testo("tutto uguale qui", [_p("tutto", 1), _p("uguale", 2), _p("qui", 3)]) == []
+    assert tratti_del_testo("", [_p("x", 1)]) == [] and tratti_del_testo("x", []) == []
+
+
+def test_i_tratti_seguono_le_parole_anche_dopo_una_correzione_forense():
+    """«art . 183» diventato «art. 183»: le parole si riabbinano per contenuto."""
+    from legal_ocr.tratti import tratti_del_testo
+
+    parole = [_p("art", 1), _p(".", 2), _p("183", 3, corsivo=True), _p("c.p.c.", 4, corsivo=True), _p("rigetta", 5, grassetto=True)]
+    tratti = tratti_del_testo("art. 183 c.p.c. rigetta", parole)
+    assert [(tratto["testo"], tratto["corsivo"], tratto["grassetto"]) for tratto in tratti] == [
+        ("art. ", False, False),
+        ("183 c.p.c.", True, False),
+        (" ", False, False),
+        ("rigetta", False, True),
+    ]
+
+
+def test_le_tabelle_non_hanno_tratti():
+    from legal_ocr.tratti import con_tratti
+
+    blocchi = [{"tipo": "tabella", "riquadro": [0, 0, 100, 100], "righe": [["a"]]}]
+    assert "tratti" not in con_tratti(blocchi, [_p("a", 1, grassetto=True, left=10, top=10, width=5, height=5)])[0]

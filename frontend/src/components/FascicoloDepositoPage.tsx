@@ -737,6 +737,10 @@ function savedDepositDocumentRole(value: string | undefined, fallback: DepositDo
     : fallback
 }
 
+function sortDepositWorkflowDocumentsById<T extends { id: string }>(documents: T[]): T[] {
+  return [...documents].sort((left, right) => left.id.localeCompare(right.id))
+}
+
 type DepositSpecificData = Record<string, unknown>
 
 const UNEP_NOTIFICATION_OPTIONS: FascicoloDepositInputOption[] = [
@@ -2475,7 +2479,7 @@ function DepositPreparePage({ id }:{id:string}) {
   }, [data.depositPreparation.updatedAt, data.depositPreparation.workflowFingerprint])
   const depositProofInputSignature = JSON.stringify({
     type: selectedDepositTypeKey,
-    documents: packageDocuments.map((doc) => ({
+    documents: sortDepositWorkflowDocumentsById(packageDocuments.map((doc) => ({
       id: doc.id,
       role: effectiveDepositClassificationById[doc.id]?.role || '',
       studioDocumentType: studioDocumentTypeForDocument(
@@ -2484,13 +2488,13 @@ function DepositPreparePage({ id }:{id:string}) {
       ),
       signature: Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature),
       additionalSignature: additionalSignatureIds.includes(doc.id),
-    })),
+    }))),
     data: depositSpecificData,
     pecBody: pecBodyDraft,
   })
   const persistedDepositProofInputSignature = JSON.stringify({
     type: data.depositPreparation.typeKey,
-    documents: data.depositPreparation.documents
+    documents: sortDepositWorkflowDocumentsById(data.depositPreparation.documents
       .filter((row) => row.selected && row.role !== 'fuori_busta')
       .map((row) => ({
         id: row.documentId,
@@ -2498,7 +2502,7 @@ function DepositPreparePage({ id }:{id:string}) {
         studioDocumentType: row.studioDocumentType,
         signature: row.requiresSignature,
         additionalSignature: row.additionalSignature,
-      })),
+      }))),
     data: data.depositPreparation.datiattoExtra,
     pecBody: data.depositPreparation.pecBody,
   })

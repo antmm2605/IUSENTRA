@@ -1052,6 +1052,24 @@ def test_ui_deposito_distingue_documenti_allegati_e_indice_generato():
     assert "firma CAdES parallela" in source
 
 
+def test_ui_deposito_ripristina_gli_esiti_indipendentemente_dall_ordine_documenti():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(
+        encoding="utf-8"
+    )
+
+    helper = source[
+        source.index("function sortDepositWorkflowDocumentsById"):
+        source.index("type DepositSpecificData")
+    ]
+    workflow_match = source[
+        source.index("const depositProofInputSignature"):
+        source.index("const persistedDepositWorkflowMatches")
+    ]
+
+    assert "return [...documents].sort((left, right) => left.id.localeCompare(right.id))" in helper
+    assert workflow_match.count("sortDepositWorkflowDocumentsById(") == 2
+
+
 def test_ui_deposito_sceglie_il_ruolo_prima_del_tipo_e_aggiorna_la_firma_registrata():
     source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(
         encoding="utf-8"

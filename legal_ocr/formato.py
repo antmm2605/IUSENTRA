@@ -23,7 +23,10 @@ Il formato qui non viene indovinato: si misura su quello che la pagina mostra.
 
 Quando il documento porta gia' il proprio formato — un PDF nativo dichiara
 carattere, corpo e stile di ogni parola — quei valori prevalgono sulla misura:
-il dato dichiarato e' sempre migliore di quello stimato.
+il dato dichiarato e' sempre migliore di quello stimato. Solo da li' arrivano
+anche il **carattere** e il **corpo in punti**: da una scansione non si leggono
+con sicurezza, e un Garamond 13 inventato in un atto e' peggio del carattere
+del documento.
 """
 
 from __future__ import annotations
@@ -96,6 +99,12 @@ class Formato:
     #: Colore del testo, `#rrggbb`. Vuoto quando non e' un colore: il nero di
     #: un atto non si dichiara, si lascia al documento.
     colore: str = ""
+    #: Carattere, gia' ricondotto a una famiglia che l'editor offre. Vuoto
+    #: quando il documento non lo dichiara: si usa quello del documento.
+    famiglia: str = ""
+    #: Corpo in punti tipografici, come lo dichiara il documento. Zero quando
+    #: non e' dichiarato.
+    corpo: float = 0.0
 
     def come_dizionario(self) -> dict[str, Any]:
         return {
@@ -105,6 +114,8 @@ class Formato:
             "allineamento": self.allineamento,
             "scala": round(float(self.scala), 3),
             "colore": self.colore or "",
+            "famiglia": self.famiglia or "",
+            "corpo": float(self.corpo or 0.0),
         }
 
 
@@ -284,6 +295,29 @@ def _colore(parole: Sequence[dict[str, Any]]) -> str:
     return max(conteggio, key=lambda chiave: conteggio[chiave])
 
 
+def _famiglia(parole: Sequence[dict[str, Any]]) -> str:
+    """Il carattere del blocco: quello della maggioranza delle parole.
+
+    Come per il colore, una sigla in Arial dentro un capoverso in Times non
+    cambia il carattere del capoverso.
+    """
+    dichiarate = [str(parola.get("famiglia") or "") for parola in parole]
+    presenti = [famiglia for famiglia in dichiarate if famiglia]
+    if not presenti or len(presenti) * 2 < len(dichiarate):
+        return ""
+    conteggio: dict[str, int] = {}
+    for famiglia in presenti:
+        conteggio[famiglia] = conteggio.get(famiglia, 0) + 1
+    return max(conteggio, key=lambda chiave: conteggio[chiave])
+
+
+def _corpo(corpi: Sequence[float]) -> float:
+    """Il corpo del blocco in punti, al mezzo punto come lo scrive Word."""
+    if not corpi:
+        return 0.0
+    return round(statistics.median(corpi) * 2) / 2
+
+
 def formato_blocco(blocco: Blocco, parole: Sequence[dict[str, Any]], misure: Misure) -> Formato:
     """Formato di un blocco, misurato sulle sue parole."""
     proprie = _parole_del_blocco(blocco, parole)
@@ -310,6 +344,8 @@ def formato_blocco(blocco: Blocco, parole: Sequence[dict[str, Any]], misure: Mis
         allineamento=_allineamento(proprie, misure),
         scala=scala,
         colore=_colore(proprie),
+        famiglia=_famiglia(proprie),
+        corpo=_corpo(corpi),
     )
 
 

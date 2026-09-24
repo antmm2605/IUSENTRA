@@ -104,12 +104,15 @@ function inlineHtml(text: string, formato: OcrFormat): string {
 }
 
 /**
- * Lo stile del capoverso: allineamento e colore.
+ * Lo stile del capoverso: allineamento, colore, carattere e corpo.
  *
- * Il colore c'è solo quando è un colore davvero — l'azzurro di una carta
- * intestata, il rosso di un richiamo. Il nero del testo non si dichiara: si
- * lascia al documento, altrimenti ogni capoverso si porta dietro un
+ * Si dichiara solo quello che il documento aveva di suo. Il colore c'è quando
+ * è un colore davvero — l'azzurro di una carta intestata, il rosso di un
+ * richiamo — e il nero non si scrive: ogni capoverso si porterebbe dietro un
  * «color:#000000» che non aggiunge niente e che poi qualcuno deve togliere.
+ * Carattere e corpo arrivano solo quando il documento li dichiara (il testo
+ * vero di un PDF): da una scansione non si leggono, e restano quelli del
+ * documento in cui il testo viene inserito.
  */
 function stileDelParagrafo(formato: OcrFormat): string {
   const pezzi: string[] = []
@@ -117,5 +120,7 @@ function stileDelParagrafo(formato: OcrFormat): string {
   else if (formato.allineamento === 'destra') pezzi.push('text-align:right')
   else if (formato.allineamento === 'giustificato') pezzi.push('text-align:justify')
   if (formato.colore) pezzi.push(`color:${formato.colore}`)
+  if (formato.famiglia) pezzi.push(`font-family:'${formato.famiglia}'`)
+  if (formato.corpo) pezzi.push(`font-size:${formato.corpo}pt`)
   return pezzi.length ? ` style="${pezzi.join(';')}"` : ''
 }

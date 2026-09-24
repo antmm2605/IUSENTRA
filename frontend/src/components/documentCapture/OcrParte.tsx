@@ -26,6 +26,10 @@ function stileDelBlocco(block: OcrBlock) {
   const stile: Record<string, string> = { '--iu-ocr-scala': String(block.format.scala || 1) }
   // il nero non si dichiara: senza colore il testo prende quello del foglio
   if (block.format.colore) stile.color = block.format.colore
+  // carattere e corpo solo se il documento li dichiara: si vede come sarà
+  if (block.format.famiglia) stile.fontFamily = `'${block.format.famiglia}', serif`
+  // il corpo passa da una variabile: la dimensione la scrive il campo, non la parte
+  if (block.format.corpo) stile['--iu-ocr-corpo'] = `${block.format.corpo}pt`
   return stile as CSSProperties
 }
 
@@ -88,6 +92,7 @@ export function ParteDelFoglio({ block, disabled, scelto, onText, onCell, onSele
         CLASSI_ALLINEAMENTO[block.format.allineamento],
         block.format.grassetto ? 'is-grassetto' : '',
         block.format.corsivo ? 'is-corsivo' : '',
+        block.format.corpo ? 'has-corpo' : '',
         incerto ? 'is-incerto' : '',
         scelto ? 'is-scelto' : '',
       ].filter(Boolean).join(' ')}

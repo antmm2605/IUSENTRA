@@ -192,7 +192,7 @@ def test_ogni_blocco_dichiara_sempre_il_proprio_formato():
     )
     for blocco in _blocchi(parole):
         formato = blocco["formato"]
-        assert set(formato) == {"livello", "grassetto", "corsivo", "allineamento", "scala", "colore"}
+        assert set(formato) == {"livello", "grassetto", "corsivo", "allineamento", "scala", "colore", "famiglia", "corpo"}
         assert formato["allineamento"] in {ALLINEAMENTO_SINISTRA, ALLINEAMENTO_CENTRO, ALLINEAMENTO_DESTRA}
         # il colore c'e' sempre come chiave, ed e' vuoto quando e' il nero del
         # documento: e' la differenza fra «non dichiarato» e «nero dichiarato»
@@ -295,3 +295,41 @@ def test_il_colore_si_misura_sull_inchiostro_non_sulla_carta():
     parole_nere = [{"left": 10, "top": 5, "width": 40, "height": 10}]
     colori_parole(nera, parole_nere)
     assert "colore" not in parole_nere[0]
+
+
+def test_carattere_e_corpo_arrivano_solo_se_il_documento_li_dichiara():
+    """Da una scansione il carattere non si legge: un Garamond inventato e' peggio di niente."""
+    stimate = _pagina(_riga(CORPO, 100, 100, riga=1, blocco=1), _riga(CORPO, 100, 140, riga=2, blocco=1))
+    formato = _blocchi(stimate)[0]["formato"]
+    assert formato["famiglia"] == "" and formato["corpo"] == 0.0
+
+    dichiarate = _pagina(
+        _riga(CORPO, 100, 100, riga=1, blocco=1, corpo=12.0, famiglia="Book Antiqua"),
+        _riga(CORPO, 100, 140, riga=2, blocco=1, corpo=12.0, famiglia="Book Antiqua"),
+    )
+    formato = _blocchi(dichiarate)[0]["formato"]
+    assert formato["famiglia"] == "Book Antiqua" and formato["corpo"] == 12.0
+
+
+def test_il_carattere_del_blocco_e_quello_della_maggioranza_e_il_corpo_va_al_mezzo_punto():
+    """Una sigla in Arial dentro un capoverso in Times non cambia il capoverso."""
+    from legal_ocr.formato import _corpo, _famiglia
+
+    times = [{"famiglia": "Times New Roman"} for _ in range(6)]
+    assert _famiglia([*times, {"famiglia": "Arial"}]) == "Times New Roman"
+    assert _famiglia([{"famiglia": ""}, {"famiglia": ""}, {"famiglia": "Arial"}]) == ""
+    # Word scrive i corpi al mezzo punto: 11,96 dichiarato e' un 12
+    assert _corpo([11.96, 12.02, 11.98]) == 12.0
+    assert _corpo([10.4]) == 10.5
+    assert _corpo([]) == 0.0
+
+
+def test_il_nome_del_font_nel_pdf_diventa_una_famiglia_dell_editor():
+    """Stessa corrispondenza dell'importazione fedele: stesso PDF, stesso carattere."""
+    from web.services.document_ocr_documento import _famiglia_span
+
+    assert _famiglia_span({"font": "ABCDEF+TimesNewRomanPS-BoldMT"}) == "Times New Roman"
+    assert _famiglia_span({"font": "BookAntiqua,Bold"}) == "Book Antiqua"
+    assert _famiglia_span({"font": ""}) == ""
+    assert _famiglia_span({}) == ""
+

@@ -636,6 +636,24 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
 
 # ─────────────────────────────────────────────── HTML → .docx
 
+#: Famiglie generiche del foglio di stile: non sono caratteri, Word non le conosce.
+_FAMIGLIE_GENERICHE = {"serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui"}
+#: Alias con cui l'importazione fedele chiama i caratteri incorporati nel PDF.
+_RE_ALIAS_INCORPORATO = re.compile(r"^iu-[0-9a-f]+$", re.I)
+
+
+def _famiglie_del_catalogo() -> frozenset[str]:
+    try:
+        from pct.catalogo_caratteri import ETICHETTE_CARATTERI
+    except Exception:  # pragma: no cover - il catalogo non ha dipendenze
+        return frozenset({"Times New Roman", "Arial", "Courier New"})
+    return frozenset(ETICHETTE_CARATTERI)
+
+
+#: I caratteri dell'editor: se la pila ne nomina uno, e' quello da dare a Word.
+_FAMIGLIE_WORD = _famiglie_del_catalogo()
+
+
 def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None) -> bytes:
     """
     Converte HTML in formato .docx tramite python-docx.
@@ -730,8 +748,54 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             paragraph.alignment = ALLINEAMENTI[allineamento]
 
     def _colore(el):
-        m = re.search(r"color:\s*#([0-9a-fA-F]{6})", el.get("style") or "")
+        # «background-color» e «border-color» non sono il colore del testo.
+        m = re.search(r"(?<![-\w])color:\s*#([0-9a-fA-F]{6})", el.get("style") or "")
         return m.group(1) if m else ""
+
+    def _carattere(el) -> str:
+        """Il carattere che il documento chiede, preso dalla pila dello stile.
+
+        Nella pila ci sono anche cose che Word non conosce: l'alias di un
+        carattere incorporato («iu-3fa2…»), il nome PostScript dell'originale,
+        il ripiego generico. Si preferisce una famiglia del catalogo
+        dell'editor, che Word ha di sicuro; altrimenti la prima famiglia vera.
+        """
+        m = re.search(r"(?<![-\w])font-family:\s*([^;]+)", el.get("style") or "", re.I)
+        if not m:
+            return ""
+        nomi = [voce.strip().strip("'\"").strip() for voce in m.group(1).split(",")]
+        nomi = [
+            nome for nome in nomi
+            if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 \-]{0,59}", nome)
+            and nome.lower() not in _FAMIGLIE_GENERICHE
+            and not _RE_ALIAS_INCORPORATO.match(nome)
+        ]
+        for nome in nomi:
+            if nome in _FAMIGLIE_WORD:
+                return nome
+        return nomi[0] if nomi else ""
+
+    def _corpo(el) -> float:
+        m = re.search(r"(?<![-\w])font-size:\s*(\d+(?:\.\d+)?)\s*(pt|px)\b", el.get("style") or "", re.I)
+        if not m:
+            return 0.0
+        valore = float(m.group(1)) * (0.75 if m.group(2).lower() == "px" else 1.0)
+        # al mezzo punto, come lo scrive Word
+        return round(valore * 2) / 2 if 4.0 <= valore <= 96.0 else 0.0
+
+    def _stato_dello_stile(stato: dict, el) -> dict:
+        """Colore, carattere e corpo dichiarati dall'elemento, sopra quelli ereditati."""
+        nuovo_stato = dict(stato)
+        colore = _colore(el)
+        if colore:
+            nuovo_stato["color"] = colore
+        carattere = _carattere(el)
+        if carattere:
+            nuovo_stato["font"] = carattere
+        corpo = _corpo(el)
+        if corpo:
+            nuovo_stato["size"] = corpo
+        return nuovo_stato
 
     def _stato_figlio(stato: dict, el) -> dict:
         tag = _nome(el)
@@ -742,10 +806,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             nuovo_stato["italic"] = True
         elif tag == "u":
             nuovo_stato["underline"] = True
-        colore = _colore(el)
-        if colore:
-            nuovo_stato["color"] = colore
-        return nuovo_stato
+        return _stato_dello_stile(nuovo_stato, el)
 
     def _scrivi(paragraph, testo: str, stato: dict) -> None:
         if not testo:
@@ -758,6 +819,10 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         if colore:
             valore = int(colore, 16)
             run.font.color.rgb = RGBColor((valore >> 16) & 0xFF, (valore >> 8) & 0xFF, valore & 0xFF)
+        if stato.get("font"):
+            run.font.name = stato["font"]
+        if stato.get("size"):
+            run.font.size = Pt(stato["size"])
 
     def _add_runs(paragraph, el, stato: dict | None = None) -> None:
         """Testo dell'elemento nel paragrafo, conservando la formattazione annidata.
@@ -867,7 +932,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             except KeyError:
                 paragraph = doc.add_paragraph()
             _allinea(paragraph, el)
-            _add_runs(paragraph, el)
+            _add_runs(paragraph, el, _stato_dello_stile({}, el))
             return
         if tag in ("ul", "ol"):
             _voci_elenco(el, tag == "ol")
@@ -904,7 +969,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
                 return
         paragraph = doc.add_paragraph()
         _allinea(paragraph, el)
-        _add_runs(paragraph, el)
+        _add_runs(paragraph, el, _stato_dello_stile({}, el))
 
     for child in (body if body is not None else []):
         _process_node(child)
@@ -1363,6 +1428,29 @@ def html_to_pdf(
         # l'ultima riga del capoverso era piena da bordo a bordo
         if re.search(r"text-align-last\s*:\s*justify", dichiarato):
             cambi["justifyLastLine"] = 1
+
+        # Il colore del capoverso: una carta intestata azzurra, un richiamo in
+        # rosso, l'indirizzo PEC in blu. «background-color» non e' il testo.
+        trovato = re.search(r"(?<![-\w])color\s*:\s*#([0-9a-fA-F]{6})", dichiarato)
+        if trovato:
+            cambi["textColor"] = colors.HexColor(f"#{trovato.group(1)}")
+
+        # Il carattere del capoverso, quando il documento non ne ha uno per
+        # pagina: e' il testo riconosciuto, dove ogni capoverso porta il suo.
+        # Nell'importazione fedele il carattere lo decidono la pagina e i
+        # tratti, e li' non si tocca: si misurerebbe di nuovo una cosa esatta.
+        if not misure_documento:
+            trovato = re.search(r"(?<![-\w])font-family\s*:\s*([^;]+)", dichiarato)
+            propri = None
+            if trovato:
+                try:
+                    from pct.caratteri_reali import tagli_per
+                    propri = tagli_per(trovato.group(1))
+                except Exception:
+                    propri = None
+            if propri:
+                taglio = "bold" if "bold" in str(partenza.fontName).lower() else "normal"
+                cambi["fontName"] = propri.get(taglio) or propri["normal"]
 
         corpo = _misura("font-size")
         if corpo and 4 <= corpo <= 40:

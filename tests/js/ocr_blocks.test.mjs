@@ -62,3 +62,18 @@ test('la correzione continua aggiorna davvero testo e formato finale', () => {
     '<p><strong>Titolo corretto</strong></p><p style="text-align:justify"><strong>Primo testo corretto.</strong></p><table border="1" cellspacing="0" cellpadding="4"><thead><tr><th>Voce</th><th>Importo</th></tr></thead><tbody><tr><td>Spese</td><td>500</td></tr></tbody></table><p>Secondo testo corretto.</p>',
   )
 })
+
+test('carattere e corpo dichiarati arrivano nel documento, quelli non validi no', () => {
+  const formato = { livello: 0, grassetto: false, corsivo: false, allineamento: 'centro', scala: 1, colore: '#1f57a4', famiglia: 'Book Antiqua', corpo: 11.96 }
+  const blocks = parseBlocks([
+    blocco('paragrafo', 'Tribunale di Bari', { formato }),
+    blocco('paragrafo', 'Senza formato dichiarato'),
+    blocco('paragrafo', 'Nome sporco', { formato: { ...formato, colore: '', allineamento: 'sinistra', famiglia: "x';background:url(y)", corpo: 400 } }),
+  ], 1)
+  assert.equal(
+    blocksToHtml(blocks),
+    '<p style="text-align:center;color:#1f57a4;font-family:\'Book Antiqua\';font-size:12pt">Tribunale di Bari</p>'
+      + '<p>Senza formato dichiarato</p>'
+      + '<p>Nome sporco</p>',
+  )
+})

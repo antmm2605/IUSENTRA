@@ -19,6 +19,10 @@ export type OcrFormat = {
   scala: number
   /** Colore del testo, `#rrggbb`. Vuoto quando è il nero del documento. */
   colore: string
+  /** Carattere, già una famiglia dell'editor. Vuoto: quello del documento. */
+  famiglia: string
+  /** Corpo in punti come lo dichiara il documento. Zero: quello del documento. */
+  corpo: number
 }
 
 /** Il segno che apre una voce di elenco, come lo ha letto il server. */
@@ -55,6 +59,8 @@ export const FORMATO_PREDEFINITO: OcrFormat = {
   allineamento: 'sinistra',
   scala: 1,
   colore: '',
+  famiglia: '',
+  corpo: 0,
 }
 
 const ALLINEAMENTI: OcrAlignment[] = ['sinistra', 'centro', 'destra', 'giustificato']
@@ -78,6 +84,8 @@ function parseFormat(value: unknown): OcrFormat {
     allineamento: ALLINEAMENTI.includes(allineamento) ? allineamento : 'sinistra',
     scala: Number(voce.scala ?? 1) || 1,
     colore: coloreValido(voce.colore),
+    famiglia: famigliaValida(voce.famiglia),
+    corpo: corpoValido(voce.corpo),
   }
 }
 
@@ -85,6 +93,18 @@ function parseFormat(value: unknown): OcrFormat {
 function coloreValido(value: unknown): string {
   const testo = String(value ?? '').trim().toLowerCase()
   return /^#[0-9a-f]{6}$/.test(testo) ? testo : ''
+}
+
+/** Un nome di carattere e basta: finisce in uno stile, non deve poterne uscire. */
+export function famigliaValida(value: unknown): string {
+  const testo = String(value ?? '').trim()
+  return /^[A-Za-z0-9][A-Za-z0-9 -]{0,59}$/.test(testo) ? testo : ''
+}
+
+/** Il corpo in punti, al mezzo punto, dentro quello che un atto usa davvero. */
+export function corpoValido(value: unknown): number {
+  const numero = Math.round(Number(value) * 2) / 2
+  return Number.isFinite(numero) && numero >= 4 && numero <= 96 ? numero : 0
 }
 
 function parseBox(value: unknown): [number, number, number, number] | null {

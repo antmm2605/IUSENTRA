@@ -58,3 +58,44 @@ def test_gli_elenchi_con_tipo_e_partenza_arrivano_in_word_con_il_loro_segno():
 def test_il_pdf_del_testo_corretto_ha_il_nome_di_lavoro():
     dati, nome = pdf_da_testo("<p>Testo corretto</p>", "verbale udienza.jpg")
     assert dati.startswith(b"%PDF-") and nome == "verbale udienza - testo riconosciuto.pdf"
+
+
+def test_colore_carattere_e_corpo_del_capoverso_arrivano_in_word():
+    """Il capoverso porta il proprio formato ai suoi run: prima Word lo perdeva."""
+    html = html_consentito(
+        '<h2 style="text-align:center;color:#1f57a4;font-family:\'Book Antiqua\';font-size:16pt">Tribunale di Bari</h2>'
+        '<p style="text-align:justify;font-family:\'Times New Roman\';font-size:12pt">Il ricorrente <strong>Tizio</strong> espone</p>'
+    )
+    paragrafi = Document(io.BytesIO(html_to_docx(html, "prova", None))).paragraphs
+    titolo = paragrafi[0].runs[0]
+    assert titolo.font.name == "Book Antiqua" and titolo.font.size.pt == 16.0
+    assert str(titolo.font.color.rgb) == "1F57A4"
+    # anche il neretto dentro il capoverso resta nel carattere del capoverso
+    assert [(run.font.name, run.font.size.pt) for run in paragrafi[1].runs] == [("Times New Roman", 12.0)] * 3
+
+
+def test_della_pila_dell_importazione_fedele_word_riceve_la_famiglia_del_catalogo():
+    """L'alias incorporato e il nome PostScript Word non li conosce; lo sfondo non e' il testo."""
+    html = '<p style="font-family:\'iu-3fa2b1\', \'TimesNewRomanPS\', \'Times New Roman\', serif;font-size:16px;background-color:#ff0000">x</p>'
+    run = Document(io.BytesIO(html_to_docx(html, "prova", None))).paragraphs[0].runs[0]
+    assert run.font.name == "Times New Roman" and run.font.size.pt == 12.0
+    assert run.font.color.type is None
+
+
+def test_il_colore_del_capoverso_arriva_nel_pdf():
+    import fitz  # type: ignore
+
+    dati, _ = pdf_da_testo('<p style="color:#0000ff">pec@avvocati.it</p>', "verbale.jpg")
+    documento = fitz.open(stream=dati, filetype="pdf")
+    try:
+        colori = {
+            span["color"]
+            for blocco in documento[0].get_text("dict")["blocks"]
+            for riga in blocco.get("lines", [])
+            for span in riga["spans"]
+            if "pec" in span["text"]
+        }
+    finally:
+        documento.close()
+    assert colori == {0x0000FF}
+

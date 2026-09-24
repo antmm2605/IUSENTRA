@@ -30,6 +30,7 @@ import base64
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -204,6 +205,31 @@ def _colore_span(span: dict[str, Any]) -> str:
     return _colore_leggibile((valore >> 16) & 0xFF, (valore >> 8) & 0xFF, valore & 0xFF)
 
 
+def _famiglia_span(span: dict[str, Any]) -> str:
+    """Il carattere dello span, ricondotto a una famiglia che l'editor offre.
+
+    La corrispondenza e' quella dell'importazione fedele: lo stesso PDF deve
+    dare lo stesso carattere che lo si apra nell'editor o che lo si passi dal
+    riconoscimento. «ABCDEF+TimesNewRomanPS-BoldMT» diventa «Times New Roman».
+    """
+    return _famiglia_del_font(str(span.get("font") or "").strip())
+
+
+@lru_cache(maxsize=256)
+def _famiglia_del_font(nome: str) -> str:
+    # Una pagina ha centinaia di span e quasi sempre tre o quattro caratteri.
+    if not nome:
+        return ""
+    try:
+        from pct.documento_fedele.taratura import famiglia_editor
+    except Exception:  # pragma: no cover - solo se l'importazione fedele manca
+        return ""
+    try:
+        return famiglia_editor(nome)[0]
+    except Exception:
+        return ""
+
+
 def _parole_dello_span(
     span: dict[str, Any], scala: float, blocco: int, riga: int, indice: int
 ) -> list[dict[str, Any]]:
@@ -225,6 +251,7 @@ def _parole_dello_span(
     grassetto, corsivo = _stile_span(span)
     corpo = float(span.get("size") or 0.0)
     colore = _colore_span(span)
+    famiglia = _famiglia_span(span)
 
     parole: list[dict[str, Any]] = []
     posizione = 0
@@ -250,6 +277,7 @@ def _parole_dello_span(
                     "grassetto": grassetto,
                     "corsivo": corsivo,
                     "colore": colore,
+                    "famiglia": famiglia,
                 }
             )
         posizione += len(pezzo) + 1

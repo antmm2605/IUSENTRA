@@ -115,6 +115,8 @@
 .iu-ocr-foglio__parte--h2 .iu-ocr-foglio__testo { font-size: calc(17px * var(--iu-ocr-scala)); font-weight: 850; }
 .iu-ocr-foglio__parte--h3 .iu-ocr-foglio__testo { font-size: calc(15px * var(--iu-ocr-scala)); font-weight: 800; }
 .iu-ocr-foglio__parte--h4 .iu-ocr-foglio__testo { font-size: calc(14px * var(--iu-ocr-scala)); font-weight: 780; letter-spacing: .02em; }
+/* Il corpo dichiarato dal documento vince sulla scala stimata, anche nei titoli. */
+.iu-ocr-foglio__parte.has-corpo .iu-ocr-foglio__testo { font-size: var(--iu-ocr-corpo); }
 .iu-ocr-foglio__parte--numero_pagina .iu-ocr-foglio__testo { color: var(--iu-slate-500, #64748b); font-size: 12px; }
 .iu-ocr-al--sinistra .iu-ocr-foglio__testo { text-align: left; }
 .iu-ocr-al--centro .iu-ocr-foglio__testo { text-align: center; }
@@ -161,3 +163,4 @@
 .iu-ocr-barra .iu-btn[aria-pressed="true"] { border-color: var(--iu-primary, #2563eb); color: var(--iu-primary, #2563eb); }
 .iu-ocr-barra__colore input { width: 30px; height: 30px; padding: 2px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; background: var(--iu-surface, #ffffff); cursor: pointer; }
 .iu-ocr-barra__colore input:disabled { cursor: not-allowed; opacity: .55; }
+.iu-ocr-barra__carattere select { max-width: 172px; }

@@ -247,6 +247,17 @@ def test_il_formato_della_pagina_arriva_fino_alla_revisione(niente_ocr):
     assert firma["allineamento"] == "destra"
 
 
+def test_carattere_e_corpo_del_pdf_arrivano_fino_alla_revisione(niente_ocr):
+    """Il testo vero di un PDF dichiara carattere e corpo: non si perdono per strada."""
+    blocchi = riconoscimento.riconosci_pagina(_pdf_formattato(), "atto.pdf", 1).blocks
+    per_testo = {str(blocco.get("testo") or ""): blocco["formato"] for blocco in blocchi}
+    intestazione = next(formato for testo, formato in per_testo.items() if "TRIBUNALE" in testo)
+    corpo = next(formato for testo, formato in per_testo.items() if "sottoscritto" in testo)
+    # «hebo» e' Helvetica-Bold: nell'editor e' Arial, come nell'importazione fedele
+    assert intestazione["famiglia"] == "Arial" and intestazione["corpo"] == 17.0
+    assert corpo["famiglia"] == "Arial" and corpo["corpo"] == 11.0
+
+
 def test_il_testo_si_ricompone_nell_ordine_in_cui_si_legge(niente_ocr):
     """Regressione: le righe in corpo grande venivano lette prima di quelle sopra."""
     paragrafi = riconoscimento.riconosci_pagina(_pdf_formattato(), "atto.pdf", 1).paragraphs
@@ -378,6 +389,35 @@ def test_solo_il_marcatore_di_interruzione_pagina_sopravvive():
     )
     assert 'class="iu-ted-page-break"' in pulito and 'data-iu-page-break="true"' in pulito
     assert "decorazione" not in pulito
+
+
+def test_il_formato_del_documento_passa_una_dichiarazione_alla_volta():
+    """Centrato *e* colorato: prima non combaciava con niente e perdeva anche il centrato."""
+    pulito = html_consentito(
+        '<p style="text-align:center;color:#1F57A4;font-family:\'Book Antiqua\', serif;font-size:13.5pt">Intestazione</p>'
+        '<h2 style="text-align:right">Titolo</h2>'
+    )
+    assert "<p style=\"text-align:center;color:#1f57a4;font-family:'Book Antiqua';font-size:13.5pt\">" in pulito
+    assert '<h2 style="text-align:right">' in pulito
+
+
+@pytest.mark.parametrize(
+    "stile",
+    [
+        "color:red",
+        "background:#ffffff",
+        "position:fixed",
+        "font-family:url(x)",
+        'font-family:"a" onmouseover="b"',
+        "font-size:200pt",
+        "font-size:12px",
+        "text-align:inherit",
+    ],
+)
+def test_quello_che_non_e_formato_del_documento_non_passa(stile):
+    from web.services.documento_testo_riconosciuto import stile_consentito
+
+    assert stile_consentito(stile) == ""
 
 
 def test_la_tabella_riconosciuta_resta_una_tabella():

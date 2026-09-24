@@ -40,6 +40,14 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
   { value: 'giustificato', label: 'Giustifica', Icona: AlignJustify },
 ]
 
+/**
+ * I caratteri che si offrono sempre: quelli dell'editor dei documenti, più
+ * quelli che il documento stesso usa. Un carattere letto dal PDF deve poter
+ * restare, anche se non è fra i soliti.
+ */
+const CARATTERI_COMUNI = ['Times New Roman', 'Arial', 'Calibri', 'Garamond', 'Georgia', 'Book Antiqua', 'Courier New']
+const CORPI = [8, 9, 10, 10.5, 11, 11.5, 12, 13, 14, 16, 18, 20, 24]
+
 const ETICHETTE_MARCATORE: Record<string, string> = {
   puntato: 'elenco puntato',
   numerato: 'elenco numerato',
@@ -78,6 +86,8 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
   }
 
   const formato = corrente && corrente.kind !== 'tabella' ? corrente.format : null
+  const famiglie = Array.from(new Set([...blocks.map((block) => block.format.famiglia).filter(Boolean), ...CARATTERI_COMUNI]))
+  const corpi = formato?.corpo && !CORPI.includes(formato.corpo) ? [...CORPI, formato.corpo].sort((a, b) => a - b) : CORPI
   return (
     <div className="iu-ocr-review">
       <p className="iu-acq-hint">
@@ -94,6 +104,28 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { livello: Number(event.target.value) }))}
           >
             {LIVELLI.map((voce) => <option key={voce.value} value={voce.value}>{voce.label}</option>)}
+          </select>
+        </label>
+        <label className="iu-ocr-barra__carattere">
+          <span className="iu-sr-only">Carattere</span>
+          <select
+            value={formato?.famiglia || ''}
+            disabled={disabled || !formato}
+            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { famiglia: event.target.value }))}
+          >
+            <option value="">Carattere del documento</option>
+            {famiglie.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
+          </select>
+        </label>
+        <label className="iu-ocr-barra__corpo">
+          <span className="iu-sr-only">Dimensione del testo</span>
+          <select
+            value={formato?.corpo || 0}
+            disabled={disabled || !formato}
+            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { corpo: Number(event.target.value) }))}
+          >
+            <option value={0}>Corpo del documento</option>
+            {corpi.map((corpo) => <option key={corpo} value={corpo}>{`${String(corpo).replace('.', ',')} pt`}</option>)}
           </select>
         </label>
         <Button

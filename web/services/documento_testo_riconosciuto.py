@@ -13,7 +13,9 @@ Due scelte hanno ragioni precise:
 - **HTML consentito e nient'altro.** Il testo arriva dal browser dopo la
   revisione; prima di diventare un documento viene ridotto ai soli elementi che
   la revisione puo' produrre (capoversi, grassetto, elenchi, tabelle). Tutto il
-  resto — script, stili, collegamenti, immagini remote — viene scartato.
+  resto — script, collegamenti, immagini remote — viene scartato. Degli stili
+  passa solo il formato del documento — allineamento, colore, carattere, corpo —
+  ciascuno controllato valore per valore.
 
 Base normativa: la trascrizione non sostituisce ne' certifica l'originale. La
 copia per immagine resta il documento che fa fede (D.Lgs. 82/2005, art. 22) e il
@@ -57,11 +59,15 @@ TAG_VUOTI = {"br", "hr"}
 # l'elemento, altrimenti il codice di una pagina finirebbe nell'atto come testo.
 TAG_MUTI = {"script", "style", "head", "title"}
 # Attributi della sola tabella: servono a renderla leggibile nel documento.
-# Sui capoversi passa il solo allineamento, perche' e' formato del documento e
-# non decorazione: `pct/editor.html_to_docx` lo traduce nell'allineamento Word.
+# Su capoversi e titoli passa lo stile, ridotto al formato del documento:
+# `pct/editor.html_to_docx` lo traduce in allineamento e formato Word.
 ATTRIBUTI_CONSENTITI = {
     "table": {"border", "cellspacing", "cellpadding"},
     "p": {"style"},
+    "h1": {"style"},
+    "h2": {"style"},
+    "h3": {"style"},
+    "h4": {"style"},
     "hr": {"class", "data-iu-page-break"},
     # Tipo e numero di partenza dell'elenco: sono forma del documento
     # riconosciuto (a), b), c); I., II.; 3., 4.), non decorazione.
@@ -69,13 +75,47 @@ ATTRIBUTI_CONSENTITI = {
 }
 TIPI_ELENCO = {"1", "a", "A", "i", "I"}
 
-# Nessun altro stile passa: solo l'allineamento, e solo nei valori previsti.
-STILI_CONSENTITI = {
-    "text-align:center": "text-align:center",
-    "text-align:right": "text-align:right",
-    "text-align:justify": "text-align:justify",
-    "text-align:left": "text-align:left",
-}
+# Lo stile si legge dichiarazione per dichiarazione e passa solo il formato del
+# documento, nei valori che il documento sa rendere. Prima si confrontava lo
+# stile intero con quattro valori ammessi: un capoverso centrato *e* colorato
+# («text-align:center;color:#1f57a4») non combaciava con nessuno e perdeva
+# tutto, anche il centrato.
+ALLINEAMENTI_CONSENTITI = {"left", "right", "center", "justify"}
+_RE_COLORE = re.compile(r"^#[0-9a-f]{6}$")
+# Una famiglia sola, il nome e basta: niente url(), niente virgolette annidate.
+_RE_FAMIGLIA = re.compile(r"^['\"]?([A-Za-z0-9][A-Za-z0-9 \-]{0,59})['\"]?$")
+_RE_CORPO = re.compile(r"^(\d{1,2}(?:\.\d)?)pt$")
+CORPO_MINIMO = 4.0
+CORPO_MASSIMO = 96.0
+
+
+def _numero_pulito(valore: float) -> str:
+    return f"{valore:g}"
+
+
+def stile_consentito(stile: str) -> str:
+    """Le sole dichiarazioni di formato del documento, nei valori ammessi."""
+    tenute: dict[str, str] = {}
+    for dichiarazione in str(stile or "").split(";"):
+        if ":" not in dichiarazione:
+            continue
+        proprieta, valore = dichiarazione.split(":", 1)
+        proprieta = proprieta.strip().lower()
+        valore = valore.strip()
+        if proprieta == "text-align" and valore.lower() in ALLINEAMENTI_CONSENTITI:
+            tenute[proprieta] = valore.lower()
+        elif proprieta == "color" and _RE_COLORE.match(valore.lower()):
+            tenute[proprieta] = valore.lower()
+        elif proprieta == "font-family":
+            # Della pila si tiene la prima famiglia: e' quella che il documento vuole.
+            trovata = _RE_FAMIGLIA.match(valore.split(",")[0].strip())
+            if trovata:
+                tenute[proprieta] = f"'{trovata.group(1).strip()}'"
+        elif proprieta == "font-size":
+            trovato = _RE_CORPO.match(valore.replace(" ", "").lower())
+            if trovato and CORPO_MINIMO <= float(trovato.group(1)) <= CORPO_MASSIMO:
+                tenute[proprieta] = f"{_numero_pulito(float(trovato.group(1)))}pt"
+    return ";".join(f"{proprieta}:{valore}" for proprieta, valore in tenute.items())
 
 MAX_HTML_CARATTERI = 4_000_000
 
@@ -107,9 +147,9 @@ class _Ripulitore(HTMLParser):
             if nome == "data-iu-page-break" and str(valore).strip().lower() not in {"true", "1"}:
                 continue
             if nome == "style":
-                stile = STILI_CONSENTITI.get(str(valore).replace(" ", "").rstrip(";").lower())
+                stile = stile_consentito(str(valore))
                 if stile:
-                    pezzi.append(f' style="{stile}"')
+                    pezzi.append(f' style="{_attributo(stile)}"')
                 continue
             if nome == "type" and str(valore).strip() not in TIPI_ELENCO:
                 continue
@@ -232,4 +272,12 @@ def pdf_da_testo(html: str, nome: str) -> tuple[bytes, str]:
     return dati, nome_file_pdf(nome)
 
 
-__all__ = ["docx_da_testo", "html_consentito", "nome_file_documento", "nome_file_pdf", "pdf_da_testo", "titolo_documento"]
+__all__ = [
+    "docx_da_testo",
+    "html_consentito",
+    "nome_file_documento",
+    "nome_file_pdf",
+    "pdf_da_testo",
+    "stile_consentito",
+    "titolo_documento",
+]

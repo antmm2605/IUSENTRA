@@ -93,6 +93,9 @@ class Formato:
     corsivo: bool = False
     allineamento: str = ALLINEAMENTO_SINISTRA
     scala: float = 1.0
+    #: Colore del testo, `#rrggbb`. Vuoto quando non e' un colore: il nero di
+    #: un atto non si dichiara, si lascia al documento.
+    colore: str = ""
 
     def come_dizionario(self) -> dict[str, Any]:
         return {
@@ -101,6 +104,7 @@ class Formato:
             "corsivo": bool(self.corsivo),
             "allineamento": self.allineamento,
             "scala": round(float(self.scala), 3),
+            "colore": self.colore or "",
         }
 
 
@@ -243,6 +247,43 @@ def _allineamento(parole: Sequence[dict[str, Any]], misure: Misure) -> str:
     return max(ALLINEAMENTI[:3], key=lambda voce: (conteggio.get(voce, 0), voce == ALLINEAMENTO_SINISTRA))
 
 
+#: Quanto un colore deve staccarsi dal grigio per essere un colore. Sotto
+#: questa distanza fra la componente piu' alta e la piu' bassa siamo nel nero,
+#: nel grigio o in una sfumatura dell'inchiostro: dichiararla come colore
+#: vorrebbe dire scrivere «#1a1a1a» dove l'autore aveva scritto in nero.
+SATURAZIONE_MINIMA = 26
+
+#: Sopra questa luce non e' inchiostro, e' carta. Si guarda il canale piu'
+#: **basso**: il bianco ha tutti e tre i canali alti, mentre un blu pieno ha il
+#: rosso a zero. Guardando il canale piu' alto — come facevo — l'indirizzo PEC
+#: scritto in blu pieno finiva scartato insieme allo sfondo.
+LUMINOSITA_CARTA = 210
+
+
+def _colore_leggibile(rosso: int, verde: int, blu: int) -> str:
+    """Il colore in forma `#rrggbb`, ma solo se e' davvero un colore."""
+    alto, basso = max(rosso, verde, blu), min(rosso, verde, blu)
+    if alto - basso < SATURAZIONE_MINIMA or basso > LUMINOSITA_CARTA:
+        return ""
+    return f"#{rosso:02x}{verde:02x}{blu:02x}"
+
+
+def _colore(parole: Sequence[dict[str, Any]]) -> str:
+    """Il colore del blocco: quello che dichiara la maggioranza delle parole.
+
+    Basta una parola colorata in mezzo a venti nere per non fare un blocco
+    colorato — e una intestazione azzurra dichiara l'azzurro in tutte.
+    """
+    dichiarati = [str(parola.get("colore") or "") for parola in parole]
+    colorate = [colore for colore in dichiarati if colore]
+    if not colorate or len(colorate) * 2 < len(dichiarati):
+        return ""
+    conteggio: dict[str, int] = {}
+    for colore in colorate:
+        conteggio[colore] = conteggio.get(colore, 0) + 1
+    return max(conteggio, key=lambda chiave: conteggio[chiave])
+
+
 def formato_blocco(blocco: Blocco, parole: Sequence[dict[str, Any]], misure: Misure) -> Formato:
     """Formato di un blocco, misurato sulle sue parole."""
     proprie = _parole_del_blocco(blocco, parole)
@@ -268,6 +309,7 @@ def formato_blocco(blocco: Blocco, parole: Sequence[dict[str, Any]], misure: Mis
         corsivo=_corsivo(proprie),
         allineamento=_allineamento(proprie, misure),
         scala=scala,
+        colore=_colore(proprie),
     )
 
 
@@ -323,6 +365,52 @@ def densita_parole(immagine: Any, parole: Sequence[dict[str, Any]]) -> None:
             parola["densita"] = scuri / totale
 
 
+def colori_parole(immagine: Any, parole: Sequence[dict[str, Any]]) -> None:
+    """Misura il colore dell'inchiostro di ogni parola sull'immagine.
+
+    Una scansione non dichiara niente: il colore va guardato. Si prende la
+    media dei pixel scuri dentro il riquadro della parola — quelli chiari sono
+    la carta — e si dichiara solo se e' un colore vero: l'intestazione azzurra
+    di una carta intestata lo e', il nero del testo no.
+
+    Se l'immagine non e' leggibile la misura si salta, e il colore
+    semplicemente non viene dichiarato: meglio il nero del documento che un
+    colore inventato.
+    """
+    if immagine is None or not parole:
+        return
+    try:
+        colorata = immagine.convert("RGB")
+        larghezza, altezza = colorata.size
+        pixel = colorata.load()
+    except (AttributeError, OSError, ValueError):
+        return
+    for parola in parole:
+        sinistra = int(max(0, _numero(parola.get("left"))))
+        alto = int(max(0, _numero(parola.get("top"))))
+        destra = int(min(larghezza, sinistra + _numero(parola.get("width"))))
+        basso = int(min(altezza, alto + _numero(parola.get("height"))))
+        if destra <= sinistra or basso <= alto:
+            continue
+        somma = [0, 0, 0]
+        quanti = 0
+        passo = max(1, (destra - sinistra) // 40)
+        for x in range(sinistra, destra, passo):
+            for y in range(alto, basso, passo):
+                rosso, verde, blu = pixel[x, y][:3]
+                # solo l'inchiostro: la carta intorno falserebbe la media
+                if (rosso + verde + blu) / 3 > LUMINOSITA_CARTA:
+                    continue
+                somma[0] += rosso
+                somma[1] += verde
+                somma[2] += blu
+                quanti += 1
+        if quanti:
+            colore = _colore_leggibile(*(valore // quanti for valore in somma))
+            if colore:
+                parola["colore"] = colore
+
+
 __all__ = [
     "ALLINEAMENTI",
     "ALLINEAMENTO_CENTRO",
@@ -332,6 +420,7 @@ __all__ = [
     "Formato",
     "Misure",
     "blocchi_con_formato",
+    "colori_parole",
     "densita_parole",
     "formato_blocco",
     "misure_pagina",

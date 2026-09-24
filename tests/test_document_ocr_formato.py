@@ -192,8 +192,11 @@ def test_ogni_blocco_dichiara_sempre_il_proprio_formato():
     )
     for blocco in _blocchi(parole):
         formato = blocco["formato"]
-        assert set(formato) == {"livello", "grassetto", "corsivo", "allineamento", "scala"}
+        assert set(formato) == {"livello", "grassetto", "corsivo", "allineamento", "scala", "colore"}
         assert formato["allineamento"] in {ALLINEAMENTO_SINISTRA, ALLINEAMENTO_CENTRO, ALLINEAMENTO_DESTRA}
+        # il colore c'e' sempre come chiave, ed e' vuoto quando e' il nero del
+        # documento: e' la differenza fra «non dichiarato» e «nero dichiarato»
+        assert isinstance(formato["colore"], str)
 
 
 def test_le_righe_tornano_nell_ordine_in_cui_si_leggono():
@@ -216,7 +219,79 @@ def test_le_pagine_del_documento_restano_pagine_nel_testo_composto():
     """Il passaggio da una pagina all'altra e' impaginazione, non un capoverso."""
     from pathlib import Path
 
-    blocchi = (Path(__file__).resolve().parents[1] / "frontend/src/components/documentCapture/ocrBlocks.ts").read_text(encoding="utf-8")
+    blocchi = (Path(__file__).resolve().parents[1] / "frontend/src/components/documentCapture/ocrHtml.ts").read_text(encoding="utf-8")
     # Stesso marcatore dell'editor, riconosciuto dall'export PDF e dalla conversione Word.
     assert 'iu-ted-page-break' in blocchi and 'data-iu-page-break="true"' in blocchi
     assert "block.page !== paginaPrecedente" in blocchi
+
+
+def test_il_colore_si_dichiara_solo_quando_e_un_colore():
+    """Il nero di un atto non e' un colore: e' l'assenza di colore.
+
+    Dichiararlo vorrebbe dire scrivere «color:#000000» su ogni capoverso del
+    documento — non aggiunge niente e poi qualcuno deve toglierlo. Ma un blu
+    pieno lo e', ed e' proprio quello che la prima versione di questa regola
+    scartava: guardava il canale piu' alto invece del piu' basso, e un
+    indirizzo PEC in blu (rosso a zero, blu a 255) finiva buttato via insieme
+    allo sfondo della carta.
+    """
+    from legal_ocr.formato import _colore_leggibile
+
+    # colori veri, di quelli che si trovano davvero in un atto
+    assert _colore_leggibile(0, 0, 255) == "#0000ff"        # il collegamento PEC
+    assert _colore_leggibile(0x1f, 0x57, 0xa4) == "#1f57a4"  # la carta intestata
+    assert _colore_leggibile(0xcc, 0, 0) == "#cc0000"        # un richiamo in rosso
+
+    # non colori: il testo dell'atto e la carta sotto
+    assert _colore_leggibile(0, 0, 0) == ""
+    assert _colore_leggibile(20, 22, 21) == ""
+    assert _colore_leggibile(245, 246, 250) == ""
+
+
+def test_il_colore_del_blocco_e_quello_della_maggioranza():
+    """Una parola azzurra in mezzo a venti nere non fa un blocco azzurro."""
+    from legal_ocr.formato import _colore
+
+    nere = [{"colore": ""} for _ in range(8)]
+    assert _colore([*nere, {"colore": "#1f57a4"}]) == ""
+
+    azzurre = [{"colore": "#1f57a4"} for _ in range(5)]
+    assert _colore([*azzurre, {"colore": ""}]) == "#1f57a4"
+    assert _colore([]) == ""
+
+
+def test_il_colore_dichiarato_dal_pdf_passa_dallo_stesso_vaglio():
+    """PyMuPDF consegna il colore come numero: stesse regole del misurato."""
+    from web.services.document_ocr_documento import _colore_span
+
+    assert _colore_span({"color": 0x1F57A4}) == "#1f57a4"
+    assert _colore_span({"color": 0x0000FF}) == "#0000ff"
+    assert _colore_span({"color": 0}) == ""
+    assert _colore_span({}) == ""
+    assert _colore_span({"color": "non un numero"}) == ""
+
+
+def test_il_colore_si_misura_sull_inchiostro_non_sulla_carta():
+    """Su una scansione il colore va guardato, e la carta non va nella media."""
+    from PIL import Image
+
+    from legal_ocr.formato import colori_parole
+
+    # una parola azzurra su fondo bianco: il bianco intorno non deve stingere
+    immagine = Image.new("RGB", (60, 20), (255, 255, 255))
+    for x in range(10, 50):
+        for y in range(5, 15):
+            immagine.putpixel((x, y), (31, 87, 164))
+
+    parole = [{"left": 10, "top": 5, "width": 40, "height": 10}]
+    colori_parole(immagine, parole)
+    assert parole[0].get("colore") == "#1f57a4"
+
+    # testo nero: niente da dichiarare
+    nera = Image.new("RGB", (60, 20), (255, 255, 255))
+    for x in range(10, 50):
+        for y in range(5, 15):
+            nera.putpixel((x, y), (17, 17, 17))
+    parole_nere = [{"left": 10, "top": 5, "width": 40, "height": 10}]
+    colori_parole(nera, parole_nere)
+    assert "colore" not in parole_nere[0]

@@ -4,12 +4,18 @@ import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
 
-// ocrBlocks importa ocrMarkers e ocrBlockEdits senza estensione: Node li risolve solo con il percorso completo.
+// I moduli si importano fra loro senza estensione: Node li risolve solo con il percorso completo.
+// ocrHtml si monta per primo perche' ocrBlocks ne riesporta la resa in HTML.
 const cartella = new URL('../../frontend/src/components/documentCapture/', import.meta.url)
-const sorgente = stripTypeScriptTypes(readFileSync(new URL('ocrBlocks.ts', cartella), 'utf8'))
-  .replaceAll("'./ocrMarkers'", JSON.stringify(new URL('ocrMarkers.ts', cartella).href))
+const leggi = (nome) => stripTypeScriptTypes(readFileSync(new URL(nome, cartella), 'utf8'))
+const comeModulo = (testo) => `data:text/javascript;base64,${Buffer.from(testo).toString('base64')}`
+const markers = JSON.stringify(new URL('ocrMarkers.ts', cartella).href)
+const htmlUrl = comeModulo(leggi('ocrHtml.ts').replaceAll("'./ocrMarkers'", markers))
+const sorgente = leggi('ocrBlocks.ts')
+  .replaceAll("'./ocrMarkers'", markers)
   .replace("'./ocrBlockEdits'", JSON.stringify(new URL('ocrBlockEdits.ts', cartella).href))
-const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat } = await import(`data:text/javascript;base64,${Buffer.from(sorgente).toString('base64')}`)
+  .replace("'./ocrHtml'", JSON.stringify(htmlUrl))
+const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText, parseBlocks, updateBlockFormat } = await import(comeModulo(sorgente))
 
 const blocco = (tipo, testo, extra = {}) => ({ tipo, testo, confidenza: 0.9, riquadro: [0, 0, 10, 10], formato: { livello: 0, grassetto: false, corsivo: false, allineamento: 'sinistra', scala: 1 }, ...extra })
 

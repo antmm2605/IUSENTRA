@@ -122,8 +122,10 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
         "components/documentCapture/detection/grayImage.ts": 250,
         "components/documentCapture/detection/pageProcessing.ts": 250,
         "components/documentCapture/OcrReview.tsx": 250,
+        "components/documentCapture/OcrParte.tsx": 250,
         "components/documentCapture/MatterPicker.tsx": 250,
         "components/documentCapture/ocrBlocks.ts": 250,
+        "components/documentCapture/ocrHtml.ts": 250,
         "services/documentOcr.ts": 250,
         "services/fascicoloSearch.ts": 180,
     }
@@ -145,7 +147,7 @@ def test_il_testo_riconosciuto_si_rivede_prima_di_entrare_nell_atto():
     """
     review = source("components/documentCapture/OcrReview.tsx")
     result = source("components/documentCapture/AcquisitionResult.tsx")
-    blocks = source("components/documentCapture/ocrBlocks.ts")
+    blocks = source("components/documentCapture/ocrHtml.ts")
     assert "<OcrReview" in result
     assert "onInsertHtml(blocksToHtml(ocr.blocks))" in result
     assert "updateBlockText" in review and "updateBlockCell" in review and "changeBlockKind" in review and "removeBlock" in review

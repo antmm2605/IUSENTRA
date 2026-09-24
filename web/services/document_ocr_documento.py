@@ -38,7 +38,7 @@ from web.services.document_ocr import recognize_page
 from web.services.document_ocr_anteprima import ANTEPRIMA_ASSENTE, Anteprima, anteprima_da_pdf
 from web.services.document_ocr_anteprima import come_payload as anteprima_payload
 from web.services.document_ocr_correzioni import correggi_blocchi
-from web.services.document_ocr_formato import blocchi_con_formato
+from web.services.document_ocr_formato import _colore_leggibile, blocchi_con_formato
 from web.services.document_ocr_riferimenti import riferimenti_del_testo
 from web.services.document_tools import DocumentToolError
 
@@ -187,6 +187,23 @@ def _stile_span(span: dict[str, Any]) -> tuple[bool, bool]:
     return grassetto, corsivo
 
 
+def _colore_span(span: dict[str, Any]) -> str:
+    """Il colore dichiarato dal PDF per questo pezzo di riga.
+
+    PyMuPDF lo consegna come numero intero sRGB. Passa dallo stesso vaglio del
+    colore misurato sulle scansioni: il nero di un atto non si dichiara, si
+    lascia al documento, altrimenti ogni capoverso si porterebbe dietro un
+    «#000000» che non aggiunge niente e che poi qualcuno dovrebbe togliere.
+    """
+    try:
+        valore = int(span.get("color") or 0)
+    except (TypeError, ValueError):
+        return ""
+    if valore < 0 or valore > 0xFFFFFF:
+        return ""
+    return _colore_leggibile((valore >> 16) & 0xFF, (valore >> 8) & 0xFF, valore & 0xFF)
+
+
 def _parole_dello_span(
     span: dict[str, Any], scala: float, blocco: int, riga: int, indice: int
 ) -> list[dict[str, Any]]:
@@ -207,6 +224,7 @@ def _parole_dello_span(
     passo = larghezza_totale / caratteri
     grassetto, corsivo = _stile_span(span)
     corpo = float(span.get("size") or 0.0)
+    colore = _colore_span(span)
 
     parole: list[dict[str, Any]] = []
     posizione = 0
@@ -231,6 +249,7 @@ def _parole_dello_span(
                     "corpo": corpo,
                     "grassetto": grassetto,
                     "corsivo": corsivo,
+                    "colore": colore,
                 }
             )
         posizione += len(pezzo) + 1

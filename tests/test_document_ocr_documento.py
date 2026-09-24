@@ -496,7 +496,7 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     visualizzatore = (radice / "components/documentCapture/OcrPageViewer.tsx").read_text(encoding="utf-8")
     destinazioni = (radice / "components/documentCapture/OcrSaveChoices.tsx").read_text(encoding="utf-8")
     revisione = (radice / "components/documentCapture/OcrReview.tsx").read_text(encoding="utf-8")
-    blocchi = (radice / "components/documentCapture/ocrBlocks.ts").read_text(encoding="utf-8")
+    blocchi = (radice / "components/documentCapture/ocrHtml.ts").read_text(encoding="utf-8")
 
     assert "FascicoloOcr" in pagina, "il riconoscimento non e' montato nella sezione documenti del fascicolo"
     # Le due sorgenti chieste: il documento gia' nel fascicolo e il file da caricare.
@@ -507,8 +507,11 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     # La revisione modificabile precede qualunque uso del testo, e il formato si corregge.
     assert "OcrReview" in componente
     assert "updateBlockFormat" in revisione and "Grassetto" in revisione and "Centra" in revisione
-    # Il formato riconosciuto diventa formato del documento.
-    assert "text-align:center" in blocchi and "<h${formato.livello}>" in blocchi
+    # Il formato riconosciuto diventa formato del documento: allineamento,
+    # livello del titolo e colore, quando un colore c'e' davvero.
+    assert "text-align:center" in blocchi
+    assert "<h${formato.livello}${stileDelParagrafo(formato)}>" in blocchi
+    assert "color:${formato.colore}" in blocchi
     # L'avvocato sceglie dove salvare: fascicolo o computer.
     assert "Nel fascicolo" in destinazioni and "Sul computer" in destinazioni
     assert "Apri subito nell’editor" in destinazioni

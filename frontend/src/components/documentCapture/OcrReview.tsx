@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, Rows3, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Trash2 } from 'lucide-react'
 import { Button } from '../../ui/Button'
+import { ETICHETTE, ParteDelFoglio, daControllare } from './OcrParte'
 import {
-  CLASSI_ALLINEAMENTO,
   changeBlockKind,
   markerOf,
   removeBlock,
@@ -40,14 +40,6 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
   { value: 'giustificato', label: 'Giustifica', Icona: AlignJustify },
 ]
 
-const ETICHETTE: Record<OcrBlockKind, string> = {
-  titolo: 'Titolo',
-  paragrafo: 'Capoverso',
-  elenco: 'Voce di elenco',
-  tabella: 'Tabella',
-  numero_pagina: 'Numero di pagina',
-}
-
 const ETICHETTE_MARCATORE: Record<string, string> = {
   puntato: 'elenco puntato',
   numerato: 'elenco numerato',
@@ -56,57 +48,9 @@ const ETICHETTE_MARCATORE: Record<string, string> = {
   decimale: 'elenco a livelli',
 }
 
-/**
- * Sotto questa confidenza il riconoscimento non e' sicuro di quello che ha
- * letto, e chi rilegge deve saperlo. Il testo del documento arriva sempre a
- * uno — li' non c'e' niente da controllare — quindi il segno compare solo
- * dove e' passato l'occhio ottico.
- */
-const CONFIDENZA_DA_CONTROLLARE = 0.9
-
 function fiducia(valore: number): string {
   if (!valore) return ''
   return `${Math.round(valore * 100)}% di confidenza`
-}
-
-function stileDelBlocco(block: OcrBlock) {
-  return { '--iu-ocr-scala': String(block.format.scala || 1) } as CSSProperties
-}
-
-/**
- * Un blocco che si corregge scrivendo dentro, come nel documento.
- *
- * Non si riscrive il nodo mentre ci si sta scrivendo dentro: il cursore
- * salterebbe in testa a ogni lettera battuta. Il testo che arriva da fuori —
- * un blocco unito, un cambio di pagina — entra solo quando il campo non ha il
- * fuoco.
- */
-function BloccoScrivibile({ block, disabled, onText, onSelect }: {
-  block: OcrBlock
-  disabled: boolean
-  onText: (testo: string) => void
-  onSelect: () => void
-}) {
-  const nodo = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    const elemento = nodo.current
-    if (!elemento || document.activeElement === elemento) return
-    if (elemento.textContent !== block.text) elemento.textContent = block.text
-  }, [block.text])
-  return (
-    <div
-      ref={nodo}
-      className="iu-ocr-foglio__testo"
-      contentEditable={!disabled}
-      suppressContentEditableWarning
-      role="textbox"
-      aria-multiline="true"
-      aria-label={`${ETICHETTE[block.kind]}: testo da rileggere`}
-      tabIndex={0}
-      onFocus={onSelect}
-      onInput={() => onText(nodo.current?.textContent ?? '')}
-    />
-  )
 }
 
 /**
@@ -122,9 +66,7 @@ function BloccoScrivibile({ block, disabled, onText, onSelect }: {
 export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect }: Props) {
   const [attivo, setAttivo] = useState('')
   const corrente = blocks.find((block) => block.id === (selectedId || attivo)) || null
-  const incerti = blocks.filter(
-    (block) => block.confidence > 0 && block.confidence < CONFIDENZA_DA_CONTROLLARE,
-  ).length
+  const incerti = blocks.filter(daControllare).length
 
   const scegli = (id: string) => {
     setAttivo(id)
@@ -187,6 +129,24 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             <Icona size={14} aria-hidden="true" />
           </Button>
         ))}
+        <label className="iu-ocr-barra__colore" title="Colore del testo">
+          <span className="iu-sr-only">Colore del testo</span>
+          <input
+            type="color"
+            value={formato?.colore || '#111827'}
+            disabled={disabled || !formato}
+            onChange={(event) => corrente && onChange(updateBlockFormat(blocks, corrente.id, { colore: event.target.value.toLowerCase() }))}
+          />
+        </label>
+        <Button
+          type="button"
+          tone="neutral"
+          disabled={disabled || !formato?.colore}
+          aria-label="Togli il colore e lascia quello del documento"
+          onClick={() => corrente && onChange(updateBlockFormat(blocks, corrente.id, { colore: '' }))}
+        >
+          <PaintBucket size={14} aria-hidden="true" />
+        </Button>
         <label className="iu-ocr-barra__tipo">
           <span className="iu-sr-only">Tipo di parte</span>
           <select
@@ -217,57 +177,17 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
       </div>
 
       <div className="iu-ocr-foglio">
-        {blocks.map((block) => {
-          const daControllare = block.confidence > 0 && block.confidence < CONFIDENZA_DA_CONTROLLARE
-          return (
-            <div
-              key={block.id}
-              className={[
-                'iu-ocr-foglio__parte',
-                `iu-ocr-foglio__parte--${block.kind}`,
-                `iu-ocr-foglio__parte--h${block.format.livello}`,
-                CLASSI_ALLINEAMENTO[block.format.allineamento],
-                block.format.grassetto ? 'is-grassetto' : '',
-                block.format.corsivo ? 'is-corsivo' : '',
-                daControllare ? 'is-incerto' : '',
-                corrente?.id === block.id ? 'is-scelto' : '',
-              ].filter(Boolean).join(' ')}
-              style={stileDelBlocco(block)}
-              title={daControllare ? `Riconosciuto al ${Math.round(block.confidence * 100)}%: da rileggere` : undefined}
-            >
-              {block.kind === 'tabella' ? (
-                <div className="iu-ocr-foglio__tabella" onFocusCapture={() => scegli(block.id)}>
-                  <span className="iu-ocr-foglio__etichetta"><Rows3 size={13} aria-hidden="true" /> Tabella</span>
-                  <table>
-                    <tbody>
-                      {block.rows.map((row, rowIndex) => (
-                        <tr key={`${block.id}-r${rowIndex}`}>
-                          {row.map((cell, columnIndex) => (
-                            <td key={`${block.id}-r${rowIndex}-c${columnIndex}`}>
-                              <input
-                                value={cell}
-                                disabled={disabled}
-                                aria-label={`Riga ${rowIndex + 1}, colonna ${columnIndex + 1}`}
-                                onChange={(event) => onChange(updateBlockCell(blocks, block.id, rowIndex, columnIndex, event.target.value))}
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <BloccoScrivibile
-                  block={block}
-                  disabled={disabled}
-                  onText={(testo) => onChange(updateBlockText(blocks, block.id, testo))}
-                  onSelect={() => scegli(block.id)}
-                />
-              )}
-            </div>
-          )
-        })}
+        {blocks.map((block) => (
+          <ParteDelFoglio
+            key={block.id}
+            block={block}
+            disabled={disabled}
+            scelto={corrente?.id === block.id}
+            onText={(testo) => onChange(updateBlockText(blocks, block.id, testo))}
+            onCell={(riga, colonna, valore) => onChange(updateBlockCell(blocks, block.id, riga, colonna, valore))}
+            onSelect={() => scegli(block.id)}
+          />
+        ))}
       </div>
 
       {figures.length ? (

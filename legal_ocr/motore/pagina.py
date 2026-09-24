@@ -24,7 +24,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..formato import blocchi_con_formato, densita_parole
+from ..formato import blocchi_con_formato, colori_parole, densita_parole
 from ..page_layout import NUMERO_PAGINA, TABELLA, Blocco, analizza_pagina
 from .consenso import applica_consenso, leggi_con_secondo_lettore, secondo_lettore_disponibile
 from .correzioni import correggi_blocchi
@@ -162,8 +162,10 @@ def riconosci_immagine(
         except Exception:
             figure = []
         # Misure sull'immagine finche' e' in memoria: il grassetto si vede
-        # dall'inchiostro della pagina che il motore ha letto.
+        # dall'inchiostro della pagina che il motore ha letto, e il colore
+        # pure — una scansione non dichiara niente, va guardata.
         densita_parole(immagine, parole)
+        colori_parole(immagine, parole)
     finally:
         _SLOTS.release()
         if originale is not sorgente and originale is not (preparata.immagine if preparata else None):

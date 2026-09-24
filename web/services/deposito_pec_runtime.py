@@ -196,6 +196,45 @@ def validate_deposito_action_preparation(
     return deposito_workflow_state(row)
 
 
+def validate_deposito_workflow_action(
+    profile: Any,
+    *,
+    type_key: str,
+    datiatto_extra: Any,
+    corpo_pec: str,
+    selected_document_ids: list[str],
+    main_document_id: str,
+    action: str,
+) -> bool:
+    """Validate the saved preparation and the sequence for one route action."""
+
+    current_profile = profile if isinstance(profile, dict) else {}
+    preparation = current_profile.get("preparazione_busta")
+    workflow_enforced = bool(str(type_key or "").strip() or preparation)
+    if not workflow_enforced:
+        return False
+    state = validate_deposito_action_preparation(
+        preparation,
+        type_key=type_key,
+        datiatto_extra=datiatto_extra,
+        corpo_pec=corpo_pec,
+        selected_document_ids=selected_document_ids,
+        main_document_id=main_document_id,
+    )
+    if action == "proof" and state["send"]["ok"]:
+        raise ValueError(
+            "Il deposito risulta già inviato. Avvia un nuovo ciclo prima di preparare un ulteriore deposito."
+        )
+    if action == "simulation" and not state["proof"]["ok"]:
+        raise ValueError("Esegui prima la prova senza invio reale e attendi l’esito positivo.")
+    if action == "send":
+        if state["send"]["ok"]:
+            raise ValueError("Il deposito risulta già inviato: un secondo invio è bloccato.")
+        if not (state["proof"]["ok"] and state["simulation"]["ok"]):
+            raise ValueError("Esegui prima prova e simulazione PEC con esito positivo.")
+    return True
+
+
 def con_avviso_pec_mittente(payload: dict[str, Any], pec_config_error: str | None) -> dict[str, Any]:
     if not pec_config_error:
         return payload

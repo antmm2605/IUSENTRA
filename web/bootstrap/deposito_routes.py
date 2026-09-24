@@ -7,6 +7,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 from pct.pst_cifratura import PSTCifraturaError
 from web.bootstrap.deposito_aux_routes import register_deposito_aux_routes
+from web.bootstrap.deposito_certificate_routes import register_deposito_certificate_routes
 from web.bootstrap.deposito_esito_routes import register_deposito_esito_routes
 from web.bootstrap.deposito_legacy_send_routes import register_deposito_legacy_send_route
 from web.bootstrap.deposito_prepara_routes import register_deposito_prepara_route
@@ -28,10 +29,9 @@ from web.services.deposito_pec_runtime import (
     build_compatibility_report as _build_compatibility_report,
     build_simulazione_pec_payload as _build_simulazione_pec_payload,
     con_avviso_pec_mittente as _aggiungi_avviso_pec_mittente,
-    deposito_workflow_state as _deposito_workflow_state,
     mark_deposito_workflow_stage as _mark_deposito_workflow_stage,
     registra_prova_senza_invio_pec as _registra_prova_senza_invio_pec,
-    validate_deposito_action_preparation as _validate_deposito_action_preparation,
+    validate_deposito_workflow_action as _validate_deposito_workflow_action,
 )
 from web.services.deposito_signature_runtime import (
     dati_atto_signature_gate as _dati_atto_signature_gate,
@@ -72,6 +72,7 @@ def register_deposito_routes(
 ) -> None:
     """Register deposito guide pages and deposito workflow routes."""
     register_deposito_receipt_routes(app, get_fascicoli=get_fascicoli, get_config_studio=get_config_studio, audit=audit)
+    register_deposito_certificate_routes(app, get_fascicoli=get_fascicoli, audit=audit)
     register_deposito_aux_routes(app, get_fascicoli=get_fascicoli, run_deposito_validation=run_deposito_validation)
     register_deposito_prepara_route(app, get_fascicoli=get_fascicoli, get_config_studio=get_config_studio,
                                     deposito_correction_context=deposito_correction_context, luogo_timbro_firma_visibile=luogo_timbro_firma_visibile)
@@ -88,70 +89,6 @@ def register_deposito_routes(
     register_deposito_esito_routes(
         app, get_fascicoli=get_fascicoli, audit=audit, sync_pubblica=sync_pubblica,
     )
-    @app.route("/api/v1/ui/fascicoli/<id_fasc>/deposito/certificato-cifratura", methods=["GET", "POST"])
-    def api_deposito_certificato_cifratura(id_fasc):
-        """Controlla o salva il .cer PST usato per cifrare Atto.msg in Atto.enc."""
-        from base64 import b64decode
-        from binascii import Error as Base64Error
-        from dataclasses import asdict
-        from pct.pst_cifratura import (
-            PSTCifraturaError as _PSTCifraturaError,
-            certificato_cifratura_in_cache,
-            salva_certificato_cifratura_ufficio,
-        )
-        try:
-            fascicolo = get_fascicoli().get(id_fasc)
-            if not fascicolo:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
-            if request.method == "GET":
-                codice = str(request.args.get("codice_ufficio") or "").strip()
-                if not codice:
-                    return jsonify({"ok": False, "errore": "Codice ufficio mancante."}), 400
-                info = certificato_cifratura_in_cache(codice)
-                return jsonify({
-                    "ok": True,
-                    "codice_ufficio": codice,
-                    "cached": bool(info),
-                    "certificato": asdict(info) if info else None,
-                })
-            payload_json = request.get_json(silent=True) or {}
-            codice = str(payload_json.get("codice_ufficio") or "").strip()
-            certificato_b64 = str(payload_json.get("certificato_b64") or "").strip()
-            source_url = str(payload_json.get("source_url") or "").strip()
-            if not codice:
-                return jsonify({"ok": False, "errore": "Codice ufficio mancante."}), 400
-            if not certificato_b64:
-                return jsonify({"ok": False, "errore": "Certificato PST mancante."}), 400
-            try:
-                payload = b64decode(certificato_b64, validate=True)
-            except (Base64Error, ValueError) as exc:
-                raise _PSTCifraturaError("Certificato PST non codificato correttamente.") from exc
-            info = salva_certificato_cifratura_ufficio(codice, payload, source_url=source_url)
-            utente = getattr(g, "utente_corrente", None)
-            audit(
-                "fascicoli.deposito.certificato_cifratura",
-                "fascicolo",
-                id_fasc,
-                utente=getattr(utente, "username", None),
-                dettagli=f"Certificato PST {codice} salvato ({info.sha256[:12]})",
-            )
-            return jsonify({
-                "ok": True,
-                "codice_ufficio": codice,
-                "cached": True,
-                "certificato": asdict(info),
-            })
-        except _PSTCifraturaError as exc:
-            app.logger.warning("Certificato PST deposito non accettato %s: %s", id_fasc, exc)
-            return jsonify(
-                {
-                    "ok": False,
-                    "errore": "Certificato PST non valido o non compatibile con l'ufficio indicato.",
-                }
-            ), 400
-        except Exception as exc:
-            app.logger.exception("Certificato PST deposito non salvato %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": "Certificato PST non salvato. Verifica Local Signer e riprova."}), 500
     @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
     def deposito_genera_busta(id_fasc):
         """Genera la busta telematica reale e la restituisce come download."""
@@ -644,35 +581,18 @@ def register_deposito_routes(
         simula_invio_pec = form.get("simula_invio_pec", "").strip() == "1"
         controllo_senza_invio = prova_senza_invio or simula_invio_pec
         modalita_demo = simula_invio_pec
-        preparation = (
-            (getattr(fascicolo, "profilo_deposito", {}) or {}).get("preparazione_busta")
-            if isinstance(getattr(fascicolo, "profilo_deposito", {}), dict)
-            else {}
-        )
-        workflow_enforced = bool(form.get("tipo_deposito_telematico_key", "").strip() or preparation)
-        if workflow_enforced:
-            try:
-                workflow_state = _validate_deposito_action_preparation(
-                    preparation,
-                    type_key=form.get("tipo_deposito_telematico_key", ""),
-                    datiatto_extra=datiatto_extra,
-                    corpo_pec=form.get("corpo_pec", ""),
-                    selected_document_ids=[atto_id, *[item for item in allegati_ids if item != atto_id]],
-                    main_document_id=atto_id,
-                )
-                if prova_senza_invio and workflow_state["send"]["ok"]:
-                    raise ValueError(
-                        "Il deposito risulta già inviato. Avvia un nuovo ciclo prima di preparare un ulteriore deposito."
-                    )
-                if simula_invio_pec and not workflow_state["proof"]["ok"]:
-                    raise ValueError("Esegui prima la prova senza invio reale e attendi l’esito positivo.")
-                if not controllo_senza_invio:
-                    if workflow_state["send"]["ok"]:
-                        raise ValueError("Il deposito risulta già inviato: un secondo invio è bloccato.")
-                    if not (workflow_state["proof"]["ok"] and workflow_state["simulation"]["ok"]):
-                        raise ValueError("Esegui prima prova e simulazione PEC con esito positivo.")
-            except ValueError as exc:
-                return jsonify({"ok": False, "package_ready": False, "errore": str(exc)}), 409
+        try:
+            workflow_enforced = _validate_deposito_workflow_action(
+                getattr(fascicolo, "profilo_deposito", {}) or {},
+                type_key=form.get("tipo_deposito_telematico_key", ""),
+                datiatto_extra=datiatto_extra,
+                corpo_pec=form.get("corpo_pec", ""),
+                selected_document_ids=[atto_id, *[item for item in allegati_ids if item != atto_id]],
+                main_document_id=atto_id,
+                action="proof" if prova_senza_invio else "simulation" if simula_invio_pec else "send",
+            )
+        except ValueError as exc:
+            return jsonify({"ok": False, "package_ready": False, "errore": str(exc)}), 409
 
         def _persist_workflow_success(stage: str, *, deposito_id: str, completed_at: str = "") -> None:
             if not workflow_enforced:

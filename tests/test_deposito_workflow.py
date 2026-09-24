@@ -7,6 +7,7 @@ from web.services.deposito_pec_runtime import (
     mark_deposito_workflow_stage,
     preserve_deposito_workflow,
     validate_deposito_action_preparation,
+    validate_deposito_workflow_action,
 )
 
 
@@ -123,3 +124,30 @@ def test_reset_esplicito_avvia_un_ciclo_nuovo_anche_con_stessa_busta():
     assert state["proof"]["ok"] is False
     assert state["simulation"]["ok"] is False
     assert state["send"]["ok"] is False
+
+
+def test_guardia_route_impone_la_sequenza_del_ciclo():
+    preparation = preserve_deposito_workflow(_preparation(), None)
+    profile = {"preparazione_busta": preparation}
+
+    with pytest.raises(ValueError, match="prova senza invio"):
+        validate_deposito_workflow_action(
+            profile,
+            type_key="SICID::Ricorso",
+            datiatto_extra={"professionista_ruolo": "AVVOCATO"},
+            corpo_pec="Corpo PEC",
+            selected_document_ids=["ATTO1", "RT1"],
+            main_document_id="ATTO1",
+            action="simulation",
+        )
+
+    profile = mark_deposito_workflow_stage(profile, "proof", id_deposito="BUSTA1")
+    assert validate_deposito_workflow_action(
+        profile,
+        type_key="SICID::Ricorso",
+        datiatto_extra={"professionista_ruolo": "AVVOCATO"},
+        corpo_pec="Corpo PEC",
+        selected_document_ids=["ATTO1", "RT1"],
+        main_document_id="ATTO1",
+        action="simulation",
+    ) is True

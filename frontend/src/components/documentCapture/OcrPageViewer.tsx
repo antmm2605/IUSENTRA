@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { ChevronLeft, ChevronRight, ScanEye } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import { blocksOfPage, type OcrBlock } from './ocrBlocks'
@@ -36,6 +36,20 @@ export function OcrPageViewer({
 }: Props) {
   const pagina = useMemo(() => pagine.find((voce) => voce.numero === paginaAttiva) || pagine[0], [pagine, paginaAttiva])
   const dellaPagina = useMemo(() => (pagina ? blocksOfPage(blocchi, pagina.numero) : []), [blocchi, pagina])
+  const foglio = useRef<HTMLDivElement | null>(null)
+
+  // Il blocco scelto nel testo si porta in vista anche sul foglio, senza
+  // muovere il resto della pagina: scorre solo il riquadro dell'immagine.
+  useEffect(() => {
+    const contenitore = foglio.current
+    const scelto = contenitore?.querySelector<SVGRectElement>('.iu-ocr-viewer__riquadro.is-selected')
+    if (!contenitore || !scelto) return
+    const vista = contenitore.getBoundingClientRect()
+    const zona = scelto.getBoundingClientRect()
+    if (zona.top >= vista.top && zona.bottom <= vista.bottom) return
+    const margine = 24
+    contenitore.scrollTop += zona.top - vista.top - margine
+  }, [selezionato, pagina, sovrapposizione])
   if (!pagina) return null
   const anteprima = pagina.anteprima
   const indice = pagine.findIndex((voce) => voce.numero === pagina.numero)
@@ -81,7 +95,10 @@ export function OcrPageViewer({
       </header>
 
       {anteprima ? (
-        <div className="iu-ocr-viewer__foglio">
+        <div className="iu-ocr-viewer__foglio" ref={foglio}>
+          {/* Immagine e riquadri stanno nello stesso contenitore, alto quanto
+              l'immagine: il foglio scorre, ma i riquadri restano sopra le righe. */}
+          <div className="iu-ocr-viewer__tavola">
           <img src={anteprima.url} alt={`Immagine della pagina ${pagina.numero}`} width={anteprima.larghezza} height={anteprima.altezza} />
           {sovrapposizione ? (
             <svg
@@ -107,6 +124,7 @@ export function OcrPageViewer({
               })}
             </svg>
           ) : null}
+          </div>
         </div>
       ) : (
         <p className="iu-acq-hint">Anteprima della pagina non disponibile: il testo riconosciuto resta comunque completo.</p>

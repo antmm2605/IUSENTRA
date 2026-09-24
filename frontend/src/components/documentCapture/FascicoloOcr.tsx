@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FileSearch, RefreshCw, ScanText, Square, X } from 'lucide-react'
+import { FileSearch, Maximize2, Minimize2, RefreshCw, ScanText, Square, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import {
   blocksToHtml,
@@ -11,6 +11,7 @@ import {
 import { OcrReview } from './OcrReview'
 import { OcrPageViewer } from './OcrPageViewer'
 import { OcrSaveChoices, type DestinazioneOcr } from './OcrSaveChoices'
+import { useSchermoIntero } from './useSchermoIntero'
 import {
   documentoModificabile,
   elencaDocumentiRiconoscibili,
@@ -79,6 +80,8 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [avviso, setAvviso] = useState('')
   const vivo = useRef(true)
   const interruzione = useRef<AbortController | null>(null)
+  const affiancato = useRef<HTMLDivElement | null>(null)
+  const schermoIntero = useSchermoIntero(affiancato)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
 
@@ -341,7 +344,13 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
             </p>
           ) : null}
 
-          <div className="iu-ocr-affiancato">
+          <div ref={affiancato} className={`iu-ocr-affiancato${schermoIntero.ripiego ? ' is-schermo-intero' : ''}`}>
+            <div className="iu-ocr-affiancato__comandi">
+              <Button type="button" tone="neutral" aria-pressed={schermoIntero.attivo} onClick={() => void schermoIntero.alterna()}>
+                {schermoIntero.attivo ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
+                {schermoIntero.attivo ? 'Esci dallo schermo intero' : 'Schermo intero'}
+              </Button>
+            </div>
             <OcrPageViewer
               pagine={pagine}
               paginaAttiva={paginaAttiva}

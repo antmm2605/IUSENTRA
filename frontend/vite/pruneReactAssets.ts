@@ -39,6 +39,7 @@ async function readManifestAssets(manifestPath: string): Promise<Set<string>> {
 export function pruneReactAssets(): Plugin {
   let config: ResolvedConfig
   let previousAssets = new Set<string>()
+  let currentAssets = new Set<string>()
 
   return {
     name: 'iusentra-prune-react-assets',
@@ -47,10 +48,11 @@ export function pruneReactAssets(): Plugin {
       config = resolvedConfig
     },
     async buildStart() {
-      const manifestPath = resolve(config.build.outDir, '.vite', 'manifest.json')
+      const outDir = resolve(config.root, config.build.outDir)
+      const manifestPath = resolve(outDir, '.vite', 'manifest.json')
       previousAssets = await readManifestAssets(manifestPath)
 
-      const assetsDir = resolve(config.build.outDir, 'assets')
+      const assetsDir = resolve(outDir, 'assets')
       try {
         const existingAssets = (await readdir(assetsDir, { withFileTypes: true }))
           .filter((entry) => entry.isFile() && HASHED_ASSET.test(entry.name))
@@ -62,11 +64,17 @@ export function pruneReactAssets(): Plugin {
         if (code !== 'ENOENT') throw error
       }
     },
+    generateBundle(_options, bundle) {
+      currentAssets = new Set(
+        Object.values(bundle)
+          .map((entry) => entry.fileName.replace(/\\/g, '/'))
+          .filter((fileName) => fileName.startsWith('assets/'))
+          .map((fileName) => basename(fileName)),
+      )
+    },
     async closeBundle() {
-      const outDir = resolve(config.build.outDir)
+      const outDir = resolve(config.root, config.build.outDir)
       const assetsDir = resolve(outDir, 'assets')
-      const manifestPath = resolve(outDir, '.vite', 'manifest.json')
-      const currentAssets = await readManifestAssets(manifestPath)
 
       if (currentAssets.size === 0) {
         throw new Error('Manifest React corrente vuoto: pulizia asset annullata.')

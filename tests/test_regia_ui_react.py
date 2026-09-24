@@ -437,16 +437,16 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
     assert "caseValueRequired && !data.depositReadiness.valoreCausa.ready" in deposit_page
     assert "contributionRequired && !data.depositReadiness.contributoUnificato.ready" in deposit_page
     assert "missingRequiredSlots.length > 0 || missingRequiredDepositDataLabels.length > 0" not in deposit_page
-    assert deposit_page.count("disabled={proofActionBlocked}") >= 1
+    assert "disabled={proofActionBlocked || depositProofCompleted}" in deposit_page
     assert "const [depositProofCompleted, setDepositProofCompleted] = useState(false)" in deposit_page
     assert "const [depositSimulationCompleted, setDepositSimulationCompleted] = useState(false)" in deposit_page
-    assert "disabled={proofActionBlocked || !packageReadyAfterProof}" in deposit_page
+    assert "disabled={proofActionBlocked || !packageReadyAfterProof || depositSimulationCompleted}" in deposit_page
     assert "Esegui prima Prova senza invio reale e attendi l’esito positivo." in deposit_page
     assert "Esegui prima Simula invio PEC e attendi l’esito positivo." in deposit_page
     assert "onPackageReady={(payload) => handlePackageReady(payload, 'prova')}" in deposit_page
     assert "onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}" in deposit_page
     assert 'id="azioni-deposito"' in deposit_page
-    assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
+    assert "disabled={depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla." in deposit_page
     assert "Durante la prova il dispositivo firma i dati del deposito" in deposit_page
     assert "Boolean(missingRequiredSlots.length) || !officeRecipientReady" not in deposit_page
@@ -544,7 +544,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "url: previewUrl" in preview_button
     assert "downloadUrl: previewUrl" in preview_button
     assert "URL.createObjectURL" not in preview_button
-    assert "onPackageReady={handlePackageReady}" in deposit_page
+    assert "onPackageReady={(payload) => handlePackageReady(payload, 'prova')}" in deposit_page
+    assert "onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}" in deposit_page
     assert "Prova senza invio PEC" in deposit_page
     assert "Testo PEC predisposto" in deposit_page
     assert "Documenti indicati nel pacchetto" in deposit_page
@@ -614,8 +615,9 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "recordBool(packagePreview?.bustaAudit, 'guided_completion_required')" in proof_block
     assert "function depositHasPersistedDryRunProof" not in source
     assert "setDepositProofInvalidated(true)" in deposit_page
-    assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)" in deposit_page
-    assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
+    assert "const packageReadyAfterProof = Boolean(depositProofCompleted && !depositProofInvalidated)" in deposit_page
+    assert "const packageReadyForRealSend = Boolean(packageReadyAfterProof && depositSimulationCompleted && !depositSendCompleted)" in deposit_page
+    assert "disabled={depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page
     assert "directPecReady && !guidedCompletion" not in deposit_page
     assert "Invio reale non attivo: manca ancora il trasporto ministeriale conforme." not in deposit_page
@@ -637,7 +639,8 @@ def test_ui_deposito_controlla_i_dati_prima_di_qualsiasi_scrittura_e_abilita_inv
 
     assert block.index("if (missingRequiredDepositDataLabels.length)") < block.index("await submitDepositClassification()")
     assert "goToDepositPhase('proposta-busta', 'auto')" in block
-    assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)" in source
+    assert "const packageReadyAfterProof = Boolean(depositProofCompleted && !depositProofInvalidated)" in source
+    assert "const packageReadyForRealSend = Boolean(packageReadyAfterProof && depositSimulationCompleted && !depositSendCompleted)" in source
     assert "setDepositProofInvalidated(false)" in source
     assert "suppressNextProofInvalidationRef.current = true" in source
     assert "if (suppressNextProofInvalidationRef.current)" in source

@@ -328,3 +328,78 @@ def test_api_fonte_rapida_usa_il_lettore_governato(tmp_path: Path, monkeypatch):
     assert payload["ok"] is True
     assert payload["title"] == "CNF"
     assert payload["blocks"] == ["Aggiornamento pubblicato dal Consiglio Nazionale Forense."]
+
+
+def _prepara_aggiornamento(api, monkeypatch, refreshed_at: str, chiamate: list[int]):
+    monkeypatch.setattr(api, "_notiziario_load_cache", lambda: {
+        "items": [dict(_NewsRepository.row)],
+        "sources": [],
+        "refreshedAt": refreshed_at,
+    })
+    monkeypatch.setattr(api, "refresh_notizie_utili", lambda **_kwargs: chiamate.append(1) or {
+        "items": [_official_news_row()],
+        "sources": [],
+        "refreshedAt": "2026-08-17T10:00:00Z",
+    })
+    monkeypatch.setattr(api, "_notiziario_save_cache", lambda cache: "2026-08-17T10:00:00Z")
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {})
+    monkeypatch.setattr(api, "_notiziario_case_options", lambda: [])
+    monkeypatch.setattr(api, "_audit_event", lambda *_args, **_kwargs: None)
+
+
+def test_aggiorna_non_rifa_il_giro_delle_fonti_appena_aggiornate(tmp_path: Path, monkeypatch):
+    """Riaprire la Panoramica (o cliccare due volte) non rimette al lavoro il server."""
+    from datetime import datetime, timezone
+
+    import web.blueprints.api_v1_react as api
+
+    chiamate: list[int] = []
+    adesso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    _prepara_aggiornamento(api, monkeypatch, adesso, chiamate)
+    client, headers = _client(tmp_path)
+
+    response = client.post("/api/v1/ui/notiziario/aggiorna", headers=headers)
+
+    assert response.status_code == 200
+    assert response.get_json()["items"]
+    assert chiamate == []
+
+
+def test_aggiorna_con_un_aggiornamento_in_corso_risponde_subito_con_la_cache(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    chiamate: list[int] = []
+    _prepara_aggiornamento(api, monkeypatch, "2026-08-16T10:00:00Z", chiamate)
+    occupato = api.threading.Lock()
+    occupato.acquire()
+    monkeypatch.setattr(api, "_notiziario_lucchetto", lambda: occupato)
+    client, headers = _client(tmp_path)
+
+    response = client.post("/api/v1/ui/notiziario/aggiorna", headers=headers)
+
+    assert response.status_code == 200
+    assert response.get_json()["items"][0]["id"] == "7"
+    assert chiamate == []
+
+
+def test_i_fascicoli_da_collegare_si_leggono_dall_indice_leggero(monkeypatch):
+    """Il menu dei fascicoli non carica l'archivio intero (documenti, attivita')."""
+    import web.blueprints.api_v1_react as api
+
+    class _Gestione:
+        def indice_leggero(self):
+            return [
+                SimpleNamespace(id="A", numero="2026/0002", titolo="Affinito c. MIM", numero_rg="3001", anno_rg="2025", stato="APERTO"),
+                SimpleNamespace(id="B", numero="2026/0001", titolo="Chiuso", numero_rg="", anno_rg="", stato="ARCHIVIATO"),
+                SimpleNamespace(id="C", numero="2026/0003", titolo="Senza ruolo", numero_rg="", anno_rg="", stato="StatoFascicolo.APERTO"),
+            ]
+
+        def tutti(self, **_kwargs):
+            raise AssertionError("l'archivio intero non serve per il menu")
+
+    monkeypatch.setattr(api, "get_fascicoli", lambda: _Gestione())
+
+    assert api._notiziario_case_options() == [
+        {"id": "C", "label": "2026/0003 - Senza ruolo"},
+        {"id": "A", "label": "RG 3001/2025 - Affinito c. MIM"},
+    ]

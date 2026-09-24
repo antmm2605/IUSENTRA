@@ -260,6 +260,39 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 5b. Caddyfile della release
+# ---------------------------------------------------------------------------
+# Il Caddyfile e' montato come file singolo: il checkout lo sostituisce con un
+# file nuovo, ma il container continua a vedere quello vecchio finche' non
+# viene ricreato. Si ricrea solo Caddy, e solo se la configurazione e' cambiata.
+sync_caddyfile() {
+  local host_file="${IUSENTRA_CADDYFILE:-./Caddyfile}"
+  case "$host_file" in
+    /*) ;;
+    *) host_file="$REPO_DIR/deploy/hetzner/${host_file#./}" ;;
+  esac
+  [ -f "$host_file" ] || return 0
+  local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
+  local atteso in_uso
+  atteso="$(sha256sum "$host_file" | cut -d' ' -f1)"
+  in_uso="$("${compose[@]}" exec -T caddy sha256sum /etc/caddy/Caddyfile 2>/dev/null | cut -d' ' -f1 || true)"
+  if [ -n "$in_uso" ] && [ "$in_uso" = "$atteso" ]; then
+    echo "Caddyfile invariato."
+    return 0
+  fi
+  echo "Caddyfile cambiato: ricreo il solo container Caddy."
+  "${compose[@]}" up -d --no-deps --force-recreate caddy \
+    || echo "Caddy non ricreato: resta attiva la configurazione precedente." >&2
+}
+if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
+  # Con Portainer lo stack lo gestisce Portainer: un container Caddy creato da
+  # qui si contenderebbe le porte con il suo.
+  echo "Driver Portainer: se il Caddyfile e' cambiato, ricreare Caddy dallo stack."
+else
+  sync_caddyfile
+fi
+
+# ---------------------------------------------------------------------------
 # 6. Pull modello Ollama (solo se il sidecar è attivo)
 # ---------------------------------------------------------------------------
 AI_ENABLED="${PCT_LOCAL_AI_ENABLED:-1}"

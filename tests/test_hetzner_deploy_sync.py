@@ -158,3 +158,18 @@ def test_una_release_superata_non_parte(repository):
     assert result.returncode != 0
     assert "testa del branch" in result.stderr
     assert _git("rev-parse", "HEAD", cwd=copia) == primo
+
+
+def test_caddy_non_segna_l_app_giu_per_un_worker_impegnato():
+    """Con un solo upstream il controllo attivo trasformava qualche secondo di
+    lavoro in 503 per tutti: Caddy aspetta e riprova invece di arrendersi."""
+    caddyfile = (SCRIPT.parent / "Caddyfile").read_text(encoding="utf-8")
+    righe = [riga.strip() for riga in caddyfile.splitlines() if not riga.strip().startswith("#")]
+    assert not any(riga.startswith("health_uri") for riga in righe)
+    assert "lb_try_duration 30s" in righe
+
+
+def test_il_deploy_porta_in_uso_il_caddyfile_della_release():
+    script = SCRIPT.read_text(encoding="utf-8")
+    assert "sync_caddyfile" in script
+    assert "up -d --no-deps --force-recreate caddy" in script

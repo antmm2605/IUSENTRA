@@ -19,6 +19,7 @@ import os
 import re
 import secrets
 import shutil
+import threading
 import sqlite3
 import tempfile
 import time
@@ -10155,27 +10156,39 @@ def _notiziario_public_url(row: Mapping[str, Any]) -> str:
 
 
 def _notiziario_case_options() -> list[dict[str, str]]:
+    """I fascicoli aperti da collegare a una notizia: solo numero e titolo.
+
+    Si leggono dall'indice leggero (le sole colonne anagrafiche), non
+    dall'archivio intero: caricare ogni fascicolo con documenti e attivita' per
+    riempire un menu costava quasi un secondo di calcolo a ogni apertura della
+    Panoramica, e in quel tempo il server non rispondeva ad altro.
+    """
+    gestione = get_fascicoli()
     try:
-        rows = get_fascicoli().tutti(archiviati=False)
-    except TypeError:
-        rows = get_fascicoli().tutti()
-    options: list[dict[str, str]] = []
-    for item in rows:
+        righe = gestione.indice_leggero()
+    except Exception:
+        try:
+            righe = gestione.tutti(archiviati=False)
+        except TypeError:
+            righe = gestione.tutti()
+    options: list[tuple[str, dict[str, str]]] = []
+    for item in righe:
         item_id = str(getattr(item, "id", "") or "").strip()
         if not item_id:
             continue
-        rg = str(
-            getattr(item, "rg_completo", "")
-            or getattr(item, "numero_rg", "")
-            or getattr(item, "numero", "")
-            or ""
-        ).strip()
+        stato = str(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", "")) or "")
+        if stato.rsplit(".", 1)[-1].upper() == "ARCHIVIATO":
+            continue
+        numero_rg = str(getattr(item, "numero_rg", "") or "").strip()
+        anno_rg = str(getattr(item, "anno_rg", "") or "").strip()
+        rg = f"RG {numero_rg}/{anno_rg}" if numero_rg and anno_rg else (numero_rg or str(getattr(item, "numero", "") or "").strip())
         title = str(getattr(item, "titolo", "") or getattr(item, "oggetto", "") or "Fascicolo").strip()
-        options.append({
-            "id": item_id,
-            "label": f"{rg} - {title}" if rg else title,
-        })
-    return options
+        options.append((
+            str(getattr(item, "numero", "") or ""),
+            {"id": item_id, "label": f"{rg} - {title}" if rg else title},
+        ))
+    options.sort(key=lambda voce: voce[0], reverse=True)
+    return [voce for _, voce in options]
 
 
 def _notiziario_item_payload(
@@ -10271,9 +10284,70 @@ def notiziario_react():
         }), 200
 
 
+#: Un aggiornamento delle fonti per studio alla volta, e non piu' spesso di cosi':
+#: interroga cinque siti istituzionali e ne legge le pagine, e mentre lo fa il
+#: processo che lo esegue serve male tutto il resto. Due schede aperte sulla
+#: Panoramica, o un clic ripetuto, non devono moltiplicare il lavoro.
+_NOTIZIARIO_AGGIORNAMENTI: dict[str, threading.Lock] = {}
+_NOTIZIARIO_AGGIORNAMENTI_GUARDIA = threading.Lock()
+_NOTIZIARIO_INTERVALLO_MINIMO = timedelta(minutes=5)
+
+
+def _notiziario_lucchetto() -> threading.Lock:
+    chiave = str(tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True))
+    with _NOTIZIARIO_AGGIORNAMENTI_GUARDIA:
+        return _NOTIZIARIO_AGGIORNAMENTI.setdefault(chiave, threading.Lock())
+
+
+def _notiziario_aggiornato_da_poco(cache: Mapping[str, Any]) -> bool:
+    refreshed_at = str(cache.get("refreshedAt") or "").strip()
+    if not cache.get("items") or not refreshed_at:
+        return False
+    try:
+        timestamp = datetime.fromisoformat(refreshed_at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - timestamp.astimezone(timezone.utc) < _NOTIZIARIO_INTERVALLO_MINIMO
+
+
+def _notiziario_risposta_dalla_cache(cache: Mapping[str, Any]):
+    response = jsonify(_notiziario_response_data(
+        list(cache.get("items") or []),
+        cache,
+        source="notizie_utili_fonti_ufficiali",
+    ))
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
 @api_v1_react.post("/notiziario/aggiorna")
 @_richiedi_auth
 def notiziario_react_aggiorna():
+    try:
+        cache = _notiziario_load_cache()
+        # appena aggiornate: si risponde con quello che c'e', senza rifare il giro
+        if _notiziario_aggiornato_da_poco(cache):
+            return _notiziario_risposta_dalla_cache(cache)
+        lucchetto = _notiziario_lucchetto()
+    except Exception as exc:
+        current_app.logger.exception("Aggiornamento Notizie utili non riuscito: %s", exc)
+        return jsonify({"ok": False, "message": "Aggiornamento delle fonti non riuscito. Riprova tra poco."}), 502
+    if not lucchetto.acquire(blocking=False):
+        # un aggiornamento e' gia' in corso: si risponde subito con la cache
+        if cache.get("items"):
+            return _notiziario_risposta_dalla_cache(cache)
+        lucchetto.acquire()
+        lucchetto.release()
+        return _notiziario_risposta_dalla_cache(_notiziario_load_cache())
+    try:
+        return _notiziario_aggiorna_fonti()
+    finally:
+        lucchetto.release()
+
+
+def _notiziario_aggiorna_fonti():
     try:
         previous = _notiziario_load_cache()
         refreshed = refresh_notizie_utili(limit_per_source=12)

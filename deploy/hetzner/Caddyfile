@@ -92,8 +92,14 @@
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 		header_up X-Forwarded-Proto {scheme}
-		health_uri /api/pronto
-		health_interval 30s
-		health_timeout 5s
+		# Un solo upstream: il controllo attivo (/api/pronto ogni 30 s, 5 s di
+		# pazienza) non aveva un'alternativa da scegliere. Bastava un worker
+		# impegnato qualche secondo (Panoramica aperta e subito lasciata per i
+		# Fascicoli) perche' Caddy segnasse l'app giu' e rispondesse 503 a
+		# tutti per mezzo minuto. Lo stato del container lo sorveglia gia'
+		# Docker; qui, se l'app non risponde (riavvio del deploy), Caddy
+		# riprova per 30 secondi prima di arrendersi.
+		lb_try_duration 30s
+		lb_try_interval 250ms
 	}
 }

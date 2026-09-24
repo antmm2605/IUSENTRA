@@ -1443,10 +1443,9 @@ class DocumentAIRepository:
         self._require_catalog_sql()
         clean_label = str(document_label or "").strip()
         clean_note = str(note or "").strip()
-        allowed_sections = {
-            "atti", "provvedimenti", "procure", "notifiche", "comunicazioni",
-            "contratti", "pagamenti", "identita", "allegati", "da-verificare",
-        }
+        from pct.document_intelligence.sezioni import SEZIONI_DOCUMENTO
+
+        allowed_sections = set(SEZIONI_DOCUMENTO)
         allowed_natures = {
             "atto_principale", "atto_processuale", "provvedimento", "procura", "notifica",
             "comunicazione", "contratto", "economico", "documento_identita", "allegato", "da_verificare",

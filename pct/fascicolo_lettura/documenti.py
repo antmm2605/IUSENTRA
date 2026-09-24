@@ -10,9 +10,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from pct.document_intelligence.sezioni import SEZIONI_DOCUMENTO
+
 from ._testo import data_it, pulisci
 
-SEZIONI = ("identita", "atti", "provvedimenti", "comunicazioni", "notifiche", "procure", "pagamenti", "contratti", "allegati", "da-verificare")
+# Le sezioni del catalogo documentale; la lettura parte dai documenti d'identita'.
+SEZIONI = ("identita", *(sezione for sezione in SEZIONI_DOCUMENTO if sezione != "identita"))
 ETICHETTE_SEZIONE = {
     "identita": "Documenti d’identità",
     "atti": "atti di parte",

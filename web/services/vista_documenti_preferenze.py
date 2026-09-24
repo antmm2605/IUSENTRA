@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from pct.document_intelligence.sezioni import SEZIONI_DOCUMENTO
+
 SEZIONE = "fascicolo_documenti_vista"
 SORGENTE = "react_fascicolo_documenti"
 
@@ -36,7 +38,8 @@ ORDINAMENTI = {
 ORDINAMENTO_PREDEFINITO = "data_documento_desc"
 
 # Sezioni dichiarate in FascicoliPage.tsx (documentListSectionOptions).
-SEZIONI = {"tutte", "atti", "provvedimenti", "comunicazioni", "pagamenti", "identita", "allegati", "da-verificare"}
+# Le stesse sezioni del catalogo documentale, piu' «tutte».
+SEZIONI = {"tutte", *SEZIONI_DOCUMENTO}
 SEZIONE_PREDEFINITA = "tutte"
 
 STATI = {"tutti", "da_firmare", "da_verificare"}

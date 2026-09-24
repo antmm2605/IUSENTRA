@@ -57,7 +57,16 @@ def _nomina_difensore_penale(head: str) -> bool:
     )
 
 
-def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "") -> tuple[str, str]:
+def _citta_dell_ufficio(ufficio: str) -> str:
+    """«Tribunale di Santa Maria Capua Vetere» -> «santa maria capua vetere»."""
+    testo = re.sub(r"[^a-z0-9àèéìòù]+", " ", str(ufficio or "").casefold()).strip()
+    if " di " in f" {testo} ":
+        testo = f" {testo} ".rsplit(" di ", 1)[1].strip()
+    testo = re.sub(r"^(?:tribunale|ordinario|corte|d appello|giudice|pace)\s+", "", testo)
+    return testo if len(testo) >= 3 else ""
+
+
+def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", ufficio: str = "") -> tuple[str, str]:
     head = " ".join(str(testo or "").split())[:4000]
     if re.search(r"(?:contratto individuale di lavoro|contratto di lavoro a tempo determinato)", head[:1800], re.I):
         return "contratto_lavoro", "Il documento disciplina il rapporto di lavoro: le sue date non sono termini processuali."
@@ -71,11 +80,19 @@ def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "") -> tu
         return "procura", "Formula di conferimento della rappresentanza processuale riconosciuta nel contenuto."
     judicial = re.search(r"(?:REPUBBLICA ITALIANA|TRIBUNALE.{0,90}(?:VERBALE|ORDINANZA|SENTENZA))", head[:450], re.I)
     if judicial and numero_rg and anno_rg:
-        patterns = [r"(?:VERBALE DELLA CAUSA|numero registro generale|ruolo generale|procedimento.{0,65}iscritto al)\s*(?:n\.?|numero)?\s*(?:r\.?\s*g\.?\s*)?(\d+)\s*/\s*(\d{4})", r"(?<![A-Za-z])(?:R\.?\s*G\.?|NRG)\s*(?:n\.?)?\s*(\d+)\s*/\s*(\d{4})"]
+        patterns = [r"(?:VERBALE DELLA CAUSA|numero registro generale|ruolo generale|procedimento.{0,65}iscritto al|causa.{0,40}iscritta al)\s*(?:n\.?|numero)?\s*(?:r\.?\s*g\.?\s*)?(\d+)\s*/\s*(\d{4})", r"(?<![A-Za-z])(?:R\.?\s*G\.?|NRG)\s*(?:n\.?)?\s*(\d+)\s*/\s*(\d{4})"]
         matches = sorted((m.start(), f"{int(m.group(1))}/{m.group(2)}") for pat in patterns for m in re.finditer(pat, head, re.I))
         atteso = f"{int(numero_rg)}/{anno_rg}" if str(numero_rg).isdigit() else ""
         if matches and matches[0][1] != atteso:
             return "precedente_giurisprudenziale", f"L'intestazione identifica il procedimento {matches[0][1]}, diverso dal fascicolo {atteso}."
+        # Una sentenza di un altro ufficio, anche con il numero di ruolo
+        # oscurato («n. XXX/2022 R.G.»): se non cita né l'ufficio né il ruolo
+        # del fascicolo, e' giurisprudenza prodotta, non un provvedimento della causa.
+        citta = _citta_dell_ufficio(ufficio)
+        intestazione = re.sub(r"[^a-z0-9àèéìòù]+", " ", head[:1500].casefold())
+        ruolo_del_fascicolo = re.search(rf"(?<!\d){int(numero_rg)}\s*/\s*{anno_rg}\b", head) if str(numero_rg).isdigit() else None
+        if citta and f" {citta} " not in f" {intestazione} " and not ruolo_del_fascicolo and re.search(r"\b(?:tribunale|corte)\b", intestazione[:700]):
+            return "precedente_giurisprudenziale", f"L'intestazione indica un ufficio giudiziario diverso da quello del fascicolo ({ufficio.strip()})."
     return "", ""
 
 def applica_pertinenza(fatti: list[Fatto], testo: str, *, contesto, origine: str) -> list[Fatto]:

@@ -92,6 +92,23 @@ FALSI_POSITIVI = {
         "RECLAMO AL GARANTE PER LA PROTEZIONE DEI DATI PERSONALI\nex art. 77 Reg. UE 2016/679\nIl sottoscritto lamenta il trattamento illecito dei propri dati personali.",
         "Reclamo cautelare", "Reclamo al Garante per la protezione dei dati",
     ),
+    # Dal fascicolo reale del 24/09/2026 (dati anonimi): note, decreto e rinvio.
+    "note_trattazione_scritta_che_citano_il_decreto": (
+        "Tribunale\ndi\nBari\nSezione Lavoro\nDott.ssa Anna Neri Udienza del 30.06.2026\nTrattazione scritta R.G. 1234/2026\nPer\nIl sig. Mario Rossi, rappresentato e difeso dall'avv. Luca Bianchi\ncontro\nALFA S.P.A.\nIl ricorrente rassegna le seguenti CONCLUSIONI. Si fa presente che il ricorso e il pedissequo decreto di fissazione udienza sono stati notificati alla resistente.",
+        "Decreto di fissazione udienza", "Note scritte ex art. 127-ter c.p.c.",
+    ),
+    "decreto_127ter_che_chiede_istanze_e_conclusioni": (
+        "TRIBUNALE DI BARI SEZIONE LAVORO E PREVIDENZA\nDECRETO PER IL DEPOSITO DI NOTE SCRITTE IN\nSOSTITUZIONE DELL'UDIENZA\n(art. 127 ter c.p.c.)\nN.R.G. 1234/2026 Il giudice, letti gli atti, letto l'art. 127 ter c.p.c.,\nDISPONE\nche l'udienza fissata per il giorno 30/06/2026 sia sostituita dal deposito telematico di note scritte contenenti le sole istanze e conclusioni;\nASSEGNA\na ciascuna parte costituita termine di legge per il deposito delle note.",
+        "Istanze e conclusioni", "Decreto di trattazione scritta (art. 127-ter c.p.c.)",
+    ),
+    "rinvio_d_ufficio_fuori_udienza": (
+        "1234 /2026\nTRIBUNALE DI BARI\nSezione Lavoro\nUDIENZA DEL 09.06.2026\nIl Giudice, dott.ssa Anna Neri, stante il proprio impedimento a celebrare l'udienza,\nRINVIA D'UFFICIO\nla causa all'udienza del 30.06.2026 per i medesimi incombenti. Si comunichi\nBari, 01/06/2026\nIl Giudice",
+        "Verbale", "Decreto di rinvio d'ufficio dell'udienza",
+    ),
+    "istanza_di_sostituzione_resta_istanza": (
+        "STUDIO LEGALE BIANCHI\nTRIBUNALE DI\nBARI\nRICHIESTA SOSTITUZIONE DELL'UDIENZA IN PRESENZA\nCON IL DEPOSITO DI NOTE SCRITTE\nR.G. n. 1234/2026 Udienza: 30.06.2026\nIl ricorrente chiede che l'udienza sia sostituita dal deposito di note scritte ai sensi dell'art. 127-ter c.p.c.",
+        "Note scritte ex art. 127-ter c.p.c.", "Istanza di trattazione scritta",
+    ),
 }
 
 
@@ -176,3 +193,54 @@ def test_la_fonte_della_regola_entra_fra_le_prove_della_catalogazione():
     esito = _cataloga(CAMPIONI["atto_precetto"][0], "precetto.pdf")
     locatori = {prova.locator for prova in esito.evidence if prova.evidence_type == "legal_source"}
     assert "normattiva_cpc_esecuzione_forzata" in locatori
+
+
+@pytest.mark.parametrize(
+    ("oggetto", "etichetta", "sezione"),
+    [
+        ("DEPOSITO TELEMATICO: Ricorso Rossi [AB123] [RefID_001]", "PEC di deposito telematico", "comunicazioni"),
+        ("COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Rossi [AB123]", "Copia non crittografata del deposito telematico", "comunicazioni"),
+        ("Notificazione ai sensi della legge n. 53 - 1994 e succ. mod. [AB123]", "Notificazione a mezzo PEC (L. 53/1994)", "notifiche"),
+        ("Richiesta documenti", "Messaggio PEC", "comunicazioni"),
+    ],
+)
+def test_il_messaggio_pec_prende_il_nome_da_quello_che_trasporta(oggetto, etichetta, sezione):
+    testo = (
+        f"Oggetto: {oggetto}\nMittente: studio@pec.example.it\nDestinatari: ufficio@pec.example.it\n"
+        "Messaggio di posta certificata\nCorpo email:\nSi trasmette in allegato."
+    )
+    esito = _cataloga(testo, "messaggio.eml")
+    assert esito.document_label == etichetta
+    assert esito.document_section == sezione
+
+
+def _cataloga_nel_fascicolo(testo: str):
+    return resolve_document_catalog(
+        tenant_id="t", fascicolo_id="F", document_id="sentenza.pdf", document_sha256="", filename="sentenza.pdf",
+        extracted_text=testo, document_metadata={},
+        fascicolo_context={**CTX_CIVILE, "tribunale": "Tribunale di Santa Maria Capua Vetere", "numero_rg": "3001", "anno_rg": "2025"},
+    )
+
+
+@pytest.mark.parametrize(
+    "testo",
+    [
+        # ruolo oscurato: lo dice solo l'ufficio
+        "n. XXX/2022 R.G.\nREPUBBLICA ITALIANA\nIN NOME DEL POPOLO ITALIANO TRIBUNALE ORDINARIO di VICENZA\nIl Tribunale ha pronunciato la seguente\nSENTENZA\nnella causa civile iscritta al n. XXX/2022 RG Lav.",
+        # «causa iscritta al n.»: ruolo di un altro procedimento
+        "TRIBUNALE DI COSENZA\nSEZIONE CONTROVERSIE DI LAVORO\nREPUBBLICA ITALIANA\nIN NOME DEL POPOLO ITALIANO\nIl Tribunale di Cosenza ha pronunciato la seguente\nSENTENZA\nnella causa iscritta al n. 4688/2022 RGAL",
+    ],
+)
+def test_la_sentenza_di_un_altro_ufficio_e_un_precedente(testo):
+    esito = _cataloga_nel_fascicolo(testo)
+    assert esito.document_nature == "precedente_giurisprudenziale"
+    assert esito.document_section != "provvedimenti"
+
+
+def test_la_sentenza_della_causa_resta_un_provvedimento():
+    esito = _cataloga_nel_fascicolo(
+        "Sentenza n. 2700/2026 pubbl. il 01/07/2026\nR.G. n. 3001/2025\nREPUBBLICA ITALIANA\nIN NOME DEL POPOLO ITALIANO\n"
+        "TRIBUNALE DI SANTA MARIA CAPUA VETERE\nIl Tribunale ha pronunciato la seguente sentenza nella causa iscritta al N.R.G. 3001/2025"
+    )
+    assert esito.document_label == "Sentenza"
+    assert esito.document_section == "provvedimenti"

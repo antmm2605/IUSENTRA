@@ -112,6 +112,8 @@ def fascicolo_catalog_context(fascicolo: Any) -> dict[str, Any]:
         "oggetto": getattr(fascicolo, "oggetto", ""),
         "numero_rg": getattr(fascicolo, "numero_rg", ""),
         "anno_rg": getattr(fascicolo, "anno_rg", ""),
+        # L'ufficio del fascicolo: una sentenza di un altro ufficio e' giurisprudenza prodotta.
+        "tribunale": getattr(fascicolo, "tribunale", ""),
         # Il cliente del fascicolo: serve a riconoscere il suo documento d'identità dal contenuto.
         "cliente": str(getattr(fascicolo, "nome_cliente", "") or ""),
     })

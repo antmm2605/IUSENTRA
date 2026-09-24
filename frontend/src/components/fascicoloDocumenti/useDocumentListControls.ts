@@ -1,4 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { ID_SEZIONI_DOCUMENTO } from './sezioniDocumento'
 import type { FascicoloDocument } from '../../fascicoliData'
 import {
   DEFAULT_DOCUMENT_SORT,
@@ -28,7 +29,7 @@ export type DocumentListEntry<T> = {
 const SORT_STORAGE_KEY = 'iusentra.fascicolo.documenti.ordinamento'
 
 /** Sezioni ammesse: le stesse dichiarate dal catalogo documentale. */
-const SEZIONI_AMMESSE = new Set(['tutte', 'atti', 'provvedimenti', 'comunicazioni', 'pagamenti', 'identita', 'allegati', 'da-verificare'])
+const SEZIONI_AMMESSE = new Set(['tutte', ...ID_SEZIONI_DOCUMENTO])
 const STATI_AMMESSI = new Set<DocumentStatusFilter>(['tutti', 'da_firmare', 'da_verificare'])
 
 function readStoredSort(): DocumentSortKey {

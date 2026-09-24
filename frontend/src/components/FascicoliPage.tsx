@@ -162,6 +162,7 @@ import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
 import { useFileDropTarget } from './fascicoloDocumenti/useFileDropTarget'
+import { ID_SEZIONI_DOCUMENTO, SEZIONI_DOCUMENTO } from './fascicoloDocumenti/sezioniDocumento'
 import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
 import { beginLocalSignerForegroundGrant } from '../features/telematico/localSignerForeground'
 import './FascicoliPage.css'
@@ -1886,7 +1887,7 @@ function CatalogCorrectionForm({
     <form className="iu-fas-catalog__correction" onSubmit={(event) => { event.preventDefault(); onSubmit(draft) }}>
       <strong>Correggi la catalogazione nel fascicolo</strong>
       <label>Denominazione<input value={draft.document_label} maxLength={160} required onChange={(event) => update('document_label', event.currentTarget.value)} /></label>
-      <label>Sezione<select value={draft.document_section} onChange={(event) => update('document_section', event.currentTarget.value)}><option value="atti">Atti</option><option value="provvedimenti">Provvedimenti</option><option value="procure">Procure</option><option value="notifiche">Notifiche</option><option value="comunicazioni">Comunicazioni</option><option value="contratti">Contratti e incarichi</option><option value="pagamenti">Economia e pagamenti</option><option value="identita">Documenti d’identità</option><option value="allegati">Allegati e supporti</option><option value="da-verificare">Da verificare</option></select></label>
+      <label>Sezione<select value={draft.document_section} onChange={(event) => update('document_section', event.currentTarget.value)}>{SEZIONI_DOCUMENTO.map((sezione) => <option key={sezione.id} value={sezione.id}>{sezione.label}</option>)}</select></label>
       <label>Natura<select value={draft.document_nature} onChange={(event) => update('document_nature', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="atto_processuale">Atto processuale</option><option value="provvedimento">Provvedimento</option><option value="procura">Procura</option><option value="notifica">Notifica</option><option value="comunicazione">Comunicazione</option><option value="contratto">Contratto o incarico</option><option value="economico">Documento economico</option><option value="documento_identita">Documento d’identità</option><option value="allegato">Allegato</option><option value="da_verificare">Da verificare</option></select></label>
       <label>Ruolo deposito<select value={draft.deposit_role} onChange={(event) => update('deposit_role', event.currentTarget.value)}><option value="atto_principale">Atto principale</option><option value="procura">Procura</option><option value="allegato">Allegato</option><option value="prova_notifica">Prova di notifica</option><option value="contributo_unificato">Contributo unificato</option><option value="fuori_busta">Fuori busta</option></select></label>
       <label className="iu-fas-catalog__check"><input type="checkbox" checked={draft.deposit_candidate} onChange={(event) => update('deposit_candidate', event.currentTarget.checked)} /> Valuta per il deposito</label>
@@ -7440,14 +7441,6 @@ function fLabel(value: string) {
   return value || 'Fascicolo'
 }
 
-type DocumentAutoSection = {
-  id: string
-  title: string
-  note: string
-  tone: FascicoloRow['tone']
-  documents: FascicoloDocument[]
-}
-
 type PortalCatalogRow = {
   id: string
   name: string
@@ -7461,29 +7454,11 @@ type PortalCatalogRow = {
   tone: FascicoloRow['tone']
 }
 
-const documentAutoSectionOrder: Array<Omit<DocumentAutoSection, 'documents'>> = [
-  { id: 'atti', title: 'Atti e memorie', note: 'Atto principale, difese e bozze redazionali.', tone: 'primary' },
-  { id: 'provvedimenti', title: 'Provvedimenti', note: 'Sentenze, ordinanze, decreti e verbali.', tone: 'purple' },
-  { id: 'comunicazioni', title: 'Comunicazioni', note: 'PEC, cancelleria, notifiche e messaggi collegati.', tone: 'info' },
-  { id: 'pagamenti', title: 'Pagamenti e contributi', note: 'Contributo unificato, PagoPA, bolli, parcelle e note spese.', tone: 'success' },
-  { id: 'identita', title: 'Documenti d’identità', note: 'Documenti di riconoscimento e dati del titolare.', tone: 'info' },
-  { id: 'allegati', title: 'Allegati e supporti', note: 'Procure, contratti, parcelle e allegati di fascicolo.', tone: 'neutral' },
-  { id: 'da-verificare', title: 'Da verificare', note: 'Documenti senza sezione certa da controllare.', tone: 'warning' },
-]
-
-const documentListSectionIds = new Set(documentAutoSectionOrder.map((section) => section.id))
+const documentListSectionIds = ID_SEZIONI_DOCUMENTO
 
 const catalogTransientStatuses = new Set([408, 423, 429, 502, 503, 504])
 
-const documentListSectionOptions: DocumentSectionOption[] = [
-  { id: 'atti', label: 'Atti e memorie' },
-  { id: 'provvedimenti', label: 'Provvedimenti' },
-  { id: 'comunicazioni', label: 'Comunicazioni' },
-  { id: 'pagamenti', label: 'Pagamenti' },
-  { id: 'identita', label: 'Documenti d’identità' },
-  { id: 'allegati', label: 'Allegati' },
-  { id: 'da-verificare', label: 'Senza sezione' },
-]
+const documentListSectionOptions: DocumentSectionOption[] = [...SEZIONI_DOCUMENTO]
 
 function documentSearchText(doc: FascicoloDocument): string {
   return normaliseText([doc.type, doc.rawType, doc.name, doc.source, doc.portalClass, doc.portalName, doc.portalSender, doc.statusLabel, doc.catalogRole, doc.catalogLabel, doc.catalogSection, doc.catalogEvidence, doc.depositRole, ...doc.tags].join(' '))
@@ -8083,12 +8058,15 @@ function buildPortalCatalogRows(data: FascicoloDetailData): PortalCatalogRow[] {
 
 function documentAutoSectionId(doc: FascicoloDocument): string {
   if (doc.catalogRole === 'documento_identita') return 'identita'
-  if (['atti', 'provvedimenti', 'comunicazioni', 'pagamenti', 'identita', 'allegati', 'da-verificare'].includes(doc.catalogSection)) return doc.catalogSection
+  if (ID_SEZIONI_DOCUMENTO.has(doc.catalogSection)) return doc.catalogSection
   const text = documentSearchText(doc)
-  if (/(pec|cancelleria|comunicazion|notifica|relata|busta|rdac|rac|esito|ricevut|accettazion)/.test(text)) return 'comunicazioni'
+  if (/(relata|notificazion)/.test(text)) return 'notifiche'
+  if (/(pec|cancelleria|comunicazion|notifica|busta|rdac|rac|esito|ricevut|accettazion)/.test(text)) return 'comunicazioni'
   if (/(sentenza|ordinanza|decreto|provvediment|verbale)/.test(text)) return 'provvedimenti'
   if (/(atto giudiziario|ricorso|citazione|comparsa|memoria|conclusionale|replica)/.test(text)) return 'atti'
-  if (/(procura|contratto|parcella|fattura|allegato|documento ufficiale)/.test(text)) return 'allegati'
+  if (/procura/.test(text)) return 'procure'
+  if (/contratto/.test(text)) return 'contratti'
+  if (/(parcella|fattura|allegato|documento ufficiale)/.test(text)) return 'allegati'
   return 'da-verificare'
 }
 

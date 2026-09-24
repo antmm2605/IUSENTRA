@@ -116,8 +116,19 @@ REGOLE = (
         evidence="titolo dell'atto e conclusioni precisate (art. 189 c.p.c.)",
     ),
     regola(
+        "decreto_127ter",
+        r"decreto\s+(?:per\s+il\s+deposito\s+di\s+note\s+scritte|di\s+trattazione\s+scritta|di\s+sostituzione\s+dell.?\s*udienza)(?:\s+.*)?",
+        r"\b127[\s.-]*ter\b|\bnote\s+scritte\b",
+        "Decreto di trattazione scritta (art. 127-ter c.p.c.)",
+        role="provvedimento", section="provvedimenti", tipo=TipoDocumento.DECRETO,
+        fonte="normattiva_cpc_udienza_note_scritte", deposit_role="fuori_busta", deposit_candidate=False,
+        evidence="titolo del decreto e sostituzione dell'udienza con note scritte (art. 127-ter c.p.c.)",
+    ),
+    regola(
         "note_127ter",
-        r"note\s+(?:scritte\s+)?(?:ex\s+|ai\s+sensi\s+dell.?\s*)?art\.?\s*127[\s.-]*ter(?:\s+.*)?|note\s+scritte(?:\s+in\s+sostituzione\s+dell.?\s*udienza)?(?:\s+.*)?",
+        r"note\s+(?:scritte\s+)?(?:ex\s+|ai\s+sensi\s+dell.?\s*)?art\.?\s*127[\s.-]*ter(?:\s+.*)?|note\s+scritte(?:\s+in\s+sostituzione\s+dell.?\s*udienza)?(?:\s+.*)?"
+        # l'intestazione breve dei modelli di studio: «Trattazione scritta R.G. …»
+        r"|trattazione\s+scritta(?:\s+.*)?",
         r"\b127[\s.-]*ter\b|\budienza\b|\btrattazione\b",
         "Note scritte ex art. 127-ter c.p.c.",
         role="atto_difensivo", section="atti", tipo=TipoDocumento.MEMORIA,

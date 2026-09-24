@@ -220,10 +220,11 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
       <OcrFoglio
         blocks={blocks}
         pagine={pagine}
-        parte={(block) => (
+        parte={(block, disposizione) => (
           <ParteDelFoglio
             key={block.id}
             block={block}
+            disposizione={disposizione}
             disabled={disabled}
             scelto={corrente?.id === block.id}
             ridisegno={ridisegno}

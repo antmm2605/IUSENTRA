@@ -159,7 +159,7 @@ test('se tutto torna uguale i tratti tornano formato del pezzo', () => {
 })
 
 
-const { marginiDellaPagina, pagineDelFoglio, MARGINI_PREDEFINITI } = await import('../../frontend/src/components/documentCapture/ocrPagina.ts')
+const { disposizioniDellaPagina, marginiDellaPagina, pagineDelFoglio, MARGINI_PREDEFINITI } = await import('../../frontend/src/components/documentCapture/ocrPagina.ts')
 
 test('i margini del foglio sono quelli del PDF, letti dove comincia e finisce il testo', () => {
   // pagina A4 a 300 dpi: 2480 x 3508 unita'; testo da 25 mm a sinistra a 20 mm a destra, da 30 mm in alto
@@ -186,4 +186,40 @@ test('i margini del foglio sono quelli del PDF, letti dove comincia e finisce il
 test('il foglio si divide nelle pagine del documento', () => {
   const blocks = [...parseBlocks([blocco('paragrafo', 'Uno'), blocco('paragrafo', 'Due')], 1), ...parseBlocks([blocco('paragrafo', 'Tre')], 2)]
   assert.deepEqual(pagineDelFoglio(blocks).map((pagina) => [pagina.numero, pagina.blocchi.map((b) => b.text)]), [[1, ['Uno', 'Due']], [2, ['Tre']]])
+})
+
+test('le parti stanno sulla pagina come nel PDF: interlinea, spazi fra le parti e rientri', () => {
+  // unita' della pagina = millimetri di un A4, per leggere i numeri a occhio
+  const geometria = { numero: 1, larghezza: 210, altezza: 297 }
+  const misure = (interlinea, rientro = 0) => ({ interlinea, altezza: 4, rientro })
+  const blocks = parseBlocks([
+    { ...blocco('titolo', 'CHIEDE'), riquadro: [95, 30, 115, 34], righe_misure: misure(0) },
+    // tre righe da 4,3 mm, 10 mm sotto il titolo, rientrate di 6 mm
+    { ...blocco('paragrafo', 'Che il giudice voglia accogliere.'), riquadro: [26, 44, 190, 56.6], righe_misure: misure(4.3) },
+    // prima riga rientrata di 10 mm rispetto alle altre
+    { ...blocco('paragrafo', 'Con osservanza.'), riquadro: [20, 62, 190, 70.6], righe_misure: misure(4.3, 10) },
+  ], 1)
+  const [titolo, primo, secondo] = disposizioniDellaPagina(blocks, geometria)
+  // una riga sola: l'interlinea e' quella della pagina
+  assert.equal(titolo['--iu-ocr-interlinea'], '4.3mm')
+  assert.equal(titolo.marginTop, undefined)
+  // 10 mm fra le lettere, meno quello che il foglio lascia gia' sotto la riga (4,3 - 4)
+  assert.equal(primo.marginTop, '9.7mm')
+  assert.equal(primo.marginLeft, '6mm')
+  assert.equal(secondo.textIndent, '10mm')
+  assert.equal(secondo.marginLeft, undefined)
+  // senza misure della pagina il foglio resta com'era
+  assert.deepEqual(disposizioniDellaPagina(blocks), [undefined, undefined, undefined])
+})
+
+test('le righe di un intestazione centrata vanno a capo dove andavano sulla pagina', () => {
+  const geometria = { numero: 1, larghezza: 210, altezza: 297 }
+  const [intestazione, riga] = disposizioniDellaPagina(parseBlocks([
+    { ...blocco('paragrafo', '89029 TAURIANOVA (RC) Cod. Fisc. MNT GPP'), formato: { allineamento: 'centro' }, riquadro: [70, 30, 140, 39], righe_misure: { interlinea: 4.3, altezza: 4, rientro: 0 } },
+    { ...blocco('paragrafo', 'PEC: studio@pec.it'), formato: { allineamento: 'centro' }, riquadro: [80, 40, 130, 44], righe_misure: { interlinea: 0, altezza: 4, rientro: 0 } },
+  ], 1), geometria)
+  assert.equal(intestazione.maxWidth, '71.5mm')
+  assert.equal(intestazione.marginLeft, 'auto')
+  // una riga sola non si stringe
+  assert.equal(riga.maxWidth, undefined)
 })

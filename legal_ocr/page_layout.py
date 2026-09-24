@@ -113,6 +113,14 @@ class Blocco:
     pagina: int = 1
     # Solo per le voci di elenco: il segno che le apre e il testo senza di esso.
     marcatore: Marcatore | None = None
+    # Misure delle righe, nelle unita' del riquadro: servono a rimettere il
+    # testo sulla pagina come stava. Interlinea e' il passo fra una riga e la
+    # successiva (zero con una riga sola), altezza_riga l'altezza delle lettere,
+    # rientro quanto la prima riga comincia piu' a destra delle altre
+    # (negativo: rientro sporgente).
+    interlinea: float = 0.0
+    altezza_riga: float = 0.0
+    rientro: float = 0.0
 
     @property
     def voce(self) -> str:
@@ -133,6 +141,12 @@ class Blocco:
         if self.marcatore is not None:
             voce["marcatore"] = self.marcatore.come_dizionario()
             voce["voce"] = self.voce
+        if self.tipo != TABELLA and self.altezza_riga > 0:
+            voce["righe_misure"] = {
+                "interlinea": round(self.interlinea, 2),
+                "altezza": round(self.altezza_riga, 2),
+                "rientro": round(self.rientro, 2),
+            }
         return voce
 
 
@@ -186,7 +200,50 @@ def righe_da_parole(parole: Iterable[dict[str, Any]]) -> list[Riga]:
     unita = statistics.median([riga.altezza for riga in righe]) if righe else 1.0
     banda = max(1.0, unita * 0.6)
     righe.sort(key=lambda riga: (round(riga.alto / banda), riga.sinistra))
-    return righe
+    return _marcatori_ricongiunti(righe)
+
+
+#: Un segno d'elenco da solo: trattino, pallino, numero o lettera con il punto
+#: o la parentesi.
+_SEGNO_SOLO = re.compile(r"^(?:[-\u2013\u2014\u2022\u25aa\u25e6\u00b7*]|\(?\d{1,3}[.)]|\(?[a-zA-Z][.)]|\(?[ivxlIVXL]{1,5}[.)])$")
+
+
+def _stessa_banda(prima: Riga, dopo: Riga) -> bool:
+    sovrapposta = min(prima.basso, dopo.basso) - max(prima.alto, dopo.alto)
+    return sovrapposta >= 0.6 * min(prima.basso - prima.alto, dopo.basso - dopo.alto) and dopo.sinistra >= prima.destra
+
+
+def _marcatori_ricongiunti(righe: list[Riga]) -> list[Riga]:
+    """Rimette il segno d'elenco sulla riga del testo che apre.
+
+    Word scrive il trattino (o il numero) di una voce d'elenco come un oggetto
+    a parte, separato dal testo da una tabulazione: il PDF lo dichiara come una
+    riga sua. Lasciato solo, il trattino finiva in coda alla riga sopra e poi
+    veniva scambiato per una sillabazione — la voce spariva dentro il capoverso
+    precedente. Qui torna davanti al suo testo, e il vuoto della tabulazione si
+    chiude: e' il rientro della voce, non una colonna di tabella.
+    """
+    unite: list[Riga] = []
+    indice = 0
+    while indice < len(righe):
+        riga = righe[indice]
+        seguente = righe[indice + 1] if indice + 1 < len(righe) else None
+        if seguente is not None and len(riga.parole) == 1 and _SEGNO_SOLO.match(riga.parole[0].testo) and _stessa_banda(riga, seguente):
+            segno = riga.parole[0]
+            chiuso = Parola(
+                testo=segno.testo,
+                sinistra=segno.sinistra,
+                alto=segno.alto,
+                larghezza=max(segno.larghezza, seguente.sinistra - segno.sinistra - 1.0),
+                altezza=segno.altezza,
+                confidenza=segno.confidenza,
+            )
+            unite.append(Riga([chiuso, *seguente.parole]))
+            indice += 2
+            continue
+        unite.append(riga)
+        indice += 1
+    return unite
 
 
 def _larghezza_carattere(righe: Sequence[Riga]) -> float:
@@ -307,7 +364,9 @@ def _unisci_righe(righe: Sequence[Riga]) -> str:
     testo = ""
     for riga in righe:
         pezzo = riga.testo
-        if testo.endswith("-") and pezzo[:1].islower():
+        # a capo con sillabazione: il trattino attaccato a una parola; un
+        # trattino da solo e' un segno d'elenco e resta dov'e'
+        if re.search(r"\w-$", testo) and pezzo[:1].islower():
             testo = testo[:-1] + pezzo
         else:
             testo = f"{testo} {pezzo}".strip()
@@ -327,7 +386,28 @@ def _tipo_testuale(righe: Sequence[Riga], altezza_tipica: float, marcatore: Marc
     return PARAGRAFO
 
 
+def _misure_righe(righe: Sequence[Riga]) -> tuple[float, float, float]:
+    """Interlinea, altezza delle lettere e rientro della prima riga.
+
+    Il passo si misura fra le cime di due righe consecutive: e' quello che il
+    documento dichiara come interlinea. Il rientro conta solo se si vede:
+    sotto un terzo dell'altezza di riga e' il frastaglio del testo a sinistra.
+    """
+    if not righe:
+        return 0.0, 0.0, 0.0
+    altezza = statistics.median([riga.altezza for riga in righe]) or 0.0
+    passi = [dopo.alto - prima.alto for prima, dopo in zip(righe, righe[1:]) if dopo.alto > prima.alto]
+    interlinea = statistics.median(passi) if passi else 0.0
+    rientro = 0.0
+    if len(righe) > 1:
+        rientro = righe[0].sinistra - statistics.median([riga.sinistra for riga in righe[1:]])
+        if abs(rientro) < altezza / 3:
+            rientro = 0.0
+    return interlinea, altezza, rientro
+
+
 def _blocco_testuale(righe: Sequence[Riga], altezza_tipica: float, pagina: int, marcatore: Marcatore | None) -> Blocco:
+    interlinea, altezza_riga, rientro = _misure_righe(righe)
     return Blocco(
         _tipo_testuale(righe, altezza_tipica, marcatore),
         testo=_unisci_righe(righe),
@@ -335,6 +415,9 @@ def _blocco_testuale(righe: Sequence[Riga], altezza_tipica: float, pagina: int, 
         confidenza=_confidenza(righe),
         pagina=pagina,
         marcatore=marcatore,
+        interlinea=interlinea,
+        altezza_riga=altezza_riga,
+        rientro=rientro,
     )
 
 

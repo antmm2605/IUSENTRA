@@ -50,6 +50,19 @@ export type OcrBlock = {
   marker: OcrMarker | null
   /** Dove il formato cambia dentro il testo (vedi ocrTratti). Assenti: vale il formato del blocco. */
   tratti?: OcrTratto[]
+  /** Misure delle righe sulla pagina, nelle unita' del riquadro (vedi ocrPagina). */
+  righe?: OcrMisureRighe
+}
+
+/** Passo fra le righe, altezza delle lettere e rientro della prima riga. */
+export type OcrMisureRighe = { interlinea: number; altezza: number; rientro: number }
+
+function parseMisureRighe(payload: unknown): OcrMisureRighe | undefined {
+  if (!payload || typeof payload !== 'object') return undefined
+  const voce = payload as Record<string, unknown>
+  const altezza = Number(voce.altezza) || 0
+  if (altezza <= 0) return undefined
+  return { interlinea: Math.max(0, Number(voce.interlinea) || 0), altezza, rientro: Number(voce.rientro) || 0 }
 }
 
 import { parseMarker } from './ocrMarkers'
@@ -161,6 +174,7 @@ export function parseBlocks(payload: unknown, page: number): OcrBlock[] {
       box: parseBox(item.riquadro),
       marker: kind === 'elenco' ? parseMarker(item.marcatore) : null,
       tratti: kind === 'tabella' ? [] : parseTratti(item.tratti, text),
+      righe: kind === 'tabella' ? undefined : parseMisureRighe(item.righe_misure),
     })
   }
   return blocks

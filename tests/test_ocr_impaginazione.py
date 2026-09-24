@@ -201,3 +201,44 @@ def test_una_lettura_corta_ma_sicura_non_batte_una_lunga_e_sicura():
 
 def test_nessuna_parola_vale_zero():
     assert punteggio_lettura([]) == 0.0
+
+
+def test_il_capoverso_porta_interlinea_altezza_e_rientro_della_prima_riga():
+    # prima riga rientrata di 20 unita', passo di 20 fra le righe, lettere alte 16
+    parole = (
+        riga_di(["Il", "sottoscritto", "avvocato"], 100, sinistra=80, riga=0)
+        + riga_di(["espone", "quanto", "segue", "in", "fatto"], 120, riga=1)
+        + riga_di(["e", "in", "diritto."], 140, riga=2)
+    )
+    blocco = analizza_pagina(parole)[0]
+    assert blocco.interlinea == 20
+    assert blocco.altezza_riga == 16
+    assert blocco.rientro == 20
+    assert blocco.come_dizionario()["righe_misure"] == {"interlinea": 20, "altezza": 16, "rientro": 20}
+
+
+def test_una_riga_sola_non_ha_interlinea_ne_rientro():
+    blocco = analizza_pagina(riga_di(["Taurianova,", "03.12.2025"], 100, riga=0))[0]
+    assert blocco.interlinea == 0 and blocco.rientro == 0
+    assert blocco.come_dizionario()["righe_misure"]["altezza"] == 16
+
+
+def test_il_trattino_di_word_scritto_a_parte_resta_davanti_alla_sua_voce():
+    # il trattino e' una riga sua (blocco 2), alla stessa altezza del testo (blocco 3)
+    parole = (
+        riga_di(["dagli", "ausiliari", "del", "giudice»;"], 100, blocco=1)
+        + [parola("-", 60, 120, larghezza=6, blocco=2)]
+        + riga_di(["che", "nel", "caso", "di", "specie"], 120, sinistra=110, blocco=3)
+        + riga_di(["giudizio", "la", "presenza."], 140, sinistra=110, blocco=3, riga=1)
+    )
+    blocchi = analizza_pagina(parole)
+    testi = [blocco.testo for blocco in blocchi]
+    assert testi[0] == "dagli ausiliari del giudice»;"
+    assert blocchi[1].tipo == ELENCO
+    assert blocchi[1].testo.startswith("- che nel caso di specie")
+    assert blocchi[1].testo.endswith("giudizio la presenza.")
+
+
+def test_la_sillabazione_resta_solo_per_il_trattino_attaccato_alla_parola():
+    parole = riga_di(["il", "ricor-"], 100, riga=0) + riga_di(["rente", "chiede"], 120, riga=1)
+    assert analizza_pagina(parole)[0].testo == "il ricorrente chiede"

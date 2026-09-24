@@ -24,7 +24,7 @@ export function daControllare(block: OcrBlock): boolean {
   return block.confidence > 0 && block.confidence < CONFIDENZA_DA_CONTROLLARE
 }
 
-function stileDelBlocco(block: OcrBlock) {
+function stileDelBlocco(block: OcrBlock, disposizione?: CSSProperties) {
   const stile: Record<string, string> = { '--iu-ocr-scala': String(block.format.scala || 1) }
   // il nero non si dichiara: senza colore il testo prende quello del foglio;
   // con i tratti il colore e' loro, parola per parola
@@ -33,7 +33,8 @@ function stileDelBlocco(block: OcrBlock) {
   if (block.format.famiglia) stile.fontFamily = `'${block.format.famiglia}', serif`
   // il corpo passa da una variabile: la dimensione la scrive il campo, non la parte
   if (block.format.corpo) stile['--iu-ocr-corpo'] = `${block.format.corpo}pt`
-  return stile as CSSProperties
+  // dove sta sulla pagina (vedi ocrPagina): spazi, rientri, interlinea
+  return { ...stile, ...disposizione } as CSSProperties
 }
 
 /** Un tratto nel foglio: come sarà nel documento, con le classi del foglio di stile. */
@@ -108,8 +109,10 @@ function BloccoScrivibile({ block, disabled, ridisegno, onText, onSelect }: {
  * documento: livello, allineamento, corpo, colore, e il segno che il
  * riconoscimento non era sicuro di averla letta bene.
  */
-export function ParteDelFoglio({ block, disabled, scelto, ridisegno, onText, onCell, onSelect }: {
+export function ParteDelFoglio({ block, disabled, scelto, ridisegno, onText, onCell, onSelect, disposizione }: {
   block: OcrBlock
+  /** Dove sta sulla pagina: distanza dalla parte sopra, rientri, interlinea. */
+  disposizione?: CSSProperties
   disabled: boolean
   scelto: boolean
   /** Cresce a ogni comando della barra: il pezzo si ridisegna anche col cursore dentro. */
@@ -136,7 +139,7 @@ export function ParteDelFoglio({ block, disabled, scelto, ridisegno, onText, onC
         incerto ? 'is-incerto' : '',
         scelto ? 'is-scelto' : '',
       ].filter(Boolean).join(' ')}
-      style={stileDelBlocco(block)}
+      style={stileDelBlocco(block, disposizione)}
       title={incerto ? `Riconosciuto al ${Math.round(block.confidence * 100)}%: da rileggere` : undefined}
     >
       {block.kind === 'tabella' ? (

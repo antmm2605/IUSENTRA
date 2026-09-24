@@ -134,14 +134,16 @@
 /* Il foglio come la pagina: A4 con i margini del PDF, rimpicciolito tutto insieme per stare nel pannello. */
 .iu-ocr-foglio__a4 { display: grid; gap: 18px; justify-content: center; }
 .iu-ocr-pagina { box-sizing: border-box; width: 210mm; min-height: 297mm; background: #ffffff; color: #111827; font-family: 'Times New Roman', Times, serif; box-shadow: 0 1px 2px rgba(15, 23, 42, .12), 0 6px 18px rgba(15, 23, 42, .08); }
-.iu-ocr-pagina .iu-ocr-foglio__parte { padding-left: 0; padding-right: 0; border-radius: 0; }
+.iu-ocr-pagina .iu-ocr-foglio__parte { padding: 0; border-radius: 0; }
 .iu-ocr-pagina .iu-ocr-foglio__parte.is-scelto { background: rgba(37, 99, 235, .06); box-shadow: -6px 0 0 rgba(37, 99, 235, .06), 6px 0 0 rgba(37, 99, 235, .06), inset 0 0 0 1px rgba(37, 99, 235, .35); }
 /* Il corpo del testo e' quello di un atto; i titoli lo moltiplicano per la proporzione misurata sulla pagina. */
 .iu-ocr-pagina .iu-ocr-foglio__testo,
 .iu-ocr-pagina .iu-ocr-foglio__parte--h1 .iu-ocr-foglio__testo,
 .iu-ocr-pagina .iu-ocr-foglio__parte--h2 .iu-ocr-foglio__testo,
 .iu-ocr-pagina .iu-ocr-foglio__parte--h3 .iu-ocr-foglio__testo,
-.iu-ocr-pagina .iu-ocr-foglio__parte--h4 .iu-ocr-foglio__testo { font-size: calc(12pt * var(--iu-ocr-scala)); line-height: 1.5; overflow-wrap: normal; }
+.iu-ocr-pagina .iu-ocr-foglio__parte--h4 .iu-ocr-foglio__testo { min-height: var(--iu-ocr-interlinea, 1.15em); font-size: calc(12pt * var(--iu-ocr-scala)); font-weight: 400; letter-spacing: normal; line-height: var(--iu-ocr-interlinea, 1.15); overflow-wrap: normal; }
+/* Sulla pagina il grassetto e' quello del documento, non quello dei titoli dell'interfaccia. */
+.iu-ocr-pagina .iu-ocr-foglio__parte.is-grassetto .iu-ocr-foglio__testo { font-weight: 700; }
 .iu-ocr-pagina .iu-ocr-foglio__parte.has-corpo .iu-ocr-foglio__testo { font-size: var(--iu-ocr-corpo); }
 .iu-ocr-foglio__tabella { display: grid; gap: 4px; margin: 7px 0; overflow-x: auto; }
 .iu-ocr-foglio__etichetta { display: inline-flex; align-items: center; gap: 5px; color: var(--iu-slate-600, #475569); font-size: 11px; font-weight: 800; }

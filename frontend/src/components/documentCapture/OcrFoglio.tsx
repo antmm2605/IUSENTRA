@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { OcrBlock } from './ocrBlocks'
-import { marginiDellaPagina, pagineDelFoglio, type GeometriaPagina, type MarginiPagina } from './ocrPagina'
+import { disposizioniDellaPagina, marginiDellaPagina, pagineDelFoglio, type GeometriaPagina, type MarginiPagina } from './ocrPagina'
 
 /** Larghezza di un A4 in pixel CSS: 210 mm a 96 punti per pollice. */
 const LARGHEZZA_A4_PX = (210 / 25.4) * 96
@@ -27,7 +27,7 @@ export function OcrFoglio({ blocks, pagine, parte }: {
   blocks: OcrBlock[]
   /** Misure delle pagine lette; senza, margini di un atto qualunque. */
   pagine?: GeometriaPagina[]
-  parte: (block: OcrBlock) => ReactNode
+  parte: (block: OcrBlock, disposizione?: CSSProperties) => ReactNode
 }) {
   const contenitore = useRef<HTMLDivElement | null>(null)
   const [scala, setScala] = useState(1)
@@ -43,17 +43,21 @@ export function OcrFoglio({ blocks, pagine, parte }: {
   return (
     <div ref={contenitore} className="iu-ocr-foglio">
       <div className="iu-ocr-foglio__a4" style={stileDellaScala(scala)}>
-        {pagineDelFoglio(blocks).map(({ numero, blocchi }) => (
-          <div
-            key={numero}
-            className="iu-ocr-pagina"
-            data-pagina={numero}
-            style={stileDellaPagina(marginiDellaPagina(blocchi, pagine?.find((voce) => voce.numero === numero)))}
-            aria-label={`Pagina ${numero}`}
-          >
-            {blocchi.map(parte)}
-          </div>
-        ))}
+        {pagineDelFoglio(blocks).map(({ numero, blocchi }) => {
+          const geometria = pagine?.find((voce) => voce.numero === numero)
+          const disposizioni = disposizioniDellaPagina(blocchi, geometria)
+          return (
+            <div
+              key={numero}
+              className="iu-ocr-pagina"
+              data-pagina={numero}
+              style={stileDellaPagina(marginiDellaPagina(blocchi, geometria))}
+              aria-label={`Pagina ${numero}`}
+            >
+              {blocchi.map((blocco, indice) => parte(blocco, disposizioni[indice]))}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

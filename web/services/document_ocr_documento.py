@@ -305,12 +305,21 @@ def _parole_dello_span(
     base = float((span.get("origin") or (0.0, y1))[1])
     alto_lettere, basso_lettere = (base - corpo * 0.8, base + corpo * 0.2) if corpo > 0 else (y0, y1)
 
+    # Con i caratteri (rawdict) ogni parola ha il suo riquadro esatto; senza,
+    # la larghezza della riga si divide in parti uguali per carattere.
+    caratteri = span.get("chars") or []
+    esatti = len(caratteri) == len(testo)
     parole: list[dict[str, Any]] = []
     posizione = 0
     for pezzo in testo.split(" "):
         if pezzo.strip():
             inizio = x0 + posizione * passo
             fine = inizio + len(pezzo) * passo
+            if esatti:
+                primo = posizione + (len(pezzo) - len(pezzo.lstrip()))
+                ultimo = posizione + len(pezzo.rstrip()) - 1
+                inizio = float(caratteri[primo]["bbox"][0])
+                fine = max(inizio + 0.1, float(caratteri[ultimo]["bbox"][2]))
             sottolineato, barrato = _decorazioni_parola(
                 (inizio, alto_lettere, fine, basso_lettere), (x0, alto_lettere, x1, basso_lettere), filetti
             )
@@ -406,7 +415,12 @@ def _parole_native(
         # `sort=True`: i blocchi arrivano in ordine di lettura e non nell'ordine
         # in cui il PDF li ha scritti. Senza, un atto composto da piu' oggetti di
         # testo (le formule di chiusura, le firme) si ricostruisce alla rovescia.
-        contenuto = pagina.get_text("dict", sort=True) or {}
+        contenuto = pagina.get_text("rawdict", sort=True) or {}
+        for blocco in contenuto.get("blocks") or []:
+            for riga in blocco.get("lines") or []:
+                for span in riga.get("spans") or []:
+                    if "text" not in span:
+                        span["text"] = "".join(str(carattere.get("c") or "") for carattere in span.get("chars") or [])
     except Exception:
         contenuto = {}
     parole: list[dict[str, Any]] = []

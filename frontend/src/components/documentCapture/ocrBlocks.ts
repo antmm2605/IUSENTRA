@@ -52,10 +52,28 @@ export type OcrBlock = {
   tratti?: OcrTratto[]
   /** Misure delle righe sulla pagina, nelle unita' del riquadro (vedi ocrPagina). */
   righe?: OcrMisureRighe
+  /** Dove cominciavano le righe del documento, per il testo letto (vedi ocrACapo). */
+  aCapo?: { testo: string; posizioni: number[]; piene?: boolean[] }
 }
 
 /** Passo fra le righe, altezza delle lettere e rientro della prima riga. */
 export type OcrMisureRighe = { interlinea: number; altezza: number; rientro: number }
+
+/** Le posizioni del server contano i caratteri; quelle del browser le unita' UTF-16. */
+function parseACapo(payload: unknown, testo: string, piene: unknown): OcrBlock['aCapo'] {
+  if (!Array.isArray(payload) || !payload.length) return undefined
+  const caratteri = Array.from(testo)
+  const unita: number[] = [0]
+  for (const carattere of caratteri) unita.push(unita[unita.length - 1] + carattere.length)
+  const posizioni = payload
+    .map((valore) => Math.trunc(Number(valore)))
+    .filter((valore) => Number.isFinite(valore) && valore > 0 && valore < caratteri.length)
+    .map((valore) => unita[valore])
+  if (!posizioni.length) return undefined
+  const ordinate = Array.from(new Set(posizioni)).sort((a, b) => a - b)
+  const righePiene = Array.isArray(piene) && piene.length === ordinate.length + 1 ? piene.map((valore) => valore === true) : undefined
+  return { testo, posizioni: ordinate, piene: righePiene }
+}
 
 function parseMisureRighe(payload: unknown): OcrMisureRighe | undefined {
   if (!payload || typeof payload !== 'object') return undefined
@@ -175,6 +193,7 @@ export function parseBlocks(payload: unknown, page: number): OcrBlock[] {
       marker: kind === 'elenco' ? parseMarker(item.marcatore) : null,
       tratti: kind === 'tabella' ? [] : parseTratti(item.tratti, text),
       righe: kind === 'tabella' ? undefined : parseMisureRighe(item.righe_misure),
+      aCapo: kind === 'tabella' ? undefined : parseACapo(item.a_capo, text, item.righe_piene),
     })
   }
   return blocks

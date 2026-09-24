@@ -394,3 +394,51 @@ def test_le_tabelle_non_hanno_tratti():
 
     blocchi = [{"tipo": "tabella", "riquadro": [0, 0, 100, 100], "righe": [["a"]]}]
     assert "tratti" not in con_tratti(blocchi, [_p("a", 1, grassetto=True, left=10, top=10, width=5, height=5)])[0]
+
+
+# ── Gli a capo del documento e le righe piene ────────────────────────────
+
+
+def test_gli_a_capo_del_documento_cadono_dove_comincia_ogni_riga():
+    from legal_ocr.tratti import a_capo_del_testo
+
+    parole = [
+        _parola("R.G.", 100, 100), _parola("n.", 150, 100), _parola("3001/2025", 180, 100),
+        _parola("Udienza:", 110, 130), _parola("09.06.2026", 200, 130),
+    ]
+    testo = "R.G. n. 3001/2025 Udienza: 09.06.2026"
+    assert a_capo_del_testo(testo, parole) == [testo.index("Udienza")]
+    # una riga sola: niente a capo
+    assert a_capo_del_testo("R.G. n. 3001/2025", parole[:3]) == []
+
+
+def test_il_trattino_word_alla_stessa_altezza_resta_sulla_riga_del_testo():
+    from legal_ocr.tratti import a_capo_del_testo
+
+    parole = [
+        _parola("-", 60, 100, larghezza=8, blocco=2),
+        _parola("che", 110, 100, blocco=3), _parola("nel", 150, 100, blocco=3),
+        _parola("giudizio", 110, 130, blocco=3, riga=2),
+    ]
+    testo = "- che nel giudizio"
+    assert a_capo_del_testo(testo, parole) == [testo.index("giudizio")]
+
+
+def test_le_righe_piene_si_dicono_riga_per_riga_e_il_corpo_entra_nei_tratti():
+    from legal_ocr.tratti import con_tratti
+
+    blocchi = [{
+        "tipo": "paragrafo",
+        "testo": "TRIBUNALE DI PALMI Memoria ex art. 183",
+        "riquadro": [100, 100, 500, 160],
+        "formato": {"allineamento": "giustificato"},
+    }]
+    parole = [
+        _parola("TRIBUNALE", 100, 100, larghezza=150, corpo=16), _parola("DI", 260, 100, corpo=16), _parola("PALMI", 290, 100, larghezza=210, corpo=16),
+        _parola("Memoria", 100, 135, corpo=14), _parola("ex", 190, 135, corpo=14), _parola("art.", 220, 135, corpo=14), _parola("183", 260, 135, corpo=14),
+    ]
+    voce = con_tratti(blocchi, parole)[0]
+    assert voce["a_capo"] == [len("TRIBUNALE DI PALMI ")]
+    # la prima riga arriva al margine destro (500), la seconda no
+    assert voce["righe_piene"] == [True, False]
+    assert [tratto["corpo"] for tratto in voce["tratti"]] == [16.0, 14.0]

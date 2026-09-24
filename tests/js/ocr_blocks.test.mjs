@@ -202,7 +202,8 @@ test('le parti stanno sulla pagina come nel PDF: interlinea, spazi fra le parti 
   const [titolo, primo, secondo] = disposizioniDellaPagina(blocks, geometria)
   // una riga sola: l'interlinea e' quella della pagina
   assert.equal(titolo['--iu-ocr-interlinea'], '4.3mm')
-  assert.equal(titolo.marginTop, undefined)
+  // la prima parte sta dove sta sulla pagina: meno la mezza interlinea che il foglio mette sopra la riga
+  assert.equal(titolo.marginTop, '-0.15mm')
   // 10 mm fra le lettere, meno quello che il foglio lascia gia' sotto la riga (4,3 - 4)
   assert.equal(primo.marginTop, '9.7mm')
   assert.equal(primo.marginLeft, '6mm')
@@ -222,4 +223,19 @@ test('le righe di un intestazione centrata vanno a capo dove andavano sulla pagi
   assert.equal(intestazione.marginLeft, 'auto')
   // una riga sola non si stringe
   assert.equal(riga.maxWidth, undefined)
+})
+
+const { aCapoValidi, righeDeiPezzi } = await import('../../frontend/src/components/documentCapture/ocrACapo.ts')
+
+test('gli a capo del documento valgono per il testo letto, e dividono anche i tratti', () => {
+  const [letto] = parseBlocks([{ ...blocco('paragrafo', 'R.G. n. 3001/2025 Udienza: 09.06.2026'), a_capo: [18], righe_piene: [false, false] }], 1)
+  assert.deepEqual(aCapoValidi(letto), [18])
+  assert.deepEqual(letto.aCapo.piene, [false, false])
+  // corretto il testo, gli a capo non valgono piu': il blocco torna a capo da solo
+  assert.deepEqual(aCapoValidi({ ...letto, text: 'R.G. n. 3001/2025 - Udienza: 09.06.2026' }), [])
+  const righe = righeDeiPezzi([{ testo: 'R.G. n. ' }, { testo: '3001/2025 Udienza: ' }, { testo: '09.06.2026' }], [18])
+  assert.deepEqual(righe.map((riga) => riga.map((pezzo) => pezzo.testo).join('')), ['R.G. n. 3001/2025 ', 'Udienza: 09.06.2026'])
+  // le posizioni del server contano i caratteri, il browser le unita' UTF-16
+  const [conEmoji] = parseBlocks([{ ...blocco('paragrafo', '😀 prima riga seconda'), a_capo: [13] }], 1)
+  assert.equal(conEmoji.text.slice(aCapoValidi(conEmoji)[0]), 'seconda')
 })

@@ -187,3 +187,13 @@
 .iu-ocr-barra__colore input { width: 30px; height: 30px; padding: 2px; border: 1px solid var(--iu-border, #dce2e9); border-radius: 6px; background: var(--iu-surface, #ffffff); cursor: pointer; }
 .iu-ocr-barra__colore input:disabled { cursor: not-allowed; opacity: .55; }
 .iu-ocr-barra__carattere select { max-width: 172px; }
+
+/* Gli a capo del documento (ocrACapo): le righe restano quelle della pagina. */
+.iu-ocr-pagina .iu-ocr-foglio__testo.con-a-capo { white-space: nowrap; }
+.iu-ocr-riga { display: block; text-indent: 0; }
+.iu-ocr-riga:first-child { text-indent: inherit; }
+.iu-ocr-riga.is-piena { text-align: justify; text-align-last: justify; }
+.iu-ocr-segno { display: inline-block; min-width: var(--iu-ocr-sporgenza, 0); text-indent: 0; }
+.iu-ocr-pagina .iu-ocr-tratto.is-g { font-weight: 700; }
+/* Un corpo diverso dentro la riga non allarga la riga: il passo e' quello del documento. */
+.iu-ocr-pagina .iu-ocr-tratto.ha-corpo-proprio { line-height: 0; }

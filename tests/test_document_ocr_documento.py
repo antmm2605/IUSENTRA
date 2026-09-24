@@ -649,3 +649,18 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     assert "/api/v1/ui/document-tools/documento-testo-riconosciuto" in servizio
     for sorgente in (componente, visualizzatore, destinazioni, revisione):
         assert "style={{" not in sorgente, "gli stili in linea sono vietati dal gate design system"
+
+
+def test_le_parole_del_testo_nativo_hanno_il_riquadro_esatto_dei_caratteri():
+    """Senza i caratteri la larghezza di una riga si divideva in parti uguali: le
+    parole strette («il») e larghe («MMMM») finivano spostate e le righe centrate
+    sembravano fuori centro."""
+    from web.services.document_ocr_documento import _parole_native
+
+    documento = fitz.open()
+    pagina = documento.new_page(width=595, height=842)
+    pagina.insert_text((100, 100), "il MMMMMMMM il", fontsize=12, fontname="tiro")
+    parole = _parole_native(pagina, 300 / 72)
+    larghezze = {parola["text"]: parola["width"] for parola in parole}
+    # «MMMMMMMM» e' molto piu' largo di quattro volte «il»
+    assert larghezze["MMMMMMMM"] > larghezze["il"] * 8

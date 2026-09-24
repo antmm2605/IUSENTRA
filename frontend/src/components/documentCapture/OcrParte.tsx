@@ -1,8 +1,9 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Rows3 } from 'lucide-react'
 import { CLASSI_ALLINEAMENTO, type OcrBlock, type OcrBlockKind } from './ocrBlocks'
 import { ATTRIBUTO_BLOCCO, ripristinaSelezione, selezioneDentro } from './ocrSelezione'
 import type { OcrTratto } from './ocrTratti'
+import { aCapoValidi, nodiDelTesto } from './ocrACapo'
 
 export const ETICHETTE: Record<OcrBlockKind, string> = {
   titolo: 'Titolo',
@@ -70,6 +71,9 @@ function BloccoScrivibile({ block, disabled, ridisegno, onText, onSelect }: {
 }) {
   const nodo = useRef<HTMLDivElement | null>(null)
   const ultimoRidisegno = useRef(ridisegno)
+  // Lasciando il campo si ridisegna: le righe del documento tornano (o, se il
+  // testo e' stato corretto, il blocco torna a capo da solo).
+  const [uscite, setUscite] = useState(0)
   useEffect(() => {
     const elemento = nodo.current
     if (!elemento) return
@@ -78,15 +82,15 @@ function BloccoScrivibile({ block, disabled, ridisegno, onText, onSelect }: {
     // Il testo si legge sempre come testo semplice (onInput): i tratti sono
     // solo come lo si vede, e si riallineano da soli quando il testo cambia.
     const disegna = () => {
-      if (block.tratti?.length) elemento.replaceChildren(...block.tratti.map(nodoDelTratto))
-      else if (elemento.childElementCount || elemento.textContent !== block.text) elemento.textContent = block.text
+      elemento.replaceChildren(...nodiDelTesto(block, nodoDelTratto))
+      elemento.classList.toggle('con-a-capo', aCapoValidi(block).length > 0)
     }
     if (document.activeElement !== elemento) return disegna()
     if (!perIlFormato) return
     const selezione = selezioneDentro(elemento)
     disegna()
     if (selezione) ripristinaSelezione(elemento, selezione.inizio, selezione.fine)
-  }, [block.text, block.tratti, ridisegno])
+  }, [block, ridisegno, uscite])
   return (
     <div
       ref={nodo}
@@ -99,7 +103,12 @@ function BloccoScrivibile({ block, disabled, ridisegno, onText, onSelect }: {
       aria-label={`${ETICHETTE[block.kind]}: testo da rileggere`}
       tabIndex={0}
       onFocus={onSelect}
-      onInput={() => onText(nodo.current?.textContent ?? '')}
+      onBlur={() => setUscite((valore) => valore + 1)}
+      onInput={() => {
+        // correggendo, le righe non sono piu' quelle del documento: si torna a capo
+        nodo.current?.classList.remove('con-a-capo')
+        onText(nodo.current?.textContent ?? '')
+      }}
     />
   )
 }

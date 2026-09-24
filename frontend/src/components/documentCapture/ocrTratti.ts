@@ -21,12 +21,14 @@ export type OcrTratto = {
   sottolineato: boolean
   barrato: boolean
   colore: string
+  /** Corpo in punti come lo dichiara il documento (intestazioni, apici). Assente: quello del blocco. */
+  corpo?: number
 }
 
 const CHIAVI_TRATTO = ['grassetto', 'corsivo', 'sottolineato', 'barrato', 'colore'] as const
 
 function stessoStile(primo: OcrTratto, secondo: OcrTratto): boolean {
-  return CHIAVI_TRATTO.every((chiave) => primo[chiave] === secondo[chiave])
+  return CHIAVI_TRATTO.every((chiave) => primo[chiave] === secondo[chiave]) && (primo.corpo || 0) === (secondo.corpo || 0)
 }
 
 /** Tratti contigui con lo stesso stile diventano uno: il documento resta pulito. */
@@ -55,6 +57,7 @@ export function parseTratti(value: unknown, testo: string): OcrTratto[] {
       sottolineato: Boolean(voce.sottolineato),
       barrato: Boolean(voce.barrato),
       colore: /^#[0-9a-f]{6}$/.test(colore) ? colore : '',
+      ...(Number(voce.corpo) > 0 ? { corpo: Number(voce.corpo) } : {}),
     }]
   })
   // il testo del blocco arriva ripulito dagli spazi ai bordi: anche i tratti

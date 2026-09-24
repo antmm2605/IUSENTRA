@@ -13,6 +13,7 @@
  */
 import type { CSSProperties } from 'react'
 import type { OcrBlock } from './ocrBlocks'
+import { aCapoValidi } from './ocrACapo'
 
 /** Misure della pagina nelle stesse unita' dei riquadri dei blocchi. */
 export type GeometriaPagina = { numero: number; larghezza: number; altezza: number }
@@ -46,7 +47,10 @@ export function marginiDellaPagina(blocchi: OcrBlock[], geometria?: GeometriaPag
   const riquadri = utili.map((blocco) => blocco.box as [number, number, number, number])
   const sinistra = Math.min(...riquadri.map((riquadro) => riquadro[0]))
   const alto = Math.min(...riquadri.map((riquadro) => riquadro[1]))
-  const destra = Math.max(...riquadri.map((riquadro) => riquadro[2]))
+  // Il margine destro e' dove arrivano le righe giustificate: un timbro di
+  // firma fuori dalla colonna non lo sposta.
+  const giustificati = utili.filter((blocco) => blocco.format.allineamento === 'giustificato').map((blocco) => blocco.box![2]).sort((a, b) => a - b)
+  const destra = giustificati.length ? giustificati[Math.floor(giustificati.length / 2)] : Math.max(...riquadri.map((riquadro) => riquadro[2]))
   const basso = Math.max(...riquadri.map((riquadro) => riquadro[3]))
   return {
     alto: limita(alto * mmY),
@@ -91,9 +95,14 @@ export function disposizioniDellaPagina(blocchi: OcrBlock[], geometria?: Geometr
   if (!geometria || geometria.larghezza <= 0 || geometria.altezza <= 0 || !utili.length) return blocchi.map(() => undefined)
   const mmX = A4_MM.larghezza / geometria.larghezza
   const mmY = A4_MM.altezza / geometria.altezza
-  const sinistra = Math.min(...utili.map((blocco) => blocco.box![0]))
-  const destra = Math.max(...utili.map((blocco) => blocco.box![2]))
+  // Le distanze orizzontali si misurano dalla gabbia del foglio (i margini
+  // come li disegna il CSS), non dal testo: cosi' i due conti coincidono.
+  const margini = marginiDellaPagina(blocchi, geometria)
+  const gabbiaSinistra = margini.sinistro
+  const gabbiaDestra = A4_MM.larghezza - margini.destro
   const tipico = passoTipico(blocchi)
+  const sporgenze = blocchi.map((blocco) => (blocco.kind === 'elenco' ? -(blocco.righe?.rientro || 0) : 0)).filter((valore) => valore > 0).sort((a, b) => a - b)
+  const sporgenzaTipica = sporgenze.length ? sporgenze[Math.floor(sporgenze.length / 2)] : 0
   let sopra: OcrBlock | null = null
   return blocchi.map((blocco) => {
     const stile: Record<string, string> = {}
@@ -101,29 +110,55 @@ export function disposizioniDellaPagina(blocchi: OcrBlock[], geometria?: Geometr
     if (passo > 0) stile['--iu-ocr-interlinea'] = mm(passo * mmY)
     if (!blocco.box) return stile as CSSProperties
     const [x0, y0, x1] = blocco.box
+    // Il foglio misura dalle righe (interlinea intera), la pagina dalle
+    // lettere: fra le due c'e' mezza interlinea sopra e mezza sotto ogni riga.
+    const mezzaInterlinea = (parte: OcrBlock) => {
+      const passoParte = parte.righe?.interlinea || tipico
+      const lettere = parte.righe?.altezza || 0
+      return passoParte > 0 && lettere > 0 ? (passoParte - lettere) / 2 : 0
+    }
     if (sopra?.box) {
-      // Sotto l'ultima riga il foglio lascia un'interlinea intera, la pagina
-      // solo l'altezza delle lettere: la differenza si toglie dallo spazio.
-      const passoSopra = sopra.righe?.interlinea || tipico
-      const lettere = sopra.righe?.altezza || 0
-      const correzione = passoSopra > 0 && lettere > 0 ? lettere - passoSopra : 0
-      const distanza = (y0 - sopra.box[3] + correzione) * mmY
-      if (Math.abs(distanza) > 0.3) stile.marginTop = mm(Math.min(60, Math.max(-3, distanza)))
+      const distanza = (y0 - sopra.box[3] - mezzaInterlinea(sopra) - mezzaInterlinea(blocco)) * mmY
+      // Sempre, anche piccola (gli scarti minimi, sommati su una pagina,
+      // spostano le ultime righe), e negativa quando due parti stanno
+      // affiancate (l'intestazione a sinistra, il timbro della firma a
+      // destra): la seconda risale accanto alla prima.
+      if (distanza !== 0) stile.marginTop = mm(Math.min(250, Math.max(-250, distanza)))
+    } else {
+      // la prima parte: il margine alto del foglio ha un minimo e un massimo,
+      // la pagina no
+      const scarto = (y0 - mezzaInterlinea(blocco)) * mmY - margini.alto
+      if (scarto !== 0) stile.marginTop = mm(scarto)
     }
     const alline = blocco.format.allineamento
-    if ((blocco.kind === 'paragrafo' || blocco.kind === 'titolo') && (alline === 'sinistra' || alline === 'giustificato')) {
-      const rientro = blocco.righe?.rientro || 0
-      const aSinistra = (x0 - sinistra + Math.max(0, -rientro)) * mmX
-      if (aSinistra > 0.5) stile.marginLeft = mm(aSinistra)
-      if (Math.abs(rientro * mmX) > 0.5) stile.textIndent = mm(rientro * mmX)
-      if (alline === 'giustificato' && (destra - x1) * mmX > 0.5) stile.marginRight = mm((destra - x1) * mmX)
+    const testuale = blocco.kind === 'paragrafo' || blocco.kind === 'titolo' || blocco.kind === 'elenco'
+    if (testuale && (alline === 'sinistra' || alline === 'giustificato')) {
+      // una voce d'elenco di una riga sola non dice la sporgenza: vale quella delle altre
+      let rientro = blocco.righe?.rientro || 0
+      if (blocco.kind === 'elenco' && rientro >= 0 && sporgenzaTipica > 0) rientro = -sporgenzaTipica
+      const aSinistra = (x0 + Math.max(0, -rientro)) * mmX - gabbiaSinistra
+      if (aSinistra > 0.3) stile.marginLeft = mm(aSinistra)
+      if (Math.abs(rientro * mmX) > 0.3) stile.textIndent = mm(rientro * mmX)
+      if (rientro < 0) stile['--iu-ocr-sporgenza'] = mm(-rientro * mmX)
+      const aDestra = gabbiaDestra - x1 * mmX
+      if (alline === 'giustificato' && aDestra > 0.5) stile.marginRight = mm(aDestra)
     }
-    // Piu' righe non giustificate (intestazioni centrate, indirizzi, firme):
-    // gli a capo li ha messi l'autore. La parte resta larga quanto la riga piu'
-    // lunga della pagina, cosi' le righe vanno a capo negli stessi punti.
+    if (testuale && alline === 'destra') {
+      // anche negativo: un timbro di firma sta oltre il margine della colonna
+      const aDestra = gabbiaDestra - x1 * mmX
+      if (Math.abs(aDestra) > 0.3) stile.marginRight = mm(aDestra)
+    }
+    if ((testuale || blocco.kind === 'numero_pagina') && alline === 'centro') {
+      // una riga centrata non sempre sta al centro della gabbia (un rientro del
+      // paragrafo la sposta): si sposta di quanto era spostata sulla pagina
+      const scarto = ((x0 + x1) / 2) * mmX - (gabbiaSinistra + gabbiaDestra) / 2
+      if (Math.abs(scarto) > 0.5 && Math.abs(scarto) < 25) Object.assign(stile, { position: 'relative', left: mm(scarto) })
+    }
+    // Con gli a capo del documento (ocrACapo) le righe sono gia' quelle: la
+    // larghezza serve solo quando non ci sono.
     const lettere = blocco.righe?.altezza || 0
     const piuRighe = lettere > 0 && blocco.box[3] - y0 > lettere * 1.6
-    if ((blocco.kind === 'paragrafo' || blocco.kind === 'titolo') && alline !== 'giustificato' && piuRighe) {
+    if (testuale && alline !== 'giustificato' && piuRighe && !aCapoValidi(blocco).length) {
       stile.maxWidth = mm((x1 - x0) * mmX + 1.5)
       if (alline === 'centro') Object.assign(stile, { marginLeft: 'auto', marginRight: 'auto' })
       if (alline === 'destra') stile.marginLeft = 'auto'

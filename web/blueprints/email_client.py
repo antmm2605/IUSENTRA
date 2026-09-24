@@ -440,6 +440,13 @@ def _public_sync_payload(raw_payload, *, fallback_message: str, success_message:
             result[key] = int(payload.get(key) or 0)
         except (TypeError, ValueError):
             result[key] = 0
+    tempi = payload.get("tempi")
+    if isinstance(tempi, dict):
+        result["tempi"] = {
+            str(nome): float(secondi)
+            for nome, secondi in tempi.items()
+            if isinstance(secondi, (int, float))
+        }
     if errore:
         result["errore"] = fallback_message
     return result

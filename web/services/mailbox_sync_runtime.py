@@ -291,6 +291,7 @@ def run_pec_mailbox_sync(
         poll_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
         log_esiti: list[str] = []
         auto_summary = {"aggiornati": 0, "non_abbinati": 0, "errori": 0, "totale": 0, "pst_in_attesa": 0}
+        tempi: dict[str, float] = {}
         if pec_cfg and getattr(pec_cfg, "imap_host", "") and getattr(pec_cfg, "indirizzo", ""):
             from pct.email_client import sincronizza_pec_e_fascicoli
 
@@ -306,6 +307,7 @@ def run_pec_mailbox_sync(
             log_esiti = workflow.get("auto_esiti", []) or []
             auto_summary = _auto_summary(gestore, log_esiti)
             poll_report = workflow.get("poll", {}) or poll_report
+            tempi = dict(workflow.get("tempi", {}) or {})
         else:
             from pct.email_client import aggiorna_esiti_da_email, cartelle_imap_standard
 
@@ -324,9 +326,12 @@ def run_pec_mailbox_sync(
                 log_esiti = aggiorna_esiti_da_email(gestore, _fascicoli_manager(runtime))
                 auto_summary = _auto_summary(gestore, log_esiti)
 
+        inizio_inviati = monotonic()
         _sync_inviati(runtime, gestore)
+        tempi["inviati"] = round(monotonic() - inizio_inviati, 2)
         errore = str(report.get("errore", "") or "").strip()
         _audit(runtime, "email.sincronizzata", f"Nuove: {report.get('nuove', 0)}, PST: {report.get('pst_trovate', 0)}")
+        _log_tempi_sincronizzazione(tempi, report)
         return {
             "ok": True,
             "warning": bool(errore),
@@ -342,9 +347,24 @@ def run_pec_mailbox_sync(
             "errore": errore,
             "sync_errore": errore,
             "stats": gestore.statistiche(),
+            "tempi": tempi,
+            "riparazioni_rinviate": int(report.get("riparazioni_rinviate", 0) or 0),
         }
     except Exception as exc:
         return {"ok": False, "errore": str(exc)}
+
+
+def _log_tempi_sincronizzazione(tempi: Mapping[str, float], report: Mapping[str, Any]) -> None:
+    try:
+        current_app.logger.info(
+            "Sincronizzazione PEC: %s s in tutto (%s); nuove %s, riparazioni rinviate %s.",
+            round(sum(tempi.values()), 2),
+            ", ".join(f"{nome} {secondi}s" for nome, secondi in tempi.items()),
+            report.get("nuove", 0),
+            report.get("riparazioni_rinviate", 0),
+        )
+    except Exception:
+        return
 
 
 def run_ordinary_mailbox_sync(

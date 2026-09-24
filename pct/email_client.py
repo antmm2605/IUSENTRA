@@ -22,10 +22,11 @@ import shutil
 import unicodedata
 import zipfile
 from email import policy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.header import decode_header
 from email.utils import getaddresses, parsedate_to_datetime
 from pathlib import Path
+from time import perf_counter as _perf_counter
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field, asdict
 
@@ -664,6 +665,40 @@ class GestioneEmailRicevute:
             "bytes_reclaimable": estimated_reclaimable,
             "bytes_reclaimed": net_reclaimed,
         }
+
+    RIPARAZIONI_PER_SINCRONIZZAZIONE = 5
+    RIPARAZIONE_OGNI = timedelta(days=7)
+
+    @property
+    def _percorso_riparazioni(self) -> Path:
+        return self.db_path.with_name(f"{self.db_path.stem}.riparazioni.json")
+
+    def _riparazioni_tentate(self) -> Dict[str, str]:
+        """Quando si e' provato l'ultima volta a riparare ogni PEC (per UID IMAP)."""
+        try:
+            data = json.loads(self._percorso_riparazioni.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return {str(k): str(v) for k, v in data.items()} if isinstance(data, dict) else {}
+
+    def _salva_riparazioni_tentate(self, tentate: Dict[str, str]) -> None:
+        limite = datetime.now() - 4 * self.RIPARAZIONE_OGNI
+        recenti = {k: v for k, v in tentate.items() if not self._data_prima_di(v, limite)}
+        try:
+            self._percorso_riparazioni.write_text(json.dumps(recenti, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
+
+    @staticmethod
+    def _data_prima_di(valore: str, limite: datetime) -> bool:
+        try:
+            return datetime.fromisoformat(valore) < limite
+        except (TypeError, ValueError):
+            return True
+
+    def _riparazione_recente(self, tentate: Dict[str, str], uid_str: str) -> bool:
+        valore = tentate.get(uid_str)
+        return bool(valore) and not self._data_prima_di(valore, datetime.now() - self.RIPARAZIONE_OGNI)
 
     def _email_ha_allegati_da_salvare(self, em: EmailRicevuta) -> bool:
         allegati = list(getattr(em, "allegati", []) or [])
@@ -1537,6 +1572,13 @@ class GestioneEmailRicevute:
         dedup_iniziale = self._deduplica_db_in_memoria(db)
         risultato["duplicati_rimossi"] += dedup_iniziale
         email_per_uid = {e.uid_imap: e for e in db.values() if e.uid_imap}
+        # Nella sincronizzazione ordinaria le PEC gia' in archivio da riparare
+        # (allegati non salvati, testo con caratteri illeggibili) si riscaricano
+        # poche per volta e non piu' di una volta a settimana ciascuna: una PEC
+        # che resta illeggibile non si riscarica a ogni "Aggiorna".
+        riparazioni_tentate = self._riparazioni_tentate() if incremental_only else {}
+        riparazioni_rimaste = self.RIPARAZIONI_PER_SINCRONIZZAZIONE if incremental_only else None
+        risultato["riparazioni_rinviate"] = 0
 
         try:
             for cartella_imap in self._cartelle_imap_effettive(mail, cartelle_imap):
@@ -1583,6 +1625,13 @@ class GestioneEmailRicevute:
                         ripara_testo = bool(
                             email_esistente and self._email_ha_testo_da_riparare(email_esistente)
                         )
+                        if email_esistente and (ripara_allegati or ripara_testo) and riparazioni_rimaste is not None:
+                            if riparazioni_rimaste <= 0 or self._riparazione_recente(riparazioni_tentate, uid_str):
+                                ripara_allegati = ripara_testo = False
+                                risultato["riparazioni_rinviate"] += 1
+                            else:
+                                riparazioni_rimaste -= 1
+                                riparazioni_tentate[uid_str] = datetime.now().isoformat(timespec="seconds")
                         if email_esistente and not (ripara_allegati or ripara_testo):
                             if self._allinea_cartella_da_imap(email_esistente, cartella_imap):
                                 risultato["cartelle_corrette"] += 1
@@ -1649,6 +1698,8 @@ class GestioneEmailRicevute:
 
             risultato["duplicati_rimossi"] += self._deduplica_db_in_memoria(db)
             self._salva()
+            if incremental_only:
+                self._salva_riparazioni_tentate(riparazioni_tentate)
             _logout_quietly(mail)
 
         except Exception as e:
@@ -2338,6 +2389,15 @@ def sincronizza_pec_e_fascicoli(
     if not getattr(config_pec, "indirizzo", "") or not getattr(config_pec, "password", ""):
         raise ValueError("Credenziali PEC incomplete.")
     timeout_s = resolve_imap_timeout_seconds()
+    # Quanto dura ogni passo: la sincronizzazione si misura dal browser.
+    tempi: dict[str, float] = {}
+    inizio = _perf_counter()
+
+    def _passo(nome: str) -> None:
+        nonlocal inizio
+        adesso = _perf_counter()
+        tempi[nome] = round(adesso - inizio, 2)
+        inizio = adesso
 
     sync_result = gestione_email.sincronizza_imap(
         imap_host=config_pec.imap_host,
@@ -2350,16 +2410,19 @@ def sincronizza_pec_e_fascicoli(
         timeout_seconds=timeout_s,
         incremental_only=incremental_only,
     )
+    _passo("casella")
     auto_log = aggiorna_esiti_da_email(
         gestione_email,
         gestione_fascicoli,
         fascicolo_id=fascicolo_id,
     )
+    _passo("esiti")
     comm_report = aggiorna_comunicazioni_cancelleria_da_email(
         gestione_email,
         gestione_fascicoli,
         fascicolo_id=fascicolo_id,
     )
+    _passo("comunicazioni")
     try:
         poll_report_raw = poll_cancelleria_pec(
             gf=gestione_fascicoli,
@@ -2378,6 +2441,7 @@ def sincronizza_pec_e_fascicoli(
             state_path=state_path,
             giorni_indietro=giorni_indietro,
         )
+    _passo("ricevute_deposito")
     poll_report = {
         "trovati": int(comm_report.get("trovati", 0)) + int((poll_report_raw or {}).get("trovati", 0)),
         "associati": int(comm_report.get("associati", 0)) + int((poll_report_raw or {}).get("associati", 0)),
@@ -2390,6 +2454,7 @@ def sincronizza_pec_e_fascicoli(
         "sync": sync_result,
         "auto_esiti": auto_log,
         "poll": poll_report,
+        "tempi": tempi,
     }
 
 

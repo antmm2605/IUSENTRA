@@ -64,6 +64,9 @@ def _formato_data_imap(dt: datetime) -> str:
     return f"{dt.day:02d}-{mesi[dt.month - 1]}-{dt.year}"
 
 
+_INTESTAZIONI_PER_RICHIESTA = 200
+
+
 def _cerca_ricevute_imap(
     imap_host: str,
     imap_port: int,
@@ -87,12 +90,14 @@ def _cerca_ricevute_imap(
             return client
 
         mail = run_imap_runtime_operation(_connect_mail)
-        mail.select("INBOX")
+        mail.select("INBOX", readonly=True)
 
         since_dt = datetime.now() - timedelta(days=giorni_indietro)
         since_str = _formato_data_imap(since_dt)
 
-        # Cerca email con subject tipico di ricevute PCT
+        # Cerca email con subject tipico di ricevute PCT; un messaggio che
+        # risponde a piu' criteri si legge una volta sola.
+        numeri: list[bytes] = []
         for criterio in [
             f'(SINCE "{since_str}" SUBJECT "deposito")',
             f'(SINCE "{since_str}" SUBJECT "telematic")',
@@ -101,27 +106,32 @@ def _cerca_ricevute_imap(
         ]:
             try:
                 _, data = mail.search(None, criterio)
-                if not data or not data[0]:
-                    continue
-                for num in data[0].split():
-                    try:
-                        _, msg_data = mail.fetch(num, "(RFC822.SIZE RFC822.HEADER)")
-                        if not msg_data or not msg_data[0]:
-                            continue
-                        raw_header = msg_data[0][1]
-                        msg = _email_lib.message_from_bytes(raw_header)
-                        subj = _decode_header_value(msg.get("Subject", ""))
-                        from_ = msg.get("From", "")
-                        date_ = msg.get("Date", "")
-                        risultati.append({
-                            "subject": subj,
-                            "from": from_,
-                            "date": date_,
-                        })
-                    except Exception:
-                        pass
             except imaplib.IMAP4.error:
-                pass
+                continue
+            if data and data[0]:
+                numeri.extend(data[0].split())
+        numeri = list(dict.fromkeys(numeri))
+
+        # Intestazioni lette a gruppi, non una richiesta per messaggio: con
+        # centinaia di ricevute nel mese la differenza e' di decine di secondi.
+        for inizio in range(0, len(numeri), _INTESTAZIONI_PER_RICHIESTA):
+            gruppo = b",".join(numeri[inizio:inizio + _INTESTAZIONI_PER_RICHIESTA]).decode("ascii")
+            try:
+                _, msg_data = mail.fetch(gruppo, "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])")
+            except imaplib.IMAP4.error:
+                continue
+            for parte in msg_data or []:
+                if not isinstance(parte, tuple) or len(parte) < 2 or not isinstance(parte[1], bytes):
+                    continue
+                try:
+                    msg = _email_lib.message_from_bytes(parte[1])
+                    risultati.append({
+                        "subject": _decode_header_value(msg.get("Subject", "")),
+                        "from": msg.get("From", ""),
+                        "date": msg.get("Date", ""),
+                    })
+                except Exception:
+                    pass
 
         mail.logout()
     except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:

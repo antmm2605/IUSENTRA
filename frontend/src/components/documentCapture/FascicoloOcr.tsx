@@ -164,6 +164,12 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     return [...somma.entries()].map(([regola, occorrenze]) => ({ regola, occorrenze, etichetta: etichette.get(regola) || '' }))
   }, [pagine])
   const consenso = useMemo(() => pagine.reduce((somma, pagina) => somma + pagina.consenso, 0), [pagine])
+  // Le misure di ogni pagina nelle unita' dei riquadri: il foglio della revisione ne prende i margini.
+  const geometrie = useMemo(() => pagine.flatMap((pagina) => (
+    pagina.anteprima && pagina.anteprima.scala > 0
+      ? [{ numero: pagina.numero, larghezza: pagina.anteprima.larghezza / pagina.anteprima.scala, altezza: pagina.anteprima.altezza / pagina.anteprima.scala }]
+      : []
+  )), [pagine])
   const secondoLettore = useMemo(() => pagine.find((pagina) => pagina.secondoLettore)?.secondoLettore || '', [pagine])
 
   const documentoWord = async (): Promise<File> => documentoModificabile(blocksToHtml(blocchi), nome || reference)
@@ -354,6 +360,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
                 onChange={setBlocchi}
                 selectedId={selezionato}
                 onSelect={setSelezionato}
+                pagine={geometrie}
               />
             </div>
           </div>

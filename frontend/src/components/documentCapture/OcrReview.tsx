@@ -1,7 +1,9 @@
 import { useState, type MouseEvent } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Strikethrough, Trash2, Underline } from 'lucide-react'
 import { Button } from '../../ui/Button'
+import { OcrFoglio } from './OcrFoglio'
 import { ETICHETTE, ParteDelFoglio, daControllare } from './OcrParte'
+import type { GeometriaPagina } from './ocrPagina'
 import { CARATTERI_COMUNI, CORPI, ETICHETTE_MARCATORE, LIVELLI, fiducia } from './ocrBarraVoci'
 import { useSelezioneOcr } from './ocrSelezione'
 import { stileTra, trattiDelBlocco } from './ocrTratti'
@@ -28,6 +30,8 @@ type Props = {
   /** Blocco evidenziato sull'immagine della pagina, quando la vista è affiancata. */
   selectedId?: string
   onSelect?: (id: string) => void
+  /** Misure delle pagine lette: il foglio prende i margini del PDF. */
+  pagine?: GeometriaPagina[]
 }
 
 /** Gli stili che si accendono e si spengono: sulla parte selezionata, o sul pezzo intero se non se ne seleziona una. */
@@ -55,7 +59,7 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
  * quello che il riconoscimento ha letto con poca sicurezza resta segnato:
  * e' cosi' che si sa dove guardare, invece di rileggere tutto.
  */
-export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect }: Props) {
+export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect, pagine }: Props) {
   const [attivo, setAttivo] = useState('')
   const [ridisegno, setRidisegno] = useState(0)
   const selezione = useSelezioneOcr('.iu-ocr-barra')
@@ -205,8 +209,10 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
         </span>
       </div>
 
-      <div className="iu-ocr-foglio">
-        {blocks.map((block) => (
+      <OcrFoglio
+        blocks={blocks}
+        pagine={pagine}
+        parte={(block) => (
           <ParteDelFoglio
             key={block.id}
             block={block}
@@ -217,8 +223,8 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             onCell={(riga, colonna, valore) => onChange(updateBlockCell(blocks, block.id, riga, colonna, valore))}
             onSelect={() => scegli(block.id)}
           />
-        ))}
-      </div>
+        )}
+      />
 
       {figures.length ? (
         <p className="iu-acq-alert" role="status">

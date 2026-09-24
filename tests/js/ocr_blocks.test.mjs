@@ -158,3 +158,32 @@ test('se tutto torna uguale i tratti tornano formato del pezzo', () => {
   assert.equal(blocksToHtml([tutto]), '<p><em>Tutto in corsivo</em></p>')
 })
 
+
+const { marginiDellaPagina, pagineDelFoglio, MARGINI_PREDEFINITI } = await import('../../frontend/src/components/documentCapture/ocrPagina.ts')
+
+test('i margini del foglio sono quelli del PDF, letti dove comincia e finisce il testo', () => {
+  // pagina A4 a 300 dpi: 2480 x 3508 unita'; testo da 25 mm a sinistra a 20 mm a destra, da 30 mm in alto
+  const mm = (valore, lato) => Math.round(valore / (lato === 'x' ? 210 : 297) * (lato === 'x' ? 2480 : 3508))
+  const geometria = { numero: 1, larghezza: 2480, altezza: 3508 }
+  const blocks = parseBlocks([
+    { ...blocco('titolo', 'Tribunale'), riquadro: [mm(80, 'x'), mm(30, 'y'), mm(130, 'x'), mm(38, 'y')] },
+    { ...blocco('paragrafo', 'Corpo dell atto.'), riquadro: [mm(25, 'x'), mm(50, 'y'), mm(190, 'x'), mm(262, 'y')] },
+    // il numero di pagina a pie' di pagina non sposta il margine basso
+    { ...blocco('numero_pagina', '1'), riquadro: [mm(100, 'x'), mm(285, 'y'), mm(104, 'x'), mm(290, 'y')] },
+  ], 1)
+  const margini = marginiDellaPagina(blocks, geometria)
+  assert.equal(margini.sinistro, 25)
+  assert.equal(margini.destro, 20)
+  assert.equal(margini.alto, 30)
+  assert.equal(margini.basso, 35)
+  // l'ultima pagina mezza vuota non fa un margine basso di mezzo foglio
+  const corta = parseBlocks([{ ...blocco('paragrafo', 'Fine.'), riquadro: [mm(25, 'x'), mm(30, 'y'), mm(190, 'x'), mm(60, 'y')] }], 1)
+  assert.equal(marginiDellaPagina(corta, geometria).basso, 45)
+  // senza misure della pagina: i margini di un atto, non numeri inventati
+  assert.deepEqual(marginiDellaPagina(blocks), MARGINI_PREDEFINITI)
+})
+
+test('il foglio si divide nelle pagine del documento', () => {
+  const blocks = [...parseBlocks([blocco('paragrafo', 'Uno'), blocco('paragrafo', 'Due')], 1), ...parseBlocks([blocco('paragrafo', 'Tre')], 2)]
+  assert.deepEqual(pagineDelFoglio(blocks).map((pagina) => [pagina.numero, pagina.blocchi.map((b) => b.text)]), [[1, ['Uno', 'Due']], [2, ['Tre']]])
+})

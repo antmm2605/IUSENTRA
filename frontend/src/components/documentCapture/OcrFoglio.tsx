@@ -11,8 +11,15 @@ function stileDellaScala(scala: number) {
   return { zoom: scala } as CSSProperties
 }
 
+/**
+ * Il foglio e' alto quanto la pagina del documento (min-height A4): sotto
+ * l'ultima parte non si aggiunge il margine basso, perche' il numero di pagina
+ * e' gia' messo al suo posto nel pie' di pagina. Con il margine in piu' il
+ * foglio veniva piu' alto dell'immagine e lo scorrimento affiancato perdeva
+ * la riga man mano che si scendeva nella pagina.
+ */
 function stileDellaPagina(margini: MarginiPagina) {
-  return { padding: `${margini.alto}mm ${margini.destro}mm ${margini.basso}mm ${margini.sinistro}mm` } as CSSProperties
+  return { padding: `${margini.alto}mm ${margini.destro}mm 0 ${margini.sinistro}mm` } as CSSProperties
 }
 
 /**

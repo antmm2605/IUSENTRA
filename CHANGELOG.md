@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.386.1 — 24/09/2026
+
+**Deposito telematico: ricevuta pagoPA e avanzamento persistente.** La RT XML
+viene riconosciuta dal contenuto ministeriale, distinta dalle ricevute SdI e
+indicizzata nella busta come `RicevutaPagamento`. Il controllo prima
+dell'invio blocca una RT indicizzata come allegato semplice o un file generico
+marcato impropriamente come pagamento.
+
+Il ciclo operativo conserva soltanto gli esiti positivi, nell'ordine `Prova
+senza invio reale` → `Simula invio PEC` → `Invia deposito reale`. Dopo il
+ricaricamento la UI mostra i passaggi completati, impedisce il secondo invio e
+offre un reset esplicito per iniziare un nuovo deposito. Qualunque modifica a
+documenti, tipo, dati o corpo PEC azzera gli esiti precedenti.
+
+Per il fascicolo reale `0BAABCE0` gli stati già documentati sono stati
+riallineati sulla fonte SQLite dopo snapshot verificato. Nessuna nuova PEC è
+stata inviata durante la correzione.
+
 ## 2.371.0 — 23/09/2026
 
 **La tabella torna con le colonne che aveva.** L'esportazione rifaceva ogni

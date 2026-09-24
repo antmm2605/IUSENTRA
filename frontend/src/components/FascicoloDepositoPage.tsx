@@ -140,6 +140,7 @@ type ActionPayload = {
   local_pec?: Record<string, unknown>
   local_signature?: Record<string, unknown>
   compatibility_report?: Record<string, unknown>
+  simulazione?: boolean
 }
 
 function PostAction({ action, children, tone = 'secondary', confirm, confirmTitle = 'Conferma operazione', onDone, onError, redirectTo, title, ariaLabel }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string; confirmTitle?:string; onDone?:(message?:string)=>void; onError?:(message:string)=>void; redirectTo?:string; title?:string; ariaLabel?:string}) {
@@ -254,6 +255,8 @@ type DepositDocumentClassification = {
   alreadySigned: boolean
   requiresSignature?: boolean
 }
+
+const PAGOPA_RECEIPT_STUDIO_DOCUMENT_TYPE = 'RicevutaPagamento'
 
 type DepositCatalogPreviewOption = FascicoloDepositCatalogEntry
 
@@ -685,29 +688,39 @@ function StudioDocumentTypePicker({
   documentName,
   value,
   requirements,
+  lockedPaymentReceipt = false,
   onChange,
 }: {
   documentName: string
   value: string
   requirements: FascicoloDepositCatalogEntry['ui']['documentRequirements']
+  lockedPaymentReceipt?: boolean
   onChange: (value: string) => void
 }) {
-  if (!requirements.length) return null
+  if (!requirements.length && !lockedPaymentReceipt) return null
   return (
     <label className="iu-fas-deposit-role-picker">
       <span>Classificazione allegato</span>
       <select
         value={value}
+        disabled={lockedPaymentReceipt}
         onChange={(event) => onChange(event.currentTarget.value)}
         aria-label={`Classificazione allegato per ${documentName}`}
       >
-        <option value="">Allegato semplice</option>
-        {requirements.map((requirement) => (
-          <option key={`${documentName}-${requirement.code}`} value={requirement.code}>
-            {requirement.label}
-          </option>
-        ))}
+        {lockedPaymentReceipt ? (
+          <option value={PAGOPA_RECEIPT_STUDIO_DOCUMENT_TYPE}>Ricevuta di pagamento</option>
+        ) : (
+          <>
+            <option value="">Allegato semplice</option>
+            {requirements.map((requirement) => (
+              <option key={`${documentName}-${requirement.code}`} value={requirement.code}>
+                {requirement.label}
+              </option>
+            ))}
+          </>
+        )}
       </select>
+      {lockedPaymentReceipt ? <em>RT pagoPA riconosciuta: sarà indicizzata come ricevuta di pagamento.</em> : null}
     </label>
   )
 }
@@ -2092,12 +2105,21 @@ function DepositPreparePage({ id }:{id:string}) {
   const [activeDepositPanel, setActiveDepositPanel] = useState<DepositPhaseId>(initialDepositPhaseFromHash)
   const [depositActionNotice, setDepositActionNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [packagePreview, setPackagePreview] = useState<DepositPackagePreview | null>(null)
+  const [depositProofCompleted, setDepositProofCompleted] = useState(false)
+  const [depositSimulationCompleted, setDepositSimulationCompleted] = useState(false)
+  const [depositSendCompleted, setDepositSendCompleted] = useState(false)
   const [pecBodyDraft, setPecBodyDraft] = useState('')
   const [pecBodyEdited, setPecBodyEdited] = useState(false)
   const [pecBodyEditorOpen, setPecBodyEditorOpen] = useState(false)
   const [selectedDepositTypeKey, setSelectedDepositTypeKey] = useState('')
   const [additionalSignatureIds, setAdditionalSignatureIds] = useState<string[]>([])
-  useEffect(() => { setAdditionalSignatureIds([]) }, [id])
+  useEffect(() => {
+    setAdditionalSignatureIds([])
+    setPackagePreview(null)
+    setDepositProofCompleted(false)
+    setDepositSimulationCompleted(false)
+    setDepositSendCompleted(false)
+  }, [id])
   const [depositSpecificData, setDepositSpecificData] = useState<DepositSpecificData>({})
   const [depositProofInvalidated, setDepositProofInvalidated] = useState(false)
   const depositSpecificDataHydrationRef = useRef('')
@@ -2186,8 +2208,9 @@ function DepositPreparePage({ id }:{id:string}) {
       setDepositRenameBusy(false)
     }
   }
-  const handlePackageReady = (payload: ActionPayload) => {
+  const handlePackageReady = (payload: ActionPayload, stage: 'prova' | 'simulazione') => {
     const message = String(payload.message || payload.messaggio || 'Pacchetto di controllo preparato. Nessun invio PEC reale eseguito.')
+    const packageStageCompleted = Boolean(payload.package_ready && !payload.requires_guided_completion)
     setPackagePreview({
       idDeposito: String(payload.id_deposito || ''),
       pecDest: String(payload.pec_dest || ''),
@@ -2214,8 +2237,14 @@ function DepositPreparePage({ id }:{id:string}) {
     setToast({ tone: 'success', message })
     setDepositActionNotice({ tone: 'success', message })
     setDepositProofInvalidated(false)
+    setDepositProofCompleted(packageStageCompleted)
+    setDepositSimulationCompleted(stage === 'simulazione' && packageStageCompleted && payload.simulazione === true)
+    setDepositSendCompleted(false)
     refreshDetail()
     goToDepositPhase('generazione-busta')
+    window.setTimeout(() => {
+      document.getElementById('azioni-deposito')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
   }
   const registerBatchSignatureAction = (action: BatchSignatureAction | null) => {
     batchSignatureActionRef.current = action
@@ -2356,7 +2385,7 @@ function DepositPreparePage({ id }:{id:string}) {
         const defaultSelected = proposed.has(doc.id)
         const defaultRole = defaultDepositRoleForDocument(doc, linkedSlotByDocumentId.get(doc.id), defaultMainActDocumentId === doc.id)
         const persistedRole = savedDepositDocumentRole(persistedRow?.role, defaultRole)
-        next[doc.id] = currentRow || (persistedRow ? {
+        const row = currentRow || (persistedRow ? {
           selected: persistedRow.selected,
           role: persistedRole,
           studioDocumentType: persistedRow.studioDocumentType,
@@ -2369,6 +2398,10 @@ function DepositPreparePage({ id }:{id:string}) {
           alreadySigned: doc.signed,
           requiresSignature: defaultSelected && defaultSignatureRequiredForDepositRole(doc, defaultRole),
         })
+        next[doc.id] = {
+          ...row,
+          studioDocumentType: studioDocumentTypeForDocument(doc, row.studioDocumentType),
+        }
       })
       const currentKeys = Object.keys(current).sort()
       const nextKeys = Object.keys(next).sort()
@@ -2427,17 +2460,69 @@ function DepositPreparePage({ id }:{id:string}) {
   useEffect(() => {
     if (!pecBodyEdited) setPecBodyDraft(standardPecBody)
   }, [standardPecBody, pecBodyEdited])
+  useEffect(() => {
+    const savedBody = data.depositPreparation.pecBody
+    if (!savedBody || pecBodyEdited) return
+    setPecBodyDraft(savedBody)
+    setPecBodyEdited(savedBody !== standardPecBody)
+  }, [data.depositPreparation.pecBody, data.depositPreparation.updatedAt, standardPecBody])
+  useEffect(() => {
+    setAdditionalSignatureIds(
+      data.depositPreparation.documents
+        .filter((row) => row.selected && row.additionalSignature)
+        .map((row) => row.documentId),
+    )
+  }, [data.depositPreparation.updatedAt, data.depositPreparation.workflowFingerprint])
   const depositProofInputSignature = JSON.stringify({
     type: selectedDepositTypeKey,
     documents: packageDocuments.map((doc) => ({
       id: doc.id,
       role: effectiveDepositClassificationById[doc.id]?.role || '',
+      studioDocumentType: studioDocumentTypeForDocument(
+        doc,
+        effectiveDepositClassificationById[doc.id]?.studioDocumentType,
+      ),
       signature: Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature),
       additionalSignature: additionalSignatureIds.includes(doc.id),
     })),
     data: depositSpecificData,
     pecBody: pecBodyDraft,
   })
+  const persistedDepositProofInputSignature = JSON.stringify({
+    type: data.depositPreparation.typeKey,
+    documents: data.depositPreparation.documents
+      .filter((row) => row.selected && row.role !== 'fuori_busta')
+      .map((row) => ({
+        id: row.documentId,
+        role: row.role,
+        studioDocumentType: row.studioDocumentType,
+        signature: row.requiresSignature,
+        additionalSignature: row.additionalSignature,
+      })),
+    data: data.depositPreparation.datiattoExtra,
+    pecBody: data.depositPreparation.pecBody,
+  })
+  const persistedDepositWorkflowMatches = Boolean(
+    data.depositPreparation.saved
+    && data.depositPreparation.workflowFingerprint
+    && depositProofInputSignature === persistedDepositProofInputSignature
+  )
+  useEffect(() => {
+    if (loading || !persistedDepositWorkflowMatches) return
+    depositProofInputSignatureRef.current = depositProofInputSignature
+    setDepositProofInvalidated(false)
+    setDepositProofCompleted(data.depositPreparation.proofCompleted)
+    setDepositSimulationCompleted(data.depositPreparation.simulationCompleted)
+    setDepositSendCompleted(data.depositPreparation.sendCompleted)
+  }, [
+    data.depositPreparation.proofCompleted,
+    data.depositPreparation.simulationCompleted,
+    data.depositPreparation.sendCompleted,
+    data.depositPreparation.workflowFingerprint,
+    depositProofInputSignature,
+    loading,
+    persistedDepositWorkflowMatches,
+  ])
   useEffect(() => {
     if (loading || !f.id) return
     if (!depositProofInputSignatureRef.current) {
@@ -2452,6 +2537,9 @@ function DepositPreparePage({ id }:{id:string}) {
     }
     setPackagePreview(null)
     setDepositProofInvalidated(true)
+    setDepositProofCompleted(false)
+    setDepositSimulationCompleted(false)
+    setDepositSendCompleted(false)
   }, [depositProofInputSignature, f.id, loading])
   const selectedAttachmentIds = packageDocuments.filter((doc) => doc.id !== mainActDocument?.id).map((doc) => doc.id)
   const unsignedPackageDocuments = packageDocuments.filter((doc) => {
@@ -2772,7 +2860,7 @@ function DepositPreparePage({ id }:{id:string}) {
       return [doc.id, {
         selected: proposed.has(doc.id),
         role,
-        studioDocumentType: '',
+        studioDocumentType: studioDocumentTypeForDocument(doc),
         alreadySigned: doc.signed,
         requiresSignature: proposed.has(doc.id) && defaultSignatureRequiredForDepositRole(doc, role),
       }]
@@ -2797,11 +2885,14 @@ function DepositPreparePage({ id }:{id:string}) {
       const existing = current[documentId] || {
         selected: defaultDepositSelectionIds.includes(documentId),
         role: defaultRole,
-        studioDocumentType: '',
+        studioDocumentType: studioDocumentTypeForDocument(doc),
         alreadySigned: Boolean(doc?.signed),
         requiresSignature: doc ? defaultSignatureRequiredForDepositRole(doc, defaultRole) : false,
       }
       const normalizedPatch = { ...patch }
+      if (doc && isPagoPaPaymentReceiptDocument(doc)) {
+        normalizedPatch.studioDocumentType = PAGOPA_RECEIPT_STUDIO_DOCUMENT_TYPE
+      }
       if (normalizedPatch.role && normalizedPatch.role !== 'fuori_busta') normalizedPatch.selected = true
       if (doc && normalizedPatch.role && normalizedPatch.role !== 'fuori_busta') {
         normalizedPatch.requiresSignature = defaultSignatureRequiredForDepositRole(doc, normalizedPatch.role)
@@ -2838,7 +2929,7 @@ function DepositPreparePage({ id }:{id:string}) {
         next[documentId] = {
           selected: true,
           role,
-          studioDocumentType: existing?.studioDocumentType || '',
+          studioDocumentType: studioDocumentTypeForDocument(doc, existing?.studioDocumentType),
           alreadySigned: existing?.alreadySigned ?? doc.signed,
           requiresSignature: existing?.requiresSignature ?? defaultSignatureRequiredForDepositRole(doc, role),
         }
@@ -2847,6 +2938,8 @@ function DepositPreparePage({ id }:{id:string}) {
     })
     setPackagePreview(null)
     setDepositProofInvalidated(true)
+    setDepositProofCompleted(false)
+    setDepositSimulationCompleted(false)
     if (message) {
       setToast({ tone: 'success', message })
       setDepositActionNotice({ tone: 'success', message })
@@ -2864,11 +2957,13 @@ function DepositPreparePage({ id }:{id:string}) {
     )
     setPendingDepositIncludeIds((current) => current.filter((documentId) => !availableIds.includes(documentId)))
   }, [pendingDepositIncludeIds.join('|'), depositSelectableDocuments.map((doc) => doc.id).join('|')])
-  const depositClassificationPayload = () => ({
+  const depositClassificationPayload = (resetWorkflow = false) => ({
     tipo_deposito_telematico_key: selectedDepositType?.key || '',
     tipo_deposito_telematico_label: selectedDepositType?.label || '',
     tipo_deposito_telematico_policy: selectedDepositType?.rules.policy_code || '',
     datiatto_extra: depositSpecificData,
+    corpo_pec: pecBodyDraft || standardPecBody,
+    reset_workflow: resetWorkflow,
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
       const role = effectiveDepositClassificationById[doc.id]?.role
@@ -2880,9 +2975,13 @@ function DepositPreparePage({ id }:{id:string}) {
         selected,
         role: normaliseDepositRoleForUi(role),
         role_confirmed: selected && normaliseDepositRoleForUi(role) === 'atto_principale',
-        studio_document_type: effectiveDepositClassificationById[doc.id]?.studioDocumentType || '',
+        studio_document_type: studioDocumentTypeForDocument(
+          doc,
+          effectiveDepositClassificationById[doc.id]?.studioDocumentType,
+        ),
         already_signed: Boolean(doc.signed),
         requires_signature: Boolean(mandatorySignature || requestedSignature),
+        additional_signature: additionalSignatureIds.includes(doc.id),
       }
     }),
   })
@@ -2895,6 +2994,26 @@ function DepositPreparePage({ id }:{id:string}) {
       refreshDetail(String(result.message || 'Classificazione deposito salvata.'))
     } catch (err) {
       failDetail(err instanceof Error ? err.message : 'Classificazione deposito non salvata.')
+    } finally {
+      setClassificationSaving(false)
+    }
+  }
+  const startNewDepositCycle = async () => {
+    if (classificationSaving) return
+    setClassificationSaving(true)
+    try {
+      const result = await submitJsonPayload(
+        `/api/v1/ui/fascicoli/${encodedId}/deposito/classifica-documenti`,
+        depositClassificationPayload(true),
+      )
+      setPackagePreview(null)
+      setDepositProofInvalidated(false)
+      setDepositProofCompleted(false)
+      setDepositSimulationCompleted(false)
+      setDepositSendCompleted(false)
+      refreshDetail(String(result.message || 'Nuovo ciclo di deposito avviato. Esegui nuovamente prova e simulazione PEC.'))
+    } catch (err) {
+      failDetail(err instanceof Error ? err.message : 'Nuovo ciclo di deposito non avviato.')
     } finally {
       setClassificationSaving(false)
     }
@@ -3055,7 +3174,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const compatibilityReceipts = Array.isArray(compatibilityReport.ricevute_attese)
     ? compatibilityReport.ricevute_attese.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : []
-  const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)
+  const packageReadyAfterProof = Boolean(depositProofCompleted && !depositProofInvalidated)
+  const packageReadyForRealSend = Boolean(packageReadyAfterProof && depositSimulationCompleted && !depositSendCompleted)
   const selectedDepositRequiredData = selectedDepositType?.schema.requiredData || []
   const selectedDepositRequiredDataText = normaliseText(selectedDepositRequiredData.join(' '))
   const selectedDepositFlags = selectedDepositType?.schema.quickDepositFlags || {}
@@ -3133,20 +3253,32 @@ function DepositPreparePage({ id }:{id:string}) {
     {
       key: 'prova-busta',
       label: 'Prova della busta',
-      detail: packageReadyForRealSend
+      detail: packageReadyAfterProof
         ? `Pacchetto verificato${compatibilityPercent >= 0 ? `: conformità ${compatibilityPercent}%` : ''}.`
         : 'Esegui la prova senza invio reale.',
-      ready: packageReadyForRealSend,
+      ready: packageReadyAfterProof,
+    },
+    {
+      key: 'simulazione-pec',
+      label: 'Simulazione PEC',
+      detail: depositSimulationCompleted
+        ? 'Simulazione completata con esito positivo.'
+        : 'Esegui Simula invio PEC dopo la prova della busta.',
+      ready: depositSimulationCompleted,
     },
   ]
   const incompleteDepositRequirementChecks = depositRequirementChecks.filter((check) => !check.ready)
   const completedDepositRequirementChecks = depositRequirementChecks.length - incompleteDepositRequirementChecks.length
   const selectedDepositTypeBlocksRealSend = Boolean(selectedDepositType && !selectedDepositType.rules.real_send_allowed_from_pct_panel)
   const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend && !selectedDepositTypeBlocksRealSend
-  const realSendDisabledReason = !selectedDepositType
+  const realSendDisabledReason = depositSendCompleted
+    ? 'Deposito già inviato e registrato. Un secondo invio è bloccato.'
+    : !selectedDepositType
     ? 'Scegli il tipo di deposito prima di preparare la prova.'
-    : !packageReadyForRealSend
+    : !packageReadyAfterProof
     ? 'Esegui prima la prova senza invio reale.'
+    : !depositSimulationCompleted
+      ? 'Esegui prima Simula invio PEC e attendi l’esito positivo.'
     : missingRequiredDepositDataLabels.length
       ? requiredSpecificDataNotice
     : requiredDepositDataBlocked
@@ -3159,13 +3291,17 @@ function DepositPreparePage({ id }:{id:string}) {
           ? officeRecipientBlockingReason || 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
           : actionBlockedReason
   const signaturesRequiredBeforeAction = false
-  const depositStatusText = incompleteDepositRequirementChecks.length
+  const depositStatusText = depositSendCompleted
+    ? 'Deposito inviato'
+    : incompleteDepositRequirementChecks.length
     ? `${incompleteDepositRequirementChecks.length} requisiti da completare`
     : 'Pronto per l’invio locale'
-  const preparationTone: FascicoloRow['tone'] = incompleteDepositRequirementChecks.length ? 'warning' : 'success'
-  const depositMessage = incompleteDepositRequirementChecks.length
+  const preparationTone: FascicoloRow['tone'] = depositSendCompleted || !incompleteDepositRequirementChecks.length ? 'success' : 'warning'
+  const depositMessage = depositSendCompleted
+    ? 'Prova, simulazione PEC e invio reale risultano completati e memorizzati per questo deposito.'
+    : incompleteDepositRequirementChecks.length
     ? 'Completa i requisiti del deposito indicati sotto.'
-    : 'I requisiti del deposito e la prova della busta risultano completi.'
+    : 'I requisiti, la prova della busta e la simulazione PEC risultano completi.'
   const documentPhaseTone: FascicoloRow['tone'] = !selectedDepositType ? 'warning' : !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
   const documentPhaseState = !selectedDepositType
     ? 'Tipo da scegliere'
@@ -3495,7 +3631,7 @@ function DepositPreparePage({ id }:{id:string}) {
         <StatCard icon={<FileText size={19}/>} label="Atto principale" value={mainActDocument ? 1 : 0} note={mainActDocument?.name || 'da selezionare'} tone={mainActDocument ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
         <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#firma-busta" onClick={openDepositPhase('#firma-busta')}/>
         <StatCard icon={<Landmark size={19}/>} label="Ufficio destinatario" value={officeRecipientReady ? 'OK' : '—'} note={data.depositOffice.name || 'da verificare'} tone={officeRecipientReady ? 'success' : 'warning'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
-        <StatCard icon={<PackageCheck size={19}/>} label="Prova busta" value={packageReadyForRealSend ? 'OK' : '—'} note={packageReadyForRealSend ? (compatibilityPercent >= 0 ? `${compatibilityPercent}% conforme` : 'pacchetto pronto') : 'da eseguire'} tone={packageReadyForRealSend ? 'success' : 'warning'} href="#generazione-busta" onClick={openDepositPhase('#generazione-busta')}/>
+        <StatCard icon={<PackageCheck size={19}/>} label="Prova busta" value={packageReadyAfterProof ? 'OK' : '—'} note={packageReadyAfterProof ? (compatibilityPercent >= 0 ? `${compatibilityPercent}% conforme` : 'pacchetto pronto') : 'da eseguire'} tone={packageReadyAfterProof ? 'success' : 'warning'} href="#generazione-busta" onClick={openDepositPhase('#generazione-busta')}/>
         <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
       </section>
 
@@ -3609,6 +3745,7 @@ function DepositPreparePage({ id }:{id:string}) {
               ) : null}
               <div className="iu-fas-deposit-selection__list">
                 {depositSelectableDocuments.map((doc) => {
+                  const isPaymentReceipt = isPagoPaPaymentReceiptDocument(doc)
                   const classification = effectiveDepositClassificationById[doc.id] || {
                     selected: defaultDepositSelectionIds.includes(doc.id),
                     role: defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id),
@@ -3690,8 +3827,9 @@ function DepositPreparePage({ id }:{id:string}) {
                         {roleValue !== 'atto_principale' && roleValue !== 'fuori_busta' ? (
                           <StudioDocumentTypePicker
                             documentName={doc.name}
-                            value={effectiveDepositClassificationById[doc.id]?.studioDocumentType || ''}
+                            value={studioDocumentTypeForDocument(doc, effectiveDepositClassificationById[doc.id]?.studioDocumentType)}
                             requirements={selectedDepositType?.ui.documentRequirements || []}
+                            lockedPaymentReceipt={isPaymentReceipt}
                             onChange={(studioDocumentType) => updateDepositClassification(doc.id, {
                               studioDocumentType,
                               selected: true,
@@ -3905,6 +4043,7 @@ function DepositPreparePage({ id }:{id:string}) {
               </article>
               {packageDocuments.map((doc) => {
                 const proofLabel = notificationProofKind(doc) ? notificationProofLabel(doc) : ''
+                const documentTypeLabel = isPagoPaPaymentReceiptDocument(doc) ? 'Ricevuta di pagamento' : doc.type
                 const willSign = unsignedPackageDocuments.some((item) => item.id === doc.id)
                 const signatureLabel = requiresCadesBesRefresh(doc)
                   ? 'Firma CAdES-BES da aggiornare'
@@ -3914,7 +4053,7 @@ function DepositPreparePage({ id }:{id:string}) {
                     <FileText size={16}/>
                     <div>
                       <strong>{doc.name}</strong>
-                      <span>{[proofLabel, doc.type, signatureLabel, doc.size].filter(Boolean).join(' - ')}</span>
+                      <span>{[proofLabel, documentTypeLabel, signatureLabel, doc.size].filter(Boolean).join(' - ')}</span>
                     </div>
                     <div className="iu-fas-package-docs__actions">
                       {doc.actions.preview ? (
@@ -3999,12 +4138,12 @@ function DepositPreparePage({ id }:{id:string}) {
                 </button>
               ) : null}
             </div>
-            <div className="iu-fas-package-actions">
+            <div id="azioni-deposito" className="iu-fas-package-actions" aria-label="Azioni del deposito">
               <DepositActionButton
                 action={dryRunBustaAction}
                 payload={depositDryRunActionPayload}
-                disabled={proofActionBlocked}
-                disabledReason={proofActionBlockedReason || actionBlockedReason}
+                disabled={proofActionBlocked || depositProofCompleted}
+                disabledReason={depositProofCompleted ? 'Prova già completata con esito positivo per questo deposito.' : proofActionBlockedReason || actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 tone="primary"
@@ -4016,16 +4155,16 @@ function DepositPreparePage({ id }:{id:string}) {
                 confirmTitle={signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio'}
                 onDone={refreshDetail}
                 onError={failDetail}
-                onPackageReady={handlePackageReady}
+                onPackageReady={(payload) => handlePackageReady(payload, 'prova')}
                 completeLocalSignature={completeDepositLocalSignature}
               >
-                <FileArchive size={15}/> {signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio reale'}
+                {depositProofCompleted ? <CheckCircle2 size={15}/> : <FileArchive size={15}/>} {depositProofCompleted ? 'Prova completata' : signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio reale'}
               </DepositActionButton>
               <DepositActionButton
                 action={dryRunBustaAction}
                 payload={depositSimulationActionPayload}
-                disabled={proofActionBlocked}
-                disabledReason={proofActionBlockedReason || actionBlockedReason}
+                disabled={proofActionBlocked || !packageReadyAfterProof || depositSimulationCompleted}
+                disabledReason={depositSimulationCompleted ? 'Simulazione PEC già completata con esito positivo per questo deposito.' : !packageReadyAfterProof ? 'Esegui prima Prova senza invio reale e attendi l’esito positivo.' : proofActionBlockedReason || actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 progressLabel="Simulazione PEC in corso"
@@ -4034,16 +4173,16 @@ function DepositPreparePage({ id }:{id:string}) {
                 confirmTitle="Simula invio PEC"
                 onDone={refreshDetail}
                 onError={failDetail}
-                onPackageReady={handlePackageReady}
+                onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}
                 completeLocalSignature={completeDepositLocalSignature}
               >
-                <Mail size={15}/> Simula invio PEC
+                {depositSimulationCompleted ? <CheckCircle2 size={15}/> : <Mail size={15}/>} {depositSimulationCompleted ? 'Simulazione completata' : 'Simula invio PEC'}
               </DepositActionButton>
               {proofActionNotice ? <small>{depositUserFacingMessage(proofActionNotice)}</small> : null}
               <DepositActionButton
                 action={realSendAction}
                 payload={depositActionPayload}
-                disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}
+                disabled={depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}
                 disabledReason={realSendDisabledReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={DEPOSIT_PROGRESS_USER_STEPS}
@@ -4053,12 +4192,23 @@ function DepositPreparePage({ id }:{id:string}) {
                 confirmTitle="Invia deposito reale"
                 onDone={refreshDetail}
                 onError={failDetail}
-                onPackageReady={handlePackageReady}
+                onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}
                 completeLocalSignature={completeDepositLocalSignature}
                 completeLocalPec={completeDepositLocalPec}
               >
-                <Send size={15}/> Invia deposito reale
+                {depositSendCompleted ? <CheckCircle2 size={15}/> : <Send size={15}/>} {depositSendCompleted ? 'Deposito già inviato' : 'Invia deposito reale'}
               </DepositActionButton>
+              {depositSendCompleted ? (
+                <button
+                  type="button"
+                  className="iu-fas-side-link"
+                  disabled={classificationSaving}
+                  onClick={startNewDepositCycle}
+                  title="Azzera gli esiti memorizzati e avvia un nuovo ciclo sullo stesso fascicolo"
+                >
+                  <RotateCcw size={15}/> {classificationSaving ? 'Avvio nuovo ciclo...' : 'Avvia un nuovo deposito'}
+                </button>
+              ) : null}
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
               {requiredSpecificDataNotice ? <a className="iu-fas-side-link" href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}><Edit3 size={15}/> Completa dati deposito</a> : null}
               {requiredChoicesNotice ? <small>{depositUserFacingMessage(requiredChoicesNotice)}</small> : null}
@@ -5015,12 +5165,35 @@ function depositRoleLabel(role: DepositDocumentRole): { label: string; tone: Fas
 
 function depositRoleDisplayLabelForDocument(doc: FascicoloDocument, role: DepositDocumentRole): string {
   const technicalLabel = depositRoleLabel(role).label
+  if (role === 'allegato' && isPagoPaPaymentReceiptDocument(doc)) return 'Ricevuta di pagamento (allegato busta)'
   if (role !== 'allegato' || !doc.catalogLabel || doc.catalogConfidence < 70) return technicalLabel
   if (['atto_difensivo', 'contributo_unificato', 'nota_iscrizione_ruolo', 'provvedimento', 'relata', 'prova_notifica', 'procura'].includes(doc.catalogRole)) {
     return `${doc.catalogLabel} (allegato busta)`
   }
   if (doc.catalogSection === 'pagamenti') return `${doc.catalogLabel} (allegato busta)`
   return technicalLabel
+}
+
+function isPagoPaPaymentReceiptDocument(doc: FascicoloDocument): boolean {
+  if (!/\.xml$/i.test(doc.name.trim())) return false
+  const source = normaliseText(doc.source)
+  const metadata = normaliseText([
+    doc.catalogRole,
+    doc.catalogLabel,
+    doc.catalogSection,
+    doc.notes,
+    doc.tags.join(' '),
+    doc.name,
+  ].join(' '))
+  if (source === 'pagopa_rt' || source === 'pagopa rt') return true
+  return doc.catalogRole === 'contributo_unificato'
+    && /(ricevuta telematica|pagopa rt|rt pagopa|codice esito pagamento)/.test(metadata)
+}
+
+function studioDocumentTypeForDocument(doc: FascicoloDocument | undefined, current = ''): string {
+  return doc && isPagoPaPaymentReceiptDocument(doc)
+    ? PAGOPA_RECEIPT_STUDIO_DOCUMENT_TYPE
+    : current || ''
 }
 
 function normaliseDepositClassificationMainAct(

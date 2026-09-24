@@ -299,6 +299,70 @@ def test_api_deposito_propone_il_ruolo_solo_se_nessuno_ha_scelto(tmp_path):
     assert riga["role"] == "atto_principale"
 
 
+def test_api_deposito_forza_la_rt_pagopa_come_ricevuta_pagamento(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    ricevuta = gf.aggiungi_documento(
+        fascicolo.id,
+        "RT-330008103520209603.xml",
+        TipoDocumento.ALLEGATO,
+        (
+            b'<?xml version="1.0" encoding="UTF-8"?>'
+            b'<RT><datiPagamento><codiceEsitoPagamento>0</codiceEsitoPagamento>'
+            b'<identificativoUnivocoVersamento>330008103520209603</identificativoUnivocoVersamento>'
+            b'</datiPagamento></RT>'
+        ),
+        firmato=False,
+    )
+    client = app.test_client()
+    _conferma_profilo_regia(app, client, fascicolo)
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "documents": [{
+                "document_id": ricevuta.id,
+                "selected": True,
+                "role": "allegato",
+                "studio_document_type": "",
+            }],
+        },
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 200
+    riga = next(item for item in response.get_json()["updatedDocuments"] if item["documentId"] == ricevuta.id)
+    assert riga["studioDocumentType"] == "RicevutaPagamento"
+
+
+def test_api_deposito_non_accetta_un_xml_generico_come_ricevuta_pagamento(tmp_path):
+    app, gf, fascicolo = _app_with_fascicolo(tmp_path)
+    allegato = gf.aggiungi_documento(
+        fascicolo.id,
+        "dati.xml",
+        TipoDocumento.ALLEGATO,
+        b'<?xml version="1.0" encoding="UTF-8"?><Documento><Dato>test</Dato></Documento>',
+        firmato=False,
+    )
+    client = app.test_client()
+    _conferma_profilo_regia(app, client, fascicolo)
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/deposito/classifica-documenti",
+        json={
+            "documents": [{
+                "document_id": allegato.id,
+                "selected": True,
+                "role": "allegato",
+                "studio_document_type": "RicevutaPagamento",
+            }],
+        },
+        headers={"X-API-Key": "regia-test-key"},
+    )
+
+    assert response.status_code == 400
+    assert "non è una RT pagoPA XML leggibile" in response.get_json()["errore"]
+
+
 def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     atto = gf.aggiungi_documento(fascicolo.id, "ricorso lavoro.pdf", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)

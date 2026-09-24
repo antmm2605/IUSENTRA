@@ -28,7 +28,10 @@ from web.services.deposito_pec_runtime import (
     build_compatibility_report as _build_compatibility_report,
     build_simulazione_pec_payload as _build_simulazione_pec_payload,
     con_avviso_pec_mittente as _aggiungi_avviso_pec_mittente,
+    deposito_workflow_state as _deposito_workflow_state,
+    mark_deposito_workflow_stage as _mark_deposito_workflow_stage,
     registra_prova_senza_invio_pec as _registra_prova_senza_invio_pec,
+    validate_deposito_action_preparation as _validate_deposito_action_preparation,
 )
 from web.services.deposito_signature_runtime import (
     dati_atto_signature_gate as _dati_atto_signature_gate,
@@ -641,6 +644,52 @@ def register_deposito_routes(
         simula_invio_pec = form.get("simula_invio_pec", "").strip() == "1"
         controllo_senza_invio = prova_senza_invio or simula_invio_pec
         modalita_demo = simula_invio_pec
+        preparation = (
+            (getattr(fascicolo, "profilo_deposito", {}) or {}).get("preparazione_busta")
+            if isinstance(getattr(fascicolo, "profilo_deposito", {}), dict)
+            else {}
+        )
+        workflow_enforced = bool(form.get("tipo_deposito_telematico_key", "").strip() or preparation)
+        if workflow_enforced:
+            try:
+                workflow_state = _validate_deposito_action_preparation(
+                    preparation,
+                    type_key=form.get("tipo_deposito_telematico_key", ""),
+                    datiatto_extra=datiatto_extra,
+                    corpo_pec=form.get("corpo_pec", ""),
+                    selected_document_ids=[atto_id, *[item for item in allegati_ids if item != atto_id]],
+                    main_document_id=atto_id,
+                )
+                if prova_senza_invio and workflow_state["send"]["ok"]:
+                    raise ValueError(
+                        "Il deposito risulta già inviato. Avvia un nuovo ciclo prima di preparare un ulteriore deposito."
+                    )
+                if simula_invio_pec and not workflow_state["proof"]["ok"]:
+                    raise ValueError("Esegui prima la prova senza invio reale e attendi l’esito positivo.")
+                if not controllo_senza_invio:
+                    if workflow_state["send"]["ok"]:
+                        raise ValueError("Il deposito risulta già inviato: un secondo invio è bloccato.")
+                    if not (workflow_state["proof"]["ok"] and workflow_state["simulation"]["ok"]):
+                        raise ValueError("Esegui prima prova e simulazione PEC con esito positivo.")
+            except ValueError as exc:
+                return jsonify({"ok": False, "package_ready": False, "errore": str(exc)}), 409
+
+        def _persist_workflow_success(stage: str, *, deposito_id: str, completed_at: str = "") -> None:
+            if not workflow_enforced:
+                return
+            next_profile = _mark_deposito_workflow_stage(
+                getattr(fascicolo, "profilo_deposito", {}) or {},
+                stage,
+                id_deposito=deposito_id,
+                completed_at=completed_at,
+            )
+            fascicolo.profilo_deposito = next_profile
+            gestore_fascicoli.aggiorna_preparazione_deposito(
+                id_fasc,
+                document_updates=[],
+                profilo_deposito=next_profile,
+            )
+
         pec_cfg = None
         pec_config_error = ""
         try:
@@ -864,6 +913,17 @@ def register_deposito_routes(
                 "Nessun invio PEC reale è stato eseguito."
             )
             _con_avviso_pec_mittente(prova_payload)
+            try:
+                _persist_workflow_success("proof", deposito_id=id_dep, completed_at=timestamp)
+            except Exception as exc:
+                app.logger.exception("Esito prova deposito non persistito %s: %s", id_fasc, exc)
+                return jsonify(
+                    {
+                        "ok": False,
+                        "package_ready": False,
+                        "errore": "La prova è riuscita, ma l’esito non è stato memorizzato. Riprova prima di proseguire.",
+                    }
+                ), 500
             return redacted_json_response(prova_payload, 200)
         if simula_invio_pec:
             sim_payload = _build_simulazione_pec_payload(
@@ -898,9 +958,16 @@ def register_deposito_routes(
                     sync_pubblica=sync_pubblica,
                     id_fascicolo=id_fasc,
                 )
+                _persist_workflow_success("simulation", deposito_id=id_dep, completed_at=timestamp)
             except Exception as exc:
                 app.logger.exception("Errore salvataggio prova senza invio PEC %s: %s", id_fasc, exc)
-                sim_payload["avviso"] = "La prova è stata generata, ma il salvataggio nel fascicolo non è stato completato."
+                return jsonify(
+                    {
+                        "ok": False,
+                        "package_ready": False,
+                        "errore": "La simulazione è riuscita, ma l’esito non è stato memorizzato. Riprova prima dell’invio reale.",
+                    }
+                ), 500
             return redacted_json_response(sim_payload, 200)
         if form.get("local_pec_confirmed") == "1":
             try:
@@ -962,6 +1029,13 @@ def register_deposito_routes(
                     avvocato=utente.username if utente else "",
                 )
             )
+            if workflow_enforced:
+                fascicolo.profilo_deposito = _mark_deposito_workflow_stage(
+                    getattr(fascicolo, "profilo_deposito", {}) or {},
+                    "send",
+                    id_deposito=id_dep,
+                    completed_at=timestamp,
+                )
             fascicolo.modificato_il = _dtnow.now().isoformat()
             gestore_fascicoli._salva()
             audit(

@@ -986,6 +986,14 @@ export type FascicoloDepositPreparation = {
   policy: string
   updatedAt: string
   updatedBy: string
+  workflowFingerprint: string
+  pecBody: string
+  proofCompleted: boolean
+  proofCompletedAt: string
+  simulationCompleted: boolean
+  simulationCompletedAt: string
+  sendCompleted: boolean
+  sendCompletedAt: string
   datiattoExtra: Record<string, unknown>
   documents: Array<{
     documentId: string
@@ -994,6 +1002,7 @@ export type FascicoloDepositPreparation = {
     studioDocumentType: string
     alreadySigned: boolean
     requiresSignature: boolean
+    additionalSignature: boolean
   }>
 }
 
@@ -1428,6 +1437,14 @@ export const emptyDepositPreparation: FascicoloDepositPreparation = {
   policy: '',
   updatedAt: '',
   updatedBy: '',
+  workflowFingerprint: '',
+  pecBody: '',
+  proofCompleted: false,
+  proofCompletedAt: '',
+  simulationCompleted: false,
+  simulationCompletedAt: '',
+  sendCompleted: false,
+  sendCompletedAt: '',
   datiattoExtra: {},
   documents: [],
 }
@@ -2588,6 +2605,14 @@ function normalizeDepositPreparation(value: unknown): FascicoloDepositPreparatio
     policy: text(row.policy),
     updatedAt: text(row.updatedAt ?? row.updated_at),
     updatedBy: text(row.updatedBy ?? row.updated_by),
+    workflowFingerprint: text(row.workflowFingerprint ?? row.workflow_fingerprint),
+    pecBody: text(row.pecBody ?? row.pec_body),
+    proofCompleted: bool(row.proofCompleted ?? row.proof_completed),
+    proofCompletedAt: text(row.proofCompletedAt ?? row.proof_completed_at),
+    simulationCompleted: bool(row.simulationCompleted ?? row.simulation_completed),
+    simulationCompletedAt: text(row.simulationCompletedAt ?? row.simulation_completed_at),
+    sendCompleted: bool(row.sendCompleted ?? row.send_completed),
+    sendCompletedAt: text(row.sendCompletedAt ?? row.send_completed_at),
     datiattoExtra: isRecord(row.datiattoExtra ?? row.datiatto_extra)
       ? (row.datiattoExtra ?? row.datiatto_extra) as Record<string, unknown>
       : {},
@@ -2600,6 +2625,7 @@ function normalizeDepositPreparation(value: unknown): FascicoloDepositPreparatio
         studioDocumentType: text(document.studioDocumentType ?? document.studio_document_type),
         alreadySigned: bool(document.alreadySigned ?? document.already_signed),
         requiresSignature: bool(document.requiresSignature ?? document.requires_signature),
+        additionalSignature: bool(document.additionalSignature ?? document.additional_signature),
       }
     }).filter((document) => document.documentId),
   }

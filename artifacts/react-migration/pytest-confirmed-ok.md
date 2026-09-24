@@ -6493,3 +6493,14 @@ Verifica finale correzione 1.6.132: intero `test_local_signer.py` 269 superati; 
 ## Copia server e protezione deploy — 21/09/2026
 
 30 test mirati deploy/runtime/CI/packaging superati (28 iniziali più 2 confronti bundle); Ruff e compilazione Python dei sorgenti copiati superati. Esportazione server verificata per 4.644 file, inclusi 547 asset React. La baseline è il runtime server, su istruzione esplicita dell’utente. Nessuna modifica funzionale introdotta. Stato finale nel verbale `deploy-preservazione-sorgenti-20260921.md`.
+
+## RT pagoPA e persistenza del ciclo deposito — 24/09/2026
+
+| Verifica | Esito | Evidenza |
+| --- | --- | --- |
+| Classificazione della RT pagoPA | OK | La ricevuta `RT-330008103520209603.xml` viene riconosciuta dal contenuto XML e indicizzata come `RicevutaPagamento`; un XML SdI o un allegato generico non può assumere tale ruolo. |
+| Busta ministeriale | OK | La RT resta XML in chiaro, con MIME `application/xml`; l’indice blocca una RT classificata come allegato semplice e blocca un documento non RT classificato come ricevuta di pagamento. |
+| Ciclo operativo | OK | Gli esiti positivi di prova, simulazione e invio sono persistiti sul fascicolo e riutilizzati solo se l’impronta della preparazione coincide; modifica dei dati o nuovo deposito azzerano correttamente il ciclo. |
+| Caso reale `0BAABCE0` | OK | Fonte di verità SQLite verificata dopo riapertura: prova `0404322C`, simulazione positiva e deposito `64381391` nello stato `CONSEGNATO`; il reinvio duplicato è bloccato. |
+| Interfaccia produzione | OK | Nella pagina reale autenticata sono visibili `Ricevuta di pagamento`, `Prova completata`, `Simulazione completata`, `Deposito già inviato` e l’azione esplicita `Avvia un nuovo deposito`. Nessun nuovo invio PEC è stato eseguito. |
+| Guardrail tecnici locali | OK | Compilazione Python, typecheck TypeScript e build Vite superati; la prova locale non ha richiesto né smart card né Local Signer. |

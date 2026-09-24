@@ -262,6 +262,11 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "defaultDepositRoleForDocument" in source
     assert "normaliseDepositClassificationMainAct" in source
     assert "deposito/classifica-documenti" in source
+    assert "PAGOPA_RECEIPT_STUDIO_DOCUMENT_TYPE = 'RicevutaPagamento'" in source
+    assert "isPagoPaPaymentReceiptDocument" in source
+    assert "RT pagoPA riconosciuta: sarà indicizzata come ricevuta di pagamento." in source
+    assert "lockedPaymentReceipt={isPaymentReceipt}" in source
+    assert "const documentTypeLabel = isPagoPaPaymentReceiptDocument(doc) ? 'Ricevuta di pagamento' : doc.type" in source
     assert 'label="Qualifica del professionista"' in source
     assert "professionista_ruolo" in source
     assert "qualificheProfessionistaCassazione" in source
@@ -432,7 +437,15 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
     assert "caseValueRequired && !data.depositReadiness.valoreCausa.ready" in deposit_page
     assert "contributionRequired && !data.depositReadiness.contributoUnificato.ready" in deposit_page
     assert "missingRequiredSlots.length > 0 || missingRequiredDepositDataLabels.length > 0" not in deposit_page
-    assert deposit_page.count("disabled={proofActionBlocked}") >= 2
+    assert deposit_page.count("disabled={proofActionBlocked}") >= 1
+    assert "const [depositProofCompleted, setDepositProofCompleted] = useState(false)" in deposit_page
+    assert "const [depositSimulationCompleted, setDepositSimulationCompleted] = useState(false)" in deposit_page
+    assert "disabled={proofActionBlocked || !packageReadyAfterProof}" in deposit_page
+    assert "Esegui prima Prova senza invio reale e attendi l’esito positivo." in deposit_page
+    assert "Esegui prima Simula invio PEC e attendi l’esito positivo." in deposit_page
+    assert "onPackageReady={(payload) => handlePackageReady(payload, 'prova')}" in deposit_page
+    assert "onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}" in deposit_page
+    assert 'id="azioni-deposito"' in deposit_page
     assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla." in deposit_page
     assert "Durante la prova il dispositivo firma i dati del deposito" in deposit_page

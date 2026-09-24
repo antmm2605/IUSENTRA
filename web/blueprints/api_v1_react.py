@@ -39,6 +39,7 @@ from werkzeug.exceptions import HTTPException
 from pct import __version__ as APP_VERSION
 from pct.applicazioni_runtime import TOOL_SCHEMAS, build_tool_result
 from pct.auth import RuoloUtente, totp_uri
+from pct.busta import e_ricevuta_telematica_pagopa
 from pct.clienti import Indirizzo, Recapiti, TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
@@ -123,6 +124,7 @@ from web.services.react_clienti_bridge import (
     build_react_clienti_payload,
     build_react_soggetto_modifica_payload,
 )
+from web.services.deposito_pec_runtime import preserve_deposito_workflow
 from web.services.client_document_reader import ClientDocumentReaderError, read_client_document_upload
 from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
 from web.services.mailbox_sync_runtime import sync_mailboxes_for_current_context
@@ -9417,6 +9419,26 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             "",
             str(raw_row.get("studio_document_type") or raw_row.get("studioDocumentType") or "").strip(),
         )
+        is_pagopa_receipt = False
+        if str(getattr(doc, "nome", "") or "").casefold().endswith(".xml"):
+            try:
+                is_pagopa_receipt = e_ricevuta_telematica_pagopa(
+                    _pat_read_document_bytes(ctx["gf"], id_fasc, document_id)
+                )
+            except (FileNotFoundError, OSError, RuntimeError, ValueError):
+                is_pagopa_receipt = False
+        if is_pagopa_receipt:
+            studio_document_type = "RicevutaPagamento"
+        elif studio_document_type == "RicevutaPagamento":
+            return jsonify(
+                {
+                    "errore": (
+                        f"{getattr(doc, 'nome', document_id)} non è una RT pagoPA XML leggibile e non può "
+                        "essere classificata come ricevuta di pagamento."
+                    ),
+                    "mock_fallback": False,
+                }
+            ), 400
         if selected and role != "fuori_busta":
             selected_count += 1
             doc_type = _DEPOSIT_DOCUMENT_ROLE_TO_TYPE.get(role)
@@ -9435,18 +9457,31 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             "studioDocumentType": studio_document_type,
             "alreadySigned": already_signed,
             "requiresSignature": requires_signature,
+            "additionalSignature": bool(
+                raw_row.get("additional_signature")
+                if "additional_signature" in raw_row
+                else raw_row.get("additionalSignature")
+            ),
         })
 
     deposit_profile = dict(getattr(ctx["fascicolo"], "profilo_deposito", {}) or {})
-    deposit_profile["preparazione_busta"] = {
+    previous_preparation = deposit_profile.get("preparazione_busta")
+    next_preparation = {
         "tipo_deposito_telematico_key": str(payload.get("tipo_deposito_telematico_key") or "").strip(),
         "tipo_deposito_telematico_label": str(payload.get("tipo_deposito_telematico_label") or "").strip(),
         "tipo_deposito_telematico_policy": str(payload.get("tipo_deposito_telematico_policy") or "").strip(),
         "datiatto_extra": datiatto_extra,
         "documents": updated_documents,
+        "corpo_pec": str(payload.get("corpo_pec") or "").replace("\r\n", "\n").strip(),
         "updated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "updated_by": _actor_label(),
     }
+    reset_workflow = bool(payload.get("reset_workflow") or payload.get("resetWorkflow"))
+    deposit_profile["preparazione_busta"] = preserve_deposito_workflow(
+        next_preparation,
+        previous_preparation,
+        reset=reset_workflow,
+    )
     ctx["fascicolo"] = ctx["gf"].aggiorna_preparazione_deposito(
         id_fasc,
         document_updates=document_deposit_updates,
@@ -9476,6 +9511,13 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         fascicoli_manager=ctx["gf"],
         actor=_actor_label(),
     )
+    if reset_workflow:
+        _audit_event(
+            "fascicoli.deposito.nuovo_ciclo",
+            "fascicolo",
+            id_fasc,
+            "Avviato un nuovo ciclo di deposito: prova, simulazione PEC e invio reale sono da ripetere.",
+        )
     return _jsonify_public_payload({
         "ok": True,
         "mock_fallback": False,

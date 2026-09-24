@@ -65,6 +65,7 @@ from pct.document_signature_state import (
 )
 from pct.firma import attributi_cades_bes_mancanti, busta_cades_valida
 from web.services.deposito_anagrafica_ministeriale import deposito_ministerial_readiness
+from web.services.deposito_pec_runtime import deposito_workflow_state
 from web.services.deposito_semantic_helpers import correct_deposito_oggetto_for_context
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 from web.services.fascicolo_activity_provenance import recorded_portal_acquisition
@@ -9042,6 +9043,7 @@ def build_react_fascicolo_detail_payload(
     preparation_raw = profile_payload.get("preparazione_busta") if isinstance(profile_payload, dict) else {}
     preparation_raw = preparation_raw if isinstance(preparation_raw, dict) else {}
     preparation_documents = preparation_raw.get("documents") if isinstance(preparation_raw.get("documents"), list) else []
+    preparation_workflow = deposito_workflow_state(preparation_raw)
     preparation_datiatto_extra = preparation_raw.get("datiatto_extra")
     preparation_datiatto_extra = preparation_datiatto_extra if isinstance(preparation_datiatto_extra, dict) else {}
     if not _text(preparation_datiatto_extra.get("professionista_ruolo")) and callable(get_config_studio):
@@ -9063,6 +9065,14 @@ def build_react_fascicolo_detail_payload(
         "policy": _text(preparation_raw.get("tipo_deposito_telematico_policy")),
         "updatedAt": _text(preparation_raw.get("updated_at")),
         "updatedBy": _text(preparation_raw.get("updated_by")),
+        "workflowFingerprint": _text(preparation_workflow.get("fingerprint")),
+        "pecBody": _text(preparation_raw.get("corpo_pec")),
+        "proofCompleted": bool(preparation_workflow["proof"]["ok"]),
+        "proofCompletedAt": _text(preparation_workflow["proof"].get("completed_at")),
+        "simulationCompleted": bool(preparation_workflow["simulation"]["ok"]),
+        "simulationCompletedAt": _text(preparation_workflow["simulation"].get("completed_at")),
+        "sendCompleted": bool(preparation_workflow["send"]["ok"]),
+        "sendCompletedAt": _text(preparation_workflow["send"].get("completed_at")),
         "datiattoExtra": preparation_datiatto_extra,
         "documents": [
             {
@@ -9072,6 +9082,7 @@ def build_react_fascicolo_detail_payload(
                 "studioDocumentType": _text(row.get("studioDocumentType") or row.get("studio_document_type")),
                 "alreadySigned": bool(row.get("alreadySigned") or row.get("already_signed")),
                 "requiresSignature": bool(row.get("requiresSignature") or row.get("requires_signature")),
+                "additionalSignature": bool(row.get("additionalSignature") or row.get("additional_signature")),
             }
             for row in preparation_documents
             if isinstance(row, dict) and _text(row.get("documentId") or row.get("document_id"))

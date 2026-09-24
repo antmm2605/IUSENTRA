@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+import hashlib
+import json
 from typing import Any, Callable
 import uuid
 
@@ -16,6 +18,182 @@ from pct.fascicoli import (
     _tipo_attivita_da_tipo_atto,
 )
 from web.services.local_pec_runtime import local_pec_required_response
+
+
+DEPOSIT_WORKFLOW_VERSION = 1
+DEPOSIT_WORKFLOW_STAGES = ("proof", "simulation", "send")
+
+
+def _workflow_timestamp() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _normalise_workflow_documents(value: Any) -> list[dict[str, Any]]:
+    rows = value if isinstance(value, list) else []
+    normalised: list[dict[str, Any]] = []
+    for raw in rows:
+        if not isinstance(raw, dict):
+            continue
+        document_id = str(raw.get("documentId") or raw.get("document_id") or "").strip()
+        if not document_id:
+            continue
+        normalised.append(
+            {
+                "documentId": document_id,
+                "selected": bool(raw.get("selected")),
+                "role": str(raw.get("role") or "").strip(),
+                "studioDocumentType": str(
+                    raw.get("studioDocumentType") or raw.get("studio_document_type") or ""
+                ).strip(),
+                "alreadySigned": bool(raw.get("alreadySigned") or raw.get("already_signed")),
+                "requiresSignature": bool(
+                    raw.get("requiresSignature") or raw.get("requires_signature")
+                ),
+                "additionalSignature": bool(
+                    raw.get("additionalSignature") or raw.get("additional_signature")
+                ),
+            }
+        )
+    return sorted(normalised, key=lambda row: row["documentId"])
+
+
+def deposito_workflow_fingerprint(preparation: Any) -> str:
+    """Impronta il contenuto effettivo della preparazione, esclusi stato e metadati."""
+
+    row = preparation if isinstance(preparation, dict) else {}
+    canonical = {
+        "typeKey": str(row.get("tipo_deposito_telematico_key") or "").strip(),
+        "policy": str(row.get("tipo_deposito_telematico_policy") or "").strip(),
+        "datiattoExtra": row.get("datiatto_extra") if isinstance(row.get("datiatto_extra"), dict) else {},
+        "documents": _normalise_workflow_documents(row.get("documents")),
+        "pecBody": str(row.get("corpo_pec") or "").replace("\r\n", "\n").strip(),
+    }
+    encoded = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def deposito_workflow_state(preparation: Any) -> dict[str, Any]:
+    row = preparation if isinstance(preparation, dict) else {}
+    fingerprint = deposito_workflow_fingerprint(row)
+    raw = row.get("workflow") if isinstance(row.get("workflow"), dict) else {}
+    if str(raw.get("fingerprint") or "") != fingerprint:
+        raw = {}
+    state: dict[str, Any] = {
+        "version": DEPOSIT_WORKFLOW_VERSION,
+        "fingerprint": fingerprint,
+    }
+    for stage in DEPOSIT_WORKFLOW_STAGES:
+        stage_raw = raw.get(stage) if isinstance(raw.get(stage), dict) else {}
+        state[stage] = {
+            "ok": bool(stage_raw.get("ok")),
+            "completed_at": str(stage_raw.get("completed_at") or "").strip(),
+            "id_deposito": str(stage_raw.get("id_deposito") or "").strip(),
+        }
+    return state
+
+
+def preserve_deposito_workflow(
+    preparation: dict[str, Any],
+    previous_preparation: Any,
+    *,
+    reset: bool = False,
+) -> dict[str, Any]:
+    """Mantiene gli esiti positivi solo se la preparazione è identica."""
+
+    next_preparation = dict(preparation)
+    next_fingerprint = deposito_workflow_fingerprint(next_preparation)
+    previous_state = deposito_workflow_state(previous_preparation)
+    if reset or previous_state["fingerprint"] != next_fingerprint:
+        clean_preparation = dict(next_preparation)
+        clean_preparation.pop("workflow", None)
+        previous_state = deposito_workflow_state(clean_preparation)
+    previous_state["fingerprint"] = next_fingerprint
+    next_preparation["workflow"] = previous_state
+    return next_preparation
+
+
+def mark_deposito_workflow_stage(
+    profile: Any,
+    stage: str,
+    *,
+    id_deposito: str = "",
+    completed_at: str = "",
+) -> dict[str, Any]:
+    """Registra un esito positivo rispettando l'ordine obbligatorio del ciclo."""
+
+    if stage not in DEPOSIT_WORKFLOW_STAGES:
+        raise ValueError("Fase deposito non riconosciuta.")
+    next_profile = dict(profile) if isinstance(profile, dict) else {}
+    preparation = dict(next_profile.get("preparazione_busta") or {})
+    if not preparation:
+        raise ValueError("Preparazione del deposito non salvata.")
+    workflow = deposito_workflow_state(preparation)
+    if stage == "simulation" and not workflow["proof"]["ok"]:
+        raise ValueError("Esegui prima la prova senza invio reale e attendi l'esito positivo.")
+    if stage == "send" and not (workflow["proof"]["ok"] and workflow["simulation"]["ok"]):
+        raise ValueError("Esegui prima prova e simulazione PEC con esito positivo.")
+    if stage != "send" and workflow["send"]["ok"]:
+        raise ValueError("Il deposito risulta già inviato. Avvia un nuovo ciclo per un ulteriore deposito.")
+    if stage == "send" and workflow["send"]["ok"]:
+        raise ValueError("Il deposito risulta già inviato: un secondo invio è bloccato.")
+
+    if stage == "proof":
+        workflow["simulation"] = {"ok": False, "completed_at": "", "id_deposito": ""}
+        workflow["send"] = {"ok": False, "completed_at": "", "id_deposito": ""}
+    elif stage == "simulation":
+        workflow["send"] = {"ok": False, "completed_at": "", "id_deposito": ""}
+    workflow[stage] = {
+        "ok": True,
+        "completed_at": completed_at or _workflow_timestamp(),
+        "id_deposito": str(id_deposito or "").strip(),
+    }
+    preparation["workflow"] = workflow
+    next_profile["preparazione_busta"] = preparation
+    return next_profile
+
+
+def validate_deposito_action_preparation(
+    preparation: Any,
+    *,
+    type_key: str,
+    datiatto_extra: Any,
+    corpo_pec: str,
+    selected_document_ids: list[str],
+    main_document_id: str,
+) -> dict[str, Any]:
+    """Blocca il riuso degli esiti se il form non coincide con la preparazione salvata."""
+
+    row = preparation if isinstance(preparation, dict) else {}
+    if not row:
+        raise ValueError("Salva la preparazione del deposito prima di eseguire la prova.")
+    if str(row.get("tipo_deposito_telematico_key") or "").strip() != str(type_key or "").strip():
+        raise ValueError("Il tipo di deposito è cambiato: il ciclo deve ripartire dalla prova.")
+    saved_data = row.get("datiatto_extra") if isinstance(row.get("datiatto_extra"), dict) else {}
+    submitted_data = datiatto_extra if isinstance(datiatto_extra, dict) else {}
+    if json.dumps(saved_data, ensure_ascii=False, sort_keys=True, separators=(",", ":")) != json.dumps(
+        submitted_data, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ):
+        raise ValueError("I dati del deposito sono cambiati: il ciclo deve ripartire dalla prova.")
+    saved_body = str(row.get("corpo_pec") or "").replace("\r\n", "\n").strip()
+    submitted_body = str(corpo_pec or "").replace("\r\n", "\n").strip()
+    if saved_body != submitted_body:
+        raise ValueError("Il testo PEC è cambiato: il ciclo deve ripartire dalla prova.")
+    documents = _normalise_workflow_documents(row.get("documents"))
+    saved_selected = sorted(
+        item["documentId"]
+        for item in documents
+        if item["selected"] and item["role"] != "fuori_busta"
+    )
+    submitted_selected = sorted({str(item or "").strip() for item in selected_document_ids if str(item or "").strip()})
+    if saved_selected != submitted_selected:
+        raise ValueError("I documenti del deposito sono cambiati: il ciclo deve ripartire dalla prova.")
+    saved_main = next(
+        (item["documentId"] for item in documents if item["selected"] and item["role"] == "atto_principale"),
+        "",
+    )
+    if saved_main != str(main_document_id or "").strip():
+        raise ValueError("L’atto principale è cambiato: il ciclo deve ripartire dalla prova.")
+    return deposito_workflow_state(row)
 
 
 def con_avviso_pec_mittente(payload: dict[str, Any], pec_config_error: str | None) -> dict[str, Any]:

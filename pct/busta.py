@@ -339,6 +339,30 @@ class DatiBusta:
     data_notifica_citazione: str = ""
 
 
+def _e_xml_in_chiaro(payload: bytes) -> bool:
+    """Vero per un XML non firmato: una busta CAdES e' DER (0x30) o PEM, non «<»."""
+    testa = payload[:512].lstrip(b"\xef\xbb\xbf \t\r\n")
+    return testa.startswith(b"<")
+
+
+def e_ricevuta_telematica_pagopa(payload: bytes) -> bool:
+    """Vero se il file e' la RT pagoPA scaricata dal PST, l'XML e non il PDF.
+
+    Si guarda il contenuto e non il nome: «RT-330008103520209603.xml» e'
+    una ricevuta, «report_finale.pdf» no, e un nome non lo garantisce. La RT
+    dello schema pagoPA ha come radice <RT> e porta l'esito del pagamento
+    (`codiceEsitoPagamento`) e lo IUV del versamento.
+    """
+    if not payload or not _e_xml_in_chiaro(payload):
+        return False
+    # Riusa il parser XML fail-closed del dominio pagamenti: DTD ed entita'
+    # restano vietati anche quando la RT arriva da un upload del fascicolo.
+    from .pagamenti_giustizia import parse_rt  # noqa: PLC0415
+
+    ricevuta = parse_rt(payload)
+    return bool(ricevuta and ricevuta.esito_codice and ricevuta.iuv)
+
+
 @dataclass(frozen=True)
 class _DocumentoBusta:
     filename: str
@@ -489,7 +513,20 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
         return f"part{digest[:8]}-{digest[8:12]}-{digest[12:16]}-{digest[16:20]}-{digest[20:]}"
 
     @staticmethod
-    def _ruolo_allegato_ministeriale(filename: str, tipo: str = "", descrizione: str = "") -> str:
+    def _ruolo_allegato_ministeriale(
+        filename: str, tipo: str = "", descrizione: str = "", payload: bytes = b""
+    ) -> str:
+        """Il ruolo dell'allegato nell'IndiceBusta interno del DatiAtto.xml.
+
+        La RT pagoPA va indicizzata come `RicevutaPagamento`: e' cosi' che la
+        cancelleria trova il pagamento. Indicizzata come `AllegatoSemplice` e'
+        nella busta ma non e' «il pagamento», e il deposito torna indietro con
+        «PAGAMENTO NON LEGGIBILE» (rifiuto del 24/09/2026, busta 155701307).
+        L'elemento e' dichiarato in tutti gli schemi degli allegati che la busta
+        usa: civile v1 e v2, giudice di pace v3, Cassazione v10 e v11.
+        """
+        if e_ricevuta_telematica_pagopa(payload):
+            return "RicevutaPagamento"
         text = f"{filename} {tipo} {descrizione}".casefold()
         if "procura" in text:
             return "ProcuraLiti"
@@ -600,7 +637,8 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
         ):
             return "PA"
         if (
-            "rt_" in compact
+            # «RT_…» o «RT-…» all'inizio di una parola: «report_finale.pdf» non e' una RT
+            re.search(r"(?<![a-z0-9])rt_", compact)
             or "ricevuta telematica" in text
             or "pagopa" in text
             or ("contributo" in text and "unificat" in text and ("ricevut" in text or "pagament" in text))
@@ -1013,6 +1051,18 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
             if not filename:
                 return f"IndiceBusta interno richiama Content-ID assente in Atto.msg: {ref_id}"
             referenced_names.add(filename)
+            # Il pagamento deve essere indicizzato come pagamento, e solo lui.
+            ruolo = etree.QName(node).localname
+            e_rt = e_ricevuta_telematica_pagopa(attachments.get(filename, b""))
+            if e_rt and ruolo != "RicevutaPagamento":
+                return (
+                    f"La ricevuta di pagamento {filename} e' indicizzata come {ruolo}: la cancelleria "
+                    "non la troverebbe e respingerebbe il deposito per «PAGAMENTO NON LEGGIBILE»"
+                )
+            if ruolo == "RicevutaPagamento" and not e_rt:
+                return f"{filename} e' indicizzato come RicevutaPagamento ma non e' una RT pagoPA leggibile"
+            if e_rt and str((part_metadata.get(filename) or {}).get("content_type") or "") != "application/xml":
+                return f"La ricevuta di pagamento {filename} deve viaggiare come application/xml, non come busta firmata"
 
         atto_id = str(atto_nodes[0].get("id") or "").strip()
         if content_id_to_name.get(atto_id) != main_name:
@@ -1160,17 +1210,23 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                 self.nome_file_ministeriale(allegato.nome_file or all_path.name),
                 used_names,
             )
+            # Un XML in chiaro — la RT pagoPA, che si allega senza firma — non
+            # e' una busta PKCS#7: dichiararlo cosi' manda chi lo apre a cercare
+            # una firma che non c'e'. Va in base64 come application/xml, cosi'
+            # arriva identico byte per byte (con text/xml si ricodificherebbe).
+            maintype, subtype = ("application", "xml") if _e_xml_in_chiaro(payload) else ("application", "pkcs7-mime")
             parts.append(
                 _DocumentoBusta(
                     filename=filename,
                     payload=payload,
-                    maintype="application",
-                    subtype="pkcs7-mime",
+                    maintype=maintype,
+                    subtype=subtype,
                     content_id=self._content_id_documento(filename, payload, index),
                     ruolo_indice=self._ruolo_allegato_ministeriale(
                         filename,
                         allegato.tipo,
                         allegato.descrizione,
+                        payload,
                     ),
                     tipo_indice_esterno=self._indice_busta_tipo_allegato(
                         filename,

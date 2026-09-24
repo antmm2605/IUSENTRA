@@ -6112,3 +6112,63 @@ Perimetro: sola lettura e riconciliazione delle ricevute PEC del deposito già i
 - Guardrail mirati: test della catena certificata e test Message-ID originale/IDBUSTA finale superati; nessun duplicato del deposito.
 
 Stato della prova visiva: la riconciliazione è stata verificata sul dato reale di produzione tramite repository e database. La conferma visuale completa nel browser reale resta da registrare dopo il deploy finale.
+
+## Aggiornamento 24/09/2026 — RT pagoPA e ciclo deposito persistente
+
+Perimetro: classificazione della ricevuta telematica di pagamento nella busta,
+sequenza dei tre comandi del deposito e persistenza degli esiti positivi. Il
+canale PEC resta esclusivamente locale: non sono stati modificati password,
+SMTP, AUTH UTF-8, Message-ID, firma, firma multipla o Local Signer.
+
+### Evidenza e direttive applicate
+
+- Il rifiuto relativo alla busta ministeriale `155701307` riportava
+  `PAGAMENTO NON LEGGIBILE` benché la RT fosse presente tra gli allegati.
+- Il file reale `RT-330008103520209603.xml` ha radice pagoPA `RT`, versione
+  `6.2.0`, `codiceEsitoPagamento` e
+  `identificativoUnivocoVersamento`. Il file
+  `ITMNTGPP94L01G791A_250_RC_002.xml` ha invece radice SdI
+  `RicevutaConsegna` e non è una RT pagoPA.
+- Gli schemi ministeriali versionati in
+  `docs/specs/ministero/schema/PagamentiTelematiciGiustizia-6.2.0.xsd`
+  definiscono la RT e i dati del pagamento; gli schemi
+  `docs/specs/ministero/schema/base_v1/tipi-allegati.xsd`, `base_v2` e
+  `base_v3` dichiarano l'elemento `RicevutaPagamento` nell'indice degli
+  allegati.
+
+### Correzione applicativa
+
+- La busta riconosce la RT dal contenuto XML mediante il parser sicuro già
+  usato dal dominio pagamenti. Nome file o estensione non bastano; DTD ed
+  entità sono respinti.
+- La RT valida viene serializzata in `Atto.msg` come `application/xml`, senza
+  alterazione dei byte, e viene indicizzata come `RicevutaPagamento`.
+- Il controllo conclusivo blocca la busta se una RT valida è indicizzata con
+  un ruolo diverso oppure se un file non-RT è marcato come
+  `RicevutaPagamento`.
+- La classificazione React mostra la RT come `Ricevuta di pagamento` e il
+  backend rilegge i byte del documento prima di accettare o imporre tale
+  classificazione.
+- Il ciclo è vincolato all'ordine `Prova senza invio reale` → `Simula invio
+  PEC` → `Invia deposito reale`. Soltanto un esito positivo viene salvato;
+  ricaricamento e nuovo accesso conservano i passaggi riusciti, il secondo
+  invio è bloccato e un nuovo deposito richiede reset esplicito. La modifica
+  di tipo, dati, documenti o corpo PEC invalida gli esiti precedenti.
+
+### Caso reale e anti-regressione
+
+- Fascicolo di produzione: `0BAABCE0`, fonte di verità SQLite tenant-aware.
+- Dopo snapshot verificato, il workflow già realmente eseguito è stato
+  riallineato con prova `0404322C`, invio `64381391` e impronta
+  `75657b4865c89b074533164cbdbef3e6a15c59012121d0c54867d18e833f6400`.
+- La verifica non distruttiva dopo ricaricamento ha confermato: tre esiti
+  persistenti, secondo invio bloccato, nuovo ciclo azzerato e modifica della
+  preparazione azzerante.
+- Nella pagina reale autenticata di produzione sono risultati visibili
+  `Deposito inviato`, `Prova completata`, `Simulazione completata`, `Deposito
+  già inviato` e la riga della RT come `Ricevuta di pagamento`.
+- Non è stata eseguita una nuova prova con dispositivo e non è partita alcuna
+  nuova PEC: il controllo ha riusato l'invio reale già confermato dallo studio.
+
+Stato: comportamento verificato sulla produzione reale; test automatici e
+rilascio `2.386.1` costituiscono il presidio anti-regressione.

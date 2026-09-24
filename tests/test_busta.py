@@ -1185,3 +1185,130 @@ def test_hash_file(dati_busta):
     hash_val = busta._hash_file(dati_busta.atto_principale)
     assert len(hash_val) == 64  # SHA-256 hex = 64 caratteri
     assert hash_val == hash_val.upper()
+
+
+# ── La RT pagoPA nell'indice interno del DatiAtto ──────────────────────────
+#
+# Rifiuto del 24/09/2026 (busta 155701307, Tribunale di Vicenza): controlli
+# automatici superati, poi la cancelleria respinge con «PAGAMENTO NON
+# LEGGIBILE». La RT c'era, valida e integra, ma l'IndiceBusta interno del
+# DatiAtto.xml la dichiarava AllegatoSemplice invece di RicevutaPagamento, e
+# Atto.msg la portava come application/pkcs7-mime pur essendo un XML in chiaro.
+
+_RT_PAGOPA = (
+    b'<?xml version="1.0" encoding="UTF-8"?>\n'
+    b'<RT xmlns="http://www.digitpa.gov.it/schemas/2011/Pagamenti/">\n'
+    b"  <versioneOggetto>6.2.0</versioneOggetto>\n"
+    b"  <datiPagamento>\n"
+    b"    <codiceEsitoPagamento>0</codiceEsitoPagamento>\n"
+    b"    <importoTotalePagato>21.50</importoTotalePagato>\n"
+    b"    <identificativoUnivocoVersamento>30000000000000001</identificativoUnivocoVersamento>\n"
+    b"  </datiPagamento>\n"
+    b"</RT>\n"
+)
+
+
+def _busta_con_rt(tmp_path, *, rt_nome="RT-300000000000000001.xml", rt_payload=_RT_PAGOPA):
+    ricorso = tmp_path / "Ricorso.pdf.p7m"
+    procura = tmp_path / "Procura.pdf.p7m"
+    rt = tmp_path / rt_nome
+    ricorso.write_bytes(_cades_signed_payload(b"%PDF-1.4\nRICORSO\n%%EOF"))
+    procura.write_bytes(_cades_signed_payload(b"%PDF-1.4\nPROCURA\n%%EOF"))
+    rt.write_bytes(rt_payload)
+    dati = DatiBusta(
+        codice_ufficio="0241160092",
+        codice_registro="RGL",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(ricorso),
+        allegati=[
+            Allegato(str(procura), "Procura alle liti", "PROCURA"),
+            # come arriva dal fascicolo: senza tipo esplicito, conta il contenuto
+            Allegato(str(rt), "Ricevuta pagamento contributo unificato", "ALLEGATO"),
+        ],
+        cf_mittente="RSSMRA80A01H501Z",
+        operatore="Avv. Mario Rossi",
+        valore_causa=500.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+    )
+    return BustaTelematica(dati), rt
+
+
+def _crea_con_dati_atto_firmato(busta, cartella):
+    dati_atto = busta.crea_dati_atto_xml_per_firma()
+    return busta.crea_busta(
+        str(cartella),
+        dati_atto_firmato=_cades_signed_payload(dati_atto),
+        require_dati_atto_firmato=True,
+    ), dati_atto
+
+
+def test_la_rt_pagopa_e_indicizzata_come_ricevuta_di_pagamento(tmp_path):
+    from lxml import etree
+
+    busta, rt = _busta_con_rt(tmp_path)
+    _percorso, dati_atto = _crea_con_dati_atto_firmato(busta, tmp_path / "out")
+    root = etree.fromstring(dati_atto)
+    indice = root.xpath("//*[local-name()='IndiceBusta']")[0]
+    ruoli = [etree.QName(nodo).localname for nodo in indice if isinstance(nodo.tag, str)]
+
+    assert "RicevutaPagamento" in ruoli, "la RT deve essere il pagamento, non un allegato qualsiasi"
+    assert ruoli.count("RicevutaPagamento") == 1
+    assert "ProcuraLiti" in ruoli
+
+
+def test_la_rt_viaggia_come_xml_identica_byte_per_byte(tmp_path):
+    import hashlib
+
+    busta, rt = _busta_con_rt(tmp_path)
+    percorso, _dati_atto = _crea_con_dati_atto_firmato(busta, tmp_path / "out")
+    parti = _atto_msg_named_parts(percorso)
+    parte = parti[rt.name]
+
+    assert parte.get_content_type() == "application/xml"
+    assert str(parte.get("Content-Transfer-Encoding")).lower() == "base64"
+    assert hashlib.sha256(parte.get_payload(decode=True)).hexdigest() == hashlib.sha256(_RT_PAGOPA).hexdigest()
+    # gli allegati firmati restano buste PKCS#7
+    assert parti["Procura.pdf.p7m"].get_content_type() == "application/pkcs7-mime"
+
+
+def test_la_busta_non_parte_se_la_rt_non_e_indicizzata_come_pagamento(tmp_path, monkeypatch):
+    """Il controllo prima dell'invio deve fermare proprio l'errore del 24/09/2026."""
+    busta, _rt = _busta_con_rt(tmp_path)
+    monkeypatch.setattr(
+        BustaTelematica,
+        "_ruolo_allegato_ministeriale",
+        staticmethod(lambda filename, tipo="", descrizione="", payload=b"": "AllegatoSemplice"),
+    )
+    with pytest.raises(ValueError, match="PAGAMENTO NON LEGGIBILE"):
+        _crea_con_dati_atto_firmato(busta, tmp_path / "out")
+
+
+def test_solo_la_rt_xml_e_una_ricevuta_di_pagamento():
+    """Il nome non basta: il PDF della ricevuta e un «report_» non sono la RT."""
+    assert BustaTelematica._ruolo_allegato_ministeriale("RT-3000.xml", "", "", _RT_PAGOPA) == "RicevutaPagamento"
+    assert BustaTelematica._ruolo_allegato_ministeriale("Ricevuta pagoPA.pdf", "RT", "Ricevuta telematica", b"%PDF-1.4") == "AllegatoSemplice"
+    assert BustaTelematica._ruolo_allegato_ministeriale("report_finale.xml", "", "", b"<report/>") == "AllegatoSemplice"
+    # una RT dentro una busta CAdES non e' un XML in chiaro: resta com'e'
+    assert BustaTelematica._ruolo_allegato_ministeriale("RT.xml.p7m", "", "", b"\x30\x82\x01\x00") == "AllegatoSemplice"
+    # una fattura elettronica SdI e' XML, ma non e' una RT
+    assert BustaTelematica._ruolo_allegato_ministeriale(
+        "IT01234567890_250_RC_002.xml", "", "", b'<?xml version="1.0"?><RicevutaConsegna><IdentificativoSdI>1</IdentificativoSdI></RicevutaConsegna>'
+    ) == "AllegatoSemplice"
+
+
+def test_una_rt_con_dtd_o_entita_non_viene_accettata_come_pagamento():
+    payload = (
+        b'<?xml version="1.0"?>'
+        b'<!DOCTYPE RT [<!ENTITY iuv "330008103520209603">]>'
+        b'<RT><codiceEsitoPagamento>0</codiceEsitoPagamento>'
+        b'<identificativoUnivocoVersamento>&iuv;</identificativoUnivocoVersamento></RT>'
+    )
+    assert BustaTelematica._ruolo_allegato_ministeriale("RT.xml", "", "", payload) == "AllegatoSemplice"
+
+
+def test_nell_indice_esterno_un_report_non_e_una_ricevuta_telematica():
+    """«report_» contiene «rt_»: prima diventava Tipo=RT."""
+    assert BustaTelematica._indice_busta_tipo_allegato("report_finale.pdf") == "SM"
+    assert BustaTelematica._indice_busta_tipo_allegato("RT-330008103520209603.xml") == "RT"
+    assert BustaTelematica._indice_busta_tipo_allegato("RT_330008103520209603.xml") == "RT"
